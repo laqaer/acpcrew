@@ -120,22 +120,53 @@ ACP_BACKEND_KAS = "kas"
 # The kiro-cli backend is spelled as the empty string throughout, so name it
 # rather than leaving every call site to infer it from "not claude".
 ACP_BACKEND_KIRO = ""
+# Explicit config spelling that normalizes to ACP_BACKEND_KIRO.
+ACP_BACKEND_KIRO_NAME = "kiro"
+# Resolve the first installed spec-family runtime at spawn. Never requires kiro-cli.
+ACP_BACKEND_AUTO = "auto"
+ACP_BACKEND_CURSOR = "cursor"
+ACP_BACKEND_CODEX = "codex"
+ACP_BACKEND_DSH = "dsh"
+ACP_BACKEND_PI = "pi"
+ACP_BACKEND_KIMI = "kimi"
+ACP_BACKEND_GOOSE = "goose"
+ACP_BACKEND_GROK = "grok"
+ACP_BACKEND_DROID = "droid"
+# ACP v1 stdio agents driven by AcpClient (one process per session). Not kiro-cli, not KAS.
+ACP_BACKENDS_SPEC_FAMILY = frozenset(
+    {
+        ACP_BACKEND_CLAUDE,
+        ACP_BACKEND_CURSOR,
+        ACP_BACKEND_CODEX,
+        ACP_BACKEND_DSH,
+        ACP_BACKEND_PI,
+        ACP_BACKEND_KIMI,
+        ACP_BACKEND_GOOSE,
+        ACP_BACKEND_GROK,
+        ACP_BACKEND_DROID,
+    }
+)
 # Membership gate for the ``acp_backend`` kwarg. An unrecognized value would
 # otherwise fall through every ``_is_<backend>`` check and silently spawn
 # kiro-cli, so provider construction rejects it instead.
 ACP_BACKENDS_KNOWN = frozenset(
     {
         ACP_BACKEND_KIRO,
-        ACP_BACKEND_CLAUDE,
         ACP_BACKEND_KAS,
+        ACP_BACKEND_AUTO,
+        *ACP_BACKENDS_SPEC_FAMILY,
     }
 )
-# What an operator may actually persist in ``agent.acp_backend``, which is a
-# narrower question than what the code understands: ``ACP_BACKEND_CLAUDE`` is a
-# dormant seam reached by its own provider, not something to select here. Config
-# resolution degrades an unselectable value to the default, so a typo costs a log
-# line rather than a gateway that will not start.
-ACP_BACKENDS_SELECTABLE = frozenset({ACP_BACKEND_KIRO, ACP_BACKEND_KAS})
+# What an operator may persist in ``agent.acp_backend``. ``kiro`` is an alias
+# for the empty-string kiro-cli identity. Default is ``auto``.
+ACP_BACKENDS_SELECTABLE = frozenset(
+    {
+        ACP_BACKEND_KIRO,
+        ACP_BACKEND_KAS,
+        ACP_BACKEND_AUTO,
+        *ACP_BACKENDS_SPEC_FAMILY,
+    }
+)
 
 # ── Capability membership (harness-parity H6, H7) ──
 # Every capability a backend may claim is an OPT-IN set here, never a negation at
@@ -203,6 +234,7 @@ ACP_BACKENDS_KIRO_IDENTITY_STORE = frozenset({ACP_BACKEND_KIRO})
 PROVIDER_LABEL_DEFAULT = "acp"
 PROVIDER_LABEL_CLAUDE = "claude_code"
 PROVIDER_LABEL_KAS = "kas"
+PROVIDER_LABEL_AUTO = "auto"
 
 # KAS reads only fs.readTextFile / fs.writeTextFile / terminal from the top
 # level of clientCapabilities; every other capability it honours lives under

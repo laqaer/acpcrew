@@ -19,6 +19,15 @@ website/public/fonts/opendyslexic/; the accompanying OFL.txt in that
 directory is the license text, and the same text is reproduced under
 "Bundled Fonts" in THIRD-PARTY-NOTICES.
 
+---
+
+acpcrew (this fork)
+Copyright 2026 laqaer.
+
+This product is a modified version of KiroCrew. Modifications that replace
+the kiro-cli-only ACP spawn path with a multi-runtime ACP registry are
+original to this fork and are licensed under the same Apache License 2.0.
+
 The macOS computer-use feature's optional background-window click path
 (src/kiro_crew/computer_use/macos_skylight.py) uses undocumented macOS
 window-server interfaces. The symbol declarations and the event-field

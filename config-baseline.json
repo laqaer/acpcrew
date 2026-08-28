@@ -23,7 +23,7 @@
         "reasoning_effort": "",
         "provider": "acp",
         "mcp_registry_mode": false,
-        "acp_backend": "",
+        "acp_backend": "auto",
         "default_agent": "",
         "sweep_agents_backups": false,
         "sandbox": "auto",
@@ -252,13 +252,24 @@
       "sensitive": false,
       "tags": [],
       "label": "ACP Backend",
-      "help": "Which ACP agent to drive: '' = kiro-cli (default), 'kas' = kiro-agent. KAS runs chat but has no native subagent progress reporting yet.",
+      "help": "Which ACP agent to drive. Default 'auto' picks the first installed runtime (cursor, claude, codex, kimi, dsh, goose, grok, pi, droid). 'kiro' or '' selects kiro-cli. Spec-family values: cursor, claude, codex, dsh, pi, kimi, goose, grok, droid. 'kas' is kiro-agent.",
       "hasChildren": false,
       "enumValues": [
+        "auto",
         "",
-        "kas"
+        "kiro",
+        "kas",
+        "cursor",
+        "claude",
+        "codex",
+        "dsh",
+        "pi",
+        "kimi",
+        "goose",
+        "grok",
+        "droid"
       ],
-      "defaultValue": ""
+      "defaultValue": "auto"
     },
     {
       "path": "agent.default_agent",

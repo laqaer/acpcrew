@@ -23,6 +23,7 @@ from kiro_crew.acp.runtime import AcpRuntime, AcpRuntimeError
 from kiro_crew.acp.session_handle import AcpSessionHandle
 from kiro_crew.acp.session_provider import AcpSessionProvider
 from kiro_crew.acp.types import (
+    ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KAS,
     ACP_BACKEND_KIRO,
@@ -30,7 +31,9 @@ from kiro_crew.acp.types import (
     ACP_BACKENDS_KIRO_IDENTITY_STORE,
     ACP_BACKENDS_KNOWN,
     ACP_BACKENDS_SESSION_SHARING,
+    ACP_BACKENDS_SPEC_FAMILY,
     EVENT_COMPACTION_STATUS,
+    PROVIDER_LABEL_AUTO,
     PROVIDER_LABEL_CLAUDE,
     PROVIDER_LABEL_DEFAULT,
     PROVIDER_LABEL_KAS,
@@ -461,6 +464,11 @@ class AcpProvider(LLMProvider):
         captures every future backend.
         """
         return self._client.backend == ACP_BACKEND_KIRO
+
+    @property
+    def is_spec_backend(self) -> bool:
+        """True when this provider drives an ACP v1 stdio agent (not kiro/KAS)."""
+        return self._client.backend in ACP_BACKENDS_SPEC_FAMILY
 
     @property
     def is_acp_runtime_backend(self) -> bool:
@@ -1153,9 +1161,22 @@ class AcpProvider(LLMProvider):
         logger.info("ACP effort cleared (kiro); session reset needed for built-in default")
         return False
 
+    def _resolve_auto_backend(self) -> None:
+        """Replace ``auto`` with the first installed ACP runtime before start()."""
+        if self._client.backend != ACP_BACKEND_AUTO:
+            return
+        from kiro_crew.acp.runtimes import RuntimeNotFoundError, select_runtime
+
+        try:
+            selected = select_runtime(ACP_BACKEND_AUTO)
+        except RuntimeNotFoundError as exc:
+            raise AcpError(str(exc)) from exc
+        self._client._acp_backend = selected.id
+
     async def start(self) -> None:
         # Re-apply the overlay on every (re)start to cover resume / model swap.
-        # (no-op for claude backend — that path applies effort live below.)
+        # (no-op for spec-family backends — that path applies effort live below.)
+        self._resolve_auto_backend()
         self._apply_effort_overlay()
         self._apply_tool_search_overlay()
 
@@ -1508,4 +1529,8 @@ def provider_label(provider: Any) -> str:
         return PROVIDER_LABEL_CLAUDE
     if backend == ACP_BACKEND_KAS:
         return PROVIDER_LABEL_KAS
+    if backend == ACP_BACKEND_AUTO:
+        return PROVIDER_LABEL_AUTO
+    if backend in ACP_BACKENDS_SPEC_FAMILY:
+        return backend
     return PROVIDER_LABEL_DEFAULT

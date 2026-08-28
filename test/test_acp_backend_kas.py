@@ -24,6 +24,7 @@ import pytest
 from kiro_crew.acp.runtime import AcpRuntime
 from kiro_crew.acp.session_provider import AcpSessionProvider
 from kiro_crew.acp.types import (
+    ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KAS,
     ACP_BACKEND_KIRO,
@@ -48,13 +49,14 @@ def _build_provider(backend: str) -> AcpProvider:
 
 
 class TestBackendPredicates:
-    """The three predicates are mutually exclusive and total over the known set."""
+    """Family predicates: kiro XOR kas XOR spec. Claude is a spec-family member."""
 
     def test_empty_backend_is_kiro(self):
         provider = _build_provider(ACP_BACKEND_KIRO)
         assert provider.is_kiro_backend is True
         assert provider.is_kas_backend is False
         assert provider.is_claude_backend is False
+        assert provider.is_spec_backend is False
         assert provider.is_acp_runtime_backend is True
 
     def test_kas_backend(self):
@@ -62,32 +64,39 @@ class TestBackendPredicates:
         assert provider.is_kas_backend is True
         assert provider.is_kiro_backend is False
         assert provider.is_claude_backend is False
+        assert provider.is_spec_backend is False
         assert provider.is_acp_runtime_backend is True
 
     def test_claude_backend_unchanged(self):
         provider = _build_provider(ACP_BACKEND_CLAUDE)
         assert provider.is_claude_backend is True
+        assert provider.is_spec_backend is True
         assert provider.is_kiro_backend is False
         assert provider.is_kas_backend is False
         assert provider.is_acp_runtime_backend is False
 
-    @pytest.mark.parametrize("backend", sorted(ACP_BACKENDS_KNOWN))
-    def test_exactly_one_predicate_holds_for_every_known_backend(self, backend):
+    @pytest.mark.parametrize(
+        "backend",
+        sorted(b for b in ACP_BACKENDS_KNOWN if b != ACP_BACKEND_AUTO),
+    )
+    def test_exactly_one_family_holds_for_every_concrete_backend(self, backend):
         provider = _build_provider(backend)
         held = [
             provider.is_kiro_backend,
-            provider.is_claude_backend,
             provider.is_kas_backend,
+            provider.is_spec_backend,
         ]
         assert sum(held) == 1
 
-    @pytest.mark.parametrize("backend", sorted(ACP_BACKENDS_KNOWN))
-    def test_acp_runtime_backend_is_the_positive_form_of_not_claude(self, backend):
-        # The four provider sites that used to read ``not is_claude_backend``
-        # now read ``is_acp_runtime_backend``; the two must stay equivalent for
-        # every known backend so the conversion is behavior-preserving.
+    @pytest.mark.parametrize(
+        "backend",
+        sorted(b for b in ACP_BACKENDS_KNOWN if b != ACP_BACKEND_AUTO),
+    )
+    def test_acp_runtime_backend_is_kiro_or_kas(self, backend):
         provider = _build_provider(backend)
-        assert provider.is_acp_runtime_backend is (not provider.is_claude_backend)
+        assert provider.is_acp_runtime_backend is (
+            provider.is_kiro_backend or provider.is_kas_backend
+        )
 
 
 class TestUnknownBackendRejected:
@@ -171,11 +180,11 @@ class TestConfigThreading:
     future refactor from dropping the kwarg silently.
     """
 
-    def test_default_config_is_kiro(self):
+    def test_default_config_is_auto(self):
         cfg = KiroCrewConfig()
-        assert cfg.agent.acp_backend == ACP_BACKEND_KIRO
+        assert cfg.agent.acp_backend == ACP_BACKEND_AUTO
         provider = cfg.create_provider_factory()(session_key="test:default", agent="")
-        assert provider.is_kiro_backend is True
+        assert provider.client.backend == ACP_BACKEND_AUTO
         assert provider.is_kas_backend is False
 
     def test_configured_kas_reaches_the_provider(self):
@@ -221,7 +230,7 @@ class TestConfigRoundTrip:
         assert cfg.agent.streaming is False
 
     def test_absent_key_loads_as_the_default(self, tmp_path):
-        assert _load_agent_config({}, tmp_path).agent.acp_backend == ACP_BACKEND_KIRO
+        assert _load_agent_config({}, tmp_path).agent.acp_backend == ACP_BACKEND_AUTO
 
     def test_kas_survives_a_load_from_disk(self, tmp_path):
         """The selectable value must reach the provider, not degrade.
@@ -244,7 +253,7 @@ class TestConfigRoundTrip:
         would turn a config typo into a startup crash.
         """
         cfg = _load_agent_config({"acp_backend": bad}, tmp_path)
-        assert cfg.agent.acp_backend == ACP_BACKEND_KIRO
+        assert cfg.agent.acp_backend == ACP_BACKEND_AUTO
 
 
 class TestBackendThreading:
@@ -333,4 +342,4 @@ class TestNoImportCycle:
             timeout=120,
         )
         assert proc.returncode == 0, proc.stderr
-        assert proc.stdout.strip().split("|") == ["", ""]
+        assert proc.stdout.strip().split("|") == ["", "auto"]

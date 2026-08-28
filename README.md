@@ -1,3 +1,8 @@
+> **acpcrew** is a private fork of this repository. It keeps the Kiro Crew
+> gateway and drives **Cursor, Claude, Codex, DeepSeek Harness, Pi, Kimi,
+> Goose, Grok, Droid** over ACP. `kiro-cli` is optional. See [FORK.md](FORK.md).
+> Default: `"agent": { "acp_backend": "auto" }`. CLI alias: `acpcrew`.
+
 <p align="center">
   <img src="assets/banner.svg" alt="Kiro Crew. Keep work moving. Runs on your hardware, remembers across sessions, keeps working unattended.">
 </p>
