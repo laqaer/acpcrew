@@ -26,6 +26,7 @@ import pytest
 from kiro_crew.acp import client as acp_client
 from kiro_crew.acp import runtime as acp_runtime
 from kiro_crew.acp.types import (
+    ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KAS,
     ACP_BACKEND_KIRO,
@@ -34,9 +35,11 @@ from kiro_crew.acp.types import (
     ACP_BACKENDS_KNOWN,
     ACP_BACKENDS_SELECTABLE,
     ACP_BACKENDS_SESSION_SHARING,
+    ACP_BACKENDS_SPEC_FAMILY,
     ACP_BACKENDS_STEER,
     ACP_CLIENT_CAPABILITIES,
     KAS_CLIENT_CAPABILITIES,
+    PROVIDER_LABEL_AUTO,
     PROVIDER_LABEL_CLAUDE,
     PROVIDER_LABEL_DEFAULT,
     PROVIDER_LABEL_KAS,
@@ -67,9 +70,9 @@ def _field_enum(name: str) -> object:
 # ---------------------------------------------------------------------------
 
 
-def test_kiro_is_the_default_backend() -> None:
-    """H1: configuring nothing yields the Kiro harness."""
-    assert _field_default("acp_backend") == ACP_BACKEND_KIRO
+def test_auto_is_the_default_backend() -> None:
+    """H1 (fork): configuring nothing auto-selects an installed spec-family ACP."""
+    assert _field_default("acp_backend") == ACP_BACKEND_AUTO
 
 
 def test_kiro_is_always_selectable() -> None:
@@ -92,16 +95,12 @@ def test_provider_enum_is_acp_only() -> None:
 
 
 @pytest.mark.parametrize("persisted", ["", "kas", "byo-harness", "claude", None, 7])
-def test_unselectable_backend_degrades_to_kiro(persisted: object) -> None:
-    """H3: an unusable persisted value degrades to Kiro and never raises.
-
-    Includes the non-string shapes a hand-edited config.json can hold: a gate
-    that raises here turns a typo into a gateway that will not boot.
-    """
+def test_unselectable_backend_degrades_to_auto(persisted: object) -> None:
+    """H3 (fork): an unusable persisted value degrades to auto and never raises."""
     resolved = _normalize_acp_backend(persisted)
     assert resolved in ACP_BACKENDS_SELECTABLE
     if persisted not in ACP_BACKENDS_SELECTABLE:
-        assert resolved == ACP_BACKEND_KIRO
+        assert resolved == ACP_BACKEND_AUTO
 
 
 def test_enum_and_selectability_are_separate() -> None:
@@ -285,6 +284,8 @@ def test_every_known_backend_has_a_label() -> None:
         ACP_BACKEND_KIRO: PROVIDER_LABEL_DEFAULT,
         ACP_BACKEND_CLAUDE: PROVIDER_LABEL_CLAUDE,
         ACP_BACKEND_KAS: PROVIDER_LABEL_KAS,
+        ACP_BACKEND_AUTO: PROVIDER_LABEL_AUTO,
+        **{backend: backend for backend in ACP_BACKENDS_SPEC_FAMILY if backend != ACP_BACKEND_CLAUDE},
     }
     assert set(labels) == set(ACP_BACKENDS_KNOWN), (
         "a known backend has no PROVIDER_LABEL_* of its own, so it would persist "

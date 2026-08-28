@@ -52,9 +52,11 @@ from kiro_crew.acp.liveness import (
 )
 from kiro_crew.acp.prompt_blocks import build_prompt_blocks
 from kiro_crew.acp.types import (
+    ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KIRO,
     ACP_BACKENDS_INTERNAL_SANDBOX,
+    ACP_BACKENDS_SPEC_FAMILY,
     ACP_BACKENDS_STEER,
     ACP_CLIENT_CAPABILITIES,
     EVENT_AGENT_SWITCHED,
@@ -2254,13 +2256,16 @@ class AcpClient:
         return self.backend == ACP_BACKEND_CLAUDE
 
     @property
-    def _is_kiro(self) -> bool:
-        """True when this client drives kiro-cli (the AcpClient default).
+    def _is_spec(self) -> bool:
+        """True for ACP v1 stdio agents (Cursor, Claude, Codex, dsh, Pi, …)."""
+        return self.backend in ACP_BACKENDS_SPEC_FAMILY
 
-        AcpClient serves exactly two backends — kiro-cli and the dormant claude
-        seam — so this is the positive spelling of the sites that used to read
-        ``not self._is_claude`` (harness-parity H5). KAS runs on AcpRuntime, not
-        AcpClient, so it never reaches this property.
+    @property
+    def _is_kiro(self) -> bool:
+        """True when this client drives kiro-cli.
+
+        AcpClient serves kiro-cli and spec-family ACP agents. KAS runs on
+        AcpRuntime, not AcpClient, so it never reaches this property.
         """
         return self.backend == ACP_BACKEND_KIRO
 
@@ -2667,6 +2672,15 @@ class AcpClient:
         # slow storage; the loop must never wait on the kernel here.
         await asyncio.to_thread(self._work_dir.mkdir, parents=True, exist_ok=True)
 
+        if self._acp_backend == ACP_BACKEND_AUTO:
+            from kiro_crew.acp.runtimes import RuntimeNotFoundError, select_runtime
+
+            try:
+                selected = await asyncio.to_thread(select_runtime, ACP_BACKEND_AUTO)
+            except RuntimeNotFoundError as exc:
+                raise AcpError(str(exc)) from exc
+            self._acp_backend = selected.id
+
         if self._is_claude:
             # Dormant seam — see method docstring. Binary resolution only; the
             # ~/.claude registration glue (settings.local.json, the MCP-registry
@@ -2698,6 +2712,13 @@ class AcpClient:
                     f"script."
                 )
             argv: list[str] = claude_argv
+        elif self._is_spec:
+            from kiro_crew.acp.runtimes import RuntimeNotFoundError, resolve_spawn_argv
+
+            try:
+                argv = await asyncio.to_thread(resolve_spawn_argv, self.backend)
+            except RuntimeNotFoundError as exc:
+                raise AcpError(str(exc)) from exc
         else:
             try:
                 kiro_bin = await _resolve_kiro_bin_for_spawn()
@@ -2848,7 +2869,13 @@ class AcpClient:
         )
         self._pid = self._process.pid
         _spawn_label = (
-            "claude-agent-acp" if self._is_claude else f"{KIRO_CLI_BIN} {KIRO_CLI_SUBCMD}"
+            "claude-agent-acp"
+            if self._is_claude
+            else (
+                f"acp:{self.backend}"
+                if self._is_spec
+                else f"{KIRO_CLI_BIN} {KIRO_CLI_SUBCMD}"
+            )
         )
         # Everything from here to the end of _spawn runs with a LIVE subprocess
         # that nothing has recorded yet, so every step must be guarded. Without
@@ -2977,7 +3004,11 @@ class AcpClient:
             self._stderr_lines.append(text)
             redacted, _ = redact_exfiltration_urls(text)
             redacted, _ = redact_credentials(redacted)
-            _bin_label = "claude-acp" if self._is_claude else KIRO_CLI_BIN
+            _bin_label = (
+                "claude-acp"
+                if self._is_claude
+                else (self.backend or KIRO_CLI_BIN)
+            )
             logger.warning("%s stderr: %s", _bin_label, redacted)
         if suppressed:
             # Flush the residual count once the stream closes so the final burst
@@ -3308,7 +3339,7 @@ class AcpClient:
         """Handshake: initialize → session/load or session/new → set_mode → set_model."""
         # 1. Initialize
         protocol_version: int | str = (
-            PROTOCOL_VERSION_CLAUDE if self._is_claude else PROTOCOL_VERSION
+            PROTOCOL_VERSION_CLAUDE if self._is_spec else PROTOCOL_VERSION
         )
         init_id = await self._send_request(
             METHOD_INITIALIZE,
@@ -3338,11 +3369,9 @@ class AcpClient:
             # ~38% on turn 1. kiro-cli stores transcripts at ~/.kiro/sessions/
             # cli/<sid>.json; a missing transcript falls back to session/new
             # (a genuinely fresh start).
-            if self._is_claude:
-                # Dormant seam: claude session/load takes no file path, and the
-                # SDK transcript-path resolver lived in the deleted cc cleanup
-                # helper. The internal companion re-adds it; the public core
-                # simply attempts the load.
+            if self._is_spec:
+                # Spec-family agents (Cursor, Claude, Codex, dsh, …) do not use
+                # kiro-cli's ~/.kiro/sessions/cli/<sid>.json transcript path.
                 session_file = ""
                 file_ok = True
             else:
@@ -3364,10 +3393,11 @@ class AcpClient:
                             *(await asyncio.to_thread(self._pooled_mcp_servers)),
                         ],
                     }
-                    if self._is_claude:
-                        load_params["_meta"] = {"claudeCode": {"options": {}}}
-                    else:
-                        load_params["_meta"] = {"_kiro.dev/session_file": session_file}
+                    from kiro_crew.acp.runtimes import session_load_meta
+
+                    load_meta = session_load_meta(self.backend, session_file=session_file)
+                    if load_meta is not None:
+                        load_params["_meta"] = load_meta
                     load_id = await self._send_request(METHOD_SESSION_LOAD, load_params)
                     load_resp = await self._wait_for_response(
                         load_id,

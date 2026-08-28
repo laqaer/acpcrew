@@ -1,9 +1,17 @@
 # Harness parity: Kiro first, everything else adapted
 
-A *harness* is the agent process Kiro Crew drives over ACP. Kiro Crew has one
+**This fork (acpcrew) inverts H1's default, not H5–H12.** `agent.acp_backend`
+defaults to `auto` (first installed spec-family ACP runtime). kiro-cli remains
+selectable and optional. Identity is still a positive comparison; capabilities
+are still opt-in membership sets. Unknown values degrade to `auto`, not kiro-cli.
+Pinned by `test_harness_parity.py::test_auto_is_the_default_backend` and
+`::test_unselectable_backend_degrades_to_auto`.
+
+A *harness* is the agent process Kiro Crew drives over ACP. Upstream has one
 first-class harness — `kiro-cli` (`ACP_BACKEND_KIRO`, spelled `""`) — and a
-growing set of adapted ones: the dormant `ACP_BACKEND_CLAUDE` seam, `KAS`
-(`ACP_BACKEND_KAS`), and whatever a bring-your-own (BYO) adapter registers next.
+growing set of adapted ones. This fork adds the spec-family set in
+`ACP_BACKENDS_SPEC_FAMILY` (cursor, claude, codex, dsh, pi, kimi, goose, grok,
+droid) plus `ACP_BACKEND_AUTO`.
 
 *Parity* here does not mean equal treatment. It means the opposite, stated
 precisely: **an added harness may only adapt itself to the seams the Kiro
@@ -47,9 +55,9 @@ and Kiro stops being the guaranteed path.
 
 | Id | Guarantees | Pinned by | Constrains |
 |---|---|---|---|
-| H1 | `agent.acp_backend` defaults to `ACP_BACKEND_KIRO`, and `ACP_BACKEND_KIRO` is in `ACP_BACKENDS_SELECTABLE` unconditionally. An operator who configures nothing, and an operator whose configuration is unusable, both get the Kiro harness. | `test_harness_parity.py::test_kiro_is_the_default_backend`, `::test_kiro_is_always_selectable` | `config/loader.py` (`AgentConfig.acp_backend`), `acp/types.py` (`ACP_BACKENDS_SELECTABLE`) |
+| H1 | **Fork:** `agent.acp_backend` defaults to `ACP_BACKEND_AUTO`. `ACP_BACKEND_KIRO` stays in `ACP_BACKENDS_SELECTABLE` unconditionally. Configuring nothing auto-selects an installed spec-family ACP; kiro-cli is optional. | `test_harness_parity.py::test_auto_is_the_default_backend`, `::test_kiro_is_always_selectable` | `config/loader.py` (`AgentConfig.acp_backend`), `acp/types.py` (`ACP_BACKENDS_SELECTABLE`) |
 | H2 | A harness is chosen at `agent.acp_backend`. `agent.provider` stays `enum=["acp"]`: there is one provider and it is never the harness selector, because a second provider value would route around every invariant below. | `test_harness_parity.py::test_provider_enum_is_acp_only` | `config/loader.py` (`AgentConfig.provider`, `build_provider_factory`) |
-| H3 | An unknown or unselectable persisted backend degrades to Kiro with a logged reason. It never raises and never survives — including the non-string shapes a hand-edited `config.json` can hold. Startup refusing with a reason is the contract; a stack trace or a silent foreign spawn is not. | `test_harness_parity.py::test_unselectable_backend_degrades_to_kiro` | `config/loader.py` (`_normalize_acp_backend`) |
+| H3 | **Fork:** an unknown or unselectable persisted backend degrades to `auto` with a logged reason. It never raises and never silently spawns kiro-cli. Explicit `kiro` / `""` still select kiro-cli. | `test_harness_parity.py::test_unselectable_backend_degrades_to_auto` | `config/loader.py` (`_normalize_acp_backend`) |
 | H4 | Enum membership and selectability stay two mechanisms. `validate_config_data` *deletes* an out-of-enum value before the loader sees it, and the degrade log only fires on a non-empty value — so a preview harness missing from the enum vanishes with no log line at all. Everything the enum admits must still resolve to a selectable backend. | `test_harness_parity.py::test_enum_and_selectability_are_separate` | `config/loader.py` (`AgentConfig.acp_backend` metadata), `config/validation.py` (`validate_config_data`) |
 
 ## Group B: identity is tested positively

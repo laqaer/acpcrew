@@ -1528,12 +1528,28 @@ class AgentConfig:
         ),
     )
     acp_backend: str = field(
-        default="",
+        default="auto",
         metadata=_meta(
             "ACP Backend",
-            "Which ACP agent to drive: '' = kiro-cli (default), 'kas' = kiro-agent. "
-            "KAS runs chat but has no native subagent progress reporting yet.",
-            enum=["", "kas"],
+            "Which ACP agent to drive. Default 'auto' picks the first installed "
+            "runtime (cursor, claude, codex, kimi, dsh, goose, grok, pi, droid). "
+            "'kiro' or '' selects kiro-cli. Spec-family values: cursor, claude, "
+            "codex, dsh, pi, kimi, goose, grok, droid. 'kas' is kiro-agent.",
+            enum=[
+                "auto",
+                "",
+                "kiro",
+                "kas",
+                "cursor",
+                "claude",
+                "codex",
+                "dsh",
+                "pi",
+                "kimi",
+                "goose",
+                "grok",
+                "droid",
+            ],
         ),
     )
     default_agent: str = field(
@@ -4513,36 +4529,29 @@ def _normalize_jail(value: object) -> str:
 def _normalize_acp_backend(value: object) -> str:
     """Coerce a persisted ``agent.acp_backend`` to a selectable backend.
 
-    Anything not selectable — an unknown value, or a backend the code understands
-    but cannot yet serve a session with — normalizes to the default (kiro-cli)
-    with a warning rather than propagating: ``AcpProvider`` rejects an unknown
-    backend by raising, and a value that is merely incomplete would instead fail
-    on the operator's first message. Both must degrade to the working default at
-    startup, with the reason in the log.
-
-    The import is deferred because it cannot be done at module scope: reaching
-    ``kiro_crew.acp.types`` executes the ``kiro_crew.acp`` package init, which
-    imports the ACP client and runtime, which import this module — and this
-    module is imported first by the gateway and desktop entrypoints.
+    Unknown values degrade to ``auto`` (first installed spec-family runtime)
+    rather than silently spawning kiro-cli. Explicit ``kiro`` (or the empty
+    string) still selects kiro-cli. The import is deferred because reaching
+    ``kiro_crew.acp.types`` executes the ``kiro_crew.acp`` package init.
     """
     from kiro_crew.acp.types import (
+        ACP_BACKEND_AUTO,
         ACP_BACKEND_KIRO,
-        ACP_BACKENDS_KNOWN,
+        ACP_BACKEND_KIRO_NAME,
         ACP_BACKENDS_SELECTABLE,
     )
 
+    if value == ACP_BACKEND_KIRO_NAME:
+        return ACP_BACKEND_KIRO
     if isinstance(value, str) and value in ACP_BACKENDS_SELECTABLE:
         return value
-    if value not in (None, ""):
-        known_but_unusable = isinstance(value, str) and value in ACP_BACKENDS_KNOWN
+    if value not in (None,):
         logger.warning(
-            "Ignoring agent.acp_backend %r (%s); using the default backend. "
-            "Selectable values: %s",
+            "Ignoring agent.acp_backend %r; using auto. Selectable values: %s",
             value,
-            "not usable yet" if known_but_unusable else "unknown",
-            ", ".join(repr(b) for b in sorted(ACP_BACKENDS_SELECTABLE)),
+            ", ".join(repr(b) for b in sorted(ACP_BACKENDS_SELECTABLE) if b),
         )
-    return ACP_BACKEND_KIRO
+    return ACP_BACKEND_AUTO
 
 
 def _validate_activation(value: str) -> str:
