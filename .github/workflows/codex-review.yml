@@ -444,7 +444,7 @@ jobs:
       # Bedrock, to minimize the window the credentials exist in the job
       # environment. Uses a DEDICATED least-privilege role (GPT/Mantle only,
       # pull_request-scoped) so a leaked token can't reach the Opus 4.8 reviewer's model access.
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6.2.4
         if: github.actor != 'dependabot[bot]' && steps.human_override.outputs.active != 'true'
         with:
           role-to-assume: ${{ secrets.AWS_CODEX_BEDROCK_ROLE_ARN }}
