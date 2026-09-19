@@ -2423,6 +2423,22 @@ export const api = {
   defaultAgent: () => fetch('/api/config/default-agent').then(j),
   setDefaultAgent: (agent: string) => put('/api/config/default-agent', { agent }).then(j),
   kirocrewConfig: () => fetch('/api/config/kirocrew').then(j),
+  modelRouterCatalog: () =>
+    fetch('/api/model-router/catalog').then(j) as Promise<{
+      version: number
+      source: string
+      provider_count: number
+      model_count: number
+      models: Array<{
+        slug: string
+        display_name: string
+        provider: string
+        listed: boolean
+        cost_class?: string
+        priority?: number
+      }>
+    }>,
+  modelRouterPlan: () => fetch('/api/model-router/plan').then(j),
   saveKirocrewConfig: (agent: object) => put('/api/config/kirocrew', { agent }).then(j) as Promise<{ ok?: boolean; restart_required?: boolean; error?: string }>,
   patchConfig: (path: string, value: unknown) => fetch('/api/config/kirocrew', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, value }) }).then(j),
   // Optional integrations — backend endpoints are graceful no-ops on a public

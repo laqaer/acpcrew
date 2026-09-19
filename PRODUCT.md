@@ -31,9 +31,11 @@ Two planes, one product. See [`ARCHITECTURE.md`](ARCHITECTURE.md).
    Harness, Goose, Grok, Pi, Droid. Pin a concrete id when you want one
    agent. `kiro-cli` remains selectable and last in that preference list.
 2. **Model plane** — an optional Codex Router sidecar on loopback. Junction
-   observes it (`src/kiro_crew/model_router/`). Agents may later point
-   `openai_base_url` at it. If the sidecar is down, the ACP gateway still
-   runs.
+   observes it (`src/kiro_crew/model_router/`). The shipped catalog lists
+   every namespaced model choice the sidecar advertises. Role routing
+   (orchestration → planning → execution) spends cheaper models on
+   coordination and capable models on planning. If the sidecar is down, the
+   ACP gateway still runs.
 
 Memory, cron, skills, and the dashboard come from the gateway that already
 lives in this tree.
@@ -43,8 +45,6 @@ lives in this tree.
 - **Not another chatbot.** There is no hosted conversation product and no
   account system of Junction's own.
 - **Not a Codex clone.** Codex is one dockable ACP agent, not the product.
-- **Not Kiro Crew.** Kiro Crew is the Apache-2.0 upstream this checkout
-  forks. Junction is the product name of this fork.
 - **Not Codex Router.** Codex Router is the MIT model-plane sidecar Junction
   observes. It is a separate project; this checkout does not vendor it.
 
@@ -56,8 +56,8 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 | Command | Role |
 |---|---|
 | `junction` | Primary CLI. |
-| `acpcrew` | Alias of the same entry point. |
-| `kirocrew` | Alias of the same entry point (upstream spelling). |
+| `junction router catalog` | Namespaced model choices (no credentials). |
+| `junction router plan` | Orchestration / planning / execution DAG. |
 
 ```json
 {
@@ -68,24 +68,17 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 }
 ```
 
-## Identifiers that stay
+## Implementation identifiers
 
-Until a dedicated, human-gated rename, these stay as upstream spelled them:
-
-| Identifier | Value |
-|---|---|
-| Python package | `kiro_crew` |
-| Data-home env | `KIROCREW_HOME` |
-| Default data home | `~/.kiro/crew` |
-| Electron `productName` | unchanged |
-| GitHub slug | `laqaer/acpcrew` |
-| PyPI name | `kirocrew` |
+Python import path, data-home env, and default data directory keep the
+spellings the runtime already uses (`kiro_crew`, `KIROCREW_HOME`,
+`~/.kiro/crew`) until a dedicated, human-gated rename. They are not the
+product name. GitHub slug: `laqaer/acpcrew`.
 
 The brand gate still forbids concatenated `KiroCrew` in **new prose**.
-Junction is the product. "Kiro Crew" (two words) is the upstream project's
-name.
+Junction is the product.
 
-## Authority and lineage
+## Authority
 
 Frozen identity and the execution envelope:
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md). Agent overlay:

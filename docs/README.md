@@ -1,4 +1,4 @@
-# Kiro Crew Documentation
+# Junction Documentation
 
 **This directory is the contributor and architecture documentation.** It is not
 shipped to users: the docs that ship inside the Python package live in
@@ -12,15 +12,15 @@ New here? Start with [guides/install.md](guides/install.md), then
 
 | Directory | What it is for |
 |---|---|
-| [guides/](guides/README.md) | Install, run, and operate Kiro Crew. Task-oriented. |
+| [guides/](guides/README.md) | Install, run, and operate Junction. Task-oriented. |
 | [architecture/](architecture/README.md) | How the system fits together, one doc per cross-cutting concern. |
 | [build/](build/README.md) | Packaging, signing, and releasing. |
 | [ci/](ci/README.md) | Everything that gates a pull request. |
-| [app-kit/](app-kit/README.md) | Building apps that run inside Kiro Crew (third-party developer docs). |
+| [app-kit/](app-kit/README.md) | Building apps that run inside Junction (third-party developer docs). |
 | [design/](design/README.md) | Proposals for changes agreed before they are built. |
-| [plans/](plans/) | Dated fork design + implementation plans (`2026-08-25-acpcrew-design.md`). |
+| [plans/](plans/) | Dated design + implementation plans (`2026-08-25-acpcrew-design.md`). |
 | [adr/](adr/README.md) | Junction architecture decision records (identity, two planes, sidecar, security, preview). |
-| [provenance/](provenance/README.md) | Lineage of this checkout: Kiro Crew fork + Codex Router observation. |
+| [provenance/](provenance/README.md) | Lineage of this checkout: Apache-2.0 gateway + Codex Router observation. |
 | [TASK_MAP.md](TASK_MAP.md) | Junction bootstrap epic and lane map. |
 | [system-specs/](system-specs/README.md) | Change-control contracts. The doc a code change MUST update in the same commit. |
 | [request-for-change/](request-for-change/README.md) | Proposals and decision records for large or contested changes. |

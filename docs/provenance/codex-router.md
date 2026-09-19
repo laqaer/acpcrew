@@ -48,6 +48,7 @@ reimplement LiteLLM. ADR: [0003](../adr/0003-sidecar-not-vendor.md).
 
 ## This cut
 
-Python health/status in `src/kiro_crew/model_router/`. Observe and
-compose. Copy **no** bytes, so NOTICE is unchanged. Operator-install of
-the sidecar is M2.
+Python health, catalog, and role routing in `src/kiro_crew/model_router/`.
+Observe and compose. Catalog JSON copies slugs and labels only (MIT
+registry metadata, no credentials, no endpoints). Operator-install of the
+sidecar is M2.

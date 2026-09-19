@@ -1,7 +1,7 @@
 # Architecture — two planes
 
 Junction is a **local control plane** that docks ACP agents and routes their
-models. Combining this fork with Codex Router is two planes in one product,
+models. Combining this tree with Codex Router is two planes in one product,
 not a Node dump into Python.
 
 Decision records: [ADR 0002](docs/adr/0002-two-planes.md) (compose, do not
@@ -62,11 +62,19 @@ rather than implying a hidden install.
 
 ## Model plane
 
-This cut **observes and composes**. Python health / status lives in
-`src/kiro_crew/model_router/`. The sidecar is the published Codex Router
-(or a later, separately decided subset). Junction does not vendor the Node
-tree, copy tray / widget / Electron / public Cursor HTTPS tunnel / ACP
-agent bridges, or reimplement LiteLLM.
+This cut **observes and composes**. Python health, the namespaced model-choice
+catalog, and the role DAG live in `src/kiro_crew/model_router/`. The sidecar
+is the published Codex Router (or a later, separately decided subset).
+Junction does not vendor the Node tree, copy tray / widget / Electron /
+public Cursor HTTPS tunnel / ACP agent bridges, or reimplement LiteLLM.
+
+Catalog slugs (for example `kimi-oauth/k3`, `deepseek/deepseek-v4-pro`) are
+the model choices. Live-catalog providers such as GitHub Copilot ship as
+provider rows without hardcoded model ids. Role routing maps
+orchestration → planning → execution (plus background / subagent) onto
+cost classes (economy / standard / capable) so tokens buy the most work.
+Unpinned roles stay `"auto"` until an advertised set is known; operators
+may pin `agent.role_models.<role>`.
 
 If the sidecar is absent or unhealthy, the ACP gateway still runs. That
 degradation is documented, not silent. Spec:

@@ -10,14 +10,14 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Field | Value |
 |---|---|
 | Product | **Junction** |
-| CLI | `junction` (primary). `acpcrew` and `kirocrew` remain aliases. |
+| CLI | `junction` |
 | Tagline | Where coding agents meet the models you want. |
 | Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring `kiro-cli`. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
 | Visual | Keep the amber already in `site/`. Drop the ghost emoji. Junction / track motif. No emoji icons. |
 | GitHub slug | `laqaer/acpcrew` until a human renames it. |
-| Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as upstream spelled them. |
-| Lineage | Apache-2.0 [Kiro Crew](https://github.com/kirodotdev/KiroCrew) fork + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product. |
+| Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
+| Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
 
 Decision record: [`docs/adr/0001-product-identity.md`](docs/adr/0001-product-identity.md).
 Agent overlay: [`JUNCTION.md`](JUNCTION.md).
@@ -25,7 +25,7 @@ Agent overlay: [`JUNCTION.md`](JUNCTION.md).
 ## Two-plane thesis
 
 Junction is a **local control plane** that docks ACP agents and routes their
-models. Combining this fork with Codex Router is two planes in one product,
+models. Combining this tree with Codex Router is two planes in one product,
 not a Node dump into Python.
 
 ```

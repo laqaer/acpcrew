@@ -1,4 +1,4 @@
-"""This fork's displayed product name and primary CLI alias."""
+"""Junction's displayed product name and primary CLI."""
 
 from __future__ import annotations
 

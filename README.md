@@ -1,8 +1,7 @@
-> **Junction** (`laqaer/acpcrew`) is a local control plane: dock ACP coding
-> agents and route their models. CLI: `junction` (aliases `acpcrew`,
-> `kirocrew`). `kiro-cli` is optional. Default:
-> `"agent": { "acp_backend": "auto" }`. See [PRODUCT.md](PRODUCT.md),
-> [ARCHITECTURE.md](ARCHITECTURE.md), and [FORK.md](FORK.md).
+> **Junction** is a local control plane: dock ACP coding agents and route
+> their models. CLI: `junction`. `kiro-cli` is optional. Default:
+> `"agent": { "acp_backend": "auto" }`. See [PRODUCT.md](PRODUCT.md) and
+> [ARCHITECTURE.md](ARCHITECTURE.md).
 
 <h1 align="center">Junction</h1>
 
@@ -18,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kirodotdev/KiroCrew/releases"><img src="https://img.shields.io/badge/Download-macOS%20%7C%20Linux%20%7C%20Windows-2f6feb?style=flat-square" alt="Download Kiro Crew for macOS, Linux, or Windows"></a>
+  <a href="#quick-start"><img src="https://img.shields.io/badge/Install-from%20source-2f6feb?style=flat-square" alt="Install Junction from source"></a>
   <a href="docs/README.md"><img src="https://img.shields.io/badge/Documentation-1f6feb?style=flat-square" alt="Read the documentation"></a>
   <a href="docs/guides/install.md"><img src="https://img.shields.io/badge/Install%20guide-macOS%20%7C%20Linux%20%7C%20Windows-6e7781?style=flat-square" alt="Install guide for macOS, Linux, and Windows"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/Contributing-238636?style=flat-square" alt="Contributing guide"></a>
@@ -29,8 +28,8 @@
 <p align="center">
   <a href="#quick-start">Quick start</a> ·
   <a href="#build-from-source">Build from source</a> ·
-  <a href="#why-kiro-crew">Why Kiro Crew</a> ·
-  <a href="#what-kiro-crew-does">Capabilities</a> ·
+  <a href="#why-junction">Why Junction</a> ·
+  <a href="#what-junction-does">Capabilities</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#security-and-control">Security</a> ·
   <a href="#install-configure-and-operate">Install</a> ·
@@ -46,153 +45,27 @@ always-on servers, or a build from source. `kiro-cli` is optional. The
 gateway docks whichever ACP runtime is installed (`agent.acp_backend`
 defaults to `auto`: Cursor, Claude, Codex, and the rest).
 
-### App downloads
+### Install from source
 
-The desktop app starts a bundled Gateway when no local Gateway is already
-running, updates itself on the channel you download, and can connect to a
-remote Gateway over an SSH tunnel. See the
-[desktop app guide](docs/build/desktop-app.md).
-
-- **macOS** (Apple Silicon/Intel): [Stable](https://download.crew.kiro.dev/desktop/stable/latest/KiroCrew.dmg) | [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew.dmg) | [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew.dmg)
-- **Windows** (x64): Stable — none, use a [source install](#build-from-source) | [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-Setup.exe) | [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-Setup.exe) · [why](docs/guides/windows-install.md#desktop-installer)
-
-**On Linux, start with the one-line install** — it is the smoothest path, works
-on every distro and both architectures, and puts `kirocrew` on your `PATH`,
-which is what makes `kirocrew service install` (and the AppArmor profile the
-agent sandbox needs on Ubuntu 23.10+) reachable:
+Junction ships from this repository. `kiro-cli` is optional. After install,
+the dashboard is `http://localhost:5476`.
 
 ```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
+git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+junction setup
+junction doctor
+junction gateway
 ```
 
-You then work in the dashboard at `http://localhost:5476`. Add a **desktop
-package** when you want what only the Electron shell gives you: an
-application-menu entry and icon, a native window, a taskbar badge, a system-wide
-hotkey, a Gateway that starts and stops with the app, and in-app updates. A
-`.deb` or `.rpm` installs to a fixed path under `/opt`, which is what lets it set
-the AppArmor profile up for you; the AppImage needs no root but needs FUSE and
-carries a manual sandbox step. `uname -m` prints which architecture you need.
+Optional model plane: run a Codex Router sidecar on loopback, then
+`junction router catalog` and `junction router plan` to see namespaced
+model choices and the orchestration → planning → execution DAG.
 
-| Linux desktop package | x86_64 | aarch64 (Graviton, Raspberry Pi, ARM laptops) |
-|---|---|---|
-| **`.deb`** (Debian, Ubuntu) | [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-x86_64.deb) · [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-x86_64.deb) | [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-aarch64.deb) · [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-aarch64.deb) |
-| **`.rpm`** (Fedora, RHEL, CentOS Stream, Amazon Linux 2023) | [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-x86_64.rpm) · [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-x86_64.rpm) | [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-aarch64.rpm) · [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-aarch64.rpm) |
-| **AppImage** (no root, any distro) | [Stable](https://download.crew.kiro.dev/desktop/stable/latest/KiroCrew-x86_64.AppImage) · [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-x86_64.AppImage) · [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-x86_64.AppImage) | [Stable](https://download.crew.kiro.dev/desktop/stable/latest/KiroCrew-aarch64.AppImage) · [Insider](https://download.crew.kiro.dev/desktop/insider/latest/KiroCrew-aarch64.AppImage) · [Nightly](https://download.crew.kiro.dev/desktop/nightly/latest/KiroCrew-aarch64.AppImage) |
-
-**`.deb` and `.rpm` reach Stable when 0.4.0 does** — their publish lanes landed
-after the 0.3.0 release branch was cut, so Stable serves the AppImage for now.
-
-```bash
-sudo apt install ./KiroCrew-x86_64.deb     # Debian, Ubuntu
-sudo dnf install ./KiroCrew-x86_64.rpm     # Fedora, RHEL, CentOS Stream, AL2023
-```
-
-The Linux desktop app needs **glibc 2.34 or newer** (Ubuntu 22.04+, Debian 12+,
-Fedora, CentOS Stream 9, Amazon Linux 2023). On an older host — Ubuntu 20.04,
-Debian 11, Amazon Linux 2 — use the one-line install above.
-
-Every architecture below is a first-class lane: each gets its own build, its own
-auto-update feed, and its own SLSA provenance attestation.
-
-| Install path | x86_64 | aarch64 (ARM64) |
-|---|---|---|
-| **CLI one-liner / wheel** | yes | yes (the wheel is `py3-none-any`; native libraries are vendored per architecture) |
-| **Desktop `.deb` / `.rpm` / AppImage** | yes | yes |
-| **Docker image** | yes | yes (`linux/amd64` and `linux/arm64` under every tag, so `docker pull` picks yours) |
-
-Take Stable unless you have a reason not to — the table below says who each
-channel is for.
-
-### Release channels
-
-Every install path — desktop app, CLI, Docker image — offers the same three
-channels. Pick by how much churn you can absorb, not by version number:
-
-| Channel | Who it's for | Built from | Cadence |
-|---------|--------------|------------|---------|
-| **Stable** | Everyone. The default on every install path. | The Insider build that baked long enough to be promoted | On promotion, no calendar commitment |
-| **Insider** | Power users who want features days to weeks early and accept the new bugs that come with them | Release-branch release-candidate tags | Every RC |
-| **Nightly** | Us and contributors. Untested `main` HEAD — expect breakage. | `main`, 06:00 UTC daily | Daily |
-
-Stable and Insider are two update lanes of the **same** app. The desktop app
-switches between them in Settings → About, a CLI install switches by re-running
-the installer with `--channel`, and a container switches by pulling a different
-tag. Either way, the other lane's current version then arrives as an ordinary
-update.
-
-Nightly is a separate app with its own name and icon, so it installs *alongside*
-a Stable or Insider one rather than replacing it. It is not a sandbox, though: it
-reads the same `~/.kiro/crew` data home unless you point it elsewhere with
-`KIROCREW_HOME`.
-
-Running Insider or Nightly is a real contribution. When something looks wrong,
-please [open an issue](https://github.com/kirodotdev/KiroCrew/issues) so it gets
-fixed before it reaches Stable.
-
-### One-line install
-
-Install the prebuilt, SHA-256-verified wheel from the release CDN without
-cloning the repository or running `npm` and a local build.
-
-Stable, the default:
-
-```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
-```
-
-Track a faster channel, `insider` or `nightly` (see
-[Release channels](#release-channels) for who each one is for):
-
-```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel insider
-```
-
-Pin an exact version:
-
-```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --version 0.1.0
-```
-
-**Experimental** — run on a fully managed Python instead of the system one.
-The installer fetches a SHA-256-pinned [uv](https://docs.astral.sh/uv/) and
-provisions a self-contained CPython 3.12 into `~/.kiro/crew-python`, so the
-install never depends on (or breaks with) the system interpreter:
-
-```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --managed-python
-```
-
-The choice is sticky: it is recorded next to the channel, so later re-runs of
-the installer — including the one `kirocrew update` performs — keep using the
-managed interpreter without the flag. Opt back out with `--system-python`.
-
-Open `http://localhost:5476` and start a conversation. The web dashboard works
-without messaging credentials. Add a messaging channel —
-[Slack](docs/guides/slack-setup.md),
-[Discord](src/kiro_crew/docs/discord-integration.md),
-[Telegram](src/kiro_crew/docs/telegram-integration.md),
-[Teams](src/kiro_crew/docs/teams-integration.md),
-[Webex](src/kiro_crew/docs/webex-integration.md),
-[WeCom](src/kiro_crew/docs/wecom-integration.md),
-[WeChat](src/kiro_crew/docs/weixin-integration.md), or
-[WhatsApp](src/kiro_crew/docs/whatsapp-integration.md) — when you want to continue
-working with the same agent away from the dashboard. Apart from Teams (which
-needs a public HTTPS webhook — see its guide), these channels connect
-outbound, so you do not need to expose the dashboard port publicly.
-
-### Docker
-
-For always-on servers, the Gateway ships as a public multi-arch image on GHCR:
-
-```bash
-docker run -d --name kirocrew \
-  -p 127.0.0.1:5476:5476 \
-  -v kirocrew-home:/home/kirocrew \
-  ghcr.io/kirodotdev/kirocrew:stable
-```
-
-See the [Docker guide](docs/guides/docker.md) for first-run login, channel tags, and
-the container security model.
+Desktop packages and a one-line installer are a later cut. Until then,
+install from source as above.
 
 ### Build from source
 
@@ -209,15 +82,15 @@ cd acpcrew
 make build
 source .venv/bin/activate
 
-# 2. Configure, verify, and start (`acpcrew` and `kirocrew` are aliases)
+# 2. Configure, verify, and start (the CLI is `junction`)
 junction setup
 junction doctor
 junction gateway
 ```
 
-## Why Kiro Crew
+## Why Junction
 
-Most agent sessions end when the chat closes. Kiro Crew runs continuously on
+Most agent sessions end when the chat closes. Junction runs continuously on
 hardware you control and keeps working between conversations.
 
 **Persistent.** Sessions, memory, schedules, and task checkpoints survive
@@ -228,7 +101,7 @@ the terminal.
 Preferences and project context carry into new sessions.
 
 **Self-evolving.** Repeated patterns become reusable skills. Memory, lessons,
-and skills stay visible and editable, so each Kiro Crew grows more tailored to
+and skills stay visible and editable, so each Junction grows more tailored to
 the person and work around it.
 
 **Runs where you choose.** Your Mac, a local container, or a remote machine
@@ -238,14 +111,14 @@ you control.
 or continue the same work from the CLI and messaging surfaces like Slack and
 Discord.
 
-## What Kiro Crew does
+## What Junction does
 
 | Capability | What it gives you |
 |---|---|
 | **Persistent sessions** | Run concurrent, isolated conversations, resume them after Gateway restarts, search prior sessions, and carry recent context into new work. |
 | **Self-learning** | Turn corrections and task failures into durable lessons that change later behavior. Keep preferences, active-project context, and history scoped to the relevant workspace. Say *"no, always run the frontend checks before calling a change done"* and it becomes a workspace-scoped lesson applied in future sessions. |
 | **Self-evolving skills** | Synthesize reusable skills from repeated patterns, then inspect, refine, or remove them as your work changes. |
-| **Long-running tasks** | Give Kiro Crew a task spec and walk away. It plans steps, executes them, validates results, retries failures, and resumes from checkpoints. *"Implement this migration plan and stop if the tests fail"* runs as a checkpointed task with validation at each step. |
+| **Long-running tasks** | Give Junction a task spec and walk away. It plans steps, executes them, validates results, retries failures, and resumes from checkpoints. *"Implement this migration plan and stop if the tests fail"* runs as a checkpointed task with validation at each step. |
 | **Unattended autonomy** | Run scheduled agent work or deterministic scripts and commands without a model call. Monitor work until it is done, or react to messaging events and authenticated webhooks without someone at the terminal. *"Every weekday at 9, summarize the open work I should review"* becomes a timezone-aware recurring job delivered to the surface you choose. |
 | **Delegation** | Spawn isolated subagents for parallel work and bring their results back into the parent conversation. *"Research these three options in parallel and recommend one"* fans out to isolated subagents and synthesizes the tradeoffs. |
 | **Work where you choose** | Work directly in the desktop app or web dashboard, or continue through the CLI and any connected messaging surface without moving the agent runtime or its state. |
@@ -254,7 +127,7 @@ Discord.
 | **Visible execution** | Watch tool calls, subagent progress, context usage, approvals, schedules, memory, and logs from the dashboard. |
 | **Defense in depth** | Combine tool approvals, OS sandboxing, sensitive-path checks, credential redaction, deny rules, audit events, and governance profiles. |
 
-You can also paste a screenshot and ask what is causing an error. Kiro Crew sends
+You can also paste a screenshot and ask what is causing an error. Junction sends
 the image to the active Kiro model and keeps the diagnosis in the conversation
 history.
 
@@ -286,12 +159,12 @@ Gateway manages these sessions along with scheduling, approvals, memory,
 security policy, messaging connections, and the dashboard.
 
 The current runtime places the Gateway, agent sessions, ACP processes, and state
-on the same host. Run Kiro Crew on your Mac, inside a container on your machine,
+on the same host. Run Junction on your Mac, inside a container on your machine,
 or on a remote Linux host you control. Conversation history, memory, and
 knowledge indexes remain on that host. Model requests follow the selected ACP
 runtime and the account configuration you use there; `kiro-cli` is optional.
 
-**Gateway.** The Gateway is the long-running Kiro Crew process. It routes
+**Gateway.** The Gateway is the long-running Junction process. It routes
 messages from the desktop app, web, CLI, and the messaging surfaces listed below. It persists
 session state, injects memory and skills, starts scheduled work, coordinates
 subagents, brokers approvals, enforces runtime policy, and exposes activity in
@@ -303,7 +176,7 @@ conversations, and subagents also use managed sessions. These sessions preserve
 conversation context and can run concurrently before returning results to a
 parent session or configured surface.
 
-**ACP runtime and turns.** Kiro Crew supports both a dedicated `kiro-cli` ACP
+**ACP runtime and turns.** Junction supports both a dedicated `kiro-cli` ACP
 process for a session and a shared ACP runtime that multiplexes multiple session
 handles. During each turn, the session sends a prompt, streams model and tool
 events, resolves approvals, and returns the final result. An agent session is a
@@ -322,19 +195,19 @@ logical isolation boundary, not necessarily one OS process.
 | **Webex** | Work from Webex direct messages with streaming replies and inline approvals. |
 | **WeCom** | Chat through an outbound-connected WeCom AI bot with configured user access and streaming replies. |
 | **WeChat (Weixin)** | Reach your agent from WeChat with configured user access and streaming replies. |
-| **CLI** | Fast interactive chat and direct automation with `kirocrew chat`, `run`, `cron`, `spawn`, and `security`. |
+| **CLI** | Fast interactive chat and direct automation with `junction chat`, `run`, `cron`, `spawn`, and `security`. |
 
 **Choose how work starts.**
 
 | Mode | Use it for | Entry point |
 |---|---|---|
-| **Scheduled** | Briefings, audits, backups, and recurring maintenance | `kirocrew cron` or a natural-language request |
+| **Scheduled** | Briefings, audits, backups, and recurring maintenance | `junction cron` or a natural-language request |
 | **Proactive** | Goals that need another pass without waiting for a new user message | AutoNudge and goal-loop skills |
 | **Reactive** | CI alerts, external automation, messaging-channel activity, and other events | Authenticated agent webhooks and messaging events |
-| **Task runner** | Bounded projects with explicit steps, tests, review, and checkpoint resume | `kirocrew run TASK.md` |
-| **Subagents** | Independent workstreams that can run concurrently | `kirocrew spawn run "task"` |
+| **Task runner** | Bounded projects with explicit steps, tests, review, and checkpoint resume | `junction run TASK.md` |
+| **Subagents** | Independent workstreams that can run concurrently | `junction spawn run "task"` |
 
-**Memory, learning, and evolution.** Kiro Crew maintains preferences, active
+**Memory, learning, and evolution.** Junction maintains preferences, active
 project context, decaying history summaries, and durable lessons. Corrections
 and task failures can change later behavior, while repeated patterns can become
 reusable skills. In-process embeddings add semantic retrieval for memory and
@@ -346,14 +219,14 @@ a conversation should not persist.
 loaded only when relevant. The built-in `kirocrew-core`, `kirocrew-cron` and
 `kirocrew-computer` MCP servers expose task, subagent, learning, messaging,
 scheduling, and desktop-automation tools. You
-can discover additional MCP servers from Kiro or Kiro Crew configuration. The
+can discover additional MCP servers from Kiro or Junction configuration. The
 App Kit adds installable interfaces and domain workflows. Apps can add dashboard
 pages, use scoped Gateway APIs, subscribe to events, and register lifecycle
 hooks.
 
 ## Security and control
 
-Kiro Crew gives an AI agent real tool access, so the controls are enforced at
+Junction gives an AI agent real tool access, so the controls are enforced at
 the runtime boundary instead of relying only on prompt instructions.
 
 - **Local by default.** The dashboard binds to loopback unless you explicitly
@@ -364,20 +237,20 @@ the runtime boundary instead of relying only on prompt instructions.
   the underlying deny and sensitive-path controls.
 - **OS sandbox.** On Linux and macOS, `kiro-cli` can run inside namespace or
   Seatbelt isolation. Standard, strict, and off modes make the tradeoff
-  explicit. Windows offers no equivalent OS-level layer, so Kiro Crew fails
+  explicit. Windows offers no equivalent OS-level layer, so Junction fails
   closed there: agent subprocesses are refused rather than run unconfined, until
   you declare the
   [`sandbox_allow_unsandboxed_exec` opt-in](docs/guides/windows-install.md#the-unsandboxed-exec-opt-in).
-- **Sensitive data guards.** Kiro Crew blocks direct access to protected paths,
+- **Sensitive data guards.** Junction blocks direct access to protected paths,
   strips sensitive environment variables, and redacts credential patterns from
   output before it reaches a chat surface.
-- **Denied operations.** 137 bundled deny patterns block destructive commands and
+- **Denied operations.** Bundled deny patterns block destructive commands and
   common exfiltration paths even when a session has broad approval.
 - **Auditability.** Security events and tool activity are recorded for review.
-  Use `kirocrew security events`, `audit`, and `verify` to inspect them.
+  Use `junction security events`, `audit`, and `verify` to inspect them.
 - **Governance ceiling.** Optional policy and profile files compose with a
   tightest-wins model. A running app or agent can narrow the allowed scope but
-  cannot loosen the enterprise ceiling. Inspect it with `kirocrew policy show`,
+  cannot loosen the enterprise ceiling. Inspect it with `junction policy show`,
   `validate`, and `explain`.
 
 No agent security layer removes the need to protect credentials and review
@@ -404,10 +277,10 @@ signed installer never pipes an unsigned third-party script into a shell.
 SHA-256. Every version directory publishes a `SHA256SUMS` file next to the
 wheel, so take the hash for your wheel from there and put it in the URL
 fragment. `pip` verifies the hash and does not consult a package index for
-Kiro Crew itself:
+Junction itself:
 
 ```bash
-pip install "https://download.crew.kiro.dev/cli/stable/<version>/kirocrew-<version>-py3-none-any.whl#sha256=<sha256>"
+pip install .
 ```
 
 **Semantic memory.** Semantic memory needs no setup. Embeddings run in-process, and the Gateway
@@ -420,22 +293,22 @@ installs.
 See [Installing and Building](docs/guides/install.md) for wheels, desktop builds,
 Windows, optional voice dependencies, and manual setup.
 
-**Choose where Kiro Crew runs.** The current deployment model keeps the Gateway,
+**Choose where Junction runs.** The current deployment model keeps the Gateway,
 agent session runtime, ACP processes, and state together on one host. Your Apps
 and chat surfaces connect to that Gateway.
 
-| Deployment | How to run it | Where Kiro Crew and its state live |
+| Deployment | How to run it | Where Junction and its state live |
 |---|---|---|
 | **Mac app, local** | Install or build the desktop app with `make desktop` | The app starts its bundled Gateway. Agent sessions, ACP processes, and `~/.kiro/crew` stay on your Mac. |
 | **Native local** | `make build`, or install a wheel from `make wheel` | The Gateway and agent runtime run directly on your macOS, Linux, or Windows machine. |
-| **Local container** | Run `ghcr.io/kirodotdev/kirocrew` and persist `/home/kirocrew` | The Gateway and agent runtime run inside the official multi-arch container on your machine. |
+| **Local container** | Build from this checkout and persist the data home | The Gateway and agent runtime run in a container on your machine. |
 | **Remote hardware** | Follow the [remote host guide](docs/guides/remote-and-mobile.md) and install the service | The Gateway, agent sessions, and state run continuously on your Linux server, home lab, or cloud instance. Connect the desktop app or browser through an SSH tunnel. |
 | **Windows source install** | Follow [the Windows guide](docs/guides/windows-install.md) | The Gateway, agent sessions, chat, cron, and dashboard run natively with documented feature limits. |
 
 For containers, mount the directory selected by `KIROCREW_HOME` so sessions,
 configuration, memory, and credentials survive replacement. Keep the Gateway
 port bound to loopback unless you intentionally configure authenticated remote
-access. Container isolation and the Kiro Crew OS sandbox are separate layers
+access. Container isolation and the Junction OS sandbox are separate layers
 and depend on the host runtime configuration. See the
 [Docker guide](docs/guides/docker.md) for the published image and deployment details.
 
@@ -443,9 +316,9 @@ and depend on the host runtime configuration. See the
 macOS:
 
 ```bash
-kirocrew service install
-kirocrew service status
-kirocrew logs
+junction service install
+junction service status
+junction logs
 ```
 
 To bind a non-default port (for example a host where `5476` is already taken),
@@ -453,22 +326,22 @@ set `KIROCREW_PORT` when you install the service — the value is baked into the
 unit:
 
 ```bash
-KIROCREW_PORT=5477 kirocrew service install
+KIROCREW_PORT=5477 junction service install
 ```
 
-To change it later without reinstalling, edit `/etc/kirocrew/kirocrew.env`
-(created by `service install`) and run `sudo systemctl restart kirocrew`. Units
+To change it later without reinstalling, edit the service environment file
+created by `service install` and restart with `junction service` / `junction restart`.
 installed by releases before v0.2.0 lack the `EnvironmentFile=` directive that
-reads this file — re-run `kirocrew service install` or use a systemd drop-in;
+reads this file — re-run `junction service install` or use a systemd drop-in;
 see [the install guide](docs/guides/install.md#setting-the-service-port).
 
 The desktop app can use this local Gateway or connect to a remote one. For an
 always-on VPS, home server, or cloud VM in your account, follow the
-[remote host guide](docs/guides/remote-and-mobile.md). Kiro Crew does not require a
-Kiro Crew-hosted control plane.
+[remote host guide](docs/guides/remote-and-mobile.md). Junction does not require a
+Junction-hosted control plane.
 
 **Configure it.** User data lives under `~/.kiro/crew` by default. Manage the
-main configuration with `kirocrew config get`, `set`, and `edit`.
+main configuration with `junction config get`, `set`, and `edit`.
 
 ```json
 {
@@ -482,38 +355,38 @@ main configuration with `kirocrew config get`, `set`, and `edit`.
     "pool_size": 2
   },
   "dashboard": {
-    "bot_name": "Kiro Crew"
+    "bot_name": "Junction"
   }
 }
 ```
 
 `agent.provider` is fixed to `acp`. The gateway drives an ACP runtime over the
 Agent Client Protocol (`kiro-cli` optional). Set the dashboard port with `KIROCREW_PORT` or
-`kirocrew gateway --port <n>`. Messaging-channel credentials (Slack, Discord,
+`junction gateway --port <n>`. Messaging-channel credentials (Slack, Discord,
 Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
 
-**Troubleshoot quickly.** Start with `kirocrew doctor`. For an ACP timeout,
+**Troubleshoot quickly.** Start with `junction doctor`. For an ACP timeout,
 confirm `kiro-cli` is on `PATH` and logged in, then allow extra time for the
 first MCP startup. For memory search, check that the embedding
 model finished downloading under `~/.kiro/crew/models`. For a stale MCP configuration, run
-`kirocrew setup --agent-only`, or add `--clean` to rebuild it.
+`junction setup --agent-only`, or add `--clean` to rebuild it.
 
 **Find the logs.** When you need to debug, the fastest path is
-`kirocrew logs` (tail the most recent gateway output) or `kirocrew logs -f` to
-follow it live; `kirocrew logs -n 200` prints more history. `kirocrew logs`
+`junction logs` (tail the most recent gateway output) or `junction logs -f` to
+follow it live; `junction logs -n 200` prints more history. `junction logs`
 reads the right source automatically — the systemd journal when the Linux
 service is installed, the launchd stdout file on macOS, or the foreground
-gateway log otherwise. Raise verbosity with `kirocrew gateway -v` (INFO:
+gateway log otherwise. Raise verbosity with `junction gateway -v` (INFO:
 session lifecycle and context usage) or `-vv` (DEBUG: full ACP events and
 message traces); set the persistent default with
-`kirocrew config set agent.log_level`, or change it at runtime from the
+`junction config set agent.log_level`, or change it at runtime from the
 dashboard **Logs** page. Under `~/.kiro/crew` (or your `KIROCREW_HOME`) you can
 also read the raw files directly:
 
 | File | What it holds |
 |---|---|
 | `~/.kiro/crew/gateway.log` | Main gateway log when running in the foreground. |
-| `~/.kiro/crew/security_events.jsonl` | Append-only security and tool-access events. Inspect with `kirocrew security events`, `audit`, and `verify`. |
+| `~/.kiro/crew/security_events.jsonl` | Append-only security and tool-access events. Inspect with `junction security events`, `audit`, and `verify`. |
 | `~/.kiro/crew/audit.log` | Human-readable audit trail of privileged operations. |
 | `~/.kiro/crew/subagents/<agent_id>/result.txt` | Full transcript of a completed subagent, kept for a grace window after it finishes. |
 
@@ -522,7 +395,7 @@ full log-level reference and emergency recovery steps.
 
 ## Anonymous usage telemetry
 
-Kiro Crew sends **one anonymous heartbeat per day** so maintainers can see how
+Junction sends **one anonymous heartbeat per day** so maintainers can see how
 many copies are actively running, which versions are in use, and which
 platforms and install channels to support. After a successful install or update
 from the official app catalog, it also sends one anonymous per-app receipt.
@@ -533,12 +406,12 @@ the dashboard (the same switch appears on the last step of first-run
 onboarding). Or from a terminal:
 
 ```bash
-kirocrew telemetry disable        # persists to config.json
+junction telemetry disable        # persists to config.json
 export KIROCREW_TELEMETRY_DISABLED=1   # or per-shell / per-container
-kirocrew telemetry status         # print exactly what would be sent
+junction telemetry status         # print exactly what would be sent
 ```
 
-The toggle and `kirocrew telemetry disable` write the same setting, so either
+The toggle and `junction telemetry disable` write the same setting, so either
 one sticks across restarts and upgrades. `KIROCREW_TELEMETRY_DISABLED` overrides
 both — when it is set, the dashboard toggle is disabled and says so.
 
@@ -553,13 +426,13 @@ both — when it is set, the dashboard toggle is disabled and says so.
 | First-run flag | `1` / `0` | New installs vs returning |
 
 **Official-app install receipts are separate and event-based.** After a
-successful official-catalog install or update, Kiro Crew sends one GET to
+successful official-catalog install or update, Junction sends one GET to
 `/b/1/install/<app-slug>?t=<token>&k=<fresh|update>&v=<release>` on the same
 telemetry host. The slug is the public catalog identifier. `t` is the first 32
 hex characters of HMAC-SHA256 keyed by the local beacon install id over
 `app-install:<slug>`; the raw install id is never sent, and tokens for different
 apps cannot be linked to assemble an installed-app profile. `k` separates fresh
-installs from updates, and `v` is the same release-only Kiro Crew version clamp
+installs from updates, and `v` is the same release-only Junction version clamp
 used by the heartbeat.
 
 Receipts are emitted only for bundled or edition-provided official catalog
@@ -573,10 +446,10 @@ instance id is stable, so those attributes all describe the *same* copy and
 together they narrowed the group any one install blends into far more than any
 single field suggests.
 
-We report this as **Daily Active Crews** rather than "users": Kiro Crew has
+We report this as **Daily Active Crews** rather than "users": Junction has
 no account system of its own, and the Kiro sign-in that `kiro-cli` uses for
 model access is never read or sent. There is no way to resolve a copy to a
-person, so one person running Kiro Crew on three machines counts as three
+person, so one person running Junction on three machines counts as three
 Crews.
 
 **Never sent:** your prompts, model responses, file contents, file paths, repo
@@ -630,15 +503,15 @@ npm run check
 npm run build
 ```
 
-Use [GitHub Issues](https://github.com/kirodotdev/KiroCrew/issues) for bugs and
+Use [GitHub Issues](https://github.com/laqaer/acpcrew/issues) for bugs and
 feature requests. Do not file security vulnerabilities publicly.
 
 
 ## Contributors
 
-Kiro Crew was made possible by its internal community, the people who supported the
+Junction was made possible by its internal community, the people who supported the
 project and shipped its code, together with everyone who has since opened a pull
-request in the open. This is that founding group; as Kiro Crew grows in the open, we
+request in the open. This is that founding group; as Junction grows in the open, we
 look forward to many more contributors joining them. Thank you to everyone who helped
 make this tool possible:
 
@@ -1088,5 +961,5 @@ to be added, corrected, or removed, please open an issue or a pull request.
 
 ## License
 
-Kiro Crew is licensed under the [Apache License 2.0](LICENSE). See
+Junction is licensed under the [Apache License 2.0](LICENSE). See
 [NOTICE](NOTICE) for attribution information.

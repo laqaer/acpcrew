@@ -325,6 +325,9 @@ async def execute_task(
                 cwd=str(work_dir) if work_dir else None,
             )
             _acquired = True
+            from kiro_crew.model_router.routing import ROLE_EXECUTION, apply_role_model
+
+            await apply_role_model(client, ROLE_EXECUTION)
 
             task_prompt = await build_task_prompt(run, task, attempt, work_dir)
             if ctx:
@@ -864,6 +867,9 @@ async def self_review(
             agent=agent or None,
             cwd=str(run.work_dir) if run.work_dir else None,
         )
+        from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+
+        await apply_role_model(client, ROLE_PLANNING)
         # Wall clock for the review turn (see execute_task): the acp provider
         # reports no duration, so this local measurement is the fallback. Bracket
         # ONLY the model stream, not open_task_session / diff fetch / prompt build.

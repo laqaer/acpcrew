@@ -6,8 +6,8 @@ upstream projects, not the product.
 
 | Document | Lineage |
 |---|---|
-| [kiro-crew.md](kiro-crew.md) | Apache-2.0 fork of [Kiro Crew](https://github.com/kirodotdev/KiroCrew). Harness plane. |
-| [codex-router.md](codex-router.md) | MIT [Codex Router](https://github.com/duolahypercho/codex-router), observed as the model plane. Not vendored this cut. |
+| [kiro-crew.md](kiro-crew.md) | Apache-2.0 gateway lineage. Implementation identifiers, not the product name. |
+| [codex-router.md](codex-router.md) | MIT [Codex Router](https://github.com/duolahypercho/codex-router), observed as the model plane. Catalog slugs derived; Node tree not vendored. |
 
 Architecture thesis: [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).
-Fork overlay: [`../../FORK.md`](../../FORK.md).
+Multi-ACP overlay: [`../../FORK.md`](../../FORK.md).

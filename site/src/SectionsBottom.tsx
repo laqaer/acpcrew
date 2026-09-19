@@ -66,7 +66,7 @@ export function InAction() {
 export function HowItWorks() {
   const steps = [
     { n: '1', title: 'Clone & install', code: 'git clone https://github.com/laqaer/acpcrew.git\ncd acpcrew && pip install .' },
-    { n: '2', title: 'Start', code: 'junction gateway', note: 'Dashboard opens at localhost:5476. Run junction doctor to verify. `acpcrew` and `kirocrew` remain aliases for `junction`.' },
+    { n: '2', title: 'Start', code: 'junction gateway', note: 'Dashboard opens at localhost:5476. Run junction doctor to verify. junction router catalog lists model choices; junction router plan shows the orchestration DAG.' },
     { n: '3', title: 'Connect', note: 'Open the dashboard, or connect Slack. Type !dashboard in Slack for a 1-click link.' },
   ];
   return (

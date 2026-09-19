@@ -6,29 +6,31 @@ open before touching that subsystem: see
 [Read before you touch](#read-before-you-touch). The frontend has its own router,
 [`website/AGENTS.md`](website/AGENTS.md).
 
-**Fork overlay:** this checkout is **Junction** (`laqaer/acpcrew`), not
-upstream Kiro Crew as a product. Read [`JUNCTION.md`](JUNCTION.md) and
+**Product overlay:** this checkout is **Junction** (`laqaer/acpcrew`).
+Read [`JUNCTION.md`](JUNCTION.md) and
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md) before any product, brand, CLI, or
 model-router change. Product / architecture / roadmap overlays:
 [`PRODUCT.md`](PRODUCT.md), [`ARCHITECTURE.md`](ARCHITECTURE.md),
 [`ROADMAP.md`](ROADMAP.md). Package identifiers (`kiro_crew`,
-`KIROCREW_HOME`, Electron `productName`) stay as upstream spelled them.
+`KIROCREW_HOME`) stay as implementation spellings, not the product name.
 
 ## What this is
 
-Kiro Crew is an open-source personal AI agent: chat from the web dashboard, the
-CLI, or a messaging channel like Slack and Discord; run multi-step tasks
-unattended; schedule cron jobs; keep memory across
-sessions. It drives an LLM through the KiroACP provider (the ACP adapter running
-`kiro-cli` over ACP JSON-RPC) plus MCP tools.
+Junction is a local control plane: dock ACP coding agents and route their
+models. Chat from the web dashboard, the CLI, or a messaging channel;
+run multi-step tasks unattended; schedule cron jobs; keep memory across
+sessions. It drives an LLM through an ACP adapter plus MCP tools. `kiro-cli`
+is optional.
 
-- **Backend:** Python package `kiro_crew` in `src/kiro_crew/`.
+- **Backend:** Python package `kiro_crew` in `src/kiro_crew/` (import path,
+  not the product name).
 - **Frontend:** React + TS + Vite SPA in `website/`; the built `dist/` is staged
   into `src/kiro_crew/static/dist/` and served by the backend.
 - **Data home:** `~/.kiro/crew`, overridden with `KIROCREW_HOME`. The legacy
   `~/.kirocrew` is fully deprecated and no longer auto-migrates; it survives only
   in sensitive-path deny lists, which must keep covering it.
 - **Distribution:** public GitHub, plain setuptools, public PyPI / public npm.
+- **CLI:** `junction` (silent aliases exist for older entry points).
 
 Full map: [`docs/architecture/overview.md`](docs/architecture/overview.md).
 
@@ -75,9 +77,9 @@ The whole doc tree is indexed from [`docs/README.md`](docs/README.md). User-faci
 docs that ship in the package live in `src/kiro_crew/docs/` and are indexed by
 [its README](src/kiro_crew/docs/README.md).
 
-## Never re-introduce (this is a public OSS fork)
+## Never re-introduce (scrubbed internals)
 
-This repo is the de-Amazoned public fork of an internal package. Never re-add:
+This repo is a public OSS tree. Never re-add:
 
 - **Build/infra:** Brazil (`Config`, root `AUTOSDE.yaml` is NOT this),
   `CODE_APPROVERS.yaml`, `npm-pretty-much`, toolbox bundler, AIM hooks,

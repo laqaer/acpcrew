@@ -39,7 +39,7 @@ def env_flag_enabled(name: str) -> bool:
 
 
 DATA_WARNING = (
-    "⚠️  Do not enter sensitive, secret, or regulated data into KiroCrew.\n"
+    "⚠️  Do not enter sensitive, secret, or regulated data into Junction.\n"
     "   Treat anything you send as potentially logged or processed by the\n"
     "   configured model provider."
 )
@@ -254,9 +254,9 @@ AWS_PROFILE_CHARS = "A-Za-z0-9_.+-"
 AWS_PROFILE_NAME_PATTERN = f"^[{AWS_PROFILE_FIRST_CHARS}][{AWS_PROFILE_CHARS}]{{0,127}}\\Z"
 AWS_PROFILE_NAME_RE = re.compile(AWS_PROFILE_NAME_PATTERN)
 
-# The displayed product name for this fork. Identifiers (`kiro_crew`,
-# `KIROCREW_HOME`, the `kirocrew` console script) keep the spelling their
-# system gave them; this string is the prose / dashboard default.
+# The displayed product name. Identifiers (`kiro_crew`, `KIROCREW_HOME`)
+# keep the spelling their own system gave them; this string is the prose /
+# dashboard default.
 PRODUCT_NAME = "Junction"
 
 # The product wordmark, figlet `small`. ONE definition on purpose: copy-pasting
