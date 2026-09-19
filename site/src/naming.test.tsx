@@ -44,6 +44,8 @@ describe('Junction naming', () => {
     expect(text).toMatch(/never paste provider keys/i);
     expect(text).toContain('junction gateway');
   });
+
+  it('does not present Kiro Crew or acpcrew as the product name in the hero', () => {
     const { container } = render(<App />);
     const hero = heroSection(container);
     expect(hero).toBeTruthy();

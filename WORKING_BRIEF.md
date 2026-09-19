@@ -79,3 +79,31 @@ provider keys in `KIROCREW_HOME` without the router's secret-entry rules;
 weakening keystone or harness-parity; restoring Channels / Board; whole-tree
 i18n rewrite; Dependabot unless it blocks the branch; `CHANGELOG.md` (written
 only at version bump).
+
+## Surfaces
+
+| Surface | URL |
+|---|---|
+| Bootstrap PR | https://github.com/laqaer/acpcrew/pull/23 |
+| Epic | https://github.com/laqaer/acpcrew/issues/16 |
+| Hobby site URL | https://junction-site.vercel.app |
+
+## Execution manifest
+
+Distinguish **proven** (this agent ran it) from **not_run**. Live provider
+routing and the full gateway suite were never in this cut's must-run list.
+
+| Check | Result |
+|---|---|
+| Site `npm ci` / `npm test` / `npm run build` | proven |
+| Branding + CLI tests (`TestBannerBranding`, dashboard `bot_name`, product name) | proven |
+| Model-router unit tests (mocked listener up/down; secrets dropped) | proven |
+| Brand-name diff gate vs `origin/main` | proven |
+| docs-lint | proven |
+| Bootstrap PR + epic/lane issues | proven (#23, #16–#22) |
+| Site CI workflow file | proven (`.github/workflows/site.yml`; Actions run in flight) |
+| Vercel hobby URL for `site/` | proven — https://junction-site.vercel.app. Vercel labeled the project's first deploy `production` internally. No custom domain, no GitHub Pages, no spend. Not a production ship of this product. |
+| Marketing walkthrough (nav → two-plane → CLI → FAQ) | in this pass |
+| Live Codex Router against Kimi/DeepSeek | not_run (no local sidecar) |
+| Full gateway pytest / desktop | not_run |
+
