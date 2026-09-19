@@ -610,11 +610,15 @@ describe('ChatPanel — per-role models', () => {
       ],
     })
     wrap()
+    await waitFor(() => expect(modelRouterCatalogMock).toHaveBeenCalled())
     const orch = await openSelect('Orchestration Model')
     expect(orch.map(o => o.textContent)).toContain('DeepSeek V4 Flash')
     expect(orch.map(o => o.textContent)).not.toContain('Kimi K3 (OAuth)')
+    fireEvent.click(screen.getByRole('combobox', { name: 'Orchestration Model' }))
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
     const plan = await openSelect('Planning Model')
     expect(plan.map(o => o.textContent)).toContain('Kimi K3 (OAuth)')
+    expect(plan.map(o => o.textContent)).not.toContain('DeepSeek V4 Flash')
   })
 })
 
