@@ -9,8 +9,10 @@ open before touching that subsystem: see
 **Fork overlay:** this checkout is **Junction** (`laqaer/acpcrew`), not
 upstream Kiro Crew as a product. Read [`JUNCTION.md`](JUNCTION.md) and
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md) before any product, brand, CLI, or
-model-router change. Package identifiers (`kiro_crew`, `KIROCREW_HOME`,
-Electron `productName`) stay as upstream spelled them.
+model-router change. Product / architecture / roadmap overlays:
+[`PRODUCT.md`](PRODUCT.md), [`ARCHITECTURE.md`](ARCHITECTURE.md),
+[`ROADMAP.md`](ROADMAP.md). Package identifiers (`kiro_crew`,
+`KIROCREW_HOME`, Electron `productName`) stay as upstream spelled them.
 
 ## What this is
 
@@ -42,6 +44,8 @@ in the **same commit** when you change what it documents.
 | the security model as a whole, threat boundaries | [security-deep-dive](docs/architecture/security-deep-dive.md) |
 | `computer_use/` | [computer-use](docs/system-specs/modules/computer-use.md) |
 | `acp/`, kiro-cli transport, providers | [acp-client](docs/system-specs/modules/acp-client.md) + [providers](docs/system-specs/modules/providers.md) |
+| `model_router/`, Codex Router sidecar observe/compose | [model-router](docs/system-specs/modules/model-router.md) |
+| Junction overlay, product identity, two-plane thesis | [`JUNCTION.md`](JUNCTION.md) + [`WORKING_BRIEF.md`](WORKING_BRIEF.md) + [`PRODUCT.md`](PRODUCT.md) |
 | adding or adapting an agent harness (BYO, KAS, claude seam) | [harness-parity](docs/system-specs/modules/harness-parity.md) (invariants) + [harness-parity-gate](docs/ci/harness-parity-gate.md) (CI) |
 | sessions, slots, session keys, PIDs | [session](docs/system-specs/modules/session.md) + [history](docs/system-specs/modules/history.md) |
 | session summaries, the chat summary panel, intent extraction | [session-summary](docs/system-specs/modules/session-summary.md) |

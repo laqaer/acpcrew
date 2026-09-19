@@ -1,0 +1,40 @@
+# ADR 0002 — Two planes, composed not dumped
+
+- Status: accepted
+- Date: 2026-09-19
+- Execution: `bc-39bfeb15-ff12-4636-840a-217a97c555da`
+
+## Context
+
+This checkout already docks multiple ACP agents. Codex Router already
+routes inference for those agents to other providers. Putting both in one
+product is the Junction thesis. The failure mode is a dump: copy a Node
+tree into the Python package, collapse two processes into one, and inherit
+tray, tunnel, and agent-bridge surfaces this gateway already covers.
+
+## Decision
+
+Junction is two planes composed behind one CLI and dashboard:
+
+1. **Harness plane** — ACP runtime registry
+   (`src/kiro_crew/acp/runtimes.py`). Default `agent.acp_backend` is
+   `auto`. `kiro-cli` is optional.
+2. **Model plane** — optional Codex Router sidecar on loopback (typically
+   `:4202` + LiteLLM `:4200`), observed from
+   `src/kiro_crew/model_router/`.
+
+Memory, cron, and skills stay on the Python gateway. If the sidecar is
+absent, the gateway still runs as an ACP control plane (degraded,
+documented).
+
+Do not dump Codex Router into `kiro_crew`. Do not re-land multi-ACP; it is
+already on `main`.
+
+## Consequences
+
+- Architecture prose lives in [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).
+- Sidecar vs vendor is [0003](0003-sidecar-not-vendor.md).
+- Health/status contract:
+  [`../system-specs/modules/model-router.md`](../system-specs/modules/model-router.md).
+- Agents may later set `openai_base_url` at the sidecar; that is M2, not a
+  license to vendor.

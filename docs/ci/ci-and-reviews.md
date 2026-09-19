@@ -21,6 +21,7 @@ verdict**:
 pull_request
   |-- ci.yml            "CI"           lint, sharded tests, coverage gate, e2e
   |-- build.yml         "Build"        wheel + desktop artifacts still build
+  |-- site.yml          "Site"         marketing site test+build (path-scoped to site/**)
   |-- code-review.yml   "Code Review"  grep rules, woke, Semgrep, PR hygiene, dep audit
   |-- dependency-review.yml            license allowlist
   |-- docker-smoke.yml                 container contract (paths-filtered)
@@ -50,7 +51,8 @@ Out-of-band lanes that never gate a PR:
   `build-windows.yml`, `sign-and-notarize.yml`, `publish-cli.yml`,
   `publish-linux.yml`, `publish-docker.yml`, `publish-installer.yml`,
   `pages.yml` (the marketing site in `site/`, path-scoped so it never runs for
-  backend or dashboard changes).
+  backend or dashboard changes; deploys only from `main`). PR coverage for
+  that tree is `site.yml` (npm test + production build, no Pages publish).
 - **Verification that is too slow or too expensive for a PR:** `ota-test.yml`
   builds two real app bundles and performs an actual update swap, because the
   Electron unit suite stops at the `autoUpdater` handoff and never proves a real

@@ -1,31 +1,20 @@
-> **acpcrew** is a private fork of this repository. It keeps the Kiro Crew
-> gateway and drives **Cursor, Claude, Codex, DeepSeek Harness, Pi, Kimi,
-> Goose, Grok, Droid** over ACP. `kiro-cli` is optional. See [FORK.md](FORK.md).
-> Default: `"agent": { "acp_backend": "auto" }`. CLI alias: `acpcrew`.
+> **Junction** (`laqaer/acpcrew`) is a local control plane: dock ACP coding
+> agents and route their models. CLI: `junction` (aliases `acpcrew`,
+> `kirocrew`). `kiro-cli` is optional. Default:
+> `"agent": { "acp_backend": "auto" }`. See [PRODUCT.md](PRODUCT.md),
+> [ARCHITECTURE.md](ARCHITECTURE.md), and [FORK.md](FORK.md).
+
+<h1 align="center">Junction</h1>
 
 <p align="center">
-  <img src="assets/banner.svg" alt="Kiro Crew. Keep work moving. Runs on your hardware, remembers across sessions, keeps working unattended.">
-</p>
-
-<h1 align="center">Kiro Crew</h1>
-
-<p align="center">
-  <strong>A persistent workspace for development work that self-improves and continues beyond one session.</strong>
+  <strong>Where coding agents meet the models you want.</strong>
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/103032" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/103032/daily?language=Python" alt="Kiro Crew on Trendshift" width="250" height="55"></a>
-</p>
-
-<p align="center">
-  Kiro Crew is an open source development workspace that runs locally or remotely on
-  your hardware. It is persistent, self-learning, and self-evolving. Work with it
-  from the desktop app, web dashboard, and CLI, or continue the same work through
-  connection tools like Slack and Discord.
-  Your multi-step tasks can run unattended, recurring jobs run on your schedule,
-  and heartbeats monitor systems until something needs attention. Kiro Crew Apps
-  tailor that experience to a specific job, combining a purpose-built interface
-  with agents, skills, schedules, integrations, and backend services.
+  Run Cursor, Claude, Codex, Grok from one local dashboard — and route their
+  inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron,
+  without requiring <code>kiro-cli</code>. Two planes: an ACP harness registry
+  already on this tree, and an optional Codex Router sidecar for models.
 </p>
 
 <p align="center">
@@ -51,11 +40,11 @@
 
 ## Quick start
 
-You choose how to run Kiro Crew: the desktop app with automatic updates, a
+You choose how to run Junction: the desktop app with automatic updates, a
 one-line install on your machine or a remote host, the Docker image for
-always-on servers, or a build from source. Every path runs on `kiro-cli`
-underneath, so the first launch installs it if needed and guides Kiro
-device-code sign-in.
+always-on servers, or a build from source. `kiro-cli` is optional. The
+gateway docks whichever ACP runtime is installed (`agent.acp_backend`
+defaults to `auto`: Cursor, Claude, Codex, and the rest).
 
 ### App downloads
 
@@ -207,23 +196,23 @@ the container security model.
 
 ### Build from source
 
-macOS and Linux require Python 3.10+, Node.js 22+ (24 LTS recommended), npm, and
-[`kiro-cli`](https://kiro.dev/docs/cli/). The first desktop or dashboard launch
-can install Kiro CLI on the Gateway host and guide device-code sign-in before
-chat opens. Windows is supported through a native source install; follow the
+macOS and Linux require Python 3.10+, Node.js 22+ (24 LTS recommended), and
+npm. An ACP runtime is required (Cursor, Claude, Codex, …);
+[`kiro-cli`](https://kiro.dev/docs/cli/) is optional. Windows is supported
+through a native source install; follow the
 [Windows guide](docs/guides/windows-install.md) instead of the shell steps below.
 
 ```bash
-# 1. Clone and build Kiro Crew
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd KiroCrew
+# 1. Clone and build Junction
+git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew
 make build
 source .venv/bin/activate
 
-# 2. Configure, verify, and start
-kirocrew setup
-kirocrew doctor
-kirocrew gateway
+# 2. Configure, verify, and start (`acpcrew` and `kirocrew` are aliases)
+junction setup
+junction doctor
+junction gateway
 ```
 
 ## Why Kiro Crew
@@ -278,7 +267,7 @@ The complete inventory is in [Features](src/kiro_crew/docs/index.md) and
 flowchart TD
     S["Desktop app · Web dashboard · CLI · Messaging channels (Slack, Discord, Telegram, Teams, Webex, WeCom, WeChat)"]
     G["Gateway<br/>access · sessions · memory · schedules · approvals · apps"]
-    A["Agent sessions<br/>ACP runtime · kiro-cli · MCP tools · models"]
+    A["Agent sessions<br/>ACP runtime · optional kiro-cli · MCP tools · models"]
     S --> G --> A
 ```
 
@@ -290,8 +279,8 @@ the same memory, tool, approval, and policy services. Apps extend the dashboard 
 Gateway APIs with focused workflows.
 
 Each active conversation or background task uses an agent session. Its session
-provider drives `kiro-cli` over ACP, streams model and tool events, and preserves
-conversation state. Depending on the workload, a session is backed by its own
+provider drives an ACP runtime over stdio (`kiro-cli` optional), streams model
+and tool events, and preserves conversation state. Depending on the workload, a session is backed by its own
 ACP process or by a session handle on a shared multiplexed ACP runtime. The
 Gateway manages these sessions along with scheduling, approvals, memory,
 security policy, messaging connections, and the dashboard.
@@ -299,8 +288,8 @@ security policy, messaging connections, and the dashboard.
 The current runtime places the Gateway, agent sessions, ACP processes, and state
 on the same host. Run Kiro Crew on your Mac, inside a container on your machine,
 or on a remote Linux host you control. Conversation history, memory, and
-knowledge indexes remain on that host. Model requests are handled by `kiro-cli`
-and follow the account and model configuration you use there.
+knowledge indexes remain on that host. Model requests follow the selected ACP
+runtime and the account configuration you use there; `kiro-cli` is optional.
 
 **Gateway.** The Gateway is the long-running Kiro Crew process. It routes
 messages from the desktop app, web, CLI, and the messaging surfaces listed below. It persists
@@ -498,8 +487,8 @@ main configuration with `kirocrew config get`, `set`, and `edit`.
 }
 ```
 
-`agent.provider` is fixed to `acp`. Kiro Crew drives `kiro-cli` over the Agent
-Client Protocol. Set the dashboard port with `KIROCREW_PORT` or
+`agent.provider` is fixed to `acp`. The gateway drives an ACP runtime over the
+Agent Client Protocol (`kiro-cli` optional). Set the dashboard port with `KIROCREW_PORT` or
 `kirocrew gateway --port <n>`. Messaging-channel credentials (Slack, Discord,
 Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
 

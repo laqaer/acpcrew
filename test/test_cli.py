@@ -5638,13 +5638,16 @@ class TestBannerBranding:
         """Collapse the ASCII art to comparable letter-ish content."""
         return "".join(banner.split())
 
-    def test_main_banner_is_kiro_crew(self):
+    def test_main_banner_is_junction(self):
         from kiro_crew.cli import BANNER
+        from kiro_crew.constants import PRODUCT_NAME
 
-        # figlet 'small' renders "Crew" with the distinctive `-_)` in the 'e' row
-        # and `_ _` in the 'r'/'C' row; "Claw" instead carries `/ _` + `\ V  V /`.
-        assert "-_)" in BANNER, "banner does not render 'Crew'"
+        # figlet 'small' renders "Junction" with `_||_\__\__` in the last letter row.
+        assert "_||_\\__\\__" in BANNER, "banner does not render 'Junction'"
+        assert PRODUCT_NAME in BANNER
+        assert "models you want" in BANNER
         assert "|__ ___" not in BANNER, "banner still renders 'Claw'"
+        assert "👻" not in BANNER
 
     def test_banner_is_single_sourced(self):
         """One definition, not two pinned copies — the duplication WAS the bug.

@@ -20,6 +20,8 @@ New here? Start with [guides/install.md](guides/install.md), then
 | [design/](design/README.md) | Proposals for changes agreed before they are built. |
 | [plans/](plans/) | Dated fork design + implementation plans (`2026-08-25-acpcrew-design.md`). |
 | [adr/](adr/README.md) | Junction architecture decision records (identity, two planes, sidecar, security, preview). |
+| [provenance/](provenance/README.md) | Lineage of this checkout: Kiro Crew fork + Codex Router observation. |
+| [TASK_MAP.md](TASK_MAP.md) | Junction bootstrap epic and lane map. |
 | [system-specs/](system-specs/README.md) | Change-control contracts. The doc a code change MUST update in the same commit. |
 | [request-for-change/](request-for-change/README.md) | Proposals and decision records for large or contested changes. |
 | [blog/](blog/README.md) | Essays on direction and design philosophy. Arguments, not contracts. |

@@ -37,6 +37,7 @@ from kiro_crew.config.loader import (
     KiroCrewConfig,
     config_path,
 )
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.context_management import RESULT_FILE_MAX_BYTES
 from kiro_crew.dashboard.origin import check_host, is_direct_local_request
 from kiro_crew.dashboard.state import DashboardState
@@ -252,7 +253,7 @@ async def api_branding(request: web.Request) -> web.Response:
     cfg = KiroCrewConfig.load()
     return web.json_response(
         {
-            "bot_name": cfg.dashboard.bot_name or "Kiro Crew",
+            "bot_name": cfg.dashboard.bot_name or PRODUCT_NAME,
             "avatar": "/logo.png",
         }
     )

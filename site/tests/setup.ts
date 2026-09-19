@@ -11,6 +11,7 @@ globalThis.IntersectionObserver = class IntersectionObserver {
 } as any;
 
 globalThis.matchMedia = globalThis.matchMedia || ((q: string) => ({ matches: false, media: q, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false }));
+Object.defineProperty(window, 'scrollTo', { value: () => {}, writable: true });
 
 afterEach(() => {
   cleanup();

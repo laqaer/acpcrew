@@ -1,19 +1,20 @@
-"""Kiro Crew CLI — personal AI agent.
+"""Junction CLI — local control plane for ACP agents and model routing.
 
 Commands:
-    kirocrew chat -m "message"    Send a single message
-    kirocrew chat                 Interactive chat mode
-    kirocrew gateway              Start the Kiro Crew server (dashboard + messaging channels)
-    kirocrew gateway --seed NAME  Populate $KIROCREW_HOME from fixture NAME, then start the gateway
-    kirocrew status               Show runtime stats
-    kirocrew run TASK.md          Run an autonomous task from a spec file
-    kirocrew update               Update Kiro Crew via git fetch + rebuild
-    kirocrew cron list|add|remove Manage scheduled jobs
-    kirocrew spawn run "task"     Spawn a background subagent
-    kirocrew spawn list           List subagents
-    kirocrew learn add|list|remove Save and manage learned corrections
-    kirocrew setup                Interactive setup wizard
-    kirocrew doctor               Verify setup
+    junction chat -m "message"    Send a single message
+    junction chat                 Interactive chat mode
+    junction gateway              Start Junction (dashboard + messaging channels)
+    junction gateway --seed NAME  Populate $KIROCREW_HOME from fixture NAME, then start the gateway
+    junction status               Show runtime stats
+    junction run TASK.md          Run an autonomous task from a spec file
+    junction update               Update Junction via git fetch + rebuild
+    junction cron list|add|remove Manage scheduled jobs
+    junction spawn run "task"     Spawn a background subagent
+    junction spawn list           List subagents
+    junction learn add|list|remove Save and manage learned corrections
+    junction setup                Interactive setup wizard
+    junction doctor               Verify setup
+    junction router status        Probe optional model-router sidecar
 """
 
 from __future__ import annotations
@@ -1912,6 +1913,20 @@ Examples:
         help="Dashboard port (default: resolved from KIROCREW_PORT env or dashboard.url config)",
     )
 
+    router_parser = cli_help.add_command(sub, "router")
+    router_sub = router_parser.add_subparsers(dest="router_action", required=True)
+    router_status = router_sub.add_parser(
+        "status",
+        help="Probe the optional Codex Router sidecar on loopback",
+    )
+    router_status.add_argument(
+        "--port",
+        dest="router_port",
+        type=int,
+        default=None,
+        help="Router port (default: MODEL_ROUTER_PORT, CODEX_ROUTER_PORT, or 4202)",
+    )
+
     # mcp-cron (MCP server — spawned by the agent backend, not user-facing)
     sub.add_parser("mcp-cron")
 
@@ -2568,6 +2583,10 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
         from kiro_crew.cli_server import _status
 
         _status(args)
+    elif args.command == "router":
+        from kiro_crew.model_router.cli import run_router_command
+
+        run_router_command(args)
     elif args.command == "consolidate":
         _consolidate_cmd(args)
     elif args.command == "config":
