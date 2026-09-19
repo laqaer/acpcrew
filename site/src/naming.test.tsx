@@ -50,7 +50,12 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).not.toMatch(/Kiro Crew/);
     expect(text).not.toMatch(/kirocrew/i);
-    expect(text).not.toMatch(/acpcrew/i);
+    // GitHub slug stays laqaer/acpcrew until a human rename; clone paths are
+    // not a product name.
+    const leftover = text
+      .replace(/github\.com\/laqaer\/acpcrew(?:\.git)?/gi, '')
+      .replace(/\bcd acpcrew\b/gi, '');
+    expect(leftover).not.toMatch(/acpcrew/i);
     expect(text).toMatch(/kiro-cli is optional/i);
   });
 
