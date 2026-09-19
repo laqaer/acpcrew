@@ -7,4 +7,13 @@ describe('App', () => {
     const { container } = render(<App />);
     expect(container).toBeTruthy();
   });
+
+  it('brands the rendered page as Junction', () => {
+    const { container } = render(<App />);
+    const text = container.textContent ?? '';
+    expect(text).toContain('Junction');
+    expect(text).toContain('junction');
+    expect(text).not.toContain('👻');
+    expect(text).not.toMatch(/Kiro Crew/);
+  });
 });

@@ -722,7 +722,21 @@ CLI compaction is blocking (single-user, acceptable).
 
 ## Entry Point
 
-`console_scripts` in `setup.cfg` maps `kirocrew` → `kiro_crew._bootstrap:main`.
+`[project.scripts]` in `pyproject.toml` maps `junction`, `kirocrew`, and
+`acpcrew` → `kiro_crew._bootstrap:main`. `junction` is the primary CLI name
+for this fork; the other two are aliases. `setup.cfg` still lists `kirocrew`
+for the same entry so older metadata readers keep resolving it.
+
+### Model-router sidecar
+
+`junction router status` probes the optional Codex Router model plane on
+loopback (`GET http://127.0.0.1:4202/health`, honoring `MODEL_ROUTER_PORT` /
+`CODEX_ROUTER_PORT`) and reports LiteLLM liveliness on `:4200`. An unreachable
+sidecar is degraded, not a CLI failure: the ACP gateway still runs. The
+matching dashboard route is `GET /api/model-router/status`. Neither path logs
+health bodies (they may contain secrets). Non-loopback targets are refused.
+See [model-router](model-router.md) and
+[`../../provenance/codex-router.md`](../../provenance/codex-router.md).
 
 ### Gateway asyncio child watcher
 

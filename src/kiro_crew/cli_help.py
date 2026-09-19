@@ -39,6 +39,7 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         "Run the gateway",
         (
             ("status", "Show runtime stats"),
+            ("router", "Show optional model-router sidecar health on loopback"),
             ("restart", "Restart a running gateway (service-aware)"),
             ("stop", "Stop a running gateway"),
             ("logs", "Show gateway logs"),
