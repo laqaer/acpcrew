@@ -86,7 +86,8 @@ only at version bump).
 |---|---|
 | Bootstrap PR | https://github.com/laqaer/acpcrew/pull/23 |
 | Epic | https://github.com/laqaer/acpcrew/issues/16 |
-| Hobby site URL | https://junction-site.vercel.app |
+| Hobby **preview** (this SHA, `target` unset) | https://junction-site-drdzpa9u5-laqaers-projects.vercel.app |
+| Hobby default alias (no custom domain, no Pages) | https://junction-site.vercel.app |
 
 ## Execution manifest
 
@@ -95,15 +96,16 @@ routing and the full gateway suite were never in this cut's must-run list.
 
 | Check | Result |
 |---|---|
-| Site `npm ci` / `npm test` / `npm run build` | proven |
-| Branding + CLI tests (`TestBannerBranding`, dashboard `bot_name`, product name) | proven |
+| Site `npm ci` / `npm test` / `npm run build` | proven (8 vitest tests) |
+| Branding + CLI tests (`TestBannerBranding`, dashboard `bot_name`, product name, brand-name gate) | proven (114 pytest) |
 | Model-router unit tests (mocked listener up/down; secrets dropped) | proven |
 | Brand-name diff gate vs `origin/main` | proven |
 | docs-lint | proven |
 | Bootstrap PR + epic/lane issues | proven (#23, #16–#22) |
-| Site CI workflow file | proven (`.github/workflows/site.yml`; Actions run in flight) |
-| Vercel hobby URL for `site/` | proven — https://junction-site.vercel.app. Vercel labeled the project's first deploy `production` internally. No custom domain, no GitHub Pages, no spend. Not a production ship of this product. |
-| Marketing walkthrough (nav → two-plane → CLI → FAQ) | in this pass |
+| Site CI workflow file | proven (`.github/workflows/site.yml`; Actions in flight) |
+| Vercel hobby URL for `site/` | proven. Preview: https://junction-site-drdzpa9u5-laqaers-projects.vercel.app (`target` unset). First deploy also created https://junction-site.vercel.app — Vercel labeled that one `production` internally. No custom domain, no GitHub Pages, no spend. Not a production ship of this product. |
+| Marketing walkthrough (nav → two-plane → CLI → FAQ) | proven against local `vite preview` dump-dom and the live preview URL: Junction nav/hero, Harness + Model planes, `junction gateway`, kiro-cli optional, never-paste-keys on the model plane, no ghost emoji. Interactive FAQ accordion click and computerUse recording: not_run (GUI agent spend-limited). |
 | Live Codex Router against Kimi/DeepSeek | not_run (no local sidecar) |
 | Full gateway pytest / desktop | not_run |
+
 
