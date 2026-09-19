@@ -6,11 +6,12 @@
 
 ## Context
 
-`laqaer/acpcrew` is a mature Apache-2.0 fork of Kiro Crew with multi-ACP already
-on `main`. The checkout still presents as Kiro Crew / acpcrew in README, the
-marketing site, CLI chrome, and the dashboard default bot name. The operator
-asked to leave both names, combine Codex Router as a model plane, run a full
-branding assessment, then decide.
+`laqaer/acpcrew` already docks multiple ACP agents on `main`. User-facing
+chrome still said Kiro Crew / acpcrew in README, the marketing site, CLI
+help, and the dashboard default bot name. The operator asked to leave both
+names, combine Codex Router as a model plane, run a full branding assessment,
+then decide. Junction is the product of this checkout, not a public fork
+identity.
 
 Criteria: one-word CLI; works for **both** “which agent” and “which model”;
 local-first; not a clone of Crew / Router / Codex; searchable; low trademark
@@ -24,7 +25,7 @@ The product name is **Junction**.
 |---|---|
 | Prose / dashboard default | Junction |
 | Primary CLI | `junction` |
-| Kept aliases | `acpcrew`, `kirocrew` |
+| Product-facing aliases | none |
 | Tagline | Where coding agents meet the models you want. |
 | GitHub slug | `laqaer/acpcrew` (human rename later) |
 | Python package / data home / Electron id | Unchanged this cut |

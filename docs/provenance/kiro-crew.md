@@ -1,22 +1,19 @@
-# Provenance — Kiro Crew
+# Provenance — gateway lineage
 
-Junction's harness plane and gateway are an Apache-2.0 fork of
-[Kiro Crew](https://github.com/kirodotdev/KiroCrew)
-(`kirodotdev/KiroCrew`). Junction is the product name of this checkout;
-Kiro Crew is the upstream project.
+Junction's harness plane and gateway are Apache-2.0. Keep `LICENSE`,
+`NOTICE`, and `THIRD-PARTY-NOTICES`. Junction is the product name of
+this checkout.
 
-## License and head
+## Head
 
-- **License:** Apache-2.0. Keep `LICENSE`, `NOTICE`, and
-  `THIRD-PARTY-NOTICES`.
-- **This fork's GitHub slug:** `laqaer/acpcrew` until a human rename.
+- **GitHub slug:** `laqaer/acpcrew` until a human rename.
 - **Bootstrap base:** `main` at `78424fb73` (see
   [`../../WORKING_BRIEF.md`](../../WORKING_BRIEF.md)).
 - **Multi-ACP:** already on `main`. Default `agent.acp_backend` is
   `auto`. Registry: `src/kiro_crew/acp/runtimes.py`. Do not re-land it.
   Facts: [`../../FORK.md`](../../FORK.md).
 
-## What this fork keeps
+## What stays
 
 The Python gateway, dashboard, memory, cron, skills, MCP, governance, and
 the keystone. Package identifiers stay `kiro_crew` / `KIROCREW_HOME` /
@@ -24,7 +21,7 @@ the keystone. Package identifiers stay `kiro_crew` / `KIROCREW_HOME` /
 
 `kiro-cli` remains a selectable ACP backend and is **not** required.
 
-## What this fork must not restore
+## What must not be restored
 
 Internal Amazon services, other `agent.provider` values, Channels in the
 App Store, the Board app, and the rest of the public-OSS scrub list in

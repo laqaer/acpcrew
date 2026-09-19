@@ -276,13 +276,14 @@ async def decompose(
     )
     # Route onto the run's shared AcpRuntime (one process per run), keyed by the
     # run's task_id. get_or_create would cold-start a dedicated process instead.
-    parent_key = (
-        f"{SESSION_PREFIX}:{task_id}:runtime" if task_id else f"{SESSION_PREFIX}:runtime"
-    )
+    parent_key = f"{SESSION_PREFIX}:{task_id}:runtime" if task_id else f"{SESSION_PREFIX}:runtime"
     try:
         client, is_new, _resumed = await sessions.open_task_session(
             parent_key, session_key, agent=agent or None, cwd=work_dir or None
         )
+        from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+
+        await apply_role_model(client, ROLE_PLANNING)
         if ctx:
             # Off-loop: build_message embeds the episodic query (blocking urllib).
             full_prompt, _ = await run_in_embed_pool(
@@ -471,9 +472,16 @@ def update_plan_tasks(run: Project, tasks: list[dict]) -> Project:
 
 # ── YAML Workflow Decomposition ──
 
-_YAML_ALLOWED_AGENT_KEYS = frozenset({
-    "agent", "timeout", "depends_on", "description", "prompt", "shell",
-})
+_YAML_ALLOWED_AGENT_KEYS = frozenset(
+    {
+        "agent",
+        "timeout",
+        "depends_on",
+        "description",
+        "prompt",
+        "shell",
+    }
+)
 
 
 def _check_acyclic(tasks: list[Task]) -> None:
@@ -553,7 +561,9 @@ def decompose_yaml(yaml_content: str) -> list[Task]:
         dep_indices = []
         for d in deps:
             if not isinstance(d, str):
-                raise ValueError(f"Agent '{name}' depends_on entries must be strings, got {type(d).__name__}: {d!r}")
+                raise ValueError(
+                    f"Agent '{name}' depends_on entries must be strings, got {type(d).__name__}: {d!r}"
+                )
             if d not in name_to_idx:
                 raise ValueError(f"Agent '{name}' depends on unknown agent '{d}'")
             dep_indices.append(name_to_idx[d])
@@ -564,12 +574,14 @@ def decompose_yaml(yaml_content: str) -> list[Task]:
             f"Timeout: {spec.get('timeout', '45m')}\n\n{prompt}"
         ).strip()
 
-        tasks.append(Task(
-            index=i,
-            title=spec.get("description", name.replace("-", " ").title()),
-            description=description,
-            depends_on=dep_indices,
-        ))
+        tasks.append(
+            Task(
+                index=i,
+                title=spec.get("description", name.replace("-", " ").title()),
+                description=description,
+                depends_on=dep_indices,
+            )
+        )
 
     _check_acyclic(tasks)
     return normalize_cross_group_deps(tasks)
@@ -618,7 +630,9 @@ def plan_to_yaml(tasks: list[Task]) -> str:
 
     ordered = sorted(tasks, key=lambda t: t.index)
     used: set[str] = set()
-    idx_to_name: dict[int, str] = {t.index: _slugify_agent_name(t.title, t.index, used) for t in ordered}
+    idx_to_name: dict[int, str] = {
+        t.index: _slugify_agent_name(t.title, t.index, used) for t in ordered
+    }
 
     agents: dict[str, Any] = {}
     for t in ordered:

@@ -32,6 +32,7 @@ from kiro_crew.config.loader import (
     AUTOCOMPACT_PCT_MAX,
     AUTOCOMPACT_PCT_MIN,
     MAX_SUBAGENTS_FIXED_FLOOR,
+    ROLE_MODEL_KEYS,
     SUBAGENT_AUTO_MAX_CEILING,
     SUBAGENT_MAX_TURNS_CEILING,
     KiroCrewConfig,
@@ -46,6 +47,7 @@ from kiro_crew.dashboard.token_auth import MAX_SESSION_TTL_SECS, generate_token,
 from kiro_crew.effort import EFFORT_LEVELS
 from kiro_crew.executors import discovery_executor
 from kiro_crew.metrics import provider as _metrics_provider
+from kiro_crew.model_router.catalog import MODEL_ID_MAX_LEN, MODEL_ID_PATTERN
 from kiro_crew.security_posture import build_posture_snapshot_async, posture_counts_async
 from kiro_crew.transcribe import (
     BREW_PATH_DIRS,
@@ -1866,6 +1868,11 @@ def _validate_role_model(
         return None
     from kiro_crew.acp.client import model_is_unusable
     from kiro_crew.dashboard.chat_handlers import _model_rejected_reason
+    from kiro_crew.model_router.catalog import is_catalog_slug
+
+    # Namespaced sidecar slugs are a different plane than kiro-cli entitlement.
+    if is_catalog_slug(value):
+        return None
 
     reason = _model_rejected_reason(value, provider=provider)
     if reason:
@@ -1902,22 +1909,10 @@ _EDITABLE_CONFIG: dict[str, dict] = {
     # metacharacters — and an unknown-but-well-formed id is rejected downstream
     # by kiro itself rather than silently accepted here. "auto"/"" = defer to
     # the agent config / kiro's own default.
-    "agent.model": {"type": "str", "max_len": 64, "pattern": r"^[A-Za-z0-9._\-\[\]]*$"},
-    # Per-task-class model overrides. Same grammar as agent.model (the real
-    # vocabulary is whatever the backend advertises). "" / "auto" defers to the
-    # chat default. `validate_fn` additionally rejects a well-formed id the
-    # active provider or the account's entitlement cannot honor.
-    "agent.role_models.background": {
+    "agent.model": {
         "type": "str",
-        "max_len": 64,
-        "pattern": r"^[A-Za-z0-9._\-\[\]]*$",
-        "validate_fn": _validate_role_model,
-    },
-    "agent.role_models.subagent": {
-        "type": "str",
-        "max_len": 64,
-        "pattern": r"^[A-Za-z0-9._\-\[\]]*$",
-        "validate_fn": _validate_role_model,
+        "max_len": MODEL_ID_MAX_LEN,
+        "pattern": MODEL_ID_PATTERN,
     },
     # Throttle-exhaustion fallback model. Single value: "auto" (default) defers
     # to the backend's availability-aware routing; a concrete id is tried first
@@ -1926,15 +1921,11 @@ _EDITABLE_CONFIG: dict[str, dict] = {
     # always allow), so the dropdown and the wire cannot disagree.
     "agent.fallback_model": {
         "type": "str",
-        "max_len": 64,
-        "pattern": r"^[A-Za-z0-9._\-\[\]]*$",
+        "max_len": MODEL_ID_MAX_LEN,
+        "pattern": MODEL_ID_PATTERN,
         "validate_fn": _validate_role_model,
     },
     "agent.reasoning_effort": {"type": "enum", "values": ["", *EFFORT_LEVELS]},
-    # Per-role reasoning effort, paired with role_models. Same enum as the chat
-    # default; "" = inherit. Applies only on reasoning-capable models.
-    "agent.role_efforts.background": {"type": "enum", "values": ["", *EFFORT_LEVELS]},
-    "agent.role_efforts.subagent": {"type": "enum", "values": ["", *EFFORT_LEVELS]},
     "agent.approval_mode": {"type": "enum", "values": ["auto", "interactive"]},
     # How long an AD-HOC auto-approve grant lasts. Editable from Settings because
     # every value here still ends: the timed ones are capped at the SafetyOverride
@@ -2097,6 +2088,18 @@ _EDITABLE_CONFIG: dict[str, dict] = {
         "max": _CU_MAX_SCREENSHOT_MAX_PX,
     },
 }
+
+for _role in ROLE_MODEL_KEYS:
+    _EDITABLE_CONFIG[f"agent.role_models.{_role}"] = {
+        "type": "str",
+        "max_len": MODEL_ID_MAX_LEN,
+        "pattern": MODEL_ID_PATTERN,
+        "validate_fn": _validate_role_model,
+    }
+    _EDITABLE_CONFIG[f"agent.role_efforts.{_role}"] = {
+        "type": "enum",
+        "values": ["", *EFFORT_LEVELS],
+    }
 
 
 def _beacon_governance_pinned_off() -> bool:

@@ -1,4 +1,4 @@
-"""Grouped top-level help for the ``kirocrew`` CLI.
+"""Grouped top-level help for the ``junction`` CLI.
 
 argparse lists subcommands as one flat block in registration order, which for
 ~40 commands reads as a wall the first three commands anybody needs are buried
@@ -30,7 +30,7 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
         "Start here",
         (
-            ("gateway", "Start Kiro Crew in this terminal (dashboard + messaging channels)"),
+            ("gateway", "Start Junction in this terminal (dashboard + messaging channels)"),
             ("service", "Run the gateway as a background service that starts on boot"),
             ("doctor", "Verify this install and diagnose problems"),
         ),
@@ -39,13 +39,13 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         "Run the gateway",
         (
             ("status", "Show runtime stats"),
-            ("router", "Show optional model-router sidecar health on loopback"),
+            ("router", "Model-router sidecar: status, catalog, and role plan"),
             ("restart", "Restart a running gateway (service-aware)"),
             ("stop", "Stop a running gateway"),
             ("logs", "Show gateway logs"),
             ("token", "Print a dashboard access URL with auth token"),
             ("logout", "Revoke all active dashboard sessions"),
-            ("update", "Update Kiro Crew to the latest version"),
+            ("update", "Update Junction to the latest version"),
         ),
     ),
     (
@@ -80,8 +80,8 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
         "Extend it",
         (
-            ("app", "Manage Kiro Crew apps"),
-            ("agent", "Manage Kiro Crew agent definitions"),
+            ("app", "Manage Junction apps"),
+            ("agent", "Manage Junction agent definitions"),
             ("workspace", "Manage workspace definitions"),
         ),
     ),
@@ -97,14 +97,14 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
         "Move it and back it up",
         (
-            ("cloud", "Run Kiro Crew on your own AWS EC2 instance"),
+            ("cloud", "Run Junction on your own AWS EC2 instance"),
             ("tailnet", "Publish this dashboard on your tailnet (Tailscale)"),
-            ("snapshot", "Create a portable backup of Kiro Crew state"),
-            ("restore", "Restore Kiro Crew state from a snapshot"),
+            ("snapshot", "Create a portable backup of Junction state"),
+            ("restore", "Restore Junction state from a snapshot"),
         ),
     ),
     (
-        "Develop Kiro Crew itself",
+        "Develop Junction itself",
         (
             ("pod", "Isolated, throwaway, full-stack test instances per worktree"),
             ("eval", "Run multi-session evaluation scenarios"),
@@ -131,28 +131,28 @@ def _listing_rank(name: str) -> int:
 
 # argparse builds the usage line from the actions it is allowed to show, and the
 # subparsers action is hidden, so the placeholder is spelled out here instead.
-TOP_USAGE = "kirocrew [-h] [--version] [-v] [--no-jail] <command> [<args>]"
+TOP_USAGE = "junction [-h] [--version] [-v] [--no-jail] <command> [<args>]"
 
 # Why both commands exist, and what a default install actually listens on --
 # the two questions the flat command list never answered.
 _ORIENTATION = f"""\
 gateway vs. service -- the same server, two lifetimes:
-  kirocrew gateway          runs in the foreground and stops on Ctrl-C or when
+  junction gateway          runs in the foreground and stops on Ctrl-C or when
                             the terminal closes. Best for a first look and for
                             development.
-  kirocrew service install  registers a systemd unit (Linux, needs sudo) or a
+  junction service install  registers a systemd unit (Linux, needs sudo) or a
                             launchd agent (macOS) that runs the SAME gateway
                             detached: it survives logout, restarts on crash and
-                            starts at boot. Then use `kirocrew service status`,
-                            `kirocrew restart`, `kirocrew logs`.
+                            starts at boot. Then use `junction service status`,
+                            `junction restart`, `junction logs`.
   Run only one of them at a time -- both bind the same port.
 
-Ports: the dashboard is the only port Kiro Crew opens, and it binds loopback
+Ports: the dashboard is the only port Junction opens, and it binds loopback
   only -- http://localhost:{_DEFAULT_PORT_TEXT}. Messaging channels (Slack, Discord, ...)
   connect outbound, so nothing else needs to be reachable. Override the port
-  with `kirocrew gateway --port N`, KIROCREW_PORT=N, or the `dashboard.url`
+  with `junction gateway --port N`, KIROCREW_PORT=N, or the `dashboard.url`
   config value; for the service, set KIROCREW_PORT when you run
-  `service install` (later, edit /etc/kirocrew/kirocrew.env and restart)."""
+  `service install`."""
 
 
 def add_command(
@@ -164,7 +164,7 @@ def add_command(
 
     Passing ``help`` is pointless (``cli.py`` hides argparse's own listing), so
     the section summary is used as the subparser's ``description`` instead --
-    which is what ``kirocrew <command> --help`` prints. A caller that wants a
+    which is what ``junction <command> --help`` prints. A caller that wants a
     longer description just passes its own.
 
     Raises ``KeyError`` when ``name`` has no section, so a command cannot be
@@ -190,7 +190,7 @@ def render_epilog(width: int = 13) -> str:
         lines.append("")
         if index == 0:
             lines.extend([_ORIENTATION, ""])
-    lines.append("Run `kirocrew <command> -h` for a command's own options.")
+    lines.append("Run `junction <command> -h` for a command's own options.")
     return "\n".join(lines)
 
 
@@ -212,7 +212,7 @@ class _VisibleCommandChoices(Mapping[str, Any]):
     just cleaned of. Validation and dispatch do not read ``choices``: the parser
     tests membership (``__contains__``) and ``_SubParsersAction.__call__``
     resolves through its own ``_name_parser_map``. So membership stays complete
-    while iteration is filtered, and ``kirocrew mcp-core`` keeps working.
+    while iteration is filtered, and ``junction mcp-core`` keeps working.
 
     ``__len__`` follows ``__iter__`` (the visible count) to keep this a coherent
     view of what it claims to contain; nothing in argparse reads it.

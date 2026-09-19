@@ -15,12 +15,12 @@ Read first: [`../../../JUNCTION.md`](../../../JUNCTION.md),
 
 ## Rules
 
-- Not the product: acpcrew, Kiro Crew, Codex Router, Hearth, Relay, Rudder.
-- "Kiro Crew" (two words) names the **upstream** project only.
+- Not the product: Codex Router, Hearth, Relay, Rudder.
+- Do not present Junction as a public fork in README, site, CLI help, or
+  prompts.
 - Brand gate is diff-scoped: do not write concatenated `KiroCrew` in new
   prose.
-- Identifiers that stay this cut: `kiro_crew`, `KIROCREW_HOME`,
-  `~/.kiro/crew`, Electron `productName`, GitHub slug `laqaer/acpcrew`,
-  PyPI `kirocrew`.
-- Aliases `acpcrew` and `kirocrew` still invoke the same entry point.
+- Implementation identifiers that stay until a dedicated rename:
+  `kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`,
+  GitHub slug `laqaer/acpcrew`.
 - Do not edit `CHANGELOG.md` on a feature PR.

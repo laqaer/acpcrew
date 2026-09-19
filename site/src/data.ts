@@ -8,7 +8,7 @@ export const FEATURES = [
   {
     icon: '02',
     title: 'Model routing',
-    desc: 'Route inference to Kimi, DeepSeek, Copilot, and the rest through an optional sidecar. If the sidecar is down, the gateway still runs.',
+    desc: 'Route inference across Kimi, DeepSeek, Copilot, and the rest. Orchestration, planning, and execution can each use a different cost class so tokens buy the most work.',
     tag: 'AI',
   },
   {
@@ -73,7 +73,7 @@ export const ARCH_PLANES = [
     label: 'Model plane',
     sub: 'Sidecar, optional',
     detail:
-      'An optional Codex Router sidecar (Responses API and LiteLLM) routes inference. That sidecar is not this Python tree. Never paste provider keys into chat. If it is absent, the gateway still runs.',
+      'An optional Codex Router sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
   },
 ];
 
@@ -135,7 +135,7 @@ export const FAQ = [
   },
   {
     q: 'What models can I use?',
-    a: 'The dashboard lists the models your account actually serves. The default is auto, not a pinned model id. Agents may optionally point openai_base_url at the model plane.',
+    a: 'Junction ships the full namespaced catalog the model-plane sidecar knows: Kimi, DeepSeek, Grok, Anthropic, Ollama Cloud, ClinePass, Copilot, OpenRouter, and the rest. Live-catalog providers are curated on the sidecar. The default pin is auto. Role routing (orchestration, planning, execution) picks by cost class so cheap models handle coordination and capable models handle planning.',
   },
   {
     q: 'Is kiro-cli required?',
@@ -147,7 +147,7 @@ export const FAQ = [
   },
   {
     q: 'How do I contribute?',
-    a: 'Fork the repo at github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
+    a: 'Clone the repo at github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
   },
 ];
 

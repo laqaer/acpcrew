@@ -45,17 +45,13 @@ describe('Junction naming', () => {
     expect(text).toContain('junction gateway');
   });
 
-  it('does not present Kiro Crew or acpcrew as the product name in the hero', () => {
+  it('does not present another product name as Junction', () => {
     const { container } = render(<App />);
-    const hero = heroSection(container);
-    expect(hero).toBeTruthy();
-    const heroText = (hero?.textContent ?? '').replace(/\s+/g, ' ');
-    expect(heroText).toContain('Where coding agents');
-    expect(heroText).toContain('meet the models you want');
-    expect(heroText).toContain('Junction');
-    expect(heroText).not.toMatch(/Kiro Crew/);
-    expect(heroText).not.toMatch(/acpcrew/i);
-    expect(heroText).not.toMatch(/kirocrew/i);
+    const text = pageText(container);
+    expect(text).not.toMatch(/Kiro Crew/);
+    expect(text).not.toMatch(/kirocrew/i);
+    expect(text).not.toMatch(/acpcrew/i);
+    expect(text).toMatch(/kiro-cli is optional/i);
   });
 
   it('index.html title and description are Junction, without the ghost', () => {

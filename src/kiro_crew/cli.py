@@ -116,7 +116,7 @@ def _already_jailed() -> bool:
 
 
 def _child_argv() -> "list[str]":
-    """The argv the jail should re-exec — this same kirocrew invocation.
+    """The argv the jail should re-exec — this same junction invocation.
 
     Reuses ``agent._resolve_kirocrew_bin`` (the same self-invocation resolver
     kirocrew-core/kirocrew-cron use) so the jailed child inherits its venv
@@ -341,7 +341,7 @@ def _install_child_watcher() -> None:
     the event loop reaps children directly.  The whole function is therefore a
     no-op there, short-circuited by the ``hasattr`` guard below; without it the
     unguarded Linux pidfd branch raised ``AttributeError: module 'asyncio' has
-    no attribute 'set_child_watcher'`` and killed ``kirocrew gateway`` on
+    no attribute 'set_child_watcher'`` and killed ``junction gateway`` on
     startup, before the port was ever bound.  The mitigation is not lost: 3.14
     reaps with a single non-thread reaper, so the thread-per-child storm this
     function exists to prevent cannot occur.
@@ -354,7 +354,7 @@ def _install_child_watcher() -> None:
     no-op), SafeChildWatcher attaches a SIGCHLD handler via
     ``loop.add_signal_handler`` -- which only runs when ``set_event_loop`` is
     called on the MAIN thread, and is what makes ``is_active()`` True.  The
-    ``kirocrew gateway`` path satisfies this (``asyncio.run`` on the main thread
+    ``junction gateway`` path satisfies this (``asyncio.run`` on the main thread
     before any subprocess spawns).  If a future caller ever drives this loop
     from a non-main thread, ``is_active()`` stays False and the FIRST
     ``create_subprocess_exec`` raises ``RuntimeError`` -- re-evaluate the install
@@ -386,7 +386,7 @@ def _install_child_watcher() -> None:
     # PidfdChildWatcher, SafeChildWatcher, and the ThreadedChildWatcher default);
     # the Unix event loop reaps children itself. Bail out BEFORE the Linux pidfd
     # branch below, which references the removed names unconditionally and would
-    # raise AttributeError during `kirocrew gateway` startup. This is a true
+    # raise AttributeError during `junction gateway` startup. This is a true
     # no-op and not a lost mitigation: 3.14's reaper spawns no thread per child,
     # so the loop-starvation wedge cannot recur. Probed via hasattr rather than
     # sys.version_info so a backport/vendored runtime that still ships the API
@@ -508,9 +508,9 @@ def _resolve_gateway_args(args: argparse.Namespace) -> dict:
             # Compare against BOTH default (non-override) gateway homes. Do NOT use
             # config_dir() here: KIROCREW_HOME is already set, so config_dir() would
             # return the override itself and the rail would always fire. We must
-            # reject the legacy ~/.kirocrew too, not just ~/.kiro/crew: on an
+            # reject the legacy ~/.junction too, not just ~/.kiro/crew: on an
             # unmigrated or downgraded install the legacy home still holds the LIVE
-            # data, so KIROCREW_HOME=~/.kirocrew would otherwise enable unrestricted
+            # data, so KIROCREW_HOME=~/.junction would otherwise enable unrestricted
             # tool approval against the real gateway home. Mirrors seed.py's
             # _protected_homes().
             protected_homes: set[Path] = set()
@@ -575,9 +575,9 @@ def _diagnostic_port(gw_kwargs: dict) -> int | None:
 
 
 def _knowledge(args) -> None:
-    """``kirocrew knowledge dedup [--apply]`` -- collapse cross-source duplicate docs."""
+    """``junction knowledge dedup [--apply]`` -- collapse cross-source duplicate docs."""
     if getattr(args, "knowledge_action", None) != "dedup":
-        print("Usage: kirocrew knowledge dedup [--apply]")
+        print("Usage: junction knowledge dedup [--apply]")
         return
     apply = bool(getattr(args, "apply", False))
     db_path = config_dir() / "workspace" / "knowledge" / "knowledge.db"
@@ -932,7 +932,7 @@ def main() -> None:
 
     # Validate KIROCREW_PORT early — fail fast before anything else loads.
     # Range as well as type: an in-range check that lives only in the binder
-    # would let `KIROCREW_PORT=70000 kirocrew service install` bake an
+    # would let `KIROCREW_PORT=70000 junction service install` bake an
     # unbindable port into a service definition and report success, leaving a
     # gateway that dies on every start. Rejecting here keeps ONE policy for
     # every entry point rather than a second one per consumer.
@@ -961,13 +961,13 @@ def main() -> None:
             os.environ["KIROCREW_PROJECT_DIR"] = detected
 
     parser = argparse.ArgumentParser(
-        prog="kirocrew",
-        description="Kiro Crew — personal AI agent",
+        prog="junction",
+        description="Junction — local control plane for ACP agents and models",
         usage=cli_help.TOP_USAGE,
         epilog=cli_help.render_epilog(),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--version", action="version", version=f"kirocrew {__version__}")
+    parser.add_argument("--version", action="version", version=f"junction {__version__}")
     parser.add_argument(
         "--verbose",
         "-v",
@@ -978,7 +978,7 @@ def main() -> None:
     # ``--no-jail`` is shared between the top-level parser and the jailed
     # subparsers (every command in ``_JAILED_COMMANDS`` —
     # chat/run/consolidate/eval — gets ``parents=[_jail_opts]``) via a parent
-    # parser, so BOTH ``kirocrew --no-jail <cmd>`` and ``kirocrew <cmd> --no-jail``
+    # parser, so BOTH ``junction --no-jail <cmd>`` and ``junction <cmd> --no-jail``
     # are accepted (argparse only matches a flag on the parser that declares it).
     # The PARENT copy uses ``default=argparse.SUPPRESS`` so that when the flag is
     # given only at the top level, the subparser does not reset ``no_jail`` back to
@@ -1005,12 +1005,12 @@ def main() -> None:
     # ``usage=``. ``metavar`` is what an "invalid choice" error names, and
     # ``prog`` must be pinned because argparse otherwise derives each
     # subcommand's prog from the parent's ``usage=`` string, which would prefix
-    # every ``kirocrew <cmd> --help`` with the whole top-level usage line.
+    # every ``junction <cmd> --help`` with the whole top-level usage line.
     sub = parser.add_subparsers(
         dest="command",
         metavar="<command>",
         help=argparse.SUPPRESS,
-        prog="kirocrew",
+        prog="junction",
     )
 
     # Helper for commands with examples
@@ -1022,9 +1022,9 @@ def main() -> None:
         "chat",
         epilog="""
 Examples:
-  kirocrew chat                      # Interactive mode
-  kirocrew chat -m 'check my CRs'    # Single message
-  kirocrew chat --model claude-opus  # Use specific model
+  junction chat                      # Interactive mode
+  junction chat -m 'check my CRs'    # Single message
+  junction chat --model claude-opus  # Use specific model
 """,
         formatter_class=_fmt,
         parents=[_jail_opts],
@@ -1154,7 +1154,7 @@ Examples:
     setup_parser.add_argument(
         "--electron-only",
         action="store_true",
-        help="Only install the Kiro Crew desktop app (macOS), skip other setup",
+        help="Only install the Junction desktop app (macOS), skip other setup",
     )
     setup_parser.add_argument(
         "--clean",
@@ -1178,13 +1178,13 @@ Examples:
         "cron",
         epilog="""
 Examples:
-  kirocrew cron list
-  kirocrew cron add 'daily-status' 'show status' --every 86400
-  kirocrew cron add 'weekday-9am' 'check tickets' --cron '0 9 * * MON-FRI' --approval-mode auto
-  kirocrew cron add 'c360-check' 'check pipeline' --every 600 --agent customer360-code-agent
-  kirocrew cron update <job-id> --approval-mode auto
-  kirocrew cron update <job-id> --agent oncall-agent
-  kirocrew cron remove <job-id>
+  junction cron list
+  junction cron add 'daily-status' 'show status' --every 86400
+  junction cron add 'weekday-9am' 'check tickets' --cron '0 9 * * MON-FRI' --approval-mode auto
+  junction cron add 'c360-check' 'check pipeline' --every 600 --agent customer360-code-agent
+  junction cron update <job-id> --approval-mode auto
+  junction cron update <job-id> --agent oncall-agent
+  junction cron remove <job-id>
 """,
         formatter_class=_fmt,
     )
@@ -1203,7 +1203,7 @@ Examples:
         dest="agent",
         default="",
         help="Agent name for this job (e.g. 'customer360-code-agent'). "
-        "Empty or omitted uses the default kirocrew agent.",
+        "Empty or omitted uses the default junction agent.",
     )
     cron_add.add_argument(
         "--silent",
@@ -1235,7 +1235,7 @@ Examples:
         "--agent",
         dest="agent",
         default=None,
-        help="New agent name (empty string resets to default kirocrew agent)",
+        help="New agent name (empty string resets to default junction agent)",
     )
     cron_update.add_argument(
         "--approval-mode",
@@ -1263,7 +1263,7 @@ Examples:
         "--session-of",
         metavar="SESSION",
         help='Dashboard slot name ("chat-3-1712793600") or a fully-qualified '
-        'session key ("dashboard:chat-3-1712793600"); see `kirocrew cron list`',
+        'session key ("dashboard:chat-3-1712793600"); see `junction cron list`',
     )
     adopt_target.add_argument(
         "--release",
@@ -1289,9 +1289,9 @@ Examples:
         "spawn",
         epilog="""
 Examples:
-  kirocrew spawn run 'check my open CRs'        # Wait for result
-  kirocrew spawn run --async 'analyze logs'     # Fire-and-forget
-  kirocrew spawn list                           # Show active subagents
+  junction spawn run 'check my open CRs'        # Wait for result
+  junction spawn run --async 'analyze logs'     # Fire-and-forget
+  junction spawn list                           # Show active subagents
 """,
         formatter_class=_fmt,
     )
@@ -1313,10 +1313,10 @@ Examples:
         "run",
         epilog="""
 Examples:
-  kirocrew run TASK.md                  # Run task with auto-resume
-  kirocrew run TASK.md --fresh          # Start from scratch
-  kirocrew run TASK.md --no-test        # Skip test verification
-  kirocrew run TASK.md --timeout 3600   # 1 hour timeout
+  junction run TASK.md                  # Run task with auto-resume
+  junction run TASK.md --fresh          # Start from scratch
+  junction run TASK.md --no-test        # Skip test verification
+  junction run TASK.md --timeout 3600   # 1 hour timeout
 """,
         formatter_class=_fmt,
         parents=[_jail_opts],
@@ -1408,9 +1408,9 @@ Examples:
         "eval",
         epilog="""
 Examples:
-  kirocrew eval                         # smoke test (~30s)
-  kirocrew eval memory_recall_basic     # specific scenario
-  kirocrew eval --all                   # all scenarios (slow)
+  junction eval                         # smoke test (~30s)
+  junction eval memory_recall_basic     # specific scenario
+  junction eval --all                   # all scenarios (slow)
 """,
         formatter_class=_fmt,
         parents=[_jail_opts],
@@ -1555,7 +1555,7 @@ Examples:
         choices=["reads", "yolo", "interactive"],
         help=(
             "Approval mode the pod's gateway boots with, forwarded to "
-            "`kirocrew gateway --approval`. Persisted per pod so it survives a "
+            "`junction gateway --approval`. Persisted per pod so it survives a "
             "service-manager restart. Omit to leave the gateway's own default in "
             "force, which resolves from config agent.approval_mode (default: "
             "auto). Applies at boot, so re-up a stopped pod to change it."
@@ -1615,7 +1615,7 @@ Examples:
     pod_logs.add_argument("-n", "--lines", type=int, default=50, help="Lines to tail (default: 50)")
     pod_exec = pod_sub.add_parser(
         "exec",
-        help="Run a kirocrew command against a pod, using the pod's own binary and data",
+        help="Run a junction command against a pod, using the pod's own binary and data",
     )
     pod_exec.add_argument("name", help="Worktree name")
     # REMAINDER so the pod's own flags (--json, -n, --ttl …) reach the child
@@ -1704,10 +1704,10 @@ Examples:
         "sandbox",
         epilog="""
 Examples:
-  kirocrew sandbox status                      # is THIS launch covered?
-  kirocrew sandbox install-profile             # attach to $APPIMAGE (sudo)
-  kirocrew sandbox install-profile --path P    # attach to an explicit executable
-  kirocrew sandbox remove-profile              # unload and delete it (sudo)
+  junction sandbox status                      # is THIS launch covered?
+  junction sandbox install-profile             # attach to $APPIMAGE (sudo)
+  junction sandbox install-profile --path P    # attach to an explicit executable
+  junction sandbox remove-profile              # unload and delete it (sudo)
 
 Only needed on hosts with kernel.apparmor_restrict_unprivileged_userns=1
 (Ubuntu 23.10+ and derivatives). Everywhere else these are no-ops.
@@ -1741,16 +1741,16 @@ Only needed on hosts with kernel.apparmor_restrict_unprivileged_userns=1
         "cloud",
         epilog="""
 Examples:
-  kirocrew cloud launch                  # interactive: provision + configure + open dashboard
-  kirocrew cloud launch --size power     # non-interactive size
-  kirocrew cloud launch --new            # create a separate new instance
-  kirocrew cloud launch --subnet subnet-0abc…  # pin the launch to an exact subnet
-  kirocrew cloud list                    # list your cloud instances
-  kirocrew cloud connect                 # reopen the dashboard over SSM
-  kirocrew cloud stop | start            # pause / resume (save cost)
-  kirocrew cloud destroy                 # remove EVERYTHING from AWS
-  kirocrew cloud iam-policy              # print the least-privilege IAM policy
-  kirocrew cloud doctor                  # check prerequisites + AWS reachability
+  junction cloud launch                  # interactive: provision + configure + open dashboard
+  junction cloud launch --size power     # non-interactive size
+  junction cloud launch --new            # create a separate new instance
+  junction cloud launch --subnet subnet-0abc…  # pin the launch to an exact subnet
+  junction cloud list                    # list your cloud instances
+  junction cloud connect                 # reopen the dashboard over SSM
+  junction cloud stop | start            # pause / resume (save cost)
+  junction cloud destroy                 # remove EVERYTHING from AWS
+  junction cloud iam-policy              # print the least-privilege IAM policy
+  junction cloud doctor                  # check prerequisites + AWS reachability
 """,
         formatter_class=_fmt,
     )
@@ -1798,7 +1798,7 @@ Examples:
         help="On bootstrap failure, keep the instance (disable rollback) for inspection",
     )
 
-    _c_list = cloud_sub.add_parser("list", help="List your Kiro Crew cloud instances")
+    _c_list = cloud_sub.add_parser("list", help="List your Junction cloud instances")
     _cloud_creds_opts(_c_list)
 
     _c_status = cloud_sub.add_parser("status", help="Show one instance's state")
@@ -1926,6 +1926,27 @@ Examples:
         default=None,
         help="Router port (default: MODEL_ROUTER_PORT, CODEX_ROUTER_PORT, or 4202)",
     )
+    router_catalog = router_sub.add_parser(
+        "catalog",
+        help="List namespaced model choices (no credentials)",
+    )
+    router_catalog.add_argument("--provider", default="", help="Filter by provider id")
+    router_catalog.add_argument(
+        "--class",
+        dest="cost_class",
+        default="",
+        metavar="CLASS",
+        help="Filter by cost class: economy, standard, or capable",
+    )
+    router_plan = router_sub.add_parser(
+        "plan",
+        help="Show the orchestration/planning/execution routing DAG",
+    )
+    router_plan.add_argument(
+        "--advertised",
+        default="",
+        help="Comma-separated advertised model ids (omit to inherit auto)",
+    )
 
     # mcp-cron (MCP server — spawned by the agent backend, not user-facing)
     sub.add_parser("mcp-cron")
@@ -1981,9 +2002,9 @@ Examples:
         "computer",
         epilog="""
 Examples:
-  kirocrew computer doctor                     # Support + permission report
-  kirocrew computer doctor --json              # The same report as JSON
-  kirocrew computer apps                       # Apps with an on-screen window
+  junction computer doctor                     # Support + permission report
+  junction computer doctor --json              # The same report as JSON
+  junction computer apps                       # Apps with an on-screen window
 
 Computer use is OFF by default and is enabled only from the dashboard
 (Settings -> Computer Use). An agent cannot enable it.
@@ -2002,9 +2023,9 @@ Computer use is OFF by default and is enabled only from the dashboard
         "learn",
         epilog="""
 Examples:
-  kirocrew learn list
-  kirocrew learn add 'use snake_case for variables' --category tool
-  kirocrew learn remove 'snake_case'
+  junction learn list
+  junction learn add 'use snake_case for variables' --category tool
+  junction learn remove 'snake_case'
 """,
         formatter_class=_fmt,
     )
@@ -2028,16 +2049,16 @@ Examples:
         "artifact",
         epilog="""
 Examples:
-  kirocrew artifact list
-  kirocrew artifact list --tag op --kind widget
-  kirocrew artifact save --name "CR Queue" --content-file widget.html --tags ops,cr
-  cat widget.html | kirocrew artifact save --name "Pipeline Health"
-  kirocrew artifact show cr-queue
-  kirocrew artifact show cr-queue --version 2
-  kirocrew artifact show cr-queue --meta
-  kirocrew artifact update cr-queue --content-file widget.html
-  kirocrew artifact versions cr-queue
-  kirocrew artifact delete cr-queue
+  junction artifact list
+  junction artifact list --tag op --kind widget
+  junction artifact save --name "CR Queue" --content-file widget.html --tags ops,cr
+  cat widget.html | junction artifact save --name "Pipeline Health"
+  junction artifact show cr-queue
+  junction artifact show cr-queue --version 2
+  junction artifact show cr-queue --meta
+  junction artifact update cr-queue --content-file widget.html
+  junction artifact versions cr-queue
+  junction artifact delete cr-queue
 """,
         formatter_class=_fmt,
     )
@@ -2129,18 +2150,18 @@ Examples:
     # agent
     agent_parser = cli_help.add_command(sub, "agent")
     agent_sub = agent_parser.add_subparsers(dest="agent_action")
-    agent_sub.add_parser("list", help="List Kiro Crew agents")
-    agent_create = agent_sub.add_parser("create", help="Create a Kiro Crew agent")
+    agent_sub.add_parser("list", help="List Junction agents")
+    agent_create = agent_sub.add_parser("create", help="Create a Junction agent")
     agent_create.add_argument("--name", required=True, help="Agent name")
     agent_create.add_argument("--kiro-agent", default="kirocrew", help="Kiro agent name")
     agent_create.add_argument("--workspace", default="default", help="Workspace name")
     agent_create.add_argument("--memory-store", default="default", help="Memory store name")
-    agent_update = agent_sub.add_parser("update", help="Update a Kiro Crew agent")
+    agent_update = agent_sub.add_parser("update", help="Update a Junction agent")
     agent_update.add_argument("name", help="Agent name to update")
     agent_update.add_argument("--kiro-agent", help="New kiro agent name")
     agent_update.add_argument("--workspace", help="New workspace name")
     agent_update.add_argument("--memory-store", help="New memory store name")
-    agent_delete = agent_sub.add_parser("delete", help="Delete a Kiro Crew agent")
+    agent_delete = agent_sub.add_parser("delete", help="Delete a Junction agent")
     agent_delete.add_argument("name", help="Agent name to delete")
     agent_reset_model = agent_sub.add_parser(
         "reset-model",
@@ -2153,7 +2174,7 @@ Examples:
         # cost the lazy dispatch in main() exists to avoid. Same spelling the
         # resolver itself compares against in resolve_effective_model.
         default="kirocrew",
-        help="Kiro agent spec to reset (default: kirocrew)",
+        help="Agent spec to reset (default: kirocrew)",
     )
 
     # workspace
@@ -2190,12 +2211,12 @@ Examples:
         "app",
         epilog="""
 Examples:
-  kirocrew app install /path/to/oncall-watchtower
-  kirocrew app list
-  kirocrew app enable oncall-watchtower
-  kirocrew app disable oncall-watchtower
-  kirocrew app info oncall-watchtower
-  kirocrew app uninstall oncall-watchtower
+  junction app install /path/to/oncall-watchtower
+  junction app list
+  junction app enable oncall-watchtower
+  junction app disable oncall-watchtower
+  junction app info oncall-watchtower
+  junction app uninstall oncall-watchtower
 """,
         formatter_class=_fmt,
     )
@@ -2241,10 +2262,10 @@ Examples:
         "config",
         epilog="""
 Examples:
-  kirocrew config get                   # Show all config
-  kirocrew config get agent.provider    # Get a specific value
-  kirocrew config set dashboard.url http://localhost:5476
-  kirocrew config edit                  # Open in $EDITOR
+  junction config get                   # Show all config
+  junction config get agent.provider    # Get a specific value
+  junction config set dashboard.url http://localhost:5476
+  junction config edit                  # Open in $EDITOR
 
 The dashboard port is set with the KIROCREW_PORT env var, not a config key.
 """,
@@ -2490,14 +2511,14 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
         run_mcp_computer_server()
     elif args.command == "mcp-dashboard":
         # Loaded through importlib in the branch, like the builtin-app servers
-        # below: `kirocrew gateway` boots through this module, and a default-off
+        # below: `junction gateway` boots through this module, and a default-off
         # optional subsystem must not be imported to start it.
         importlib.import_module("kiro_crew.mcp_dashboard").run_mcp_server()
     elif args.command.startswith("mcp-") and args.command[4:] in _BUILTIN_NAMES:
         # Registration gates this verb on _builtin_mcp_server_available, and
         # _run_app_mcp_server is the ONE dispatch-time spelling of "import the
         # builtin's mcp_server and run it or refuse cleanly" — the same helper
-        # the `kirocrew app mcp <name>` manifest path uses (clean stderr line +
+        # the `junction app mcp <name>` manifest path uses (clean stderr line +
         # exit 1 on ImportError or a missing run_mcp_server entrypoint), so an
         # unresolvable module cannot reach a raw traceback here (#5901).
         from kiro_crew.cli_commands import _run_app_mcp_server
@@ -2638,7 +2659,7 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
 # NOTE (issue #3504): ``cli_commands`` and ``cli_server`` are deliberately NOT
 # imported at module scope. ``cli_commands`` costs ~556 ms and ``cli_server``
 # ~549 ms (it pulls ``slack.gateway``), and the MCP stdio servers
-# (``kirocrew mcp-core`` / ``mcp-cron`` / ``mcp-computer``) — which dispatch
+# (``junction mcp-core`` / ``mcp-cron`` / ``mcp-computer``) — which dispatch
 # through this module and hold its imports RESIDENT for their whole lifetime —
 # need neither. Every name from those two modules is imported inside the one
 # ``main()`` dispatch branch that uses it. ``test_cli_lazy_imports.py`` ratchets

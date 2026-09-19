@@ -10,6 +10,7 @@ import pytest
 
 from kiro_crew.config.loader import (
     DEFAULT_MODEL,
+    ROLE_MODEL_KEYS,
     AgentConfig,
     KiroCrewConfig,
     coerce_fallback_model,
@@ -58,9 +59,18 @@ class TestCoerceFallbackModel:
 class TestCoerceRoleModels:
     def test_keeps_only_known_roles_with_real_pins(self) -> None:
         out = coerce_role_models(
-            {"background": "haiku-4.5", "subagent": "sonnet-4.6-1m", "bogus": "x"}
+            {
+                "background": "haiku-4.5",
+                "subagent": "sonnet-4.6-1m",
+                "planning": "kimi-oauth/k3",
+                "bogus": "x",
+            }
         )
-        assert out == {"background": "haiku-4.5", "subagent": "sonnet-4.6-1m"}
+        assert out == {
+            "background": "haiku-4.5",
+            "subagent": "sonnet-4.6-1m",
+            "planning": "kimi-oauth/k3",
+        }
 
     def test_auto_and_empty_collapse_to_inherit(self) -> None:
         # "auto"/""/non-str all mean "inherit" -> dropped from the stored map.
@@ -71,6 +81,15 @@ class TestCoerceRoleModels:
         assert coerce_role_models(None) == {}
         assert coerce_role_models("nope") == {}
 
+    def test_dag_roles_are_known(self) -> None:
+        assert ROLE_MODEL_KEYS == (
+            "orchestration",
+            "planning",
+            "execution",
+            "background",
+            "subagent",
+        )
+
 
 # ── resolution chain ──────────────────────────────────────────────────────────
 class TestResolveModel:
@@ -78,6 +97,9 @@ class TestResolveModel:
         a = AgentConfig()
         assert a.resolve_model("background") == DEFAULT_MODEL == "auto"
         assert a.resolve_model("subagent") == "auto"
+        assert a.resolve_model("orchestration") == "auto"
+        assert a.resolve_model("planning") == "auto"
+        assert a.resolve_model("execution") == "auto"
 
     def test_role_pin_wins(self) -> None:
         a = AgentConfig(role_models={"background": "haiku-4.5"})

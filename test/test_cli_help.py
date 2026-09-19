@@ -1,4 +1,4 @@
-"""Tests for the grouped top-level ``kirocrew`` help.
+"""Tests for the grouped top-level ``junction`` help.
 
 The listing a user reads is rendered from ``cli_help.COMMAND_GROUPS``, not from
 argparse's own subcommand block, so the risk this file exists to catch is a
@@ -14,7 +14,7 @@ from kiro_crew import cli_help
 
 
 def _capture_cli(monkeypatch, tmp_path, capsys, argv):
-    """Run ``kirocrew <argv>`` far enough to render help, and return (out, err).
+    """Run ``junction <argv>`` far enough to render help, and return (out, err).
 
     ``KIROCREW_PROJECT_DIR`` is pinned so ``main()``'s project auto-detection
     does not walk (and then export) the checkout it happens to run in.
@@ -83,7 +83,7 @@ class TestInternalCommandsStayHidden:
     def test_still_dispatchable_despite_being_hidden(self, monkeypatch, tmp_path, capsys):
         """Hiding filters what argparse PRINTS, never what it accepts."""
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["mcp-core", "--help"])
-        assert out.startswith("usage: kirocrew mcp-core")
+        assert out.startswith("usage: junction mcp-core")
 
     def test_error_lists_the_starting_commands_first(self, monkeypatch, tmp_path, capsys):
         """The offer is ordered like the help, not like the registration order."""
@@ -116,14 +116,14 @@ class TestTopLevelHelpLayout:
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["--help"])
         assert "==SUPPRESS==" not in out
         assert "{chat," not in out
-        assert out.startswith("usage: kirocrew [-h] [--version] [-v] [--no-jail] <command>")
+        assert out.startswith("usage: junction [-h] [--version] [-v] [--no-jail] <command>")
 
     def test_subcommand_usage_is_not_prefixed_with_the_top_level_usage(
         self, monkeypatch, tmp_path, capsys
     ):
         """argparse derives a subcommand's prog from the parent's ``usage=``."""
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["service", "--help"])
-        assert out.startswith("usage: kirocrew service")
+        assert out.startswith("usage: junction service")
 
     def test_orientation_explains_both_lifetimes_and_the_default_port(
         self, monkeypatch, tmp_path, capsys
@@ -131,7 +131,7 @@ class TestTopLevelHelpLayout:
         from kiro_crew.config.loader import _DEFAULT_PORT
 
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["--help"])
-        assert "kirocrew service install" in out
+        assert "junction service install" in out
         assert "foreground" in out
         # The help text spells the port out; keep it honest against the binder.
         assert str(_DEFAULT_PORT) in out

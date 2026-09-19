@@ -141,3 +141,151 @@ def test_router_is_a_listed_cli_command() -> None:
     from kiro_crew import cli_help
 
     assert "router" in cli_help.SUMMARIES
+
+
+def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:
+    import re
+
+    from kiro_crew.model_router.catalog import MODEL_ID_MAX_LEN, MODEL_ID_PATTERN
+
+    assert MODEL_ID_MAX_LEN == 64
+    assert re.fullmatch(MODEL_ID_PATTERN, "")
+    assert re.fullmatch(MODEL_ID_PATTERN, "auto")
+    assert re.fullmatch(MODEL_ID_PATTERN, "kimi-oauth/k3")
+    assert re.fullmatch(MODEL_ID_PATTERN, "openrouter/tencent/hy4-preview")
+    assert re.fullmatch(MODEL_ID_PATTERN, "../../etc/passwd") is None
+    assert re.fullmatch(MODEL_ID_PATTERN, "/etc/passwd") is None
+    assert re.fullmatch(MODEL_ID_PATTERN, "id with space") is None
+
+
+def test_catalog_includes_codex_router_model_choices() -> None:
+    from kiro_crew.model_router.catalog import load_catalog
+
+    catalog = load_catalog()
+    slugs = {row.slug for row in catalog.models}
+    provider_ids = {row.id for row in catalog.providers}
+    assert catalog.version == 1
+    assert len(catalog.models) >= 198
+    assert "kimi-oauth/k3" in slugs
+    assert "kimi-oauth/kimi-for-coding-highspeed" in slugs
+    assert "deepseek/deepseek-v4-pro" in slugs
+    assert "deepseek/deepseek-v4-flash" in slugs
+    assert "grok-oauth/grok-4.5" in slugs
+    assert "anthropic-api/claude-opus-4.8" in slugs
+    assert "github-copilot" in provider_ids
+    assert "openrouter" in provider_ids
+    dumped = json.dumps(catalog.to_dict())
+    assert "sk-" not in dumped
+    # ``auth_kind: api_key`` names how the sidecar authenticates, not a secret.
+    from kiro_crew.model_router.routing import annotated_catalog
+
+    annotated = annotated_catalog()
+    by_slug = {row["slug"]: row["cost_class"] for row in annotated["models"]}
+    assert by_slug["deepseek/deepseek-v4-flash"] == "economy"
+    assert by_slug["kimi-oauth/k3"] == "capable"
+    assert by_slug["deepseek/deepseek-v4-pro"] == "capable"
+
+
+def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
+    from kiro_crew.model_router.routing import (
+        COST_CAPABLE,
+        COST_ECONOMY,
+        COST_STANDARD,
+        ROLE_DAG_EDGES,
+        ROLE_EXECUTION,
+        ROLE_ORCHESTRATION,
+        ROLE_PLANNING,
+        build_plan,
+        classify_cost,
+        resolve_wire_id,
+    )
+
+    assert classify_cost("deepseek/deepseek-v4-flash") == COST_ECONOMY
+    assert classify_cost("kimi-oauth/k3") == COST_CAPABLE
+    assert classify_cost("minimax-m3") == COST_STANDARD
+    assert (ROLE_ORCHESTRATION, ROLE_PLANNING) in ROLE_DAG_EDGES
+    assert (ROLE_PLANNING, ROLE_EXECUTION) in ROLE_DAG_EDGES
+
+    empty = build_plan()
+    assert all(row.wire_id == "auto" for row in empty.roles)
+    assert empty.assignment(ROLE_PLANNING) and empty.assignment(ROLE_PLANNING).suggestion
+
+    advertised = ["deepseek-v4-flash", "kimi-k3", "minimax-m3"]
+    plan = build_plan(advertised=advertised)
+    assert plan.assignment(ROLE_ORCHESTRATION).wire_id == "deepseek-v4-flash"
+    assert plan.assignment(ROLE_PLANNING).wire_id == "kimi-k3"
+    assert plan.assignment(ROLE_EXECUTION).wire_id == "minimax-m3"
+
+    pinned = build_plan(pins={"planning": "kimi-oauth/k3"}, advertised=advertised)
+    assert pinned.assignment(ROLE_PLANNING).wire_id == "kimi-oauth/k3"
+    assert resolve_wire_id("background", advertised=["haiku-4.5", "opus-4.8"]) == "haiku-4.5"
+
+
+def test_cli_catalog_and_plan_print_json_without_secrets(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from kiro_crew.model_router.cli import run_router_command
+
+    run_router_command(argparse.Namespace(router_action="catalog", provider="", cost_class=""))
+    catalog_out = capsys.readouterr().out
+    last = catalog_out.strip().splitlines()[-1]
+    payload = json.loads(last)
+    assert payload["model_count"] >= 198
+    assert "sk-" not in catalog_out
+
+    run_router_command(argparse.Namespace(router_action="plan", advertised="haiku-4.5,opus"))
+    plan_out = capsys.readouterr().out
+    plan_payload = json.loads(plan_out.strip().splitlines()[-1])
+    assert plan_payload["code"] == "ok"
+    roles = {row["role"]: row for row in plan_payload["roles"]}
+    assert roles["orchestration"]["wire_id"] == "haiku-4.5"
+    assert roles["planning"]["wire_id"] == "opus"
+
+
+@pytest.mark.asyncio
+async def test_api_catalog_and_plan() -> None:
+    from aiohttp.test_utils import make_mocked_request
+
+    from kiro_crew.model_router import api
+
+    catalog_resp = await api.api_catalog(make_mocked_request("GET", "/api/model-router/catalog"))
+    assert catalog_resp.status == 200
+    body = json.loads(catalog_resp.body)
+    assert body["model_count"] >= 198
+    assert "sk-" not in json.dumps(body)
+
+    plan_resp = await api.api_plan(
+        make_mocked_request("GET", "/api/model-router/plan?advertised=flash-1,opus-1")
+    )
+    assert plan_resp.status == 200
+    plan_body = json.loads(plan_resp.body)
+    roles = {row["role"]: row for row in plan_body["roles"]}
+    assert roles["orchestration"]["cost_class"] == "economy"
+    assert roles["planning"]["cost_class"] == "capable"
+    assert body["models"][0]["cost_class"] in {"economy", "standard", "capable"}
+
+
+@pytest.mark.asyncio
+async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.MonkeyPatch) -> None:
+    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
+    from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+
+    class _Client:
+        def __init__(self) -> None:
+            self.seen: list[str] = []
+
+        async def set_model(self, model_id: str) -> None:
+            self.seen.append(model_id)
+
+    monkeypatch.setattr(
+        "kiro_crew.config.loader.KiroCrewConfig.load",
+        classmethod(
+            lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-oauth/k3"}))
+        ),
+    )
+    client = _Client()
+    assert await apply_role_model(client, ROLE_PLANNING) == "kimi-oauth/k3"
+    assert client.seen == ["kimi-oauth/k3"]
+    client.seen.clear()
+    assert await apply_role_model(client, "background") == "auto"
+    assert client.seen == []
