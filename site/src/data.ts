@@ -73,7 +73,7 @@ export const ARCH_PLANES = [
     label: 'Model plane',
     sub: 'Sidecar, optional',
     detail:
-      'An optional Codex Router sidecar (Responses API and LiteLLM) routes inference. That sidecar is not this Python tree. If it is absent, the gateway still runs.',
+      'An optional Codex Router sidecar (Responses API and LiteLLM) routes inference. That sidecar is not this Python tree. Never paste provider keys into chat. If it is absent, the gateway still runs.',
   },
 ];
 
