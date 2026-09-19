@@ -6,6 +6,12 @@ open before touching that subsystem: see
 [Read before you touch](#read-before-you-touch). The frontend has its own router,
 [`website/AGENTS.md`](website/AGENTS.md).
 
+**Fork overlay:** this checkout is **Junction** (`laqaer/acpcrew`), not
+upstream Kiro Crew as a product. Read [`JUNCTION.md`](JUNCTION.md) and
+[`WORKING_BRIEF.md`](WORKING_BRIEF.md) before any product, brand, CLI, or
+model-router change. Package identifiers (`kiro_crew`, `KIROCREW_HOME`,
+Electron `productName`) stay as upstream spelled them.
+
 ## What this is
 
 Kiro Crew is an open-source personal AI agent: chat from the web dashboard, the
