@@ -80,7 +80,10 @@ Out-of-band lanes that never gate a PR:
   `scripts/update_contributors.py`; because the default branch is protected it
   opens a rolling PR rather than committing directly, like `test-durations.yml`.
   A login in `.github/contributors-optout.txt` is never added, which keeps the
-  README's removal promise enforceable against the full-rebuild collector).
+  README's removal promise enforceable against the full-rebuild collector), and
+  `agent-os-handoff.yml` (comments the scout / implement / review contract when
+  an `agent-os/*` label is applied; it never merges, never checks out the PR,
+  and is SHA-pinned).
 
 ## `ci.yml`: correctness
 

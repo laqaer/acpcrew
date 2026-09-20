@@ -33,6 +33,11 @@ workflow.
 ## Consequences
 
 - `.github/workflows/agent-os-handoff.yml` reminds, it does not merge.
+  It listens to `issues.labeled` only (that event already covers PRs) and
+  pins `actions/github-script` by SHA.
+- Labels `agent-os/triage`, `agent-os/ready`, and `agent-os/approved` are
+  created once on the GitHub repo. This workflow does not mint them; that
+  is part of [#29](https://github.com/laqaer/acpcrew/issues/29).
 - Adversarial review is a scout: findings become issues, not a silent
   patch on the same turn.
 - Keystone, harness-parity, and identity gates still apply to every

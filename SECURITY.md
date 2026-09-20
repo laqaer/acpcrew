@@ -6,7 +6,6 @@ If you discover a potential security issue in this project, please **do not** cr
 GitHub issue. Instead, report it privately:
 
 - **GitHub:** [private vulnerability report](https://github.com/laqaer/acpcrew/security/advisories/new)
-- **Subject prefix:** `[SECURITY]`
 
 Please include:
 - A description of the vulnerability

@@ -18,19 +18,18 @@ ADR [0001](docs/adr/0001-product-identity.md). Envelope and execution id in
 
 ### M1 — bootstrap PR
 
-**Open** as [#23](https://github.com/laqaer/acpcrew/pull/23) on
-`cursor/junction-bootstrap-55da`. Contributor docs, `site/` overlay, CLI
-chrome, model-router health, Vercel hobby preview. Do not merge in agent
-executions.
+**Merged** as [#23](https://github.com/laqaer/acpcrew/pull/23). Contributor
+docs, `site/` overlay, CLI chrome, model-router health, Vercel hobby preview.
 
 ### M1.5 — model plane catalog + role DAG
 
-**Open** as [#24](https://github.com/laqaer/acpcrew/pull/24). Namespaced
+**Merged** as [#24](https://github.com/laqaer/acpcrew/pull/24). Namespaced
 catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 
 ### M1.6 — ship program (this cut)
 
-**Open** on `cursor/junction-ship-program-55da`.
+**Open** as [#26](https://github.com/laqaer/acpcrew/pull/26) on
+`cursor/junction-ship-program-55da`. Do not merge in agent executions.
 
 - Advertised-model lookup actually calls ACP `available_models`.
 - `set_model` skips namespaced sidecar slugs until M2.
@@ -111,14 +110,18 @@ is [ADR 0006](docs/adr/0006-agent-os-no-automerge.md).
 
 Worth doing, not on the bootstrap PR:
 
-- Confirm a domain from the M3 table and attach it to `junction-site`.
-- Install the Codex Router sidecar on a real machine and prove M2.
+- Confirm a domain from the M3 table and attach it to `junction-site`
+  ([#27](https://github.com/laqaer/acpcrew/issues/27)).
+- Install the Codex Router sidecar on a real machine and prove M2
+  ([#22](https://github.com/laqaer/acpcrew/issues/22)).
 - Remaining dashboard catalog literals (`en.json` / locale values) in
-  reviewable chunks.
+  reviewable chunks ([#28](https://github.com/laqaer/acpcrew/issues/28)).
 - Packaged user docs under `src/kiro_crew/docs/` still say the old CLI in
   places; rewrite as a docs PR, not a silent sweep.
+- Create Cursor Automations for scout / implementer / reviewer, and mint
+  the `agent-os/*` labels once ([#29](https://github.com/laqaer/acpcrew/issues/29)).
+- Adversarial leftovers: orchestration apply site, brand-gate teaching text
+  ([#30](https://github.com/laqaer/acpcrew/issues/30)).
 - PyPI name reservation for `junction` when publish is real.
 - A short demo recording on the marketing site once M2 is true.
-- Issue/PR templates and SECURITY.md contact links pointing at
-  `laqaer/acpcrew` rather than the upstream slug.
 - Do not present Junction as a public fork. Do not vendor Codex Router.
