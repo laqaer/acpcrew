@@ -1121,7 +1121,7 @@ class TestUpdateGitPath:
         assert exc.value.code == 1
         out = capsys.readouterr().out
         assert "diverged" in out
-        assert "kirocrew update --force" in out
+        assert "junction update --force" in out
         assert not any(c[:2] == ["git", "reset"] for c in stub.calls)
 
     def test_diverged_checkout_resets_under_force(self, monkeypatch, git_checkout, capsys) -> None:
