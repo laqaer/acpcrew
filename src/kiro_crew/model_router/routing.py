@@ -67,12 +67,15 @@ ROLE_DAG_EDGES: tuple[tuple[str, str], ...] = (
 
 # Token sets on the leaf (after the last ``/``). ``mini`` is omitted because it
 # false-hits MiniMax. ``pro`` is a whole token so ``contributor`` stays standard.
+# ``turbo`` is economy only when the slug is not already a capable family
+# (``glm-5-turbo`` is capable; ``llama-3-turbo`` is economy).
 _TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
-_ECONOMY_TOKENS = frozenset(
-    {"flash", "turbo", "haiku", "highspeed", "free", "tiny", "lite", "nano"}
-)
+_CHEAP_SIZE_TOKENS = frozenset({"flash", "haiku", "highspeed", "free", "tiny", "lite", "nano"})
+_ECONOMY_TURBO = "turbo"
 _CAPABLE_TOKENS = frozenset({"opus", "pro", "max", "ultra", "fable", "k3", "sol", "terra"})
 _CAPABLE_LEAVES = frozenset({"grok-4.5", "grok-4.6", "kimi-k3", "k3"})
+_CAPABLE_FAMILIES = ("gpt-5", "glm-5", "grok-4", "kimi-k3", "claude-opus")
+_CLASS_RANK = {COST_ECONOMY: 0, COST_STANDARD: 1, COST_CAPABLE: 2}
 
 DEFAULT_MODEL = "auto"
 
@@ -126,14 +129,23 @@ def classify_cost(model_id: str) -> str:
     if not raw:
         return COST_STANDARD
     leaf = raw.rsplit("/", 1)[-1]
-    if leaf in _CAPABLE_LEAVES or raw in _CAPABLE_LEAVES:
-        return COST_CAPABLE
     tokens = {tok for tok in _TOKEN_SPLIT.split(leaf) if tok}
-    if tokens & _ECONOMY_TOKENS or leaf.endswith("-free") or leaf.endswith(":free"):
+    if tokens & _CHEAP_SIZE_TOKENS or leaf.endswith("-free") or leaf.endswith(":free"):
         return COST_ECONOMY
+    if leaf in _CAPABLE_LEAVES or raw in _CAPABLE_LEAVES or _family_is_capable(raw, leaf):
+        return COST_CAPABLE
     if tokens & _CAPABLE_TOKENS:
         return COST_CAPABLE
+    if _ECONOMY_TURBO in tokens:
+        return COST_ECONOMY
     return COST_STANDARD
+
+
+def _family_is_capable(raw: str, leaf: str) -> bool:
+    for family in _CAPABLE_FAMILIES:
+        if leaf.startswith(family) or raw.startswith(family):
+            return True
+    return False
 
 
 def annotated_catalog() -> dict[str, Any]:
@@ -168,11 +180,12 @@ def build_plan(
             reason = "operator pin"
         elif advertised_ids:
             wire = _pick_advertised(cost, advertised_ids)
-            reason = (
-                "advertised cost-class match"
-                if wire != DEFAULT_MODEL
-                else "no advertised id in cost class; inherit"
-            )
+            if wire != DEFAULT_MODEL and classify_cost(wire) == cost:
+                reason = "advertised cost-class match"
+            elif wire != DEFAULT_MODEL:
+                reason = "advertised cheapest fallback"
+            else:
+                reason = "no advertised id in cost class; inherit"
         else:
             wire = DEFAULT_MODEL
             reason = "no advertised set; inherit session default"
@@ -204,7 +217,13 @@ def resolve_wire_id(
 
 
 async def apply_role_model(client: Any, role: str) -> str:
-    """Best-effort ``set_model`` for a task-class role. Never raises."""
+    """Best-effort ``set_model`` for a task-class role. Never raises.
+
+    Namespaced catalog slugs (``provider/model``) are not kiro-cli ids. Sending
+    one on ``set_model`` is swallowed by the harness, so this cut skips that
+    call until the sidecar owns the wire (M2). The returned id is still the
+    pin so callers and the plan agree.
+    """
     if role not in ROUTE_ROLE_KEYS:
         return DEFAULT_MODEL
     pins = _load_pins()
@@ -212,6 +231,9 @@ async def apply_role_model(client: Any, role: str) -> str:
     wire = resolve_wire_id(role, pins=pins, advertised=advertised)
     if not wire or wire == DEFAULT_MODEL:
         return DEFAULT_MODEL
+    if not _is_harness_wire_id(wire):
+        logger.info("model-router role %s skip set_model for sidecar slug", role)
+        return wire
     setter = getattr(client, "set_model", None)
     if setter is None:
         return DEFAULT_MODEL
@@ -234,9 +256,9 @@ def _load_pins() -> dict[str, str]:
 
 def _advertised_from_client(client: Any) -> list[str]:
     handle = getattr(client, "_handle", None)
-    entries = getattr(client, "available_models", None)
-    if entries is None and handle is not None:
-        entries = getattr(handle, "available_models", None)
+    entries = _materialize_available_models(getattr(client, "available_models", None))
+    if not entries and handle is not None:
+        entries = _materialize_available_models(getattr(handle, "available_models", None))
     if not entries:
         return []
     try:
@@ -245,6 +267,26 @@ def _advertised_from_client(client: Any) -> list[str]:
         return advertised_model_ids(entries)
     except Exception:
         return []
+
+
+def _materialize_available_models(value: Any) -> Any:
+    """``available_models`` is a method on ACP clients, a list on tests."""
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        return value
+    if callable(value):
+        try:
+            value = value()
+        except Exception:
+            logger.debug("model-router advertised lookup failed", exc_info=True)
+            return None
+    return value
+
+
+def _is_harness_wire_id(model_id: str) -> bool:
+    """True when *model_id* is a kiro-cli ``set_model`` id, not a sidecar slug."""
+    return bool(model_id) and "/" not in model_id
 
 
 def _clean_ids(raw: Sequence[str] | None) -> list[str]:
@@ -265,9 +307,19 @@ def _clean_ids(raw: Sequence[str] | None) -> list[str]:
 
 def _pick_advertised(cost_class: str, advertised: Sequence[str]) -> str:
     matched = [item for item in advertised if classify_cost(item) == cost_class]
-    if not matched:
-        return DEFAULT_MODEL
-    return sorted(matched)[0]
+    if matched:
+        return sorted(matched)[0]
+    # Economy roles should not inherit a flagship session default when a
+    # cheaper advertised id exists. Capable/standard stay on ``auto`` rather
+    # than silently downgrading planning.
+    if cost_class == COST_ECONOMY:
+        ranked = sorted(
+            advertised,
+            key=lambda item: (_CLASS_RANK.get(classify_cost(item), 99), item),
+        )
+        if ranked:
+            return ranked[0]
+    return DEFAULT_MODEL
 
 
 def _suggest_catalog_slug(cost_class: str, listed: Iterable[CatalogModel]) -> str:

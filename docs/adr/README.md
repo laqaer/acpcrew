@@ -12,6 +12,7 @@ under debate. For large contested upstream designs see
 | [0003 — Sidecar not vendor](0003-sidecar-not-vendor.md) | Codex Router is an optional sidecar; this cut copies no bytes. |
 | [0004 — Security unchanged](0004-security-unchanged.md) | Keystone, governance, `CONTRACT_VERSION` 1, computer use in-band, positive harness identity. |
 | [0005 — Preview not production](0005-preview-not-production.md) | PR and `site/` preview only; no merge, Pages-on-main, DNS, spend, or PyPI. |
+| [0006 — Agent OS, no auto-merge](0006-agent-os-no-automerge.md) | Scout files, implementer PRs, reviewer labels; a human merges. |
 
 Frozen envelope: [`../../WORKING_BRIEF.md`](../../WORKING_BRIEF.md).
 Architecture thesis: [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).
