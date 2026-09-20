@@ -6200,7 +6200,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Theme Color",
-      "help": "Dashboard color theme slug (e.g. 'kiro', 'emerald', 'monokai'). Empty = unset (frontend falls back to localStorage or 'kiro').",
+      "help": "Dashboard color theme slug (e.g. 'amber', 'emerald', 'monokai'). Empty = unset (frontend falls back to localStorage or the built-in default).",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""

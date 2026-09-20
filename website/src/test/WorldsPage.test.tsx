@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from './helpers'
 import WorldsPage from '../pages/WorldsPage'
+import { SCENES } from '../pages/scenes/config'
 import type { AgentSource } from '../hooks/useAgentSync'
 
 // Mock useAgentSync to avoid real API calls
@@ -69,6 +70,11 @@ describe('WorldsPage', () => {
       expect(screen.getByText('Deep Lab')).toBeInTheDocument()
       expect(screen.getByText('Mission Control')).toBeInTheDocument()
     })
+
+    it('does not offer the leftover haunt scene', () => {
+      renderWithProviders(<WorldsPage />)
+      expect(SCENES.some(s => s.key === 'ghost')).toBe(false)
+    })
   })
 
   describe('scene switching', () => {
@@ -130,6 +136,13 @@ describe('WorldsPage', () => {
     })
 
     it('defaults to office when no saved scene', () => {
+      renderWithProviders(<WorldsPage />)
+      const officeWrapper = screen.getByTestId('scene-office').parentElement!
+      expect(officeWrapper.style.display).not.toBe('none')
+    })
+
+    it('falls back to office when a retired haunt scene is stored', () => {
+      localStorage.setItem('mc-agent-scene', 'ghost')
       renderWithProviders(<WorldsPage />)
       const officeWrapper = screen.getByTestId('scene-office').parentElement!
       expect(officeWrapper.style.display).not.toBe('none')

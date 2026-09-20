@@ -4,9 +4,9 @@
       "paste_token_url_or_raw_token": "Cole a URL do token ou o token bruto…",
       "rate_limited_by_the_tunnel_edge_http_429_too_man": "Limite de taxa aplicado pela borda do túnel (HTTP 429) — muitas solicitações em rajada. O painel repete a tentativa automaticamente; se isso persistir, aguarde alguns segundos e recarregue.",
       "session_expired": "Sessão expirada.",
-      "session_expired_sign_in_again": "A sessão expirou. Execute kirocrew token em um terminal e cole o URL no banner no topo desta página para entrar novamente.",
+      "session_expired_sign_in_again": "A sessão expirou. Execute junction token em um terminal e cole o URL no banner no topo desta página para entrar novamente.",
       "stale_owner_session": "Esta sessão é anterior ao proprietário configurado. Entre novamente.",
-      "stale_owner_session_sign_in_again": "Esta sessão é anterior ao proprietário configurado (o login ocorreu antes de KIROCREW_OWNER_ID ser definido). Execute kirocrew token em um terminal e cole o URL no banner no topo desta página para entrar novamente.",
+      "stale_owner_session_sign_in_again": "Esta sessão é anterior ao proprietário configurado (o login ocorreu antes de KIROCREW_OWNER_ID ser definido). Execute junction token em um terminal e cole o URL no banner no topo desta página para entrar novamente.",
       "stream_ended_without_completion": "Stream encerrado sem conclusão",
       "unexpected_server_response": "Resposta inesperada do servidor"
     }
@@ -95,7 +95,7 @@
     "skip_to_content": "Ir para o conteúdo",
     "social_login": "Login social",
     "stale_fetch_failing": "(desatualizado: falha na busca)",
-    "star_kirocrew_on_github": "Dê uma estrela ao Kiro Crew no GitHub",
+    "star_kirocrew_on_github": "Dê uma estrela ao {{productName}} no GitHub",
     "star_us": "Dê uma estrela",
     "starting_update": "Iniciando atualização…",
     "syncing_workspace": "Sincronizando o workspace",
@@ -4958,7 +4958,7 @@
       "trust_tooltip": "Neste chat, o {{productName}} trabalha sem perguntar primeiro",
       "yolo_desc": "Em todos os chats, o {{productName}} trabalha sem perguntar primeiro",
       "yolo_expiration_timed": "Turns itself off after {{duration}}, then asks again.",
-      "yolo_expiration_until_shutdown": "Stays on until Kiro Crew restarts — no timed expiry.",
+      "yolo_expiration_until_shutdown": "Permanece ativo até o {{productName}} reiniciar — sem expiração programada.",
       "yolo_label": "YOLO",
       "yolo_mode_is_an_app_wide_setting": "O modo YOLO é uma configuração de todo o app",
       "yolo_tooltip": "Em todos os chats, o {{productName}} trabalha sem perguntar primeiro"
@@ -6262,7 +6262,7 @@
       "skip_all_setup_and_onboarding": "Ignorar toda a configuração e introdução"
     },
     "onboardingFlow": {
-      "answers_set_how_kiro_explains_things_plain_langu": "As respostas definem como o Kiro explica as coisas — linguagem simples ou detalhes técnicos completos. Salvo neste dispositivo; altere quando quiser em Configurações → Chat.",
+      "answers_set_how_kiro_explains_things_plain_langu": "As respostas definem como o {{productName}} explica as coisas — linguagem simples ou detalhes técnicos completos. Salvo neste dispositivo; altere quando quiser em Configurações → Chat.",
       "back": "Voltar",
       "change_anything_later_in_settings": "Você pode alterar tudo depois em Configurações.",
       "choose_a_color_theme_and_mode_you_can_change_it": "Escolha um tema de cores e um modo — você pode alterar quando quiser.",
@@ -6291,12 +6291,12 @@
       "role_other": "Outro",
       "role_product_manager": "Gerente de produto",
       "saving": "Salvando…",
-      "set_your_look_and_tell_kiro_about_you_so_respons": "Escolha sua aparência e conte ao Kiro sobre você para que as respostas combinem com o seu jeito de trabalhar.",
+      "set_your_look_and_tell_kiro_about_you_so_respons": "Escolha sua aparência e conte ao {{productName}} sobre você para que as respostas combinem com o seu jeito de trabalhar.",
       "skip": "Ignorar",
       "tech_codes": "Eu escrevo código",
       "tech_non_technical": "Não técnico",
       "tech_somewhat": "Um pouco",
-      "tell_kiro_about_you": "Conte ao Kiro sobre você",
+      "tell_kiro_about_you": "Conte ao {{productName}} sobre você",
       "your_role": "Sua função"
     },
     "pastedChip": {
@@ -9300,7 +9300,7 @@
       "force_remove_confirm_title": "Forçar remoção das worktrees?",
       "force_remove_warning": "As worktrees selecionadas têm trabalho não mesclado — a remoção é permanente e não pode ser desfeita.",
       "force_remove": "Forçar remoção de {{name}}",
-      "gateway_did_not_come_back_within_60s_reload_the": "O gateway não voltou em 60s — recarregue a página manualmente ou verifique `kirocrew logs`.",
+      "gateway_did_not_come_back_within_60s_reload_the": "O gateway não voltou em 60s — recarregue a página manualmente ou verifique `junction logs`.",
       "gateway_restarted_mid_sync_run_lost_check_git_st": "gateway reiniciado durante a sincronização — execução perdida; verifique o estado do git e execute o Pull+Build novamente",
       "git_status_failed": "git status falhou",
       "has_unmerged_work_removing_deletes_permanently": "Tem trabalho não mesclado — remover EXCLUI permanentemente.",
@@ -10260,7 +10260,7 @@
         "pending_enable_click_to_revert": "Pendente: ativar (clique para reverter)",
         "pending_uninstall": "{{label}} — desinstalação pendente",
         "probe_mcp_servers": "Testar servidores MCP",
-        "servers_scope_tip": "Servidores MCP no Kiro Crew e nas suas globais interativas de {{provider}}/Kiro. O selo Kiro Crew mostra se ele será carregado nas sessões do Kiro Crew; o selo Globais mostra se está compartilhado com a sua global interativa do Kiro. Clique para alternar e depois Aplicar.",
+        "servers_scope_tip": "Servidores MCP no {{productName}} e nas suas globais interativas de {{provider}}/Kiro. O selo {{productName}} mostra se ele será carregado nas sessões do {{productName}}; o selo Globais mostra se está compartilhado com a sua global interativa do Kiro. Clique para alternar e depois Aplicar.",
         "status": "Status",
         "tool_list_read_from_the_package_s_declaration_th": "A lista de ferramentas foi lida da declaração do pacote; o servidor não foi iniciado para verificar se arranca.",
         "tools": "Ferramentas",
@@ -10278,7 +10278,7 @@
       },
       "memoryGraphTab": {
         "all_count": "Todos ({{count}})",
-        "gpu_rendered_visualization_of_all_kirocrew_memor": "Visualização de toda a memória do Kiro Crew renderizada por GPU. Os nós são coloridos por tipo. Amplie para revelar os rótulos, clique em um nó para inspecionar e use os filtros para focar.",
+        "gpu_rendered_visualization_of_all_kirocrew_memor": "Visualização de toda a memória do {{productName}} renderizada por GPU. Os nós são coloridos por tipo. Amplie para revelar os rótulos, clique em um nó para inspecionar e use os filtros para focar.",
         "group_history_count": "Histórico ({{count}})",
         "group_lessons_count": "Lições ({{count}})",
         "group_preferences_count": "Preferências ({{count}})",
@@ -10315,7 +10315,7 @@
         "no_lessons": "Nenhuma lição",
         "no_lessons_yet": "Nenhuma lição ainda",
         "no_sessions_to_consolidate_start_a_chat_first": "Nenhuma sessão para consolidar — inicie um chat primeiro",
-        "persistent_lessons_injected_into_every_session_a": "Lições persistentes injetadas em todas as sessões. Extraídas automaticamente das falhas do Task Runner. Adicione manualmente com 'kirocrew learn add'. Quando a memória vetorial está ativa, as lições são gerenciadas na aba Semântica como entradas lesson.*.",
+        "persistent_lessons_injected_into_every_session_a": "Lições persistentes injetadas em todas as sessões. Extraídas automaticamente das falhas do Task Runner. Adicione manualmente com 'junction learn add'. Quando a memória vetorial está ativa, as lições são gerenciadas na aba Semântica como entradas lesson.*.",
         "preference": "preferência",
         "preferences": "Preferências",
         "projects": "Projetos",
@@ -10462,7 +10462,7 @@
         "skills": "Habilidades",
         "skills_count": "Habilidades ({{count}})",
         "skills_from_read_only": "Habilidades de {{name}} — somente leitura",
-        "skills_tip": "Habilidades carregadas sob demanda quando o agente as considera relevantes. Habilidades com o selo auto são sempre injetadas em todas as sessões. As habilidades são descobertas no Kiro Crew, no kiro-cli e nos pacotes AIM.",
+        "skills_tip": "Habilidades carregadas sob demanda quando o agente as considera relevantes. Habilidades com o selo auto são sempre injetadas em todas as sessões. As habilidades são descobertas no {{productName}}, no kiro-cli e nos pacotes AIM.",
         "the_skill_this_update_targets_no_longer_exists_s": "A habilidade que esta atualização altera não existe mais, então não há nada para atualizar. Descarte esta candidata.",
         "this_skill_changed_after_this_update_was_written": "Este skill mudou depois que esta atualização foi escrita, então aplicá-la agora desfaria essas mudanças mais novas. A aprovação está bloqueada — descarte este candidato e uma atualização nova será proposta sobre a versão atual.",
         "update": "Atualizar",
@@ -10690,7 +10690,7 @@
     },
     "popoutFrame": {
       "session": "Sessão",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "projectDetailPage": {
       "analyzing_task_and_building_step_by_step_plan": "Analisando a tarefa e criando o plano passo a passo",
@@ -10788,9 +10788,9 @@
     "scenes": {
       "ghostScene": {
         "friendly_hauntings_only": "só assombrações amigáveis",
-        "kiro_ghost_haunt_animation": "Animação da assombração do fantasma Kiro",
-        "kiro_ghost_haunt_text_overlay": "Sobreposição de texto do fantasma Kiro",
-        "kiro_haunt": "Assombração Kiro"
+        "kiro_ghost_haunt_animation": "Animação do pátio noturno",
+        "kiro_ghost_haunt_text_overlay": "Sobreposição de texto do pátio noturno",
+        "kiro_haunt": "Pátio noturno"
       },
       "missionControl": {
         "missionControlScene": {
@@ -11332,7 +11332,7 @@
         "engine_needed_for_attach": "necessário para attach",
         "node_missing": "É necessário Node.js 20 ou mais recente, e nenhum Node foi encontrado nesta máquina.",
         "node_how": "Instale-o e reabra esta página. <dl>Baixar Node.js</dl>",
-        "node_no_admin": "Em uma máquina onde você não pode instalar o Node — sem direitos de administrador ou com um registro que exige login — execute o comando abaixo na máquina onde o Kiro Crew está em execução. O script instala o Node e a CLI no seu diretório pessoal e explica como resolver se a sua rede bloquear o download.",
+        "node_no_admin": "Em uma máquina onde você não pode instalar o Node — sem direitos de administrador ou com um registro que exige login — execute o comando abaixo na máquina onde o {{productName}} está em execução. O script instala o Node e a CLI no seu diretório pessoal e explica como resolver se a sua rede bloquear o download.",
         "copy_command": "Copiar comando",
         "copied": "Copiado"
       },
@@ -11569,7 +11569,7 @@
         "max_tree_nodes": "Máximo de nós da árvore",
         "not_applicable": "Não aplicável",
         "not_detected": "Não detectada",
-        "not_detected_does_not_always_mean_unavailable_ma": "“Não detectada” não significa sempre indisponível — o macOS atribui a concessão de permissão ao processo que iniciou o Kiro Crew, não ao Kiro Crew em si.",
+        "not_detected_does_not_always_mean_unavailable_ma": "“Não detectada” não significa sempre indisponível — o macOS atribui a concessão de permissão ao processo que iniciou o {{productName}}, não ao {{productName}} em si.",
         "open_system_settings": "Abrir as Configurações do Sistema",
         "open_system_settings_for": "Abrir as Configurações do Sistema para {{label}}",
         "permissions": "Permissões",
@@ -11611,7 +11611,7 @@
         "thinking_label": "Mostrar raciocínio",
         "thread_allowlist_description": "Opcional. Usuários aprovados podem executar o agente somente nestas threads exatas do Discord. Vazio = apenas DMs.",
         "thread_help": "Com o Developer Mode ativado, clique com o botão direito na thread → <mono>Copy Channel ID</mono>. Use o ID da thread, não o ID do canal pai.",
-        "thread_warning": "O modo thread ativa o intent global de Conteúdo de Mensagem do Discord. O Discord entrega o conteúdo de todos os canais de servidor que o bot consegue ver; o Kiro Crew descarta o tráfego fora das threads aprovadas. Todos que podem ver uma thread aprovada conseguem ler as respostas do agente e a saída das ferramentas.",
+        "thread_warning": "O modo thread ativa o intent global de Conteúdo de Mensagem do Discord. O Discord entrega o conteúdo de todos os canais de servidor que o bot consegue ver; o {{productName}} descarta o tráfego fora das threads aprovadas. Todos que podem ver uma thread aprovada conseguem ler as respostas do agente e a saída das ferramentas.",
         "threshold_description": "Sugerir !compact ou !new quando o contexto da sessão passar desta porcentagem.",
         "token_description": "Na página Bot do Developer Portal (use Reset Token para vê-lo uma única vez).",
         "token_placeholder": "Cole o token de bot do Discord"
@@ -11706,7 +11706,7 @@
         "handle_placeholder": "+15551234567",
         "loading": "Carregando a configuração do iMessage…",
         "macos_only": "O iMessage precisa do macOS com o Messages conectado, e o gateway deve rodar nesse Mac. Este host não consegue acessar o iMessage, então essas configurações são somente leitura.",
-        "managed_locally": "As configurações do iMessage são gerenciadas na máquina que executa o Kiro Crew, então são somente leitura em uma sessão remota.",
+        "managed_locally": "As configurações do iMessage são gerenciadas na máquina que executa o {{productName}}, então são somente leitura em uma sessão remota.",
         "needs_setup": "Requer configuração",
         "not_active": "Inativo",
         "prerequisites_body": "Sem bot e sem token: o agente acessa o seu próprio app Messages por meio de um bridge local, então o transporte não envolve terceiros. Seus prompts ainda vão para o provedor de modelo com o qual o agente está configurado, como em qualquer canal. Você precisa do macOS 14 ou mais recente conectado ao Messages, da CLI imsg instalada e de duas permissões únicas do macOS — Full Disk Access e Automation para o Messages.",
@@ -11919,13 +11919,13 @@
         "disabled_by_policy": "Desativado pela política",
         "disabled_for_this_surface": "Desativado para a superfície host",
         "profile_unusable_title": "Perfil de fallback em vigor",
-        "profile_unusable_body": "Um perfil indicado abaixo não pôde ser carregado, portanto a superfície dele fica no limite de fallback da política — negação total, a menos que um fallback mais permissivo seja declarado. Corrija o arquivo na pasta profiles do seu diretório de dados do Kiro Crew — ele será recarregado automaticamente.",
+        "profile_unusable_body": "Um perfil indicado abaixo não pôde ser carregado, portanto a superfície dele fica no limite de fallback da política — negação total, a menos que um fallback mais permissivo seja declarado. Corrija o arquivo na pasta profiles do seu diretório de dados do {{productName}} — ele será recarregado automaticamente.",
         "profile_unusable_detail": "O arquivo estava ilegível, falhou na análise ou o perfil que ele estende está ausente. Só é necessário reiniciar se o arquivo já for válido para uma compilação mais recente do que a em execução.",
         "profile_unusable_which": "Perfis afetados: {{profiles}}.",
         "unknown_scopes_title": "Escopos de perfil ausentes nesta compilação",
         "unknown_scopes_tip": "Estes perfis nomeiam escopos de recursos que esta compilação não registra — normalmente escopos adicionados por uma edição complementar, embora uma chave de escopo com erro de digitação também apareça aqui. Eles são ignorados e não têm efeito nesta compilação.",
         "disabling_a_rule_that_overlaps_an_always_on_cont": "Desativar uma regra que se sobrepõe a um controle sempre ativo (leitura de arquivos sensíveis, IMDS, git-publish) não a desbloqueia por completo — a defesa em profundidade a mantém bloqueada.",
-        "disabling_all_built_in_denies_removes_kirocrew_s": "Desativar todas as negações integradas remove a proteção do Kiro Crew contra comandos destrutivos e de exfiltração de credenciais. Alguns comandos podem continuar bloqueados por controles independentes de defesa em profundidade (caminhos sensíveis, IMDS, git-publish).",
+        "disabling_all_built_in_denies_removes_kirocrew_s": "Desativar todas as negações integradas remove a proteção do {{productName}} contra comandos destrutivos e de exfiltração de credenciais. Alguns comandos podem continuar bloqueados por controles independentes de defesa em profundidade (caminhos sensíveis, IMDS, git-publish).",
         "disabling_weakens_protection": "Desativar \"{{name}}\" enfraquece a proteção contra comandos destrutivos e de exfiltração de credenciais. Alguns comandos podem continuar bloqueados por controles independentes de defesa em profundidade.",
         "do_not_enter_highly_sensitive_or_restricted_data": "Não insira dados altamente sensíveis ou restritos no Kiro Crew. Siga as políticas de tratamento de dados aplicáveis ao decidir o que compartilhar com o agente.",
         "documentation": "Documentação",
@@ -11951,7 +11951,7 @@
         "feature_sel_audit": "Registro de auditoria SEL",
         "feature_sel_audit_description": "Trilha imutável de eventos de segurança encadeada por HMAC, com ocultação de credenciais antes do encaminhamento",
         "feature_sensitive_paths": "Bloqueio de caminhos sensíveis",
-        "feature_sensitive_paths_description": "Diretórios de credenciais e raízes de confiança do Kiro Crew bloqueados na camada de hooks, antes da execução da ferramenta",
+        "feature_sensitive_paths_description": "Diretórios de credenciais e raízes de confiança do {{productName}} bloqueados na camada de hooks, antes da execução da ferramenta",
         "feature_suspicious_patterns": "Padrões suspeitos de Bash",
         "feature_suspicious_patterns_description": "Detecta formatos de ataque de exclusão, exfiltração e execução via pipe em comandos de shell",
         "feature_token_auth": "Autenticação por token do dashboard",
@@ -12006,7 +12006,7 @@
         "off": "desativado",
         "optional_why_shown_to_the_agent_when_this_rule_fir": "Opcional: motivo. Mostrado ao agente quando esta regra é acionada",
         "other_surfaces_have_their_own_profiles": "Uma superfície com o seu próprio perfil pode permitir o que o host não pode: {{surfaces}}.",
-        "enforced_by_floor": "Aplicado por uma proteção sempre ativa integrada ao Kiro Crew",
+        "enforced_by_floor": "Aplicado por uma proteção sempre ativa integrada ao {{productName}}",
         "pinned_by_policy": "Aplicado pela política de segurança da sua organização",
         "pinned_for_the_host_surface": "Definido pelo perfil da superfície host. É o limite apenas para as ações do host em processo — outras superfícies têm os seus próprios perfis e podem permitir isto.",
         "policy": "política",
@@ -12049,9 +12049,9 @@
         "tailnet_desc": "Adiciona o nome Tailscale MagicDNS desta máquina às origens permitidas do dashboard, para que uma requisição que chega por tailscale serve passe na verificação de origem CSRF em vez de ser recusada.",
         "tailnet_open": "Abrir",
         "tailnet_origin_label": "Origem do dashboard",
-        "tailnet_pin_caveat": "O PIN de sessão por dispositivo não consegue se vincular atrás do tailscale serve: toda requisição chega ao Kiro Crew a partir de 127.0.0.1, então um link do dashboard funciona em qualquer dispositivo do seu tailnet, não só naquele em que ele foi aberto. Trate o link como uma senha.",
+        "tailnet_pin_caveat": "O PIN de sessão por dispositivo não consegue se vincular atrás do tailscale serve: toda requisição chega ao {{productName}} a partir de 127.0.0.1, então um link do dashboard funciona em qualquer dispositivo do seu tailnet, não só naquele em que ele foi aberto. Trate o link como uma senha.",
         "tailnet_pin_caveat_link": "Issue de acompanhamento #1762",
-        "tailnet_restart_note": "O nome é resolvido uma única vez, quando o Kiro Crew inicia, então uma alteração aqui só vale a partir da próxima reinicialização.",
+        "tailnet_restart_note": "O nome é resolvido uma única vez, quando o {{productName}} inicia, então uma alteração aqui só vale a partir da próxima reinicialização.",
         "tailnet_section": "Origem do tailnet",
         "tailnet_state_active": "Ativo",
         "tailnet_state_off": "Desativado",
@@ -12059,9 +12059,9 @@
         "tailnet_tip": "Isso afeta apenas a lista de origens permitidas. Não inicia o Tailscale, não abre nenhuma porta nem compartilha o dashboard com ninguém; você continua executando o tailscale serve por conta própria.",
         "tailnet_title": "Confiar no nome tailnet desta máquina",
         "tailnet_unavailable": "Não foi possível ler a configuração do tailnet, então ela não pode ser exibida nem alterada aqui. Se já estava ativada, o nome tailnet continua permitido; recarregue a página para tentar de novo.",
-        "tailnet_unresolved_note": "Isso está ativado, mas nenhum nome tailnet foi resolvido quando o Kiro Crew iniciou, então nada foi adicionado às origens permitidas. Um dashboard acessado por tailscale serve continua sendo recusado pela verificação de origem. Reinicie o Kiro Crew quando o nome estiver disponível.",
+        "tailnet_unresolved_note": "Isso está ativado, mas nenhum nome tailnet foi resolvido quando o {{productName}} iniciou, então nada foi adicionado às origens permitidas. Um dashboard acessado por tailscale serve continua sendo recusado pela verificação de origem. Reinicie o {{productName}} quando o nome estiver disponível.",
         "the_strictest_boundary_in_effect_for_each_govern": "O limite mais restrito em vigor para cada escopo governado na",
-        "third_party_apps_on_warning": "Isso passa a confiar em todos os apps de terceiros, incluindo os que você instalar depois — não só naquele que você estava tentando iniciar. Um app confiável é executado com o mesmo acesso que o Kiro Crew tem: seus arquivos, suas credenciais salvas e a internet.",
+        "third_party_apps_on_warning": "Isso passa a confiar em todos os apps de terceiros, incluindo os que você instalar depois — não só naquele que você estava tentando iniciar. Um app confiável é executado com o mesmo acesso que o {{productName}} tem: seus arquivos, suas credenciais salvas e a internet.",
         "third_party_apps_save_failed": "Não foi possível salvar esta configuração.",
         "third_party_apps_scope_note": "Entra em vigor imediatamente. Ao desativar, também para os apps que estavam admitidos: os hooks de encerramento são executados, os backends param e tudo o que não pôde ser parado é reportado.",
         "third_party_apps_section": "Apps de terceiros",
@@ -12071,7 +12071,7 @@
         "turn_off_every_rule": "Desativar de uma vez todas as regras integradas de comandos negados. Os controles independentes de defesa em profundidade (caminhos sensíveis, IMDS, git-publish) continuam sendo aplicados.",
         "turn_off_every_rule_governance_locked": "Desativar de uma vez todas as regras integradas de comandos negados. Os controles independentes de defesa em profundidade (caminhos sensíveis, IMDS, git-publish) continuam sendo aplicados, e as regras fixadas pela política da sua organização permanecem ativas.",
         "yolo_active_expires_at": "A aprovação automática está ativa até {{time}}.",
-        "yolo_active_until_restart": "A aprovação automática está ativa e continua assim até o Kiro Crew reiniciar.",
+        "yolo_active_until_restart": "A aprovação automática está ativa e continua assim até o {{productName}} reiniciar.",
         "yolo_auto_approve": "YOLO (aprovação automática)",
         "yolo_duration_12h": "12 horas",
         "yolo_duration_1h": "1 hora",
@@ -12082,7 +12082,7 @@
         "yolo_duration_locked": "Desativado pela política da sua organização",
         "yolo_duration_next_activation_note": "Vale na próxima vez que você ativar a aprovação automática.",
         "yolo_duration_title": "Por quanto tempo a aprovação automática fica ativa",
-        "yolo_duration_until_shutdown": "Até o Kiro Crew reiniciar",
+        "yolo_duration_until_shutdown": "Até o {{productName}} reiniciar",
         "your_custom_denies": "Suas negações personalizadas",
         "trustedApps": {
           "description": "Apps que você autorizou a executar o próprio código neste computador. A confiança vale para um app por vez; todos os outros apps de terceiros continuam bloqueados.",
@@ -12098,10 +12098,10 @@
           "revoke_confirm_title": "Remover a confiança do “{{name}}”?",
           "revoke_confirm_body": "O “{{name}}” vai ser desligado e vai parar de funcionar. Ele continua instalado, e você pode confiar nele de novo depois.",
           "revoke_confirm_ok": "Remover a confiança e desligar",
-          "allow_all_confirm_body": "Confiar em todos os apps de terceiros permite que qualquer app que você instalar execute o próprio código dentro do Kiro Crew, com o mesmo acesso que o Kiro Crew tem — seus arquivos, suas credenciais salvas e a internet. Confiar em um app por vez é mais seguro.",
-          "allow_all_confirm_ack": "Entendo que todo app de terceiros que eu instalar vai poder executar o próprio código com o acesso do Kiro Crew.",
+          "allow_all_confirm_body": "Confiar em todos os apps de terceiros permite que qualquer app que você instalar execute o próprio código dentro do {{productName}}, com o mesmo acesso que o {{productName}} tem — seus arquivos, suas credenciais salvas e a internet. Confiar em um app por vez é mais seguro.",
+          "allow_all_confirm_ack": "Entendo que todo app de terceiros que eu instalar vai poder executar o próprio código com o acesso do {{productName}}.",
           "ineffective_label": "Salvo, mas sem efeito",
-          "ineffective_description": "Esses nomes foram salvos como confiáveis, mas o Kiro Crew não os aceita, então os apps continuam bloqueados. Remova-os para limpar a lista."
+          "ineffective_description": "Esses nomes foram salvos como confiáveis, mas o {{productName}} não os aceita, então os apps continuam bloqueados. Remova-os para limpar a lista."
         }
       },
       "shortcutsPanel": {
@@ -12596,7 +12596,7 @@
         "cancel": "Cancel",
         "cancelling": "Cancelling…",
         "cancel_setup_of": "Cancel setup of {{tag}}",
-        "launched_by_kiro_crew": "Launched by Kiro Crew",
+        "launched_by_kiro_crew": "Iniciado por {{productName}}",
         "added_by_you": "Added by you",
         "doesnt_manage": "Kiro Crew does not manage this machine",
         "stop": "Stop",
@@ -12824,7 +12824,7 @@
       "return": "Voltar ao dock",
       "return_to_main_window_and_close_this_popout": "Retornar à janela principal e fechar esta janela destacada",
       "terminal": "Terminal",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "webhooksPage": {
       "0_b": "0 B",
@@ -13006,8 +13006,8 @@
     "dataNeverSentBody": "Prompts, respostas, arquivos, credenciais, nomes de host, nomes de usuário nem seu sistema operacional. Seu IP não é armazenado.",
     "dataNeverSentTitle": "Nunca enviado",
     "governanceOverrideNote": "A política de segurança do seu administrador desativa isto. Não é possível alterar aqui.",
-    "installReceiptBody": "Após uma instalação ou atualização bem-sucedida pelo catálogo oficial do Kiro Crew, um recibo anônimo é enviado. Registros externos, apps locais e apps autorregistrados nunca são informados.",
-    "installReceiptFields": "slug do app oficial · token anônimo por app (não vinculável entre apps) · nova instalação/atualização · versão do Kiro Crew",
+    "installReceiptBody": "Após uma instalação ou atualização bem-sucedida pelo catálogo oficial do {{productName}}, um recibo anônimo é enviado. Registros externos, apps locais e apps autorregistrados nunca são informados.",
+    "installReceiptFields": "slug do app oficial · token anônimo por app (não vinculável entre apps) · nova instalação/atualização · versão do {{productName}}",
     "installReceiptTitle": "Recibos de instalação de apps oficiais",
     "localDataBody": "Registros de uso e contexto. As métricas de desempenho estão desativadas por padrão.",
     "localDataTitle": "Fica no seu dispositivo",
@@ -13036,7 +13036,7 @@
         "auto": "Automático",
         "description": "Idioma da interface do painel.",
         "label": "Idioma",
-        "sync_failed": "Não foi possível salvar isso na sua configuração do Kiro Crew — o idioma se aplica somente a este navegador e pode ser redefinido ao recarregar."
+        "sync_failed": "Não foi possível salvar isso na sua configuração do {{productName}} — o idioma se aplica somente a este navegador e pode ser redefinido ao recarregar."
       }
     },
     "groups": {
@@ -13073,7 +13073,7 @@
         "label": "Exibição"
       },
       "imports": {
-        "description": "Traga dados de outro agente de IA e faça backup ou restaure a configuração do Kiro Crew",
+        "description": "Traga dados de outro agente de IA e faça backup ou restaure a configuração do {{productName}}",
         "label": "Importar / Exportar"
       },
       "instances": {

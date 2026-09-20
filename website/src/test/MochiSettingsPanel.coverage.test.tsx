@@ -992,7 +992,7 @@ describe('SettingsPanel about section', () => {
     await mount()
     openSection('About')
 
-    expect(screen.getByText(/is a desktop companion built into Kiro Crew/)).toBeTruthy()
+    expect(screen.getByText(/is a desktop companion built into Junction/)).toBeTruthy()
     const link = screen.getByRole('link', { name: 'buluoray' })
 
     fireEvent.click(link)

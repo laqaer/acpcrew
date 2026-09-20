@@ -177,7 +177,7 @@ const HERO_BG: React.CSSProperties = {
  * feature-request flow, and a rename or a redirect to an in-app form there must
  * not silently retarget this link.
  */
-const REPORT_ISSUE_URL = 'https://github.com/kirodotdev/KiroCrew/issues/new'
+const REPORT_ISSUE_URL = 'https://github.com/laqaer/acpcrew/issues/new'
 
 /**
  * How long a primed Restart button stays armed.
@@ -458,7 +458,7 @@ export function AboutPanel() {
         <div className="flex flex-col gap-0.5 min-w-0">
           <span className="text-[13px] font-medium text-text flex items-center gap-1.5">
             <ArrowUp size={13} className="lucide-inline text-accent" />
-            {botName || 'Kiro Crew'} {updateState?.version || i18nT('pages.settings.aboutPanel.update_noun')}
+            {botName || 'Junction'} {updateState?.version || i18nT('pages.settings.aboutPanel.update_noun')}
           </span>
           <span className="text-[12px] text-muted">
             {channel ? `${channel} channel` : i18nT('pages.settings.aboutPanel.update_noun')}
@@ -788,7 +788,7 @@ export function AboutPanel() {
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <span className="text-[19px] font-extrabold tracking-tight text-text-strong">{botName || 'Kiro Crew'}</span>
+              <span className="text-[19px] font-extrabold tracking-tight text-text-strong">{botName || 'Junction'}</span>
               <span className="text-[12px] font-mono font-semibold text-accent rounded-full px-2.5 py-0.5 border" style={ACCENT_TINT}>{i18nT('pages.settings.aboutPanel.v')}{version}</span>
               {!isDesktop && (heroDiverged
                 // Diverged outranks BOTH other verdicts: `update_available` is
@@ -1115,7 +1115,7 @@ export function AboutPanel() {
           ) : (
             <div className="flex flex-col gap-2.5">
               <p className="text-sm text-muted">
-                {botName || 'Kiro Crew'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}
+                {botName || 'Junction'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}
               </p>
               <div>
                 <Btn primary onClick={() => checkMutation.mutate()} disabled={checking}>
@@ -1237,7 +1237,7 @@ export function AboutPanel() {
                 <p className="text-sm text-muted">
                   {lastCheckedAt
                     ? i18nT('pages.settings.aboutPanel.checks_for_updates_with_timing', {
-                        name: botName || 'Kiro Crew',
+                        name: botName || 'Junction',
                         timing: i18nT('pages.settings.aboutPanel.last_checked_ago_next_check_in', {
                           ago: fmtRelative(lastCheckedAt * 1000),
                           // Clamp: after machine sleep the scheduled check can be
@@ -1246,7 +1246,7 @@ export function AboutPanel() {
                           next: fmtRelative(Math.max((lastCheckedAt + checkIntervalSecs) * 1000, Date.now())),
                         }),
                       })
-                    : <>{botName || 'Kiro Crew'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}</>}
+                    : <>{botName || 'Junction'} {i18nT('pages.settings.aboutPanel.checks_for_updates_automatically_you_can_also_ch')}</>}
                 </p>
                 <div>
                   <Btn onClick={() => gwCheck.mutate()} disabled={gwCheck.isPending}>

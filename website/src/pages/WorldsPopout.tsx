@@ -2,7 +2,7 @@ import { safeSetItem } from '../utils/safeStorage'
 import { useState, useEffect } from 'react'
 import { useAgentSync } from '../hooks/useAgentSync'
 import { usePopoutSync } from '../hooks/usePopoutSync'
-import { SCENES, SCENE_STORAGE_KEY, SCENE_LAYOUT_SCALE, type SceneKey } from './scenes/config'
+import { SCENES, SCENE_STORAGE_KEY, SCENE_LAYOUT_SCALE, resolveSceneKey, type SceneKey } from './scenes/config'
 import { SCENE_COMPONENTS } from './scenes/components'
 import { useAppDispatch } from '../store'
 import { fetchSlots } from '../store/dashboardSlice'
@@ -10,7 +10,9 @@ import { fetchSlots } from '../store/dashboardSlice'
 import { i18nT } from '../i18n/t'
 
 export default function WorldsPopout() {
-  const [scene, setScene] = useState<SceneKey>(() => (localStorage.getItem(SCENE_STORAGE_KEY) as SceneKey) || 'office')
+  const [scene, setScene] = useState<SceneKey>(() =>
+    resolveSceneKey(localStorage.getItem(SCENE_STORAGE_KEY)),
+  )
   const [collapsed, setCollapsed] = useState(false)
   // The toggle renders only a ▼/▲ glyph, so it needs an explicit accessible
   // name: `title` alone is an unreliable accessible-name source across screen

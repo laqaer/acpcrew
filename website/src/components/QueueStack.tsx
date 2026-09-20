@@ -305,8 +305,7 @@ function QueueStackInner({ messages, onCancel, onInterrupt, onEdit, onReorder, f
                 // alpha modifiers (bg-warn/15) silently generate no CSS. Use explicit
                 // color-mix instead — and mix the bg toward the opaque surface color
                 // (not transparent): cards overlap in the collapsed peek stack, so a
-                // translucent bg would let the cards behind bleed through. The
-                // kiro-dark .queue-card override in index.css still takes precedence.
+                // translucent bg would let the cards behind bleed through.
                 className="queue-card absolute top-0 left-0 right-0 bg-[color-mix(in_srgb,var(--warn)_15%,var(--bg-elevated))] border border-[color-mix(in_srgb,var(--warn)_40%,transparent)] px-3 py-2 text-[13px] text-warn"
                 style={{ transformOrigin: 'bottom center', height: CARD_H, zIndex }}
               >

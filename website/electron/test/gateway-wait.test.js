@@ -144,7 +144,7 @@ test("waitForGateway aborts when the window is gone", async () => {
 // the backend. Prefixing "could not be launched" would open with failure
 // vocabulary under a title that says the install is still finishing.
 test("describeGatewayFailure: an incomplete bundle passes its message through bare", () => {
-  const msg = "Kiro Crew's bundled Python runtime is still being installed — retry.";
+  const msg = "Junction's bundled Python runtime is still being installed — retry.";
   assert.strictEqual(describeGatewayFailure({ error: msg, incompleteBundle: true }), msg);
 });
 

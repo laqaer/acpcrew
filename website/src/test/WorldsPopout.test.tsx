@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithProviders } from './helpers'
 import WorldsPopout from '../pages/WorldsPopout'
+import { SCENES } from '../pages/scenes/config'
 
 vi.mock('../hooks/useAgentSync', () => ({
   useAgentSync: () => ({
@@ -36,6 +37,7 @@ describe('WorldsPopout', () => {
     expect(screen.getByText('Wizard Tower')).toBeInTheDocument()
     expect(screen.getByText('Deep Lab')).toBeInTheDocument()
     expect(screen.getByText('Mission Control')).toBeInTheDocument()
+    expect(SCENES.some(s => s.key === 'ghost')).toBe(false)
   })
 
   it('shows office scene by default', () => {

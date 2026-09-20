@@ -3004,16 +3004,16 @@ export default function App() {
                       transition={{ duration: 0.2, ease: 'easeOut' }}
                       className="text-[13px] font-bold tracking-[.14em] uppercase whitespace-nowrap truncate min-w-0"
                     >
-                      {/* Last word of the bot name carries the accent (KIRO
-                          CREW: muted brand, accent product); single-word names
-                          render all-muted. */}
+                      {/* Product name in copper. A two-word custom bot name
+                          keeps the last word on accent so a renamed instance
+                          still reads as a lockup, not a sentence. */}
                       {botName.includes(' ') ? (
                         <>
-                          <span className="text-muted">{botName.slice(0, botName.lastIndexOf(' ') + 1)}</span>
+                          <span className="text-text-strong">{botName.slice(0, botName.lastIndexOf(' ') + 1)}</span>
                           <span className="text-accent/90">{botName.slice(botName.lastIndexOf(' ') + 1)}</span>
                         </>
                       ) : (
-                        <span className="text-muted">{botName}</span>
+                        <span className="text-accent/90">{botName}</span>
                       )}
                     </motion.span>
                   )}
@@ -3045,7 +3045,7 @@ export default function App() {
           </div>
           {/* Hairline under the expanded header (collapsed rail has none —
               the big logo alone separates well). */}
-          {!effectiveCollapsed && <div aria-hidden="true" className="h-px bg-border shrink-0 mb-[7px]" />}
+          {!effectiveCollapsed && <div aria-hidden="true" className="h-px bg-accent/40 shrink-0 mb-[7px]" />}
           {advertisedNavItems.filter(n => n.group === 'Main').map(n => <div key={n.id}>{renderNavRow(n)}</div>)}
           {/* Apps section header. "Explore" (the App Store) rides the header
               row in accent when expanded; collapsed it becomes a regular
@@ -3275,7 +3275,7 @@ export default function App() {
                       below never accounts for. Spacing is explicit per child instead. */}
                   <span className="flex items-center shrink-0 text-muted"><GithubIcon size={15} /></span>
                   <div className="rail-community-links flex items-center gap-[5px] flex-1 min-w-0 ml-1.5 text-[12px]">
-                    <a href="https://github.com/kirodotdev/KiroCrew" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_kirocrew_on_github')} aria-label={i18nT('app.star_kirocrew_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
+                    <a href="https://github.com/laqaer/acpcrew" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_kirocrew_on_github')} aria-label={i18nT('app.star_kirocrew_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
                     <span aria-hidden="true" className="shrink-0 opacity-40">·</span>
                     {/* "Report issue" opens the SAME diagnostics flow as Settings ›
                         About › Support rather than linking to the bare issue list.

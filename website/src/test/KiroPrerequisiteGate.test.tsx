@@ -94,7 +94,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    await screen.findByText(/Kiro Crew uses Kiro CLI/)
+    await screen.findByText(/Junction uses Kiro CLI/)
     // Cold mount has no cached status, so it reads the latch.
     expect(vi.mocked(api.kiroPrerequisite).mock.calls[0][0]).toBe(false)
 
@@ -141,7 +141,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Kiro Crew uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/Junction uses Kiro CLI/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Check again' }))
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
   })
@@ -173,7 +173,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Kiro Crew uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/Junction uses Kiro CLI/)).toBeInTheDocument()
     expect((await screen.findAllByText(/Windows gateway host/)).length).toBeGreaterThan(0)
 
     const setupLink = screen.getByRole('link', { name: /Open Kiro CLI setup/ })
@@ -344,7 +344,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText("Kiro Crew's agent specs are not installed")).toBeInTheDocument()
+    expect(await screen.findByText("Junction's agent specs are not installed")).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
     // Names the actual files, so the user can see what to look for on disk.
     expect(screen.getByText(/kirocrew\.json/)).toBeInTheDocument()
@@ -374,7 +374,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(
-      await screen.findByText("Kiro CLI will not load Kiro Crew's agent specs"),
+      await screen.findByText("Kiro CLI will not load Junction's agent specs"),
     ).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
     // Exact match on the list entry: the reason below also contains the filename
@@ -407,7 +407,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(note).toHaveTextContent('does not rewrite them')
     // The leading cause is a kiro-cli upgrade, which re-checking cannot fix, so
     // both remedies must be present as their own lines rather than buried.
-    expect(screen.getByText(/Update Kiro Crew\./)).toBeInTheDocument()
+    expect(screen.getByText(/Update Junction\./)).toBeInTheDocument()
     expect(screen.getByText(/Rewrite the specs from scratch/)).toBeInTheDocument()
     // The command must NOT come from a catalog value: a translator must not be
     // able to alter a string the user pastes into a shell.
@@ -433,10 +433,10 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(
-      await screen.findByText("Kiro Crew's agent specs are not installed"),
+      await screen.findByText("Junction's agent specs are not installed"),
     ).toBeInTheDocument()
     expect(
-      screen.queryByText("Kiro CLI will not load Kiro Crew's agent specs"),
+      screen.queryByText("Kiro CLI will not load Junction's agent specs"),
     ).not.toBeInTheDocument()
   })
 
@@ -613,7 +613,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Kiro Crew needs Kiro sign-in.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction needs Kiro sign-in.')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sign in to Kiro' })).not.toBeInTheDocument()
     expect(screen.queryByText('kiro-cli login')).not.toBeInTheDocument()
     // Nothing is paused: no gate chrome of any kind renders over the app.
@@ -709,7 +709,7 @@ describe('KiroPrerequisiteGate', () => {
 
     await waitFor(() => expect(api.kiroPrerequisite).toHaveBeenCalled())
     expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Kiro Crew needs Kiro sign-in.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction needs Kiro sign-in.')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
   })

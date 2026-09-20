@@ -12,64 +12,45 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight } from 'lucide-react'
-import { KiroGhost } from './KiroGhost'
+import { ArrowRight, GitMerge, Waypoints } from 'lucide-react'
 
 import { i18nT } from '../i18n/t'
 
-// Floating decorative mascot — the same treatment as the Kiro CLI setup gate
-// (KiroPrerequisiteGate's FloatingGhost) and the Import setup panel: staggered
-// fade + spring scale entrance and an infinite easeInOut bob. Honors the OS
-// reduce-motion setting.
-function FloatingGhost({
-  className,
-  delay,
-  rotate = 0,
-}: {
-  className: string
-  delay: number
-  rotate?: number
-}) {
+// Track lockup — Junction's switch motif instead of a mascot swarm.
+function TrackLockup() {
   const reduceMotion = useReducedMotion()
   return (
-    <motion.div
-      aria-hidden="true"
-      className={`pointer-events-none absolute z-0 text-white drop-shadow-[0_12px_20px_rgba(24,20,38,0.26)] ${className}`}
-      initial={reduceMotion ? false : { opacity: 0, scale: 0.72 }}
-      animate={{
-        opacity: 1,
-        scale: 1,
-        y: reduceMotion ? 0 : [-5, 5, -5],
-        rotate,
-      }}
-      transition={{
-        opacity: { delay, duration: 0.35 },
-        scale: { delay, duration: 0.45, type: 'spring', bounce: 0.45 },
-        y: { delay, duration: 3.8, ease: 'easeInOut', repeat: Infinity },
-      }}
-    >
-      <KiroGhost size={160} className="h-full w-full" />
-    </motion.div>
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-y-6 left-[20%] w-px bg-accent-fg/25" />
+      <div className="absolute inset-y-10 right-[26%] w-px bg-accent-fg/15" />
+      <div className="absolute left-[20%] right-[26%] top-[48%] h-px bg-accent-fg/20" />
+      <motion.div
+        className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 text-accent-fg drop-shadow-[0_12px_20px_rgba(12,13,18,0.35)]"
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.45, type: 'spring', bounce: 0.3 }}
+      >
+        <GitMerge className="lucide-inline h-16 w-16" />
+      </motion.div>
+      <Waypoints className="lucide-inline absolute bottom-8 right-8 h-8 w-8 text-accent-fg/40" />
+    </div>
   )
 }
 
-// The accent left panel — brand lockup + floating mascots + the flow's copy.
+// The accent left panel — brand lockup + track motif + the flow's copy.
 // Factored out so the persistent HOST and the standalone shell render the exact
 // same aside; when it lives in the host it is mounted ONCE and only its copy
-// text changes between flows, so the mascots never re-run their entrance.
-// Exported so the Kiro CLI setup gate (KiroPrerequisiteGate) renders the SAME
-// panel — identical size, identical mascot positions — instead of a look-alike
+// text changes between flows, so the lockup never re-runs its entrance.
+// Exported so the first-run CLI setup gate (KiroPrerequisiteGate) renders the SAME
+// panel — identical size, identical track positions — instead of a look-alike
 // copy that drifts.
 export function ShellAside({ copy }: { copy: ShellAsideCopy }) {
   return (
     <aside className="relative flex min-h-[248px] w-full shrink-0 overflow-hidden bg-accent text-accent-fg sm:min-h-0 sm:w-[36%]">
-      <FloatingGhost className="-left-8 top-[24%] h-24 w-20 rotate-90 lg:h-28 lg:w-24" delay={0.15} rotate={90} />
-      <FloatingGhost className="-right-5 top-5 h-28 w-20 -rotate-12 lg:h-36 lg:w-28" delay={0.35} rotate={-12} />
-      <FloatingGhost className="bottom-[-5.5rem] right-[-12%] hidden h-64 w-48 lg:block" delay={0.55} />
-      <FloatingGhost className="-top-20 left-[40%] hidden h-48 w-36 rotate-180 lg:block" delay={0.75} rotate={180} />
+      <TrackLockup />
       <div className="relative z-10 flex w-full flex-col p-7 sm:p-10">
         <div className="flex items-center gap-3">
-          <KiroGhost size={28} className="h-8 w-7" />
+          <GitMerge className="lucide-inline h-8 w-7" aria-hidden="true" />
           <span className="text-[15px] font-semibold tracking-wide">{i18nT('components.onboardingChapterShell.kiro_crew')}</span>
         </div>
         <div className="mt-auto max-w-[290px]">
@@ -122,8 +103,8 @@ const OnboardingShellContext = createContext<OnboardingShellApi | null>(null)
  * flows (AgentImportFlow + OnboardingFlow) in ONE of these so the scrim, accent
  * panel, and floating mascots mount exactly once and stay mounted across the
  * import→customize (and step 1→2) hand-offs. Only the right-column content and
- * the aside copy swap — nothing in the accent panel remounts, so the mascots
- * never replay their entrance. That is the fix for the transition glitch.
+ * the aside copy swap — nothing in the accent panel remounts, so the track
+ * lockup never replays its entrance. That is the fix for the transition glitch.
  *
  * When a flow renders OUTSIDE a host (e.g. a unit test rendering it standalone),
  * OnboardingChapterShell falls back to rendering its own full chrome, so

@@ -36,21 +36,11 @@ class TestBotNameSubstitution:
         assert ctx._substitute_bot_name("You are {bot_name} 🐾") == "You are Alita 🐾"
 
     def test_empty_defaults_from_config(self):
-        from unittest.mock import patch
-
         from kiro_crew.context import ContextBuilder
 
-        # When provider is ACP, default bot_name is "Kiro"
-        with patch("kiro_crew.context.KiroCrewConfig.load") as mock_cfg:
-            mock_cfg.return_value.agent.provider = "acp"
-            ctx = ContextBuilder(bot_name="")
-            assert ctx._substitute_bot_name("You are {bot_name}.") == "You are Kiro."
-
-        # When provider is claude_code, default bot_name is "KiroCrew"
-        with patch("kiro_crew.context.KiroCrewConfig.load") as mock_cfg:
-            mock_cfg.return_value.agent.provider = "claude_code"
-            ctx = ContextBuilder(bot_name="")
-            assert ctx._substitute_bot_name("You are {bot_name}.") == "You are KiroCrew."
+        # When no custom name is set, the prompt uses the product name.
+        ctx = ContextBuilder(bot_name="")
+        assert ctx._substitute_bot_name("You are {bot_name}.") == "You are Junction."
 
     def test_no_placeholder_is_noop(self):
         from kiro_crew.context import ContextBuilder

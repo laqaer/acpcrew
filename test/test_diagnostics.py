@@ -82,9 +82,7 @@ def test_authorization_scheme_credential_fully_redacted(tmp_path, monkeypatch):
     """A non-Bearer scheme + raw token must be fully redacted (not just the scheme)."""
     home = tmp_path / "home"
     _isolate(monkeypatch, home)
-    (home / "gateway.log").write_text(
-        "Authorization: Token abc-123-def-456-ghijklmno\nplain\n"
-    )
+    (home / "gateway.log").write_text("Authorization: Token abc-123-def-456-ghijklmno\nplain\n")
     r = diagnostics.collect_bundle(output_dir=tmp_path / "out")
     with zipfile.ZipFile(r.zip_path) as z:
         gw = z.read("gateway.log").decode()
@@ -165,17 +163,15 @@ def test_archive_is_opened_in_binary_mode(tmp_path, monkeypatch):
     assert seen, "collect_bundle did not open the archive via os.open"
     expected = getattr(os, "O_BINARY", 0)
     assert seen[0] & os.O_CREAT and seen[0] & os.O_WRONLY and seen[0] & os.O_TRUNC
-    assert seen[0] & expected == expected, (
-        "archive fd is missing O_BINARY — bundles would be corrupt on Windows"
-    )
+    assert (
+        seen[0] & expected == expected
+    ), "archive fd is missing O_BINARY — bundles would be corrupt on Windows"
     # And the archive it produced is actually readable back.
     with zipfile.ZipFile(r.zip_path) as z:
         assert "gateway.log" in z.namelist()
 
 
-def test_tail_truncation_keeps_credentials_attached_to_their_anchor(
-    tmp_path, monkeypatch
-):
+def test_tail_truncation_keeps_credentials_attached_to_their_anchor(tmp_path, monkeypatch):
     """A byte-offset tail must not strip a header name off its own credential.
 
     ``_EXTRA_REDACTIONS`` anchors on the header NAME and redacts to end-of-line,
@@ -190,12 +186,7 @@ def test_tail_truncation_keeps_credentials_attached_to_their_anchor(
 
     secret = "TAILboundaryLEAK123456789abcdefXYZ"
     # Pad so the 200-byte window starts partway through the Authorization line.
-    log = (
-        "x" * 300
-        + "\n"
-        + f"Authorization: Basic {secret}\n"
-        + "tail marker line\n"
-    )
+    log = "x" * 300 + "\n" + f"Authorization: Basic {secret}\n" + "tail marker line\n"
     (home / "gateway.log").write_text(log)
 
     r = diagnostics.collect_bundle(output_dir=tmp_path / "out")
@@ -346,9 +337,7 @@ def test_issue_url_is_well_formed(tmp_path, monkeypatch):
 
     r = diagnostics.collect_bundle(note="hi", output_dir=tmp_path / "out")
 
-    assert r.github_issue_url.startswith(
-        "https://github.com/kirodotdev/KiroCrew/issues/new?"
-    )
+    assert r.github_issue_url.startswith("https://github.com/laqaer/acpcrew/issues/new?")
     # Routes through the issue FORM, not a free-form body: the form is what
     # carries the version / install / channel answers triage reads.
     assert "template=bug_report.yml" in r.github_issue_url
@@ -544,12 +533,7 @@ def test_issue_url_does_not_prefill_the_search_attestation(tmp_path, monkeypatch
 # are invisible at runtime -- the form just comes up with an empty field -- so
 # they are pinned here instead.
 
-_TEMPLATE = (
-    Path(__file__).resolve().parents[1]
-    / ".github"
-    / "ISSUE_TEMPLATE"
-    / "bug_report.yml"
-)
+_TEMPLATE = Path(__file__).resolve().parents[1] / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml"
 
 
 def _template_dropdown_options(field_id: str) -> list[str]:
@@ -574,9 +558,7 @@ def test_channel_options_exist_in_the_issue_template():
 def test_install_options_exist_in_the_issue_template():
     options = _template_dropdown_options("install")
     for value in diagnostics._INSTALL_OPTIONS.values():
-        assert value in options, (
-            f"{value!r} is not an option of bug_report.yml's install dropdown"
-        )
+        assert value in options, f"{value!r} is not an option of bug_report.yml's install dropdown"
 
 
 def test_every_known_distribution_maps_to_an_install_option():
@@ -593,10 +575,7 @@ def test_triage_workflow_maps_every_channel_dropdown_answer():
     no error anywhere, because "no answer" is a legitimate outcome.
     """
     workflow = (
-        Path(__file__).resolve().parents[1]
-        / ".github"
-        / "workflows"
-        / "issue-triage.yml"
+        Path(__file__).resolve().parents[1] / ".github" / "workflows" / "issue-triage.yml"
     ).read_text(encoding="utf-8")
 
     for option in _template_dropdown_options("channel"):
@@ -638,9 +617,7 @@ def _stub_sel(monkeypatch) -> MagicMock:
 
 
 def test_download_rejects_path_traversal(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path
-    )
+    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     sel = _stub_sel(monkeypatch)
     resp = asyncio.run(dh.api_diagnostics_download(_DownloadReq("../../etc/passwd")))
     assert resp.status == 403
@@ -651,9 +628,7 @@ def test_download_rejects_non_zip(tmp_path, monkeypatch):
     diag = tmp_path / "diagnostics"
     diag.mkdir()
     (diag / "foo.txt").write_text("not a zip")
-    monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path
-    )
+    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     sel = _stub_sel(monkeypatch)
     resp = asyncio.run(dh.api_diagnostics_download(_DownloadReq("foo.txt")))
     assert resp.status == 403
@@ -664,9 +639,7 @@ def test_download_allows_and_audits_valid_zip(tmp_path, monkeypatch):
     diag = tmp_path / "diagnostics"
     diag.mkdir()
     (diag / "b.zip").write_bytes(b"PK\x03\x04zip")
-    monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path
-    )
+    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     sel = _stub_sel(monkeypatch)
     resp = asyncio.run(dh.api_diagnostics_download(_DownloadReq("b.zip")))
     assert resp.status == 200
@@ -674,9 +647,7 @@ def test_download_allows_and_audits_valid_zip(tmp_path, monkeypatch):
 
 
 def test_collect_handler_returns_download_url(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path
-    )
+    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     fake = BundleResult(
         zip_path=tmp_path / "b.zip",
         filename="b.zip",
@@ -730,8 +701,6 @@ def test_old_bundles_are_pruned(tmp_path):
 
 
 def test_collect_handler_rejects_non_object_body(tmp_path, monkeypatch):
-    monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path
-    )
+    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     resp = asyncio.run(dh.api_diagnostics_collect(_CollectReq(["not", "a", "dict"])))
     assert resp.status == 400

@@ -22,7 +22,7 @@ Two alignment facts that are easy to get wrong and expensive to discover late:
    frames, which a seeking renderer will happily bake in.
 
 brand.json (all optional):
-{ "accent":"#8e48ff", "bg":"#19161d", "outro_eyebrow":"KIRO CREW",
+{ "accent":"#e4a54a", "bg":"#0c0d12", "outro_eyebrow":"JUNCTION",
   "outro_title_lead":"Command", "outro_title_tail":" Bar",
   "font_stack":"\\"Inter\\",\\"Droid Sans Fallback\\",sans-serif",
   "font_face_local":"Droid Sans Fallback" }
@@ -141,15 +141,15 @@ def main() -> int:
     ev = read_json_input(args.events)
     b = read_json_input(args.brand) if args.brand else {}
 
-    # Defaults are the product's DEFAULT colour theme, kiro-dark, copied from
-    # website/src/index.css (the [data-theme="kiro-dark"] block). Not a look chosen
-    # here: useTheme.tsx sets DEFAULT_COLOR_THEME = "kiro", so these are the colours
-    # a viewer already sees in the product, and the capture is recorded on the same
-    # theme so a slide and the dashboard behind it are the same product.
-    accent = _css(b, "accent", "#8e48ff", _COLOR_RE)
-    accent_h = _css(b, "accent_hi", "#9f63ff", _COLOR_RE)
-    bg = _css(b, "bg", "#19161d", _COLOR_RE)
-    bg_el = _css(b, "bg_el", "#211d25", _COLOR_RE)
+    # Defaults are the product's factory colour theme, copied from
+    # website/src/index.css (:root / [data-theme="kiro-dark"], ink + copper).
+    # useTheme.tsx sets DEFAULT_COLOR_THEME = "kiro", so these are the colours
+    # a viewer already sees in the product, and the capture is recorded on the
+    # same theme so a slide and the dashboard behind it are the same product.
+    accent = _css(b, "accent", "#e4a54a", _COLOR_RE)
+    accent_h = _css(b, "accent_hi", "#f0b35c", _COLOR_RE)
+    bg = _css(b, "bg", "#0c0d12", _COLOR_RE)
+    bg_el = _css(b, "bg_el", "#16171f", _COLOR_RE)
     font_stack = _css(b, "font_stack", '"Inter","Droid Sans Fallback",sans-serif', _STACK_RE)
     font_local = _css(b, "font_face_local", "Droid Sans Fallback", _FAMILY_RE)
     # brand.json is the OTHER authored input, and its prose is rendered into the

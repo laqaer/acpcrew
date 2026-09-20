@@ -22,9 +22,9 @@ describe('resolvePetName', () => {
   })
 
   it('falls back to the ACTIVE avatar, not to the cat', () => {
-    // The whole point: an unnamed ghost is Kiro, and mirrors
+    // The whole point: an unnamed ghost pack is Drift, and mirrors
     // soul_loader.BUILTIN_PET_NAMES so chat and UI agree.
-    expect(resolvePetName({ petName: '', activeAppearance: 'kiro-ghost' })).toBe('Kiro')
+            expect(resolvePetName({ petName: '', activeAppearance: 'kiro-ghost' })).toBe('Drift')
     expect(resolvePetName({ petName: '', activeAppearance: 'default-mochi' })).toBe('Mochi')
   })
 
@@ -35,7 +35,7 @@ describe('resolvePetName', () => {
   })
 
   it('trims, so a pasted name with whitespace is not treated as custom', () => {
-    expect(resolvePetName({ petName: '   ', activeAppearance: 'kiro-ghost' })).toBe('Kiro')
+    expect(resolvePetName({ petName: '   ', activeAppearance: 'kiro-ghost' })).toBe('Drift')
     expect(resolvePetName({ petName: ' Tofu ' })).toBe('Tofu')
   })
 })

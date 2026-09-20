@@ -7,8 +7,12 @@ up to a full "experience pack" (fonts, sandboxed overlays, audio, persona). A
 color theme is the degenerate case of a pack — the whole spectrum lives behind
 **one Theme dropdown** in Settings → Display: install many, select one.
 
-Themes are a **standalone subsystem built on `useTheme`**, not KiroCrew apps. This document is the **source of truth** for the end-to-end subsystem.
-The frontend pack-author contract (the CSS-var surface and the
+Themes are a **standalone subsystem built on `useTheme`**. This document is the
+**source of truth** for the end-to-end subsystem.
+The factory picker slug is `kiro` (persisted id; do not rename it in this cut).
+The painted default is Junction ink (`#0c0d12`) + copper (`#e4a54a`), not the
+upstream purple/mint palettes. The frontend pack-author contract (the CSS-var
+surface and the
 `overrides.css` selector allowlist) lives in
 [`website/docs/theming-contract.md`](../../../website/docs/theming-contract.md);
 where the two overlap, this spec governs.

@@ -12,7 +12,7 @@
  *
  * ## Why the list is short
  *
- * Rows come from {@link https://github.com/kirodotdev/KiroCrew | CHANGELOG.md}'s
+ * Rows come from {@link https://github.com/laqaer/acpcrew | CHANGELOG.md}'s
  * sections plus the release the running build belongs to — nothing else. A
  * version that shipped without a section is deliberately absent, because a row
  * that cannot say anything is indistinguishable from a broken one. The running
@@ -51,7 +51,7 @@ interface ReleasesPayload {
   stale: boolean
 }
 
-const REPO = 'https://github.com/kirodotdev/KiroCrew'
+const REPO = 'https://github.com/laqaer/acpcrew'
 
 /** Small-print state note for a row, or `''` when the row needs none.
  *

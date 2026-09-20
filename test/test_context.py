@@ -261,9 +261,7 @@ class TestContextBuilder:
         """With the flag set on a continuing session, the index comes back
         wrapped in the marker so the model can still discover skills."""
         builder = self._reinject_builder(tmp_path)
-        msg, _ = builder.build_message(
-            "carry on", is_new_session=False, needs_reinjection=True
-        )
+        msg, _ = builder.build_message("carry on", is_new_session=False, needs_reinjection=True)
         assert "[REINJECTED AFTER COMPACTION" in msg
         assert "[END REINJECTED]" in msg
         assert "widget-maker" in msg, "the re-injected block must carry the skill index"
@@ -278,9 +276,7 @@ class TestContextBuilder:
         """A new session already gets the index from the session context;
         re-injecting would duplicate it in the same prompt."""
         builder = self._reinject_builder(tmp_path)
-        msg, _ = builder.build_message(
-            "first turn", is_new_session=True, needs_reinjection=True
-        )
+        msg, _ = builder.build_message("first turn", is_new_session=True, needs_reinjection=True)
         assert "[REINJECTED AFTER COMPACTION" not in msg
 
     def test_no_reinjection_for_an_unmapped_custom_agent(self, tmp_path):
@@ -393,9 +389,7 @@ class TestContextBuilder:
             memory=MemoryStore(workspace=tmp_path / "ws"),
             skills=SkillsLoader(skills_path=tmp_path / "skills", install_builtins=False),
         )
-        msg, _ = builder.build_message(
-            "hello", is_new_session=False, folder_path="Backend › 0812"
-        )
+        msg, _ = builder.build_message("hello", is_new_session=False, folder_path="Backend › 0812")
         assert "[FOLDER]" in msg
         assert "Backend › 0812" in msg
 
@@ -810,14 +804,14 @@ class TestRuntimeDisplayName:
     @pytest.mark.parametrize(
         "session_key, expected_runtime",
         [
-            ("dashboard:chat-1-100", "KiroCrew dashboard"),
-            ("dashboard_chat-1-100", "KiroCrew dashboard"),
-            ("cron:daily", "KiroCrew cron job"),
-            ("cron_076ab486", "KiroCrew cron job"),
-            ("subagent:abc-123", "KiroCrew subagent"),
-            ("taskrunner:proj:task1", "KiroCrew task runner"),
-            ("_bg", "KiroCrew background"),
-            ("_hb", "KiroCrew heartbeat"),
+            ("dashboard:chat-1-100", "Junction dashboard"),
+            ("dashboard_chat-1-100", "Junction dashboard"),
+            ("cron:daily", "Junction cron job"),
+            ("cron_076ab486", "Junction cron job"),
+            ("subagent:abc-123", "Junction subagent"),
+            ("taskrunner:proj:task1", "Junction task runner"),
+            ("_bg", "Junction background"),
+            ("_hb", "Junction heartbeat"),
             ("cli_chat", "CLI terminal"),
             ("slack:1234567890.123456", "Slack"),
             ("discord:kirocrew:direct:474737235959480320", "Discord"),
@@ -840,7 +834,7 @@ class TestRuntimeDisplayName:
         builder = ContextBuilder(memory=MemoryStore(workspace=tmp_path))
         ctx = builder.build_session_context("dashboard:chat-1", agent="gpu-comms")
         assert "[CURRENT AGENT] gpu-comms" in ctx
-        assert "[RUNTIME] KiroCrew dashboard" in ctx
+        assert "[RUNTIME] Junction dashboard" in ctx
 
     def test_agent_identity_omitted_without_session_key(self, tmp_path):
         """build_session_context omits agent identity when session_key is None."""
@@ -863,7 +857,7 @@ class TestRuntimeDisplayName:
             runtime_source="discord",
         )
         assert "[RUNTIME] Discord" in ctx
-        assert "[RUNTIME] KiroCrew dashboard" not in ctx
+        assert "[RUNTIME] Junction dashboard" not in ctx
 
     def test_follow_up_refreshes_runtime_from_current_transport(self, tmp_path):
         """Warm cross-surface sessions receive authoritative per-turn runtime."""

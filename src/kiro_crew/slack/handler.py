@@ -45,6 +45,7 @@ from kiro_crew.config.loader import (
     update_config_locked,
 )
 from kiro_crew.config.paths import kiro_agents_dir
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.context import (
     ContextBuilder,
     build_cancelled_turn_preamble,
@@ -1951,7 +1952,7 @@ async def _handle_slash_command(
     if cmd == "!allowlist":
         await slack.post_message(
             channel,
-            "⛔ Multi-user access is disabled for security. Only the owner can use Kiro Crew via Slack.",
+            f"⛔ Multi-user access is disabled for security. Only the owner can use {PRODUCT_NAME} via Slack.",
             reply_ts,
         )
         return ""
@@ -2241,9 +2242,7 @@ async def _handle_compact_command(
                 outcome = "completed"
             elif cr["type"] == "failed":
                 error = cr.get("summary", "")
-                result_text = (
-                    f"❌ Compaction failed: {error}" if error else "❌ Compaction failed."
-                )
+                result_text = f"❌ Compaction failed: {error}" if error else "❌ Compaction failed."
                 outcome = "failed"
             else:
                 result_text = "⚠️ Compaction timed out."

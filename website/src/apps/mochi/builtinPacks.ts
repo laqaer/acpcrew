@@ -116,11 +116,11 @@ const GHOST_PACK: BuiltinPack = {
   flipX: true,
   meta: {
     id: BUILTIN_GHOST_ID,
-    name: 'Kiro Ghost',
-    author: 'Kiro',
+    name: 'Drift',
+    author: 'Junction',
     description:
-      'A small friendly ghost that floats and blinks. Calm and attentive, ' +
-      'it drifts along while it works.',
+      'A small track sprite that waits at the switch. Calm and attentive, ' +
+      'it holds the junction while it works.',
     type: 'built-in',
     format: 'lottie',
     thumbnail: 'idle.json',
@@ -185,11 +185,11 @@ export function resolveActivePackId(
  * chat and another in its own title bar.
  *
  * Deliberately NOT `meta.name`: that names the character DESIGN in the picker
- * ("Kiro Ghost" / "Mochi Cat"), while this is how the pet refers to itself.
+ * ("Drift" / "Mochi Cat"), while this is how the pet refers to itself.
  */
 const BUILTIN_PET_NAMES: Record<string, string> = {
   [BUILTIN_MOCHI_ID]: 'Mochi',
-  [BUILTIN_GHOST_ID]: 'Kiro',
+  [BUILTIN_GHOST_ID]: 'Drift',
 }
 
 /** Last-resort name, matching ``soul_loader.DEFAULT_PET_NAME``. */
