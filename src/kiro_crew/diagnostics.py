@@ -46,7 +46,7 @@ from kiro_crew.security import (
 logger = logging.getLogger(__name__)
 
 # ── GitHub issue target ──────────────────────────────────────────────────────
-_ISSUE_REPO = "kirodotdev/KiroCrew"
+_ISSUE_REPO = "laqaer/acpcrew"
 _ISSUE_NEW_URL = f"https://github.com/{_ISSUE_REPO}/issues/new"
 
 # Cap how many rolling files we pull so a huge crash-dump backlog can't bloat
@@ -226,9 +226,7 @@ def _kiro_cli_chat_log() -> Path | None:
         # public issue. Redaction is not a backstop for that: .netrc/.pem bodies
         # do not match the credential patterns. Refuse the path outright.
         if is_sensitive_path(str(p)):
-            logger.warning(
-                "ignoring KIRO_CHAT_LOG_FILE: %s resolves to a sensitive path", p
-            )
+            logger.warning("ignoring KIRO_CHAT_LOG_FILE: %s resolves to a sensitive path", p)
             return None
         return p if _usable_log(p) else None
     for base in _kiro_log_dirs():
@@ -264,11 +262,7 @@ def _macos_crash_reports() -> list[Path]:
         if not _usable_dir(base):
             continue
         try:
-            reports.extend(
-                p
-                for p in base.glob("kiro*.ips")
-                if p.is_file() and not p.is_symlink()
-            )
+            reports.extend(p for p in base.glob("kiro*.ips") if p.is_file() and not p.is_symlink())
         except OSError:
             continue
     reports.sort(key=lambda p: p.stat().st_mtime, reverse=True)
@@ -538,9 +532,7 @@ def collect_bundle(
         os.O_CREAT | os.O_WRONLY | os.O_TRUNC | getattr(os, "O_BINARY", 0),
         0o600,
     )
-    with os.fdopen(_fd, "wb") as _raw, zipfile.ZipFile(
-        _raw, "w", zipfile.ZIP_DEFLATED
-    ) as zf:
+    with os.fdopen(_fd, "wb") as _raw, zipfile.ZipFile(_raw, "w", zipfile.ZIP_DEFLATED) as zf:
         # Generated members first.
         versions = _versions_text(note)
         zf.writestr("versions.txt", versions)

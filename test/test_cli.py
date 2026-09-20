@@ -132,9 +132,7 @@ class TestDoctor:
         that HOST (doctor exits 1 for it) but not the subject of these tests."""
         import kiro_crew.cli_doctor as _doc
 
-        monkeypatch.setattr(
-            _doc.sandbox, "detect_backend", lambda config_mode="auto": "namespace"
-        )
+        monkeypatch.setattr(_doc.sandbox, "detect_backend", lambda config_mode="auto": "namespace")
 
     def test_doctor_with_kiro(self, tmp_path):
         agent_file = tmp_path / "kirocrew.json"
@@ -143,7 +141,10 @@ class TestDoctor:
         _healthy_agent_file(agent_file)
         mock_run = MagicMock(returncode=0, stdout="kiro-cli 1.0.0", stderr="")
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -340,7 +341,10 @@ class TestDoctor:
             "profile=amazon resolved no companion; set KIROCREW_PROFILE=standalone"
         )
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -375,7 +379,10 @@ class TestDoctor:
         agent_file.write_text("{}")
         mock_run = MagicMock(returncode=0, stdout="kiro-cli 1.0.0", stderr="")
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -405,7 +412,10 @@ class TestDoctor:
             "KIROCREW_OWNER_ID": "U123",
         }
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -431,7 +441,10 @@ class TestDoctor:
         mock_run = MagicMock(returncode=0, stdout="kiro-cli 1.0.0", stderr="")
         slack_creds = {"SLACK_APP_TOKEN": "xapp-test", "SLACK_BOT_TOKEN": "xoxb-test"}
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -564,9 +577,7 @@ class TestUpdateFailures:
                 m.stderr = "network error"
             return m
 
-        with _patch_path(), _git_resolvable(), patch(
-            "subprocess.run", side_effect=_side_effect
-        ):
+        with _patch_path(), _git_resolvable(), patch("subprocess.run", side_effect=_side_effect):
             try:
                 _update()
                 assert False, "Expected SystemExit"
@@ -1244,9 +1255,7 @@ class TestCronCli:
             mock_svc.remove_job.return_value = True
             args = argparse.Namespace(cron_action="remove", job_id="abc123")
             _cron(args)
-            mock_svc.remove_job.assert_called_once_with(
-                "abc123", actor="cli", source="cli"
-            )
+            mock_svc.remove_job.assert_called_once_with("abc123", actor="cli", source="cli")
             mock_sel.return_value.log_api_access.assert_not_called()
 
     def test_cron_remove_not_found_audits_not_found(self):
@@ -1258,9 +1267,7 @@ class TestCronCli:
             mock_svc.remove_job.return_value = False
             args = argparse.Namespace(cron_action="remove", job_id="ghost")
             _cron(args)
-            mock_svc.remove_job.assert_called_once_with(
-                "ghost", actor="cli", source="cli"
-            )
+            mock_svc.remove_job.assert_called_once_with("ghost", actor="cli", source="cli")
             mock_sel.return_value.log_api_access.assert_not_called()
 
     def test_cron_remove_succeeds_when_audit_raises(self, capsys):
@@ -1300,8 +1307,9 @@ class TestPortEnvValidatedAtEntry:
         for bad in ("70000", "0", "-1"):
             monkeypatch.setenv("KIROCREW_PORT", bad)
             dispatched = []
-            with patch.object(sys, "argv", ["kirocrew", "cron", "list"]), patch(
-                "kiro_crew.cli_commands._cron", lambda _ns: dispatched.append(True)
+            with (
+                patch.object(sys, "argv", ["kirocrew", "cron", "list"]),
+                patch("kiro_crew.cli_commands._cron", lambda _ns: dispatched.append(True)),
             ):
                 from kiro_crew.cli import main
 
@@ -1316,8 +1324,9 @@ class TestPortEnvValidatedAtEntry:
 
         monkeypatch.setenv("KIROCREW_PORT", "5477")
         dispatched = []
-        with patch.object(sys, "argv", ["kirocrew", "cron", "list"]), patch(
-            "kiro_crew.cli_commands._cron", lambda _ns: dispatched.append(True)
+        with (
+            patch.object(sys, "argv", ["kirocrew", "cron", "list"]),
+            patch("kiro_crew.cli_commands._cron", lambda _ns: dispatched.append(True)),
         ):
             from kiro_crew.cli import main
 
@@ -1431,9 +1440,7 @@ class TestSetupTimezone:
         monkeypatch.delenv("TZ", raising=False)
         monkeypatch.setattr(cli_setup.platform_compat, "IS_WINDOWS", True)
         monkeypatch.setattr(cli_setup.Path, "is_symlink", lambda self: False)
-        fake_tzlocal = types.SimpleNamespace(
-            get_localzone_name=lambda: "America/Los_Angeles"
-        )
+        fake_tzlocal = types.SimpleNamespace(get_localzone_name=lambda: "America/Los_Angeles")
         monkeypatch.setitem(sys.modules, "tzlocal", fake_tzlocal)
 
         assert cli_setup._detect_system_timezone() == "America/Los_Angeles"
@@ -2134,7 +2141,7 @@ class TestStop:
             with pytest.raises(SystemExit) as exc:
                 _stop(5476)
             assert exc.value.code == 1
-        assert "No Kiro Crew gateway" in capsys.readouterr().out
+        assert "No Junction gateway" in capsys.readouterr().out
 
     def _tool_absent(self, unpinned_at):
         # The lookup tool reads as unavailable; ``unpinned_at`` is where PATH
@@ -2208,7 +2215,7 @@ class TestStop:
             with pytest.raises(SystemExit) as exc:
                 _stop(5476)
             assert exc.value.code == 1
-        assert "No Kiro Crew gateway" in capsys.readouterr().out
+        assert "No Junction gateway" in capsys.readouterr().out
 
     def test_successful_stop(self, capsys):
         from kiro_crew.cli_server import _stop
@@ -2317,7 +2324,7 @@ class TestStop:
         mock_stop_service.assert_not_called()
         # And we should have fallen through to the kill path
         # (which exits 1 here because no listener is found on 8089).
-        assert "No Kiro Crew gateway" in capsys.readouterr().out
+        assert "No Junction gateway" in capsys.readouterr().out
 
 
 class TestWaitForPidsExit:
@@ -2926,7 +2933,7 @@ class TestRestartReadinessVerdict:
         # and the log is where the reason is.
         assert "exit status 1" in out
         assert "4321" in out
-        assert "kirocrew logs -f" in out
+        assert "junction logs -f" in out
         # The audit must record what actually happened, not an optimistic
         # "allowed" logged before any verdict existed.
         assert self._outcomes(mock_sel) == ["denied"]
@@ -3227,14 +3234,10 @@ class TestGatewayOwnsPort:
         return patch("kiro_crew.cli_server.run_marker.read_pid", return_value=pid)
 
     def _listeners(self, pids):
-        return patch(
-            "kiro_crew.cli_server.platform_compat.find_listening_pids", return_value=pids
-        )
+        return patch("kiro_crew.cli_server.platform_compat.find_listening_pids", return_value=pids)
 
     def _owner(self, uid):
-        return patch(
-            "kiro_crew.cli_server.platform_compat.process_owner_uid", return_value=uid
-        )
+        return patch("kiro_crew.cli_server.platform_compat.process_owner_uid", return_value=uid)
 
     def _me(self):
         return os.getuid() if hasattr(os, "getuid") else 0
@@ -3374,7 +3377,7 @@ class TestCliLoopbackAddress:
         assert cli_server._CLI_LOOPBACK == "127.0.0.1"
         src = inspect.getsource(cli_server)
         # No CLI->gateway request may be built from the hostname.
-        assert 'http://localhost:{port}' not in src
+        assert "http://localhost:{port}" not in src
         for fn in (cli_server._token, cli_server._logout, cli_server._print_token_url):
             body = inspect.getsource(fn)
             if "http://" in body:
@@ -3444,7 +3447,10 @@ class TestDoctorStaleProjectDir:
         agent_file.write_text(json.dumps(agent_data))
         mock_run = MagicMock(returncode=0, stdout="kiro-cli 1.0.0", stderr="")
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen"),
@@ -3728,12 +3734,8 @@ class TestDoctorMcpTools:
         # No probe attempted since no server spec survived the parse failure.
         probe_mock.assert_not_called()
 
-    @pytest.mark.parametrize(
-        "content", ["[1, 2, 3]", "42", "null", "true", '"a string"']
-    )
-    def test_valid_json_non_object_agent_config_does_not_crash(
-        self, tmp_path, capsys, content
-    ):
+    @pytest.mark.parametrize("content", ["[1, 2, 3]", "42", "null", "true", '"a string"'])
+    def test_valid_json_non_object_agent_config_does_not_crash(self, tmp_path, capsys, content):
         """A spec that is valid JSON but not an object (a list, a scalar,
         null) parses fine, so the json.loads try/except never fires — but
         every .get() on the result would raise AttributeError. Doctor must
@@ -3783,7 +3785,10 @@ class TestDoctorStt:
         cfg = KiroCrewConfig.load()
         cfg.stt = SttConfig(enabled=True, provider="whisper")
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -3822,7 +3827,10 @@ class TestDoctorStt:
         cfg = KiroCrewConfig.load()
         cfg.stt = SttConfig(enabled=False)
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -3870,7 +3878,10 @@ class TestDoctorStt:
             "boto3": MagicMock(),
         }
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -3922,7 +3933,10 @@ class TestDoctorStt:
         # setitem(sys.modules, ..., None) is the documented hook for this.
         monkeypatch.setitem(sys.modules, "amazon_transcribe.client", None)
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -3968,7 +3982,10 @@ class TestDoctorStt:
         # Force `import boto3` inside _doctor() to raise ImportError.
         monkeypatch.setitem(sys.modules, "boto3", None)
         with (
-            patch("kiro_crew.cli_doctor.shutil.which", side_effect=lambda b, **_kw: f"/usr/local/bin/{b}"),
+            patch(
+                "kiro_crew.cli_doctor.shutil.which",
+                side_effect=lambda b, **_kw: f"/usr/local/bin/{b}",
+            ),
             patch("kiro_crew.cli_doctor.KIRO_AGENTS_DIR", tmp_path),
             patch("kiro_crew.cli_doctor.subprocess.run", return_value=mock_run),
             patch("urllib.request.urlopen", side_effect=urllib.error.URLError("no gateway")),
@@ -4181,9 +4198,7 @@ class TestSetupChannelGating:
         # Mirror the real signature (bin_dir, *, claim_existing): the setup path
         # passes claim_existing=True, and a stub that refused it would fail here
         # for a reason that has nothing to do with channel gating.
-        monkeypatch.setattr(
-            "kiro_crew.agent.ensure_kirocrew_on_path", lambda *a, **k: None
-        )
+        monkeypatch.setattr("kiro_crew.agent.ensure_kirocrew_on_path", lambda *a, **k: None)
         monkeypatch.setattr("kiro_crew.mcp_cleanup.clean_stale_managed_mcp", lambda: [])
         # Neutralize every unrelated wizard step so only the gating is under test.
         for name in (
@@ -4223,9 +4238,7 @@ class TestSetupChannelGating:
         calls = self._run_setup(monkeypatch, tmp_path, slack=True)
         assert calls == ["slack_tokens", "slash_command"]
 
-    def test_agent_only_with_slack_warns_and_skips_slack_steps(
-        self, tmp_path, monkeypatch, capsys
-    ):
+    def test_agent_only_with_slack_warns_and_skips_slack_steps(self, tmp_path, monkeypatch, capsys):
         """--agent-only --slack: no Slack steps run, but a notice explains why."""
         calls = self._run_setup(monkeypatch, tmp_path, agent_only=True, slack=True)
         assert calls == []
@@ -4233,9 +4246,7 @@ class TestSetupChannelGating:
         assert "--slack is ignored with --agent-only" in out
         assert "setup --slack" in out
 
-    def test_agent_only_without_slack_prints_no_notice(
-        self, tmp_path, monkeypatch, capsys
-    ):
+    def test_agent_only_without_slack_prints_no_notice(self, tmp_path, monkeypatch, capsys):
         """--agent-only alone: the guided-setup pointer is not printed."""
         calls = self._run_setup(monkeypatch, tmp_path, agent_only=True)
         assert calls == []
@@ -4276,9 +4287,7 @@ class TestSetupChannelGating:
             main()
             assert mock_setup.call_args.kwargs["whatsapp"] is True
 
-    def test_agent_only_with_whatsapp_warns_and_skips_the_step(
-        self, tmp_path, monkeypatch, capsys
-    ):
+    def test_agent_only_with_whatsapp_warns_and_skips_the_step(self, tmp_path, monkeypatch, capsys):
         """--agent-only --whatsapp: the step is skipped, and the notice names the
         flag the caller actually passed rather than only --slack."""
         calls = self._run_setup(monkeypatch, tmp_path, agent_only=True, whatsapp=True)
@@ -4578,7 +4587,17 @@ class TestDoctorEmbeddings:
         monkeypatch.delenv("LLAMA_CPP_LIB_PATH", raising=False)
 
     @staticmethod
-    def _run_doctor(tmp_path, monkeypatch, *, runtime_ok: bool, model_present: bool, platform_supported: bool = True, missing_libs: dict | None = None, loader_setdefaults: str = "", lib_path_override: str | None = None):
+    def _run_doctor(
+        tmp_path,
+        monkeypatch,
+        *,
+        runtime_ok: bool,
+        model_present: bool,
+        platform_supported: bool = True,
+        missing_libs: dict | None = None,
+        loader_setdefaults: str = "",
+        lib_path_override: str | None = None,
+    ):
         """Run _doctor with the embeddings runtime/model state stubbed.
 
         ``loader_setdefaults`` reproduces the real loader's side effect of
@@ -4841,9 +4860,7 @@ class TestWaitGatewayReady:
             patch("kiro_crew.cli_server._probe_gateway_ready", probe),
             patch("kiro_crew.cli_server.time.sleep") as mock_sleep,
         ):
-            verdict = cli_server._wait_gateway_ready(
-                self._proc([1]), 7777, None, timeout=999
-            )
+            verdict = cli_server._wait_gateway_ready(self._proc([1]), 7777, None, timeout=999)
 
         assert verdict == (cli_server._READY_DIED, 1)
         # Straight out of the loop: no probe, no sleep, no 999s stall.
@@ -5055,9 +5072,7 @@ class TestPrintTokenUrl:
     def test_prints_token_on_success(self, tmp_path, capsys, monkeypatch):
         from kiro_crew.cli_server import _print_token_url
 
-        monkeypatch.setattr(
-            "kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret"
-        )
+        monkeypatch.setattr("kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret")
         monkeypatch.setattr(
             "kiro_crew.cli_server.KiroCrewConfig.load",
             lambda: MagicMock(dashboard=MagicMock(url="")),
@@ -5086,9 +5101,7 @@ class TestPrintTokenUrl:
     def test_prints_custom_origin(self, tmp_path, capsys, monkeypatch):
         from kiro_crew.cli_server import _print_token_url
 
-        monkeypatch.setattr(
-            "kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret"
-        )
+        monkeypatch.setattr("kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret")
         monkeypatch.setattr(
             "kiro_crew.cli_server.KiroCrewConfig.load",
             lambda: MagicMock(dashboard=MagicMock(url="http://kirocrew.dev:7777")),
@@ -5111,15 +5124,13 @@ class TestPrintTokenUrl:
     def test_fallback_on_timeout(self, tmp_path, capsys, monkeypatch):
         from kiro_crew.cli_server import _print_token_url
 
-        monkeypatch.setattr(
-            "kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret"
-        )
+        monkeypatch.setattr("kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret")
         monkeypatch.setattr("kiro_crew.cli_server._RESTART_READY_TIMEOUT", 0)
 
         _print_token_url(7777)
 
         out = capsys.readouterr().out
-        assert "kirocrew token" in out
+        assert "junction token" in out
 
     def test_fallback_on_no_secret(self, tmp_path, capsys, monkeypatch):
         from kiro_crew.cli_server import _print_token_url
@@ -5130,7 +5141,7 @@ class TestPrintTokenUrl:
         _print_token_url(7777)
 
         out = capsys.readouterr().out
-        assert "kirocrew token" in out
+        assert "junction token" in out
 
 
 @pytest.mark.skipif(
@@ -5160,8 +5171,7 @@ class TestInstallPidfdChildWatcher:
         import os
         import textwrap
 
-        code = textwrap.dedent(
-            """
+        code = textwrap.dedent("""
             import asyncio
             from kiro_crew.cli import _install_child_watcher
 
@@ -5179,8 +5189,7 @@ class TestInstallPidfdChildWatcher:
                 "expected {expected} to be installed"
             )
             assert asyncio.run(_spawn_true()) == 0
-            """
-        ).format(expected=expected_watcher)
+            """).format(expected=expected_watcher)
         # Propagate the runtime's import path so the child can import kiro_crew
         # (a bare subprocess would not inherit it without PYTHONPATH).
         env = dict(os.environ)
@@ -5468,9 +5477,7 @@ class TestTokenCommand:
     def test_prints_loopback_only(self, tmp_path, capsys, monkeypatch):
         from kiro_crew.cli_server import _token
 
-        monkeypatch.setattr(
-            "kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret"
-        )
+        monkeypatch.setattr("kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret")
         monkeypatch.setattr(
             "kiro_crew.cli_server.KiroCrewConfig.load",
             lambda: MagicMock(dashboard=MagicMock(url="")),
@@ -5500,9 +5507,7 @@ class TestTokenCommand:
     def test_separates_custom_origin_with_blank_line(self, tmp_path, capsys, monkeypatch):
         from kiro_crew.cli_server import _token
 
-        monkeypatch.setattr(
-            "kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret"
-        )
+        monkeypatch.setattr("kiro_crew.cli_server.read_local_secret", lambda _port: "test-secret")
         monkeypatch.setattr(
             "kiro_crew.cli_server.KiroCrewConfig.load",
             lambda: MagicMock(dashboard=MagicMock(url="https://kirocrew.dev:7777")),
@@ -6313,9 +6318,7 @@ class TestChatPermissionRequest:
 
         provider = self._GatedProvider(self._event(), trace)
         await asyncio.wait_for(
-            cli_chat._send_and_print(
-                provider, "run it", interactive=True, gate=self._gate()
-            ),
+            cli_chat._send_and_print(provider, "run it", interactive=True, gate=self._gate()),
             timeout=self._TIMEOUT,
         )
 
@@ -6342,9 +6345,7 @@ class TestChatPermissionRequest:
             self._patch_env(monkeypatch, trace=trace, answer=answer)
             provider = self._GatedProvider(self._event(), trace)
             await asyncio.wait_for(
-                cli_chat._send_and_print(
-                    provider, "run it", interactive=True, gate=self._gate()
-                ),
+                cli_chat._send_and_print(provider, "run it", interactive=True, gate=self._gate()),
                 timeout=self._TIMEOUT,
             )
             seen[key] = [s[1].get("critical", False) for s in trace if s[0] == "sel"]
@@ -6446,14 +6447,14 @@ class TestChatPermissionRequest:
         )
 
         event = self._event(
-            title="Tidy up", tool_name="fs_write", tool_kind="edit",
+            title="Tidy up",
+            tool_name="fs_write",
+            tool_kind="edit",
             raw_params={"path": "~/.ssh/id_rsa"},
         )
         provider = self._GatedProvider(event, trace)
         await asyncio.wait_for(
-            cli_chat._send_and_print(
-                provider, "run it", interactive=True, gate=self._gate()
-            ),
+            cli_chat._send_and_print(provider, "run it", interactive=True, gate=self._gate()),
             timeout=self._TIMEOUT,
         )
 
@@ -6540,9 +6541,7 @@ class TestChatPermissionRequest:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("encoding", ["utf-8", "cp1252"])
-    async def test_malicious_unicode_title_and_tool_input_are_answered(
-        self, monkeypatch, encoding
-    ):
+    async def test_malicious_unicode_title_and_tool_input_are_answered(self, monkeypatch, encoding):
         """Strict UTF-8 rejects lone surrogates; strict cp1252 rejects wider Unicode.
 
         Drive the whole pending-request flow through a strict destination stream
@@ -6931,9 +6930,7 @@ class TestChatPermissionRequest:
         assert [s["outcome"] for s in sels] == ["allowed"]
 
     @pytest.mark.asyncio
-    async def test_direct_client_non_shell_permission_can_be_allowed(
-        self, monkeypatch, tmp_path
-    ):
+    async def test_direct_client_non_shell_permission_can_be_allowed(self, monkeypatch, tmp_path):
         """The Claude/direct transport must distinguish cached False from a miss.
 
         This drives the production ``AcpClient`` parser before the CLI consumer;
@@ -6980,9 +6977,7 @@ class TestChatPermissionRequest:
         assert reads["n"] == 0
 
     @pytest.mark.asyncio
-    async def test_direct_client_cache_miss_stays_fail_closed(
-        self, monkeypatch, tmp_path
-    ):
+    async def test_direct_client_cache_miss_stays_fail_closed(self, monkeypatch, tmp_path):
         """Inline permission data cannot manufacture trusted provenance."""
         from kiro_crew.acp.client import AcpClient
         from kiro_crew.acp.types import ACP_BACKEND_CLAUDE
@@ -7040,9 +7035,7 @@ class TestChatPermissionRequest:
             mcp_server_name="fs\x1b[2Kspoof\nserver",
         )
         await self._drive(monkeypatch, event=event)
-        line = next(
-            ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("MCP tool:")
-        )
+        line = next(ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("MCP tool:"))
         assert "\x1b" not in line
         assert line == "MCP tool: fs [2Kspoof server / unnamed tool"
 
@@ -7232,9 +7225,7 @@ print("survived")
 """
 
     @pytest.mark.parametrize("io_encoding", ["cp950", "cp950:strict"])
-    def test_denial_notice_survives_a_non_utf8_redirected_stderr(
-        self, tmp_path, io_encoding
-    ):
+    def test_denial_notice_survives_a_non_utf8_redirected_stderr(self, tmp_path, io_encoding):
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = io_encoding
         # Keep the SEL audit write inside the test's own tree.

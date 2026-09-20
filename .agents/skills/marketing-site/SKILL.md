@@ -17,6 +17,7 @@ Code: `site/` (not `website/` — that is the dashboard SPA). Identity:
   `laqaer/acpcrew`.
 - Keep the amber already in `site/`. Junction / track motif. No emoji
   icons (lucide on the dashboard; site follows the same no-emoji rule).
-- Drop the ghost emoji.
+- Drop the ghost emoji and the mint default palette (those read as
+  another product). Dashboard factory default is ink + copper.
 - Vercel **preview** of `site/` only, hobby, no spend. No production
   Pages-on-main, no DNS.

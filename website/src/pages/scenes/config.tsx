@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Building2, Brain, Wand2, Waves, Rocket, Sparkles, TreePine, Ghost } from 'lucide-react'
+import { Building2, Brain, Wand2, Waves, Rocket, Sparkles, TreePine } from 'lucide-react'
 
 export type SceneKey = 'office' | 'panda' | 'neural' | 'wizard' | 'underwater' | 'mission' | 'serengeti' | 'ghost'
 
@@ -10,6 +10,9 @@ export interface SceneMeta {
   desc: string
 }
 
+/** Worlds picker. `ghost` stays a SceneKey so GhostScene tests still type-check,
+ *  but it is not a Junction chrome option — those sprites are another product's
+ *  mascot. */
 export const SCENES: SceneMeta[] = [
   { key: 'office', label: 'Office', icon: <Building2 className="lucide-inline" />, desc: 'Classic pixel office' },
   { key: 'panda', label: 'Panda Den', icon: <Sparkles className="lucide-inline" />, desc: 'Bamboo forest workspace, all pandas' },
@@ -18,8 +21,14 @@ export const SCENES: SceneMeta[] = [
   { key: 'underwater', label: 'Deep Lab', icon: <Waves className="lucide-inline" />, desc: 'Underwater station' },
   { key: 'mission', label: 'Mission Control', icon: <Rocket className="lucide-inline" />, desc: 'NASA ops center' },
   { key: 'serengeti', label: 'Watering Hole', icon: <TreePine className="lucide-inline" />, desc: 'Serengeti savanna with giraffes, warthogs, and elephants' },
-  { key: 'ghost', label: 'Kiro Haunt', icon: <Ghost className="lucide-inline" />, desc: 'Kiro ghosts in hats, glasses, and capes' },
 ]
+
+export function resolveSceneKey(raw: string | null): SceneKey {
+  for (const scene of SCENES) {
+    if (scene.key === raw) return scene.key
+  }
+  return 'office'
+}
 
 export const SCENE_STORAGE_KEY = 'mc-agent-scene'
 

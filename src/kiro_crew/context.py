@@ -21,6 +21,7 @@ from kiro_crew.agent import _prompt_path
 from kiro_crew.agent_discovery import agent_skill_globs
 from kiro_crew.config.loader import KiroCrewConfig, workspace_dir_for
 from kiro_crew.config.paths import kiro_agents_dir
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.cron import get_local_tz
 from kiro_crew.hooks import (
     HOOK_INJECT_CONTEXT,
@@ -628,12 +629,12 @@ _BUNDLED_DOCS_DIR = Path(__file__).resolve().parent / "docs"
 # tags and session namespaces. Kept close to the injection site so new
 # transports can extend it alongside their dispatcher wiring.
 _RUNTIME_DISPLAY = {
-    "dashboard": "KiroCrew dashboard",
-    "cron": "KiroCrew cron job",
-    "subagent": "KiroCrew subagent",
-    "taskrunner": "KiroCrew task runner",
-    "background": "KiroCrew background",
-    "heartbeat": "KiroCrew heartbeat",
+    "dashboard": f"{PRODUCT_NAME} dashboard",
+    "cron": f"{PRODUCT_NAME} cron job",
+    "subagent": f"{PRODUCT_NAME} subagent",
+    "taskrunner": f"{PRODUCT_NAME} task runner",
+    "background": f"{PRODUCT_NAME} background",
+    "heartbeat": f"{PRODUCT_NAME} heartbeat",
     "cli": "CLI terminal",
     "slack": "Slack",
     "discord": "Discord",
@@ -775,12 +776,12 @@ def _build_docs_section() -> str:
         return ""
     return (
         "[DOCUMENTATION]\n"
-        f"KiroCrew docs: {_BUNDLED_DOCS_DIR}\n"
+        f"{PRODUCT_NAME} docs: {_BUNDLED_DOCS_DIR}\n"
         "\n"
-        "For KiroCrew behavior, commands, config, or architecture: "
+        f"For {PRODUCT_NAME} behavior, commands, config, or architecture: "
         "consult local docs first.\n"
-        "When diagnosing issues, run `kirocrew status` or "
-        "`kirocrew doctor` yourself when possible.\n"
+        "When diagnosing issues, run `junction status` or "
+        "`junction doctor` yourself when possible.\n"
         "[END DOCUMENTATION]\n\n"
     )
 
@@ -1790,8 +1791,7 @@ class ContextBuilder:
         if bot_name:
             self._bot_name = bot_name
         else:
-            cfg = KiroCrewConfig.load()
-            self._bot_name = "KiroCrew" if cfg.agent.provider == "claude_code" else "Kiro"
+            self._bot_name = PRODUCT_NAME
         # Register default memory in the workspace cache
         _memory_stores["default"] = self.memory
 

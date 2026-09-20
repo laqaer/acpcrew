@@ -67,12 +67,10 @@ BUILTIN_PERSONAS: dict[str, str] = {
 
 #: What the pet CALLS ITSELF per built-in pack, when no explicit pet name is set.
 #:
-#: Distinct from the pack's display name in the picker ("Kiro Ghost" /
+#: Distinct from the pack's display name in the picker ("Drift" /
 #: "Mochi Cat", in the renderer's i18n): one names the character design, this
-#: one is how the pet refers to itself in chat and in its title bar. The
-#: original drew the same line — its gallery pack was titled "Mochi Cat" while
-#: the pet answered to "Mochi".
-BUILTIN_PET_NAMES: dict[str, str] = {"kiro-ghost": "Kiro", "default-mochi": "Mochi"}
+#: one is how the pet refers to itself in chat and in its title bar.
+BUILTIN_PET_NAMES: dict[str, str] = {"kiro-ghost": "Drift", "default-mochi": "Mochi"}
 
 
 def persona_for(pack_id: str | None, pack_description: str | None = None) -> str:

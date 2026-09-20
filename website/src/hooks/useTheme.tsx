@@ -341,6 +341,7 @@ export const THEME_LABEL_KEY: Record<string, string> = {
 }
 
 export const THEMES: ThemeEntry[] = [
+  { value: 'kiro', label: 'Junction' },
   { value: 'emerald', label: '🌿 Emerald' },
   { value: 'monokai', label: '🎨 Monokai' },
   { value: 'solarized', label: '☀️ Solarized' },
@@ -353,7 +354,6 @@ export const THEMES: ThemeEntry[] = [
   { value: 'gruvbox', label: '🍦 Gruvbox' },
   { value: 'ice', label: '🧊 Ice' },
   { value: 'amoled', label: '🖤 AMOLED' },
-  { value: 'kiro', label: '👻 Kiro' },
   { value: 'intellij', label: '😶‍🌫️ IntelliJ' },
   // The only descriptive name here, so the only one with a catalog key: `label`
   // holds the glyph alone as the pre-resolution fallback and the full display

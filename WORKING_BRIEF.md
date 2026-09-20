@@ -14,7 +14,7 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Tagline | Where coding agents meet the models you want. |
 | Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring `kiro-cli`. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
-| Visual | Keep the amber already in `site/`. Drop the ghost emoji. Junction / track motif. No emoji icons. |
+| Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps amber rails. Chosen domain: **junction.computer** (purchase blocked on missing WHOIS). |
 | GitHub slug | `laqaer/acpcrew` until a human renames it. |
 | Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |

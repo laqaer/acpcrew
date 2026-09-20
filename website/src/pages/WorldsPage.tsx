@@ -3,15 +3,14 @@ import { useState, useEffect } from 'react'
 import { Sparkles, PictureInPicture2 } from 'lucide-react'
 import { useAgentSync } from '../hooks/useAgentSync'
 import { usePopoutSync } from '../hooks/usePopoutSync'
-import { SCENES, SCENE_STORAGE_KEY, SCENE_LAYOUT_SCALE, type SceneKey } from './scenes/config'
+import { SCENES, SCENE_STORAGE_KEY, SCENE_LAYOUT_SCALE, resolveSceneKey, type SceneKey } from './scenes/config'
 import { SCENE_COMPONENTS } from './scenes/components'
 
 import { i18nT } from '../i18n/t'
 export default function WorldsPage() {
-  const [scene, setScene] = useState<SceneKey>(() => {
-    const saved = localStorage.getItem(SCENE_STORAGE_KEY)
-    return (saved as SceneKey) || 'office'
-  })
+  const [scene, setScene] = useState<SceneKey>(() =>
+    resolveSceneKey(localStorage.getItem(SCENE_STORAGE_KEY)),
+  )
   const [collapsed, setCollapsed] = useState(false)
   const { agents, maxAgents } = useAgentSync()
   const { popoutActive, broadcastScene, openPopout } = usePopoutSync(false, s => setScene(s as SceneKey))

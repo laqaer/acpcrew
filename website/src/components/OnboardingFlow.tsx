@@ -2,9 +2,8 @@ import { useState, useEffect, useLayoutEffect, useCallback, useContext, useRef }
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Check, Monitor, Sun, Moon } from 'lucide-react'
+import { ArrowRight, Check, GitMerge, Monitor, Sun, Moon } from 'lucide-react'
 import { useTheme, type ModePreference, type ColorTheme } from '../hooks/useTheme'
-import { GhostWithArm } from '../assets/onboarding/GhostIcons'
 import { Btn, SendBtn } from './ui'
 import OnboardingChapterShell, { OnboardingShellContext } from './OnboardingChapterShell'
 import { api } from '../api/client'
@@ -705,7 +704,7 @@ export default function OnboardingFlow({
         style={{ boxShadow: RING_SHADOW, borderRadius: '0px 24px 24px 24px' }}
       >
         <div className="absolute" style={{ bottom: 'calc(100% + 6px)', left: -4 }}>
-          <GhostWithArm />
+          <GitMerge className="lucide-inline h-10 w-10 text-accent" aria-hidden="true" />
         </div>
         <h3 className="text-[18px] font-semibold text-text-strong leading-tight">{i18nT(POP_TITLE_KEY[pop.navId])}</h3>
         <p className="text-[13px] text-muted mt-2.5 leading-relaxed">{i18nT(POP_BODY_KEY[pop.navId])}</p>

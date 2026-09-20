@@ -237,15 +237,15 @@ This is worth stating plainly, because "brand slides plus a punch-in camera over
 screen capture" is a whole genre and a reader could reasonably ask whose look this is.
 
 **The palette is not a choice made here.** `useTheme.tsx` sets
-`DEFAULT_COLOR_THEME = 'kiro'`, so the Kiro theme is what a viewer already sees, and
-the brand frames use its tokens verbatim from the `[data-theme="kiro-dark"]` block in
-`website/src/index.css`: `--bg:#19161d`, `--bg-elevated:#211d25`, `--accent:#8e48ff`,
-`--accent-hover:#9f63ff`, `--text-strong:#f2f1f4`, `--muted:#938f9b`,
-`--border:#352f3d`. **The capture is recorded on the same theme** -- the recorder seeds
+`DEFAULT_COLOR_THEME = 'kiro'`, so the Junction factory theme is what a viewer already sees, and
+the brand frames use its tokens verbatim from the inherited `:root` / `[data-theme="kiro-dark"]` block in
+`website/src/index.css`: `--bg:#0c0d12`, `--bg-elevated:#16171f`, `--accent:#e4a54a`,
+`--accent-hover:#f0b35c`, `--text-strong:#fafafa`, `--muted:#7f7f88`,
+`--border:#27272a`. **The capture is recorded on the same theme** -- the recorder seeds
 `mc-color-theme=kiro` and `mc-theme=dark` -- so a slide and the dashboard behind it are
-one product rather than two. Getting this wrong is visible: an earlier cut here put
-emerald brand frames (the plain `dark` theme) around a Kiro-purple dashboard, and that
-mismatch is exactly what makes a film look assembled from parts.
+one product rather than two. Getting this wrong is visible: mixing a copper brand
+frame with a leftover purple dashboard is exactly what makes a film look assembled
+from parts.
 
 **The method is the distinctive part, not the look.** Everything here follows from one
 rule -- the voice is measured first and the picture is paced to it. The genre norm is

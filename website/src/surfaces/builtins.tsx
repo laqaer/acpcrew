@@ -7,9 +7,8 @@
  * Order in this file = order in the rail (within each group). Add new
  * built-in surfaces here; do not add hardcoded badge logic to `App.tsx`.
  */
-import { MessageSquare, Bell, BookOpen, Component, CalendarDays, Settings, ClipboardCheck, LayoutGrid, Webhook } from 'lucide-react'
+import { MessageSquare, Bell, BookOpen, Component, CalendarDays, Settings, ClipboardCheck, LayoutGrid, Webhook, GitMerge } from 'lucide-react'
 import { createSelector } from '@reduxjs/toolkit'
-import { KiroGhostMark } from '../components/KiroGhostMark'
 import { registerBuiltinSurface, surfaceMachineValue } from './registry'
 import { selectSubagentActivityCount } from '../store/chatSlice'
 import { PREVIEW_WEBHOOKS } from '../utils/previewFlags'
@@ -162,16 +161,14 @@ registerBuiltinSurface({
 // Agent Templates, Connections, Skills, Hooks, and Prompts;
 // /agents redirects there (see App.tsx routes).
 //
-// Icon: the Kiro ghost brand mark (not a Lucide glyph) — this row is the
-// agent-identity destination, so it carries the mascot. `KiroGhostMark` paints
-// the asset as a mask over `currentColor`, so it still follows the rail's
-// active/idle colour states.
+// Icon: the Junction track mark (GitMerge). The capabilities row is the
+// agent-identity destination; it follows the rail's currentColor via lucide.
 registerBuiltinSurface({
   navId: 'capabilities',
   route: '/capabilities',
   label: 'Agent Capabilities',
   labelKey: 'nav.agent_capabilities',
-  icon: <KiroGhostMark size={16} />,
+  icon: <GitMerge size={16} className="lucide-inline" />,
   group: 'Bottom',
 })
 

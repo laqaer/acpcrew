@@ -9,18 +9,18 @@ import {
 // Self-contained LIGHT palette — fixed colors so this renders identically to the
 // real (light-mode) dashboard screenshot even on the dark landing page. No `dark:` variants.
 const C = {
-  bg: '#ffffff',
-  panel: '#fbfbfd',
-  railBg: '#ffffff',
-  border: '#ececf0',
-  borderSoft: '#f1f1f4',
-  textStrong: '#1c1c28',
-  text: '#3f3f46',
+  bg: '#0c0d12',
+  panel: '#14151c',
+  railBg: '#0c0d12',
+  border: '#27272a',
+  borderSoft: '#1e2029',
+  textStrong: '#fafafa',
+  text: '#e4e4e7',
   muted: '#a1a1aa',
-  mutedSoft: '#c4c4cc',
-  accent: '#7c3aed',
-  accentBg: '#f1ecfe',
-  pill: '#f6f6f8',
+  mutedSoft: '#71717a',
+  accent: '#e4a54a',
+  accentBg: 'rgba(228,165,74,0.16)',
+  pill: '#16171f',
 };
 
 const RAIL = [
@@ -52,10 +52,10 @@ const PROJECT_CHILDREN = [
 ];
 
 const SESSIONS = [
-  { time: '12:39 PM', title: 'Fork of Gateway unexpected restart investigation', preview: 'Done — new build from current beta...' },
-  { time: '12:33 PM', title: 'Pull latest mainline with changes', preview: 'Dev server is running at http://127.0.0.1:517...', active: true },
-  { time: '12:22 PM', title: 'Gateway unexpected restart investigation', preview: 'Direct answer: No — the latest beta will no...' },
-  { time: 'Thu 09:19 PM', title: 'Fix UI issues discussion', preview: 'This was already identified and fixed earlier t...' },
+  { time: '12:39 PM', title: 'Route orchestration to an economy model', preview: 'Plan uses kimi-oauth/k3 for orchestration…' },
+  { time: '12:33 PM', title: 'Dock Codex and apply the role DAG', preview: 'junction router plan — orchestration → planning → execution' , active: true },
+  { time: '12:22 PM', title: 'Sidecar health when the model plane is down', preview: 'Gateway still serves chat; catalog degrades honestly…' },
+  { time: 'Thu 09:19 PM', title: 'Attach a local ACP runtime', preview: 'agent.acp_backend is auto; kiro-cli is optional…' },
 ];
 
 function Pill({ children }: { children: React.ReactNode }) {
@@ -79,7 +79,7 @@ export function AppPreview() {
       <div className="rounded-xl overflow-hidden shadow-2xl"
         style={{ background: C.bg, border: `1px solid ${C.border}`, boxShadow: '0 40px 120px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04)' }}>
         {/* macOS title bar */}
-        <div className="flex items-center gap-2 px-3.5 h-7 shrink-0" style={{ background: '#f4f4f6', borderBottom: `1px solid ${C.border}` }}>
+        <div className="flex items-center gap-2 px-3.5 h-7 shrink-0" style={{ background: '#101118', borderBottom: `1px solid ${C.border}` }}>
           <span className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
           <span className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
           <span className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
@@ -88,8 +88,8 @@ export function AppPreview() {
         {/* Top bar */}
         <div className="flex items-center justify-between h-[46px] px-3" style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: '#18181b' }}>
-              <GitMerge size={14} style={{ color: '#f59e0b' }} />
+            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: '#e4a54a' }}>
+              <GitMerge size={14} style={{ color: '#0c0d12' }} />
             </div>
             <span className="text-[13px] font-bold tracking-[.08em]" style={{ color: C.textStrong }}>JUNCTION</span>
           </div>
@@ -135,9 +135,9 @@ export function AppPreview() {
               <div className="flex items-center gap-1.5">
                 <MoreVertical size={13} style={{ color: C.mutedSoft }} />
                 <div className="flex items-center rounded-md overflow-hidden" style={{ background: C.accent }}>
-                  <span className="flex items-center gap-1 pl-1.5 pr-2 h-6 text-[11px] font-semibold text-white"><Plus size={11} /> New chat</span>
-                  <span className="w-px h-3.5" style={{ background: 'rgba(255,255,255,.3)' }} />
-                  <span className="px-1 h-6 flex items-center text-white"><ChevronDown size={11} /></span>
+                  <span className="flex items-center gap-1 pl-1.5 pr-2 h-6 text-[11px] font-semibold" style={{ color: '#0c0d12' }}><Plus size={11} /> New chat</span>
+                  <span className="w-px h-3.5" style={{ background: 'rgba(12,13,18,.3)' }} />
+                  <span className="px-1 h-6 flex items-center" style={{ color: '#0c0d12' }}><ChevronDown size={11} /></span>
                 </div>
               </div>
             </div>
@@ -182,7 +182,7 @@ export function AppPreview() {
               {/* Ungrouped session cards */}
               <div className="mt-1.5 space-y-0.5">
                 {SESSIONS.map((s, i) => (
-                  <div key={i} className="px-2 py-1.5 rounded-lg" style={s.active ? { background: C.accentBg } : undefined}>
+                  <div key={i} className="px-2 py-1.5 rounded-lg" style={s.active ? { background: C.accentBg, boxShadow: `inset 2px 0 0 ${C.accent}` } : undefined}>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] font-semibold" style={{ color: C.accent }}>default</span>
                       <span className="text-[10px] ml-auto" style={{ color: C.muted }}>{s.time}</span>
@@ -209,12 +209,14 @@ export function AppPreview() {
               </div>
               {/* assistant text */}
               <p className="text-[12px] leading-relaxed mb-3" style={{ color: C.text }}>
-                Studied the real dashboard source and rebuilt the hero preview as a self-contained light replica — flat icon rail, bordered session sidebar with folder counts, two-line session cards.
+                Studied the two planes and applied the role DAG — orchestration on
+                kimi-oauth/k3, planning on a mid-tier model, execution on the cheapest
+                that still lands the patch.
               </p>
               {/* user bubble */}
               <div className="flex justify-end mb-3">
                 <div className="max-w-[78%] px-3 py-2 rounded-2xl text-[12px]" style={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text }}>
-                  Make it match the real layout exactly 1:1
+                  Point execution at the economy model and keep the sidecar optional.
                 </div>
               </div>
               {/* worked through steps */}

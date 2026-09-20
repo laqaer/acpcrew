@@ -158,7 +158,7 @@ describe('untranslated-english — a Latin-script value must not read as English
     // Under six words the signal is noise, and an identical short value is usually
     // correct: `Status`, `Admin` and `Frontend` are the same word in five languages.
     for (const v of ['Status', 'Admin', 'Frontend', 'Pull requests', 'Max cycles',
-      'Kiro Crew Dashboard']) {
+      'Junction Dashboard']) {
       expect(flagsEnglish(v, 'de', v), v).toBe(false)
     }
     const five = 'Host memory is very low'
@@ -200,7 +200,7 @@ describe('stripping', () => {
     // exactly what the single-token exemption is for — counting the bullet or the
     // ampersand reported them as two-word English phrases.
     for (const v of ['cleared ·', '· main', '& Issue', 'Worktrees ({{count}})',
-      'Transcribe (AWS)', 'Apache 2.0', '{{label}} — Kiro Crew']) {
+      'Transcribe (AWS)', 'Apache 2.0', '{{label}} — {{productName}}']) {
       expect(flagsScript(v, 'ja'), v).toBe(false)
     }
   })

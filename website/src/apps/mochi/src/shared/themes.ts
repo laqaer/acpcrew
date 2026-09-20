@@ -24,31 +24,31 @@
  *    so they re-resolve under every theme instead of being frozen literals.
  *
  * Custom/installed themes apply their variables via JS in the dashboard
- * window only; here they fall back to the base kiro palette. FALLBACK_PALETTE
+ * window only; here they fall back to the factory Junction palette. FALLBACK_PALETTE
  * remains as the no-stylesheet escape hatch (jsdom, future standalone use).
  */
 import coreCss from '../../../../index.css?inline'
 
 export const FALLBACK_PALETTE: Record<string, string> = {
-  '--bg': '#19161d',
-  '--bg-elevated': '#211d25',
-  '--bg-input': '#28242e',
-  '--border': '#352f3d',
-  '--border-focus': 'rgba(142,72,255,0.4)',
-  '--text': '#dcdadf',
-  '--text-muted': '#938f9b',
-  '--text-faint': '#5e5966',
-  '--bubble-user': 'rgba(178,127,255,0.18)',
+  '--bg': '#0c0d12',
+  '--bg-elevated': '#16171f',
+  '--bg-input': '#1e2029',
+  '--border': '#27272a',
+  '--border-focus': 'rgba(228,165,74,0.4)',
+  '--text': '#e4e4e7',
+  '--text-muted': '#7f7f88',
+  '--text-faint': '#52525b',
+  '--bubble-user': 'rgba(228,165,74,0.16)',
   '--bubble-assistant': 'rgba(255,255,255,0.04)',
-  '--accent': '#8e48ff',
-  '--accent-text': '#ffffff',
-  '--accent-glow': 'rgba(142,72,255,0.3)',
-  '--danger': '#f94359',
-  '--success': '#008543',
-  '--header-bg': 'rgba(25,22,29,0.95)',
-  '--shadow': 'rgba(0,0,0,0.45)',
-  '--scrollbar': 'rgba(220,218,223,0.08)',
-  '--scrollbar-hover': 'rgba(220,218,223,0.15)',
+  '--accent': '#e4a54a',
+  '--accent-text': '#0c0d12',
+  '--accent-glow': 'rgba(228,165,74,0.28)',
+  '--danger': '#ef4444',
+  '--success': '#22c55e',
+  '--header-bg': 'rgba(12,13,18,0.95)',
+  '--shadow': 'rgba(0,0,0,0.35)',
+  '--scrollbar': 'rgba(228,228,231,0.08)',
+  '--scrollbar-hover': 'rgba(228,228,231,0.15)',
 }
 
 export function applyFallbackTheme(root: HTMLElement = document.documentElement): void {
@@ -202,7 +202,7 @@ export function applyTheme(_theme?: string | ThemeId): void {
  * values must be literal rather than resolved from a stylesheet.
  */
 export const BUBBLE_COLORS: Record<ThemeId, { bg: string; text: string; shadow: string }> = {
-  kirocrew: { bg: 'rgba(33,29,37,0.95)', text: '#f2f1f4', shadow: 'rgba(0,0,0,0.45)' },
+  kirocrew: { bg: 'rgba(20,21,28,0.95)', text: '#f4f4f5', shadow: 'rgba(0,0,0,0.35)' },
 }
 
 /**
