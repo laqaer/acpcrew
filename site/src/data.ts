@@ -8,7 +8,7 @@ export const FEATURES = [
   {
     icon: '02',
     title: 'Model routing',
-    desc: 'Route inference across Kimi, DeepSeek, Copilot, and the rest. Orchestration, planning, and execution can each use a different cost class so tokens buy the most work.',
+    desc: 'Pin orchestration, planning, and execution to different cost classes so cheap models handle coordination and capable models handle planning. Catalog slugs apply when the optional sidecar is installed. Advertised harness ids apply now.',
     tag: 'AI',
   },
   {
@@ -73,7 +73,7 @@ export const ARCH_PLANES = [
     label: 'Model plane',
     sub: 'Sidecar, optional',
     detail:
-      'An optional Codex Router sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
+      'An optional Codex Router sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Pins on advertised harness ids apply now; namespaced slugs such as kimi-oauth/k3 apply once the sidecar is installed. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
   },
 ];
 
@@ -104,8 +104,8 @@ export const IN_ACTION = [
   },
   {
     label: 'Route',
-    user: 'point this session at the model plane',
-    bot: 'openai_base_url now targets the local sidecar. Provider keys stay in the sidecar — never paste them into chat. If the sidecar is down, this gateway still runs.',
+    user: 'spend cheap tokens on orchestration and save the capable model for planning',
+    bot: 'Orchestration is economy, planning is capable, execution is standard. Advertised harness ids apply on the live session. Catalog slugs wait for the optional sidecar. If the sidecar is down, this gateway still runs.',
   },
   {
     label: 'Cron',
@@ -131,7 +131,7 @@ export const FAQ = [
   },
   {
     q: 'How does model routing work?',
-    a: 'The model plane is an optional Codex Router sidecar (Responses API and LiteLLM). That sidecar is not this Python tree. Junction observes it; it does not vendor the Node app. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
+    a: 'The model plane is an optional Codex Router sidecar (Responses API and LiteLLM). That sidecar is not this Python tree. Junction observes it; it does not vendor the Node app. Role routing applies advertised harness ids now. Namespaced catalog slugs and openai_base_url at the sidecar land when you install the sidecar. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
   },
   {
     q: 'What models can I use?',
@@ -148,6 +148,10 @@ export const FAQ = [
   {
     q: 'How do I contribute?',
     a: 'Clone the repo at github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
+  },
+  {
+    q: 'Where is the website hosted?',
+    a: 'The marketing site is a Vercel hobby preview at junction-site.vercel.app. A custom domain is not attached yet. Purchase and DNS are operator actions, not something the agents do on their own.',
   },
 ];
 

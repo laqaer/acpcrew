@@ -5,7 +5,7 @@
 If you discover a potential security issue in this project, please **do not** create a public
 GitHub issue. Instead, report it privately:
 
-- **Email:** [kiro-crew-security-support@amazon.com](mailto:kiro-crew-security-support@amazon.com)
+- **GitHub:** [private vulnerability report](https://github.com/laqaer/acpcrew/security/advisories/new)
 - **Subject prefix:** `[SECURITY]`
 
 Please include:
@@ -24,5 +24,5 @@ running the most recent version.
 
 ## Scope
 
-This policy covers the Kiro Crew source code and its bundled dependencies. It does not cover
-third-party services (LLM providers, etc.) that Kiro Crew connects to.
+This policy covers the Junction source code and its bundled dependencies. It does not cover
+third-party services (LLM providers, etc.) that Junction connects to.
