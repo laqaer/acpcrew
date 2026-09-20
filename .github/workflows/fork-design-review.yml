@@ -247,7 +247,7 @@ jobs:
       # Mint short-lived, Bedrock-only creds immediately before the model call,
       # via the SAME dedicated least-privilege role the same-repo design reviewer
       # uses. No dependabot special-casing: forks never run as dependabot[bot].
-      - uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ secrets.AWS_BEDROCK_ROLE_ARN }}
           aws-region: us-west-2
@@ -258,7 +258,7 @@ jobs:
         # ADVISORY: the finalize step below resolves an errored/incomplete run to
         # NEUTRAL (never a hard failure) and fails the check ONLY on a real BLOCK
         # verdict. Mirrors design-review.yml's advisory contract.
-        uses: anthropics/claude-code-action@1f291e1cfe0f5fc21db2aef19af844591600ade7 # v1
+        uses: anthropics/claude-code-action@7b0b255830a1fab6e602658672acad11c12d841d # v1
         with:
           # Inference via Amazon Bedrock (region from the AWS creds step above).
           use_bedrock: "true"
