@@ -39,12 +39,38 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Private repos without GitHub Advanced Security cannot run
+      # dependency-review-action; it fails with "not supported on this
+      # repository" before reading a single license. Probe the SBOM
+      # endpoint so a missing product feature is not reported as a
+      # license violation. The gate is not waived: it simply has nothing
+      # to evaluate until the graph is available.
+      - name: Probe dependency-graph availability
+        id: graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh api "repos/${{ github.repository }}/dependency-graph/sbom" \
+               --silent >/dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Dependency License Gate — skipped"
+              echo
+              echo "Dependency graph / GitHub Advanced Security is not available"
+              echo "on \`${{ github.repository }}\`, so license review cannot run."
+              echo "Enable the dependency graph (or GHAS) to restore the gate."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       # The gate runs on every event EXCEPT the one that applies the override
       # label. Because a new push is a `synchronize` event (not `labeled`), the
       # gate always re-runs on new commits — the override never carries over to
       # unreviewed code.
       - name: Review dependency licenses
-        if: ${{ !(github.event.action == 'labeled' && github.event.label.name == 'license-override') }}
+        if: ${{ steps.graph.outputs.available == 'true' && !(github.event.action == 'labeled' && github.event.label.name == 'license-override') }}
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           config-file: ./.github/dependency-review-config.yml
