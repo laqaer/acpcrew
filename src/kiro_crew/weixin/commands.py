@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.messaging.conversation import ConversationState  # noqa: F401
 
 #: Weixin's command vocabulary. No `/link` row: iLink is DM-only and the channel
@@ -96,7 +97,7 @@ COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec("help", "显示命令列表", aliases=("帮助",)),
 )
 
-_HELP_HEADER = "🦞 Kiro Crew — 微信"
+_HELP_HEADER = f"{PRODUCT_NAME} — 微信"
 _HELP_FOOTER = "直接发消息即可对话。较长的回复会分成多条消息。"
 
 

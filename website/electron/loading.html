@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Kiro Crew</title>
+  <title>Junction</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -10,7 +10,7 @@
       --backdrop: #0f1117;               /* neutral shown during the final hand-off fade */
       /* Foreground "ink". Two variables because the two texts have different WCAG
          bars and sit on different parts of the backdrop (see the contrast block):
-           --ink        → large "Kiro Crew" wordmark (AA large = 3:1) at the gradient centre
+           --ink        → large "Junction" wordmark (AA large = 3:1) at the gradient centre
            --ink-status → 14px status text + dot (AA normal = 4.5:1) at the bottom edge
          Both default to white (dark accents) and flip to dark when the accent is light. */
       --ink: #ffffff;
@@ -69,7 +69,7 @@
     .g-eyes { transform-box: fill-box; transform-origin: center; transition: transform 0.09s ease; }
     .g-eyes.blink { transform: scaleY(0.08); }   /* one whole ghost blinks (both eyes) */
 
-    /* ---- "Kiro Crew" wordmark — appears briefly in the centre on ready ---- */
+    /* ---- "Junction" wordmark — appears briefly in the centre on ready ---- */
     #title {
       position: absolute; left: 50%; top: 50%;
       transform: translate(-50%, -50%) translateY(10px) scale(0.96);
@@ -103,7 +103,7 @@
 <body>
   <div id="stage">
     <div id="ghosts"></div>
-    <div id="title">Kiro Crew</div>
+    <div id="title">Junction</div>
     <div id="status"><span class="dot"></span><span id="statusText">Starting gateway&hellip;</span></div>
   </div>
 
@@ -322,7 +322,7 @@
       resolve();
     }
 
-    // Hold the composition; "Kiro Crew" appears briefly; then hand off (fade → bootComplete).
+    // Hold the composition; "Junction" appears briefly; then hand off (fade → bootComplete).
     function resolve() {
       resolved = true;
       ghosts.forEach(function (g) { if (!g.visible && Math.random() < 0.5) showGhost(g); });

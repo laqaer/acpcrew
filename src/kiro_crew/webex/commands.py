@@ -19,6 +19,7 @@ import it from this module, mirroring the Telegram/WeCom packages).
 
 from __future__ import annotations
 
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.messaging.conversation import ConversationState  # noqa: F401
 
 _NEW_ALIASES = frozenset(("/new", "/start"))
@@ -214,7 +215,7 @@ COMMAND_SPEC: tuple[tuple[str, str], ...] = (
     ("help", "Show this command list"),
 )
 
-_HELP_HEADER = "**Kiro Crew — Webex**"
+_HELP_HEADER = f"**{PRODUCT_NAME} — Webex**"
 _HELP_FOOTER = (
     "`/kirocrew dashboard [<N>h|<N>m]` — get a dashboard login link (DM only)\n"
     "\n"
