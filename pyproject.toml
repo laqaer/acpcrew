@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kirocrew"
 version = "0.5.0"
-description = "Personal AI agent that runs locally — chat via CLI, dashboard, desktop app, or messaging channels like Slack and Discord"
+description = "Junction — local control plane that docks ACP coding agents and routes their models"
 readme = "README.md"
 # macOS (x86_64 + arm64) and Linux (x86_64 + aarch64), CPython 3.10-3.13.
 # Must be declared in this [project] table: when it exists, setuptools reads
@@ -20,11 +20,12 @@ requires-python = ">=3.10"
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
-Homepage = "https://github.com/kirodotdev/KiroCrew"
+Homepage = "https://github.com/laqaer/acpcrew"
 
 [project.scripts]
 kirocrew = "kiro_crew._bootstrap:main"
 acpcrew = "kiro_crew._bootstrap:main"
+junction = "kiro_crew._bootstrap:main"
 
 [dependency-groups]
 # Pinned dev tool versions for reproducible CI. Bump as needed.

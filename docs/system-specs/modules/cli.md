@@ -106,8 +106,8 @@ choice blob makes the usage line unreadable.
 - `cli.py` sets `help=argparse.SUPPRESS` on the subparsers action to hide
   argparse's listing, passes `cli_help.TOP_USAGE` as the top-level `usage=`
   (the suppressed action would otherwise drop the placeholder), and pins
-  `prog="kirocrew"` on the action so each subcommand's own usage line is
-  `usage: kirocrew <cmd> …` rather than the whole top-level usage string.
+  `prog="junction"` on the action so each subcommand's own usage line is
+  `usage: junction <cmd> …` rather than the whole top-level usage string.
 - Every user-facing command is registered with `cli_help.add_command(sub, name)`,
   which raises `KeyError` for a name that is in no section — a new command cannot
   be added without appearing in the help. The section summary becomes the
@@ -722,7 +722,26 @@ CLI compaction is blocking (single-user, acceptable).
 
 ## Entry Point
 
-`console_scripts` in `setup.cfg` maps `kirocrew` → `kiro_crew._bootstrap:main`.
+`[project.scripts]` in `pyproject.toml` maps `junction`, `kirocrew`, and
+`acpcrew` → `kiro_crew._bootstrap:main`. `junction` is the primary CLI name;
+the other two are silent aliases. `setup.cfg` still lists `kirocrew`
+for the same entry so older metadata readers keep resolving it.
+
+### Model-router sidecar
+
+`junction router status` probes the optional Codex Router model plane on
+loopback (`GET http://127.0.0.1:4202/health`, honoring `MODEL_ROUTER_PORT` /
+`CODEX_ROUTER_PORT`) and reports LiteLLM liveliness on `:4200`. An unreachable
+sidecar is degraded, not a CLI failure: the ACP gateway still runs.
+
+`junction router catalog` prints the namespaced model-choice snapshot
+(optional `--provider`, `--class economy|standard|capable`). `junction router
+plan` prints the role DAG (orchestration → planning → execution → subagent)
+with cost-class wire ids. Matching dashboard routes:
+`GET /api/model-router/status`, `/catalog`, `/plan`. Neither path logs
+health bodies (they may contain secrets). Non-loopback targets are refused.
+See [model-router](model-router.md) and
+[`../../provenance/codex-router.md`](../../provenance/codex-router.md).
 
 ### Gateway asyncio child watcher
 

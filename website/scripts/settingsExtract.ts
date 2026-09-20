@@ -231,7 +231,7 @@ function extractStringProp(source: string, propName: string): string | undefined
   // duplicates DEFAULT_PRODUCT_NAME in `src/i18n/index.ts`: importing that
   // module here would drag i18next and every catalog into a build-time
   // script for one constant.
-  if (tMatch) return getEnCatalog()[tMatch[1]]?.replaceAll('{{productName}}', 'Kiro Crew')
+  if (tMatch) return getEnCatalog()[tMatch[1]]?.replaceAll('{{productName}}', 'Junction')
   return undefined
 }
 

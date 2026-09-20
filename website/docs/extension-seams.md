@@ -425,7 +425,7 @@ The i18n catalogs interpolate `{{productName}}` instead of hardcoding the
 displayed product name (authoring rules:
 [i18n-catalog](i18n-catalog.md#the-product-name-is-an-interpolation-variable)).
 `initI18n()` feeds the variable to i18next as `interpolation.defaultVariables`,
-defaulting to `Kiro Crew`, so the stock build renders unchanged text.
+defaulting to `Junction`, so the stock build of this fork renders that name.
 
 An edition rebrands by calling `setProductName('…')` (exported from
 `src/i18n`) in its composition root. The root is imported before `main.tsx`

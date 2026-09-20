@@ -2,7 +2,8 @@ import { motion } from 'framer-motion';
 import {
   Menu, MessageSquare, CalendarDays, Share2, Users, Zap, BookOpen, Store, Box, Globe, Target, Package, Settings,
   PanelLeft, MoreVertical, Plus, ChevronDown, ChevronRight, Search, ListFilter, Link2, Clock,
-  History, Sparkles, Mic, ArrowUp, FolderOpen,
+  History, Sparkles, Mic, ArrowUp, FolderOpen, GitMerge, FileText, Folder,
+  Archive, ClipboardList, Bell,
 } from 'lucide-react';
 
 // Self-contained LIGHT palette — fixed colors so this renders identically to the
@@ -43,11 +44,11 @@ const FOLDERS = [
 ];
 
 const PROJECT_CHILDREN = [
-  { emoji: '📝', name: 'cr review', count: 2 },
-  { emoji: '📋', name: 'doc writing', count: 4 },
-  { emoji: '📂', name: 'archive', count: 7 },
-  { emoji: '📁', name: 'optimizations', count: 4 },
-  { emoji: '🚀', name: 'new features', count: 5 },
+  { Icon: FileText, name: 'cr review', count: 2 },
+  { Icon: ClipboardList, name: 'doc writing', count: 4 },
+  { Icon: Archive, name: 'archive', count: 7 },
+  { Icon: Folder, name: 'optimizations', count: 4 },
+  { Icon: Sparkles, name: 'new features', count: 5 },
 ];
 
 const SESSIONS = [
@@ -88,15 +89,15 @@ export function AppPreview() {
         <div className="flex items-center justify-between h-[46px] px-3" style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: '#18181b' }}>
-              <span style={{ color: '#f59e0b', fontSize: 13 }}>👻</span>
+              <GitMerge size={14} style={{ color: '#f59e0b' }} />
             </div>
-            <span className="text-[13px] font-bold tracking-[.08em]" style={{ color: C.textStrong }}>KIRO CREW</span>
+            <span className="text-[13px] font-bold tracking-[.08em]" style={{ color: C.textStrong }}>JUNCTION</span>
           </div>
           <div className="hidden lg:flex items-center gap-1.5">
             <Pill>Request a Feature</Pill>
             <span className="w-1.5 h-1.5 rounded-full mx-0.5" style={{ background: '#22c55e' }} />
             <span className="relative inline-flex">
-              <Pill><span className="w-3.5 h-3.5 flex items-center justify-center">🔔</span></Pill>
+              <Pill><Bell size={10} /></Pill>
               <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full text-[7px] font-bold flex items-center justify-center text-white" style={{ background: C.accent }}>46</span>
             </span>
             <Pill><span style={{ fontSize: 11 }}>〜</span></Pill>
@@ -164,7 +165,7 @@ export function AppPreview() {
               {/* docs expanded */}
               <div className="flex items-center gap-1.5 px-1.5 h-7 rounded">
                 <ChevronDown size={11} style={{ color: C.mutedSoft }} />
-                <span style={{ fontSize: 11 }}>📁</span>
+                <Folder size={11} style={{ color: C.muted }} />
                 <span className="text-[11px] flex-1 truncate font-medium" style={{ color: C.textStrong }}>docs</span>
                 <Link2 size={10} style={{ color: C.mutedSoft }} />
                 <span className="text-[10px]" style={{ color: C.muted }}>15</span>
@@ -173,7 +174,7 @@ export function AppPreview() {
               {PROJECT_CHILDREN.map(c => (
                 <div key={c.name} className="flex items-center gap-1.5 pl-5 pr-1.5 h-6 rounded">
                   <ChevronRight size={10} style={{ color: C.mutedSoft }} />
-                  <span style={{ fontSize: 10 }}>{c.emoji}</span>
+                  <c.Icon size={10} style={{ color: C.mutedSoft }} />
                   <span className="text-[11px] flex-1 truncate" style={{ color: C.text }}>{c.name}</span>
                   <span className="text-[10px]" style={{ color: C.muted }}>{c.count}</span>
                 </div>
@@ -239,12 +240,12 @@ export function AppPreview() {
             {/* Input bar */}
             <div className="px-4 pb-2 shrink-0">
               <div className="rounded-2xl px-3 py-2.5" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
-                <div className="text-[12px] mb-2.5" style={{ color: C.mutedSoft }}>Message Kiro Crew... <span style={{ color: C.mutedSoft }}>(/command · @file · $skill)</span></div>
+                <div className="text-[12px] mb-2.5" style={{ color: C.mutedSoft }}>Message Junction... <span style={{ color: C.mutedSoft }}>(/command · @file · $skill)</span></div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2" style={{ color: C.muted }}>
                     <Plus size={14} />
                     <History size={13} />
-                    <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#ef4444' }}>🚀 YOLO</span>
+                    <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#ef4444' }}>YOLO</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mic size={14} style={{ color: C.muted }} />
@@ -265,7 +266,7 @@ export function AppPreview() {
               <span className="flex items-center gap-1"><FolderOpen size={11} /> my-project</span>
               <span className="ml-auto flex items-center gap-2">
                 <span className="w-10 h-1 rounded-full" style={{ background: `linear-gradient(90deg, ${C.accent}, ${C.accentBg})` }} />
-                claude-opus-4.6 <span style={{ color: C.mutedSoft }}>·</span> Default
+                auto <span style={{ color: C.mutedSoft }}>·</span> Default
               </span>
             </div>
           </div>

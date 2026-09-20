@@ -5117,6 +5117,20 @@ async def _run_chat(
         # (the dashboard steer handler) can reach the running session's client
         # to inject a mid-turn steer. Cleared in the finally below.
         slot._acp_client = getattr(client, "client", None)
+        # Orchestrator turns pick a cost-class model unless this slot is pinned.
+        # Planning spends on capability; stage execution does not. Ordinary
+        # interactive turns do not pay this extra set_model.
+        if getattr(slot, "mode", "") == "orchestrator" and not (slot.model or "").strip():
+            from kiro_crew.model_router.routing import (
+                ROLE_EXECUTION,
+                ROLE_PLANNING,
+                apply_role_model,
+            )
+
+            await apply_role_model(
+                client,
+                ROLE_PLANNING if _orch_planning else ROLE_EXECUTION,
+            )
         # This consumer implements the low-fidelity child downgrade (the
         # interactive card) — opt in so the handle-level fail-close gate
         # yields those events here instead of rejecting them itself.

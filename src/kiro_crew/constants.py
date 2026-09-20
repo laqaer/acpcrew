@@ -39,7 +39,7 @@ def env_flag_enabled(name: str) -> bool:
 
 
 DATA_WARNING = (
-    "⚠️  Do not enter sensitive, secret, or regulated data into KiroCrew.\n"
+    "⚠️  Do not enter sensitive, secret, or regulated data into Junction.\n"
     "   Treat anything you send as potentially logged or processed by the\n"
     "   configured model provider."
 )
@@ -254,16 +254,21 @@ AWS_PROFILE_CHARS = "A-Za-z0-9_.+-"
 AWS_PROFILE_NAME_PATTERN = f"^[{AWS_PROFILE_FIRST_CHARS}][{AWS_PROFILE_CHARS}]{{0,127}}\\Z"
 AWS_PROFILE_NAME_RE = re.compile(AWS_PROFILE_NAME_PATTERN)
 
+# The displayed product name. Identifiers (`kiro_crew`, `KIROCREW_HOME`)
+# keep the spelling their own system gave them; this string is the prose /
+# dashboard default.
+PRODUCT_NAME = "Junction"
+
 # The product wordmark, figlet `small`. ONE definition on purpose: copy-pasting
 # it into cli.py and cli_chat.py risks a rename leaving a stale product name in
 # the two most-seen surfaces (bare `kirocrew`, the chat REPL). Import it; never
 # re-inline it. `cloud/ui.py` keeps its own art because it renders a different
 # wordmark ("Kiro Crew Cloud") with ANSI color.
 BANNER = r"""
-   _  ___            ___
-  | |/ (_)_ _ ___   / __|_ _ _____ __ __
-  | ' <| | '_/ _ \ | (__| '_/ -_) V  V /
-  |_|\_\_|_| \___/  \___|_| \___|\_/\_/
+     _                 _   _
+  _ | |_  _ _ _  __ __| |_(_)___ _ _
+ | || | || | ' \/ _/ _|  _| / _ \ ' \
+  \__/ \_,_|_||_\__\__|\__|_\___/_||_|
 
-  👻 Your personal AI agent
+  Junction - Where coding agents meet the models you want.
 """

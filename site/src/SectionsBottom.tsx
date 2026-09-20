@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FadeUp, ScaleIn, StaggerIn, staggerChild, Parallax } from './animations';
-import { FEATURES, TAG_CLS, ARCH, IN_ACTION, FAQ, THEMES } from './data';
-import { MessageSquare, Bot, Clock, Brain, GitFork, ClipboardList, Wrench, Monitor, Shield } from 'lucide-react';
+import { FEATURES, TAG_CLS, ARCH, ARCH_PLANES, IN_ACTION, FAQ, THEMES } from './data';
+import { GitMerge, Route, Clock, Brain, GitFork, ClipboardList, Wrench, Monitor, Shield } from 'lucide-react';
 
-const FEATURE_ICONS = [MessageSquare, Bot, Clock, Brain, GitFork, ClipboardList, Wrench, Monitor, Shield];
+const FEATURE_ICONS = [GitMerge, Route, Clock, Brain, GitFork, ClipboardList, Wrench, Monitor, Shield];
+const PLANE_ICONS = [GitMerge, Route];
 
 export function Features() {
   return (
     <section className="max-w-[1200px] mx-auto px-6 pb-24" id="features">
       <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Everything you need</h2></FadeUp>
-      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Built for engineers who live in the terminal and Slack</p></FadeUp>
+      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">A local control plane for agents and models</p></FadeUp>
       <StaggerIn className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
         {FEATURES.map((f, i) => {
           const Icon = FEATURE_ICONS[i];
@@ -64,14 +65,14 @@ export function InAction() {
 
 export function HowItWorks() {
   const steps = [
-    { n: '1', title: 'Clone & Install', code: 'git clone https://github.com/kirodotdev/KiroCrew.git\ncd kirocrew && pip install .' },
-    { n: '2', title: 'Start', code: 'kirocrew gateway', note: 'Dashboard opens at localhost:7777. Run kirocrew doctor to verify.' },
-    { n: '3', title: 'Connect', note: 'DM Kiro Crew in Slack, or open the dashboard. Type !dashboard in Slack for a 1-click link.' },
+    { n: '1', title: 'Clone & install', code: 'git clone https://github.com/laqaer/acpcrew.git\ncd acpcrew && pip install .' },
+    { n: '2', title: 'Start', code: 'junction gateway', note: 'Dashboard opens at localhost:5476. Run junction doctor to verify. junction router catalog lists model choices; junction router plan shows the orchestration DAG.' },
+    { n: '3', title: 'Connect', note: 'Open the dashboard, or connect Slack. Type !dashboard in Slack for a 1-click link.' },
   ];
   return (
     <section className="max-w-[800px] mx-auto px-6 pt-24 pb-24" id="how-it-works">
-      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Up and running in 3 minutes</h2></FadeUp>
-      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Prerequisites: Python 3.10+, Node.js 22+, kiro-cli</p></FadeUp>
+      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Install from source</h2></FadeUp>
+      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Python 3.10+ and Node.js 22+. kiro-cli is optional.</p></FadeUp>
       <div className="flex flex-col gap-6">
         {steps.map((s, i) => (
           <FadeUp key={s.n} delay={i * 0.15}>
@@ -93,7 +94,27 @@ export function HowItWorks() {
 export function Architecture() {
   return (
     <section className="max-w-[1200px] mx-auto px-6 pb-24" id="architecture">
-      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-12 font-space">How it works</h2></FadeUp>
+      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Two planes</h2></FadeUp>
+      <FadeUp delay={0.1}>
+        <p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-12 max-w-[680px] mx-auto font-space">
+          Junction docks ACP agents and routes their models. The model sidecar is optional. If it is absent, the gateway still works.
+        </p>
+      </FadeUp>
+      <StaggerIn className="grid md:grid-cols-2 gap-5 max-w-[860px] mx-auto mb-14">
+        {ARCH_PLANES.map((plane, i) => {
+          const Icon = PLANE_ICONS[i];
+          return (
+            <motion.div key={plane.label} variants={staggerChild}
+              whileHover={{ y: -6, borderColor: 'rgba(245,158,11,0.4)' }}
+              className="bg-slate-100 dark:bg-[#111827] border border-amber-500/12 rounded-2xl p-8 text-left transition-all">
+              <Icon size={24} className="text-amber-400 mb-4" />
+              <div className="text-lg font-semibold font-space mb-1">{plane.label}</div>
+              <div className="text-[11px] uppercase tracking-wide text-amber-500 mb-3">{plane.sub}</div>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{plane.detail}</p>
+            </motion.div>
+          );
+        })}
+      </StaggerIn>
       <StaggerIn className="flex items-center justify-center flex-wrap gap-0 py-10">
         {ARCH.map((node, i) => (
           <span key={node.label} style={{ display: 'contents' }}>
@@ -164,17 +185,17 @@ export function Cta() {
     <section className="text-center px-6 pt-24 pb-16 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(245,158,11,0.06),transparent)]">
       <Parallax speed={-0.15}>
         <FadeUp><h2 className="text-4xl md:text-5xl font-bold mb-4 font-space">Ready to get started?</h2></FadeUp>
-        <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">One command to install. Every engineer's Kiro Crew ends up different — that's the point.</p></FadeUp>
+        <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">One local install. Dock agents, route models, keep memory and cron on your machine.</p></FadeUp>
         <FadeUp delay={0.2}>
-          <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_24px_rgba(245,158,11,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install Kiro Crew</a>
+          <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_0_24px_rgba(245,158,11,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install Junction</a>
         </FadeUp>
         <FadeUp delay={0.3}>
           <div className="flex gap-4 justify-center mt-6 text-sm">
-            <a href="https://github.com/kirodotdev/KiroCrew" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">GitHub</a>
+            <a href="https://github.com/laqaer/acpcrew" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">GitHub</a>
             <span className="text-slate-600">&middot;</span>
-            <a href="https://github.com/kirodotdev/KiroCrew/discussions" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Discussions</a>
+            <a href="https://github.com/laqaer/acpcrew/discussions" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Discussions</a>
             <span className="text-slate-600">&middot;</span>
-            <a href="https://github.com/kirodotdev/KiroCrew/issues" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Issues</a>
+            <a href="https://github.com/laqaer/acpcrew/issues" target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">Issues</a>
           </div>
         </FadeUp>
       </Parallax>
@@ -186,11 +207,11 @@ export function Footer() {
   return (
     <footer className="text-center py-10 px-6 border-t border-amber-500/12 text-slate-500 text-xs">
       <div className="flex gap-6 justify-center mb-3">
-        {[['https://github.com/kirodotdev/KiroCrew', 'Source'], ['https://github.com/kirodotdev/KiroCrew/wiki', 'Wiki'], ['https://github.com/kirodotdev/KiroCrew/issues', 'Issues']].map(([href, label]) => (
+        {[['https://github.com/laqaer/acpcrew', 'Source'], ['https://github.com/laqaer/acpcrew/issues', 'Issues']].map(([href, label]) => (
           <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-amber-400 no-underline hover:underline">{label}</a>
         ))}
       </div>
-      <p>Kiro Crew — Persistent, self-learning AI agent for engineers</p>
+      <p>Junction — Where coding agents meet the models you want.</p>
     </footer>
   );
 }

@@ -55,6 +55,7 @@ const {
   kirocrewConfigMock,
   patchConfigMock,
   modelsMock,
+  modelRouterCatalogMock,
   tipsStatusMock,
   tipsFeedbackMock,
 } = vi.hoisted(() => ({
@@ -69,6 +70,7 @@ const {
       { model_name: 'claude-haiku-4.5', description: 'Haiku' },
     ])
   ),
+  modelRouterCatalogMock: vi.fn(() => Promise.resolve({ models: [] })),
   tipsStatusMock: vi.fn(() => Promise.resolve({ enabled_config: true, opted_out: false })),
   tipsFeedbackMock: vi.fn(() => Promise.resolve({ ok: true })),
 }))
@@ -80,6 +82,7 @@ vi.mock('../api/client', () => ({
     kirocrewConfig: kirocrewConfigMock,
     patchConfig: patchConfigMock,
     models: modelsMock,
+    modelRouterCatalog: modelRouterCatalogMock,
     voiceConfig: () => Promise.resolve({ enabled: false, voice: 'Ruth', engine: 'neural', rate: '100%', autoSpeak: false, aws_profile: '', region: '' }),
     sttConfig: () => Promise.resolve({ enabled: false, provider: '', model: '', available: false, streaming: false, transcribe_region: '', transcribe_profile: '', language_code: 'en-US', models: {}, language_codes: [] }),
     updateVoiceConfig: () => Promise.resolve({}),
@@ -161,11 +164,13 @@ beforeEach(() => {
   updateDashboardConfigMock.mockReset()
   kirocrewConfigMock.mockReset()
   patchConfigMock.mockReset()
+  modelRouterCatalogMock.mockReset()
   tipsStatusMock.mockReset()
   tipsFeedbackMock.mockReset()
   dashboardConfigMock.mockImplementation(() => Promise.resolve({ ...BASE_DASH }) as never)
   updateDashboardConfigMock.mockImplementation(() => Promise.resolve({}) as never)
   patchConfigMock.mockImplementation(() => Promise.resolve({}) as never)
+  modelRouterCatalogMock.mockImplementation(() => Promise.resolve({ models: [] }) as never)
   tipsStatusMock.mockImplementation(() =>
     Promise.resolve({ enabled_config: true, opted_out: false }) as never
   )
@@ -526,6 +531,9 @@ describe('ChatPanel — Subagents', () => {
 
 describe('ChatPanel — per-role models', () => {
   it.each([
+    ['Orchestration Model', 'agent.role_models.orchestration'],
+    ['Planning Model', 'agent.role_models.planning'],
+    ['Execution Model', 'agent.role_models.execution'],
     ['Background Model', 'agent.role_models.background'],
     ['Subagent Model', 'agent.role_models.subagent'],
   ])('%s PATCHes its own config path', async (label, path) => {
@@ -580,6 +588,37 @@ describe('ChatPanel — per-role models', () => {
     const opts = await openSelect('Background Model')
     expect(opts.map(o => o.textContent)).toContain('claude-opus-4.7-retired')
     expect(patchConfigMock).not.toHaveBeenCalled()
+  })
+
+  it('offers catalog slugs in the matching cost class', async () => {
+    modelRouterCatalogMock.mockResolvedValueOnce({
+      models: [
+        {
+          slug: 'deepseek/deepseek-v4-flash',
+          display_name: 'DeepSeek V4 Flash',
+          listed: true,
+          cost_class: 'economy',
+          priority: 9,
+        },
+        {
+          slug: 'kimi-oauth/k3',
+          display_name: 'Kimi K3 (OAuth)',
+          listed: true,
+          cost_class: 'capable',
+          priority: 9,
+        },
+      ],
+    })
+    wrap()
+    await waitFor(() => expect(modelRouterCatalogMock).toHaveBeenCalled())
+    const orch = await openSelect('Orchestration Model')
+    expect(orch.map(o => o.textContent)).toContain('DeepSeek V4 Flash')
+    expect(orch.map(o => o.textContent)).not.toContain('Kimi K3 (OAuth)')
+    fireEvent.click(screen.getByRole('combobox', { name: 'Orchestration Model' }))
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
+    const plan = await openSelect('Planning Model')
+    expect(plan.map(o => o.textContent)).toContain('Kimi K3 (OAuth)')
+    expect(plan.map(o => o.textContent)).not.toContain('DeepSeek V4 Flash')
   })
 })
 

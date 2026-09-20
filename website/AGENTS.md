@@ -1,10 +1,10 @@
-# KiroCrewWebsite — Agent Guidelines
+# Junction dashboard — Agent Guidelines
 
 **This file is a ROUTER, not a manual.** It carries only the rules whose violation
 causes damage before a pointer could be read. Everything else is a link you MUST
 open before touching that area. The backend router is [`../AGENTS.md`](../AGENTS.md).
 
-React + TypeScript + Vite SPA for the Kiro Crew dashboard. Built assets go to
+React + TypeScript + Vite SPA for the Junction dashboard. Built assets go to
 `dist/` and are staged into `../src/kiro_crew/static/dist/` so the gateway serves
 them.
 
@@ -39,7 +39,7 @@ a `pretest` jscpd duplication check runs first, so `npm test` can fail on
 copy-paste before a single test executes. Commands and layers:
 [testing](docs/testing.md).
 
-## This is a public OSS fork: don't reintroduce internal couplings
+## Don't reintroduce internal couplings
 
 - **Build/infra:** no `npm-pretty-much`, Brazil, AIM, or CodeArtifact registries.
   The public build is plain npm + Vite; `.npmrc` deliberately does not pin a
