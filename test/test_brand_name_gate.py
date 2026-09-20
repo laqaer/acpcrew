@@ -74,6 +74,10 @@ class TestCaught:
         assert _hits("Kiro Crew keeps working.") == []
         assert _hits("Kiro crew keeps working.") == []
 
+    def test_junction_is_not_a_misspelling(self) -> None:
+        assert _hits("Junction routes agents and models.") == []
+        assert _hits("Run `junction gateway` on loopback.") == []
+
     def test_multiple_hits_on_one_line_all_reported(self) -> None:
         assert _hits("KiroCrew talks to KiroCrew over SSH") == ["KiroCrew", "KiroCrew"]
 

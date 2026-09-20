@@ -119,6 +119,7 @@ from kiro_crew.instances.constants import (
     RECOVER_BACKOFF_MAX_CEILING_SECS as _RECOVER_BACKOFF_CEILING,
 )
 from kiro_crew.mcp_gateway.rewriter import default_overlay_dir, default_socket_path
+from kiro_crew.model_router.routing import ROUTE_ROLE_KEYS as ROLE_MODEL_KEYS
 
 logger = logging.getLogger(__name__)
 
@@ -302,11 +303,9 @@ def normalize_agent_model(model: object) -> str:
 # Per-task-class model overrides (agent.role_models). These are the ONLY
 # sanctioned place to pin a model for a class of work — never hardcode a model
 # id in code. Every role defaults to "" ("inherit"), which resolves down to
-# agent.model and finally to DEFAULT_MODEL ("auto"), so an unpinned role is
-# entitlement-safe on every subscription tier (the provider picks a served
-# model). An operator who deliberately wants a cheaper model for background /
-# sub-agent work pins it here without changing the interactive chat default.
-ROLE_MODEL_KEYS: tuple[str, ...] = ("background", "subagent")
+# DEFAULT_MODEL ("auto"), so an unpinned role is entitlement-safe on every
+# subscription tier. Keys are :data:`ROLE_MODEL_KEYS` (orchestration, planning,
+# execution, background, subagent) from model_router.routing.
 
 
 def coerce_role_models(raw: object) -> dict[str, str]:
@@ -1464,13 +1463,13 @@ class AgentConfig:
         default_factory=dict,
         metadata=_meta(
             "Per-role models",
-            "Optional per-task-class model overrides. Keys: 'background' "
-            "(lite / heartbeat background workers) and 'subagent' (spawned "
-            "sub-agents). An empty value or 'auto' defers to the chat default "
-            "(agent.model) and then to the provider default, so an unpinned "
-            "role stays usable on every subscription tier. Pin a cheaper model "
-            "here to run background / sub-agent work on it without changing the "
-            "interactive chat default.",
+            "Optional per-task-class model overrides. Keys: 'orchestration' "
+            "(cheap coordinator), 'planning' (capable decomposition), "
+            "'execution' (coding workhorse), 'background' (lite / heartbeat), "
+            "and 'subagent' (fan-out workers). An empty value or 'auto' defers "
+            "to the provider default, so an unpinned role stays usable on every "
+            "subscription tier. Pin a namespaced catalog slug or a served id "
+            "to spend tokens where they return the most work.",
         ),
     )
     role_efforts: dict[str, str] = field(
@@ -1478,9 +1477,10 @@ class AgentConfig:
         metadata=_meta(
             "Per-role reasoning effort",
             "Optional per-task-class reasoning effort, paired with role_models "
-            "(keys: 'background', 'subagent'). Empty for a role inherits the chat "
-            "default (agent.reasoning_effort) and then the provider/model default. "
-            "Only applies on reasoning-capable models.",
+            "(keys: orchestration, planning, execution, background, subagent). "
+            "Empty for a role inherits the chat default (agent.reasoning_effort) "
+            "and then the provider/model default. Only applies on "
+            "reasoning-capable models.",
         ),
     )
     fallback_model: str = field(

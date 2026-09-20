@@ -72,6 +72,11 @@ ENTRY_POINT_DOCS: tuple[str, ...] = (
     "website/AGENTS.md",
     "website/README.md",
     "skills/README.md",
+    "JUNCTION.md",
+    "WORKING_BRIEF.md",
+    "PRODUCT.md",
+    "ARCHITECTURE.md",
+    "ROADMAP.md",
 )
 
 # Trees excluded from reachability: archives and vendored/example material are

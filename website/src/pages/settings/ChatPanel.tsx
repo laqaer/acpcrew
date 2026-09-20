@@ -33,6 +33,50 @@ function restoreLabels(): string[] {
 const COMPACT_OPTIONS = ['20', '40', '60', '70', '80', '90']
 const COMPACT_LABELS = ['20% (aggressive)', '40%', '60%', '70% (default)', '80%', '90%']
 
+/** Role DAG: cheaper models coordinate, capable models plan, standard models code. */
+const DAG_ROLES = [
+  {
+    role: 'orchestration',
+    costClass: 'economy',
+    titleKey: 'role_orchestration',
+    modelKey: 'orchestration_model',
+    effortKey: 'orchestration_effort',
+    descKey: 'model_for_orchestration',
+  },
+  {
+    role: 'planning',
+    costClass: 'capable',
+    titleKey: 'role_planning',
+    modelKey: 'planning_model',
+    effortKey: 'planning_effort',
+    descKey: 'model_for_planning',
+  },
+  {
+    role: 'execution',
+    costClass: 'standard',
+    titleKey: 'role_execution',
+    modelKey: 'execution_model',
+    effortKey: 'execution_effort',
+    descKey: 'model_for_execution',
+  },
+  {
+    role: 'background',
+    costClass: 'economy',
+    titleKey: 'role_background',
+    modelKey: 'background_model',
+    effortKey: 'background_effort',
+    descKey: 'model_for_background_lite_heartbeat_work',
+  },
+  {
+    role: 'subagent',
+    costClass: 'standard',
+    titleKey: 'role_subagents',
+    modelKey: 'subagent_model',
+    effortKey: 'subagent_effort',
+    descKey: 'model_for_spawned_sub_agents',
+  },
+] as const
+
 // About You — slugs shared with onboarding step 2 and context.py's prompt maps.
 const ROLE_OPTIONS = ['', ...ROLE_SLUGS]
 function roleLabels(): string[] {
@@ -148,14 +192,14 @@ export function ChatPanel() {
     onSettled: () => qc.invalidateQueries({ queryKey: ['dashboardConfig'] }),
   })
 
-  // ── KiroCrew config (server-side) ──
+  // ── Gateway config (server-side) ──
   const mcQ = useQuery<{
     session?: { autocompact_pct?: number }
     session_summary?: { enabled?: boolean }
     agent?: {
       model?: string
-      role_models?: { background?: string; subagent?: string }
-      role_efforts?: { background?: string; subagent?: string }
+      role_models?: Partial<Record<(typeof DAG_ROLES)[number]['role'], string>>
+      role_efforts?: Partial<Record<(typeof DAG_ROLES)[number]['role'], string>>
       reasoning_effort?: string
       soft_stop_budget_secs?: number
       completion_keep?: CompletionKeepMode
@@ -301,6 +345,11 @@ export function ChatPanel() {
   // picker still overrides them per-slot; nothing here touches live sessions.
   // Same query key as every other model picker so the list is fetched once.
   const availableModels = useAvailableModels()
+  const catalogQ = useQuery({
+    queryKey: ['modelRouterCatalog'],
+    queryFn: () => api.modelRouterCatalog(),
+    staleTime: 60_000,
+  })
   // '' in config means "unset" and resolves the same way 'auto' does, so both
   // render as the 'auto' option rather than as a missing selection.
   const defaultModel = mcCfg?.agent?.model || 'auto'
@@ -334,26 +383,34 @@ export function ChatPanel() {
   // silently ride the interactive flagship on every cycle. "auto" therefore
   // means "the provider picks", not "inherit the chat default" — which is why
   // these rows label it differently from the chat row's Default (auto).
-  const backgroundModel = mcCfg?.agent?.role_models?.background || 'auto'
-  const subagentModel = mcCfg?.agent?.role_models?.subagent || 'auto'
-  // A pinned model the live backend no longer advertises must stay selectable
-  // (same reasoning as the chat-default picker), so prepend it when missing.
-  const roleModelOptions = (current: string): string[] => {
-    const opts = availableModels.map(m => m.name)
-    if (!opts.includes(current)) opts.unshift(current)
+  const catalogBySlug = new Map(
+    (catalogQ.data?.models ?? []).map(row => [row.slug, row] as const),
+  )
+  const roleModelOptions = (current: string, costClass: string): string[] => {
+    const advertised = availableModels.map(m => m.name)
+    const extra = (catalogQ.data?.models ?? [])
+      .filter(m => m.listed !== false && m.cost_class === costClass)
+      .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.slug.localeCompare(b.slug))
+      .map(m => m.slug)
+      .filter(slug => !advertised.includes(slug))
+    const opts = [...advertised, ...extra]
+    if (current && !opts.includes(current)) opts.unshift(current)
     return opts
   }
   const roleModelLabels = (opts: string[]): string[] =>
-    opts.map(m => (m === 'auto' ? i18nT('pages.settings.chatPanel.role_model_auto') : m))
-  const backgroundModelMut = useMutation({
-    mutationFn: (v: string) => api.patchConfig('agent.role_models.background', v),
+    opts.map(m => {
+      if (m === 'auto') return i18nT('pages.settings.chatPanel.role_model_auto')
+      return catalogBySlug.get(m)?.display_name || m
+    })
+  const roleModelMut = useMutation({
+    mutationFn: ({ path, value }: { path: string; value: string }) => api.patchConfig(path, value),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_model')),
   })
-  const subagentModelMut = useMutation({
-    mutationFn: (v: string) => api.patchConfig('agent.role_models.subagent', v),
+  const roleEffortMut = useMutation({
+    mutationFn: ({ path, value }: { path: string; value: string }) => api.patchConfig(path, value),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
-    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_model')),
+    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_effort')),
   })
 
   // Per-role reasoning effort, paired with each role's model. Empty inherits the
@@ -366,21 +423,22 @@ export function ChatPanel() {
   // for a model that role will not run on. Changing it is a behaviour change
   // with a test asserting the current answer, so it is tracked separately
   // rather than folded into this copy fix.
+  const effortLabels = EFFORT_LEVELS.map(l => (l === '' ? i18nT('pages.settings.chatPanel.model_default') : effortLabel(l)))
+  const orchestrationModel = mcCfg?.agent?.role_models?.orchestration || 'auto'
+  const planningModel = mcCfg?.agent?.role_models?.planning || 'auto'
+  const executionModel = mcCfg?.agent?.role_models?.execution || 'auto'
+  const backgroundModel = mcCfg?.agent?.role_models?.background || 'auto'
+  const subagentModel = mcCfg?.agent?.role_models?.subagent || 'auto'
+  const orchestrationEffort = mcCfg?.agent?.role_efforts?.orchestration ?? ''
+  const planningEffort = mcCfg?.agent?.role_efforts?.planning ?? ''
+  const executionEffort = mcCfg?.agent?.role_efforts?.execution ?? ''
   const backgroundEffort = mcCfg?.agent?.role_efforts?.background ?? ''
   const subagentEffort = mcCfg?.agent?.role_efforts?.subagent ?? ''
+  const orchEffortSupported = modelSupportsEffort(orchestrationModel !== 'auto' ? orchestrationModel : defaultModel)
+  const planEffortSupported = modelSupportsEffort(planningModel !== 'auto' ? planningModel : defaultModel)
+  const execEffortSupported = modelSupportsEffort(executionModel !== 'auto' ? executionModel : defaultModel)
   const bgEffortSupported = modelSupportsEffort(backgroundModel !== 'auto' ? backgroundModel : defaultModel)
   const subEffortSupported = modelSupportsEffort(subagentModel !== 'auto' ? subagentModel : defaultModel)
-  const effortLabels = EFFORT_LEVELS.map(l => (l === '' ? i18nT('pages.settings.chatPanel.model_default') : effortLabel(l)))
-  const backgroundEffortMut = useMutation({
-    mutationFn: (v: string) => api.patchConfig('agent.role_efforts.background', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
-    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_effort')),
-  })
-  const subagentEffortMut = useMutation({
-    mutationFn: (v: string) => api.patchConfig('agent.role_efforts.subagent', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
-    onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_effort')),
-  })
 
   // ── Local chat config (localStorage) ──
   const setChat = useCallback(<K extends keyof ChatConfig>(k: K, v: ChatConfig[K]) => {
@@ -415,8 +473,8 @@ export function ChatPanel() {
 
       <SettingsSection title={i18nT('pages.settings.chatPanel.model')}>
         {/* Grouped by role so each block reads as "which model + how hard it
-            thinks" for one kind of work, rather than six stacked selects.
-            Chat is the interactive default; Background and Sub-agents inherit it
+            thinks" for one kind of work, rather than stacked selects.
+            Chat is the interactive default; DAG roles inherit nothing from it
             when left on Auto. */}
         <SettingsCard>
           <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_chat')}</div>
@@ -446,17 +504,95 @@ export function ChatPanel() {
           />
         </SettingsCard>
 
+        <div className="text-[12px] text-muted px-0.5">{i18nT('pages.settings.chatPanel.role_dag_hint')}</div>
+
         <SettingsCard index={1}>
+          <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_orchestration')}</div>
+          <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_orchestration')}</div>
+          <SettingsSelect
+            label={i18nT('pages.settings.chatPanel.orchestration_model')}
+            hint={i18nT('pages.settings.chatPanel.role_model_auto_hint')}
+            value={orchestrationModel}
+            options={roleModelOptions(orchestrationModel, 'economy')}
+            optionLabels={roleModelLabels(roleModelOptions(orchestrationModel, 'economy'))}
+            onChange={v => roleModelMut.mutate({ path: 'agent.role_models.orchestration', value: v })}
+            disabled={!mcQ.isSuccess}
+            configKey="agent.role_models.orchestration"
+          />
+          <SettingsSelect
+            label={i18nT('pages.settings.chatPanel.orchestration_effort')}
+            hint={i18nT('pages.settings.chatPanel.role_effort_hint')}
+            value={orchestrationEffort}
+            options={[...EFFORT_LEVELS]}
+            optionLabels={effortLabels}
+            onChange={v => roleEffortMut.mutate({ path: 'agent.role_efforts.orchestration', value: v })}
+            disabled={!mcQ.isSuccess || !orchEffortSupported}
+            configKey="agent.role_efforts.orchestration"
+          />
+        </SettingsCard>
+
+        <SettingsCard index={2}>
+          <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_planning')}</div>
+          <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_planning')}</div>
+          <SettingsSelect
+            label={i18nT('pages.settings.chatPanel.planning_model')}
+            hint={i18nT('pages.settings.chatPanel.role_model_auto_hint')}
+            value={planningModel}
+            options={roleModelOptions(planningModel, 'capable')}
+            optionLabels={roleModelLabels(roleModelOptions(planningModel, 'capable'))}
+            onChange={v => roleModelMut.mutate({ path: 'agent.role_models.planning', value: v })}
+            disabled={!mcQ.isSuccess}
+            configKey="agent.role_models.planning"
+          />
+          <SettingsSelect
+            label={i18nT('pages.settings.chatPanel.planning_effort')}
+            hint={i18nT('pages.settings.chatPanel.role_effort_hint')}
+            value={planningEffort}
+            options={[...EFFORT_LEVELS]}
+            optionLabels={effortLabels}
+            onChange={v => roleEffortMut.mutate({ path: 'agent.role_efforts.planning', value: v })}
+            disabled={!mcQ.isSuccess || !planEffortSupported}
+            configKey="agent.role_efforts.planning"
+          />
+        </SettingsCard>
+
+        <SettingsCard index={3}>
+          <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_execution')}</div>
+          <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_execution')}</div>
+          <SettingsSelect
+            label={i18nT('pages.settings.chatPanel.execution_model')}
+            hint={i18nT('pages.settings.chatPanel.role_model_auto_hint')}
+            value={executionModel}
+            options={roleModelOptions(executionModel, 'standard')}
+            optionLabels={roleModelLabels(roleModelOptions(executionModel, 'standard'))}
+            onChange={v => roleModelMut.mutate({ path: 'agent.role_models.execution', value: v })}
+            disabled={!mcQ.isSuccess}
+            configKey="agent.role_models.execution"
+          />
+          <SettingsSelect
+            label={i18nT('pages.settings.chatPanel.execution_effort')}
+            hint={i18nT('pages.settings.chatPanel.role_effort_hint')}
+            value={executionEffort}
+            options={[...EFFORT_LEVELS]}
+            optionLabels={effortLabels}
+            onChange={v => roleEffortMut.mutate({ path: 'agent.role_efforts.execution', value: v })}
+            disabled={!mcQ.isSuccess || !execEffortSupported}
+            configKey="agent.role_efforts.execution"
+          />
+        </SettingsCard>
+
+        <SettingsCard index={4}>
           <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_background')}</div>
           <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_background_lite_heartbeat_work')}</div>
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.background_model')}
             hint={i18nT('pages.settings.chatPanel.role_model_auto_hint')}
             value={backgroundModel}
-            options={roleModelOptions(backgroundModel)}
-            optionLabels={roleModelLabels(roleModelOptions(backgroundModel))}
-            onChange={v => backgroundModelMut.mutate(v)}
+            options={roleModelOptions(backgroundModel, 'economy')}
+            optionLabels={roleModelLabels(roleModelOptions(backgroundModel, 'economy'))}
+            onChange={v => roleModelMut.mutate({ path: 'agent.role_models.background', value: v })}
             disabled={!mcQ.isSuccess}
+            configKey="agent.role_models.background"
           />
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.background_effort')}
@@ -464,22 +600,24 @@ export function ChatPanel() {
             value={backgroundEffort}
             options={[...EFFORT_LEVELS]}
             optionLabels={effortLabels}
-            onChange={v => backgroundEffortMut.mutate(v)}
+            onChange={v => roleEffortMut.mutate({ path: 'agent.role_efforts.background', value: v })}
             disabled={!mcQ.isSuccess || !bgEffortSupported}
+            configKey="agent.role_efforts.background"
           />
         </SettingsCard>
 
-        <SettingsCard index={2}>
+        <SettingsCard index={5}>
           <div className="text-[13px] font-semibold text-text-strong">{i18nT('pages.settings.chatPanel.role_subagents')}</div>
           <div className="text-[12px] text-muted -mt-0.5">{i18nT('pages.settings.chatPanel.model_for_spawned_sub_agents')}</div>
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.subagent_model')}
             hint={i18nT('pages.settings.chatPanel.role_model_auto_hint')}
             value={subagentModel}
-            options={roleModelOptions(subagentModel)}
-            optionLabels={roleModelLabels(roleModelOptions(subagentModel))}
-            onChange={v => subagentModelMut.mutate(v)}
+            options={roleModelOptions(subagentModel, 'standard')}
+            optionLabels={roleModelLabels(roleModelOptions(subagentModel, 'standard'))}
+            onChange={v => roleModelMut.mutate({ path: 'agent.role_models.subagent', value: v })}
             disabled={!mcQ.isSuccess}
+            configKey="agent.role_models.subagent"
           />
           <SettingsSelect
             label={i18nT('pages.settings.chatPanel.subagent_effort')}
@@ -487,8 +625,9 @@ export function ChatPanel() {
             value={subagentEffort}
             options={[...EFFORT_LEVELS]}
             optionLabels={effortLabels}
-            onChange={v => subagentEffortMut.mutate(v)}
+            onChange={v => roleEffortMut.mutate({ path: 'agent.role_efforts.subagent', value: v })}
             disabled={!mcQ.isSuccess || !subEffortSupported}
+            configKey="agent.role_efforts.subagent"
           />
         </SettingsCard>
 

@@ -1,0 +1,111 @@
+# Working brief — Junction bootstrap
+
+This is the frozen execution contract for the Junction bootstrap cut.
+Product identity, the two-plane thesis, the authority envelope, and the
+execution id live here. Architecture detail lives in later ADRs and in
+root `ARCHITECTURE.md` once the agent OS lane lands them.
+
+## Identity (frozen)
+
+| Field | Value |
+|---|---|
+| Product | **Junction** |
+| CLI | `junction` |
+| Tagline | Where coding agents meet the models you want. |
+| Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring `kiro-cli`. |
+| Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
+| Visual | Keep the amber already in `site/`. Drop the ghost emoji. Junction / track motif. No emoji icons. |
+| GitHub slug | `laqaer/acpcrew` until a human renames it. |
+| Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
+| Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
+
+Decision record: [`docs/adr/0001-product-identity.md`](docs/adr/0001-product-identity.md).
+Agent overlay: [`JUNCTION.md`](JUNCTION.md).
+
+## Two-plane thesis
+
+Junction is a **local control plane** that docks ACP agents and routes their
+models. Combining this tree with Codex Router is two planes in one product,
+not a Node dump into Python.
+
+```
+Operator
+  → junction CLI / dashboard
+    → Python gateway
+      → Harness plane (ACP runtime registry: Cursor, Claude, Codex, Grok, Pi, …)
+      → Model plane (optional Codex Router sidecar on loopback, typically :4202 + LiteLLM :4200)
+      → Memory, cron, skills
+```
+
+- **Harness plane** already exists on `main`: `agent.acp_backend` defaults to
+  `auto` via `src/kiro_crew/acp/runtimes.py`. Multi-ACP must not be re-landed.
+- **Model plane** is observed and composed this cut: Python supervisor /
+  health / status in `src/kiro_crew/model_router/`. The sidecar is the
+  published Codex Router (or a later vendored subset). If the sidecar is
+  absent, Junction still works as an ACP gateway (degraded, documented).
+- Agents may optionally point `openai_base_url` at the model plane. Junction
+  never pastes provider keys into chat.
+
+## Authority envelope
+
+Safe agent-prompts defaults for this execution:
+
+| Allowed | Blocked |
+|---|---|
+| Feature branch, commit, push | Merge to `main` |
+| Pull request | Production deploy (including GitHub Pages on `main`) |
+| GitHub issues for the epic and lanes | DNS changes |
+| Vercel **preview** of `site/` only, hobby, no spend | Paid Vercel, PyPI, Docker publish |
+| | External comms (issues on other repos, emails, tweets) |
+| | Data deletion, irreversible migrations |
+| | GitHub repository rename |
+
+## Execution
+
+| Field | Value |
+|---|---|
+| Execution id | `bc-39bfeb15-ff12-4636-840a-217a97c555da` |
+| Branch | `cursor/junction-bootstrap-55da` |
+| Base | `main` at `78424fb73` |
+| Intake | No acpcrew intake issue existed at start. Open Dependabot PRs #10–#14 are unrelated. |
+| Shape | One bootstrap PR to `main`. Do not merge it in this execution. |
+
+## This-cut non-goals
+
+Merge; GitHub rename; package / data-home rename; PyPI / Docker / DNS / paid
+Vercel; vendoring Codex Router; copying tray / widget / Electron / public
+Cursor HTTPS tunnel / ACP agent bridges; reimplementing LiteLLM; storing
+provider keys in `KIROCREW_HOME` without the router's secret-entry rules;
+weakening keystone or harness-parity; restoring Channels / Board; whole-tree
+i18n rewrite; Dependabot unless it blocks the branch; `CHANGELOG.md` (written
+only at version bump).
+
+## Surfaces
+
+| Surface | URL |
+|---|---|
+| Bootstrap PR | https://github.com/laqaer/acpcrew/pull/23 |
+| Epic | https://github.com/laqaer/acpcrew/issues/16 |
+| Hobby **preview** (this SHA, `target` unset) | https://junction-site-drdzpa9u5-laqaers-projects.vercel.app |
+| Hobby default alias (no custom domain, no Pages) | https://junction-site.vercel.app |
+
+## Execution manifest
+
+Distinguish **proven** (this agent ran it) from **not_run**. Live provider
+routing and the full gateway suite were never in this cut's must-run list.
+
+| Check | Result |
+|---|---|
+| Site `npm ci` / `npm test` / `npm run build` | proven (8 vitest tests) |
+| Branding + CLI tests (`TestBannerBranding`, dashboard `bot_name`, product name, brand-name gate) | proven (114 pytest) |
+| Model-router unit tests (mocked listener up/down; secrets dropped) | proven |
+| Brand-name diff gate vs `origin/main` | proven |
+| docs-lint | proven |
+| Bootstrap PR + epic/lane issues | proven (#23, #16–#22) |
+| Site CI workflow file | proven (`.github/workflows/site.yml`; Actions in flight) |
+| Vercel hobby URL for `site/` | proven. Preview: https://junction-site-drdzpa9u5-laqaers-projects.vercel.app (`target` unset). First deploy also created https://junction-site.vercel.app — Vercel labeled that one `production` internally. No custom domain, no GitHub Pages, no spend. Not a production ship of this product. |
+| Marketing walkthrough (nav → two-plane → CLI → FAQ) | proven against local `vite preview` dump-dom and the live preview URL: Junction nav/hero, Harness + Model planes, `junction gateway`, kiro-cli optional, never-paste-keys on the model plane, no ghost emoji. Interactive FAQ accordion click and computerUse recording: not_run (GUI agent spend-limited). |
+| Live Codex Router against Kimi/DeepSeek | not_run (no local sidecar) |
+| Full gateway pytest / desktop | not_run |
+
+

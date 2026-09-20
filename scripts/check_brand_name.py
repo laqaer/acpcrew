@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""check_brand_name.py — gate the product name's spelling on lines a change adds.
+"""check_brand_name.py — gate concatenated upstream brand tokens on lines a change adds.
 
-The product is **Kiro Crew**: two words, a space between them, capital ``K``.
-Everything else in the tree — the GitHub repo ``kirodotdev/KiroCrew``, the
-``kirocrew`` CLI, the ``kiro_crew`` Python package, ``KIROCREW_*`` environment
-variables, the ``KiroCrew.dmg`` artifact — is an *identifier*, and identifiers
-keep the spelling their system gave them. Only the **prose** name is gated.
+This fork's product prose name is **Junction**. The gate below still exists
+so mixed-case concatenations of the upstream two-word name cannot land in
+new prose. Identifiers — the GitHub repo slug, the ``kirocrew`` CLI, the
+``kiro_crew`` Python package, ``KIROCREW_*`` environment variables, and the
+desktop installer artifacts — keep the spelling their system gave them.
+Only the **prose** rendering of the upstream two-word name is gated.
+
+Junction is accepted and is not a misspelling.
 
 ## Why diff-scoped and not whole-tree
 
@@ -137,8 +140,7 @@ CHANNEL_SUFFIX = re.compile(r" (?:[Nn]ightly|[Ii]nsider|[Ss]table)(?![A-Za-z0-9]
 # position instead of one per character. Without it, `finditer` would re-walk the
 # run from every offset and a single long token would cost O(len²).
 URL_START = re.compile(
-    r"https?://|git@|ssh://|(?<![A-Za-z0-9.-])[A-Za-z0-9][A-Za-z0-9.-]*"
-    r"\.(?:com|dev|io|org)/"
+    r"https?://|git@|ssh://|(?<![A-Za-z0-9.-])[A-Za-z0-9][A-Za-z0-9.-]*" r"\.(?:com|dev|io|org)/"
 )
 
 # Characters that end a URL. Markup and punctuation around a link are not part of
@@ -692,25 +694,33 @@ def self_test() -> int:
             break
 
     if (base_found, doubled_found) != (base_count, base_count * 2):
-        print(f"  FAIL repeated-brands: found {base_found}/{doubled_found}, "
-              f"want {base_count}/{base_count * 2}")
+        print(
+            f"  FAIL repeated-brands: found {base_found}/{doubled_found}, "
+            f"want {base_count}/{base_count * 2}"
+        )
         failures += 1
     elif base_time < _PERF_MIN_BASE_SECS:
         # Even the largest workload was too fast to measure. Quadratic growth at
         # that size costs orders of magnitude more than the floor, so this cannot
         # be hiding a regression -- report the fact rather than dividing noise by
         # noise.
-        print(f"  ok   repeated-brands (baseline {base_time * 1000:.1f}ms at {base_count} "
-              f"brands still below the {_PERF_MIN_BASE_SECS * 1000:.0f}ms measurement "
-              f"floor; ratio not judged)")
+        print(
+            f"  ok   repeated-brands (baseline {base_time * 1000:.1f}ms at {base_count} "
+            f"brands still below the {_PERF_MIN_BASE_SECS * 1000:.0f}ms measurement "
+            f"floor; ratio not judged)"
+        )
     elif ratio > 3.0:
-        print(f"  FAIL repeated-brands: doubling the input cost {ratio:.1f}x CPU time "
-              f"(best of {_PERF_ATTEMPTS}, baseline {base_time:.3f}s at {base_count} "
-              f"brands); linear is ~2x, so a per-match scan of the line has come back")
+        print(
+            f"  FAIL repeated-brands: doubling the input cost {ratio:.1f}x CPU time "
+            f"(best of {_PERF_ATTEMPTS}, baseline {base_time:.3f}s at {base_count} "
+            f"brands); linear is ~2x, so a per-match scan of the line has come back"
+        )
         failures += 1
     else:
-        print(f"  ok   repeated-brands (doubling cost {ratio:.1f}x at {base_count} "
-              f"brands, linear)")
+        print(
+            f"  ok   repeated-brands (doubling cost {ratio:.1f}x at {base_count} "
+            f"brands, linear)"
+        )
 
     # A wider fence is not closed by a narrower run inside it, so a doc can quote
     # a fenced example without exposing its contents as prose.
@@ -739,12 +749,16 @@ def report(violations: Iterable[Violation], *, enforcing: bool, base: str | None
         return 0
 
     if enforcing:
-        print(f"::error::brand gate: {len(violations)} line(s) added by this change "
-              f"spell the product name wrong. It is {CORRECT!r} — two words, capital K.")
+        print(
+            f"::error::brand gate: {len(violations)} line(s) added by this change "
+            f"spell the product name wrong. It is {CORRECT!r} — two words, capital K."
+        )
     else:
-        print(f"::notice::brand gate report: {len(violations)} pre-existing line(s) "
-              f"spell the product name something other than {CORRECT!r}. Not enforced "
-              f"here; only lines a change adds are gated.")
+        print(
+            f"::notice::brand gate report: {len(violations)} pre-existing line(s) "
+            f"spell the product name something other than {CORRECT!r}. Not enforced "
+            f"here; only lines a change adds are gated."
+        )
     # The listing is path-sorted, so a silently-truncated report shows only the
     # alphabetically-first paths — '.github/' and '.kiro/' alone exceed the report
     # budget, which is how a backlog of UI-visible strings under 'src/' and

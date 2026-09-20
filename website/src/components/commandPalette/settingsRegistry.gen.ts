@@ -819,7 +819,8 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "labelKey": "pages.settings.chatPanel.background_effort",
     "tab": "chat",
     "type": "select",
-    "occurrence": 1
+    "occurrence": 1,
+    "configKey": "agent.role_efforts.background"
   },
   {
     "id": "chat.background-model",
@@ -827,7 +828,8 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "labelKey": "pages.settings.chatPanel.background_model",
     "tab": "chat",
     "type": "select",
-    "occurrence": 1
+    "occurrence": 1,
+    "configKey": "agent.role_models.background"
   },
   {
     "id": "chat.completion-event-characters",
@@ -899,6 +901,24 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "tab": "chat",
     "type": "input",
     "occurrence": 1
+  },
+  {
+    "id": "chat.execution-effort",
+    "label": "Execution Effort",
+    "labelKey": "pages.settings.chatPanel.execution_effort",
+    "tab": "chat",
+    "type": "select",
+    "occurrence": 1,
+    "configKey": "agent.role_efforts.execution"
+  },
+  {
+    "id": "chat.execution-model",
+    "label": "Execution Model",
+    "labelKey": "pages.settings.chatPanel.execution_model",
+    "tab": "chat",
+    "type": "select",
+    "occurrence": 1,
+    "configKey": "agent.role_models.execution"
   },
   {
     "id": "chat.fallback-model",
@@ -981,6 +1001,24 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "occurrence": 1
   },
   {
+    "id": "chat.orchestration-effort",
+    "label": "Orchestration Effort",
+    "labelKey": "pages.settings.chatPanel.orchestration_effort",
+    "tab": "chat",
+    "type": "select",
+    "occurrence": 1,
+    "configKey": "agent.role_efforts.orchestration"
+  },
+  {
+    "id": "chat.orchestration-model",
+    "label": "Orchestration Model",
+    "labelKey": "pages.settings.chatPanel.orchestration_model",
+    "tab": "chat",
+    "type": "select",
+    "occurrence": 1,
+    "configKey": "agent.role_models.orchestration"
+  },
+  {
     "id": "chat.pin-the-latest-turn",
     "label": "Pin the latest turn",
     "labelKey": "pages.settings.chatPanel.pin_last_prompt",
@@ -988,6 +1026,24 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "tab": "chat",
     "type": "toggle",
     "occurrence": 1
+  },
+  {
+    "id": "chat.planning-effort",
+    "label": "Planning Effort",
+    "labelKey": "pages.settings.chatPanel.planning_effort",
+    "tab": "chat",
+    "type": "select",
+    "occurrence": 1,
+    "configKey": "agent.role_efforts.planning"
+  },
+  {
+    "id": "chat.planning-model",
+    "label": "Planning Model",
+    "labelKey": "pages.settings.chatPanel.planning_model",
+    "tab": "chat",
+    "type": "select",
+    "occurrence": 1,
+    "configKey": "agent.role_models.planning"
   },
   {
     "id": "chat.prevent-sleep-while-running",
@@ -1118,7 +1174,8 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "labelKey": "pages.settings.chatPanel.subagent_effort",
     "tab": "chat",
     "type": "select",
-    "occurrence": 1
+    "occurrence": 1,
+    "configKey": "agent.role_efforts.subagent"
   },
   {
     "id": "chat.subagent-model",
@@ -1126,7 +1183,8 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "labelKey": "pages.settings.chatPanel.subagent_model",
     "tab": "chat",
     "type": "select",
-    "occurrence": 1
+    "occurrence": 1,
+    "configKey": "agent.role_models.subagent"
   },
   {
     "id": "chat.tail-only-fork",

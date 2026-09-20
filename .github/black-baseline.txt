@@ -403,7 +403,6 @@ src/kiro_crew/subagent_persistence.py
 src/kiro_crew/subagent_scale.py
 src/kiro_crew/suggestions.py
 src/kiro_crew/task_models.py
-src/kiro_crew/task_planner.py
 src/kiro_crew/taskrunner.py
 src/kiro_crew/testing/channel_fixtures.py
 src/kiro_crew/testing/fake_acp_backend.py
