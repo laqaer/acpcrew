@@ -1023,7 +1023,7 @@ describe('App routing', () => {
     const nav = screen.getByRole('navigation', { name: 'Main navigation' })
     // Brand (logo + name) now lives in the rail's menu row, replacing the old
     // hamburger; the collapse control is an arrow-left-to-line button.
-    expect(within(nav).getByText('Crew')).toBeInTheDocument()
+    expect(within(nav).getByText('Junction')).toBeInTheDocument()
     const collapse = within(nav).getByRole('button', { name: 'Collapse sidebar' })
     expect(within(nav).queryByRole('button', { name: 'Toggle sidebar' })).not.toBeInTheDocument()
     expect(within(nav).queryByText('Main')).not.toBeInTheDocument()
