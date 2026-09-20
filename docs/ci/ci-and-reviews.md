@@ -229,7 +229,12 @@ dependency whose license is off the curated allowlist in
 `.github/dependency-review-config.yml`. A maintainer can bypass it for the commit
 they reviewed with the `license-override` label, honored **only** on the `labeled`
 event, so a later push arrives as `synchronize` and re-runs the gate; a new,
-unvetted dependency cannot ride in on a stale override.
+unvetted dependency cannot ride in on a stale override. The action needs the
+repository's dependency graph (GitHub Advanced Security on a private repo). When
+that product feature is unavailable the job probes `/dependency-graph/sbom`
+first and **skips** rather than failing closed on "not supported on this
+repository" — a missing scanner is not a license hit. Enable the graph to
+restore the gate.
 
 **`docker-smoke.yml`** is paths-filtered to the container surface (`docker/**` plus
 the three source files the container contract spans: the bind override in

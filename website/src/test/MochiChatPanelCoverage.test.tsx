@@ -221,14 +221,21 @@ function turn(role: string, content: string, timestamp = 1700000000000) {
 
 describe('ChatPanel lazy history', () => {
   it('pulls in earlier turns until the transcript fills the scroller', async () => {
-    // 25 turns, but only 10 render at first. With nothing filling the viewport
-    // the panel keeps asking for more rather than leaving the user with a short
-    // transcript and no way to notice there is more.
+    // 25 turns, but only 10 render at first. The fill-viewport loader waits
+    // 150ms between pages; on a loaded runner that delay can elapse during
+    // findByText, so turn 0 is already present and the "not yet loaded"
+    // assertion races. Pin the clock so the first paint is observable before
+    // the second page lands.
+    vi.useFakeTimers()
     history = Array.from({ length: 25 }, (_, i) => turn('user', `turn ${i}`, 1700000000000 + i))
-    await renderPanel()
-    expect(await screen.findByText('turn 24')).toBeInTheDocument()
+    render(<ChatPanel />)
+    await act(async () => { await Promise.resolve() })
+    expect(screen.getByText(/Idle/)).toBeInTheDocument()
+    expect(screen.getByText('turn 24')).toBeInTheDocument()
     expect(screen.queryByText('turn 0')).not.toBeInTheDocument()
-    expect(await screen.findByText('turn 0', {}, { timeout: 5000 })).toBeInTheDocument()
+    await act(async () => { await vi.advanceTimersByTimeAsync(150) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(150) })
+    expect(screen.getByText('turn 0')).toBeInTheDocument()
     // Everything is loaded, so the load-earlier affordance is gone.
     expect(screen.queryByText(/Load earlier messages/)).not.toBeInTheDocument()
   })

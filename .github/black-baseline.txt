@@ -748,7 +748,6 @@ test/test_doctor_sandbox_verdict.py
 test/test_effort.py
 test/test_embedding_model_apply.py
 test/test_embedding_space_reconcile.py
-test/test_embeddings.py
 test/test_enable_embeddings_faiss.py
 test/test_enterprise.py
 test/test_env.py
