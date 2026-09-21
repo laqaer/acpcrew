@@ -1,7 +1,7 @@
 # Configuration Reference
 
-Everything Kiro Crew remembers about how it should behave lives in one JSON file,
-`~/.kiro/crew/config.json`, created automatically on the first `kirocrew gateway`
+Everything Junction remembers about how it should behave lives in one JSON file,
+`~/.kiro/crew/config.json`, created automatically on the first `junction gateway`
 run. Most keys are also editable from the dashboard's Settings pages, and this
 page is the reference for the ones that are not: what they mean, what they
 default to, and which environment variables outrank them.
@@ -25,23 +25,23 @@ The dashboard port is **not** a config key: set `KIROCREW_PORT` instead.
 
 ## Sandbox
 
-`agent.sandbox` controls whether Kiro Crew wraps the agent process in its own
+`agent.sandbox` controls whether Junction wraps the agent process in its own
 OS-level sandbox (a user namespace on Linux, `sandbox-exec` on macOS).
 
 | Value | Behavior |
 |-------|----------|
 | `off` (default) | Defer isolation to kiro-cli's own internal agent sandbox |
-| `auto` | Add Kiro Crew's OS-level sandbox on top |
+| `auto` | Add Junction's OS-level sandbox on top |
 
 The two layers are mutually exclusive on macOS, because a nested seatbelt
 sandbox fails with `EPERM`. That is why the default is `off`: kiro-cli already
 isolates the agent, and stacking a second sandbox would break it.
 
-Set via `kirocrew config set agent.sandbox auto`.
+Set via `junction config set agent.sandbox auto`.
 
 ## ACP Backend
 
-`agent.acp_backend` selects which ACP agent Kiro Crew drives. `agent.provider`
+`agent.acp_backend` selects which ACP agent Junction drives. `agent.provider`
 stays `acp` either way — the backend is a choice *within* ACP, not a different
 provider.
 
@@ -55,14 +55,14 @@ allowlist, and session resume. The context-usage percentage meter, compaction
 (summarization) status, and agent-switch echoes are wired: KAS reports these as
 `session/update` discriminants (`session_info_update` with a `context_usage` /
 `turn_completion` / `summarization_*` kind, and `current_mode_update`) rather than
-the separate `_kiro.dev/*` methods kiro-cli uses, and Kiro Crew maps them back to
+the separate `_kiro.dev/*` methods kiro-cli uses, and Junction maps them back to
 the same displays.
 
 **What does not, yet:**
 
 - Native subagent progress reporting (subagents run; their live progress does not
   surface in the UI).
-- Slash commands: KAS advertises them (`available_commands_update`), but Kiro Crew
+- Slash commands: KAS advertises them (`available_commands_update`), but Junction
   surfaces no available-commands UI for any backend (kiro-cli's
   `_kiro.dev/commands/available` is likewise unconsumed), and slash-command
   *execution* is not wired.
@@ -71,18 +71,18 @@ the same displays.
 - `spawn_continue` works for runs started with an explicit keep, but not for
   opportunistically-retained shared subagents.
 - Model selection is unverified: KAS advertises no model list on an
-  unauthenticated session, and Kiro Crew only sends a model the session
+  unauthenticated session, and Junction only sends a model the session
   advertised, so a session may simply run KAS's own default model.
 
 **Signals with no KAS analog** (documented so they are not mistaken for gaps):
 KAS has no `clear/status` notification, and its MCP methods (`_kiro/mcp/status`,
 `_kiro/mcp/toggle`) are request-side only — it emits no MCP server-init
-notification for Kiro Crew to surface. A resumable-session existence probe would
+notification for Junction to surface. A resumable-session existence probe would
 use KAS's `_kiro/session/list` (which returns the full `sessions[]` to search by
 id); that is deferred to the session-lifecycle work, not the display path.
 
 
-**KAS gets its token from kiro-cli.** Kiro Crew launches KAS with
+**KAS gets its token from kiro-cli.** Junction launches KAS with
 `--auth=acp-callback`, so KAS keeps no credential of its own: whenever it needs
 an access token it calls back over ACP (`_kiro/auth/getAccessToken`) and Kiro
 Crew answers by shelling out to `kiro-cli chat _ get-kas-token`, which
@@ -99,7 +99,7 @@ It also needs a KAS bundle already extracted on the machine by kiro-cli; set
 An unrecognized value logs a warning and falls back to the default backend, so a
 typo costs you a line in the log rather than a gateway that will not start.
 
-Set via `kirocrew config set agent.acp_backend kas`.
+Set via `junction config set agent.acp_backend kas`.
 
 ## Key Settings
 
@@ -185,7 +185,7 @@ Set via `kirocrew config set agent.acp_backend kas`.
 | `agent.approval_mode` | `"auto"` or `"interactive"` | `"auto"` |
 | `agent.model` | Default LLM model for new sessions. `"auto"` defers to the agent config, then to Kiro's own default. Editable from Settings → Chat → Model; a per-session model picker overrides it for that session only | `"auto"` |
 | `agent.reasoning_effort` | Default reasoning effort on models that support it. One of `""`, `low`, `medium`, `high`, `xhigh`, `max`; `""` defers to the provider/model default. A per-session override wins | `""` |
-| `agent.sandbox` | `"off"` (defer to kiro-cli) or `"auto"` (add Kiro Crew's OS-level sandbox) | `"off"` |
+| `agent.sandbox` | `"off"` (defer to kiro-cli) or `"auto"` (add Junction's OS-level sandbox) | `"off"` |
 | `agent.streaming` | Stream response text as it is generated | `true` |
 | `agent.bot_name` | Custom name the bot identifies as | `""` |
 | `agent.conductor_skill` | Enable agent delegation conductor | `false` |
@@ -295,7 +295,7 @@ them, so there is no enable switch here: only knobs for *which* model runs.
 |-----|-------------|---------|
 | `memory.embedding_provider` | Vector embedding backend. `"llama_cpp"` is the only accepted value; any other value in an existing config (including a legacy `"ollama"` or `"none"`) is coerced to it on load | `"llama_cpp"` |
 | `memory.embedding_dim` | Output width of the embedding model in use. Must match a custom model's real width, or the load is refused | `1024` |
-| `memory.embed_model_url` | Override HTTPS URL for the embedding-model GGUF download (mirrored or airgapped hosts). Empty uses the public Kiro Crew CDN. `KIROCREW_EMBED_MODEL_URL` wins over both. Downloads are sha256-verified regardless of source | `""` |
+| `memory.embed_model_url` | Override HTTPS URL for the embedding-model GGUF download (mirrored or airgapped hosts). Empty uses the public Junction CDN. `KIROCREW_EMBED_MODEL_URL` wins over both. Downloads are sha256-verified regardless of source | `""` |
 | `memory.embed_model_path` | Absolute path to a local GGUF to run **instead of** the bundled Qwen3-Embedding-0.6B. When set, the default model is never downloaded, so a custom model survives a default-model version change. Set `embedding_dim` to the model's output width. Changing the model changes the vector space, so stored embeddings are regenerated in the background. A configured-but-unreadable path fails closed (keyword search still works) rather than silently reverting to the default and re-embedding your corpus. Editable from the dashboard (Memory → Embedding Model). `KIROCREW_EMBED_MODEL_PATH` wins over this | `""` |
 | `memory.embed_model_id` | Stable identifier for a custom model's vector space. Defaults to `custom:<filename>:<size>`, which cannot distinguish two different models of identical byte size, so set it explicitly if you swap between such models | `""` |
 | `memory.semantic_confidence_threshold` | Minimum similarity score for a semantic search result | `0.8` |
@@ -318,7 +318,7 @@ them, so there is no enable switch here: only knobs for *which* model runs.
 |-----|-------------|---------|
 | `knowledge.auto_ingest_artifacts` | Auto-ingest content-bearing local artifacts into the Knowledge Library as a searchable "Artifacts" source, kept in sync and removed when the artifact is deleted (see [Knowledge Library](knowledge-library-how-it-works.md)). Opt-in: enabling it backfills the artifacts you already have | `false` |
 | `knowledge.auto_ingest_artifact_kinds` | Artifact kinds eligible for auto-ingest. `widget` is excluded as UI rather than a document; `svg` is excluded because the file reader has no support for it | `["markdown", "text", "html", "json"]` |
-| `knowledge.auto_add_documents` | Let the agent add documents it reads while working to the Knowledge Library (one aggregate "Auto-added" source). The agent fetches the content with its own tools under your approval; Kiro Crew fetches nothing, so `doc_ingest_hosts` does not apply. Renamed from `auto_ingest_doc_links`, which is still accepted on read | `false` |
+| `knowledge.auto_add_documents` | Let the agent add documents it reads while working to the Knowledge Library (one aggregate "Auto-added" source). The agent fetches the content with its own tools under your approval; Junction fetches nothing, so `doc_ingest_hosts` does not apply. Renamed from `auto_ingest_doc_links`, which is still accepted on read | `false` |
 | `knowledge.auto_register_project_docs` | Register the documents of each project you work in as a Knowledge source automatically. Documents only (`.md`/`.pdf`/`.docx`/`.org` above a size floor, excluding agent instructions, generated files and repository boilerplate) — never source code. Opt-in: once on it applies to every project you open, with no per-project confirmation | `false` |
 | `knowledge.auto_ingest_chunk_budget` | Chunks an automatically-registered source may ingest per watcher sweep. Each chunk is one LLM extraction call, so this bounds the cost; newest documents land first and the rest follow on later sweeps. 0 removes the bound | `150` |
 | `knowledge.folder_ingest_chunk_budget` | Chunks a folder you add by hand may ingest per watcher sweep, including the first scan started by confirming the source. Nothing is skipped — newest files land first and the rest continue on later sweeps — so this paces spend rather than limiting what is ingested. Higher than the auto-ingest budget because you asked for the folder explicitly. 0 removes the bound; a per-source `chunk_budget` property overrides it for one folder | `300` |
@@ -332,7 +332,7 @@ them, so there is no enable switch here: only knobs for *which* model runs.
 |-----|-------------|---------|
 | `auto_update` | Enable automatic update checks | `true` |
 | `timezone` | IANA timezone name, e.g. `"America/Los_Angeles"` | `""` (falls back to UTC) |
-| `snapshot_dir` | Where `kirocrew snapshot` writes tarballs | `""` (`~/.kiro/crew/snapshots`) |
+| `snapshot_dir` | Where `junction snapshot` writes tarballs | `""` (`~/.kiro/crew/snapshots`) |
 
 ## Environment Variables
 
@@ -352,7 +352,7 @@ The `timezone` key affects three things:
 
 - the `[CURRENT DATE]` line injected into every LLM prompt, so "today" is not
   ambiguous on a host whose system clock is UTC
-- cron schedule display (`kirocrew cron list`, the Slack Home Tab)
+- cron schedule display (`junction cron list`, the Slack Home Tab)
 - `skip_dates` evaluation for cron jobs
 
 A per-job `timezone` on a cron job wins over this global value.
@@ -370,7 +370,7 @@ KIROCREW_OWNER_ID=UXXXXXXXX
 
 ## Denied Commands
 
-The built-in destructive-command deny rules are enforced at Kiro Crew's own
+The built-in destructive-command deny rules are enforced at Junction's own
 PreToolUse gate, and are on by default. They are configurable from Settings →
 Security: you can disable individual rules, disable them all, or add your own
 patterns.
@@ -396,6 +396,6 @@ rules so they cannot be opted out of at all.
 | `~/.kiro/crew/history/` | Chat history (JSONL) |
 | `~/.kiro/crew/workspace/memory/` | Memory files |
 | `~/.kiro/crew/session_map.json` | Session resume mapping |
-| `~/.kiro/crew/snapshots/` | Default output of `kirocrew snapshot` |
+| `~/.kiro/crew/snapshots/` | Default output of `junction snapshot` |
 | `~/.kiro/agents/kirocrew.json` | Installed agent config |
 | `~/.kiro/settings/mcp.json` | Global MCP server config |

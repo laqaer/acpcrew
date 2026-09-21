@@ -5,7 +5,7 @@ and receive the answer as a tool result — no extra turn, no text parsing.
 
 ## Why this exists
 
-Kiro Crew already had two ways to offer the user a choice, and neither could
+Junction already had two ways to offer the user a choice, and neither could
 return a value to a running turn:
 
 | Mechanism | Where it renders | Can block a turn? |
@@ -18,7 +18,7 @@ The `QuestionCard` component and the `question_card` websocket event already
 existed, keyed off an ACP `tool_call` titled `AskUserQuestion`. That tool is not
 present in kiro-cli 2.14.0 (the string appears nowhere in the binary), so the
 whole pipeline was unreachable. `ask_question` supplies the missing trigger from
-Kiro Crew's own MCP server rather than waiting on the agent CLI.
+Junction's own MCP server rather than waiting on the agent CLI.
 
 ### Why not ACP elicitation
 

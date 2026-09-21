@@ -1449,7 +1449,7 @@ async def test_non_api_path_gets_html_403() -> None:
     assert resp.status == 403
     assert resp.content_type == "text/html"
     assert b"Settings \xe2\x86\x92 Security \xe2\x86\x92 Sign in on mobile" in resp.body
-    assert b"kirocrew token" in resp.body
+    assert b"junction token" in resp.body
 
 
 # -- Property 12b: SPA shell is public so the app can cold-start refresh --

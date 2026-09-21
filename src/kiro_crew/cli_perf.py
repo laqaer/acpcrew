@@ -1,4 +1,4 @@
-"""``kirocrew perf`` -- debug-only performance sampling commands.
+"""``junction perf`` -- debug-only performance sampling commands.
 
 Thin CLI layer: argument handling, gate enforcement, process resolution and
 output. The sampling itself lives in :mod:`kiro_crew.perf_sampler`.
@@ -6,10 +6,10 @@ output. The sampling itself lives in :mod:`kiro_crew.perf_sampler`.
 Two shapes, because they answer different questions and have different
 requirements:
 
-* ``kirocrew perf sample --pid <PID>`` (default: the running gateway) attaches
+* ``junction perf sample --pid <PID>`` (default: the running gateway) attaches
   from outside via py-spy. This is the only way to see a gateway that is already
   serving, and it needs py-spy installed (plus privileges on macOS).
-* ``kirocrew perf sample --call <module:callable>`` runs that callable in this
+* ``junction perf sample --call <module:callable>`` runs that callable in this
   process with the in-process sampler around it. No extra dependency, works
   everywhere, and is the path for profiling one code path in isolation.
 """
@@ -296,7 +296,7 @@ def _sample_out_of_process(args: argparse.Namespace, pid: int) -> int:
 
 
 def _perf_sample(args: argparse.Namespace) -> int:
-    """Entry point for ``kirocrew perf sample``."""
+    """Entry point for ``junction perf sample``."""
     if not profiling_enabled():
         print(gate_refusal_message(), file=sys.stderr)
         return 1
@@ -331,14 +331,14 @@ def perf_cmd(args: argparse.Namespace) -> int:
     """Dispatch a ``perf`` subcommand."""
     if args.perf_action == "sample":
         return _perf_sample(args)
-    print("Usage: kirocrew perf sample [--pid PID | --call module:callable]", file=sys.stderr)
+    print("Usage: junction perf sample [--pid PID | --call module:callable]", file=sys.stderr)
     return 2
 
 
 def register_perf_parser(sub: argparse._SubParsersAction) -> None:
-    """Wire ``kirocrew perf`` into the top-level parser.
+    """Wire ``junction perf`` into the top-level parser.
 
-    Named ``perf`` rather than ``profile``: ``kirocrew policy profile`` already
+    Named ``perf`` rather than ``profile``: ``junction policy profile`` already
     exists, and "profile" is overloaded three ways in this codebase (governance
     profiles, AWS profiles, deploy profiles).
     """

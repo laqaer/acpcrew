@@ -1,6 +1,6 @@
 # Skills
 
-Skills are markdown files that give Kiro Crew specialized knowledge for specific
+Skills are markdown files that give Junction specialized knowledge for specific
 workflows. They live in `~/.kiro/crew/skills/` as `SKILL.md` files.
 
 ## How Skills Work
@@ -63,7 +63,7 @@ Overview → Skills tab → "+ New" button → enter name and content.
 
 ### Via Chat
 
-Ask Kiro Crew: "Create a skill called X that does Y"
+Ask Junction: "Create a skill called X that does Y"
 
 ### Manually
 
@@ -71,7 +71,7 @@ Create `~/.kiro/crew/skills/my-skill/SKILL.md` with frontmatter and content.
 
 ## Built-in Skills
 
-Kiro Crew ships with built-in skills that are synced from the project's
+Junction ships with built-in skills that are synced from the project's
 `skills/` directory on startup. These cover common workflows like URL
 shortening, code search, and writing assistance.
 

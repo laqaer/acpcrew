@@ -22,7 +22,7 @@ describe('terminalPopout identity', () => {
   })
 
   it('uses a fixed window name so window.open dedupes to a single terminal window', () => {
-    expect(popoutWindowName()).toBe('mc-popout-terminal')
+    expect(popoutWindowName()).toBe('junction-popout-terminal')
     // Stable across calls — dedupe depends on it never varying.
     expect(popoutWindowName()).toBe(popoutWindowName())
   })

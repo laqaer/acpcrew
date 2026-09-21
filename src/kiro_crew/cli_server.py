@@ -214,7 +214,7 @@ def _emit_session_urls(port: int, token: str) -> None:
     # exists to avoid.
     #
     # Gated on the setting, not attempted unconditionally: `tailnet_origin()` shells out
-    # to the Tailscale CLI with a multi-second timeout, and `kirocrew to`+`ken` is a
+    # to the Tailscale CLI with a multi-second timeout, and `junction to`+`ken` is a
     # foreground command an operator runs constantly.
     if cfg.dashboard.tailscale.enabled:
         # The stored flag is not the last word: an enterprise ceiling can pin
@@ -264,7 +264,7 @@ def _emit_session_urls(port: int, token: str) -> None:
                     f"be the service published at {tailnet_url} "
                     f"({state.detail}). The URL carries a session, so handing it out "
                     "while another service holds that name would leak it. Run "
-                    "`kirocrew tailnet up` to publish this dashboard, then re-run.",
+                    "`junction tailnet up` to publish this dashboard, then re-run.",
                     file=sys.stderr,
                 )
         elif not tailnet_url:
@@ -337,7 +337,7 @@ def _stop(cli_port: int | None = None) -> None:
 
     # Cross-platform port -> listening PID lookup (lsof on POSIX, netstat -ano
     # on Windows — there is no lsof there, so an lsof-only lookup makes
-    # `kirocrew stop` a no-op on Windows).
+    # `junction stop` a no-op on Windows).
     pids = platform_compat.find_listening_pids(port)
 
     if not pids:
@@ -561,7 +561,7 @@ def _own_console_script() -> str | None:
 
 
 def _spawn_detached_gateway(port: int | None = None) -> subprocess.Popen[bytes]:
-    """Spawn a detached ``kirocrew gateway`` so the calling shell returns.
+    """Spawn a detached ``junction gateway`` so the calling shell returns.
 
     Used by :func:`_restart` when no platform service is active. The
     new process:
@@ -722,7 +722,7 @@ def _replacement_is_serving(port: int, prior_pid: int | None) -> bool:
     write failed (the write is best-effort, wrapped in ``except Exception``)
     being reported as "not ready" while it is in fact serving. That is the right
     way to be wrong here — a misleading timeout leaves a working gateway and an
-    accurate ``kirocrew token``, whereas a false success leaves the operator
+    accurate ``junction token``, whereas a false success leaves the operator
     believing a dead replacement is up.
     """
     recorded = run_marker.read_pid(port)
@@ -823,7 +823,7 @@ def _restart(cli_port: int | None = None) -> None:
        explicitly request a specific port, ask the platform to restart
        it (``systemctl restart`` / ``launchctl unload + load``).
     2. Otherwise, SIGTERM the foreground gateway via the existing
-       lsof+SIGTERM path used by ``kirocrew stop``, then spawn a
+       lsof+SIGTERM path used by ``junction stop``, then spawn a
        detached replacement and **verify it is serving** before reporting
        success: a spawn only proves a pid was created, so the replacement is
        polled on ``/api/ready`` until it answers. If it dies or never becomes
@@ -851,7 +851,7 @@ def _restart(cli_port: int | None = None) -> None:
     # Reuse _stop() for the SIGTERM path so behavior stays in sync if _stop
     # ever gains new safety checks. _stop() exits the process with sys.exit(1)
     # when no gateway is running, which is wrong for restart: a user running
-    # `kirocrew restart` after the gateway crashed should still get a fresh
+    # `junction restart` after the gateway crashed should still get a fresh
     # gateway. Detect that case up-front instead of letting _stop() exit.
     # Also enter _stop() when the lookup tool is absent: find_listening_pids()
     # returns [] both when nothing listens AND when lsof is missing, so guarding
@@ -983,7 +983,7 @@ def _update(force: bool = False) -> None:
     print(f"Updating {PRODUCT_NAME}…\n")
 
     # A policy-defined provider OWNS the update on this host. Checked before any
-    # layout dispatch so a manual `kirocrew update` cannot run the built-in
+    # layout dispatch so a manual `junction update` cannot run the built-in
     # git/CDN mechanism the administrator excluded.
     from kiro_crew.platform.update_provider import apply_policy_update
 
@@ -1272,7 +1272,7 @@ def _update(force: bool = False) -> None:
     # Build the dashboard frontend assets (npm), then reinstall the package.
     build_frontend_sync(Path(proj))
 
-    # Install the pulled revision into this CLI's own venv. `kirocrew update` is
+    # Install the pulled revision into this CLI's own venv. `junction update` is
     # itself run FROM the console script pip would have to rewrite, so on Windows
     # the reinstall cannot succeed and dep_sync substitutes a dependency-only sync
     # (it reports, rather than silently tolerating, a revision that repointed the
@@ -1311,7 +1311,7 @@ def _refresh_agent_config(proj: str) -> None:
       ``input()`` gets ``EOFError``), structurally, without relying on every
       prompt in setup to guard itself with an isatty check.
     * ``TimeoutExpired`` is caught. It is raised, not returned, so without a
-      handler a slow refresh would traceback out of ``kirocrew update`` right
+      handler a slow refresh would traceback out of ``junction update`` right
       after the success banner printed.
     """
     print("  🔒 Refreshing agent config…")
@@ -1640,7 +1640,7 @@ async def _run_task(args: argparse.Namespace) -> None:
     # Windows path shells out to icacls and would freeze the loop for seconds.
     await asyncio.to_thread(vector_memory.init)
     # Embeddings are always-on: wire the factory; bind embed_fn when the model
-    # is already present. Deliberately NO download kick here — `kirocrew run`
+    # is already present. Deliberately NO download kick here — `junction run`
     # is a one-shot CLI and must not start a 610MB download it will abandon at
     # exit; the long-lived gateway owns the background download.
     vector_memory.embed_fn_factory = make_sync_embed_fn
@@ -1672,7 +1672,7 @@ async def _run_task(args: argparse.Namespace) -> None:
     conv_log.init()
     lessons = LessonStore()
     # Constructed on a running loop, so construction-time sync skips itself;
-    # standalone `kirocrew run` has no gateway to own the sync, so run the
+    # standalone `junction run` has no gateway to own the sync, so run the
     # explicit seam in a worker thread (mirrors gateway startup). A failed
     # sync must not gate the task: continue with the skills already on disk.
     skills = SkillsLoader(install_builtins=False)
@@ -1753,7 +1753,7 @@ async def _run_task(args: argparse.Namespace) -> None:
 
 
 def _service_cmd(args: argparse.Namespace) -> int:
-    """Dispatch ``kirocrew service {install,uninstall,status}``.
+    """Dispatch ``junction service {install,uninstall,status}``.
 
     Wraps :mod:`kiro_crew.service.controller` so that platform detection
     and the underlying systemctl/launchctl calls live there. The CLI
@@ -1795,7 +1795,7 @@ def _service_cmd(args: argparse.Namespace) -> int:
 
 
 def _sandbox_cmd(args: argparse.Namespace) -> int:
-    """Dispatch ``kirocrew sandbox {install-profile,remove-profile,status}``.
+    """Dispatch ``junction sandbox {install-profile,remove-profile,status}``.
 
     Mirrors :func:`_service_cmd`: platform detection and the privileged calls
     live in :mod:`kiro_crew.service.controller`, and this layer only parses
@@ -1831,7 +1831,7 @@ def _sandbox_cmd(args: argparse.Namespace) -> int:
         # be polled by the desktop app on every launch.
         return service_controller.sandbox_profile_status(path)
     print(
-        "Usage: kirocrew sandbox {install-profile|remove-profile|status}",
+        "Usage: junction sandbox {install-profile|remove-profile|status}",
         file=sys.stderr,
     )
     return 2
@@ -1864,7 +1864,7 @@ def _logs_cmd(args: argparse.Namespace) -> None:
         # Try journalctl unprivileged first — it works if the user is in
         # the `systemd-journal` or `adm` group. Only fall back to sudo
         # journalctl if the unprivileged probe returns no rows. Without
-        # this fall-through, `kirocrew logs` would hang on hosts without
+        # this fall-through, `junction logs` would hang on hosts without
         # passwordless sudo, which is a surprising failure mode for a
         # read-only log-viewer.
         base = ["journalctl", "--no-pager", "-u", unit, "-n", str(lines)]
@@ -1905,7 +1905,7 @@ def _logs_cmd(args: argparse.Namespace) -> None:
     # an install that never started the agent still satisfies exists().
     #
     # Either miss is silent and total: this arm os.execvp()s, so there is no
-    # fall-through to the config_dir() log below and `kirocrew logs` exits 0
+    # fall-through to the config_dir() log below and `junction logs` exits 0
     # having printed nothing.
     if (
         plat == Platform.LAUNCHD

@@ -1,9 +1,8 @@
-"""ACP runtime registry — spawn argv for agents other than kiro-cli.
+"""ACP runtime registry — spawn argv for each dockable coding agent.
 
-KiroCrew upstream is KiroACP-only: empty ``agent.acp_backend`` always means
-``kiro-cli acp``. This fork keeps that as an *optional* backend and treats
-ACP as a family of stdio JSON-RPC agents (Cursor, Claude, Codex, DeepSeek
-Harness, Pi, Kimi, Goose, Grok, Droid, …).
+Junction's harness plane treats ACP as a family of stdio JSON-RPC agents
+(Cursor, Claude, Codex, DeepSeek Harness, Pi, Kimi, Goose, Grok, Droid, …).
+``kiro-cli`` is one selectable backend, last in auto preference, and optional.
 
 This module is stdlib-only besides ``kiro_crew.acp.types`` so tests can
 exercise it without spawning a gateway.
@@ -34,8 +33,8 @@ from kiro_crew.acp.types import (
 
 WhichFn = Callable[[str], str | None]
 
-# Preference when ``agent.acp_backend`` is ``auto``. kiro-cli is last-resort
-# only — this fork's point is to run without it.
+# Preference when ``agent.acp_backend`` is ``auto``. kiro-cli is last and
+# optional: Junction docks whichever spec-family runtime is already installed.
 AUTO_PREFERENCE: tuple[str, ...] = (
     ACP_BACKEND_CURSOR,
     ACP_BACKEND_CLAUDE,

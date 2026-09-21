@@ -15,7 +15,7 @@
       height: 100vh;
     }
     .container { text-align: center; max-width: 480px; padding: 20px; }
-    .logo { font-size: 48px; margin-bottom: 16px; }
+    .logo { font-size: 18px; font-weight: 700; letter-spacing: 0.18em; margin-bottom: 16px; color: #e4a54a; }
     h2 { margin-bottom: 12px; font-size: 18px; }
     p { color: #64748b; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
     code { background: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #c2410c; }
@@ -42,7 +42,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="logo">👻</div>
+    <div class="logo">JUNCTION</div>
     <h2>Token Required</h2>
     <p id="why"></p>
     <input id="url" type="text" placeholder="Paste token URL or raw token…" autofocus>
@@ -64,15 +64,15 @@
       var msg;
       if (kind === 'local') {
         msg = 'Port ' + port + ' is served by this app\u2019s own gateway, but it could not issue a '
-          + 'dashboard token. Run kirocrew token on THIS machine and paste the URL below.';
+                    + 'dashboard token. Run junction token on THIS machine and paste the URL below.';
       } else if (kind === 'foreign') {
         msg = 'Port ' + port + ' is held by a gateway this app did not start \u2014 most often an SSH '
           + 'tunnel to another machine. Its access key is its own, so a token has to come from '
-          + 'there: run kirocrew token on ' + where + ', then paste the URL below.';
+          + 'there: run junction token on ' + where + ', then paste the URL below.';
       } else {
         msg = 'The gateway on port ' + port + ' would not issue a dashboard token, and this app '
           + 'could not determine which machine it is running on. If you reached it through an SSH '
-          + 'tunnel, run kirocrew token on ' + where + '; otherwise run it on this machine. Then '
+          + 'tunnel, run junction token on ' + where + '; otherwise run it on this machine. Then '
           + 'paste the URL below.';
       }
       document.getElementById('why').textContent = msg;

@@ -36,9 +36,7 @@ _BIND_ALL = "0.0.0.0"
 # reaches the dashboard on more than one of these names gets a separate, empty
 # settings bucket each time — settings appear to "reset". We canonicalize
 # navigations among this set onto a single host (see should_canonicalize_host).
-_CANONICALIZABLE_LOOPBACK_HOSTS = frozenset(
-    {"127.0.0.1", "::1", "localhost", "kirocrew.localhost"}
-)
+_CANONICALIZABLE_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost", "kirocrew.localhost"})
 
 
 # ---------------------------------------------------------------------------
@@ -370,11 +368,11 @@ def format_dashboard_urls(
     if _is_remote:
         mh = machine_hostname() or "localhost"
         lines: list[str] = [
-            f"👻 Dashboard: ssh -NL {port}:localhost:{port} {mh}",
+            f"Dashboard: ssh -NL {port}:localhost:{port} {mh}",
             f"             then open http://localhost:{port}{_qs}",
         ]
     else:
-        lines = ["👻 Dashboard:", f"   {authed_url}"]
+        lines = ["Dashboard:", f"   {authed_url}"]
 
     if local_only and not has_custom_host and not _is_remote:
         mh_local = machine_hostname()
@@ -382,16 +380,16 @@ def format_dashboard_urls(
             try:
                 ip = socket.gethostbyname(mh_local)
                 if ip and ip != "127.0.0.1":
-                    lines.append(f"👻 Remote:    ssh -NL {port}:localhost:{port} {mh_local}")
+                    lines.append(f"Remote:    ssh -NL {port}:localhost:{port} {mh_local}")
             except Exception:
                 pass
 
     proxy = devspaces_proxy_url(port)
     if proxy and not local_only:
-        lines.append(f"👻 Proxy:     {proxy}{_qs}")
+        lines.append(f"Proxy:     {proxy}{_qs}")
 
     if _is_remote:
-        lines.append("👻 Run 24/7:  see docs/guides/remote-and-mobile.md for systemd service setup")
+        lines.append("Run 24/7:  see docs/guides/remote-and-mobile.md for systemd service setup")
 
     return lines
 

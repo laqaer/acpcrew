@@ -1,4 +1,4 @@
-"""``kirocrew desktop`` -- read the Electron app's debug metrics artifact.
+"""``junction desktop`` -- read the Electron app's debug metrics artifact.
 
 Why this is a reader and not a query: ``app.getAppMetrics()`` is an Electron-main
 API, readable only from inside that process. This CLI is a separate Python
@@ -11,7 +11,7 @@ The consequence worth stating plainly: the numbers here are the most recent
 samples the app wrote, not an instant captured on demand. If the app is not
 running with ``KIROCREW_DEBUG`` set, there is no artifact at all.
 
-Debug-only, and gated by the same ``KIROCREW_DEBUG`` check as ``kirocrew perf``.
+Debug-only, and gated by the same ``KIROCREW_DEBUG`` check as ``junction perf``.
 """
 
 from __future__ import annotations
@@ -302,7 +302,7 @@ def _desktop_metrics(args: argparse.Namespace) -> int:
 
 
 def desktop_cmd(args: argparse.Namespace) -> int:
-    """Dispatch a ``kirocrew desktop`` subcommand."""
+    """Dispatch a ``junction desktop`` subcommand."""
     if args.desktop_cmd == "metrics":
         return _desktop_metrics(args)
     print(f"Unknown desktop subcommand: {args.desktop_cmd}", file=sys.stderr)
@@ -310,7 +310,7 @@ def desktop_cmd(args: argparse.Namespace) -> int:
 
 
 def register_desktop_parser(sub: argparse._SubParsersAction) -> None:
-    """Register ``kirocrew desktop`` and its subcommands."""
+    """Register ``junction desktop`` and its subcommands."""
     parser = cli_help.add_command(sub, "desktop")
     # dest must NOT be "command": that collides with the top-level subparsers'
     # dest and silently overwrites the "desktop" value, so dispatch falls through

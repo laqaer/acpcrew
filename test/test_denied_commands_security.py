@@ -64,8 +64,10 @@ class TestCatalog:
         )
 
         for blocked in (
-            "kirocrew token",
-            "kirocrew token --port 6777",
+            "junction token",
+            "junction token --port 6777",
+            "acpcrew token",
+            "/usr/bin/junction token",
             'kirocrew "token"',
             "kirocrew -v --no-jail token",
             "kiro-crew token",
@@ -111,9 +113,9 @@ class TestCatalog:
             # not enforceable here. Found in review (GPT 5.6).
             "python -c \"import sys; sys.argv.append('token'); "
             'from kiro_crew.cli import main; main()"',
-            "python -c \"from kiro_crew.cli import main; import sys; "
+            'python -c "from kiro_crew.cli import main; import sys; '
             "sys.argv=['x','token']; main()\"",
-            'python -c "from kiro_crew.cli import main; main([\'token\'])"',
+            "python -c \"from kiro_crew.cli import main; main(['token'])\"",
             'python -c "import kiro_crew.cli as c; c.main()"',
             'python -X dev -c "import kiro_crew.cli"',
             # STDIN forms: `python -` and a bare interpreter read the program from stdin, so a
@@ -137,6 +139,9 @@ class TestCatalog:
             "grep token app.log",
             # Mentions the name AND the verb, but as another program's data.
             "echo kirocrew token",
+            "echo junction token",
+            "echo acpcrew token",
+            "pkill disjunction",
             "pytest test/test_token_auth.py",
             # The product as a module, but not the mint verb.
             "python -m kiro_crew gateway",
@@ -932,9 +937,7 @@ class TestIsDeniedReDoSResistance:
             fn()
             return 0.123
 
-        monkeypatch.setattr(
-            TestIsDeniedReDoSResistance, "_cpu_cost", staticmethod(fake_cpu_cost)
-        )
+        monkeypatch.setattr(TestIsDeniedReDoSResistance, "_cpu_cost", staticmethod(fake_cpu_cost))
         assert self._elapsed("git status") == 0.123
         assert len(calls) == 1
 
@@ -996,10 +999,9 @@ class TestIsDeniedReDoSResistance:
                         "2-spinner burst — the burst harness is not generating "
                         "in-process noise"
                     )
-            assert len(failures) <= 1, (
-                f"{len(failures)}/5 samples failed (need a majority to hold): "
-                + "; ".join(failures)
-            )
+            assert (
+                len(failures) <= 1
+            ), f"{len(failures)}/5 samples failed (need a majority to hold): " + "; ".join(failures)
         finally:
             stop.set()
             for thread in spinners:
@@ -1059,9 +1061,9 @@ class TestIsDeniedReDoSResistance:
         # (1) Routing: the chain rules stay on the literal-fragment fast path.
         chain_ids = {"sensitive-file-read-python-aws", "sensitive-file-read-python-ssh"}
         chain_rules = [r for r in BUILTIN_DENIED_RULES if r.id in chain_ids]
-        assert {r.id for r in chain_rules} == chain_ids, (
-            "the mid-dotstar chain rules under test are gone from the catalog"
-        )
+        assert {
+            r.id for r in chain_rules
+        } == chain_ids, "the mid-dotstar chain rules under test are gone from the catalog"
         for rule in chain_rules:
             matcher = _deny_matcher(rule.pattern)
             assert matcher._disabled is False
@@ -1618,6 +1620,11 @@ class TestSelfProtectionFloorIsAdditive:
             f"{_HYPH} {_TOK}",
             f"./bin/{_NAME} {_TOK}",
             f"{_NAME} -v --no-jail {_TOK}",
+            "junction token",
+            "junction -v --no-jail token",
+            "acpcrew token",
+            "pkill -f junction",
+            "killall acpcrew",
         ]
         for cmd in corpus:
             if rx.search(cmd.lower()):
@@ -1720,11 +1727,11 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            'python -c \'os.system("{n} {v}")\'',
-            'python -c \'os.popen("{n} {v}")\'',
+            "python -c 'os.system(\"{n} {v}\")'",
+            "python -c 'os.popen(\"{n} {v}\")'",
             'node -e \'require("child_process").execSync("{n} {v}")\'',
-            'php -r \'shell_exec("{n} {v}");\'',
-            'ruby -e \'system("{n} {v}")\'',
+            "php -r 'shell_exec(\"{n} {v}\");'",
+            "ruby -e 'system(\"{n} {v}\")'",
         ],
     )
     def test_sink_qualified_single_string_blocked(self, cmd):
@@ -1741,9 +1748,9 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            'python -c \'os.system("PKILL -f {n}")\'',
+            "python -c 'os.system(\"PKILL -f {n}\")'",
             'node -e \'require("child_process").execSync("PKILL -f {n}")\'',
-            'php -r \'shell_exec("KILLALL {n}");\'',
+            "php -r 'shell_exec(\"KILLALL {n}\");'",
         ],
     )
     def test_sink_qualified_single_string_kill_blocked(self, cmd):
@@ -1800,9 +1807,9 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            'python -c \'os.kill(pid_from("[k]irocrew gateway"), 9)\'',
-            'python -c \'os.killpg(pgid_of("{n}"), 15)\'',
-            'node -e \'process.kill(pidOf("{n}"), 9)\'',
+            "python -c 'os.kill(pid_from(\"[k]irocrew gateway\"), 9)'",
+            "python -c 'os.killpg(pgid_of(\"{n}\"), 15)'",
+            "node -e 'process.kill(pidOf(\"{n}\"), 9)'",
         ],
     )
     def test_direct_kill_api_blocked(self, cmd):
@@ -1847,8 +1854,8 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            'python -c \'os.system(f"{n} {v}")\'',
-            'python -c \'os.system(f"PKILL -f {n}")\'',
+            "python -c 'os.system(f\"{n} {v}\")'",
+            "python -c 'os.system(f\"PKILL -f {n}\")'",
             "python -c 'os.system(rb\"{n} {v}\")'",
         ],
     )
@@ -1915,7 +1922,7 @@ class TestInterpreterArgvLiteralMint:
             "python -c \"subprocess.run(['./bin/{n}','{v}'])\"",
             "python -c \"subprocess.run(['/usr/bin/PKILL','-f','{n}'])\"",
             'node -e \'execFileSync("/opt/{n}",["{v}"])\'',
-            'python -c \'os.system("/usr/bin/{n} {v}")\'',
+            "python -c 'os.system(\"/usr/bin/{n} {v}\")'",
         ],
     )
     def test_path_qualified_program_in_interpreter_argv_blocked(self, cmd):
@@ -1999,8 +2006,8 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            'python -c \'os.system("PKILL -f [k]irocrew")\'',
-            'node -e \'execSync("PKILL -f [k]irocrew")\'',
+            "python -c 'os.system(\"PKILL -f [k]irocrew\")'",
+            "node -e 'execSync(\"PKILL -f [k]irocrew\")'",
             "python -c \"subprocess.run(['PKILL','-f','[k]irocrew'])\"",
         ],
     )
@@ -2080,7 +2087,7 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            'node -e \'console.log("run {n} {v} to mint")\'',
+            "node -e 'console.log(\"run {n} {v} to mint\")'",
             "echo 'run PKILL {n} to stop it'",
             "python3 -c \"print('{n} docs mention {v}')\"",
             "git commit -m 'note: PKILL {n} rule'",
@@ -2095,8 +2102,16 @@ class TestInterpreterArgvLiteralMint:
     def test_literal_concatenation_is_no_longer_the_gap(self):
         """Adjacent string LITERALS are now joined before matching."""
         assembled = (
-            "python -c 'import os; os.system(" + Q + "kiro" + Q + " + "
-            + Q + "crew " + _TOK + Q + ")'"
+            "python -c 'import os; os.system("
+            + Q
+            + "kiro"
+            + Q
+            + " + "
+            + Q
+            + "crew "
+            + _TOK
+            + Q
+            + ")'"
         )
         assert _denied_by(assembled) == _RULE_MINT + "-argv"
 
@@ -2113,7 +2128,10 @@ class TestInterpreterArgvLiteralMint:
         """
         computed = (
             "python -c 'import os,base64; os.system(base64.b64decode("
-            + Q + "a2lyb2NyZXcgdG9rZW4=" + Q + ").decode())'"
+            + Q
+            + "a2lyb2NyZXcgdG9rZW4="
+            + Q
+            + ").decode())'"
         )
         assert _denied_by(computed) is not None
 
@@ -2157,17 +2175,13 @@ class TestRuleIdentityIsTheId:
     def test_a_governance_pin_resolves_by_id_not_pattern(self):
         rule = next(r for r in BUILTIN_DENIED_RULES if r.id == _RULE_MINT)
         # Pinned by ID, the rule survives even a blanket user disable.
-        assert compute_effective_denied([rule], {rule.id}, True, (), {rule.id}) == [
-            rule.pattern
-        ]
+        assert compute_effective_denied([rule], {rule.id}, True, (), {rule.id}) == [rule.pattern]
 
     def test_a_pattern_string_is_never_an_identity(self):
         rule = next(r for r in BUILTIN_DENIED_RULES if r.id == _RULE_KILL)
         # Passing the PATTERN where an id belongs disables nothing, which is precisely
         # why a pattern edit cannot weaken an existing policy.
-        assert compute_effective_denied([rule], {rule.pattern}, False, (), ()) == [
-            rule.pattern
-        ]
+        assert compute_effective_denied([rule], {rule.pattern}, False, (), ()) == [rule.pattern]
 
 
 class TestNameAsDataIsNotAnInvocation:
@@ -2875,7 +2889,7 @@ class TestSelfProtectionKillTargetScoping:
         "cmd,rule",
         [
             ('a=({n} {v}); "${{a[@]}}"', _RULE_MINT),
-            ('a=({n} {v}); ${{a[*]}}', _RULE_MINT),
+            ("a=({n} {v}); ${{a[*]}}", _RULE_MINT),
             ('arr=({n} {v}); "${{arr[@]}}"', _RULE_MINT),
             ('a=({n} {v}); echo hi; "${{a[@]}}"', _RULE_MINT),
             ('a=(PKILL -f {n}); "${{a[@]}}"', _RULE_KILL),
@@ -2918,9 +2932,7 @@ class TestSelfProtectionKillTargetScoping:
 
     def test_percent_format_without_a_sink_allowed(self):
         # `print` does not execute, so collapsing the format must not make it a mint.
-        text = (
-            "python3 -c " + chr(39) + 'print("' + _NAME + ' %s" % "' + _TOK + '")' + chr(39)
-        )
+        text = "python3 -c " + chr(39) + 'print("' + _NAME + ' %s" % "' + _TOK + '")' + chr(39)
         assert _denied_by(text) is None
 
     def test_percent_format_with_a_non_literal_argument_allowed(self):
@@ -2957,23 +2969,28 @@ class TestSelfProtectionKillTargetScoping:
         pattern tight, and sink qualification still decides.
         """
         text = (
-            "python3 -c " + chr(34) + "print(" + chr(39) + _NAME + chr(39) + "); log("
-            + chr(39) + _TOK + chr(39) + ")" + chr(34)
-        )
-        assert _denied_by(text) is None
-
-    def test_binding_used_by_a_non_sink_allowed(self):
-        text = (
-            "python3 -c " + chr(34) + "n=" + chr(39) + _NAME + chr(39) + "; print(n)"
+            "python3 -c "
+            + chr(34)
+            + "print("
+            + chr(39)
+            + _NAME
+            + chr(39)
+            + "); log("
+            + chr(39)
+            + _TOK
+            + chr(39)
+            + ")"
             + chr(34)
         )
         assert _denied_by(text) is None
 
+    def test_binding_used_by_a_non_sink_allowed(self):
+        text = "python3 -c " + chr(34) + "n=" + chr(39) + _NAME + chr(39) + "; print(n)" + chr(34)
+        assert _denied_by(text) is None
+
     def test_sink_named_in_prose_allowed(self):
         # Naming a sink is not calling one; sink qualification still governs.
-        assert _denied_by(
-            f'git commit -m "wrap getoutput for {_NAME} {_TOK}"'
-        ) is None
+        assert _denied_by(f'git commit -m "wrap getoutput for {_NAME} {_TOK}"') is None
 
     def test_transformation_of_something_harmless_allowed(self):
         assert _denied_by("K=ls; ${K:0} /tmp") is None
@@ -3017,9 +3034,7 @@ class TestSelfProtectionKillTargetScoping:
     def test_concatenation_without_a_sink_allowed(self):
         # `print` does not execute, so joining the literals must not make it a mint --
         # sink qualification still governs.
-        assert _denied_by(
-            "python3 -c \"print('" + _NAME + " '+'" + _TOK + "')\""
-        ) is None
+        assert _denied_by("python3 -c \"print('" + _NAME + " '+'" + _TOK + "')\"") is None
 
     def test_greedy_variable_name_is_not_a_concatenation(self):
         # bash parses `$xkill` as the variable `xkill` (unset), NOT `$x` followed by
@@ -3041,9 +3056,9 @@ class TestSelfProtectionKillTargetScoping:
 
     def test_asyncio_name_without_a_sink_call_allowed(self):
         # Naming the function in prose is not calling it; sink qualification still governs.
-        assert _denied_by(
-            f'git commit -m "wrap create_subprocess_shell for {_NAME} {_TOK}"'
-        ) is None
+        assert (
+            _denied_by(f'git commit -m "wrap create_subprocess_shell for {_NAME} {_TOK}"') is None
+        )
 
     @pytest.mark.parametrize(
         "cmd",
@@ -3201,7 +3216,7 @@ class TestCredentialMintSegmentScoping:
             f'bash -lc "{_NAME} {_TOK}"',
             f'zsh -c "{_NAME} pod {_TOK} wt"',
             f'eval "{_NAME} {_TOK}"',
-            f'bash -c \'bash -c "{_NAME} {_TOK}"\'',
+            f"bash -c 'bash -c \"{_NAME} {_TOK}\"'",
             f'bash -c "{_NAME} >/tmp/o {_TOK}"',
         ],
     )
@@ -3449,9 +3464,9 @@ class TestSelfFloorShortCircuit:
             "cat notes.txt",
             "npm run build",
         ):
-            assert self._descent_calls(monkeypatch, benign) == 0, (
-                f"descent ran for benign input: {benign!r}"
-            )
+            assert (
+                self._descent_calls(monkeypatch, benign) == 0
+            ), f"descent ran for benign input: {benign!r}"
 
     def test_name_carrying_command_still_descends(self, monkeypatch):
         # A real candidate must reach the full structural scan.
@@ -3477,11 +3492,11 @@ class TestSelfFloorShortCircuit:
             'k""iro""crew token',  # empty-string concatenation
             "kiro?rew token",  # glob the shell expands before exec
             "kill $(pgrep -f kirocrew)",  # bare kill via substitution
-            'python -c "exec(__import__(\'base64\').b64decode(\'x\'))" token',
+            "python -c \"exec(__import__('base64').b64decode('x'))\" token",
         ):
-            assert security._self_floor_can_fire(evasive), (
-                f"gate would bypass the floor for {evasive!r}"
-            )
+            assert security._self_floor_can_fire(
+                evasive
+            ), f"gate would bypass the floor for {evasive!r}"
 
     def test_gated_predicates_still_deny_the_obfuscation_corpus(self):
         """End-to-end: the predicates (with the gate in front) keep firing."""
@@ -3508,9 +3523,7 @@ class TestSelfFloorShortCircuit:
             "grep token app.log",
             "cat /workplace/user/notes.txt",
         ):
-            assert not security._self_floor_can_fire(plain), (
-                f"gate over-triggered on {plain!r}"
-            )
+            assert not security._self_floor_can_fire(plain), f"gate over-triggered on {plain!r}"
 
     def test_tilde_expansion_still_reaches_the_floor(self, monkeypatch):
         """``pkill -f ~`` IS a self-kill whenever $HOME lies under the product
@@ -3526,9 +3539,7 @@ class TestSelfFloorShortCircuit:
         monkeypatch.setenv("HOME", "/opt/kiro-crew")
         monkeypatch.setenv("USERPROFILE", "/opt/kiro-crew")
         for kill in ("pkill -f ~", "killall ~", "pkill -f ~/"):
-            assert security._self_floor_can_fire(kill), (
-                f"gate would bypass the floor for {kill!r}"
-            )
+            assert security._self_floor_can_fire(kill), f"gate would bypass the floor for {kill!r}"
         # End-to-end: the gated predicate still denies it.
         assert security._is_self_kill("pkill -f ~")
 
@@ -3552,9 +3563,9 @@ class TestSelfFloorShortCircuit:
         assert not security._SELF_FLOOR_MACHINERY_RE.search(cmd)
         assert not security._INLINE_DYNAMIC_EXEC_RE.search(cmd)
 
-        assert security._self_floor_can_fire(cmd), (
-            "gate would bypass the floor for quote-glued dynamic exec"
-        )
+        assert security._self_floor_can_fire(
+            cmd
+        ), "gate would bypass the floor for quote-glued dynamic exec"
         # And the floor's verdict survives the gate: still denied end-to-end.
         assert security._is_credential_mint(cmd)
 

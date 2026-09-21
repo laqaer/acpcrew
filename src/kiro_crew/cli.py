@@ -13,7 +13,8 @@ Commands:
     junction spawn list           List subagents
     junction learn add|list|remove Save and manage learned corrections
     junction setup                Interactive setup wizard
-    junction doctor               Verify setup
+    junction doctor               Verify setup (--quick is compose-only)
+    junction planes               Harness + model + role DAG snapshot
     junction router status        Probe optional model-router sidecar
 """
 
@@ -482,13 +483,13 @@ def _resolve_gateway_args(args: argparse.Namespace) -> dict:
                 port_int = int(port)
             except ValueError:
                 print(
-                    f"👻 --port must be an integer or 'auto', got {port!r}.",
+                    f"--port must be an integer or 'auto', got {port!r}.",
                     file=sys.stderr,
                 )
                 sys.exit(2)
             if not 1 <= port_int <= 65535:
                 print(
-                    f"👻 --port {port_int} out of range (1..65535).",
+                    f"--port {port_int} out of range (1..65535).",
                     file=sys.stderr,
                 )
                 sys.exit(2)
@@ -498,7 +499,7 @@ def _resolve_gateway_args(args: argparse.Namespace) -> dict:
         home_env = os.environ.get("KIROCREW_HOME", "")
         if not home_env:
             print(
-                "👻 --approval yolo refused: KIROCREW_HOME must be explicitly set "
+                "--approval yolo refused: KIROCREW_HOME must be explicitly set "
                 "to an isolated path (not the default ~/.kiro/crew).",
                 file=sys.stderr,
             )
@@ -521,13 +522,13 @@ def _resolve_gateway_args(args: argparse.Namespace) -> dict:
                     protected_homes.add(home)
         except OSError as exc:
             print(
-                f"👻 --approval yolo refused: failed to resolve KIROCREW_HOME: {exc}",
+                f"--approval yolo refused: failed to resolve KIROCREW_HOME: {exc}",
                 file=sys.stderr,
             )
             sys.exit(2)
         if home_resolved in protected_homes:
             print(
-                "👻 --approval yolo refused: KIROCREW_HOME resolves to a main "
+                "--approval yolo refused: KIROCREW_HOME resolves to a main "
                 f"gateway home ({home_resolved}). Set KIROCREW_HOME to an isolated "
                 "path before re-running.",
                 file=sys.stderr,
@@ -1039,6 +1040,11 @@ Examples:
         "--bundle",
         action="store_true",
         help="Collect logs + crash reports into a redacted diagnostics zip",
+    )
+    _doctor_parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Compose both planes and the role DAG; skip the full probe",
     )
 
     # gateway
@@ -1913,6 +1919,21 @@ Examples:
         help="Dashboard port (default: resolved from KIROCREW_PORT env or dashboard.url config)",
     )
 
+    planes_parser = cli_help.add_command(sub, "planes")
+    planes_parser.add_argument(
+        "--port",
+        dest="router_port",
+        type=int,
+        default=None,
+        help="Model-plane router port (default: MODEL_ROUTER_PORT or 4202)",
+    )
+    planes_parser.add_argument(
+        "--json",
+        dest="as_json",
+        action="store_true",
+        help="Print the snapshot as one JSON object (no human lines)",
+    )
+
     router_parser = cli_help.add_command(sub, "router")
     router_sub = router_parser.add_subparsers(dest="router_action", required=True)
     router_status = router_sub.add_parser(
@@ -2451,7 +2472,7 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
         try:
             _gw_lock = GatewayLock(config_dir(), port=_diagnostic_port(gw_kwargs)).acquire()
         except GatewayLockError as exc:
-            print(f"👻 {exc}", file=sys.stderr)
+            print(f"{exc}", file=sys.stderr)
             sys.exit(1)
         try:
             asyncio.run(_gateway(**gw_kwargs))
@@ -2466,7 +2487,11 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
             whatsapp=getattr(args, "whatsapp", False),
         )
     elif args.command == "doctor":
-        _doctor(platform_boot_error=_platform_boot_error, bundle=getattr(args, "bundle", False))
+        _doctor(
+            platform_boot_error=_platform_boot_error,
+            bundle=getattr(args, "bundle", False),
+            quick=getattr(args, "quick", False),
+        )
     elif args.command == "manifest":
         _manifest(
             alias=getattr(args, "alias", None),
@@ -2604,6 +2629,10 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
         from kiro_crew.cli_server import _status
 
         _status(args)
+    elif args.command == "planes":
+        from kiro_crew.planes import run_planes_command
+
+        run_planes_command(args)
     elif args.command == "router":
         from kiro_crew.model_router.cli import run_router_command
 

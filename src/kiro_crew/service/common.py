@@ -250,13 +250,11 @@ def headless_auth_warning(environ: "Mapping[str, str] | None" = None) -> str:
         f"   to {dotenv} (0600) and restart the service:",
         "",
         f"     {remedy}",
-        "     kirocrew service restart",
+        "     junction service restart",
     ]
     if _home_override_is_set(environ):
         lines.append("")
-        lines.append(
-            "   KIROCREW_HOME is set here but is also not inherited, so confirm"
-        )
+        lines.append("   KIROCREW_HOME is set here but is also not inherited, so confirm")
         lines.append("   that path is the home the service actually starts with.")
     return "\n".join(lines)
 

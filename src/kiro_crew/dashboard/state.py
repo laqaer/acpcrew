@@ -239,7 +239,7 @@ _build_info: tuple[str, str] = ("", "")
 
 
 # Auto-minted dashboard slot keys share the shape "<prefix>-<N>-<ts>" where
-# <prefix> is chat (the only auto-mint prefix in this fork), <N> is the
+# <prefix> is chat (the only auto-mint prefix), <N> is the
 # monotonic _slot_counter, and <ts> is a unix second. Minting and index-parsing
 # both go through these helpers so the format lives in exactly one place — a
 # future change to the key shape can't silently desync the minter from

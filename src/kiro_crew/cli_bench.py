@@ -1,6 +1,6 @@
-"""``kirocrew bench`` -- external memory benchmarks (LongMemEval, LoCoMo).
+"""``junction bench`` -- external memory benchmarks (LongMemEval, LoCoMo).
 
-A separate command from ``kirocrew eval`` because they answer different questions.
+A separate command from ``junction eval`` because they answer different questions.
 ``eval`` runs four hand-written scenarios carrying nineteen substring assertions in
 a single pass: a fine smoke test, and a poor instrument for "did this change help",
 since one flipped assertion out of nineteen is indistinguishable from sampling
@@ -59,7 +59,7 @@ def _positive_int(raw: str) -> int:
 
 
 def register_bench_parser(sub: argparse._SubParsersAction) -> None:
-    """Wire ``kirocrew bench`` into the top-level parser."""
+    """Wire ``junction bench`` into the top-level parser."""
     parser = cli_help.add_command(
         sub,
         "bench",
@@ -206,7 +206,7 @@ def _bench_dispatch(args: argparse.Namespace) -> int:
     """Route to a subcommand. Returns a process exit code."""
     action = getattr(args, "bench_action", None)
     if action is None:
-        print("usage: kirocrew bench {list,fetch,retrieval,compare}")
+        print("usage: junction bench {list,fetch,retrieval,compare}")
         return 2
 
     # Deferred deliberately, and measured. `cli.py` imports this module at module
@@ -254,7 +254,7 @@ def _load_report(path: str, label: str) -> dict:
 
     The one that actually matters is the principal. These paths come from argv,
     and in this product argv is not always typed by the human who owns the
-    machine -- an agent can run any CLI command, so ``kirocrew bench compare
+    machine -- an agent can run any CLI command, so ``junction bench compare
     ~/.aws/credentials x.json`` is a reachable invocation. ``safe_read_file``
     canonicalizes through symlinks, re-checks the RESOLVED target against
     ``is_sensitive_path``, and opens with ``O_NOFOLLOW``; without it this
@@ -299,7 +299,7 @@ def _load_report(path: str, label: str) -> dict:
         print(
             f"error: the {label} report is not valid JSON. A report truncated by "
             "an interrupted run is the usual cause -- re-run "
-            "'kirocrew bench retrieval' to regenerate it."
+            "'junction bench retrieval' to regenerate it."
         )
         raise _BenchError(1) from None
 

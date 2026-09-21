@@ -1,4 +1,4 @@
-"""``kirocrew computer`` — human-facing computer-use diagnostics and a debug driver.
+"""``junction computer`` — human-facing computer-use diagnostics and a debug driver.
 
 Three subcommands:
 
@@ -14,7 +14,7 @@ Three subcommands:
 * ``call`` — run ONE computer-use tool, or a JSON array of them **in a single
   process**, against the same dispatch chokepoint the agent uses. See below.
 
-Deliberately NO ``kirocrew computer state <app>``. That would be a second,
+Deliberately NO ``junction computer state <app>``. That would be a second,
 CLI-shaped spelling of an LLM-facing capability, and the MCP-first rule requires
 an LLM-facing capability to be an MCP tool (it is: ``computer_get_state``).
 ``doctor`` is a permission diagnostic rather than a capability, and ``apps`` has
@@ -47,7 +47,7 @@ stating rather than discovering:
 **Why a whole array in one process.** ``element_index`` values only mean anything
 relative to the ``computer_get_state`` that produced them, and the cache that
 holds that mapping (``index.SnapshotIndex``, reached via the shared service
-singleton) is per-process with a 90s TTL. Two ``kirocrew computer call``
+singleton) is per-process with a 90s TTL. Two ``junction computer call``
 invocations therefore cannot share indices at all — the second would refuse with
 "no state for …". ``--calls`` exists so a snapshot-then-act sequence is
 reproducible from one command line, which is the shape the reference
@@ -118,7 +118,7 @@ _CALL_KEY_TOOL = "tool"
 _CALL_KEY_ARGS = "args"
 _CALL_KEYS: frozenset[str] = frozenset({_CALL_KEY_TOOL, _CALL_KEY_ARGS})
 
-_USAGE = """kirocrew computer — desktop automation (computer use) diagnostics
+_USAGE = """junction computer — desktop automation (computer use) diagnostics
 
 Commands:
   doctor           Show platform support, whether computer use is enabled, and
@@ -148,12 +148,12 @@ dashboard: Settings -> Computer Use. An agent cannot enable it.
 
 
 def main() -> None:
-    """Console entry point (``kirocrew computer ...``)."""
+    """Console entry point (``junction computer ...``)."""
     run_computer(sys.argv[1:])
 
 
 def run_computer(args: list[str]) -> None:
-    """Entry point for ``kirocrew computer <subcommand>``."""
+    """Entry point for ``junction computer <subcommand>``."""
     if not args:
         print(_USAGE)
         return
@@ -170,7 +170,7 @@ def run_computer(args: list[str]) -> None:
     if cmd == "call":
         _cmd_call(args[1:])
         return
-    print(f"Unknown command: {cmd}. Run 'kirocrew computer' for help.", file=sys.stderr)
+    print(f"Unknown command: {cmd}. Run 'junction computer' for help.", file=sys.stderr)
     sys.exit(_EXIT_PROBLEM)
 
 
@@ -299,7 +299,7 @@ def _cmd_apps() -> None:
     Routing it through ``dispatch_tool`` costs the operator nothing they should
     have had: ``computer_list_apps`` renders the same list, filtered by the app
     denylist and the observation ceiling. If the answer is a refusal, that refusal
-    IS the diagnostic — and ``kirocrew computer doctor`` (which reads only the
+    IS the diagnostic — and ``junction computer doctor`` (which reads only the
     keystone and the TCC state, never the window list) is still the ungated way to
     find out why the feature is off.
     """

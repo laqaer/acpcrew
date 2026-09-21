@@ -298,7 +298,7 @@ def _tui(args: argparse.Namespace) -> None:
 
     if not tui_js:
         print("TUI not built. Run: cd tui && npm install && npm run build")
-        print("  (or use: kirocrew chat  /  kirocrew gateway)")
+        print("  (or use: junction chat  /  junction gateway)")
         sys.exit(1)
 
     # Check node against the shared floor
@@ -391,7 +391,7 @@ def _run_chat(message: str | None, model: str | None, agent: str | None = None) 
     try:
         asyncio.run(_chat(message, model, agent=agent))
     except KeyboardInterrupt:
-        print("\nBye! 👻")
+        print("\nBye!")
 
 
 def _can_prompt(interactive: bool) -> bool:
@@ -884,7 +884,7 @@ async def _answer_permission(
             _print_permission_notice(
                 f"\nDenied automatically: {safe_title} needs approval, "
                 "and this invocation cannot ask.\n"
-                "   Run `kirocrew chat` from a terminal to approve tool calls."
+                "   Run `junction chat` from a terminal to approve tool calls."
             )
         except Exception:
             logger.warning("Could not prepare the CLI noninteractive-denial notice", exc_info=True)
@@ -1041,13 +1041,13 @@ async def _interactive(
         try:
             message = input("you> ").strip()
         except (EOFError, KeyboardInterrupt):
-            print("\nBye! 👻")
+            print("\nBye!")
             break
 
         if not message:
             continue
         if message.lower() in ("exit", "quit", "/exit", "/quit", ":q"):
-            print("Bye! 👻")
+            print("Bye!")
             break
 
         await _send_and_print(provider, message, interactive=True, gate=gate)

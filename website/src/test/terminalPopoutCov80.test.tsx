@@ -58,7 +58,7 @@ describe('terminalPopout window control', () => {
     expect(open).toHaveBeenCalledTimes(1)
     const [url, name] = open.mock.calls[0]
     expect(String(url)).toBe(`${window.location.origin}/popout/terminal`)
-    expect(name).toBe('mc-popout-terminal')
+    expect(name).toBe('junction-popout-terminal')
     // Synchronously true — callers distinguish a real open from a vetoed one
     // without waiting for a heartbeat round-trip.
     expect(isPopoutOpen()).toBe(true)

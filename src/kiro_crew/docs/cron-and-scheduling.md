@@ -1,6 +1,6 @@
 # Cron Jobs & Scheduling
 
-Kiro Crew can run tasks on a schedule — recurring checks, daily briefings,
+Junction can run tasks on a schedule — recurring checks, daily briefings,
 periodic monitoring, or one-shot reminders.
 
 ## Creating Cron Jobs
@@ -13,7 +13,7 @@ Just ask naturally:
 - "Run a status check every 5 minutes"
 - "Send me a briefing tomorrow at 8am"
 
-Kiro Crew uses the `cron_add` MCP tool to create the job.
+Junction uses the `cron_add` MCP tool to create the job.
 
 ### Via Dashboard
 
@@ -53,7 +53,7 @@ cron resume <id>
 ## How It Works
 
 1. The cron timer fires at the scheduled time
-2. Kiro Crew creates a fresh LLM session for the job
+2. Junction creates a fresh LLM session for the job
 3. The agent executes the prompt (with full tool access)
 4. Results are posted to Slack DM and the dashboard
 5. The session is cleaned up
@@ -152,7 +152,7 @@ cron_update(job_id="abc123", skip_dates=["2026-12-25", "2026-12-26"])
 ## Execution Jitter
 
 To avoid traffic spikes from thousands of users' jobs all firing at the same
-instant, Kiro Crew adds a small random delay before executing scheduled jobs:
+instant, Junction adds a small random delay before executing scheduled jobs:
 
 | Schedule frequency | Jitter range |
 |--------------------|-------------|
@@ -179,18 +179,18 @@ Via Dashboard: toggle "Strict schedule" when creating or editing a job.
 
 | Action | Dashboard | Slack | CLI |
 |--------|-----------|-------|-----|
-| List | Overview → Cron tab | `cron list` | `kirocrew cron list` |
+| List | Overview → Cron tab | `cron list` | `junction cron list` |
 | Pause | Pause button | `cron pause <id>` | — |
 | Resume | Resume button | `cron resume <id>` | — |
-| Delete | Delete button | `cron remove <id>` | `kirocrew cron remove <id>` |
-| Adopt / release | — | — | `kirocrew cron adopt <id> --session-of <slot>` / `--release` |
+| Delete | Delete button | `cron remove <id>` | `junction cron remove <id>` |
+| Adopt / release | — | — | `junction cron adopt <id> --session-of <slot>` / `--release` |
 
 ### Which chat session owns a job
 
 A job's `session_key` names the chat session it belongs to, and that one field
 carries one meaning: it is also where the job's output is delivered
 (`session="origin"` sends and script results both resolve a slot from it). A job
-created outside a chat — `kirocrew cron add`, the dashboard Schedule page, an
+created outside a chat — `junction cron add`, the dashboard Schedule page, an
 onboarding import — therefore has no owning session, which is truthful rather
 than a defect: there is no chat to deliver into.
 
@@ -199,12 +199,12 @@ that disappeared. A job with no owning session is outside every chat session's
 scope: `cron_list` from chat does not list it, and the mutating cron tools answer
 a deliberately vague `job not found` so the reply cannot be used to enumerate
 jobs the caller may not see. Those jobs are managed from the operator surfaces
-instead: `kirocrew cron list`, which is the only surface that shows *who* owns a
+instead: `junction cron list`, which is the only surface that shows *who* owns a
 job, and the dashboard Schedule page, which lists and manages every job regardless
 of owner but does not yet display ownership (its API payload does not carry
 `session_key`).
 
-`kirocrew cron adopt` is the way across that line, in both directions:
+`junction cron adopt` is the way across that line, in both directions:
 
 ```
 kirocrew cron adopt <id> --session-of chat-3-1712793600   # hand it to a session

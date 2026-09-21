@@ -1,15 +1,15 @@
 # Harness parity: Kiro first, everything else adapted
 
-**This fork (acpcrew) inverts H1's default, not H5–H12.** `agent.acp_backend`
+**Junction inverts H1's default, not H5–H12.** `agent.acp_backend`
 defaults to `auto` (first installed spec-family ACP runtime). kiro-cli remains
 selectable and optional. Identity is still a positive comparison; capabilities
 are still opt-in membership sets. Unknown values degrade to `auto`, not kiro-cli.
 Pinned by `test_harness_parity.py::test_auto_is_the_default_backend` and
 `::test_unselectable_backend_degrades_to_auto`.
 
-A *harness* is the agent process Kiro Crew drives over ACP. Upstream has one
-first-class harness — `kiro-cli` (`ACP_BACKEND_KIRO`, spelled `""`) — and a
-growing set of adapted ones. This fork adds the spec-family set in
+A *harness* is the agent process Junction drives over ACP. The first-class
+harness in this lineage is `kiro-cli` (`ACP_BACKEND_KIRO`, spelled `""`), with a
+growing set of adapted ones. Junction adds the spec-family set in
 `ACP_BACKENDS_SPEC_FAMILY` (cursor, claude, codex, dsh, pi, kimi, goose, grok,
 droid) plus `ACP_BACKEND_AUTO`.
 

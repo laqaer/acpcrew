@@ -1,6 +1,6 @@
 ---
 name: marketing-site
-description: "Junction marketing site under site/. Use when changing hero, tagline, motif, or preview deploy. Keep the amber; drop the ghost emoji; Junction / track motif; no emoji icons. Preview only — not Pages-on-main."
+description: "Junction marketing site under site/. Use when changing hero, tagline, motif, or deploy. Keep copper rails; drop the ghost emoji; Junction / track motif; no emoji icons. Hobby Vercel on getjunction.dev — not Pages-on-main."
 ---
 
 # Marketing site
@@ -19,5 +19,5 @@ Code: `site/` (not `website/` — that is the dashboard SPA). Identity:
   icons (lucide on the dashboard; site follows the same no-emoji rule).
 - Drop the ghost emoji and the mint default palette (those read as
   another product). Dashboard factory default is ink + copper.
-- Vercel **preview** of `site/` only, hobby, no spend. No production
-  Pages-on-main, no DNS.
+- Vercel hobby deploy of `site/` to https://getjunction.dev. No GitHub
+  Pages-on-main.

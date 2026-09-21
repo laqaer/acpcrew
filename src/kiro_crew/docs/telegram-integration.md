@@ -1,18 +1,18 @@
 # Telegram Integration
 
-Chat with your Kiro Crew agent right from Telegram — on your phone, your laptop,
+Chat with your Junction agent right from Telegram — on your phone, your laptop,
 anywhere. Create a bot, paste one token, and you're talking. Replies stream back
 live, with tappable option buttons.
 
 Telegram is the quickest channel to set up: just a bot token, no plugins, and it
-works from behind a firewall — Kiro Crew reaches out to Telegram, so there's
+works from behind a firewall — Junction reaches out to Telegram, so there's
 nothing to expose.
 
-## The easy way: just ask Kiro Crew
+## The easy way: just ask Junction
 
-You don't have to edit anything by hand. In any Kiro Crew session — the
+You don't have to edit anything by hand. In any Junction session — the
 dashboard, Slack, or the CLI — say something like *"set up the Telegram
-channel."* Kiro Crew walks you through creating the bot, then writes the token
+channel."* Junction walks you through creating the bot, then writes the token
 and your user ID into `~/.kiro/crew/.env` and `config.json` and restarts the
 gateway for you. You just hand it the bot token when it asks.
 
@@ -20,7 +20,7 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ## Quick start
 
-You'll need a running gateway (`kirocrew gateway`) and a Telegram account.
+You'll need a running gateway (`junction gateway`) and a Telegram account.
 
 1. **Create a bot** — message **@BotFather**, send `/newbot`, and follow the
    prompts. You'll get a token like `123456789:AA…`.
@@ -36,7 +36,7 @@ You'll need a running gateway (`kirocrew gateway`) and a Telegram account.
    ```
 5. **Restart, then say hi:**
    ```bash
-   kirocrew restart
+   junction restart
    ```
 
 Send your bot a message and it answers. If it stays quiet, check that your ID is
@@ -45,7 +45,7 @@ log.
 
 ## Who can reach it
 
-> **Kiro Crew runs on your machine, with your files and credentials.** So it only
+> **Junction runs on your machine, with your files and credentials.** So it only
 > talks to people you name — and only in private chats.
 
 - Trusted numeric IDs go in `allowed_user_ids`; an empty list means nobody.

@@ -596,7 +596,7 @@ describe('ToolCallLine auto-denied detection', () => {
     const store = createTestStore({
       chat: {
         messages: [pill, denySibling],
-        toolLog: [{ type: 'tool', text: 'kirocrew token', tool_call_id: 'tc_deny', output: 'User denied tool execution', ts: 1 }],
+        toolLog: [{ type: 'tool', text: 'junction token', tool_call_id: 'tc_deny', output: 'User denied tool execution', ts: 1 }],
         slotRunning: false,
       } as unknown as ChatState,
     })

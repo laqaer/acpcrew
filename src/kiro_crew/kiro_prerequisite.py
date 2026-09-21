@@ -1,10 +1,11 @@
 """Cross-platform Kiro CLI readiness detection.
 
-The public KiroCrew provider is KiroACP-only, so a healthy, authenticated
-``kiro-cli`` is a hard runtime prerequisite. This module's job is to answer one
+Junction docks ACP runtimes; ``kiro-cli`` is optional. This module answers one
 question about the gateway host: **is there a Kiro CLI that runs, and is it
 signed in?** It answers that by running the CLI's own read-only probes
-(``--version``, then ``whoami``) inside the OS sandbox.
+(``--version``, then ``whoami``) inside the OS sandbox. A missing kiro-cli does
+not block the control plane after ``junction setup`` writes the first-run
+marker.
 
 **It performs no setup of its own.** Both setup steps belong to Kiro CLI and are
 taken by the user:
@@ -56,6 +57,7 @@ from kiro_crew.agent_files import AGENT_FILENAME
 from kiro_crew.atomic_write import atomic_write
 from kiro_crew.config.loader import CRED_KIRO_API_KEY, read_env_file_credential
 from kiro_crew.config.paths import config_dir
+from kiro_crew.config.paths import data_home as resolve_data_home
 from kiro_crew.kiro_cli import (
     find_kiro_cli_candidates,
     known_kiro_cli_dirs,
@@ -765,9 +767,7 @@ def _project_identity_database(source: Path, destination: Path) -> bool:
                     if not table_rows:
                         continue
                     placeholders = ",".join("?" * len(table_rows[0]))
-                    staged.executemany(
-                        f'INSERT INTO "{table}" VALUES ({placeholders})', table_rows
-                    )
+                    staged.executemany(f'INSERT INTO "{table}" VALUES ({placeholders})', table_rows)
     except sqlite3.Error:
         with contextlib.suppress(OSError):
             os.unlink(str(destination))
@@ -1146,7 +1146,9 @@ def _ensure_auth_staging_parent(home: Path) -> Path:
             # private directory. Only abort if a non-directory we cannot clear is
             # STILL sitting here; otherwise fall through to the idempotent mkdir.
             # (#561, concurrent-boot race)
-            if staging_parent.is_symlink() or (staging_parent.exists() and not staging_parent.is_dir()):
+            if staging_parent.is_symlink() or (
+                staging_parent.exists() and not staging_parent.is_dir()
+            ):
                 raise OSError(
                     f"Kiro auth staging root {staging_parent} is not a private "
                     "directory and could not be reset"
@@ -1811,8 +1813,27 @@ def _probe_filesystem_state(
     return probe_environment, candidates
 
 
+def write_setup_complete_marker(home: Path | None = None) -> Path:
+    """Record that first-run setup finished. kiro-cli is not required.
+
+    The dashboard first-run gate keys off this marker (and on sessions/history).
+    Writing it from ``junction setup`` is what lets an operator open the
+    dashboard after docking Cursor, Claude, Codex, or another ACP runtime
+    without installing kiro-cli.
+    """
+    target = home if home is not None else resolve_data_home()
+    marker = target / _SETUP_COMPLETE_FILENAME
+    atomic_write(
+        marker,
+        "complete\n",
+        fsync=True,
+        restrict_to_owner=True,
+    )
+    return marker
+
+
 def _established_installation(data_home: Path) -> bool:
-    """Recognize an existing Kiro Crew home when migrating onto the setup marker."""
+    """Recognize an existing Junction home when migrating onto the setup marker."""
 
     marker = data_home / _SETUP_COMPLETE_FILENAME
     if marker.is_file():
@@ -2205,7 +2226,7 @@ class KiroPrerequisiteService:
             if not error and (result.get("missing_agent_specs") or []):
                 error = (
                     "The rebuild reported success but the specs are still missing. "
-                    "Run `kirocrew setup --agent-only --clean` on the gateway host."
+                    "Run `junction setup --agent-only --clean` on the gateway host."
                 )
             result["agent_spec_repair_error"] = error
             return result
@@ -2650,11 +2671,7 @@ class KiroPrerequisiteService:
                     )
                     self._stamp_probe(probe_identity)
                     return self._status
-                if (
-                    version_probe is not None
-                    and version_probe.timed_out
-                    and candidate_runnable
-                ):
+                if version_probe is not None and version_probe.timed_out and candidate_runnable:
                     # A probe that never answered is not evidence of absence. The
                     # spawn was accepted and raised no typed failure, so the
                     # sandbox branch above cannot claim it, and falling through to
@@ -2731,9 +2748,7 @@ class KiroPrerequisiteService:
             # cannot even resolve itself without its real-home registry — so the
             # isolated probe reported such CLIs signed-out even though a real
             # session authenticates fine.
-            whoami = await self._audited_identity_probe(
-                self._viable_binary, isolate_home=False
-            )
+            whoami = await self._audited_identity_probe(self._viable_binary, isolate_home=False)
             if whoami.ok:
                 await asyncio.to_thread(self._mark_setup_complete)
             # Acceptance is checked here, on the probe path, because it costs a
@@ -2745,9 +2760,7 @@ class KiroPrerequisiteService:
             rejected: list[str] = []
             rejection_detail = ""
             if whoami.ok:
-                rejected, rejection_detail = await self._probe_spec_acceptance(
-                    self._viable_binary
-                )
+                rejected, rejection_detail = await self._probe_spec_acceptance(self._viable_binary)
             self._status = PrerequisiteStatus(
                 platform=_platform_label(self._platform),
                 installed=True,
@@ -3037,17 +3050,7 @@ class KiroPrerequisiteService:
     def _mark_setup_complete(self) -> None:
         if self._initial_setup_complete:
             return
-        # restrict_to_owner=True locks the temp file down before the content
-        # reaches it and implies 0o600, replacing the previous mode= plus
-        # post-rename restrict_to_owner pair, whose lockdown landed only after
-        # the marker was already published under the inherited DACL on Windows
-        # (issue #5285).
-        atomic_write(
-            self._setup_marker,
-            "complete\n",
-            fsync=True,
-            restrict_to_owner=True,
-        )
+        write_setup_complete_marker(self._data_home)
         self._initial_setup_complete = True
 
     async def _set_terminal_audit(

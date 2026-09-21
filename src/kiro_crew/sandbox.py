@@ -2766,7 +2766,7 @@ def _no_backend_guidance() -> str:
         return (
             base
             + (
-                "Run `kirocrew service install` to install the profile and have "
+                "Run `junction service install` to install the profile and have "
                 "systemd apply it to the gateway unit. Do NOT set the sysctl to 0: "
                 "that disables a kernel-wide protection for every application on the "
                 "machine. "
