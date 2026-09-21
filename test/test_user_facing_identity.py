@@ -128,6 +128,15 @@ def test_operator_install_script_is_junction(tmp_path: Path) -> None:
     assert "KiroCrew" not in minimal  # brand-ok: asserting the concatenated token is absent
     assert "kirodotdev" not in minimal
     assert "ollama pull" not in minimal
+    checkout = (_REPO_ROOT / "install.sh").read_text(encoding="utf-8")
+    assert "Junction installed." in checkout
+    assert "junction up" in checkout
+    assert "A vendor agent CLI is optional" in checkout
+    assert "👻" not in checkout
+    assert "Your personal AI agent" not in checkout
+    assert "kiro.dev" not in checkout
+    assert "kirodotdev" not in checkout
+    assert "kirocrew gateway" not in checkout
     env = os.environ.copy()
     env["HOME"] = str(tmp_path)
     env["JUNCTION_SRC"] = str(tmp_path / "src")
