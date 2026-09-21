@@ -4,9 +4,9 @@
       "paste_token_url_or_raw_token": "トークン URL またはトークンを貼り付け…",
       "rate_limited_by_the_tunnel_edge_http_429_too_man": "トンネルエッジでレート制限されています (HTTP 429) — バーストでリクエストが多すぎます。ダッシュボードは自動的に再試行します。これが続く場合は、数秒待ってからリロードしてください。",
       "session_expired": "セッションの有効期限が切れました。",
-      "session_expired_sign_in_again": "セッションの有効期限が切れました。ターミナルで kirocrew token を実行し、このページ上部のバナーに URL を貼り付けて再度サインインしてください。",
+      "session_expired_sign_in_again": "セッションの有効期限が切れました。ターミナルで junction token を実行し、このページ上部のバナーに URL を貼り付けて再度サインインしてください。",
       "stale_owner_session": "このセッションはオーナー設定前のものです。再度サインインしてください。",
-      "stale_owner_session_sign_in_again": "このセッションはオーナー設定前のものです（KIROCREW_OWNER_ID の設定前にサインインされました）。ターミナルで kirocrew token を実行し、このページ上部のバナーに URL を貼り付けて再度サインインしてください。",
+      "stale_owner_session_sign_in_again": "このセッションはオーナー設定前のものです（KIROCREW_OWNER_ID の設定前にサインインされました）。ターミナルで junction token を実行し、このページ上部のバナーに URL を貼り付けて再度サインインしてください。",
       "stream_ended_without_completion": "ストリームが完了せずに終了しました",
       "unexpected_server_response": "予期しないサーバーレスポンス"
     }
@@ -89,7 +89,7 @@
     "skip_to_content": "コンテンツにスキップ",
     "social_login": "ソーシャルログイン",
     "stale_fetch_failing": "（古い情報：取得に失敗）",
-    "star_kirocrew_on_github": "GitHub で Kiro Crew にスター",
+    "star_kirocrew_on_github": "GitHub で {{productName}} にスター",
     "star_us": "スターをください",
     "starting_update": "更新を開始中…",
     "syncing_workspace": "ワークスペースを同期中",
@@ -4785,7 +4785,7 @@
       "trust_tooltip": "このチャットでは、{{productName}} は最初に確認せずに機能します",
       "yolo_desc": "すべてのチャットで、{{productName}} は最初に確認せずに機能します",
       "yolo_expiration_timed": "{{duration}} 後に自動的にオフになり、その後再び確認します。",
-      "yolo_expiration_until_shutdown": "Kiro Crew が再起動されるまでオンのままです—タイムアウト有効期限はありません。",
+      "yolo_expiration_until_shutdown": "{{productName}} が再起動されるまでオンのままです—タイムアウト有効期限はありません。",
       "yolo_label": "YOLO",
       "yolo_mode_is_an_app_wide_setting": "YOLO モードはアプリ全体の設定です",
       "yolo_tooltip": "すべてのチャットで、{{productName}} は最初に確認せずに機能します"
@@ -6070,7 +6070,7 @@
       "skip_all_setup_and_onboarding": "すべてのセットアップとオンボーディングをスキップ"
     },
     "onboardingFlow": {
-      "answers_set_how_kiro_explains_things_plain_langu": "回答は Kiro の説明方法を設定します。平易な言葉か完全な技術詳細か。このデバイスに保存されます。設定 → チャットからいつでも変更できます。",
+      "answers_set_how_kiro_explains_things_plain_langu": "回答は {{productName}} の説明方法を設定します。平易な言葉か完全な技術詳細か。このデバイスに保存されます。設定 → チャットからいつでも変更できます。",
       "back": "戻る",
       "change_anything_later_in_settings": "設定でいつでも変更できます。",
       "choose_a_color_theme_and_mode_you_can_change_it": "配色テーマとモードを選択してください。いつでも変更できます。",
@@ -6099,12 +6099,12 @@
       "role_other": "その他",
       "role_product_manager": "プロダクトマネージャー",
       "saving": "保存中…",
-      "set_your_look_and_tell_kiro_about_you_so_respons": "外観を設定し、Kiro について教えてください。それにより、レスポンスがあなたの作業方法に合致します。",
+      "set_your_look_and_tell_kiro_about_you_so_respons": "外観を設定し、{{productName}} について教えてください。それにより、レスポンスがあなたの作業方法に合致します。",
       "skip": "スキップ",
       "tech_codes": "コードを書きます",
       "tech_non_technical": "技術的ではない",
       "tech_somewhat": "ある程度",
-      "tell_kiro_about_you": "Kiro について教えてください",
+      "tell_kiro_about_you": "{{productName}} について教えてください",
       "your_role": "あなたの役割"
     },
     "pastedChip": {
@@ -9016,7 +9016,7 @@
       "force_remove_confirm_title": "ワークツリーを強制削除しますか？",
       "force_remove_warning": "選択したワークツリーには未マージの作業があります — 削除は永久的で、元に戻せません。",
       "force_remove": "{{name}} を強制削除",
-      "gateway_did_not_come_back_within_60s_reload_the": "ゲートウェイが60秒以内に復帰しませんでした — ページを手動で再度読み込むか、`kirocrew logs`を確認してください。",
+      "gateway_did_not_come_back_within_60s_reload_the": "ゲートウェイが60秒以内に復帰しませんでした — ページを手動で再度読み込むか、`junction logs`を確認してください。",
       "gateway_restarted_mid_sync_run_lost_check_git_st": "ゲートウェイが同期中に再起動しました — 実行が失われました。Gitの状態を確認して、プル+ビルドを再実行してください",
       "git_status_failed": "Gitステータス失敗",
       "has_unmerged_work_removing_deletes_permanently": "マージされていない作業があります — 削除が永久に削除されます。",
@@ -9964,7 +9964,7 @@
         "pending_enable_click_to_revert": "保留中：有効化（クリックで取り消し）",
         "pending_uninstall": "{{label}} — アンインストール保留中",
         "probe_mcp_servers": "MCP サーバーをプローブ",
-        "servers_scope_tip": "Kiro Crew とインタラクティブ {{provider}}/Kiro グローバルの MCP サーバー。Kiro Crew バッジは Kiro Crew セッションで読み込まれるかを示します。グローバルバッジはインタラクティブ Kiro グローバルと共有されるかを示します。クリックしてトグルしてから適用。",
+        "servers_scope_tip": "{{productName}} とインタラクティブ {{provider}}/Kiro グローバルの MCP サーバー。{{productName}} バッジは {{productName}} セッションで読み込まれるかを示します。グローバルバッジはインタラクティブ Kiro グローバルと共有されるかを示します。クリックしてトグルしてから適用。",
         "status": "ステータス",
         "tool_list_read_from_the_package_s_declaration_th": "ツール一覧はパッケージ自身の宣言から読み取ったものです。サーバーを起動して動作確認はしていません。",
         "tools": "ツール",
@@ -9982,7 +9982,7 @@
       },
       "memoryGraphTab": {
         "all_count": "すべて（{{count}}）",
-        "gpu_rendered_visualization_of_all_kirocrew_memor": "すべての Kiro Crew メモリの GPU レンダリング可視化。ノードはタイプ別に色分けされています。ズームインしてラベルを表示、ノードをクリックして検査、フィルターを使用してフォーカス。",
+        "gpu_rendered_visualization_of_all_kirocrew_memor": "すべての {{productName}} メモリの GPU レンダリング可視化。ノードはタイプ別に色分けされています。ズームインしてラベルを表示、ノードをクリックして検査、フィルターを使用してフォーカス。",
         "group_history_count": "履歴（{{count}}）",
         "group_lessons_count": "レッスン（{{count}}）",
         "group_preferences_count": "優先設定（{{count}}）",
@@ -10019,7 +10019,7 @@
         "no_lessons": "レッスンなし",
         "no_lessons_yet": "まだレッスンはありません",
         "no_sessions_to_consolidate_start_a_chat_first": "統合するセッションがありません — まずチャットを開始してください",
-        "persistent_lessons_injected_into_every_session_a": "すべてのセッションに注入される永続的なレッスン。Task Runnerの失敗から自動抽出されます。'kirocrew learn add' を使って手動で追加できます。ベクトルメモリがアクティブな場合、レッスンはセマンティックタブで lesson.* エントリとして管理されます。",
+        "persistent_lessons_injected_into_every_session_a": "すべてのセッションに注入される永続的なレッスン。Task Runnerの失敗から自動抽出されます。'junction learn add' を使って手動で追加できます。ベクトルメモリがアクティブな場合、レッスンはセマンティックタブで lesson.* エントリとして管理されます。",
         "preference": "優先度",
         "preferences": "優先度",
         "projects": "プロジェクト",
@@ -10162,7 +10162,7 @@
         "skills": "スキル",
         "skills_count": "スキル ({{count}})",
         "skills_from_read_only": "{{name}} のスキル — 読み取り専用",
-        "skills_tip": "エージェントが関連性があると判断したときにオンデマンドスキルを読み込みます。「自動」バッジが付いているスキルは常にすべてのセッションに注入されます。スキルは Kiro Crew、kiro-cli (~/.kiro/skills)、および AIM パッケージから発見されます。",
+        "skills_tip": "エージェントが関連性があると判断したときにオンデマンドスキルを読み込みます。「自動」バッジが付いているスキルは常にすべてのセッションに注入されます。スキルは {{productName}}、kiro-cli (~/.kiro/skills)、および AIM パッケージから発見されます。",
         "the_skill_this_update_targets_no_longer_exists_s": "この更新のターゲットとなるスキルは存在しなくなったため、更新することはできません。この候補を破棄してください。",
         "this_skill_changed_after_this_update_was_written": "このスキルはこの更新が書かれた後に変更されたため、今すぐ適用するとそれより新しい変更が元に戻ります。承認がブロックされています — この候補を破棄するか、現在のバージョンに対して新しい更新が提案されます。",
         "update": "更新",
@@ -10390,7 +10390,7 @@
     },
     "popoutFrame": {
       "session": "セッション",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "projectDetailPage": {
       "analyzing_task_and_building_step_by_step_plan": "タスクを分析してステップバイステップのプランを構築中",
@@ -10488,9 +10488,9 @@
     "scenes": {
       "ghostScene": {
         "friendly_hauntings_only": "友好的な幽霊だけ",
-        "kiro_ghost_haunt_animation": "Kiro ゴーストの出没アニメーション",
-        "kiro_ghost_haunt_text_overlay": "Kiro ゴーストの出没テキストオーバーレイ",
-        "kiro_haunt": "Kiro ゴースト"
+        "kiro_ghost_haunt_animation": "ナイトヤードのアニメーション",
+        "kiro_ghost_haunt_text_overlay": "ナイトヤードのテキスト重ね合わせ",
+        "kiro_haunt": "ナイトヤード"
       },
       "missionControl": {
         "missionControlScene": {
@@ -11014,7 +11014,7 @@
         "engine_needed_for_attach": "attach に必要",
         "node_missing": "Node.js 20 以降が必要ですが、このマシンに Node が見つかりません。",
         "node_how": "インストール後、このページを再度開いてください。<dl>Node.js をダウンロード</dl>",
-        "node_no_admin": "Node をインストールできないマシン（管理者権限がない、またはレジストリがログインを要求する場合）では、Kiro Crew が動作しているマシンで以下のコマンドを実行してください。スクリプトが Node と CLI をホームディレクトリにインストールし、ネットワークがダウンロードを遮断している場合は対処方法を教えてくれます。",
+        "node_no_admin": "Node をインストールできないマシン（管理者権限がない、またはレジストリがログインを要求する場合）では、{{productName}} が動作しているマシンで以下のコマンドを実行してください。スクリプトが Node と CLI をホームディレクトリにインストールし、ネットワークがダウンロードを遮断している場合は対処方法を教えてくれます。",
         "copy_command": "コマンドをコピー",
         "copied": "コピーしました"
       },
@@ -11251,7 +11251,7 @@
         "max_tree_nodes": "最大ツリーノード数",
         "not_applicable": "適用なし",
         "not_detected": "検出されません",
-        "not_detected_does_not_always_mean_unavailable_ma": "検出されないからといって、必ずしも利用できないわけではありません。macOS では、Kiro Crew を起動したプロセスに権限が付与され、Kiro Crew 自体には付与されません。",
+        "not_detected_does_not_always_mean_unavailable_ma": "検出されないからといって、必ずしも利用できないわけではありません。macOS では、{{productName}} を起動したプロセスに権限が付与され、{{productName}} 自体には付与されません。",
         "open_system_settings": "システム設定を開く",
         "open_system_settings_for": "{{label}}のシステム設定を開く",
         "permissions": "権限",
@@ -11293,7 +11293,7 @@
         "thinking_label": "思考を表示",
         "thread_allowlist_description": "オプション。許可されたユーザーは、これらの特定の Discord スレッドでのみエージェントを実行できます。空の場合 = DM のみ。",
         "thread_help": "デベロッパーモードをオンにして、スレッドを右クリック → <mono>チャネル ID をコピー</mono>。親チャネル ID ではなく、スレッドの ID を使用してください。",
-        "thread_warning": "スレッドモードは Discord のグローバル Message Content インテントを有効にします。Discord はボットが表示できるあらゆるサーバーチャネルからコンテンツを配信します。Kiro Crew は許可されたスレッド外のトラフィックを破棄します。許可されたスレッドを表示できるユーザーは誰でも、エージェント応答とツール出力を読むことができます。",
+        "thread_warning": "スレッドモードは Discord のグローバル Message Content インテントを有効にします。Discord はボットが表示できるあらゆるサーバーチャネルからコンテンツを配信します。{{productName}} は許可されたスレッド外のトラフィックを破棄します。許可されたスレッドを表示できるユーザーは誰でも、エージェント応答とツール出力を読むことができます。",
         "threshold_description": "セッションコンテキストがこのパーセンテージを超えたときに !compact または !new をプロンプトします。",
         "token_description": "Developer Portal の Bot ページから（トークンをリセットして一度表示するため）。",
         "token_placeholder": "Discord ボットトークンを貼り付ける"
@@ -11388,7 +11388,7 @@
         "handle_placeholder": "+15551234567",
         "loading": "iMessage の設定を読み込み中…",
         "macos_only": "iMessage には Messages にサインイン済みの macOS が必要で、ゲートウェイはその Mac 上で実行する必要があります。このホストは iMessage に接続できないため、これらの設定は読み取り専用です。",
-        "managed_locally": "iMessage の設定は Kiro Crew を実行しているマシン上で管理されるため、リモートセッションからは読み取り専用です。",
+        "managed_locally": "iMessage の設定は {{productName}} を実行しているマシン上で管理されるため、リモートセッションからは読み取り専用です。",
         "needs_setup": "セットアップが必要",
         "not_active": "非アクティブ",
         "prerequisites_body": "ボットもトークンも不要です。エージェントはローカルのブリッジを通じてご自身の Messages アプリにアクセスするため、転送に第三者は関与しません。ただし、入力したプロンプトは他のどのチャネルとも同様に、エージェントに設定されたモデルプロバイダーへ送信されます。Messages にサインインした macOS 14 以降、インストール済みの imsg CLI、そして 2 つの一度限りの macOS 権限—Messages に対する Full Disk Access と Automation—が必要です。",
@@ -11601,13 +11601,13 @@
         "disabled_by_policy": "ポリシーで無効化",
         "disabled_for_this_surface": "ホスト表面では無効化",
         "profile_unusable_title": "フォールバックプロファイルが有効です",
-        "profile_unusable_body": "下に示すプロファイルを読み込めなかったため、その表面はポリシーのフォールバック上限に保たれています。より緩やかなフォールバックが宣言されていないかぎり、全面拒否です。Kiro Crew のデータホームにある profiles フォルダー内のファイルを修正してください。修正すれば自動的に再読み込みされます。",
+        "profile_unusable_body": "下に示すプロファイルを読み込めなかったため、その表面はポリシーのフォールバック上限に保たれています。より緩やかなフォールバックが宣言されていないかぎり、全面拒否です。{{productName}} のデータホームにある profiles フォルダー内のファイルを修正してください。修正すれば自動的に再読み込みされます。",
         "profile_unusable_detail": "ファイルが読み取り不能、解析に失敗、または継承元のプロファイルが存在しません。再起動が必要なのは、ファイルが実行中のビルドより新しいビルド向けである場合のみです。",
         "profile_unusable_which": "対象のプロファイル: {{profiles}}。",
         "unknown_scopes_title": "このビルドにないプロファイルスコープ",
         "unknown_scopes_tip": "以下のプロファイルには、このビルドに登録されていない機能スコープが含まれています。多くはコンパニオンエディションが登録するスコープですが、スコープキーの綴り間違いもここに現れます。これらはスキップされ、このビルドでは効果がありません。",
         "disabling_a_rule_that_overlaps_an_always_on_cont": "常時オンコントロール(機密ファイルの読み取り、IMDS、git-publish)と重複するルールを無効化しても、完全には解除されません。多層防御がブロック状態に保ちます。",
-        "disabling_all_built_in_denies_removes_kirocrew_s": "すべての組み込み拒否を無効にすると、破壊的なコマンドや認証情報を持ち出すコマンドに対する Kiro Crew の保護が解除されます。一部のコマンドは、独立した多層防御（機密パス、IMDS、git-publish）によって引き続きブロックされる場合があります。",
+        "disabling_all_built_in_denies_removes_kirocrew_s": "すべての組み込み拒否を無効にすると、破壊的なコマンドや認証情報を持ち出すコマンドに対する {{productName}} の保護が解除されます。一部のコマンドは、独立した多層防御（機密パス、IMDS、git-publish）によって引き続きブロックされる場合があります。",
         "disabling_weakens_protection": "「{{name}}」を無効にすると、破壊的なコマンドや認証情報の持ち出しに対する保護が弱まります。独立した多層防御の制御によって引き続きブロックされるコマンドもあります。",
         "do_not_enter_highly_sensitive_or_restricted_data": "Kiro Crewに非常に機密性の高い、または制限されたデータを入力しないでください。エージェントと共有する内容を決定するときは、適用可能なデータ処理ポリシーに従ってください。",
         "documentation": "ドキュメント",
@@ -11633,7 +11633,7 @@
         "feature_sel_audit": "SEL監査ログ",
         "feature_sel_audit_description": "クレデンシャル削除付きの不変でHMAC-チェーンされたセキュリティイベント追跡",
         "feature_sensitive_paths": "機密パスブロッキング",
-        "feature_sensitive_paths_description": "クレデンシャルディレクトリおよび Kiro Crewトラストルートは、ツール実行前のフックレイヤーでブロックされます",
+        "feature_sensitive_paths_description": "クレデンシャルディレクトリおよび {{productName}}トラストルートは、ツール実行前のフックレイヤーでブロックされます",
         "feature_suspicious_patterns": "疑わしいBashパターン",
         "feature_suspicious_patterns_description": "シェルコマンドで削除、流出、パイプ実行攻撃の形状を検出します",
         "feature_token_auth": "ダッシュボードトークン認証",
@@ -11688,7 +11688,7 @@
         "off": "オフ",
         "optional_why_shown_to_the_agent_when_this_rule_fir": "任意: 理由。このルールが適用されたときにエージェントに表示されます",
         "other_surfaces_have_their_own_profiles": "独自のプロファイルを持つサーフェスは、ホストが許可しないものを許可できます：{{surfaces}}",
-        "enforced_by_floor": "Kiro Crew に組み込まれた常時有効な保護機能によって強制されています",
+        "enforced_by_floor": "{{productName}} に組み込まれた常時有効な保護機能によって強制されています",
         "pinned_by_policy": "組織のセキュリティポリシーで強制されています",
         "pinned_for_the_host_surface": "ホストサーフェスプロファイルで設定されています。これはインプロセスホストアクション専用の上限です。他のサーフェスは独自のプロファイルを持っており、これを許可する場合があります。",
         "policy": "ポリシー",
@@ -11716,7 +11716,7 @@
         "state_allowed": "許可",
         "state_blocked": "ブロック",
         "the_strictest_boundary_in_effect_for_each_govern": "各管理スコープで有効な最も厳密な境界",
-        "third_party_apps_on_warning": "これはすべてのサードパーティアプリを信頼します。後でインストールするものも含みます。あなたが起動しようとしたものだけではありません。信頼されたアプリは Kiro Crewが持つのと同じアクセス権で実行されます：あなたのファイル、保存された認証情報、およびインターネット。",
+        "third_party_apps_on_warning": "これはすべてのサードパーティアプリを信頼します。後でインストールするものも含みます。あなたが起動しようとしたものだけではありません。信頼されたアプリは {{productName}}が持つのと同じアクセス権で実行されます：あなたのファイル、保存された認証情報、およびインターネット。",
         "third_party_apps_save_failed": "この設定を保存できませんでした。",
         "third_party_apps_scope_note": "直ちに有効になります。オフに戻すと、それまで許可していたアプリも停止されます — シャットダウンフックが実行され、バックエンドが停止され、停止できなかったものはあなたに報告されます。",
         "third_party_apps_section": "サードパーティアプリ",
@@ -11726,7 +11726,7 @@
         "turn_off_every_rule": "組み込みのすべての拒否コマンドルールを一度にオフにします。独立した多層防御コントロール（機密パス、IMDS、git公開）は引き続き強制されます。",
         "turn_off_every_rule_governance_locked": "組み込みのすべての拒否コマンドルールを一度にオフにします。独立した多層防御コントロール（機密パス、IMDS、git公開）は引き続き強制され、組織のポリシーで固定されたルールは有効なままです。",
         "yolo_active_expires_at": "自動承認は{{time}}まで有効です。",
-        "yolo_active_until_restart": "自動承認はオンで、Kiro Crewが再起動されるまでオンのままです。",
+        "yolo_active_until_restart": "自動承認はオンで、{{productName}}が再起動されるまでオンのままです。",
         "yolo_auto_approve": "YOLO（自動承認）",
         "yolo_duration_12h": "12時間",
         "yolo_duration_1h": "1時間",
@@ -11750,9 +11750,9 @@
         "tailnet_desc": "このマシンの Tailscale MagicDNS 名をダッシュボードの許可オリジンに追加し、tailscale serve 経由で届いたリクエストが拒否されずに CSRF オリジンチェックを通過するようにします。",
         "tailnet_open": "開く",
         "tailnet_origin_label": "ダッシュボードのオリジン",
-        "tailnet_pin_caveat": "tailscale serve の背後では、デバイスごとのセッションピンをバインドできません。すべてのリクエストは 127.0.0.1 から Kiro Crew に届くため、ダッシュボードのリンクは最初に開いた端末だけでなく、tailnet 上のどの端末からでも使えます。このリンクはパスワードと同じように扱ってください。",
+        "tailnet_pin_caveat": "tailscale serve の背後では、デバイスごとのセッションピンをバインドできません。すべてのリクエストは 127.0.0.1 から {{productName}} に届くため、ダッシュボードのリンクは最初に開いた端末だけでなく、tailnet 上のどの端末からでも使えます。このリンクはパスワードと同じように扱ってください。",
         "tailnet_pin_caveat_link": "追跡課題 #1762",
-        "tailnet_restart_note": "名前は Kiro Crew の起動時に一度だけ解決されるため、ここでの変更は次回の再起動で反映されます。",
+        "tailnet_restart_note": "名前は {{productName}} の起動時に一度だけ解決されるため、ここでの変更は次回の再起動で反映されます。",
         "tailnet_section": "Tailnet オリジン",
         "tailnet_state_active": "有効",
         "tailnet_state_off": "オフ",
@@ -11760,8 +11760,8 @@
         "tailnet_tip": "影響するのはオリジンの許可リストだけです。Tailscale を起動したり、ポートを開いたり、ダッシュボードを誰かと共有したりはしません。tailscale serve は自分で実行する必要があります。",
         "tailnet_title": "このマシンの tailnet 名を信頼する",
         "tailnet_unavailable": "tailnet の設定を読み取れなかったため、ここでは表示も変更もできません。すでにオンだった場合、tailnet 名は引き続き許可されます。ページを再読み込みしてやり直してください。",
-        "tailnet_unresolved_note": "これはオンですが、Kiro Crew の起動時に tailnet 名が解決されなかったため、許可オリジンには何も追加されていません。tailscale serve 経由で開いたダッシュボードは、引き続きオリジンチェックで拒否されます。名前が利用できるようになったら Kiro Crew を再起動してください。",
-        "yolo_duration_until_shutdown": "Kiro Crewが再起動されるまで",
+        "tailnet_unresolved_note": "これはオンですが、{{productName}} の起動時に tailnet 名が解決されなかったため、許可オリジンには何も追加されていません。tailscale serve 経由で開いたダッシュボードは、引き続きオリジンチェックで拒否されます。名前が利用できるようになったら {{productName}} を再起動してください。",
+        "yolo_duration_until_shutdown": "{{productName}}が再起動されるまで",
         "your_custom_denies": "カスタム拒否",
         "rail_active": "現在有効",
         "rail_until_time": "{{time}} まで",
@@ -11780,10 +11780,10 @@
           "revoke_confirm_title": "「{{name}}」 の信頼を解除しますか？",
           "revoke_confirm_body": "「{{name}}」 はオフに切り替えられ、動作を停止します。インストールされたままなので、後で再び信頼できます。",
           "revoke_confirm_ok": "信頼を解除してオフにする",
-          "allow_all_confirm_body": "すべてのサードパーティアプリを信頼すると、インストールしたどのアプリも Kiro Crew の内部で独自のコードを実行でき、Kiro Crew と同じアクセス権 — あなたのファイル、保存された認証情報、およびインターネット — を持ちます。一度に1つのアプリだけを信頼する方が安全です。",
-          "allow_all_confirm_ack": "インストールする各サードパーティアプリが、Kiro Crew のアクセス権で独自のコードを実行できるようになることを理解しました。",
+          "allow_all_confirm_body": "すべてのサードパーティアプリを信頼すると、インストールしたどのアプリも {{productName}} の内部で独自のコードを実行でき、{{productName}} と同じアクセス権 — あなたのファイル、保存された認証情報、およびインターネット — を持ちます。一度に1つのアプリだけを信頼する方が安全です。",
+          "allow_all_confirm_ack": "インストールする各サードパーティアプリが、{{productName}} のアクセス権で独自のコードを実行できるようになることを理解しました。",
           "ineffective_label": "保存済みだが機能していません",
-          "ineffective_description": "これらの名前は信頼済みとして保存されましたが、Kiro Crew はそれらを受け付けないため、アプリは依然としてブロックされています。リストを整理するには削除してください。"
+          "ineffective_description": "これらの名前は信頼済みとして保存されましたが、{{productName}} はそれらを受け付けないため、アプリは依然としてブロックされています。リストを整理するには削除してください。"
         }
       },
       "shortcutsPanel": {
@@ -12278,7 +12278,7 @@
         "cancel": "Cancel",
         "cancelling": "Cancelling…",
         "cancel_setup_of": "Cancel setup of {{tag}}",
-        "launched_by_kiro_crew": "Launched by Kiro Crew",
+        "launched_by_kiro_crew": "{{productName}} が起動",
         "added_by_you": "Added by you",
         "doesnt_manage": "Kiro Crew does not manage this machine",
         "stop": "Stop",
@@ -12496,7 +12496,7 @@
       "return": "ドックに戻る",
       "return_to_main_window_and_close_this_popout": "メインウィンドウに戻ってこのポップアウトを閉じる",
       "terminal": "ターミナル",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "webhooksPage": {
       "0_b": "0 B",
@@ -12670,8 +12670,8 @@
     "dataNeverSentBody": "プロンプト、レスポンス、ファイル、認証情報、ホスト名、ユーザー名、またはオペレーティングシステム。IPアドレスは保存されません。",
     "dataNeverSentTitle": "送信されません",
     "governanceOverrideNote": "管理者のセキュリティポリシーがこれをオフにしています。ここで変更することはできません。",
-    "installReceiptBody": "Kiro Crew の公式カタログから正常にインストールまたは更新された後、匿名レシートが1つ送信されます。外部レジストリ、ローカルアプリ、自己登録アプリは報告されません。",
-    "installReceiptFields": "公式アプリスラッグ · アプリごとの匿名トークン (アプリ間でリンク不可) · 新規/更新フラグ · Kiro Crew バージョン",
+    "installReceiptBody": "{{productName}} の公式カタログから正常にインストールまたは更新された後、匿名レシートが1つ送信されます。外部レジストリ、ローカルアプリ、自己登録アプリは報告されません。",
+    "installReceiptFields": "公式アプリスラッグ · アプリごとの匿名トークン (アプリ間でリンク不可) · 新規/更新フラグ · {{productName}} バージョン",
     "installReceiptTitle": "公式アプリインストールレシート",
     "localDataBody": "使用状況とコンテキスト記録。パフォーマンスメトリクスはデフォルトではオフです。",
     "localDataTitle": "デバイスに保持",
@@ -12700,7 +12700,7 @@
         "auto": "自動",
         "description": "ダッシュボードインターフェースの言語。",
         "label": "言語",
-        "sync_failed": "Kiro Crew 設定に保存できませんでした — 言語はこのブラウザーにのみ適用され、再読み込みでリセットされる場合があります。"
+        "sync_failed": "{{productName}} 設定に保存できませんでした — 言語はこのブラウザーにのみ適用され、再読み込みでリセットされる場合があります。"
       }
     },
     "groups": {
@@ -12737,7 +12737,7 @@
         "label": "表示"
       },
       "imports": {
-        "description": "別のAIエージェントからデータを取得し、Kiro Crew 設定をバックアップまたは復元",
+        "description": "別のAIエージェントからデータを取得し、{{productName}} 設定をバックアップまたは復元",
         "label": "インポート / エクスポート"
       },
       "instances": {

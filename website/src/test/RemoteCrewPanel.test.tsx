@@ -129,7 +129,7 @@ describe('RemoteCrewPanel', () => {
     releaseLaunches({ jobs: [DONE_JOB] })
 
     // Once known, it is correctly a cloud row: Stop + the two-step Delete, no plain Remove.
-    expect(await screen.findByText('Launched by Kiro Crew')).toBeInTheDocument()
+    expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
     await openRowMenu(u)
     expect(screen.getByRole('menuitem', { name: 'Stop Kiro Crew Cloud (kc-3f9a)' })).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: /^Remove/i })).not.toBeInTheDocument()
@@ -429,7 +429,7 @@ describe('RemoteCrewPanel', () => {
     renderWithProviders(<RemoteCrewPanel />)
 
     // Cloud row carries the cloud attribution + a Stop control; manual row does not.
-    expect(await screen.findByText('Launched by Kiro Crew')).toBeInTheDocument()
+    expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
     expect(screen.getByText(/does not manage this machine/i)).toBeInTheDocument()
     await openRowMenu(u, /More actions for Kiro Crew Cloud/i)
     expect(screen.getByRole('menuitem', { name: 'Stop Kiro Crew Cloud (kc-3f9a)' })).toBeInTheDocument()

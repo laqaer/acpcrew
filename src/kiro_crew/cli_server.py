@@ -27,7 +27,7 @@ from kiro_crew.config.loader import (
     config_path,
     read_local_secret,
 )
-from kiro_crew.constants import DATA_WARNING
+from kiro_crew.constants import DATA_WARNING, PRODUCT_NAME
 from kiro_crew.context import ContextBuilder
 from kiro_crew.dashboard import tailnet_serve
 from kiro_crew.dashboard.handlers.core import DASHBOARD_HTML_NOT_FOUND_MARKER
@@ -159,7 +159,7 @@ def _token(args: argparse.Namespace) -> None:
     port = resolve_client_port(args.port)
     secret = read_local_secret(port)
     if not secret:
-        print("❌ Gateway not running — start it with: kirocrew gateway", file=sys.stderr)
+        print("❌ Gateway not running — start it with: junction gateway", file=sys.stderr)
         sys.exit(1)
 
     url = f"http://{_CLI_LOOPBACK}:{port}/api/token/local?ttl={args.ttl}"
@@ -285,7 +285,7 @@ def _logout(port: int) -> None:
     """Revoke all dashboard sessions by calling the gateway's /api/logout endpoint."""
     secret = read_local_secret(port)
     if not secret:
-        print("❌ Gateway not running — start it with: kirocrew gateway")
+        print("❌ Gateway not running — start it with: junction gateway")
         sys.exit(1)
 
     url = f"http://{_CLI_LOOPBACK}:{port}/api/logout"
@@ -307,7 +307,7 @@ def _logout(port: int) -> None:
         print(f"❌ Failed to revoke sessions: HTTP {e.code}")
         sys.exit(1)
     except (urllib.error.URLError, OSError):
-        print("❌ Gateway not running — start it with: kirocrew gateway")
+        print("❌ Gateway not running — start it with: junction gateway")
         sys.exit(1)
 
 
@@ -332,7 +332,7 @@ def _stop(cli_port: int | None = None) -> None:
             source="cli",
             resources=f"port={port} via=service",
         )
-        print("✅ Stopped kirocrew service. To remove it: kirocrew service uninstall")
+        print("✅ Stopped junction service. To remove it: junction service uninstall")
         return
 
     # Cross-platform port -> listening PID lookup (lsof on POSIX, netstat -ano
@@ -364,7 +364,7 @@ def _stop(cli_port: int | None = None) -> None:
             if _unpinned:
                 print(
                     f"`{_tool}` is installed at {_unpinned}, outside the system directories "
-                    f"Kiro Crew resolves it from, so it cannot look up the gateway process "
+                    f"{PRODUCT_NAME} resolves it from, so it cannot look up the gateway process "
                     f"on port {port}. Falling back to PATH is deliberately refused: a "
                     f"gateway's PATH can lead with writable directories."
                 )
@@ -381,7 +381,7 @@ def _stop(cli_port: int | None = None) -> None:
             source="cli",
             resources=f"port={port}",
         )
-        print(f"No Kiro Crew gateway currently running on port {port}.")
+        print(f"No {PRODUCT_NAME} gateway currently running on port {port}.")
         sys.exit(1)
 
     # Only kill processes that are actually KiroCrew gateways.
@@ -396,7 +396,7 @@ def _stop(cli_port: int | None = None) -> None:
             source="cli",
             resources=f"port={port} reason=no_kirocrew_process",
         )
-        print(f"No Kiro Crew gateway currently running on port {port}.")
+        print(f"No {PRODUCT_NAME} gateway currently running on port {port}.")
         sys.exit(1)
 
     sent: set[int] = set()
@@ -467,7 +467,9 @@ def _stop(cli_port: int | None = None) -> None:
             source="cli",
             resources=f"port={port} reason=process_already_exited",
         )
-        print(f"No Kiro Crew gateway currently running on port {port} (process already exited).")
+        print(
+            f"No {PRODUCT_NAME} gateway currently running on port {port} (process already exited)."
+        )
         sys.exit(1)
 
 
@@ -809,7 +811,7 @@ def _print_token_url(port: int) -> None:
             pass
         time.sleep(1)
     # Non-fatal — gateway might just be slow to start
-    print("\n⚠️  Could not generate token (gateway still starting?). Run: kirocrew token")
+    print("\n⚠️  Could not generate token (gateway still starting?). Run: junction token")
 
 
 def _restart(cli_port: int | None = None) -> None:
@@ -841,7 +843,7 @@ def _restart(cli_port: int | None = None) -> None:
             source="cli",
             resources=f"port={port} via=service",
         )
-        print("✅ Restarted kirocrew service.")
+        print("✅ Restarted junction service.")
         _print_token_url(port)
         return
 
@@ -901,7 +903,7 @@ def _restart(cli_port: int | None = None) -> None:
                 f"{int(_RESTART_STOP_TIMEOUT)}s. Not starting a replacement.\n"
                 f"   The old gateway still owns {config_dir()}, so a new one "
                 f"would be refused and exit immediately.\n"
-                f"   To inspect the shutdown, run: kirocrew logs -f\n"
+                f"   To inspect the shutdown, run: junction logs -f\n"
                 f"   If the process is wedged, force it: kill -9 {pids}"
             )
             sys.exit(1)
@@ -932,7 +934,7 @@ def _restart(cli_port: int | None = None) -> None:
                 f"(exit status {exit_status}). Nothing is serving port {port}.\n"
                 f"   A replacement that exits at once is usually refused startup — "
                 f"another process still owning {config_dir()}, or a broken config.\n"
-                f"   To see why it exited, run: kirocrew logs -f"
+                f"   To see why it exited, run: junction logs -f"
             )
         else:
             print(
@@ -941,7 +943,7 @@ def _restart(cli_port: int | None = None) -> None:
                 f"serving port {port}.\n"
                 f"   It may be slow to start or wedged during startup; nothing is "
                 f"serving the dashboard yet.\n"
-                f"   To follow its startup, run: kirocrew logs -f"
+                f"   To follow its startup, run: junction logs -f"
             )
         sys.exit(1)
 
@@ -952,12 +954,12 @@ def _restart(cli_port: int | None = None) -> None:
         source="cli",
         resources=f"port={port} via=fork pid={pid}",
     )
-    print(f"✅ Started detached gateway (pid {pid}). Logs: kirocrew logs -f")
+    print(f"✅ Started detached gateway (pid {pid}). Logs: junction logs -f")
     _print_token_url(port)
 
 
 def _update(force: bool = False) -> None:
-    """Update Kiro Crew — dispatches based on install layout.
+    """Update Junction — dispatches based on install layout.
 
     Three install layouts, three update paths:
 
@@ -978,7 +980,7 @@ def _update(force: bool = False) -> None:
     """
     from kiro_crew.platform.update_layout import InstallLayout
 
-    print("👻 Updating Kiro Crew…\n")
+    print(f"Updating {PRODUCT_NAME}…\n")
 
     # A policy-defined provider OWNS the update on this host. Checked before any
     # layout dispatch so a manual `kirocrew update` cannot run the built-in
@@ -990,7 +992,7 @@ def _update(force: bool = False) -> None:
         if applied:
             print("\n✅ Update applied by the policy-defined update command.")
             print("\n  Restart the gateway to use the new version:")
-            print("    kirocrew restart")
+            print("    junction restart")
         else:
             print("\n❌ The policy-defined update command failed — see the log above.")
             print("  Not falling back to the built-in updater: this host's policy")
@@ -1167,7 +1169,7 @@ def _update(force: bool = False) -> None:
             print("  A hard reset would discard the local commits. Reconcile instead:")
             print(f"      git rebase origin/{branch}    (or: git merge origin/{branch})")
             print("  Or discard the local commits explicitly:")
-            print("      kirocrew update --force")
+            print("      junction update --force")
             sys.exit(1)
         print(f"  ⚠️  --force: discarding {ahead} local commit(s) not on origin/{branch}.")
 
@@ -1285,7 +1287,7 @@ def _update(force: bool = False) -> None:
     if rc != 0:
         sys.exit(1)
 
-    print("\n✅ Kiro Crew updated!")
+    print(f"\n✅ {PRODUCT_NAME} updated!")
     print(f"\n{DATA_WARNING}\n")
 
     _refresh_agent_config(proj)
@@ -1327,12 +1329,12 @@ def _refresh_agent_config(proj: str) -> None:
         logging.getLogger(__name__).warning(
             "agent-only config refresh timed out after %ss; skipping (best-effort)", exc.timeout
         )
-        print("  ⚠️  Agent config refresh timed out — run: kirocrew setup --agent-only")
+        print("  ⚠️  Agent config refresh timed out — run: junction setup --agent-only")
         return
     if r.returncode == 0:
         print("  ✅ Agent config refreshed (deniedCommands + hooks updated)")
     else:
-        print("  ⚠️  Agent config refresh failed — run: kirocrew setup --agent-only")
+        print("  ⚠️  Agent config refresh failed — run: junction setup --agent-only")
 
 
 def _update_wheel(layout) -> None:
@@ -1382,7 +1384,9 @@ def _update_wheel(layout) -> None:
         sys.exit(1)
     try:
         req = urllib.request.Request(feed_url, headers={"User-Agent": "kirocrew-update/1"})
-        with urllib.request.urlopen(req, timeout=15) as resp:  # nosemgrep: dynamic-urllib-use-detected
+        with urllib.request.urlopen(
+            req, timeout=15
+        ) as resp:  # nosemgrep: dynamic-urllib-use-detected
             raw = resp.read(65536 + 1)
     except (urllib.error.URLError, OSError, ValueError) as e:
         print(f"  ❌ Could not reach release feed: {e}")
@@ -1464,9 +1468,9 @@ def _update_wheel(layout) -> None:
         print(f"    {cmd}")
         sys.exit(1)
 
-    print(f"\n✅ Kiro Crew updated to {remote_version}!")
+    print(f"\n✅ {PRODUCT_NAME} updated to {remote_version}!")
     print("\n  Restart the gateway to use the new version:")
-    print("    kirocrew restart")
+    print("    junction restart")
 
 
 def _status(args: argparse.Namespace) -> None:
@@ -1478,20 +1482,20 @@ def _status(args: argparse.Namespace) -> None:
             data = json.loads(resp.read())
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
-            print("Kiro Crew gateway is running (token auth enabled).")
+            print(f"{PRODUCT_NAME} gateway is running (token auth enabled).")
             print("  For detailed stats, see the Overview page in the dashboard.")
         else:
-            print(f"Kiro Crew gateway is running but returned HTTP {e.code}.")
+            print(f"{PRODUCT_NAME} gateway is running but returned HTTP {e.code}.")
         return
     except (urllib.error.URLError, OSError):
-        print("Kiro Crew gateway is not running.")
-        print("  Start it with: kirocrew gateway")
+        print(f"{PRODUCT_NAME} gateway is not running.")
+        print("  Start it with: junction gateway")
         return
     except Exception:
-        print("Kiro Crew gateway is running but returned an unexpected response.")
+        print(f"{PRODUCT_NAME} gateway is running but returned an unexpected response.")
         return
 
-    print(f"Kiro Crew v{__version__} 👻\n")
+    print(f"{PRODUCT_NAME} v{__version__}\n")
     print(f"  Uptime:      {data.get('uptime', '—')}")
     print(f"  Sessions:    {data.get('sessions', 0)}")
     print(f"  Messages:    {data.get('messages', 0)}")
@@ -1588,7 +1592,7 @@ async def _gateway(
     if not config_path().exists():
         cfg = KiroCrewConfig()
         cfg.save()
-        print(f"👻 Created default config: {config_path()}")
+        print(f"Created default config: {config_path()}")
 
     cfg = KiroCrewConfig.load()
     await run_gateway(
@@ -1676,8 +1680,8 @@ async def _run_task(args: argparse.Namespace) -> None:
         await asyncio.to_thread(skills.sync_builtins)
     except Exception:
         logging.getLogger(__name__).warning(
-            "builtin-skill sync failed; continuing with the skills already "
-            "on disk", exc_info=True,
+            "builtin-skill sync failed; continuing with the skills already " "on disk",
+            exc_info=True,
         )
     consolidator = HistoryConsolidator(
         log=conv_log,
@@ -1729,9 +1733,9 @@ async def _run_task(args: argparse.Namespace) -> None:
     await sessions.start_pool()
 
     if fresh:
-        print(f"👻 Running spec (fresh): {spec_path}")
+        print(f"Running spec (fresh): {spec_path}")
     else:
-        print(f"👻 Running spec: {spec_path}")
+        print(f"Running spec: {spec_path}")
     task_name = getattr(args, "name", "")
     result = await runner.run(spec_path, name=task_name)
 
@@ -1786,7 +1790,7 @@ def _service_cmd(args: argparse.Namespace) -> int:
             resources=f"rc={rc}",
         )
         return rc
-    print("Usage: kirocrew service {install|uninstall|status}", file=sys.stderr)
+    print("Usage: junction service {install|uninstall|status}", file=sys.stderr)
     return 2
 
 
@@ -1879,7 +1883,7 @@ def _logs_cmd(args: argparse.Namespace) -> None:
         # password prompt would block forever with no way to cancel.
         if not sys.stdin.isatty():
             print(
-                "👻 Insufficient permissions to read the journal without sudo, "
+                "Insufficient permissions to read the journal without sudo, "
                 "and stdin is not a TTY so sudo can't prompt.\n"
                 "   Add your user to the `systemd-journal` or `adm` group, or run:\n"
                 f"   sudo journalctl -u {unit} -f",
@@ -1918,9 +1922,9 @@ def _logs_cmd(args: argparse.Namespace) -> None:
     fallback = config_dir() / "gateway.log"
     if not fallback.exists():
         print(
-            "👻 No gateway logs found. Either install the service "
-            "(`kirocrew service install`) or start the gateway "
-            "(`kirocrew gateway`).",
+            "No gateway logs found. Either install the service "
+            "(`junction service install`) or start the gateway "
+            "(`junction gateway`).",
             file=sys.stderr,
         )
         sys.exit(1)

@@ -114,7 +114,7 @@ function describeGatewayFailure(failure) {
   // switch is served by a gateway, which is the thing not running. The error
   // dialog carries a button instead.
   if (failure.disabled) {
-    return `No gateway is answering on port ${failure.port}, and Kiro Crew is set `
+    return `No gateway is answering on port ${failure.port}, and Junction is set `
       + "not to start one on this machine. Start the gateway you connect to (or "
       + "the connection that reaches it) and retry, or start one here.";
   }

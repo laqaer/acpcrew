@@ -40,6 +40,7 @@ from kiro_crew.config.loader import (
     KiroCrewConfig,
 )
 from kiro_crew.config.paths import kiro_agents_dir
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.cron import format_schedule
 from kiro_crew.dashboard.chat_utils import run_config_write
 from kiro_crew.dashboard.handlers import get_update_info
@@ -406,8 +407,7 @@ async def _handle_yolo(
         if orch.dashboard_state:
             orch.dashboard_state.push_slots_update()
         await respond(
-            f"🟢 YOLO mode *ON* ({describe_grant_lifetime()})"
-            f" — all tools auto-approved."
+            f"🟢 YOLO mode *ON* ({describe_grant_lifetime()})" f" — all tools auto-approved."
         )
     elif arg == "off":
         from kiro_crew.slack.handler import (
@@ -488,7 +488,7 @@ async def _handle_config(
     view = {
         "type": "modal",
         "callback_id": "mc_config_panel",
-        "title": {"type": "plain_text", "text": "Kiro Crew Config"},
+        "title": {"type": "plain_text", "text": f"{PRODUCT_NAME} Config"},
         "submit": {"type": "plain_text", "text": "Save"},
         "close": {"type": "plain_text", "text": "Cancel"},
         "blocks": blocks,
@@ -516,7 +516,7 @@ async def _handle_allowlist_cmd(
 ) -> None:
     """Multi-user access disabled — user management is blocked."""
     await respond(
-        "⛔ Multi-user access is disabled for security. Only the owner can use Kiro Crew via Slack."
+        f"⛔ Multi-user access is disabled for security. Only the owner can use {PRODUCT_NAME} via Slack."
     )
 
 
@@ -701,16 +701,22 @@ async def _handle_restart(
     """Restart the gateway process (owner-only, requires systemd supervisor)."""
     if not is_owner(caller_id):
         sel().log_tool_invocation(
-            session_key="", source="slack", tool_name="/kirocrew restart",
-            outcome="denied", resources=f"user={caller_id}",
+            session_key="",
+            source="slack",
+            tool_name="/kirocrew restart",
+            outcome="denied",
+            resources=f"user={caller_id}",
         )
         await respond("⛔ Only the owner can restart the gateway.")
         return
 
     if not os.environ.get("INVOCATION_ID"):
         sel().log_tool_invocation(
-            session_key="", source="slack", tool_name="/kirocrew restart",
-            outcome="denied", resources=f"user={caller_id},reason=no_supervisor",
+            session_key="",
+            source="slack",
+            tool_name="/kirocrew restart",
+            outcome="denied",
+            resources=f"user={caller_id},reason=no_supervisor",
         )
         await respond(
             "⛔ Restart requires a process supervisor (systemd). "
@@ -719,8 +725,11 @@ async def _handle_restart(
         return
 
     sel().log_tool_invocation(
-        session_key="", source="slack", tool_name="/kirocrew restart",
-        outcome="approved", resources=f"user={caller_id}",
+        session_key="",
+        source="slack",
+        tool_name="/kirocrew restart",
+        outcome="approved",
+        resources=f"user={caller_id}",
     )
     try:
         await respond("♻️ Restarting gateway…")
@@ -760,9 +769,7 @@ async def _handle_restart(
             # NOT catch CancelledError (propagates to keep this 5s deadline
             # honest); a still-held lock from a pathological overrun is recovered
             # by the orphan reaper on next startup.
-            await asyncio.wait_for(
-                orch.sessions.close_all(drain_timeout=2.0), timeout=5.0
-            )
+            await asyncio.wait_for(orch.sessions.close_all(drain_timeout=2.0), timeout=5.0)
     except Exception:
         logger.debug("Session cleanup before restart failed", exc_info=True)
     # Flush the SEL audit queue: logging is async (background writer thread +
@@ -961,8 +968,8 @@ async def _publish_home_tab(orch: GatewayOrchestrator, user_id: str) -> None:
                 "text": {
                     "type": "mrkdwn",
                     "text": (
-                        ":warning: *Do not enter sensitive or confidential data"
-                        " into Kiro Crew.* Follow your organization's data handling"
+                        f":warning: *Do not enter sensitive or confidential data"
+                        f" into {PRODUCT_NAME}.* Follow your organization's data handling"
                         " policy when using this tool."
                     ),
                 },
@@ -973,7 +980,7 @@ async def _publish_home_tab(orch: GatewayOrchestrator, user_id: str) -> None:
         # ── Status ──
         yolo = is_yolo_mode()
         blocks.append(
-            {"type": "header", "text": {"type": "plain_text", "text": "👻 Kiro Crew Status"}}
+            {"type": "header", "text": {"type": "plain_text", "text": f"{PRODUCT_NAME} Status"}}
         )
         status_lines = [
             "*Gateway:* ✅ Online",
@@ -1000,9 +1007,7 @@ async def _publish_home_tab(orch: GatewayOrchestrator, user_id: str) -> None:
             # list (e.g. 100+ skills) would overflow and make views.publish fail
             # with invalid_arguments, breaking the whole Home tab. Mirrors the
             # cron block's jobs[:15] guard below.
-            def _capped_names_section(
-                label: str, names: list[str], budget: int = 2900
-            ) -> dict:
+            def _capped_names_section(label: str, names: list[str], budget: int = 2900) -> dict:
                 total = len(names)
                 prefix = f"*{label} ({total}):* "
                 suffix_room = 24  # reserve for "  _…and N more_"
@@ -1022,13 +1027,9 @@ async def _publish_home_tab(orch: GatewayOrchestrator, user_id: str) -> None:
                 return {"type": "section", "text": {"type": "mrkdwn", "text": line}}
 
             if servers:
-                blocks.append(
-                    _capped_names_section("MCP Integrations", [s.name for s in servers])
-                )
+                blocks.append(_capped_names_section("MCP Integrations", [s.name for s in servers]))
             if skills:
-                blocks.append(
-                    _capped_names_section("Skills", [s["name"] for s in skills])
-                )
+                blocks.append(_capped_names_section("Skills", [s["name"] for s in skills]))
             if not servers and not skills:
                 blocks.append(
                     {
@@ -1281,7 +1282,7 @@ async def _publish_home_tab(orch: GatewayOrchestrator, user_id: str) -> None:
         blocks.append(command_hint_block(f"{_sc} #channel", "track/untrack channel"))
 
         # ── Version ──
-        version_text = f"📦 Kiro Crew v{__version__}"
+        version_text = f"{PRODUCT_NAME} v{__version__}"
         update_info = get_update_info()
         remote_ver = update_info.get("latest_version")
         if update_info.get("update_available") and remote_ver:
@@ -1409,7 +1410,9 @@ async def _handle_slash(orch: GatewayOrchestrator, payload: dict) -> None:
     user_match = re.search(r"<@([A-Z0-9]+)(?:\|([^>]+))?>", cmd_text)
     if user_match:
         _spawn_tracked(
-            _respond("⛔ Multi-user access is disabled. Only the owner can use Kiro Crew via Slack.")
+            _respond(
+                f"⛔ Multi-user access is disabled. Only the owner can use {PRODUCT_NAME} via Slack."
+            )
         )
         return
 
@@ -1418,9 +1421,7 @@ async def _handle_slash(orch: GatewayOrchestrator, payload: dict) -> None:
     if channel_match:
         channel_id = channel_match.group(1)
         channel_name = channel_match.group(2) or "Secret"
-        _spawn_tracked(
-            prompt_track_channel(orch.slack, orch._owner_id, channel_id, channel_name)
-        )
+        _spawn_tracked(prompt_track_channel(orch.slack, orch._owner_id, channel_id, channel_name))
         _spawn_tracked(_respond(f"📨 Track request sent for #{channel_name or channel_id}."))
         return
 
@@ -1448,9 +1449,7 @@ def _maybe_prompt_owner(orch: GatewayOrchestrator, event: dict) -> None:
 # cannot disagree about what is audio.
 
 
-def _voice_memo_context(
-    text: str, memos: int, transcribed: int, *, available: bool
-) -> str:
+def _voice_memo_context(text: str, memos: int, transcribed: int, *, available: bool) -> str:
     """*text* plus one visible note per voice memo that produced no words.
 
     A memo whose transcription is unavailable or failed used to be dropped in
@@ -1790,23 +1789,17 @@ def _extract_blocks_text(blocks: list[dict]) -> str:
                         sub_els = child.get("elements", [])
                         if not isinstance(sub_els, list):
                             sub_els = []
-                        inline = "".join(
-                            _render_rich_text_element(el) for el in sub_els
-                        )
+                        inline = "".join(_render_rich_text_element(el) for el in sub_els)
                         if inline:
                             parts.append(f"- {inline}")
                 elif el_type == "rich_text_quote":
                     # Quote blocks: prefix with "> "
-                    inline = "".join(
-                        _render_rich_text_element(el) for el in child_els
-                    )
+                    inline = "".join(_render_rich_text_element(el) for el in child_els)
                     if inline:
                         parts.append(f"> {inline}")
                 else:
                     # rich_text_section, rich_text_preformatted
-                    inline = "".join(
-                        _render_rich_text_element(el) for el in child_els
-                    )
+                    inline = "".join(_render_rich_text_element(el) for el in child_els)
                     if inline:
                         parts.append(inline)
         elif block_type == "section":
@@ -1835,10 +1828,12 @@ def _extract_blocks_text(blocks: list[dict]) -> str:
 # NOTE: These are best-effort, undocumented, English-only Slack placeholder strings.
 # They may change or be localized — recovery is best-effort for non-English workspaces.
 # No fuzzy/structural detection is attempted (out of scope; would change behavior broadly).
-_SLACK_BLOCK_FALLBACKS = frozenset({
-    "This message contains interactive elements.",
-    "This content can't be displayed.",
-})
+_SLACK_BLOCK_FALLBACKS = frozenset(
+    {
+        "This message contains interactive elements.",
+        "This content can't be displayed.",
+    }
+)
 
 
 def _normalize_message_blocks(raw: list) -> list[dict]:
@@ -2427,6 +2422,7 @@ async def _route_message(
     #    (_handle_restart) which owns owner-check + supervisor guard, keeping
     #    a single source of truth for the restart logic. ──
     if clean_text.strip().lower() == "!restart":
+
         async def _restart_respond(text: str, **_kw: Any) -> None:
             if orch.slack:
                 await orch.slack.post_message(channel, text, thread_ts or msg_ts)

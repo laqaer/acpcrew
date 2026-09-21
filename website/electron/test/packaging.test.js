@@ -146,10 +146,10 @@ describe("macOS bundle naming", () => {
   });
 
   it("uses CFBundleDisplayName for spaced stable and nightly names", () => {
-    assert.equal(extendInfo.CFBundleDisplayName, "Kiro Crew");
+    assert.equal(extendInfo.CFBundleDisplayName, "Junction");
     assert.match(
       buildScript,
-      /-c\.mac\.extendInfo\.CFBundleDisplayName=Kiro Crew Nightly/
+      /-c\.mac\.extendInfo\.CFBundleDisplayName=Junction Nightly/
     );
     assert.doesNotMatch(buildScript, /-c\.mac\.extendInfo\.CFBundleName=/);
   });
@@ -364,11 +364,11 @@ describe("first-download installer design contract", () => {
     assert.equal(pkg.devDependencies["electron-builder"], "26.15.3");
   });
 
-  it("reuses the shipped logo and opening-animation ghost artwork", () => {
+  it("reuses the Junction track mark across splash, site, and installer art", () => {
     const normalize = text => text.replaceAll(",", " ").replace(/\s+/g, " ");
     const loading = normalize(fs.readFileSync(path.join(ROOT, "loading.html"), "utf8"));
     const siteLogo = normalize(
-      fs.readFileSync(path.join(REPO_ROOT, "site", "public", "kirocrew-logo.svg"), "utf8")
+      fs.readFileSync(path.join(REPO_ROOT, "site", "public", "junction-mark.svg"), "utf8")
     );
     const dmgSource = normalize(
       fs.readFileSync(path.join(INSTALLER_ASSETS, "dmg-background.svg"), "utf8")
@@ -380,27 +380,18 @@ describe("first-download installer design contract", () => {
       fs.readFileSync(path.join(INSTALLER_ASSETS, "windows-installer-header.svg"), "utf8")
     );
 
-    const openingGhost = "M398.554 818.914C316.315 1001.03";
+    const trackStem = "M10 6v7.5c0 2.8 2.2 5 6 5";
+    const ghostBody = "M398.554 818.914C316.315 1001.03";
     const logoGhost = "M84.76 266.62c-19.2 42.53";
-    const logoEyes = [
-      "M140.41 203.27c-7.67 0",
-      "M171.94 203.27c-7.67 0",
-      "M61.06 92.87c-1.57-4.01",
-      "M67.53 109.37c-1.57-4.01",
-      "M194.79 60.97c3.96 2.55",
-      "M178.51 50.47c3.96 2.55",
-    ];
-    assert.ok(loading.includes(openingGhost));
-    assert.ok(dmgSource.includes(openingGhost));
-    assert.ok(sidebarSource.includes(openingGhost));
-    assert.ok(siteLogo.includes(logoGhost));
-    assert.ok(sidebarSource.includes(logoGhost));
-    assert.ok(headerSource.includes(logoGhost));
-    for (const eye of logoEyes) {
-      assert.ok(siteLogo.includes(eye));
-      assert.ok(sidebarSource.includes(eye));
-      assert.ok(headerSource.includes(eye));
-    }
+    assert.ok(loading.includes(trackStem));
+    assert.ok(dmgSource.includes(trackStem));
+    assert.ok(sidebarSource.includes(trackStem));
+    assert.ok(headerSource.includes(trackStem));
+    assert.ok(siteLogo.includes(trackStem));
+    assert.ok(!loading.includes(ghostBody));
+    assert.ok(!dmgSource.includes(ghostBody));
+    assert.ok(!sidebarSource.includes(logoGhost));
+    assert.ok(!headerSource.includes(logoGhost));
   });
 
   it("applies the branded layout again after signing and stapling", () => {

@@ -123,8 +123,8 @@ test("FAMILY_META separates display names from quit-by-name targets", () => {
   // is the only valid AppleScript targeting handle.
   assert.equal(FAMILY_META.prod.appName, "KiroCrew");
   assert.equal(FAMILY_META.nightly.appName, "KiroCrew Nightly");
-  assert.equal(FAMILY_META.prod.displayName, "Kiro Crew");
-  assert.equal(FAMILY_META.nightly.displayName, "Kiro Crew Nightly");
+  assert.equal(FAMILY_META.prod.displayName, "Junction");
+  assert.equal(FAMILY_META.nightly.displayName, "Junction Nightly");
 });
 
 test("identity probe targets /api/health, never the /api/status liveness URL", () => {

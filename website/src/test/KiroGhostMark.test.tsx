@@ -1,18 +1,14 @@
 /**
- * The Kiro ghost brand mark (`components/KiroGhostMark.tsx`) and its use as the
- * "Agent Capabilities" nav icon.
- *
- * Two things are pinned here:
- * - the mark paints the ghost asset as a CSS mask over `currentColor`, which is
- *   what lets it follow the rail's active (accent) / idle colour states instead
- *   of being a fixed-colour <img>;
- * - the `capabilities` built-in surface renders that mark rather than a Lucide
- *   glyph (regression guard for the icon swap).
+ * The leftover ghost brand mark (`components/KiroGhostMark.tsx`) is still
+ * imported here so the mask-over-currentColor contract stays pinned. The
+ * Agent Capabilities rail uses the Junction track mark (GitMerge), not the
+ * ghost.
  */
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { ReactElement } from 'react'
+import { GitMerge } from 'lucide-react'
 import { KiroGhostMark } from '../components/KiroGhostMark'
 import '../surfaces/builtins'
 import { getBuiltinSurface } from '../surfaces/registry'
@@ -68,9 +64,9 @@ describe('KiroGhostMark', () => {
 })
 
 describe('Agent Capabilities nav icon', () => {
-  it('uses the Kiro ghost mark', () => {
+  it('uses the Junction track mark', () => {
     const surface = getBuiltinSurface('capabilities')
     expect(surface?.label).toBe('Agent Capabilities')
-    expect((surface?.icon as ReactElement).type).toBe(KiroGhostMark)
+    expect((surface?.icon as ReactElement).type).toBe(GitMerge)
   })
 })

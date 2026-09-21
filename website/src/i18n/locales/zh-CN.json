@@ -4,9 +4,9 @@
       "paste_token_url_or_raw_token": "粘贴令牌 URL 或原始令牌…",
       "rate_limited_by_the_tunnel_edge_http_429_too_man": "隧道边缘已限流（HTTP 429）— 短时间内请求过多。仪表板会自动重试；如果持续出现，等待几秒后重新加载。",
       "session_expired": "会话已过期。",
-      "session_expired_sign_in_again": "会话已过期。请在终端运行 kirocrew token，然后将 URL 粘贴到本页顶部的横幅中重新登录。",
+      "session_expired_sign_in_again": "会话已过期。请在终端运行 junction token，然后将 URL 粘贴到本页顶部的横幅中重新登录。",
       "stale_owner_session": "此会话早于已配置的所有者。请重新登录。",
-      "stale_owner_session_sign_in_again": "此会话早于已配置的所有者（登录发生在设置 KIROCREW_OWNER_ID 之前）。请在终端运行 kirocrew token，然后将 URL 粘贴到本页顶部的横幅中重新登录。",
+      "stale_owner_session_sign_in_again": "此会话早于已配置的所有者（登录发生在设置 KIROCREW_OWNER_ID 之前）。请在终端运行 junction token，然后将 URL 粘贴到本页顶部的横幅中重新登录。",
       "stream_ended_without_completion": "流在完成前结束",
       "unexpected_server_response": "服务器响应异常"
     }
@@ -89,7 +89,7 @@
     "skip_to_content": "跳到主内容",
     "social_login": "社交账号登录",
     "stale_fetch_failing": "（已过期：获取失败）",
-    "star_kirocrew_on_github": "在 GitHub 上为 Kiro Crew 加星",
+    "star_kirocrew_on_github": "在 GitHub 上为 {{productName}} 加星",
     "star_us": "给我们加星",
     "starting_update": "正在启动更新…",
     "syncing_workspace": "正在同步工作区",
@@ -4802,7 +4802,7 @@
       "trust_tooltip": "在此对话中，{{productName}} 无需先询问即可工作",
       "yolo_desc": "在每个对话中，{{productName}} 无需先询问即可工作",
       "yolo_expiration_timed": "Turns itself off after {{duration}}, then asks again.",
-      "yolo_expiration_until_shutdown": "Stays on until Kiro Crew restarts — no timed expiry.",
+      "yolo_expiration_until_shutdown": "一直保持开启，直到 {{productName}} 重启 — 无定时过期。",
       "yolo_label": "YOLO",
       "yolo_mode_is_an_app_wide_setting": "YOLO 模式是全应用级设置",
       "yolo_tooltip": "在每个对话中，{{productName}} 无需先询问即可工作"
@@ -6070,7 +6070,7 @@
       "skip_all_setup_and_onboarding": "跳过所有设置与引导"
     },
     "onboardingFlow": {
-      "answers_set_how_kiro_explains_things_plain_langu": "回答决定 Kiro 如何讲解 — 通俗语言还是完整\n            技术细节。保存在本设备；可随时在\n            “设置 → 聊天”中更改。",
+      "answers_set_how_kiro_explains_things_plain_langu": "回答决定 {{productName}} 如何讲解 — 通俗语言还是完整\n            技术细节。保存在本设备；可随时在\n            “设置 → 聊天”中更改。",
       "back": "返回",
       "change_anything_later_in_settings": "之后可在设置中随时更改。",
       "choose_a_color_theme_and_mode_you_can_change_it": "选择配色主题和模式 — 可随时更改。",
@@ -6099,12 +6099,12 @@
       "role_other": "其他",
       "role_product_manager": "产品经理",
       "saving": "保存中…",
-      "set_your_look_and_tell_kiro_about_you_so_respons": "设置外观并告诉 Kiro 你的情况，让回复贴合你的工作方式。",
+      "set_your_look_and_tell_kiro_about_you_so_respons": "设置外观并告诉 {{productName}} 你的情况，让回复贴合你的工作方式。",
       "skip": "跳过",
       "tech_codes": "我会写代码",
       "tech_non_technical": "非技术人员",
       "tech_somewhat": "略懂",
-      "tell_kiro_about_you": "介绍一下你自己",
+      "tell_kiro_about_you": "介绍一下你自己 ({{productName}})",
       "your_role": "你的角色"
     },
     "pastedChip": {
@@ -9016,7 +9016,7 @@
       "force_remove_confirm_title": "强制移除工作树？",
       "force_remove_warning": "所选工作树存在未合并的改动 — 移除是永久性的，无法撤销。",
       "force_remove": "强制移除 {{name}}",
-      "gateway_did_not_come_back_within_60s_reload_the": "网关在 60 秒内未恢复 — 手动重新加载页面，或查看 `kirocrew logs`。",
+      "gateway_did_not_come_back_within_60s_reload_the": "网关在 60 秒内未恢复 — 手动重新加载页面，或查看 `junction logs`。",
       "gateway_restarted_mid_sync_run_lost_check_git_st": "网关在同步中重启 — 本次运行已丢失；检查 git 状态并重新运行拉取+构建",
       "git_status_failed": "git status 失败",
       "has_unmerged_work_removing_deletes_permanently": "存在未合并的改动 — 移除会永久删除。",
@@ -9964,7 +9964,7 @@
         "pending_enable_click_to_revert": "待应用：启用（点击可撤销）",
         "pending_uninstall": "{{label}} — 待卸载",
         "probe_mcp_servers": "探测 MCP 服务器",
-        "servers_scope_tip": "Kiro Crew 与你的交互式 {{provider}}/Kiro 全局配置中的 MCP 服务器。Kiro Crew 徽章表示它是否会在 Kiro Crew 会话中加载；全局配置徽章表示它是否已共享到你的交互式 Kiro 全局配置。点击切换，然后应用更改。",
+        "servers_scope_tip": "{{productName}} 与你的交互式 {{provider}}/Kiro 全局配置中的 MCP 服务器。{{productName}} 徽章表示它是否会在 {{productName}} 会话中加载；全局配置徽章表示它是否已共享到你的交互式 Kiro 全局配置。点击切换，然后应用更改。",
         "status": "状态",
         "tool_list_read_from_the_package_s_declaration_th": "工具列表读取自软件包自身的声明；未实际启动服务器验证其可运行。",
         "tools": "工具",
@@ -9982,7 +9982,7 @@
       },
       "memoryGraphTab": {
         "all_count": "全部（{{count}}）",
-        "gpu_rendered_visualization_of_all_kirocrew_memor": "由 GPU 渲染的全部 Kiro Crew 记忆可视化视图。节点按类型着色。放大可显示标签，点击节点可检查，使用筛选器可聚焦。",
+        "gpu_rendered_visualization_of_all_kirocrew_memor": "由 GPU 渲染的全部 {{productName}} 记忆可视化视图。节点按类型着色。放大可显示标签，点击节点可检查，使用筛选器可聚焦。",
         "group_history_count": "历史（{{count}}）",
         "group_lessons_count": "经验（{{count}}）",
         "group_preferences_count": "偏好设置（{{count}}）",
@@ -10019,7 +10019,7 @@
         "no_lessons": "无经验",
         "no_lessons_yet": "暂无学习记录",
         "no_sessions_to_consolidate_start_a_chat_first": "没有可整合的会话 — 请先开始聊天",
-        "persistent_lessons_injected_into_every_session_a": "注入到每个会话的持久经验。自动从Task Runner失败中提取。可通过 'kirocrew learn add' 手动添加。当向量记忆启用时，经验会在“语义”标签页中作为 lesson.* 条目管理。",
+        "persistent_lessons_injected_into_every_session_a": "注入到每个会话的持久经验。自动从Task Runner失败中提取。可通过 'junction learn add' 手动添加。当向量记忆启用时，经验会在“语义”标签页中作为 lesson.* 条目管理。",
         "preference": "偏好",
         "preferences": "偏好设置",
         "projects": "项目",
@@ -10162,7 +10162,7 @@
         "skills": "技能",
         "skills_count": "技能（{{count}}）",
         "skills_from_read_only": "来自 {{name}} 的技能 — 只读",
-        "skills_tip": "按需加载的技能，当代理判断相关时才加载。带有 auto 标记的技能会始终注入每个会话。技能来自 Kiro Crew、kiro-cli 和 AIM 包。",
+        "skills_tip": "按需加载的技能，当代理判断相关时才加载。带有 auto 标记的技能会始终注入每个会话。技能来自 {{productName}}、kiro-cli 和 AIM 包。",
         "the_skill_this_update_targets_no_longer_exists_s": "此更新针对的技能已不存在，因此没有可更新的内容。请忽略此候选。",
         "this_skill_changed_after_this_update_was_written": "这个 skill 在这条更新写好之后又变过，所以现在应用它会撤销那些更新的改动。批准已被阻止——忽略这个候选项，系统会针对当前版本重新提出一条更新。",
         "update": "更新",
@@ -10390,7 +10390,7 @@
     },
     "popoutFrame": {
       "session": "会话",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "projectDetailPage": {
       "analyzing_task_and_building_step_by_step_plan": "正在分析任务并制定分步计划",
@@ -10488,9 +10488,9 @@
     "scenes": {
       "ghostScene": {
         "friendly_hauntings_only": "仅限友好出没",
-        "kiro_ghost_haunt_animation": "Kiro 幽灵出没动画",
-        "kiro_ghost_haunt_text_overlay": "Kiro 幽灵出没文字浮层",
-        "kiro_haunt": "Kiro 出没"
+        "kiro_ghost_haunt_animation": "夜院动画",
+        "kiro_ghost_haunt_text_overlay": "夜院文字叠加",
+        "kiro_haunt": "夜院"
       },
       "missionControl": {
         "missionControlScene": {
@@ -11014,7 +11014,7 @@
         "engine_needed_for_attach": "attach 需要",
         "node_missing": "需要 Node.js 20 或更新版本，而本机没有找到 Node。",
         "node_how": "安装后重新打开本页面。<dl>下载 Node.js</dl>",
-        "node_no_admin": "在无法安装 Node 的机器上（没有管理员权限，或者注册表需要登录），请在运行 Kiro Crew 的那台机器上执行以下命令。脚本会把 Node 和 CLI 安装到你的主目录，并在网络阻止下载时告诉你如何解决。",
+        "node_no_admin": "在无法安装 Node 的机器上（没有管理员权限，或者注册表需要登录），请在运行 {{productName}} 的那台机器上执行以下命令。脚本会把 Node 和 CLI 安装到你的主目录，并在网络阻止下载时告诉你如何解决。",
         "copy_command": "复制命令",
         "copied": "已复制"
       },
@@ -11251,7 +11251,7 @@
         "max_tree_nodes": "树节点上限",
         "not_applicable": "不适用",
         "not_detected": "未检测到",
-        "not_detected_does_not_always_mean_unavailable_ma": "未检测到并不总是意味着不可用 — macOS 会把权限授予记在启动 Kiro Crew 的进程上，而不是 Kiro Crew 本身。",
+        "not_detected_does_not_always_mean_unavailable_ma": "未检测到并不总是意味着不可用 — macOS 会把权限授予记在启动 {{productName}} 的进程上，而不是 {{productName}} 本身。",
         "open_system_settings": "打开系统设置",
         "open_system_settings_for": "打开{{label}}的系统设置",
         "permissions": "权限",
@@ -11293,7 +11293,7 @@
         "thinking_label": "显示思考过程",
         "thread_allowlist_description": "可选。已批准的用户只能在这些指定的 Discord 话题中运行代理。留空 = 仅私聊。",
         "thread_help": "开启 Developer Mode 后，右键点击话题 → <mono>Copy Channel ID</mono>。用话题本身的 ID，而不是父频道的 ID。",
-        "thread_warning": "话题模式会启用 Discord 的全局 Message Content intent。Discord 会投递机器人可见的每个服务器频道的内容；Kiro Crew 会丢弃已批准话题之外的流量。任何能查看已批准话题的人都能读到代理回复和工具输出。",
+        "thread_warning": "话题模式会启用 Discord 的全局 Message Content intent。Discord 会投递机器人可见的每个服务器频道的内容；{{productName}} 会丢弃已批准话题之外的流量。任何能查看已批准话题的人都能读到代理回复和工具输出。",
         "threshold_description": "会话上下文超过此百分比时，提示使用 !compact 或 !new。",
         "token_description": "来自开发者门户的 Bot 页面（点击 Reset Token 查看一次）。",
         "token_placeholder": "粘贴 Discord 机器人令牌"
@@ -11388,7 +11388,7 @@
         "handle_placeholder": "+15551234567",
         "loading": "正在加载 iMessage 配置…",
         "macos_only": "iMessage 需要在已登录 Messages 的 macOS 上运行，且网关必须运行在那台 Mac 上。此主机无法访问 iMessage，因此这些设置为只读。",
-        "managed_locally": "iMessage 设置在运行 Kiro Crew 的机器上管理，因此在远程会话中为只读。",
+        "managed_locally": "iMessage 设置在运行 {{productName}} 的机器上管理，因此在远程会话中为只读。",
         "needs_setup": "需要设置",
         "not_active": "未激活",
         "prerequisites_body": "无需机器人，也无需令牌：代理通过本地桥接与你自己的 Messages 应用通信，因此传输环节不经过任何第三方。但你的提示词仍会发送给代理所配置的模型提供方，与在其他渠道时一样。你需要 macOS 14 或更新版本并已登录 Messages，安装好 imsg CLI，再授予两项一次性 macOS 权限——Full Disk Access 和针对 Messages 的 Automation。",
@@ -11601,13 +11601,13 @@
         "disabled_by_policy": "已由策略禁用",
         "disabled_for_this_surface": "已对主机面禁用",
         "profile_unusable_title": "回退配置文件已生效",
-        "profile_unusable_body": "下方列出的配置文件无法加载，因此其所属面被限制在策略回退上限——除非声明更宽松的回退，否则全部拒绝。请在 Kiro Crew 数据主目录的 profiles 文件夹中修正该文件——修好后会自动重新加载。",
+        "profile_unusable_body": "下方列出的配置文件无法加载，因此其所属面被限制在策略回退上限——除非声明更宽松的回退，否则全部拒绝。请在 {{productName}} 数据主目录的 profiles 文件夹中修正该文件——修好后会自动重新加载。",
         "profile_unusable_detail": "该文件不可读、解析失败，或它所继承的配置文件缺失。仅当文件本身适用于比当前运行版本更新的构建时，才需要重启。",
         "profile_unusable_which": "受影响的配置文件：{{profiles}}。",
         "unknown_scopes_title": "本构建不包含的配置文件作用域",
         "unknown_scopes_tip": "下列配置文件包含本构建未注册的能力作用域——通常由配套版本注册，但拼写错误的作用域键也会出现在这里。这些作用域会被跳过，在本构建中不产生任何效果。",
         "disabling_a_rule_that_overlaps_an_always_on_cont": "禁用与常开控制项（敏感文件读取、IMDS、git 发布）重叠的规则并不会完全解除限制 — 纵深防御仍会阻止它。",
-        "disabling_all_built_in_denies_removes_kirocrew_s": "禁用所有内置拒绝规则会移除 Kiro Crew 针对破坏性命令和凭证外泄命令的保护。独立的纵深防御控制项（敏感路径、IMDS、git 发布）仍可能拦截部分命令。",
+        "disabling_all_built_in_denies_removes_kirocrew_s": "禁用所有内置拒绝规则会移除 {{productName}} 针对破坏性命令和凭证外泄命令的保护。独立的纵深防御控制项（敏感路径、IMDS、git 发布）仍可能拦截部分命令。",
         "disabling_weakens_protection": "禁用“{{name}}”会削弱针对破坏性命令和凭证外泄命令的保护。独立的纵深防御控制项仍可能拦截部分命令。",
         "do_not_enter_highly_sensitive_or_restricted_data": "请勿在 Kiro Crew 中输入高度敏感或受限数据。在决定与代理共享哪些内容时，请遵循任何适用的数据处理政策。",
         "documentation": "文档",
@@ -11633,7 +11633,7 @@
         "feature_sel_audit": "SEL 审计日志",
         "feature_sel_audit_description": "不可篡改、HMAC 链式的安全事件轨迹，转发前先对凭证脱敏",
         "feature_sensitive_paths": "敏感路径拦截",
-        "feature_sensitive_paths_description": "在工具执行前，于钩子层拦截凭证目录和 Kiro Crew 信任根",
+        "feature_sensitive_paths_description": "在工具执行前，于钩子层拦截凭证目录和 {{productName}} 信任根",
         "feature_suspicious_patterns": "可疑 Bash 模式",
         "feature_suspicious_patterns_description": "检测 shell 命令中的删除、外泄和管道执行攻击形态",
         "feature_token_auth": "仪表板令牌认证",
@@ -11688,7 +11688,7 @@
         "off": "已关闭",
         "optional_why_shown_to_the_agent_when_this_rule_fir": "可选：原因。此规则触发时向智能体显示",
         "other_surfaces_have_their_own_profiles": "拥有各自配置文件的面可以允许主机所不能允许的操作：{{surfaces}}。",
-        "enforced_by_floor": "由 Kiro Crew 内置的常开保护强制执行",
+        "enforced_by_floor": "由 {{productName}} 内置的常开保护强制执行",
         "pinned_by_policy": "由你所在组织的安全策略强制执行",
         "pinned_for_the_host_surface": "由主机面配置文件设置。这仅是进程内主机操作的上限——其他面有各自的配置文件，可能允许此项。",
         "policy": "策略",
@@ -11731,9 +11731,9 @@
         "tailnet_desc": "把本机 Tailscale MagicDNS 名称加入仪表板允许来源列表，这样通过 tailscale serve 到达的请求就能通过 CSRF 来源校验，不会再被拒绝。",
         "tailnet_open": "打开",
         "tailnet_origin_label": "仪表板来源",
-        "tailnet_pin_caveat": "在 tailscale serve 后面，按设备绑定会话无法生效：每个请求到达 Kiro Crew 时都来自 127.0.0.1，因此仪表板链接可在你 tailnet 上任何设备使用，而不只是最初打开它的那一台。请把该链接视为密码。",
+        "tailnet_pin_caveat": "在 tailscale serve 后面，按设备绑定会话无法生效：每个请求到达 {{productName}} 时都来自 127.0.0.1，因此仪表板链接可在你 tailnet 上任何设备使用，而不只是最初打开它的那一台。请把该链接视为密码。",
         "tailnet_pin_caveat_link": "跟踪问题 #1762",
-        "tailnet_restart_note": "该名称只在 Kiro Crew 启动时解析一次，因此这里的修改会在下次重启后生效。",
+        "tailnet_restart_note": "该名称只在 {{productName}} 启动时解析一次，因此这里的修改会在下次重启后生效。",
         "tailnet_section": "Tailnet 来源",
         "tailnet_state_active": "已生效",
         "tailnet_state_off": "已关闭",
@@ -11741,9 +11741,9 @@
         "tailnet_tip": "这只影响来源允许列表。它不会启动 Tailscale、开放端口或把仪表板分享给任何人；tailscale serve 仍需你自己运行。",
         "tailnet_title": "信任本机的 tailnet 名称",
         "tailnet_unavailable": "无法读取 tailnet 设置，因此这里既不能显示也不能修改。如果它原本已开启，tailnet 名称仍然被允许；请重新加载页面后重试。",
-        "tailnet_unresolved_note": "此项已开启，但 Kiro Crew 启动时没有解析到 tailnet 名称，因此没有向允许来源添加任何内容。通过 tailscale serve 访问的仪表板仍会被来源校验拒绝。名称可用后请重启 Kiro Crew。",
+        "tailnet_unresolved_note": "此项已开启，但 {{productName}} 启动时没有解析到 tailnet 名称，因此没有向允许来源添加任何内容。通过 tailscale serve 访问的仪表板仍会被来源校验拒绝。名称可用后请重启 {{productName}}。",
         "the_strictest_boundary_in_effect_for_each_govern": "每个受治理作用域当前生效的最严格边界，位于",
-        "third_party_apps_on_warning": "这会信任所有第三方应用，包括你以后才安装的，而不只是你正要启动那一个。受信任应用与 Kiro Crew 拥有同等访问权限：你的文件、你保存的凭据，以及网络。",
+        "third_party_apps_on_warning": "这会信任所有第三方应用，包括你以后才安装的，而不只是你正要启动那一个。受信任应用与 {{productName}} 拥有同等访问权限：你的文件、你保存的凭据，以及网络。",
         "third_party_apps_save_failed": "无法保存该设置。",
         "third_party_apps_scope_note": "立即生效。重新关闭时，此前获准运行的第三方应用也会停止——先运行其关闭钩子，再停止后端；任何未能停止的项都会报告给你。",
         "third_party_apps_section": "第三方应用",
@@ -11753,7 +11753,7 @@
         "turn_off_every_rule": "一次性关闭所有内置的拒绝命令规则。独立的纵深防御控制项（敏感路径、IMDS、git 发布）仍会强制执行。",
         "turn_off_every_rule_governance_locked": "一次性关闭所有内置的拒绝命令规则。独立的纵深防御控制项（敏感路径、IMDS、git 发布）仍会强制执行，以及由组织策略固定的规则仍会保持启用。",
         "yolo_active_expires_at": "自动批准已开启，会一直保持到 {{time}}。",
-        "yolo_active_until_restart": "自动批准已开启，会一直保持到 Kiro Crew 重启。",
+        "yolo_active_until_restart": "自动批准已开启，会一直保持到 {{productName}} 重启。",
         "yolo_auto_approve": "YOLO（自动批准）",
         "yolo_duration_12h": "12 小时",
         "yolo_duration_1h": "1 小时",
@@ -11764,7 +11764,7 @@
         "yolo_duration_locked": "已由组织策略禁用",
         "yolo_duration_next_activation_note": "下次开启自动批准时生效。",
         "yolo_duration_title": "自动批准保持开启的时长",
-        "yolo_duration_until_shutdown": "直到 Kiro Crew 重启",
+        "yolo_duration_until_shutdown": "直到 {{productName}} 重启",
         "your_custom_denies": "你的自定义拒绝规则",
         "trustedApps": {
           "description": "你已允许在这台电脑上运行自身代码的应用。信任每次只覆盖一个应用，其他第三方应用仍然会被拦截。",
@@ -11780,10 +11780,10 @@
           "revoke_confirm_title": "要移除对 “{{name}}” 的信任吗？",
           "revoke_confirm_body": "“{{name}}” 会被关闭并停止工作。它仍然保持安装状态，你之后可以再次信任它。",
           "revoke_confirm_ok": "移除信任并关闭",
-          "allow_all_confirm_body": "允许所有第三方应用后，你安装的任何应用都能在 Kiro Crew 内部运行自身代码，访问权限与 Kiro Crew 完全相同 — 你的文件、已保存凭据以及互联网。每次只信任一个应用更安全。",
-          "allow_all_confirm_ack": "我明白我安装的每个第三方应用都将能够以 Kiro Crew 的访问权限运行自身代码。",
+          "allow_all_confirm_body": "允许所有第三方应用后，你安装的任何应用都能在 {{productName}} 内部运行自身代码，访问权限与 {{productName}} 完全相同 — 你的文件、已保存凭据以及互联网。每次只信任一个应用更安全。",
+          "allow_all_confirm_ack": "我明白我安装的每个第三方应用都将能够以 {{productName}} 的访问权限运行自身代码。",
           "ineffective_label": "已保存但未生效",
-          "ineffective_description": "这些名称已被保存为受信任，但 Kiro Crew 不接受它们，因此这些应用仍然被拦截。移除它们可以整理这个列表。"
+          "ineffective_description": "这些名称已被保存为受信任，但 {{productName}} 不接受它们，因此这些应用仍然被拦截。移除它们可以整理这个列表。"
         }
       },
       "shortcutsPanel": {
@@ -12278,7 +12278,7 @@
         "cancel": "Cancel",
         "cancelling": "Cancelling…",
         "cancel_setup_of": "Cancel setup of {{tag}}",
-        "launched_by_kiro_crew": "Launched by Kiro Crew",
+        "launched_by_kiro_crew": "由 {{productName}} 启动",
         "added_by_you": "Added by you",
         "doesnt_manage": "Kiro Crew does not manage this machine",
         "stop": "Stop",
@@ -12496,7 +12496,7 @@
       "return": "返回停靠面板",
       "return_to_main_window_and_close_this_popout": "返回主窗口并关闭此弹出窗口",
       "terminal": "终端",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "webhooksPage": {
       "0_b": "0 B",
@@ -12670,8 +12670,8 @@
     "dataNeverSentBody": "提示词、回复、文件、凭证、主机名、用户名，或你的操作系统。不存储你的 IP。",
     "dataNeverSentTitle": "绝不发送",
     "governanceOverrideNote": "你的管理员的安全策略已将其关闭，无法在此处更改。",
-    "installReceiptBody": "从 Kiro Crew 官方目录成功安装或更新后，会发送一条匿名回执。外部注册表、本地应用和自行注册的应用绝不会被报告。",
-    "installReceiptFields": "官方应用 slug · 每个应用独立的匿名令牌（无法跨应用关联）· 全新安装/更新标记 · Kiro Crew 版本",
+    "installReceiptBody": "从 {{productName}} 官方目录成功安装或更新后，会发送一条匿名回执。外部注册表、本地应用和自行注册的应用绝不会被报告。",
+    "installReceiptFields": "官方应用 slug · 每个应用独立的匿名令牌（无法跨应用关联）· 全新安装/更新标记 · {{productName}} 版本",
     "installReceiptTitle": "官方应用安装回执",
     "localDataBody": "使用记录和上下文记录。性能指标默认关闭。",
     "localDataTitle": "保留在你的设备上",
@@ -12700,7 +12700,7 @@
         "auto": "自动",
         "description": "仪表板界面的显示语言。",
         "label": "语言",
-        "sync_failed": "无法保存到 Kiro Crew 配置 — 此语言仅在此浏览器生效，重新加载后可能重置。"
+        "sync_failed": "无法保存到 {{productName}} 配置 — 此语言仅在此浏览器生效，重新加载后可能重置。"
       }
     },
     "groups": {
@@ -12737,7 +12737,7 @@
         "label": "显示"
       },
       "imports": {
-        "description": "从其他 AI 代理导入数据，并备份或恢复 Kiro Crew 配置",
+        "description": "从其他 AI 代理导入数据，并备份或恢复 {{productName}} 配置",
         "label": "导入 / 导出"
       },
       "instances": {
