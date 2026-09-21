@@ -35,6 +35,8 @@ ADRs: [0002](docs/adr/0002-two-planes.md),
 [0003](docs/adr/0003-sidecar-not-vendor.md). Spec:
 [`docs/system-specs/modules/model-router.md`](docs/system-specs/modules/model-router.md).
 
+Site: https://getjunction.dev
+
 ## Implementation identifiers (until a dedicated rename)
 
 `kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`, GitHub

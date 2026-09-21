@@ -10,4 +10,4 @@ upstream projects, not the product.
 | [codex-router.md](codex-router.md) | MIT [Codex Router](https://github.com/duolahypercho/codex-router), observed as the model plane. Catalog slugs derived; Node tree not vendored. |
 
 Architecture thesis: [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).
-Multi-ACP overlay: [`../../FORK.md`](../../FORK.md).
+Multi-ACP overlay: [`../../TREE.md`](../../TREE.md).

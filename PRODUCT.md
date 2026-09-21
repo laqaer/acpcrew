@@ -56,6 +56,8 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 | Command | Role |
 |---|---|
 | `junction` | Primary CLI. |
+| `junction planes` | Harness + model + role DAG in one snapshot (`--json` for machines). |
+| `junction doctor --quick` | Compose-only probe. Full `junction doctor` still exists. |
 | `junction router catalog` | Namespaced model choices (no credentials). |
 | `junction router plan` | Orchestration / planning / execution DAG. |
 
@@ -73,7 +75,7 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 Python import path, data-home env, and default data directory keep the
 spellings the runtime already uses (`kiro_crew`, `KIROCREW_HOME`,
 `~/.kiro/crew`) until a dedicated, human-gated rename. They are not the
-product name. GitHub slug: `laqaer/acpcrew`.
+product name. GitHub slug: `laqaer/acpcrew`. Site: https://getjunction.dev
 
 The brand gate still forbids concatenated `KiroCrew` in **new prose**.
 Junction is the product.
@@ -83,5 +85,5 @@ Junction is the product.
 Frozen identity and the execution envelope:
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md). Agent overlay:
 [`JUNCTION.md`](JUNCTION.md). Multi-ACP facts:
-[`FORK.md`](FORK.md). Provenance:
+[`TREE.md`](TREE.md). Provenance:
 [`docs/provenance/README.md`](docs/provenance/README.md).

@@ -34,7 +34,7 @@ import {
  * fresh.
  */
 
-export const TERMINAL_POPOUT_CHANNEL = 'kirocrew-terminal-popout'
+export const TERMINAL_POPOUT_CHANNEL = 'junction-terminal-popout'
 
 /** The singleton entity id for the (one) terminal panel popout. */
 export const TERMINAL_POPOUT_ID = 'terminal-panel'
@@ -44,7 +44,7 @@ export type { PopoutMap, PopoutMsg }
 
 /** Stable `window.open` name — dedupes to a single terminal popout window. */
 export function popoutWindowName(): string {
-  return 'mc-popout-terminal'
+  return 'junction-popout-terminal'
 }
 
 /** Build the popout URL for the terminal panel window. */

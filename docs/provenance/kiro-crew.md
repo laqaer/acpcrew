@@ -11,7 +11,7 @@ this checkout.
   [`../../WORKING_BRIEF.md`](../../WORKING_BRIEF.md)).
 - **Multi-ACP:** already on `main`. Default `agent.acp_backend` is
   `auto`. Registry: `src/kiro_crew/acp/runtimes.py`. Do not re-land it.
-  Facts: [`../../FORK.md`](../../FORK.md).
+  Facts: [`../../TREE.md`](../../TREE.md).
 
 ## What stays
 

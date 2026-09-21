@@ -1,6 +1,6 @@
 # WhatsApp integration
 
-Chat with Kiro Crew on WhatsApp from your own account: scan a QR code once and
+Chat with Junction on WhatsApp from your own account: scan a QR code once and
 the gateway joins your WhatsApp as a **linked device** — the same mechanism as
 WhatsApp Web. There is no bot account and no Meta Business API: messages the
 agent sends come from *your* number, which is what makes the channel powerful
@@ -33,7 +33,7 @@ configuration allows, and rate-limits unprompted group replies.
    { "whatsapp": { "enabled": true } }
    ```
 
-   Or run `kirocrew setup --whatsapp`, which reports whether the optional extra
+   Or run `junction setup --whatsapp`, which reports whether the optional extra
    is installed, reports whether a paired session store already exists, and sets
    `whatsapp.enabled` for you. It collects no credentials: there is no token, and
    pairing still happens in step 3 below.
@@ -261,7 +261,7 @@ and exact, so `/stop the presses` reaches the agent as a sentence.
 - **Group replies missing** — check the group is in `whatsapp.groups`, its
   `mode` is not `off`, and (for unprompted replies) `rules` is non-empty and
   the cooldown has elapsed.
-- **Not sure whether the channel can run at all** - run `kirocrew doctor`. Its
+- **Not sure whether the channel can run at all** - run `junction doctor`. Its
   **WhatsApp Integration** section reports whether the `whatsapp` extra is
   installed (a missing extra is a hard failure) and whether the linked-device
   session store exists at `~/.kiro/crew/whatsapp/session.db`. An unpaired store is

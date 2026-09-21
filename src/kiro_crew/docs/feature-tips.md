@@ -1,6 +1,6 @@
 # Feature Tips
 
-Kiro Crew occasionally surfaces a small tip above the chat composer while the
+Junction occasionally surfaces a small tip above the chat composer while the
 agent is working, pointing at a feature you have not used yet. Tips are
 personalized: a background session reads your recent activity and memory
 context to pick features that fit how you actually work.

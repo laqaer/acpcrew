@@ -1,12 +1,12 @@
 # Microsoft Teams Integration
 
-Kiro Crew can run as a Microsoft Teams bot, so you can DM your agent from Teams
+Junction can run as a Microsoft Teams bot, so you can DM your agent from Teams
 the same way you would from Slack, Telegram, Discord, Webex, or WeCom.
 
 > **This release is DM-only and self-hosted.** You chat with the bot in a **1:1
 > personal chat**. Messages sent in team channels or group chats are refused
 > (fail closed) so tool output is never exposed to unauthorized members.
-> Because Teams uses the Bot Framework model, Kiro Crew exposes an **inbound
+> Because Teams uses the Bot Framework model, Junction exposes an **inbound
 > HTTPS webhook** and you must give your gateway a **public HTTPS URL** (unlike
 > the other channels, which open an outbound connection and need no public
 > URL).
@@ -14,7 +14,7 @@ the same way you would from Slack, Telegram, Discord, Webex, or WeCom.
 ## How it works
 
 Unlike Slack (Socket Mode) or Webex (device WebSocket), the Microsoft Bot
-Framework **pushes** activities to a messaging endpoint you host. Kiro Crew:
+Framework **pushes** activities to a messaging endpoint you host. Junction:
 
 1. Registers a single inbound route on the gateway's existing HTTP server:
    `POST /api/messaging/teams`.
@@ -44,7 +44,7 @@ Framework **pushes** activities to a messaging endpoint you host. Kiro Crew:
   pip install "kirocrew[teams]"
   ```
 
-  If the channel is enabled without this extra, Kiro Crew logs an actionable
+  If the channel is enabled without this extra, Junction logs an actionable
   error and skips Teams (the rest of the gateway still starts).
 
  > [!NOTE]
@@ -53,13 +53,13 @@ Framework **pushes** activities to a messaging endpoint you host. Kiro Crew:
  > Use PIP's **Direct URL requirement syntax** (`package[extra] @ git+https://...`) to install the package along with extras:
  >
  > ```bash
- > pip install "kirocrew[teams] @ git+https://github.com/kirodotdev/KiroCrew.git"
+ > pip install "kirocrew[teams] @ git+https://github.com/laqaer/acpcrew.git"
  > ```
  > ### Alternative Solutions
  >
  > #### Option 1: Install Subdirectory / Local Clone (Editable Mode)
  >
- > If you have cloned the [Kiro Crew GitHub repository](https://github.com/kirodotdev/KiroCrew) locally, navigate to the repo root and run:
+ > If you have cloned the [Junction GitHub repository](https://github.com/laqaer/acpcrew) locally, navigate to the repo root and run:
  >
  > ```bash
  > pip install -e ".[teams]"
@@ -70,7 +70,7 @@ Framework **pushes** activities to a messaging endpoint you host. Kiro Crew:
  > If you run into issues with Git dependency syntax, you can install the repository root first and then install the required `teams` dependencies directly (such as `pyjwt` and `cryptography` required for Azure Bot Framework JWT validation):
  >
  > ```bash
- > pip install "git+https://github.com/kirodotdev/KiroCrew.git"
+ > pip install "git+https://github.com/laqaer/acpcrew.git"
  > pip install pyjwt cryptography
  > ```
 
@@ -83,14 +83,14 @@ Framework **pushes** activities to a messaging endpoint you host. Kiro Crew:
 3. For a **single-tenant** bot, also note the **Tenant ID**. For a
    **multi-tenant** bot, leave the tenant blank.
 4. Under the bot's **Channels**, add the **Microsoft Teams** channel.
-5. Set the bot's **Messaging endpoint** to your public URL plus the Kiro Crew
+5. Set the bot's **Messaging endpoint** to your public URL plus the Junction
    route:
 
    ```
    https://<your-public-host>/api/messaging/teams
    ```
 
-## 2. Configure Kiro Crew
+## 2. Configure Junction
 
 Provide the credentials via environment variables (preferred) in
 `~/.kiro/crew/.env`:
@@ -210,7 +210,7 @@ waiting instead of approving something you did not mean to.
 **Approve + auto-approve** stops the asking — and it is the same switch as `/yolo
 on` and the dashboard's YOLO toggle, which is why the button says so rather than
 calling itself "Trust session". There is deliberately only ONE auto-approve grant in
-Kiro Crew: turning it on here turns it on for your dashboard chats and scheduled
+Junction: turning it on here turns it on for your dashboard chats and scheduled
 jobs too, until it expires. Two grants with two lifetimes would mean two answers to
 "is auto-approve on?", and the wrong answer to that question is the expensive one.
 So treat it accordingly — and note that everyone on `allowed_emails` can press it.

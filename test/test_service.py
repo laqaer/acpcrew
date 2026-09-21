@@ -52,32 +52,42 @@ def _clear_sudo_user(monkeypatch):
 
 class TestPlatformDetection:
     def test_linux_with_systemctl_returns_systemd(self):
-        with patch("kiro_crew.service.common.sys") as mock_sys, patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/bin/systemctl",
+        with (
+            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/bin/systemctl",
+            ),
         ):
             mock_sys.platform = "linux"
             assert current_platform() == Platform.SYSTEMD
 
     def test_linux_without_systemctl_returns_unsupported(self):
-        with patch("kiro_crew.service.common.sys") as mock_sys, patch(
-            "kiro_crew.service.common.shutil.which", return_value=None
+        with (
+            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch("kiro_crew.service.common.shutil.which", return_value=None),
         ):
             mock_sys.platform = "linux"
             assert current_platform() == Platform.UNSUPPORTED
 
     def test_darwin_with_launchctl_returns_launchd(self):
-        with patch("kiro_crew.service.common.sys") as mock_sys, patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/bin/launchctl",
+        with (
+            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/bin/launchctl",
+            ),
         ):
             mock_sys.platform = "darwin"
             assert current_platform() == Platform.LAUNCHD
 
     def test_unknown_platform_returns_unsupported(self):
-        with patch("kiro_crew.service.common.sys") as mock_sys, patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/bin/anything",
+        with (
+            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/bin/anything",
+            ),
         ):
             mock_sys.platform = "win32"
             assert current_platform() == Platform.UNSUPPORTED
@@ -91,9 +101,7 @@ class TestShutdownBudget:
             TOTAL_SHUTDOWN_BUDGET_SECS,
         )
 
-        assert TOTAL_SHUTDOWN_BUDGET_SECS == (
-            GRACEFUL_SHUTDOWN_SECS + SIGNAL_MARGIN_SECS
-        )
+        assert TOTAL_SHUTDOWN_BUDGET_SECS == (GRACEFUL_SHUTDOWN_SECS + SIGNAL_MARGIN_SECS)
         assert (GRACEFUL_SHUTDOWN_SECS, TOTAL_SHUTDOWN_BUDGET_SECS) == (10, 20)
 
 
@@ -107,11 +115,12 @@ class TestLinuxUnitRendering:
         # `id -gn tester` would return some real group; mock it to a known value
         # so the test asserts both User= and Group= are populated correctly.
         gid_result = MagicMock(returncode=0, stdout="amazon\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/home/u/.toolbox/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=gid_result
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/home/u/.toolbox/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid_result),
         ):
             unit = svc_linux.render_unit()
         # ExecStart executable is double-quoted (systemd tokenizes on
@@ -150,20 +159,18 @@ class TestLinuxUnitRendering:
 
         monkeypatch.setenv("USER", "tester")
         gid_result = MagicMock(returncode=0, stdout="staff\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=gid_result
-        ), patch.object(
-            svc_linux, "_current_uid", return_value=4242
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid_result),
+            patch.object(svc_linux, "_current_uid", return_value=4242),
         ):
             unit = svc_linux.render_unit()
 
         assert 'Environment="XDG_RUNTIME_DIR=/run/user/4242"\n' in unit
-        assert (
-            'Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/4242/bus"\n' in unit
-        )
+        assert 'Environment="DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/4242/bus"\n' in unit
         # No reordering regression: the pre-existing Environment lines survive,
         # still inside [Service] and still ahead of the new ones.
         assert 'Environment="USER=tester"\n' in unit
@@ -183,13 +190,13 @@ class TestLinuxUnitRendering:
 
         monkeypatch.setenv("USER", "tester")
         gid_result = MagicMock(returncode=0, stdout="staff\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=gid_result
-        ), patch.object(
-            svc_linux, "_current_uid", return_value=None
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid_result),
+            patch.object(svc_linux, "_current_uid", return_value=None),
         ):
             unit = svc_linux.render_unit()
 
@@ -217,8 +224,9 @@ class TestLinuxUnitRendering:
         from kiro_crew.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        with patch("kiro_crew.service.common.shutil.which", return_value=None), patch.object(
-            sys, "argv", ["/some/path/kirocrew"]
+        with (
+            patch("kiro_crew.service.common.shutil.which", return_value=None),
+            patch.object(sys, "argv", ["/some/path/kirocrew"]),
         ):
             unit = svc_linux.render_unit()
         # argv[0] is realpathed; just check the unit references *something*
@@ -237,12 +245,13 @@ class TestLinuxUnitRendering:
 
         # Capture every subprocess.run call. All return success.
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=ok
-        ) as run:
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run,
+        ):
             svc_linux.install()
 
         # Four things must happen:
@@ -267,9 +276,7 @@ class TestLinuxUnitRendering:
         assert ["sudo", "systemctl", "enable", f"{SERVICE_NAME}.service"] in called
         assert ["sudo", "systemctl", "restart", f"{SERVICE_NAME}.service"] in called
 
-    def test_install_raises_with_clear_error_when_sudo_install_fails(
-        self, monkeypatch
-    ):
+    def test_install_raises_with_clear_error_when_sudo_install_fails(self, monkeypatch):
         """If `sudo install` fails (user denies password, sudoers misconfigured),
         install MUST raise with a clear message rather than continuing on
         and silently leaving the system half-configured."""
@@ -277,15 +284,14 @@ class TestLinuxUnitRendering:
 
         monkeypatch.setenv("USER", "tester")
         monkeypatch.setattr(svc_linux.os, "geteuid", lambda: 1000, raising=False)
-        install_failed = MagicMock(
-            returncode=1, stdout="", stderr="sudo: a password is required"
-        )
+        install_failed = MagicMock(returncode=1, stdout="", stderr="sudo: a password is required")
 
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=install_failed
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=install_failed),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
@@ -406,11 +412,14 @@ class TestLinuxPrivilegeResolution:
         # Simulate `sudo -H`: process home is /root.
         monkeypatch.setattr(svc_linux.Path, "home", classmethod(lambda cls: Path("/root")))
         # alice's passwd home.
-        monkeypatch.setattr(svc_linux, "_home_for_user", lambda u: "/home/alice" if u == "alice" else "/root")
+        monkeypatch.setattr(
+            svc_linux, "_home_for_user", lambda u: "/home/alice" if u == "alice" else "/root"
+        )
         gid = MagicMock(returncode=0, stdout="alice\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"
-        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+        with (
+            patch("kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+        ):
             unit = svc_linux.render_unit()
         assert "User=alice" in unit
         assert "WorkingDirectory=/home/alice" in unit
@@ -619,15 +628,16 @@ class TestMacOSPlistRendering:
         ):
             plist = svc_macos.render_plist()
         args = plist.split("<key>ProgramArguments</key>", 1)[1].split("</array>", 1)[0]
-        assert "<string>--no-open</string>" in args, (
-            "--no-open must be inside ProgramArguments, not merely somewhere in the plist"
-        )
+        assert (
+            "<string>--no-open</string>" in args
+        ), "--no-open must be inside ProgramArguments, not merely somewhere in the plist"
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="staff\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"
-        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+        with (
+            patch("kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+        ):
             unit = svc_linux.render_unit()
         assert 'ExecStart="/usr/local/bin/kirocrew" gateway --no-open' in unit
 
@@ -681,16 +691,18 @@ class TestMacOSPlistRendering:
             assert svc_macos.restart_contract_current(plist) is False
 
         current = (
-            f"exit timeout = {TOTAL_SHUTDOWN_BUDGET_SECS}\n"
-            "properties = keepalive | runatload\n"
+            f"exit timeout = {TOTAL_SHUTDOWN_BUDGET_SECS}\n" "properties = keepalive | runatload\n"
         )
         assert svc_macos.loaded_restart_contract_current(current) is True
-        assert svc_macos.loaded_restart_contract_current(
-            current.replace("keepalive | ", "")
-        ) is False
-        assert svc_macos.loaded_restart_contract_current(
-            current.replace(str(TOTAL_SHUTDOWN_BUDGET_SECS), "5")
-        ) is False
+        assert (
+            svc_macos.loaded_restart_contract_current(current.replace("keepalive | ", "")) is False
+        )
+        assert (
+            svc_macos.loaded_restart_contract_current(
+                current.replace(str(TOTAL_SHUTDOWN_BUDGET_SECS), "5")
+            )
+            is False
+        )
 
     def test_render_plist_xml_escapes_special_chars(self, monkeypatch, tmp_path):
         """The Program path is XML-escaped.
@@ -701,9 +713,7 @@ class TestMacOSPlistRendering:
         """
         from kiro_crew.service import macos as svc_macos
 
-        monkeypatch.setattr(
-            svc_macos, "LIVE_PROGRAM", Path("/path/with/<bad>&chars/live-gateway")
-        )
+        monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", Path("/path/with/<bad>&chars/live-gateway"))
         plist = svc_macos.render_plist()
         assert "<bad>" not in plist
         assert "&chars" not in plist
@@ -723,10 +733,13 @@ class TestMacOSPlistRendering:
         monkeypatch.setattr(svc_macos, "STDERR_LOG", log_dir / "gateway.err")
 
         run = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/opt/homebrew/bin/kirocrew",
-        ), patch("kiro_crew.service.macos.subprocess.run", return_value=run) as proc:
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/opt/homebrew/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.macos.subprocess.run", return_value=run) as proc,
+        ):
             svc_macos.install()
 
         assert plist_path.exists()
@@ -749,10 +762,13 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "install") as mock_install:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "install") as mock_install,
+        ):
             rc = controller.install_service()
         assert rc == 0
         mock_install.assert_called_once()
@@ -780,12 +796,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "is_active", return_value=False), patch.object(
-            svc_linux, "stop"
-        ) as mock_stop:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "is_active", return_value=False),
+            patch.object(svc_linux, "stop") as mock_stop,
+        ):
             assert controller.stop_service() is False
         mock_stop.assert_not_called()
 
@@ -793,12 +811,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "is_active", return_value=True), patch.object(
-            svc_linux, "stop"
-        ) as mock_stop:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "is_active", return_value=True),
+            patch.object(svc_linux, "stop") as mock_stop,
+        ):
             assert controller.stop_service() is True
         mock_stop.assert_called_once()
 
@@ -806,12 +826,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "is_active", return_value=True), patch.object(
-            svc_macos, "stop"
-        ) as mock_stop:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "is_active", return_value=True),
+            patch.object(svc_macos, "stop") as mock_stop,
+        ):
             assert controller.stop_service() is True
         mock_stop.assert_called_once()
 
@@ -819,12 +841,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "is_active", return_value=False), patch.object(
-            svc_macos, "stop"
-        ) as mock_stop:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "is_active", return_value=False),
+            patch.object(svc_macos, "stop") as mock_stop,
+        ):
             assert controller.stop_service() is False
         mock_stop.assert_not_called()
 
@@ -844,12 +868,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "is_active", return_value=False), patch.object(
-            svc_linux, "restart"
-        ) as mock_restart:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "is_active", return_value=False),
+            patch.object(svc_linux, "restart") as mock_restart,
+        ):
             assert controller.restart_service() is False
         mock_restart.assert_not_called()
 
@@ -857,12 +883,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "is_active", return_value=True), patch.object(
-            svc_linux, "restart", return_value=True
-        ) as mock_restart:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "is_active", return_value=True),
+            patch.object(svc_linux, "restart", return_value=True) as mock_restart,
+        ):
             assert controller.restart_service() is True
         mock_restart.assert_called_once()
 
@@ -876,12 +904,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "is_active", return_value=True), patch.object(
-            svc_linux, "restart", return_value=False
-        ) as mock_restart:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "is_active", return_value=True),
+            patch.object(svc_linux, "restart", return_value=False) as mock_restart,
+        ):
             assert controller.restart_service() is False
         mock_restart.assert_called_once()
 
@@ -889,12 +919,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "is_active", return_value=True), patch.object(
-            svc_macos, "restart", return_value=True
-        ) as mock_restart:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "is_active", return_value=True),
+            patch.object(svc_macos, "restart", return_value=True) as mock_restart,
+        ):
             assert controller.restart_service() is True
         mock_restart.assert_called_once()
 
@@ -902,12 +934,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "is_active", return_value=True), patch.object(
-            svc_macos, "restart", return_value=False
-        ) as mock_restart:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "is_active", return_value=True),
+            patch.object(svc_macos, "restart", return_value=False) as mock_restart,
+        ):
             assert controller.restart_service() is False
         mock_restart.assert_called_once()
 
@@ -915,12 +949,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "is_active", return_value=False), patch.object(
-            svc_macos, "restart"
-        ) as mock_restart:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "is_active", return_value=False),
+            patch.object(svc_macos, "restart") as mock_restart,
+        ):
             assert controller.restart_service() is False
         mock_restart.assert_not_called()
 
@@ -939,13 +975,16 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(
-            svc_linux,
-            "install",
-            side_effect=svc_linux.ServiceInstallError("simulated failure"),
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(
+                svc_linux,
+                "install",
+                side_effect=svc_linux.ServiceInstallError("simulated failure"),
+            ),
         ):
             rc = controller.install_service()
         captured = capsys.readouterr()
@@ -956,10 +995,13 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "install") as mock_install:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "install") as mock_install,
+        ):
             rc = controller.install_service()
         assert rc == 0
         mock_install.assert_called_once()
@@ -972,10 +1014,13 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "uninstall") as mock_un:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "uninstall") as mock_un,
+        ):
             rc = controller.uninstall_service()
         assert rc == 0
         mock_un.assert_called_once()
@@ -987,11 +1032,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(
-            svc_linux, "uninstall", side_effect=svc_linux.ServiceInstallError("needs sudo")
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(
+                svc_linux, "uninstall", side_effect=svc_linux.ServiceInstallError("needs sudo")
+            ),
         ):
             rc = controller.uninstall_service()
         assert rc == 1
@@ -1001,10 +1049,13 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "uninstall") as mock_un:
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "uninstall") as mock_un,
+        ):
             rc = controller.uninstall_service()
         assert rc == 0
         mock_un.assert_called_once()
@@ -1014,12 +1065,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(
-            svc_linux, "status", return_value="● kirocrew.service\n"
-        ), patch.object(svc_linux, "is_active", return_value=True):
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "status", return_value="● kirocrew.service\n"),
+            patch.object(svc_linux, "is_active", return_value=True),
+        ):
             rc = controller.service_status()
         assert rc == 0
         assert "kirocrew.service" in capsys.readouterr().out
@@ -1028,11 +1081,13 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "status", return_value=""), patch.object(
-            svc_linux, "is_active", return_value=False
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "status", return_value=""),
+            patch.object(svc_linux, "is_active", return_value=False),
         ):
             rc = controller.service_status()
         assert rc == 1
@@ -1041,12 +1096,14 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(
-            svc_macos, "status", return_value='"PID" = 1234;\n'
-        ), patch.object(svc_macos, "is_active", return_value=True):
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "status", return_value='"PID" = 1234;\n'),
+            patch.object(svc_macos, "is_active", return_value=True),
+        ):
             rc = controller.service_status()
         assert rc == 0
         assert "PID" in capsys.readouterr().out
@@ -1055,11 +1112,13 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "status", return_value=""), patch.object(
-            svc_macos, "is_active", return_value=False
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "status", return_value=""),
+            patch.object(svc_macos, "is_active", return_value=False),
         ):
             rc = controller.service_status()
         assert rc == 1
@@ -1078,20 +1137,26 @@ class TestControllerDispatch:
         from kiro_crew.service import controller
         from kiro_crew.service import linux as svc_linux
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.SYSTEMD,
-        ), patch.object(svc_linux, "is_active", return_value=True):
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.SYSTEMD,
+            ),
+            patch.object(svc_linux, "is_active", return_value=True),
+        ):
             assert controller.is_service_active() is True
 
     def test_is_service_active_macos_routes(self):
         from kiro_crew.service import controller
         from kiro_crew.service import macos as svc_macos
 
-        with patch(
-            "kiro_crew.service.controller.current_platform",
-            return_value=Platform.LAUNCHD,
-        ), patch.object(svc_macos, "is_active", return_value=True):
+        with (
+            patch(
+                "kiro_crew.service.controller.current_platform",
+                return_value=Platform.LAUNCHD,
+            ),
+            patch.object(svc_macos, "is_active", return_value=True),
+        ):
             assert controller.is_service_active() is True
 
 
@@ -1113,9 +1178,7 @@ class TestLinuxControlPaths:
         monkeypatch.setenv("KIROCREW_HOME", str(data_home))
         monkeypatch.setattr(svc_linux, "UNIT_PATH", unit_path)
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
             svc_linux.uninstall()
         called = [list(c.args[0]) for c in run.call_args_list]
         # Each step must use sudo since /etc/systemd/system requires root.
@@ -1131,32 +1194,24 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         active_result = MagicMock(returncode=0, stdout="active\n", stderr="")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=active_result
-        ) as run:
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=active_result) as run:
             assert svc_linux.is_active() is True
         # is_active must NOT use sudo (status is queryable as a regular user).
         called = [list(c.args[0]) for c in run.call_args_list]
-        assert all("sudo" not in c for c in called), (
-            f"is_active must not call sudo; got {called}"
-        )
+        assert all("sudo" not in c for c in called), f"is_active must not call sudo; got {called}"
 
     def test_is_active_returns_false_when_inactive(self):
         from kiro_crew.service import linux as svc_linux
 
         inactive_result = MagicMock(returncode=3, stdout="inactive\n", stderr="")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=inactive_result
-        ):
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=inactive_result):
             assert svc_linux.is_active() is False
 
     def test_stop_invokes_systemctl_stop(self):
         from kiro_crew.service import linux as svc_linux
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
             svc_linux.stop()
         called = [list(c.args[0]) for c in run.call_args_list]
         assert ["sudo", "systemctl", "stop", f"{SERVICE_NAME}.service"] in called
@@ -1165,9 +1220,7 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
             assert svc_linux.restart() is True
         called = [list(c.args[0]) for c in run.call_args_list]
         assert ["sudo", "systemctl", "restart", f"{SERVICE_NAME}.service"] in called
@@ -1180,9 +1233,7 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         failed = MagicMock(returncode=1, stdout="", stderr="Interactive authentication required")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=failed
-        ):
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=failed):
             assert svc_linux.restart() is False
 
     def test_restart_invokes_systemctl_restart_atomic(self):
@@ -1192,14 +1243,10 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
             svc_linux.restart()
         called = [list(c.args[0]) for c in run.call_args_list]
-        assert [
-            "sudo", "systemctl", "restart", f"{SERVICE_NAME}.service"
-        ] in called
+        assert ["sudo", "systemctl", "restart", f"{SERVICE_NAME}.service"] in called
         # And critically, NOT a stop+start pair — that would widen the
         # down-window and lose atomicity.
         assert not any(
@@ -1209,12 +1256,8 @@ class TestLinuxControlPaths:
     def test_status_returns_systemctl_output(self):
         from kiro_crew.service import linux as svc_linux
 
-        result = MagicMock(
-            returncode=0, stdout="● kirocrew.service - active\n", stderr=""
-        )
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=result
-        ) as run:
+        result = MagicMock(returncode=0, stdout="● kirocrew.service - active\n", stderr="")
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=result) as run:
             out = svc_linux.status()
         assert "kirocrew.service" in out
         # status() must NOT use sudo.
@@ -1225,9 +1268,7 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         result = MagicMock(returncode=4, stdout="", stderr="not found\n")
-        with patch(
-            "kiro_crew.service.linux.subprocess.run", return_value=result
-        ):
+        with patch("kiro_crew.service.linux.subprocess.run", return_value=result):
             out = svc_linux.status()
         assert "not found" in out
 
@@ -1260,16 +1301,15 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        reload_failed = MagicMock(
-            returncode=1, stdout="", stderr="systemctl: bad config"
-        )
+        reload_failed = MagicMock(returncode=1, stdout="", stderr="systemctl: bad config")
         responder = self._run_responder(("daemon-reload", reload_failed))
 
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", side_effect=responder
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", side_effect=responder),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
@@ -1279,18 +1319,17 @@ class TestLinuxControlPaths:
         from kiro_crew.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        enable_failed = MagicMock(
-            returncode=1, stdout="", stderr="enable failed: unit invalid"
-        )
+        enable_failed = MagicMock(returncode=1, stdout="", stderr="enable failed: unit invalid")
         responder = self._run_responder(
             ("enable", enable_failed),
         )
 
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", side_effect=responder
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", side_effect=responder),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
@@ -1303,11 +1342,12 @@ class TestLinuxControlPaths:
         restart_failed = MagicMock(returncode=1, stdout="", stderr="job failed")
         responder = self._run_responder(("restart", restart_failed))
 
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.linux.subprocess.run", side_effect=responder
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/usr/local/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.linux.subprocess.run", side_effect=responder),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
@@ -1352,21 +1392,18 @@ class TestMacOSControlPaths:
         monkeypatch.setattr(svc_macos, "STDERR_LOG", log_dir / "gateway.err")
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/opt/homebrew/bin/kirocrew",
-        ), patch(
-            "kiro_crew.service.macos.subprocess.run", return_value=ok
-        ) as run:
+        with (
+            patch(
+                "kiro_crew.service.common.shutil.which",
+                return_value="/opt/homebrew/bin/kirocrew",
+            ),
+            patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run,
+        ):
             svc_macos.install()
         called = [c.args[0] for c in run.call_args_list]
         # The unload must come BEFORE the load for the new plist to take effect.
-        unload_idx = next(
-            i for i, c in enumerate(called) if c[:2] == ["launchctl", "unload"]
-        )
-        load_idx = next(
-            i for i, c in enumerate(called) if c[:2] == ["launchctl", "load"]
-        )
+        unload_idx = next(i for i, c in enumerate(called) if c[:2] == ["launchctl", "unload"])
+        load_idx = next(i for i, c in enumerate(called) if c[:2] == ["launchctl", "load"])
         assert unload_idx < load_idx
 
     def test_uninstall_unloads_and_removes_plist(self, tmp_path, monkeypatch):
@@ -1384,9 +1421,7 @@ class TestMacOSControlPaths:
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.macos.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run:
             svc_macos.uninstall()
         assert not plist_path.exists()
         called = [c.args[0] for c in run.call_args_list]
@@ -1430,9 +1465,7 @@ class TestMacOSControlPaths:
             stdout='{\n\t"Label" = "dev.kirocrew.gateway";\n}\n',
             stderr="",
         )
-        with patch(
-            "kiro_crew.service.macos.subprocess.run", return_value=loaded_no_pid
-        ):
+        with patch("kiro_crew.service.macos.subprocess.run", return_value=loaded_no_pid):
             assert svc_macos.is_active() is True
 
     def test_stop_unloads_plist_when_present(self, tmp_path, monkeypatch):
@@ -1446,9 +1479,7 @@ class TestMacOSControlPaths:
         plist_path.write_text("<plist/>")
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.macos.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run:
             svc_macos.stop()
         called = [c.args[0] for c in run.call_args_list]
         assert ["launchctl", "unload", str(plist_path)] in called
@@ -1477,9 +1508,7 @@ class TestMacOSControlPaths:
         plist_path.write_text("<plist/>")
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch(
-            "kiro_crew.service.macos.subprocess.run", return_value=ok
-        ) as run:
+        with patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run:
             assert svc_macos.restart() is True
         called = [c.args[0] for c in run.call_args_list]
         assert len(called) == 1, "restart must be a single launchd operation"
@@ -1557,25 +1586,19 @@ class TestRestartCommandHint:
     def test_systemd_returns_sudo_systemctl(self, monkeypatch):
         from kiro_crew.service import common as svc_common
 
-        monkeypatch.setattr(
-            svc_common, "current_platform", lambda: Platform.SYSTEMD
-        )
+        monkeypatch.setattr(svc_common, "current_platform", lambda: Platform.SYSTEMD)
         assert svc_common.restart_command_hint() == f"sudo systemctl restart {SERVICE_NAME}"
 
     def test_launchd_returns_service_aware_cli(self, monkeypatch):
         from kiro_crew.service import common as svc_common
 
-        monkeypatch.setattr(
-            svc_common, "current_platform", lambda: Platform.LAUNCHD
-        )
+        monkeypatch.setattr(svc_common, "current_platform", lambda: Platform.LAUNCHD)
         assert svc_common.restart_command_hint() == "kirocrew restart"
 
     def test_unsupported_returns_service_aware_cli(self, monkeypatch):
         from kiro_crew.service import common as svc_common
 
-        monkeypatch.setattr(
-            svc_common, "current_platform", lambda: Platform.UNSUPPORTED
-        )
+        monkeypatch.setattr(svc_common, "current_platform", lambda: Platform.UNSUPPORTED)
         assert svc_common.restart_command_hint() == "kirocrew restart"
 
     def test_never_returns_broken_user_scope_command(self, monkeypatch):
@@ -1584,9 +1607,7 @@ class TestRestartCommandHint:
         from kiro_crew.service import common as svc_common
 
         for platform in Platform:
-            monkeypatch.setattr(
-                svc_common, "current_platform", lambda p=platform: p
-            )
+            monkeypatch.setattr(svc_common, "current_platform", lambda p=platform: p)
             assert "systemctl --user" not in svc_common.restart_command_hint()
 
 
@@ -1701,9 +1722,10 @@ class TestServiceEnvironment:
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="staff\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"
-        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+        with (
+            patch("kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+        ):
             unit = svc_linux.render_unit()
         assert "KIROCREW_PORT=5477" in unit
 
@@ -1820,9 +1842,7 @@ class TestServiceEnvironment:
         from kiro_crew.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        monkeypatch.setenv(
-            "KIROCREW_SERVICE_BIN", "/opt/x/kirocrew\nUser=root\nExecStart=/evil"
-        )
+        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "/opt/x/kirocrew\nUser=root\nExecStart=/evil")
         with pytest.raises(ValueError):
             svc_linux.render_unit()
 
@@ -1900,33 +1920,29 @@ class TestEnsureLiveProgram:
         target = str(launcher) if indirected else "/usr/local/bin/kirocrew"
         # A REAL plist, in either wire format: launchd accepts XML and binary
         # alike, and the reconcile must not care which one it is handed.
-        plist.write_bytes(plistlib.dumps(
-            {
-                "Label": "dev.kirocrew.gateway",
-                "EnvironmentVariables": {"KIROCREW_PORT": "5477"},
-                "ProgramArguments": [target, "gateway", "--no-open"],
-            },
-            fmt=fmt or plistlib.FMT_XML,
-        ))
+        plist.write_bytes(
+            plistlib.dumps(
+                {
+                    "Label": "dev.kirocrew.gateway",
+                    "EnvironmentVariables": {"KIROCREW_PORT": "5477"},
+                    "ProgramArguments": [target, "gateway", "--no-open"],
+                },
+                fmt=fmt or plistlib.FMT_XML,
+            )
+        )
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", launcher)
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist)
         return svc_macos, launcher, plist
 
-    def test_reads_a_binary_plist_rather_than_assuming_utf8_text(
-        self, monkeypatch, tmp_path
-    ):
+    def test_reads_a_binary_plist_rather_than_assuming_utf8_text(self, monkeypatch, tmp_path):
         """launchd plists are legitimately binary or UTF-16.
 
         This runs during gateway startup, so decoding one as UTF-8 text would
         raise UnicodeDecodeError and take the whole gateway down over a check
         that only decides whether to rewrite a launcher.
         """
-        svc, launcher, _plist = self._agent(
-            monkeypatch, tmp_path, fmt=plistlib.FMT_BINARY
-        )
-        monkeypatch.setenv(
-            "KIROCREW_SERVICE_BIN", str(self._exe(tmp_path / "bin" / "kirocrew"))
-        )
+        svc, launcher, _plist = self._agent(monkeypatch, tmp_path, fmt=plistlib.FMT_BINARY)
+        monkeypatch.setenv("KIROCREW_SERVICE_BIN", str(self._exe(tmp_path / "bin" / "kirocrew")))
 
         assert svc.ensure_live_program() is True
         assert launcher.exists()
@@ -1939,9 +1955,7 @@ class TestEnsureLiveProgram:
         assert svc.ensure_live_program() is False
         assert not launcher.exists()
 
-    def test_a_malformed_xml_plist_cannot_take_the_gateway_down(
-        self, monkeypatch, tmp_path
-    ):
+    def test_a_malformed_xml_plist_cannot_take_the_gateway_down(self, monkeypatch, tmp_path):
         """An unescaped `&` in a hand-added value is the ordinary way to get one.
 
         plistlib surfaces that as xml.parsers.expat.ExpatError, whose base is
@@ -2004,11 +2018,9 @@ class TestEnsureLiveProgram:
     @pytest.mark.skipif(
         os.name != "posix",
         reason="os.access(X_OK) has no permission meaning for a .py file on "
-               "Windows, and this reconcile only ever runs on darwin",
+        "Windows, and this reconcile only ever runs on darwin",
     )
-    def test_refuses_to_write_a_launcher_that_execs_a_non_executable(
-        self, monkeypatch, tmp_path
-    ):
+    def test_refuses_to_write_a_launcher_that_execs_a_non_executable(self, monkeypatch, tmp_path):
         """`python -m kiro_crew` with no console script resolves to `__main__.py`.
 
         Writing that would leave launchd unable to spawn the agent AND suppress
@@ -2037,6 +2049,7 @@ class TestEnsureLiveProgram:
         monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
         stray = self._exe(tmp_path / "stray" / "kirocrew")
         from kiro_crew.service import common as svc_common
+
         monkeypatch.setattr(svc_common.shutil, "which", lambda _n: str(stray))
         # An interpreter directory with NO kirocrew beside it.
         bare = tmp_path / "bare"
@@ -2048,9 +2061,7 @@ class TestEnsureLiveProgram:
 
         assert not launcher.exists()
 
-    def test_targets_the_repairing_install_not_whatever_path_finds(
-        self, monkeypatch, tmp_path
-    ):
+    def test_targets_the_repairing_install_not_whatever_path_finds(self, monkeypatch, tmp_path):
         """A stray `kirocrew` earlier on PATH must not be baked into the launcher.
 
         Restoring the agent onto some OTHER install is a quieter version of the
@@ -2062,11 +2073,10 @@ class TestEnsureLiveProgram:
         stray = self._exe(tmp_path / "stray" / "kirocrew")
         # kirocrew_bin() lives in service.common and resolves through ITS shutil.
         from kiro_crew.service import common as svc_common
+
         monkeypatch.setattr(svc_common.shutil, "which", lambda _n: str(stray))
         # The console script that ships beside the running interpreter.
-        mine = self._exe(
-            tmp_path / "mine" / ("kirocrew.exe" if os.name == "nt" else "kirocrew")
-        )
+        mine = self._exe(tmp_path / "mine" / ("kirocrew.exe" if os.name == "nt" else "kirocrew"))
         monkeypatch.setattr(svc.sys, "executable", str(mine.parent / "python"))
 
         assert svc.ensure_live_program() is True
@@ -2089,7 +2099,9 @@ class TestEnsureLiveProgram:
     def test_is_a_noop_when_the_launcher_is_already_there(self, monkeypatch, tmp_path):
         """An existing launcher may carry a Dev Fleet cutover — never clobber it."""
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path)
-        launcher.write_text("#!/bin/sh\ncd '/wt/live' || exit 1\nexec '/wt/live/.venv/bin/kirocrew' \"$@\"\n")
+        launcher.write_text(
+            "#!/bin/sh\ncd '/wt/live' || exit 1\nexec '/wt/live/.venv/bin/kirocrew' \"$@\"\n"
+        )
 
         assert svc.ensure_live_program() is False
         assert "/wt/live" in launcher.read_text()
@@ -2102,9 +2114,7 @@ class TestEnsureLiveProgram:
         assert svc.ensure_live_program() is False
         assert not launcher.exists()
 
-    def test_writes_nothing_when_the_agent_bypasses_the_launcher(
-        self, monkeypatch, tmp_path
-    ):
+    def test_writes_nothing_when_the_agent_bypasses_the_launcher(self, monkeypatch, tmp_path):
         """An older agent execs the binary directly; a launcher it never runs is litter."""
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path, indirected=False)
 
@@ -2182,7 +2192,14 @@ class TestAppArmorGate:
     """
 
     @staticmethod
-    def _gate(monkeypatch, *, lsm="apparmor,capability", sysctl="1", parser="/usr/sbin/apparmor_parser", version=(5, 0)):
+    def _gate(
+        monkeypatch,
+        *,
+        lsm="apparmor,capability",
+        sysctl="1",
+        parser="/usr/sbin/apparmor_parser",
+        version=(5, 0),
+    ):
         from kiro_crew.service import apparmor as aa
 
         monkeypatch.setattr(aa, "apparmor_is_active", lambda: "apparmor" in lsm)
@@ -2386,7 +2403,9 @@ class TestAppArmorInstall:
         monkeypatch.setattr(aa, "parser_version", lambda _p: (5, 0))
         monkeypatch.setattr(aa, "detect_abi", lambda: "5.0")
         monkeypatch.setattr(aa, "validate", lambda _p, _t: (True, ""))
-        monkeypatch.setattr(aa, "verify_enforcement", lambda _c, _u, _g: (False, "probe still fails"))
+        monkeypatch.setattr(
+            aa, "verify_enforcement", lambda _c, _u, _g: (False, "probe still fails")
+        )
 
         outcome = aa.install(write, run, lambda *_a: (0, ""), 1000, 1000)
 
@@ -2465,9 +2484,10 @@ class TestAppArmorUnitDirective:
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="tester\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/usr/bin/kirocrew"
-        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+        with (
+            patch("kiro_crew.service.common.shutil.which", return_value="/usr/bin/kirocrew"),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+        ):
             unit = svc_linux.render_unit()
 
         assert "AppArmorProfile" not in unit
@@ -2484,9 +2504,10 @@ class TestAppArmorUnitDirective:
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="tester\n", stderr="")
-        with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/usr/bin/kirocrew"
-        ), patch("kiro_crew.service.linux.subprocess.run", return_value=gid):
+        with (
+            patch("kiro_crew.service.common.shutil.which", return_value="/usr/bin/kirocrew"),
+            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+        ):
             unit = svc_linux.render_unit(aa.PROFILE_NAME)
 
         assert f"AppArmorProfile=-{aa.PROFILE_NAME}" in unit
@@ -2523,7 +2544,7 @@ class TestAppArmorNeverFailsTheInstall:
 
         assert rc == 0, "a failed hardening step must not fail the service install"
         out = capsys.readouterr().out
-        assert "kirocrew service installed and started" in out
+        assert "junction service installed and started" in out
         assert "⚠️" in out, "the failure must still be surfaced, not swallowed"
         assert "could not be installed" in out
 
@@ -2632,7 +2653,9 @@ class TestEnforcementVerificationIsSafeAndFaithful:
     def test_a_missing_trusted_tool_is_inconclusive_not_a_failure_claim(self, monkeypatch):
         from kiro_crew.service import apparmor as aa
 
-        monkeypatch.setattr(aa, "_resolve_trusted", lambda name: None if name == "setpriv" else "/usr/bin/x")
+        monkeypatch.setattr(
+            aa, "_resolve_trusted", lambda name: None if name == "setpriv" else "/usr/bin/x"
+        )
 
         ok, problem = aa.verify_enforcement(lambda *_a: (0, ""), 1000, 1000)
 
@@ -2885,9 +2908,7 @@ class TestLauncherExecPathIsSafeToAttach:
         assert "service install" in problem, "must name the supported alternative"
 
     @posix_only
-    def test_resolves_before_validating_so_a_symlink_cannot_smuggle_a_grant(
-        self, tmp_path
-    ):
+    def test_resolves_before_validating_so_a_symlink_cannot_smuggle_a_grant(self, tmp_path):
         """A link in a safe directory pointing at a shared interpreter.
 
         Validating the given path instead of the resolved one would write an
@@ -2954,7 +2975,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
         shared.mkdir()
         app = shared / "kirocrew.AppImage"
         app.write_text("#!/bin/sh\n")
-        os.chmod(shared, 0o777)  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- the lax mode IS the fixture, not the behaviour under test: this stages a world-writable directory outside the prefix denylist precisely so the assertion below can prove validate_exec_path() refuses to attach an AppArmor userns grant there. Removing it deletes the regression test for the blocking finding in #1653.  # noqa: E501
+        os.chmod(
+            shared, 0o777
+        )  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- the lax mode IS the fixture, not the behaviour under test: this stages a world-writable directory outside the prefix denylist precisely so the assertion below can prove validate_exec_path() refuses to attach an AppArmor userns grant there. Removing it deletes the regression test for the blocking finding in #1653.  # noqa: E501
         # Empty the denylist so this can only be caught by the mode walk — the
         # whole point of the finding is that a prefix list does not cover it.
         monkeypatch.setattr(aa, "_UNSAFE_EXEC_PARENTS", ())
@@ -2971,7 +2994,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
         app = tmp_path / "kirocrew.AppImage"
         app.write_text("#!/bin/sh\n")
-        os.chmod(app, 0o775)  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- group-writable IS the fixture: the test proves a file group members could replace is refused as an attachment target.  # noqa: E501
+        os.chmod(
+            app, 0o775
+        )  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- group-writable IS the fixture: the test proves a file group members could replace is refused as an attachment target.  # noqa: E501
         monkeypatch.setattr(aa, "_UNSAFE_EXEC_PARENTS", ())
         monkeypatch.setattr(aa, "_substitutable_by_others", aa._substitutable_by_others)
 
@@ -2989,9 +3014,15 @@ class TestATakeoverOfTheAttachedPathIsRefused:
         inner.mkdir(parents=True)
         app = inner / "kirocrew.AppImage"
         app.write_text("#!/bin/sh\n")
-        os.chmod(app, 0o755)  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- tight leaf; the writable ANCESTOR below is what this test exercises.  # noqa: E501
-        os.chmod(inner, 0o755)  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- tight leaf; the writable ANCESTOR below is what this test exercises.  # noqa: E501
-        os.chmod(outer, 0o777)  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- the writable ancestor IS the fixture: renaming a world-writable parent re-points the same absolute path at an attacker's file, so the test proves the mode walk climbs to / instead of checking the leaf alone.  # noqa: E501
+        os.chmod(
+            app, 0o755
+        )  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- tight leaf; the writable ANCESTOR below is what this test exercises.  # noqa: E501
+        os.chmod(
+            inner, 0o755
+        )  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- tight leaf; the writable ANCESTOR below is what this test exercises.  # noqa: E501
+        os.chmod(
+            outer, 0o777
+        )  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- the writable ancestor IS the fixture: renaming a world-writable parent re-points the same absolute path at an attacker's file, so the test proves the mode walk climbs to / instead of checking the leaf alone.  # noqa: E501
 
         problem = aa._substitutable_by_others(app.resolve())
 
@@ -3037,9 +3068,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
         stand_in = tmp_path / Path(shared).name
         stand_in.write_text("#!/bin/sh\n")
-        assert not aa._SHARED_INTERPRETER_RE.match(shared), (
-            f"{shared} is not on the blocklist, which is the point"
-        )
+        assert not aa._SHARED_INTERPRETER_RE.match(
+            shared
+        ), f"{shared} is not on the blocklist, which is the point"
 
         # Same shape as the real thing: root-owned, so not ours.
         class RootStat:
@@ -3056,7 +3087,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
         app = tmp_path / "kirocrew.AppImage"
         app.write_text("#!/bin/sh\n")
-        os.chmod(app, 0o755)  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- an executable must be executable; the point of this test is that a user-owned 0755 file under a tight chain is ACCEPTED.  # noqa: E501
+        os.chmod(
+            app, 0o755
+        )  # nosemgrep: python.lang.security.audit.insecure-file-permissions.insecure-file-permissions -- an executable must be executable; the point of this test is that a user-owned 0755 file under a tight chain is ACCEPTED.  # noqa: E501
         # The ancestor chain of a pytest tmp_path is 0700 on macOS but includes
         # /tmp on Linux, so only assert the ownership half here; the mode walk has
         # its own tests above.
@@ -3266,9 +3299,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
     def _writers():
         writes: list[tuple[str, str]] = []
         runs: list[tuple[str, ...]] = []
-        return writes, runs, (lambda t, d: writes.append((t, str(d)))), (
-            lambda *a: runs.append(a)
-        )
+        return writes, runs, (lambda t, d: writes.append((t, str(d)))), (lambda *a: runs.append(a))
 
     def _ready(self, monkeypatch, aa):
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
@@ -3312,9 +3343,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
 
-        outcome = aa.install_launcher(
-            write, run, lambda *_a: (0, ""), 1000, 1000, "/bin/sh"
-        )
+        outcome = aa.install_launcher(write, run, lambda *_a: (0, ""), 1000, 1000, "/bin/sh")
 
         assert outcome.ok is False
         assert outcome.changed is False
@@ -3344,16 +3373,18 @@ class TestLauncherInstallIsFailSoftAndHonest:
             raise RuntimeError("sudo: a password is required")
 
         outcome = aa.install_launcher(
-            boom, lambda *_a: None, lambda *_a: (0, ""), 1000, 1000,
+            boom,
+            lambda *_a: None,
+            lambda *_a: (0, ""),
+            1000,
+            1000,
             str(self._app(durable_dir)),
         )
 
         assert outcome.ok is False
         assert "fail closed" in outcome.message
 
-    def test_does_not_claim_success_when_enforcement_is_unconfirmed(
-        self, monkeypatch, durable_dir
-    ):
+    def test_does_not_claim_success_when_enforcement_is_unconfirmed(self, monkeypatch, durable_dir):
         from kiro_crew.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
@@ -3398,9 +3429,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         self._ready(monkeypatch, aa)
         app = self._app(durable_dir)
 
-        outcome = aa.install_launcher(
-            write, run, lambda *_a: (0, ""), 1000, 1000, str(app)
-        )
+        outcome = aa.install_launcher(write, run, lambda *_a: (0, ""), 1000, 1000, str(app))
 
         assert outcome.ok is True and outcome.changed is True
         assert len(writes) == 1
@@ -3415,9 +3444,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
 
         writes, runs, write, run = self._writers()
         self._ready(monkeypatch, aa)
-        monkeypatch.setattr(
-            aa, "conflicting_attachment", lambda _p: "/etc/apparmor.d/kirocrew"
-        )
+        monkeypatch.setattr(aa, "conflicting_attachment", lambda _p: "/etc/apparmor.d/kirocrew")
 
         outcome = aa.install_launcher(
             write, run, lambda *_a: (0, ""), 1000, 1000, str(self._app(durable_dir))
@@ -3427,9 +3454,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert "/etc/apparmor.d/kirocrew" in outcome.message
         assert "ambiguous" in outcome.message
 
-    def test_uninstall_is_a_silent_noop_when_nothing_is_installed(
-        self, monkeypatch, durable_dir
-    ):
+    def test_uninstall_is_a_silent_noop_when_nothing_is_installed(self, monkeypatch, durable_dir):
         from kiro_crew.service import apparmor as aa
 
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", durable_dir / "absent")
@@ -3491,12 +3516,14 @@ class TestSandboxProfileControllerDispatch:
     def test_install_returns_nonzero_when_the_outcome_is_not_ok(self, capsys):
         from kiro_crew.service import apparmor, controller, linux
 
-        with patch.object(controller, "current_platform", return_value=Platform.SYSTEMD), \
-             patch.object(
-                 linux,
-                 "install_launcher_profile",
-                 return_value=apparmor.ProfileOutcome(False, "nope", ok=False),
-             ):
+        with (
+            patch.object(controller, "current_platform", return_value=Platform.SYSTEMD),
+            patch.object(
+                linux,
+                "install_launcher_profile",
+                return_value=apparmor.ProfileOutcome(False, "nope", ok=False),
+            ),
+        ):
             rc = controller.install_launcher_profile("/x")
 
         assert rc == 1
@@ -3505,12 +3532,16 @@ class TestSandboxProfileControllerDispatch:
     def test_status_exit_code_is_the_answer(self):
         from kiro_crew.service import apparmor, controller
 
-        with patch.object(controller, "current_platform", return_value=Platform.SYSTEMD), \
-             patch.object(apparmor, "launcher_status", return_value=(False, "not covered")):
+        with (
+            patch.object(controller, "current_platform", return_value=Platform.SYSTEMD),
+            patch.object(apparmor, "launcher_status", return_value=(False, "not covered")),
+        ):
             assert controller.sandbox_profile_status(None) == 1
 
-        with patch.object(controller, "current_platform", return_value=Platform.SYSTEMD), \
-             patch.object(apparmor, "launcher_status", return_value=(True, "covered")):
+        with (
+            patch.object(controller, "current_platform", return_value=Platform.SYSTEMD),
+            patch.object(apparmor, "launcher_status", return_value=(True, "covered")),
+        ):
             assert controller.sandbox_profile_status(None) == 0
 
 
@@ -3530,12 +3561,8 @@ class TestHeadlessApiKeyDoctorReport:
     def _warn(self, monkeypatch, unit, warning="Note: dropped key"):
         from kiro_crew import cli_doctor
 
-        monkeypatch.setattr(
-            cli_doctor.service_controller, "installed_unit_path", lambda: unit
-        )
-        monkeypatch.setattr(
-            cli_doctor.common_service, "headless_auth_warning", lambda: warning
-        )
+        monkeypatch.setattr(cli_doctor.service_controller, "installed_unit_path", lambda: unit)
+        monkeypatch.setattr(cli_doctor.common_service, "headless_auth_warning", lambda: warning)
         issues: list[str] = []
         cli_doctor._doctor_headless_auth(issues)
         return issues
@@ -3571,9 +3598,7 @@ class TestHeadlessApiKeyDoctorReport:
         assert capsys.readouterr().out == ""
         assert issues == []
 
-    def test_silent_when_the_helper_has_nothing_to_say(
-        self, monkeypatch, capsys, tmp_path
-    ):
+    def test_silent_when_the_helper_has_nothing_to_say(self, monkeypatch, capsys, tmp_path):
         issues = self._warn(monkeypatch, tmp_path / "kirocrew.service", warning="")
         assert capsys.readouterr().out == ""
         assert issues == []
@@ -3591,23 +3616,17 @@ class TestHeadlessApiKeyDoctorReport:
         def boom():
             raise OSError("environment resolution exploded")
 
-        monkeypatch.setattr(
-            cli_doctor.common_service, "headless_auth_warning", boom
-        )
+        monkeypatch.setattr(cli_doctor.common_service, "headless_auth_warning", boom)
         issues: list[str] = []
         cli_doctor._doctor_headless_auth(issues)
         assert capsys.readouterr().out == ""
         assert issues == []
 
-    def test_doctor_never_echoes_the_credential_value(
-        self, monkeypatch, capsys, tmp_path
-    ):
+    def test_doctor_never_echoes_the_credential_value(self, monkeypatch, capsys, tmp_path):
         real = common.headless_auth_warning
         monkeypatch.setenv(self.API_KEY, self.SECRET)
         monkeypatch.setattr(common.loader, "env_path", lambda: tmp_path / ".env")
-        issues = self._warn(
-            monkeypatch, tmp_path / "kirocrew.service", warning=real()
-        )
+        issues = self._warn(monkeypatch, tmp_path / "kirocrew.service", warning=real())
         captured = capsys.readouterr().out
         assert captured, "expected a report for this fixture"
         assert self.SECRET not in captured
@@ -3622,9 +3641,7 @@ class TestHeadlessApiKeyDoctorReport:
         """
         from kiro_crew import cli_doctor
 
-        assert "_doctor_headless_auth(issues)" in inspect.getsource(
-            cli_doctor._doctor
-        )
+        assert "_doctor_headless_auth(issues)" in inspect.getsource(cli_doctor._doctor)
 
 
 class TestInstalledUnitPath:
@@ -3681,7 +3698,7 @@ class TestHeadlessApiKeyWarning:
         assert warning, "a dropped credential must produce a warning"
         assert self.API_KEY in warning
         assert str(dotenv) in warning, "the warning must name the file to edit"
-        assert "kirocrew service restart" in warning
+        assert "junction service restart" in warning
 
     def test_the_signed_out_claim_is_qualified(self, monkeypatch, tmp_path):
         """A login credential store under the baked `HOME` can still authenticate.
@@ -3709,17 +3726,13 @@ class TestHeadlessApiKeyWarning:
         self._dotenv(monkeypatch, tmp_path, "")
         assert common.headless_auth_warning({self.API_KEY: "   "}) == ""
 
-    def test_missing_dotenv_warns_rather_than_assuming_configured(
-        self, monkeypatch, tmp_path
-    ):
+    def test_missing_dotenv_warns_rather_than_assuming_configured(self, monkeypatch, tmp_path):
         # No file written: an unreadable/absent .env must fail toward warning,
         # because a missed warning is the defect being fixed.
         self._dotenv(monkeypatch, tmp_path)
         assert common.headless_auth_warning({self.API_KEY: self.SECRET})
 
-    def test_commented_out_assignment_does_not_count_as_configured(
-        self, monkeypatch, tmp_path
-    ):
+    def test_commented_out_assignment_does_not_count_as_configured(self, monkeypatch, tmp_path):
         self._dotenv(monkeypatch, tmp_path, f"#{self.API_KEY}=commented-out\n")
         assert common.headless_auth_warning({self.API_KEY: self.SECRET})
 
@@ -3730,9 +3743,7 @@ class TestHeadlessApiKeyWarning:
         # The remedy must reference the variable, not interpolate its value.
         assert f"${self.API_KEY}" in warning
 
-    def test_custom_home_caveat_only_when_home_is_overridden(
-        self, monkeypatch, tmp_path
-    ):
+    def test_custom_home_caveat_only_when_home_is_overridden(self, monkeypatch, tmp_path):
         self._dotenv(monkeypatch, tmp_path, "")
         plain = common.headless_auth_warning({self.API_KEY: self.SECRET})
         assert "KIROCREW_HOME" not in plain
@@ -3741,9 +3752,7 @@ class TestHeadlessApiKeyWarning:
         )
         assert "KIROCREW_HOME" in with_home
 
-    def test_remedy_tightens_permissions_before_writing_the_secret(
-        self, monkeypatch, tmp_path
-    ):
+    def test_remedy_tightens_permissions_before_writing_the_secret(self, monkeypatch, tmp_path):
         """The append must not be the step that creates the file.
 
         Under a standard 022 umask a .env born from the append alone is 0644, and
@@ -3754,9 +3763,9 @@ class TestHeadlessApiKeyWarning:
         self._dotenv(monkeypatch, tmp_path, "")
         warning = common.headless_auth_warning({self.API_KEY: self.SECRET})
         assert "chmod 600" in warning
-        assert warning.index("chmod 600") < warning.index("printf"), (
-            "chmod must precede the append, or the secret lands in a 0644 file"
-        )
+        assert warning.index("chmod 600") < warning.index(
+            "printf"
+        ), "chmod must precede the append, or the secret lands in a 0644 file"
 
     def test_remedy_survives_a_crew_home_containing_spaces(self, monkeypatch, tmp_path):
         """An operator copy-pastes this line, so the shell must read one path.
@@ -3795,9 +3804,7 @@ class TestHeadlessApiKeyWarning:
             assert common.headless_auth_warning({self.API_KEY: self.SECRET}), blank
             assert self.API_KEY not in common._names_defined_in_env_file(dotenv)
 
-    def test_decision_returns_a_bool_so_no_value_can_ride_out_of_it(
-        self, monkeypatch, tmp_path
-    ):
+    def test_decision_returns_a_bool_so_no_value_can_ride_out_of_it(self, monkeypatch, tmp_path):
         """The only function reading the credential must not return text.
 
         Keeping the read in a bool-returning function is what makes "the value
@@ -3852,9 +3859,7 @@ class TestHeadlessApiKeyWarning:
         with (
             patch.object(controller, "current_platform", return_value=plat),
             patch.object(getattr(controller, module), "install", installer),
-            patch.object(
-                controller, "headless_auth_warning", return_value="Note: dropped key"
-            ),
+            patch.object(controller, "headless_auth_warning", return_value="Note: dropped key"),
         ):
             assert controller.install_service() == 0
         assert "Note: dropped key" in capsys.readouterr().out

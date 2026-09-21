@@ -488,13 +488,13 @@ describe('RemoteCrewPanel', () => {
     // Retrying replays the same rejected credential, so the button could only
     // reproduce the error. Re-auth happens through the page-top banner instead,
     // and only the header's own refresh control remains.
-    const denial = new ApiError(403, 'Session expired. Run kirocrew token …')
+    const denial = new ApiError(403, 'Session expired. Run junction token …')
     ;(denial as unknown as { authRequired: boolean }).authRequired = true
     vi.mocked(api.listInstances).mockRejectedValue(denial)
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     renderWithProviders(<RemoteCrewPanel />)
 
-    expect(await screen.findByText(/kirocrew token/i)).toBeInTheDocument()
+    expect(await screen.findByText(/junction token/i)).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Refresh/i }).length).toBe(1)
   })
 

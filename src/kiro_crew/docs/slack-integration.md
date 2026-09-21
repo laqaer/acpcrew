@@ -1,6 +1,6 @@
 # Slack Integration
 
-Kiro Crew connects to Slack via Socket Mode. You interact with it through DMs
+Junction connects to Slack via Socket Mode. You interact with it through DMs
 or in channels where the bot is present.
 
 ## Activation Modes
@@ -79,7 +79,7 @@ Available to all allowed users (no `!` prefix needed):
 
 ## Tool Approval Flow
 
-When Kiro Crew needs to run a tool (file write, bash command, etc.):
+When Junction needs to run a tool (file write, bash command, etc.):
 
 1. **Auto mode** (`!yolo on`): silently approves everything
 2. **Interactive mode** (default): posts Approve / Trust session / Reject buttons
@@ -91,7 +91,7 @@ place resolves both.
 
 ## Emergency Stop
 
-When Kiro Crew is executing and you need to halt it immediately, type `!stop`
+When Junction is executing and you need to halt it immediately, type `!stop`
 in the thread where the agent is running.
 
 `!stop` is intercepted before the per-session semaphore in the Slack event
@@ -112,13 +112,13 @@ When the response finishes, the 👀 reaction swaps to 🦞.
 
 ## OPTIONS Buttons
 
-When Kiro Crew presents choices, they render as interactive Block Kit buttons.
+When Junction presents choices, they render as interactive Block Kit buttons.
 Click a button to send that choice back to the conversation. You can select
 multiple options before submitting.
 
 ## Sharing Access
 
-> ⚠️ **Multi-user Slack access is currently disabled for security.** Kiro Crew
+> ⚠️ **Multi-user Slack access is currently disabled for security.** Junction
 > is restricted to the bot owner only. The `!allowlist` command and
 > `/kirocrew @user` are disabled. Allowed users in config have no effect.
 >
@@ -130,7 +130,7 @@ owner only.
 
 ## Channel Monitoring
 
-When `slack.tracking_channels` is configured, Kiro Crew watches for new members
+When `slack.tracking_channels` is configured, Junction watches for new members
 joining those channels and prompts the owner to allowlist them.
 
 ### Channel Activation Modes
@@ -150,7 +150,7 @@ bot posts publicly.
 
 ## Setting Up Your Slack App
 
-Kiro Crew connects to Slack as a Socket Mode app that you create and install in
+Junction connects to Slack as a Socket Mode app that you create and install in
 your own workspace.
 
 1. **Create a Slack app** at https://api.slack.com/apps and enable **Socket
@@ -175,7 +175,7 @@ your own workspace.
    `slack.command` in config.json (default: `kirocrew`). Each app instance
    should use a unique name.
 
-> **Access scoping** — Multi-user access is disabled for security. Kiro Crew is
+> **Access scoping** — Multi-user access is disabled for security. Junction is
 > restricted to the bot owner only (`KIROCREW_OWNER_ID`).
 
 ## Settings API (dashboard)

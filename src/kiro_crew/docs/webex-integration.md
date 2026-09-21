@@ -1,19 +1,19 @@
 # Webex Integration
 
-Chat with your Kiro Crew agent from Cisco Webex — on your phone, your laptop,
+Chat with your Junction agent from Cisco Webex — on your phone, your laptop,
 anywhere. Create a bot on the Webex developer portal, paste one token, and
 you're talking.
 
-Webex needs no public URL and no webhooks: Kiro Crew registers a device with
+Webex needs no public URL and no webhooks: Junction registers a device with
 Webex and receives messages over an outbound WebSocket, so it works from
 behind a firewall or NAT. Replies land as one message per turn, with a live
 status placeholder ("🤔 Thinking…" → "🔧 Running: …") while the agent works.
 
-## The easy way: just ask Kiro Crew
+## The easy way: just ask Junction
 
-You don't have to edit anything by hand. In any Kiro Crew session — the
+You don't have to edit anything by hand. In any Junction session — the
 dashboard, Slack, or the CLI — say something like *"set up the Webex
-channel."* Kiro Crew walks you through creating the bot, then writes the token
+channel."* Junction walks you through creating the bot, then writes the token
 and your email into `~/.kiro/crew/.env` and `config.json` and restarts the
 gateway for you. You just hand it the bot token when it asks.
 
@@ -21,7 +21,7 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ## Quick start
 
-You'll need a running gateway (`kirocrew gateway`) and a Webex account.
+You'll need a running gateway (`junction gateway`) and a Webex account.
 
 1. **Create a bot** — log in at [developer.webex.com](https://developer.webex.com),
    open **My Webex Apps** under your avatar, click **Create a New App** →
@@ -39,7 +39,7 @@ You'll need a running gateway (`kirocrew gateway`) and a Webex account.
    ```
 4. **Restart, then say hi:**
    ```bash
-   kirocrew restart
+   junction restart
    ```
    Search for your bot's username in Webex and send it a direct message.
 
@@ -139,7 +139,7 @@ is **denied** after five minutes.
   that list can run every command, which includes `/yolo` (auto-approves tools
   for the whole process, not just their own conversation, and the dashboard
   toggle and CLI drive the same grant) and `/kirocrew dashboard` (mints a
-  presigned dashboard login for YOUR Kiro Crew, DM-only). So add a second address
+  presigned dashboard login for YOUR Junction, DM-only). So add a second address
   only for a person you would hand your own dashboard to. Both commands write a
   SEL record naming the sender, so who took a grant or a link is always
   reviewable in the audit log.

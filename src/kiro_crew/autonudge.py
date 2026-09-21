@@ -122,7 +122,7 @@ _TERMINAL_BOUND_REASONS = frozenset({"cycle_cap", "runtime_budget", APPROVAL_STA
 # ``supports_proactive_send``), which logs its reason and degrades to a no-op.
 # So a namespace is listed even when nothing can currently be delivered to it,
 # and the two clearest cases are both here: ``whatsapp`` has no transport package
-# in this fork at all, and ``feishu`` ships one that declares
+# in this tree at all, and ``feishu`` ships one that declares
 # ``supports_proactive_send=False`` (its renderer only replies to an inbound
 # message id, so a nudge cycle has nowhere to put the answer). Both still classify
 # as channel keys, because the alternative is worse than a refusal: an unlisted key

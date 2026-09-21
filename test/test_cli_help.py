@@ -88,7 +88,7 @@ class TestInternalCommandsStayHidden:
     def test_error_lists_the_starting_commands_first(self, monkeypatch, tmp_path, capsys):
         """The offer is ordered like the help, not like the registration order."""
         offered = _offered_commands(monkeypatch, tmp_path, capsys)
-        assert offered[:3] == ["gateway", "service", "doctor"]
+        assert offered[:3] == ["setup", "planes", "gateway"]
 
     def test_choices_view_keeps_membership_complete(self):
         commands = {"gateway": object(), "mcp-core": object()}
@@ -101,12 +101,12 @@ class TestInternalCommandsStayHidden:
 
 
 class TestTopLevelHelpLayout:
-    def test_start_here_leads_with_gateway_service_doctor(self, monkeypatch, tmp_path, capsys):
+    def test_start_here_leads_with_setup_planes_gateway(self, monkeypatch, tmp_path, capsys):
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["--help"])
         lines = out.splitlines()
         start = lines.index("Start here:")
         listed = [line.split()[0] for line in lines[start + 1 : start + 4]]
-        assert listed == ["gateway", "service", "doctor"]
+        assert listed == ["setup", "planes", "gateway"]
         # Nothing may be listed above it: the sections after it are the long tail.
         assert not any(line.endswith(":") and line[0].isupper() for line in lines[:start] if line)
 

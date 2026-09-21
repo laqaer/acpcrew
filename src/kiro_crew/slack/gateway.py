@@ -80,7 +80,7 @@ from kiro_crew.config.loader import (
     data_home,
 )
 from kiro_crew.config.paths import kiro_agents_dir
-from kiro_crew.constants import DATA_WARNING, PRODUCT_NAME, SUBAGENT_COMPLETION_META_KEY
+from kiro_crew.constants import DATA_WARNING, SUBAGENT_COMPLETION_META_KEY
 from kiro_crew.context import ContextBuilder
 from kiro_crew.context_management import summarize_result
 from kiro_crew.cron import (
@@ -2318,7 +2318,7 @@ class GatewayOrchestrator:
                 "Browser was slow to open — skipping auto-open.\n"
                 "   Dashboard is running. Open this URL manually:\n"
                 f"   {dashboard_url}\n"
-                "   Or run: kirocrew token"
+                "   Or run: junction token"
             )
 
     async def _warn_if_kiro_cli_outdated(self) -> None:
@@ -2455,7 +2455,7 @@ class GatewayOrchestrator:
             logger.error("Agent config install failed", exc_info=True)
             print(
                 "ERROR: agent config install failed — chat sessions cannot start. "
-                "Repair with: kirocrew setup --agent-only --clean"
+                "Repair with: junction setup --agent-only --clean"
             )
 
         # Verify what actually landed on disk, whether or not the block above
@@ -2472,14 +2472,14 @@ class GatewayOrchestrator:
                 logger.error(
                     "Agent specs missing after install: %s (in %s) — every chat turn "
                     "will fail at session/set_mode with \"Mode '<name>' not found\". "
-                    "Repair with: kirocrew setup --agent-only --clean",
+                    "Repair with: junction setup --agent-only --clean",
                     ", ".join(missing),
                     kiro_agents_dir(),
                 )
                 print(
                     f"ERROR: agent specs missing after install: {', '.join(missing)} — "
                     "chat sessions cannot start. "
-                    "Repair with: kirocrew setup --agent-only --clean"
+                    "Repair with: junction setup --agent-only --clean"
                 )
         except Exception:
             logger.debug("Agent spec verification failed", exc_info=True)

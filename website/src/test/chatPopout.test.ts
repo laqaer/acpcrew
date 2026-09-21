@@ -61,11 +61,11 @@ describe('chatPopout.pruneStale', () => {
 
 describe('chatPopout.popoutWindowName', () => {
   it('is stable and filesystem-safe for a slot key', () => {
-    expect(popoutWindowName('chat-1-123')).toBe('mc-popout-chat-1-123')
+    expect(popoutWindowName('chat-1-123')).toBe('junction-popout-chat-1-123')
   })
 
   it('sanitizes characters that are invalid in a window name', () => {
-    expect(popoutWindowName('dashboard:chat/1 2')).toBe('mc-popout-dashboard_chat_1_2')
+    expect(popoutWindowName('dashboard:chat/1 2')).toBe('junction-popout-dashboard_chat_1_2')
   })
 })
 
@@ -201,7 +201,7 @@ describe('chatPopout.openPopout (main window side)', () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(fakeWin)
     openPopout('chat-1', 'My Session')
     expect(open).toHaveBeenCalledTimes(1)
-    expect(open.mock.calls[0][1]).toBe('mc-popout-chat-1')
+    expect(open.mock.calls[0][1]).toBe('junction-popout-chat-1')
     expect(getSnapshot().has('chat-1')).toBe(true)
     openPopout('chat-1', 'My Session') // dedupe: focus existing, no second open
     expect(open).toHaveBeenCalledTimes(1)

@@ -30,11 +30,21 @@ from kiro_crew.config.loader import (
     env_path,
     write_config_atomically,
 )
-from kiro_crew.constants import DATA_WARNING, MIN_NODE_MAJOR
+from kiro_crew.constants import DATA_WARNING, MIN_NODE_MAJOR, PRODUCT_NAME
 from kiro_crew.sandbox import unavailable_kind
 from kiro_crew.secrets.migrate import _env_lock_path
 from kiro_crew.sel import sel
 from kiro_crew.skills import SkillsLoader
+
+
+def _mark_first_run_complete() -> None:
+    """Record that setup finished. kiro-cli is not required for this marker."""
+    from kiro_crew.kiro_prerequisite import write_setup_complete_marker
+
+    try:
+        write_setup_complete_marker()
+    except OSError as exc:
+        print(f"  ⚠️  Could not write first-run marker: {exc}")
 
 
 def _get_alias() -> str:
@@ -50,7 +60,7 @@ def _get_alias() -> str:
     if not alias:
         print(
             "❌ Cannot determine username. Set $USER or re-run with "
-            "`kirocrew manifest --alias <alias>`.",
+            "`junction manifest --alias <alias>`.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -112,7 +122,7 @@ def _fix_shell_profiles() -> None:
                 cleaned.append(line)
             if removed:
                 profile.write_text("".join(cleaned), encoding="utf-8")
-                print(f"  🔧 Cleaned stale Kiro Crew PATH from {profile.name}")
+                print(f"  🔧 Cleaned stale {PRODUCT_NAME} PATH from {profile.name}")
                 cleaned_profiles.append(profile.name)
         except OSError:
             pass
@@ -124,9 +134,9 @@ def _fix_shell_profiles() -> None:
 def _ensure_prerequisites() -> bool:
     """Report on optional prerequisites resolved from PATH.
 
-    The public build's agent backend is ``kiro-cli``. This performs no installs
-    and never blocks setup — it only prints guidance for tooling that is missing
-    from PATH. Always returns True so setup proceeds.
+    The public build docks ACP runtimes; ``kiro-cli`` is optional. This
+    performs no installs and never blocks setup — it only prints guidance for
+    tooling that is missing from PATH. Always returns True so setup proceeds.
     """
     header_printed = False
 
@@ -140,14 +150,18 @@ def _ensure_prerequisites() -> bool:
     # npm packages, e.g. the Playwright browser MCP).
     if not shutil.which("node"):
         _header()
-        print(f"  ⚠️  node not found on PATH — install Node.js >= {MIN_NODE_MAJOR} from https://nodejs.org\n")
+        print(
+            f"  ⚠️  node not found on PATH — install Node.js >= {MIN_NODE_MAJOR} from https://nodejs.org\n"
+        )
 
-    # kiro-cli is the agent backend. Note its absence so the user can install it.
+    # kiro-cli is an optional harness. Note its absence so the operator can
+    # dock another ACP runtime or install kiro-cli later.
     if not shutil.which(KIRO_CLI_BIN):
         _header()
         print(
-            "  ℹ️  kiro-cli not found on PATH — install it (the agent backend) "
-            "and run 'kiro-cli login'.\n"
+            "  ℹ️  kiro-cli not found on PATH — optional. Dock Cursor, Claude, "
+            "Codex, or another ACP runtime, or install kiro-cli and run "
+            "'kiro-cli login'.\n"
         )
 
     return True
@@ -181,12 +195,12 @@ def _find_electron_dir() -> Path | None:
 def _setup_electron() -> None:
     """Build and install the KiroCrew desktop app (macOS only)."""
     if platform.system() != "Darwin":
-        print("  ⚠️  Kiro Crew desktop app is only available on macOS.")
+        print(f"  ⚠️  {PRODUCT_NAME} desktop app is only available on macOS.")
         return
 
     if not shutil.which("node"):
         print("  ❌ Node.js not found — required to build the desktop app.")
-        print("     Install Node.js and re-run: kirocrew setup --electron-only")
+        print("     Install Node.js and re-run: junction setup --electron-only")
         return
 
     electron_dir = _find_electron_dir()
@@ -198,7 +212,7 @@ def _setup_electron() -> None:
         )
         return
 
-    print("  🔨 Building Kiro Crew desktop app…")
+    print(f"  🔨 Building {PRODUCT_NAME} desktop app…")
     npm_install = subprocess.run(
         ["npm", "install", "--no-audit", "--no-fund", "--loglevel=error"],
         cwd=str(electron_dir),
@@ -281,7 +295,7 @@ def _setup_impl(
         _setup_electron()
         return
 
-    print("Kiro Crew Setup 👻\n")
+    print("Junction Setup\n")
     print(f"  {DATA_WARNING.replace(chr(10), chr(10) + '  ')}\n")
 
     # Report on optional prerequisites.
@@ -316,7 +330,7 @@ def _setup_impl(
     # from a working install (see ensure_kirocrew_on_path).
     shim = ensure_kirocrew_on_path(claim_existing=True)
     if shim:
-        print(f"  ✅ Linked kirocrew on PATH: {shim}")
+        print(f"  ✅ Linked junction on PATH: {shim}")
     removed_mcp = clean_stale_managed_mcp()
     if removed_mcp:
         print(f"  ✅ Removed stale MCP entries: {', '.join(removed_mcp)}")
@@ -351,14 +365,15 @@ def _setup_impl(
         for flag in [name for name, on in requested if on]:
             print(
                 f"\n  ⚠️  {flag} is ignored with --agent-only. Run "
-                f"'kirocrew setup {flag}' for its guided setup."
+                f"'junction setup {flag}' for its guided setup."
             )
-        print("\n👻 Done! Try: kirocrew gateway")
+        print("\nDone! Try: junction gateway")
+        _mark_first_run_complete()
         return
 
     # 3. Messaging channels (optional, configured after setup by default).
-    #    Channel prompts run only on explicit opt-in (`kirocrew setup --slack`,
-    #    `kirocrew setup --whatsapp`); the dashboard and CLI need no channel
+    #    Channel prompts run only on explicit opt-in (`junction setup --slack`,
+    #    `junction setup --whatsapp`); the dashboard and CLI need no channel
     #    credentials, and every channel (Slack, Discord, Telegram, Teams, Webex,
     #    WeCom, WeChat, WhatsApp, iMessage) can be connected later from the
     #    dashboard or its setup guide.
@@ -376,7 +391,7 @@ def _setup_impl(
         print("  Connect Slack, Discord, Telegram, Teams, Webex, WeCom, WeChat,")
         print("  WhatsApp, or iMessage (macOS only)")
         print("  later from the dashboard (Settings → Channels) or run")
-        print("  'kirocrew setup --slack' or 'kirocrew setup --whatsapp' for a")
+        print("  'junction setup --slack' or 'junction setup --whatsapp' for a")
         print("  guided setup.\n")
 
     # 4. Timezone
@@ -390,16 +405,17 @@ def _setup_impl(
     # 6. Desktop app (macOS only)
     if platform.system() == "Darwin":
         print("── Desktop App ──\n")
-        answer = input("  Install KiroCrew desktop app to ~/Applications? [Y/n]: ").strip().lower()
+        answer = input("  Install Junction desktop app to ~/Applications? [Y/n]: ").strip().lower()
         if answer in ("", "y", "yes"):
             _setup_electron()
         else:
-            print("  ⏭  Skipped. Install later: kirocrew setup --electron-only\n")
+            print("  ⏭  Skipped. Install later: junction setup --electron-only\n")
 
     # 7. Cloud (run KiroCrew on the user's own AWS EC2) — optional, delegated.
     _maybe_setup_cloud()
 
-    print("\n👻 Done! Try: kirocrew doctor && kirocrew gateway")
+    _mark_first_run_complete()
+    print("\nDone! Try: junction doctor && junction gateway")
 
 
 def _maybe_setup_cloud() -> None:
@@ -407,10 +423,10 @@ def _maybe_setup_cloud() -> None:
 
     A thin delegating step — all AWS/CloudFormation/SSM logic lives in the
     testable ``kiro_crew.cloud`` module. This just asks and hands off to the
-    launcher wizard (``kirocrew cloud launch``).
+    launcher wizard (``junction cloud launch``).
     """
     print("\n── Run on AWS (optional) ──\n")
-    print("  Kiro Crew can run 24/7 on your own AWS EC2 instance (bring your own")
+    print(f"  {PRODUCT_NAME} can run 24/7 on your own AWS EC2 instance (bring your own")
     print("  AWS account; credentials stay in the aws CLI — never stored here).")
     try:
         answer = input("  Launch KiroCrew on AWS now? [y/N]: ").strip().lower()
@@ -456,7 +472,7 @@ def _setup_workspace_dir() -> None:
     print(f"  {label}: {default}\n")
     # EOF (piped / closed stdin) keeps the default rather than raising a
     # traceback out of the wizard — this step runs FIRST, so a bare input() here
-    # made `kirocrew setup < /dev/null` fail before any later guard could help.
+    # made `junction setup < /dev/null` fail before any later guard could help.
     answer = _input_or_skip(f"  Workspace path [{default}]: ") or ""
     chosen = default if answer.lower() in ("", "y", "yes") else Path(answer).expanduser()
     try:
@@ -507,7 +523,7 @@ def _setup_slack_tokens() -> None:
         return
 
     # Serialize the read-modify-write against every OTHER .env writer (the
-    # `kirocrew secrets import` migrator, the WeChat/Weixin QR handler, and the
+    # `junction secrets import` migrator, the WeChat/Weixin QR handler, and the
     # dashboard channel-credential handlers) on the SAME advisory lock, derived
     # from the shared helper. Without this, a concurrent importer commit (its
     # final CAS + atomic_write) could interleave with this write and clobber the
@@ -701,7 +717,7 @@ class _SetupAborted(Exception):
     ANY prompt, every subsequent bare ``input()`` would traceback. Callers use
     ``_input_or_skip`` for guarded prompts (workspace, slash-command, timezone);
     the top-level ``_setup`` catches this and exits cleanly, so a
-    ``kirocrew setup < /dev/null`` — or a Windows console quirk that closes
+    ``junction setup < /dev/null`` — or a Windows console quirk that closes
     stdin — surfaces one clean message instead of a stack trace.
     """
 
@@ -807,13 +823,13 @@ def _setup_sandbox_consent() -> None:
         # where this host's sandbox works and the remedy hands isolation back to
         # Kiro Crew rather than disabling it. Neither warrants this opt-in.
         return
-    # A prompt nobody can see is a hang, not consent: `kirocrew update` runs
+    # A prompt nobody can see is a hang, not consent: `junction update` runs
     # setup with its output captured and stdin on DEVNULL, so a question asked
     # there is invisible and reads EOF. This guard keeps the decision at a real
     # terminal rather than letting a non-interactive run answer it.
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         print("  ⚠️  No sandbox backend on this host, so agent subprocesses are")
-        print("     refused. Run `kirocrew setup` from a terminal to decide, or set")
+        print("     refused. Run `junction setup` from a terminal to decide, or set")
         print("     agent.sandbox_allow_unsandboxed_exec=true by hand to opt in.\n")
         return
 
@@ -849,13 +865,13 @@ def _setup_sandbox_consent() -> None:
 
     print("── Sandbox ──\n")
     print("  This host offers no OS-level sandbox backend (Linux user namespaces")
-    print("  or macOS sandbox-exec), so Kiro Crew currently REFUSES to run agent")
+    print(f"  or macOS sandbox-exec), so {PRODUCT_NAME} currently REFUSES to run agent")
     print("  subprocesses at all — MCP servers, Dev Fleet and the Papyrus")
     print("  compiler will report a sandbox error until you decide.")
     print()
     print("  Allowing them to run unconfined means an agent-driven subprocess can")
     print("  read your home directory, including ~/.aws and ~/.ssh, with no OS")
-    print("  confinement. Kiro Crew still scrubs credential environment variables,")
+    print(f"  confinement. {PRODUCT_NAME} still scrubs credential environment variables,")
     print("  but it cannot stop a hostile repo or document from reading files.")
     print()
     answer = _input_or_skip("  Allow unsandboxed execution? [y/N]: ")

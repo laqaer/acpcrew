@@ -30,14 +30,16 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
         "Start here",
         (
+            ("setup", "Install agent config and mark first-run complete"),
+            ("planes", "Show harness + model plane status in one snapshot"),
             ("gateway", "Start Junction in this terminal (dashboard + messaging channels)"),
-            ("service", "Run the gateway as a background service that starts on boot"),
-            ("doctor", "Verify this install and diagnose problems"),
+            ("doctor", "Verify this install; --quick is compose-only"),
         ),
     ),
     (
         "Run the gateway",
         (
+            ("service", "Run the gateway as a background service that starts on boot"),
             ("status", "Show runtime stats"),
             ("router", "Model-router sidecar: status, catalog, and role plan"),
             ("restart", "Restart a running gateway (service-aware)"),
@@ -51,7 +53,6 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
     (
         "Set it up",
         (
-            ("setup", "Install agent config and run the setup wizard"),
             ("config", "Get or set configuration values"),
             ("sandbox", "Manage the AppArmor profile the agent sandbox needs (Linux)"),
             ("manifest", "Generate a Slack app manifest with your alias"),

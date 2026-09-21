@@ -5,8 +5,8 @@ review bot, a ticket system, or a shell script POSTs a message to
 `/api/hooks/agent`; the gateway runs one agent turn in an ephemeral session and
 delivers the answer to your notifications, not back over the HTTP connection.
 
-This is the inbound counterpart to cron jobs: cron fires on a schedule Kiro Crew
-owns, a webhook fires when something outside Kiro Crew decides it is time.
+This is the inbound counterpart to cron jobs: cron fires on a schedule Junction
+owns, a webhook fires when something outside Junction decides it is time.
 
 ## The Webhooks page is preview-gated
 
@@ -171,7 +171,7 @@ breaking the others.
   calling.
 - A legacy single token set as `hooks.webhook_token` in `config.json` continues
   to work, and appears in the list as a read-only entry. To remove it, delete
-  the key from the config file — Kiro Crew does not rewrite your config for you.
+  the key from the config file — Junction does not rewrite your config for you.
 - Webhooks are **disabled by default**: with no token configured, every request
   is a 401. There is no unauthenticated mode.
 - A source that keeps presenting bad tokens is throttled — 10 failures in a
@@ -420,7 +420,7 @@ The agent pushes a branch and opens a pull request, then calls:
 ```json
 {
   "hook_id": "review:pr-123",
-  "context_summary": "Opened PR #123 (fix/upload-limit) on kirodotdev/KiroCrew. Worktree /home/me/wt-upload-limit, branch fix/upload-limit, head 4f2b91a. Added a token-bucket limiter to api_file_upload. Pending: static analysis. When findings arrive, fix Critical/High in that worktree, amend the single commit, force-push with lease, and report what was left unfixed."
+  "context_summary": "Opened PR #123 (fix/upload-limit) on laqaer/acpcrew. Worktree /home/me/wt-upload-limit, branch fix/upload-limit, head 4f2b91a. Added a token-bucket limiter to api_file_upload. Pending: static analysis. When findings arrive, fix Critical/High in that worktree, amend the single commit, force-push with lease, and report what was left unfixed."
 }
 ```
 
@@ -492,7 +492,7 @@ That is why the transport gate exists, and why you should not dismantle it:
 - **Prefer `deliver: true` while you are setting an integration up.** Silent runs
   are indistinguishable from runs that never happened.
 - Every call is written to the security event log — accepted, rejected for
-  capacity, and denied for a bad token — so `kirocrew security events` shows you
+  capacity, and denied for a bad token — so `junction security events` shows you
   who has been knocking.
 - The `hook:` prefix requirement is a namespace guard: it keeps a webhook caller
   from steering its turn into one of your dashboard or Slack sessions by naming

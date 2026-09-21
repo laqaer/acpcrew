@@ -1,6 +1,6 @@
 # Memory & Learning
 
-Kiro Crew has persistent memory that survives across sessions. It remembers your
+Junction has persistent memory that survives across sessions. It remembers your
 preferences, project context, daily activity, and corrections you teach it.
 
 ## Memory Types
@@ -26,9 +26,9 @@ Conversation summaries organized by date. Natural decay:
 
 ### Lessons (`lessons.jsonl` or vector store)
 
-Corrections and rules you teach Kiro Crew. Two ways to create:
+Corrections and rules you teach Junction. Two ways to create:
 1. **Explicit**: say "remember to always use pytest" → saved immediately
-2. **Implicit**: correct Kiro Crew during conversation → extracted during consolidation
+2. **Implicit**: correct Junction during conversation → extracted during consolidation
 
 Lessons have two scopes:
 - **Global** (default): shared across all workspaces
@@ -55,7 +55,7 @@ All modes still write session JSONL files (for history/resume). Incognito
 blocks learn_add and consolidation. Temporary additionally blocks memory
 reads — no preferences, history, or lessons are injected into the prompt.
 
-## Teaching Kiro Crew
+## Teaching Junction
 
 Just tell it naturally:
 - "Always use dark mode"
@@ -63,7 +63,7 @@ Just tell it naturally:
 - "Remember that our team uses pytest-asyncio strict mode"
 - "Prefer ruff over flake8 for linting"
 
-Kiro Crew saves these via the `learn_add` MCP tool. View them with `learn_list`
+Junction saves these via the `learn_add` MCP tool. View them with `learn_list`
 or on the dashboard Overview → Lessons tab.
 
 ## Workspaces
@@ -81,7 +81,7 @@ Semantic search over your memory, always on:
   other server to install — the runtime is bundled; no data leaves your machine)
 
 The embedding model (~610MB) downloads automatically in the background the
-first time the gateway starts, over HTTPS from the Kiro Crew CDN — failed
+first time the gateway starts, over HTTPS from the Junction CDN — failed
 downloads retry automatically with backoff, and again on the next gateway
 start; the Memory tab shows download progress. Once downloaded, the model
 loads in the background too, so nothing ever waits on it. While the model is
@@ -91,7 +91,7 @@ semantic search as soon as the model is ready — no restart needed. Requires
 
 ## Consolidation
 
-Kiro Crew automatically consolidates conversations into memory:
+Junction automatically consolidates conversations into memory:
 - **Preferences/projects**: every 30 messages per session
 - **Daily history + lessons**: after 3 hours idle per session
 
@@ -102,11 +102,11 @@ No manual action needed — it happens in the background.
 The markdown layer is readable through the CLI, so consumers depend on an
 interface rather than the on-disk layout:
 
-- `kirocrew memory show [preferences|projects|history]` — print the markdown
+- `junction memory show [preferences|projects|history]` — print the markdown
   layer (all three when no target is given). `--format json` returns structured
   entries with `path`, `updated_at`, and `content`; `--since YYYY-MM-DD` limits
   history to days on or after that date.
-- `kirocrew memory export --include-markdown` — add a `markdown` collection to
+- `junction memory export --include-markdown` — add a `markdown` collection to
   the JSON export. Without the flag the export shape is unchanged.
 
 Both run non-interactively (no TTY or editor needed), so they work from
@@ -115,4 +115,4 @@ scheduled jobs.
 ## Editing Memory
 
 - **Dashboard**: Overview → Memory tab → edit preferences.md or projects.md
-- **Chat**: ask Kiro Crew to update its memory files directly
+- **Chat**: ask Junction to update its memory files directly

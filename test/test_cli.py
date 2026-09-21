@@ -3567,7 +3567,7 @@ class TestDoctorMcpTools:
         out = capsys.readouterr().out
         assert "@kirocrew-core: ❌ missing from mcpServers" in out
         assert "@kirocrew-cron: ❌ missing from mcpServers" in out
-        assert "re-run `kirocrew setup`" in out
+        assert "re-run `junction setup`" in out
         assert "@kirocrew-core config" in issues
         assert "@kirocrew-cron config" in issues
         probe_mock.assert_not_called()

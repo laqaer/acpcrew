@@ -259,6 +259,17 @@ AWS_PROFILE_NAME_RE = re.compile(AWS_PROFILE_NAME_PATTERN)
 # dashboard default.
 PRODUCT_NAME = "Junction"
 
+# User-facing CLI binary. Silent aliases (`acpcrew`, `kirocrew`) still
+# dispatch to the same entry point; prints, usage, and help name this one.
+CLI_BIN = "junction"
+
+# Live production hostname. junction.computer is the intended apex once its
+# public NS exist; until then CLI chrome and the marketing canonical point here.
+SITE_URL = "https://getjunction.dev"
+
+# Public GitHub slug until a human rename lands. Clone URLs use this.
+GITHUB_SLUG = "laqaer/acpcrew"
+
 # The product wordmark, figlet `small`. ONE definition on purpose: copy-pasting
 # it into cli.py and cli_chat.py risks a rename leaving a stale product name in
 # the two most-seen surfaces (bare `kirocrew`, the chat REPL). Import it; never

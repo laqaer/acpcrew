@@ -1,13 +1,13 @@
 # Troubleshooting
 
-When something is wrong, start with `kirocrew doctor` rather than guessing: it
+When something is wrong, start with `junction doctor` rather than guessing: it
 checks the whole chain end to end and repairs the parts it can. The rest of this
 page covers the failures the doctor reports but cannot fix by itself.
 
 ## Quick Diagnostics
 
 ```bash
-kirocrew doctor
+junction doctor
 ```
 
 Reports the resolved platform edition, the `kiro-cli` binary and login state,
@@ -19,8 +19,9 @@ check fails it prints a specific fix command.
 
 ### "kiro-cli not found in PATH"
 
-`kiro-cli` is the agent backend and is required: `agent.provider` is fixed to
-`acp`, and the gateway spawns `kiro-cli acp --agent <name>` for every session.
+`kiro-cli` is one optional harness. `agent.provider` is `acp`; `agent.acp_backend`
+defaults to `auto` and docks Cursor, Claude, Codex, or another installed ACP
+runtime. Install `kiro-cli` only when you want that harness.
 
 ```bash
 which kiro-cli   # should print a path; empty means it is not on PATH
@@ -33,20 +34,20 @@ location to your `PATH`. Then log in, which is separate from being installed:
 kiro-cli login
 ```
 
-`kirocrew doctor` reports the binary and the login state on separate lines, so
+`junction doctor` reports the binary and the login state on separate lines, so
 check both.
 
 **macOS desktop app:** if a command resolves in Terminal but not inside the
 app, the cause is usually launchd's minimal `PATH`, which a shell rc file
 never changes. The fix is `launchctl setenv PATH "$PATH"` plus a full quit and
 relaunch — see the
-[macOS troubleshooting guide](https://github.com/kirodotdev/KiroCrew/blob/main/docs/guides/macos-troubleshooting.md)
+[macOS troubleshooting guide](https://github.com/laqaer/acpcrew/blob/main/docs/guides/macos-troubleshooting.md)
 for the recipe and how to persist it across reboots.
 
 ### Dashboard asks for sign-in but `kiro-cli` is already authenticated
 
 Typical on a headless host that authenticates `kiro-cli` with an API key rather
-than `kiro-cli login`. `kirocrew doctor` prints a signed-in state while the
+than `kiro-cli login`. `junction doctor` prints a signed-in state while the
 dashboard's setup gate still asks for a device login, and `/api/models` plus
 usage polling answer 503.
 
@@ -70,7 +71,7 @@ key in `~/.kiro/crew/.env` is loaded into the gateway's environment at startup;
 a bare `KIRO_API_KEY=` with no value does not count, because falsy values are
 skipped. Do not put the key in the systemd unit or in
 `/etc/kirocrew/kirocrew.env` — both are readable by any local user.
-`kirocrew service install` warns when it sees a key in your shell that the
+`junction service install` warns when it sees a key in your shell that the
 service will not inherit.
 
 Releases before 0.3.0 filtered `KIRO_API_KEY` out of the probe entirely, so no
@@ -79,7 +80,7 @@ placement works on those; use `kiro-cli login` or upgrade.
 ### Agent config missing or stale
 
 ```bash
-kirocrew setup --agent-only
+junction setup --agent-only
 ```
 
 This regenerates `~/.kiro/agents/kirocrew.json` while preserving your own
@@ -87,7 +88,7 @@ customizations in it.
 
 ### MCP tools not working
 
-`kirocrew doctor` auto-appends missing `tools` / `allowedTools` entries for the
+`junction doctor` auto-appends missing `tools` / `allowedTools` entries for the
 managed servers and rewrites the file. It cannot auto-add a missing `mcpServers`
 entry, because the command path is install-specific. If tools still fail:
 
@@ -95,7 +96,7 @@ entry, because the command path is install-specific. If tools still fail:
    and `kirocrew-computer` under `mcpServers`, and for the matching `@`-prefixed
    entries under `tools`
 2. Check `~/.kiro/settings/mcp.json` for globally configured servers
-3. Re-run `kirocrew setup --agent-only`
+3. Re-run `junction setup --agent-only`
 
 The doctor also runs a live handshake probe against each managed server and
 prints the child's stderr tail on failure, which is usually where the real cause
@@ -113,11 +114,11 @@ servers directly.
 
 ```bash
 kirocrew config set agent.mcp_registry_mode true
-kirocrew restart
+junction restart
 ```
 
 Your administrator also has to add `kirocrew-core`, `kirocrew-cron` and
-`kirocrew-computer` to the registry under those exact names. `kirocrew doctor`
+`kirocrew-computer` to the registry under those exact names. `junction doctor`
 prints an `MCP Governance (enterprise)` section on Identity Center hosts with the
 current state. Full walkthrough, including the registry JSON your administrator
 needs: `docs/guides/enterprise-mcp-governance.md`.
@@ -130,7 +131,7 @@ chat. Nothing is wrong with the server. The badge describes what the dashboard
 can see, not what the server can do.
 
 The Kiro CLI runs the OAuth flow and keeps the token in its own credential store;
-Kiro Crew never holds it. The dashboard's status probe therefore connects without a
+Junction never holds it. The dashboard's status probe therefore connects without a
 token, and the server answers `401`. That single answer covers two situations the
 dashboard cannot tell apart: a server nobody has authorized, and a server already
 authorized through the Kiro CLI. So it reports only what it knows.
@@ -139,7 +140,7 @@ To find out which one you have:
 
 - If an agent can call that server's tools in chat, it is authorized and working.
 - If tool calls fail, use the server in chat once. The Kiro CLI starts the OAuth
-  flow on the `401` and Kiro Crew shows the consent link as a banner; approve it
+  flow on the `401` and Junction shows the consent link as a banner; approve it
   there and the calls succeed.
 
 A server that is genuinely broken reads **Error** with the reason next to it, not
@@ -152,7 +153,7 @@ kirocrew status                          # is the gateway running?
 curl http://localhost:5476/api/status    # is it answering on the expected port?
 ```
 
-If the port is taken by something else, either stop that process or run Kiro Crew
+If the port is taken by something else, either stop that process or run Junction
 on another port with `KIROCREW_PORT`.
 
 ### Slack not responding
@@ -163,14 +164,14 @@ on another port with `KIROCREW_PORT`.
   bot is installed**. Only the owner is authorized, so a user ID copied from a
   different workspace silently matches nobody
 - Confirm the Slack app has Socket Mode enabled
-- Run `kirocrew gateway -vv` for debug output
+- Run `junction gateway -vv` for debug output
 
 ### Context window filling up
 
-Kiro Crew auto-compacts at `session.autocompact_pct` context usage (70% by
+Junction auto-compacts at `session.autocompact_pct` context usage (70% by
 default for a new install — an existing `config.json` keeps whatever value it
 already stores, which for installs created before this default changed is
-`90.0`; check with `kirocrew config get session.autocompact_pct`). If
+`90.0`; check with `junction config get session.autocompact_pct`). If
 compaction fires often:
 
 - Reduce always-on skills, which consume context in every session
@@ -199,11 +200,11 @@ Node must be `20` or `>= 22`; an older Node fails the Vite build. Python must be
 ### Embedding model download failed
 
 The embedding model (about 610 MB) downloads in the background over HTTPS from
-the Kiro Crew CDN on gateway startup and is sha256-verified. A failed download
+the Junction CDN on gateway startup and is sha256-verified. A failed download
 retries with exponential backoff (up to 6 attempts) and again on every gateway
 start. If it keeps failing:
 
-- Run `kirocrew doctor`, which probes the resolved model URL and reports
+- Run `junction doctor`, which probes the resolved model URL and reports
   reachability
 - Check outbound HTTPS connectivity. No git or cloud SDK is involved
 - Mirrored or airgapped hosts: point `KIROCREW_EMBED_MODEL_URL` (or
@@ -214,12 +215,12 @@ start. If it keeps failing:
 - Retry from the dashboard Overview → Memory card, or do nothing: it retries on
   the next gateway start
 - Coming from an install that used Ollama for embeddings? The download is
-  usually skipped: Kiro Crew finds the identical model in the local Ollama blob
+  usually skipped: Junction finds the identical model in the local Ollama blob
   store and copies it (sha256-verified) instead of re-downloading
 
 ### Embeddings not working
 
-- Run `kirocrew doctor`, which checks the bundled embedding runtime and whether
+- Run `junction doctor`, which checks the bundled embedding runtime and whether
   the model file is present. Embeddings themselves are always on and cannot be
   disabled, so there is no switch to check
 - If `KIROCREW_SKIP_MODEL_DOWNLOAD=1` is set, the model never downloads. Unset
@@ -319,24 +320,24 @@ reference.
 ## Log Levels
 
 ```bash
-kirocrew gateway          # WARNING only (default)
-kirocrew gateway -v       # INFO: session lifecycle, context %
-kirocrew gateway -vv      # DEBUG: full ACP events, message traces
+junction gateway          # WARNING only (default)
+junction gateway -v       # INFO: session lifecycle, context %
+junction gateway -vv      # DEBUG: full ACP events, message traces
 ```
 
 `agent.log_level` sets the persistent default; `--verbose` overrides it for one
 run. You can also change the level at runtime from the dashboard Logs page.
 
-Tail a background gateway's output with `kirocrew logs -f`.
+Tail a background gateway's output with `junction logs -f`.
 
 ## Emergency Recovery
 
-1. Stop the gateway: Ctrl+C, or `kirocrew stop` if it is running detached
-2. Check the logs for the actual error: `kirocrew logs -n 200`
+1. Stop the gateway: Ctrl+C, or `junction stop` if it is running detached
+2. Check the logs for the actual error: `junction logs -n 200`
 3. Reset sessions: delete `~/.kiro/crew/session_map.json`
-4. Fix or reset config: `kirocrew config edit`, or delete
+4. Fix or reset config: `junction config edit`, or delete
    `~/.kiro/crew/config.json` to fall back to defaults
-5. Reconfigure from scratch: `kirocrew setup`
+5. Reconfigure from scratch: `junction setup`
 
 None of these touch `memory.db`, so your memory survives all five. To roll back
 memory too, restore a snapshot: see

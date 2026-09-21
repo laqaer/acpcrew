@@ -88,16 +88,16 @@ This allows `kirocrew` to find project-level agent config and skills from any di
 
 `kirocrew --help` (and a bare `kirocrew`, which prints the banner first) does NOT
 use argparse's own subcommand block. With ~40 commands that block is one flat
-list in registration order, so the three commands a new install needs — `gateway`,
-`service`, `doctor` — land in the middle of it, and the `{chat,doctor,gateway,…}`
+list in registration order, so the four commands a new install needs — `setup`,
+`planes`, `gateway`, `doctor` — land in the middle of it, and the `{chat,doctor,gateway,…}`
 choice blob makes the usage line unreadable.
 
 `cli_help.py` owns the taxonomy instead:
 
 - `COMMAND_GROUPS` is an ordered list of sections, each an ordered list of
   `(command, one-line summary)`. It is the single source of truth for what the
-  top-level help lists and in what order; `Start here` is first and holds exactly
-  `gateway`, `service`, `doctor`.
+  top-level help lists and in what order; `Start here` is first and holds
+  `setup`, `planes`, `gateway`, then `doctor`.
 - Its notes answer the two questions the flat list never did: how `gateway`
   (foreground, dies with the terminal) differs from `service install` (systemd
   unit / launchd agent, detached, restarts on crash, starts at boot, only one at

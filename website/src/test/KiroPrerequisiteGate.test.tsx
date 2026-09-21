@@ -94,7 +94,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    await screen.findByText(/Junction uses Kiro CLI/)
+    await screen.findByText(/docks ACP coding agents/)
     // Cold mount has no cached status, so it reads the latch.
     expect(vi.mocked(api.kiroPrerequisite).mock.calls[0][0]).toBe(false)
 
@@ -141,7 +141,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Junction uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/docks ACP coding agents/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Check again' }))
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
   })
@@ -160,7 +160,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Set up Kiro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dock an agent')).not.toBeInTheDocument()
   })
 
   it('sends the user to Kiro CLI setup instead of installing anything', async () => {
@@ -173,7 +173,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Junction uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/docks ACP coding agents/)).toBeInTheDocument()
     expect((await screen.findAllByText(/Windows gateway host/)).length).toBeGreaterThan(0)
 
     const setupLink = screen.getByRole('link', { name: /Open Kiro CLI setup/ })
@@ -411,7 +411,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.getByText(/Rewrite the specs from scratch/)).toBeInTheDocument()
     // The command must NOT come from a catalog value: a translator must not be
     // able to alter a string the user pastes into a shell.
-    const command = screen.getByText('kirocrew setup --agent-only --clean')
+    const command = screen.getByText('junction setup --agent-only --clean')
     expect(command.tagName).toBe('CODE')
     // The label the copy names must be the label actually rendered.
     expect(screen.getByRole('button', { name: 'Check again' })).toBeInTheDocument()
@@ -618,7 +618,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.queryByText('kiro-cli login')).not.toBeInTheDocument()
     // Nothing is paused: no gate chrome of any kind renders over the app.
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Set up Kiro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dock an agent')).not.toBeInTheDocument()
   })
 
   it('leaves an established non-owner dashboard completely unblocked', async () => {
@@ -687,7 +687,7 @@ describe('KiroPrerequisiteGate', () => {
 
     // No waiting screen and no setup chrome — the app itself is already up.
     expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
     expect(screen.queryByText('One quick setup')).not.toBeInTheDocument()
 
     resolveStatus(status({ installed: true, authenticated: true, ready: true }))
@@ -711,7 +711,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
     expect(screen.queryByText('Junction needs Kiro sign-in.')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
   })
 
   it('never shows setup chrome to a genuine-first-run user until confirmed', async () => {
@@ -727,11 +727,11 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(screen.queryByText('Set up Kiro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dock an agent')).not.toBeInTheDocument()
 
     resolveStatus(status())
 
-    expect(await screen.findByText('Set up Kiro')).toBeInTheDocument()
+    expect(await screen.findByText('Dock an agent')).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
   })
 
@@ -794,7 +794,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
     expect(screen.queryByText('We could not check Kiro CLI.')).not.toBeInTheDocument()
   })
 
@@ -814,7 +814,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
     expect(screen.queryByText('Could not check Kiro CLI.')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
   })
 
   it('still surfaces an unusable status body to a first-run user', async () => {
@@ -858,7 +858,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText('Set up Kiro')).toBeInTheDocument()
+    expect(await screen.findByText('Dock an agent')).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
   })
 
@@ -916,7 +916,7 @@ describe('KiroPrerequisiteGate', () => {
     // A momentary failure identifies nothing to reconfigure, so the host
     // remedies must stay hidden — they would be advice to break a working setup.
     expect(screen.queryByText('How to fix')).not.toBeInTheDocument()
-    expect(screen.queryByText('kirocrew service install')).not.toBeInTheDocument()
+    expect(screen.queryByText('junction service install')).not.toBeInTheDocument()
   })
 
   it('offers the cap remedy on a transient verdict without telling the user to act now', async () => {
@@ -965,7 +965,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('How to fix')).toBeInTheDocument()
-    expect(screen.getByText('kirocrew service install')).toBeInTheDocument()
+    expect(screen.getByText('junction service install')).toBeInTheDocument()
     // `aa-exec -p` must NOT be offered: entering a named profile is not
     // permitted for an unconfined user and aa-exec execs unconfined instead of
     // failing, so the command looks applied and changes nothing.
@@ -975,7 +975,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.queryByText(/provides no OS-level sandbox/)).not.toBeInTheDocument()
     expect(screen.getByText(/allows user namespaces/)).toBeInTheDocument()
     // The reporter's explicit ask: tell me to run doctor.
-    expect(screen.getByText('kirocrew doctor')).toBeInTheDocument()
+    expect(screen.getByText('junction doctor')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Linux sandbox guide/ })).toHaveAttribute(
       'href',
       expect.stringContaining('docs/guides/install.md'),
@@ -999,7 +999,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    const command = await screen.findByText('kirocrew service install')
+    const command = await screen.findByText('junction service install')
     const button = command.closest('button')
     expect(button).not.toBeNull()
     fireEvent.click(button!)
@@ -1007,7 +1007,7 @@ describe('KiroPrerequisiteGate', () => {
     // Read out of the DOM, so what is copied is exactly what is shown — not a
     // duplicated prop that could drift from the rendered text.
     await waitFor(() =>
-      expect(copyToClipboard).toHaveBeenCalledWith('kirocrew service install'),
+      expect(copyToClipboard).toHaveBeenCalledWith('junction service install'),
     )
   })
 
@@ -1028,7 +1028,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    const command = await screen.findByText('kirocrew service install')
+    const command = await screen.findByText('junction service install')
     const list = command.closest('ul, ol')
     expect(list).not.toBeNull()
     expect(list!.querySelectorAll('li')).toHaveLength(1)
@@ -1054,9 +1054,9 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText('kirocrew doctor')).toBeInTheDocument()
+    expect(await screen.findByText('junction doctor')).toBeInTheDocument()
     expect(screen.queryByText('How to fix')).not.toBeInTheDocument()
-    expect(screen.queryByText('kirocrew service install')).not.toBeInTheDocument()
+    expect(screen.queryByText('junction service install')).not.toBeInTheDocument()
     // Unclassified means the generic body is the honest one.
     expect(screen.getByText(/provides no OS-level sandbox/)).toBeInTheDocument()
   })

@@ -17,7 +17,7 @@ when the sidecar is absent, and preview is hobby-only.
 
 ## Do not
 
-Merge to `main`; GitHub Pages on `main`; DNS; spend; PyPI / Docker
-publish; GitHub rename; vendor Codex Router; weaken keystone or
-harness-parity; restore Channels / Board; edit `CHANGELOG.md`; send
-external comms.
+Merge to `main`; GitHub Pages on `main`; spend; PyPI / Docker
+publish; GitHub rename (token cannot PATCH); vendor Codex Router; weaken
+keystone or harness-parity; restore Channels / Board; edit `CHANGELOG.md`;
+send external comms.

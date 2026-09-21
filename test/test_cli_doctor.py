@@ -376,9 +376,7 @@ class TestOomKillerProbe:
     def test_absent_systemctl_is_unknown(self, monkeypatch) -> None:
         # Resolution goes through the trusted-bin pin (fixed system dirs), so a
         # PATH-planted shim can never be executed; a miss degrades to unknown.
-        monkeypatch.setattr(
-            cli_doctor.platform_compat, "trusted_system_bin", lambda _n: None
-        )
+        monkeypatch.setattr(cli_doctor.platform_compat, "trusted_system_bin", lambda _n: None)
         assert cli_doctor._detect_userspace_oom_killer() is None
 
 
@@ -442,9 +440,7 @@ class TestMemoryPressure:
         assert "⚠️" not in out
         assert issues == ["pre-existing"]
 
-    def test_no_swap_unknown_killer_is_informational_not_warning(
-        self, monkeypatch, capsys
-    ) -> None:
+    def test_no_swap_unknown_killer_is_informational_not_warning(self, monkeypatch, capsys) -> None:
         # Inconclusive detection (no systemctl / probe failure) must not warn —
         # a container or non-systemd host may run a killer doctor cannot see.
         issues = self._arrange(monkeypatch, swap_kib=0, killer=None)
@@ -566,7 +562,7 @@ class TestPathLauncherOwnership:
         cli_doctor._doctor_path_launcher()
 
         out = capsys.readouterr().out
-        assert "kirocrew CLI: ✅" in out
+        assert "junction CLI: ✅" in out
         assert "different install" not in out
 
     def test_divergent_launcher_names_both_paths(self, monkeypatch, tmp_path, capsys) -> None:
@@ -582,12 +578,12 @@ class TestPathLauncherOwnership:
         cli_doctor._doctor_path_launcher()
 
         out = capsys.readouterr().out
-        assert "⚠ kirocrew CLI on PATH belongs to a different install" in out
+        assert "⚠ junction CLI on PATH belongs to a different install" in out
         # Both sides must be named, or the user cannot tell which is which.
         # Compare like with like: the check prints realpath, and on Windows a
         # realpath can differ in form (short vs long name, case) from str(path).
         assert os.path.realpath(wheel) in out and os.path.realpath(package) in out
-        assert "kirocrew setup" in out
+        assert "junction setup" in out
 
     def test_no_launcher_on_path_is_informational(self, monkeypatch, capsys) -> None:
         """The desktop app runs its bundled backend directly, so an absent
@@ -612,7 +608,7 @@ class TestPathLauncherOwnership:
         cli_doctor._doctor_path_launcher()
 
         out = capsys.readouterr().out
-        assert "kirocrew CLI: ✅" in out
+        assert "junction CLI: ✅" in out
 
 
 class TestSourceCheckout:
@@ -856,11 +852,7 @@ class TestSourceCheckout:
 
         def fake_run(argv, *a, **k):
             errors = k.get("errors")
-            stdout = (
-                raw.decode("utf-8", errors=errors)
-                if errors
-                else raw.decode("utf-8")
-            )
+            stdout = raw.decode("utf-8", errors=errors) if errors else raw.decode("utf-8")
             return _sp.CompletedProcess(argv, 0, stdout=stdout, stderr="")
 
         monkeypatch.setattr(
@@ -870,9 +862,7 @@ class TestSourceCheckout:
         line = cli_doctor._git_line(tmp_path, "rev-parse", "--abbrev-ref", "HEAD")
         assert line == "exp\ufffdrimental"
 
-    def test_git_line_pins_git_and_returns_none_when_untrusted(
-        self, monkeypatch, tmp_path
-    ) -> None:
+    def test_git_line_pins_git_and_returns_none_when_untrusted(self, monkeypatch, tmp_path) -> None:
         """git resolves via trusted_git_bin; a miss means no subprocess at all.
 
         Doctor runs with operator privileges, so a ``git`` shim planted in an
@@ -901,9 +891,7 @@ class TestSourceCheckout:
         assert calls == []
 
         # Hit: the resolved absolute path is argv[0], never the bare "git".
-        monkeypatch.setattr(
-            cli_doctor.platform_compat, "trusted_git_bin", lambda: "/usr/bin/git"
-        )
+        monkeypatch.setattr(cli_doctor.platform_compat, "trusted_git_bin", lambda: "/usr/bin/git")
         assert cli_doctor._git_line(tmp_path, "rev-parse", "HEAD") == "main"
         assert calls and calls[0][0] == "/usr/bin/git"
 
@@ -1050,9 +1038,7 @@ class TestCliInstallerResidue:
     def test_uncapped_size_is_not_marked_as_a_floor(self, monkeypatch, capsys) -> None:
         # Below the cap the scan saw everything, so the figure is exact and must
         # NOT be hedged -- otherwise every host reads as approximate.
-        monkeypatch.setattr(
-            cli_doctor, "_scan_cli_installer_residue", lambda _d: (4, 4 * 1048576)
-        )
+        monkeypatch.setattr(cli_doctor, "_scan_cli_installer_residue", lambda _d: (4, 4 * 1048576))
         issues: list[str] = []
         cli_doctor._doctor_cli_installer_residue(issues)
         out = capsys.readouterr().out
@@ -1089,9 +1075,9 @@ class TestEffectiveModelSection:
 
         agents_dir = kiro_agents_dir()
         # Fail loudly rather than write into a real home if the override lapses.
-        assert self._tmp in agents_dir.parents or agents_dir.is_relative_to(self._tmp), (
-            f"KIRO_HOME isolation failed: {agents_dir} is outside {self._tmp}"
-        )
+        assert self._tmp in agents_dir.parents or agents_dir.is_relative_to(
+            self._tmp
+        ), f"KIRO_HOME isolation failed: {agents_dir} is outside {self._tmp}"
         agents_dir.mkdir(parents=True, exist_ok=True)
         return agents_dir
 
@@ -1487,9 +1473,7 @@ class TestWhatsAppSection:
 
     @staticmethod
     def _extra(monkeypatch, present: bool) -> None:
-        monkeypatch.setattr(
-            "kiro_crew.whatsapp.client.neonize_available", lambda: present
-        )
+        monkeypatch.setattr("kiro_crew.whatsapp.client.neonize_available", lambda: present)
 
     @staticmethod
     def _pair(home: Path) -> Path:
@@ -1579,9 +1563,7 @@ class TestWhatsAppSection:
 
         assert str(default_db_path(home)) in capsys.readouterr().out
 
-    def test_the_check_never_imports_neonize(
-        self, home: Path, monkeypatch, capsys
-    ) -> None:
+    def test_the_check_never_imports_neonize(self, home: Path, monkeypatch, capsys) -> None:
         """The whole point of the ``find_spec`` probe: importing neonize loads a
         ~19 MB ctypes CDLL plus protobuf descriptors, and a health check must not
         pay that (or construct a client as a side effect of asking a question).

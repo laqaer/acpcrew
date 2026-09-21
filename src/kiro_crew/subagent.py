@@ -628,7 +628,7 @@ def check_memory_available(min_gb: float = 4.0, path: str = "/proc/meminfo") -> 
 
 
 # Process-subtree readers (relocated from the upstream mcp_gateway pool,
-# which is absent in this fork). Pure-stdlib /proc walkers: on non-Linux hosts
+# which is absent here). Pure-stdlib /proc walkers: on non-Linux hosts
 # every /proc access raises OSError and these degrade to -1 / [] gracefully.
 # ONE ceiling for every reading. RSS, CPU and the two counts used to be three
 # walks carrying two copies of the same 256, which is how they could have

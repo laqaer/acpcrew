@@ -8,11 +8,11 @@
 
 Artifact Deploy publishes an artifact from your library to a public HTTPS URL in **your own AWS
 account**: a private S3 bucket behind CloudFront with Origin Access Control, with an optional
-time-to-live and automatic cleanup. Kiro Crew stores only your AWS **profile name**, never your
+time-to-live and automatic cleanup. Junction stores only your AWS **profile name**, never your
 credentials, and it never edits your IAM. Your account pays only for what the site actually
 serves, which for a small static page is effectively nothing.
 
-Deploy is part of Kiro Crew itself, so there is nothing to install or enable. The console lives at
+Deploy is part of Junction itself, so there is nothing to install or enable. The console lives at
 `/deploy` in the dashboard (the **Artifact Deploy** button on the Artifacts page opens it); it
 holds AWS profile setup, the IAM policy generator, and the list of everything you have deployed.
 Publishing happens from the thing you want to publish: an artifact's **Publish** panel, or the
@@ -28,7 +28,7 @@ You need an AWS account you control. Setup happens once; later publishes take se
 ### 1.1 The profile must live on the gateway host
 
 Artifact Deploy shells out to the `aws` CLI **from the gateway process**, so the AWS profile has
-to be configured on the machine running the Kiro Crew gateway, not on your laptop if the gateway
+to be configured on the machine running the Junction gateway, not on your laptop if the gateway
 runs somewhere else. Running `aws configure sso` on a different machine has no effect.
 
 Deploy needs a POSIX shell. On Windows every deploy endpoint returns an error asking you to run
@@ -58,7 +58,7 @@ the binary.
 
 ### 1.3 Authenticate
 
-Run one of these in a terminal on the gateway host. Kiro Crew never sees the keys:
+Run one of these in a terminal on the gateway host. Junction never sees the keys:
 
 ```bash
 aws configure sso                  # recommended: short-lived, auto-refreshing
@@ -74,14 +74,14 @@ On the console at `/deploy`:
 
 1. Register the **profile name** and **region**. Registered profiles are kept in
    `~/.kiro/crew/deploy/profiles.json`, and one of them is the default. Optionally supply a
-   12-digit account plus a role name and Kiro Crew writes a `credential_process` entry that assumes
+   12-digit account plus a role name and Junction writes a `credential_process` entry that assumes
    that role; only `region` and `credential_process` are ever written to your AWS config, never
    credential material.
 2. Click **Verify**. This is a read-only reachability check (`sts:GetCallerIdentity` plus harmless
    `s3` and `cloudfront` list calls). It confirms the profile resolves and the services answer. It
    is **not** full verification: create and write permissions cannot be checked without writing.
 3. Click **Get IAM policy** and apply the generated least-privilege policy **yourself** to a
-   dedicated role or identity. **Kiro Crew never writes IAM.** For the `fullstack` tier the console
+   dedicated role or identity. **Junction never writes IAM.** For the `fullstack` tier the console
    also emits a permissions-boundary policy that must exist as `kirocrew-deploy-app-boundary`
    *before* the first deploy, because role creation is conditioned on it.
 
@@ -145,7 +145,7 @@ not installed.
 The reaper is installed once per account by an operator, with
 `scripts/install-reaper.sh --profile <P> --region <R>` from
 `~/.kiro/crew/skills/artifact-deploy/`. It is an operator step by design: the stack creates an IAM
-role, and Kiro Crew never writes IAM. When a finite-TTL deploy is refused, the 409 body carries
+role, and Junction never writes IAM. When a finite-TTL deploy is refused, the 409 body carries
 that exact command with your profile and region already filled in.
 
 The reaper only touches resources that carry both the `kirocrew:site=<id>` and
@@ -198,14 +198,14 @@ cost surface is labelled as an estimate, and no billing permissions are requeste
 
 ## 6. Security model
 
-Artifact Deploy is built to keep Kiro Crew out of credential and account management entirely, and
+Artifact Deploy is built to keep Junction out of credential and account management entirely, and
 to serve content from a bucket that is never itself public.
 
-### 6.1 Credentials never touch Kiro Crew
+### 6.1 Credentials never touch Junction
 - Only the **profile name** is stored (in `~/.kiro/crew/deploy/profiles.json`).
 - Every AWS call runs through the **`aws` CLI as a subprocess** with `--profile` rather than an
   in-process SDK, so credential resolution stays in your OS credential store.
-- Kiro Crew **never writes IAM** and never creates or manages accounts, users, or roles. You apply
+- Junction **never writes IAM** and never creates or manages accounts, users, or roles. You apply
   the generated least-privilege policy yourself.
 
 ### 6.2 The origin bucket is private
@@ -230,13 +230,13 @@ to serve content from a bucket that is never itself public.
 
 ### 6.4 Mutations are tag-gated
 The generated IAM policy conditions every mutating and deleting action on
-`aws:ResourceTag/kirocrew:managed=true`, and Kiro Crew tags each resource at creation. An unrelated
+`aws:ResourceTag/kirocrew:managed=true`, and Junction tags each resource at creation. An unrelated
 production bucket, distribution, or API in the same account carries no such tag, so it cannot be
 modified or deleted through this policy even with its id in hand. Resource names are additionally
 scoped to the `kirocrew-deploy-*` prefix, and the audit-log bucket is covered by an explicit Deny.
 
 ### 6.5 Pre-publish content scan
-- Before upload, content runs through Kiro Crew's credential patterns plus data-leak heuristics
+- Before upload, content runs through Junction's credential patterns plus data-leak heuristics
   (private-key headers, vendor API keys, internal hostnames, cloud account ids and ARNs).
 - **Credential-severity findings can never be overridden.** The deploy is refused outright.
 - Other findings block the deploy and are shown to you; you may then explicitly choose "publish

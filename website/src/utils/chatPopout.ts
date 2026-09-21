@@ -21,7 +21,7 @@ import {
  * The pure helpers are re-exported so tests keep importing them from here.
  */
 
-export const CHAT_POPOUT_CHANNEL = 'kirocrew-chat-popout'
+export const CHAT_POPOUT_CHANNEL = 'junction-chat-popout'
 
 export { HEARTBEAT_MS, STALE_MS, applyMessage, pruneStale }
 export type { PopoutMap, PopoutMsg }
@@ -32,7 +32,7 @@ export type { PopoutMap, PopoutMsg }
  * after the opener lost its handle (e.g. a main-window refresh).
  */
 export function popoutWindowName(slot: string): string {
-  return `mc-popout-${slot.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+  return `junction-popout-${slot.replace(/[^a-zA-Z0-9_-]/g, '_')}`
 }
 
 /** Build the popout URL for a session, mirroring the `/chat` share-link shape. */

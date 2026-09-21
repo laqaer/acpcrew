@@ -1,6 +1,6 @@
 # Plans
 
-Dated design and implementation plans for this fork.
+Dated design and implementation plans for this checkout.
 
 | Plan | What it is |
 |---|---|
