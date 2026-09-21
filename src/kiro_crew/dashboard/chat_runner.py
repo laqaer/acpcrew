@@ -4467,11 +4467,15 @@ async def _run_chat(
     # whole-turn-buffer fallback doesn't arm a second time.
     _armed_final = False
     # A turn is a "planning turn" iff it's orchestrator mode AND not a stage
-    # execution turn driven by _stage_loop. Only planning turns detect/arm a
-    # plan; stage-execution turns must never re-arm (that corrupted the stage
-    # total). `_in_stage_execution` is set by _stage_loop around its _run_chat.
-    _orch_planning = getattr(slot, "mode", "") == "orchestrator" and not getattr(
-        slot, "_in_stage_execution", False
+    # execution turn driven by _stage_loop AND not a synthetic coordinator
+    # turn (synthesis / recovery). Only planning turns detect/arm a plan;
+    # stage-execution and synthesis must never re-arm (that corrupted the
+    # stage total). `_in_stage_execution` is set by _stage_loop around its
+    # _run_chat. `_synthetic_payload` is the production synthesis site.
+    _orch_planning = (
+        getattr(slot, "mode", "") == "orchestrator"
+        and not getattr(slot, "_in_stage_execution", False)
+        and not _synthetic_payload
     )
     # Rolling-buffer redactor for the live chat_chunk wire stream. Per-chunk
     # redaction misses a credential split across streaming boundaries;
@@ -5118,18 +5122,21 @@ async def _run_chat(
         # to inject a mid-turn steer. Cleared in the finally below.
         slot._acp_client = getattr(client, "client", None)
         # Orchestrator turns pick a cost-class model unless this slot is pinned.
-        # Planning spends on capability; stage execution does not. Ordinary
-        # interactive turns do not pay this extra set_model.
+        # Planning spends on capability; synthesis is economy control traffic;
+        # stage execution is the bulk of coding tokens. Ordinary interactive
+        # turns do not pay this extra set_model.
         if getattr(slot, "mode", "") == "orchestrator" and not (slot.model or "").strip():
             from kiro_crew.model_router.routing import (
-                ROLE_EXECUTION,
-                ROLE_PLANNING,
                 apply_role_model,
+                orchestrator_turn_role,
             )
 
             await apply_role_model(
                 client,
-                ROLE_PLANNING if _orch_planning else ROLE_EXECUTION,
+                orchestrator_turn_role(
+                    in_stage=bool(getattr(slot, "_in_stage_execution", False)),
+                    synthetic=_synthetic_payload,
+                ),
             )
         # This consumer implements the low-fidelity child downgrade (the
         # interactive card) — opt in so the handle-level fail-close gate
@@ -7870,8 +7877,9 @@ async def _run_chat(
 
         if assistant_text:
             # ── Plan format validation (planning turn only) ─────
-            # `_orch_planning` excludes stage-execution turns, so a stage turn
-            # whose output contains plan-like text can never re-arm/re-count.
+            # `_orch_planning` excludes stage-execution and synthetic turns, so
+            # a stage or synthesis turn whose output contains plan-like text
+            # can never re-arm/re-count.
             if _orch_planning:
 
                 has_plan, valid, issues = validate_plan_format(assistant_text)
