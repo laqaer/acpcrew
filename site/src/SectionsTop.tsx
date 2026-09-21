@@ -78,7 +78,7 @@ export function Hero() {
       </motion.h1>
       <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
         className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-[640px] mx-auto mb-10 leading-relaxed font-space">
-        A CLI is one harness talking to one vendor model. Junction is the local switch: dock Cursor, Claude, Codex, Grok — then spend cheaper models on orchestration and capable ones on planning. Memory and cron stay on your machine.
+        A CLI is one harness talking to one vendor model. Junction is the local switch: dock the agent in one pane, pick what the tokens buy in the other. Memory and cron stay on your machine.
       </motion.p>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }} className="flex gap-3 justify-center flex-wrap">
         <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
@@ -87,6 +87,16 @@ export function Hero() {
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
         className="mt-6 text-sm text-slate-500 dark:text-slate-400 font-space">
         Loopback dashboard. Provider keys stay in the sidecar — never in chat.
+      </motion.p>
+      <motion.pre initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
+        className="mt-8 text-left max-w-[560px] mx-auto bg-slate-100 dark:bg-[#14151c] border border-[#e4a54a]/12 rounded-xl px-4 py-3 font-mono text-[13px] text-[#e4a54a] leading-relaxed overflow-x-auto">
+{`git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew && pip install .
+junction setup && junction gateway`}
+      </motion.pre>
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+        className="mt-3 text-xs text-slate-500 dark:text-slate-400 font-space">
+        The clone path is the GitHub slug. The dashboard binds to loopback on this machine.
       </motion.p>
     </motion.section>
     <AppPreview />

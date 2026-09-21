@@ -99,6 +99,6 @@ export const FAQ = [
   },
   {
     q: 'How do I contribute?',
-    a: 'Clone the repo at github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
+    a: 'Clone github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
   },
 ];

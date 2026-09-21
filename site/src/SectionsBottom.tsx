@@ -44,9 +44,9 @@ export function HowItWorks() {
     },
     {
       n: '2',
-      title: 'Unlock the dashboard',
+      title: 'First run',
       code: 'junction setup',
-      note: 'Writes the first-run marker so the local dashboard opens. An extra agent CLI is optional.',
+      note: 'Writes a local marker so the dashboard opens on this machine. An extra agent CLI is optional.',
     },
     {
       n: '3',
@@ -181,8 +181,8 @@ export function Cta() {
   return (
     <section className="text-center px-6 pt-24 pb-16 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(228,165,74,0.08),transparent)]">
       <Parallax speed={-0.15}>
-        <FadeUp><h2 className="text-4xl md:text-5xl font-bold mb-4 font-space">Ready to get started?</h2></FadeUp>
-        <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">One local install. Dock agents, route models, keep memory and cron on your machine.</p></FadeUp>
+        <FadeUp><h2 className="text-4xl md:text-5xl font-bold mb-4 font-space">Install it on this machine</h2></FadeUp>
+        <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">Three commands. Two planes. Nothing leaves loopback except the models you already use.</p></FadeUp>
         <FadeUp delay={0.2}>
           <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
         </FadeUp>
