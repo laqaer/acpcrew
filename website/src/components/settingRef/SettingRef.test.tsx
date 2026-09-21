@@ -129,7 +129,7 @@ describe('SettingRef component', () => {
     it('shows set description text', () => {
       const { container } = renderRef({ configKey: 'MY_VAR', kind: 'env' })
       const bodyText = openPopover(container)
-      expect(bodyText).toContain('Set this environment variable before starting Kiro Crew.')
+      expect(bodyText).toContain('Set this environment variable before starting Junction.')
     })
   })
 
@@ -151,7 +151,7 @@ describe('SettingRef component', () => {
     it('shows unset description text', () => {
       const { container } = renderRef({ configKey: 'MY_VAR', kind: 'env', envIntent: 'unset' })
       const bodyText = openPopover(container)
-      expect(bodyText).toContain('Unset this environment variable before starting Kiro Crew.')
+      expect(bodyText).toContain('Unset this environment variable before starting Junction.')
     })
   })
 

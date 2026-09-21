@@ -216,6 +216,21 @@ def resolve_wire_id(
     return row.wire_id or DEFAULT_MODEL
 
 
+def orchestrator_turn_role(*, in_stage: bool, synthetic: bool) -> str:
+    """Pick the DAG role for one orchestrator chat turn.
+
+    Stage execution is the bulk of coding tokens. Synthetic coordinator
+    turns (subagent synthesis, recovery continuations) are control
+    traffic and stay economy. The remaining unpinned turn is plan
+    decomposition and spends on capability.
+    """
+    if in_stage:
+        return ROLE_EXECUTION
+    if synthetic:
+        return ROLE_ORCHESTRATION
+    return ROLE_PLANNING
+
+
 async def apply_role_model(client: Any, role: str) -> str:
     """Best-effort ``set_model`` for a task-class role. Never raises.
 

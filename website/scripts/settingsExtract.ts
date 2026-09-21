@@ -231,8 +231,13 @@ function extractStringProp(source: string, propName: string): string | undefined
   // duplicates DEFAULT_PRODUCT_NAME in `src/i18n/index.ts`: importing that
   // module here would drag i18next and every catalog into a build-time
   // script for one constant.
-  if (tMatch) return getEnCatalog()[tMatch[1]]?.replaceAll('{{productName}}', 'Junction')
+  if (tMatch) return searchEnglish(getEnCatalog()[tMatch[1]])
   return undefined
+}
+
+/** Resolve `{{productName}}` the way the stock dashboard renders it. */
+function searchEnglish(value: string | undefined): string | undefined {
+  return value?.replaceAll('{{productName}}', 'Junction')
 }
 
 /** Return the catalog key when a JSX prop is a supported translation call. */
@@ -443,8 +448,8 @@ export function mergeManualEntries(generated: SettingEntry[], manual: ManualSett
     const { descriptionKey, ...rest } = m
     resolved.push({
       ...rest,
-      label: cat[m.labelKey],
-      ...(descriptionKey ? { description: cat[descriptionKey] } : {}),
+      label: searchEnglish(cat[m.labelKey]) ?? cat[m.labelKey],
+      ...(descriptionKey ? { description: searchEnglish(cat[descriptionKey]) } : {}),
     })
   }
   const byId = new Map(resolved.map(m => [m.id, m]))

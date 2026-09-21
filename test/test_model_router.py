@@ -274,6 +274,20 @@ async def test_api_catalog_and_plan() -> None:
     assert body["models"][0]["cost_class"] in {"economy", "standard", "capable"}
 
 
+def test_orchestrator_turn_role_picks_dag_stage() -> None:
+    from kiro_crew.model_router.routing import (
+        ROLE_EXECUTION,
+        ROLE_ORCHESTRATION,
+        ROLE_PLANNING,
+        orchestrator_turn_role,
+    )
+
+    assert orchestrator_turn_role(in_stage=True, synthetic=False) == ROLE_EXECUTION
+    assert orchestrator_turn_role(in_stage=True, synthetic=True) == ROLE_EXECUTION
+    assert orchestrator_turn_role(in_stage=False, synthetic=True) == ROLE_ORCHESTRATION
+    assert orchestrator_turn_role(in_stage=False, synthetic=False) == ROLE_PLANNING
+
+
 @pytest.mark.asyncio
 async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.MonkeyPatch) -> None:
     from kiro_crew.config.loader import AgentConfig, KiroCrewConfig

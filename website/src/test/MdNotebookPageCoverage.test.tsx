@@ -569,7 +569,7 @@ describe('MdNotebookPage — settings, guarded mutations and editor keys', () =>
     await screen.findByRole('button', { name: 'One' })
     await openSettings()
 
-    await userEvent.click(screen.getByRole('switch', { name: 'Sync to Kiro Crew knowledge' }))
+    await userEvent.click(screen.getByRole('switch', { name: 'Sync to Junction knowledge' }))
 
     // The disabled state is persisted FIRST, before the host source is removed.
     await waitFor(() =>

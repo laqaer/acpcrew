@@ -1,7 +1,7 @@
 /**
  * The `{{productName}}` contract.
  *
- * Catalog values will interpolate the product name instead of hardcoding it,
+ * Catalog values interpolate the product name instead of hardcoding it,
  * so a downstream edition can rebrand by overriding one variable from its
  * composition root instead of forking every locale file. These tests pin the
  * three properties the arrangement rests on: the stock default renders the
@@ -9,17 +9,35 @@
  * i18next `defaultVariables` (so it survives the planned lazy-catalog
  * migration untouched), and a call-time variable still wins.
  *
- * The tests interpolate against an injected resource rather than a shipped
- * catalog key: the mechanical catalog rewrite lands in follow-up PRs (the
- * full-catalog diff exceeds the reviewable size limit), and this contract
- * must hold independently of how much of the catalog has been converted.
- * The catalog-wide "no non-manifest value hardcodes the literal" invariant
- * ships with the final rewrite chunk, where it can actually pass.
+ * Manifest-sync `apps.<id>.manifest.*` keys and repo-attribution copy that
+ * wrap the upstream GitHub URL stay literal by contract.
  */
 
 import { describe, it, expect } from 'vitest'
 
+import { CATALOGS as RUNTIME_CATALOGS } from './catalogs'
 import { initI18n, i18next, setProductName } from './index'
+
+function flatten(obj: unknown, prefix = ''): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (obj === null || typeof obj !== 'object') return out
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (value !== null && typeof value === 'object') {
+      Object.assign(out, flatten(value, path))
+    } else {
+      out[path] = String(value)
+    }
+  }
+  return out
+}
+
+function isExempt(key: string): boolean {
+  const parts = key.split('.')
+  if (parts.includes('manifest')) return true
+  if (parts[parts.length - 1] === 'star_kirocrew_on_github') return true
+  return false
+}
 
 // No-op — the vitest setup file already initialized i18n. Explicit so this
 // file also works standalone, and so the late-override test below is
@@ -27,8 +45,8 @@ import { initI18n, i18next, setProductName } from './index'
 initI18n()
 
 // A value shaped exactly like the rewritten catalog strings will be. Injected
-// under a test-only key so the assertion is independent of the rewrite's
-// progress through the real catalogs.
+// under a test-only key so the assertion is independent of how much of the
+// catalog has been converted.
 i18next.addResource('en', 'translation', 'test.updating_product', 'Updating {{productName}}…')
 
 describe('productName interpolation variable', () => {
@@ -50,6 +68,16 @@ describe('productName interpolation variable', () => {
     const copy = i18next.t('pages.settings.aboutPanel.installing_quiet_note', { productName: 'Acme' })
     expect(copy).toContain('Acme')
     expect(copy).not.toContain('Kiro Crew')
+  })
+
+  it('does not hardcode the product name outside manifest and attribution keys', () => {
+    const en = flatten(
+      (RUNTIME_CATALOGS as Record<string, { translation: unknown }>).en.translation,
+    )
+    const offenders = Object.entries(en)
+      .filter(([key, value]) => !isExempt(key) && value.includes('Kiro Crew'))
+      .map(([key]) => key)
+    expect(offenders).toEqual([])
   })
 
   it('refuses a late override rather than half-applying it', () => {
