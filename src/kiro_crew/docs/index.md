@@ -10,14 +10,14 @@ the CLI, or a connected messaging channel. `kiro-cli` is optional.
 Install from source (see [Getting Started](getting-started.md)), then:
 
 ```bash
-junction gateway     # → http://localhost:5476
+junction gateway     # dashboard on loopback
 ```
 
 `kiro-cli` is optional. Dock Cursor, Claude, Codex, or another ACP runtime.
 See [Getting Started](getting-started.md) for the source install, first-time
 setup, and connecting messaging channels.
 
-Site: https://junction.computer
+Site: https://getjunction.dev
 
 ## Core Capabilities
 

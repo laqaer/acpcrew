@@ -1,5 +1,5 @@
 name: Feature request
-description: Propose a new capability or a change to how KiroCrew behaves.
+description: Propose a new capability or a change to how Junction behaves.
 labels: ["enhancement"]
 body:
   - type: markdown
@@ -7,7 +7,7 @@ body:
       value: |
         For anything significant, this issue is the right place to agree on the
         approach before code gets written — see
-        [CONTRIBUTING.md](https://github.com/kirodotdev/KiroCrew/blob/main/CONTRIBUTING.md).
+        [CONTRIBUTING.md](https://github.com/laqaer/acpcrew/blob/main/CONTRIBUTING.md).
 
   - type: checkboxes
     id: search

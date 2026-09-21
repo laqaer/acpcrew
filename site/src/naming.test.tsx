@@ -33,7 +33,12 @@ describe('Junction naming', () => {
     expect(text).not.toMatch(/kiro-cli is required/i);
     expect(text).not.toMatch(/Prerequisites:[^\n]*kiro-cli/i);
     expect(text).toMatch(/kiro-cli is optional/i);
-    expect(text).toMatch(/without requiring kiro-cli/i);
+  });
+
+  it('keeps kiro-cli out of the first viewport', () => {
+    const { container } = render(<App />);
+    const hero = heroSection(container);
+    expect(hero?.textContent ?? '').not.toMatch(/kiro-cli/i);
   });
 
   it('tells the two-plane story and the no-keys rule', () => {
@@ -51,11 +56,19 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).toContain('Role routing');
     expect(text).toContain('junction planes');
-    expect(text).toContain('junction.computer');
+    expect(text).toContain('getjunction.dev');
+    expect(text).not.toContain('junction.computer');
     expect(text).not.toMatch(/22 built-in themes/i);
     expect(text).not.toMatch(/Backend Modules/);
     expect(text).not.toMatch(/Agent Types/);
     expect(text).not.toMatch(/Everything you need/);
+  });
+
+  it('does not leak implementation paths on the marketing page', () => {
+    const { container } = render(<App />);
+    const text = pageText(container);
+    expect(text).not.toContain('~/.kiro/crew');
+    expect(text).not.toMatch(/localhost:5476/);
   });
 
   it('does not present another product name as Junction', () => {
@@ -76,7 +89,9 @@ describe('Junction naming', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     expect(html).toContain('<title>Junction</title>');
     expect(html).toContain('Where coding agents meet the models you want');
+    expect(html).toContain('https://getjunction.dev/');
     expect(html).not.toContain('👻');
     expect(html).not.toContain('Kiro Crew');
+    expect(html).not.toContain('junction.computer');
   });
 });

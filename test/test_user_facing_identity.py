@@ -15,9 +15,10 @@ def test_readme_and_product_are_junction() -> None:
     product = (_REPO_ROOT / "PRODUCT.md").read_text(encoding="utf-8")
     assert PRODUCT_NAME == "Junction"
     assert CLI_BIN == "junction"
-    assert SITE_URL == "https://junction.computer"
+    assert SITE_URL == "https://getjunction.dev"
     assert "# Junction" in product or product.startswith("# Junction")
     assert "Where coding agents meet the models you want" in readme
+    assert "the local switch" in readme
     assert "Kiro Crew" not in readme
     assert "KiroCrew" not in readme
     assert "download.crew.kiro.dev" not in readme
@@ -62,3 +63,18 @@ def test_agents_md_leads_with_junction() -> None:
     assert "Junction is a local control plane" in agents
     assert "Kiro Crew is an open-source personal AI agent" not in agents
     assert "this is a public OSS fork" not in agents.lower()
+
+
+def test_github_issue_templates_are_junction() -> None:
+    config = (_REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml").read_text(encoding="utf-8")
+    bug = (_REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml").read_text(encoding="utf-8")
+    feature = (_REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "feature_request.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "kirodotdev/KiroCrew" not in config
+    assert "kirodotdev/KiroCrew" not in bug
+    assert "kirodotdev/KiroCrew" not in feature
+    assert "KiroCrew version" not in bug
+    assert "Junction version" in bug
+    assert "junction --version" in bug
+    assert "junction gateway" in bug

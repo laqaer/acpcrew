@@ -96,8 +96,15 @@ def snapshot_planes(
 
 
 def run_planes_command(args: argparse.Namespace) -> None:
-    """``junction planes`` — one screen for both planes."""
+    """``junction planes`` — one screen for both planes.
+
+    Human text is the default. ``--json`` is the machine form so scripts do not
+    have to peel a dump off the last line of operator copy.
+    """
     snap = snapshot_planes(router_port=getattr(args, "router_port", None))
+    if getattr(args, "as_json", False):
+        print(json.dumps(snap, separators=(",", ":")))
+        return
     harness = snap["harness"]
     model = snap["model"]
     selected = harness["selected"] or "none installed"
@@ -108,7 +115,6 @@ def run_planes_command(args: argparse.Namespace) -> None:
     if available:
         print(f"  docked:  {', '.join(available)}")
     print("never paste provider keys into chat; the sidecar injects them.")
-    print(json.dumps(snap, separators=(",", ":")))
 
 
 async def api_planes(request: web.Request) -> web.Response:

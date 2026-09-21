@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FadeUp, ScaleIn, StaggerIn, staggerChild, Parallax } from './animations';
-import { ARCH, ARCH_PLANES, FAQ, GITHUB_URL, IN_ACTION, ROLE_DAG } from './data';
+import { ARCH, ARCH_PLANES, FAQ, GITHUB_URL, IN_ACTION, ROLE_DAG, SITE_URL } from './data';
 import { GitMerge, Route } from 'lucide-react';
 
 const PLANE_ICONS = [GitMerge, Route];
@@ -37,14 +37,28 @@ export function InAction() {
 
 export function HowItWorks() {
   const steps = [
-    { n: '1', title: 'Clone & install', code: 'git clone https://github.com/laqaer/acpcrew.git\ncd acpcrew && pip install .' },
-    { n: '2', title: 'Start', code: 'junction gateway', note: 'Dashboard opens at localhost:5476. Run junction doctor to verify. junction planes shows both rails; junction router catalog lists model choices; junction router plan shows the orchestration DAG.' },
-    { n: '3', title: 'Connect', note: 'Open the dashboard, or connect Slack. Type !dashboard in Slack for a 1-click link.' },
+    {
+      n: '1',
+      title: 'Install the CLI',
+      code: 'git clone https://github.com/laqaer/acpcrew.git\ncd acpcrew && pip install .',
+    },
+    {
+      n: '2',
+      title: 'Unlock the dashboard',
+      code: 'junction setup',
+      note: 'Writes the first-run marker so the local dashboard opens. An extra agent CLI is optional.',
+    },
+    {
+      n: '3',
+      title: 'Run',
+      code: 'junction gateway',
+      note: 'Dashboard binds to loopback. junction doctor verifies the install. junction planes shows both rails; junction router catalog lists model choices; junction router plan shows the orchestration DAG.',
+    },
   ];
   return (
     <section className="max-w-[800px] mx-auto px-6 pt-24 pb-24" id="how-it-works">
-      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Install from source</h2></FadeUp>
-      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Python 3.10+ and Node.js 22+. kiro-cli is optional.</p></FadeUp>
+      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Run it locally</h2></FadeUp>
+      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Python 3.10+. Node.js 22+ only if you rebuild the dashboard. kiro-cli is optional.</p></FadeUp>
       <div className="flex flex-col gap-6">
         {steps.map((s, i) => (
           <FadeUp key={s.n} delay={i * 0.15}>
@@ -170,7 +184,7 @@ export function Cta() {
         <FadeUp><h2 className="text-4xl md:text-5xl font-bold mb-4 font-space">Ready to get started?</h2></FadeUp>
         <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">One local install. Dock agents, route models, keep memory and cron on your machine.</p></FadeUp>
         <FadeUp delay={0.2}>
-          <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install Junction</a>
+          <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
         </FadeUp>
         <FadeUp delay={0.3}>
           <div className="flex gap-4 justify-center mt-6 text-sm">
@@ -190,7 +204,7 @@ export function Footer() {
   return (
     <footer className="text-center py-10 px-6 border-t border-[#e4a54a]/12 text-slate-500 text-xs">
       <div className="flex gap-6 justify-center mb-3">
-        {[[GITHUB_URL, 'Source'], [`${GITHUB_URL}/issues`, 'Issues'], ['https://junction.computer', 'junction.computer']].map(([href, label]) => (
+        {[[GITHUB_URL, 'Source'], [`${GITHUB_URL}/issues`, 'Issues'], [SITE_URL, 'getjunction.dev']].map(([href, label]) => (
           <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-[#e4a54a] no-underline hover:underline">{label}</a>
         ))}
       </div>

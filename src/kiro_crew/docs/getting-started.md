@@ -71,6 +71,6 @@ Connect Slack, Discord, or other channels later from the dashboard
 
 ## Docs
 
-Site: https://junction.computer
+Site: https://getjunction.dev
 
 Source: https://github.com/laqaer/acpcrew

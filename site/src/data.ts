@@ -1,4 +1,4 @@
-export const SITE_URL = 'https://junction.computer';
+export const SITE_URL = 'https://getjunction.dev';
 export const GITHUB_URL = 'https://github.com/laqaer/acpcrew';
 
 export const ROLE_DAG = [
@@ -24,18 +24,18 @@ export const ARCH_PLANES = [
     label: 'Harness plane',
     sub: 'ACP agents',
     detail:
-      'Dock Cursor, Claude, Codex, Grok, and others from one registry. The default backend is auto. kiro-cli is optional — install it only when you want that harness.',
+      'Dock Cursor, Claude, Codex, Grok, and others from one registry. The default backend is auto. A vendor agent CLI is optional — install one only when you want that harness.',
   },
   {
     label: 'Model plane',
     sub: 'Sidecar, optional',
     detail:
-      'An optional Codex Router sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
+      'An optional sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
   },
 ];
 
 export const ARCH = [
-  { label: 'CLI / Dashboard', sub: 'junction · localhost:5476' },
+  { label: 'CLI / Dashboard', sub: 'junction · loopback' },
   { label: 'Gateway', sub: 'Python control plane' },
   { label: 'Harness plane', sub: 'ACP agents' },
   { label: 'Model plane', sub: 'Sidecar, optional' },
@@ -43,12 +43,14 @@ export const ARCH = [
 ];
 
 export const TERMINAL_LINES = [
+  { prompt: true, text: 'junction setup' },
+  { text: 'First-run complete. Dashboard unlocks on this machine.' },
   { prompt: true, text: 'junction planes' },
   { text: 'Junction planes' },
-  { text: '   harness:     ', hl: 'auto (kiro-cli optional)' },
+  { text: '   harness:     ', hl: 'auto' },
   { text: '   model:       ', hl: 'sidecar optional' },
   { prompt: true, text: 'junction gateway' },
-  { text: 'Dashboard:      ', hl: 'http://localhost:5476' },
+  { text: 'Dashboard:      ', hl: 'loopback' },
   { comment: '   Ready. Two planes, one local install.' },
 ];
 
@@ -77,15 +79,15 @@ export const FAQ = [
   },
   {
     q: 'Does any data leave my machine?',
-    a: 'Junction runs locally. The dashboard binds to localhost. Voice transcription uses local Whisper. Inference goes to the models you configure — a provider you already use, or the optional model-plane sidecar on loopback.',
+    a: 'Junction runs locally. The dashboard binds to loopback. Voice transcription uses local Whisper. Inference goes to the models you configure — a provider you already use, or the optional model-plane sidecar on loopback.',
   },
   {
     q: 'How does model routing work?',
-    a: 'The model plane is an optional Codex Router sidecar (Responses API and LiteLLM). That sidecar is not this Python tree. Junction observes it; it does not vendor the Node app. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
+    a: 'The model plane is an optional sidecar (Responses API on loopback). Junction observes it; it does not vendor that Node app. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
   },
   {
     q: 'What models can I use?',
-    a: 'Junction ships the full namespaced catalog the model-plane sidecar knows: Kimi, DeepSeek, Grok, Anthropic, Ollama Cloud, ClinePass, Copilot, OpenRouter, and the rest. Live-catalog providers are curated on the sidecar. The default pin is auto. Role routing (orchestration, planning, execution) picks by cost class so cheap models handle coordination and capable models handle planning.',
+    a: 'Junction ships the namespaced catalog the model-plane sidecar knows: Kimi, DeepSeek, Grok, Anthropic, Ollama Cloud, ClinePass, Copilot, OpenRouter, and the rest. Live-catalog providers are curated on the sidecar. The default pin is auto. Role routing (orchestration, planning, execution) picks by cost class so cheap models handle coordination and capable models handle planning.',
   },
   {
     q: 'Is kiro-cli required?',
@@ -93,7 +95,7 @@ export const FAQ = [
   },
   {
     q: 'How do I add custom tools?',
-    a: 'Drop an MCP server config in ~/.kiro/crew/mcp.json. It is auto-discovered and synced. Or install via the dashboard MCP tab.',
+    a: 'Open the dashboard MCP tab, or drop a server config in the gateway’s local config directory. It is auto-discovered and synced.',
   },
   {
     q: 'How do I contribute?',

@@ -263,8 +263,9 @@ PRODUCT_NAME = "Junction"
 # dispatch to the same entry point; prints, usage, and help name this one.
 CLI_BIN = "junction"
 
-# Public marketing hostname. Preview aliases on vercel.app still work.
-SITE_URL = "https://junction.computer"
+# Live production hostname. junction.computer is the intended apex once its
+# public NS exist; until then CLI chrome and the marketing canonical point here.
+SITE_URL = "https://getjunction.dev"
 
 # Public GitHub slug until a human rename lands. Clone URLs use this.
 GITHUB_SLUG = "laqaer/acpcrew"

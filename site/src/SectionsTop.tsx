@@ -44,14 +44,14 @@ export function Nav() {
         </span>
       </a>
       <div className="flex gap-1 items-center">
-        {[['#architecture', 'Planes'], ['#roles', 'Routing'], ['#how-it-works', 'Install'], ['#faq', 'FAQ']].map(([href, label]) => (
+        {[['#architecture', 'Planes'], ['#roles', 'Routing'], ['#how-it-works', 'Run'], ['#faq', 'FAQ']].map(([href, label]) => (
           <a key={href} href={href} className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">{label}</a>
         ))}
         <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">Source</a>
         <button onClick={toggle} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all" aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-        <a href="#how-it-works" className="px-4 py-2 rounded-lg text-sm font-medium bg-[#e4a54a] text-[#0c0d12] hover:bg-[#f0b45a] no-underline transition-all">Get Started</a>
+        <a href="#how-it-works" className="px-4 py-2 rounded-lg text-sm font-medium bg-[#e4a54a] text-[#0c0d12] hover:bg-[#f0b45a] no-underline transition-all">Run locally</a>
       </div>
     </motion.nav>
   );
@@ -70,7 +70,7 @@ export function Hero() {
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse-dot" /> Local-first
         </span>
         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-[#e4a54a]/10 text-[#b07a28] dark:text-[#e4a54a] border border-[#e4a54a]/25">Two planes</span>
-        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-slate-500/8 text-slate-600 dark:text-slate-400 border border-slate-500/20">kiro-cli is optional</span>
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-slate-500/8 text-slate-600 dark:text-slate-400 border border-slate-500/20">Role DAG</span>
       </motion.div>
       <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.7 }}
         className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.05] mb-6 animate-shimmer font-space">
@@ -78,10 +78,10 @@ export function Hero() {
       </motion.h1>
       <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
         className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-[640px] mx-auto mb-10 leading-relaxed font-space">
-        Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring kiro-cli.
+        A CLI is one harness talking to one vendor model. Junction is the local switch: dock Cursor, Claude, Codex, Grok — then spend cheaper models on orchestration and capable ones on planning. Memory and cron stay on your machine.
       </motion.p>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }} className="flex gap-3 justify-center flex-wrap">
-        <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install Junction</a>
+        <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
         <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-[#e4a54a]/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:-translate-y-0.5 transition-all no-underline font-space">View Source</a>
       </motion.div>
     </motion.section>

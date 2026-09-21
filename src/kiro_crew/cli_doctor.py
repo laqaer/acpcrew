@@ -2062,7 +2062,7 @@ def _doctor_planes() -> None:
 
 
 def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False) -> None:
-    """Verify KiroCrew setup — check dependencies, config, credentials, connectivity.
+    """Verify Junction setup — check dependencies, config, credentials, connectivity.
 
     ``platform_boot_error`` carries a :class:`PlatformCompositionError` from
     ``cli.main`` when the platform context failed to compose (e.g. a profile

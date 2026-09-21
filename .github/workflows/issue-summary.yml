@@ -216,7 +216,7 @@ jobs:
             # byte-for-byte. The form field is labelled with the joined spelling,
             # so respelling it here would stop every section from matching and
             # report "none" on a report that did use the form.
-            [ "### KiroCrew version",  # brand-ok: literal form heading, must match byte-for-byte
+            [ "### Junction version",
               "### Release channel", "### How is it installed?",
               "### Platform", "### What happened", "### Steps to reproduce",
               "### Relevant log output" ]
@@ -266,7 +266,7 @@ jobs:
 
           # Quoted heredoc: nothing in the prompt is shell-expanded.
           cat > instructions.txt <<'PROMPT'
-          You are a triage assistant for the Kiro Crew repository — a Python gateway
+          You are a triage assistant for the Junction repository — a Python gateway
           plus a React/TypeScript dashboard that runs AI coding agents. Summarize ONE
           newly opened issue for the maintainers, who have not read it yet.
 

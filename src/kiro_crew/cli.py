@@ -1922,6 +1922,12 @@ Examples:
         default=None,
         help="Model-plane router port (default: MODEL_ROUTER_PORT or 4202)",
     )
+    planes_parser.add_argument(
+        "--json",
+        dest="as_json",
+        action="store_true",
+        help="Print the snapshot as one JSON object (no human lines)",
+    )
 
     router_parser = cli_help.add_command(sub, "router")
     router_sub = router_parser.add_subparsers(dest="router_action", required=True)

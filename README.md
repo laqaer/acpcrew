@@ -11,9 +11,9 @@
 
 <p align="center">
   Run Cursor, Claude, Codex, Grok from one local dashboard — and route their
-  inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron,
-  without requiring <code>kiro-cli</code>. Two planes: an ACP harness registry
-  already on this tree, and an optional Codex Router sidecar for models.
+  inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron.
+  Two planes: an ACP harness registry already on this tree, and an optional
+  model sidecar.
 </p>
 
 <p align="center">
@@ -90,26 +90,21 @@ junction gateway
 
 ## Why Junction
 
-Most agent sessions end when the chat closes. Junction runs continuously on
-hardware you control and keeps working between conversations.
+A coding-agent CLI is one harness talking to one vendor model. Junction is
+the local switch: dock several ACP agents, then route their inference through
+a role DAG so orchestration stays cheap and planning stays capable.
 
-**Persistent.** Sessions, memory, schedules, and task checkpoints survive
-Gateway restarts, and scheduled or reactive work continues without someone at
-the terminal.
+**Two planes.** The harness plane docks Cursor, Claude, Codex, Grok, and the
+rest from one registry (`agent.acp_backend` defaults to `auto`). The model
+plane is an optional sidecar — if it is down, the gateway still runs. Never
+paste provider keys into chat.
 
-**Self-learning.** Corrections and task failures become durable lessons.
-Preferences and project context carry into new sessions.
+**Spend on purpose.** Orchestration, planning, and execution each pick a cost
+class. Pins in `agent.role_models` still win.
 
-**Self-evolving.** Repeated patterns become reusable skills. Memory, lessons,
-and skills stay visible and editable, so each Junction grows more tailored to
-the person and work around it.
-
-**Runs where you choose.** Your Mac, a local container, or a remote machine
-you control.
-
-**One Gateway, many surfaces.** Work directly in the desktop app or web dashboard,
-or continue the same work from the CLI and messaging surfaces like Slack and
-Discord.
+**Stays on your machine.** Sessions, memory, and cron survive restarts. The
+dashboard binds to loopback. Chat from the dashboard, the CLI, or a messaging
+channel.
 
 ## What Junction does
 

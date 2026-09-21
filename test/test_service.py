@@ -3698,7 +3698,7 @@ class TestHeadlessApiKeyWarning:
         assert warning, "a dropped credential must produce a warning"
         assert self.API_KEY in warning
         assert str(dotenv) in warning, "the warning must name the file to edit"
-        assert "kirocrew service restart" in warning
+        assert "junction service restart" in warning
 
     def test_the_signed_out_claim_is_qualified(self, monkeypatch, tmp_path):
         """A login credential store under the baked `HOME` can still authenticate.

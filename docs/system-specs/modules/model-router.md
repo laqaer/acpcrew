@@ -135,7 +135,7 @@ on the **agent** side. Junction does not mint that URL in chat.
 
 ## This-cut surface
 
-- CLI: `junction planes`, `junction doctor` (Planes section),
+- CLI: `junction planes` (human; `--json` for the machine snapshot), `junction doctor` (Planes section),
   `junction router status`, `junction router catalog`,
   `junction router plan`.
 - HTTP: `GET /api/planes` (harness inventory + sidecar health),

@@ -38,13 +38,23 @@ def test_snapshot_degrades_when_nothing_is_installed() -> None:
     assert snap["code"] == "ok"
 
 
-def test_cli_planes_prints_json(capsys: pytest.CaptureFixture[str]) -> None:
-    args = argparse.Namespace(router_port=9)
+def test_cli_planes_prints_human_copy_by_default(capsys: pytest.CaptureFixture[str]) -> None:
+    args = argparse.Namespace(router_port=9, as_json=False)
     run_planes_command(args)
     out = capsys.readouterr().out
     assert "Junction planes" in out
     assert "never paste provider keys" in out
-    payload = json.loads(out.strip().splitlines()[-1])
+    last = out.strip().splitlines()[-1]
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(last)
+
+
+def test_cli_planes_json_flag_is_machine_only(capsys: pytest.CaptureFixture[str]) -> None:
+    args = argparse.Namespace(router_port=9, as_json=True)
+    run_planes_command(args)
+    out = capsys.readouterr().out
+    assert "Junction planes" not in out
+    payload = json.loads(out.strip())
     assert payload["cli"] == "junction"
     assert payload["harness"]["kiro_cli"] == "optional"
 

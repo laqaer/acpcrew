@@ -74,8 +74,8 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 Python import path, data-home env, and default data directory keep the
 spellings the runtime already uses (`kiro_crew`, `KIROCREW_HOME`,
 `~/.kiro/crew`) until a dedicated, human-gated rename. They are not the
-product name. GitHub slug: `laqaer/acpcrew`. Site: https://junction.computer
-(also https://getjunction.dev).
+product name. GitHub slug: `laqaer/acpcrew`. Site: https://getjunction.dev
+(intended apex: https://junction.computer, once public DNS exists).
 
 The brand gate still forbids concatenated `KiroCrew` in **new prose**.
 Junction is the product.
