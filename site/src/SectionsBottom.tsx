@@ -50,14 +50,14 @@ export function HowItWorks() {
     },
     {
       n: '3',
-      title: 'Run',
+      title: 'Start',
       code: 'junction up',
       note: 'Composes both planes, then binds the dashboard to loopback. junction doctor --quick is the same snapshot without starting the server. junction planes shows both rails and the role DAG; junction router catalog lists model choices.',
     },
   ];
   return (
     <section className="max-w-[800px] mx-auto px-6 pt-24 pb-24" id="how-it-works">
-      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Run it locally</h2></FadeUp>
+      <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Install locally</h2></FadeUp>
       <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Python 3.10+. Node.js 22+ only if you rebuild the dashboard. kiro-cli is optional.</p></FadeUp>
       <div className="flex flex-col gap-6">
         {steps.map((s, i) => (

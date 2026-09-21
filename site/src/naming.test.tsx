@@ -97,6 +97,10 @@ describe('Junction naming', () => {
     expect(text).toContain('Loopback dashboard');
     expect(text).toContain('Install it on this machine');
     expect(text).toContain('Install locally');
+    expect(text).toContain('See the two planes');
+    expect(text).not.toContain('View Source');
+    expect(text).not.toContain('Run it locally');
+    expect(text).toContain('Start');
     expect(text).toContain('Stay on loopback')
     expect(text).toContain('Dock agents')
     expect(text).toContain('Route spend')

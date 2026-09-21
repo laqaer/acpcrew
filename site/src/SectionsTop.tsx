@@ -44,7 +44,7 @@ export function Nav() {
         </span>
       </a>
       <div className="flex gap-1 items-center">
-        {[['#architecture', 'Planes'], ['#roles', 'Routing'], ['#how-it-works', 'Run'], ['#faq', 'FAQ']].map(([href, label]) => (
+        {[['#architecture', 'Planes'], ['#roles', 'Routing'], ['#how-it-works', 'Install'], ['#faq', 'FAQ']].map(([href, label]) => (
           <a key={href} href={href} className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">{label}</a>
         ))}
         <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="hidden md:block px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 no-underline transition-all">Source</a>
@@ -82,7 +82,7 @@ export function Hero() {
       </motion.p>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }} className="flex gap-3 justify-center flex-wrap">
         <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install locally</a>
-        <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-[#e4a54a]/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:-translate-y-0.5 transition-all no-underline font-space">View Source</a>
+        <a href="#architecture" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-[#e4a54a]/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:-translate-y-0.5 transition-all no-underline font-space">See the two planes</a>
       </motion.div>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
         className="mt-6 text-sm text-slate-500 dark:text-slate-400 font-space">

@@ -274,6 +274,20 @@ def test_missing_block_raises():
         uc.add_contributors("# README\n\nno contributors here\n", [{"login": "x", "name": "x"}])
 
 
+def test_live_readme_keeps_a_contiguous_seed_block():
+    # The workflow inserts into this block. An inherited avatar wall is a public
+    # clone tell; a single this-repo seed keeps the script working without
+    # billing another project's authors as Junction's founding group.
+    with open(os.path.join(_REPO_ROOT, "README.md"), encoding="utf-8") as fh:
+        readme = fh.read()
+    start, end = uc._find_block(readme.splitlines())
+    logins = _logins(readme)
+    assert end > start
+    assert "laqaer" in logins
+    assert "0618" not in logins
+    assert "founding group" not in readme
+
+
 def test_non_contiguous_block_raises():
     # An anchor run split by a stray line is ambiguous — refuse rather than guess.
     text = (

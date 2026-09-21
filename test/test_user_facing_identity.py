@@ -21,6 +21,12 @@ def test_readme_and_product_are_junction() -> None:
     assert "the local switch" in readme
     assert "Harness plane" in readme
     assert "junction up" in readme
+    assert "Daily Active Instances" in readme
+    assert "Daily Active Crews" not in readme
+    assert "founding group" not in readme
+    assert "Kiro sign-in" not in readme
+    assert "github.com/0618.png" not in readme
+    assert 'href="https://github.com/laqaer"' in readme
     assert "Kiro Crew" not in readme
     assert "KiroCrew" not in readme  # brand-ok: asserting the concatenated token is absent
     assert "download.crew.kiro.dev" not in readme
