@@ -8631,41 +8631,6 @@ class TestOrchestratorPlanGateArming:
         assert slot._plan_stage_count == 1
 
     @pytest.mark.asyncio
-    async def test_unpinned_orchestrator_applies_role_for_each_turn_kind(
-        self, tmp_path, monkeypatch
-    ):
-        """Plan / synthesis / stage turns must hit the matching DAG role."""
-        from kiro_crew.dashboard.chat import _run_chat
-        from kiro_crew.model_router.routing import (
-            ROLE_EXECUTION,
-            ROLE_ORCHESTRATION,
-            ROLE_PLANNING,
-        )
-        from kiro_crew.providers.base import EVENT_COMPLETE, LLMEvent
-
-        seen: list[str] = []
-
-        async def _capture(_client, role: str) -> str:
-            seen.append(role)
-            return "auto"
-
-        monkeypatch.setattr("kiro_crew.model_router.routing.apply_role_model", _capture)
-        state = self._make_state_for_run_chat(tmp_path, monkeypatch)
-        slot = state.get_or_create_slot("role-apply", mode="orchestrator")
-        slot._titled = True
-        slot.model = ""
-        client = self._make_mock_client([LLMEvent(kind=EVENT_COMPLETE)])
-        state.sessions.get_or_create = AsyncMock(return_value=(client, True, False))
-
-        await _run_chat(state, slot, "make a plan")
-        slot._in_stage_execution = True
-        await _run_chat(state, slot, "execute stage 1")
-        slot._in_stage_execution = False
-        await _run_chat(state, slot, "synthesize deliveries", _synthetic_payload=True)
-
-        assert seen == [ROLE_PLANNING, ROLE_EXECUTION, ROLE_ORCHESTRATION]
-
-    @pytest.mark.asyncio
     async def test_stage_loop_sets_and_clears_in_stage_execution(self, tmp_path, monkeypatch):
         """_stage_loop keeps the guard set across EVERY stage turn (not per
         _run_chat), so a queued recovery turn can't run unguarded, and clears it

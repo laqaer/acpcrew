@@ -32,10 +32,26 @@ function flatten(obj: unknown, prefix = ''): Record<string, string> {
   return out
 }
 
+/**
+ * English passthrough still sitting in every locale. Converting them to
+ * `{{productName}}` makes `changed-passthrough` fail: the rest of the
+ * sentence is still English. Leave them until they are actually translated.
+ */
+const PASSTHROUGH_LITERALS = new Set([
+  'apps.opsMissionControl.settingsPanel.find_it_at_the_bottom_of_the_channel_s_detail_di',
+  'apps.opsMissionControl.settingsPanel.get_a_notification_when_something_changes_that_n',
+  'apps.opsMissionControl.settingsPanel.mirror_incidents_to_a_channel_as_a_live_board_on',
+  'pages.settings.remoteCrewPanel.doesnt_manage',
+  'pages.settings.remoteCrewPanel.profile_name_only',
+  'pages.settings.remoteCrewPanel.runs_on_gateway',
+  'pages.settings.remoteCrewPanel.unverified_cloud_note',
+])
+
 function isExempt(key: string): boolean {
   const parts = key.split('.')
   if (parts.includes('manifest')) return true
   if (parts[parts.length - 1] === 'star_kirocrew_on_github') return true
+  if (PASSTHROUGH_LITERALS.has(key)) return true
   return false
 }
 
