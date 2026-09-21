@@ -103,6 +103,6 @@ export const FAQ = [
   },
   {
     q: 'Where is the website hosted?',
-    a: 'The marketing site is a Vercel hobby preview at junction-site.vercel.app. A custom domain is not attached yet. Purchase and DNS are operator actions, not something the agents do on their own.',
+    a: 'The marketing site is live at https://getjunction.dev on Vercel Hobby. That is Junction’s current public canonical site.',
   },
 ];
