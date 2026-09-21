@@ -85,6 +85,47 @@ def test_launcher_without_venv_explains_source_install(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 1
-    assert f"Kiro Crew virtual environment not found at {install_root}/.venv" in result.stderr
+    assert f"Junction virtual environment not found at {install_root}/.venv" in result.stderr
     assert f'cd "{install_root}" && bash minimal_install.sh' in result.stderr
     assert "Source checkouts run from their own Python virtual environment." in result.stderr
+
+
+@_POSIX_ONLY
+def test_junction_wrapper_prefers_venv_junction(tmp_path: Path) -> None:
+    """Invoked as junction, the wrapper execs .venv/bin/junction before aliases."""
+    install_root = tmp_path / "Junction checkout"
+    launcher = install_root / "bin" / "junction"
+    launcher.parent.mkdir(parents=True)
+    shutil.copy2(_REPO_ROOT / "bin" / "junction", launcher)
+    launcher.chmod(launcher.stat().st_mode | stat.S_IXUSR)
+
+    capture_path = tmp_path / "launcher-stem.txt"
+    venv_bin = install_root / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    junction_entry = venv_bin / "junction"
+    kirocrew_entry = venv_bin / "kirocrew"
+    junction_entry.write_text(
+        "#!/bin/sh\nprintf 'junction\\n' > \"$KIROCREW_LAUNCH_CAPTURE\"\n",
+        encoding="utf-8",
+    )
+    kirocrew_entry.write_text(
+        "#!/bin/sh\nprintf 'kirocrew\\n' > \"$KIROCREW_LAUNCH_CAPTURE\"\n",
+        encoding="utf-8",
+    )
+    junction_entry.chmod(junction_entry.stat().st_mode | stat.S_IXUSR)
+    kirocrew_entry.chmod(kirocrew_entry.stat().st_mode | stat.S_IXUSR)
+
+    env = os.environ.copy()
+    env.pop("KIROCREW_PROJECT_DIR", None)
+    env["KIROCREW_LAUNCH_CAPTURE"] = str(capture_path)
+
+    result = subprocess.run(
+        [str(launcher), "up"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env=env,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert capture_path.read_text(encoding="utf-8") == "junction\n"

@@ -27,7 +27,7 @@ from kiro_crew.config.loader import (
     config_path,
     read_local_secret,
 )
-from kiro_crew.constants import DATA_WARNING, PRODUCT_NAME
+from kiro_crew.constants import CLI_BIN, CLI_CONSOLE_STEMS, DATA_WARNING, PRODUCT_NAME
 from kiro_crew.context import ContextBuilder
 from kiro_crew.dashboard import tailnet_serve
 from kiro_crew.dashboard.handlers.core import DASHBOARD_HTML_NOT_FOUND_MARKER
@@ -86,7 +86,12 @@ from kiro_crew.sel import sel
 from kiro_crew.service import controller as service_controller
 from kiro_crew.service import linux as svc_linux
 from kiro_crew.service import macos as svc_macos
-from kiro_crew.service.common import SERVICE_NAME, Platform, current_platform
+from kiro_crew.service.common import (
+    SERVICE_NAME,
+    Platform,
+    current_platform,
+    which_console_script,
+)
 from kiro_crew.session import SessionManager
 from kiro_crew.skill_usage import register_skill_read_observer
 from kiro_crew.skills import SkillsLoader
@@ -456,7 +461,7 @@ def _stop(cli_port: int | None = None) -> None:
             resources=f"pids={denied} port={port}",
         )
         print(
-            f"❌ No permission to stop pid {', '.join(str(p) for p in denied)} — try: sudo kirocrew stop"
+            f"❌ No permission to stop pid {', '.join(str(p) for p in denied)} — try: sudo {CLI_BIN} stop"
         )
         sys.exit(1)
     if not sent:
@@ -517,25 +522,26 @@ def _wait_for_pids_exit(pids: list[int], timeout: float) -> list[int]:
 def _own_console_script() -> str | None:
     """Absolute path of the console script *this* CLI process was invoked as.
 
-    Returns ``None`` unless ``sys.argv[0]`` is an existing executable file
-    basenamed ``kirocrew``.
+    Returns ``None`` unless ``sys.argv[0]`` is an existing executable whose
+    basename is a Junction console stem (``junction``, or the silent aliases
+    ``kirocrew`` / ``acpcrew``).
 
-    :func:`_spawn_detached_gateway` prefers this over ``shutil.which("kirocrew")``
-    so a restart replaces the gateway with the *same* entry point that asked for
-    the restart. ``which`` returns whatever ``kirocrew`` sits earliest on
-    ``PATH``, which is not necessarily this one: a downstream edition composes
-    this core behind its own ``[project.scripts]`` entry point of the same name,
-    so an editable install of the stock core in another interpreter (mise, a
-    stray venv) shadows it. Respawning that one starts a gateway with different
+    :func:`_spawn_detached_gateway` prefers this over PATH lookup so a restart
+    replaces the gateway with the *same* entry point that asked for the
+    restart. ``which`` returns whatever stem sits earliest on ``PATH``, which
+    is not necessarily this one: a downstream edition composes this core
+    behind its own ``[project.scripts]`` entry point of the same name, so an
+    editable install of the stock core in another interpreter (mise, a stray
+    venv) shadows it. Respawning that one starts a gateway with different
     composed providers than the one just stopped — a silent edition downgrade,
     from a command whose only job was to restart what was already running.
 
-    ``which`` remains the fallback for invocations whose argv[0] is not a script
-    path (``python -m kiro_crew restart``, a frozen bundle, a launcher that
-    rewrites argv).
+    PATH lookup remains the fallback for invocations whose argv[0] is not a
+    script path (``python -m kiro_crew restart``, a frozen bundle, a launcher
+    that rewrites argv).
     """
     argv0 = sys.argv[0] if sys.argv else ""
-    if not argv0 or _basename_stem(argv0) != "kirocrew":
+    if not argv0 or _basename_stem(argv0) not in CLI_CONSOLE_STEMS:
         return None
     path = Path(argv0)
     if not path.is_absolute():
@@ -574,10 +580,11 @@ def _spawn_detached_gateway(port: int | None = None) -> subprocess.Popen[bytes]:
       place to look regardless of how the gateway was started.
     - Resolves the console script this CLI was invoked as
       (:func:`_own_console_script`) first, so a restart respawns the
-      *same* ``kirocrew`` rather than whichever one happens to sit
-      earliest on ``PATH``; then ``shutil.which("kirocrew")``, falling
+      *same* console stem rather than whichever one happens to sit
+      earliest on ``PATH``; then :func:`kiro_crew.service.common.which_console_script`
+      (``junction`` first, then silent aliases), falling
       back to ``sys.executable -m kiro_crew`` so editable/source-tree
-      dev installs also work without a global ``kirocrew`` symlink.
+      dev installs also work without a global ``junction`` symlink.
     - Closes all inherited file descriptors so it does not pin sockets
       or pipes from the parent CLI process.
     - Binds *port* when given (``--port N``).
@@ -603,7 +610,7 @@ def _spawn_detached_gateway(port: int | None = None) -> subprocess.Popen[bytes]:
     # one log file. The fd is owned by the child after Popen returns.
     log_fh = open(log_path, "a", encoding="utf-8")  # noqa: SIM115
 
-    bin_path = _own_console_script() or shutil.which("kirocrew")
+    bin_path = _own_console_script() or which_console_script()
     if bin_path:
         argv: list[str] = [bin_path, "gateway"]
     else:

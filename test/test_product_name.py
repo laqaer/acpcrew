@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kiro_crew.constants import PRODUCT_NAME
+from kiro_crew.constants import CLI_BIN, CLI_CONSOLE_STEMS, PRODUCT_NAME
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -18,3 +18,7 @@ def test_pyproject_declares_junction_console_script() -> None:
     assert 'junction = "kiro_crew._bootstrap:main"' in text
     assert 'kirocrew = "kiro_crew._bootstrap:main"' in text
     assert 'acpcrew = "kiro_crew._bootstrap:main"' in text
+    assert CLI_BIN == "junction"
+    assert CLI_CONSOLE_STEMS[0] == CLI_BIN
+    assert "kirocrew" in CLI_CONSOLE_STEMS
+    assert "acpcrew" in CLI_CONSOLE_STEMS

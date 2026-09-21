@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CLI module (`kiro_crew/cli.py`) provides the `kirocrew` command using stdlib `argparse`.
+The CLI module (`kiro_crew/cli.py`) provides the `junction` command using stdlib `argparse`. Silent aliases `kirocrew` and `acpcrew` dispatch to the same entry.
 
 ## Import Weight Contract
 
@@ -27,15 +27,18 @@ binary) land in `cli.main()`, whose prelude runs `boot_platform()`
 
 ## Source Checkout Launcher
 
-The POSIX wrapper at `bin/kirocrew` resolves symlinks to find the real checkout,
-sets `KIROCREW_PROJECT_DIR` to that checkout unless the caller already supplied
-one, and delegates every argument to `.venv/bin/kirocrew`. The virtualenv entry
-point comes from the editable install created by the setup scripts, so it makes
-`src/kiro_crew` importable without adding the source tree to `PYTHONPATH`. Any
-caller-provided `PYTHONPATH` is inherited unchanged.
+The POSIX wrappers at `bin/junction` and `bin/kirocrew` (identical scripts)
+resolve the invoked name before following symlinks, set `KIROCREW_PROJECT_DIR`
+to that checkout unless the caller already supplied one, and delegate to the
+matching `.venv/bin/<stem>` (trying the invoked name, then `junction`, then
+the silent aliases). The virtualenv entry point comes from the editable
+install created by the setup scripts, so it makes `src/kiro_crew` importable
+without adding the source tree to `PYTHONPATH`. Any caller-provided
+`PYTHONPATH` is inherited unchanged.
 
-If `.venv/bin/kirocrew` is unavailable, the wrapper exits with source-install
-guidance instead of falling through to a different Python environment.
+If no matching `.venv/bin` entry is available, the wrapper exits with
+source-install guidance instead of falling through to a different Python
+environment.
 
 ## Standalone Wheel Installer Trust Contract
 
@@ -729,6 +732,11 @@ CLI compaction is blocking (single-user, acceptable).
 the other two are silent aliases. `setup.cfg` still lists `kirocrew`
 for the same entry so older metadata readers keep resolving it.
 
+`junction stop` / `junction restart` classify a live server by console-script
+basename (`junction`, plus the silent aliases) and by server subcommand
+(`up`, `gateway`, `dashboard`, and the historical `start`). A process started
+with `junction up` is the same server as `junction gateway`.
+
 ### Model-router sidecar
 
 `junction router status` probes the optional Codex Router model plane on
@@ -806,7 +814,7 @@ keeps running the install the user typed, not a worktree someone made live.
 | `KIROCREW_WORKSPACE` | Override workspace root directory |
 
 For local dev:
-- **macOS/Linux**: `bin/kirocrew` (POSIX shell wrapper); `source setup.sh` adds `bin/` to PATH
+- **macOS/Linux**: `bin/junction` (POSIX shell wrapper; `bin/kirocrew` is the same script); `source setup.sh` adds `bin/` to PATH
 
 The wrapper sets `KIROCREW_PROJECT_DIR` and routes to the right runtime based on install type:
 

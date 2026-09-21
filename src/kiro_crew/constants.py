@@ -262,6 +262,10 @@ PRODUCT_NAME = "Junction"
 # User-facing CLI binary. Silent aliases (`acpcrew`, `kirocrew`) still
 # dispatch to the same entry point; prints, usage, and help name this one.
 CLI_BIN = "junction"
+# Console-script basenames that all dispatch here. Primary first so PATH
+# lookup, restart respawn, and service ExecStart prefer `junction` when it
+# is installed. Aliases stay so a leftover wrapper still stop/restarts.
+CLI_CONSOLE_STEMS: tuple[str, ...] = (CLI_BIN, "kirocrew", "acpcrew")
 
 # Live production hostname. junction.computer is the intended apex once its
 # public NS exist; until then CLI chrome and the marketing canonical point here.

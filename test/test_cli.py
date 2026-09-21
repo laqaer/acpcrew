@@ -2052,6 +2052,11 @@ class TestArgsLookLikeKirocrew:
             "/usr/local/bin/kirocrew gateway",
             "/Users/x/.toolbox/bin/kirocrew start",
             "kirocrew dashboard",
+            # Primary CLI stem + compose-then-serve verb.
+            "/usr/local/bin/junction up",
+            "/usr/local/bin/junction gateway",
+            "acpcrew up",
+            "python3 -m kiro_crew up",
         ],
     )
     def test_matches_server_launch_forms(self, args):
@@ -2072,7 +2077,9 @@ class TestArgsLookLikeKirocrew:
             "python -m kiro_crew run start",  # "start" is a file arg to run, not the subcommand
             "python -m kiro_crew_other gateway",  # different package named kiro_crew_other
             "/usr/bin/kirocrew",  # wrapper with no subcommand
+            "/usr/bin/junction",  # primary wrapper with no subcommand
             "grep -m kiro_crew gateway somefile",  # "-m" is grep's flag (no python interpreter)
+            "junction run up",  # "up" is a file arg to run, not the server verb
         ],
     )
     def test_rejects_non_server_processes(self, args):
@@ -2729,6 +2736,24 @@ class TestRestart:
         own.chmod(0o755)
         monkeypatch.setattr(sys, "argv", [str(own), "restart"])
         proc = MagicMock(pid=7777)
+        with (
+            patch("shutil.which", return_value="/usr/local/bin/kirocrew"),
+            patch("kiro_crew.cli_server.subprocess.Popen", return_value=proc) as mock_popen,
+        ):
+            _spawn_detached_gateway()
+        assert mock_popen.call_args.args[0] == [str(own), "gateway"]
+
+    def test_spawn_detached_gateway_prefers_own_junction_script(self, tmp_path, monkeypatch):
+        # The operator binary is `junction`. A restart invoked as that stem
+        # must respawn it, not a leftover `kirocrew` earlier on PATH.
+        from kiro_crew.cli_server import _spawn_detached_gateway
+
+        monkeypatch.setattr("kiro_crew.cli_server.config_dir", lambda: tmp_path)
+        own = tmp_path / "junction"
+        own.write_text("#!/bin/sh\n")
+        own.chmod(0o755)
+        monkeypatch.setattr(sys, "argv", [str(own), "restart"])
+        proc = MagicMock(pid=7778)
         with (
             patch("shutil.which", return_value="/usr/local/bin/kirocrew"),
             patch("kiro_crew.cli_server.subprocess.Popen", return_value=proc) as mock_popen,

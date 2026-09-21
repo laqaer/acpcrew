@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from kiro_crew.config import loader
+from kiro_crew.constants import CLI_CONSOLE_STEMS
 
 SERVICE_NAME = "kirocrew"  # systemd unit name (without .service)
 LAUNCHD_LABEL = "dev.kirocrew.gateway"  # launchd Label
@@ -66,13 +67,30 @@ def launchd_live_program() -> "os.PathLike[str]":
     while the gateway ran the new one.
     """
     return (
-        Path.home() / "Library" / "Application Support" / "KiroCrew"
+        Path.home()
+        / "Library"
+        / "Application Support"
+        / "KiroCrew"  # brand-ok: frozen Electron Application Support directory
         / "live-gateway"
     )
 
 
+def which_console_script() -> str | None:
+    """PATH lookup for the Junction console script, primary name first.
+
+    ``junction`` is the operator binary. ``kirocrew`` and ``acpcrew`` are
+    silent aliases and only win when the primary name is not on PATH, so a
+    leftover wrapper still finds a running install.
+    """
+    for name in CLI_CONSOLE_STEMS:
+        found = shutil.which(name)
+        if found:
+            return found
+    return None
+
+
 def kirocrew_bin() -> str:
-    """Return the resolved kirocrew executable path, or fall back to sys.argv[0].
+    """Return the resolved Junction executable path, or fall back to sys.argv[0].
 
     Used by both the systemd unit and the launchd plist as ``ExecStart`` /
     ``ProgramArguments``. Resolution order:
@@ -80,19 +98,19 @@ def kirocrew_bin() -> str:
     1. ``KIROCREW_SERVICE_BIN`` if set — an explicit operator override. This
        lets a launcher the resolver can't discover (a wrapper script, a venv
        entry point not on the global PATH) be pinned as the service Program,
-       rather than silently falling back to whatever ``kirocrew`` happens to be
+       rather than silently falling back to whatever ``junction`` happens to be
        first on ``$PATH``. Resolved to an absolute path: the launchd/systemd
        manager has no meaningful working directory, so a relative override
        would produce an invalid ``ExecStart`` / ``ProgramArguments`` and the
        service would fail to start.
-    2. ``shutil.which("kirocrew")`` — the installed console script.
-    3. ``sys.argv[0]`` — for development installs where ``kirocrew`` isn't on
+    2. :func:`which_console_script` — ``junction`` first, then silent aliases.
+    3. ``sys.argv[0]`` — for development installs where ``junction`` isn't on
        the global PATH.
     """
     override = os.environ.get("KIROCREW_SERVICE_BIN", "").strip()
     if override:
         return os.path.abspath(override)
-    found = shutil.which("kirocrew")
+    found = which_console_script()
     if found:
         return found
     return os.path.realpath(sys.argv[0])

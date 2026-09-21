@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from kiro_crew import pinned_fs, platform_compat
+from kiro_crew.constants import CLI_BIN
 
 try:
     import pysqlite3 as sqlite3
@@ -1420,7 +1421,7 @@ def restore_main(argv: list[str] | None = None, *, parsed: argparse.Namespace | 
     force = getattr(args, "force", False)
     if not force and _is_gateway_running():
         _audit("state_restore_rejected", "reason=gateway_running")
-        print("❌ Gateway is running. Stop it first (kirocrew stop) or use --force.")
+        print(f"❌ Gateway is running. Stop it first ({CLI_BIN} stop) or use --force.")
         return 1
 
     snap_path = Path(args.snapshot)

@@ -123,3 +123,9 @@ def test_ownership_and_banner_are_junction() -> None:
     assert "Kiro Crew" not in banner
     assert notice.lstrip().startswith("Junction")
     assert "this fork" not in notice.lower()
+    wrapper = (_REPO_ROOT / "bin" / "kirocrew").read_text(encoding="utf-8")
+    junction_wrapper = (_REPO_ROOT / "bin" / "junction").read_text(encoding="utf-8")
+    assert wrapper == junction_wrapper
+    assert "Junction virtual environment not found" in wrapper
+    assert "Kiro Crew virtual environment" not in wrapper
+    assert "# Junction CLI wrapper." in wrapper
