@@ -30,6 +30,7 @@ callers importing it from this module keep working).
 
 from __future__ import annotations
 
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.messaging.conversation import ConversationState  # noqa: F401
 
 # ── Command constants ──
@@ -57,7 +58,7 @@ COMMAND_SPEC: tuple[tuple[str, str], ...] = (
     ("help", "显示命令列表"),
 )
 
-_HELP_HEADER = "Kiro Crew — 企业微信"
+_HELP_HEADER = f"{PRODUCT_NAME} — 企业微信"
 _HELP_FOOTER = (
     "回复生成中时，可以给消息加前缀来控制它：\n"
     "/steer <消息> — 立即并入正在进行的回复\n"

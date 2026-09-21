@@ -20,7 +20,7 @@ def test_readme_and_product_are_junction() -> None:
     assert "Where coding agents meet the models you want" in readme
     assert "the local switch" in readme
     assert "Kiro Crew" not in readme
-    assert "KiroCrew" not in readme
+    assert "KiroCrew" not in readme  # brand-ok: asserting the concatenated token is absent
     assert "download.crew.kiro.dev" not in readme
     assert "this checkout forks" not in product.lower()
     assert "Apache-2.0 fork" not in product
@@ -55,6 +55,16 @@ def test_packaged_getting_started_is_junction() -> None:
     assert "download.crew.kiro.dev" not in gs
     assert "kirodotdev/KiroCrew" not in gs
     assert "junction gateway" in gs
+
+
+def test_dashboard_and_electron_chrome_are_junction() -> None:
+    index = (_REPO_ROOT / "website" / "index.html").read_text(encoding="utf-8")
+    loading = (_REPO_ROOT / "website" / "electron" / "loading.html").read_text(encoding="utf-8")
+    assert "<title>Junction</title>" in index
+    assert "<title>Kiro Crew</title>" not in index
+    assert "<title>Junction</title>" in loading
+    assert ">Junction</div>" in loading
+    assert ">Kiro Crew</div>" not in loading
 
 
 def test_agents_md_leads_with_junction() -> None:

@@ -30,7 +30,7 @@ export const ARCH_PLANES = [
     label: 'Model plane',
     sub: 'Sidecar, optional',
     detail:
-      'An optional sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
+      'An optional sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Advertised harness ids apply now; catalog slugs apply once the sidecar is installed. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
   },
 ];
 
@@ -62,8 +62,8 @@ export const IN_ACTION = [
   },
   {
     label: 'Route',
-    user: 'point this session at the model plane',
-    bot: 'openai_base_url now targets the local sidecar. Provider keys stay in the sidecar — never paste them into chat. If the sidecar is down, this gateway still runs.',
+    user: 'spend cheap tokens on orchestration and save the capable model for planning',
+    bot: 'Orchestration is economy, planning is capable, execution is standard. Advertised harness ids apply on the live session. Catalog slugs wait for the optional sidecar. If the sidecar is down, this gateway still runs.',
   },
   {
     label: 'Spend',
@@ -83,7 +83,7 @@ export const FAQ = [
   },
   {
     q: 'How does model routing work?',
-    a: 'The model plane is an optional sidecar (Responses API on loopback). Junction observes it; it does not vendor that Node app. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
+    a: 'The model plane is an optional sidecar (Responses API on loopback). Junction observes it; it does not vendor that Node app. Role routing applies advertised harness ids now. Namespaced catalog slugs land when you install the sidecar. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
   },
   {
     q: 'What models can I use?',
@@ -100,5 +100,9 @@ export const FAQ = [
   {
     q: 'How do I contribute?',
     a: 'Clone github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
+  },
+  {
+    q: 'Where is the website hosted?',
+    a: 'The marketing site is a Vercel hobby preview at junction-site.vercel.app. A custom domain is not attached yet. Purchase and DNS are operator actions, not something the agents do on their own.',
   },
 ];

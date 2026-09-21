@@ -1,6 +1,6 @@
 ---
 name: dashboard-i18n
-description: "Dashboard user-facing strings in website/. Use when adding copy, dates, numbers, or sort order. Never hardcode English. Interpolate {{productName}}. DEFAULT_PRODUCT_NAME is Junction. Catalog-wide rewrite of leftover literals is a follow-up, not this cut."
+description: "Dashboard user-facing strings in website/. Use when adding copy, dates, numbers, or sort order. Never hardcode English. Interpolate {{productName}}. DEFAULT_PRODUCT_NAME is Junction. Manifest-sync and GitHub attribution keys stay literal."
 ---
 
 # Dashboard i18n
@@ -18,8 +18,6 @@ Frontend router: [`../../../website/AGENTS.md`](../../../website/AGENTS.md).
   literal. Translations must keep the placeholder.
 - Junction's `DEFAULT_PRODUCT_NAME` is `Junction`
   (`website/src/i18n/index.ts`).
-- Catalog-wide rewrite of pre-existing hardcoded product literals is a
-  **follow-up**. Do not sweep 13 locale files in the bootstrap PR.
 - Manifest-sync `apps.<id>.manifest.*` keys and repo-attribution strings
   that wrap the upstream GitHub URL stay literal by contract — see the
   catalog doc.

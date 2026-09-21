@@ -12,6 +12,7 @@ import it from this module, mirroring the Telegram/WeCom/Webex packages).
 
 from __future__ import annotations
 
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.messaging.conversation import ConversationState  # noqa: F401
 
 #: Ordered ``(canonical, aliases, description)`` rows. ``canonical`` is what
@@ -103,7 +104,7 @@ def parse_directive(text: str) -> tuple[str | None, str]:
     return None, stripped
 
 
-_HELP_HEADER = "**Kiro Crew — Microsoft Teams**"
+_HELP_HEADER = f"**{PRODUCT_NAME} — Microsoft Teams**"
 _HELP_FOOTER = (
     "While a reply is running, prefix a message to control it:\n"
     "- `/queue <message>` — answer it after the current reply\n"

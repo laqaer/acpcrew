@@ -148,7 +148,7 @@ _DASHBOARD_HTML_NOT_FOUND = (
     " newly-installed version). It can also mean the web assets were never"
     " built (dev / first-run) &mdash; build the frontend and stage it into"
     " the package before starting the gateway.</p>"
-    "<p><strong>Try restarting Junction.</strong> The exact restart step"
+    f"<p><strong>Try restarting {PRODUCT_NAME}.</strong> The exact restart step"
     " depends on your environment: if you installed it as a service use"
     " <code>junction service restart</code> (systemd / launchd); otherwise"
     " stop the running <code>junction gateway</code> process and start it"

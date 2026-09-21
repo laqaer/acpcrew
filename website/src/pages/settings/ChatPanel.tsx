@@ -5,6 +5,7 @@ import { loadChatConfig, saveChatConfig, type ChatConfig, type ContentWidth, typ
 import { api } from '../../api/client'
 import { useAvailableModels } from '../../hooks/useAvailableModels'
 import { EFFORT_LEVELS, effortLabel, modelSupportsEffort } from '../../lib/effort'
+import { classifyCost } from '../../lib/modelCostClass'
 import { isMac } from '../../utils/platform'
 import { capRoleOther, clampRoleOther } from '../../lib/userProfile'
 import { ROLE_SLUGS, TECH_SLUGS } from '../../lib/profileOptions'
@@ -387,7 +388,9 @@ export function ChatPanel() {
     (catalogQ.data?.models ?? []).map(row => [row.slug, row] as const),
   )
   const roleModelOptions = (current: string, costClass: string): string[] => {
-    const advertised = availableModels.map(m => m.name)
+    const advertised = availableModels
+      .map(m => m.name)
+      .filter(name => name === 'auto' || classifyCost(name) === costClass)
     const extra = (catalogQ.data?.models ?? [])
       .filter(m => m.listed !== false && m.cost_class === costClass)
       .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0) || a.slug.localeCompare(b.slug))

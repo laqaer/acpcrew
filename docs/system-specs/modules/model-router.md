@@ -35,6 +35,17 @@ This cut exposes **health**, the **namespaced model catalog**, and a
 the sidecar and optional `openai_base_url` remain M2
 ([`../../../ROADMAP.md`](../../../ROADMAP.md)).
 
+`available_models` on ACP clients is a **method**. Role apply calls it;
+treating the bound method as a list left every unpinned role on `"auto"`.
+
+`apply_role_model` sends `set_model` only for harness ids (no `/`). A
+namespaced catalog slug is returned as the plan's wire id but is not
+sent on the kiro-cli wire until M2.
+
+Economy roles with no advertised economy id pick the cheapest advertised
+id rather than inheriting a flagship session default. Capable and
+standard roles still inherit `"auto"` when their class is empty.
+
 ## Health and status
 
 Status is a coarse enum the dashboard, CLI, and doctor can show. This
@@ -67,7 +78,7 @@ It does **not** copy credentials, endpoints, or secret filenames.
   those on the sidecar.
 - Grammar for a pin that may be a kiro-cli id **or** a namespaced slug
   is `MODEL_ID_PATTERN` in `catalog.py` (slash allowed as a namespace
-  separator; `..` and a leading slash are not).
+  separator; `..`, `//`, `/.`, and a leading or trailing slash are not).
 
 ## Role DAG
 
@@ -93,8 +104,11 @@ Pins in `agent.role_models.<role>` always win. Unpinned roles resolve to
 the pick is an advertised id in that cost class. Concrete model ids are
 never hardcoded as defaults. Task-runner decompose uses planning;
 execute and self-review use execution / planning via `apply_role_model`.
-Orchestrator chat turns (unpinned slots) use planning for the plan turn
-and execution for stage runs.
+Orchestrator chat turns (unpinned slots) pick through
+`orchestrator_turn_role`: planning for the plan turn, orchestration for
+synthetic coordinator turns (subagent synthesis, recovery), and
+execution for stage runs. Synthesis is excluded from plan-arming so it
+cannot re-count a plan.
 
 `GET /api/model-router/catalog` annotates each slug with `cost_class`.
 Settings ▸ Chat lists catalog slugs in the matching class beside
