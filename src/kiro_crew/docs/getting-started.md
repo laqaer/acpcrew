@@ -2,7 +2,7 @@
 
 Junction is a local control plane: dock ACP coding agents and route their
 models. Chat from the web dashboard, the CLI, or a messaging channel.
-`kiro-cli` is optional.
+A vendor agent CLI is optional.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ models. Chat from the web dashboard, the CLI, or a messaging channel.
 |-------------|------------|-------|
 | **Python** + pip | Backend | `>= 3.10` |
 | **Node.js** + npm | Building the dashboard from source | `>= 22` (24 LTS recommended) |
-| An ACP runtime | Driving the LLM | Cursor, Claude, Codex, Grok, … — `kiro-cli` is optional |
+| An ACP runtime | Driving the LLM | Cursor, Claude, Codex, Grok, … — a vendor agent CLI is optional |
 
 Node is only needed to *build* the dashboard. A source install that already
 has `website/dist` staged does not need Node at runtime.
@@ -44,16 +44,13 @@ Optional model plane: run a Codex Router sidecar on loopback, then
 model choices, and `junction router plan` for the orchestration → planning →
 execution DAG. Never paste provider keys into chat.
 
-### Agent backend (kiro-cli optional)
+### Agent backend (vendor CLI optional)
 
 `agent.provider` is `acp`. `agent.acp_backend` defaults to `auto`: Junction
 docks the first installed of Cursor, Claude, Codex, Kimi, DeepSeek Harness,
-Goose, Grok, Pi, Droid. `kiro-cli` remains selectable and last in that list.
-Install `kiro-cli` only when you want that harness:
-
-```bash
-kiro-cli login
-```
+Goose, Grok, Pi, Droid. A named vendor CLI remains selectable and last in
+that list. Install one only when you want that harness. Junction does not
+sign you into a vendor account.
 
 ## First-Time Setup
 

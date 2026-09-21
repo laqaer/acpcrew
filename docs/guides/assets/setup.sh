@@ -1,7 +1,7 @@
 #!/bin/bash
-# Kiro Crew Persistent Sessions Setup
+# Junction persistent-session setup.
 #
-# Installs kirocrew gateway as a systemd user service.
+# Installs junction up as a systemd user service.
 # Requires the systemd user manager to be running (see README.md Phase 1).
 set -e
 
@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 USERNAME=$(whoami)
 HOSTNAME=$(hostname)
 
-echo "👻 Kiro Crew Persistent Sessions Setup"
+echo "Junction persistent-session setup"
 echo ""
 
 # ── Check: systemd user manager running? ──
@@ -20,11 +20,11 @@ if ! systemctl --user status >/dev/null 2>&1; then
 fi
 echo "✅ Systemd user manager running"
 
-# ── Check: kirocrew gateway already running in tmux? ──
-if pgrep -f "kiro_crew gateway\|kirocrew gateway" | grep -v $$ >/dev/null 2>&1; then
+# ── Check: junction already running in tmux? ──
+if pgrep -f "kiro_crew up\|junction up\|kirocrew gateway\|kiro_crew gateway" | grep -v $$ >/dev/null 2>&1; then
     echo ""
-    echo "⚠️  kirocrew gateway is already running (tmux or manual)."
-    echo "   Kill it first: tmux kill-session -t kirocrew"
+    echo "⚠️  Junction is already running (tmux or manual)."
+    echo "   Kill it first: tmux kill-session -t junction"
     echo "   Then re-run this script."
     exit 1
 fi
@@ -35,8 +35,9 @@ USER_UNIT_DIR="$HOME/.config/systemd/user"
 mkdir -p "$USER_UNIT_DIR"
 NODE_VERSION=$(node --version 2>/dev/null || basename "$(ls -d "$HOME"/.nvm/versions/node/v* 2>/dev/null | tail -1)")
 
-# Resolve kirocrew binary from current shell PATH
-KIROCREW_BIN="$(command -v kirocrew 2>/dev/null)" || { echo "❌ kirocrew not found in PATH"; exit 1; }
+# Resolve junction first, then silent aliases
+KIROCREW_BIN="$(command -v junction 2>/dev/null || command -v kirocrew 2>/dev/null || command -v acpcrew 2>/dev/null)" \
+  || { echo "❌ junction not found in PATH"; exit 1; }
 echo "  Binary: $KIROCREW_BIN"
 
 sed -e "s/%u/$USERNAME/g" \

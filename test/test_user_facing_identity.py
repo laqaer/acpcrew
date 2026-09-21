@@ -61,11 +61,42 @@ def test_packaged_getting_started_is_junction() -> None:
     gs = (_REPO_ROOT / "src/kiro_crew/docs/getting-started.md").read_text(encoding="utf-8")
     plain = gs.replace("`", "")
     assert "Junction" in plain
-    assert "kiro-cli is optional" in plain
+    assert "vendor agent CLI is optional" in plain
+    assert "kiro-cli is optional" not in plain
     assert "download.crew.kiro.dev" not in gs
     assert "kirodotdev/KiroCrew" not in gs
     assert "junction up" in gs
     assert "junction gateway" in gs
+
+
+def test_public_install_guides_are_junction() -> None:
+    install = (_REPO_ROOT / "docs" / "guides" / "install.md").read_text(encoding="utf-8")
+    windows = (_REPO_ROOT / "docs" / "guides" / "windows-install.md").read_text(encoding="utf-8")
+    docker = (_REPO_ROOT / "docs" / "guides" / "docker.md").read_text(encoding="utf-8")
+    compose = (_REPO_ROOT / "docker" / "compose.yaml").read_text(encoding="utf-8")
+    assert install.lstrip().startswith("# Installing and running Junction")
+    assert "Kiro Crew" not in install
+    assert "download.crew.kiro.dev" not in install
+    assert "kirocrew gateway" not in install
+    assert "kirodotdev/KiroCrew" not in install
+    assert "ghcr.io/kirodotdev" not in install
+    assert "junction up" in install
+    assert "vendor agent CLI is optional" in install
+    assert "Kiro Crew" not in windows
+    assert "download.crew.kiro.dev" not in windows
+    assert "kirocrew gateway" not in windows
+    assert "ghost family" not in windows
+    assert "junction up" in windows
+    assert "ghcr.io/kirodotdev" not in docker
+    assert "ghcr.io/laqaer/kirocrew" in docker
+    assert "ghcr.io/kirodotdev" not in compose
+    assert "ghcr.io/laqaer/kirocrew:stable" in compose
+    assert "container_name: junction" in compose
+    ec2 = (_REPO_ROOT / "src/kiro_crew/cloud/templates/kirocrew-ec2.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "https://github.com/laqaer/acpcrew.git" in ec2
+    assert "kirodotdev/KiroCrew" not in ec2
 
 
 def test_dashboard_and_electron_chrome_are_junction() -> None:

@@ -39,7 +39,7 @@ tell you in a paragraph.
   the documented feature limits in the [Windows guide](docs/guides/windows-install.md)
 - Python ≥ 3.10
 - Node.js ≥ 22 (24 LTS recommended) and npm (for the frontend)
-- The `kiro-cli` agent is optional (`agent.acp_backend` defaults to `auto`). Install it on your `PATH` and log in (`kiro-cli login`) if you want that harness.
+- The `kiro-cli` agent is optional (`agent.acp_backend` defaults to `auto`). A vendor agent CLI is optional — install one on your `PATH` only if you want that harness.
 - [Ollama](https://ollama.com) for memory and knowledge-library embeddings
 
 ## First-Time Setup

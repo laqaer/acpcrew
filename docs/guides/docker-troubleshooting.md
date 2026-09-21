@@ -1,6 +1,6 @@
 # Docker Troubleshooting Guide
 
-Practical solutions for common issues when running Kiro Crew in Docker. For
+Practical solutions for common issues when running Junction in Docker. For
 general setup and configuration, see [docker.md](docker.md).
 
 ---
@@ -22,10 +22,10 @@ If no mapping shows, you forgot `-p` in `docker run` or the `ports:` key in
 compose. Re-create the container with the correct mapping:
 
 ```bash
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v kirocrew-home:/home/kirocrew \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 ### Check KIROCREW_BIND
@@ -35,7 +35,7 @@ you overrode this to `127.0.0.1`, the gateway only listens on the
 container's internal loopback — unreachable from the host.
 
 ```bash
-docker exec kirocrew printenv KIROCREW_BIND
+docker exec junction printenv KIROCREW_BIND
 ```
 
 Remove any override or explicitly set `-e KIROCREW_BIND=0.0.0.0`.
@@ -47,11 +47,11 @@ If you changed `KIROCREW_PORT` inside the container but did not update the
 
 ```bash
 # If KIROCREW_PORT=8080 inside the container:
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:8080:8080 \
   -e KIROCREW_PORT=8080 \
   -v kirocrew-home:/home/kirocrew \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 ### Firewall / Docker Desktop
@@ -59,7 +59,7 @@ docker run -d --name kirocrew \
 - **Linux:** check `iptables -L -n` or `nft list ruleset` for DROP rules
   on the Docker bridge.
 - **macOS / Windows (Docker Desktop):** the VM network stack may need a
-  restart. Try `docker restart kirocrew` or restart Docker Desktop.
+  restart. Try `docker restart junction` or restart Docker Desktop.
 - **Remote host:** ensure the host firewall allows inbound on the published
   port, and use the host's IP (not `localhost`).
 
@@ -67,7 +67,7 @@ docker run -d --name kirocrew \
 
 ## 2. kiro-cli login fails inside the container
 
-**Symptoms:** `docker exec kirocrew kiro-cli login` hangs, shows garbled
+**Symptoms:** `docker exec junction kiro-cli login` hangs, shows garbled
 output, or immediately exits with "not a terminal."
 
 The login command itself, and where its credentials persist, are covered by
@@ -80,7 +80,7 @@ covers what makes that command fail.
 `-it`:
 
 ```bash
-docker exec -it kirocrew kiro-cli login
+docker exec -it junction kiro-cli login
 ```
 
 If you omit `-it`, the login prompt has no TTY to read from and fails.
@@ -97,13 +97,13 @@ Git Bash / MINGW terminals sometimes break TTY passthrough. Use PowerShell
 or `cmd.exe` instead:
 
 ```powershell
-docker exec -it kirocrew kiro-cli login
+docker exec -it junction kiro-cli login
 ```
 
 Or prefix with `winpty` in Git Bash:
 
 ```bash
-winpty docker exec -it kirocrew kiro-cli login
+winpty docker exec -it junction kiro-cli login
 ```
 
 ---
@@ -134,10 +134,10 @@ docker exec -u 0 kirocrew chown -R kirocrew:kirocrew /home/kirocrew
 sudo chown -R 1000:1000 /path/to/host/dir
 
 # Then mount:
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v /path/to/host/dir:/home/kirocrew \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 ### Read-only filesystem
@@ -277,7 +277,7 @@ health check, the probe hits the wrong port:
 
 ```bash
 # Check what port the gateway is actually listening on:
-docker exec kirocrew printenv KIROCREW_PORT
+docker exec junction printenv KIROCREW_PORT
 ```
 
 For custom Kubernetes probes, match the port. The built-in Docker
@@ -304,14 +304,14 @@ bad edit:
 ```bash
 # Keep the original under a name no later recovery can clobber, then let the
 # gateway seed defaults on restart:
-docker exec kirocrew sh -c \
+docker exec junction sh -c \
   'mv /home/kirocrew/.kiro/crew/config.json \
       "/home/kirocrew/.kiro/crew/config.json.broken.$(date +%Y%m%d-%H%M%S)"'
-docker restart kirocrew
+docker restart junction
 
 # Read the saved copies on the host to recover your settings:
-docker exec kirocrew ls /home/kirocrew/.kiro/crew/config.json.broken.*
-docker cp kirocrew:/home/kirocrew/.kiro/crew/config.json.broken.<stamp> .
+docker exec junction ls /home/kirocrew/.kiro/crew/config.json.broken.*
+docker cp junction:/home/kirocrew/.kiro/crew/config.json.broken.<stamp> .
 ```
 
 A plain `.broken` suffix would be overwritten the second time you did this,
@@ -332,13 +332,13 @@ layer and vanishes on removal:
 
 ```bash
 # WRONG — no volume:
-docker run -d --name kirocrew -p 5476:5476 ghcr.io/kirodotdev/kirocrew:stable
+docker run -d --name junction -p 5476:5476 ghcr.io/laqaer/kirocrew:stable
 
 # CORRECT — named volume:
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v kirocrew-home:/home/kirocrew \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 ### `docker compose down -v` removes volumes
@@ -390,7 +390,7 @@ they are not available by default.
 1. **Build a custom image** extending the official one — the reliable route:
 
    ```dockerfile
-   FROM ghcr.io/kirodotdev/kirocrew:stable
+   FROM ghcr.io/laqaer/kirocrew:stable
    USER root
    RUN apt-get update && apt-get install -y git nodejs npm && rm -rf /var/lib/apt/lists/*
    USER kirocrew
@@ -417,7 +417,7 @@ Skills are files, not packages: the built-in set is synced from the wheel to
 List what the container actually has:
 
 ```bash
-docker exec kirocrew ls /home/kirocrew/.kiro/crew/skills
+docker exec junction ls /home/kirocrew/.kiro/crew/skills
 ```
 
 To add your own, write it into that directory and restart:
@@ -425,7 +425,7 @@ To add your own, write it into that directory and restart:
 ```bash
 docker cp ./my-skill kirocrew:/home/kirocrew/.kiro/crew/skills/my-skill
 docker exec -u 0 kirocrew chown -R kirocrew:kirocrew /home/kirocrew/.kiro/crew/skills/my-skill
-docker restart kirocrew
+docker restart junction
 ```
 
 ---
@@ -469,10 +469,10 @@ retry does not accumulate files — only a hard kill mid-download (OOM,
 `docker kill`) can strand one. Check before clearing anything:
 
 ```bash
-docker exec kirocrew ls -la /home/kirocrew/.kiro/crew/models
+docker exec junction ls -la /home/kirocrew/.kiro/crew/models
 # Strays are dot-prefixed and end in .tmp; the real model files are not.
 # -mmin +60 is what makes this safe: it skips a download still in flight.
-docker exec kirocrew find /home/kirocrew/.kiro/crew/models \
+docker exec junction find /home/kirocrew/.kiro/crew/models \
   -maxdepth 1 -name '.*.tmp' -mmin +60 -delete
 ```
 
@@ -532,7 +532,7 @@ docker stats kirocrew --no-stream
 
 - Check the full startup log: `docker logs kirocrew`
 - Review [docker.md](docker.md) for the complete configuration reference.
-- Open an [issue](https://github.com/kirodotdev/KiroCrew/issues) with your
+- Open an [issue](https://github.com/laqaer/acpcrew/issues) with your
   Docker version (`docker version`), OS, and the relevant log output.
 
 **Redact before you post.** A container log is not guaranteed to be free of

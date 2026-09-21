@@ -91,7 +91,7 @@ export const FAQ = [
   },
   {
     q: 'Do I need a vendor agent CLI?',
-    a: 'No. Dock whichever ACP runtime you already use. kiro-cli is optional — the harness plane picks a usable runtime automatically.',
+    a: 'No. Dock whichever ACP runtime you already use. A vendor agent CLI is optional — the harness plane picks a usable runtime automatically.',
   },
   {
     q: 'How do I add custom tools?',

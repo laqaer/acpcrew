@@ -33,6 +33,7 @@ from typing import Any
 from kiro_crew import platform_compat
 from kiro_crew.browser_cli import os_deps
 from kiro_crew.config.paths import config_dir
+from kiro_crew.constants import GITHUB_SLUG
 from kiro_crew.env import augmented_path, find_node_tool, node_augmented_path
 from kiro_crew.security import redact_credentials, redact_exfiltration_urls
 
@@ -441,7 +442,7 @@ def _browser_present() -> bool:
     return browsers_present().get("chromium", False)
 
 
-_INSTALLER_BASE = "https://raw.githubusercontent.com/kirodotdev/KiroCrew/main"
+_INSTALLER_BASE = f"https://raw.githubusercontent.com/{GITHUB_SLUG}/main"
 
 
 def _standalone_install_command() -> str:

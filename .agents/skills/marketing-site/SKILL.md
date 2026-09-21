@@ -13,7 +13,7 @@ Code: `site/` (not `website/` — that is the dashboard SPA). Identity:
 ## Rules
 
 - Name: Junction. Tagline: Where coding agents meet the models you want.
-- Two-plane promise; `kiro-cli` optional; CLI `junction`; slug
+- Two-plane promise; a vendor agent CLI is optional; CLI `junction`; slug
   `laqaer/acpcrew`.
 - Keep the amber already in `site/`. Junction / track motif. No emoji
   icons (lucide on the dashboard; site follows the same no-emoji rule).

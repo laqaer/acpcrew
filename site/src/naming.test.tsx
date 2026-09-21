@@ -32,7 +32,8 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).not.toMatch(/kiro-cli is required/i);
     expect(text).not.toMatch(/Prerequisites:[^\n]*kiro-cli/i);
-    expect(text).toMatch(/kiro-cli is optional/i);
+    expect(text).toMatch(/vendor agent CLI is optional/i);
+    expect(text).not.toMatch(/kiro-cli is optional/i);
   });
 
   it('keeps kiro-cli out of the first viewport', () => {
@@ -85,7 +86,8 @@ describe('Junction naming', () => {
       .replace(/github\.com\/laqaer\/acpcrew(?:\.git)?/gi, '')
       .replace(/\bcd acpcrew\b/gi, '');
     expect(leftover).not.toMatch(/acpcrew/i);
-    expect(text).toMatch(/kiro-cli is optional/i);
+    expect(text).toMatch(/vendor agent CLI is optional/i);
+    expect(text).not.toMatch(/kiro-cli/i);
   });
 
   it('sells the switch, not an upstream dashboard clone', () => {

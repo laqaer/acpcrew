@@ -70,7 +70,7 @@ def test_doctor_planes_never_fails(capsys: pytest.CaptureFixture[str]) -> None:
     _doctor_planes()
     out = capsys.readouterr().out
     assert "Planes" in out
-    assert "kiro-cli optional" in out
+    assert "vendor CLI optional" in out
     assert "sidecar optional" in out
     assert "orchestration=economy" in out
     assert "never paste provider keys" in out
@@ -109,7 +109,7 @@ def test_human_planes_format_is_shared() -> None:
     )
     text = format_human_planes(snap, heading="Planes")
     assert text.startswith("Planes\n")
-    assert "kiro-cli optional" in text
+    assert "vendor CLI optional" in text
     assert "sidecar optional" in text
     assert "orchestration=economy" in text
     assert "never paste provider keys" in text
@@ -122,4 +122,4 @@ def test_compose_banner_writes_the_given_stream() -> None:
     print_compose_banner(stream=buf)
     text = buf.getvalue()
     assert "Junction compose" in text
-    assert "kiro-cli optional" in text
+    assert "vendor CLI optional" in text

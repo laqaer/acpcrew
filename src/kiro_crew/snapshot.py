@@ -1512,5 +1512,5 @@ def restore_main(argv: list[str] | None = None, *, parsed: argparse.Namespace | 
     comp_str = ",".join(components) if components else "all"
     _audit("state_restored", f"mode={mode} components={comp_str} from={snap_path.name}")
 
-    print("\n⚠️  Restart kirocrew gateway to pick up changes: kirocrew restart")
+    print(f"\n⚠️  Restart {CLI_BIN} to pick up changes: {CLI_BIN} restart")
     return 0

@@ -119,7 +119,7 @@ def format_human_planes(snap: Mapping[str, Any], *, heading: str) -> str:
     selected = harness.get("selected") or "none installed"
     lines = [
         heading,
-        (f"  harness: {harness['default']} " f"(selected={selected}; kiro-cli optional)"),
+        (f"  harness: {harness['default']} " f"(selected={selected}; vendor CLI optional)"),
         f"  model:   {model['status']} (sidecar optional; gateway still works)",
     ]
     role_bits = " ".join(

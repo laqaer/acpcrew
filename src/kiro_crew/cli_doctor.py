@@ -2546,7 +2546,7 @@ def _doctor(
     # STT ships enabled-by-default, but neither whisper nor ffmpeg is on a stock
     # Windows box and neither is a KiroCrew dependency there. Reporting them as
     # hard issues makes `junction doctor` exit 1 on a healthy first install, so
-    # the guide's `junction doctor && kirocrew gateway` never launches the
+    # the guide's `junction doctor && junction up` never launches the
     # gateway. On Windows treat them as non-fatal notes; POSIX keeps failing so
     # a real STT setup gap is still surfaced.
     stt_fatal = not platform_compat.IS_WINDOWS

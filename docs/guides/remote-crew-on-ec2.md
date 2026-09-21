@@ -1,9 +1,9 @@
 # Setting up Remote Crew on an EC2 instance
 
-You run the Kiro Crew gateway on an EC2 box and drive it from your laptop. The
+You run the Junction gateway on an EC2 box and drive it from your laptop. The
 gateway always binds **loopback only**, so you reach it through a tunnel — either
 an **SSH tunnel** or an **AWS SSM Session Manager** tunnel. This page covers both,
-plus the EC2-specific gotchas people actually hit (from `kirocrew doctor`).
+plus the EC2-specific gotchas people actually hit (from `junction doctor`).
 
 > Installing the gateway itself (host requirements, packages, running it as a
 > service, moving your state over) is covered in
@@ -33,7 +33,7 @@ registered in **Settings → Remote Crew**.
    ssh -N -L 5476:localhost:5476 <user>@<ec2-host>
    ```
 
-   Then open `http://localhost:5476`. Run `kirocrew token` on the box to mint the
+   Then open `http://localhost:5476`. Run `junction token` on the box to mint the
    sign-in URL. (Full details, including a non-default port, in
    [remote-and-mobile.md](remote-and-mobile.md#ssh-tunnel-laptop).)
 2. To let the dashboard manage it, add it in **Settings → Remote Crew → Add remote
@@ -57,7 +57,7 @@ port, no SSH key.
 
 ## EC2 gotchas / troubleshooting
 
-These map to warnings in `kirocrew doctor`.
+These map to warnings in `junction doctor`.
 
 ### MCP tools all fail: "Sandbox backend unavailable … `allow_unsandboxed_exec` is not set"
 
@@ -78,7 +78,7 @@ spawn — fails closed. Pick one:
 
   Then restart the gateway.
 - **Or opt into unsandboxed execution (trades isolation — only on a box you
-  trust).** Run `kirocrew setup` (it offers this interactively), or set
+  trust).** Run `junction setup` (it offers this interactively), or set
   `agent.sandbox_allow_unsandboxed_exec: true` in `~/.kiro/crew/config.json`, then
   restart the gateway. This lets agent subprocesses run without any sandbox.
 
@@ -115,7 +115,7 @@ would quietly re-authenticate the account you just dropped.
 
 ### Port/tunnel mismatch (the common one)
 
-`kirocrew doctor`'s "Remote access" hint and its `dashboard: http://localhost:5476`
+`junction doctor`'s "Remote access" hint and its `dashboard: http://localhost:5476`
 line show the **defaults**. If your service or shell sets `KIROCREW_PORT` (e.g.
 `7777`), the gateway actually listens **there**, not on 5476 — the doctor line just
 didn't see that env var. Your tunnel, browser, and token must all use the **same,
@@ -135,13 +135,13 @@ port into the CSRF allowlist — see
 ### Non-fatal warnings you can ignore
 
 - **`ffmpeg: not found`** — only needed for speech-to-text. Drop a static ffmpeg
-  build into `~/.local/bin` (it's not in the AL2023 repos; Kiro Crew auto-detects
+  build into `~/.local/bin` (it's not in the AL2023 repos; Junction auto-detects
   it).
 - **`Vector Memory … vendored runtime failed to load`** — the in-process embedding
   runtime couldn't load its shared library on this host; memory falls back
   gracefully and keeps working. Safe to ignore unless you specifically rely on
   local vector memory.
-- **`project dir: not set`** — cosmetic. Run `kirocrew setup` from a project root
+- **`project dir: not set`** — cosmetic. Run `junction setup` from a project root
   if you want a default project directory.
 
 ## Related

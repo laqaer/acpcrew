@@ -1,6 +1,6 @@
 # Remote Hosts and Mobile Access
 
-Run Kiro Crew on an always-on host (a VPS, a cloud VM, a Linux desktop, a spare
+Run Junction on an always-on host (a VPS, a cloud VM, a Linux desktop, a spare
 box) so the chat bot, cron jobs, and task runner keep working while your laptop
 sleeps. Then reach the dashboard from wherever you are: an SSH tunnel for a
 laptop, a named HTTPS tunnel for a phone.
@@ -53,15 +53,9 @@ sudo yum install -y git tmux
 curl https://mise.run | sh && mise use -g python@3.12
 ```
 
-The `curl … | sh` installer performs this distro Python bootstrap for you. On
-CentOS 7 and older Ubuntu, where no base-repo package supplies Python 3.10+, it
-uses an already-installed [mise](https://mise.jdx.dev/) if you have one and
-otherwise stops with instructions — the signed installer does not pipe an
-unsigned script into a shell, so install mise yourself first
-(`curl https://mise.run | sh`) if you want that path. Install Node.js from your
-distro, [nodejs.org](https://nodejs.org/), or a
-version manager such as [nvm](https://github.com/nvm-sh/nvm). `tmux` is handy
-for a first smoke test before you install the service.
+The `curl … | sh` paragraph above is only for installing mise/Python on old
+distros. Junction itself has no public curl|sh CDN — install from source as
+shown below.
 
 Set your git identity if you plan to let the agent work on repos on this host:
 
@@ -72,19 +66,16 @@ git config --global user.email "you@example.com"
 
 ### Install the agent backend
 
-Kiro Crew drives the `kiro-cli` agent over ACP, and it is the only provider
-(`agent.provider = acp`). Install `kiro-cli` per its own docs, put it on your
-`PATH`, and log in:
+Junction docks ACP runtimes from the harness-plane registry. `agent.provider`
+is `acp`. `agent.acp_backend` defaults to `auto`. A vendor agent CLI is
+optional — install one only when you want that harness. Junction does not
+sign you into a vendor account.
 
-```bash
-kiro-cli login
-```
-
-The credentials Kiro Crew itself reads from `~/.kiro/crew/.env` are chat-platform
+The credentials Junction itself reads from `~/.kiro/crew/.env` are chat-platform
 and owner-identity credentials (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
 `KIROCREW_OWNER_ID`, and the equivalents for Discord / Telegram / Teams / WeCom
-/ Webex). There is no model API key to configure: `kiro-cli` owns the model
-credential, and `kiro-cli login` is where it is set.
+/ Webex). Model credentials stay with the harness or the optional model-plane
+sidecar. Never paste provider keys into chat.
 
 ### Install Junction
 
@@ -236,7 +227,7 @@ ssh -fN -L 7779:localhost:7779 user@your-host.example.com   # background
 ```
 
 Pass `-C` to enable SSH transport compression. A hand-rolled tunnel gets no
-compression by default, while Kiro Crew's own tunnel manager turns it on for
+compression by default, while Junction's own tunnel manager turns it on for
 exactly this traffic (`src/kiro_crew/instances/ssh_tunnel_manager.py`): the
 forwarded stream carries the dashboard SPA bundle plus all API/WS payloads,
 which are highly compressible, and the gateway does not gzip at the HTTP layer.
@@ -307,17 +298,17 @@ the same and the difference is the whole security story:
 
   The CLI equivalent is:
   ```bash
-  kirocrew config set dashboard.tailscale.enabled true   # once per machine
-  kirocrew restart
+  junction config set dashboard.tailscale.enabled true   # once per machine
+  junction restart
   kirocrew tailnet up
-  kirocrew token                                         # the link to open on the phone
+  junction token                                         # the link to open on the phone
   ```
   `kirocrew tailnet up` runs `tailscale serve` for you — HTTPS on 443 in front of
   the dashboard's loopback port — and prints the URL to open on your phone. That is
   the half that used to be an undocumented command you had to know and type.
 
   The URL `tailnet up` prints carries **no session**, so opening it alone lands on a
-  login you cannot complete from the phone. `kirocrew token` is the step that hands you
+  login you cannot complete from the phone. `junction token` is the step that hands you
   one: with the setting on it prints a `https://<your-tailnet-name>/?token=…` line
   alongside the loopback one. Run it after the restart, since the gateway resolves the
   trusted origin at startup.
@@ -375,8 +366,8 @@ the same and the difference is the whole security story:
   If you would rather do it by hand, the equivalent is:
   ```bash
   tailscale serve --bg --https 443 http://127.0.0.1:5476
-  kirocrew config set dashboard.tailscale.enabled true
-  kirocrew restart
+  junction config set dashboard.tailscale.enabled true
+  junction restart
   ```
   `dashboard.tailscale.enabled` reads your own MagicDNS name from the local
   Tailscale daemon once at startup and trusts `https://<that name>` as an origin,
@@ -435,7 +426,7 @@ For the tunnel providers above (cloudflared / ngrok / Funnel) set the URL in
 ```
 
 ```bash
-kirocrew restart
+junction restart
 ```
 
 `dashboard.url` does two things: chat-platform links are generated against that
@@ -477,7 +468,7 @@ service installer such as `cloudflared service install`).
 > the gateway ends nothing: cookies are self-contained, signed with the
 > persistent `token_signing.key`, and the revocation generation is reloaded
 > unchanged. **To cut off remote access entirely, also revoke at the provider's
-> auth layer or tear the tunnel down** — logout ends Kiro Crew's sessions, not
+> auth layer or tear the tunnel down** — logout ends Junction's sessions, not
 > the tunnel itself.
 > Note also that config-write and secret-reveal endpoints refuse tunnelled requests:
 > `is_direct_local_request()` treats any request carrying `Forwarded` /
@@ -486,13 +477,13 @@ service installer such as `cloudflared service install`).
 
 ### Getting a link on your phone
 
-1. In your Kiro Crew DM, send `/kirocrew dashboard` (or `/kirocrew dashboard 6h`).
+1. In your Junction DM, send `/kirocrew dashboard` (or `/kirocrew dashboard 6h`).
 2. The bot DMs you `https://<tunnel-url>/?token=...`.
 3. Tap it. The link exchanges the token for an access cookie **and** a 30-day
    refresh cookie, so this is not a daily ritual — see
    [Session duration](#session-duration).
 
-`kirocrew token` does the same thing from a shell on the gateway host.
+`junction token` does the same thing from a shell on the gateway host.
 
 ### Using Chat on a phone or tablet
 
@@ -512,7 +503,7 @@ Three clocks. The first two are signed into the access token payload
 | Access session TTL (`session_exp`) | 1 hour by default, 20 hours maximum (`MAX_SESSION_TTL_SECS = 20 * 3600`) | How long the access cookie the link mints stays valid |
 | Refresh TTL | 30 days (`MAX_REFRESH_TTL_SECS = 30 * 86400`) | How long the dashboard can silently mint a new access cookie without a new link |
 
-**You re-run `/kirocrew dashboard` or `kirocrew token` roughly once per 30 _idle_
+**You re-run `/kirocrew dashboard` or `junction token` roughly once per 30 _idle_
 days — not every 20 hours.** Opening the link sets two cookies, not one: the
 access cookie plus an `mc_refresh_<port>` refresh cookie (HttpOnly,
 path-restricted to `/api/auth`). The dashboard schedules a
@@ -535,7 +526,7 @@ default is 1 hour (`ttl = 3600` in `slack/events.py` and `slack/handler.py`);
 pass a duration to raise it (`/kirocrew dashboard 6h`,
 `/kirocrew dashboard 20h`). `parse_duration` accepts `<N>h` or `<N>m` and clamps
 to the 20-hour ceiling, so asking for more silently gets you 20 hours rather than
-an error. `kirocrew token` defaults straight to `20h`. The 5-minute click window
+an error. `junction token` defaults straight to `20h`. The 5-minute click window
 is not the session length: it only means a link left sitting in a DM overnight is
 dead and you need a fresh one.
 
@@ -610,8 +601,8 @@ bugs:
   app is closed or backgrounded. On iOS that constructor is unavailable inside an
   installed PWA at all — notifications there require
   `ServiceWorkerRegistration.showNotification()`. Tracked in
-  [issue #2267](https://github.com/kirodotdev/KiroCrew/issues/2267); the Android
-  symptom is [issue #1828](https://github.com/kirodotdev/KiroCrew/issues/1828).
+  [issue #2267](https://github.com/laqaer/acpcrew/issues/2267); the Android
+  symptom is [issue #1828](https://github.com/laqaer/acpcrew/issues/1828).
 - **Pinch zoom is off.** The installed app behaves like an application, not a
   web page: two-finger pinch and double-tap no longer scale the shell. **To
   magnify, use the OS Display Zoom setting** (iOS: Settings → Display &
@@ -674,7 +665,7 @@ Opens the tunnel if needed, mints a token on the remote, and opens the browser.
 # Documentation:
 # @raycast.description Get a token and open the dashboard
 REMOTE_HOST="user@your-host.example.com"
-REMOTE_CMD='source ~/.zshrc; kirocrew token'
+REMOTE_CMD='source ~/.zshrc; junction token'
 DEBUG_LOG="/tmp/kirocrew_debug.log"
 
 if lsof -i :5476 -sTCP:LISTEN > /dev/null 2>&1; then
@@ -684,7 +675,7 @@ else
   echo "Tunnel opened"
 fi
 
-# `kirocrew token` prints only URL(s) on stdout (failures go to stderr). Keep the
+# `junction token` prints only URL(s) on stdout (failures go to stderr). Keep the
 # localhost one: that is what routes through the SSH tunnel opened above.
 URL="$(ssh -o ConnectTimeout=10 "${REMOTE_HOST}" "${REMOTE_CMD}" 2>"${DEBUG_LOG}" | grep -m1 'localhost:5476')"
 
@@ -703,7 +694,7 @@ open "$URL"
 ### The built-in installer
 
 ```bash
-kirocrew service install
+junction service install
 ```
 
 On Linux this writes a **system-level** systemd unit at
@@ -713,14 +704,14 @@ SSH disconnects, restarts on failure, and starts on boot
 `~/Library/LaunchAgents/dev.kirocrew.gateway.plist` with `RunAtLoad`,
 `KeepAlive=true`, and a finite `ExitTimeOut`, so it starts at login, relaunches
 after exit, and force-kills only after the graceful stop deadline. An explicit
-`kirocrew stop` unloads the agent so it stays down for the current login session.
+`junction stop` unloads the agent so it stays down for the current login session.
 
 ```bash
-kirocrew service status      # service state
+junction service status      # service state
 kirocrew logs -f             # tail live logs
-kirocrew stop                # stop
-kirocrew restart             # restart (service-aware)
-kirocrew service uninstall   # remove the unit / plist
+junction stop                # stop
+junction restart             # restart (service-aware)
+junction service uninstall   # remove the unit / plist
 ```
 
 **Sudo scope on Linux:** the install shells out to `sudo install` (to place the
@@ -826,7 +817,7 @@ Manage a user unit:
 
 ### Hand-rolled system unit
 
-If you want to customize the unit rather than let `kirocrew service install`
+If you want to customize the unit rather than let `junction service install`
 generate it:
 
 ```bash
@@ -870,8 +861,8 @@ servers and tool calls fail with ENOENT.
 
 | Symptom | Fix |
 |---|---|
-| `kirocrew: command not found` after install | Put pip's script dir on `PATH` (often `~/.local/bin`), then `source ~/.bashrc` or re-login |
-| Agent backend errors or timeouts | Confirm `kiro-cli` is on `PATH` and logged in (`kiro-cli login`); `junction doctor` reports its status |
+| `junction: command not found` after install | Put pip's script dir on `PATH` (often `~/.local/bin`), then `source ~/.bashrc` or re-login |
+| Agent backend errors or timeouts | Dock an ACP runtime (`junction planes` lists them). A vendor agent CLI is optional; `junction doctor --quick` reports the compose snapshot |
 | Service will not start | `sudo journalctl -u kirocrew -n 50` (system unit) or `journalctl --user -u kirocrew -n 50` (user unit) |
 | Service restart-loops then gives up | `StartLimitBurst=3` within 5 minutes stops the loop on purpose. Read the logs, fix the cause, then `sudo systemctl reset-failed kirocrew` |
 | `systemctl --user` says `Failed to get D-Bus connection` | `export XDG_RUNTIME_DIR=/run/user/$(id -u)` |

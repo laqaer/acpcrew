@@ -137,7 +137,7 @@ def _load_otel() -> bool:
 
 logger = logging.getLogger(__name__)
 
-_SERVICE_NAME = "kirocrew"
+_SERVICE_NAME = "junction"
 _SCOPE = "kiro_crew"
 
 # Explicit histogram bucket boundaries (milliseconds), applied PER INSTRUMENT via
