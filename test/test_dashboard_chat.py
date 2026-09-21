@@ -8526,8 +8526,8 @@ class TestOrchestratorPlanGateArming:
     contained plan-like text could re-arm / re-count the plan (corrupting the
     stage total → "Stage N of M" over-runs); and a plan followed by tool calls
     was flushed out of the final segment so the gate never armed. The fix scopes
-    detection to planning turns (`_orch_planning` / `_in_stage_execution`) and
-    arms from a never-reset whole-turn buffer.
+    detection to planning turns (`_orch_planning` / `_in_stage_execution` /
+    `_synthetic_payload`) and arms from a never-reset whole-turn buffer.
     """
 
     _PLAN = "📋 Plan for: demo\n\nStage 1: Alpha\nStage 2: Beta\n\n[OPTION: Go | Go All | Cancel]"
@@ -8600,6 +8600,32 @@ class TestOrchestratorPlanGateArming:
         await _run_chat(state, slot, "execute stage 1")
 
         # Titles/goal/count must be untouched — no re-arm, no re-count.
+        assert slot._stage_titles == ["Existing"]
+        assert slot._plan_goal == "existing goal"
+        assert slot._plan_stage_count == 1
+
+    @pytest.mark.asyncio
+    async def test_synthetic_turn_never_rearms(self, tmp_path, monkeypatch):
+        """Subagent synthesis is coordinator control traffic, not a plan turn.
+
+        A synthesis prompt whose model output happens to look like a plan must
+        not arm or re-count the gate — the same failure mode as a stage turn.
+        """
+        from kiro_crew.dashboard.chat import _run_chat
+        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
+
+        state = self._make_state_for_run_chat(tmp_path, monkeypatch)
+        slot = state.get_or_create_slot("synth-noarm", mode="orchestrator")
+        slot._titled = True
+        slot._stage_titles = ["Existing"]
+        slot._plan_goal = "existing goal"
+        client = self._make_mock_client(
+            [LLMEvent(kind=EVENT_TEXT_CHUNK, text=self._PLAN), LLMEvent(kind=EVENT_COMPLETE)]
+        )
+        state.sessions.get_or_create = AsyncMock(return_value=(client, True, False))
+
+        await _run_chat(state, slot, "synthesize deliveries", _synthetic_payload=True)
+
         assert slot._stage_titles == ["Existing"]
         assert slot._plan_goal == "existing goal"
         assert slot._plan_stage_count == 1

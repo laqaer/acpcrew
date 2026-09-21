@@ -104,8 +104,11 @@ Pins in `agent.role_models.<role>` always win. Unpinned roles resolve to
 the pick is an advertised id in that cost class. Concrete model ids are
 never hardcoded as defaults. Task-runner decompose uses planning;
 execute and self-review use execution / planning via `apply_role_model`.
-Orchestrator chat turns (unpinned slots) use planning for the plan turn
-and execution for stage runs.
+Orchestrator chat turns (unpinned slots) pick through
+`orchestrator_turn_role`: planning for the plan turn, orchestration for
+synthetic coordinator turns (subagent synthesis, recovery), and
+execution for stage runs. Synthesis is excluded from plan-arming so it
+cannot re-count a plan.
 
 `GET /api/model-router/catalog` annotates each slug with `cost_class`.
 Settings ▸ Chat lists catalog slugs in the matching class beside

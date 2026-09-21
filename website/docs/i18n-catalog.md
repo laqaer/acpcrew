@@ -96,10 +96,10 @@ downstream editions: overriding one variable rebrands every catalog string,
 instead of forking 13 locale files through every upstream sync (see
 [extension-seams](extension-seams.md)).
 
-> Transitional note: the mechanical conversion of pre-existing catalog values
-> is landing in follow-up PRs (the full-catalog diff exceeds the reviewable
-> size limit). The rules below bind new copy immediately; the catalog-wide
-> no-literal invariant test ships with the final conversion chunk.
+Non-manifest catalog values interpolate `{{productName}}`. The
+`apps.<id>.manifest.*` keys and repo-attribution copy remain the
+exceptions below. `productName.test.ts` pins that non-manifest English
+values do not hardcode the displayed name.
 
 Authoring rules that follow:
 
