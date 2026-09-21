@@ -232,8 +232,8 @@ Any CLI subcommand works the same way, for example
 The equivalent by hand:
 
 ```bash
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd KiroCrew
+git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew
 cd website && npm install && npm run build && cd ..
 pip install -e ".[voice]"    # [voice] adds the optional speech-to-text extras
 ```
@@ -409,7 +409,7 @@ machine has none and reports enterprise-registry failures (mirror login, proxy,
 blocked browser CDN) as specific remedies rather than a raw npm dump:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.sh
+curl -fsSLO https://raw.githubusercontent.com/laqaer/acpcrew/main/playwright-cli.sh
 less playwright-cli.sh          # read it before you run it
 sh playwright-cli.sh --version 0.1.18
 ```

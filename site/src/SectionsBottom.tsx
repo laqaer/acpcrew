@@ -184,7 +184,7 @@ export function Cta() {
         <FadeUp><h2 className="text-4xl md:text-5xl font-bold mb-4 font-space">Install it on this machine</h2></FadeUp>
         <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">Three commands. Two planes. Nothing leaves loopback except the models you already use.</p></FadeUp>
         <FadeUp delay={0.2}>
-          <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
+          <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install locally</a>
         </FadeUp>
         <FadeUp delay={0.3}>
           <div className="flex gap-4 justify-center mt-6 text-sm">

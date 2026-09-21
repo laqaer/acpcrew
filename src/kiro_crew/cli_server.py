@@ -159,7 +159,7 @@ def _token(args: argparse.Namespace) -> None:
     port = resolve_client_port(args.port)
     secret = read_local_secret(port)
     if not secret:
-        print("❌ Gateway not running — start it with: junction gateway", file=sys.stderr)
+        print("❌ Gateway not running — start it with: junction up", file=sys.stderr)
         sys.exit(1)
 
     url = f"http://{_CLI_LOOPBACK}:{port}/api/token/local?ttl={args.ttl}"
@@ -285,7 +285,7 @@ def _logout(port: int) -> None:
     """Revoke all dashboard sessions by calling the gateway's /api/logout endpoint."""
     secret = read_local_secret(port)
     if not secret:
-        print("❌ Gateway not running — start it with: junction gateway")
+        print("❌ Gateway not running — start it with: junction up")
         sys.exit(1)
 
     url = f"http://{_CLI_LOOPBACK}:{port}/api/logout"
@@ -307,7 +307,7 @@ def _logout(port: int) -> None:
         print(f"❌ Failed to revoke sessions: HTTP {e.code}")
         sys.exit(1)
     except (urllib.error.URLError, OSError):
-        print("❌ Gateway not running — start it with: junction gateway")
+        print("❌ Gateway not running — start it with: junction up")
         sys.exit(1)
 
 
@@ -1489,7 +1489,7 @@ def _status(args: argparse.Namespace) -> None:
         return
     except (urllib.error.URLError, OSError):
         print(f"{PRODUCT_NAME} gateway is not running.")
-        print("  Start it with: junction gateway")
+        print("  Start it with: junction up")
         return
     except Exception:
         print(f"{PRODUCT_NAME} gateway is running but returned an unexpected response.")
@@ -1924,7 +1924,7 @@ def _logs_cmd(args: argparse.Namespace) -> None:
         print(
             "No gateway logs found. Either install the service "
             "(`junction service install`) or start the gateway "
-            "(`junction gateway`).",
+            "(`junction up`).",
             file=sys.stderr,
         )
         sys.exit(1)

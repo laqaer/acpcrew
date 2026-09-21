@@ -110,20 +110,19 @@ channel.
 
 | Capability | What it gives you |
 |---|---|
-| **Persistent sessions** | Run concurrent, isolated conversations, resume them after Gateway restarts, search prior sessions, and carry recent context into new work. |
-| **Self-learning** | Turn corrections and task failures into durable lessons that change later behavior. Keep preferences, active-project context, and history scoped to the relevant workspace. Say *"no, always run the frontend checks before calling a change done"* and it becomes a workspace-scoped lesson applied in future sessions. |
-| **Self-evolving skills** | Synthesize reusable skills from repeated patterns, then inspect, refine, or remove them as your work changes. |
-| **Long-running tasks** | Give Junction a task spec and walk away. It plans steps, executes them, validates results, retries failures, and resumes from checkpoints. *"Implement this migration plan and stop if the tests fail"* runs as a checkpointed task with validation at each step. |
-| **Unattended autonomy** | Run scheduled agent work or deterministic scripts and commands without a model call. Monitor work until it is done, or react to messaging events and authenticated webhooks without someone at the terminal. *"Every weekday at 9, summarize the open work I should review"* becomes a timezone-aware recurring job delivered to the surface you choose. |
-| **Delegation** | Spawn isolated subagents for parallel work and bring their results back into the parent conversation. *"Research these three options in parallel and recommend one"* fans out to isolated subagents and synthesizes the tradeoffs. |
-| **Work where you choose** | Work directly in the desktop app or web dashboard, or continue through the CLI and any connected messaging surface without moving the agent runtime or its state. |
-| **Installable Apps** | Add focused interfaces and domain workflows through dashboard pages, scoped Gateway APIs, events, and lifecycle hooks. |
-| **Extensible tools** | Add MCP servers, markdown skills, and hooks without changing the core runtime. |
-| **Visible execution** | Watch tool calls, subagent progress, context usage, approvals, schedules, memory, and logs from the dashboard. |
-| **Defense in depth** | Combine tool approvals, OS sandboxing, sensitive-path checks, credential redaction, deny rules, audit events, and governance profiles. |
+| **Two planes** | Dock ACP agents on the harness plane. Route inference on the optional model plane. `junction up` composes both, then serves the dashboard on loopback. |
+| **Role routing** | Orchestration, planning, and execution each pick a cost class so cheap models coordinate and capable models plan. Pins in `agent.role_models` still win. Never paste provider keys into chat. |
+| **Persistent sessions** | Concurrent conversations, resume after restarts, search prior threads, and carry context into new work. |
+| **Lessons and skills** | Corrections become durable lessons. Repeated patterns become reusable skills you can inspect or drop. |
+| **Walk-away tasks** | Hand Junction a spec. It plans, executes, validates, retries, and resumes from checkpoints. |
+| **Cron and channels** | Schedule agent work or deterministic scripts. Continue from the dashboard, the CLI, or a messaging surface without moving state. |
+| **Delegation** | Spawn isolated subagents for parallel work and fold their results back into the parent thread. |
+| **Apps and MCP** | Add dashboard pages, scoped gateway APIs, and extra tools without changing the core runtime. |
+| **Visible execution** | Watch tool calls, subagent progress, approvals, schedules, memory, and logs from the dashboard. |
+| **Defense in depth** | Tool approvals, OS sandboxing, sensitive-path checks, credential redaction, deny rules, and governance profiles. |
 
 You can also paste a screenshot and ask what is causing an error. Junction sends
-the image to the active Kiro model and keeps the diagnosis in the conversation
+the image to the session’s model and keeps the diagnosis in the conversation
 history.
 
 The complete inventory is in [Features](src/kiro_crew/docs/index.md) and
@@ -132,50 +131,24 @@ The complete inventory is in [Features](src/kiro_crew/docs/index.md) and
 ## How it works
 
 ```mermaid
-flowchart TD
-    S["Desktop app · Web dashboard · CLI · Messaging channels (Slack, Discord, Telegram, Teams, Webex, WeCom, WeChat)"]
-    G["Gateway<br/>access · sessions · memory · schedules · approvals · apps"]
-    A["Agent sessions<br/>ACP runtime · optional kiro-cli · MCP tools · models"]
-    S --> G --> A
+flowchart LR
+    U["CLI · dashboard · channels"] --> C["junction up"]
+    C --> H["Harness plane<br/>ACP registry · auto"]
+    C --> M["Model plane<br/>sidecar optional"]
+    H --> S["Sessions · memory · cron"]
+    M --> R["Role DAG<br/>orchestration → planning → execution"]
 ```
 
-The Gateway separates where the agent runs from where you work with it. In the
-desktop app or web dashboard, you can work directly through parallel conversations,
-files, task runs, approvals, memory, and apps. From the CLI or any connected
-messaging channel, the Gateway routes your work to managed agent sessions under
-the same memory, tool, approval, and policy services. Apps extend the dashboard and
-Gateway APIs with focused workflows.
+`junction up` composes both planes, then binds the dashboard to loopback.
+The harness plane docks whichever ACP runtime is installed (`agent.acp_backend`
+defaults to `auto`; `kiro-cli` is optional). The model plane is an optional
+sidecar — if it is down, the gateway still runs. Role routing spends cheap
+tokens on orchestration and capable tokens on planning. Pins in
+`agent.role_models` still win. Never paste provider keys into chat.
 
-Each active conversation or background task uses an agent session. Its session
-provider drives an ACP runtime over stdio (`kiro-cli` optional), streams model
-and tool events, and preserves conversation state. Depending on the workload, a session is backed by its own
-ACP process or by a session handle on a shared multiplexed ACP runtime. The
-Gateway manages these sessions along with scheduling, approvals, memory,
-security policy, messaging connections, and the dashboard.
-
-The current runtime places the Gateway, agent sessions, ACP processes, and state
-on the same host. Run Junction on your Mac, inside a container on your machine,
-or on a remote Linux host you control. Conversation history, memory, and
-knowledge indexes remain on that host. Model requests follow the selected ACP
-runtime and the account configuration you use there; `kiro-cli` is optional.
-
-**Gateway.** The Gateway is the long-running Junction process. It routes
-messages from the desktop app, web, CLI, and the messaging surfaces listed below. It persists
-session state, injects memory and skills, starts scheduled work, coordinates
-subagents, brokers approvals, enforces runtime policy, and exposes activity in
-the dashboard.
-
-**Agent sessions.** A dashboard conversation, Slack thread, or Discord DM maps to
-an isolated agent session. Scheduled jobs, task runs, other messaging-channel
-conversations, and subagents also use managed sessions. These sessions preserve
-conversation context and can run concurrently before returning results to a
-parent session or configured surface.
-
-**ACP runtime and turns.** Junction supports both a dedicated `kiro-cli` ACP
-process for a session and a shared ACP runtime that multiplexes multiple session
-handles. During each turn, the session sends a prompt, streams model and tool
-events, resolves approvals, and returns the final result. An agent session is a
-logical isolation boundary, not necessarily one OS process.
+Everything runs on a host you control: your Mac, a container on this machine,
+or a remote Linux box. Conversation history, memory, and knowledge indexes stay
+there.
 
 **Use the surface that fits the moment.**
 
@@ -211,10 +184,9 @@ from the dashboard. Incognito and temporary session modes let you opt out when
 a conversation should not persist.
 
 **Skills, MCP, and apps.** Markdown skills supply reusable workflows and can be
-loaded only when relevant. The built-in `kirocrew-core`, `kirocrew-cron` and
-`kirocrew-computer` MCP servers expose task, subagent, learning, messaging,
-scheduling, and desktop-automation tools. You
-can discover additional MCP servers from Kiro or Junction configuration. The
+loaded only when relevant. Built-in MCP servers expose task, subagent, learning,
+messaging, scheduling, and desktop-automation tools. You
+can discover additional MCP servers from local configuration. The
 App Kit adds installable interfaces and domain workflows. Apps can add dashboard
 pages, use scoped Gateway APIs, subscribe to events, and register lifecycle
 hooks.

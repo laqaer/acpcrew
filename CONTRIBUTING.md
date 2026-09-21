@@ -60,10 +60,10 @@ cd ..
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[voice]"
 
-# 4. Configure and verify
+# 4. Configure, verify, and start
 junction setup               # data dir, agent backend (channels connect later)
-junction doctor              # verify everything works
-junction gateway             # start server (dashboard + messaging channels)
+junction doctor --quick      # compose both planes without serving
+junction up                  # compose, then serve dashboard + channels
 ```
 
 The dashboard is at `http://localhost:5476`.
@@ -130,7 +130,7 @@ Run a dev gateway alongside production without data or port conflicts:
 ./dev-seed.sh
 
 # Start the dev backend (port 6777, isolated data)
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction gateway
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction up
 ```
 
 Browse at `http://localhost:6777`. The backend serves the built frontend assets directly.
@@ -151,7 +151,7 @@ for instant hot-reload without rebuilding:
 
 ```bash
 # Terminal 1 — start the backend
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction gateway
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction up
 
 # Terminal 2 — start the frontend dev server (hot-reloads .tsx changes)
 cd website

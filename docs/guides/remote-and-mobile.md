@@ -25,7 +25,7 @@ Four parts, in the order you will need them:
   with launchd instead of systemd.
 - **Python**: 3.10 or newer (`setup.cfg` sets `python_requires = >=3.10`).
 - **Node.js**: needed to build the dashboard bundle. `website/package.json`
-  declares `"node": ">=22"`; `kirocrew doctor` warns below Node 22.
+  declares `"node": ">=22"`; `junction doctor` warns below Node 22.
 - **RAM**: there is no single published floor, because the footprint scales with
   concurrent sessions, spawned subagents, and MCP servers. Two figures from the
   code give you the shape of it: `acp/runtime.py` recycles a long-lived
@@ -86,14 +86,14 @@ and owner-identity credentials (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
 / Webex). There is no model API key to configure: `kiro-cli` owns the model
 credential, and `kiro-cli login` is where it is set.
 
-### Install Kiro Crew
+### Install Junction
 
 Same two steps as a local machine (Python backend plus the React dashboard
 bundle). See the [install guide](install.md) for the full walkthrough:
 
 ```bash
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd KiroCrew
+git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew
 
 # Build the frontend bundle and stage it into the package
 cd website && npm install && npm run build && cd ..
@@ -103,12 +103,12 @@ cp -R website/dist src/kiro_crew/static/dist
 pip install .
 
 # Configure
-kirocrew setup
-kirocrew doctor            # verify everything, including kiro-cli and Node
+junction setup
+junction doctor --quick    # compose both planes without serving
 ```
 
-`kirocrew setup` writes the resolved project directory to
-`~/.kiro/crew/project_dir` so the CLI works from any working directory.
+`junction setup` writes the resolved project directory so the CLI works from
+any working directory.
 
 Embeddings need no setup step at all: they are always on and run in-process from
 a bundled llama-cpp-python, and the model file downloads in the background on
@@ -119,9 +119,9 @@ first gateway start. There is no separate embedding service to install.
 Before you commit to a service unit, confirm the gateway actually boots:
 
 ```bash
-tmux new -s kirocrew
-kirocrew gateway
-# Ctrl+B, D to detach; reattach with: tmux attach -t kirocrew
+tmux new -s junction
+junction up
+# Ctrl+B, D to detach; reattach with: tmux attach -t junction
 ```
 
 tmux survives an SSH disconnect but does **not** auto-restart on crash or
@@ -133,7 +133,7 @@ environment variable). Two gateways on one port means the second one fails to
 bind.
 
 ```bash
-tmux kill-session -t kirocrew
+tmux kill-session -t junction
 ```
 
 ### Move your state to the new host
@@ -191,7 +191,7 @@ What NOT to carry over:
 - `~/.kiro/crew/security_events.jsonl`: the tamper-evident SEL audit chain
   (`sel.py`); it belongs to the host that wrote it.
 - `~/.kiro/crew/.env`, `.local_secret`, `sel_hmac.key`: secrets. Re-enter the
-  `.env` credentials with `kirocrew setup`; the other two are regenerated.
+  `.env` credentials with `junction setup`; the other two are regenerated.
 
 Keeping two hosts loosely in sync afterwards is just rsync (replace the SSH
 target):
@@ -871,11 +871,11 @@ servers and tool calls fail with ENOENT.
 | Symptom | Fix |
 |---|---|
 | `kirocrew: command not found` after install | Put pip's script dir on `PATH` (often `~/.local/bin`), then `source ~/.bashrc` or re-login |
-| Agent backend errors or timeouts | Confirm `kiro-cli` is on `PATH` and logged in (`kiro-cli login`); `kirocrew doctor` reports its status |
+| Agent backend errors or timeouts | Confirm `kiro-cli` is on `PATH` and logged in (`kiro-cli login`); `junction doctor` reports its status |
 | Service will not start | `sudo journalctl -u kirocrew -n 50` (system unit) or `journalctl --user -u kirocrew -n 50` (user unit) |
 | Service restart-loops then gives up | `StartLimitBurst=3` within 5 minutes stops the loop on purpose. Read the logs, fix the cause, then `sudo systemctl reset-failed kirocrew` |
 | `systemctl --user` says `Failed to get D-Bus connection` | `export XDG_RUNTIME_DIR=/run/user/$(id -u)` |
-| Gateway will not bind the port | Something else already owns it, usually a tmux gateway. `tmux kill-session -t kirocrew`, then `ss -ltnp \| grep 5476` |
+| Gateway will not bind the port | Something else already owns it, usually a tmux gateway. `tmux kill-session -t junction`, then `ss -ltnp \| grep 5476` |
 | SSH tunnel connection refused | Confirm the gateway is running and listening: `ss -ltnp \| grep 5476` on the remote host |
 | Dashboard loads over the tunnel but the live view flaps online/offline | The TLS-terminating proxy must forward `X-Forwarded-Proto: https`; without it the auth cookie is set without `Secure` and mobile browsers withhold it from the `wss://` upgrade. Refresh itself keeps working (the refresh cookie is `SameSite=Lax`, so it still rides ordinary HTTPS requests), but both cookies then lack `Secure` and could be sent over plain HTTP — fix the header rather than living with it |
 | Chat link still points at `localhost` | Set `dashboard.url` in `config.json` and restart the gateway |
@@ -883,7 +883,7 @@ servers and tool calls fail with ENOENT.
 | Session drops sooner than you expect | You should be refreshed silently for 30 sliding days. If you are re-minting every ~20 hours instead, the refresh cookie is not reaching `/api/auth/refresh` — confirm the browser is sending an `mc_refresh_<port>` cookie whose port suffix matches the port the gateway resolved for the request, and check the browser console for `[refresh]` warnings. Raising the initial mint (`/kirocrew dashboard 20h`) only widens the access cookie; it does not repair a broken refresh |
 | Phone cannot reach the tunnel URL | Verify the tunnel process is running and connected on the gateway host |
 | Settings will not save over the tunnel | By design. Config-write and secret-reveal endpoints require a direct-local request, and forwarding headers mark a tunnelled request as remote. Change these over an SSH session on the host |
-| "Embeddings not ready" in the dashboard | The ~610MB model downloads in the background over HTTPS on gateway start. `kirocrew doctor` probes the resolved URL; set `KIROCREW_EMBED_MODEL_URL` for a mirror. Memory falls back to keyword search until it lands, and the agent keeps working |
+| "Embeddings not ready" in the dashboard | The ~610MB model downloads in the background over HTTPS on gateway start. `junction doctor` probes the resolved URL; set `KIROCREW_EMBED_MODEL_URL` for a mirror. Memory falls back to keyword search until it lands, and the agent keeps working |
 
 ## See also
 

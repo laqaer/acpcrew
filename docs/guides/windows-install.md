@@ -149,8 +149,8 @@ on `PATH` can still confuse other tooling. Prefer a real CPython install.
 From a clone, in PowerShell:
 
 ```powershell
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd kirocrew
+git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew
 .\make.ps1 build
 ```
 

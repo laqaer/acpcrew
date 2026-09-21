@@ -96,6 +96,13 @@ describe('Junction naming', () => {
     expect(text).toContain('Two planes, one switch');
     expect(text).toContain('Loopback dashboard');
     expect(text).toContain('Install it on this machine');
+    expect(text).toContain('Install locally');
+    expect(text).toContain('Stay on loopback')
+    expect(text).toContain('Dock agents')
+    expect(text).toContain('Route spend')
+    expect(text).not.toContain('Vercel Hobby')
+    expect(text).not.toContain('The clone path is the GitHub slug')
+    expect(text).not.toContain('Run Junction');
     expect(text).toContain('First run');
     expect(text).toContain('junction setup && junction up');
     expect(text).not.toContain('Unlock the dashboard');

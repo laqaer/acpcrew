@@ -19,6 +19,8 @@ def test_readme_and_product_are_junction() -> None:
     assert "# Junction" in product or product.startswith("# Junction")
     assert "Where coding agents meet the models you want" in readme
     assert "the local switch" in readme
+    assert "Harness plane" in readme
+    assert "junction up" in readme
     assert "Kiro Crew" not in readme
     assert "KiroCrew" not in readme  # brand-ok: asserting the concatenated token is absent
     assert "download.crew.kiro.dev" not in readme
@@ -74,6 +76,8 @@ def test_agents_md_leads_with_junction() -> None:
     agents = (_REPO_ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert agents.lstrip().startswith("# Rules")
     assert "Junction is a local control plane" in agents
+    assert "The product is **Junction**" in agents
+    assert "kiro-cli is REQUIRED" not in agents
     assert "Kiro Crew is an open-source personal AI agent" not in agents
     assert "this is a public OSS fork" not in agents.lower()
 
@@ -97,3 +101,19 @@ def test_github_issue_templates_are_junction() -> None:
     assert "Junction" in docs
     assert "kirodotdev/KiroCrew" not in docs
     assert "Channels help" not in docs
+
+
+def test_ownership_and_banner_are_junction() -> None:
+    maintainers = (_REPO_ROOT / "MAINTAINERS.md").read_text(encoding="utf-8")
+    codeowners = (_REPO_ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+    banner = (_REPO_ROOT / "assets" / "banner.svg").read_text(encoding="utf-8")
+    notice = (_REPO_ROOT / "NOTICE").read_text(encoding="utf-8")
+    assert "@laqaer" in maintainers
+    assert "kirocrew-team" not in maintainers
+    assert "kirodotdev/KiroCrew" not in maintainers
+    assert "*                                   @laqaer" in codeowners
+    assert "kirocrew-team" not in codeowners
+    assert 'aria-label="Junction"' in banner
+    assert "Kiro Crew" not in banner
+    assert notice.lstrip().startswith("Junction")
+    assert "this fork" not in notice.lower()

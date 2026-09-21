@@ -20,7 +20,7 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ## Quick start
 
-You'll need a running gateway (`junction gateway`) and a Telegram account.
+You'll need a running gateway (`junction up`) and a Telegram account.
 
 1. **Create a bot** — message **@BotFather**, send `/newbot`, and follow the
    prompts. You'll get a token like `123456789:AA…`.

@@ -164,7 +164,7 @@ on another port with `KIROCREW_PORT`.
   bot is installed**. Only the owner is authorized, so a user ID copied from a
   different workspace silently matches nobody
 - Confirm the Slack app has Socket Mode enabled
-- Run `junction gateway -vv` for debug output
+- Run `junction up -vv` for debug output
 
 ### Context window filling up
 
@@ -320,9 +320,9 @@ reference.
 ## Log Levels
 
 ```bash
-junction gateway          # WARNING only (default)
-junction gateway -v       # INFO: session lifecycle, context %
-junction gateway -vv      # DEBUG: full ACP events, message traces
+junction up          # WARNING only (default)
+junction up -v       # INFO: session lifecycle, context %
+junction up -vv      # DEBUG: full ACP events, message traces
 ```
 
 `agent.log_level` sets the persistent default; `--verbose` overrides it for one

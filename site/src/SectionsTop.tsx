@@ -51,7 +51,7 @@ export function Nav() {
         <button onClick={toggle} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all" aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
-        <a href="#how-it-works" className="px-4 py-2 rounded-lg text-sm font-medium bg-[#e4a54a] text-[#0c0d12] hover:bg-[#f0b45a] no-underline transition-all">Run locally</a>
+        <a href="#how-it-works" className="px-4 py-2 rounded-lg text-sm font-medium bg-[#e4a54a] text-[#0c0d12] hover:bg-[#f0b45a] no-underline transition-all">Install locally</a>
       </div>
     </motion.nav>
   );
@@ -67,10 +67,10 @@ export function Hero() {
     <motion.section id="hero" ref={ref} style={{ y, opacity }} className="text-center pt-36 md:pt-40 pb-16 px-6 max-w-[900px] mx-auto">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex gap-3 justify-center mb-8 flex-wrap">
         <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-green-500/8 text-green-600 dark:text-green-400 border border-green-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse-dot" /> Local-first
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse-dot" /> Stay on loopback
         </span>
-        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-[#e4a54a]/10 text-[#b07a28] dark:text-[#e4a54a] border border-[#e4a54a]/25">Two planes</span>
-        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-slate-500/8 text-slate-600 dark:text-slate-400 border border-slate-500/20">Role DAG</span>
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-[#e4a54a]/10 text-[#b07a28] dark:text-[#e4a54a] border border-[#e4a54a]/25">Dock agents</span>
+        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium bg-slate-500/8 text-slate-600 dark:text-slate-400 border border-slate-500/20">Route spend</span>
       </motion.div>
       <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.7 }}
         className="text-5xl md:text-7xl lg:text-8xl font-bold leading-[1.05] mb-6 animate-shimmer font-space">
@@ -81,7 +81,7 @@ export function Hero() {
         A CLI is one harness talking to one vendor model. Junction is the local switch: dock the agent in one pane, pick what the tokens buy in the other. Memory and cron stay on your machine.
       </motion.p>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }} className="flex gap-3 justify-center flex-wrap">
-        <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
+        <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install locally</a>
         <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-[#e4a54a]/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:-translate-y-0.5 transition-all no-underline font-space">View Source</a>
       </motion.div>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
@@ -96,7 +96,7 @@ junction setup && junction up`}
       </motion.pre>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
         className="mt-3 text-xs text-slate-500 dark:text-slate-400 font-space">
-        The clone path is the GitHub slug. The dashboard binds to loopback on this machine.
+        The dashboard binds to loopback on this machine.
       </motion.p>
     </motion.section>
     <AppPreview />

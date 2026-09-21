@@ -58,7 +58,7 @@ def installed_unit_path() -> "Path | None":
 def _unsupported_message() -> None:
     print(
         "❌ junction service management is only supported on Linux (systemd)\n"
-        "   and macOS (launchd). On other platforms run `junction gateway`\n"
+        "   and macOS (launchd). On other platforms run `junction up`\n"
         "   directly or wrap it in tmux/screen yourself.",
         file=sys.stderr,
     )

@@ -103,6 +103,6 @@ export const FAQ = [
   },
   {
     q: 'Where is the website hosted?',
-    a: 'The marketing site is live at https://getjunction.dev on Vercel Hobby. That is Junction’s current public canonical site.',
+    a: 'The marketing site is live at https://getjunction.dev. That is Junction’s public canonical site.',
   },
 ];
