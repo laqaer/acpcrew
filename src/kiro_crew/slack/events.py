@@ -2518,7 +2518,7 @@ async def _route_message(
     # ── New transport path: route to the messaging abstraction ──
     # When messaging.use_transport is True, drive the turn through
     # SlackTransport → TurnDriver → SlackRenderer instead of the native
-    # inline handle_message loop. Default ON in this fork: MessagingConfig
+    # inline handle_message loop. Default ON: MessagingConfig
     # and the loader both default use_transport to True and orch._cfg.messaging
     # is always populated (default_factory), so every install takes this path
     # unless it explicitly sets messaging.use_transport=false to opt back into

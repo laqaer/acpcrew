@@ -56,6 +56,7 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 | Command | Role |
 |---|---|
 | `junction` | Primary CLI. |
+| `junction planes` | Harness + model plane status in one snapshot. |
 | `junction router catalog` | Namespaced model choices (no credentials). |
 | `junction router plan` | Orchestration / planning / execution DAG. |
 
@@ -73,7 +74,8 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 Python import path, data-home env, and default data directory keep the
 spellings the runtime already uses (`kiro_crew`, `KIROCREW_HOME`,
 `~/.kiro/crew`) until a dedicated, human-gated rename. They are not the
-product name. GitHub slug: `laqaer/acpcrew`.
+product name. GitHub slug: `laqaer/acpcrew`. Site: https://junction.computer
+(also https://getjunction.dev).
 
 The brand gate still forbids concatenated `KiroCrew` in **new prose**.
 Junction is the product.

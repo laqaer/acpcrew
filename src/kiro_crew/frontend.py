@@ -1,4 +1,4 @@
-"""Shared helpers for building the KiroCrew website frontend assets.
+"""Shared helpers for building the Junction dashboard frontend assets.
 
 The canonical frontend lives **in-tree** at ``<repo-root>/website`` (a Vite +
 React app). Its ``npm run build`` output lands in ``<repo-root>/website/dist``

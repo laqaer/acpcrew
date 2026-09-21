@@ -23,7 +23,7 @@ import {
  * `returnSelfToMain`. Pure helpers are re-exported for unit tests.
  */
 
-export const ARTIFACT_POPOUT_CHANNEL = 'kirocrew-artifact-popout'
+export const ARTIFACT_POPOUT_CHANNEL = 'junction-artifact-popout'
 
 export { HEARTBEAT_MS, STALE_MS, NAV_CLAIM_MS, applyMessage, pruneStale }
 export type { PopoutMap, PopoutMsg, NavIntent }
@@ -34,7 +34,7 @@ export type { PopoutMap, PopoutMsg, NavIntent }
  * after the opener lost its handle (e.g. a main-window refresh).
  */
 export function popoutWindowName(slug: string): string {
-  return `mc-artifact-popout-${slug.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+  return `junction-artifact-popout-${slug.replace(/[^a-zA-Z0-9_-]/g, '_')}`
 }
 
 /** Build the popout URL for an artifact. The slug is URL-safe, so it's the path directly. */

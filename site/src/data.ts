@@ -1,66 +1,23 @@
-export const FEATURES = [
+export const SITE_URL = 'https://junction.computer';
+export const GITHUB_URL = 'https://github.com/laqaer/acpcrew';
+
+export const ROLE_DAG = [
   {
-    icon: '01',
-    title: 'One dashboard, many agents',
-    desc: 'Run Cursor, Claude, Codex, and Grok from one local dashboard. Same sessions from the CLI, Slack, or the web UI.',
-    tag: 'Core',
+    role: 'Orchestration',
+    class: 'economy',
+    detail: 'Cheap models coordinate. Many tokens, little need for a flagship.',
   },
   {
-    icon: '02',
-    title: 'Model routing',
-    desc: 'Route inference across Kimi, DeepSeek, Copilot, and the rest. Orchestration, planning, and execution can each use a different cost class so tokens buy the most work.',
-    tag: 'AI',
+    role: 'Planning',
+    class: 'capable',
+    detail: 'Rare, high-leverage decomposition. Spend where the plan is the product.',
   },
   {
-    icon: '03',
-    title: 'Cron & Heartbeat',
-    desc: 'Recurring jobs, one-shot timers, skip-dates, and a self-healing heartbeat that survives gateway restarts.',
-    tag: 'Ops',
-  },
-  {
-    icon: '04',
-    title: 'Persistent Memory',
-    desc: 'Episodic, semantic, and vector memory. Learns corrections, tracks projects, decays history over 90 days.',
-    tag: 'AI',
-  },
-  {
-    icon: '05',
-    title: 'Parallel Subagents',
-    desc: 'Fan-out independent tasks to parallel agents. Results inject as completion events.',
-    tag: 'Core',
-  },
-  {
-    icon: '06',
-    title: 'Autonomous Task Runner',
-    desc: 'Give it a spec, walk away. Git-isolated execution, checkpoint resume, retry and replan, learn from failures.',
-    tag: 'AI',
-  },
-  {
-    icon: '07',
-    title: 'MCP Tools',
-    desc: 'GitHub, CI/CD, issue trackers, calendars, email — wired through Model Context Protocol.',
-    tag: 'Ops',
-  },
-  {
-    icon: '08',
-    title: 'Slack & Dashboard',
-    desc: 'Same agent, same context. Voice memos via local Whisper. Images to vision. Presigned dashboard links.',
-    tag: 'Core',
-  },
-  {
-    icon: '09',
-    title: 'Trust & Security',
-    desc: 'Four-tier approval. Tamper-resistant deny patterns. HMAC audit trail. Sandbox mode.',
-    tag: 'Ops',
+    role: 'Execution',
+    class: 'standard',
+    detail: 'Bulk of coding tokens. Capable enough, not the most expensive seat.',
   },
 ];
-
-export const TAG_CLS: Record<string, string> = {
-  Core: 'bg-indigo-500/10 text-indigo-400',
-  AI: 'bg-amber-300/10 text-amber-300',
-  Ops: 'bg-green-500/10 text-green-400',
-  UX: 'bg-rose-500/10 text-rose-400',
-};
 
 export const ARCH_PLANES = [
   {
@@ -86,19 +43,18 @@ export const ARCH = [
 ];
 
 export const TERMINAL_LINES = [
+  { prompt: true, text: 'junction planes' },
+  { text: 'Junction planes' },
+  { text: '   harness:     ', hl: 'auto (kiro-cli optional)' },
+  { text: '   model:       ', hl: 'sidecar optional' },
   { prompt: true, text: 'junction gateway' },
-  { text: 'Junction starting...' },
-  { text: '   Dashboard:   ', hl: 'http://localhost:5476' },
-  { text: '   Harness:     ', hl: 'ACP runtimes (auto)' },
-  { text: '   Model plane: ', hl: 'sidecar optional' },
-  { text: '   Memory:      ', hl: 'vector + episodic + semantic' },
-  { text: '   Cron:        ', hl: '3 jobs scheduled' },
-  { comment: '   Ready. Open http://localhost:5476' },
+  { text: 'Dashboard:      ', hl: 'http://localhost:5476' },
+  { comment: '   Ready. Two planes, one local install.' },
 ];
 
 export const IN_ACTION = [
   {
-    label: 'Agents',
+    label: 'Dock',
     user: 'open a Claude session and a Codex session side by side',
     bot: 'Two sessions on the harness plane. Claude and Codex are docked. Switch tabs any time — memory stays with each thread.',
   },
@@ -108,19 +64,9 @@ export const IN_ACTION = [
     bot: 'openai_base_url now targets the local sidecar. Provider keys stay in the sidecar — never paste them into chat. If the sidecar is down, this gateway still runs.',
   },
   {
-    label: 'Cron',
-    user: 'every weekday at 9am give me a pipeline briefing',
-    bot: "Created cron job. I'll check your pipelines every weekday at 9:00 AM and send you the results.",
-  },
-  {
-    label: 'Learn',
-    user: 'no, always use the staging profile for deploy credentials',
-    bot: "Learned: Use the staging profile for deploy credentials. I won't make this mistake again.",
-  },
-  {
-    label: 'Voice',
-    user: '[sends a voice memo in Slack]',
-    bot: 'Transcribed: "Can you check if the deployment to prod finished?"\nChecking your pipeline now — Deployment d-4829 completed 12 minutes ago. All health checks passing.',
+    label: 'Spend',
+    user: 'use an economy model for orchestration and a capable one for planning',
+    bot: 'junction router plan — orchestration on economy, planning on capable, execution on standard. Pins in agent.role_models still win.',
   },
 ];
 
@@ -149,10 +95,4 @@ export const FAQ = [
     q: 'How do I contribute?',
     a: 'Clone the repo at github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
   },
-];
-
-export const THEMES = [
-  '#22c55e', '#f59e0b', '#6366f1', '#f43f5e', '#06b6d4',
-  '#a78bfa', '#88c0d0', '#e0af68', '#eb6f92', '#fab387',
-  '#d4be98', '#f9e2af', '#93a1a1', '#7dcfff',
 ];

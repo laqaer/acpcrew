@@ -230,7 +230,7 @@ def _spawn(args: argparse.Namespace) -> None:
         _spawn_run(args, base)
         return
 
-    print("Usage: kirocrew spawn {run|list}")
+    print("Usage: junction spawn {run|list}")
 
 
 def _spawn_run(args: argparse.Namespace, base: str) -> None:
@@ -515,7 +515,7 @@ def _handle_workspace(args: argparse.Namespace) -> None:
         print(f"Deleted workspace: {args.name}")
 
     else:
-        print("Usage: kirocrew workspace {list|create|update|delete}")
+        print("Usage: junction workspace {list|create|update|delete}")
 
 
 def _cleanup_app_crons_from_scheduler(app_name: str) -> int:
@@ -767,7 +767,7 @@ def _handle_app(args: argparse.Namespace) -> None:
         print(f"   kirocrew app install {app_dir}")
 
     else:
-        print("Usage: kirocrew app {install|list|enable|disable|uninstall|info|init}")
+        print("Usage: junction app {install|list|enable|disable|uninstall|info|init}")
 
 
 def _handle_agent(args: argparse.Namespace) -> None:
@@ -834,18 +834,18 @@ def _handle_agent(args: argparse.Namespace) -> None:
         _agent_reset_model(args)
 
     else:
-        print("Usage: kirocrew agent {list|create|update|delete|reset-model}")
+        print("Usage: junction agent {list|create|update|delete|reset-model}")
 
 
 def _agent_reset_model(args: argparse.Namespace) -> None:
-    """Clear an agent spec's pinned model (``kirocrew agent reset-model``).
+    """Clear an agent spec's pinned model (``junction agent reset-model``).
 
     The explicit, narrow way back to the shipped default model. It exists
     because ownership of a spec's ``model`` cannot be inferred: a value an older
     build's propagation wrote and one the user typed in by hand are
     byte-identical on disk, so nothing may reclassify a pin behind the user's
     back. Before this, the only ways out were the dashboard's Agent Templates
-    editor (clear the model) and ``kirocrew setup --clean``, which also
+    editor (clear the model) and ``junction setup --clean``, which also
     regenerates the whole spec and discards every other customization with it.
     """
     name = getattr(args, "agent", None) or "kirocrew"
@@ -1146,7 +1146,7 @@ def _cron(args: argparse.Namespace) -> None:
         _cron_preview(args)
 
     else:
-        print("Usage: kirocrew cron {list|add|update|remove|pause|resume|trigger|preview}")
+        print("Usage: junction cron {list|add|update|remove|pause|resume|trigger|preview}")
 
 
 def _cron_preview(args: argparse.Namespace) -> None:
@@ -1434,7 +1434,7 @@ def _security(args: argparse.Namespace) -> None:
                 f"valid, {result.total - result.valid} tampered."
             )
     else:
-        print("Usage: kirocrew security {audit|deny-list|events|verify}")
+        print("Usage: junction security {audit|deny-list|events|verify}")
 
 
 def _print_denied_command_summary(*, ids: bool) -> None:
@@ -1590,7 +1590,7 @@ def _policy(args: argparse.Namespace) -> None:
             print(f"   • {scope}: {prof.controls[scope]}")
 
     else:
-        print("Usage: kirocrew policy {show|validate|explain <scope> <item>|profile <name>}")
+        print("Usage: junction policy {show|validate|explain <scope> <item>|profile <name>}")
 
 
 async def _run_eval(args: argparse.Namespace) -> None:
@@ -1840,7 +1840,7 @@ def _learn(args: argparse.Namespace) -> None:
                 print(f"No lessons match: {args.query}")
 
         else:
-            print("Usage: kirocrew learn {add|list|remove}")
+            print("Usage: junction learn {add|list|remove}")
     finally:
         vs.close()
 
@@ -1998,7 +1998,7 @@ def _memory_cmd(args: argparse.Namespace) -> None:
         elif action == "import":
             import_file = getattr(args, "file", None)
             if not import_file:
-                print("Usage: kirocrew memory import <file>")
+                print("Usage: junction memory import <file>")
                 return
             path = Path(import_file)
             if not path.is_file():
@@ -2020,7 +2020,7 @@ def _memory_cmd(args: argparse.Namespace) -> None:
                 )
 
         else:
-            print("Usage: kirocrew memory {list|search|show|stats|audit|export|migrate|import}")
+            print("Usage: junction memory {list|search|show|stats|audit|export|migrate|import}")
     finally:
         store.close()
 
@@ -2190,14 +2190,14 @@ def _artifact(args: argparse.Namespace) -> None:
         return
 
     print(
-        "Usage: kirocrew artifact {list|show|save|update|delete|versions}",
+        "Usage: junction artifact {list|show|save|update|delete|versions}",
         file=sys.stderr,
     )
     sys.exit(2)
 
 
 def _pod(args: argparse.Namespace) -> None:
-    """Dispatch ``kirocrew pod <verb>`` to the pod verb layer (isolated worktree
+    """Dispatch ``junction pod <verb>`` to the pod verb layer (isolated worktree
     test instances)."""
     from kiro_crew.pod.cli import dispatch
 
@@ -2264,7 +2264,7 @@ def _assert_config_sections_are_objects(raw: dict) -> None:
 
 
 def _tailnet(args: argparse.Namespace) -> None:
-    """Publish, withdraw, or inspect tailnet dashboard access (``kirocrew tailnet``).
+    """Publish, withdraw, or inspect tailnet dashboard access (``junction tailnet``).
 
     The command that was missing. Reaching the dashboard from another device on
     your tailnet has always taken **two** independent steps — publish it with
@@ -2373,8 +2373,8 @@ def _tailnet(args: argparse.Namespace) -> None:
             f"❌ Cannot tell which port the dashboard is on, so refusing to publish "
             f"{port} — nothing is verified to be listening there, and `tailscale "
             f"serve` would expose whatever is. Start the dashboard "
-            f"(`kirocrew dashboard`) and re-run, or name the port yourself with "
-            f"`kirocrew tailnet up --port <port>`.",
+            f"(`junction dashboard`) and re-run, or name the port yourself with "
+            f"`junction tailnet up --port <port>`.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -2388,7 +2388,7 @@ def _tailnet(args: argparse.Namespace) -> None:
         # "in the allowlist".
         name = tailnet.self_dns_name()
         state = tailnet_serve.serve_state(port)
-        print("👻 Tailnet dashboard access")
+        print("Tailnet dashboard access")
         if pinned:
             print(
                 "   Policy:     PINNED OFF by your administrator " "(capabilities.tailnet_origin)"
@@ -2442,7 +2442,7 @@ def _tailnet(args: argparse.Namespace) -> None:
         #    reachable on the tailnet and answering 403, which is the confusing state
         #    this command exists to eliminate.
         # 3. The cost is paid once per machine, not per invocation. After the operator
-        #    enables the setting, `kirocrew tailnet up` is a single command forever;
+        #    enables the setting, `junction tailnet up` is a single command forever;
         #    the one-time step is the same `config set` they would run anyway.
         #
         # `cfg` is the EFFECTIVE value, so an overlay in config.local.json that
@@ -2455,7 +2455,7 @@ def _tailnet(args: argparse.Namespace) -> None:
             "   Enable it once, then re-run this command:\n"
             "     kirocrew config set dashboard.tailscale.enabled true\n"
             "   (If config.local.json disables it, set it there instead: "
-            "`kirocrew config set --local dashboard.tailscale.enabled true`.)",
+            "`junction config set --local dashboard.tailscale.enabled true`.)",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -2468,7 +2468,7 @@ def _tailnet(args: argparse.Namespace) -> None:
 
     name = tailnet.self_dns_name()
     if name:
-        print(f"👻 URL:        https://{name}")
+        print(f"URL:        https://{name}")
     else:
         print(
             "⚠️  No tailnet name is resolvable right now, so the gateway will not "
@@ -2477,11 +2477,11 @@ def _tailnet(args: argparse.Namespace) -> None:
     # Said unconditionally, including when the switch was already on: the origin
     # is resolved once at startup, so a gateway that booted before this command
     # has an allowlist that does not contain the name yet.
-    print("👻 Restart the gateway for the tailnet origin to be trusted.")
+    print("Restart the gateway for the tailnet origin to be trusted.")
 
 
 def _telemetry(args: argparse.Namespace) -> None:
-    """Inspect or toggle the anonymous usage beacon (``kirocrew telemetry``).
+    """Inspect or toggle the anonymous usage beacon (``junction telemetry``).
 
     ``status`` is read-only and never materializes an install id. ``disable`` /
     ``enable`` persist ``telemetry.beacon_enabled`` to config.json, so the choice
@@ -2630,7 +2630,7 @@ def _telemetry(args: argparse.Namespace) -> None:
 
     if want:
         print("✅ Anonymous usage beacon ENABLED (one heartbeat per day).")
-        print("   Run 'kirocrew telemetry status' to see exactly what is sent.")
+        print("   Run 'junction telemetry status' to see exactly what is sent.")
     else:
         print("✅ Anonymous usage beacon DISABLED. Nothing will be sent.")
         print(f"   You can also delete {beacon.INSTALL_ID_FILE} from the data home.")
@@ -2665,11 +2665,11 @@ def _handle_secrets(args: argparse.Namespace) -> None:
             print(
                 f"error: could not read the secrets vault "
                 f"({exc.__class__.__name__}: {exc}); repair or remove the vault "
-                f"store, then re-run `kirocrew secrets import --apply`.",
+                f"store, then re-run `junction secrets import --apply`.",
                 file=sys.stderr,
             )
             sys.exit(1)
         print(format_report(report))
     else:
-        print("Usage: kirocrew secrets import [--apply]", file=sys.stderr)
+        print("Usage: junction secrets import [--apply]", file=sys.stderr)
         sys.exit(1)

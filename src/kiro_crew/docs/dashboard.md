@@ -10,18 +10,18 @@ system monitoring.
 - **SSH tunnel**: `ssh -NL 5476:localhost:5476 <host>` then open localhost:5476
 - **Remote**: type `!dashboard` in Slack to get a presigned link (HMAC-SHA256
   signed, IP-pinned, single-use token — valid for 5 minutes, session up to 6h)
-- **Custom domain**: after `kirocrew setup`, optionally use `http://kirocrew.localhost:5476`
+- **Custom domain**: after `junction setup`, optionally use `http://kirocrew.localhost:5476`
 - **Custom URL**: set `dashboard.url` in config.json for non-localhost access
 
 ### Remote Access Troubleshooting
 
 If the dashboard doesn't load after setup:
-1. Confirm the gateway is running: `kirocrew status`
+1. Confirm the gateway is running: `junction status`
 2. Test the API: `curl http://localhost:5476/api/status`
 3. Check for port conflicts: `lsof -i :5476`
 4. On remote dev desktops, you must use an SSH tunnel — the dashboard binds to
    localhost by default
-5. Run `kirocrew gateway -vv` for debug output
+5. Run `junction gateway -vv` for debug output
 
 ## Pages
 
@@ -134,7 +134,7 @@ Display agent hooks configuration. View pre/post tool hooks and message hooks.
 
 ### Apps
 
-Browse, install, and manage Kiro Crew apps. SSE streaming install logs show
+Browse, install, and manage Junction apps. SSE streaming install logs show
 real-time progress. Apps can be dashboard-hosted, gateway-side, or external.
 
 ### Kiro Usage

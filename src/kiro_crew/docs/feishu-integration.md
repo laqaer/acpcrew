@@ -1,10 +1,10 @@
 # Feishu Integration
 
-Talk to your Kiro Crew agent from Feishu (Lark / 飞书) — through a Feishu custom
+Talk to your Junction agent from Feishu (Lark / 飞书) — through a Feishu custom
 app bot. Create the app in the Feishu developer console, drop in two values, and
 you're chatting.
 
-Like Telegram and WeCom, the connection is outbound-only: Kiro Crew opens a
+Like Telegram and WeCom, the connection is outbound-only: Junction opens a
 long-connection WebSocket to Feishu, so there's no callback URL, public
 hostname, or open port to manage.
 
@@ -16,7 +16,7 @@ hostname, or open port to manage.
 
 ## Quick start
 
-You'll need a running gateway (`kirocrew gateway`), `lark-oapi` installed, and
+You'll need a running gateway (`junction gateway`), `lark-oapi` installed, and
 access to <https://open.feishu.cn/app> (or <https://open.larksuite.com/app> for
 Lark).
 
@@ -45,7 +45,7 @@ Lark).
    ```
 9. **Restart:**
    ```bash
-   kirocrew restart
+   junction restart
    ```
 
 DM the bot in Feishu and it answers. If it stays quiet, look for
@@ -74,7 +74,7 @@ Deny-by-default, in both directions:
   never evaluated can never run a turn.
 - **Every denial is audited.** Rejected inbound messages write a SEL audit
   record with `source: feishu`, so an unexpected sender shows up in
-  `kirocrew security posture` rather than vanishing.
+  `junction security posture` rather than vanishing.
 - Feishu itself only delivers a group message to the bot when it is
   **@-mentioned**, so a bot in a busy group does not see unrelated chatter.
 - **Mentions reach the agent as names.** Feishu puts opaque placeholders

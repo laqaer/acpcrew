@@ -88,7 +88,7 @@ def _config_cmd(args: argparse.Namespace) -> None:
             value = args.value
             use_local = getattr(args, "local", False)
             if not key or value is None:
-                print("Usage: kirocrew config set <key> <value>", file=sys.stderr)
+                print("Usage: junction config set <key> <value>", file=sys.stderr)
                 print("       kirocrew config set --local <key> <value>", file=sys.stderr)
                 print("       kirocrew config set --file <path.json>", file=sys.stderr)
                 sys.exit(1)
@@ -219,7 +219,7 @@ def _config_cmd(args: argparse.Namespace) -> None:
         if not p.exists():
             cfg = KiroCrewConfig()
             cfg.save()
-            print(f"👻 Created default config: {p}")
+            print(f"Created default config: {p}")
         sel().log_api_access(
             caller="cli",
             operation="config_edit",
@@ -230,7 +230,7 @@ def _config_cmd(args: argparse.Namespace) -> None:
         editor = os.environ.get("EDITOR", "vi")
         os.execvp(editor, [editor, str(p)])
     else:
-        print("Usage: kirocrew config {get,set,edit}", file=sys.stderr)
+        print("Usage: junction config {get,set,edit}", file=sys.stderr)
         sys.exit(1)
 
 

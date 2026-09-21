@@ -11,7 +11,7 @@ behind NAT and firewalls with no webhook, public address, or inbound port.
 | **DMs** | Responds to messages from an allow-listed user. No `@mention` needed. |
 | **Approved server threads** | Responds when both the sender's user ID and the exact thread ID are allow-listed. Everyone who can view the thread can read replies and tool output. |
 | **Allowed server channels** | Opt-in. An allow-listed user's message in an allow-listed channel opens a fresh public thread and the turn runs there, never in the shared channel itself. Off unless you add channel IDs. |
-| **Every other server channel** | Ignored, including a channel ID entered in the *thread* allow-list by mistake: Kiro Crew verifies the Discord channel type before running a turn. |
+| **Every other server channel** | Ignored, including a channel ID entered in the *thread* allow-list by mistake: Junction verifies the Discord channel type before running a turn. |
 | **Unknown users, threads or channels** | Denied. Security-relevant attempts are audited; unrelated guild chatter is discarded silently. Empty user allow-list denies everything; empty thread and channel allow-lists mean DMs only. |
 
 Discord represents threads as specialized guild channels with their own channel
@@ -36,7 +36,7 @@ token only once; treat it like a password.
   privileged intent to deliver guild/thread message text. Presence and Server
   Members intents remain unnecessary.
 
-Kiro Crew requests the guild/message-content Gateway intents only when at least
+Junction requests the guild/message-content Gateway intents only when at least
 one `allowed_thread_ids` entry is configured, so DM-only installs keep the
 narrower intent set.
 
@@ -46,8 +46,8 @@ On **Installation**, enable **Guild Install** and select the **`bot`** and
 **`applications.commands`** OAuth scopes.
 
 `applications.commands` is what makes the `/` command menu appear inside a
-server. Kiro Crew publishes its command set to Discord at startup, so the menu
-is populated for you. The scope is **not** required to use Kiro Crew: every
+server. Junction publishes its command set to Discord at startup, so the menu
+is populated for you. The scope is **not** required to use Junction: every
 command is also a `!`-prefixed text command (`!help`), and those are the floor:
 they work in a DM and in an approved thread whether or not the slash menu is
 installed. If you installed the bot before slash commands existed, re-run the
@@ -86,7 +86,7 @@ Enable **Discord Settings → Advanced → Developer Mode**.
 
 Both values are long numeric snowflakes, for example `284102345871466496`.
 
-### 5. Configure Kiro Crew
+### 5. Configure Junction
 
 In **Settings → Discord**, enable the channel, paste the bot token, add every
 user who may run the agent, and optionally add approved server thread IDs.
@@ -121,7 +121,7 @@ sets the context % at which the bot suggests `!compact`.
 ### 6. Restart the gateway
 
 ```bash
-kirocrew restart
+junction restart
 ```
 
 Discord settings and Gateway intents are read at startup. The Settings page
@@ -140,10 +140,10 @@ Portal or clear the thread allow-list and restart in DM-only mode.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Enabled, but no Discord activity | Token missing or gateway not restarted | Set `DISCORD_BOT_TOKEN`, then `kirocrew restart` |
+| Enabled, but no Discord activity | Token missing or gateway not restarted | Set `DISCORD_BOT_TOKEN`, then `junction restart` |
 | Gateway closes with 4004 | Bad or reset token | Reset the token, update `.env`, restart |
 | Gateway closes with 4014 after adding a thread | Message Content Intent is disabled | Enable it on the Bot page, then restart |
-| DMs are ignored | User ID is missing/wrong | Add the numeric user ID; inspect `kirocrew security events` |
+| DMs are ignored | User ID is missing/wrong | Add the numeric user ID; inspect `junction security events` |
 | Thread is ignored but DMs work | Thread ID missing/wrong, bot cannot view it, or Message Content Intent is off | Copy the thread's Channel ID, check permissions/membership, enable the intent, restart |
 | Parent channel is ignored | Expected behavior | Use an approved thread; normal channels are always disabled |
 | Bot can read but cannot reply in a thread | Missing guild permission or private-thread membership | Grant View Channel, Read Message History, Send Messages in Threads; add the bot to private threads |
@@ -154,12 +154,12 @@ Portal or clear the thread allow-list and restart in DM-only mode.
 - **Two allow-lists for threads.** A server-thread turn runs only when both the
   sender and exact thread are approved. An empty user list denies all traffic;
   an empty thread list preserves DM-only behavior.
-- **Channel-type verification.** Kiro Crew resolves an approved guild channel
+- **Channel-type verification.** Junction resolves an approved guild channel
   through Discord and accepts only announcement, public, or private thread
   types. Accidentally entering a normal channel ID does not enable it.
 - **Global intent scope.** Enabling any server thread turns on Discord's global
   Message Content intent. Discord then delivers content from every server
-  channel the bot can see; Kiro Crew immediately discards traffic outside
+  channel the bot can see; Junction immediately discards traffic outside
   approved threads and does not audit routine background chatter.
 - **Shared output warning.** Every member who can view an approved thread can
   read agent replies, tool output, and interactive approvals. Approve only
@@ -253,13 +253,13 @@ offers **Stop mirroring** instead, so the two are not confused.
 
 The binding is stored per session and survives a gateway restart. A session can
 only be active in one place at a time — if it is already attached to Slack or
-another channel, Kiro Crew refuses and tells you where it lives, rather than
+another channel, Junction refuses and tells you where it lives, rather than
 moving it silently.
 
 `!sessions` is **owner-only and requires exactly one entry in
 `discord.allowed_user_ids`**. Session listing and resume are global operations —
 they can reach any dashboard conversation, not just Discord ones — so with two
-or more allowed users Kiro Crew cannot tell which one owns the workspace and
+or more allowed users Junction cannot tell which one owns the workspace and
 refuses the command instead of guessing. Incognito and temporary sessions are
 never listed, and session titles plus replayed messages are scrubbed of
 credentials and suspicious URLs before they reach Discord.

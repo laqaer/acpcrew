@@ -1,7 +1,7 @@
 # Backup & Restore
 
-`kirocrew snapshot` packs everything Kiro Crew has learned about you into a single
-portable `.tar.gz`, and `kirocrew restore` unpacks it, on this machine or a
+`junction snapshot` packs everything Junction has learned about you into a single
+portable `.tar.gz`, and `junction restore` unpacks it, on this machine or a
 different one. Use it before an upgrade you are unsure about, to move your setup
 to a new laptop, or to merge the memory from two machines you have been using in
 parallel. Snapshots are **not** automatic: nothing takes one for you, so if you
@@ -19,7 +19,7 @@ kirocrew restore snapshot.tar.gz --dry-run            # preview, write nothing
 kirocrew restore --list-components                    # show component names
 ```
 
-Stop the gateway before restoring. `kirocrew restore` refuses to run while a
+Stop the gateway before restoring. `junction restore` refuses to run while a
 gateway is listening, because a live gateway holds the memory database open and
 would write over what was just restored. Pass `--force` only if you know the
 gateway on that port is not this instance.
@@ -57,7 +57,7 @@ complete, so an interrupted run cannot leave a half-written archive that looks
 like a valid backup. It is then locked down to owner-only permissions before the
 command reports success.
 
-Before copying the memory database, Kiro Crew flushes its write-ahead log. If the
+Before copying the memory database, Junction flushes its write-ahead log. If the
 gateway holds the lock it prints a warning and proceeds anyway: the SQLite backup
 API still produces a consistent point-in-time copy that includes committed data.
 
@@ -102,7 +102,7 @@ snapshot to win, use `--mode replace`.
 | `--list-components` | Show the component names and what each covers |
 | `--force` | Restore even though a gateway is listening |
 
-After a restore, run `kirocrew restart` so the gateway picks up the new state.
+After a restore, run `junction restart` so the gateway picks up the new state.
 
 ### Integrity check
 
@@ -130,6 +130,6 @@ the way out.
 ## Scheduling your own backups
 
 There is no built-in backup schedule. To get one, add a cron job that runs the
-command, for example by asking the agent to schedule `kirocrew snapshot --keep 7`
-daily. Verify it afterwards with `kirocrew snapshot --list`: an unverified backup
+command, for example by asking the agent to schedule `junction snapshot --keep 7`
+daily. Verify it afterwards with `junction snapshot --list`: an unverified backup
 job is the same as no backup.

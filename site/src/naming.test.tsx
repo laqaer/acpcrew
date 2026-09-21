@@ -45,6 +45,18 @@ describe('Junction naming', () => {
     expect(text).toContain('junction gateway');
   });
 
+  it('leads with two planes and role routing, not a feature-card clone', () => {
+    const { container } = render(<App />);
+    const text = pageText(container);
+    expect(text).toContain('Role routing');
+    expect(text).toContain('junction planes');
+    expect(text).toContain('junction.computer');
+    expect(text).not.toMatch(/22 built-in themes/i);
+    expect(text).not.toMatch(/Backend Modules/);
+    expect(text).not.toMatch(/Agent Types/);
+    expect(text).not.toMatch(/Everything you need/);
+  });
+
   it('does not present another product name as Junction', () => {
     const { container } = render(<App />);
     const text = pageText(container);

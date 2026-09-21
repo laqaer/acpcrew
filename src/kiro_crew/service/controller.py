@@ -57,8 +57,8 @@ def installed_unit_path() -> "Path | None":
 
 def _unsupported_message() -> None:
     print(
-        "❌ kirocrew service management is only supported on Linux (systemd)\n"
-        "   and macOS (launchd). On other platforms run `kirocrew gateway`\n"
+        "❌ junction service management is only supported on Linux (systemd)\n"
+        "   and macOS (launchd). On other platforms run `junction gateway`\n"
         "   directly or wrap it in tmux/screen yourself.",
         file=sys.stderr,
     )
@@ -82,7 +82,7 @@ def install_service() -> int:
         except linux.ServiceInstallError as exc:
             print(f"❌ {exc}", file=sys.stderr)
             return 1
-        print("✅ kirocrew service installed and started.")
+        print("✅ junction service installed and started.")
         print(f"   unit: {linux.UNIT_PATH}")
         # Reported here, but performed inside linux.install() before the unit is
         # started — the directive only applies at service start. Deliberately
@@ -91,9 +91,9 @@ def install_service() -> int:
             print(f"   {'⚠️ ' if not profile.ok else ''}{profile.message}")
         _print_headless_auth_warning()
         print()
-        print("   Status: kirocrew service status")
-        print("   Logs:   kirocrew logs -f")
-        print("   Remove: kirocrew service uninstall")
+        print("   Status: junction service status")
+        print("   Logs:   junction logs -f")
+        print("   Remove: junction service uninstall")
         return 0
     if plat == Platform.LAUNCHD:
         try:
@@ -101,13 +101,13 @@ def install_service() -> int:
         except macos.ServiceInstallError as exc:
             print(f"❌ {exc}", file=sys.stderr)
             return 1
-        print("✅ kirocrew service installed and started.")
+        print("✅ junction service installed and started.")
         print(f"   plist: {macos.PLIST_PATH}")
         _print_headless_auth_warning()
         print()
-        print("   Status: kirocrew service status")
+        print("   Status: junction service status")
         print(f"   Logs:   tail -f {macos.STDOUT_LOG}")
-        print("   Remove: kirocrew service uninstall")
+        print("   Remove: junction service uninstall")
         return 0
     _unsupported_message()
     return 2
@@ -129,13 +129,13 @@ def uninstall_service() -> int:
         except linux.ServiceInstallError as exc:
             print(f"❌ {exc}", file=sys.stderr)
             return 1
-        print("✅ kirocrew service stopped and removed.")
+        print("✅ junction service stopped and removed.")
         if profile.message:
             print(f"   {'⚠️ ' if not profile.ok else ''}{profile.message}")
         return 0
     if plat == Platform.LAUNCHD:
         macos.uninstall()
-        print("✅ kirocrew service stopped and removed.")
+        print("✅ junction service stopped and removed.")
         return 0
     _unsupported_message()
     return 2
@@ -205,7 +205,7 @@ def sandbox_profile_status(exec_path: str | None = None) -> int:
 
 
 def is_service_active() -> bool:
-    """Return True if a kirocrew service is installed and currently running."""
+    """Return True if a junction service is installed and currently running."""
     plat = current_platform()
     if plat == Platform.SYSTEMD:
         return linux.is_active()

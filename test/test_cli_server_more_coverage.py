@@ -377,7 +377,7 @@ class TestSandboxCmd:
 
     def test_unknown_action_prints_usage_and_returns_2(self, sel_rec, capsys) -> None:
         assert cli_server._sandbox_cmd(argparse.Namespace(sandbox_action="bogus")) == 2
-        assert "Usage: kirocrew sandbox" in capsys.readouterr().err
+        assert "Usage: junction sandbox" in capsys.readouterr().err
         assert sel_rec.calls == []
 
 

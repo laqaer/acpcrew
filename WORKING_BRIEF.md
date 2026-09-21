@@ -14,8 +14,8 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Tagline | Where coding agents meet the models you want. |
 | Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring `kiro-cli`. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
-| Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps amber rails. Chosen domain: **junction.computer** (purchase blocked on missing WHOIS). |
-| GitHub slug | `laqaer/acpcrew` until a human renames it. |
+| Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Production site: **https://junction.computer** (also https://getjunction.dev). |
+| GitHub slug | `laqaer/acpcrew` until a human renames it (GitHub integration token cannot PATCH the repo name or description). |
 | Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
 
@@ -53,26 +53,25 @@ Safe agent-prompts defaults for this execution:
 | Allowed | Blocked |
 |---|---|
 | Feature branch, commit, push | Merge to `main` |
-| Pull request | Production deploy (including GitHub Pages on `main`) |
-| GitHub issues for the epic and lanes | DNS changes |
-| Vercel **preview** of `site/` only, hobby, no spend | Paid Vercel, PyPI, Docker publish |
-| | External comms (issues on other repos, emails, tweets) |
-| | Data deletion, irreversible migrations |
-| | GitHub repository rename |
+| Pull request | GitHub Pages on `main` |
+| GitHub issues for the epic and lanes | Paid Vercel, PyPI, Docker publish |
+| Vercel hobby deploy of `site/` (preview and production alias) | External comms (issues on other repos, emails, tweets) |
+| Attach operator-purchased domains to `junction-site` | Data deletion, irreversible migrations |
+| | GitHub repository rename (token cannot PATCH; human Settings → Rename) |
 
 ## Execution
 
 | Field | Value |
 |---|---|
 | Execution id | `bc-39bfeb15-ff12-4636-840a-217a97c555da` |
-| Branch | `cursor/junction-bootstrap-55da` |
+| Branch | `cursor/junction-launch-55da` |
 | Base | `main` at `78424fb73` |
 | Intake | No acpcrew intake issue existed at start. Open Dependabot PRs #10–#14 are unrelated. |
 | Shape | One bootstrap PR to `main`. Do not merge it in this execution. |
 
 ## This-cut non-goals
 
-Merge; GitHub rename; package / data-home rename; PyPI / Docker / DNS / paid
+Merge; GitHub rename (token-blocked); package / data-home rename; PyPI / Docker / paid
 Vercel; vendoring Codex Router; copying tray / widget / Electron / public
 Cursor HTTPS tunnel / ACP agent bridges; reimplementing LiteLLM; storing
 provider keys in `KIROCREW_HOME` without the router's secret-entry rules;
@@ -87,7 +86,9 @@ only at version bump).
 | Bootstrap PR | https://github.com/laqaer/acpcrew/pull/23 |
 | Epic | https://github.com/laqaer/acpcrew/issues/16 |
 | Hobby **preview** (this SHA, `target` unset) | https://junction-site-drdzpa9u5-laqaers-projects.vercel.app |
-| Hobby default alias (no custom domain, no Pages) | https://junction-site.vercel.app |
+| Production site | https://junction.computer |
+| Alias | https://getjunction.dev (308 to junction.computer) |
+| Hobby default alias | https://junction-site.vercel.app |
 
 ## Execution manifest
 

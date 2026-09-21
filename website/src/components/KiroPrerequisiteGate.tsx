@@ -355,7 +355,7 @@ function remedySteps(remedy: string): React.ReactNode {
           <li className="text-sm leading-relaxed text-muted">
             {i18nT('components.kiroPrerequisiteGate.remedy_apparmor_service_install')}
             <CopyCommand>
-              <code>kirocrew service install</code>
+              <code>junction service install</code>
             </CopyCommand>
           </li>
         </ul>
@@ -416,7 +416,7 @@ function SandboxRemedy({ remedy, transient }: { remedy: string; transient: boole
         {i18nT('components.kiroPrerequisiteGate.run_kirocrew_doctor_on_the_gateway_host_for_a_ful')}
       </p>
       <CopyCommand>
-        <code>kirocrew doctor</code>
+        <code>junction doctor</code>
       </CopyCommand>
       <a
         className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-medium text-accent hover:underline focus-ring"
@@ -662,7 +662,7 @@ function AgentSpecsRejected({
           <li className="text-sm leading-relaxed text-muted">
             {i18nT('components.kiroPrerequisiteGate.remedy_spec_rejected_rewrite')}
             <CopyCommand>
-              <code>kirocrew setup --agent-only --clean</code>
+              <code>junction setup --agent-only --clean</code>
             </CopyCommand>
           </li>
         </ul>

@@ -146,7 +146,7 @@ def _doctor_effective_model(cfg: KiroCrewConfig, project_dir: str, issues: list[
     Read-only: this section never repairs anything, because a spec's ``model``
     cannot be attributed -- a value an older build's propagation wrote and one
     the user typed in are identical on disk -- so the repair has to be the
-    user's explicit call (``kirocrew agent reset-model``).
+    user's explicit call (``junction agent reset-model``).
     """
     print("\nModel")
     try:
@@ -481,7 +481,7 @@ def _format_model_pin_problem(name: str, pin: str, correction: str) -> tuple[str
 
 
 def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
-    """Render the `MCP Tools` section of `kirocrew doctor`.
+    """Render the `MCP Tools` section of `junction doctor`.
 
     Two passes scoped to the managed servers (`kirocrew-core`,
     `kirocrew-cron`, `kirocrew-computer`):
@@ -511,7 +511,7 @@ def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
         # every .get() below would raise. Doctor exists to diagnose a broken
         # config, not die on one — treat it like the unparseable case, but say
         # what is actually wrong so the missing-server lines below make sense.
-        print("  ❌ agent spec is not a JSON object — re-run `kirocrew setup`")
+        print("  ❌ agent spec is not a JSON object — re-run `junction setup`")
         agent_data = {}
 
     tools = agent_data.get("tools", [])
@@ -526,7 +526,7 @@ def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
             # An opt-in set is granted per agent, so its absence from THIS spec is
             # the normal state, not a broken install. Say nothing and probe
             # nothing; the always-on servers below are the ones whose absence
-            # means `kirocrew setup` did not finish.
+            # means `junction setup` did not finish.
             if name in _OPT_IN_MCPS:
                 if ref in tools:
                     # Half a grant: the ref mounts a server the spec never
@@ -537,7 +537,7 @@ def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
                         "— add the server entry, or drop the ref"
                     )
                 continue
-            print(f"  {ref}: ❌ missing from mcpServers (re-run `kirocrew setup`)")
+            print(f"  {ref}: ❌ missing from mcpServers (re-run `junction setup`)")
             issues.append(f"{ref} config")
             continue
         if not isinstance(mcps.get(name), dict):
@@ -577,7 +577,7 @@ def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
             # to installs that were governed before their first launch. Every
             # other writer of this list revokes here too (agent.py's shared sync,
             # both dashboard enable paths); declining to MINT without also
-            # revoking would leave `kirocrew doctor` reporting a repaired config
+            # revoking would leave `junction doctor` reporting a repaired config
             # that still carried the exemption.
             #
             # This is the one case where doctor removes something from
@@ -604,7 +604,7 @@ def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
                     logger.debug("SEL audit unavailable for doctor revoke", exc_info=True)
             # Governed hosts otherwise give no reason why a server the user
             # enabled still prompts on every call — say it once, here, so
-            # `kirocrew doctor` explains it.
+            # `junction doctor` explains it.
             print(f"  {ref}: 🔒 auto-approve withheld by security policy — calls will prompt")
         elif ref not in allowed and name not in _NO_BLANKET_ALLOW_MCPS:
             # Computer use is never blanket-allowed here: see _NO_BLANKET_ALLOW_MCPS.
@@ -688,7 +688,7 @@ def _doctor_mcp_tools(agent_path: Path, issues: list[str]) -> None:
 # Identity Center. Presence is the signal; the values (a start URL and a region)
 # are never read into a message, and no token key is touched.
 def _doctor_mcp_governance(agent_path: Path, issues: list[str]) -> None:
-    """Render the `MCP Governance` section of `kirocrew doctor`.
+    """Render the `MCP Governance` section of `junction doctor`.
 
     Speaks up in two situations: governance can reach this identity (Identity
     Center or an API key), where an administrator's registry may be in force, and
@@ -768,7 +768,7 @@ def _doctor_mcp_governance(agent_path: Path, issues: list[str]) -> None:
     if declared:
         print(f"  registry mode: on — {len(marked)}/{len(expected)} managed servers marked")
         if len(marked) < len(expected):
-            print("  ❌ markers missing — re-run `kirocrew setup --agent-only`")
+            print("  ❌ markers missing — re-run `junction setup --agent-only`")
             issues.append("MCP registry markers")
             return
         # Deliberately not a success line. Whether the administrator actually
@@ -778,7 +778,7 @@ def _doctor_mcp_governance(agent_path: Path, issues: list[str]) -> None:
         print(f"      these names must be allow-listed, exactly: {names}")
         print(
             "      if tools are still missing in sessions, the account may no longer be "
-            "registry-governed — try `kirocrew config set agent.mcp_registry_mode false`"
+            "registry-governed — try `junction config set agent.mcp_registry_mode false`"
         )
         return
 
@@ -873,25 +873,25 @@ def _doctor_path_launcher() -> None:
     """
     from kiro_crew.agent import _resolve_kirocrew_bin
 
-    on_path = shutil.which("kirocrew")
+    on_path = shutil.which("junction") or shutil.which("kirocrew") or shutil.which("acpcrew")
     if not on_path:
         # Not an error on its own: the desktop app runs its bundled backend
         # directly, and a user who never wanted a terminal command is fine.
-        print("  kirocrew CLI: ⏹ not on PATH (run `kirocrew setup` to link it)")
+        print("  junction CLI: ⏹ not on PATH (run `junction setup` to link it)")
         return
     running = _resolve_kirocrew_bin()
     if not os.path.isabs(running) or os.path.realpath(on_path) == os.path.realpath(running):
-        print(f"  kirocrew CLI: ✅ {on_path}")
+        print(f"  junction CLI: ✅ {on_path}")
         return
-    print("  ⚠ kirocrew CLI on PATH belongs to a different install than this one.")
+    print("  ⚠ junction CLI on PATH belongs to a different install than this one.")
     # Paths are printed UNWRAPPED, one per line: a wrapped path cannot be copied
     # or pasted into a command, which is the first thing someone does with it.
     print(f"{_INDENT}on PATH:      {os.path.realpath(on_path)}")
     print(f"{_INDENT}this install: {os.path.realpath(running)}")
     _print_wrapped(
-        "Both can coexist — the wheel keeps its own updates — but `kirocrew` in a "
+        "Both can coexist — the wheel keeps its own updates — but `junction` in a "
         "terminal runs the one on PATH, which may be a different version or "
-        "channel. Run `kirocrew setup` from the install you want to own the name."
+        "channel. Run `junction setup` from the install you want to own the name."
     )
 
 
@@ -947,7 +947,7 @@ def _doctor_strict_identity(cfg: KiroCrewConfig) -> None:
     Reports only, and deliberately appends NO entry to doctor's ``issues``:
     ``mcp_gateway.stub_servers`` is empty by default because routing starts a
     broker plus a stub per server, so a hard issue here would make
-    ``kirocrew doctor`` exit 1 on every stock install — the same failure the
+    ``junction doctor`` exit 1 on every stock install — the same failure the
     speech-to-text section is written to avoid. Parity with
     :func:`_doctor_trust_root`, which also only prints.
 
@@ -1046,7 +1046,7 @@ def _doctor_sandbox_apparmor(reason: str, issues: list[str]) -> None:
         _print_wrapped(
             f"This host restricts unprivileged user namespaces and the "
             f"{apparmor.PROFILE_NAME} AppArmor profile is not installed, so no context "
-            f"on this host can build the sandbox. Run `kirocrew service install` to "
+            f"on this host can build the sandbox. Run `junction service install` to "
             f"install the profile and confine the gateway service with it."
         )
         issues.append("sandbox: AppArmor profile not installed")
@@ -1060,7 +1060,7 @@ def _doctor_sandbox_apparmor(reason: str, issues: list[str]) -> None:
         _print_wrapped(
             f"This process already runs confined by {apparmor.PROFILE_NAME}, which "
             f"should grant user namespaces, yet the probe still failed. Re-run "
-            f"`kirocrew service install` to re-render and reload the profile."
+            f"`junction service install` to re-render and reload the profile."
         )
         issues.append("sandbox: probe failed under the AppArmor profile")
         return
@@ -1070,7 +1070,7 @@ def _doctor_sandbox_apparmor(reason: str, issues: list[str]) -> None:
         _print_wrapped(
             f"The {apparmor.PROFILE_NAME} AppArmor profile is installed, but no systemd "
             f"unit applies it, so nothing on this host runs confined by it. Run "
-            f"`kirocrew service install` to (re)install the gateway service with the "
+            f"`junction service install` to (re)install the gateway service with the "
             f"profile applied."
         )
         issues.append("sandbox: AppArmor profile installed but not applied")
@@ -1306,7 +1306,7 @@ def _doctor_pod_session_bus(issues: list[str]) -> None:
 
     Pods are ``systemd --user`` units, so ``systemctl --user`` must be able to
     reach the per-user systemd instance. A gateway started from a systemd SYSTEM
-    unit (``kirocrew service install``) inherits no login-session environment,
+    unit (``junction service install``) inherits no login-session environment,
     and if the per-user instance is not running at all there is nothing for
     KiroCrew to point at — every pod verb then fails with "Failed to connect to
     bus: No medium found". Diagnosing that belongs here.
@@ -1347,7 +1347,7 @@ def _doctor_pod_session_bus(issues: list[str]) -> None:
     sock = session_bus_socket()
     if not has_session_bus():
         print(f"  session bus: ❌ none for uid {uid} (looked for {sock})")
-        print("               Pods are systemd --user units, so `kirocrew pod` is")
+        print("               Pods are systemd --user units, so `junction pod` is")
         print("               unavailable until one exists. Everything else works.")
         print(f"               Fix: loginctl enable-linger {user}")
         return
@@ -1638,7 +1638,7 @@ def _doctor_headless_auth(issues: list[str]) -> None:
     a host that ran ``kiro-cli login`` before the key was exported resolves that
     credential store and is healthy while the check still fires; and a unit path
     proves a definition exists on disk, not that the unit is the gateway
-    currently serving, so a stopped unit beside a foreground ``kirocrew gateway``
+    currently serving, so a stopped unit beside a foreground ``junction gateway``
     also reads as broken. Reporting the exposure is right; failing doctor on a
     host where sign-in works is the same contradiction-with-reality this
     diagnostic exists to surface, one layer up.
@@ -1730,7 +1730,7 @@ def _doctor_agents_janitor(issues: list[str], sweep_backups: bool) -> None:
     The shared kiro agents directory accumulates ``<base>.json.<digits>.tmp``
     orphans and ``*.bak-<digits>`` / ``*.json.bak.<digits>`` backups from the
     several independent writers that install agents there; nothing else removes
-    them. ``kirocrew doctor`` REPORTS what a sweep would reclaim but never
+    them. ``junction doctor`` REPORTS what a sweep would reclaim but never
     deletes anything itself (``dry_run=True``) — a diagnostic you run *because
     something broke* must not silently unlink files, including recovery backups,
     in the same invocation. Actual deletion is left to the fire-and-forget boot
@@ -1823,7 +1823,7 @@ def _discord_msg_content_line(
         print("  msg content: ❌ OFF, so thread and channel messages arrive empty")
         print(f"{_INDENT}and Discord can close the connection with code 4014.")
         print(f"{_INDENT}Fix: Developer Portal → Bot → Message Content Intent,")
-        print(f"{_INDENT}then `kirocrew restart`.")
+        print(f"{_INDENT}then `junction restart`.")
         issues.append("discord: Message Content Intent off with threads allow-listed")
     else:
         print(f"  msg content: ⚠️  cannot verify ({grants.error or 'no answer'})")
@@ -1882,7 +1882,7 @@ def _doctor_discord(
         print("  status:      ⏭  not enabled (optional)")
         print("  setup:       enable it in the dashboard → Settings → Discord, or set")
         print(f"{_INDENT}discord.enabled in config.json and DISCORD_BOT_TOKEN in")
-        print(f"{_INDENT}{env_path()}, then `kirocrew restart`")
+        print(f"{_INDENT}{env_path()}, then `junction restart`")
         return
 
     print("  status:      ✅ enabled")
@@ -1895,7 +1895,7 @@ def _doctor_discord(
     else:
         print("  token:       ❌ missing, so the channel never starts")
         print(f"{_INDENT}Fix: paste the bot token in Settings → Discord, or add")
-        print(f"{_INDENT}DISCORD_BOT_TOKEN=<token> to {env_path()}, then `kirocrew restart`")
+        print(f"{_INDENT}DISCORD_BOT_TOKEN=<token> to {env_path()}, then `junction restart`")
         issues.append("discord: enabled without a bot token")
 
     users = [str(u) for u in dc.allowed_user_ids]
@@ -1907,7 +1907,7 @@ def _doctor_discord(
         print("  users:       ❌ allow-list empty, so EVERY message is denied")
         print(f"{_INDENT}Fix: add your numeric user ID under Settings → Discord")
         print(f"{_INDENT}(Discord → Settings → Advanced → Developer Mode, then")
-        print(f"{_INDENT}right-click your name → Copy User ID), then `kirocrew restart`")
+        print(f"{_INDENT}right-click your name → Copy User ID), then `junction restart`")
         issues.append("discord: empty user allow-list denies every message")
 
     # A server allow-list of either kind is what makes the privileged intent
@@ -1940,7 +1940,7 @@ def _doctor_discord(
         print(f"  connection:  ❌ not connected: {reason}")
         print(f"{_INDENT}Fix: 4014 = enable Message Content Intent (or clear the")
         print(f"{_INDENT}thread and channel allow-lists); 4004 = reset the bot")
-        print(f"{_INDENT}token. Then `kirocrew restart`.")
+        print(f"{_INDENT}token. Then `junction restart`.")
         issues.append("discord: channel not connected")
     else:
         print("  connection:  ⚠️  not connected, and no reason was recorded")
@@ -1978,7 +1978,7 @@ def _doctor_whatsapp(cfg: KiroCrewConfig, issues: list[str]) -> None:
     wa = cfg.whatsapp
     if not wa.enabled:
         print("  status:      ⏭  not enabled (optional)")
-        print("  setup:       run 'kirocrew setup --whatsapp', or enable it from")
+        print("  setup:       run 'junction setup --whatsapp', or enable it from")
         print("               the dashboard (Settings → Channels → WhatsApp)")
         return
 
@@ -1999,7 +1999,7 @@ def _doctor_whatsapp(cfg: KiroCrewConfig, issues: list[str]) -> None:
     else:
         # Deliberately NOT an issue. Pairing is a QR scan served BY the running
         # gateway, so a freshly enabled channel legitimately has no store yet, and
-        # failing here would break the documented `kirocrew doctor && kirocrew
+        # failing here would break the documented `junction doctor && kirocrew
         # gateway` chain at the one moment the operator must start the gateway to
         # make progress.
         print("  session:     ⚠️  not paired yet, so the channel starts unpaired")
@@ -2040,6 +2040,27 @@ def _venv_deps_ok(venv_py: Path) -> bool:
     return proc.returncode == 0
 
 
+def _doctor_planes() -> None:
+    """Harness + model compose. Never a doctor failure (sidecar optional)."""
+    print("\nPlanes")
+    try:
+        from kiro_crew.planes import snapshot_planes
+
+        snap = snapshot_planes()
+    except Exception as exc:  # noqa: BLE001 — doctor must survive a probe error
+        print(f"  snapshot:    ⚠️  unavailable ({exc})")
+        return
+    harness = snap["harness"]
+    model = snap["model"]
+    selected = harness.get("selected") or "none installed"
+    print(f"  harness:     {harness['default']} (selected={selected}; kiro-cli optional)")
+    print(f"  model:       {model['status']} (sidecar optional; gateway still works)")
+    docked = [row["id"] for row in harness["runtimes"] if row["available"]]
+    if docked:
+        print(f"  docked:      {', '.join(docked)}")
+    print("  keys:        never paste provider keys into chat")
+
+
 def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False) -> None:
     """Verify KiroCrew setup — check dependencies, config, credentials, connectivity.
 
@@ -2050,7 +2071,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
     setup is its job — and reports the failure here instead of aborting.
     """
 
-    print("Kiro Crew Doctor 👻\n")
+    print("Junction Doctor\n")
     issues: list[str] = []
 
     # ── Diagnostics bundle (--bundle) ──
@@ -2130,14 +2151,16 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
                 print(f"  jail:        ❌ composition failed: {exc}")
                 issues.append(f"jail provider composition failed: {exc}")
 
+    # ── Planes (compose harness + model; never a doctor failure) ──
+    _doctor_planes()
+
     # ── Dependencies ──
     print("Dependencies")
-    # kiro-cli is THE agent backend for the public build. claude-agent-acp is
-    # only the dormant protocol seam (re-registered by an internal companion),
-    # so report it as optional and report kiro-cli as the backend.
+    # kiro-cli is an optional harness. claude-agent-acp is only the dormant
+    # protocol seam (re-registered by an internal companion).
     kiro = shutil.which(KIRO_CLI_BIN)
     if kiro:
-        print(f"  kiro-cli:    ✅ {kiro}")
+        print(f"  kiro-cli:    ✅ {kiro} (optional harness)")
         # Check login status — best-effort, never a hard failure
         try:
             r = subprocess.run(
@@ -2154,8 +2177,8 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
             print("  kiro login:  ⚠️  could not check")
         _doctor_headless_auth(issues)
     else:
-        print("  kiro-cli:    ⏭  not found (the agent backend)")
-        print("               Install kiro-cli per its docs, then: kiro-cli login")
+        print("  kiro-cli:    ⏭  not found (optional — dock another ACP runtime)")
+        print("               Install kiro-cli only if you want that harness, then: kiro-cli login")
 
     claude_acp = shutil.which(_CLAUDE_ACP_BIN)
     if claude_acp:
@@ -2165,7 +2188,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
     if git:
         print(f"  git:         ✅ {git}")
     else:
-        print("  git:         ❌ not found (needed for kirocrew update)")
+        print("  git:         ❌ not found (needed for junction update)")
         issues.append("git")
 
     node = shutil.which("node")
@@ -2228,7 +2251,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
         else:
             print("  git repo:    ⚠️  not a git repo")
     elif not stale_project:
-        print("  project dir: ⚠️  not set (run kirocrew setup from project root)")
+        print("  project dir: ⚠️  not set (run junction setup from project root)")
 
     cfg = KiroCrewConfig.load()
 
@@ -2238,7 +2261,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
     if agent_path.exists():
         print(f"  config:      ✅ {agent_path}")
     else:
-        print("  config:      ❌ not found (run kirocrew setup)")
+        print("  config:      ❌ not found (run junction setup)")
         issues.append("agent config")
 
     # Model pins across ALL specs, not just the default one. A pin kiro-cli
@@ -2518,8 +2541,8 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
 
     # STT ships enabled-by-default, but neither whisper nor ffmpeg is on a stock
     # Windows box and neither is a KiroCrew dependency there. Reporting them as
-    # hard issues makes `kirocrew doctor` exit 1 on a healthy first install, so
-    # the guide's `kirocrew doctor && kirocrew gateway` never launches the
+    # hard issues makes `junction doctor` exit 1 on a healthy first install, so
+    # the guide's `junction doctor && kirocrew gateway` never launches the
     # gateway. On Windows treat them as non-fatal notes; POSIX keeps failing so
     # a real STT setup gap is still surfaced.
     stt_fatal = not platform_compat.IS_WINDOWS
@@ -2659,7 +2682,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
                 issues.append("slack workspace: not in allowlist")
     else:
         print("  status:      ⏭  not configured (optional)")
-        print("  setup:       run 'kirocrew setup --slack', or connect any channel")
+        print("  setup:       run 'junction setup --slack', or connect any channel")
         print("               (Slack, Discord, Telegram, …) from the dashboard")
 
     # ── Discord (optional) ──
@@ -2790,7 +2813,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
             mh = machine_hostname() or "this-host"
             print("\n  💡 Remote access: Run on your LOCAL machine:")
             print(f"     ssh -NL {_port}:localhost:{_port} {mh}")
-            print("     Then run: kirocrew token")
+            print("     Then run: junction token")
 
     # Verify token auth is enforced on non-loopback (security check)
     if _port and not _local:

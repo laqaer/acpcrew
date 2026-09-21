@@ -1,27 +1,23 @@
-# Kiro Crew Documentation
+# Junction Documentation
 
-Kiro Crew is a personal, autonomous AI agent that runs locally on your own
-machine. It is powered by kiro-cli (KiroACP) and reaches tools over the Model
-Context Protocol (MCP). Everything below is the reference for the features you
-can reach from the dashboard, the CLI, or a connected messaging channel.
+Junction is a local control plane: dock ACP coding agents and route their
+models. It reaches tools over the Model Context Protocol (MCP). Everything
+below is the reference for the features you can reach from the dashboard,
+the CLI, or a connected messaging channel. `kiro-cli` is optional.
 
 ## Quick Start
 
-Install the prebuilt, signed wheel:
+Install from source (see [Getting Started](getting-started.md)), then:
 
 ```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
+junction gateway     # → http://localhost:5476
 ```
 
-Then start the gateway and open the dashboard:
+`kiro-cli` is optional. Dock Cursor, Claude, Codex, or another ACP runtime.
+See [Getting Started](getting-started.md) for the source install, first-time
+setup, and connecting messaging channels.
 
-```bash
-kirocrew gateway     # → http://localhost:5476
-```
-
-`kiro-cli` must be installed, on your `PATH`, and logged in. See
-[Getting Started](getting-started.md) for the source install, the pip channel
-index, first-time setup, and connecting messaging channels.
+Site: https://junction.computer
 
 ## Core Capabilities
 
@@ -43,7 +39,7 @@ index, first-time setup, and connecting messaging channels.
 
 | Feature | Description |
 |---------|-------------|
-| [Backup & Restore](snapshot-and-restore.md) | Portable snapshot and restore of Kiro Crew state, for upgrades and machine migration |
+| [Backup & Restore](snapshot-and-restore.md) | Portable snapshot and restore of Junction state, for upgrades and machine migration |
 | [Knowledge Library](knowledge-library-how-it-works.md) | Semantic search over your own documents, folders, and generated artifacts |
 | [Web Deploy](deploy-web.md) | Publish artifacts to a public HTTPS URL on your own AWS (private S3 + CloudFront + OAC) |
 | [Inbound Webhooks](inbound-webhooks.md) | Let an external system trigger an agent turn over HTTP — named tokens, HMAC request signing, a reversible off switch, ephemeral sessions, `register_hook` resume context |
@@ -56,7 +52,7 @@ index, first-time setup, and connecting messaging channels.
 
 ## Chat Channels
 
-Besides the dashboard and CLI, Kiro Crew ships channel integrations for
+Besides the dashboard and CLI, Junction ships channel integrations for
 [Slack](slack-integration.md), [Discord](discord-integration.md),
 [Telegram](telegram-integration.md), [Teams](teams-integration.md),
 [Webex](webex-integration.md), [WeCom](wecom-integration.md),
@@ -83,7 +79,7 @@ in [Messaging Transport](messaging-transport.md).
 - OS-level sandbox for the agent process, layered on top of kiro-cli's own
 - Credential redaction across every LLM output path
 - HMAC-SHA256 signed, IP-pinned dashboard tokens
-- Denied-command rules enforced at Kiro Crew's own PreToolUse gate, with audit
+- Denied-command rules enforced at Junction's own PreToolUse gate, with audit
   logging
 - Prompt-injection credential-exfiltration protection
 - Slack access is owner-only: multi-user access and open channels are refused
@@ -92,6 +88,6 @@ in [Messaging Transport](messaging-transport.md).
 
 ## Links
 
-- [Repository](https://github.com/kirodotdev/KiroCrew): source, issues, and
+- [Repository](https://github.com/laqaer/acpcrew): source, issues, and
   feature requests. `CONTRIBUTING.md` in the repository root has the
   contribution guidelines.

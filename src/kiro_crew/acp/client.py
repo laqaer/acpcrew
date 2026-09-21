@@ -2871,11 +2871,7 @@ class AcpClient:
         _spawn_label = (
             "claude-agent-acp"
             if self._is_claude
-            else (
-                f"acp:{self.backend}"
-                if self._is_spec
-                else f"{KIRO_CLI_BIN} {KIRO_CLI_SUBCMD}"
-            )
+            else (f"acp:{self.backend}" if self._is_spec else f"{KIRO_CLI_BIN} {KIRO_CLI_SUBCMD}")
         )
         # Everything from here to the end of _spawn runs with a LIVE subprocess
         # that nothing has recorded yet, so every step must be guarded. Without
@@ -3004,11 +3000,7 @@ class AcpClient:
             self._stderr_lines.append(text)
             redacted, _ = redact_exfiltration_urls(text)
             redacted, _ = redact_credentials(redacted)
-            _bin_label = (
-                "claude-acp"
-                if self._is_claude
-                else (self.backend or KIRO_CLI_BIN)
-            )
+            _bin_label = "claude-acp" if self._is_claude else (self.backend or KIRO_CLI_BIN)
             logger.warning("%s stderr: %s", _bin_label, redacted)
         if suppressed:
             # Flush the residual count once the stream closes so the final burst
@@ -3338,9 +3330,7 @@ class AcpClient:
     async def _initialize_session(self) -> None:
         """Handshake: initialize → session/load or session/new → set_mode → set_model."""
         # 1. Initialize
-        protocol_version: int | str = (
-            PROTOCOL_VERSION_CLAUDE if self._is_spec else PROTOCOL_VERSION
-        )
+        protocol_version: int | str = PROTOCOL_VERSION_CLAUDE if self._is_spec else PROTOCOL_VERSION
         init_id = await self._send_request(
             METHOD_INITIALIZE,
             {
@@ -3495,7 +3485,7 @@ class AcpClient:
                     f"(advertised modes: {self._available_mode_ids or 'none'}); its "
                     f"~/.kiro/agents/{self._agent}.json is likely missing. Refusing "
                     f"to run the backend default mode in its place. Run "
-                    f"`kirocrew setup --agent-only` to materialize the agent config."
+                    f"`junction setup --agent-only` to materialize the agent config."
                 )
 
         # 5. Set model — override if KiroCrew config specifies non-default.

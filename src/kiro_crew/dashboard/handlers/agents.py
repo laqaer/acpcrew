@@ -1143,7 +1143,7 @@ async def api_models(request: web.Request) -> web.Response:
         # (guarded by _model_rejected_reason / api_chat_slot_model, which rejects
         # canonical registry keys the ACP CLI can't accept). The upstream
         # registry-key canonicalization is deliberately NOT ported — it is
-        # incompatible with this fork's _model_rejected_reason guard. The window
+        # incompatible with Junction's _model_rejected_reason guard. The window
         # seeding above uses kiro's authoritative context_window_tokens to give
         # the backfill real GPT/DeepSeek/Qwen windows, independent of the
         # wire-format choice.

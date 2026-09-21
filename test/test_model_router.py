@@ -141,6 +141,7 @@ def test_router_is_a_listed_cli_command() -> None:
     from kiro_crew import cli_help
 
     assert "router" in cli_help.SUMMARIES
+    assert "planes" in cli_help.SUMMARIES
 
 
 def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:

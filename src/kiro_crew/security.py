@@ -160,17 +160,15 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         # purpose (a redirect between name and verb, a quoted verb) are the floor's.
         pattern=(
             "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*"
-            "[\\w.:/\\\\-]*kiro[-.]?crew\\b[^|;&#>/*]*\\btoken\\b"
+            "[\\w.:/\\\\-]*(?:kiro[-.]?crew|junction|acpcrew)\\b[^|;&#>/*]*\\btoken\\b"
         ),
         category="credential-exfil",
         description=(
-            "Blocks the `kirocrew token` CLI, which mints a signed dashboard access token an "
-            "attacker could use to authenticate to the gateway. Matches the CLI name and the "
-            "token verb within one command segment -- including nested forms such as `kirocrew "
-            "pod token` and the hyphenated `kiro-crew` spelling -- so an incidental mention of "
-            "the word in a later command, a comment, or a file path is not a mint. The argv "
-            "floor additionally covers `python -m kiro_crew ... token`, which mints the same "
-            "token through the interpreter rather than the console script."
+            "Blocks the `junction token` / `kirocrew token` CLI, which mints a signed dashboard "
+            "access token an attacker could use to authenticate to the gateway. Matches the CLI "
+            "name (including public aliases `junction` and `acpcrew`) and the token verb within "
+            "one command segment. The argv floor additionally covers `python -m kiro_crew ... "
+            "token`."
         ),
     ),
     DeniedCommandRule(
@@ -205,18 +203,21 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         pattern=(
             "(?:"
             # (a) argv literal: the two words as adjacent QUOTED arguments.
-            "['\"][\\w.:/\\\\-]*kiro[-.]?crew[\\w.]*['\"][\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"]token['\"]"
+            "['\"][\\w.:/\\\\-]*(?:kiro[-.]?crew|junction|acpcrew)[\\w.]*['\"]"
+            "[\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"]token['\"]"
             # (b) SINK-QUALIFIED single string: the two words inside ONE quoted
             # string, but only as the argument of a call that EXECUTES it.  The
             # sink prefix is what makes this safe -- it is precisely what a regex
             # literal (``re.search(...)``), a commit message and prose lack, so
             # they stay allowed while ``os.system(\"... token\")`` does not.
-            "|" "(?:os\\.system|os\\.popen|os\\.exec\\w*|(?:asyncio\\.)?create_subprocess_\\w*"
+            "|"
+            "(?:os\\.system|os\\.popen|os\\.exec\\w*|(?:asyncio\\.)?create_subprocess_\\w*"
             "|(?:\\w+\\.)?(?:run|call|check_call|check_output|popen|Popen|getoutput|getstatusoutput)"
             "|commands\\.getoutput|popen\\d?|system|shell_exec|passthru|proc_open"
             "|child_process\\.exec\\w*|exec\\w*sync|spawn\\w*"
             "|kernel\\.system|io\\.popen)"
-            "\\s*\\(?\\s*[a-z]{0,2}['\"][^'\"]*\\b(?:kiro[-.]?crew|irocrew)\\b"
+            "\\s*\\(?\\s*[a-z]{0,2}['\"][^'\"]*"
+            "\\b(?:kiro[-.]?crew|irocrew|junction|acpcrew)\\b"
             "[^'\"]*\\btoken\\b"
             ")"
         ),
@@ -255,11 +256,11 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
             "(?:"
             # (a) the command as a single quoted string.
             "\\s*\\(?\\s*[a-z]{0,2}['\"][^'\"]*\\b(?:pkill|killall)\\b"
-            "[^'\"]*\\b(?:kiro[-.]?crew|irocrew)\\b"
+            "[^'\"]*\\b(?:kiro[-.]?crew|irocrew|junction|acpcrew)\\b"
             # (b) the command as an argv LIST -- verb and target as separate quoted
             # elements (``run(['pkill','-f','kirocrew'])``), list concatenation included.
             "|[\\s\\(\\[]*['\"][\\w.:/\\\\-]*(?:pkill|killall)['\"]"
-            "[\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"][^'\"]*(?:kiro[-.]?crew|irocrew)"
+            "[\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"][^'\"]*(?:kiro[-.]?crew|irocrew|junction|acpcrew)"
             ")"
             # --- a DIRECT process-kill API, which IS the sink and therefore stands on
             # its own rather than behind the list above: ``os.kill(pid_from("[k]irocrew
@@ -267,7 +268,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
             # same call.  Matched on ``irocrew`` rather than the full name so the
             # standard "don't match my own lookup" bracket idiom (``[k]irocrew``), which
             # still resolves to the gateway, is not a free pass.
-            "|(?:os\\.kill(?:pg)?|process\\.kill|\\bkillpg)\\s*\\([^)]*irocrew"
+            "|(?:os\\.kill(?:pg)?|process\\.kill|\\bkillpg)\\s*\\([^)]*(?:irocrew|junction|acpcrew)"
             ")"
         ),
         category="self-protection",
@@ -1351,7 +1352,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         # byte-identical to the ``credential-exfil-s3-cp``/aws idiom on purpose:
         # ``_linearize_deny_pattern`` rewrites exactly that spelling into its
         # linear-time equivalent, so reusing it keeps these rules ReDoS-safe (#4799).
-        pattern=".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+restart.*",
+        pattern=".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+restart.*",
         category="self-protection",
         description=(
             "Blocks 'kirocrew restart' so the agent cannot restart its own gateway process and "
@@ -1360,7 +1361,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="self-protection-update",
-        pattern=".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+update.*",
+        pattern=".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+update.*",
         category="self-protection",
         description=(
             "Blocks 'kirocrew update' so the agent cannot self-update (git pull + rebuild + "
@@ -1370,7 +1371,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     DeniedCommandRule(
         id="self-protection-cloud",
         pattern=(
-            ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+cloud\\s+"
+            ".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+cloud\\s+"
             "(destroy|stop|start|launch|connect|tunnel|log(in|out)).*"
         ),
         category="self-protection",
@@ -1382,7 +1383,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="self-protection-cron-adopt",
-        pattern=".*kiro.?crew\\b(?:(?!&&)[^;|])*?\\bcron\\b(?:(?!&&)[^;|])*?\\badopt\\b.*",
+        pattern=".*(?:kiro.?crew|junction|acpcrew)\\b(?:(?!&&)[^;|])*?\\bcron\\b(?:(?!&&)[^;|])*?\\badopt\\b.*",
         category="self-protection",
         description=(
             "Blocks 'kirocrew cron adopt' so the agent cannot assign itself ownership of a "
@@ -1400,7 +1401,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="self-protection-gateway-restart",
-        pattern=".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+gateway restart.*",
+        pattern=".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+gateway restart.*",
         category="self-protection",
         description=(
             "Blocks 'kirocrew gateway restart' so the agent cannot bounce its own gateway "
@@ -1430,14 +1431,14 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
             # quoted or path-qualified -- so the word merely appearing in another
             # command's arguments (``echo pkill kirocrew``) is not a kill.
             "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*"
-            "(?:pkill|killall)\\b[^;&#>]*\\bkiro[-.]?crew\\b"
+            "(?:pkill|killall)\\b[^;&#>]*\\b(?:kiro[-.]?crew|junction|acpcrew)\\b"
             # Bare ``kill`` takes PIDs, so it can only aim at the product through
             # a command substitution that resolves the name to one.  The gap after
             # the opener is deliberately NOT stopped at ``)``: a nested
             # substitution (``$(pgrep -f "$(printf '')kirocrew")``) closes an inner
             # paren first, and stopping there would let that form through.
             "|(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*"
-            "kill\\b[^;&#>]*(?:\\$\\(|`)[^;&#>]*\\bkiro[-.]?crew\\b"
+            "kill\\b[^;&#>]*(?:\\$\\(|`)[^;&#>]*\\b(?:kiro[-.]?crew|junction|acpcrew)\\b"
             ")"
         ),
         category="self-protection",
@@ -1547,6 +1548,19 @@ _LEGACY_RULE_ID_BY_PATTERN: dict[str, str] = {
         "self-protection-cloud"
     ),
     ".*kiro.?crew gateway restart.*": "self-protection-gateway-restart",
+    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+restart.*": "self-protection-restart",
+    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+update.*": "self-protection-update",
+    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+cloud\\s+"
+    "(destroy|stop|start|launch|connect|tunnel|log(in|out)).*": "self-protection-cloud",
+    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+gateway restart.*": (
+        "self-protection-gateway-restart"
+    ),
+    ".*kiro.?crew\\b(?:(?!&&)[^;|])*?\\bcron\\b(?:(?!&&)[^;|])*?\\badopt\\b.*": (
+        "self-protection-cron-adopt"
+    ),
+    "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*kiro[-.]?crew\\b[^|;&#>/*]*\\btoken\\b": (
+        "credential-exfil-kirocrew-token"
+    ),
 }
 
 
@@ -2434,7 +2448,7 @@ DENY_REASON_MATCH_PREFIX = DENY_REASON_PREFIX.rstrip()
 # contains the product name" is exactly the false positive these rules exist to
 # stop.  Tokenizing resolves quoting and redirection BEFORE matching, so both
 # sides can be exact.  See ``_is_credential_mint`` / ``_is_self_kill``.
-_SELF_NAME_RE = re.compile(r"kiro[-.]?crew")
+_SELF_NAME_RE = re.compile(r"kiro[-.]?crew|\bjunction\b|\bacpcrew\b")
 # ``[k]irocrew`` -- a one-character bracket class expands to that character, so it names
 # the protected program.  Collapsed before comparison rather than folded into every name
 # pattern, so a single rule covers the idiom wherever it appears in the word.
@@ -2444,16 +2458,18 @@ _ONE_CHAR_CLASS_RE = re.compile(r"\[(\w)\]")
 def _debracket(text: str) -> str:
     """Collapse one-character bracket classes (``[k]irocrew`` -> ``kirocrew``)."""
     return _ONE_CHAR_CLASS_RE.sub(r"\1", text)
+
+
 # The product name as a WHOLE program name (bare or the tail of a path), which is
 # what distinguishes ``bin/kirocrew token`` from ``cd kirocrew-wt-x``.
 
 
-_SELF_PROGRAM_RE = re.compile(r"\Akiro[-.]?crew(?:\.(?:exe|cmd|bat|sh|py))?\Z")
+_SELF_PROGRAM_RE = re.compile(r"\A(?:kiro[-.]?crew|junction|acpcrew)(?:\.(?:exe|cmd|bat|sh|py))?\Z")
 # Shell glob metacharacters, and the concrete spellings a glob could expand to.  A
 # glob in the program name (``kiro[c]rew``) is resolved by the shell BEFORE exec, so
 # it has to be tested for expandability rather than compared literally.
 _GLOB_CHARS_RE = re.compile(r"[\[\]?*{}]")
-_SELF_PROGRAM_SPELLINGS = ("kirocrew", "kiro-crew", "kiro.crew")
+_SELF_PROGRAM_SPELLINGS = ("kirocrew", "kiro-crew", "kiro.crew", "junction", "acpcrew")
 # The kill programs that select their target BY NAME.  Bare ``kill`` takes PIDs
 # and is handled separately (it can only reach the product through a command
 # substitution that resolves the name), and both verbs are matched on TOKENS via
@@ -2809,10 +2825,42 @@ _ENV_SPLIT_PROGRAMS = frozenset({"env"})
 # unrecognised program is "this could execute the name".
 _DATA_CONSUMER_PROGRAMS = frozenset(
     {
-        "echo", "printf", "print", "cat", "tac", "tee", "head", "tail", "less", "more",
-        "grep", "egrep", "fgrep", "rg", "ag", "ack", "sed", "awk", "cut", "tr", "sort",
-        "uniq", "wc", "nl", "fold", "column", "comm", "diff", "strings", "jq", "yq",
-        "base64", "md5sum", "sha256sum", "xxd", "od",
+        "echo",
+        "printf",
+        "print",
+        "cat",
+        "tac",
+        "tee",
+        "head",
+        "tail",
+        "less",
+        "more",
+        "grep",
+        "egrep",
+        "fgrep",
+        "rg",
+        "ag",
+        "ack",
+        "sed",
+        "awk",
+        "cut",
+        "tr",
+        "sort",
+        "uniq",
+        "wc",
+        "nl",
+        "fold",
+        "column",
+        "comm",
+        "diff",
+        "strings",
+        "jq",
+        "yq",
+        "base64",
+        "md5sum",
+        "sha256sum",
+        "xxd",
+        "od",
     }
 )
 # Control operators that end one command and begin another.  Used to find the
@@ -2937,9 +2985,7 @@ def _resolve_function_aliases(tokens: "list[str]") -> "list[str]":
 # ``${VAR:0}`` / ``${VAR^^}`` / ``${VAR/x/y}`` and friends TRANSFORM a variable's own
 # value.  The ``:-``/``:+``/``:=``/``:?`` default forms are deliberately NOT matched here --
 # those carry a literal of their own and are handled by ``_resolve_param_defaults``.
-_PARAM_TRANSFORM_RE = re.compile(
-    r"\$\{([A-Za-z_]\w*)(?::(?![-+=?])[^}]*|[#%^,/@][^}]*)\}"
-)
+_PARAM_TRANSFORM_RE = re.compile(r"\$\{([A-Za-z_]\w*)(?::(?![-+=?])[^}]*|[#%^,/@][^}]*)\}")
 
 
 # ``${!VAR}`` expands to the value of the variable NAMED by ``VAR`` -- one more hop
@@ -3032,9 +3078,7 @@ def _resolve_local_assignments(tokens: "list[str]") -> "list[str]":
             # matters where it is used as a program or verb, and a wrong guess there is a
             # refusal, not a bypass.  The ``:-``/``:+``/``:=``/``:?`` DEFAULT forms are
             # excluded: they carry their own literal and are resolved separately.
-            token = _PARAM_TRANSFORM_RE.sub(
-                lambda m: values.get(m.group(1), m.group(0)), token
-            )
+            token = _PARAM_TRANSFORM_RE.sub(lambda m: values.get(m.group(1), m.group(0)), token)
             token = _INDIRECT_VAR_USE_RE.sub(
                 lambda m: values.get(values.get(m.group(1), ""), m.group(0)), token
             )
@@ -3115,12 +3159,12 @@ def _pipes_into_evaluator(tokens: "list[str]") -> bool:
 
 # Constructs by which a text-processing tool RUNS a command rather than printing it:
 # ``awk``'s ``system()`` and pipe-to-command, and GNU ``sed``'s ``e`` flag.
-_SCRIPT_EXECUTES_RE = re.compile(
-    r"system\s*\(|\|\s*[\"']|\|&|print\s*\||\bclose\s*\(|/e\b|\be\s*$"
-)
+_SCRIPT_EXECUTES_RE = re.compile(r"system\s*\(|\|\s*[\"']|\|&|print\s*\||\bclose\s*\(|/e\b|\be\s*$")
 
 
-def _data_consumer_exempt(index: int, token: str, programs: "list[str]", tokens: "list[str]") -> bool:
+def _data_consumer_exempt(
+    index: int, token: str, programs: "list[str]", tokens: "list[str]"
+) -> bool:
     """True if *token* is an ARGUMENT of a command that treats arguments as data.
 
     ``echo <name> <verb>`` prints two words -- a mention, not an invocation.
@@ -3145,8 +3189,10 @@ def _data_consumer_exempt(index: int, token: str, programs: "list[str]", tokens:
         return False
     # ``$(printf <name>) <verb>`` puts the consumer INSIDE a substitution that occupies
     # program position, so its OUTPUT is what runs -- the words are not inert data.
-    if tokens and tokens[0].lstrip("\"'").startswith("$(") or (
-        tokens and tokens[0].lstrip("\"'").startswith("`")
+    if (
+        tokens
+        and tokens[0].lstrip("\"'").startswith("$(")
+        or (tokens and tokens[0].lstrip("\"'").startswith("`"))
     ):
         return False
     # A "data consumer" that can EXECUTE is not one for this command.  ``awk`` has
@@ -3995,7 +4041,7 @@ def _python_reads_stdin(later_tokens: list[str]) -> bool:
 # Matched WITHOUT re.IGNORECASE on purpose: the floor's own contract is that
 # callers pass already-lowercased text (`is_denied` lowercases once), and the
 # predicates' regexes are lowercase-only too.
-_SELF_FLOOR_NAME_HINT_RE = re.compile(r"kiro[-._]?crew")
+_SELF_FLOOR_NAME_HINT_RE = re.compile(r"kiro[-._]?crew|\bjunction\b|\bacpcrew\b")
 _SELF_FLOOR_MACHINERY_RE = re.compile(r"[?*\[\]{}$`~]|\\x[0-9a-f]|\\0?[0-7]{1,3}")
 _SELF_FLOOR_QUOTE_JUNK_RE = re.compile(r"[\"'\\\\]")
 
@@ -5509,8 +5555,7 @@ def _build_sensitive_regex() -> re.Pattern[str]:
     # alone. The name run is length-capped to bound backtracking.
     win_gsep = rf"(?:{win_sep}(?:\.|[^\\/\s'\"]{{1,64}}{win_sep}\.\.))*{win_sep}"
     win_dirs_pattern = "|".join(
-        win_gsep.join(re.escape(part) for part in d.split("/"))
-        for d in _SENSITIVE_HOME_DIRS
+        win_gsep.join(re.escape(part) for part in d.split("/")) for d in _SENSITIVE_HOME_DIRS
     )
     generic_win_home = rf"[A-Za-z]:{win_sep}(?:Users|home){win_sep}[^\\/\s'\"]+"
     unc_prefix = r"\\\\[^\s'\"]+"
@@ -5528,16 +5573,12 @@ def _build_sensitive_regex() -> re.Pattern[str]:
         rf"|{re.escape('$env:HOMEDRIVE$env:HOMEPATH')}"
         rf"|{re.escape('${env:HOMEDRIVE}${env:HOMEPATH}')})"
     )
-    win_home_alts = (
-        f"(?:{home}|{generic_win_home}|{unc_prefix}|{userprofile}|{tilde}|{home_var})"
-    )
+    win_home_alts = f"(?:{home}|{generic_win_home}|{unc_prefix}|{userprofile}|{tilde}|{home_var})"
     # Between the anchor and the fenced remainder, accept the same
     # canonical-no-op chains (``\.\``, ``\X\..\``): they are equivalent to a
     # plain separator, so ``%APPDATA%\.\kiro-cli\data.sqlite3`` and
     # ``...\AppData\Roaming\..\Roaming\kiro-cli\...`` still name the store.
-    win_sensitive_path = (
-        rf"{win_home_alts}{win_gsep}(?:{win_dirs_pattern})(?:{win_sep}|\s|$|['\"])"
-    )
+    win_sensitive_path = rf"{win_home_alts}{win_gsep}(?:{win_dirs_pattern})(?:{win_sep}|\s|$|['\"])"
     # ``%APPDATA%`` already points INTO ``AppData\Roaming``, so a spelling like
     # ``%APPDATA%\kiro-cli\data.sqlite3`` names a fenced store WITHOUT the
     # ``AppData\Roaming`` text the branch above anchors on. Map the variable
@@ -5597,8 +5638,7 @@ def _build_sensitive_regex() -> re.Pattern[str]:
     # generalized separator, so both spellings of every leaf are gated
     # identically and a leaf added to the tuple is covered in both.
     win_wp_prefixes = "|".join(
-        win_gsep.join(re.escape(part) for part in p.split("/"))
-        for p in _CREW_HOME_PREFIXES
+        win_gsep.join(re.escape(part) for part in p.split("/")) for p in _CREW_HOME_PREFIXES
     )
     win_wp_leaves = "|".join(
         win_gsep.join(re.escape(part) for part in leaf.split("/"))
@@ -5644,9 +5684,7 @@ def _build_sensitive_regex() -> re.Pattern[str]:
         rf"(?:{home_alts}/(?:{agents_dir_alt})"
         rf"|{kiro_home_var}/(?:{agents_leaf_alt}))(?:/|\s|$|['\"])"
     )
-    win_agents_dir_alt = win_gsep.join(
-        re.escape(part) for part in _KIRO_AGENTS_DIR.split("/")
-    )
+    win_agents_dir_alt = win_gsep.join(re.escape(part) for part in _KIRO_AGENTS_DIR.split("/"))
     # cmd.exe ``%KIRO_HOME%`` (with expansion modifiers) and the two PowerShell
     # spellings, mirroring ``userprofile``/``appdata_var`` above.
     win_kiro_home_var = (
@@ -6163,8 +6201,7 @@ _SENSITIVE_SEGMENT_ALT = "|".join(re.escape(d) for d in _SENSITIVE_HOME_DIRS)
 # the traversal matcher below alongside the POSIX one. Forward-slash-only
 # entries still match (the class includes ``/``), so this strictly widens.
 _SENSITIVE_SEGMENT_ALT_ANYSEP = "|".join(
-    r"[\\/]".join(re.escape(part) for part in d.split("/"))
-    for d in _SENSITIVE_HOME_DIRS
+    r"[\\/]".join(re.escape(part) for part in d.split("/")) for d in _SENSITIVE_HOME_DIRS
 )
 _RELATIVE_SENSITIVE_RE = re.compile(
     rf"(?:^|[\s'\"=:,;])(?:\.\.?[\\/])+(?:{_SENSITIVE_SEGMENT_ALT_ANYSEP})(?:[\\/]|\s|$|['\"])",
@@ -6311,8 +6348,7 @@ _SHELL_ASSIGN_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)(\+?)=(.*)$", re.DOTALL
 # saw it and the path resolved clean. The body admits one level of nesting so
 # `${V:-${W}}` resolves on the outer name rather than the inner one.
 _SHELL_VAR_REF_RE = re.compile(
-    r"\$\{[!#]?([A-Za-z_][A-Za-z0-9_]*)(?:[^{}]|\$\{[^{}]*\})*\}"
-    r"|\$([A-Za-z_][A-Za-z0-9_]*)"
+    r"\$\{[!#]?([A-Za-z_][A-Za-z0-9_]*)(?:[^{}]|\$\{[^{}]*\})*\}" r"|\$([A-Za-z_][A-Za-z0-9_]*)"
 )
 
 #: Shell keywords whose whole job is to assign. The name they set persists just as
@@ -6807,9 +6843,7 @@ def _expansion_readings(token: str, assignments: dict[str, str]) -> list[str]:
 _BRACE_OPERATOR_RE = re.compile(r"^(?::[-+=?]|##?|%%?|\^\^?|,,?|[-+=?]|/)")
 #: ``${NAME<operator><operand>}``, with the tail captured so the operand can be
 #: read out of it. One level of nesting, matching `_SHELL_VAR_REF_RE`.
-_BRACE_WITH_OPERAND_RE = re.compile(
-    r"\$\{[!#]?[A-Za-z_][A-Za-z0-9_]*((?:[^{}]|\$\{[^{}]*\})+)\}"
-)
+_BRACE_WITH_OPERAND_RE = re.compile(r"\$\{[!#]?[A-Za-z_][A-Za-z0-9_]*((?:[^{}]|\$\{[^{}]*\})+)\}")
 
 
 def _brace_operand_reading(token: str) -> str | None:
@@ -6883,8 +6917,7 @@ _GENERAL_PURPOSE_PARENT_DIRS: frozenset[str] = frozenset(
 #: Single-segment entries are excluded on purpose: their parent is the home
 #: directory, and treating ``~`` as holding a secret would taint ``cd ~``.
 _SENSITIVE_LEAF_PARENT_DIRS: list[str] = sorted(
-    {d.rsplit("/", 1)[0] for d in _SENSITIVE_HOME_DIRS if "/" in d}
-    - _GENERAL_PURPOSE_PARENT_DIRS
+    {d.rsplit("/", 1)[0] for d in _SENSITIVE_HOME_DIRS if "/" in d} - _GENERAL_PURPOSE_PARENT_DIRS
 )
 
 
@@ -7370,9 +7403,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
     return _check_sensitive_cd_taint(command)
 
 
-def _remember_bases(
-    seen: list[str], bases: list[str], sensitivity: dict[str, bool]
-) -> None:
+def _remember_bases(seen: list[str], bases: list[str], sensitivity: dict[str, bool]) -> None:
     """Add *bases* to the never-pruned *seen* list, keeping order and uniqueness.
 
     Bounded so a long chain of `cd`s cannot grow it without limit; the cap is far
@@ -7634,10 +7665,7 @@ def _shape_path_token(word: str) -> _PathShape:
     text = text.replace("\\", "/")
     if text.startswith("/"):
         absolute = True
-    raw = [
-        _strip_windows_component_padding(segment)
-        for segment in text.split("/")
-    ]
+    raw = [_strip_windows_component_padding(segment) for segment in text.split("/")]
     raw = [segment for segment in raw if segment not in ("", ".")]
     home_anchored = False
     if raw and _HOME_SEGMENT_RE.match(raw[0]):
@@ -7911,11 +7939,11 @@ def _check_sensitive_cd_taint(command: str) -> str | None:
                 # A cd target containing a command substitution with separators may
                 # assemble a sensitive path piecemeal that static analysis cannot
                 # reconstruct.  Fail closed: taint the command.
-                if ("$(" in target or "`" in target):
+                if "$(" in target or "`" in target:
                     inner = (
-                        target[target.index("$(") + 2:]
+                        target[target.index("$(") + 2 :]
                         if "$(" in target
-                        else target[target.index("`") + 1:]
+                        else target[target.index("`") + 1 :]
                     )
                     if any(sep in inner for sep in (";", "&&", "||", "\n")):
                         tainted_by = target
@@ -7940,9 +7968,7 @@ def _check_sensitive_cd_taint(command: str) -> str | None:
                 if target != expanded:
                     unexpanded = _rewrite_windows_home_anchor(target)
                     probe_orig = (
-                        os.path.expanduser(unexpanded)
-                        if unexpanded.startswith("~")
-                        else unexpanded
+                        os.path.expanduser(unexpanded) if unexpanded.startswith("~") else unexpanded
                     )
                     if (
                         is_sensitive_path(probe_orig)
@@ -8007,7 +8033,7 @@ def _check_sensitive_cd_taint(command: str) -> str | None:
             if taint_idx >= 0:
                 break
         if taint_idx >= 0:
-            for seg in aware_segments[taint_idx + 1:]:
+            for seg in aware_segments[taint_idx + 1 :]:
                 seg = seg.strip()
                 if not seg:
                     continue
@@ -8228,9 +8254,7 @@ def _valid_oauth_extension_path(path: str) -> bool:
 # a gateway restart, while repeated checks against an unchanged file cost one
 # ``stat`` instead of a read+parse+validate pass. (path, None) memoizes the
 # absent-file case; any stat/read error bypasses the memo and fails soft.
-_OAUTH_EXTENSION_MEMO: dict[
-    tuple[str, tuple[int, int] | None], frozenset[tuple[str, str]]
-] = {}
+_OAUTH_EXTENSION_MEMO: dict[tuple[str, tuple[int, int] | None], frozenset[tuple[str, str]]] = {}
 
 
 def _load_operator_oauth_endpoints() -> frozenset[tuple[str, str]]:
@@ -8265,9 +8289,7 @@ def _load_operator_oauth_endpoints() -> frozenset[tuple[str, str]]:
             return frozenset()
         raw = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        logger.debug(
-            "oauth_endpoints.json unreadable; ignoring extension file", exc_info=True
-        )
+        logger.debug("oauth_endpoints.json unreadable; ignoring extension file", exc_info=True)
         return frozenset()
 
     approved = _validate_operator_oauth_entries(raw)
@@ -8716,9 +8738,9 @@ def _exfil_url_warning(
         if next_payload == decoded_payload:
             break
         decoded_payload = next_payload
-        if _HARD_CREDENTIAL_RE.search(
+        if _HARD_CREDENTIAL_RE.search(decoded_payload) or _contains_fixed_credential(
             decoded_payload
-        ) or _contains_fixed_credential(decoded_payload):
+        ):
             return f"Suspicious URL with encoded credential in path/query: {domain}"
 
     # Fail closed when the budget above ran out with layers still to go. A
@@ -9368,10 +9390,7 @@ _PKCE_S256_CHALLENGE_RE = re.compile(r"[A-Za-z0-9_-]{43}\Z")
 
 def _text_contains_bare_secret(text: str) -> bool:
     """Return True when *text* contains an isolated bare AWS-secret run."""
-    return any(
-        _contains_bare_secret(match.group())
-        for match in _BARE_SECRET_RUN_RE.finditer(text)
-    )
+    return any(_contains_bare_secret(match.group()) for match in _BARE_SECRET_RUN_RE.finditer(text))
 
 
 def _oauth_credential_scan_target(
@@ -9461,9 +9480,7 @@ def oauth_url_contains_credential(url: str) -> bool:
         approved_endpoint=approved_endpoint,
     )
     for candidate in (scan_target, unquote(scan_target)):
-        if _contains_fixed_credential(candidate) or _text_contains_bare_secret(
-            candidate
-        ):
+        if _contains_fixed_credential(candidate) or _text_contains_bare_secret(candidate):
             return True
 
     # Provider consent URLs need neither path params nor fragments. Keep these

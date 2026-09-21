@@ -2536,10 +2536,8 @@ export default function App() {
               whole capsule tints danger (red border + subtle red bg + red
               dot), no "Offline" text — the color shift is the signal. When
               auth expired the session-expired banner stays the primary signal;
-              the capsule reddens quietly underneath it. (The upstream
-              enterprise-SSO segment is dropped here: that SSO flow is stubbed
-              in this fork. The Claude-cost usage branch is likewise dropped:
-              this fork's usage pill is Kiro-credits-only.) */}
+              the capsule reddens quietly underneath it. (The enterprise-SSO
+              segment is stubbed. Usage is credits-only.) */}
           {(() => {
             const offline = !connected
             const seg = `flex items-center gap-1 -my-0.5 px-1.5 py-0.5 rounded-md bg-transparent border-none cursor-pointer transition-colors hover:bg-bg-hover ${offline ? 'opacity-70' : ''}`

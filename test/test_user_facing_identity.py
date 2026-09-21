@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from kiro_crew import cli_help
-from kiro_crew.constants import PRODUCT_NAME
+from kiro_crew.constants import CLI_BIN, PRODUCT_NAME, SITE_URL
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -14,6 +14,8 @@ def test_readme_and_product_are_junction() -> None:
     readme = (_REPO_ROOT / "README.md").read_text(encoding="utf-8")
     product = (_REPO_ROOT / "PRODUCT.md").read_text(encoding="utf-8")
     assert PRODUCT_NAME == "Junction"
+    assert CLI_BIN == "junction"
+    assert SITE_URL == "https://junction.computer"
     assert "# Junction" in product or product.startswith("# Junction")
     assert "Where coding agents meet the models you want" in readme
     assert "Kiro Crew" not in readme
@@ -29,8 +31,19 @@ def test_cli_help_is_junction() -> None:
     assert cli_help.TOP_USAGE.startswith("junction ")
     rendered = cli_help.render_epilog()
     assert "junction gateway" in rendered
+    assert "  planes" in rendered
+    assert "harness + model plane" in rendered
     assert "Kiro Crew" not in rendered
     assert "kirocrew gateway" not in rendered
+
+
+def test_packaged_getting_started_is_junction() -> None:
+    gs = (_REPO_ROOT / "src/kiro_crew/docs/getting-started.md").read_text(encoding="utf-8")
+    assert "Junction" in gs
+    assert "kiro-cli is optional" in gs
+    assert "download.crew.kiro.dev" not in gs
+    assert "kirodotdev/KiroCrew" not in gs
+    assert "junction gateway" in gs
 
 
 def test_agents_md_leads_with_junction() -> None:

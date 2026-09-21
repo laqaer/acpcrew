@@ -94,17 +94,14 @@ export function AppPreview() {
             <span className="text-[13px] font-bold tracking-[.08em]" style={{ color: C.textStrong }}>JUNCTION</span>
           </div>
           <div className="hidden lg:flex items-center gap-1.5">
-            <Pill>Request a Feature</Pill>
+            <Pill>Planes</Pill>
             <span className="w-1.5 h-1.5 rounded-full mx-0.5" style={{ background: '#22c55e' }} />
             <span className="relative inline-flex">
               <Pill><Bell size={10} /></Pill>
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-0.5 rounded-full text-[7px] font-bold flex items-center justify-center text-white" style={{ background: C.accent }}>46</span>
             </span>
-            <Pill><span style={{ fontSize: 11 }}>〜</span></Pill>
+            <Pill>Role DAG</Pill>
             <Pill><Box size={10} /> Terminal</Pill>
-            <Pill><Link2 size={10} /> 41.6K/10K</Pill>
-            <Pill>⚷ 6h</Pill>
-            <Pill>v3.1.0</Pill>
+            <Pill>sidecar optional</Pill>
           </div>
         </div>
 
@@ -229,12 +226,12 @@ export function AppPreview() {
               </p>
               {/* diff block */}
               <div className="rounded-lg overflow-hidden text-[11px] font-mono" style={{ border: `1px solid ${C.border}` }}>
-                <div className="px-3 py-1.5" style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, color: C.muted }}>diff — AppPreview.tsx</div>
-                <div className="px-3 py-2" style={{ background: '#f5fbf6' }}>
-                  <div style={{ color: C.mutedSoft }}>@@ -0,0 +1,210 @@</div>
-                  <div style={{ color: '#16a34a' }}>+ // Self-contained light 1:1 replica of the dashboard</div>
-                  <div style={{ color: '#16a34a' }}>+ // flat rail · bordered session sidebar · folder counts</div>
-                  <div style={{ color: '#16a34a' }}>+ // two-line session cards · violet accent</div>
+                <div className="px-3 py-1.5" style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, color: C.muted }}>diff — role DAG</div>
+                <div className="px-3 py-2" style={{ background: '#14151c' }}>
+                  <div style={{ color: C.mutedSoft }}>@@ orchestration → planning → execution @@</div>
+                  <div style={{ color: '#e4a54a' }}>+ role_models.orchestration = economy</div>
+                  <div style={{ color: '#e4a54a' }}>+ role_models.planning = capable</div>
+                  <div style={{ color: C.muted }}>  sidecar optional; keys stay off chat</div>
                 </div>
               </div>
             </div>

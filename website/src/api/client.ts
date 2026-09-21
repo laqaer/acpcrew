@@ -1072,7 +1072,7 @@ function showSessionExpiredBanner(lead?: string): void {
   const b = document.createElement('b')
   b.textContent = lead ?? i18nT('api.client.session_expired')
   const code = document.createElement('code')
-  code.textContent = 'kirocrew token'
+  code.textContent = 'junction token'
   code.style.cssText = 'background:#7f1d1d;padding:2px 6px;border-radius:4px'
   const input = document.createElement('input')
   input.type = 'text'
@@ -2439,6 +2439,25 @@ export const api = {
       }>
     }>,
   modelRouterPlan: () => fetch('/api/model-router/plan').then(j),
+  planes: () =>
+    fetch('/api/planes').then(j) as Promise<{
+      product: string
+      cli: string
+      harness: {
+        default: string
+        selected: string
+        kiro_cli: string
+        runtimes: Array<{
+          id: string
+          available: boolean
+          protocol: string
+          optional: boolean
+        }>
+      }
+      model: { status: string }
+      gateway: { status: string; code: string }
+      code: string
+    }>,
   saveKirocrewConfig: (agent: object) => put('/api/config/kirocrew', { agent }).then(j) as Promise<{ ok?: boolean; restart_required?: boolean; error?: string }>,
   patchConfig: (path: string, value: unknown) => fetch('/api/config/kirocrew', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, value }) }).then(j),
   // Optional integrations — backend endpoints are graceful no-ops on a public

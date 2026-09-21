@@ -16,7 +16,7 @@ Frontend router: [`../../../website/AGENTS.md`](../../../website/AGENTS.md).
   (`website/src/i18n/format.ts`).
 - New copy that names the product writes `{{productName}}`, not a
   literal. Translations must keep the placeholder.
-- This fork's `DEFAULT_PRODUCT_NAME` is `Junction`
+- Junction's `DEFAULT_PRODUCT_NAME` is `Junction`
   (`website/src/i18n/index.ts`).
 - Catalog-wide rewrite of pre-existing hardcoded product literals is a
   **follow-up**. Do not sweep 13 locale files in the bootstrap PR.

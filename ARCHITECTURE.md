@@ -100,3 +100,13 @@ identifiers stay `KIROCREW_HOME` / `~/.kiro/crew` until a dedicated rename.
 | Probe fails closed | Harness only | Degraded: unreachable, no secrets |
 
 A missing model plane is not a gateway crash.
+
+## Compose surface
+
+CLI `junction planes`, `junction doctor` (Planes section), and
+`GET /api/planes` return one snapshot: harness inventory (auto
+preference, kiro-cli marked optional) plus model-sidecar health. They
+do not spawn agents, leave loopback, or change the Kiro harness path.
+Existing `junction router status|catalog|plan` routes stay the
+model-plane detail views.
+

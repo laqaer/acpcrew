@@ -1,4 +1,4 @@
-"""CLI ``kirocrew cloud`` command group — thin dispatchers into :mod:`cloud`.
+"""CLI ``junction cloud`` command group — thin dispatchers into :mod:`cloud`.
 
 Every verb here is a small wrapper that calls into the testable ``cloud/``
 engine. No AWS logic lives in this file. The verbs are **human/installer
@@ -41,7 +41,7 @@ def _resolve_tag(args: argparse.Namespace) -> str:
     cfg = CloudConfig.load()
     if not cfg.last_tag:
         ui.fail("No instance tag given and no previous launch found.")
-        ui.detail("Pass --tag <tag>, or run `kirocrew cloud list` to see instances.")
+        ui.detail("Pass --tag <tag>, or run `junction cloud list` to see instances.")
         sys.exit(1)
     return cfg.last_tag
 
@@ -196,7 +196,7 @@ def _cloud_login(args: argparse.Namespace) -> int:
         return 0
     ui.warn(
         "Sign-in not detected yet. Approve the code in the browser, then re-run "
-        "`kirocrew cloud login`."
+        "`junction cloud login`."
     )
     return 1
 
@@ -292,7 +292,7 @@ def _cloud_destroy(args: argparse.Namespace) -> int:
         # exit non-zero — otherwise automation would assume teardown finished
         # while AWS resources may still be billing.
         ui.warn("Delete started but did not confirm completion — resources may still exist.")
-        ui.detail("Check `kirocrew cloud status` (and the AWS console); re-run destroy if needed.")
+        ui.detail("Check `junction cloud status` (and the AWS console); re-run destroy if needed.")
         return 1
 
     # Confirmed deleted — now it's safe to drop the local Instances
@@ -366,7 +366,7 @@ def _cloud_doctor(args: argparse.Namespace) -> int:
     ui.note(f"{ui.BOLD}KiroCrew cloud — diagnostics{ui.RESET}")
     # Client prerequisites. Probe the exact binary resolved spawn sites execute
     # (the shared deploy-engine resolver), so the doctor's verdict agrees with
-    # what `kirocrew cloud` commands actually run under a GUI-launched
+    # what `junction cloud` commands actually run under a GUI-launched
     # gateway's minimal PATH.
     if shutil.which(resolve_aws_bin()):
         ui.ok("aws CLI found")
@@ -431,7 +431,7 @@ _DISPATCH = {
 
 
 def handle_cloud(args: argparse.Namespace) -> int:
-    """Entry point for ``kirocrew cloud <action>``."""
+    """Entry point for ``junction cloud <action>``."""
     action = getattr(args, "cloud_action", None)
     if not action:
         ui.note(f"{ui.BOLD}kirocrew cloud{ui.RESET} — run KiroCrew on your own AWS EC2")

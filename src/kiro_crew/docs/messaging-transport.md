@@ -1,6 +1,6 @@
 # Messaging Transport Architecture
 
-Channel-neutral contracts used by Kiro Crew's shipped Slack, Discord, Telegram,
+Channel-neutral contracts used by Junction's shipped Slack, Discord, Telegram,
 Webex, WeCom, Teams, Weixin, iMessage, and WhatsApp integrations. They also let a
 further channel be added without re-implementing streaming, tool approval,
 session identity, or rendering for each one.
@@ -8,7 +8,7 @@ session identity, or rendering for each one.
 - **Package:** `kiro_crew.messaging`
 - **Status:** contracts plus Slack, Discord, Telegram, Webex, WeCom, Teams,
   Weixin, and iMessage implementations shipped. Slack's transport path is **default ON** in
-  this fork (`messaging.use_transport`, default `true`) — opt out with `false`.
+  this tree (`messaging.use_transport`, default `true`) — opt out with `false`.
 
 ## Why
 
@@ -88,7 +88,7 @@ the neutral layers can degrade gracefully instead of branching on channel type:
 | `max_buttons` | many | ~8/row | 5/row | 0 |
 | `supports_proactive_send` | ✅ | ✅ | ✅ | ✅ |
 
-The WhatsApp column is the **personal-account** channel Kiro Crew ships, paired
+The WhatsApp column is the **personal-account** channel Junction ships, paired
 as a linked device over the WhatsApp Web protocol. Its numbers differ from the
 Business Cloud API in both directions, so figures quoted for the Cloud API do not
 apply: `max_buttons` is 0, so a trailing `[OPTIONS:]` trailer degrades to a
@@ -178,7 +178,7 @@ Slack is the reference implementation:
 3. else (opt-out, use_transport=false):           → native handle_message
 ```
 
-In this fork the flag defaults to `true` (`MessagingConfig.use_transport` and
+The flag defaults to `true` (`MessagingConfig.use_transport` and
 `config-baseline.json` both ship `true`, and `orch._cfg.messaging` is always
 populated), so the transport path handles every install's Slack messages unless
 an operator explicitly sets `messaging.use_transport = false` in config (plus a

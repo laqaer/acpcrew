@@ -1,4 +1,4 @@
-"""``kirocrew pod <verb>`` — kubectl-style control of worktree test pods.
+"""``junction pod <verb>`` — kubectl-style control of worktree test pods.
 
 Thin verb layer over :mod:`kiro_crew.pod.runtime` / :mod:`kiro_crew.pod.unit`.
 Dispatched from :func:`kiro_crew.cli_commands._pod`.
@@ -188,7 +188,7 @@ def _up(cfg: PodConfig, args: argparse.Namespace) -> None:
             if code == -1:
                 _die(
                     f"{name}: the worktree's gateway failed to start (see journal above). "
-                    f"This is the worktree build, not pod — fix it, then `kirocrew pod up {name}` again."
+                    f"This is the worktree build, not pod — fix it, then `junction pod up {name}` again."
                 )
             _die(
                 f"{name}: gateway never became healthy on :{port} within timeout "
@@ -615,7 +615,7 @@ def _exec(cfg: PodConfig, args: argparse.Namespace) -> None:
     name = rt.validate_name(args.name)
     argv = list(args.argv or [])
     if not argv:
-        _die("nothing to run — usage: kirocrew pod exec <name> -- <args…>")
+        _die("nothing to run — usage: junction pod exec <name> -- <args…>")
     # Validate BEFORE auditing: emitting "allowed" and then having the runtime
     # refuse the verb would record the opposite of the decision actually taken,
     # which is worse than no audit trail at all — SEL would attest that a denied
@@ -699,7 +699,7 @@ def _cleanup_internal(cfg: PodConfig, args: argparse.Namespace) -> None:
     entry point for a manual reclaim, and it re-validates the name, refusing
     ``..``/absolute/empty, so a caller that never went through the CLI's
     ``validate_name`` still cannot ``rm`` outside the pod root. Prefer
-    ``kirocrew pod down <name>``, which stops the service first.
+    ``junction pod down <name>``, which stops the service first.
     """
     rc = rt.cleanup_home(cfg, args.name)
     outcome = "allowed" if rc == 0 else "failure"
@@ -728,7 +728,7 @@ def dispatch(args: argparse.Namespace) -> None:
     action = getattr(args, "pod_action", None)
     if not action:
         print(
-            "Usage: kirocrew pod "
+            "Usage: junction pod "
             "{up|down|ls|prune|status|token|url|logs|exec|install|provision} …"
         )
         sys.exit(2)

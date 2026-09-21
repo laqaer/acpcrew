@@ -1,21 +1,21 @@
 # WeCom Integration
 
-Talk to your Kiro Crew agent from WeCom — through a WeCom (企业微信) AI bot. Create
+Talk to your Junction agent from WeCom — through a WeCom (企业微信) AI bot. Create
 the bot in your WeCom console, drop in two values, and you're chatting. Replies
 stream back live.
 
-> **WeChat vs. WeCom.** Kiro Crew connects through **WeCom (企业微信)**, the work
+> **WeChat vs. WeCom.** Junction connects through **WeCom (企业微信)**, the work
 > edition, using its AI-bot API. It does **not** sign in to a personal WeChat
 > account — people message the bot from inside WeCom.
 
-Like Telegram, the connection is outbound-only: Kiro Crew opens a secure
+Like Telegram, the connection is outbound-only: Junction opens a secure
 WebSocket to WeCom, so there's no callback URL or open port to manage.
 
-## The easy way: just ask Kiro Crew
+## The easy way: just ask Junction
 
-You don't have to edit anything by hand. In any Kiro Crew session — the
+You don't have to edit anything by hand. In any Junction session — the
 dashboard, Slack, or the CLI — say something like *"set up the WeCom channel."*
-Kiro Crew tells you where to create the WeCom AI bot, then writes your Bot ID and
+Junction tells you where to create the WeCom AI bot, then writes your Bot ID and
 Secret into `~/.kiro/crew/.env` and `config.json` and restarts the gateway for
 you. You just paste the two values when it asks.
 
@@ -23,7 +23,7 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ## Quick start
 
-You'll need a running gateway (`kirocrew gateway`) and admin access to your
+You'll need a running gateway (`junction gateway`) and admin access to your
 WeCom console.
 
 1. **Create an AI bot** — in the WeCom admin console, open **应用管理 → AI 智能体**
@@ -44,14 +44,14 @@ WeCom console.
    ```
 5. **Restart, then say hi:**
    ```bash
-   kirocrew restart
+   junction restart
    ```
 
 Message the bot in WeCom and it answers. If it stays quiet, look for
 `WeCom WS connected and subscribed` in the gateway log and confirm your userid
 is allowed.
 
-Those two values — **Bot ID** and **Secret** — are all Kiro Crew needs. There's
+Those two values — **Bot ID** and **Secret** — are all Junction needs. There's
 no corp ID, agent ID, callback URL, or AES key to wire up. Good to know about
 today's WeCom channel: it renders no tappable buttons, so a list of choices
 arrives as a numbered list you answer by typing. Tappable cards do exist in the
@@ -59,7 +59,7 @@ AI-bot API; they are not wired up yet.
 
 ## Who can reach it
 
-> **Kiro Crew runs on your machine, with your files and credentials.** So it only
+> **Junction runs on your machine, with your files and credentials.** So it only
 > talks to the owner and the userids you name.
 
 - Authorized senders: the **owner** (`KIROCREW_OWNER_ID`) plus anyone listed in

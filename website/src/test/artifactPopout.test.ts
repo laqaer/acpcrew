@@ -63,11 +63,11 @@ describe('artifactPopout.pruneStale', () => {
 
 describe('artifactPopout.popoutWindowName', () => {
   it('is stable and namespaced for an artifact slug', () => {
-    expect(popoutWindowName('cr-queue')).toBe('mc-artifact-popout-cr-queue')
+    expect(popoutWindowName('cr-queue')).toBe('junction-artifact-popout-cr-queue')
   })
 
   it('sanitizes characters that are invalid in a window name', () => {
-    expect(popoutWindowName('my artifact/v2')).toBe('mc-artifact-popout-my_artifact_v2')
+    expect(popoutWindowName('my artifact/v2')).toBe('junction-artifact-popout-my_artifact_v2')
   })
 })
 

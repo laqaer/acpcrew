@@ -765,9 +765,7 @@ def _project_identity_database(source: Path, destination: Path) -> bool:
                     if not table_rows:
                         continue
                     placeholders = ",".join("?" * len(table_rows[0]))
-                    staged.executemany(
-                        f'INSERT INTO "{table}" VALUES ({placeholders})', table_rows
-                    )
+                    staged.executemany(f'INSERT INTO "{table}" VALUES ({placeholders})', table_rows)
     except sqlite3.Error:
         with contextlib.suppress(OSError):
             os.unlink(str(destination))
@@ -1146,7 +1144,9 @@ def _ensure_auth_staging_parent(home: Path) -> Path:
             # private directory. Only abort if a non-directory we cannot clear is
             # STILL sitting here; otherwise fall through to the idempotent mkdir.
             # (#561, concurrent-boot race)
-            if staging_parent.is_symlink() or (staging_parent.exists() and not staging_parent.is_dir()):
+            if staging_parent.is_symlink() or (
+                staging_parent.exists() and not staging_parent.is_dir()
+            ):
                 raise OSError(
                     f"Kiro auth staging root {staging_parent} is not a private "
                     "directory and could not be reset"
@@ -2205,7 +2205,7 @@ class KiroPrerequisiteService:
             if not error and (result.get("missing_agent_specs") or []):
                 error = (
                     "The rebuild reported success but the specs are still missing. "
-                    "Run `kirocrew setup --agent-only --clean` on the gateway host."
+                    "Run `junction setup --agent-only --clean` on the gateway host."
                 )
             result["agent_spec_repair_error"] = error
             return result
@@ -2650,11 +2650,7 @@ class KiroPrerequisiteService:
                     )
                     self._stamp_probe(probe_identity)
                     return self._status
-                if (
-                    version_probe is not None
-                    and version_probe.timed_out
-                    and candidate_runnable
-                ):
+                if version_probe is not None and version_probe.timed_out and candidate_runnable:
                     # A probe that never answered is not evidence of absence. The
                     # spawn was accepted and raised no typed failure, so the
                     # sandbox branch above cannot claim it, and falling through to
@@ -2731,9 +2727,7 @@ class KiroPrerequisiteService:
             # cannot even resolve itself without its real-home registry — so the
             # isolated probe reported such CLIs signed-out even though a real
             # session authenticates fine.
-            whoami = await self._audited_identity_probe(
-                self._viable_binary, isolate_home=False
-            )
+            whoami = await self._audited_identity_probe(self._viable_binary, isolate_home=False)
             if whoami.ok:
                 await asyncio.to_thread(self._mark_setup_complete)
             # Acceptance is checked here, on the probe path, because it costs a
@@ -2745,9 +2739,7 @@ class KiroPrerequisiteService:
             rejected: list[str] = []
             rejection_detail = ""
             if whoami.ok:
-                rejected, rejection_detail = await self._probe_spec_acceptance(
-                    self._viable_binary
-                )
+                rejected, rejection_detail = await self._probe_spec_acceptance(self._viable_binary)
             self._status = PrerequisiteStatus(
                 platform=_platform_label(self._platform),
                 installed=True,
