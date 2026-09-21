@@ -17,3 +17,4 @@ Product overlay: [`../JUNCTION.md`](../JUNCTION.md). Envelope:
 | [integration-owner](skills/integration-owner/SKILL.md) | Verifying the bootstrap cut; authority envelope. |
 | [marketing-site](skills/marketing-site/SKILL.md) | `site/` copy, motif, preview deploy. |
 | [dashboard-i18n](skills/dashboard-i18n/SKILL.md) | User-facing dashboard strings; `{{productName}}`. |
+| [agent-os](skills/agent-os/SKILL.md) | Scout / implement / review loop; never merge. |

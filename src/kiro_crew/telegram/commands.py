@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import re
 
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.messaging.conversation import ConversationState  # noqa: F401
 
 # ── Command constants ──
@@ -293,7 +294,7 @@ def bot_command_payload() -> list[dict[str, str]]:
     return rows
 
 
-_HELP_HEADER = "🦞 Kiro Crew — Telegram"
+_HELP_HEADER = f"{PRODUCT_NAME} — Telegram"
 _HELP_FOOTER = (
     "/title <text> — rename this conversation\n"
     "/spawn <task> — run it in a background subagent (alias: /bg)\n"

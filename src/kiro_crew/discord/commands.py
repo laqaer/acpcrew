@@ -36,6 +36,7 @@ from typing import Any
 # them on whatever a caller hands it; the catalogue below builds rows against the
 # same two so a description this module truncates and one the client truncates
 # cannot disagree.
+from kiro_crew.constants import PRODUCT_NAME
 from kiro_crew.discord.client import _APP_COMMAND_DESC_LIMIT, _APP_COMMAND_NAME_RE
 from kiro_crew.messaging.conversation import ConversationState  # noqa: F401
 
@@ -232,7 +233,7 @@ def application_command_payload() -> list[dict[str, Any]]:
     return rows
 
 
-_HELP_HEADER = "🦞 **Kiro Crew — Discord**"
+_HELP_HEADER = f"**{PRODUCT_NAME} — Discord**"
 _HELP_FOOTER = (
     "While a reply is running, prefix a message to control it:\n"
     "`!queue <msg>` — answer it after the current turn\n"
