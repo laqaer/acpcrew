@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import {
-  Menu, MessageSquare, CalendarDays, Share2, Users, Zap, BookOpen, Store, Box, Globe, Target, Package, Settings,
+  Menu, MessageSquare, CalendarDays, BookOpen, Box, Settings,
   PanelLeft, MoreVertical, Plus, ChevronDown, ChevronRight, Search, ListFilter,
   History, Sparkles, Mic, ArrowUp, FolderOpen, GitMerge, Bell, Route,
 } from 'lucide-react';
@@ -24,16 +24,9 @@ const C = {
 
 const RAIL = [
   { icon: MessageSquare, active: true, dot: true },
+  { icon: Route },
   { icon: CalendarDays },
-  { icon: Share2 },
-  { icon: Users },
-  { icon: Zap },
   { gap: true, icon: BookOpen },
-  { icon: Store },
-  { icon: Box },
-  { icon: Globe },
-  { icon: Target, orange: true },
-  { icon: Package },
 ];
 
 const SWITCH = [
@@ -58,7 +51,7 @@ const SWITCH = [
 ];
 
 const SESSIONS = [
-  { time: '12:39 PM', title: 'Route orchestration to an economy model', preview: 'Plan uses kimi-oauth/k3 for orchestration…' },
+  { time: '12:39 PM', title: 'Route orchestration to an economy model', preview: 'Orchestration stays on an economy class…' },
   { time: '12:33 PM', title: 'Dock Codex and apply the role DAG', preview: 'junction router plan — orchestration → planning → execution' , active: true },
   { time: '12:22 PM', title: 'Sidecar health when the model plane is down', preview: 'Gateway still serves chat; catalog degrades honestly…' },
   { time: 'Thu 09:19 PM', title: 'Attach a local ACP runtime', preview: 'agent.acp_backend is auto; vendor CLIs optional…' },
@@ -118,7 +111,7 @@ export function AppPreview() {
             <div className="w-8 h-8 flex items-center justify-center" style={{ color: C.mutedSoft }}><Menu size={15} /></div>
             {RAIL.map((r, i) => (
               <div key={i} className={`relative w-8 h-8 rounded-lg flex items-center justify-center ${r.gap ? 'mt-3' : ''}`}
-                style={{ color: r.active ? C.accent : r.orange ? '#f59e0b' : C.muted, background: r.active ? C.accentBg : 'transparent' }}>
+                style={{ color: r.active ? C.accent : C.muted, background: r.active ? C.accentBg : 'transparent' }}>
                 <r.icon size={15} />
                 {r.dot && <span className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: C.accent }} />}
               </div>
@@ -203,8 +196,8 @@ export function AppPreview() {
               {/* assistant text */}
               <p className="text-[12px] leading-relaxed mb-3" style={{ color: C.text }}>
                 Studied the two planes and applied the role DAG — orchestration on
-                kimi-oauth/k3, planning on a mid-tier model, execution on the cheapest
-                that still lands the patch.
+                an economy class, planning on a capable model, execution on the
+                standard class that still lands the patch.
               </p>
               {/* user bubble */}
               <div className="flex justify-end mb-3">

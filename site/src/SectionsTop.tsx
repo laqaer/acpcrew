@@ -90,13 +90,12 @@ export function Hero() {
       </motion.p>
       <motion.pre initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
         className="mt-8 text-left max-w-[560px] mx-auto bg-slate-100 dark:bg-[#14151c] border border-[#e4a54a]/12 rounded-xl px-4 py-3 font-mono text-[13px] text-[#e4a54a] leading-relaxed overflow-x-auto">
-{`git clone https://github.com/laqaer/acpcrew.git
-cd acpcrew && pip install .
+{`curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
 junction setup && junction up`}
       </motion.pre>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
         className="mt-3 text-xs text-slate-500 dark:text-slate-400 font-space">
-        The dashboard binds to loopback on this machine.
+        Tracks the default branch. Read the script before you run it. The dashboard binds to loopback on this machine.
       </motion.p>
     </motion.section>
     <AppPreview />

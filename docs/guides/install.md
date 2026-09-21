@@ -81,11 +81,19 @@ config is coerced to it on load.
 
 ### Which path on Linux
 
-**Start with a source install.** Junction does not ship a public curl|sh CDN.
-Clone this repository, build, and run `junction up`. You work in the dashboard
-through your browser on loopback.
+**Start with the operator script** on macOS and Linux. It needs Python 3.10+
+and Node.js 22+. It clones this repository (it is not a release CDN), runs
+[`minimal_install.sh`](../../minimal_install.sh), and links `junction`. Read
+[`scripts/get-junction.sh`](../../scripts/get-junction.sh) before you run it.
 
-Install a **desktop package** (`.deb` / `.rpm`) from a local `make desktop`
+```bash
+curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
+junction setup
+junction up
+```
+
+Use a **source checkout** when you are changing Junction. Install a
+**desktop package** (`.deb` / `.rpm`) from a local `make desktop`
 when you want the things only the Electron shell provides: an application-menu
 entry and icon, a native window with persisted geometry, a dock/taskbar badge,
 a system-wide hotkey to summon the dashboard, a gateway that starts and stops
@@ -103,13 +111,13 @@ in the sandbox section. Prefer a package where you can.
 
 | You want | Use |
 |---|---|
-| The dashboard, a terminal, scheduled work, a server | **From source** (a) |
+| The dashboard, a terminal, scheduled work, a server | **Operator script** (above) or **from source** (a) |
 | A desktop app on Debian/Ubuntu | **`.deb`** (d) |
 | A desktop app on Fedora / RHEL / CentOS Stream / Amazon Linux 2023 | **`.rpm`** (d) |
 | A desktop app with no root and no package manager | **AppImage** (d) |
 | A container host | **Docker** ([guide](docker.md)) |
 
-### a. From source (recommended)
+### a. From source (development)
 
 Clone, build the dashboard, install the backend, then compose both planes:
 

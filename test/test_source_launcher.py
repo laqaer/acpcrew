@@ -123,6 +123,7 @@ def test_junction_wrapper_prefers_venv_junction(tmp_path: Path) -> None:
         [str(launcher), "up"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=tmp_path,
         env=env,
         timeout=10,

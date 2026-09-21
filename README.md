@@ -1,5 +1,5 @@
 > **Junction** is a local control plane: dock ACP coding agents and route
-> their models. CLI: `junction`. `kiro-cli` is optional. Default:
+> their models. CLI: `junction`. A vendor agent CLI is optional. Default:
 > `"agent": { "acp_backend": "auto" }`. See [PRODUCT.md](PRODUCT.md) and
 > [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start"><img src="https://img.shields.io/badge/Install-from%20source-2f6feb?style=flat-square" alt="Install Junction from source"></a>
+  <a href="#quick-start"><img src="https://img.shields.io/badge/Install-macOS%20%7C%20Linux-2f6feb?style=flat-square" alt="Install Junction"></a>
   <a href="docs/README.md"><img src="https://img.shields.io/badge/Documentation-1f6feb?style=flat-square" alt="Read the documentation"></a>
   <a href="docs/guides/install.md"><img src="https://img.shields.io/badge/Install%20guide-macOS%20%7C%20Linux%20%7C%20Windows-6e7781?style=flat-square" alt="Install guide for macOS, Linux, and Windows"></a>
   <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/Contributing-238636?style=flat-square" alt="Contributing guide"></a>
@@ -39,39 +39,43 @@
 
 ## Quick start
 
-You choose how to run Junction: the desktop app with automatic updates, a
-one-line install on your machine or a remote host, the Docker image for
-always-on servers, or a build from source. `kiro-cli` is optional. The
-gateway docks whichever ACP runtime is installed (`agent.acp_backend`
-defaults to `auto`: Cursor, Claude, Codex, and the rest).
+On macOS and Linux, one command clones this repository, builds the dashboard
+(Python 3.10+ and Node.js 22+), and links `junction`. Read
+[`scripts/get-junction.sh`](scripts/get-junction.sh) before you run it.
+A vendor agent CLI is optional. The gateway docks whichever ACP runtime is
+installed (`agent.acp_backend` defaults to `auto`).
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
+junction setup
+junction up
+```
+
+The script tracks the default branch. It does not start the server. Windows,
+and anyone working in a checkout, follows the source steps below.
 
 ### Install from source
 
-Junction ships from this repository. `kiro-cli` is optional. After install,
-the dashboard is `http://localhost:5476`.
+After a source install the dashboard is on loopback.
 
 ```bash
 git clone https://github.com/laqaer/acpcrew.git
 cd acpcrew
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+bash minimal_install.sh
 junction setup
-junction doctor --quick
 junction up
 ```
 
-Optional model plane: run a Codex Router sidecar on loopback, then
-`junction planes` for both rails and the role DAG, or `junction router catalog`
-and `junction router plan` for the detail views.
+Optional model plane: run a sidecar on loopback, then `junction planes` for
+both rails and the role DAG, or `junction router catalog` and
+`junction router plan` for the detail views.
 
-Desktop packages and a one-line installer are a later cut. Until then,
-install from source as above.
+Desktop packages are a later cut.
 
 ### Build from source
 
 macOS and Linux require Python 3.10+, Node.js 22+ (24 LTS recommended), and
-npm. An ACP runtime is required (Cursor, Claude, Codex, …);
-[`kiro-cli`](https://kiro.dev/docs/cli/) is optional. Windows is supported
+npm. An ACP runtime is optional. Windows is supported
 through a native source install; follow the
 [Windows guide](docs/guides/windows-install.md) instead of the shell steps below.
 
@@ -141,7 +145,7 @@ flowchart LR
 
 `junction up` composes both planes, then binds the dashboard to loopback.
 The harness plane docks whichever ACP runtime is installed (`agent.acp_backend`
-defaults to `auto`; `kiro-cli` is optional). The model plane is an optional
+defaults to `auto`; a vendor agent CLI is optional). The model plane is an optional
 sidecar — if it is down, the gateway still runs. Role routing spends cheap
 tokens on orchestration and capable tokens on planning. Pins in
 `agent.role_models` still win. Never paste provider keys into chat.
@@ -202,7 +206,7 @@ the runtime boundary instead of relying only on prompt instructions.
   connected messaging channel like Slack, Discord, or Telegram.
   Session-scoped trust can reduce repeated prompts without changing
   the underlying deny and sensitive-path controls.
-- **OS sandbox.** On Linux and macOS, `kiro-cli` can run inside namespace or
+- **OS sandbox.** On Linux and macOS, agent subprocesses can run inside namespace or
   Seatbelt isolation. Standard, strict, and off modes make the tradeoff
   explicit. Windows offers no equivalent OS-level layer, so Junction fails
   closed there: agent subprocesses are refused rather than run unconfined, until
@@ -328,12 +332,12 @@ main configuration with `junction config get`, `set`, and `edit`.
 ```
 
 `agent.provider` is fixed to `acp`. The gateway drives an ACP runtime over the
-Agent Client Protocol (`kiro-cli` optional). Set the dashboard port with `KIROCREW_PORT` or
+Agent Client Protocol (a vendor agent CLI is optional). Set the dashboard port with `KIROCREW_PORT` or
 `junction up --port <n>`. Messaging-channel credentials (Slack, Discord,
 Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
 
 **Troubleshoot quickly.** Start with `junction doctor --quick`, then `junction doctor`. For an ACP timeout,
-confirm `kiro-cli` is on `PATH` and logged in, then allow extra time for the
+confirm an ACP runtime is installed (`junction planes`), then allow extra time for the
 first MCP startup. For memory search, check that the embedding
 model finished downloading under `~/.kiro/crew/models`. For a stale MCP configuration, run
 `junction setup --agent-only`, or add `--clean` to rebuild it.

@@ -3,7 +3,7 @@
 Junction is a local control plane: dock ACP coding agents and route their
 models. It reaches tools over the Model Context Protocol (MCP). Everything
 below is the reference for the features you can reach from the dashboard,
-the CLI, or a connected messaging channel. `kiro-cli` is optional.
+the CLI, or a connected messaging channel. A vendor agent CLI is optional.
 
 ## Quick Start
 
@@ -13,7 +13,7 @@ Install from source (see [Getting Started](getting-started.md)), then:
 junction up          # compose both planes, then bind the dashboard on loopback
 ```
 
-`kiro-cli` is optional. Dock Cursor, Claude, Codex, or another ACP runtime.
+A vendor agent CLI is optional. Dock Cursor, Claude, Codex, or another ACP runtime.
 See [Getting Started](getting-started.md) for the source install, first-time
 setup, and connecting messaging channels.
 

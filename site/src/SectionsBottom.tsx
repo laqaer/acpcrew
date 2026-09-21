@@ -40,7 +40,7 @@ export function HowItWorks() {
     {
       n: '1',
       title: 'Install the CLI',
-      code: 'git clone https://github.com/laqaer/acpcrew.git\ncd acpcrew && pip install .',
+      code: 'curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh',
     },
     {
       n: '2',
@@ -58,7 +58,7 @@ export function HowItWorks() {
   return (
     <section className="max-w-[800px] mx-auto px-6 pt-24 pb-24" id="how-it-works">
       <FadeUp><h2 className="text-center text-4xl md:text-5xl font-bold mb-3 font-space">Install locally</h2></FadeUp>
-      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">Python 3.10+. Node.js 22+ only if you rebuild the dashboard. A vendor agent CLI is optional.</p></FadeUp>
+      <FadeUp delay={0.1}><p className="text-center text-slate-500 dark:text-slate-400 text-lg mb-16 font-space">macOS and Linux. Python 3.10+. Node.js 22+ builds the dashboard. A vendor agent CLI is optional. Read the script before you run it.</p></FadeUp>
       <div className="flex flex-col gap-6">
         {steps.map((s, i) => (
           <FadeUp key={s.n} delay={i * 0.15}>
@@ -182,7 +182,7 @@ export function Cta() {
     <section className="text-center px-6 pt-24 pb-16 bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(228,165,74,0.08),transparent)]">
       <Parallax speed={-0.15}>
         <FadeUp><h2 className="text-4xl md:text-5xl font-bold mb-4 font-space">Install it on this machine</h2></FadeUp>
-        <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">Three commands. Two planes. Nothing leaves loopback except the models you already use.</p></FadeUp>
+        <FadeUp delay={0.1}><p className="text-slate-500 dark:text-slate-400 text-lg mb-8">One install command. Then setup, then start. Nothing leaves loopback except the models you already use.</p></FadeUp>
         <FadeUp delay={0.2}>
           <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Install locally</a>
         </FadeUp>

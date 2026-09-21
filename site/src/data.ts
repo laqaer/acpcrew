@@ -79,11 +79,11 @@ export const FAQ = [
   },
   {
     q: 'Does any data leave my machine?',
-    a: 'Junction runs locally. The dashboard binds to loopback. Voice transcription uses local Whisper. Inference goes to the models you configure — a provider you already use, or the optional model-plane sidecar on loopback.',
+    a: 'The dashboard binds to loopback. Chat, files, and provider keys stay on this machine. Inference goes only to the models you configure. Junction can also send one anonymous daily heartbeat: a random install id, the release, the Python minor version, the install channel, and a first-run flag. Prompts, paths, and credentials are not in it. Turn it off with junction telemetry disable.',
   },
   {
     q: 'How does model routing work?',
-    a: 'The model plane is an optional sidecar (Responses API on loopback). Junction observes it; it does not vendor that Node app. Role routing applies advertised harness ids now. Namespaced catalog slugs land when you install the sidecar. Never paste provider keys into chat. If the sidecar is absent, the gateway still works as an ACP control plane.',
+    a: 'Cheap models coordinate, a capable model plans, and everyday coding sits in between. That split works with the models your agent already serves. An optional local sidecar adds a wider catalog later. Never paste provider keys into chat. If the sidecar is absent, Junction still runs.',
   },
   {
     q: 'What models can I use?',
@@ -102,7 +102,7 @@ export const FAQ = [
     a: 'Clone github.com/laqaer/acpcrew, create a branch, and open a PR. See CONTRIBUTING.md.',
   },
   {
-    q: 'Where is the website hosted?',
-    a: 'The marketing site is live at https://getjunction.dev. That is Junction’s public canonical site.',
+    q: 'What if I skip the model sidecar?',
+    a: 'Junction still docks agents, keeps memory and cron, and serves the loopback dashboard. Role routing uses the models those agents already advertise. The sidecar is how you add a separate catalog — it is not required to start.',
   },
 ];

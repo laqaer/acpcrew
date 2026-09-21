@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 from pathlib import Path
 
 from kiro_crew import cli_help
@@ -97,6 +99,53 @@ def test_public_install_guides_are_junction() -> None:
     )
     assert "https://github.com/laqaer/acpcrew.git" in ec2
     assert "kirodotdev/KiroCrew" not in ec2
+    assert "scripts/get-junction.sh" in install
+    assert "minimal_install.sh" in install
+    gs = (_REPO_ROOT / "src/kiro_crew/docs/getting-started.md").read_text(encoding="utf-8")
+    assert "scripts/get-junction.sh" in gs
+    assert "```bash\ngit clone https://github.com/laqaer/acpcrew.git" in gs
+    packaged = (_REPO_ROOT / "src/kiro_crew/docs/index.md").read_text(encoding="utf-8")
+    assert "A vendor agent CLI is optional" in packaged
+    assert "kiro-cli is optional" not in packaged.split("## Core Capabilities", 1)[0]
+
+
+def test_operator_install_script_is_junction(tmp_path: Path) -> None:
+    script = _REPO_ROOT / "scripts" / "get-junction.sh"
+    text = script.read_text(encoding="utf-8")
+    assert text.startswith("#!/bin/sh\n")
+    assert "laqaer/acpcrew" in text
+    assert "minimal_install.sh" in text
+    assert "Kiro Crew" not in text
+    assert "KiroCrew" not in text  # brand-ok: asserting the concatenated token is absent
+    assert "download.crew.kiro.dev" not in text
+    assert "kirodotdev" not in text
+    minimal = (_REPO_ROOT / "minimal_install.sh").read_text(encoding="utf-8")
+    assert "Junction installed." in minimal
+    assert "junction up" in minimal
+    assert "A vendor agent CLI is optional." in minimal
+    assert "👻" not in minimal
+    assert "Kiro Crew" not in minimal
+    assert "KiroCrew" not in minimal  # brand-ok: asserting the concatenated token is absent
+    assert "kirodotdev" not in minimal
+    assert "ollama pull" not in minimal
+    env = os.environ.copy()
+    env["HOME"] = str(tmp_path)
+    env["JUNCTION_SRC"] = str(tmp_path / "src")
+    env["JUNCTION_BIN_DIR"] = str(tmp_path / "bin")
+    result = subprocess.run(
+        ["sh", str(script), "--dry-run"],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=env,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "repo=https://github.com/laqaer/acpcrew.git" in result.stdout
+    assert f"dest={tmp_path / 'src'}" in result.stdout
+    assert "installer=minimal_install.sh" in result.stdout
+    assert "next: junction setup && junction up" in result.stdout
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_dashboard_and_electron_chrome_are_junction() -> None:

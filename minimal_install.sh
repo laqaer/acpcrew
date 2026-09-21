@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────
-# KiroCrew — Minimal OSS Quickstart
+# Junction — public install from a local checkout.
 #
-# The canonical public install. Builds KiroCrew from a local clone using
-# only public tooling: python3 + pip (backend) and npm + vite (frontend).
-# No Brazil, no Builder Toolbox, no internal registries.
+# Builds Junction with public tooling only: python3 + pip (backend) and
+# npm + vite (dashboard). scripts/get-junction.sh clones the repository
+# and then runs this file.
 #
-# Run from inside a cloned repo:
-#   git clone https://github.com/kirodotdev/KiroCrew.git
-#   cd kirocrew
+#   git clone https://github.com/laqaer/acpcrew.git
+#   cd acpcrew
 #   bash minimal_install.sh
 #
 # Prerequisites: Python 3.10+, Node.js 22+ (24 LTS recommended), npm, git
 # Optional:
 #   --voice    also install voice extras (pip install -e .[voice])
-#   ollama     for local vector memory (see step "Embeddings" below)
 # ──────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -55,7 +53,7 @@ done
 has node || die "Node.js not found. Install Node.js 22+ (24 LTS recommended, https://nodejs.org) and re-run."
 has npm  || die "npm not found. Install Node.js 22+ (24 LTS recommended, https://nodejs.org) and re-run."
 
-echo "👻 KiroCrew — minimal install"
+echo "Junction — install"
 echo "  Repo:    $REPO_DIR"
 echo "  Python:  $("$_py" --version 2>&1)"
 echo "  Node:    $(node --version)"
@@ -98,7 +96,7 @@ if [ ! -d "$_venv" ] || [ ! -x "$_venv/bin/python" ]; then
     "$_py" -m venv "$_venv" || die "Failed to create venv. Try: $_py -m pip install --user virtualenv"
 fi
 
-echo "→ Installing kirocrew (pip)…"
+echo "→ Installing Junction (pip)…"
 "$_venv/bin/pip" install --upgrade pip setuptools wheel -q \
     || die "Failed to upgrade pip/setuptools/wheel"
 
@@ -117,37 +115,33 @@ fi
 echo "✓ Python package installed"
 echo ""
 
-# ── 3. Agent backend (claude-agent-acp) ──
-# The default agent backend is the public ACP adapter. kiro-cli is optional.
-echo "→ Checking agent backend (claude-agent-acp)…"
-if has claude-agent-acp; then
-    echo "✓ claude-agent-acp already on PATH"
-elif has npm; then
-    echo "  Installing @agentclientprotocol/claude-agent-acp via npm…"
-    npm install -g @agentclientprotocol/claude-agent-acp >/dev/null 2>&1 \
-        && echo "✓ claude-agent-acp installed" \
-        || echo "⚠ npm i -g @agentclientprotocol/claude-agent-acp failed — install it manually before running"
-else
-    echo "⚠ npm not found — install the agent backend later:"
-    echo "    npm i -g @agentclientprotocol/claude-agent-acp"
-fi
+# A vendor agent CLI is optional. Junction docks an ACP runtime already
+# on PATH; this script does not install one.
+echo "→ A vendor agent CLI is optional."
 echo ""
 
-# ── 4. Symlink CLI (no shell rc modification) ──
-mkdir -p "$HOME/.local/bin"
-ln -sf "$_venv/bin/kirocrew" "$HOME/.local/bin/kirocrew"
-echo "✓ Symlinked kirocrew → ~/.local/bin/kirocrew"
+# ── 3. Symlink CLI (no shell rc modification) ──
+BIN_DIR="${JUNCTION_BIN_DIR:-$HOME/.local/bin}"
+mkdir -p "$BIN_DIR"
+ln -sfn "$_venv/bin/junction" "$BIN_DIR/junction"
+# Silent console-script alias. Existing launchers still resolve this name.
+if [ -x "$_venv/bin/kirocrew" ]; then
+    ln -sfn "$_venv/bin/kirocrew" "$BIN_DIR/kirocrew"
+fi
+echo "✓ Linked junction → $BIN_DIR/junction"
 echo ""
 
 # ── Done ──
-echo "👻 KiroCrew installed!"
+echo "Junction installed."
 echo ""
-echo "  Next steps:"
-echo "    1. Run setup:    $HOME/.local/bin/kirocrew setup"
-echo "    2. Start it:     $HOME/.local/bin/kirocrew gateway"
-echo "       (or add ~/.local/bin to PATH and just run: kirocrew gateway)"
+echo "  Next:"
+echo "    junction setup"
+echo "    junction up"
 echo ""
-echo "  Optional — local vector memory (embeddings):"
-echo "    Install ollama (https://ollama.com), then:"
-echo "      ollama pull qwen3-embedding:0.6b"
+case ":$PATH:" in
+    *":$BIN_DIR:"*) ;;
+    *)
+        echo "Add $BIN_DIR to PATH, then open a new shell." >&2
+        ;;
+esac
 echo ""

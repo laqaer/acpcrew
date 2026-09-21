@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import App from './App';
 
@@ -40,7 +40,9 @@ describe('Junction naming', () => {
     const { container } = render(<App />);
     const hero = heroSection(container);
     expect(hero?.textContent ?? '').not.toMatch(/kiro-cli/i);
+    expect(hero?.textContent ?? '').toContain('get-junction.sh');
     expect(hero?.textContent ?? '').toContain('junction setup && junction up');
+    expect(hero?.textContent ?? '').not.toMatch(/git clone/i);
   });
 
   it('tells the two-plane story and the no-keys rule', () => {
@@ -83,7 +85,7 @@ describe('Junction naming', () => {
     // GitHub slug stays laqaer/acpcrew until a human rename; clone paths are
     // not a product name.
     const leftover = text
-      .replace(/github\.com\/laqaer\/acpcrew(?:\.git)?/gi, '')
+      .replace(/laqaer\/acpcrew(?:\.git)?/gi, '')
       .replace(/\bcd acpcrew\b/gi, '');
     expect(leftover).not.toMatch(/acpcrew/i);
     expect(text).toMatch(/vendor agent CLI is optional/i);
@@ -110,7 +112,16 @@ describe('Junction naming', () => {
     expect(text).not.toContain('The clone path is the GitHub slug')
     expect(text).not.toContain('Run Junction');
     expect(text).toContain('First run');
-    expect(text).toContain('junction setup && junction up');
+    const heartbeat = Array.from(container.querySelectorAll('span')).find(
+      (el) => el.textContent === 'Does any data leave my machine?',
+    );
+    expect(heartbeat).toBeTruthy();
+    fireEvent.click(heartbeat!);
+    expect(pageText(container)).toContain('junction telemetry disable');
+    expect(text).toContain('What if I skip the model sidecar?');
+    expect(text).not.toContain('Where is the website hosted?');
+    expect(text).not.toContain('Three commands');
+    expect(text).toContain('get-junction.sh');
     expect(text).not.toContain('Unlock the dashboard');
     expect(text).not.toContain('YOLO');
     expect(text).not.toMatch(/Discussions/);

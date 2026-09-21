@@ -20,7 +20,18 @@ source install and is launched as `python -m kiro_crew up` or `junction up`.
 
 ## Installation
 
-Junction ships from source. There is no public CDN installer in this cut.
+On macOS and Linux, one command installs from this repository. It needs
+Python 3.10+ and Node.js 22+ so the dashboard is built. Read
+`scripts/get-junction.sh` before you run it. It does not start the server.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
+junction setup
+junction doctor --quick
+junction up
+```
+
+A source checkout is the path when you are changing Junction:
 
 ```bash
 git clone https://github.com/laqaer/acpcrew.git
