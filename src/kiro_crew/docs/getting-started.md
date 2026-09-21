@@ -1,8 +1,8 @@
 # Getting Started with Junction
 
 Junction is a local control plane: dock ACP coding agents and route their
-models. Chat from the web dashboard, the CLI, or a messaging channel. `kiro-cli`
-is optional.
+models. Chat from the web dashboard, the CLI, or a messaging channel.
+`kiro-cli` is optional.
 
 ## Prerequisites
 

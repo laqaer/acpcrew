@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from 'framer-motion';
 import { FadeUp, useScrollProgress } from './animations';
-import { GITHUB_URL, SITE_URL, TERMINAL_LINES } from './data';
+import { GITHUB_URL, TERMINAL_LINES } from './data';
 import { X, Check, Sun, Moon } from 'lucide-react';
 import { useTheme } from './ThemeContext';
 import { AppPreview } from './AppPreview';
@@ -33,7 +33,7 @@ export function Nav() {
   return (
     <motion.nav initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}
       className={`fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 md:px-10 py-4 max-w-[1200px] mx-auto transition-all duration-300 ${scrolled ? 'bg-white/85 dark:bg-[#0c0d12]/85 backdrop-blur-xl border-b border-[#e4a54a]/10' : ''}`}>
-      <a href={SITE_URL} className="flex items-center gap-2 no-underline">
+      <a href="/" className="flex items-center gap-2 no-underline">
         <span className="w-8 h-8 rounded-lg bg-[#e4a54a]/15 border border-[#e4a54a]/30 flex items-center justify-center">
           <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-[#e4a54a]" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M10 6v7.5c0 2.8 2.2 5 6 5" />

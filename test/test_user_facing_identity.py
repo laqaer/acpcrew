@@ -48,8 +48,9 @@ def test_cli_help_is_junction() -> None:
 
 def test_packaged_getting_started_is_junction() -> None:
     gs = (_REPO_ROOT / "src/kiro_crew/docs/getting-started.md").read_text(encoding="utf-8")
-    assert "Junction" in gs
-    assert "kiro-cli is optional" in gs
+    plain = gs.replace("`", "")
+    assert "Junction" in plain
+    assert "kiro-cli is optional" in plain
     assert "download.crew.kiro.dev" not in gs
     assert "kirodotdev/KiroCrew" not in gs
     assert "junction gateway" in gs
