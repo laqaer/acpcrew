@@ -2072,6 +2072,24 @@ class TestKiroPrerequisiteWorkflow:
         assert service.initial_setup_complete is True
         assert service._has_probed is False
 
+    def test_write_setup_complete_marker_does_not_need_kiro_cli(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """junction setup records first-run done without a kiro-cli login."""
+        marker = prerequisite_module.write_setup_complete_marker(tmp_path)
+        assert marker.is_file()
+        assert prerequisite_module._established_installation(tmp_path) is True
+
+        service = KiroPrerequisiteService(
+            platform_name="linux",
+            environ={"HOME": str(tmp_path), "PATH": ""},
+            home=tmp_path,
+            data_home=tmp_path,
+            audit_writer=_no_audit,
+        )
+        assert service.initial_setup_complete is True
+
     @pytest.mark.asyncio
     async def test_warm_up_probes_in_background_without_blocking_caller(
         self,

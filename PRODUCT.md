@@ -85,5 +85,5 @@ Junction is the product.
 Frozen identity and the execution envelope:
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md). Agent overlay:
 [`JUNCTION.md`](JUNCTION.md). Multi-ACP facts:
-[`FORK.md`](FORK.md). Provenance:
+[`TREE.md`](TREE.md). Provenance:
 [`docs/provenance/README.md`](docs/provenance/README.md).

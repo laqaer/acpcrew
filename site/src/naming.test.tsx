@@ -43,6 +43,7 @@ describe('Junction naming', () => {
     expect(text).toContain('Model plane');
     expect(text).toMatch(/never paste provider keys/i);
     expect(text).toContain('junction gateway');
+    expect(text).toContain('Why not just run an agent CLI?');
   });
 
   it('leads with two planes and role routing, not a feature-card clone', () => {

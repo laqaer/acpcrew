@@ -23,6 +23,15 @@ def test_readme_and_product_are_junction() -> None:
     assert "download.crew.kiro.dev" not in readme
     assert "this checkout forks" not in product.lower()
     assert "Apache-2.0 fork" not in product
+    notice = (_REPO_ROOT / "NOTICE").read_text(encoding="utf-8")
+    assert "this fork" not in notice.lower()
+    assert "modified version of" not in notice
+    assert "Junction" in notice
+    assert (_REPO_ROOT / "TREE.md").is_file()
+    assert not (_REPO_ROOT / "FORK.md").exists()
+    tree = (_REPO_ROOT / "TREE.md").read_text(encoding="utf-8")
+    assert tree.lstrip().startswith("# Junction")
+    assert "this fork" not in tree.lower()
     adr = (_REPO_ROOT / "docs/adr/0001-product-identity.md").read_text(encoding="utf-8")
     assert "is a mature Apache-2.0 fork" not in adr
 

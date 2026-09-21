@@ -94,7 +94,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    await screen.findByText(/Junction uses Kiro CLI/)
+    await screen.findByText(/docks ACP coding agents/)
     // Cold mount has no cached status, so it reads the latch.
     expect(vi.mocked(api.kiroPrerequisite).mock.calls[0][0]).toBe(false)
 
@@ -141,7 +141,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Junction uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/docks ACP coding agents/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Check again' }))
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
   })
@@ -160,7 +160,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Set up Kiro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dock an agent')).not.toBeInTheDocument()
   })
 
   it('sends the user to Kiro CLI setup instead of installing anything', async () => {
@@ -173,7 +173,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText(/Junction uses Kiro CLI/)).toBeInTheDocument()
+    expect(await screen.findByText(/docks ACP coding agents/)).toBeInTheDocument()
     expect((await screen.findAllByText(/Windows gateway host/)).length).toBeGreaterThan(0)
 
     const setupLink = screen.getByRole('link', { name: /Open Kiro CLI setup/ })
@@ -618,7 +618,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.queryByText('kiro-cli login')).not.toBeInTheDocument()
     // Nothing is paused: no gate chrome of any kind renders over the app.
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Set up Kiro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dock an agent')).not.toBeInTheDocument()
   })
 
   it('leaves an established non-owner dashboard completely unblocked', async () => {
@@ -687,7 +687,7 @@ describe('KiroPrerequisiteGate', () => {
 
     // No waiting screen and no setup chrome — the app itself is already up.
     expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
     expect(screen.queryByText('One quick setup')).not.toBeInTheDocument()
 
     resolveStatus(status({ installed: true, authenticated: true, ready: true }))
@@ -711,7 +711,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.getByText('Dashboard loaded')).toBeInTheDocument()
     expect(screen.queryByText('Junction needs Kiro sign-in.')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
   })
 
   it('never shows setup chrome to a genuine-first-run user until confirmed', async () => {
@@ -727,11 +727,11 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(screen.queryByText('Set up Kiro')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dock an agent')).not.toBeInTheDocument()
 
     resolveStatus(status())
 
-    expect(await screen.findByText('Set up Kiro')).toBeInTheDocument()
+    expect(await screen.findByText('Dock an agent')).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
   })
 
@@ -794,7 +794,7 @@ describe('KiroPrerequisiteGate', () => {
     )
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
     expect(screen.queryByText('We could not check Kiro CLI.')).not.toBeInTheDocument()
   })
 
@@ -814,7 +814,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
     expect(screen.queryByText('Could not check Kiro CLI.')).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByText('Your crew is almost ready.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Junction is almost ready.')).not.toBeInTheDocument()
   })
 
   it('still surfaces an unusable status body to a first-run user', async () => {
@@ -858,7 +858,7 @@ describe('KiroPrerequisiteGate', () => {
       <KiroPrerequisiteGate><div>Dashboard loaded</div></KiroPrerequisiteGate>,
     )
 
-    expect(await screen.findByText('Set up Kiro')).toBeInTheDocument()
+    expect(await screen.findByText('Dock an agent')).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
   })
 

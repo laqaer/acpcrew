@@ -6,13 +6,13 @@ The ACP layer spans **five** modules: the legacy per-session client (`acp/client
 
 ## Backend Selection
 
-**This fork (acpcrew):** `agent.acp_backend` defaults to `auto`. Resolution lives in
+**Junction:** `agent.acp_backend` defaults to `auto`. Resolution lives in
 `acp/runtimes.py`. `auto` picks the first installed spec-family ACP agent
 (cursor → claude → codex → kimi → dsh → goose → grok → pi → droid) and only
 falls back to `kiro-cli` if none of those are present. An unknown persisted
 value degrades to `auto`, not kiro-cli. Spec-family agents handshake with ACP
 protocolVersion `1` on `AcpClient` (one process per session). kiro-cli and KAS
-keep their existing `AcpRuntime` multiplex path. See [FORK.md](../../../FORK.md).
+keep their existing `AcpRuntime` multiplex path. See [TREE.md](../../../TREE.md).
 
 `AcpClient(acp_backend=...)` selects which subprocess to launch:
 

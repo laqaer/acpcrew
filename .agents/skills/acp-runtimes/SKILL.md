@@ -10,7 +10,7 @@ Registry: `src/kiro_crew/acp/runtimes.py`. Default `agent.acp_backend` is
 
 Read first:
 
-- [`../../../FORK.md`](../../../FORK.md)
+- [`../../../TREE.md`](../../../TREE.md)
 - [`../../../docs/system-specs/modules/harness-parity.md`](../../../docs/system-specs/modules/harness-parity.md)
 - [`../../../docs/system-specs/modules/acp-client.md`](../../../docs/system-specs/modules/acp-client.md)
 - [`../../../docs/ci/harness-parity-gate.md`](../../../docs/ci/harness-parity-gate.md)

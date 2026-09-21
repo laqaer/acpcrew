@@ -30,11 +30,21 @@ from kiro_crew.config.loader import (
     env_path,
     write_config_atomically,
 )
-from kiro_crew.constants import DATA_WARNING, MIN_NODE_MAJOR
+from kiro_crew.constants import DATA_WARNING, MIN_NODE_MAJOR, PRODUCT_NAME
 from kiro_crew.sandbox import unavailable_kind
 from kiro_crew.secrets.migrate import _env_lock_path
 from kiro_crew.sel import sel
 from kiro_crew.skills import SkillsLoader
+
+
+def _mark_first_run_complete() -> None:
+    """Record that setup finished. kiro-cli is not required for this marker."""
+    from kiro_crew.kiro_prerequisite import write_setup_complete_marker
+
+    try:
+        write_setup_complete_marker()
+    except OSError as exc:
+        print(f"  ⚠️  Could not write first-run marker: {exc}")
 
 
 def _get_alias() -> str:
@@ -112,7 +122,7 @@ def _fix_shell_profiles() -> None:
                 cleaned.append(line)
             if removed:
                 profile.write_text("".join(cleaned), encoding="utf-8")
-                print(f"  🔧 Cleaned stale Kiro Crew PATH from {profile.name}")
+                print(f"  🔧 Cleaned stale {PRODUCT_NAME} PATH from {profile.name}")
                 cleaned_profiles.append(profile.name)
         except OSError:
             pass
@@ -124,9 +134,9 @@ def _fix_shell_profiles() -> None:
 def _ensure_prerequisites() -> bool:
     """Report on optional prerequisites resolved from PATH.
 
-    The public build's agent backend is ``kiro-cli``. This performs no installs
-    and never blocks setup — it only prints guidance for tooling that is missing
-    from PATH. Always returns True so setup proceeds.
+    The public build docks ACP runtimes; ``kiro-cli`` is optional. This
+    performs no installs and never blocks setup — it only prints guidance for
+    tooling that is missing from PATH. Always returns True so setup proceeds.
     """
     header_printed = False
 
@@ -185,7 +195,7 @@ def _find_electron_dir() -> Path | None:
 def _setup_electron() -> None:
     """Build and install the KiroCrew desktop app (macOS only)."""
     if platform.system() != "Darwin":
-        print("  ⚠️  Kiro Crew desktop app is only available on macOS.")
+        print(f"  ⚠️  {PRODUCT_NAME} desktop app is only available on macOS.")
         return
 
     if not shutil.which("node"):
@@ -202,7 +212,7 @@ def _setup_electron() -> None:
         )
         return
 
-    print("  🔨 Building Kiro Crew desktop app…")
+    print(f"  🔨 Building {PRODUCT_NAME} desktop app…")
     npm_install = subprocess.run(
         ["npm", "install", "--no-audit", "--no-fund", "--loglevel=error"],
         cwd=str(electron_dir),
@@ -358,6 +368,7 @@ def _setup_impl(
                 f"'junction setup {flag}' for its guided setup."
             )
         print("\nDone! Try: junction gateway")
+        _mark_first_run_complete()
         return
 
     # 3. Messaging channels (optional, configured after setup by default).
@@ -403,6 +414,7 @@ def _setup_impl(
     # 7. Cloud (run KiroCrew on the user's own AWS EC2) — optional, delegated.
     _maybe_setup_cloud()
 
+    _mark_first_run_complete()
     print("\nDone! Try: junction doctor && junction gateway")
 
 
@@ -414,7 +426,7 @@ def _maybe_setup_cloud() -> None:
     launcher wizard (``junction cloud launch``).
     """
     print("\n── Run on AWS (optional) ──\n")
-    print("  Kiro Crew can run 24/7 on your own AWS EC2 instance (bring your own")
+    print(f"  {PRODUCT_NAME} can run 24/7 on your own AWS EC2 instance (bring your own")
     print("  AWS account; credentials stay in the aws CLI — never stored here).")
     try:
         answer = input("  Launch KiroCrew on AWS now? [y/N]: ").strip().lower()
@@ -853,13 +865,13 @@ def _setup_sandbox_consent() -> None:
 
     print("── Sandbox ──\n")
     print("  This host offers no OS-level sandbox backend (Linux user namespaces")
-    print("  or macOS sandbox-exec), so Kiro Crew currently REFUSES to run agent")
+    print(f"  or macOS sandbox-exec), so {PRODUCT_NAME} currently REFUSES to run agent")
     print("  subprocesses at all — MCP servers, Dev Fleet and the Papyrus")
     print("  compiler will report a sandbox error until you decide.")
     print()
     print("  Allowing them to run unconfined means an agent-driven subprocess can")
     print("  read your home directory, including ~/.aws and ~/.ssh, with no OS")
-    print("  confinement. Kiro Crew still scrubs credential environment variables,")
+    print(f"  confinement. {PRODUCT_NAME} still scrubs credential environment variables,")
     print("  but it cannot stop a hostile repo or document from reading files.")
     print()
     answer = _input_or_skip("  Allow unsandboxed execution? [y/N]: ")

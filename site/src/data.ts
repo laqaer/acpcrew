@@ -72,6 +72,10 @@ export const IN_ACTION = [
 
 export const FAQ = [
   {
+    q: 'Why not just run an agent CLI?',
+    a: 'A CLI is one harness talking to one vendor model. Junction is the local switch: dock several ACP agents, then route their inference through a role DAG so orchestration stays cheap and planning stays capable. Memory, cron, and the dashboard stay on your machine.',
+  },
+  {
     q: 'Does any data leave my machine?',
     a: 'Junction runs locally. The dashboard binds to localhost. Voice transcription uses local Whisper. Inference goes to the models you configure — a provider you already use, or the optional model-plane sidecar on loopback.',
   },

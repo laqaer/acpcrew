@@ -130,11 +130,13 @@ export function ProblemSolution() {
     'One agent, one vendor model, no switch',
     'Paste provider keys into chat to “just try” a model',
     'Orchestration burns a flagship on glue tokens',
+    'A single window that only speaks one harness',
   ];
   const AFTER = [
     'Harness plane docks the agent; model plane routes inference',
     'Keys stay in the sidecar — never paste them into chat',
     'Role routing: economy for orchestration, capable for planning',
+    'Dock Cursor beside Codex. Memory stays with each thread',
   ];
 
   return (

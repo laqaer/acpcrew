@@ -48,7 +48,7 @@ from kiro_crew.config.paths import (
     project_agents_dir,
 )
 from kiro_crew.config.superseded_defaults import render_doctor_section
-from kiro_crew.constants import MIN_NODE_MAJOR
+from kiro_crew.constants import MIN_NODE_MAJOR, PRODUCT_NAME
 from kiro_crew.dashboard.crash_dump_store import (
     dump_age_seconds,
     dump_first_stack_lines,
@@ -2480,7 +2480,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
         if _absent:
             print(f"               Missing native libs for {_plat_dir}: {', '.join(_absent)}")
             print("               This install's vendored llama.cpp is incomplete (packaging")
-            print("               defect, not an unsupported platform) — reinstall Kiro Crew")
+            print(f"               defect, not an unsupported platform) — reinstall {PRODUCT_NAME}")
             print("               from a current release to restore vector memory.")
         elif _lib_path_override:
             print(f"               {_LIB_PATH_ENV} is set — the libs load from")
@@ -2842,4 +2842,4 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
         print(f"❌ Fix these issues: {', '.join(issues)}")
         sys.exit(1)
     else:
-        print("✅ Kiro Crew is ready!")
+        print(f"✅ {PRODUCT_NAME} is ready!")
