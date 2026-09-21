@@ -65,6 +65,7 @@ Checkout-local skills live under [`.agents/skills/`](.agents/README.md)
 | `integration-owner` | Envelope; no merge / spend |
 | `marketing-site` | `site/` overlay and preview |
 | `dashboard-i18n` | `{{productName}}`; no hardcoded English |
+| `agent-os` | Scout / implement / review loop; never merge |
 
 A skill that any **shipped** feature, tool, or packaged doc references must
 still live in `src/kiro_crew/builtin_skills/`. Top-level `skills/` is

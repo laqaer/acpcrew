@@ -155,6 +155,9 @@ def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:
     assert re.fullmatch(MODEL_ID_PATTERN, "openrouter/tencent/hy4-preview")
     assert re.fullmatch(MODEL_ID_PATTERN, "../../etc/passwd") is None
     assert re.fullmatch(MODEL_ID_PATTERN, "/etc/passwd") is None
+    assert re.fullmatch(MODEL_ID_PATTERN, "foo/./bar") is None
+    assert re.fullmatch(MODEL_ID_PATTERN, "foo//bar") is None
+    assert re.fullmatch(MODEL_ID_PATTERN, "foo/") is None
     assert re.fullmatch(MODEL_ID_PATTERN, "id with space") is None
 
 
@@ -203,6 +206,9 @@ def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
     assert classify_cost("deepseek/deepseek-v4-flash") == COST_ECONOMY
     assert classify_cost("kimi-oauth/k3") == COST_CAPABLE
     assert classify_cost("minimax-m3") == COST_STANDARD
+    assert classify_cost("glm-5-turbo") == COST_CAPABLE
+    assert classify_cost("gpt-5.4") == COST_CAPABLE
+    assert classify_cost("llama-3-turbo") == COST_ECONOMY
     assert (ROLE_ORCHESTRATION, ROLE_PLANNING) in ROLE_DAG_EDGES
     assert (ROLE_PLANNING, ROLE_EXECUTION) in ROLE_DAG_EDGES
 
@@ -219,6 +225,9 @@ def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
     pinned = build_plan(pins={"planning": "kimi-oauth/k3"}, advertised=advertised)
     assert pinned.assignment(ROLE_PLANNING).wire_id == "kimi-oauth/k3"
     assert resolve_wire_id("background", advertised=["haiku-4.5", "opus-4.8"]) == "haiku-4.5"
+    fallback = build_plan(advertised=["claude-opus-4.8", "claude-sonnet-4"])
+    assert fallback.assignment(ROLE_ORCHESTRATION).wire_id == "claude-sonnet-4"
+    assert "fallback" in fallback.assignment(ROLE_ORCHESTRATION).reason
 
 
 def test_cli_catalog_and_plan_print_json_without_secrets(
@@ -280,12 +289,64 @@ async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.Monk
     monkeypatch.setattr(
         "kiro_crew.config.loader.KiroCrewConfig.load",
         classmethod(
+            lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-k3"}))
+        ),
+    )
+    client = _Client()
+    assert await apply_role_model(client, ROLE_PLANNING) == "kimi-k3"
+    assert client.seen == ["kimi-k3"]
+    client.seen.clear()
+    assert await apply_role_model(client, "background") == "auto"
+    assert client.seen == []
+
+
+@pytest.mark.asyncio
+async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.MonkeyPatch) -> None:
+    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
+    from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+
+    class _Client:
+        def __init__(self) -> None:
+            self.seen: list[str] = []
+
+        async def set_model(self, model_id: str) -> None:
+            self.seen.append(model_id)
+
+    monkeypatch.setattr(
+        "kiro_crew.config.loader.KiroCrewConfig.load",
+        classmethod(
             lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-oauth/k3"}))
         ),
     )
     client = _Client()
     assert await apply_role_model(client, ROLE_PLANNING) == "kimi-oauth/k3"
-    assert client.seen == ["kimi-oauth/k3"]
-    client.seen.clear()
-    assert await apply_role_model(client, "background") == "auto"
     assert client.seen == []
+
+
+@pytest.mark.asyncio
+async def test_apply_role_model_calls_available_models_method(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
+    from kiro_crew.model_router.routing import ROLE_ORCHESTRATION, apply_role_model
+
+    class _Client:
+        def __init__(self) -> None:
+            self.seen: list[str] = []
+
+        def available_models(self) -> list[dict[str, str]]:
+            return [
+                {"modelId": "claude-haiku-4.5"},
+                {"modelId": "claude-opus-4.8"},
+            ]
+
+        async def set_model(self, model_id: str) -> None:
+            self.seen.append(model_id)
+
+    monkeypatch.setattr(
+        "kiro_crew.config.loader.KiroCrewConfig.load",
+        classmethod(lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={}))),
+    )
+    client = _Client()
+    assert await apply_role_model(client, ROLE_ORCHESTRATION) == "claude-haiku-4.5"
+    assert client.seen == ["claude-haiku-4.5"]

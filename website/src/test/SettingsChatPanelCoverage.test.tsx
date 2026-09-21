@@ -67,6 +67,7 @@ const {
     Promise.resolve([
       { model_name: 'auto', description: 'Default' },
       { model_name: 'claude-opus-4.8', description: 'Opus' },
+      { model_name: 'claude-sonnet-4', description: 'Sonnet' },
       { model_name: 'claude-haiku-4.5', description: 'Haiku' },
     ])
   ),
@@ -110,7 +111,7 @@ function storedChat(): Record<string, unknown> {
   return JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 }
 
-/** Seed the Kiro Crew config query with a deep-merged override of BASE_MC. */
+/** Seed the Junction config query with a deep-merged override of BASE_MC. */
 function seedMc(over: {
   session?: Record<string, unknown>
   agent?: Record<string, unknown>
@@ -531,30 +532,30 @@ describe('ChatPanel — Subagents', () => {
 
 describe('ChatPanel — per-role models', () => {
   it.each([
-    ['Orchestration Model', 'agent.role_models.orchestration'],
-    ['Planning Model', 'agent.role_models.planning'],
-    ['Execution Model', 'agent.role_models.execution'],
-    ['Background Model', 'agent.role_models.background'],
-    ['Subagent Model', 'agent.role_models.subagent'],
-  ])('%s PATCHes its own config path', async (label, path) => {
+    ['Orchestration Model', 'agent.role_models.orchestration', 'claude-haiku-4.5'],
+    ['Planning Model', 'agent.role_models.planning', 'claude-opus-4.8'],
+    ['Execution Model', 'agent.role_models.execution', 'claude-sonnet-4'],
+    ['Background Model', 'agent.role_models.background', 'claude-haiku-4.5'],
+    ['Subagent Model', 'agent.role_models.subagent', 'claude-sonnet-4'],
+  ])('%s PATCHes its own config path', async (label, path, option) => {
     wrap()
     await waitFor(() => expect(modelsMock).toHaveBeenCalled())
     await openSelect(label)
-    fireEvent.click(screen.getByRole('option', { name: 'claude-opus-4.8' }))
-    await waitFor(() => expect(patchConfigMock).toHaveBeenCalledWith(path, 'claude-opus-4.8'))
+    fireEvent.click(screen.getByRole('option', { name: option }))
+    await waitFor(() => expect(patchConfigMock).toHaveBeenCalledWith(path, option))
   })
 
-  it.each([['Background Model'], ['Subagent Model']])(
-    '%s surfaces a failed write',
-    async label => {
+  it.each([
+    ['Background Model', 'claude-haiku-4.5'],
+    ['Subagent Model', 'claude-sonnet-4'],
+  ])('%s surfaces a failed write', async (label, option) => {
       rejectOnce(patchConfigMock)
       wrap()
       await waitFor(() => expect(modelsMock).toHaveBeenCalled())
       await openSelect(label)
-      fireEvent.click(screen.getByRole('option', { name: 'claude-haiku-4.5' }))
+      fireEvent.click(screen.getByRole('option', { name: option }))
       expect(await screen.findByText(/Failed to save role model/)).toBeInTheDocument()
-    }
-  )
+  })
 
   it('labels the unset role model as the provider default', async () => {
     // Deliberately NOT the chat row's 'Default (auto)': a role on auto lets the
@@ -564,7 +565,6 @@ describe('ChatPanel — per-role models', () => {
     const opts = await openSelect('Background Model')
     expect(opts.map(o => o.textContent)).toEqual([
       'Auto (provider picks)',
-      'claude-opus-4.8',
       'claude-haiku-4.5',
     ])
   })
@@ -614,6 +614,7 @@ describe('ChatPanel — per-role models', () => {
     const orch = await openSelect('Orchestration Model')
     expect(orch.map(o => o.textContent)).toContain('DeepSeek V4 Flash')
     expect(orch.map(o => o.textContent)).not.toContain('Kimi K3 (OAuth)')
+    expect(orch.map(o => o.textContent)).not.toContain('claude-opus-4.8')
     fireEvent.click(screen.getByRole('combobox', { name: 'Orchestration Model' }))
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument())
     const plan = await openSelect('Planning Model')

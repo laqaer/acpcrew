@@ -26,10 +26,11 @@ _CATALOG_FILE = Path(__file__).resolve().parent / "catalog.json"
 
 # Grammar for a model id that may be a kiro-cli id *or* a namespaced router slug
 # (``kimi-oauth/k3``, ``openrouter/tencent/hy4-preview``). Slash is the namespace
-# separator; ``..`` and a leading slash stay out so a pin cannot be a path.
-# Owned here so Settings PATCH, CLI pins, and the catalog agree.
+# separator. ``..``, ``//``, ``/.``, a leading or trailing slash stay out so a
+# pin cannot be a path. Owned here so Settings PATCH, CLI pins, and the catalog
+# agree.
 MODEL_ID_MAX_LEN = 64
-MODEL_ID_PATTERN = r"^(?!.*\.\.)(?!/)[A-Za-z0-9._/\-\[\]]*$"
+MODEL_ID_PATTERN = r"^(?!.*\.\.)(?!.*//)(?!.*/\./)(?!/)[A-Za-z0-9._/\-\[\]]*(?<!/)$"
 
 CATALOG_VERSION = 1
 SOURCE_PROJECT = "duolahypercho/codex-router"
