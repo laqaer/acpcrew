@@ -1,16 +1,16 @@
-# Contributing to Kiro Crew
+# Contributing to Junction
 
-Thanks for your interest in contributing! Kiro Crew is an open-source project and
+Thanks for your interest in contributing! Junction is an open-source project and
 we welcome issues and pull requests.
 
 ## Reporting Bugs and Requesting Features
 
-Open a [GitHub issue](https://github.com/kirodotdev/KiroCrew/issues). Before you
+Open a [GitHub issue](https://github.com/laqaer/acpcrew/issues). Before you
 do, search the open issues, because the fastest resolution is often a thread that
 already exists.
 
 For a bug, what actually helps is a way to reproduce it, the version you are on,
-your operating system, and anything unusual about how Kiro Crew is installed or
+your operating system, and anything unusual about how Junction is installed or
 where it runs. A stack trace beats a description of a stack trace. If it only
 happens on one surface, say which one, because the dashboard, the CLI, and a chat
 channel take different paths through the code.
@@ -21,7 +21,7 @@ it leaves room for an answer nobody had thought of.
 
 ## Finding Something to Work On
 
-Start with the [open issues](https://github.com/kirodotdev/KiroCrew/issues). Issues
+Start with the [open issues](https://github.com/laqaer/acpcrew/issues). Issues
 carry an `area:` label naming the subsystem they land in — `area: dashboard`,
 `area: agents`, `area: cron` and so on — so you can filter to the part of the
 codebase you want to work in, and a type label (`bug`, `enhancement`,
@@ -39,16 +39,15 @@ tell you in a paragraph.
   the documented feature limits in the [Windows guide](docs/guides/windows-install.md)
 - Python ≥ 3.10
 - Node.js ≥ 22 (24 LTS recommended) and npm (for the frontend)
-- The `kiro-cli` agent on your `PATH`, logged in (`kiro-cli login`) — it is the
-  only LLM backend (`agent.provider = acp`)
+- The `kiro-cli` agent is optional (`agent.acp_backend` defaults to `auto`). Install it on your `PATH` and log in (`kiro-cli login`) if you want that harness.
 - [Ollama](https://ollama.com) for memory and knowledge-library embeddings
 
 ## First-Time Setup
 
 ```bash
 # 1. Fork the repo on GitHub, then clone your fork
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd kirocrew
+git clone https://github.com/laqaer/acpcrew.git
+cd acpcrew
 
 # 2. Build the frontend and bundle it into the package
 cd website
@@ -62,9 +61,9 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[voice]"
 
 # 4. Configure and verify
-kirocrew setup               # data dir, agent backend (channels connect later)
-kirocrew doctor              # verify everything works
-kirocrew gateway             # start server (dashboard + messaging channels)
+junction setup               # data dir, agent backend (channels connect later)
+junction doctor              # verify everything works
+junction gateway             # start server (dashboard + messaging channels)
 ```
 
 The dashboard is at `http://localhost:5476`.
@@ -74,10 +73,10 @@ in `.venv\Scripts\`, and `Activate.ps1` replaces `source .venv/bin/activate`).
 Read the [Windows guide](docs/guides/windows-install.md) first — a few features
 need an explicit opt-in there.
 
-**Messaging channels are optional**: the default `kirocrew setup` configures
+**Messaging channels are optional**: the default `junction setup` configures
 none, and the dashboard + CLI work without any channel credentials. Connect
 Slack, Discord, Telegram, Teams, Webex, WeCom, or WeChat later, or run
-`kirocrew setup --slack` for the guided Slack path.
+`junction setup --slack` for the guided Slack path.
 
 ## Development Skills (agents and humans)
 
@@ -92,7 +91,7 @@ The contributor workflow is codified as agent-loadable skills in
 - **`babysit`** — same-session monitoring loop that keeps a PR moving through
   CI and review rounds.
 
-An agent contributing to Kiro Crew loads this suite and follows the same
+An agent contributing to Junction loads this suite and follows the same
 worktree → build gate → prepare-pr → review loop human contributors use, so
 the PR process stays consistent regardless of who is writing the code. If you
 change the workflow, change it THERE — those files are the single source of
@@ -131,7 +130,7 @@ Run a dev gateway alongside production without data or port conflicts:
 ./dev-seed.sh
 
 # Start the dev backend (port 6777, isolated data)
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 kirocrew gateway
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction gateway
 ```
 
 Browse at `http://localhost:6777`. The backend serves the built frontend assets directly.
@@ -152,7 +151,7 @@ for instant hot-reload without rebuilding:
 
 ```bash
 # Terminal 1 — start the backend
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 kirocrew gateway
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction gateway
 
 # Terminal 2 — start the frontend dev server (hot-reloads .tsx changes)
 cd website
@@ -160,7 +159,7 @@ KIROCREW_PORT=6777 npm run dev
 # → Vite starts at http://localhost:3000, proxies /api/* to backend on port 6777
 
 # Terminal 3 — generate an auth token
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 kirocrew token
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction token
 # → Outputs: http://localhost:6777?token=eyJ...
 
 # Open in browser — replace :6777 with :3000:
@@ -374,7 +373,7 @@ are an API (see [its README](src/kiro_crew/docs/README.md)), so renaming a file
 there is a code change, and an internal engineering note placed there ships to every
 user.
 
-## Extending Kiro Crew
+## Extending Junction
 
 - **Skills** — drop markdown files in `skills/` or `~/.kiro/crew/skills/`. See [skills/README.md](skills/README.md) for the full format reference
 - **MCP tools** — add to `mcp_core.py` or `mcp_cron.py`. Every LLM-facing command must have an MCP tool
@@ -492,7 +491,7 @@ workflows triggered by **pull requests opened from a fork**. Three of our
 checks need those credentials to reach Amazon Bedrock, so their behaviour
 depends on *where your branch lives*:
 
-| Check | Fork PR | Branch pushed to `kirodotdev/KiroCrew` |
+| Check | Fork PR | Branch pushed to `laqaer/acpcrew` |
 | --- | --- | --- |
 | **Opus 4.8 Review** | Skipped (neutral — not a failure) | Runs |
 | **GPT 5.6 Review** | Skipped | Runs |
@@ -508,7 +507,7 @@ depends on *where your branch lives*:
   CodeQL, coverage, build) are green. A maintainer runs the AI review on their
   side (or re-pushes your branch to the upstream repo) and reviews manually.
 - **Getting the AI reviews to run** depends only on *where the branch lives*,
-  never on who you are: the branch has to be on `kirodotdev/KiroCrew` itself,
+  never on who you are: the branch has to be on `laqaer/acpcrew` itself,
   not on a fork. Pushing a branch directly to the upstream repo requires write
   access — so if you have it, push there and open the PR from that branch to
   get the full suite. Without write access, the fork path above is the correct
@@ -533,7 +532,7 @@ Rules: imperative mood, lowercase summary, no trailing period, wrap body at 72 c
 
 ## Questions?
 
-Open a [GitHub issue](https://github.com/kirodotdev/KiroCrew/issues) or start a
+Open a [GitHub issue](https://github.com/laqaer/acpcrew/issues) or start a
 discussion in the repository.
 
 ## Security Issues
@@ -548,7 +547,7 @@ means following it, and the file names where to report a concern.
 
 ## Licensing
 
-Kiro Crew is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the
+Junction is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for the
 full text and [NOTICE](NOTICE) for attribution. Third-party components carry their
 own licenses, recorded in [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES).
 

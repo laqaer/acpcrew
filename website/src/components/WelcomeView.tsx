@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Droplet, EyeOff, Ghost, RefreshCw, Undo2, VenetianMask } from 'lucide-react'
+import { Droplet, EyeOff, GitMerge, RefreshCw, Undo2, VenetianMask } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { KiroGhost } from './KiroGhost'
 import { useTheme } from '../hooks/useTheme'
 import { getThemeBranding } from '../themeBranding'
 import { api } from '../api/client'
@@ -103,13 +102,18 @@ export default function WelcomeView({
 
   // Per-theme brand mark: a registered theme (via the themeBranding seam) may
   // supply its own logo — render it here too, not just in the App shell, so the
-  // welcome screen matches the active theme. Falls back to the stock KiroGhost
-  // when the theme registers no logo (the standalone build always does).
+  // welcome screen matches the active theme. Falls back to the Junction track
+  // mark when the theme registers no logo.
   const { colorTheme } = useTheme()
   const brandLogo = getThemeBranding(colorTheme)?.logo
   const brandMark = brandLogo
     ? <img src={brandLogo} alt="" aria-hidden="true" className="w-16 h-16 drop-shadow-lg shrink-0 animate-float rounded-md object-contain" />
-    : <KiroGhost size={64} className="drop-shadow-lg shrink-0 animate-float" />
+    : (
+      <span className="relative flex h-16 w-16 shrink-0 items-center justify-center animate-float" aria-hidden="true">
+        <span className="absolute inset-0 rounded-xl bg-accent/15 ring-1 ring-accent/40" />
+        <GitMerge className="lucide-inline relative h-9 w-9 text-accent" />
+      </span>
+    )
 
   return (
     <div className="flex flex-col items-center w-full gap-6 px-8">
@@ -132,7 +136,7 @@ export default function WelcomeView({
       {mode === 'orchestrator' && (
         <button
           className="px-4 py-2 rounded-lg text-[13px] text-muted border border-border bg-card hover:border-accent hover:text-text transition-all cursor-pointer"
-          onClick={() => setInput('Create a plan to analyze Kiro Crew code package and report file count by major components')}
+          onClick={() => setInput(i18nT('components.welcomeView.try_create_a_plan_to_analyze_kirocrew_code_packa'))}
         >
           {i18nT('components.welcomeView.try_create_a_plan_to_analyze_kirocrew_code_packa')}
         </button>
@@ -158,7 +162,7 @@ export default function WelcomeView({
                   else onSwitchMode?.('persistent')
                 }}
               >
-                {!ephemeralActive ? <Ghost size={13} /> : <Undo2 size={13} />}
+                {!ephemeralActive ? <EyeOff size={13} /> : <Undo2 size={13} />}
                 <span>{!ephemeralActive ? i18nT('components.welcomeView.switch_to_ephemeral_mode') : i18nT('components.welcomeView.switch_back_to_default_mode')}</span>
               </button>
             )

@@ -70,7 +70,7 @@ export function asSentence(message: string): string {
 
 // Shared full-screen chrome for every gate state. This is the SAME container the
 // first-run onboarding chapters use (Import setup / Customize): the identical
-// scrim, panel geometry, and accent aside with the identical mascot positions,
+// scrim, panel geometry, and accent aside with the identical track lockup,
 // imported from OnboardingChapterShell rather than re-declared here. Only the
 // copy in the aside and the right-column content differ. `cardLabel` names the
 // region for assistive tech.
@@ -259,7 +259,7 @@ function SetupStatusError({
 // AppArmor profile `service install` writes. Linked from the gate so the screen
 // is a starting point rather than a dead end (issue #1660).
 const SANDBOX_DOCS_URL =
-  'https://github.com/kirodotdev/KiroCrew/blob/main/docs/guides/install.md' +
+  'https://github.com/laqaer/acpcrew/blob/main/docs/guides/install.md' +
   '#linux-the-agent-sandbox-and-unprivileged-user-namespaces'
 
 /**

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # The frontend is in-tree at ``<repo-root>/website``; there is no remote to
 # clone. ``KIROCREW_WEBSITE_REPO`` is retained only so existing tooling/docs
 # referencing the public mirror keep a stable name to point at.
-_DEFAULT_REPO_URL = "https://github.com/kirodotdev/KiroCrew"
+_DEFAULT_REPO_URL = "https://github.com/laqaer/acpcrew"
 _REPO_URL = os.environ.get("KIROCREW_WEBSITE_REPO") or _DEFAULT_REPO_URL
 # In-tree frontend directory name (under the repo root). The legacy sibling
 # clone directory name is kept only for last-resort dist resolution.
@@ -289,9 +289,7 @@ def _staging_lock(static_parent: Path) -> Iterator[None]:
         # required=True: Windows msvcrt acquisition failures are otherwise
         # swallowed, and running without exclusion is the very outage this
         # lock exists to prevent.
-        with platform_compat.file_lock(
-            lock_fh.fileno(), exclusive=True, required=True
-        ):
+        with platform_compat.file_lock(lock_fh.fileno(), exclusive=True, required=True):
             yield
 
 
@@ -375,11 +373,7 @@ def build_and_stage(
     re-resolved here. Returns ``True`` when ``static/dist`` holds the newly built
     bundle.
     """
-    root = (
-        Path(proj_path)
-        if proj_path is not None
-        else Path(__file__).resolve().parents[2]
-    )
+    root = Path(proj_path) if proj_path is not None else Path(__file__).resolve().parents[2]
     website_dir = root / _DIR_NAME
     if not website_dir.is_dir():
         log(f"  ⚠️  No {_DIR_NAME}/ directory at {root} — nothing to build")
@@ -480,9 +474,7 @@ def _stage_dist_locked(
     try:
         # Same parent as the destination so the swap is a rename within one
         # filesystem; a cross-device staging dir would make os.replace fail.
-        tmp_dist = Path(
-            tempfile.mkdtemp(prefix=".dist.staging.", dir=static_dist.parent)
-        )
+        tmp_dist = Path(tempfile.mkdtemp(prefix=".dist.staging.", dir=static_dist.parent))
         # mkdtemp already created it, but copytree needs to create the target.
         tmp_dist.rmdir()
         shutil.copytree(built_dist, tmp_dist)
@@ -629,7 +621,9 @@ def build_frontend_sync(
     try:
         r = subprocess.run(
             [npm, *install_args],
-            cwd=str(website_dir), capture_output=True, timeout=_INSTALL_TIMEOUT,
+            cwd=str(website_dir),
+            capture_output=True,
+            timeout=_INSTALL_TIMEOUT,
         )
     except subprocess.TimeoutExpired:
         log("  ⚠️  Frontend npm install timed out — dashboard may be stale")
@@ -689,7 +683,8 @@ async def build_frontend_async(
         else ["install", "--no-audit", "--no-fund"]
     )
     npm_i = await asyncio.create_subprocess_exec(
-        npm, *install_args,
+        npm,
+        *install_args,
         cwd=str(website_dir),
         stdout=asyncio.subprocess.DEVNULL,
         stderr=asyncio.subprocess.DEVNULL,
@@ -719,9 +714,7 @@ async def build_frontend_async(
         # _warn reaches push_progress, which belongs to the loop thread.
         try:
             with _staging_lock(proj_path / "src" / "kiro_crew" / "static"):
-                return _npm_build_and_stage_locked(
-                    website_dir, proj_path, npm, messages.append
-                )
+                return _npm_build_and_stage_locked(website_dir, proj_path, npm, messages.append)
         except OSError as exc:
             messages.append(f"Could not acquire the static/dist staging lock: {exc}")
             return False

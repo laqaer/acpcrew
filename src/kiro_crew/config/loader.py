@@ -3227,8 +3227,8 @@ class DashboardConfig:
         default="",
         metadata=_meta(
             "Theme Color",
-            "Dashboard color theme slug (e.g. 'kiro', 'emerald', 'monokai'). "
-            "Empty = unset (frontend falls back to localStorage or 'kiro').",
+            "Dashboard color theme slug (e.g. 'amber', 'emerald', 'monokai'). "
+            "Empty = unset (frontend falls back to localStorage or the built-in default).",
         ),
     )
     language: str = field(

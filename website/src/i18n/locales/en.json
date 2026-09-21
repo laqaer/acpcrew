@@ -4351,7 +4351,7 @@
       "skip_all_setup_and_onboarding": "Skip all setup and onboarding"
     },
     "onboardingFlow": {
-      "answers_set_how_kiro_explains_things_plain_langu": "Answers set how Kiro explains things — plain language or full technical detail. Saved on this device; change anytime in Settings → Chat.",
+      "answers_set_how_kiro_explains_things_plain_langu": "Answers set how {{productName}} explains things — plain language or full technical detail. Saved on this device; change anytime in Settings → Chat.",
       "back": "Back",
       "choose_a_color_theme_and_mode_you_can_change_it": "Choose a color theme and mode — you can change it anytime.",
       "color_theme": "Color theme",
@@ -4363,7 +4363,7 @@
       "how_technical_are_you": "How technical are you?",
       "pick_your_look": "Pick your look",
       "skip": "Skip",
-      "tell_kiro_about_you": "Tell Kiro about you",
+      "tell_kiro_about_you": "Tell {{productName}} about you",
       "your_role": "Your role"
     },
     "projectPicker": {
@@ -7861,7 +7861,7 @@
         "cancel": "Cancel",
         "cancelling": "Cancelling…",
         "cancel_setup_of": "Cancel setup of {{tag}}",
-        "launched_by_kiro_crew": "Launched by Kiro Crew",
+        "launched_by_kiro_crew": "Launched by {{productName}}",
         "added_by_you": "Added by you",
         "doesnt_manage": "Kiro Crew does not manage this machine",
         "stop": "Stop",
@@ -8084,7 +8084,7 @@
       "return": "Return to dock",
       "return_to_main_window_and_close_this_popout": "Return to main window and close this popout",
       "terminal": "Terminal",
-      "window_title": "{{label}} — Kiro Crew"
+      "window_title": "{{label}} — {{productName}}"
     },
     "webhooksPage": {
       "0_b": "0 B",

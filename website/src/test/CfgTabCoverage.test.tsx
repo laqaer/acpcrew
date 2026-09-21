@@ -102,7 +102,7 @@ function seed(cfg: Cfg = CFG, patched: Cfg = CFG) {
 /** Render and wait for the first table to replace the skeleton. */
 async function renderTab() {
   const view = renderWithProviders(<KiroCrewCfgTab />)
-  expect(await screen.findByText('Kiro Crew Agents')).toBeInTheDocument()
+  expect(await screen.findByText('Junction Agents')).toBeInTheDocument()
   return view
 }
 
@@ -147,11 +147,11 @@ describe('KiroCrewCfgTab — query boundaries', () => {
 
     const { container } = renderWithProviders(<KiroCrewCfgTab />)
     expect(container.querySelector('.skeleton')).not.toBeNull()
-    expect(screen.queryByText('Kiro Crew Agents')).toBeNull()
+    expect(screen.queryByText('Junction Agents')).toBeNull()
 
     // Settle it before the test ends so the query never resolves after teardown.
     await act(async () => { release(CFG) })
-    expect(await screen.findByText('Kiro Crew Agents')).toBeInTheDocument()
+    expect(await screen.findByText('Junction Agents')).toBeInTheDocument()
   })
 
   it('renders an Error rejection by its message', async () => {

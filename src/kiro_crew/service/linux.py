@@ -93,9 +93,7 @@ def _current_group(user: str) -> str:
     ``id -gn``. Falls back to the username only if id can't resolve it.
     """
     try:
-        res = subprocess.run(
-            ["id", "-gn", user], capture_output=True, text=True, check=False
-        )
+        res = subprocess.run(["id", "-gn", user], capture_output=True, text=True, check=False)
         if res.returncode == 0 and res.stdout.strip():
             return res.stdout.strip()
     except FileNotFoundError:
@@ -190,8 +188,8 @@ def render_unit(apparmor_profile: str = "") -> str:
         )
     return (
         "[Unit]\n"
-        "Description=Kiro Crew gateway (dashboard + Slack + cron)\n"
-        "Documentation=https://github.com/kirodotdev/KiroCrew\n"
+        "Description=Junction gateway (dashboard + Slack + cron)\n"
+        "Documentation=https://github.com/laqaer/acpcrew\n"
         "After=network-online.target\n"
         "Wants=network-online.target\n"
         # If the gateway crashes hard 3 times within 5 minutes, give up.
@@ -323,9 +321,7 @@ def _sudo_run(
 def _systemctl(*args: str, sudo: bool = True) -> subprocess.CompletedProcess[str]:
     if sudo:
         return _sudo_run("systemctl", *args)
-    return subprocess.run(
-        ["systemctl", *args], capture_output=True, text=True, check=False
-    )
+    return subprocess.run(["systemctl", *args], capture_output=True, text=True, check=False)
 
 
 def _write_unit_via_sudo(contents: str) -> subprocess.CompletedProcess[str]:
@@ -494,9 +490,7 @@ def install() -> apparmor.ProfileOutcome:
     # Decide before writing the unit: the directive has to be in the unit that
     # systemd reloads, and the profile must be loaded before the restart.
     needs_profile, profile_reason = apparmor.should_install()
-    write_res = _write_unit_via_sudo(
-        render_unit(apparmor.PROFILE_NAME if needs_profile else "")
-    )
+    write_res = _write_unit_via_sudo(render_unit(apparmor.PROFILE_NAME if needs_profile else ""))
     if write_res.returncode != 0:
         raise ServiceInstallError(
             "Failed to write the unit file. The sudo step is required because "
@@ -511,8 +505,10 @@ def install() -> apparmor.ProfileOutcome:
     # Before daemon-reload/enable/restart: the AppArmorProfile= directive is
     # applied by systemd at unit START, so the profile must already be loaded or
     # the first gateway process comes up unprofiled.
-    profile_outcome = install_apparmor_profile() if needs_profile else apparmor.ProfileOutcome(
-        False, f"AppArmor profile not needed: {profile_reason}"
+    profile_outcome = (
+        install_apparmor_profile()
+        if needs_profile
+        else apparmor.ProfileOutcome(False, f"AppArmor profile not needed: {profile_reason}")
     )
 
     reload_res = _systemctl("daemon-reload")
@@ -649,7 +645,5 @@ def status() -> str:
     ``kirocrew service status`` doesn't prompt for a password just to
     show whether the service is up.
     """
-    res = _systemctl(
-        "status", f"{SERVICE_NAME}.service", "--no-pager", sudo=False
-    )
+    res = _systemctl("status", f"{SERVICE_NAME}.service", "--no-pager", sudo=False)
     return res.stdout or res.stderr

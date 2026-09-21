@@ -237,7 +237,7 @@ const LINUX_FRAME_DECISION = IS_LINUX
   ? decideLinuxFrame({ env: process.env, override: store.get("linuxFrameless") })
   : null;
 const LINUX_FRAMELESS = !!(LINUX_FRAME_DECISION && LINUX_FRAME_DECISION.frameless);
-const DEFAULT_THEME_ACCENT = "#8E48FF";
+const DEFAULT_THEME_ACCENT = "#e4a54a";
 // Loading-screen status for a refused spawn on a bundle that is still being
 // written. Deliberately not "Gateway failed": nothing failed, so the line must
 // not contradict the dialog that follows.
@@ -263,7 +263,7 @@ const { attachContextMenu } = require("./context-menu");
 
 // Set app name for macOS menu bar and dock. Nightly ships as a separate
 // side-by-side app, so its menu bar must say so.
-app.name = identityFamily(app.getVersion()) === "nightly" ? "Kiro Crew Nightly" : "Kiro Crew";
+app.name = identityFamily(app.getVersion()) === "nightly" ? "Junction Nightly" : "Junction";
 
 // Windows taskbar identity. Without an explicit AppUserModelID, Windows groups
 // the app under the generic Electron host (wrong icon in the taskbar/jumplist,
@@ -334,7 +334,7 @@ let gatewayProcess = null;
 // gateway-recovery.js (chooseRecoveryStrategy / classifyAdoptedGateway); assign
 // at exactly one place per outcome.
 //   "none"           — no gateway yet, or the reuse path could NOT positively
-//                      identify the port-holder as a local Kiro Crew process
+//                      identify the port-holder as a local Junction process
 //                      (remote SSH tunnel, manual/external gateway, probe
 //                      failure). Recovery must NEVER kill or respawn it: the
 //                      port-holder is someone else's process, and the correct
@@ -344,7 +344,7 @@ let gatewayProcess = null;
 //   "spawned"        — WE spawned the bundled backend on this flavor's port;
 //                      recovery may kill + respawn it.
 //   "reused-local"   — reuse path, holder POSITIVELY identified as a local
-//                      same-family Kiro Crew process (same-family /api/health
+//                      same-family Junction process (same-family /api/health
 //                      + a "kirocrew" LISTEN owner). An adopted local gateway
 //                      that dies will never come back on its own, so recovery
 //                      must wait BOUNDED and then respawn — never the
@@ -665,7 +665,7 @@ async function resolveGatewayConflict(rebindDepth = 0) {
     }
     glog(`reusing existing gateway on :${PORT} (${decision.reason}) — bundled backend NOT spawned`);
     // Reuse path — recovery must not kill/respawn a gateway we don't own. A
-    // same-family gateway held by a local Kiro Crew process is OURS in spirit
+    // same-family gateway held by a local Junction process is OURS in spirit
     // even though we didn't spawn it: if it dies, no tunnel will resurrect it,
     // so recovery may respawn after a bounded wait. Anything less positively
     // identified (tunnel, no visible owner, probe failure) keeps the
@@ -682,10 +682,10 @@ async function resolveGatewayConflict(rebindDepth = 0) {
   const { response } = await dialog.showMessageBox({
     type: "warning",
     title: `${other.displayName} is running`,
-    message: `${other.displayName} (${decision.otherVersion}) is already running with your Kiro Crew data.`,
+    message: `${other.displayName} (${decision.otherVersion}) is already running with your Junction data.`,
     detail: canTakeover
-      ? `Only one Kiro Crew app can use ~/.kiro/crew at a time. Quit ${other.displayName} and continue here?`
-      : `Only one Kiro Crew app can use ~/.kiro/crew at a time. Quit ${other.displayName}, then reopen this app.`,
+      ? `Only one Junction app can use ~/.kiro/crew at a time. Quit ${other.displayName} and continue here?`
+      : `Only one Junction app can use ~/.kiro/crew at a time. Quit ${other.displayName}, then reopen this app.`,
     buttons: canTakeover ? [`Quit ${other.displayName} & Continue`, "Cancel"] : ["OK"],
     defaultId: 0,
     cancelId: canTakeover ? 1 : 0,
@@ -731,7 +731,7 @@ async function offerRelocationIfUnupdatable() {
   try {
     ({ response } = await dialog.showMessageBox({
       type: "warning",
-      title: "Move Kiro Crew to Applications?",
+      title: "Move Junction to Applications?",
       message: describeLocation(location, { bundleWritable }),
       detail: "Move it to your Applications folder to receive updates. "
         + "You can keep using it from here for now, but it will not update itself.",
@@ -767,8 +767,8 @@ async function offerRelocationIfUnupdatable() {
   try {
     await dialog.showMessageBox({
       type: "error",
-      message: "Could not move Kiro Crew automatically.",
-      detail: "Drag Kiro Crew into your Applications folder, then reopen it from there.",
+      message: "Could not move Junction automatically.",
+      detail: "Drag Junction into your Applications folder, then reopen it from there.",
       buttons: ["OK"],
     });
   } catch { /* boot must continue even if we cannot report the failure */ }
@@ -1571,15 +1571,15 @@ function setupWindowContents(win, backendUrl) {
     if (!IS_WIN) {
       // macOS/Linux behavior unchanged: always show the [:port] suffix.
       const suffix = customName || remoteName || `[:${port}]`;
-      win.setTitle(`Kiro Crew ${suffix}`);
+      win.setTitle(`Junction ${suffix}`);
       return;
     }
     // Windows: the bare "[:5476]" read as part of the product name and confused
-    // users, so the primary local window is just "Kiro Crew"; keep the suffix
+    // users, so the primary local window is just "Junction"; keep the suffix
     // only for a non-default (remote/secondary) window.
     let suffix = customName || remoteName || "";
     if (!suffix && port && String(port) !== "5476") suffix = `[:${port}]`;
-    win.setTitle(suffix ? `Kiro Crew ${suffix}` : "Kiro Crew");
+    win.setTitle(suffix ? `Junction ${suffix}` : "Junction");
   }
 
   win._mcSetCustomName = (name) => { customName = name; applyTitle(); };
@@ -2795,11 +2795,11 @@ async function recoverWedgedGateway(win) {
     return reconnectExternalGateway(win);
   }
   // An ADOPTED local same-family gateway (reuse path, but the holder was a
-  // local Kiro Crew process) gets neither the kill (we don't own it) nor the
+  // local Junction process) gets neither the kill (we don't own it) nor the
   // indefinite tunnel wait (nothing external will bring it back): bounded
   // wait, then respawn once the port clears on its own.
   if (strategy === "reconnect-bounded") {
-    glog("liveness: backend unresponsive on an adopted local Kiro Crew gateway — bounded wait, then respawn");
+    glog("liveness: backend unresponsive on an adopted local Junction gateway — bounded wait, then respawn");
     if (!win || win.isDestroyed() || isQuitting) return;
     return reconnectOrRespawnAdoptedGateway(win);
   }
@@ -2888,7 +2888,7 @@ const ADOPTED_RECOVERY_WAIT_MS = 30_000;
 
 /**
  * Recover an ADOPTED local same-family gateway (reuse path, port held by a
- * local Kiro Crew process we did not spawn). We must not kill the holder — but
+ * local Junction process we did not spawn). We must not kill the holder — but
  * unlike a tunnel, a dead local gateway will never come back on its own, so the
  * indefinite reconnectExternalGateway loop is exactly the observed failure:
  * adopt a draining gateway, classify its death as "remote tunnel", and wait
@@ -3174,24 +3174,24 @@ async function showLoadingThenConnect(win, backendUrl = BACKEND_URL) {
       // unfinished-install copy rather than err.message: on the reclassified
       // path err.message is the interpreter's own exit report, which is what
       // this branch exists to stop showing as the headline.
-      title = "Kiro Crew — installation still finishing";
+      title = "Junction — installation still finishing";
       message = err.failure?.incompleteBundle ? err.message : describeIncompleteBundle([]);
     } else if (localGatewayOff) {
       // Nothing failed here — the app was told not to start a gateway and the
       // port is silent. "Failed to start" would send the user hunting a crash.
-      title = `Kiro Crew — no gateway on port ${PORT}`;
+      title = `Junction — no gateway on port ${PORT}`;
       message = err.message;
     } else if (portConflict) {
-      title = `Kiro Crew — port ${PORT} already in use`;
-      message = `Another Kiro Crew gateway is already using port ${PORT} (it may be wedged). `
+      title = `Junction — port ${PORT} already in use`;
+      message = `Another Junction gateway is already using port ${PORT} (it may be wedged). `
         + `Force-stop it and retry, or quit. From a terminal you can also run: `
         + `kirocrew stop --port ${PORT}`;
     } else if (failedToStart) {
-      title = "Kiro Crew — gateway failed to start";
+      title = "Junction — gateway failed to start";
       message = err.message;
     } else {
-      title = "Kiro Crew — can't reach the gateway";
-      message = "Could not connect to the Kiro Crew backend. Make sure "
+      title = "Junction — can't reach the gateway";
+      message = "Could not connect to the Junction backend. Make sure "
         + "'kirocrew gateway' is running, or check kirocrew doctor.";
     }
 
@@ -3272,7 +3272,7 @@ async function openNewConnectionWindow() {
   </style></head><body>
     <label>Gateway port</label>
     <input id="p" type="number" value="7778" min="1" max="65535" autofocus>
-    <div class="hint">Connect to a Kiro Crew gateway running on another port</div>
+    <div class="hint">Connect to a Junction gateway running on another port</div>
     <div class="row"><button class="ok" onclick="go()">Connect</button>
     <button class="cancel" onclick="window.close()">Cancel</button></div>
     <script>
@@ -3413,9 +3413,9 @@ function showScreenPermissionDialog() {
     .showMessageBox({
       type: "info",
       title: "Screen Recording permission needed",
-      message: "Allow Kiro Crew to capture the screen",
+      message: "Allow Junction to capture the screen",
       detail:
-        "The screen-snip tool needs macOS Screen Recording permission. Open System Settings › Privacy & Security › Screen Recording, enable Kiro Crew, then try the snip again.",
+        "The screen-snip tool needs macOS Screen Recording permission. Open System Settings › Privacy & Security › Screen Recording, enable Junction, then try the snip again.",
       buttons: ["Open System Settings", "Cancel"],
       defaultId: 0,
       cancelId: 1,
@@ -3450,10 +3450,10 @@ function showMicPermissionDialog(status = "denied") {
       title: "Microphone permission needed",
       message: restricted
         ? "Microphone access is blocked by a policy"
-        : "Allow Kiro Crew to use the microphone",
+        : "Allow Junction to use the microphone",
       detail: restricted
-        ? "Voice input needs macOS Microphone permission, but access is restricted by a device-management policy on this Mac. Contact whoever manages it to allow microphone access for Kiro Crew."
-        : "Voice input needs macOS Microphone permission, and macOS will not ask again once it has been denied. Open System Settings › Privacy & Security › Microphone, enable Kiro Crew, then try the mic again.",
+        ? "Voice input needs macOS Microphone permission, but access is restricted by a device-management policy on this Mac. Contact whoever manages it to allow microphone access for Junction."
+        : "Voice input needs macOS Microphone permission, and macOS will not ask again once it has been denied. Open System Settings › Privacy & Security › Microphone, enable Junction, then try the mic again.",
       buttons: restricted ? ["OK"] : ["Open System Settings", "Cancel"],
       defaultId: 0,
       cancelId: restricted ? 0 : 1,

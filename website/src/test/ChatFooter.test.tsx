@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import ChatFooter, { pickDistinct, resolveLoader, resolveLoaderIcons, SwapCarousel, STREAM_IDLE_MS } from '../pages/chat/ChatFooter'
-import { GHOST_POSE_ICONS, GHOST_POSE_URLS } from '../components/GhostPoses'
+import { GHOST_POSE_ICONS } from '../components/GhostPoses'
 import { registerThemeBranding } from '../themeBranding'
 
-const base = { running: false, stopping: false, state: '', lastRole: '', avatar: '/logo.png', botName: 'KiroCrew' }
+const base = { running: false, stopping: false, state: '', lastRole: '', avatar: '/logo.png', botName: 'Junction' }
 
 afterEach(() => document.documentElement.removeAttribute('data-theme'))
 
@@ -103,33 +103,18 @@ describe('ChatFooter', () => {
     expect(a).not.toEqual(b)                 // the two visible groups differ
   })
 
-  it('uses the ghost poses on a Kiro theme', () => {
+  it('uses track marks on the default Junction theme', () => {
     document.documentElement.setAttribute('data-theme', 'kiro-dark')
     const { container } = render(<ChatFooter {...base} running={true} lastRole="user" />)
-    // Brand art is an ASSET rendered as <img> (use-lucide-icons brand-mark rule),
-    // never inline SVG paths.
-    const img = container.querySelector('.csb4 img.kp')
-    expect(img).toBeInTheDocument()
-    expect(GHOST_POSE_URLS).toContain(img!.getAttribute('src'))
-    expect(container.querySelector('.lucide')).toBeNull()
+    expect(container.querySelectorAll('.csb4 svg').length).toBeGreaterThan(0)
+    expect(container.querySelector('.csb4 img.kp')).toBeNull()
   })
 
-  it('renders no inline <svg> for the pose artwork', () => {
-    document.documentElement.setAttribute('data-theme', 'kiro-dark')
-    const { container } = render(<ChatFooter {...base} running={true} lastRole="user" />)
-    expect(container.querySelectorAll('.csb4 svg').length).toBe(0)
-  })
-
-  // The mascot is a product brand asset, not Kiro-theme decoration: a theme that
-  // registers no artwork of its own gets the poses too. A bare mode as data-theme
-  // is the base theme ('emerald'), which registers none.
-  it('uses the ghost poses on a theme with no registered artwork', () => {
+  it('uses track marks on a theme with no registered artwork', () => {
     document.documentElement.setAttribute('data-theme', 'dark')
     const { container } = render(<ChatFooter {...base} running={true} lastRole="user" />)
-    const img = container.querySelector('.csb4 img.kp')
-    expect(img).toBeInTheDocument()
-    expect(GHOST_POSE_URLS).toContain(img!.getAttribute('src'))
-    expect(container.querySelector('.csb4 svg')).toBeNull()
+    expect(container.querySelectorAll('.csb4 svg').length).toBeGreaterThan(0)
+    expect(container.querySelector('.csb4 img.kp')).toBeNull()
   })
 })
 
@@ -147,11 +132,12 @@ describe('loader — theme seam', () => {
     expect(got.kind === 'icons' && got.icons.length).toBeGreaterThanOrEqual(4)
   })
 
-  it('serves the mascot poses as the default pool', () => {
+  it('serves track marks as the default pool, not the mascot poses', () => {
     const got = resolveLoader('kiro')
-    expect(got.kind === 'icons' && got.icons).toBe(GHOST_POSE_ICONS)
-    // Not Kiro-specific: an unregistered theme resolves to the same pool.
-    expect(resolveLoaderIcons('emerald')).toBe(GHOST_POSE_ICONS)
+    expect(got.kind).toBe('icons')
+    expect(got.kind === 'icons' && got.icons).not.toBe(GHOST_POSE_ICONS)
+    expect(got.kind === 'icons' && got.icons.length).toBeGreaterThanOrEqual(4)
+    expect(resolveLoaderIcons('emerald')).not.toBe(GHOST_POSE_ICONS)
   })
 
   it('lets a newly registered theme supply its own icons', () => {
@@ -327,15 +313,18 @@ describe('theme slug recovery', () => {
     document.documentElement.setAttribute('data-theme', 'dark')
     const { container } = render(<ChatFooter {...base} running={true} lastRole="user" />)
     // Base theme registers no artwork -> default pool, not a crash or blank.
-    expect(container.querySelector('.csb4 img.kp')).toBeInTheDocument()
+    expect(container.querySelector('[data-testid="loader-carousel"]')).toBeInTheDocument()
+    expect(container.querySelector('.csb4 svg')).toBeInTheDocument()
   })
 })
 
 describe('pickDistinct', () => {
-  const total = GHOST_POSE_ICONS.length
+  const total = 8
 
-  it('exposes 8 ghost poses from the design system', () => {
-    expect(total).toBe(8)
+  it('the default loader pool has 8 marks', () => {
+    const got = resolveLoader('kiro')
+    expect(got.kind).toBe('icons')
+    expect(got.kind === 'icons' && got.icons.length).toBe(total)
   })
 
   it('always returns 4 distinct indices', () => {

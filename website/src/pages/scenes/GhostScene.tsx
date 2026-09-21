@@ -325,9 +325,9 @@ export default function GhostScene({ agents, visible = true }: Props) {
       X.globalAlpha = 1
 
       // Title
-      T.fillStyle = '#a89ee0'; T.font = sceneFont('title', 'bold')
+      T.fillStyle = '#e4a54a'; T.font = sceneFont('title', 'bold')
       T.fillText(i18nT('pages.scenes.ghostScene.kiro_haunt'), (W / 2 - 22) * S, 26 * S)
-      T.fillStyle = '#7a70ad'; T.font = sceneFont('detail')
+      T.fillStyle = '#a1a1aa'; T.font = sceneFont('detail')
       T.fillText(i18nT('pages.scenes.ghostScene.friendly_hauntings_only'), (W / 2 - 20) * S, 34 * S)
     }
 
@@ -395,9 +395,9 @@ export default function GhostScene({ agents, visible = true }: Props) {
       })
 
       // Counter
-      T.fillStyle = '#4c4670'
+      T.fillStyle = '#52525b'
       T.font = sceneFont('label')
-      T.fillText(`kiro haunt · ${ghostsRef.current.length} ghosts`, 4 * S, (H - 4) * S)
+      T.fillText(`${i18nT('pages.scenes.ghostScene.kiro_haunt')} · ${ghostsRef.current.length}`, 4 * S, (H - 4) * S)
     }
 
     return runSceneLoop(visibleRef, tickRef, update, draw)

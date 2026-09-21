@@ -80,7 +80,7 @@ from kiro_crew.config.loader import (
     data_home,
 )
 from kiro_crew.config.paths import kiro_agents_dir
-from kiro_crew.constants import DATA_WARNING, SUBAGENT_COMPLETION_META_KEY
+from kiro_crew.constants import DATA_WARNING, PRODUCT_NAME, SUBAGENT_COMPLETION_META_KEY
 from kiro_crew.context import ContextBuilder
 from kiro_crew.context_management import summarize_result
 from kiro_crew.cron import (
@@ -2240,7 +2240,7 @@ class GatewayOrchestrator:
             return
 
         logger.warning("Missing deps %s — installing directly", missing)
-        print(f"👻 Installing missing dependencies: {', '.join(missing)}")
+        print(f"Installing missing dependencies: {', '.join(missing)}")
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             "-m",
@@ -2315,7 +2315,7 @@ class GatewayOrchestrator:
         except (TimeoutError, asyncio.TimeoutError):
             logger.debug("webbrowser.open timed out — skipping")
             print(
-                "👻 Browser was slow to open — skipping auto-open.\n"
+                "Browser was slow to open — skipping auto-open.\n"
                 "   Dashboard is running. Open this URL manually:\n"
                 f"   {dashboard_url}\n"
                 "   Or run: kirocrew token"
@@ -8631,7 +8631,7 @@ class GatewayOrchestrator:
                 if self.dashboard_state:
                     self.dashboard_state.push_refresh("update_available")
         else:
-            print("👻 Already on latest version")
+            print("Already on latest version")
 
     async def _restart_after_update(self) -> None:
         """Save state and restart the process after a successful update apply."""
@@ -8833,7 +8833,7 @@ class GatewayOrchestrator:
                 # `handlers/updates.py` exists to prevent.
                 logger.info("Update check did not complete (%s)", info.get("error_code"))
             elif info.get("check_status") == CHECK_SUCCEEDED:
-                print("👻 Already on latest version")
+                print("Already on latest version")
             else:
                 # DEFERRED (a desktop bundle whose own updater owns this), or a
                 # check that never ran. Neither carries an `error_code`, so keying
@@ -9536,7 +9536,7 @@ class GatewayOrchestrator:
             # Re-read version from rebuilt package
             importlib.reload(kiro_crew)
             new_ver = kiro_crew.__version__
-            print(f"👻 New version {new_ver} available — auto-updating and restarting…")
+            print(f"New version {new_ver} available — auto-updating and restarting…")
             if self.dashboard_state:
                 self.dashboard_state.push_update_progress("restarting", "Restarting server…")
                 from kiro_crew.dashboard.chat import save_all_slots_to_history
@@ -9819,7 +9819,7 @@ class GatewayOrchestrator:
             return False
         try:
             await self._socket_client.connect()
-            print("👻 Kiro Crew gateway connected to Slack")
+            print("Junction gateway connected to Slack")
             return True
         except Exception as exc:
             # Keep a short reason for status surfaces (settings badge). Slack
@@ -10049,7 +10049,7 @@ class GatewayOrchestrator:
         def _on_signal(*_args: object) -> None:
             nonlocal _shutting_down
             if _shutting_down:
-                print("\n👻 Force exit!")
+                print("\nForce exit!")
                 cleanup_orphaned_sessions()
                 os._exit(0)
             _shutting_down = True
@@ -10087,7 +10087,7 @@ class GatewayOrchestrator:
         # same check as fire-and-forget for the same reason. Registered in
         # _background_tasks so the task is not GC'd mid-flight and is reaped on
         # shutdown with the rest.
-        print("👻 Checking for updates…")
+        print("Checking for updates…")
         self._update_check_task = asyncio.create_task(self._check_for_updates())
         self._background_tasks.add(self._update_check_task)
         self._update_check_task.add_done_callback(self._background_tasks.discard)
@@ -10129,7 +10129,7 @@ class GatewayOrchestrator:
                 if self._no_open or not self._cfg.dashboard.auto_open_browser:
                     pass  # suppressed via --no-open flag or config
                 elif _skip_open:
-                    print("👻 Headless remote session — skipping browser auto-open")
+                    print("Headless remote session — skipping browser auto-open")
                 else:
                     # Runs as a task so a slow browser launch overlaps the MCP
                     # probe instead of delaying it. Tracked so it is not GC'd
@@ -10151,14 +10151,14 @@ class GatewayOrchestrator:
         # start AFTER the probe has synced all servers to mcp.json.
         from kiro_crew.dashboard.handlers import _bg_mcp_probe
 
-        print("👻 Probing MCP servers…")
+        print("Probing MCP servers…")
         # self._cfg is the config this boot already loaded — re-reading it here
         # would pay a deepcopy plus a full nested-dataclass rebuild for one scalar.
         _probe_t = self._cfg.dashboard.mcp_probe_timeout_secs + 15
         try:
             await asyncio.wait_for(_bg_mcp_probe(), timeout=_probe_t)
         except asyncio.TimeoutError:
-            print("👻 MCP probe timed out — continuing without full probe")
+            print("MCP probe timed out — continuing without full probe")
 
         # ── Start background session (this IS gated on the probe) ──
         async def _start_bg_session() -> None:
@@ -10182,7 +10182,7 @@ class GatewayOrchestrator:
         self._background_tasks.add(_watchdog)
         _watchdog.add_done_callback(self._background_tasks.discard)
 
-        print("👻 Kiro Crew gateway starting…")
+        print("Junction gateway starting…")
         print(f"\n{DATA_WARNING}\n")
 
         connected = await self._connect_slack()
@@ -10211,7 +10211,7 @@ class GatewayOrchestrator:
 
         # Block until shutdown
         await shutdown_event.wait()
-        print("👻 Shutting down…")
+        print("Shutting down…")
 
         # Drop this gateway's run-marker BEFORE _shutdown() releases the
         # listener: once the port is free a replacement gateway can bind it
@@ -10260,7 +10260,7 @@ class GatewayOrchestrator:
         except (asyncio.TimeoutError, Exception):
             logger.warning("Graceful shutdown timed out — force exiting")
 
-        print("👻 Goodbye!")
+        print("Goodbye!")
         # Kill any kiro-cli processes that survived graceful shutdown
         cleanup_orphaned_sessions()
         os._exit(0)

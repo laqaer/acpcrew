@@ -1,9 +1,18 @@
 import { memo, useState, useEffect, useMemo, useRef, type ComponentType } from 'react'
-import { Hourglass } from 'lucide-react'
+import {
+  Cable,
+  Combine,
+  GitBranch,
+  GitMerge,
+  GitPullRequest,
+  Hourglass,
+  Shuffle,
+  Split,
+  Waypoints,
+} from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { i18nT } from '../../i18n/t'
-import { GHOST_POSE_ICONS } from '../../components/GhostPoses'
 import { getThemeBranding } from '../../themeBranding'
 import ErrorBoundary from '../../components/ErrorBoundary'
 import { useLanguageGeneration } from '../../i18n/useLanguageGeneration'
@@ -24,16 +33,24 @@ const SWAP_B_MS = 800
 
 /** The default icon pool, used by every theme that registers no artwork.
  *
- *  The mascot poses, not a neutral icon set. The ghost is a product-wide brand
- *  asset — the same art carries the boot splash and the crew avatars, and neither
- *  of those is theme-scoped — so the loader is not the surface where it becomes
- *  conditional on a palette. Keying the poses to one theme slug instead hides them
- *  from every user on another palette, including one whose stored
- *  `mc-color-theme` names a theme that is no longer the default: that value
- *  survives an upgrade, so the preference outlives the version that wrote it.
- *  A theme that wants its own artwork overrides this through the `themeBranding`
- *  seam. */
-const DEFAULT_ICONS: ComponentType[] = GHOST_POSE_ICONS
+ *  Track/switch marks, not a mascot. The loader is a product-wide surface, so
+ *  it must not carry another product's ghost. A theme that wants its own
+ *  artwork overrides this through the `themeBranding` seam. */
+const DEFAULT_ICONS: ComponentType[] = [
+  GitMerge,
+  GitBranch,
+  GitPullRequest,
+  Waypoints,
+  Shuffle,
+  Cable,
+  Combine,
+  Split,
+].map((Icon) => {
+  function TrackLoaderIcon() {
+    return <Icon className="lucide-inline" aria-hidden="true" />
+  }
+  return TrackLoaderIcon
+})
 
 /** Sample `SLOTS` DISTINCT indices out of `total`, avoiding any of the given sets
  *  so a swap always produces a visibly different group (never a repeat of what it
