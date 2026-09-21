@@ -65,7 +65,10 @@ def launchd_live_program() -> "os.PathLike[str]":
     which would leave PATH-resolved subprocesses re-invoking the OLD install
     while the gateway ran the new one.
     """
-    return Path.home() / "Library" / "Application Support" / "KiroCrew" / "live-gateway"
+    return (
+        Path.home() / "Library" / "Application Support" / "KiroCrew"
+        / "live-gateway"
+    )
 
 
 def kirocrew_bin() -> str:

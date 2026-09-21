@@ -74,7 +74,7 @@ def test_github_issue_templates_are_junction() -> None:
     assert "kirodotdev/KiroCrew" not in config
     assert "kirodotdev/KiroCrew" not in bug
     assert "kirodotdev/KiroCrew" not in feature
-    assert "KiroCrew version" not in bug
+    assert "KiroCrew version" not in bug  # brand-ok: forbidden heading must stay gone
     assert "Junction version" in bug
     assert "junction --version" in bug
     assert "junction gateway" in bug
