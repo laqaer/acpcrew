@@ -78,3 +78,9 @@ def test_github_issue_templates_are_junction() -> None:
     assert "Junction version" in bug
     assert "junction --version" in bug
     assert "junction gateway" in bug
+    docs = (_REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "documentation.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "Junction" in docs
+    assert "kirodotdev/KiroCrew" not in docs
+    assert "Channels help" not in docs

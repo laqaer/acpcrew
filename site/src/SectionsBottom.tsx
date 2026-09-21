@@ -52,7 +52,7 @@ export function HowItWorks() {
       n: '3',
       title: 'Run',
       code: 'junction gateway',
-      note: 'Dashboard binds to loopback. junction doctor verifies the install. junction planes shows both rails; junction router catalog lists model choices; junction router plan shows the orchestration DAG.',
+      note: 'Dashboard binds to loopback. junction doctor --quick is the compose snapshot; junction doctor is the full probe. junction planes shows both rails and the role DAG; junction router catalog lists model choices.',
     },
   ];
   return (
@@ -189,8 +189,6 @@ export function Cta() {
         <FadeUp delay={0.3}>
           <div className="flex gap-4 justify-center mt-6 text-sm">
             <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="text-[#e4a54a] no-underline hover:underline">GitHub</a>
-            <span className="text-slate-600">&middot;</span>
-            <a href={`${GITHUB_URL}/discussions`} target="_blank" rel="noopener noreferrer" className="text-[#e4a54a] no-underline hover:underline">Discussions</a>
             <span className="text-slate-600">&middot;</span>
             <a href={`${GITHUB_URL}/issues`} target="_blank" rel="noopener noreferrer" className="text-[#e4a54a] no-underline hover:underline">Issues</a>
           </div>

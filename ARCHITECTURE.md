@@ -103,10 +103,12 @@ A missing model plane is not a gateway crash.
 
 ## Compose surface
 
-CLI `junction planes`, `junction doctor` (Planes section), and
-`GET /api/planes` return one snapshot: harness inventory (auto
-preference, kiro-cli marked optional) plus model-sidecar health. They
-do not spawn agents, leave loopback, or change the Kiro harness path.
-Existing `junction router status|catalog|plan` routes stay the
-model-plane detail views.
+CLI `junction planes`, `junction doctor --quick`, `junction doctor` (Planes
+section first), and `GET /api/planes` return one snapshot: harness inventory
+(auto preference; kiro-cli last and optional), model-sidecar health, and the
+orchestration → planning → execution role DAG. They do not spawn agents, leave
+loopback, or change the Kiro harness path. Existing `junction router
+status|catalog|plan` routes stay the model-plane detail views. The JSON
+snapshot does not carry a dedicated vendor-cli key — optional is an inventory
+flag on the runtime row.
 

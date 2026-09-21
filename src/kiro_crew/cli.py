@@ -13,8 +13,8 @@ Commands:
     junction spawn list           List subagents
     junction learn add|list|remove Save and manage learned corrections
     junction setup                Interactive setup wizard
-    junction doctor               Verify setup
-    junction planes               Harness + model plane status
+    junction doctor               Verify setup (--quick is compose-only)
+    junction planes               Harness + model + role DAG snapshot
     junction router status        Probe optional model-router sidecar
 """
 
@@ -1040,6 +1040,11 @@ Examples:
         "--bundle",
         action="store_true",
         help="Collect logs + crash reports into a redacted diagnostics zip",
+    )
+    _doctor_parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Compose both planes and the role DAG; skip the full probe",
     )
 
     # gateway
@@ -2482,7 +2487,11 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
             whatsapp=getattr(args, "whatsapp", False),
         )
     elif args.command == "doctor":
-        _doctor(platform_boot_error=_platform_boot_error, bundle=getattr(args, "bundle", False))
+        _doctor(
+            platform_boot_error=_platform_boot_error,
+            bundle=getattr(args, "bundle", False),
+            quick=getattr(args, "quick", False),
+        )
     elif args.command == "manifest":
         _manifest(
             alias=getattr(args, "alias", None),

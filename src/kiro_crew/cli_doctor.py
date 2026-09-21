@@ -1,4 +1,4 @@
-"""CLI doctor subcommand — verify KiroCrew setup and diagnose issues."""
+"""CLI doctor subcommand — verify Junction setup and diagnose issues."""
 
 from __future__ import annotations
 
@@ -843,7 +843,7 @@ def _doctor_data_home() -> None:
         # hold it. Never advise deleting it — removing it takes the running
         # interpreter with it (`which kirocrew` may resolve through it).
         print(
-            f"  legacy:      ✅ {legacy} retained to hold a Kiro Crew "
+            f"  legacy:      ✅ {legacy} retained to hold a Junction "
             f"virtual environment ({', '.join(venvs)})"
         )
         print(
@@ -1136,8 +1136,8 @@ def _doctor_sandbox(issues: list[str]) -> None:
     if kind == "foreign_sandbox":
         print("  backend:     ⚠️  an outer sandbox already confines this process")
         _print_wrapped(
-            "Kiro Crew cannot nest its own sandbox inside it. Launch the gateway "
-            "outside that sandbox to hand isolation back to Kiro Crew's own profile."
+            "Junction cannot nest its own sandbox inside it. Launch the gateway "
+            "outside that sandbox to hand isolation back to Junction's own profile."
         )
         return
 
@@ -1840,8 +1840,8 @@ def _discord_unused_intent_line(label: str, name: str, state: str) -> None:
     """
     if state in intent_probe.GRANTED_STATES:
         print(f"  {label + ':':<13}⚠️  {name} Intent is on but unused")
-        print(f"{_INDENT}Turn it off in the Developer Portal → Bot: nothing in Kiro")
-        print(f"{_INDENT}Crew reads it, and it widens what Discord sends this bot.")
+        print(f"{_INDENT}Turn it off in the Developer Portal → Bot: nothing in Junction")
+        print(f"{_INDENT}reads it, and it widens what Discord sends this bot.")
 
 
 def _discord_install_line(application_id: str, *, dm_only: bool) -> None:
@@ -2042,9 +2042,9 @@ def _venv_deps_ok(venv_py: Path) -> bool:
 
 def _doctor_planes() -> None:
     """Harness + model compose. Never a doctor failure (sidecar optional)."""
-    print("\nPlanes")
+    print("Planes")
     try:
-        from kiro_crew.planes import snapshot_planes
+        from kiro_crew.planes import _DAG_ROLES, snapshot_planes
 
         snap = snapshot_planes()
     except Exception as exc:  # noqa: BLE001 — doctor must survive a probe error
@@ -2055,13 +2055,24 @@ def _doctor_planes() -> None:
     selected = harness.get("selected") or "none installed"
     print(f"  harness:     {harness['default']} (selected={selected}; kiro-cli optional)")
     print(f"  model:       {model['status']} (sidecar optional; gateway still works)")
+    role_bits = " ".join(
+        f"{row['role']}={row['cost_class']}"
+        for row in snap.get("roles", {}).get("roles", [])
+        if row.get("role") in _DAG_ROLES
+    )
+    if role_bits:
+        print(f"  roles:       {role_bits}")
     docked = [row["id"] for row in harness["runtimes"] if row["available"]]
     if docked:
         print(f"  docked:      {', '.join(docked)}")
     print("  keys:        never paste provider keys into chat")
 
 
-def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False) -> None:
+def _doctor(
+    platform_boot_error: "Exception | None" = None,
+    bundle: bool = False,
+    quick: bool = False,
+) -> None:
     """Verify Junction setup — check dependencies, config, credentials, connectivity.
 
     ``platform_boot_error`` carries a :class:`PlatformCompositionError` from
@@ -2104,6 +2115,17 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
         print("\n  Open a GitHub issue (then drag the zip in):")
         print(f"  {diagnostics.terminal_issue_url(result)}")
         return
+
+    # Compose-only: both planes + the role DAG. The full probe stays behind
+    # a plain ``junction doctor`` so first-run triage is one screen, not eighty.
+    if quick:
+        print("Quick compose (full probe: junction doctor)\n")
+        _doctor_planes()
+        return
+
+    # ── Planes first: Junction identity, then the rest of the probe ──
+    _doctor_planes()
+    print()
 
     # ── Platform edition ──
     # Report the composed profile, and surface a boot-composition failure as a
@@ -2150,9 +2172,6 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
             except PlatformCompositionError as exc:
                 print(f"  jail:        ❌ composition failed: {exc}")
                 issues.append(f"jail provider composition failed: {exc}")
-
-    # ── Planes (compose harness + model; never a doctor failure) ──
-    _doctor_planes()
 
     # ── Dependencies ──
     print("Dependencies")
@@ -2579,7 +2598,7 @@ def _doctor(platform_boot_error: "Exception | None" = None, bundle: bool = False
             + _os_fix_hint(
                 "brew install ffmpeg",
                 "drop a static ffmpeg build into ~/.local/bin "
-                "(not in AL2023 repos; KiroCrew auto-detects it)",
+                "(not in AL2023 repos; Junction auto-detects it)",
                 windows="winget install Gyan.FFmpeg",
             )
         )

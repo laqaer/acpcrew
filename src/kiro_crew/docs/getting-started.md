@@ -29,7 +29,7 @@ python3 -m venv .venv && source .venv/bin/activate
 cd website && npm install && npm run build && cd ..
 pip install -e ".[dev]"
 junction setup
-junction doctor
+junction doctor --quick
 junction gateway
 ```
 

@@ -84,6 +84,10 @@ export function Hero() {
         <a href="#how-it-works" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-[#e4a54a] text-[#0c0d12] shadow-[0_0_24px_rgba(228,165,74,0.35)] hover:-translate-y-0.5 transition-all no-underline font-space">Run Junction</a>
         <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-[15px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-800 dark:text-white border border-[#e4a54a]/15 hover:bg-slate-200 dark:hover:bg-white/8 hover:-translate-y-0.5 transition-all no-underline font-space">View Source</a>
       </motion.div>
+      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+        className="mt-6 text-sm text-slate-500 dark:text-slate-400 font-space">
+        Loopback dashboard. Provider keys stay in the sidecar — never in chat.
+      </motion.p>
     </motion.section>
     <AppPreview />
     </>

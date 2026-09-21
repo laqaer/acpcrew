@@ -90,8 +90,8 @@ export const FAQ = [
     a: 'Junction ships the namespaced catalog the model-plane sidecar knows: Kimi, DeepSeek, Grok, Anthropic, Ollama Cloud, ClinePass, Copilot, OpenRouter, and the rest. Live-catalog providers are curated on the sidecar. The default pin is auto. Role routing (orchestration, planning, execution) picks by cost class so cheap models handle coordination and capable models handle planning.',
   },
   {
-    q: 'Is kiro-cli required?',
-    a: 'No. kiro-cli is optional. Dock it when you want that harness. The harness plane picks a usable ACP runtime automatically.',
+    q: 'Do I need a vendor agent CLI?',
+    a: 'No. Dock whichever ACP runtime you already use. kiro-cli is optional — the harness plane picks a usable runtime automatically.',
   },
   {
     q: 'How do I add custom tools?',

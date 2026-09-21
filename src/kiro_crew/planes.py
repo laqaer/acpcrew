@@ -3,7 +3,7 @@
 The two planes already have owners (``acp.runtimes`` and ``model_router``).
 This module does not spawn agents, probe non-loopback hosts, or change the
 Kiro harness path. It is a read-only join so CLI, doctor, and the dashboard
-share one payload instead of three overlapping status shapes.
+share one payload: harness inventory, sidecar health, and the role DAG.
 """
 
 from __future__ import annotations
@@ -28,6 +28,14 @@ from kiro_crew.acp.runtimes import (
 from kiro_crew.acp.types import ACP_BACKEND_AUTO, ACP_BACKEND_KIRO
 from kiro_crew.constants import CLI_BIN, PRODUCT_NAME
 from kiro_crew.model_router.probe import probe_status
+from kiro_crew.model_router.routing import (
+    ROLE_EXECUTION,
+    ROLE_ORCHESTRATION,
+    ROLE_PLANNING,
+    build_plan,
+)
+
+_DAG_ROLES = (ROLE_ORCHESTRATION, ROLE_PLANNING, ROLE_EXECUTION)
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +79,7 @@ def snapshot_planes(
     router_port: int | None = None,
     gateway_port: int | None = None,
 ) -> dict[str, Any]:
-    """Harness inventory + model-sidecar health. Gateway is never crashed by this."""
+    """Harness inventory + sidecar health + role DAG. Never crashes the gateway."""
     inventory = harness_inventory(which=which, home=home, env=env)
     selected = ""
     try:
@@ -80,16 +88,20 @@ def snapshot_planes(
     except RuntimeNotFoundError:
         selected = ""
     model = probe_status(router_port=router_port, gateway_port=gateway_port)
+    # Empty pins: this snapshot is compose, not apply. ``junction router plan``
+    # is the pin-aware view. Inventory already marks the Kiro harness optional,
+    # so this payload does not carry a dedicated vendor-cli key.
+    plan = build_plan(pins=None, advertised=None)
     return {
         "product": PRODUCT_NAME,
         "cli": CLI_BIN,
         "harness": {
             "default": ACP_BACKEND_AUTO,
             "selected": selected,
-            "kiro_cli": "optional",
             "runtimes": inventory,
         },
         "model": model.to_dict(),
+        "roles": plan.to_dict(),
         "gateway": {"status": "ok", "code": CODE_OK},
         "code": CODE_OK,
     }
@@ -111,6 +123,13 @@ def run_planes_command(args: argparse.Namespace) -> None:
     print(f"{PRODUCT_NAME} planes")
     print(f"  harness: {harness['default']} (selected={selected})")
     print(f"  model:   {model['status']} (sidecar optional; gateway still works)")
+    role_bits = " ".join(
+        f"{row['role']}={row['cost_class']}"
+        for row in snap["roles"]["roles"]
+        if row["role"] in _DAG_ROLES
+    )
+    if role_bits:
+        print(f"  roles:   {role_bits}")
     available = [row["id"] for row in harness["runtimes"] if row["available"]]
     if available:
         print(f"  docked:  {', '.join(available)}")

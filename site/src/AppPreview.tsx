@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
 import {
   Menu, MessageSquare, CalendarDays, Share2, Users, Zap, BookOpen, Store, Box, Globe, Target, Package, Settings,
-  PanelLeft, MoreVertical, Plus, ChevronDown, ChevronRight, Search, ListFilter, Link2, Clock,
-  History, Sparkles, Mic, ArrowUp, FolderOpen, GitMerge, FileText, Folder,
-  Archive, ClipboardList, Bell,
+  PanelLeft, MoreVertical, Plus, ChevronDown, ChevronRight, Search, ListFilter,
+  History, Sparkles, Mic, ArrowUp, FolderOpen, GitMerge, Bell, Route,
 } from 'lucide-react';
 
-// Self-contained LIGHT palette — fixed colors so this renders identically to the
-// real (light-mode) dashboard screenshot even on the dark landing page. No `dark:` variants.
+// Ink + copper factory paint — fixed colors so this mock matches the
+// dashboard even when the landing page is in light mode. No `dark:` variants.
 const C = {
   bg: '#0c0d12',
   panel: '#14151c',
@@ -37,25 +36,32 @@ const RAIL = [
   { icon: Package },
 ];
 
-const FOLDERS = [
-  { name: 'backend', count: 3, shared: false },
-  { name: 'frontend', count: 2, shared: true },
-  { name: 'infra', count: 5, shared: true },
-];
-
-const PROJECT_CHILDREN = [
-  { Icon: FileText, name: 'cr review', count: 2 },
-  { Icon: ClipboardList, name: 'doc writing', count: 4 },
-  { Icon: Archive, name: 'archive', count: 7 },
-  { Icon: Folder, name: 'optimizations', count: 4 },
-  { Icon: Sparkles, name: 'new features', count: 5 },
+const SWITCH = [
+  {
+    plane: 'Harness',
+    sub: 'auto',
+    rows: [
+      { name: 'Codex', state: 'docked' },
+      { name: 'Claude', state: 'docked' },
+      { name: 'Cursor', state: '—' },
+    ],
+  },
+  {
+    plane: 'Model',
+    sub: 'sidecar optional',
+    rows: [
+      { name: 'orchestration', state: 'economy' },
+      { name: 'planning', state: 'capable' },
+      { name: 'execution', state: 'standard' },
+    ],
+  },
 ];
 
 const SESSIONS = [
   { time: '12:39 PM', title: 'Route orchestration to an economy model', preview: 'Plan uses kimi-oauth/k3 for orchestration…' },
   { time: '12:33 PM', title: 'Dock Codex and apply the role DAG', preview: 'junction router plan — orchestration → planning → execution' , active: true },
   { time: '12:22 PM', title: 'Sidecar health when the model plane is down', preview: 'Gateway still serves chat; catalog degrades honestly…' },
-  { time: 'Thu 09:19 PM', title: 'Attach a local ACP runtime', preview: 'agent.acp_backend is auto; kiro-cli is optional…' },
+  { time: 'Thu 09:19 PM', title: 'Attach a local ACP runtime', preview: 'agent.acp_backend is auto; vendor CLIs optional…' },
 ];
 
 function Pill({ children }: { children: React.ReactNode }) {
@@ -127,7 +133,7 @@ export function AppPreview() {
             <div className="flex items-center justify-between px-2.5 h-11 shrink-0">
               <div className="flex items-center gap-2">
                 <PanelLeft size={14} style={{ color: C.mutedSoft }} />
-                <span className="text-[11px] font-semibold tracking-[.05em]" style={{ color: C.muted }}>SESSIONS</span>
+                <span className="text-[11px] font-semibold tracking-[.05em]" style={{ color: C.muted }}>SWITCH</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <MoreVertical size={13} style={{ color: C.mutedSoft }} />
@@ -149,39 +155,29 @@ export function AppPreview() {
                 </span>
               </div>
             </div>
-            {/* Tree + sessions */}
+            {/* Planes switchboard + sessions */}
             <div className="flex-1 overflow-hidden px-1.5">
-              {FOLDERS.map(f => (
-                <div key={f.name} className="flex items-center gap-1.5 px-1.5 h-7 rounded">
-                  <ChevronRight size={11} style={{ color: C.mutedSoft }} />
-                  <span className="text-[11px] flex-1 truncate" style={{ color: C.text }}>{f.name}</span>
-                  {f.shared && <Link2 size={10} style={{ color: C.mutedSoft }} />}
-                  <span className="text-[10px]" style={{ color: C.muted }}>{f.count}</span>
+              {SWITCH.map(block => (
+                <div key={block.plane} className="mb-1.5">
+                  <div className="flex items-center gap-1.5 px-1.5 h-7 rounded">
+                    <Route size={11} style={{ color: C.accent }} />
+                    <span className="text-[11px] flex-1 truncate font-medium" style={{ color: C.textStrong }}>{block.plane}</span>
+                    <span className="text-[10px]" style={{ color: C.muted }}>{block.sub}</span>
+                  </div>
+                  {block.rows.map(row => (
+                    <div key={row.name} className="flex items-center gap-1.5 pl-5 pr-1.5 h-6 rounded">
+                      <ChevronRight size={10} style={{ color: C.mutedSoft }} />
+                      <span className="text-[11px] flex-1 truncate" style={{ color: C.text }}>{row.name}</span>
+                      <span className="text-[10px]" style={{ color: row.state === 'docked' ? C.accent : C.muted }}>{row.state}</span>
+                    </div>
+                  ))}
                 </div>
               ))}
-              {/* docs expanded */}
-              <div className="flex items-center gap-1.5 px-1.5 h-7 rounded">
-                <ChevronDown size={11} style={{ color: C.mutedSoft }} />
-                <Folder size={11} style={{ color: C.muted }} />
-                <span className="text-[11px] flex-1 truncate font-medium" style={{ color: C.textStrong }}>docs</span>
-                <Link2 size={10} style={{ color: C.mutedSoft }} />
-                <span className="text-[10px]" style={{ color: C.muted }}>15</span>
-              </div>
-              <div className="flex items-center gap-1.5 pl-7 h-6 text-[10px]" style={{ color: C.mutedSoft }}><Plus size={9} /> New chat in folder</div>
-              {PROJECT_CHILDREN.map(c => (
-                <div key={c.name} className="flex items-center gap-1.5 pl-5 pr-1.5 h-6 rounded">
-                  <ChevronRight size={10} style={{ color: C.mutedSoft }} />
-                  <c.Icon size={10} style={{ color: C.mutedSoft }} />
-                  <span className="text-[11px] flex-1 truncate" style={{ color: C.text }}>{c.name}</span>
-                  <span className="text-[10px]" style={{ color: C.muted }}>{c.count}</span>
-                </div>
-              ))}
-              {/* Ungrouped session cards */}
               <div className="mt-1.5 space-y-0.5">
                 {SESSIONS.map((s, i) => (
                   <div key={i} className="px-2 py-1.5 rounded-lg" style={s.active ? { background: C.accentBg, boxShadow: `inset 2px 0 0 ${C.accent}` } : undefined}>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-semibold" style={{ color: C.accent }}>default</span>
+                      <span className="text-[10px] font-semibold" style={{ color: C.accent }}>loop</span>
                       <span className="text-[10px] ml-auto" style={{ color: C.muted }}>{s.time}</span>
                     </div>
                     <div className="text-[11px] font-semibold leading-tight truncate mt-0.5" style={{ color: C.textStrong }}>{s.title}</div>
@@ -192,7 +188,7 @@ export function AppPreview() {
             </div>
             {/* Footer */}
             <div className="flex items-center gap-1.5 px-3 h-9 shrink-0" style={{ borderTop: `1px solid ${C.borderSoft}`, color: C.muted }}>
-              <Clock size={11} /> <span className="text-[11px]">Older Sessions</span>
+              <GitMerge size={11} /> <span className="text-[11px]">Two planes, one switch</span>
             </div>
           </div>
 
@@ -244,7 +240,7 @@ export function AppPreview() {
                   <div className="flex items-center gap-2" style={{ color: C.muted }}>
                     <Plus size={14} />
                     <History size={13} />
-                    <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: '#ef4444' }}>YOLO</span>
+                    <span className="text-[10px] font-semibold flex items-center gap-1" style={{ color: C.accent }}>LOCAL</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mic size={14} style={{ color: C.muted }} />
@@ -260,12 +256,12 @@ export function AppPreview() {
             {/* Bottom shelf */}
             <div className="flex items-center gap-2 px-4 pb-2.5 shrink-0 text-[11px] font-mono" style={{ color: C.muted }}>
               <span className="flex items-center gap-1.5">
-                <span className="w-0.5 h-3 rounded-full" style={{ background: C.accent }} /> default
+                <span className="w-0.5 h-3 rounded-full" style={{ background: C.accent }} /> loop
               </span>
               <span className="flex items-center gap-1"><FolderOpen size={11} /> my-project</span>
               <span className="ml-auto flex items-center gap-2">
                 <span className="w-10 h-1 rounded-full" style={{ background: `linear-gradient(90deg, ${C.accent}, ${C.accentBg})` }} />
-                auto <span style={{ color: C.mutedSoft }}>·</span> Default
+                auto <span style={{ color: C.mutedSoft }}>·</span> loopback
               </span>
             </div>
           </div>

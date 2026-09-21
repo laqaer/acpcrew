@@ -56,13 +56,13 @@ cd acpcrew
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 junction setup
-junction doctor
+junction doctor --quick
 junction gateway
 ```
 
 Optional model plane: run a Codex Router sidecar on loopback, then
-`junction router catalog` and `junction router plan` to see namespaced
-model choices and the orchestration → planning → execution DAG.
+`junction planes` for both rails and the role DAG, or `junction router catalog`
+and `junction router plan` for the detail views.
 
 Desktop packages and a one-line installer are a later cut. Until then,
 install from source as above.
@@ -84,7 +84,7 @@ source .venv/bin/activate
 
 # 2. Configure, verify, and start (the CLI is `junction`)
 junction setup
-junction doctor
+junction doctor --quick
 junction gateway
 ```
 
@@ -360,7 +360,7 @@ Agent Client Protocol (`kiro-cli` optional). Set the dashboard port with `KIROCR
 `junction gateway --port <n>`. Messaging-channel credentials (Slack, Discord,
 Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
 
-**Troubleshoot quickly.** Start with `junction doctor`. For an ACP timeout,
+**Troubleshoot quickly.** Start with `junction doctor --quick`, then `junction doctor`. For an ACP timeout,
 confirm `kiro-cli` is on `PATH` and logged in, then allow extra time for the
 first MCP startup. For memory search, check that the embedding
 model finished downloading under `~/.kiro/crew/models`. For a stale MCP configuration, run

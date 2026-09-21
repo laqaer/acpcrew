@@ -85,6 +85,18 @@ describe('Junction naming', () => {
     expect(text).toMatch(/kiro-cli is optional/i);
   });
 
+  it('sells the switch, not an upstream dashboard clone', () => {
+    const { container } = render(<App />);
+    const text = pageText(container);
+    expect(text).toContain('Do I need a vendor agent CLI?');
+    expect(text).toContain('LOCAL');
+    expect(text).toContain('Two planes, one switch');
+    expect(text).toContain('Loopback dashboard');
+    expect(text).not.toContain('YOLO');
+    expect(text).not.toMatch(/Discussions/);
+    expect(text).not.toMatch(/Older Sessions/);
+  });
+
   it('index.html title and description are Junction, without the ghost', () => {
     const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
     expect(html).toContain('<title>Junction</title>');
