@@ -58,6 +58,8 @@ describe('Junction naming', () => {
     expect(text).toContain('Role routing');
     expect(text).toContain('junction planes');
     expect(text).toContain('getjunction.dev');
+    expect(text).not.toContain('junction-site.vercel.app');
+    expect(text).not.toContain('A custom domain is not attached yet');
     expect(text).not.toContain('junction.computer');
     expect(text).not.toMatch(/22 built-in themes/i);
     expect(text).not.toMatch(/Backend Modules/);
