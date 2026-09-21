@@ -367,7 +367,7 @@ def _setup_impl(
                 f"\n  ⚠️  {flag} is ignored with --agent-only. Run "
                 f"'junction setup {flag}' for its guided setup."
             )
-        print("\nDone! Try: junction gateway")
+        print("\nDone! Try: junction up")
         _mark_first_run_complete()
         return
 
@@ -415,7 +415,7 @@ def _setup_impl(
     _maybe_setup_cloud()
 
     _mark_first_run_complete()
-    print("\nDone! Try: junction doctor && junction gateway")
+    print("\nDone! Try: junction doctor --quick && junction up")
 
 
 def _maybe_setup_cloud() -> None:

@@ -116,10 +116,10 @@ function decideGatewayAction(ownVersion, remoteHealth, { localOwner = "unknown" 
   const own = identityFamily(ownVersion);
   // A shell we can't classify never evicts anyone.
   if (own === null) return { action: "reuse", reason: "unclassified-shell" };
-  // Legacy (pre-identity health payload) or non-kirocrew responder on the
+  // Legacy (pre-identity health payload) or non-Junction responder on the
   // port: keep the historical reuse behavior. The guard turns on organically
   // once both sides carry the identity fields.
-  if (!remoteHealth || remoteHealth.app !== "kirocrew" || !remoteHealth.version) {
+  if (!remoteHealth || remoteHealth.app !== "junction" || !remoteHealth.version) {
     return { action: "reuse", reason: "unidentified-gateway" };
   }
   const remote = identityFamily(remoteHealth.version);

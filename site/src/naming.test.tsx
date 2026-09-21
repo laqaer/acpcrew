@@ -18,7 +18,7 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).toContain('Junction');
     expect(text).toContain('junction');
-    expect(text).toContain('junction gateway');
+    expect(text).toContain('junction up');
   });
 
   it('does not include the ghost emoji', () => {
@@ -39,7 +39,7 @@ describe('Junction naming', () => {
     const { container } = render(<App />);
     const hero = heroSection(container);
     expect(hero?.textContent ?? '').not.toMatch(/kiro-cli/i);
-    expect(hero?.textContent ?? '').toContain('junction setup && junction gateway');
+    expect(hero?.textContent ?? '').toContain('junction setup && junction up');
   });
 
   it('tells the two-plane story and the no-keys rule', () => {
@@ -48,7 +48,7 @@ describe('Junction naming', () => {
     expect(text).toContain('Harness plane');
     expect(text).toContain('Model plane');
     expect(text).toMatch(/never paste provider keys/i);
-    expect(text).toContain('junction gateway');
+    expect(text).toContain('junction up');
     expect(text).toContain('Why not just run an agent CLI?');
   });
 
@@ -97,7 +97,7 @@ describe('Junction naming', () => {
     expect(text).toContain('Loopback dashboard');
     expect(text).toContain('Install it on this machine');
     expect(text).toContain('First run');
-    expect(text).toContain('junction setup && junction gateway');
+    expect(text).toContain('junction setup && junction up');
     expect(text).not.toContain('Unlock the dashboard');
     expect(text).not.toContain('YOLO');
     expect(text).not.toMatch(/Discussions/);

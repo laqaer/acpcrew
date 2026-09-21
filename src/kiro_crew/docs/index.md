@@ -10,7 +10,7 @@ the CLI, or a connected messaging channel. `kiro-cli` is optional.
 Install from source (see [Getting Started](getting-started.md)), then:
 
 ```bash
-junction gateway     # dashboard on loopback
+junction up          # compose both planes, then bind the dashboard on loopback
 ```
 
 `kiro-cli` is optional. Dock Cursor, Claude, Codex, or another ACP runtime.

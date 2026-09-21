@@ -51,8 +51,8 @@ export function HowItWorks() {
     {
       n: '3',
       title: 'Run',
-      code: 'junction gateway',
-      note: 'Dashboard binds to loopback. junction doctor --quick is the compose snapshot; junction doctor is the full probe. junction planes shows both rails and the role DAG; junction router catalog lists model choices.',
+      code: 'junction up',
+      note: 'Composes both planes, then binds the dashboard to loopback. junction doctor --quick is the same snapshot without starting the server. junction planes shows both rails and the role DAG; junction router catalog lists model choices.',
     },
   ];
   return (

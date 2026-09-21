@@ -32,13 +32,14 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
         (
             ("setup", "Install agent config and mark first-run complete"),
             ("planes", "Show harness + model plane status in one snapshot"),
-            ("gateway", "Start Junction in this terminal (dashboard + messaging channels)"),
+            ("up", "Compose both planes and start Junction on loopback"),
             ("doctor", "Verify this install; --quick is compose-only"),
         ),
     ),
     (
         "Run the gateway",
         (
+            ("gateway", "Same server as `up`; kept for scripts"),
             ("service", "Run the gateway as a background service that starts on boot"),
             ("status", "Show runtime stats"),
             ("router", "Model-router sidecar: status, catalog, and role plan"),
@@ -137,10 +138,11 @@ TOP_USAGE = "junction [-h] [--version] [-v] [--no-jail] <command> [<args>]"
 # Why both commands exist, and what a default install actually listens on --
 # the two questions the flat command list never answered.
 _ORIENTATION = f"""\
-gateway vs. service -- the same server, two lifetimes:
-  junction gateway          runs in the foreground and stops on Ctrl-C or when
-                            the terminal closes. Best for a first look and for
-                            development.
+up vs. service -- the same server, two lifetimes:
+  junction up               composes both planes, then runs in the foreground
+                            and stops on Ctrl-C or when the terminal closes.
+                            Best for a first look and for development.
+  junction gateway          the same server as `up`; kept for scripts.
   junction service install  registers a systemd unit (Linux, needs sudo) or a
                             launchd agent (macOS) that runs the SAME gateway
                             detached: it survives logout, restarts on crash and
@@ -151,7 +153,7 @@ gateway vs. service -- the same server, two lifetimes:
 Ports: the dashboard is the only port Junction opens, and it binds loopback
   only -- http://localhost:{_DEFAULT_PORT_TEXT}. Messaging channels (Slack, Discord, ...)
   connect outbound, so nothing else needs to be reachable. Override the port
-  with `junction gateway --port N`, KIROCREW_PORT=N, or the `dashboard.url`
+  with `junction up --port N`, KIROCREW_PORT=N, or the `dashboard.url`
   config value; for the service, set KIROCREW_PORT when you run
   `service install`."""
 

@@ -40,8 +40,10 @@ def test_readme_and_product_are_junction() -> None:
 def test_cli_help_is_junction() -> None:
     assert cli_help.TOP_USAGE.startswith("junction ")
     rendered = cli_help.render_epilog()
+    assert "junction up" in rendered
     assert "junction gateway" in rendered
     assert "  planes" in rendered
+    assert "  up" in rendered
     assert "harness + model plane" in rendered
     assert "Kiro Crew" not in rendered
     assert "kirocrew gateway" not in rendered
@@ -54,6 +56,7 @@ def test_packaged_getting_started_is_junction() -> None:
     assert "kiro-cli is optional" in plain
     assert "download.crew.kiro.dev" not in gs
     assert "kirodotdev/KiroCrew" not in gs
+    assert "junction up" in gs
     assert "junction gateway" in gs
 
 
@@ -87,7 +90,7 @@ def test_github_issue_templates_are_junction() -> None:
     assert "KiroCrew version" not in bug  # brand-ok: forbidden heading must stay gone
     assert "Junction version" in bug
     assert "junction --version" in bug
-    assert "junction gateway" in bug
+    assert "junction up" in bug
     docs = (_REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "documentation.yml").read_text(
         encoding="utf-8"
     )

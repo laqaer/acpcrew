@@ -24,13 +24,13 @@ test("identityFamily maps channels to bundle-identity families", () => {
 });
 
 test("same family reuses: prod shell, prod gateway", () => {
-  const d = decideGatewayAction("0.1.0", { ok: true, app: "kirocrew", version: "0.1.0-insider.3" });
+  const d = decideGatewayAction("0.1.0", { ok: true, app: "junction", version: "0.1.0-insider.3" });
   assert.equal(d.action, "reuse"); // stable shell + insider gateway = same prod identity
 });
 
 test("same family reuses: nightly shell, nightly gateway (relaunch)", () => {
   const d = decideGatewayAction("0.1.0-nightly.20260722120000", {
-    ok: true, app: "kirocrew", version: "0.1.0-nightly.20260721000000",
+    ok: true, app: "junction", version: "0.1.0-nightly.20260721000000",
   });
   assert.equal(d.action, "reuse");
 });
@@ -40,14 +40,14 @@ test("same family reuses: nightly shell, nightly gateway (relaunch)", () => {
 const LOCAL = { localOwner: "kirocrew" };
 
 test("cross family prompts: nightly shell over prod gateway", () => {
-  const d = decideGatewayAction("0.2.0-nightly.20260722120000", { ok: true, app: "kirocrew", version: "0.1.0" }, LOCAL);
+  const d = decideGatewayAction("0.2.0-nightly.20260722120000", { ok: true, app: "junction", version: "0.1.0" }, LOCAL);
   assert.equal(d.action, "takeover-prompt");
   assert.equal(d.otherFamily, "prod");
   assert.equal(d.otherVersion, "0.1.0");
 });
 
 test("cross family prompts: prod shell over nightly gateway", () => {
-  const d = decideGatewayAction("0.1.0", { ok: true, app: "kirocrew", version: "0.1.0-nightly.20260722120000" }, LOCAL);
+  const d = decideGatewayAction("0.1.0", { ok: true, app: "junction", version: "0.1.0-nightly.20260722120000" }, LOCAL);
   assert.equal(d.action, "takeover-prompt");
   assert.equal(d.otherFamily, "nightly");
 });
@@ -60,13 +60,18 @@ test("unreachable/unparseable health reuses", () => {
   assert.equal(decideGatewayAction("0.1.0-nightly.20260722120000", null).action, "reuse");
 });
 
-test("non-kirocrew responder on the port reuses (never evict a stranger)", () => {
+test("non-junction responder on the port reuses (never evict a stranger)", () => {
   const d = decideGatewayAction("0.1.0-nightly.20260722120000", { ok: true, app: "other", version: "9.9.9" });
   assert.equal(d.action, "reuse");
 });
 
+test("legacy kirocrew health identity is a stranger (reuse)", () => {
+  const d = decideGatewayAction("0.1.0-nightly.20260722120000", { ok: true, app: "kirocrew", version: "0.1.0" });
+  assert.equal(d.action, "reuse");
+});
+
 test("unclassifiable own version never evicts", () => {
-  assert.equal(decideGatewayAction("", { ok: true, app: "kirocrew", version: "0.1.0" }).action, "reuse");
+  assert.equal(decideGatewayAction("", { ok: true, app: "junction", version: "0.1.0" }).action, "reuse");
 });
 
 // ── Locality: a cross-family payload alone must never authorise an eviction ──
@@ -74,7 +79,7 @@ test("unclassifiable own version never evicts", () => {
 // /api/health on localhost with a payload identical to a local install's. Every
 // case below is cross-family (the family logic says "evict") and must still
 // reuse, because the port is not held by a local KiroCrew process.
-const CROSS_FAMILY_HEALTH = { ok: true, app: "kirocrew", version: "0.1.0" };
+const CROSS_FAMILY_HEALTH = { ok: true, app: "junction", version: "0.1.0" };
 const NIGHTLY_SHELL = "0.2.0-nightly.20260722120000";
 
 test("tunnelled remote gateway is reused, never evicted (ssh owns the socket)", () => {
@@ -113,7 +118,7 @@ test("a genuine local rival install still prompts (cross-app mutex preserved)", 
 test("locality is checked only after family — same-family still short-circuits", () => {
   // A same-family gateway reuses for the family reason regardless of owner, so
   // the reason string stays useful for diagnosing reuse causes.
-  const d = decideGatewayAction("0.1.0", { ok: true, app: "kirocrew", version: "0.1.0-insider.3" }, { localOwner: "foreign" });
+  const d = decideGatewayAction("0.1.0", { ok: true, app: "junction", version: "0.1.0-insider.3" }, { localOwner: "foreign" });
   assert.equal(d.action, "reuse");
   assert.equal(d.reason, "same-family");
 });

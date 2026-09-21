@@ -89,7 +89,7 @@ This allows `kirocrew` to find project-level agent config and skills from any di
 `kirocrew --help` (and a bare `kirocrew`, which prints the banner first) does NOT
 use argparse's own subcommand block. With ~40 commands that block is one flat
 list in registration order, so the four commands a new install needs — `setup`,
-`planes`, `gateway`, `doctor` — land in the middle of it, and the `{chat,doctor,gateway,…}`
+`planes`, `up`, `doctor` — land in the middle of it, and the `{chat,doctor,gateway,…}`
 choice blob makes the usage line unreadable.
 
 `cli_help.py` owns the taxonomy instead:
@@ -97,8 +97,9 @@ choice blob makes the usage line unreadable.
 - `COMMAND_GROUPS` is an ordered list of sections, each an ordered list of
   `(command, one-line summary)`. It is the single source of truth for what the
   top-level help lists and in what order; `Start here` is first and holds
-  `setup`, `planes`, `gateway`, then `doctor`.
-- Its notes answer the two questions the flat list never did: how `gateway`
+  `setup`, `planes`, `up`, then `doctor`. `gateway` remains in `Run the gateway`
+  as the same server as `up`, kept for scripts.
+- Its notes answer the two questions the flat list never did: how `up`
   (foreground, dies with the terminal) differs from `service install` (systemd
   unit / launchd agent, detached, restarts on crash, starts at boot, only one at
   a time), and that the dashboard on loopback `5476` is the **only** port opened
@@ -128,17 +129,18 @@ choice blob makes the usage line unreadable.
 
 | Command | Description |
 |---------|-------------|
-| `kirocrew chat -m "msg"` | Send a single message, print streaming response |
-| `kirocrew chat` | Interactive chat mode (readline, exit with Ctrl+D) |
-| `kirocrew chat --model X` | Override model for this session |
-| `kirocrew gateway` | Start the Kiro Crew server (dashboard + messaging channels) |
-| `kirocrew gateway --slack-only` | Start without dashboard or SSH tunnel instructions |
-| `kirocrew gateway --no-crons` | Start without cron scheduler (use when another instance handles crons) |
-| `kirocrew setup` | Install agent config, save project dir, configure credentials |
+| `junction chat -m "msg"` | Send a single message, print streaming response |
+| `junction chat` | Interactive chat mode (readline, exit with Ctrl+D) |
+| `junction chat --model X` | Override model for this session |
+| `junction up` | Compose both planes and start Junction (dashboard + messaging channels) |
+| `junction gateway` | Same server as `up`; kept for scripts |
+| `junction gateway --slack-only` | Start without dashboard or SSH tunnel instructions |
+| `junction gateway --no-crons` | Start without cron scheduler (use when another instance handles crons) |
+| `junction setup` | Install agent config, save project dir, configure credentials |
 | `kirocrew setup --agent-only` | Only install agent config (skip credentials) |
 | `kirocrew setup --slack` | Run the guided Slack credential + slash-command setup (opt-in) |
 | `kirocrew setup --whatsapp` | Run the guided WhatsApp opt-in: report the optional `whatsapp` extra and the pairing state, then enable the channel (opt-in) |
-| `kirocrew doctor` | Verify kiro-cli is installed and config is valid |
+| `junction doctor` | Verify this install; `--quick` is compose-only |
 | `kirocrew cron add/list/remove` | Manage cron jobs |
 | `kirocrew spawn run/list` | Manage background subagents |
 | `kirocrew app install/list/enable/disable/uninstall` | Manage App Kit apps. Uninstall preserves `apps/<name>/data/` by default. |
@@ -772,11 +774,11 @@ binding its port, while every other subcommand kept working.
 
 ### Live-target bootstrap
 
-On the `gateway` command path only, immediately after `_JAILED_COMMANDS`
+On the `up` / `gateway` command path only, immediately after `_JAILED_COMMANDS`
 attestation and before the `--seed` handler:
 
 ```python
-if args.command == "gateway":
+if args.command in _SERVE_COMMANDS:
     from kiro_crew.service.live_target import maybe_reexec
     maybe_reexec(sys.argv[1:])
 ```

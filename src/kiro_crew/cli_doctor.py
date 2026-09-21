@@ -2042,30 +2042,15 @@ def _venv_deps_ok(venv_py: Path) -> bool:
 
 def _doctor_planes() -> None:
     """Harness + model compose. Never a doctor failure (sidecar optional)."""
-    print("Planes")
     try:
-        from kiro_crew.planes import _DAG_ROLES, snapshot_planes
+        from kiro_crew.planes import format_human_planes, snapshot_planes
 
         snap = snapshot_planes()
     except Exception as exc:  # noqa: BLE001 — doctor must survive a probe error
+        print("Planes")
         print(f"  snapshot:    ⚠️  unavailable ({exc})")
         return
-    harness = snap["harness"]
-    model = snap["model"]
-    selected = harness.get("selected") or "none installed"
-    print(f"  harness:     {harness['default']} (selected={selected}; kiro-cli optional)")
-    print(f"  model:       {model['status']} (sidecar optional; gateway still works)")
-    role_bits = " ".join(
-        f"{row['role']}={row['cost_class']}"
-        for row in snap.get("roles", {}).get("roles", [])
-        if row.get("role") in _DAG_ROLES
-    )
-    if role_bits:
-        print(f"  roles:       {role_bits}")
-    docked = [row["id"] for row in harness["runtimes"] if row["available"]]
-    if docked:
-        print(f"  docked:      {', '.join(docked)}")
-    print("  keys:        never paste provider keys into chat")
+    print(format_human_planes(snap, heading="Planes"))
 
 
 def _doctor(

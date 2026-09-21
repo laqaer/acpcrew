@@ -20,7 +20,7 @@ requires-python = ">=3.10"
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
-Homepage = "https://junction.computer"
+Homepage = "https://getjunction.dev"
 Repository = "https://github.com/laqaer/acpcrew"
 
 [project.scripts]

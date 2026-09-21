@@ -38,7 +38,7 @@ from kiro_crew.config.loader import (
     KiroCrewConfig,
     config_path,
 )
-from kiro_crew.constants import PRODUCT_NAME
+from kiro_crew.constants import CLI_BIN, PRODUCT_NAME
 from kiro_crew.context_management import RESULT_FILE_MAX_BYTES
 from kiro_crew.dashboard.origin import check_host, is_direct_local_request
 from kiro_crew.dashboard.state import DashboardState
@@ -151,7 +151,7 @@ _DASHBOARD_HTML_NOT_FOUND = (
     f"<p><strong>Try restarting {PRODUCT_NAME}.</strong> The exact restart step"
     " depends on your environment: if you installed it as a service use"
     " <code>junction service restart</code> (systemd / launchd); otherwise"
-    " stop the running <code>junction gateway</code> process and start it"
+    " stop the running <code>junction up</code> process and start it"
     " again.</p>"
 )
 
@@ -279,7 +279,7 @@ def _liveness_payload(request: web.Request) -> dict[str, object]:
         # needs exact identity to decide whether it can reuse the shared port.
         # Anonymous non-loopback probes get only the liveness bit, avoiding an
         # exact-version fingerprint on the public probe boundary.
-        payload.update({"app": "kirocrew", "version": kiro_crew.__version__})
+        payload.update({"app": CLI_BIN, "product": PRODUCT_NAME, "version": kiro_crew.__version__})
     return payload
 
 

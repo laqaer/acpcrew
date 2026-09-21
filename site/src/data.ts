@@ -49,7 +49,7 @@ export const TERMINAL_LINES = [
   { text: 'Junction planes' },
   { text: '   harness:     ', hl: 'auto' },
   { text: '   model:       ', hl: 'sidecar optional' },
-  { prompt: true, text: 'junction gateway' },
+  { prompt: true, text: 'junction up' },
   { text: 'Dashboard:      ', hl: 'loopback' },
   { comment: '   Ready. Two planes, one local install.' },
 ];

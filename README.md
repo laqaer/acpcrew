@@ -57,7 +57,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 junction setup
 junction doctor --quick
-junction gateway
+junction up
 ```
 
 Optional model plane: run a Codex Router sidecar on loopback, then
@@ -85,7 +85,7 @@ source .venv/bin/activate
 # 2. Configure, verify, and start (the CLI is `junction`)
 junction setup
 junction doctor --quick
-junction gateway
+junction up
 ```
 
 ## Why Junction
@@ -357,7 +357,7 @@ main configuration with `junction config get`, `set`, and `edit`.
 
 `agent.provider` is fixed to `acp`. The gateway drives an ACP runtime over the
 Agent Client Protocol (`kiro-cli` optional). Set the dashboard port with `KIROCREW_PORT` or
-`junction gateway --port <n>`. Messaging-channel credentials (Slack, Discord,
+`junction up --port <n>`. Messaging-channel credentials (Slack, Discord,
 Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
 
 **Troubleshoot quickly.** Start with `junction doctor --quick`, then `junction doctor`. For an ACP timeout,
@@ -371,7 +371,7 @@ model finished downloading under `~/.kiro/crew/models`. For a stale MCP configur
 follow it live; `junction logs -n 200` prints more history. `junction logs`
 reads the right source automatically — the systemd journal when the Linux
 service is installed, the launchd stdout file on macOS, or the foreground
-gateway log otherwise. Raise verbosity with `junction gateway -v` (INFO:
+gateway log otherwise. Raise verbosity with `junction up -v` (INFO:
 session lifecycle and context usage) or `-vv` (DEBUG: full ACP events and
 message traces); set the persistent default with
 `junction config set agent.log_level`, or change it at runtime from the

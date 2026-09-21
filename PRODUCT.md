@@ -56,8 +56,10 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 | Command | Role |
 |---|---|
 | `junction` | Primary CLI. |
+| `junction up` | Compose both planes, then start the loopback dashboard. |
 | `junction planes` | Harness + model + role DAG in one snapshot (`--json` for machines). |
 | `junction doctor --quick` | Compose-only probe. Full `junction doctor` still exists. |
+| `junction gateway` | Same server as `up`; kept for scripts. |
 | `junction router catalog` | Namespaced model choices (no credentials). |
 | `junction router plan` | Orchestration / planning / execution DAG. |
 

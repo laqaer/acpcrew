@@ -12,9 +12,10 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from aiohttp import web
 
@@ -107,6 +108,49 @@ def snapshot_planes(
     }
 
 
+def format_human_planes(snap: Mapping[str, Any], *, heading: str) -> str:
+    """One human screen for planes, doctor, and ``junction up``.
+
+    Shared so the three surfaces cannot drift: harness default + selected,
+    sidecar health, role DAG, docked runtimes, and the no-keys rule.
+    """
+    harness = snap["harness"]
+    model = snap["model"]
+    selected = harness.get("selected") or "none installed"
+    lines = [
+        heading,
+        (f"  harness: {harness['default']} " f"(selected={selected}; kiro-cli optional)"),
+        f"  model:   {model['status']} (sidecar optional; gateway still works)",
+    ]
+    role_bits = " ".join(
+        f"{row['role']}={row['cost_class']}"
+        for row in snap.get("roles", {}).get("roles", [])
+        if row.get("role") in _DAG_ROLES
+    )
+    if role_bits:
+        lines.append(f"  roles:   {role_bits}")
+    available = [row["id"] for row in harness.get("runtimes", []) if row.get("available")]
+    if available:
+        lines.append(f"  docked:  {', '.join(available)}")
+    lines.append("never paste provider keys into chat; the sidecar injects them.")
+    return "\n".join(lines)
+
+
+def print_compose_banner(*, stream: TextIO | None = None) -> None:
+    """Foreground start floor: compose both planes before the server binds.
+
+    Writes to stderr so ``--json-ready`` stdout stays a single READY line.
+    A probe failure never blocks start.
+    """
+    if stream is None:
+        stream = sys.stderr
+    try:
+        snap = snapshot_planes()
+        print(format_human_planes(snap, heading=f"{PRODUCT_NAME} compose"), file=stream)
+    except Exception:
+        logger.debug("compose banner skipped", exc_info=True)
+
+
 def run_planes_command(args: argparse.Namespace) -> None:
     """``junction planes`` — one screen for both planes.
 
@@ -117,23 +161,7 @@ def run_planes_command(args: argparse.Namespace) -> None:
     if getattr(args, "as_json", False):
         print(json.dumps(snap, separators=(",", ":")))
         return
-    harness = snap["harness"]
-    model = snap["model"]
-    selected = harness["selected"] or "none installed"
-    print(f"{PRODUCT_NAME} planes")
-    print(f"  harness: {harness['default']} (selected={selected})")
-    print(f"  model:   {model['status']} (sidecar optional; gateway still works)")
-    role_bits = " ".join(
-        f"{row['role']}={row['cost_class']}"
-        for row in snap["roles"]["roles"]
-        if row["role"] in _DAG_ROLES
-    )
-    if role_bits:
-        print(f"  roles:   {role_bits}")
-    available = [row["id"] for row in harness["runtimes"] if row["available"]]
-    if available:
-        print(f"  docked:  {', '.join(available)}")
-    print("never paste provider keys into chat; the sidecar injects them.")
+    print(format_human_planes(snap, heading=f"{PRODUCT_NAME} planes"))
 
 
 async def api_planes(request: web.Request) -> web.Response:

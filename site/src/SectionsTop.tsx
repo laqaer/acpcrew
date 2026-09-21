@@ -92,7 +92,7 @@ export function Hero() {
         className="mt-8 text-left max-w-[560px] mx-auto bg-slate-100 dark:bg-[#14151c] border border-[#e4a54a]/12 rounded-xl px-4 py-3 font-mono text-[13px] text-[#e4a54a] leading-relaxed overflow-x-auto">
 {`git clone https://github.com/laqaer/acpcrew.git
 cd acpcrew && pip install .
-junction setup && junction gateway`}
+junction setup && junction up`}
       </motion.pre>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
         className="mt-3 text-xs text-slate-500 dark:text-slate-400 font-space">

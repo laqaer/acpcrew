@@ -16,7 +16,7 @@ Node is only needed to *build* the dashboard. A source install that already
 has `website/dist` staged does not need Node at runtime.
 
 **Platforms: macOS, Linux, and Windows.** Windows runs natively from a Python
-source install and is launched as `python -m kiro_crew gateway` or `junction gateway`.
+source install and is launched as `python -m kiro_crew up` or `junction up`.
 
 ## Installation
 
@@ -30,7 +30,7 @@ cd website && npm install && npm run build && cd ..
 pip install -e ".[dev]"
 junction setup
 junction doctor --quick
-junction gateway
+junction up
 ```
 
 The dashboard has to be built before the backend install, because the built
@@ -59,9 +59,11 @@ kiro-cli login
 
 ```bash
 junction setup
-junction doctor
-junction gateway
+junction doctor --quick
+junction up
 ```
+
+`junction gateway` is the same server as `junction up` and remains for scripts.
 
 Silent aliases `acpcrew` and `kirocrew` still dispatch to the same CLI.
 User-facing help prints `junction`.

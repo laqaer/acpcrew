@@ -95,7 +95,7 @@ body:
         Numbered steps from a known starting state. If it is intermittent, say
         roughly how often it happens.
       placeholder: |
-        1. Start the gateway with `junction gateway`
+        1. Start Junction with `junction up`
         2. Open the dashboard and ...
         3. Observe ...
     validations:
