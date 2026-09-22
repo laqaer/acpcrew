@@ -69,23 +69,38 @@ function Pill({ children }: { children: React.ReactNode }) {
 export function AppPreview() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.8, duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
-      className="max-w-[1120px] mx-auto px-4 pb-20"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="max-w-[1120px] mx-auto px-5 md:px-8 pb-24"
     >
-      {/* Window frame */}
-      <div className="rounded-xl overflow-hidden shadow-2xl"
-        style={{ background: C.bg, border: `1px solid ${C.border}`, boxShadow: '0 40px 120px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04)' }}>
-        {/* macOS title bar */}
-        <div className="flex items-center gap-2 px-3.5 h-7 shrink-0" style={{ background: '#101118', borderBottom: `1px solid ${C.border}` }}>
-          <span className="w-3 h-3 rounded-full" style={{ background: '#ff5f57' }} />
-          <span className="w-3 h-3 rounded-full" style={{ background: '#febc2e' }} />
-          <span className="w-3 h-3 rounded-full" style={{ background: '#28c840' }} />
+      <div className="overflow-hidden"
+        style={{ background: C.bg, border: `1px solid ${C.border}`, boxShadow: '0 30px 80px rgba(0,0,0,0.28)' }}>
+        <div className="flex items-center gap-3 px-4 h-9" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <span className="w-8 h-px" style={{ background: C.accent }} />
+          <span className="text-[11px] tracking-[0.16em] uppercase" style={{ color: C.muted }}>Switchboard</span>
+        </div>
+        <div className="md:hidden px-4 py-4" style={{ color: C.text }}>
+          <div className="grid grid-cols-2 gap-4">
+            {SWITCH.map(block => (
+              <div key={block.plane}>
+                <div className="text-[10px] tracking-[0.16em] uppercase mb-2" style={{ color: C.accent }}>{block.plane}</div>
+                {block.rows.map(row => (
+                  <div key={row.name} className="flex justify-between gap-2 py-1 text-[12px]" style={{ borderTop: `1px solid ${C.borderSoft}` }}>
+                    <span>{row.name}</span>
+                    <span style={{ color: C.muted }}>{row.state}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center justify-between text-[11px]" style={{ color: C.muted }}>
+            <span>Two planes, one switch</span>
+            <span style={{ color: C.accent }}>LOCAL</span>
+          </div>
         </div>
 
-        {/* Top bar */}
-        <div className="flex items-center justify-between h-[46px] px-3" style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+        <div className="hidden md:flex items-center justify-between h-[46px] px-3" style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: '#e4a54a' }}>
               <GitMerge size={14} style={{ color: '#0c0d12' }} />
@@ -94,7 +109,7 @@ export function AppPreview() {
           </div>
           <div className="hidden lg:flex items-center gap-1.5">
             <Pill>Planes</Pill>
-            <span className="w-1.5 h-1.5 rounded-full mx-0.5" style={{ background: '#22c55e' }} />
+            <span className="w-1.5 h-1.5 rounded-full mx-0.5" style={{ background: C.accent }} />
             <span className="relative inline-flex">
               <Pill><Bell size={10} /></Pill>
             </span>
@@ -105,7 +120,7 @@ export function AppPreview() {
         </div>
 
         {/* Body: rail | sidebar | content */}
-        <div className="grid grid-cols-1 md:grid-cols-[52px_268px_1fr]" style={{ height: 470 }}>
+        <div className="hidden md:grid md:grid-cols-[52px_268px_1fr]" style={{ height: 470 }}>
           {/* Nav rail */}
           <div className="hidden md:flex flex-col items-center pt-2 pb-3 gap-1" style={{ background: C.railBg, borderRight: `1px solid ${C.borderSoft}` }}>
             <div className="w-8 h-8 flex items-center justify-center" style={{ color: C.mutedSoft }}><Menu size={15} /></div>

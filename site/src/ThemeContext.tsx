@@ -7,6 +7,10 @@ const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: 'd
 // Read/write defensively and always fall back to a validated theme.
 function readTheme(): Theme {
   try {
+    if (typeof window !== 'undefined') {
+      const q = new URLSearchParams(window.location.search).get('theme');
+      if (q === 'light' || q === 'dark') return q;
+    }
     const v = localStorage.getItem('mc-theme');
     return v === 'light' || v === 'dark' ? v : 'dark';
   } catch {
