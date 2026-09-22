@@ -49,7 +49,15 @@ Issue [#22](https://github.com/laqaer/junction/issues/22).
 
 ### M3 — production marketing site
 
-Human-gated spend and DNS. Quoted candidates (not purchased):
+The public host is **https://getjunction.dev**. `www.getjunction.dev`
+redirects there. Branch deploys stay on
+[junction-site.vercel.app](https://junction-site.vercel.app).
+
+`junction.computer` is not the host. It was a quoted name, it was not
+purchased, and it has no public DNS. Do not buy it from an agent, and do
+not point the site at it.
+
+Other names quoted in the same pass, also not purchased:
 
 | Domain | 1-year list | Renewal |
 |---|---|---|
@@ -60,9 +68,7 @@ Human-gated spend and DNS. Quoted candidates (not purchased):
 | `junction.computer` | $33.99 | $32 |
 
 `junction.dev` / `.app` / `.ai` / `.so` / `.run` and `usejunction.com` are
-taken. Preview remains [junction-site.vercel.app](https://junction-site.vercel.app)
-until an operator confirms a quote, pays, and attaches DNS. Agents must not
-buy or change DNS.
+taken. Agents must not buy a domain or change DNS.
 
 ### M4 — human-gated identity leftovers
 

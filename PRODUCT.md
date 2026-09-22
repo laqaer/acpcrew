@@ -3,12 +3,12 @@
 **Where coding agents meet the models you want.**
 
 Junction is a local control plane. It docks ACP coding agents and routes
-their inference, with memory and cron, on hardware you control. `kiro-cli`
-is optional.
+their inference, with memory and cron, on hardware you control. A vendor
+agent CLI is optional.
 
 Run Cursor, Claude, Codex, Grok from one local dashboard — and route their
-inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron,
-without requiring `kiro-cli`.
+inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron.
+A vendor agent CLI is optional.
 
 Voice: local-first, precise, no hype.
 
@@ -29,7 +29,7 @@ Two planes, one product. See [`ARCHITECTURE.md`](ARCHITECTURE.md).
 1. **Harness plane** — an ACP runtime registry. Default `agent.acp_backend`
    is `auto`: the first installed of Cursor, Claude, Codex, Kimi, DeepSeek
    Harness, Goose, Grok, Pi, Droid. Pin a concrete id when you want one
-   agent. `kiro-cli` remains selectable and last in that preference list.
+   agent. A vendor agent CLI remains selectable and last in that preference list.
 2. **Model plane** — an optional Codex Router sidecar on loopback. Junction
    observes it (`src/kiro_crew/model_router/`). The shipped catalog lists
    every namespaced model choice the sidecar advertises. Role routing

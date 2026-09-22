@@ -267,8 +267,8 @@ CLI_BIN = "junction"
 # is installed. Aliases stay so a leftover wrapper still stop/restarts.
 CLI_CONSOLE_STEMS: tuple[str, ...] = (CLI_BIN, "kirocrew", "acpcrew")
 
-# Live production hostname. junction.computer is the intended apex once its
-# public NS exist; until then CLI chrome and the marketing canonical point here.
+# Canonical public hostname. CLI chrome and the marketing site use this.
+# www.getjunction.dev redirects here.
 SITE_URL = "https://getjunction.dev"
 
 # Public GitHub slug. Clone URLs and issue links use this.

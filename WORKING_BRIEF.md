@@ -12,9 +12,9 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Product | **Junction** |
 | CLI | `junction` |
 | Tagline | Where coding agents meet the models you want. |
-| Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring `kiro-cli`. |
+| Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron. A vendor agent CLI is optional. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
-| Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. Intended apex: https://junction.computer (no public NS yet). |
+| Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. `www.getjunction.dev` redirects there. |
 | GitHub slug | `laqaer/junction` (renamed). Description and homepage still need a token that can PATCH repo metadata. |
 | Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
@@ -87,7 +87,7 @@ only at version bump).
 | Epic | https://github.com/laqaer/junction/issues/16 |
 | Hobby **preview** (this SHA, `target` unset) | https://junction-site-drdzpa9u5-laqaers-projects.vercel.app |
 | Production site | https://getjunction.dev (live) |
-| Intended apex | https://junction.computer (no public NS; Vercel registrar list empty) |
+| Canonical host | https://getjunction.dev (`www` redirects here). `junction.computer` is not the host: no public DNS, and it was not purchased. |
 | Hobby default alias | https://junction-site.vercel.app |
 
 ## Execution manifest
@@ -105,7 +105,7 @@ routing and the full gateway suite were never in this cut's must-run list.
 | Bootstrap PR + epic/lane issues | proven (#23, #16–#22) |
 | Site CI workflow file | proven (`.github/workflows/site.yml`; Actions in flight) |
 | Vercel hobby URL for `site/` | proven. Preview: https://junction-site-drdzpa9u5-laqaers-projects.vercel.app (`target` unset). First deploy also created https://junction-site.vercel.app — Vercel labeled that one `production` internally. No custom domain, no GitHub Pages, no spend. Not a production ship of this product. |
-| Marketing walkthrough (nav → two-plane → CLI → FAQ) | proven against local `vite preview` dump-dom and the live preview URL: Junction nav/hero, Harness + Model planes, `junction gateway`, kiro-cli optional, never-paste-keys on the model plane, no ghost emoji. Interactive FAQ accordion click and computerUse recording: not_run (GUI agent spend-limited). |
+| Marketing walkthrough (nav → two-plane → CLI → FAQ) | proven against local `vite preview` dump-dom and the live preview URL: Junction nav/hero, Harness + Model planes, `junction gateway`, vendor agent CLI optional, never-paste-keys on the model plane, no ghost emoji. Interactive FAQ accordion click and computerUse recording: not_run (GUI agent spend-limited). |
 | Live Codex Router against Kimi/DeepSeek | not_run (no local sidecar) |
 | Full gateway pytest / desktop | not_run |
 
