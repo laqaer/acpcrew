@@ -115,7 +115,7 @@ export function TerminalDemo() {
   }, [inView]);
 
   return (
-    <FadeUp className="max-w-[720px] mx-auto mb-20 px-6">
+    <FadeUp className="max-w-[1120px] mx-auto mb-20 px-5 md:px-8">
       <div ref={ref} className="bg-[#14151c] border border-[#e4a54a]/20 overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[#e4a54a]/15">
           <span className="w-6 h-px bg-[#e4a54a]" />

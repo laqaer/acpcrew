@@ -16,20 +16,27 @@ export function InAction() {
         <h2 className="font-display text-4xl md:text-6xl font-medium tracking-[-0.03em] mb-3">On the rails</h2>
       </FadeUp>
       <FadeUp delay={0.1}><p className="text-[#6d6458] dark:text-[#a39b90] text-lg mb-10 max-w-[36rem]">Dock an agent, then spend tokens on purpose</p></FadeUp>
-      <ScaleIn className="max-w-[640px] mx-auto">
-        <div className="flex gap-4 mb-4 flex-wrap">
+      <ScaleIn>
+        <div className="flex gap-6 mb-6 flex-wrap border-b border-[#e4a54a]/20">
           {IN_ACTION.map((item, i) => (
             <button key={i} onClick={() => setActive(i)}
-              className={`px-3 py-1.5 text-xs font-medium border-b-2 cursor-pointer ${active === i ? 'border-[#e4a54a] text-[#1c160f] dark:text-[#f6f1e7]' : 'border-transparent text-[#8a8175]'}`}>
+              className={`px-0 py-2 text-xs font-medium border-b-2 -mb-px cursor-pointer ${active === i ? 'border-[#e4a54a] text-[#1c160f] dark:text-[#f6f1e7]' : 'border-transparent text-[#8a8175]'}`}>
               {item.label}
             </button>
           ))}
         </div>
-        <div className="plate p-6 min-h-[200px]">
+        <div className="min-h-[200px]">
           <AnimatePresence mode="wait">
-            <motion.div key={active} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="flex flex-col gap-4">
-              <div className="self-end"><div className="px-4 py-2.5 rounded-xl rounded-br-sm text-sm bg-[#e4a54a] text-[#0c0d12] max-w-[420px] font-space">{ex.user}</div></div>
-              <div className="self-start"><div className="px-4 py-2.5 rounded-xl rounded-bl-sm text-sm bg-slate-100 dark:bg-[#0c0d12] text-slate-700 dark:text-slate-200 border border-[#e4a54a]/12 max-w-[480px] whitespace-pre-wrap font-space">{ex.bot}</div></div>
+            <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+              className="grid md:grid-cols-2 gap-px bg-[#e4a54a]/25">
+              <div className="bg-[#f3eee4] dark:bg-[#0c0d12] p-6">
+                <div className="kicker mb-3">You</div>
+                <p className="text-sm leading-relaxed max-w-[42ch]">{ex.user}</p>
+              </div>
+              <div className="bg-[#f7f3eb] dark:bg-[#14151c] p-6">
+                <div className="kicker mb-3">Junction</div>
+                <p className="text-sm leading-relaxed text-[#5c5348] dark:text-[#b7aea2] whitespace-pre-wrap">{ex.bot}</p>
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
@@ -107,7 +114,7 @@ export function Architecture() {
           );
         })}
       </StaggerIn>
-      <StaggerIn className="flex items-center justify-center flex-wrap gap-0 py-10">
+      <StaggerIn className="flex items-center justify-start flex-wrap gap-0 py-10">
         {ARCH.map((node, i) => (
           <span key={node.label} style={{ display: 'contents' }}>
             <motion.div variants={staggerChild}
