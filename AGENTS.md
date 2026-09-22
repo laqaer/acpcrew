@@ -6,7 +6,7 @@ open before touching that subsystem: see
 [Read before you touch](#read-before-you-touch). The frontend has its own router,
 [`website/AGENTS.md`](website/AGENTS.md).
 
-**Product overlay:** this checkout is **Junction** (`laqaer/acpcrew`).
+**Product overlay:** this checkout is **Junction** (`laqaer/junction`).
 Read [`JUNCTION.md`](JUNCTION.md) and
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md) before any product, brand, CLI, or
 model-router change. Product / architecture / roadmap overlays:
@@ -425,7 +425,7 @@ Two traps are worth naming here because neither is visible when reading the test
 | Constants | No hardcoded strings or values in business logic; every limit has an owning module. Index: [code-style](docs/system-specs/common/code-style.md) |
 | Comments | Explain **behavior and rationale (the why)**: invariants, edge cases, units, non-obvious constraints. NOT a task log: no PR/CR numbers, review-round markers, incident dates, milestone tags, or commit SHAs. No "previously/used to/we now" narration, state current behavior in present tense. Don't restate what the code plainly does. `_vendor/` and pragmas are exempt. |
 | Icons | **Never use emojis in the UI.** Use `lucide-react` with `className="lucide-inline"`. |
-| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`kiro_crew`, `KIROCREW_*`, Electron `productName`, slug `laqaer/acpcrew`). CI-gates concatenated upstream brand tokens on added lines; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
+| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`kiro_crew`, `KIROCREW_*`, Electron `productName`, slug `laqaer/junction`). CI-gates concatenated upstream brand tokens on added lines; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
 | User-facing strings | The dashboard is translated into 12 languages. **Never hardcode a user-facing English string, and never format a date, number, or sort order without naming a locale.** Both are CI-gated. Backend-owned strings have no catalog path yet, so a new non-2xx JSON body MUST carry a machine-readable `code` field. |
 
 ## Cross-platform: route POSIX calls through `platform_compat`

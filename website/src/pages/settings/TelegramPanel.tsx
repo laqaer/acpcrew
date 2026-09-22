@@ -4,7 +4,7 @@ import { api } from '../../api/client'
 import { i18nT } from '../../i18n/t'
 import { BotChannelPanel, type BotChannelSpec } from './BotChannelPanel'
 
-const SETUP_GUIDE = 'https://github.com/laqaer/acpcrew/blob/main/src/kiro_crew/docs/telegram-integration.md'
+const SETUP_GUIDE = 'https://github.com/laqaer/junction/blob/main/src/kiro_crew/docs/telegram-integration.md'
 
 /**
  * Chat commands this channel accepts, interpolated into the SHARED soft-threshold

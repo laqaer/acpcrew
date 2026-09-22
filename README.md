@@ -46,7 +46,7 @@ A vendor agent CLI is optional. The gateway docks whichever ACP runtime is
 installed (`agent.acp_backend` defaults to `auto`).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
 junction setup
 junction up
 ```
@@ -59,8 +59,8 @@ and anyone working in a checkout, follows the source steps below.
 After a source install the dashboard is on loopback.
 
 ```bash
-git clone https://github.com/laqaer/acpcrew.git
-cd acpcrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 bash minimal_install.sh
 junction setup
 junction up
@@ -81,8 +81,8 @@ through a native source install; follow the
 
 ```bash
 # 1. Clone and build Junction
-git clone https://github.com/laqaer/acpcrew.git
-cd acpcrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 make build
 source .venv/bin/activate
 
@@ -473,14 +473,14 @@ npm run check
 npm run build
 ```
 
-Use [GitHub Issues](https://github.com/laqaer/acpcrew/issues) for bugs and
+Use [GitHub Issues](https://github.com/laqaer/junction/issues) for bugs and
 feature requests. Do not file security vulnerabilities publicly.
 
 
 ## Contributors
 
 Junction credits authors of pull requests merged in this repository. The
-[contributors graph](https://github.com/laqaer/acpcrew/graphs/contributors)
+[contributors graph](https://github.com/laqaer/junction/graphs/contributors)
 is the live list as the project grows.
 
 <a href="https://github.com/laqaer" title="laqaer"><img src="https://github.com/laqaer.png?size=64" width="64" height="64" alt="laqaer" /></a>

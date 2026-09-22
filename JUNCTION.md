@@ -39,8 +39,8 @@ Site: https://getjunction.dev
 
 ## Implementation identifiers (until a dedicated rename)
 
-`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`, GitHub
-slug `laqaer/acpcrew`. The brand gate still forbids concatenated `KiroCrew`
+`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`.
+GitHub slug is `laqaer/junction`. The brand gate still forbids concatenated `KiroCrew`
 in **new prose**. Junction is allowed. Do not retarget the data home.
 
 ## Security and harness (do not weaken)

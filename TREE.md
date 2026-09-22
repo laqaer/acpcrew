@@ -1,7 +1,7 @@
 # Junction
 
 Local control plane that docks ACP coding agents and routes their models.
-GitHub slug: `laqaer/acpcrew`. Product identity:
+GitHub slug: `laqaer/junction`. Product identity:
 [`PRODUCT.md`](PRODUCT.md). Overlay: [`JUNCTION.md`](JUNCTION.md).
 
 This tree does not require `kiro-cli`. Multi-ACP is already on `main`.

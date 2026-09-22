@@ -177,7 +177,7 @@ const HERO_BG: React.CSSProperties = {
  * feature-request flow, and a rename or a redirect to an in-app form there must
  * not silently retarget this link.
  */
-const REPORT_ISSUE_URL = 'https://github.com/laqaer/acpcrew/issues/new'
+const REPORT_ISSUE_URL = 'https://github.com/laqaer/junction/issues/new'
 
 /**
  * How long a primed Restart button stays armed.

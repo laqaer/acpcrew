@@ -6,7 +6,7 @@ runtime.  Junction deliberately keeps secrets **out** of
 
 > **Security note:** Both routes below are **interim workarounds** pending
 > the encrypted vault (planned — see
-> [issue tracker](https://github.com/laqaer/acpcrew/issues/2351)).
+> [issue tracker](https://github.com/laqaer/junction/issues/2351)).
 > They deliver the secret to the MCP server subprocess, but a
 > prompt-injected agent running in the same process tree can observe
 > environment variables that the sandbox does not explicitly scrub.  Use

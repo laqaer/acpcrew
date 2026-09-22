@@ -83,8 +83,8 @@ Same two steps as a local machine (Python backend plus the React dashboard
 bundle). See the [install guide](install.md) for the full walkthrough:
 
 ```bash
-git clone https://github.com/laqaer/acpcrew.git
-cd acpcrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 
 # Build the frontend bundle and stage it into the package
 cd website && npm install && npm run build && cd ..
@@ -601,8 +601,8 @@ bugs:
   app is closed or backgrounded. On iOS that constructor is unavailable inside an
   installed PWA at all — notifications there require
   `ServiceWorkerRegistration.showNotification()`. Tracked in
-  [issue #2267](https://github.com/laqaer/acpcrew/issues/2267); the Android
-  symptom is [issue #1828](https://github.com/laqaer/acpcrew/issues/1828).
+  [issue #2267](https://github.com/laqaer/junction/issues/2267); the Android
+  symptom is [issue #1828](https://github.com/laqaer/junction/issues/1828).
 - **Pinch zoom is off.** The installed app behaves like an application, not a
   web page: two-finger pinch and double-tap no longer scale the shell. **To
   magnify, use the OS Display Zoom setting** (iOS: Settings → Display &

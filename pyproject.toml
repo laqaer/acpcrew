@@ -21,7 +21,7 @@ dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
 Homepage = "https://getjunction.dev"
-Repository = "https://github.com/laqaer/acpcrew"
+Repository = "https://github.com/laqaer/junction"
 
 [project.scripts]
 kirocrew = "kiro_crew._bootstrap:main"

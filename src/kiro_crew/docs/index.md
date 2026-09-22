@@ -88,6 +88,6 @@ in [Messaging Transport](messaging-transport.md).
 
 ## Links
 
-- [Repository](https://github.com/laqaer/acpcrew): source, issues, and
+- [Repository](https://github.com/laqaer/junction): source, issues, and
   feature requests. `CONTRIBUTING.md` in the repository root has the
   contribution guidelines.

@@ -6,8 +6,8 @@
 # npm + vite (dashboard). scripts/get-junction.sh clones the repository
 # and then runs this file.
 #
-#   git clone https://github.com/laqaer/acpcrew.git
-#   cd acpcrew
+#   git clone https://github.com/laqaer/junction.git
+#   cd junction
 #   bash minimal_install.sh
 #
 # Prerequisites: Python 3.10+, Node.js 22+ (24 LTS recommended), npm, git

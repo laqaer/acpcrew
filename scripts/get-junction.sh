@@ -4,7 +4,7 @@
 # Clones (or fast-forwards) a checkout, then runs minimal_install.sh.
 # Does not start the server.
 #
-#   curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
 #
 # Read this file before you run it. JUNCTION_SRC overrides the checkout.
 # JUNCTION_BIN_DIR overrides where the junction link is written.
@@ -12,7 +12,7 @@
 
 set -eu
 
-REPO="${JUNCTION_REPO:-https://github.com/laqaer/acpcrew.git}"
+REPO="${JUNCTION_REPO:-https://github.com/laqaer/junction.git}"
 DEST="${JUNCTION_SRC:-$HOME/.local/share/junction}"
 BIN_DIR="${JUNCTION_BIN_DIR:-$HOME/.local/bin}"
 
@@ -51,7 +51,7 @@ fi
 if [ -d "$DEST/.git" ]; then
   remote=$(git -C "$DEST" remote get-url origin)
   case "$remote" in
-    *laqaer/acpcrew*) ;;
+    *laqaer/junction*|*laqaer/acpcrew*) ;;
     *)
       echo "refusing: $DEST is not a checkout of $REPO" >&2
       exit 1

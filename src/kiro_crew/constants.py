@@ -271,8 +271,8 @@ CLI_CONSOLE_STEMS: tuple[str, ...] = (CLI_BIN, "kirocrew", "acpcrew")
 # public NS exist; until then CLI chrome and the marketing canonical point here.
 SITE_URL = "https://getjunction.dev"
 
-# Public GitHub slug until a human rename lands. Clone URLs use this.
-GITHUB_SLUG = "laqaer/acpcrew"
+# Public GitHub slug. Clone URLs and issue links use this.
+GITHUB_SLUG = "laqaer/junction"
 
 # The product wordmark, figlet `small`. ONE definition on purpose: copy-pasting
 # it into cli.py and cli_chat.py risks a rename leaving a stale product name in

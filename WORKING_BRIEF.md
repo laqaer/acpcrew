@@ -15,7 +15,7 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron, without requiring `kiro-cli`. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
 | Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. Intended apex: https://junction.computer (no public NS yet). |
-| GitHub slug | `laqaer/acpcrew` until a human renames it (GitHub integration token cannot PATCH the repo name or description). |
+| GitHub slug | `laqaer/junction` (renamed). Description and homepage still need a token that can PATCH repo metadata. |
 | Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
 
@@ -83,8 +83,8 @@ only at version bump).
 
 | Surface | URL |
 |---|---|
-| Bootstrap PR | https://github.com/laqaer/acpcrew/pull/23 |
-| Epic | https://github.com/laqaer/acpcrew/issues/16 |
+| Bootstrap PR | https://github.com/laqaer/junction/pull/23 |
+| Epic | https://github.com/laqaer/junction/issues/16 |
 | Hobby **preview** (this SHA, `target` unset) | https://junction-site-drdzpa9u5-laqaers-projects.vercel.app |
 | Production site | https://getjunction.dev (live) |
 | Intended apex | https://junction.computer (no public NS; Vercel registrar list empty) |

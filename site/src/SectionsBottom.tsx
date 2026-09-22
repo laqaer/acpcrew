@@ -40,7 +40,7 @@ export function HowItWorks() {
     {
       n: '1',
       title: 'Install the CLI',
-      code: 'curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh',
+      code: 'curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh',
     },
     {
       n: '2',

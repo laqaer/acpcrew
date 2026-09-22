@@ -25,7 +25,7 @@ Python 3.10+ and Node.js 22+ so the dashboard is built. Read
 `scripts/get-junction.sh` before you run it. It does not start the server.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/scripts/get-junction.sh | sh
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
 junction setup
 junction doctor --quick
 junction up
@@ -34,8 +34,8 @@ junction up
 A source checkout is the path when you are changing Junction:
 
 ```bash
-git clone https://github.com/laqaer/acpcrew.git
-cd acpcrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 python3 -m venv .venv && source .venv/bin/activate
 cd website && npm install && npm run build && cd ..
 pip install -e ".[dev]"
@@ -83,4 +83,4 @@ Connect Slack, Discord, or other channels later from the dashboard
 
 Site: https://getjunction.dev
 
-Source: https://github.com/laqaer/acpcrew
+Source: https://github.com/laqaer/junction

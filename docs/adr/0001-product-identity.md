@@ -6,7 +6,7 @@
 
 ## Context
 
-`laqaer/acpcrew` already docks multiple ACP agents on `main`. User-facing
+`laqaer/junction` already docks multiple ACP agents on `main`. User-facing
 chrome still said Kiro Crew / acpcrew in README, the marketing site, CLI
 help, and the dashboard default bot name. The operator asked to leave both
 names, combine Codex Router as a model plane, run a full branding assessment,
@@ -27,7 +27,7 @@ The product name is **Junction**.
 | Primary CLI | `junction` |
 | Product-facing aliases | none |
 | Tagline | Where coding agents meet the models you want. |
-| GitHub slug | `laqaer/acpcrew` (human rename later) |
+| GitHub slug | `laqaer/junction` |
 | Python package / data home / Electron id | Unchanged this cut |
 
 ## Assessment (then the winner)

@@ -37,7 +37,7 @@ for. Every published manifest carries SLSA build
 provenance — verify with:
 
 ```
-gh attestation verify oci://ghcr.io/laqaer/kirocrew:stable --repo laqaer/acpcrew
+gh attestation verify oci://ghcr.io/laqaer/kirocrew:stable --repo laqaer/junction
 ```
 
 ## First-run setup
@@ -209,7 +209,7 @@ This is strictly less permissive than `--security-opt seccomp=unconfined` or
 **Image-only users** (no repo checkout): download the profile directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/laqaer/acpcrew/main/docker/seccomp/kirocrew-seccomp.json \
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/docker/seccomp/kirocrew-seccomp.json \
   -o kirocrew-seccomp.json
 ```
 

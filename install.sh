@@ -5,8 +5,8 @@
 # Public build. Uses python3/pip (backend) + npm/vite (dashboard).
 #
 # Usage (from a local clone):
-#   git clone https://github.com/laqaer/acpcrew.git
-#   cd acpcrew
+#   git clone https://github.com/laqaer/junction.git
+#   cd junction
 #   bash install.sh
 #
 # Options:
@@ -135,7 +135,7 @@ echo ""
 
 if [ ! -f "$KIROCREW_APP_DIR/pyproject.toml" ]; then
     die "Run this from inside a Junction checkout (pyproject.toml not found in $KIROCREW_APP_DIR).
-     git clone https://github.com/laqaer/acpcrew.git && cd acpcrew && bash install.sh"
+     git clone https://github.com/laqaer/junction.git && cd junction && bash install.sh"
 fi
 
 # ══════════════════════════════════════════════════════════════════════

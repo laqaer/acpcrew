@@ -532,7 +532,7 @@ docker stats kirocrew --no-stream
 
 - Check the full startup log: `docker logs kirocrew`
 - Review [docker.md](docker.md) for the complete configuration reference.
-- Open an [issue](https://github.com/laqaer/acpcrew/issues) with your
+- Open an [issue](https://github.com/laqaer/junction/issues) with your
   Docker version (`docker version`), OS, and the relevant log output.
 
 **Redact before you post.** A container log is not guaranteed to be free of
