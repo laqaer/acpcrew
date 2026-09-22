@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────
-# KiroCrew Installer
-# One-command setup for macOS and Linux. Public build — no Brazil workspace,
-# no internal tooling required. Uses python3/pip (backend) + npm/vite (frontend).
+# Junction installer
+# One-command setup for macOS and Linux from a local checkout.
+# Public build. Uses python3/pip (backend) + npm/vite (dashboard).
 #
 # Usage (from a local clone):
-#   git clone https://github.com/kirodotdev/KiroCrew.git
-#   cd kirocrew
+#   git clone https://github.com/laqaer/junction.git
+#   cd junction
 #   bash install.sh
 #
 # Options:
@@ -48,8 +48,6 @@ NODE_VERSION="24"
 NODE_MIN_MAJOR=22
 PYTHON_VERSION="3.12"
 KIROCREW_PORT="${KIROCREW_PORT:-5476}"
-ACP_NPM_PKG="@agentclientprotocol/claude-agent-acp"
-
 # ── Colors & Formatting ──
 if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
     BOLD=$(tput bold)
@@ -72,15 +70,8 @@ _TOTAL_STEPS=5
 
 banner() {
     echo ""
-    echo "${MAGENTA}${BOLD}"
-    cat << 'BANNER'
-   _  ___            ___
-  | |/ (_)_ _ ___   / __|_ _ _____ __ __
-  | ' <| | '_/ _ \ | (__| '_/ -_) V  V /
-  |_|\_\_|_| \___/  \___|_| \___|\_/\_/
-BANNER
-    echo "${RESET}"
-    echo "  ${DIM}Your personal AI agent${RESET}"
+    echo "  ${BOLD}Junction${RESET}"
+    echo "  ${DIM}Where coding agents meet the models you want.${RESET}"
     echo "  ${DIM}────────────────────────────────────────${RESET}"
     echo ""
 }
@@ -143,8 +134,8 @@ echo "  ${DIM}Platform:${RESET}           $(uname -s) $(uname -m)"
 echo ""
 
 if [ ! -f "$KIROCREW_APP_DIR/pyproject.toml" ]; then
-    die "Run this from inside a KiroCrew clone (pyproject.toml not found in $KIROCREW_APP_DIR).
-     git clone https://github.com/kirodotdev/KiroCrew.git && cd kirocrew && bash install.sh"
+    die "Run this from inside a Junction checkout (pyproject.toml not found in $KIROCREW_APP_DIR).
+     git clone https://github.com/laqaer/junction.git && cd junction && bash install.sh"
 fi
 
 # ══════════════════════════════════════════════════════════════════════
@@ -329,27 +320,13 @@ if has node; then
 fi
 
 # ══════════════════════════════════════════════════════════════════════
-# Step 2: Agent Backend (claude-agent-acp)
+# Step 2: Agent backend
 # ══════════════════════════════════════════════════════════════════════
-step "Agent Backend"
+step "Agent backend"
 
-# The default agent backend is the public ACP adapter, run via Node.
-# kiro-cli is optional and not installed here.
-if has claude-agent-acp; then
-    ok "claude-agent-acp ($( which claude-agent-acp ))"
-elif has npm; then
-    info "Installing $ACP_NPM_PKG via npm…"
-    if npm install -g "$ACP_NPM_PKG" >/dev/null 2>&1; then
-        ok "claude-agent-acp installed"
-    else
-        warn "Global npm install failed — install it manually before first run:"
-        detail "npm i -g $ACP_NPM_PKG"
-    fi
-else
-    warn "npm not available — install the agent backend later:"
-    detail "npm i -g $ACP_NPM_PKG"
-fi
-detail "kiro-cli is an optional alternative backend (https://kiro.dev/docs/cli/installation)"
+# A vendor agent CLI is optional. Junction docks an ACP runtime already
+# on PATH; this script does not install one.
+ok "A vendor agent CLI is optional"
 
 # ══════════════════════════════════════════════════════════════════════
 # Step 3: Build
@@ -442,7 +419,7 @@ _pip_log="$(mktemp)"
     # Frontend already built and staged above; skip rebuild in setup.py.
     KIROCREW_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" 2>&1 | tail -20 >> "$_pip_log"
 ) &
-spinner $! "Installing kirocrew and dependencies…"
+spinner $! "Installing Junction and dependencies…"
 if wait $!; then
     if "$_venv/bin/python" -c "import aiohttp" 2>/dev/null; then
         ok "Python package installed (isolated venv)"
@@ -464,14 +441,17 @@ rm -f "$_pip_log"
 echo "pip" > "$KIROCREW_APP_DIR/.install-method"
 ok "Install method recorded (.install-method=pip)"
 
-# Symlink the kirocrew entry point to ~/.local/bin for PATH access
+# Link the public CLI. The package also ships a silent console-script alias.
 mkdir -p "$HOME/.local/bin"
-ln -sf "$_venv/bin/kirocrew" "$HOME/.local/bin/kirocrew"
-ok "Symlinked kirocrew → ~/.local/bin/kirocrew"
+ln -sf "$_venv/bin/junction" "$HOME/.local/bin/junction"
+if [ -x "$_venv/bin/kirocrew" ]; then
+    ln -sf "$_venv/bin/kirocrew" "$HOME/.local/bin/kirocrew"
+fi
+ok "Linked junction → ~/.local/bin/junction"
 
 # ── Desktop App (macOS only) ──
 if [ "$(uname)" = "Darwin" ] && has node && [ -d "$KIROCREW_APP_DIR/electron" ]; then
-    printf "\n  Install KiroCrew desktop app to ~/Applications? [Y/n] "
+    printf "\n  Install the desktop app to ~/Applications? [Y/n] "
     read -r _install_app < /dev/tty
     case "${_install_app:-Y}" in
         [Yy]*)
@@ -489,8 +469,8 @@ if [ "$(uname)" = "Darwin" ] && has node && [ -d "$KIROCREW_APP_DIR/electron" ];
                     mkdir -p "$HOME/Applications"
                     rm -rf "$HOME/Applications/KiroCrew.app" 2>/dev/null
                     cp -R "$_app_src" "$HOME/Applications/KiroCrew.app"
-                    ok "KiroCrew.app installed to ~/Applications"
-                    detail "Launch via Spotlight (⌘+Space → KiroCrew) or Finder → ~/Applications"
+                    ok "Desktop app installed to ~/Applications"
+                    detail "Launch it from Spotlight or Finder → ~/Applications"
                 else
                     warn "Electron build succeeded but .app not found"
                 fi
@@ -510,21 +490,29 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 step "PATH Configuration"
 
-# The kirocrew entry point is symlinked to ~/.local/bin/kirocrew.
+# The public CLI is linked at ~/.local/bin/junction.
 export PATH="$HOME/.local/bin:$KIROCREW_APP_DIR/bin:$PATH"
 
-# Persist to shell rc files
+# Persist to shell rc files. Re-runs replace the block this script owns,
+# including the marker previous installs wrote, so PATH is not appended twice.
 _path_line="export PATH=\"\$HOME/.local/bin:\$PATH\""
-_marker="# KiroCrew"
+_marker="# Junction"
+_legacy_marker="# KiroCrew"  # brand-ok: previous shell-rc marker to remove
+
+_strip_rc_block() {
+    local rc="$1" marker="$2"
+    if grep -qF "$marker" "$rc" 2>/dev/null; then
+        local _tmp
+        _tmp="$(mktemp)"
+        awk -v marker="$marker" '$0 == marker {skip=2} skip>0 {skip--; next} {print}' "$rc" > "$_tmp" && mv "$_tmp" "$rc"
+    fi
+}
 
 _add_to_rc() {
     local rc="$1"
     [ ! -f "$rc" ] && return
-    if grep -qF "$_marker" "$rc" 2>/dev/null; then
-        local _tmp
-        _tmp="$(mktemp)"
-        awk "/$_marker/{skip=2} skip>0{skip--; next} 1" "$rc" > "$_tmp" && mv "$_tmp" "$rc"
-    fi
+    _strip_rc_block "$rc" "$_marker"
+    _strip_rc_block "$rc" "$_legacy_marker"
     echo "" >> "$rc"
     echo "$_marker" >> "$rc"
     echo "$_path_line" >> "$rc"
@@ -558,10 +546,15 @@ done
 _fish_config="$HOME/.config/fish/config.fish"
 if [ -f "$_fish_config" ] || [ "$(basename "${SHELL:-}")" = "fish" ]; then
     mkdir -p "$HOME/.config/fish"
-    if grep -qF "$_marker" "$_fish_config" 2>/dev/null; then
-        _tmp="$(mktemp)"
-        awk -v marker="$_marker" 'BEGIN{s=0} $0==marker{s=1;next} s&&/^(fish_add_path|set -gx KIROCREW)/{next} {s=0;print}' "$_fish_config" > "$_tmp" && mv "$_tmp" "$_fish_config"
-    fi
+    _strip_fish() {
+        local marker="$1"
+        if grep -qF "$marker" "$_fish_config" 2>/dev/null; then
+            _tmp="$(mktemp)"
+            awk -v marker="$marker" 'BEGIN{s=0} $0==marker{s=1;next} s&&/^(fish_add_path|set -gx KIROCREW)/{next} {s=0;print}' "$_fish_config" > "$_tmp" && mv "$_tmp" "$_fish_config"
+        fi
+    }
+    _strip_fish "$_marker"
+    _strip_fish "$_legacy_marker"
     {
         echo "$_marker"
         echo "fish_add_path -g ~/.local/bin"
@@ -574,14 +567,14 @@ fi
 mkdir -p "$KIROCREW_DATA_DIR"
 echo "$KIROCREW_APP_DIR" > "$KIROCREW_DATA_DIR/project_dir"
 
-# Verify kirocrew is accessible
-if has kirocrew; then
-    ok "kirocrew command available"
-elif [ -x "$HOME/.local/bin/kirocrew" ]; then
-    ok "kirocrew symlinked to ~/.local/bin/kirocrew"
+# Verify the public CLI is accessible
+if has junction; then
+    ok "junction command available"
+elif [ -x "$HOME/.local/bin/junction" ]; then
+    ok "junction linked at ~/.local/bin/junction"
     detail "You may need to restart your shell for it to be in PATH"
 else
-    warn "kirocrew not in PATH — restart your shell or run:"
+    warn "junction not in PATH — restart your shell or run:"
     detail "source ~/.$(basename "$SHELL")rc"
 fi
 
@@ -590,26 +583,28 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 step "Agent Config"
 
-# Install agent config via kirocrew setup
-if has kirocrew; then
-    _kirocrew=kirocrew
+# Install agent config via junction setup
+if has junction; then
+    _cli=junction
+elif [ -x "$HOME/.local/bin/junction" ]; then
+    _cli="$HOME/.local/bin/junction"
+elif has kirocrew; then
+    _cli=kirocrew
 elif [ -x "$HOME/.local/bin/kirocrew" ]; then
-    _kirocrew="$HOME/.local/bin/kirocrew"
+    _cli="$HOME/.local/bin/kirocrew"
 else
-    _kirocrew=""
+    _cli=""
 fi
-if [ -n "$_kirocrew" ]; then
+if [ -n "$_cli" ]; then
     info "Installing agent config…"
-    KIROCREW_PROJECT_DIR="$KIROCREW_APP_DIR" "$_kirocrew" setup --agent-only \
+    KIROCREW_PROJECT_DIR="$KIROCREW_APP_DIR" "$_cli" setup --agent-only \
         && ok "Agent config installed" \
-        || warn "kirocrew setup --agent-only failed (run manually after install)"
+        || warn "junction setup --agent-only failed (run manually after install)"
 fi
 
-ok "Run ${CYAN}kirocrew setup${RESET} to configure agent, workspace, and integrations"
+ok "Run ${CYAN}junction setup${RESET} to configure agent, workspace, and integrations"
 
-# ── Embeddings (optional) ──
-info "Optional: local vector memory via Ollama"
-detail "Install ollama (https://ollama.com), then: ollama pull qwen3-embedding:0.6b"
+info "Embeddings download in the background on first start"
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -618,7 +613,7 @@ detail "Install ollama (https://ollama.com), then: ollama pull qwen3-embedding:0
 
 echo ""
 echo ""
-echo "  ${GREEN}${BOLD}👻 KiroCrew installed successfully!${RESET}"
+echo "  ${GREEN}${BOLD}Junction installed.${RESET}"
 echo ""
 echo "  ${DIM}────────────────────────────────────────${RESET}"
 echo ""
@@ -632,10 +627,10 @@ case "$(basename "${SHELL:-}")" in
 esac
 echo ""
 echo "    ${CYAN}2.${RESET} Run the setup wizard:"
-echo "       ${GREEN}kirocrew setup${RESET}"
+echo "       ${GREEN}junction setup${RESET}"
 echo ""
 echo "    ${CYAN}3.${RESET} Start the dashboard:"
-echo "       ${GREEN}kirocrew gateway${RESET}"
+echo "       ${GREEN}junction up${RESET}"
 echo ""
 echo "    ${CYAN}4.${RESET} Open ${CYAN}http://localhost:${KIROCREW_PORT}${RESET} in your browser"
 echo ""

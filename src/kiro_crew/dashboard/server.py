@@ -37,6 +37,7 @@ from kiro_crew.config.loader import (
     refresh_config_meta_stamp,
     refresh_materialized_agents,
 )
+from kiro_crew.constants import CLI_BIN, PRODUCT_NAME
 from kiro_crew.dashboard import (
     cautious_boot,
     channel_slots,
@@ -1512,10 +1513,13 @@ async def _start_site(
             if attempt < retries - 1:
                 await asyncio.sleep(delay)
     logger.error(
-        "Port %d still in use after %.0fs — is another KiroCrew gateway running?\n"
-        "Stop it with: kirocrew stop  or  sudo systemctl stop kirocrew",
+        "Port %d still in use after %.0fs — is another %s gateway running?\n"
+        "Stop it with: %s stop  or  sudo systemctl stop %s",
         port,
         retries * delay,
+        PRODUCT_NAME,
+        CLI_BIN,
+        "kirocrew",  # systemd unit name; not the product CLI
     )
     raise SystemExit(1) from last_exc
 

@@ -1628,6 +1628,28 @@ class TestKirocrewBinOverride:
         ):
             assert kirocrew_bin() == "/usr/local/bin/kirocrew"
 
+    def test_prefers_junction_over_alias_on_path(self, monkeypatch):
+        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
+
+        def _which(name: str) -> str | None:
+            return {
+                "junction": "/usr/local/bin/junction",
+                "kirocrew": "/usr/local/bin/kirocrew",
+                "acpcrew": "/usr/local/bin/acpcrew",
+            }.get(name)
+
+        with patch("kiro_crew.service.common.shutil.which", side_effect=_which):
+            assert kirocrew_bin() == "/usr/local/bin/junction"
+
+    def test_falls_back_to_kirocrew_alias_when_junction_absent(self, monkeypatch):
+        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
+
+        def _which(name: str) -> str | None:
+            return "/usr/local/bin/kirocrew" if name == "kirocrew" else None
+
+        with patch("kiro_crew.service.common.shutil.which", side_effect=_which):
+            assert kirocrew_bin() == "/usr/local/bin/kirocrew"
+
     def test_blank_override_is_ignored(self, monkeypatch):
         monkeypatch.setenv("KIROCREW_SERVICE_BIN", "   ")
         with patch(

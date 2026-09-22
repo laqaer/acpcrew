@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import App from './App';
 
@@ -18,7 +18,7 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).toContain('Junction');
     expect(text).toContain('junction');
-    expect(text).toContain('junction gateway');
+    expect(text).toContain('junction up');
   });
 
   it('does not include the ghost emoji', () => {
@@ -32,14 +32,17 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).not.toMatch(/kiro-cli is required/i);
     expect(text).not.toMatch(/Prerequisites:[^\n]*kiro-cli/i);
-    expect(text).toMatch(/kiro-cli is optional/i);
+    expect(text).toMatch(/vendor agent CLI is optional/i);
+    expect(text).not.toMatch(/kiro-cli is optional/i);
   });
 
   it('keeps kiro-cli out of the first viewport', () => {
     const { container } = render(<App />);
     const hero = heroSection(container);
     expect(hero?.textContent ?? '').not.toMatch(/kiro-cli/i);
-    expect(hero?.textContent ?? '').toContain('junction setup && junction gateway');
+    expect(hero?.textContent ?? '').toContain('get-junction.sh');
+    expect(hero?.textContent ?? '').toContain('junction setup && junction up');
+    expect(hero?.textContent ?? '').not.toMatch(/git clone/i);
   });
 
   it('tells the two-plane story and the no-keys rule', () => {
@@ -48,7 +51,7 @@ describe('Junction naming', () => {
     expect(text).toContain('Harness plane');
     expect(text).toContain('Model plane');
     expect(text).toMatch(/never paste provider keys/i);
-    expect(text).toContain('junction gateway');
+    expect(text).toContain('junction up');
     expect(text).toContain('Why not just run an agent CLI?');
   });
 
@@ -79,13 +82,13 @@ describe('Junction naming', () => {
     const text = pageText(container);
     expect(text).not.toMatch(/Kiro Crew/);
     expect(text).not.toMatch(/kirocrew/i);
-    // GitHub slug stays laqaer/acpcrew until a human rename; clone paths are
-    // not a product name.
+    // Clone URLs use the GitHub slug. They are not a second product name.
     const leftover = text
-      .replace(/github\.com\/laqaer\/acpcrew(?:\.git)?/gi, '')
-      .replace(/\bcd acpcrew\b/gi, '');
+      .replace(/laqaer\/junction(?:\.git)?/gi, '')
+      .replace(/\bcd junction\b/gi, '');
     expect(leftover).not.toMatch(/acpcrew/i);
-    expect(text).toMatch(/kiro-cli is optional/i);
+    expect(text).toMatch(/vendor agent CLI is optional/i);
+    expect(text).not.toMatch(/kiro-cli/i);
   });
 
   it('sells the switch, not an upstream dashboard clone', () => {
@@ -96,8 +99,28 @@ describe('Junction naming', () => {
     expect(text).toContain('Two planes, one switch');
     expect(text).toContain('Loopback dashboard');
     expect(text).toContain('Install it on this machine');
+    expect(text).toContain('Install locally');
+    expect(text).toContain('See the two planes');
+    expect(text).not.toContain('View Source');
+    expect(text).not.toContain('Run it locally');
+    expect(text).toContain('Start');
+    expect(text).toContain('Stay on loopback')
+    expect(text).toContain('Dock agents')
+    expect(text).toContain('Route spend')
+    expect(text).not.toContain('Vercel Hobby')
+    expect(text).not.toContain('The clone path is the GitHub slug')
+    expect(text).not.toContain('Run Junction');
     expect(text).toContain('First run');
-    expect(text).toContain('junction setup && junction gateway');
+    const heartbeat = Array.from(container.querySelectorAll('span')).find(
+      (el) => el.textContent === 'Does any data leave my machine?',
+    );
+    expect(heartbeat).toBeTruthy();
+    fireEvent.click(heartbeat!);
+    expect(pageText(container)).toContain('junction telemetry disable');
+    expect(text).toContain('What if I skip the model sidecar?');
+    expect(text).not.toContain('Where is the website hosted?');
+    expect(text).not.toContain('Three commands');
+    expect(text).toContain('get-junction.sh');
     expect(text).not.toContain('Unlock the dashboard');
     expect(text).not.toContain('YOLO');
     expect(text).not.toMatch(/Discussions/);

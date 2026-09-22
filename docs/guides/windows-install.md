@@ -1,146 +1,37 @@
-# Installing & Testing Kiro Crew on Windows
+# Installing & Testing Junction on Windows
 
-Kiro Crew runs **natively on Windows** as a Python **source install**.
+Junction runs **natively on Windows** as a Python **source install**.
 The cross-platform process / signal / file-lock / metrics behavior is routed
 through `kiro_crew.platform_compat`, so macOS + Linux behavior is unchanged and
 the same code path also runs on Windows.
 
 ## Desktop installer
 
-CI's Windows lane (`build-windows.yml`) builds a Windows desktop app: an NSIS
-`KiroCrew Setup <version>.exe` with the backend bundled (no separate Python
-install needed). It has its own workflow rather than being a leg of
-`build-desktop.yml` because Authenticode signing has to happen *during* the
-build — the installer compresses its own already-signed executable — so that job
-needs AWS credentials the shared build workflow deliberately does not hold.
-Current status:
+`.\make.ps1 desktop` can produce a local NSIS installer with the backend
+bundled. Junction does not publish a Windows download CDN in this cut.
+The supported Windows path is the source install below.
 
-- **Published on every channel — nightly, insider and stable.** The `latest/`
-  alias is the human download:
-  `https://download.crew.kiro.dev/desktop/<channel>/latest/KiroCrew-Setup.exe`.
-  A stable release republishes the already-signed installer it verified at
-  insider time rather than rebuilding it. If a Windows build fails, that release
-  simply ships without an installer instead of holding up the other platforms.
-- **Authenticode-signed** — signing runs during the build through AWS Signer and
-  the publish lane refuses to publish bytes whose certificate table is empty,
-  whose signer is not the pinned publisher, or which carry no RFC3161
-  countersignature (`scripts/verify_windows_installer.py`). Signing removes the
-  unknown-publisher prompt but not SmartScreen's first-download interstitial:
-  reputation accrues per file hash and per certificate over download volume, and
-  a nightly produces a new hash daily.
-- **Auto-update is live on the channels that publish** — win32 is in
-  `SUPPORTED_PLATFORMS` and driven by `NsisUpdater`, which reads `latest.yml`
-  from the same per-channel feed directory the other platforms use. It verifies
-  the downloaded installer's Authenticode signature **fail-closed** against
-  `win.signtoolOptions.publisherName`, so a mis-signed publish would break every
-  client's update at once rather than degrade quietly — which is why the publish
-  lane verifies the signature before the bytes become immutable.
-- **Assisted installer, per user by default** — `nsis.oneClick` is false and
-  `perMachine` is false, so the installer offers an install-mode page whose
-  default is a per-user install into a directory named from the product name,
-  with no UAC prompt. Choosing "for all users" on that page opts into an
-  elevated install under Program Files instead. The restored native flow does
-  not expose the former custom destination, desktop-shortcut, or start-with-
-  Windows controls. The per-user default is what
-  keeps a nightly install (`KiroCrew Nightly`) side by side with a stable one
-  rather than replacing it; nightly additionally pins its own `nsis.guid` so
-  the two channels do not share an uninstall registry key, and its own
-  `win.appId` so they do not share a shortcut **AppUserModelID**. That last one
-  is Windows-only on purpose: the shared `appId` is required on macOS, where
-  Squirrel.Mac validates an update against the host's designated requirement,
-  but on Windows it reaches `${APP_ID}`, which the NSIS uninstaller passes to
-  `WinShell::UninstAppUserModelId`. Shared, uninstalling one channel
-  deregisters the identity the *other* channel's desktop and Start Menu
-  shortcuts still carry, and the shell then reports that app as relocated or
-  missing even though its `.exe` is untouched. Either mode leaves
-  the Kiro Crew home alone (`deleteAppDataOnUninstall` stays false, and
-  `~/.kiro/crew` is outside the install directory).
-- **Auto-updates stay visible without becoming interactive** — after the app
-  stops its local gateway and closes, the update path skips Welcome, install
-  scope, and Finish, but leaves the native NSIS extraction page on screen with
-  real progress. At 100% it reopens Kiro Crew and closes automatically. A
-  persistent message on that progress page warns that the handoff can take
-  several minutes; a Windows notification tells the user to reopen Kiro Crew
-  from the Start menu if the relaunch does not happen. New clients call
-  `quitAndInstall(false, true)` so NSIS is visible;
-  the installer also converts a legacy `/S --updated` launch back to this same
-  visible path, which covers the first upgrade from clients that predate the
-  change.
-- **Guided Kiro Crew artwork** — the welcome and finish pages use the existing
-  Kiro Crew logo and ghost family in the native NSIS sidebar, and intermediate
-  pages retain a compact branded header. Buttons, progress, install-mode copy,
-  keyboard behavior, and localization remain the standard Windows experience.
-  Native page boundaries use a short Win32 alpha-blended cross-fade and honor
-  Windows' client-area animation setting. The fade contains no timer-driven
-  bitmap swap or UI-thread sleep, so extraction keeps the native progress path;
-  CI performs a real silent first install, records its duration, and fails if
-  it exceeds 2 minutes. The auto-update path remains visible.
-- **Single-pass payload publication** — the differential-aware updater still
-  verifies and fully extracts its 7z payload into a staging directory before it
-  changes the installation. On the normal same-volume per-user Windows layout,
-  the installer then renames Electron's large `resources` and `locales`
-  directories into place instead of asking Defender and the filesystem to
-  process thousands of Python files in a second copy pass. Per-machine installs
-  retain electron-builder's original `CopyFiles` path so the payload inherits
-  the Program Files ACL. A cross-volume temporary directory, occupied
-  destination, or failed rename also falls back to that copy path and its
-  bounded retry prompts. The build-time patch is
-  pinned to the installed app-builder-lib version and fails closed if its NSIS
-  template changes, so an upgrade cannot silently remove that fallback.
-- **Uninstall removes the app and its caches, and keeps your data.** Removed:
-  the install directory, the Start Menu shortcut, the uninstall registry key,
-  and any “start with Windows” Run entry left by an earlier custom installer,
-  and — via the `customUnInstall` macro in `website/electron/build/installer.nsh`
-  — this channel's electron-updater cache under
-  `%LOCALAPPDATA%\<package-name>-updater`, which holds a full installer payload
-  (~200MB) that nothing else would ever reclaim. Two things scope that removal.
-  It is guarded on `isUpdated`, because an auto-update runs the same uninstaller
-  and the cache is what the next update diffs against to avoid re-downloading the
-  whole installer. And the path is **per channel**: stable resolves
-  `kirocrew-desktop-updater`, nightly `kirocrew-desktop-nightly-updater`
-  (`build-desktop.sh` overrides `extraMetadata.name`), so uninstalling one
-  channel cannot touch the other's pending download or window state. An install
-  predating that split leaves a shared `kirocrew-electron-mac-updater` behind,
-  which is deliberately NOT removed for the same reason — it may still belong to
-  the other channel. **Your settings survive that rename**: the first launch after
-  it carries over your update channel, remote hosts, hotkey and window position,
-  so an Insider install is not quietly moved to Stable. A preference you have
-  already changed is never overwritten.
-  **Deliberately kept:** `~/.kiro/crew` — sessions, memory,
-  the database and config. Delete it by hand to remove Kiro Crew's data too.
-  Also kept, because it belongs to a different product:
-  `%LOCALAPPDATA%\Kiro-Cli`.
-- **Integrated Windows chrome** — the desktop shell uses the
-  dashboard's 42px header as its titlebar. File/Edit/View/Connection/Window/Help
-  open the existing native Electron menus from the left of that row, the command
-  palette remains centered on the window, and native minimize/maximize/close
-  controls remain on the right.
-- **Precompiled Windows gateway startup** — packaging traces the real
-  `kiro_crew.cli_server` import after pruning and ships checked-hash bytecode for
-  that import closure beside its sources. Windows consumes those caches directly,
-  avoiding the thousand-file cache-population burst that otherwise overlaps
-  Defender's post-install scanning. macOS and Linux still redirect bytecode out
-  of the signed/read-only app tree. The loading screen retains its extended
-  Windows handoff window as a slow-machine fallback; a child exit or spawn error
-  still fails immediately and includes the launch-log cause. CI starts the
-  just-installed bundled interpreter against an isolated data home and requires
-  `/api/ready` within 30 seconds, so both the packaged caches and the full gateway
-  handoff are covered rather than only a synthetic import benchmark.
+The installer artifact name still comes from the Electron `productName`.
+That is an implementation identifier, not a download URL. Local builds are
+unsigned unless you run the signing lane.
 
-The source install below remains the fully supported path.
+Either install mode leaves the Junction data home alone
+(`deleteAppDataOnUninstall` stays false, and `~/.kiro/crew` is outside the
+install directory).
+
 
 ## Prerequisites
 
 | Tool | Why | Get it |
 |------|-----|--------|
 | **Git for Windows** | clone the repo | https://git-scm.com/download/win |
-| **kiro-cli** | the agent backend (ACP); the first dashboard launch can install it | Kiro Crew setup page or kiro-cli's native Windows release |
+| **An ACP runtime** | optional harness; first dashboard launch can dock one | Junction Dock an agent page |
 | **Python 3.10-3.13** | the venv runtime. `python_requires` is `>=3.10` and 3.13 is in the supported range, but **3.12 is the tested Windows runtime** (it is what the Windows CI shard runs, and numpy 1.x ships no 3.13 Windows wheel) | https://python.org (install user-scoped), or `winget install Python.Python.3.12` |
 | **Node.js** (optional) | builds the full React dashboard; without it the gateway serves the prebuilt bundle | `winget install OpenJS.NodeJS.LTS` |
 
 No admin is required — everything installs user-scoped under `%USERPROFILE%`.
 
-Avoid the Microsoft Store `python` alias stub: Kiro Crew's interpreter finder
+Avoid the Microsoft Store `python` alias stub: Junction's interpreter finder
 (`platform_compat.find_python_interpreter`) rejects it, but a Store-only `python`
 on `PATH` can still confuse other tooling. Prefer a real CPython install.
 
@@ -149,8 +40,8 @@ on `PATH` can still confuse other tooling. Prefer a real CPython install.
 From a clone, in PowerShell:
 
 ```powershell
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd kirocrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 .\make.ps1 build
 ```
 
@@ -195,22 +86,13 @@ pip install -e ".[voice]"
 Then:
 
 ```powershell
-kirocrew setup
-kirocrew gateway
+junction setup
+junction up
 ```
 
-Open the dashboard URL printed by the gateway. On first launch, Kiro Crew checks
-the **Windows gateway host** for a runnable and authenticated Kiro CLI. If it is
-missing, choose **Install Kiro CLI** to download and run the fixed official
-PowerShell installer; if it is signed out, choose **Sign in to Kiro** and
-complete the device-code flow in the browser. The dashboard opens automatically
-after `kiro-cli whoami` succeeds. This setup runs on the gateway machine, which
-may be different from the computer running the browser.
-
-The per-user Kiro CLI install under `%LOCALAPPDATA%\Kiro-Cli` is discovered
-independently of the gateway's inherited `PATH`. Installing it while the desktop
-gateway is already running is therefore picked up by the setup page's next
-automatic check; neither a gateway restart nor a Windows reboot is required.
+Open the dashboard URL printed by the gateway. On first launch, Junction opens
+the **Dock an agent** page if no ACP runtime is available. A vendor agent CLI
+is optional — install one only when you want that harness.
 
 `kirocrew` lands in `.venv\Scripts\`. If a launched (non-shell)
 gateway can't find the built-in `kirocrew-cron` / `kirocrew-core` MCP servers,
@@ -224,8 +106,8 @@ spawned.
 
 ## Kiro sandbox delegation and the unsandboxed-exec opt-in
 
-Windows has no Kiro Crew OS sandbox backend. The official Kiro CLI does have its
-own sandbox, so Kiro Crew delegates the default chat backend, model list, account
+Windows has no Junction OS sandbox backend. The official Kiro CLI does have its
+own sandbox, so Junction delegates the default chat backend, model list, account
 identity and usage reads to it automatically. A fresh desktop install therefore
 does **not** need a config edit before the first chat.
 
@@ -238,7 +120,7 @@ To run those paths without an OS sandbox, explicitly opt in at
 { "agent": { "sandbox_allow_unsandboxed_exec": true } }
 ```
 
-**`kirocrew setup` offers this for non-Kiro subprocesses.** Because Windows has no OS-level
+**`junction setup` offers this for non-Kiro subprocesses.** Because Windows has no OS-level
 sandbox backend, the wizard detects that and asks once — stating that agent
 subprocesses will be able to read your home directory, including `.aws` and
 `.ssh`, with no OS confinement. It defaults to **no** and writes the key only if
@@ -287,7 +169,7 @@ while the other 503s. Concretely:
 | STT (whisper / optional cloud transcription) | works |
 | Voice reply (Piper TTS) | not yet — upstream rhasspy/piper ships no Windows binary; Polly (optional) works if the `aws` CLI is present **and** the `agent.sandbox_allow_unsandboxed_exec` opt-in above is set — the `aws polly` spawn routes through `wrap_argv`, which fail-closes where no OS sandbox backend exists. Without it synthesis returns no audio and the log names that setting |
 | SSH tunnel (`kirocrew cloud` remote dashboard) | not yet — needs the OpenSSH client on `PATH` and a signal-handling audit |
-| MCP server tool listing (dashboard MCP page, `kirocrew doctor`) | **built-in servers work, no opt-in** — `kirocrew-core` / `-cron` / `-computer` are probed for real: their command line is derived entirely inside the package (never user-config text), so the first-party carve-out spawns the handshake probe unconfined (env-scrubbed, SEL-audited as `unconfined`) even with no sandbox backend. When that probe cannot run (a transient sandbox failure, a governance sandbox floor, or a customized command for the server), the listing falls back to reading the package's own tool declaration and logs a WARNING noting that `ok` then means "declared" rather than "handshake succeeded". A **third-party** server has no declaration to read and never gets the carve-out, so its listing needs the `agent.sandbox_allow_unsandboxed_exec` opt-in — its binary is named by config and spawning it is what the sandbox exists to confine. The third-party server itself is unaffected: kiro-cli launches it from the agent config without this probe, so its tools still work in chat |
+| MCP server tool listing (dashboard MCP page, `junction doctor`) | **built-in servers work, no opt-in** — `kirocrew-core` / `-cron` / `-computer` are probed for real: their command line is derived entirely inside the package (never user-config text), so the first-party carve-out spawns the handshake probe unconfined (env-scrubbed, SEL-audited as `unconfined`) even with no sandbox backend. When that probe cannot run (a transient sandbox failure, a governance sandbox floor, or a customized command for the server), the listing falls back to reading the package's own tool declaration and logs a WARNING noting that `ok` then means "declared" rather than "handshake succeeded". A **third-party** server has no declaration to read and never gets the carve-out, so its listing needs the `agent.sandbox_allow_unsandboxed_exec` opt-in — its binary is named by config and spawning it is what the sandbox exists to confine. The third-party server itself is unaffected: kiro-cli launches it from the agent config without this probe, so its tools still work in chat |
 | MCP gateway (opt-in, OFF by default) | works — a named-pipe transport replaces the AF_UNIX socket, and the peer check uses `GetNamedPipeClientProcessId` + a SID comparison in place of `SO_PEERCRED`. Still opt-in: set `mcp_gateway.enabled` to turn it on |
 | Papyrus (LaTeX editor, opt-in builtin) | works, **but compiling and git need the `agent.sandbox_allow_unsandboxed_exec` opt-in above** — unlike official Kiro, these processes have no proven internal sandbox, so `wrap_argv` keeps the no-backend fail-closed policy. Without it, compile and clone/commit/push/pull answer a clear 422 (`compiler_sandbox_unavailable` / `git_sandbox_unavailable`) naming the remedy rather than a bare "internal error". The managed Tectonic compiler is Windows-pinned (`x86_64-pc-windows-msvc`); Windows-on-ARM has no upstream asset and keeps the manual install path |
 | Computer use — **reading** (`computer_list_apps`, `computer_get_state`) | works, still behind the operator's one keystone opt-in (Settings → Computer Use). Reads the UI Automation tree of a window and can attach a `PrintWindow` screenshot. Two Windows-specific limits: a **non-elevated gateway cannot see an elevated window** (UIPI, and the secure desktop is unreachable to any application — a security property, not a gap), and a window drawn on a swapchain surface **cannot be captured**, so WindowsTerminal returns a tree with no screenshot rather than a blank image. Walking is also markedly slower than macOS — a large Chromium window costs hundreds of milliseconds at the node budget — so raise `max_tree_nodes` deliberately |
@@ -546,7 +428,7 @@ stay Windows-skipped in `test/windows-expected-failures.txt`.
 - **Desktop gateway recovery refuses to force-stop the port** - the Electron
   launcher uses `netstat -ano` to identify the listener, PowerShell
   (`Get-CimInstance`) with a WMIC fallback to read its command line, and
-  `taskkill /F /PID` only after confirming a Kiro Crew executable or
+  `taskkill /F /PID` only after confirming a Junction executable or
   `python -m kiro_crew` process. Localized listener-state text is ignored.
   SSH forwards and unrelated processes are never terminated, and a failed or
   timed-out `netstat` probe is treated as unknown rather than as a free port.
@@ -559,7 +441,7 @@ stay Windows-skipped in `test/windows-expected-failures.txt`.
 - **"Python was not found" (Microsoft Store)** — a bare `python`/`python3` was
   resolving the Store alias stub; install a real CPython and ensure it precedes
   the stub on `PATH`.
-- **`kirocrew stop` reports "No Kiro Crew gateway currently running"** — a
+- **`junction stop` reports "No Junction gateway currently running"** — a
   localized Windows edition is *not* the cause: `find_listening_pids` identifies
   a listening row by its wildcard foreign address (`0.0.0.0:0` / `[::]:0`), which
   no edition translates, and treats the English `LISTENING` literal only as a

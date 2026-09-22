@@ -1,12 +1,12 @@
 # Passing secrets to MCP servers
 
 MCP servers often need API keys, database passwords, or other secrets at
-runtime.  Kiro Crew deliberately keeps secrets **out** of
+runtime.  Junction deliberately keeps secrets **out** of
 `~/.kiro/mcp.json` (which is versioned and may be shared across machines).
 
 > **Security note:** Both routes below are **interim workarounds** pending
 > the encrypted vault (planned — see
-> [issue tracker](https://github.com/kirodotdev/KiroCrew/issues/2351)).
+> [issue tracker](https://github.com/laqaer/junction/issues/2351)).
 > They deliver the secret to the MCP server subprocess, but a
 > prompt-injected agent running in the same process tree can observe
 > environment variables that the sandbox does not explicitly scrub.  Use
@@ -17,7 +17,7 @@ runtime.  Kiro Crew deliberately keeps secrets **out** of
 
 ## Route 1: systemd service unit `EnvironmentFile=`
 
-If you run Kiro Crew as a systemd service (see
+If you run Junction as a systemd service (see
 [remote-and-mobile.md](remote-and-mobile.md)), point the unit at a
 protected secrets file:
 

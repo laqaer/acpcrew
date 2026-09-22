@@ -1,8 +1,8 @@
 {
   "name": "auto-triage-pipeline",
   "version": "0.1.0",
-  "displayName": "Kiro Crew Auto Triage Pipeline",
-  "description": "A read-only, three-level view of Kiro Crew's own auto-triage pipeline: the six steps and their throughput, the issues inside a step, and what each issue's agent sessions cost.",
+  "displayName": "Junction Auto Triage Pipeline",
+  "description": "A read-only, three-level view of Junction's own auto-triage pipeline: the six steps and their throughput, the issues inside a step, and what each issue's agent sessions cost.",
   "author": "kirocrew",
   "iconUrl": "/app-assets/auto-triage-pipeline/icon.svg",
   "tags": [

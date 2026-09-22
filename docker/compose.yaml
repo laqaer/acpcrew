@@ -1,16 +1,15 @@
-# KiroCrew gateway — compose example.
+# Junction gateway — compose example.
 #
 #   docker compose up -d
-#   docker compose exec kirocrew kiro-cli login          # one-time agent login
-#   docker compose exec kirocrew kirocrew token --ttl 2h # mint a dashboard link
+#   docker compose exec kirocrew junction token --ttl 2h # mint a dashboard link
 #
 # Then open the printed link at http://localhost:5476/?token=...
-# Full guide: docs/guides/docker.md
+# A vendor agent CLI is optional. Full guide: docs/guides/docker.md
 
 services:
   kirocrew:
-    image: ghcr.io/kirodotdev/kirocrew:stable
-    container_name: kirocrew
+    image: ghcr.io/laqaer/kirocrew:stable
+    container_name: junction
     restart: unless-stopped
     ports:
       # Loopback-published by default: only this machine can reach the

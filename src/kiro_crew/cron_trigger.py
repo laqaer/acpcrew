@@ -8,6 +8,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from kiro_crew.constants import CLI_BIN
 from kiro_crew.instances import run_marker
 from kiro_crew.loopback_http import loopback_urlopen
 
@@ -58,4 +59,4 @@ def trigger_cron_job(job_id: str, port: int, secret_path: Path) -> tuple[bool, s
             return False, f"Job not found: {job_id}"
         return False, f"Error: HTTP {e.code}"
     except (urllib.error.URLError, OSError):
-        return False, "Error: cannot reach gateway. Is `kirocrew gateway` running?"
+        return False, f"Error: cannot reach gateway. Is `{CLI_BIN} up` running?"

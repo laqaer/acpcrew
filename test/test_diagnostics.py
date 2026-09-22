@@ -337,7 +337,7 @@ def test_issue_url_is_well_formed(tmp_path, monkeypatch):
 
     r = diagnostics.collect_bundle(note="hi", output_dir=tmp_path / "out")
 
-    assert r.github_issue_url.startswith("https://github.com/laqaer/acpcrew/issues/new?")
+    assert r.github_issue_url.startswith("https://github.com/laqaer/junction/issues/new?")
     # Routes through the issue FORM, not a free-form body: the form is what
     # carries the version / install / channel answers triage reads.
     assert "template=bug_report.yml" in r.github_issue_url

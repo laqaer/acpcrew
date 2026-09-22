@@ -1,18 +1,20 @@
-# Running Kiro Crew in Docker
+# Running Junction in Docker
 
-The official image runs the Kiro Crew **gateway** — dashboard, channel bots
-(Slack / Discord / Telegram / WeCom / Webex), crons, and the kiro-cli agent
-runtime — as a headless container. It is the recommended way to run Kiro Crew
+The official image runs the Junction **gateway** — dashboard, channel bots
+(Slack / Discord / Telegram / WeCom / Webex), crons, and docked ACP agents —
+as a headless container. It is the recommended way to run Junction
 24/7 on a server or NAS; the strongest fit is the always-on channel bot that
-does not need a desktop session.
+does not need a desktop session. A vendor agent CLI is optional.
 
-The image is public, so no registry login is needed. Start the gateway:
+The image publishes at `ghcr.io/laqaer/kirocrew` when the Docker lane runs.
+Until a tag exists, build from `docker/Dockerfile` after `make wheel`. Start
+the gateway:
 
 ```
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v kirocrew-home:/home/kirocrew \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 Or with compose: copy [`docker/compose.yaml`](../../docker/compose.yaml) and run
@@ -35,27 +37,27 @@ for. Every published manifest carries SLSA build
 provenance — verify with:
 
 ```
-gh attestation verify oci://ghcr.io/kirodotdev/kirocrew:stable --repo kirodotdev/KiroCrew
+gh attestation verify oci://ghcr.io/laqaer/kirocrew:stable --repo laqaer/junction
 ```
 
 ## First-run setup
 
 Two one-time steps after the container is up:
 
-1. **Log in the agent runtime** (chat sessions run on kiro-cli):
+1. **Dock an agent** if you want a vendor harness (optional):
 
    ```
-   docker exec -it kirocrew kiro-cli login
+   docker exec -it junction <vendor-cli> login
    ```
 
    Credentials persist in the `kirocrew-home` volume, so login survives
-   container upgrades.
+   container upgrades. A vendor agent CLI is optional.
 
 2. **Open the dashboard** — every request requires a token; mint a login
    link yourself:
 
    ```
-   docker exec kirocrew kirocrew token --ttl 2h
+   docker exec junction junction token --ttl 2h
    ```
 
    Open the printed link, substituting the host you reach the container on
@@ -97,13 +99,13 @@ browser. The image ships no text editor, so edit those from the host —
 copy the file out, change it, copy it back, restart:
 
 ```
-docker cp kirocrew:/home/kirocrew/.kiro/crew/config.json .
+docker cp junction:/home/kirocrew/.kiro/crew/config.json .
 # edit config.json locally, then:
-docker cp config.json kirocrew:/home/kirocrew/.kiro/crew/config.json
+docker cp config.json junction:/home/kirocrew/.kiro/crew/config.json
 # docker cp writes the file root-owned; hand it back to the gateway user
 # (uid 1000) or the dashboard can never save settings again:
-docker exec -u 0 kirocrew chown kirocrew:kirocrew /home/kirocrew/.kiro/crew/config.json
-docker restart kirocrew
+docker exec -u 0 junction chown kirocrew:kirocrew /home/kirocrew/.kiro/crew/config.json
+docker restart junction
 ```
 
 (Or use environment variables / `.env` for the credential cases above,
@@ -154,7 +156,7 @@ the version selector (channel tags track their channel; version tags pin).
   address you browse from. The supported pattern is a TLS reverse proxy
   in front with `dashboard.url` set to its origin, exactly as for a
   non-container deployment.
-- **Sandbox:** on first run the entrypoint probes whether Kiro Crew's inner
+- **Sandbox:** on first run the entrypoint probes whether Junction's inner
   Linux user-namespace sandbox works under the container runtime's
   seccomp/AppArmor policy. If it does, it seeds `agent.sandbox="auto"` so
   agent commands run namespace-isolated from gateway state, same as a
@@ -170,7 +172,7 @@ the version selector (channel tags track their channel; version tags pin).
 
 ## Sandbox troubleshooting
 
-Kiro Crew runs agent commands inside a Linux user-namespace sandbox that
+Junction runs agent commands inside a Linux user-namespace sandbox that
 bind-mounts empty dirs over credential paths (`~/.aws`, `~/.ssh`, etc.) so
 the agent subprocess cannot read gateway credentials. The sandbox requires
 two syscalls — `unshare(CLONE_NEWUSER)` and `unshare(CLONE_NEWNS)` — that
@@ -197,7 +199,7 @@ The startup log always states which posture was chosen:
 [entrypoint] sandbox probe: no backend (EPERM) → agent exec DISABLED (set KIROCREW_ALLOW_UNSANDBOXED=1 to enable)
 ```
 
-### Option A — Kiro Crew seccomp profile (recommended)
+### Option A — Junction seccomp profile (recommended)
 
 The repo ships `docker/seccomp/kirocrew-seccomp.json`: the Docker default
 allow-list extended with unconditional `unshare`, `clone`, and `mount` rules.
@@ -207,18 +209,18 @@ This is strictly less permissive than `--security-opt seccomp=unconfined` or
 **Image-only users** (no repo checkout): download the profile directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/docker/seccomp/kirocrew-seccomp.json \
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/docker/seccomp/kirocrew-seccomp.json \
   -o kirocrew-seccomp.json
 ```
 
 Then start the container:
 
 ```bash
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v kirocrew-home:/home/kirocrew \
   --security-opt seccomp=docker/seccomp/kirocrew-seccomp.json \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 Or in compose (add to the `kirocrew` service):
@@ -237,11 +239,11 @@ If you cannot modify the seccomp policy (managed Kubernetes, locked-down
 runtime, Docker Desktop with restricted settings):
 
 ```bash
-docker run -d --name kirocrew \
+docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v kirocrew-home:/home/kirocrew \
   -e KIROCREW_ALLOW_UNSANDBOXED=1 \
-  ghcr.io/kirodotdev/kirocrew:stable
+  ghcr.io/laqaer/kirocrew:stable
 ```
 
 In this posture the container is the only isolation boundary. Do not mount
@@ -264,7 +266,7 @@ config).
 Check from inside a running container:
 
 ```bash
-docker exec kirocrew python3 -c \
+docker exec junction python3 -c \
   "from kiro_crew.sandbox import userns_available; print(userns_available())"
 ```
 
@@ -280,7 +282,7 @@ docker exec kirocrew python3 -c \
 docker logs kirocrew | grep '\[entrypoint\]'
 
 # Live check from inside the container
-docker exec kirocrew python3 -c \
+docker exec junction python3 -c \
   "from kiro_crew.sandbox import detect_backend; print(detect_backend())"
 # Expected: "namespace" (inner sandbox active) or "none" (unsandboxed)
 ```

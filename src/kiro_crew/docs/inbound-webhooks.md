@@ -420,7 +420,7 @@ The agent pushes a branch and opens a pull request, then calls:
 ```json
 {
   "hook_id": "review:pr-123",
-  "context_summary": "Opened PR #123 (fix/upload-limit) on laqaer/acpcrew. Worktree /home/me/wt-upload-limit, branch fix/upload-limit, head 4f2b91a. Added a token-bucket limiter to api_file_upload. Pending: static analysis. When findings arrive, fix Critical/High in that worktree, amend the single commit, force-push with lease, and report what was left unfixed."
+  "context_summary": "Opened PR #123 (fix/upload-limit) on laqaer/junction. Worktree /home/me/wt-upload-limit, branch fix/upload-limit, head 4f2b91a. Added a token-bucket limiter to api_file_upload. Pending: static analysis. When findings arrive, fix Critical/High in that worktree, amend the single commit, force-push with lease, and report what was left unfixed."
 }
 ```
 

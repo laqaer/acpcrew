@@ -21,7 +21,7 @@ If the dashboard doesn't load after setup:
 3. Check for port conflicts: `lsof -i :5476`
 4. On remote dev desktops, you must use an SSH tunnel — the dashboard binds to
    localhost by default
-5. Run `junction gateway -vv` for debug output
+5. Run `junction up -vv` for debug output
 
 ## Pages
 

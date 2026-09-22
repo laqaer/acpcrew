@@ -48,6 +48,7 @@ import socket
 from pathlib import Path
 
 from kiro_crew import platform_compat
+from kiro_crew.constants import CLI_BIN
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +189,7 @@ class GatewayLock:
         detail = f" ({', '.join(facts)})" if facts else ""
         message = (
             f"{self._path} is held by pid {pid}{detail} -- another gateway already owns "
-            f"{self._home}; stop it first (kirocrew stop) or set KIROCREW_HOME to an "
+            f"{self._home}; stop it first ({CLI_BIN} stop) or set KIROCREW_HOME to an "
             "isolated directory"
         )
         if recorded_pid is not None and recorded_pid != pid:
@@ -253,7 +254,7 @@ class GatewayLock:
         elif serving:
             lines.append(
                 f"But pid {candidate} IS serving HTTP on port {self._port}, so it is a live "
-                "gateway, not a wedged leftover -- stop it with kirocrew stop instead."
+                f"gateway, not a wedged leftover -- stop it with {CLI_BIN} stop instead."
             )
         else:
             parent = "unknown" if ppid is None else f"pid {ppid}, still alive"

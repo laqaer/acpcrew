@@ -1,6 +1,6 @@
-# Installing and Running Kiro Crew
+# Installing and running Junction
 
-This guide covers every way to install Kiro Crew, the first-run setup, how to
+This guide covers every way to install Junction, the first-run setup, how to
 verify the install, and how to troubleshoot the failures that actually happen.
 
 Builds use plain `pip` + `npm`/Vite + `pytest`, driven by the repo-root
@@ -8,9 +8,9 @@ Builds use plain `pip` + `npm`/Vite + `pytest`, driven by the repo-root
 
 > **Platforms: macOS, Linux, and Windows.** macOS and Linux use the `Makefile` /
 > `setup.sh` paths below. Windows runs natively from a Python source install
-> (`pip install -e ".[voice]"`, launched via `python -m kiro_crew gateway`); all
-> POSIX-only process, signal, file-lock and metrics calls route through
-> `kiro_crew.platform_compat`. See
+> (`pip install -e ".[voice]"`, launched via `python -m kiro_crew up` or
+> `junction up`); all POSIX-only process, signal, file-lock and metrics calls
+> route through `kiro_crew.platform_compat`. See
 > [windows-install.md](windows-install.md) for the Windows walkthrough.
 
 ---
@@ -38,29 +38,23 @@ Builds use plain `pip` + `npm`/Vite + `pytest`, driven by the repo-root
 |-------------|------------|-------|
 | **Python** | Backend | `>= 3.10` (`requires-python` in `pyproject.toml`; `make build` provisions a 3.12 `.venv` by default) |
 | **Node.js + npm** | Building the dashboard | `20 \|\| >= 22` (`website/package.json` `engines`); `ensure-node.sh` targets 20, and drops to 16 on Amazon Linux 2 where newer official builds need a glibc that host does not have |
-| **`kiro-cli`** | Driving the LLM | Required; see below |
+| **An ACP runtime** | Driving the LLM | Optional; Cursor, Claude, Codex, Grok, … — a vendor agent CLI is optional |
 
-Node is only needed to *build* the dashboard. The prebuilt wheel, the DMG, the
-AppImage, and the Linux `.deb` / `.rpm` packages all ship the dashboard already
-bundled, so end users of those artifacts need neither Node nor a compiler.
+Node is only needed to *build* the dashboard. A source install that already
+has `website/dist` staged does not need Node at runtime. Local desktop
+artifacts from `make desktop` also bundle the dashboard.
 
-### Agent backend: `kiro-cli` (required)
+### Agent backend (optional)
 
-Kiro Crew drives an LLM through the **`kiro-cli`** agent over the
-[Agent Client Protocol](https://github.com/zed-industries/agent-client-protocol)
-(ACP). It is the only provider: `agent.provider` is fixed to `acp`, and the
-gateway spawns `kiro-cli acp --agent <name>`.
+Junction drives an LLM through an ACP runtime from the harness-plane registry.
+`agent.provider` is `acp`. `agent.acp_backend` defaults to `auto`: Junction
+docks the first installed of Cursor, Claude, Codex, and the rest. A vendor
+agent CLI is optional — install one only when you want that harness.
 
-Install `kiro-cli` per its own docs, put it on your `PATH`, and log in:
-
-```bash
-kiro-cli login
-```
-
-If `kiro-cli` is not on `PATH`, spawning a session fails with
-`kiro-cli not found in PATH`. On the first dashboard launch the **Set up Kiro**
-page walks through installing the CLI and completing device-code sign-in.
-`kirocrew doctor` reports both the binary and the login state.
+If no runtime is on `PATH`, spawning a session waits until you dock one. On
+the first dashboard launch the **Dock an agent** page walks through picking a
+runtime. `junction doctor --quick` reports the composed planes, including
+which runtimes are available.
 
 ### Embeddings: nothing to install
 
@@ -87,94 +81,68 @@ config is coerced to it on load.
 
 ### Which path on Linux
 
-**Start with the one-line install below.** It is the smoothest Linux path and
-the one that needs the fewest decisions: it puts `kirocrew` on your `PATH` at a
-stable location, which is what makes `kirocrew service install` — and therefore
-the [AppArmor profile](#linux-the-agent-sandbox-and-unprivileged-user-namespaces)
-the agent sandbox needs on Ubuntu 23.10+ — reachable in the first place. You
-work in the dashboard through your browser at `localhost:5476`.
+**Start with the operator script** on macOS and Linux. It needs Python 3.10+
+and Node.js 22+. It clones this repository (it is not a release CDN), runs
+[`minimal_install.sh`](../../minimal_install.sh), and links `junction`. Read
+[`scripts/get-junction.sh`](../../scripts/get-junction.sh) before you run it.
 
-Install a **desktop package** (`.deb` / `.rpm`) *in addition* when you want the
-things only the Electron shell provides: an application-menu entry and icon, a
-native window with persisted geometry, a dock/taskbar badge, a system-wide hotkey
-to summon the dashboard, a gateway that starts and stops with the app, and
-in-app updates. The packages install to a fixed path under `/opt`, so the same
-PATH and AppArmor mechanics that make the one-line install work apply to them
-too.
+```bash
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
+junction setup
+junction up
+```
+
+Use a **source checkout** when you are changing Junction. Install a
+**desktop package** (`.deb` / `.rpm`) from a local `make desktop`
+when you want the things only the Electron shell provides: an application-menu
+entry and icon, a native window with persisted geometry, a dock/taskbar badge,
+a system-wide hotkey to summon the dashboard, a gateway that starts and stops
+with the app, and in-app updates. Those packages install to a fixed path under
+`/opt`, which is what makes `junction service install` — and therefore the
+[AppArmor profile](#linux-the-agent-sandbox-and-unprivileged-user-namespaces)
+the agent sandbox needs on Ubuntu 23.10+ — reachable from a desktop artifact.
 
 The **AppImage** stays available for hosts where you cannot install a system
 package (no root, an unsupported distro). It needs FUSE present, and because it
 runs from a randomized temporary mount there is no durable path to attach an
-AppArmor profile to or to point a `kirocrew` launcher at — so on a distro that
+AppArmor profile to or to point a `junction` launcher at — so on a distro that
 restricts unprivileged user namespaces it needs the extra manual step described
 in the sandbox section. Prefer a package where you can.
 
 | You want | Use |
 |---|---|
-| The dashboard, a terminal, scheduled work, a server | **One-line install** (a) |
+| The dashboard, a terminal, scheduled work, a server | **Operator script** (above) or **from source** (a) |
 | A desktop app on Debian/Ubuntu | **`.deb`** (d) |
 | A desktop app on Fedora / RHEL / CentOS Stream / Amazon Linux 2023 | **`.rpm`** (d) |
 | A desktop app with no root and no package manager | **AppImage** (d) |
 | A container host | **Docker** ([guide](docker.md)) |
 
-### a. One-line install (fastest)
+### a. From source (development)
 
-Installs a prebuilt, sha256-verified wheel from the release CDN. No clone, no
-npm, no local build:
-
-```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
-```
-
-`stable` is the default channel. Track a faster one, or pin an exact version:
+Clone, build the dashboard, install the backend, then compose both planes:
 
 ```bash
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel insider
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --version 0.1.0
+git clone https://github.com/laqaer/junction.git
+cd junction
+python3 -m venv .venv && source .venv/bin/activate
+cd website && npm install && npm run build && cd ..
+pip install -e ".[dev]"
+junction setup
+junction doctor --quick
+junction up
 ```
 
-`stable` suits everyone, `insider` is for power users who want features days to
-weeks early and accept the new bugs that arrive with them, and `nightly` is
-untested `main` HEAD for us and contributors. The
-[Release channels](../../README.md#release-channels) table has the full
-comparison; re-running the installer with a different `--channel` is how a CLI
-install moves between lanes.
+`make build` does the frontend + editable backend install into `.venv` in one
+step. On Windows the same targets run through `make.ps1`.
 
-The installer verifies the wheel's digest against the signed manifest and
-refuses to install on a mismatch; there is no checksum-only fallback. It uses
-`pipx` when available, otherwise it creates a managed venv **beside** the data
-home (`~/.kiro/crew-venv`, override with `KIROCREW_VENV`) and symlinks
-`~/.local/bin/kirocrew` at it. The venv is deliberately not nested inside the
-data home, so no whole-home operation can ever delete the live interpreter. The
-selected channel is recorded to `~/.kiro/crew/channel`.
-
-If the host has no Python 3.10+, the installer provisions one itself instead of
-touching the system: it downloads a SHA-256-pinned [uv](https://docs.astral.sh/uv/)
-binary (or uses an already-installed `uv` on `PATH`), then installs a
-[python-build-standalone](https://github.com/astral-sh/python-build-standalone)
-CPython 3.12 into a user-owned directory beside the data home
-(`~/.kiro/crew-python`, override with `KIROCREW_PYTHON_DIR`). No package
-manager, no sudo, and the prebuilt interpreter runs on old-glibc distros
-(CentOS 7) whose base repos never reach 3.10. Pass `--managed-python` (or set
-`KIROCREW_MANAGED_PYTHON=1`) to always use the uv-provisioned interpreter and
-skip the system ones entirely — useful when the system Python is fragile or
-version-managed. The choice is sticky: it is recorded in the data home
-(`python-mode`, next to `channel`), so later installer runs — including the
-re-run `kirocrew update` performs — keep it without the flag; opt back out
-with `--system-python`. The signed installer never pipes an unsigned
-third-party script into a shell: uv is fetched as a tarball and verified
-against pinned digests, exactly like the wheel itself. When it finishes it
-prints the next step: `kirocrew gateway` to start now, or `kirocrew service
-install` to run it as a service.
-
-### b. From source (development)
+### b. From source (Makefile / make.ps1)
 
 Build the dashboard, install the backend into a local virtualenv (`.venv`), and
 run the gateway straight out of `src/`:
 
 ```bash
 make build                                   # npm build + editable backend install into .venv
-PYTHONPATH=src python -m kiro_crew gateway   # -> http://localhost:5476
+PYTHONPATH=src python -m kiro_crew up   # -> http://localhost:5476
 ```
 
 On Windows the same targets run through `make.ps1`, because `make` is not part
@@ -183,7 +151,7 @@ of a Windows install and the Makefile's recipes are POSIX-shaped
 
 ```powershell
 .\make.ps1 build                             # same two steps, same artifacts
-$env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m kiro_crew gateway
+$env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m kiro_crew up
 ```
 
 The venv interpreter is named explicitly rather than a bare `python`: the
@@ -232,8 +200,8 @@ Any CLI subcommand works the same way, for example
 The equivalent by hand:
 
 ```bash
-git clone https://github.com/kirodotdev/KiroCrew.git
-cd KiroCrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 cd website && npm install && npm run build && cd ..
 pip install -e ".[voice]"    # [voice] adds the optional speech-to-text extras
 ```
@@ -246,28 +214,31 @@ with a suitable Python:
 ```bash
 make wheel                # builds the frontend, then python -m build --wheel -> dist/
 pip install dist/*.whl
-kirocrew gateway          # -> http://localhost:5476
+junction up                 # -> loopback dashboard
 ```
 
-Kiro Crew is pure Python, so the wheel is platform-independent:
+Junction is pure Python, so the wheel is platform-independent:
 `dist/kirocrew-<version>-py3-none-any.whl` (for example
 `kirocrew-0.1.2-py3-none-any.whl`). One wheel serves every OS. The dashboard is
 folded in by the custom `BuildWithFrontend` build step in
 [`setup.py`](../../setup.py), which also bundles `CHANGELOG.md` so the
 dashboard's changelog view works on a wheel install with no source tree.
 
-The pip install name is **`kirocrew`**; the import package is `kiro_crew`.
+The pip install name is **`kirocrew`**; the import package is `kiro_crew`;
+the user-facing CLI is **`junction`**. Silent aliases `acpcrew` and `kirocrew`
+dispatch to the same entry.
 
-Installed console script:
+Installed console scripts:
 
 | Command | Entry point |
 |---------|-------------|
+| `junction` | `kiro_crew._bootstrap:main` |
+| `acpcrew` | `kiro_crew._bootstrap:main` |
 | `kirocrew` | `kiro_crew._bootstrap:main` |
 
-`pyproject.toml`'s `[project.scripts]` declares `kirocrew` and nothing else.
-Because a `[project]` table exists, setuptools reads the entry points from
-there and ignores `setup.cfg`'s `console_scripts`, so `kirocrew` is the only
-command installed on `PATH`.
+`pyproject.toml`'s `[project.scripts]` declares all three. Because a `[project]`
+table exists, setuptools reads the entry points from there and ignores
+`setup.cfg`'s `console_scripts`.
 
 Optional extras (install with e.g. `pip install "kirocrew[voice]"`):
 
@@ -275,7 +246,7 @@ Optional extras (install with e.g. `pip install "kirocrew[voice]"`):
 |-------|------|-----|
 | `voice` | `boto3`, `amazon-transcribe` | Speech-to-text transcription |
 | `otlp` | `opentelemetry-exporter-otlp-proto-http` | OTLP/HTTP metrics export. Installing it does not enable egress; that still needs an explicit `telemetry.otlp_endpoint` |
-| `perf` | `py-spy` | Out-of-process profiling (`kirocrew perf sample --pid`). The in-process sampler needs nothing extra |
+| `perf` | `py-spy` | Out-of-process profiling (`junction perf sample --pid`). The in-process sampler needs nothing extra |
 | `teams` | `PyJWT[crypto]` | Microsoft Teams channel (validates the inbound Bot Framework RS256 JWT) |
 | `dev` | pytest, black, isort, flake8, mypy, ... | Contributor tooling; what `make build` installs |
 
@@ -298,7 +269,7 @@ on Linux, and an assisted NSIS Setup.exe on Windows, under
 `website/electron/dist/`. The macOS DMG opens to a branded
 drag-to-Applications layout carrying the opening animation's artwork. The
 Windows wizard keeps native controls and its
-per-user default while carrying matching Kiro Crew artwork through its sidebar
+per-user default while carrying matching Junction artwork through its sidebar
 and header. On macOS the default is ONE universal DMG: the Electron shell is
 lipo-merged, and the backend, which cannot be lipo-merged, ships as two complete
 PBS trees selected at launch by `process.arch`. The x86_64 backend is built
@@ -337,7 +308,7 @@ All three Linux formats are built from the same glibc floor as the build runner.
 Verified requirement at the time of writing is **glibc 2.34**, which covers
 Ubuntu 22.04+, Debian 12+, Fedora, CentOS Stream 9 and Amazon Linux 2023, and
 excludes Ubuntu 20.04, Debian 11 and Amazon Linux 2 — on those, use the
-[one-line install](#a-one-line-install-fastest) instead.
+[source install](#a-from-source-recommended) instead.
 
 Prebuilt downloads for the release channels are linked from the
 [README](../../README.md#app-downloads). The Windows desktop installer remains
@@ -386,15 +357,16 @@ app" interstitial.
 After installing by any path:
 
 ```bash
-kirocrew setup            # interactive wizard
-kirocrew doctor           # verify everything is wired up
-kirocrew gateway          # start the server, then open http://localhost:5476
+junction setup            # writes the first-run marker
+junction doctor --quick   # compose both planes without serving
+junction up               # compose, then serve the loopback dashboard
 ```
 
 From a source checkout, use `PYTHONPATH=src python -m kiro_crew <subcommand>`
-in place of `kirocrew`.
+in place of `junction`. `junction gateway` is the same server as `junction up`
+and remains for scripts.
 
-### What `kirocrew setup` asks
+### What `junction setup` asks
 
 The wizard installs the agent config, then walks through the workspace
 directory, timezone, dashboard URL, and (on macOS) the desktop app. It does NOT
@@ -409,7 +381,7 @@ machine has none and reports enterprise-registry failures (mirror login, proxy,
 blocked browser CDN) as specific remedies rather than a raw npm dump:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.sh
+curl -fsSLO https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.sh
 less playwright-cli.sh          # read it before you run it
 sh playwright-cli.sh --version 0.1.18
 ```
@@ -432,7 +404,7 @@ Design notes and the exit-code table:
 
 **Messaging channels are optional.** The default wizard configures none, and the
 web dashboard is fully functional without any messaging credentials. Connect a
-channel later -- Slack (`kirocrew setup --slack` or
+channel later -- Slack (`junction setup --slack` or
 [slack-setup.md](slack-setup.md)),
 [Discord](../../src/kiro_crew/docs/discord-integration.md),
 [Telegram](../../src/kiro_crew/docs/telegram-integration.md),
@@ -452,7 +424,7 @@ These flags narrow the wizard:
 | `--clean` | Fresh agent config: ignore the existing `kirocrew.json` and regenerate from defaults instead of merging your MCP servers and tools forward |
 | `--electron-only` | Install only the macOS desktop app |
 
-The two combine: `kirocrew setup --agent-only --clean` rebuilds the agent config
+The two combine: `junction setup --agent-only --clean` rebuilds the agent config
 from scratch and touches nothing else. That is the fix for a broken or stale MCP
 configuration, because without `--clean` the existing file is used as the base
 so all user customizations survive.
@@ -515,7 +487,7 @@ it.
 
 ### The data home lives under `~/.kiro/`
 
-Kiro Crew stores its data in `~/.kiro/crew`, sharing the `~/.kiro/` base with
+Junction stores its data in `~/.kiro/crew`, sharing the `~/.kiro/` base with
 other Kiro-family apps. An existing top-level `~/.kirocrew` install migrates
 automatically on first launch: its data (config, credentials, session history,
 databases) is copied into `~/.kiro/crew`, **overwriting** any file already at
@@ -546,7 +518,7 @@ cp -a ~/.kirocrew ~/.kirocrew.manual-backup
 ## Verify the install
 
 ```bash
-kirocrew doctor
+junction doctor
 ```
 
 `doctor` reports, section by section: the composed platform edition, the data
@@ -562,9 +534,9 @@ loop-stall crash dumps, and connectivity.
 For always-on operation (channel bots, cron jobs, background tasks):
 
 ```bash
-kirocrew service install    # systemd on Linux, launchd on macOS
-kirocrew service status
-kirocrew service uninstall
+junction service install    # systemd on Linux, launchd on macOS
+junction service status
+junction service uninstall
 ```
 
 On Linux this writes `/etc/systemd/system/kirocrew.service` (sudo is prompted
@@ -577,7 +549,7 @@ The gateway runs untrusted agent tools, so it must run as a **non-root** user:
 the installer sets `User=` to the account behind `sudo` (`$SUDO_USER`, else
 `$USER`), and **refuses to install a `User=root` service**. From a bare `root`
 login (or `sudo` with no `$SUDO_USER`), first create or pick a normal account and
-install as it, e.g. `sudo -u <user> KIROCREW_KIRO_BIN=... kirocrew service
+install as it, e.g. `sudo -u <user> KIROCREW_KIRO_BIN=... junction service
 install` (the official Docker image already runs as the `kirocrew` user).
 
 ### Setting the service port
@@ -587,7 +559,7 @@ KIROCREW_PORT=…` in your shell does **not** reach it. Set the port when you
 install so it is baked into the unit:
 
 ```bash
-KIROCREW_PORT=5477 kirocrew service install
+KIROCREW_PORT=5477 junction service install
 ```
 
 To change it later without reinstalling, edit the overrides file the installer
@@ -615,7 +587,7 @@ have:
 grep EnvironmentFile /etc/systemd/system/kirocrew.service
 ```
 
-No output means the directive is missing. Either re-run `kirocrew service
+No output means the directive is missing. Either re-run `junction service
 install` (it rewrites the unit in place, keeping the same service), or set
 variables with a [systemd drop-in](#setting-other-environment-variables-systemd-drop-in),
 which works on any unit version.
@@ -626,7 +598,7 @@ For variables the seeded overrides file does not cover — proxy settings are th
 common case — use a systemd drop-in. Drop-ins are systemd's own override
 mechanism: they apply to the unit no matter which release wrote it, and they
 survive reinstalls, `service install` re-runs, and even
-`kirocrew service uninstall` (which removes the unit but never touches
+`junction service uninstall` (which removes the unit but never touches
 `/etc/systemd/system/kirocrew.service.d/`).
 
 ```bash
@@ -650,10 +622,10 @@ For remote hosts, see [remote-and-mobile.md](remote-and-mobile.md).
 
 ## Linux: the agent sandbox and unprivileged user namespaces
 
-On Linux, Kiro Crew isolates the agent by entering a **user namespace** and then
+On Linux, Junction isolates the agent by entering a **user namespace** and then
 a **mount namespace**, over-mounting credential paths such as `~/.aws` and
 `~/.ssh` so the agent cannot read them. If that sandbox cannot be built,
-Kiro Crew **refuses to run the agent** rather than run it unisolated: spawns fail
+Junction **refuses to run the agent** rather than run it unisolated: spawns fail
 closed. This is deliberate and is not something to work around casually.
 
 **Ubuntu 23.10 and newer ship `kernel.apparmor_restrict_unprivileged_userns=1`**,
@@ -668,7 +640,7 @@ sandbox: unshare(NEWNS) failed: errno 1
 ### The remedy: let `service install` add an AppArmor profile
 
 ```bash
-kirocrew service install
+junction service install
 ```
 
 Where, and only where, this mechanism is the one in play, the installer also
@@ -682,7 +654,7 @@ process, and it is the same approach stock Ubuntu already uses for `chrome` and
 This uses the sudo prompt `service install` already needs for the unit file, so
 it costs no additional privilege, and it **cannot fail your install**: if the
 profile cannot be written, loaded, or verified, you get a warning and the
-install continues. `kirocrew service uninstall` unloads and removes it, so a
+install continues. `junction service uninstall` unloads and removes it, so a
 host is left as it was found rather than carrying an orphaned userns permission.
 
 The installer skips the profile silently, with a reason it can print, when
@@ -691,12 +663,12 @@ AppArmor is not an active LSM, when the sysctl is not `1`, when
 rule needs 4.x or newer). So on Debian, Arch, RHEL and Amazon Linux nothing
 changes.
 
-**Running the gateway outside systemd** (for example `kirocrew gateway` in a
+**Running the gateway outside systemd** (for example `junction up` in a
 terminal) does not pick up the profile, because systemd is what applies it —
 and there is no unprivileged way to enter it yourself. `aa_change_onexec()` into
 a named profile is not permitted for an ordinary unconfined user, and `aa-exec`
 does **not** fail when it cannot transition: it execs the command unconfined, so
-`aa-exec -p kirocrew-userns -- kirocrew gateway` appears to work and changes
+`aa-exec -p kirocrew-userns -- junction up` appears to work and changes
 nothing. Run the gateway as the service instead.
 
 ### The AppImage (desktop app) needs its own profile
@@ -771,8 +743,8 @@ never matches. `kirocrew sandbox status` detects that and names the stale path;
 re-running `install-profile` re-points it. Replacing the file in place (an
 in-place update) keeps working, since the path is unchanged.
 
-**Running the gateway in a terminal** (`kirocrew gateway`) is not covered by
-either profile. Use `kirocrew service install` and let systemd run it. There is
+**Running the gateway in a terminal** (`junction up`) is not covered by
+either profile. Use `junction service install` and let systemd run it. There is
 no correct profile to attach for a foreground run: the only executable involved
 is a shared Python interpreter, and attaching there would hand unprivileged user
 namespaces to every Python process on the machine.
@@ -798,7 +770,7 @@ sandbox probe names the failing step so you can tell them apart:
 
 | Symptom | Mechanism | Remedy |
 |---|---|---|
-| `unshare(CLONE_NEWNS)` fails `EPERM`, sysctl is `1` | Ubuntu >= 23.10 AppArmor userns restriction | `kirocrew service install`, or `kirocrew sandbox install-profile` for the AppImage (this page) |
+| `unshare(CLONE_NEWNS)` fails `EPERM`, sysctl is `1` | Ubuntu >= 23.10 AppArmor userns restriction | `junction service install`, or `kirocrew sandbox install-profile` for the AppImage (this page) |
 | `unshare(CLONE_NEWUSER)` fails `ENOSPC` / `EUSERS` | `user.max_user_namespaces=0` (CIS-hardened host) | Raise that sysctl |
 | `unshare` fails and `kernel.unprivileged_userns_clone=0` | Debian-family legacy knob (defaults to 1 since Debian 11) | Set it to 1 |
 | `unshare` fails `EINVAL` / `ENOSYS` | Kernel built without `CONFIG_USER_NS` | None short of a different kernel |
@@ -813,7 +785,7 @@ import kiro_crew.sandbox as sb
 sb.reset_backend(); print(sb.detect_backend(), sb._last_unshare_failure)"
 ```
 
-`kirocrew doctor` reports the same verdict without the one-liner, and the
+`junction doctor` reports the same verdict without the one-liner, and the
 dashboard's **Sandbox unavailable** screen names the mechanism and the command
 for it directly — the probe classifies the failing step into one of
 `apparmor_userns`, `max_user_namespaces`, `userns_denied` or `no_user_ns`, which
@@ -821,7 +793,7 @@ is the row of the table above that applies to you.
 
 ## Troubleshooting
 
-Always start with `kirocrew doctor`.
+Always start with `junction doctor`.
 
 ### `AcpTimeoutError: ACP prompt timed out`
 
@@ -829,12 +801,12 @@ The `kiro-cli` backend did not answer in time. Five common causes:
 
 1. **`kiro-cli` is not installed.** The gateway raises
    `kiro-cli not found in PATH`. Install it, or use the dashboard's
-   **Set up Kiro** page.
+   **Dock an agent** page.
 2. **Not logged in.** Run `kiro-cli login`. An expired session normally
    surfaces as the distinct, non-retryable "kiro-cli is not logged in" error
    rather than a timeout, so check this even when the message differs.
 3. **A broken or stale MCP config.** Rebuild it with
-   `kirocrew setup --agent-only --clean`. A single unreachable MCP server can
+   `junction setup --agent-only --clean`. A single unreachable MCP server can
    consume the whole initialization window.
 4. **First launch is genuinely slow.** MCP servers can be slow to initialize,
    so the handshake allows up to 4 minutes before giving up. Later timeouts have
@@ -852,13 +824,12 @@ The `kiro-cli` backend did not answer in time. Five common causes:
    Agent sessions inherit the service environment, so this fixes them. One
    known gap: the first-run setup gate's login probe currently filters proxy
    variables out even when the unit carries them, so it can stay stuck on
-   "Sign in to Kiro CLI" on a proxied host — that is
-   [issue #2648](https://github.com/kirodotdev/KiroCrew/issues/2648).
+   the dock-an-agent page on a proxied host.
 
 ### Memory or knowledge search returns nothing
 
 The embedding model is probably still downloading. Check the **Vector Memory**
-section of `kirocrew doctor`, which reports the model state and whether the
+section of `junction doctor`, which reports the model state and whether the
 model URL is reachable, and look for the GGUF under `~/.kiro/crew/models/`.
 Search falls back to keyword matching until the model lands, then switches over
 on its own with no restart. For an airgapped or firewalled host, point
@@ -867,13 +838,13 @@ on its own with no restart. For an airgapped or firewalled host, point
 ### The gateway will not start
 
 ```bash
-kirocrew doctor
-kirocrew gateway --port auto   # bind an OS-assigned port if 5476 is taken
+junction doctor
+junction up --port auto   # bind an OS-assigned port if 5476 is taken
 ```
 
 ## Uninstalling
 
-Uninstalling removes the Kiro Crew binary and its runtime but **preserves your
+Uninstalling removes the Junction binary and its runtime but **preserves your
 data home** (`~/.kiro/crew`) — configuration, credentials, memory, sessions,
 apps, and the audit chain remain intact. This is intentional: reinstalling picks
 up where you left off without re-running setup or losing history.
@@ -882,23 +853,23 @@ Before uninstalling, stop any running gateway and remove the system service if
 one is installed:
 
 ```bash
-kirocrew stop                # stop a running foreground gateway
-kirocrew service uninstall   # removes the systemd unit / launchd plist
+junction stop                # stop a running foreground gateway
+junction service uninstall   # removes the systemd unit / launchd plist
 ```
 
 Then follow the section matching your install method.
 
-### One-line install via `cli.sh` (pipx)
+### pipx leftover
 
-If `cli.sh` used `pipx` (the default when pipx is on `PATH`):
+If an older `cli.sh` path used `pipx`:
 
 ```bash
 pipx uninstall kirocrew
 ```
 
-### One-line install via `cli.sh` (managed venv)
+### Managed venv leftover
 
-If `pipx` was not available, `cli.sh` created a managed venv and a symlink.
+If an older `cli.sh` path created a managed venv and a symlink.
 Remove both:
 
 ```bash
@@ -928,14 +899,14 @@ Remove the editable install and the build artifacts:
 
 ```bash
 # Chained so a failed `cd` (wrong path) can never run `rm -rf` in your current directory:
-cd /path/to/KiroCrew \
+cd /path/to/acpcrew \
   && pip uninstall kirocrew \
   && rm -rf .venv build dist   # editable install, local venv, and build outputs
 ```
 
 ### macOS desktop app (DMG / zip)
 
-1. Quit Kiro Crew from the menu bar or Dock.
+1. Quit Junction from the menu bar or Dock.
 2. Drag **KiroCrew.app** from `/Applications` to the Trash (or `rm -rf`).
 
 There is no installer package or receipt to clean — the DMG is a drag-install.
@@ -950,15 +921,15 @@ rm -f ~/Applications/KiroCrew-x86_64.AppImage   # or wherever you saved it
 
 ### Windows (NSIS installer)
 
-Use **Settings → Apps → Installed apps**, find "Kiro Crew", and click
+Use **Settings → Apps → Installed apps**, find "Junction", and click
 **Uninstall**. The NSIS uninstaller removes the application directory and
 shortcuts but does not touch `~/.kiro/crew`.
 
 ### Docker
 
 ```bash
-docker stop kirocrew && docker rm kirocrew   # graceful stop, then remove
-docker rmi ghcr.io/kirodotdev/kirocrew:stable # remove the image (match the tag you pulled)
+docker stop junction && docker rm junction   # graceful stop, then remove
+docker rmi ghcr.io/laqaer/kirocrew:stable # remove the image (match the tag you pulled)
 ```
 
 `docker stop` sends SIGTERM and gives the gateway time to run its shutdown
@@ -971,7 +942,7 @@ Uninstalling via any method above leaves your data home intact. To also remove
 all user data:
 
 ```bash
-# Back up first — this is irreversible. `kirocrew snapshot` only captures
+# Back up first — this is irreversible. `junction snapshot` only captures
 # memory/config/skills/workspace, not `.env`, credentials, or installed apps,
 # so a full copy of the data home is the only complete backup. Chained with
 # `&&` so a failed copy (e.g. disk full) blocks the delete rather than racing
@@ -994,18 +965,18 @@ databases, installed apps, and the embedding model cache.
 
 > **Note:** App Kit data is preserved per-app by default. To remove an
 > individual app's data before or instead of purging the whole home:
-> `kirocrew app uninstall NAME --purge-data`
+> `junction app uninstall NAME --purge-data`
 
 ## Clean reinstall
 
 A clean reinstall removes both the binary and the data home, then installs
-fresh. Use this when `kirocrew doctor` reports issues that setup cannot fix,
+fresh. Use this when `junction doctor` reports issues that setup cannot fix,
 or when you want a completely fresh start.
 
 ```bash
 # 1. Stop any running gateway, then remove the service
-kirocrew stop                        # stop a foreground gateway (service uninstall won't)
-kirocrew service uninstall 2>/dev/null
+junction stop                        # stop a foreground gateway (service uninstall won't)
+junction service uninstall 2>/dev/null
 
 # 2. Uninstall the binary (use the matching command from above)
 pipx uninstall kirocrew          # or: pip uninstall kirocrew, rm the AppImage, etc.
@@ -1014,12 +985,14 @@ pipx uninstall kirocrew          # or: pip uninstall kirocrew, rm the AppImage, 
 cp -a "${KIROCREW_HOME:-$HOME/.kiro/crew}" ~/kirocrew-backup \
   && rm -rf "${KIROCREW_HOME:-$HOME/.kiro/crew}"
 
-# 4. Reinstall
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
+# 4. Reinstall from source (Junction has no public curl|sh CDN)
+git clone https://github.com/laqaer/junction.git && cd junction
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 
 # 5. Run first-time setup
-kirocrew setup
-kirocrew doctor
+junction setup
+junction doctor
 ```
 
 Replace step 4 with your preferred install method (pip wheel, source build,
@@ -1029,7 +1002,7 @@ desktop app) as described in the [Install paths](#install-paths) section above.
 
 For reference, the data home structure and what each uninstall path touches:
 
-- `kirocrew service uninstall` removes only the systemd unit (plus the AppArmor
+- `junction service uninstall` removes only the systemd unit (plus the AppArmor
   profile it installed) or the launchd plist.
 - Python and npm package removal has no `preuninstall` or `postuninstall`
   cleanup hook.
@@ -1042,19 +1015,19 @@ For reference, the data home structure and what each uninstall path touches:
   [Removing user data](#removing-user-data)), not the package manager's.
 - App Kit uninstall preserves `apps/<name>/data/` by default. Deleting that app
   data is a separate, explicit action:
-  `kirocrew app uninstall NAME --purge-data`, or unchecking **Keep app data** in
+  `junction app uninstall NAME --purge-data`, or unchecking **Keep app data** in
   the confirmation dialog.
 
 **Windows NSIS uninstaller behavior.** `nsis.oneClick` is false and
 `nsis.deleteAppDataOnUninstall` is left false, so the uninstaller removes only
 the application install directory and its shortcuts; it never resolves or removes
-the Kiro Crew home, which lives outside the install directory. Each signed Windows
+the Junction home, which lives outside the install directory. Each signed Windows
 installer must pass an install, create-sentinel-under-`~/.kiro/crew`,
 uninstall, verify-sentinel smoke test before release. A separate Kiro-family
 uninstaller could remove the parent `~/.kiro/` directory; it must exclude
 `~/.kiro/crew` or prompt explicitly. That release-blocking cross-product
 sign-off is tracked in
-[issue #355](https://github.com/kirodotdev/KiroCrew/issues/355).
+[issue #355](https://github.com/laqaer/junction/issues).
 
 ## Next steps
 
@@ -1073,6 +1046,6 @@ sign-off is tracked in
 - [Security deep dive](../architecture/security-deep-dive.md): sandbox,
   governance, and denied commands.
 - [App Kit guide](../app-kit/getting-started.md): build apps that extend
-  Kiro Crew.
+  Junction.
 - [CONTRIBUTING.md](../../CONTRIBUTING.md): development setup and the PR
   workflow.

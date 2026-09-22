@@ -41,7 +41,7 @@ check both.
 app, the cause is usually launchd's minimal `PATH`, which a shell rc file
 never changes. The fix is `launchctl setenv PATH "$PATH"` plus a full quit and
 relaunch — see the
-[macOS troubleshooting guide](https://github.com/laqaer/acpcrew/blob/main/docs/guides/macos-troubleshooting.md)
+[macOS troubleshooting guide](https://github.com/laqaer/junction/blob/main/docs/guides/macos-troubleshooting.md)
 for the recipe and how to persist it across reboots.
 
 ### Dashboard asks for sign-in but `kiro-cli` is already authenticated
@@ -164,7 +164,7 @@ on another port with `KIROCREW_PORT`.
   bot is installed**. Only the owner is authorized, so a user ID copied from a
   different workspace silently matches nobody
 - Confirm the Slack app has Socket Mode enabled
-- Run `junction gateway -vv` for debug output
+- Run `junction up -vv` for debug output
 
 ### Context window filling up
 
@@ -320,9 +320,9 @@ reference.
 ## Log Levels
 
 ```bash
-junction gateway          # WARNING only (default)
-junction gateway -v       # INFO: session lifecycle, context %
-junction gateway -vv      # DEBUG: full ACP events, message traces
+junction up          # WARNING only (default)
+junction up -v       # INFO: session lifecycle, context %
+junction up -vv      # DEBUG: full ACP events, message traces
 ```
 
 `agent.log_level` sets the persistent default; `--verbose` overrides it for one

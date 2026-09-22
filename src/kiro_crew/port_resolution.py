@@ -45,6 +45,7 @@ from kiro_crew import platform_compat
 # is itself a patch target — see _config_url_port), which flake8 cannot see.
 from kiro_crew.config.loader import KiroCrewConfig  # noqa: F401
 from kiro_crew.config.loader import _DEFAULT_PORT
+from kiro_crew.constants import CLI_CONSOLE_STEMS
 from kiro_crew.dashboard.origin import parse_dashboard_url
 from kiro_crew.instances import run_marker
 
@@ -353,13 +354,13 @@ def resolve_serving_port() -> int:
     return port
 
 
-# Subcommands that launch a long-running Kiro Crew *server* process which
-# ``kirocrew stop`` may need to terminate. These mirror the entry-point
-# subcommands dispatched in ``cli.py`` (``gateway`` / ``dashboard``; ``start``
-# is the historical alias). The task runner (``run``) is intentionally excluded:
+# Subcommands that launch a long-running Junction *server* process which
+# ``junction stop`` may need to terminate. These mirror the entry-point
+# subcommands dispatched in ``cli.py`` (``up`` / ``gateway`` / ``dashboard``;
+# ``start`` is the historical alias). The task runner (``run``) is excluded:
 # it is not bound to the dashboard port, so we must never SIGTERM it from
-# ``kirocrew stop``.
-_KIROCREW_SERVER_SUBCOMMANDS = frozenset({"gateway", "dashboard", "start"})
+# ``junction stop``.
+_KIROCREW_SERVER_SUBCOMMANDS = frozenset({"up", "gateway", "dashboard", "start"})
 
 
 def _basename_stem(tok: str) -> str:
@@ -403,14 +404,17 @@ def _args_look_like_kirocrew(args: str) -> bool:
       a service install and the launchd/systemd service), plus the legacy dotted
       form ``<python> -m kiro_crew.<subcmd>``. A Python interpreter must precede
       ``-m`` so we don't misread some other tool's ``-m`` flag (e.g. ``grep -m``).
-    * **Console script** — ``/path/to/kirocrew <subcmd>`` (used when the
-      ``kirocrew`` wrapper resolves on ``PATH``).
+    * **Console script** — ``/path/to/junction <subcmd>`` (or the silent
+      aliases ``kirocrew`` / ``acpcrew``). ``up`` is the operator start
+      verb; ``gateway`` remains the script alias.
 
     Examples::
 
         >>> _args_look_like_kirocrew("/x/python3.10 -m kiro_crew gateway")
         True
         >>> _args_look_like_kirocrew("python3 -m kiro_crew.dashboard")
+        True
+        >>> _args_look_like_kirocrew("/usr/local/bin/junction up")
         True
         >>> _args_look_like_kirocrew("/usr/local/bin/kirocrew start")
         True
@@ -462,9 +466,9 @@ def _args_look_like_kirocrew(args: str) -> bool:
                     ):
                         return True
 
-        # --- Console-script form: ".../kirocrew <subcmd>" (or kirocrew.exe on Win)
+        # --- Console-script form: ".../junction <subcmd>" (or a silent alias)
         if (
-            _basename_stem(token) == "kirocrew"
+            _basename_stem(token) in CLI_CONSOLE_STEMS
             and index + 1 < len(tokens)
             and tokens[index + 1] in _KIROCREW_SERVER_SUBCOMMANDS
         ):

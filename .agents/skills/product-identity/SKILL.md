@@ -21,6 +21,6 @@ Read first: [`../../../JUNCTION.md`](../../../JUNCTION.md),
 - Brand gate is diff-scoped: do not write concatenated `KiroCrew` in new
   prose.
 - Implementation identifiers that stay until a dedicated rename:
-  `kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`,
-  GitHub slug `laqaer/acpcrew`.
+  `kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`.
+  GitHub slug is `laqaer/junction`.
 - Do not edit `CHANGELOG.md` on a feature PR.

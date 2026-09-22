@@ -21,7 +21,7 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ## Quick start
 
-You'll need a running gateway (`junction gateway`) and a Webex account.
+You'll need a running gateway (`junction up`) and a Webex account.
 
 1. **Create a bot** — log in at [developer.webex.com](https://developer.webex.com),
    open **My Webex Apps** under your avatar, click **Create a New App** →

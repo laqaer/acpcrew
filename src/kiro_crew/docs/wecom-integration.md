@@ -23,7 +23,7 @@ Prefer to wire it up yourself? The manual steps are below.
 
 ## Quick start
 
-You'll need a running gateway (`junction gateway`) and admin access to your
+You'll need a running gateway (`junction up`) and admin access to your
 WeCom console.
 
 1. **Create an AI bot** — in the WeCom admin console, open **应用管理 → AI 智能体**

@@ -149,11 +149,13 @@ on the **agent** side. Junction does not mint that URL in chat.
 
 ## This-cut surface
 
-- CLI: `junction planes` (human; `--json` for the machine snapshot of harness
-  inventory, sidecar health, and the role DAG), `junction doctor --quick`
+- CLI: `junction up` (compose then serve; `junction gateway` is the same
+  server), `junction planes` (human; `--json` for the machine snapshot of
+  harness inventory, sidecar health, and the role DAG), `junction doctor --quick`
   (compose-only), `junction doctor` (Planes section first, then the full probe),
   `junction router status`, `junction router catalog`,
-  `junction router plan`.
+  `junction router plan`. Human text is one formatter shared by planes, doctor,
+  and the `up` start banner.
 - HTTP: `GET /api/planes` (harness inventory + sidecar health + role DAG),
   `GET /api/model-router/status`, `GET /api/model-router/catalog`,
   `GET /api/model-router/plan`. Unreachable sidecar is degraded, not a 5xx.
