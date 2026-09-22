@@ -899,7 +899,7 @@ Remove the editable install and the build artifacts:
 
 ```bash
 # Chained so a failed `cd` (wrong path) can never run `rm -rf` in your current directory:
-cd /path/to/acpcrew \
+cd /path/to/junction \
   && pip uninstall kirocrew \
   && rm -rf .venv build dist   # editable install, local venv, and build outputs
 ```

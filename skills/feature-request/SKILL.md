@@ -1,13 +1,13 @@
 ---
 name: feature-request
-description: Conversational workflow for gathering user feedback and filing GitHub Issues on the KiroCrew repository. Load when the user clicks "Request a Feature", wants to report a bug, or suggest an improvement.
+description: Conversational workflow for gathering user feedback and filing GitHub Issues on the Junction repository. Load when the user clicks "Request a Feature", wants to report a bug, or suggest an improvement.
 triggers: request a feature, request feature, feature request, report a bug, bug report, file an issue, github issue, I have an idea, something's broken, suggestion
 ---
 
 # Feature Request / Issue Report
 
 Conversational workflow for gathering user feedback and creating GitHub Issues
-on the KiroCrew repository.
+on the Junction repository.
 
 **Trigger:** User clicks "Request a Feature" button, or says "report a bug",
 "feature request", "I have an idea", "something's broken".
@@ -15,7 +15,7 @@ on the KiroCrew repository.
 ## Repository
 
 ```
-https://github.com/kirodotdev/KiroCrew
+https://github.com/laqaer/junction
 ```
 
 ## Shell safety (READ FIRST)
@@ -66,7 +66,7 @@ Search existing issues to avoid duplicates. Derive plain keywords yourself (a
 few alphanumeric words) — do not paste raw user text:
 
 ```bash
-gh issue list --repo kirodotdev/KiroCrew \
+gh issue list --repo laqaer/junction \
   --search "your derived keywords" --state open --limit 10
 ```
 
@@ -99,7 +99,7 @@ Show the draft to the user for confirmation before submitting.
 submit time, so labels added later are picked up without editing this skill:
 
 ```bash
-gh label list --repo kirodotdev/KiroCrew --limit 100
+gh label list --repo laqaer/junction --limit 100
 ```
 
 Choose from what that command returns:
@@ -141,7 +141,7 @@ Present all three and let the user choose:
 Build a GitHub new-issue URL with query params:
 
 ```
-https://github.com/kirodotdev/KiroCrew/issues/new?title=URL_ENCODED_TITLE&body=URL_ENCODED_BODY&labels=URL_ENCODED_LABELS
+https://github.com/laqaer/junction/issues/new?title=URL_ENCODED_TITLE&body=URL_ENCODED_BODY&labels=URL_ENCODED_LABELS
 ```
 
 `labels=` takes the comma-separated names chosen in step 5. **Percent-encode each
@@ -157,7 +157,7 @@ warn the user it may be truncated and recommend Option 2.
 
 Show the formatted title and body in a code block the user can copy into
 the GitHub new issue form at:
-`https://github.com/kirodotdev/KiroCrew/issues/new`
+`https://github.com/laqaer/junction/issues/new`
 
 **Option 3: Direct creation via `gh` CLI**
 
@@ -174,7 +174,7 @@ then reference those files (see **Shell safety** above):
 
 ```bash
 TITLE="$(cat "$TITLE_FILE")"
-gh issue create --repo kirodotdev/KiroCrew \
+gh issue create --repo laqaer/junction \
   --title "$TITLE" \
   --body-file "$BODY_FILE" \
   --label '<type label>' \
