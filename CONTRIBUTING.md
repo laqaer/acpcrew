@@ -5,7 +5,7 @@ we welcome issues and pull requests.
 
 ## Reporting Bugs and Requesting Features
 
-Open a [GitHub issue](https://github.com/laqaer/acpcrew/issues). Before you
+Open a [GitHub issue](https://github.com/laqaer/junction/issues). Before you
 do, search the open issues, because the fastest resolution is often a thread that
 already exists.
 
@@ -21,7 +21,7 @@ it leaves room for an answer nobody had thought of.
 
 ## Finding Something to Work On
 
-Start with the [open issues](https://github.com/laqaer/acpcrew/issues). Issues
+Start with the [open issues](https://github.com/laqaer/junction/issues). Issues
 carry an `area:` label naming the subsystem they land in — `area: dashboard`,
 `area: agents`, `area: cron` and so on — so you can filter to the part of the
 codebase you want to work in, and a type label (`bug`, `enhancement`,
@@ -39,15 +39,15 @@ tell you in a paragraph.
   the documented feature limits in the [Windows guide](docs/guides/windows-install.md)
 - Python ≥ 3.10
 - Node.js ≥ 22 (24 LTS recommended) and npm (for the frontend)
-- The `kiro-cli` agent is optional (`agent.acp_backend` defaults to `auto`). Install it on your `PATH` and log in (`kiro-cli login`) if you want that harness.
+- The `kiro-cli` agent is optional (`agent.acp_backend` defaults to `auto`). A vendor agent CLI is optional — install one on your `PATH` only if you want that harness.
 - [Ollama](https://ollama.com) for memory and knowledge-library embeddings
 
 ## First-Time Setup
 
 ```bash
 # 1. Fork the repo on GitHub, then clone your fork
-git clone https://github.com/laqaer/acpcrew.git
-cd acpcrew
+git clone https://github.com/laqaer/junction.git
+cd junction
 
 # 2. Build the frontend and bundle it into the package
 cd website
@@ -60,10 +60,10 @@ cd ..
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[voice]"
 
-# 4. Configure and verify
+# 4. Configure, verify, and start
 junction setup               # data dir, agent backend (channels connect later)
-junction doctor              # verify everything works
-junction gateway             # start server (dashboard + messaging channels)
+junction doctor --quick      # compose both planes without serving
+junction up                  # compose, then serve dashboard + channels
 ```
 
 The dashboard is at `http://localhost:5476`.
@@ -130,7 +130,7 @@ Run a dev gateway alongside production without data or port conflicts:
 ./dev-seed.sh
 
 # Start the dev backend (port 6777, isolated data)
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction gateway
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction up
 ```
 
 Browse at `http://localhost:6777`. The backend serves the built frontend assets directly.
@@ -151,7 +151,7 @@ for instant hot-reload without rebuilding:
 
 ```bash
 # Terminal 1 — start the backend
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction gateway
+KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction up
 
 # Terminal 2 — start the frontend dev server (hot-reloads .tsx changes)
 cd website
@@ -491,7 +491,7 @@ workflows triggered by **pull requests opened from a fork**. Three of our
 checks need those credentials to reach Amazon Bedrock, so their behaviour
 depends on *where your branch lives*:
 
-| Check | Fork PR | Branch pushed to `laqaer/acpcrew` |
+| Check | Fork PR | Branch pushed to `laqaer/junction` |
 | --- | --- | --- |
 | **Opus 4.8 Review** | Skipped (neutral — not a failure) | Runs |
 | **GPT 5.6 Review** | Skipped | Runs |
@@ -507,7 +507,7 @@ depends on *where your branch lives*:
   CodeQL, coverage, build) are green. A maintainer runs the AI review on their
   side (or re-pushes your branch to the upstream repo) and reviews manually.
 - **Getting the AI reviews to run** depends only on *where the branch lives*,
-  never on who you are: the branch has to be on `laqaer/acpcrew` itself,
+  never on who you are: the branch has to be on `laqaer/junction` itself,
   not on a fork. Pushing a branch directly to the upstream repo requires write
   access — so if you have it, push there and open the PR from that branch to
   get the full suite. Without write access, the fork path above is the correct
@@ -532,7 +532,7 @@ Rules: imperative mood, lowercase summary, no trailing period, wrap body at 72 c
 
 ## Questions?
 
-Open a [GitHub issue](https://github.com/laqaer/acpcrew/issues) or start a
+Open a [GitHub issue](https://github.com/laqaer/junction/issues) or start a
 discussion in the repository.
 
 ## Security Issues

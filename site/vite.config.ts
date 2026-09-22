@@ -3,8 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // Public-facing landing site. A relative base keeps assets resolving at the
-// Pages root and also survives a move to a /acpcrew/ subpath if the GitHub
-// slug stays the repo name.
+// site root.
 export default defineConfig({
   base: "./",
   plugins: [react(), tailwindcss()],

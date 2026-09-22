@@ -262,13 +262,17 @@ PRODUCT_NAME = "Junction"
 # User-facing CLI binary. Silent aliases (`acpcrew`, `kirocrew`) still
 # dispatch to the same entry point; prints, usage, and help name this one.
 CLI_BIN = "junction"
+# Console-script basenames that all dispatch here. Primary first so PATH
+# lookup, restart respawn, and service ExecStart prefer `junction` when it
+# is installed. Aliases stay so a leftover wrapper still stop/restarts.
+CLI_CONSOLE_STEMS: tuple[str, ...] = (CLI_BIN, "kirocrew", "acpcrew")
 
-# Live production hostname. junction.computer is the intended apex once its
-# public NS exist; until then CLI chrome and the marketing canonical point here.
+# Canonical public hostname. CLI chrome and the marketing site use this.
+# www.getjunction.dev redirects here.
 SITE_URL = "https://getjunction.dev"
 
-# Public GitHub slug until a human rename lands. Clone URLs use this.
-GITHUB_SLUG = "laqaer/acpcrew"
+# Public GitHub slug. Clone URLs and issue links use this.
+GITHUB_SLUG = "laqaer/junction"
 
 # The product wordmark, figlet `small`. ONE definition on purpose: copy-pasting
 # it into cli.py and cli_chat.py risks a rename leaving a stale product name in

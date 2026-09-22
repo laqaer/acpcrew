@@ -56,15 +56,16 @@ import subprocess
 from collections.abc import Awaitable, Callable
 
 from kiro_crew import platform_compat
+from kiro_crew.constants import CLI_BIN, PRODUCT_NAME
 
 logger = logging.getLogger("kiro_crew.dashboard.port_reclaim")
 
 # Reclaim outcomes (returned by :func:`reclaim_stale_gateway_port`).
-NO_HOLDER = "no_holder"          # port already free (race) — nothing to do
-UNAVAILABLE = "unavailable"      # cannot determine/verify holder (lsof/ps missing)
+NO_HOLDER = "no_holder"  # port already free (race) — nothing to do
+UNAVAILABLE = "unavailable"  # cannot determine/verify holder (lsof/ps missing)
 FOREIGN_HOLDER = "foreign_holder"  # held by a non-KiroCrew process — never touched
-HEALTHY_PEER = "healthy_peer"    # held by a live, responsive gateway — never touched
-RECLAIMED = "reclaimed"          # stale gateway terminated; port should now be free
+HEALTHY_PEER = "healthy_peer"  # held by a live, responsive gateway — never touched
+RECLAIMED = "reclaimed"  # stale gateway terminated; port should now be free
 RECLAIM_FAILED = "reclaim_failed"  # holder identified as stale but could not be killed
 
 
@@ -123,9 +124,7 @@ async def _probe_gateway_healthy(port: int, timeout: float) -> bool:
         # Probe loopback deliberately: whether the gateway bound 127.0.0.1
         # (local-only) or 0.0.0.0 (all interfaces), it is reachable here, and we
         # only ever want to check the *local* instance — never an external NIC.
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection("127.0.0.1", port), timeout
-        )
+        reader, writer = await asyncio.wait_for(asyncio.open_connection("127.0.0.1", port), timeout)
     except (OSError, asyncio.TimeoutError):
         return False
     try:
@@ -274,9 +273,7 @@ async def reclaim_stale_gateway_port(
         try:
             from kiro_crew.cli_server import _is_kirocrew_process
         except Exception:  # pragma: no cover - import shape is stable
-            log.warning(
-                "Cannot load gateway identity check — not reclaiming port %d.", port
-            )
+            log.warning("Cannot load gateway identity check — not reclaiming port %d.", port)
             return UNAVAILABLE
         checker = _is_kirocrew_process
 
@@ -294,9 +291,7 @@ async def reclaim_stale_gateway_port(
             timeout=identity_timeout,
         )
     except FileNotFoundError:
-        log.warning(
-            "Cannot verify holder of port %d (ps unavailable) — not reclaiming.", port
-        )
+        log.warning("Cannot verify holder of port %d (ps unavailable) — not reclaiming.", port)
         return UNAVAILABLE
     except asyncio.TimeoutError:
         log.warning(
@@ -309,19 +304,22 @@ async def reclaim_stale_gateway_port(
 
     if not kiro_pids:
         log.error(
-            "Port %d is held by a non-KiroCrew process (pid %s) — refusing to "
+            "Port %d is held by a non-%s process (pid %s) — refusing to "
             "terminate it. Free the port or choose another with --port.",
             port,
+            PRODUCT_NAME,
             _describe_holders(listeners),
         )
         return FOREIGN_HOLDER
 
     if await probe_healthy(port, probe_timeout):
         log.error(
-            "Port %d is owned by a live, responsive KiroCrew gateway (pid %s) — "
-            "not reclaiming. Stop it with `kirocrew stop` or use a different port.",
+            "Port %d is owned by a live, responsive %s gateway (pid %s) — "
+            "not reclaiming. Stop it with `%s stop` or use a different port.",
             port,
+            PRODUCT_NAME,
             kiro_pids,
+            CLI_BIN,
         )
         return HEALTHY_PEER
 
@@ -336,8 +334,7 @@ async def reclaim_stale_gateway_port(
         )
     except (FileNotFoundError, asyncio.TimeoutError):
         log.warning(
-            "Pre-signal identity re-check for port %d could not complete — "
-            "not reclaiming.",
+            "Pre-signal identity re-check for port %d could not complete — " "not reclaiming.",
             port,
         )
         return UNAVAILABLE

@@ -1,7 +1,7 @@
 # Architecture Overview
 
-The entry point for Kiro Crew's architecture: what the gateway is, how the pieces
-connect, and where to read further. This is a **map**, not a manual. Every
+The entry point for Junction's architecture: what the control plane is, how the
+pieces connect, and where to read further. This is a **map**, not a manual. Every
 subsystem has a module spec under
 [`../system-specs/modules/`](../system-specs/README.md); the
 [Feature and subsystem map](#feature-and-subsystem-map) below indexes all of
@@ -12,31 +12,35 @@ run see [`../guides/install.md`](../guides/install.md).
 
 ---
 
-## What Kiro Crew is, and what it adds
+## What Junction is, and what it adds
 
-Three layers sit beneath Kiro Crew, and the distinction matters:
+Junction is a local control plane with two planes:
 
-1. **kiro-cli** is an agent *runtime*, not an agent. It owns the LLM connection,
-   tool execution (bash, file read/write, grep, glob), MCP server management,
-   session persistence, context compaction, and **ACP** (the Agent Client
-   Protocol): a JSON-RPC 2.0 stdio interface any orchestrator can drive.
-2. **Agent configs** (JSON under `~/.kiro/agents/`, or a project's own
-   `<project>/.kiro/agents/`) tell kiro-cli *how* to
-   behave: system prompt, enabled tools, MCP servers. Every agent runs as
-   `kiro-cli acp --agent <name>`; the `--agent` flag selects the config, the
-   runtime is always kiro-cli. Kiro Crew generates and refreshes its own
-   `kirocrew.json` there (`agent.py`).
-3. **Kiro Crew** is the gateway: a single asyncio process that multiplexes
-   surfaces onto that runtime and adds everything a runtime deliberately has no
-   opinion about.
+1. **Harness plane** — an ACP runtime registry. `agent.acp_backend` defaults
+   to `auto`. Cursor, Claude, Codex, and the rest dock here. `kiro-cli` is
+   optional. `agent.provider` stays `enum=["acp"]`; a harness is never a second
+   provider value.
+2. **Model plane** — an optional sidecar. Role routing (orchestration,
+   planning, execution) spends tokens where they return the most work. If the
+   sidecar is down, the gateway still runs. Never paste provider keys into chat.
 
-Kiro Crew is **KiroACP-only**: `agent.provider` is fixed to `acp`, and kiro-cli is
-a hard requirement.
+`junction up` composes both planes, then serves the dashboard on loopback.
 
-| Capability | kiro-cli alone | With Kiro Crew |
+Three layers sit beneath a session, and the distinction matters:
+
+1. **An ACP runtime** owns the LLM connection, tool execution, MCP servers,
+   and the Agent Client Protocol (JSON-RPC 2.0 over stdio). Which binary that
+   is comes from the harness registry, not a hardcoded vendor CLI.
+2. **Agent configs** tell that runtime how to behave: system prompt, enabled
+   tools, MCP servers.
+3. **Junction** is the gateway: a single asyncio process that multiplexes
+   surfaces onto docked runtimes and adds everything a runtime deliberately
+   has no opinion about — memory, cron, approvals, governance, the dashboard.
+
+| Capability | A single agent CLI | With Junction |
 |---|---|---|
 | Sessions | One per terminal | Many concurrent (channel threads, dashboard slots, cron jobs, subagents, task steps) |
-| Surfaces | Terminal only | CLI, web dashboard, Electron desktop, and seven messaging channels |
+| Surfaces | Terminal only | CLI, web dashboard, Electron desktop, and messaging channels |
 | Persistence | Per-directory transcript | Cross-session memory (preferences, projects, daily history, lessons) |
 | Cross-session awareness | None | Sessions share memory, so one session sees what another learned |
 | Scheduling | None | Cron jobs (`every` / `at` / `cron` expression) with cross-process file locking |
@@ -45,6 +49,7 @@ a hard requirement.
 | Tool gating | Per-agent config | An independent PreToolUse gate plus a two-level governance ceiling the agent cannot weaken |
 | Context management | Manual compaction | Auto-compaction at a configurable threshold, budget-aware context assembly, decaying memory |
 | Process resilience | Manual restart | Warm pool, circuit breaker, crash recovery, idle cleanup, orphan PID tracking |
+| Model spend | One vendor default | Role DAG: economy for orchestration, capable for planning, standard for execution |
 
 ### Why orchestrate agents at all
 
@@ -64,7 +69,7 @@ with other agents. The gateway code is agent-agnostic; coordination behavior
 lives in the agent config.
 
 ```
-KiroCrew Gateway
+Junction Gateway
   ├── CLI chat / channel DM        → agent.default_agent (falls back to kirocrew)
   ├── Dashboard slot               → the slot's chosen agent (falls back to kirocrew)
   ├── Cron job                     → per-job agent_id, or agent_sequence
@@ -77,19 +82,19 @@ KiroCrew Gateway
 ```mermaid
 graph TB
     subgraph "User Surfaces"
-        CLI[CLI<br/><code>kirocrew chat</code>]
+        CLI[CLI<br/><code>junction chat</code>]
         CHAN[Messaging channels<br/>Slack, Discord, Telegram, …]
         Dashboard[Web Dashboard<br/>React SPA]
         Desktop[Desktop App<br/>Electron]
     end
 
-    subgraph "KiroCrew Gateway"
+    subgraph "Junction Gateway"
         GW[Single asyncio process<br/><i>Python / aiohttp</i>]
     end
 
-    subgraph "Agent Backend"
-        KC[kiro-cli<br/>ACP over stdio]
-        LLM[LLM Provider<br/><i>via kiro-cli auth</i>]
+    subgraph "Two planes"
+        KC[Harness plane<br/>ACP registry · auto]
+        LLM[Model plane<br/>sidecar optional]
         MCP[MCP Servers<br/><i>tools</i>]
     end
 
@@ -99,7 +104,7 @@ graph TB
     Desktop --> Dashboard
 
     GW --> KC
-    KC --> LLM
+    GW --> LLM
     KC --> MCP
 ```
 

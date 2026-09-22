@@ -88,7 +88,7 @@ class TestInternalCommandsStayHidden:
     def test_error_lists_the_starting_commands_first(self, monkeypatch, tmp_path, capsys):
         """The offer is ordered like the help, not like the registration order."""
         offered = _offered_commands(monkeypatch, tmp_path, capsys)
-        assert offered[:3] == ["setup", "planes", "gateway"]
+        assert offered[:4] == ["setup", "planes", "up", "doctor"]
 
     def test_choices_view_keeps_membership_complete(self):
         commands = {"gateway": object(), "mcp-core": object()}
@@ -96,17 +96,18 @@ class TestInternalCommandsStayHidden:
         assert "mcp-core" in view and view["mcp-core"] is commands["mcp-core"]
         assert list(view) == ["gateway"]
         # A command registered after the view is installed is still recognised.
+        # Iteration follows Start-here order, so doctor ranks before gateway.
         commands["doctor"] = object()
-        assert "doctor" in view and list(view) == ["gateway", "doctor"]
+        assert "doctor" in view and list(view) == ["doctor", "gateway"]
 
 
 class TestTopLevelHelpLayout:
-    def test_start_here_leads_with_setup_planes_gateway(self, monkeypatch, tmp_path, capsys):
+    def test_start_here_leads_with_setup_planes_up(self, monkeypatch, tmp_path, capsys):
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["--help"])
         lines = out.splitlines()
         start = lines.index("Start here:")
-        listed = [line.split()[0] for line in lines[start + 1 : start + 4]]
-        assert listed == ["setup", "planes", "gateway"]
+        listed = [line.split()[0] for line in lines[start + 1 : start + 5]]
+        assert listed == ["setup", "planes", "up", "doctor"]
         # Nothing may be listed above it: the sections after it are the long tail.
         assert not any(line.endswith(":") and line[0].isupper() for line in lines[:start] if line)
 
@@ -132,7 +133,14 @@ class TestTopLevelHelpLayout:
 
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["--help"])
         assert "junction service install" in out
+        assert "junction up" in out
         assert "foreground" in out
         # The help text spells the port out; keep it honest against the binder.
         assert str(_DEFAULT_PORT) in out
         assert cli_help._DEFAULT_PORT_TEXT == str(_DEFAULT_PORT)
+
+    def test_up_help_shares_the_gateway_flags(self, monkeypatch, tmp_path, capsys):
+        out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["up", "--help"])
+        assert out.startswith("usage: junction up")
+        assert "--port" in out
+        assert "--json-ready" in out

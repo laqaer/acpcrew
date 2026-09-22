@@ -20,8 +20,8 @@ requires-python = ">=3.10"
 dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
-Homepage = "https://junction.computer"
-Repository = "https://github.com/laqaer/acpcrew"
+Homepage = "https://getjunction.dev"
+Repository = "https://github.com/laqaer/junction"
 
 [project.scripts]
 kirocrew = "kiro_crew._bootstrap:main"

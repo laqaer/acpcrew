@@ -22,7 +22,7 @@ Lane map: [`docs/TASK_MAP.md`](docs/TASK_MAP.md).
 ## Two planes
 
 1. **Harness plane** — ACP runtime registry (`src/kiro_crew/acp/runtimes.py`).
-   Default `agent.acp_backend` is `auto`. `kiro-cli` is optional.
+   Default `agent.acp_backend` is `auto`. A vendor agent CLI is optional.
 2. **Model plane** — optional Codex Router sidecar. Junction observes it
    (`src/kiro_crew/model_router/`). Catalog + role DAG live there. It does
    not vendor the Node tree, copy tray/tunnel/agent-bridges, or reimplement
@@ -39,8 +39,8 @@ Site: https://getjunction.dev
 
 ## Implementation identifiers (until a dedicated rename)
 
-`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`, GitHub
-slug `laqaer/acpcrew`. The brand gate still forbids concatenated `KiroCrew`
+`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`.
+GitHub slug is `laqaer/junction`. The brand gate still forbids concatenated `KiroCrew`
 in **new prose**. Junction is allowed. Do not retarget the data home.
 
 ## Security and harness (do not weaken)

@@ -6,7 +6,7 @@ this checkout.
 
 ## Head
 
-- **GitHub slug:** `laqaer/acpcrew` until a human rename.
+- **GitHub slug:** `laqaer/junction`.
 - **Bootstrap base:** `main` at `78424fb73` (see
   [`../../WORKING_BRIEF.md`](../../WORKING_BRIEF.md)).
 - **Multi-ACP:** already on `main`. Default `agent.acp_backend` is

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 from pathlib import Path
 
@@ -69,7 +70,7 @@ def test_doctor_planes_never_fails(capsys: pytest.CaptureFixture[str]) -> None:
     _doctor_planes()
     out = capsys.readouterr().out
     assert "Planes" in out
-    assert "kiro-cli optional" in out
+    assert "vendor CLI optional" in out
     assert "sidecar optional" in out
     assert "orchestration=economy" in out
     assert "never paste provider keys" in out
@@ -98,3 +99,27 @@ async def test_api_planes_always_200() -> None:
     assert payload["gateway"]["status"] == "ok"
     assert "roles" in payload
     assert "kiro_cli" not in payload["harness"]
+
+
+def test_human_planes_format_is_shared() -> None:
+    from kiro_crew.planes import format_human_planes
+
+    snap = snapshot_planes(
+        which=lambda _name: None, home=Path("/tmp"), router_port=9, gateway_port=9
+    )
+    text = format_human_planes(snap, heading="Planes")
+    assert text.startswith("Planes\n")
+    assert "vendor CLI optional" in text
+    assert "sidecar optional" in text
+    assert "orchestration=economy" in text
+    assert "never paste provider keys" in text
+
+
+def test_compose_banner_writes_the_given_stream() -> None:
+    from kiro_crew.planes import print_compose_banner
+
+    buf = io.StringIO()
+    print_compose_banner(stream=buf)
+    text = buf.getvalue()
+    assert "Junction compose" in text
+    assert "vendor CLI optional" in text

@@ -6,7 +6,7 @@ open before touching that subsystem: see
 [Read before you touch](#read-before-you-touch). The frontend has its own router,
 [`website/AGENTS.md`](website/AGENTS.md).
 
-**Product overlay:** this checkout is **Junction** (`laqaer/acpcrew`).
+**Product overlay:** this checkout is **Junction** (`laqaer/junction`).
 Read [`JUNCTION.md`](JUNCTION.md) and
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md) before any product, brand, CLI, or
 model-router change. Product / architecture / roadmap overlays:
@@ -90,8 +90,8 @@ This repo is a public OSS tree. Never re-add:
 - **Keep these stubbed** (public symbols preserved as no-ops so the import graph
   holds): `sso_status.py`, `browser/auth.py`, `dashboard/handlers/sso_login.py`,
   `tunnel/manager.py`, `aim_agents.py`.
-- **Other providers.** Kiro Crew is KiroACP-only: `agent.provider` is fixed to
-  `acp` and kiro-cli is REQUIRED. Keep the dormant `ACP_BACKEND_CLAUDE` /
+- **Other providers.** Junction's `agent.provider` stays `enum=["acp"]`.
+  `kiro-cli` is optional. Keep the dormant `ACP_BACKEND_CLAUDE` /
   `_is_claude` seam in `acp/client.py` so an internal companion can re-register
   Claude Code; do NOT re-add the public registration glue. A harness added at
   `agent.acp_backend` is a different question and is governed by
@@ -99,8 +99,8 @@ This repo is a public OSS tree. Never re-add:
   adapted, never a second `agent.provider` value.
 - **OSS-flipped defaults:** always-on in-process embeddings, Piper TTS by default,
   a default-open Slack enterprise gate, lazy STT extras.
-- **Fork UX divergences:** the Channels app is hidden from the App Store and the
-  Board app is removed. An upstream sync must not restore them.
+- **Removed surfaces:** the Channels app is hidden from the App Store and the
+  Board app is removed. Do not restore them.
 
 `scripts/scrub-lint.sh` gates `src/`, `website/src/`, `scripts/`, `config/`,
 `packaging/`, and the top level; keep `docs/` clean by convention. Rationale for
@@ -118,7 +118,7 @@ destructive-command deny rules, `~/.aws` / `~/.ssh` path blocking, the SEL audit
   including write and extract verbs. This single mechanism is what makes the
   ceiling un-disableable.
 - **Governance.** `effective = POLICY ∩ PROFILE`, tightest-wins, enforced at
-  Kiro Crew's OWN PreToolUse gate: it denies a tool or MCP call even when the kiro
+  Junction's OWN PreToolUse gate: it denies a tool or MCP call even when the kiro
   agent config granted it. The evaluator is scope-name-agnostic, so adding a scope
   is a `SCOPE_CATALOG` data change, never an evaluator edit.
 - **`CONTRACT_VERSION` stays pinned at 1 pre-launch.**
@@ -189,7 +189,7 @@ that harness pays for it.
 - **Capabilities are opt-in membership sets** (`ACP_BACKENDS_SESSION_SHARING`,
   `ACP_BACKENDS_STEER`, `ACP_BACKENDS_INTERNAL_SANDBOX`), and every harness's
   membership is an explicit decision. `is_kiro_cli` is the one that fails OPEN:
-  it makes `sandbox.wrap_argv` SKIP Kiro Crew's own seatbelt in favour of the
+  it makes `sandbox.wrap_argv` SKIP Junction's own seatbelt in favour of the
   harness's internal sandbox, so granting it to a harness without one leaves the
   agent process unconfined.
 - **Kiro is the floor.** `agent.acp_backend` defaults to `ACP_BACKEND_KIRO` and
@@ -425,12 +425,12 @@ Two traps are worth naming here because neither is visible when reading the test
 | Constants | No hardcoded strings or values in business logic; every limit has an owning module. Index: [code-style](docs/system-specs/common/code-style.md) |
 | Comments | Explain **behavior and rationale (the why)**: invariants, edge cases, units, non-obvious constraints. NOT a task log: no PR/CR numbers, review-round markers, incident dates, milestone tags, or commit SHAs. No "previously/used to/we now" narration, state current behavior in present tense. Don't restate what the code plainly does. `_vendor/` and pragmas are exempt. |
 | Icons | **Never use emojis in the UI.** Use `lucide-react` with `className="lucide-inline"`. |
-| Product name | The product is **Kiro Crew**: two words, a space, capital `K`. Identifiers keep the spelling their own system gave them (the `kirodotdev/KiroCrew` repo slug, `KiroCrew.dmg` artifacts, the `KiroCrew Nightly` OS identifier, the `kirocrew` CLI, `KIROCREW_*` env vars, `kiro_crew` imports). CI-gates the lines a change adds; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
+| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`kiro_crew`, `KIROCREW_*`, Electron `productName`, slug `laqaer/junction`). CI-gates concatenated upstream brand tokens on added lines; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
 | User-facing strings | The dashboard is translated into 12 languages. **Never hardcode a user-facing English string, and never format a date, number, or sort order without naming a locale.** Both are CI-gated. Backend-owned strings have no catalog path yet, so a new non-2xx JSON body MUST carry a machine-readable `code` field. |
 
 ## Cross-platform: route POSIX calls through `platform_compat`
 
-Kiro Crew runs on macOS, Linux (x86_64 and ARM), and Windows (native). `fcntl`,
+Junction runs on macOS, Linux (x86_64 and ARM), and Windows (native). `fcntl`,
 `termios`, `resource`, and `pty` do not exist on Windows, and
 **`os.kill(pid, 0)` TERMINATES the target there**: it is not a liveness probe.
 

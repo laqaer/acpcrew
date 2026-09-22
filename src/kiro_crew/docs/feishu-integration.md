@@ -16,7 +16,7 @@ hostname, or open port to manage.
 
 ## Quick start
 
-You'll need a running gateway (`junction gateway`), `lark-oapi` installed, and
+You'll need a running gateway (`junction up`), `lark-oapi` installed, and
 access to <https://open.feishu.cn/app> (or <https://open.larksuite.com/app> for
 Lark).
 

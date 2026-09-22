@@ -18,17 +18,17 @@ ADR [0001](docs/adr/0001-product-identity.md). Envelope and execution id in
 
 ### M1 — bootstrap PR
 
-**Merged** as [#23](https://github.com/laqaer/acpcrew/pull/23). Contributor
+**Merged** as [#23](https://github.com/laqaer/junction/pull/23). Contributor
 docs, `site/` overlay, CLI chrome, model-router health, Vercel hobby preview.
 
 ### M1.5 — model plane catalog + role DAG
 
-**Merged** as [#24](https://github.com/laqaer/acpcrew/pull/24). Namespaced
+**Merged** as [#24](https://github.com/laqaer/junction/pull/24). Namespaced
 catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 
 ### M1.6 — ship program (this cut)
 
-**Open** as [#26](https://github.com/laqaer/acpcrew/pull/26) on
+**Open** as [#26](https://github.com/laqaer/junction/pull/26) on
 `cursor/junction-ship-program-55da`. Do not merge in agent executions.
 
 - Advertised-model lookup actually calls ACP `available_models`.
@@ -45,11 +45,19 @@ Operator installs the published Codex Router sidecar. Junction keeps
 observing it. Optional `openai_base_url` at the sidecar for agents that
 speak that wire. Namespaced catalog slugs become live wire ids. Secrets
 stay in the router's own entry path; Junction does not paste keys into chat.
-Issue [#22](https://github.com/laqaer/acpcrew/issues/22).
+Issue [#22](https://github.com/laqaer/junction/issues/22).
 
 ### M3 — production marketing site
 
-Human-gated spend and DNS. Quoted candidates (not purchased):
+The public host is **https://getjunction.dev**. `www.getjunction.dev`
+redirects there. Branch deploys stay on
+[junction-site.vercel.app](https://junction-site.vercel.app).
+
+`junction.computer` is not the host. It was a quoted name, it was not
+purchased, and it has no public DNS. Do not buy it from an agent, and do
+not point the site at it.
+
+Other names quoted in the same pass, also not purchased:
 
 | Domain | 1-year list | Renewal |
 |---|---|---|
@@ -60,9 +68,7 @@ Human-gated spend and DNS. Quoted candidates (not purchased):
 | `junction.computer` | $33.99 | $32 |
 
 `junction.dev` / `.app` / `.ai` / `.so` / `.run` and `usejunction.com` are
-taken. Preview remains [junction-site.vercel.app](https://junction-site.vercel.app)
-until an operator confirms a quote, pays, and attaches DNS. Agents must not
-buy or change DNS.
+taken. Agents must not buy a domain or change DNS.
 
 ### M4 — human-gated identity leftovers
 
@@ -71,7 +77,7 @@ Each is a dedicated change, not an opportunistic string sweep:
 - Catalog-wide dashboard i18n (`{{productName}}` already binds new copy).
 - Package and data-home rename (`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`,
   Electron `productName`).
-- GitHub slug rename (`laqaer/acpcrew` until a human does it).
+- GitHub slug is `laqaer/junction`. Description and homepage are still unset.
 
 ### M5 — publish
 
@@ -111,17 +117,17 @@ is [ADR 0006](docs/adr/0006-agent-os-no-automerge.md).
 Worth doing, not on the bootstrap PR:
 
 - Confirm a domain from the M3 table and attach it to `junction-site`
-  ([#27](https://github.com/laqaer/acpcrew/issues/27)).
+  ([#27](https://github.com/laqaer/junction/issues/27)).
 - Install the Codex Router sidecar on a real machine and prove M2
-  ([#22](https://github.com/laqaer/acpcrew/issues/22)).
+  ([#22](https://github.com/laqaer/junction/issues/22)).
 - Remaining dashboard catalog literals (`en.json` / locale values) in
-  reviewable chunks ([#28](https://github.com/laqaer/acpcrew/issues/28)).
+  reviewable chunks ([#28](https://github.com/laqaer/junction/issues/28)).
 - Packaged user docs under `src/kiro_crew/docs/` still say the old CLI in
   places; rewrite as a docs PR, not a silent sweep.
 - Create Cursor Automations for scout / implementer / reviewer, and mint
-  the `agent-os/*` labels once ([#29](https://github.com/laqaer/acpcrew/issues/29)).
+  the `agent-os/*` labels once ([#29](https://github.com/laqaer/junction/issues/29)).
 - Adversarial leftovers: orchestration apply site, brand-gate teaching text
-  ([#30](https://github.com/laqaer/acpcrew/issues/30)).
+  ([#30](https://github.com/laqaer/junction/issues/30)).
 - PyPI name reservation for `junction` when publish is real.
 - A short demo recording on the marketing site once M2 is true.
 - Do not present Junction as a public fork. Do not vendor Codex Router.

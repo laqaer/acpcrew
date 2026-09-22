@@ -1,7 +1,7 @@
 # Configuration Reference
 
 Everything Junction remembers about how it should behave lives in one JSON file,
-`~/.kiro/crew/config.json`, created automatically on the first `junction gateway`
+`~/.kiro/crew/config.json`, created automatically on the first `junction up`
 run. Most keys are also editable from the dashboard's Settings pages, and this
 page is the reference for the ones that are not: what they mean, what they
 default to, and which environment variables outrank them.

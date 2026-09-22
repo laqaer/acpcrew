@@ -1,12 +1,12 @@
 [Unit]
-Description=Kiro Crew Gateway
+Description=Junction Gateway
 After=network.target
 StartLimitBurst=5
 StartLimitIntervalSec=300
 
 [Service]
 Type=simple
-ExecStart=KIROCREW_BIN gateway
+ExecStart=KIROCREW_BIN up
 WorkingDirectory=/home/%u
 Restart=on-failure
 RestartSec=10

@@ -298,7 +298,7 @@ def _tui(args: argparse.Namespace) -> None:
 
     if not tui_js:
         print("TUI not built. Run: cd tui && npm install && npm run build")
-        print("  (or use: junction chat  /  junction gateway)")
+        print("  (or use: junction chat  /  junction up)")
         sys.exit(1)
 
     # Check node against the shared floor

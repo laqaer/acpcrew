@@ -2,7 +2,7 @@
 
 Fixes for problems specific to the macOS desktop app (`KiroCrew.app`). For
 install and build steps see [install.md](install.md); for problems that are not
-macOS-specific, start with `kirocrew doctor`.
+macOS-specific, start with `junction doctor`.
 
 ---
 
@@ -49,7 +49,7 @@ another rc-file edit.
 
    Note the scope: the launchd user domain is shared, so every GUI app
    launchd starts for your user afterwards inherits this `PATH` — not just
-   Kiro Crew. You are copying the same value your shells already use, but if
+   Junction. You are copying the same value your shells already use, but if
    you prefer to keep the change minimal, set a `PATH` that starts with the
    system directories and appends only the directories you need.
 
@@ -103,11 +103,11 @@ app once if a command is still missing.
 ### What the app does with the launchd `PATH`
 
 - Directories read from the launchd domain are **appended after** the app's
-  inherited `PATH`. Inside Kiro Crew they can make a name resolve that
+  inherited `PATH`. Inside Junction they can make a name resolve that
   resolved nowhere before, but can never shadow a system binary that already
   resolves. (This guarantee is about the app's own merge — the
   `launchctl setenv` step above is governed by whatever ordering you set.)
 - Only absolute entries are added: a relative entry, or one containing a `..`
   segment, is ignored.
-- A Gateway started from a terminal (`kirocrew gateway`) is unaffected — it
+- A Gateway started from a terminal (`junction up`) is unaffected — it
   inherits the shell's `PATH` directly and needs none of this.

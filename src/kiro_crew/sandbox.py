@@ -42,7 +42,7 @@ from typing import TYPE_CHECKING
 
 from kiro_crew import platform_compat
 from kiro_crew.config.paths import config_dir
-from kiro_crew.constants import KIROCREW_SPAWNED_ENV, KIROCREW_SPAWNED_VALUE
+from kiro_crew.constants import GITHUB_SLUG, KIROCREW_SPAWNED_ENV, KIROCREW_SPAWNED_VALUE
 from kiro_crew.platform import current_context
 
 try:
@@ -3740,7 +3740,7 @@ def wrap_argv(
                     f"(probe: {probe_reason}). "
                     "This is a container policy restriction, not a host kernel "
                     "limitation. To resolve, choose one of:\n"
-                    "  (a) Use the Kiro Crew custom seccomp profile (adds "
+                    "  (a) Use the Junction custom seccomp profile (adds "
                     "unconditional unshare/clone/mount allows to the Docker "
                     "default — less permissive than seccomp=unconfined):\n"
                     "        # With a repo checkout:\n"
@@ -3748,7 +3748,7 @@ def wrap_argv(
                     "seccomp=docker/seccomp/kirocrew-seccomp.json ...\n"
                     "        # Without a checkout (image-only):\n"
                     "        curl -fsSL https://raw.githubusercontent.com/"
-                    "kirodotdev/KiroCrew/main/docker/seccomp/kirocrew-seccomp.json"
+                    f"{GITHUB_SLUG}/main/docker/seccomp/kirocrew-seccomp.json"
                     " -o kirocrew-seccomp.json\n"
                     "        docker run --security-opt seccomp=kirocrew-seccomp.json ...\n"
                     "  (b) Restart with explicit unsandboxed consent "

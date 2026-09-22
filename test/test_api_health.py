@@ -24,15 +24,16 @@ def _probe_req(remote: str = "127.0.0.1", headers=None) -> web.Request:
 async def test_health_returns_ok_with_identity() -> None:
     """The payload carries identity fields (app, version) for the desktop
     shell's cross-app instance guard: nightly and production apps share
-    ~/.kirocrew and the gateway port, so the shell must be able to tell
-    WHICH KiroCrew-family gateway owns the port."""
+    the data home and the gateway port, so the shell must be able to tell
+    WHICH Junction-family gateway owns the port."""
     from kiro_crew import __version__
 
     resp = await core_mod.api_health(_probe_req())
     assert resp.status == 200
     body = json.loads(resp.body)
     assert body["ok"] is True
-    assert body["app"] == "kirocrew"
+    assert body["app"] == "junction"
+    assert body["product"] == "Junction"
     assert body["version"] == __version__
 
 
@@ -68,7 +69,8 @@ async def test_direct_local_health_with_served_host_keeps_identity() -> None:
     req.app = {"allowed_origins": {"http://localhost:5476"}}
     resp = await core_mod.api_health(req)
     body = json.loads(resp.body)
-    assert body["app"] == "kirocrew"
+    assert body["app"] == "junction"
+    assert body["product"] == "Junction"
     assert body["version"] == __version__
 
 
@@ -88,7 +90,8 @@ async def test_live_alias_returns_ok() -> None:
     assert resp.status == 200
     body = json.loads(resp.body)
     assert body["ok"] is True
-    assert body["app"] == "kirocrew"
+    assert body["app"] == "junction"
+    assert body["product"] == "Junction"
     assert body["version"] == __version__
 
 

@@ -3,17 +3,17 @@
 Junction is a local control plane: dock ACP coding agents and route their
 models. It reaches tools over the Model Context Protocol (MCP). Everything
 below is the reference for the features you can reach from the dashboard,
-the CLI, or a connected messaging channel. `kiro-cli` is optional.
+the CLI, or a connected messaging channel. A vendor agent CLI is optional.
 
 ## Quick Start
 
 Install from source (see [Getting Started](getting-started.md)), then:
 
 ```bash
-junction gateway     # dashboard on loopback
+junction up          # compose both planes, then bind the dashboard on loopback
 ```
 
-`kiro-cli` is optional. Dock Cursor, Claude, Codex, or another ACP runtime.
+A vendor agent CLI is optional. Dock Cursor, Claude, Codex, or another ACP runtime.
 See [Getting Started](getting-started.md) for the source install, first-time
 setup, and connecting messaging channels.
 
@@ -48,7 +48,7 @@ Site: https://getjunction.dev
 | [Queued-Message Editing](dashboard.md) | Edit, reorder, or cancel a chat message waiting in the queue before it runs |
 | [Cooperative Stop](dashboard.md) | Stop sends a cancel first and only hard-kills after a budget, so session state survives |
 | [Streaming Speech-to-Text](configuration.md) | Live transcription partials in the dashboard input, with local Whisper or optional AWS Transcribe |
-| [Warm Pool](configuration.md) | Keep kiro-cli processes pre-spawned so a new session starts instantly |
+| [Warm Pool](configuration.md) | Keep an optional vendor agent CLI pre-spawned so a new session starts instantly |
 
 ## Chat Channels
 
@@ -76,7 +76,7 @@ in [Messaging Transport](messaging-transport.md).
 
 ## Security
 
-- OS-level sandbox for the agent process, layered on top of kiro-cli's own
+- OS-level sandbox for the agent process, layered on the harness sandbox when that runtime has one
 - Credential redaction across every LLM output path
 - HMAC-SHA256 signed, IP-pinned dashboard tokens
 - Denied-command rules enforced at Junction's own PreToolUse gate, with audit
@@ -88,6 +88,6 @@ in [Messaging Transport](messaging-transport.md).
 
 ## Links
 
-- [Repository](https://github.com/laqaer/acpcrew): source, issues, and
+- [Repository](https://github.com/laqaer/junction): source, issues, and
   feature requests. `CONTRIBUTING.md` in the repository root has the
   contribution guidelines.

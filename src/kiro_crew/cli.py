@@ -3,7 +3,8 @@
 Commands:
     junction chat -m "message"    Send a single message
     junction chat                 Interactive chat mode
-    junction gateway              Start Junction (dashboard + messaging channels)
+    junction up                   Compose both planes and start Junction
+    junction gateway              Same server as ``up``; kept for scripts
     junction gateway --seed NAME  Populate $KIROCREW_HOME from fixture NAME, then start the gateway
     junction status               Show runtime stats
     junction run TASK.md          Run an autonomous task from a spec file
@@ -93,6 +94,10 @@ _PROJECT_MARKERS = ("skills", "src/kiro_crew")
 # isolation by other means.  The public edition's JailProvider has no backend, so
 # this set only matters once a companion supplies a real one.
 _JAILED_COMMANDS = frozenset({"chat", "run", "consolidate", "eval"})
+
+# Foreground serve path. ``up`` is the operator verb; ``gateway`` is the same
+# server kept for scripts. Isolation still composes by other means (H7).
+_SERVE_COMMANDS = frozenset({"gateway", "up"})
 
 # Env marker the gate sets BEFORE a successful re-exec into the jail.  The jailed
 # CHILD re-runs ``main`` (and so the gate) for the same command; without this
@@ -835,7 +840,7 @@ def _setup_cli_logging(command: str | None, verbose: int) -> None:
     # swallows it, but it spams "--- Logging error ---" tracebacks and drops the
     # line). ensure_utf8_console() only fixes the console streams, not this file
     # handler.
-    if command == "gateway":
+    if command in _SERVE_COMMANDS:
         prev_log = log_file.with_suffix(".log.prev")
         if log_file.exists() and log_file.stat().st_size > 0:
             try:
@@ -874,7 +879,7 @@ def _setup_cli_logging(command: str | None, verbose: int) -> None:
     # secret values to redact, but none are passed here: wiring resolved vault
     # secret values into the filter is a follow-up PR. Bearer token redaction is
     # active immediately with zero vault I/O.
-    _LONG_LIVED_COMMANDS = {"serve", "gateway", "chat", None}
+    _LONG_LIVED_COMMANDS = {"serve", "gateway", "up", "chat", None}
     if command in _LONG_LIVED_COMMANDS:
         install_log_redaction([])
 
@@ -1047,91 +1052,97 @@ Examples:
         help="Compose both planes and the role DAG; skip the full probe",
     )
 
-    # gateway
+    # gateway / up — same server, two verbs. ``up`` is the operator start path
+    # (compose then serve). ``gateway`` stays for scripts.
+    def _add_gateway_flags(parser: argparse.ArgumentParser) -> None:
+        parser.add_argument(
+            "--slack-only",
+            action="store_true",
+            help="Slack-only mode — skip dashboard web server and SSH tunnel instructions",
+        )
+        parser.add_argument(
+            "--no-crons",
+            action="store_true",
+            help="Skip cron scheduler — use when another instance handles cron execution",
+        )
+        parser.add_argument(
+            "--seed",
+            metavar="FIXTURE",
+            help=(
+                "Seed $KIROCREW_HOME from the named fixture BEFORE starting the "
+                "gateway (dev tool). Fixture must exist under "
+                "src/kiro_crew/tests_fixtures/. The gateway then runs normally "
+                "against the populated $KIROCREW_HOME. Refuses when "
+                "$KIROCREW_HOME is the main gateway home (~/.kiro/crew) or "
+                "when the target is non-empty (use --seed-replace to wipe + re-seed)."
+            ),
+        )
+        parser.add_argument(
+            "--seed-replace",
+            action="store_true",
+            help=(
+                "When used with --seed, wipe $KIROCREW_HOME (rmtree) before "
+                "copying the fixture. Ignored without --seed. Does NOT "
+                "override the main-gateway-home rail — ~/.kiro/crew is refused "
+                "regardless."
+            ),
+        )
+        parser.add_argument(
+            "--no-open",
+            action="store_true",
+            help="Do not auto-open the dashboard URL in the default browser on startup",
+        )
+        parser.add_argument(
+            "--port",
+            metavar="PORT",
+            help=(
+                "Override the dashboard port. Pass an integer (e.g. --port 9999) "
+                "for a fixed port, or --port auto to bind to an ephemeral port "
+                "(OS-assigned). When omitted, falls back to the value in config "
+                "(dashboard.url)."
+            ),
+        )
+        parser.add_argument(
+            "--json-ready",
+            action="store_true",
+            help=(
+                "Print a single line `KIROCREW_READY:{...}` to stdout once the "
+                "dashboard is bound. Payload includes port, token, pid, and "
+                "KIROCREW_HOME. Used by test harnesses to discover the bound "
+                "ephemeral port and authenticate without polling. NOTE: the "
+                "token grants gateway access for up to 20 hours — treat the "
+                "READY line as sensitive and do not commit captured stdout to "
+                "shared logs."
+            ),
+        )
+        parser.add_argument(
+            "--approval",
+            choices=["reads", "yolo", "interactive"],
+            help=(
+                "Default approval mode for tool invocations. 'reads' auto-approves "
+                "read-only tools (read/list/get/search/* prefixes); 'yolo' "
+                "auto-approves all tools (refused unless KIROCREW_HOME is "
+                "explicitly set to a non-default location); 'interactive' uses "
+                "the standard Slack/dashboard prompt flow. When omitted, current "
+                "interactive behavior is preserved."
+            ),
+        )
+        parser.add_argument(
+            "--test-mode",
+            action="store_true",
+            help=(
+                "Convenience alias for --port auto --no-open --json-ready "
+                "--approval reads. An explicit --port or --approval value "
+                "overrides the bundle's default (e.g. --test-mode --approval "
+                "yolo uses yolo). The boolean flags --no-open and --json-ready "
+                "are forced on by --test-mode and cannot be opted out of."
+            ),
+        )
+
     gw_parser = cli_help.add_command(sub, "gateway")
-    gw_parser.add_argument(
-        "--slack-only",
-        action="store_true",
-        help="Slack-only mode — skip dashboard web server and SSH tunnel instructions",
-    )
-    gw_parser.add_argument(
-        "--no-crons",
-        action="store_true",
-        help="Skip cron scheduler — use when another instance handles cron execution",
-    )
-    gw_parser.add_argument(
-        "--seed",
-        metavar="FIXTURE",
-        help=(
-            "Seed $KIROCREW_HOME from the named fixture BEFORE starting the "
-            "gateway (dev tool). Fixture must exist under "
-            "src/kiro_crew/tests_fixtures/. The gateway then runs normally "
-            "against the populated $KIROCREW_HOME. Refuses when "
-            "$KIROCREW_HOME is the main gateway home (~/.kiro/crew) or "
-            "when the target is non-empty (use --seed-replace to wipe + re-seed)."
-        ),
-    )
-    gw_parser.add_argument(
-        "--seed-replace",
-        action="store_true",
-        help=(
-            "When used with --seed, wipe $KIROCREW_HOME (rmtree) before "
-            "copying the fixture. Ignored without --seed. Does NOT "
-            "override the main-gateway-home rail — ~/.kiro/crew is refused "
-            "regardless."
-        ),
-    )
-    gw_parser.add_argument(
-        "--no-open",
-        action="store_true",
-        help="Do not auto-open the dashboard URL in the default browser on startup",
-    )
-    gw_parser.add_argument(
-        "--port",
-        metavar="PORT",
-        help=(
-            "Override the dashboard port. Pass an integer (e.g. --port 9999) "
-            "for a fixed port, or --port auto to bind to an ephemeral port "
-            "(OS-assigned). When omitted, falls back to the value in config "
-            "(dashboard.url)."
-        ),
-    )
-    gw_parser.add_argument(
-        "--json-ready",
-        action="store_true",
-        help=(
-            "Print a single line `KIROCREW_READY:{...}` to stdout once the "
-            "dashboard is bound. Payload includes port, token, pid, and "
-            "KIROCREW_HOME. Used by test harnesses to discover the bound "
-            "ephemeral port and authenticate without polling. NOTE: the "
-            "token grants gateway access for up to 20 hours — treat the "
-            "READY line as sensitive and do not commit captured stdout to "
-            "shared logs."
-        ),
-    )
-    gw_parser.add_argument(
-        "--approval",
-        choices=["reads", "yolo", "interactive"],
-        help=(
-            "Default approval mode for tool invocations. 'reads' auto-approves "
-            "read-only tools (read/list/get/search/* prefixes); 'yolo' "
-            "auto-approves all tools (refused unless KIROCREW_HOME is "
-            "explicitly set to a non-default location); 'interactive' uses "
-            "the standard Slack/dashboard prompt flow. When omitted, current "
-            "interactive behavior is preserved."
-        ),
-    )
-    gw_parser.add_argument(
-        "--test-mode",
-        action="store_true",
-        help=(
-            "Convenience alias for --port auto --no-open --json-ready "
-            "--approval reads. An explicit --port or --approval value "
-            "overrides the bundle's default (e.g. --test-mode --approval "
-            "yolo uses yolo). The boolean flags --no-open and --json-ready "
-            "are forced on by --test-mode and cannot be opted out of."
-        ),
-    )
+    _add_gateway_flags(gw_parser)
+    up_parser = cli_help.add_command(sub, "up")
+    _add_gateway_flags(up_parser)
 
     # setup
     setup_parser = cli_help.add_command(sub, "setup")
@@ -2330,7 +2341,7 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
     # whenever there is no usable target, so a bad pointer can never leave the
     # host with no gateway. Gateway only: a plain CLI invocation must keep running
     # the install the user typed, not a worktree someone made live.
-    if args.command == "gateway":
+    if args.command in _SERVE_COMMANDS:
         maybe_reexec(sys.argv[1:])
 
     # ``gateway --seed <fixture>`` populates $KIROCREW_HOME from a hand-authored
@@ -2349,7 +2360,7 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
     # would silently start the gateway without seeding — exactly the silent
     # wrong-state startup the rest of this block is set up to avoid.
     # ``_resolve_fixture("")`` has an explicit rail for this case.
-    if args.command == "gateway" and getattr(args, "seed", None) is not None:
+    if args.command in _SERVE_COMMANDS and getattr(args, "seed", None) is not None:
         _rc = seed_cmd(args)
         if _rc != 0:
             sys.exit(_rc)
@@ -2430,7 +2441,7 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
 
     if args.command == "chat":
         _run_chat(args.message, args.model, agent=getattr(args, "agent", None))
-    elif args.command == "gateway":
+    elif args.command in _SERVE_COMMANDS:
         # Seam-supplied pre-launch checks (CPP IdentityProvider seam). Runs
         # HERE in the gateway dispatch — not in boot_platform (which runs for
         # every subcommand incl. the mcp-core/mcp-cron stdio servers, where an
@@ -2449,6 +2460,10 @@ The dashboard port is set with the KIROCREW_PORT env var, not a config key.
         # The asyncio loop handler is installed later inside run().
         _install_crash_guard()
         gw_kwargs = _resolve_gateway_args(args)
+        if not gw_kwargs.get("json_ready"):
+            from kiro_crew.planes import print_compose_banner
+
+            print_compose_banner()
         # Deferred imports (issue #3504): ``dashboard.state`` pulls
         # vector_memory → numpy (~56 MB) and ``cli_server`` pulls
         # slack.gateway (~549 ms) — only the gateway command needs either,
