@@ -1,10 +1,10 @@
-"""Loopback health probe for the optional model-router sidecar.
+"""Loopback health probe for the model catalog.
 
-The sidecar is [Codex Router](https://github.com/duolahypercho/codex-router).
-Its own ``bin/status`` asks ``http://127.0.0.1:${PORTS.router}/health`` with
-``PORTS.router`` defaulting to 4202. We match that URL and honour the same
-port environment variables, but we never leave loopback and we never forward
-an arbitrary health JSON blob — credentials have shown up in adjacent
+``junction up`` binds the catalog on ``127.0.0.1`` (default 4202). This
+probe also asks the translation port (default 4200), which Junction does
+not start. Port environment variables match the catalog this snapshot
+came from. The probe never leaves loopback and never forwards an
+arbitrary health JSON blob — credentials have shown up in adjacent
 documents, and a status line is not a dump.
 """
 
@@ -57,7 +57,7 @@ class EndpointStatus:
 
 @dataclass(frozen=True, slots=True)
 class RouterStatus:
-    """Sidecar reachability. ``reachable`` is the router plane, not LiteLLM."""
+    """Catalog reachability. ``reachable`` is the catalog plane, not the translation port."""
 
     reachable: bool
     degraded: bool

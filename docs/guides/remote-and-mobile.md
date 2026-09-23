@@ -74,8 +74,8 @@ sign you into a vendor account.
 The credentials Junction itself reads from `~/.junction/.env` are chat-platform
 and owner-identity credentials (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
 `JUNCTION_OWNER_ID`, and the equivalents for Discord / Telegram / Teams / WeCom
-/ Webex). Model credentials stay with the harness or the optional model-plane
-sidecar. Never paste provider keys into chat.
+/ Webex). Model credentials stay with the harness. The catalog listener
+does not store provider keys. Never paste provider keys into chat.
 
 ### Install Junction
 

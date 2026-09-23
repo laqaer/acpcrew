@@ -2041,7 +2041,7 @@ def _venv_deps_ok(venv_py: Path) -> bool:
 
 
 def _doctor_planes() -> None:
-    """Harness + model compose. Never a doctor failure (sidecar optional)."""
+    """Harness + model compose. A missing catalog is never a doctor failure."""
     try:
         from junction.planes import format_human_planes, snapshot_planes
 

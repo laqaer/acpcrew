@@ -46,7 +46,7 @@ in the **same commit** when you change what it documents.
 | the security model as a whole, threat boundaries | [security-deep-dive](docs/architecture/security-deep-dive.md) |
 | `computer_use/` | [computer-use](docs/system-specs/modules/computer-use.md) |
 | `acp/`, kiro-cli transport, providers | [acp-client](docs/system-specs/modules/acp-client.md) + [providers](docs/system-specs/modules/providers.md) |
-| `model_router/`, Codex Router sidecar observe/compose | [model-router](docs/system-specs/modules/model-router.md) |
+| `model_router/`, built-in catalog (no provider forwarding) | [model-router](docs/system-specs/modules/model-router.md) |
 | Junction overlay, product identity, two-plane thesis | [`JUNCTION.md`](JUNCTION.md) + [`WORKING_BRIEF.md`](WORKING_BRIEF.md) + [`PRODUCT.md`](PRODUCT.md) |
 | adding or adapting an agent harness (BYO, KAS, claude seam) | [harness-parity](docs/system-specs/modules/harness-parity.md) (invariants) + [harness-parity-gate](docs/ci/harness-parity-gate.md) (CI) |
 | sessions, slots, session keys, PIDs | [session](docs/system-specs/modules/session.md) + [history](docs/system-specs/modules/history.md) |

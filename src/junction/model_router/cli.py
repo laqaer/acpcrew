@@ -1,4 +1,4 @@
-"""``junction router`` — sidecar status, catalog, and role plan."""
+"""``junction router`` — catalog status, model list, and role plan."""
 
 from __future__ import annotations
 
@@ -33,11 +33,11 @@ def _print_status(status: RouterStatus) -> None:
     plane = status.plane_status
     note = ""
     if plane != "healthy":
-        note = " (ACP gateway still works)"
-    print(f"model-router sidecar: {plane}{note}")
+        note = " (gateway still works)"
+    print(f"model plane: {plane}{note}")
     print(f"  router:  {status.router.url}  {status.router.code}")
     print(f"  gateway: {status.gateway.url}  {status.gateway.code}")
-    print("never paste provider keys into chat; the sidecar injects them.")
+    print("never paste provider keys into chat.")
     print(json.dumps(status.to_dict(), separators=(",", ":")))
 
 
@@ -55,7 +55,7 @@ def _print_catalog(*, provider: str, cost_class: str) -> None:
     payload["model_count"] = len(models)
     print(
         f"model-router catalog: {payload['provider_count']} providers, "
-        f"{len(models)} models (sidecar holds credentials)"
+        f"{len(models)} models (no credentials in this snapshot)"
     )
     print(json.dumps(payload, separators=(",", ":")))
 
@@ -76,5 +76,5 @@ def _print_plan(advertised_raw: str) -> None:
             f"  {row.role}: class={row.cost_class} wire={row.wire_id} "
             f"suggest={row.suggestion or '-'} ({row.reason})"
         )
-    print("never paste provider keys into chat; the sidecar injects them.")
+    print("never paste provider keys into chat.")
     print(json.dumps(plan.to_dict(), separators=(",", ":")))

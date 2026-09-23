@@ -1,4 +1,4 @@
-"""Model-router sidecar probe: loopback only, no live providers, no secrets."""
+"""Model catalog probe: loopback only, no live providers, no secrets."""
 
 from __future__ import annotations
 
@@ -104,6 +104,9 @@ def test_cli_status_prints_json_without_secrets(
     run_router_command(args)
     out = capsys.readouterr().out
     assert "sk-live-secret" not in out
+    assert "injects them" not in out
+    assert "never paste provider keys into chat." in out
+    assert out.splitlines()[0].startswith("model plane:")
     last = out.strip().splitlines()[-1]
     payload = json.loads(last)
     assert payload["reachable"] is True
@@ -242,9 +245,13 @@ def test_cli_catalog_and_plan_print_json_without_secrets(
     payload = json.loads(last)
     assert payload["model_count"] >= 198
     assert "sk-" not in catalog_out
+    assert "holds credentials" not in catalog_out
+    assert "no credentials in this snapshot" in catalog_out
 
     run_router_command(argparse.Namespace(router_action="plan", advertised="haiku-4.5,opus"))
     plan_out = capsys.readouterr().out
+    assert "injects them" not in plan_out
+    assert "never paste provider keys into chat." in plan_out
     plan_payload = json.loads(plan_out.strip().splitlines()[-1])
     assert plan_payload["code"] == "ok"
     roles = {row["role"]: row for row in plan_payload["roles"]}

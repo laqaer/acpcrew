@@ -1,4 +1,4 @@
-"""Dashboard JSON for the optional model-router sidecar."""
+"""Dashboard JSON for the loopback model catalog."""
 
 from __future__ import annotations
 

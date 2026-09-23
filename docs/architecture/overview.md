@@ -20,9 +20,10 @@ Junction is a local control plane with two planes:
    to `auto`. Cursor, Claude, Codex, and the rest dock here. `kiro-cli` is
    optional. `agent.provider` stays `enum=["acp"]`; a harness is never a second
    provider value.
-2. **Model plane** — an optional sidecar. Role routing (orchestration,
-   planning, execution) spends tokens where they return the most work. If the
-   sidecar is down, the gateway still runs. Never paste provider keys into chat.
+2. **Model plane** — a loopback catalog `junction up` starts. Role routing
+   (orchestration, planning, execution) spends tokens where they return the
+   most work. The catalog does not forward provider traffic. If the listener
+   is down, the gateway still runs. Never paste provider keys into chat.
 
 `junction up` composes both planes, then serves the dashboard on loopback.
 
@@ -94,7 +95,7 @@ graph TB
 
     subgraph "Two planes"
         KC[Harness plane<br/>ACP registry · auto]
-        LLM[Model plane<br/>sidecar optional]
+        LLM[Model plane<br/>built-in catalog]
         MCP[MCP Servers<br/><i>tools</i>]
     end
 

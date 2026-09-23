@@ -16,7 +16,7 @@ Commands:
     junction setup                Interactive setup wizard
     junction doctor               Verify setup (--quick is compose-only)
     junction planes               Harness + model + role DAG snapshot
-    junction router status        Probe optional model-router sidecar
+    junction router status        Probe the loopback model catalog
 """
 
 from __future__ import annotations
@@ -1949,7 +1949,7 @@ Examples:
     router_sub = router_parser.add_subparsers(dest="router_action", required=True)
     router_status = router_sub.add_parser(
         "status",
-        help="Probe the optional Codex Router sidecar on loopback",
+        help="Probe the loopback model catalog",
     )
     router_status.add_argument(
         "--port",

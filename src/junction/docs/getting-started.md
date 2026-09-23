@@ -50,10 +50,14 @@ build` does both steps plus a `.venv`.
 
 The dashboard is `http://localhost:5476`.
 
-Optional model plane: run a Codex Router sidecar on loopback, then
-`junction planes` for both rails, `junction router catalog` for namespaced
-model choices, and `junction router plan` for the orchestration → planning →
-execution DAG. Never paste provider keys into chat.
+`junction up` starts a loopback model catalog. It serves health and the
+catalog only. `junction planes` shows both rails, `junction router catalog`
+lists namespaced model choices, and `junction router plan` shows the
+orchestration → planning → execution DAG. The docked agent uses models it
+already serves. A completion posted to the catalog answers 501. Never paste
+provider keys into chat. If the catalog listener is down, the gateway still
+runs. The passing first-run transcript is in the install guide under
+"What a successful test looks like".
 
 ### Agent backend (vendor CLI optional)
 

@@ -157,8 +157,9 @@ on the **agent** side. Junction does not mint that URL in chat.
   harness inventory, model-plane health, and the role DAG), `junction doctor --quick`
   (compose-only), `junction doctor` (Planes section first, then the full probe),
   `junction router status`, `junction router catalog`,
-  `junction router plan`. Human text is one formatter shared by planes, doctor,
-  and the `up` start banner.
+  `junction router plan`. Human text for planes, doctor, and the `up` banner
+  is one formatter. `junction router` human lines name the model plane and
+  never claim a sidecar injects provider keys.
 - HTTP: `GET /api/planes` (harness inventory + model-plane health + role DAG),
   `GET /api/model-router/status`, `GET /api/model-router/catalog`,
   `GET /api/model-router/plan`. An unreachable plane is degraded, not a 5xx.
