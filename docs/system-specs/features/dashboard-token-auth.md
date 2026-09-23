@@ -2,7 +2,7 @@
 
 ## Overview
 
-Token authentication for the Kiro Crew dashboard. The owner mints a time-limited, HMAC-SHA256 signed URL from the CLI (`junction token`) or via the `!dashboard` Slack command (currently the only chat channel that mints links). An aiohttp middleware validates the token on every request (query param or cookie fallback), sets a session cookie on first use, and pins the token to the client's IP. Static assets bypass checks. Loopback access (127.0.0.1) is always trusted regardless of mode — this ensures local processes (mcp-core, doctor, SSH tunnels) work without tokens. All generation and validation events are logged to SEL.
+Token authentication for the Junction dashboard. The owner mints a time-limited, HMAC-SHA256 signed URL from the CLI (`junction token`) or via the `!dashboard` Slack command (currently the only chat channel that mints links). An aiohttp middleware validates the token on every request (query param or cookie fallback), sets a session cookie on first use, and pins the token to the client's IP. Static assets bypass checks. Loopback access (127.0.0.1) is always trusted regardless of mode — this ensures local processes (mcp-core, doctor, SSH tunnels) work without tokens. All generation and validation events are logged to SEL.
 
 Up to `MAX_CONCURRENT_NONCES` (50) link nonces can be valid concurrently (FIFO eviction via `OrderedDict` when the limit is exceeded), allowing multiple browser tabs and CLI sessions without invalidating each other. All in-memory link-session state is managed by a thread-safe `TokenStateManager`. Auth is **not** purely in-memory: the HMAC signing key is the **persistent** `token_signing.key` (mode `0600`) and revoked access-cookie nonces persist to `token_revoked_nonces.json` (mode `0600`), so signed cookies and per-session logouts both survive a gateway restart. Users can revoke a single session — access cookie **and** its refresh chain — via `POST /api/auth/logout`, or **all** sessions via `junction logout`: the persisted revocation generation (`revocation_gen.py`) is embedded in both access and refresh tokens, and validation of either kind rejects a stale generation, so `junction logout` ends established browser sessions and their refresh chains alike.
 
@@ -16,7 +16,7 @@ therefore rotate its refresh cookie even while the main dashboard tree is not
 yet mounted, rather than being trapped behind the setup screen.
 
 The first-run Kiro CLI routes (`GET /api/kiro-prerequisite` and
-`POST /api/kiro-prerequisite/repair-specs` — Kiro Crew neither installs the CLI
+`POST /api/kiro-prerequisite/repair-specs` — Junction neither installs the CLI
 nor signs in, so there is no install or login route) are deliberately **not**
 token-bypass or internal-secret routes. They inherit normal dashboard-user authentication,
 Host validation, POST CSRF protection, app-token deny-by-default scoping, and

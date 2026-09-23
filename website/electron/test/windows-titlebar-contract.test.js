@@ -33,7 +33,7 @@ function windowsTemplate() {
   const record = () => () => {};
   return buildMenuTemplate({
     isMac: false,
-    appName: "Kiro Crew",
+    appName: "Junction",
     openSettings: record(), openAbout: record(), reload: record(),
     forceReload: record(), toggleDevTools: record(), zoomActualSize: record(),
     zoomIn: record(), zoomOut: record(), alwaysOnTop: false,

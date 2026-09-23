@@ -29,7 +29,7 @@ def register(app: web.Application) -> None:
     app.router.add_get("/api/agents/detail/{name}", handlers.api_agent_detail)
     app.router.add_patch("/api/agents/detail/{name}", handlers.api_agent_detail)
     app.router.add_delete("/api/agents/detail/{name}", handlers.api_agent_detail)
-    # Kiro Crew Agent CRUD
+    # Junction Agent CRUD
     app.router.add_get("/api/agents", handlers.api_junction_agents)
     app.router.add_get("/api/agents/resolved-model", handlers.api_junction_agent_resolved_model)
     app.router.add_post("/api/agents", handlers.api_junction_agents_create)

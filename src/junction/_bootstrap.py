@@ -115,7 +115,7 @@ def main() -> None:
             print(
                 f"junction: cannot start - {exc}.\n"
                 "Your installed dependencies are older than your checkout. "
-                "Fix with: pip install -e <path to your Kiro Crew checkout>",
+                "Fix with: pip install -e <path to your Junction checkout>",
                 file=sys.stderr,
             )
             raise SystemExit(1) from exc

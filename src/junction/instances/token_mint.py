@@ -235,18 +235,17 @@ def _run_marker_clause(subcommand: str, port: int) -> str:
     module constants, so the path literals cannot inject shell syntax.
 
     Why the multi-home probe: the writer keys the marker off the gateway
-    process's ``config_dir()``, which now defaults to ``~/.kiro/crew`` after the
-    ``~/.kirocrew`` -> ``~/.kiro/crew`` data-home move. This prelude runs in the
-    *remote* non-interactive SSH shell, which usually does NOT export
-    ``JUNCTION_HOME`` — so a single ``${JUNCTION_HOME:-$HOME/.kirocrew}`` default
-    (the pre-move literal) would read the wrong, now-empty legacy path on every
-    migrated remote, miss the marker, and fall through to the blind candidate
-    search (which lands on whatever ``~/.local/bin/junction`` points at, e.g. an
-    uninstalled worktree). Probing both the new default and the legacy home — and
-    still honoring an explicit ``JUNCTION_HOME`` above both — restores the marker
-    hit on migrated remotes while remaining a no-op on un-migrated ones. Falls
-    through to the candidate search when no marker names an executable, so
-    nothing regresses.
+    process's ``config_dir()``. A new install uses ``~/.junction``. When that
+    directory is absent, ``~/.kiro/crew`` then ``~/.kirocrew`` are kept. This
+    prelude runs in the *remote* non-interactive SSH shell, which usually does
+    NOT export ``JUNCTION_HOME``, so a single hard-coded home would miss the
+    marker whenever the remote is still on an older directory and fall through
+    to the blind candidate search (which lands on whatever
+    ``~/.local/bin/junction`` points at, e.g. an uninstalled worktree). Probing
+    the current home, the previous home, and the older top-level home — and
+    still honoring an explicit ``JUNCTION_HOME`` first — hits the marker on
+    each of those. Falls through to the candidate search when no marker names
+    an executable.
     """
     fname = f"run/gateway-{int(port)}.bin"
     # ``${JUNCTION_HOME:+...}`` expands to the value only when JUNCTION_HOME is

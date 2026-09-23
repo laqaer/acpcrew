@@ -10,7 +10,7 @@ want a routine backup, schedule the command yourself.
 ## Quick Start
 
 ```bash
-junction snapshot                                     # write to ~/.kiro/crew/snapshots
+junction snapshot                                     # write to ~/.junction/snapshots
 junction snapshot ~/my-snapshots --keep 3             # custom dir, prune to 3
 junction snapshot --list                              # list existing snapshots
 junction restore snapshot.tar.gz                      # auto-detects replace vs merge
@@ -48,7 +48,7 @@ snapshot cannot be used to forge audit entries elsewhere.
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `OUTPUT_DIR` | `~/.kiro/crew/snapshots` (or `snapshot_dir` in config) | Where to write the tarball |
+| `OUTPUT_DIR` | `~/.junction/snapshots` (or `snapshot_dir` in config) | Where to write the tarball |
 | `--keep N` | 7 | Prune the output dir to the N most recent snapshots |
 | `--list` | | List existing snapshots and exit |
 
@@ -70,7 +70,7 @@ API still produces a consistent point-in-time copy that includes committed data.
 | `replace` | No existing `memory.db` | Overwrite the target with the snapshot, backing up any existing state first |
 | `merge` | An existing `memory.db` is found | Import new data without overwriting what is already there |
 
-The mode is auto-detected from whether `~/.kiro/crew/memory.db` exists, so a
+The mode is auto-detected from whether `~/.junction/memory.db` exists, so a
 restore onto a fresh machine replaces and a restore onto a machine you are
 already using merges. Override with `--mode replace` or `--mode merge`.
 

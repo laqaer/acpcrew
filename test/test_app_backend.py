@@ -1469,6 +1469,6 @@ def test_devfleet_repo_env_wins_repo_discovery(monkeypatch, tmp_path):
     assert dfmod._default_main_repo() == "/opt/checkouts/junction"
 
     # Without the override the chain falls through to PROJECT_DIR, which is
-    # adopted only because it carries the Kiro Crew checkout markers.
+    # adopted only because it carries the Junction checkout markers.
     monkeypatch.delenv("JUNCTION_DEVFLEET_REPO")
     assert dfmod._default_main_repo() == str(proj)

@@ -1,4 +1,4 @@
-"""Mint a remote Kiro Crew dashboard token over AWS SSM (SSM transport).
+"""Mint a remote Junction dashboard token over AWS SSM (SSM transport).
 
 The SSM-transport sibling of :mod:`junction.instances.token_mint`. Where the
 SSH transport runs ``junction token`` over ``ssh <host> <command>``, the SSM

@@ -47,7 +47,7 @@ function app(manifest: Partial<InstalledApp['manifest']> = {}): InstalledApp {
       name: 'dev-fleet',
       version: '1.0.0',
       displayName: 'Dev Fleet',
-      description: 'A control panel for working on Kiro Crew itself.',
+      description: 'A control panel for working on Junction itself.',
       author: 'junction',
       ui: { pages: [{ route: '/dev-fleet', label: 'Dev Fleet', icon: 'Server' }] },
       ...manifest,

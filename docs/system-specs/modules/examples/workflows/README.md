@@ -16,7 +16,7 @@ per-file caveats below before copying one.
 |--------|-----------------------|
 | `01_review_changes.py` | `ctx.pipeline` with two stages (review then verify) plus a nested `ctx.parallel` fan-out, and structured output via `schema=` |
 | `02_loop_until_dry_bug_hunt.py` | loop-until-dry (keep fanning out finders until N consecutive clean rounds) combined with an early stop on `ctx.budget.remaining()` |
-| `03_scheduled_triage_native.py` | the ports native to Kiro Crew: `ctx.memory` for cross-run state, `ctx.cron.ensure` to self-reschedule, a per-call `nudge=` dict, and `ctx.send_slack` delivery |
+| `03_scheduled_triage_native.py` | the ports native to Junction: `ctx.memory` for cross-run state, `ctx.cron.ensure` to self-reschedule, a per-call `nudge=` dict, and `ctx.send_slack` delivery |
 
 Caveats worth knowing before you copy one:
 

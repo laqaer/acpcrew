@@ -4517,8 +4517,8 @@ class TestAppAgentDispatch(unittest.TestCase):
         return tmp / "repo"
 
     def test_project_agent_dispatches_itself(self):
-        # A project-local agent is resolvable by kiro-cli (Kiro Crew spawns it with
-        # the project dir as cwd) but is not a Kiro Crew alias, so without the
+        # A project-local agent is resolvable by kiro-cli (Junction spawns it with
+        # the project dir as cwd) but is not a Junction alias, so without the
         # project scope it fell through to default_agent and the DEFAULT agent
         # answered a session the user bound to the repo's own agent.
         import junction.config.loader as loader
@@ -4548,7 +4548,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         assert r.requested_resolved is False
 
     def test_alias_still_wins_over_a_project_agent(self):
-        # An explicit Kiro Crew alias is authored config; it must not be displaced by
+        # An explicit Junction alias is authored config; it must not be displaced by
         # a file that happens to share its name.
         import junction.config.loader as loader
 

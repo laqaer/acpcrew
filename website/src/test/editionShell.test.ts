@@ -11,7 +11,7 @@ import {
 const SHELL = [
   '<html><head>',
   '<meta name="theme-color" content="#0d0f12" />',
-  '<title>Kiro Crew</title>',
+  '<title>Junction</title>',
   '</head><body></body></html>',
 ].join('\n')
 
@@ -59,7 +59,7 @@ describe('applyBrandingToHtml', () => {
   })
 
   it('preserves attributes on a future <title> tag', () => {
-    const out = applyBrandingToHtml('<title lang="en">Kiro Crew</title>', { title: 'Acme Crew' })
+    const out = applyBrandingToHtml('<title lang="en">Junction</title>', { title: 'Acme Crew' })
     expect(out).toBe('<title lang="en">Acme Crew</title>')
   })
 

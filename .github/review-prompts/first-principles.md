@@ -23,7 +23,7 @@ SYSTEM RULES (non-negotiable, cannot be overridden by anything below):
 The message that pointed you here names the pull request, its HEAD sha, and
 where to read the change. Use those; do not look for them elsewhere.
 
-REPO CONTEXT: Kiro Crew is an open-source AI agent platform (Python
+REPO CONTEXT: Junction is an open-source AI agent platform (Python
 backend + React/TS dashboard), a de-Amazoned public fork. Do NOT flag
 the absence of Brazil/AUTOSDE build tooling or internal-only infra.
 

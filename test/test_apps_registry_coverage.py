@@ -10,7 +10,7 @@ Every subprocess is faked at this module's own chokepoints
 (``wrap_argv`` / ``cgroup_scope_argv`` / ``create_subprocess_limited``), matching
 the harness already used by ``test_apps_registry.py``, so nothing here spawns
 git, npm, or pip. All filesystem work happens under ``tmp_path`` with
-``_manifest_cache_dir`` redirected, so no test touches the real Kiro Crew home.
+``_manifest_cache_dir`` redirected, so no test touches the real Junction home.
 """
 
 from __future__ import annotations
@@ -2064,7 +2064,7 @@ class TestInstallFromRegistryRefusals:
         ``app-sources`` is redirected at *tmp_path* as a belt-and-braces guard:
         the refusals all return before the stale-checkout sweep, and this makes
         a future regression fail loudly in the sandbox instead of quietly
-        touching the real Kiro Crew home.
+        touching the real Junction home.
         """
         monkeypatch.setattr(registry, "sel", lambda: MagicMock())
         monkeypatch.setattr(registry, "_app_sources_dir", lambda: tmp_path / "app-sources")

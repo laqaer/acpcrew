@@ -111,7 +111,7 @@ inertness); see :func:`junction.agent._apply_connection_tool_aliases`.
    declaration says "MY tools collide", which is only true of the real provider.
    Eligibility requires the entry's ``url`` to match the registry's pinned
    ``mcp_url``. (The ``x-junction`` provenance marker cannot serve here: by
-   design it appears only in files Kiro Crew does not own, and is stripped on the
+   design it appears only in files Junction does not own, and is stripped on the
    way into both the store and the rendered spec -- see
    :mod:`junction.mcp_provenance`.)
 

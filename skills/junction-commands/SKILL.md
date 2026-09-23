@@ -150,7 +150,7 @@ Settings button is a convenience, not the only one. In order of likelihood:
    ```
 
    Two caveats worth stating to the user rather than burying: `~/.local/bin` has
-   to be **on `PATH`** or Kiro Crew still reports "not installed" (detection is
+   to be **on `PATH`** or Junction still reports "not installed" (detection is
    `PATH` + the Node bin dirs, nothing else); and `NPM_CONFIG_USERCONFIG=/dev/null`
    deliberately ignores their employer's registry configuration, which is their
    call to make, not ours to assume.

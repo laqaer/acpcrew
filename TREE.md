@@ -26,7 +26,7 @@ is last in that list and optional. Set a concrete id to pin.
 }
 ```
 
-CLI: `junction`. State still lives under `~/.kiro/crew` until a later,
+CLI: `junction`. State still lives under `~/.junction` until a later,
 human-gated rename. Package import path stays `junction` /
 `JUNCTION_HOME` as implementation identifiers, not as the product name.
 

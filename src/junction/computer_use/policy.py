@@ -93,7 +93,7 @@ _DENIED_BUNDLE_PREFIXES: tuple[DeniedApp, ...] = (
         # is Chrome's or Safari's and the two lists above cannot fire. The window
         # title is the only signal that survives that hosting, so it carries the
         # same rule. Substrings, not exact strings: the tab title takes a badge
-        # prefix ("(3) Kiro Crew") and popouts a "<label> — Kiro Crew" suffix.
+        # prefix ("(3) Junction") and popouts a "<label> — Junction" suffix.
         title_substrings=("kiro crew", "junction"),  # brand-ok: match the previous window title
     ),
 )
@@ -122,8 +122,8 @@ def denied_rule_for(app: AppRef) -> DeniedApp | None:
       toggle the keystone exists to keep out of its reach.
 
     Deliberately a SUBSTRING test on the title rather than an exact match: the tab
-    title carries a badge prefix (``(3) Kiro Crew``) and a page suffix
-    (``… — Kiro Crew``), and popout frames prepend their own label.
+    title carries a badge prefix (``(3) Junction``) and a page suffix
+    (``… — Junction``), and popout frames prepend their own label.
 
     The known false-positive cost, stated rather than discovered: any window whose
     title merely CONTAINS "kiro crew" is refused — a code editor with this repo open,  # brand-ok

@@ -84,7 +84,7 @@ _WS_HEARTBEAT_SECS = 60.0
 # WeComClient, which carry the same guard for the same reason.
 _MIN_HEALTHY_CONN_SECS = 5.0
 
-# Every message body Kiro Crew sends is LLM- or tool-derived text, so no send
+# Every message body Junction sends is LLM- or tool-derived text, so no send
 # may be allowed to notify anyone. ``parse: []`` is Discord's own suppression:
 # it leaves ``@everyone``, ``@here``, role and user mentions rendering as text
 # while stripping their notification, and it holds for a mention the renderer's

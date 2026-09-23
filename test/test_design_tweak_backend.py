@@ -1071,7 +1071,7 @@ class TestProxyFailureNeverFramesTheBareDevServer:
 class TestProjectSecretsAreNeverServed:
     """A previewed project's OWN credential files must not be readable.
 
-    `is_sensitive_path` is HOME-relative — it covers `~/.aws` and Kiro Crew's data
+    `is_sensitive_path` is HOME-relative — it covers `~/.aws` and Junction's data
     home, not `<project>/.env`. The static preview is same-origin with the
     project's scripts, so `fetch('/.env')` from the page would read it back, and
     unlike a real dev server this server would happily serve any contained byte.
@@ -1212,7 +1212,7 @@ class TestDraftCommentCap:
 
 
 class TestJunctionInternalTreesAreNeverServed:
-    """Registering `~` must not expose Kiro Crew's OWN secrets.
+    """Registering `~` must not expose Junction's OWN secrets.
 
     This is the hole the earlier denylist left open. `is_sensitive_path()` gates
     only the enumerated LEAVES under the crew home, so `is_sensitive_path(

@@ -2398,7 +2398,7 @@ def _enrich_with_install_status(
 #: Index-declared author spellings that name US, folded by ``_fold_author``.
 #
 # The product name is two words, so the bundled catalog and the official
-# published catalog both state ``Kiro Crew``; the historical bundled spelling
+# published catalog both state ``Junction``; the historical bundled spelling
 # was the single token ``junction``. Both are us, so both mint the mark.
 FIRST_PARTY_AUTHORS: frozenset[str] = frozenset(
     {"junction", "kiro crew"}  # brand-ok: folded values, lower-cased by contract
@@ -5636,7 +5636,7 @@ async def _unpoison_rejected_checkout(
     with write access to the checkout BEFORE some callers reach this cleanup,
     and can plant a symlink at the manifest path — the subdirectory OR the
     leaf — after an earlier containment check already passed; this restore
-    then runs unsandboxed as the Kiro Crew process, so it must not trust that
+    then runs unsandboxed as the Junction process, so it must not trust that
     earlier check. Containment of the FULL manifest path is re-verified HERE,
     at the point of the write, against the CURRENT on-disk state: on a
     failure the manifest restore (both the raw-write and the git-checkout
@@ -6576,7 +6576,7 @@ async def install_from_registry(
                     "ok": False,
                     "name": name,
                     "error": f"{name} is already installed on this machine. "
-                    f"Launch it to register with Kiro Crew automatically.",
+                    f"Launch it to register with Junction automatically.",
                 }
         except (asyncio.TimeoutError, OSError):
             pass

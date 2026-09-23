@@ -386,7 +386,7 @@ message:
 
 `register_hook` takes `hook_id` and `context_summary` and returns the session key
 (`hook:<hook_id>`) and the webhook URL to hand to the external system.
-Registrations live in `~/.kiro/crew/hooks.json`, written under an exclusive lock
+Registrations live in `~/.junction/hooks.json`, written under an exclusive lock
 with an atomic replace, and are keyed by hook id — registering the same id again
 overwrites the previous summary. A registration is not consumed by a call; it
 keeps being injected until it is overwritten or ages out.

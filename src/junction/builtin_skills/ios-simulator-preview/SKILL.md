@@ -33,7 +33,7 @@ preview marker (see the `web-preview` skill).
 ## Resolve the launcher path once
 
 ```bash
-SKILL_DIR="${JUNCTION_HOME:-$HOME/.kiro/crew}/skills/ios-simulator-preview"
+SKILL_DIR="${JUNCTION_HOME:-$HOME/.junction}/skills/ios-simulator-preview"
 ```
 
 Call the script by path; do not `cd` into the skill folder.

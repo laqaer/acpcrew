@@ -71,8 +71,8 @@ function executableSelector(tokens) {
 }
 
 /**
- * Match only a Kiro Crew executable, or a Python process whose first execution
- * selector invokes the `junction` module or a Kiro Crew script. Later process
+ * Match only a Junction executable, or a Python process whose first execution
+ * selector invokes the `junction` module or a Junction script. Later process
  * arguments never establish ownership, so SSH aliases and unrelated script
  * arguments cannot authorize a kill. Absolute Windows executables must also
  * match the exact path selected by the launch resolver.

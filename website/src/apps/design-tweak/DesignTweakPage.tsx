@@ -6,7 +6,7 @@
 // className/style/`d` value from the shared i18n lint's attribute exemptions).
 //
 // Design source: Figma "Michelle Playground" frame 232:2123 (see design/).
-// Two-panel layout inside Kiro Crew's content area: resizable left rail + preview.
+// Two-panel layout inside Junction's content area: resizable left rail + preview.
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type React from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -1558,7 +1558,7 @@ export default function DesignTweak() {
             {/* dropdown panel — drops DOWNWARD from the trigger's bottom edge.
 
                 Geometry lives in inline styles on purpose: this app has no build
-                step and borrows the host's compiled Tailwind, so any class Kiro Crew
+                step and borrows the host's compiled Tailwind, so any class Junction
                 does not itself use was purged. `left-5`, `right-5` and `top-[52px]`
                 are all absent from the host bundle, which left top/left/right at
                 `auto` — the panel then sat at its static position, vertically

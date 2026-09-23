@@ -5,7 +5,19 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_SOURCE="$SCRIPT_DIR/../website/public/apps/demo-app"
-APP_DEST="${JUNCTION_HOME:-$HOME/.kiro/crew}/apps/demo-app"
+# Same choice as junction.config.paths._select_default_home.
+if [ -n "${JUNCTION_HOME:-}" ]; then
+    _home="$JUNCTION_HOME"
+elif [ -d "$HOME/.junction" ]; then
+    _home="$HOME/.junction"
+elif [ -d "$HOME/.kiro/crew" ]; then
+    _home="$HOME/.kiro/crew"
+elif [ -d "$HOME/.kirocrew" ]; then
+    _home="$HOME/.kirocrew"
+else
+    _home="$HOME/.junction"
+fi
+APP_DEST="$_home/apps/demo-app"
 
 if [ -d "$APP_DEST" ]; then
     echo "Demo app already installed at $APP_DEST"

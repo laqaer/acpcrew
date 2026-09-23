@@ -720,7 +720,7 @@ def _iter_skill_files(
     return sorted(results, key=lambda x: x[0])
 
 
-# Skills RELOCATED into the junction-dev/ folder (the Kiro Crew development
+# Skills RELOCATED into the junction-dev/ folder (the Junction development
 # suite). Without this, an upgraded install keeps BOTH the old flat copy
 # and the new nested copy — two divergent copies of the same skill matched
 # nondeterministically by trigger overlap. The flat copy is NOT deleted (it
@@ -1039,7 +1039,7 @@ def _claim_dir_for_replacement(dest_dir: Path) -> Path | None:
     """Atomically move *dest_dir* to a dot-prefixed sibling before verifying.
 
     Verify-then-delete has a race: another process (an editor, a second
-    Kiro Crew instance syncing the same home) can swap the directory between
+    Junction instance syncing the same home) can swap the directory between
     the fingerprint check and the rmtree, destroying a tree the check never
     saw. Renaming first makes the claim atomic — whatever tree the caller
     verifies is exactly the tree it then deletes, restores, or quarantines.
@@ -1890,7 +1890,7 @@ class SkillsLoader:
         ``deliveries`` is ``None`` when the skill has no ledger entry, which is
         different from zero: an entry can also age out of the 30-day window.
 
-        ``owned`` says whether Kiro Crew may rewrite the file. A skill reached
+        ``owned`` says whether Junction may rewrite the file. A skill reached
         through ``skills.extra_paths`` is listed but not ours to edit, so the UI
         must not offer a toggle the endpoint will refuse.
 
@@ -1986,7 +1986,7 @@ class SkillsLoader:
         return None
 
     def _owned_hint(self, skill_file: Path) -> bool:
-        """Whether *skill_file* sits under the directory Kiro Crew owns.
+        """Whether *skill_file* sits under the directory Junction owns.
 
         Syscall-free on purpose: this runs once per skill inside ``list_skills``,
         which the event loop calls while assembling the skill index, and
@@ -2547,7 +2547,7 @@ class SkillsLoader:
         A skill carrying ``repo_scope: <relpath>`` is only eligible for
         injection when *project_dir* (or an ancestor of it) contains *relpath*
         — e.g. ``repo_scope: src/junction`` restricts a skill to sessions
-        whose active project IS the Kiro Crew source tree. This is the
+        whose active project IS the Junction source tree. This is the
         loader-enforced counterpart to a prose "ignore this skill elsewhere"
         scope guard: prose depends on probabilistic LLM obedience, while this
         check runs before the skill ever reaches the context (destructive
@@ -2658,7 +2658,7 @@ class SkillsLoader:
 
         Refuses any skill whose file resolves outside this loader's own skills
         dir. ``_resolve_path`` also reaches ``skills.extra_paths`` and the
-        kiro-cli user/workspace skill dirs — directories Kiro Crew does not own
+        kiro-cli user/workspace skill dirs — directories Junction does not own
         and may not even be able to write. Rewriting a foreign ``SKILL.md``
         because a dashboard toggle was flipped is a side effect nobody asked
         for, so ownership is checked before the write, not left to the UI (which

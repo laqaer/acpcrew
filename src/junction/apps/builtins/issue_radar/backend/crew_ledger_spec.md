@@ -248,7 +248,7 @@ Then:
    later needs no tie-break to work out which.
 
 ```
-Claim taken over by **<Successor>** · Kiro Crew Issue Radar
+Claim taken over by **<Successor>** · Junction Issue Radar
 <Original>'s claim was last updated <ISO8601 Z> and the issue has had no
 activity since — past this installation's claim TTL.
 ```
@@ -297,7 +297,7 @@ long-TTL crew's live work.
 |---|---|
 | `claim_ttl_hours` | 48 |
 | `needs_human_label` | `crew: needs human` |
-| `commit_trailer` | `Crew: {name} (Kiro Crew Issue Radar)` |
+| `commit_trailer` | `Crew: {name} (Junction Issue Radar)` |
 
 Editable from the app's settings.
 

@@ -27,7 +27,7 @@ directory:
 <Junction data home>/apps/papyrus/data/projects/<project>/
 ```
 
-The Junction data home is `~/.kiro/crew` unless `JUNCTION_HOME` is set. Each
+The Junction data home is `~/.junction` unless `JUNCTION_HOME` is set. Each
 project has a main `.tex` file (usually `main.tex`), typically a
 `references.bib`, and often a `sections/` or `figures/` subfolder.
 

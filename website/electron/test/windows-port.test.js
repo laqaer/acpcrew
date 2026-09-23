@@ -58,10 +58,10 @@ test("windowsGatewayExecutablePaths resolves the executables a launcher can spaw
 });
 
 test("windowsGatewayExecutablePaths resolves a PATH-launched executable", () => {
-  const expected = "D:\\Kiro Crew\\Scripts\\junction.exe";
+  const expected = "D:\\Junction\\Scripts\\junction.exe";
   const probed = [];
   const resolved = windowsGatewayExecutablePaths("junction.exe", {
-    pathEnv: 'C:\\Other;"D:\\Kiro Crew\\Scripts"',
+    pathEnv: 'C:\\Other;"D:\\Junction\\Scripts"',
     accessSync: (candidate) => {
       probed.push(candidate);
       if (candidate !== expected) throw new Error("ENOENT");
@@ -69,8 +69,8 @@ test("windowsGatewayExecutablePaths resolves a PATH-launched executable", () => 
   });
   assert.deepStrictEqual(resolved, [
     expected,
-    "D:\\Kiro Crew\\Scripts\\python.exe",
-    "D:\\Kiro Crew\\python.exe",
+    "D:\\Junction\\Scripts\\python.exe",
+    "D:\\Junction\\python.exe",
   ]);
   assert.deepStrictEqual(probed, [
     "C:\\Other\\junction.exe",

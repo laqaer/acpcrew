@@ -429,7 +429,7 @@ class TestRetargetClearsRepoScopedConfig:
     """Found by executing docs/system-specs/modules/auto-improvement-test-plan.md against a SECOND repository.
 
     ``setup-clone`` rewrote ``clone``/``target_url``/``target_display`` but left
-    ``branch`` untouched, so after retargeting from Kiro Crew to chess_test the config
+    ``branch`` untouched, so after retargeting from Junction to chess_test the config
     still named ``origin/feat/auto-improvement-app`` — a branch that does not exist in
     the new clone. The picker then showed a value with no matching option, and a run
     would try to check out a missing ref.
@@ -494,7 +494,7 @@ class TestReproTestDirIsRepoAware:
 
     def test_both_dirs_picks_the_DOMINANT_suite(self, tmp_path: Path) -> None:
         """A repo can have both; writing into the minor one puts the repro test outside
-        the suite the gate actually runs (Kiro Crew: 776 under test/ vs 9 under tests/)."""
+        the suite the gate actually runs (Junction: 776 under test/ vs 9 under tests/)."""
         (tmp_path / "test").mkdir()
         (tmp_path / "tests").mkdir()
         for i in range(5):
@@ -1455,7 +1455,7 @@ class TestAgentTestsCannotWriteJunctionConfig:
     """`mode="strict"` hides credential READS; it does not make the filesystem read-only.
 
     Measured on this host before the fix: a strict-mode child ran
-    `open('~/.kiro/crew/config.json','a')` and exited 0 — it MODIFIED Kiro Crew's own
+    `open('~/.kiro/crew/config.json','a')` and exited 0 — it MODIFIED Junction's own
     write-protected config. Those paths are `security.write_protected_home_paths()`, enforced
     by the platform HOOK layer, which a sandboxed subprocess never passes through, so the
     protection was inert for exactly the code that most needs it: the target repository's
@@ -1497,7 +1497,7 @@ class TestAgentTestsCannotWriteJunctionConfig:
         src = inspect.getsource(P._run)
         assert (
             "extra_hidden_dirs=_write_protected_targets()" in src
-        ), "the sandbox spawn does not mask Kiro Crew's write-protected paths"
+        ), "the sandbox spawn does not mask Junction's write-protected paths"
 
     def test_a_broken_helper_still_runs_the_suite(self, monkeypatch) -> None:
         """Fail-soft: masking is defense-in-depth. Refusing to run any test would be worse."""
@@ -1542,7 +1542,7 @@ class TestFallbackAgentCannotSeeCredentials:
         assert seen["mode"] == "strict", "the unattended agent must not see credential dirs"
         # The worktree must stay VISIBLE or there is nothing for the agent to edit.
         assert str(tmp_path.resolve()) in seen["kw"]["extra_visible_dirs"]
-        # And the agent's tooling must not inherit Kiro Crew's interpreter paths.
+        # And the agent's tooling must not inherit Junction's interpreter paths.
         assert seen["kw"]["strip_python_env"] is True
 
 
@@ -1763,7 +1763,7 @@ class TestTheLoopRunnerRefusesWithoutCredentialConfinement:
 
     The SUBPROCESS path spawns through `sandboxed_spawn_argv(mode="strict")` +
     `strip_credential_env`, which hides `~/.aws`, `~/.gnupg`, `gh`/`gcloud`/`kube` config and
-    scrubs the token env. The PROVIDER path (`SessionAgentRunner`) drives a Kiro Crew session
+    scrubs the token env. The PROVIDER path (`SessionAgentRunner`) drives a Junction session
     instead, so isolation is whatever the gateway's `sandbox` setting provides — and that field
     DEFAULTS TO "auto" (engages OS-level isolation and defers to kiro-cli's internal agent sandbox
     on macOS when enabled). On a gateway with mode='off' set, a repository instruction reaching

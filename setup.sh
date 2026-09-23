@@ -80,11 +80,23 @@ if [ -x "$_junction_dir/ensure-node.sh" ]; then
     # consume that marker the way the Makefile and junction.env.node_bin_dirs()
     # already do. Without this the checks below miss the node just installed and
     # the frontend build plus the agent-backend install are skipped.
-    _nbd="$(cat "${JUNCTION_HOME:-$HOME/.kiro/crew}/node-bin-dir" 2>/dev/null || true)"
+    # Same choice as junction.config.paths._select_default_home.
+    if [ -n "${JUNCTION_HOME:-}" ]; then
+        _home="$JUNCTION_HOME"
+    elif [ -d "$HOME/.junction" ]; then
+        _home="$HOME/.junction"
+    elif [ -d "$HOME/.kiro/crew" ]; then
+        _home="$HOME/.kiro/crew"
+    elif [ -d "$HOME/.kirocrew" ]; then
+        _home="$HOME/.kirocrew"
+    else
+        _home="$HOME/.junction"
+    fi
+    _nbd="$(cat "$_home/node-bin-dir" 2>/dev/null || true)"
     if [ -n "$_nbd" ] && [ -x "$_nbd/node" ]; then
         export PATH="$_nbd:$PATH"
     fi
-    unset _nbd
+    unset _nbd _home
     if _check node; then
         echo "  ✅ node ($(which node))"
     else

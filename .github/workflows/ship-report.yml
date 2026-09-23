@@ -325,7 +325,7 @@ jobs:
 
           cat > issue-instructions.txt <<'PROMPT'
           You write the inbound half of a twice-daily engineering update for the
-          Kiro Crew repository. You are given the bugs and the feature requests filed in
+          Junction repository. You are given the bugs and the feature requests filed in
           one reporting window. Answer with a single JSON object and nothing else.
 
           Schema: {"must_fix": [{"number": number, "why": string}], "bugs": string, "features": string}

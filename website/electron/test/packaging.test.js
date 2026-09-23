@@ -779,7 +779,7 @@ describe("uninstall data preservation contract", () => {
     }
   });
 
-  it("keeps the uninstaller away from the Kiro Crew data home", () => {
+  it("keeps the uninstaller away from the Junction data home", () => {
     // The one thing this macro must never touch: sessions, memory, the DB and
     // config. It is user data and survives an uninstall by design.
     const nsh = fs.readFileSync(path.join(ROOT, "build", "installer.nsh"), "utf8");

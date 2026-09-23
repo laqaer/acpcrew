@@ -271,7 +271,7 @@ def _incomplete_bundle_reason(tree: Path) -> str:
 def _staging_lock(static_parent: Path) -> Iterator[None]:
     """Hold the cross-process staging lock for ``static/dist``.
 
-    Serializes every build or stage of the frontend initiated by Kiro Crew: Dev
+    Serializes every build or stage of the frontend initiated by Junction: Dev
     Fleet's Pull+Build and the dashboard update flow can run at once, and BOTH
     the ``npm run build`` (which empties ``website/dist``) and the copy/swap must
     be inside one holder. Covering only the copy still lets a peer's build rewrite

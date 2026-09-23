@@ -141,7 +141,7 @@ function Harness() {
         history={[]}
         historyHasMore={false}
         defaultAgent="junction"
-        installedAgents={[{ name: 'junction', description: 'Kiro Crew' }]}
+        installedAgents={[{ name: 'junction', description: 'Junction' }]}
       />
     </div>
   )

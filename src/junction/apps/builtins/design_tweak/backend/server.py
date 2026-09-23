@@ -1,10 +1,10 @@
-"""Select-to-Edit backend for Kiro Crew.
+"""Select-to-Edit backend for Junction.
 
 A small stdlib-only HTTP server that receives `visual_edit_request` payloads
 from the dashboard app page and persists them to a queue directory that the
 `visual-edit` skill instructs the agent to read.
 
-Bound to localhost; Kiro Crew proxies `/apps/design-tweak/api/*` to
+Bound to localhost; Junction proxies `/apps/design-tweak/api/*` to
 this process (stripping the prefix, so the server sees `/api/<path>` or `/<path>`).
 
 Every proxied request carries the gateway's `X-Junction-Proxy` HMAC, verified
@@ -165,7 +165,7 @@ _JUNCTION_INTERNAL_DIRS: tuple[str, ...] = tuple(
 
 
 def _is_junction_internal(target: Path) -> bool:
-    """Whether *target* resolves inside one of Kiro Crew's own directory trees.
+    """Whether *target* resolves inside one of Junction's own directory trees.
 
     Separator-aware so a sibling like `~/.kiro-backup` is not caught by a bare
     prefix test, matching `_contained`'s reasoning.
@@ -2166,7 +2166,7 @@ def _resolve_bin(name: str) -> Path | None:
 # servers do) would try to bind a socket we already hold and die on EADDRINUSE.
 #
 # `SSH_AUTH_SOCK` / `GIT_SSH_COMMAND` / `GIT_SSH` are stripped because the dev
-# script is untrusted project code, not Kiro Crew's own: an inherited SSH agent
+# script is untrusted project code, not Junction's own: an inherited SSH agent
 # socket or SSH override command lets it authenticate to a remote (`git push`,
 # a bare `ssh`) AS the operator, with no confinement of its own — the same
 # credential class `sandbox._SENSITIVE_ENV_PREFIXES` strips for the sandboxed
@@ -2529,7 +2529,7 @@ _PROJECT_SECRET_NAMES: frozenset[str] = frozenset(
         ".pypirc",
         ".git-credentials",
         ".htpasswd",
-        # Kiro Crew's per-app proxy-auth HMAC credential. Also covered by
+        # Junction's per-app proxy-auth HMAC credential. Also covered by
         # `_is_junction_internal` at its real home; listed here as well so a copy
         # that ends up inside a project tree is refused too.
         ".app_secret",
@@ -2681,7 +2681,7 @@ def _static_response(
     if is_sensitive_path(str(target)):
         return 403, "text/plain", b"forbidden"
     # `is_sensitive_path` is HOME-relative: it covers `~/.aws`, `~/.npmrc` and
-    # Kiro Crew's own data home, but NOT a credential file sitting inside the
+    # Junction's own data home, but NOT a credential file sitting inside the
     # previewed project itself. A web project's `.env` is exactly that, and it is
     # the common case rather than a contrived one -- `create-vite` writes one, and
     # it routinely holds a real API key.
@@ -2693,7 +2693,7 @@ def _static_response(
     # relative path too.
     if _is_project_secret(root, target):
         return 403, "text/plain", b"forbidden"
-    # Kiro Crew's own trees are refused outright, whatever the project root is.
+    # Junction's own trees are refused outright, whatever the project root is.
     # This is the barrier that actually holds: the checks above are a HOME-relative
     # leaf list and a project-relative name list, and neither knows about
     # `<crew home>/apps/<app>/.app_secret` or `<crew home>/history/*.jsonl`.

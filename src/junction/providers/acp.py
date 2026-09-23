@@ -162,7 +162,7 @@ def _write_tool_search_overlay(
     unconditional deferral.
 
     The flag is written deterministically for BOTH true and false so the
-    Kiro Crew toggle stays authoritative regardless of any value in the user's
+    Junction toggle stays authoritative regardless of any value in the user's
     global kiro settings, and the thresholds are written EXPLICITLY rather than
     omitted — an earlier build forced them to 0, and leaving that behind would
     silently keep deferral unconditional on an already-configured machine.
@@ -331,7 +331,7 @@ class AcpProvider(LLMProvider):
         # consumers (dashboard chat) BEFORE startup; re-applied when
         # _start_kiro_runtime_impl swaps in the real AcpSessionProvider.
         self._child_fidelity_aware: bool = False
-        # Canonical Kiro Crew identity (a cfg.agents key), resolved by the
+        # Canonical Junction identity (a cfg.agents key), resolved by the
         # factory at provider-creation time — ``agent`` above is the bound kiro
         # template, a different namespace. Threaded into the kiro-shared
         # runtime so per-agent watchdog windows key off the crew, never off a

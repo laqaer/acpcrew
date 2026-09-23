@@ -561,7 +561,7 @@ def launch(
     # SSH key / inbound port / ~/.ssh/config.
     connect_mod.register_instance(
         instance_id,
-        name=f"Kiro Crew Cloud ({result.tag})",
+        name=f"Junction Cloud ({result.tag})",
         profile=profile,
         region=region,
     )

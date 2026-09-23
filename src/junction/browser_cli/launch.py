@@ -1,11 +1,11 @@
-"""The launch config that makes `playwright-cli` open the browser Kiro Crew provisions.
+"""The launch config that makes `playwright-cli` open the browser Junction provisions.
 
-Kiro Crew installs, gates on, and offers downloads for **Chromium**:
+Junction installs, gates on, and offers downloads for **Chromium**:
 ``install-browser`` fetches the Chromium build, ``browser_ok`` is
 ``browsers_present()["chromium"]``, and ``attach --extension`` supports that
 family alone. The CLI's own default is a different browser -- the branded Chrome
 *channel*, an OS-level install at a path like ``/opt/google/chrome/chrome`` that
-Kiro Crew never provisions and cannot install without root. So on a host that has
+Junction never provisions and cannot install without root. So on a host that has
 done everything the product asked, the first browse fails with
 
     Chromium distribution 'chrome' is not found at /opt/google/chrome/chrome
@@ -25,7 +25,7 @@ file works for a whole session.
   session, the same constraint that makes
   :func:`junction.browser_cli.snapshots.cli_env_overrides` use an env var.
 - ``PLAYWRIGHT_MCP_CONFIG`` names a config FILE and applies to every invocation
-  uniformly. That is the one channel that reaches a command line Kiro Crew never
+  uniformly. That is the one channel that reaches a command line Junction never
   constructs, which is the whole shape of this capability: the agent runs the CLI
   as a shell command.
 
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 #: fixed by the CLI, not by us.
 CONFIG_ENV = "PLAYWRIGHT_MCP_CONFIG"
 
-#: The engine Kiro Crew provisions and gates on. Kept as one named constant so
+#: The engine Junction provisions and gates on. Kept as one named constant so
 #: the config can never disagree with what ``install-browser`` fetched.
 LAUNCH_ENGINE = "chromium"
 
@@ -74,7 +74,7 @@ def launch_config_path() -> Path:
 
 
 def desired_config() -> dict[str, object]:
-    """The config Kiro Crew generates.
+    """The config Junction generates.
 
     Deliberately minimal: it names the engine and nothing else. Every key added
     here becomes a default an operator has to discover in order to override, and
@@ -106,7 +106,7 @@ def write_config() -> Path | None:
     except OSError:
         logger.warning(
             "could not write the browser launch config at %s; playwright-cli will "
-            "fall back to its own default browser channel, which Kiro Crew does "
+            "fall back to its own default browser channel, which Junction does "
             "not install",
             path,
         )

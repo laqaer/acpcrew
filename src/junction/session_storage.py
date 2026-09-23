@@ -2,7 +2,7 @@
 
 A session is presented as ONE thing with ONE size, because that is what it is to
 the person looking at it. Underneath, its bytes are split across two stores that
-Kiro Crew and kiro-cli each own:
+Junction and kiro-cli each own:
 
 * ``<data home>/sessions/<stem>.jsonl`` plus its rotated
   ``sessions/archive/<stem>__<stamp>.jsonl`` segments — the transcript, read by
@@ -92,7 +92,7 @@ from junction.session_map import SESSION_MAP_FILENAME
 logger = logging.getLogger(__name__)
 
 # Trash lives under the data home (not beside kiro-cli's store) because it holds
-# Kiro Crew's own staged deletions: it must survive a kiro-cli upgrade, and
+# Junction's own staged deletions: it must survive a kiro-cli upgrade, and
 # kiro-cli must not mistake a staged file for a session it can resume.
 TRASH_DIR_NAME = "trash"
 TRASH_SESSIONS_LEAF = "sessions"
@@ -276,7 +276,7 @@ def trash_root() -> Path:
 
 
 def _crew_sessions_dir() -> Path:
-    """Kiro Crew's own transcript directory."""
+    """Junction's own transcript directory."""
     return data_home() / SESSIONS_DIR_NAME
 
 

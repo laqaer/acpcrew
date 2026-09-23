@@ -300,7 +300,7 @@ export const PdfViewer = memo(function PdfViewer({ filePath }: { filePath: strin
  * disposition + nosniff so the file downloads cleanly instead. */
 export const OfficeViewer = memo(function OfficeViewer({ filePath, hideHint }: { filePath: string; hideHint?: boolean }) {
   useLanguageGeneration() // memo() bails out of the provider-level repaint; subscribe directly
-  // Split on BOTH separators — Kiro Crew ships native on Windows where paths
+  // Split on BOTH separators — Junction ships native on Windows where paths
   // arrive as `C:\Users\…\report.docx`, and a `/`-only split would surface the
   // whole path as the "filename". Matches the pattern in MarkdownRenderer.tsx
   // and VectorMemoryCard.tsx.

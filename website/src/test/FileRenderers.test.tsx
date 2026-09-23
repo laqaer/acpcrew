@@ -82,7 +82,7 @@ describe('OfficeViewer', () => {
   })
 
   it('extracts the basename from a Windows path with backslash separators', () => {
-    // Kiro Crew ships native on Windows where filePath arrives as
+    // Junction ships native on Windows where filePath arrives as
     // C:\Users\...\report.docx. A `/`-only split would surface the whole
     // path — split on BOTH separators to match MarkdownRenderer/VectorMemoryCard.
     render(<OfficeViewer filePath="C:\\Users\\harpreet\\Documents\\report.docx" />)

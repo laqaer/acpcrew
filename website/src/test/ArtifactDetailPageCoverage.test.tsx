@@ -10,7 +10,7 @@
  * sync banner. Those are the paths where a silent failure loses a user's work,
  * so each is pinned here together with its error branch.
  *
- * Kiro Crew convention: this suite mirrors `ArtifactDetailPage.test.tsx` —
+ * Junction convention: this suite mirrors `ArtifactDetailPage.test.tsx` —
  * automocked api client, `renderWithProviders` on the real `/artifacts/:slug`
  * route so `useParams` and `navigate` run for real.
  *

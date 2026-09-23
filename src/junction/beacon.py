@@ -875,7 +875,7 @@ def format_status(info: dict[str, object]) -> str:
         "",
         "  To opt out, choose one:",
         "",
-        "    1. Kiro Crew CLI (recommended)",
+        "    1. Junction CLI (recommended)",
         "       junction telemetry disable",
         "",
         "    2. Environment variable (choose your shell)",

@@ -3823,8 +3823,8 @@
         "exchange_happens_on_the_nightly_maintenance_pass": "交換は夜間メンテナンス時にのみ行われ、インシデントごとには行われません。\n          「夜間の台帳メンテナンス」がオンになっているインスタンスで実行されます\n          （下記の「インスタンス」を参照）。この設定がオフのインスタンスはプルを行わず、\n          最後に確認した",
         "expected_shape_label": "期待されるシェイプ",
         "explicitly_every_time_what_does_not_work_is": "明示的に毎回。\n          機能しないもの",
-        "find_it_at_the_bottom_of_the_channel_s_detail_di": "Slack のチャネル詳細ダイアログの下部で見つけてください。\n            最初に Kiro Crew ボットをチャネルに招待してください。そうしないと投稿が失敗します。",
-        "get_a_notification_when_something_changes_that_n": "あなたが対応する必要な変更が起きたときに通知を受け取ります — Slack ワークスペースは不要で、\n        どのような認証情報も必要ありません。\n        Kiro Crew の通知センターとデスクトップに送られます。",
+        "find_it_at_the_bottom_of_the_channel_s_detail_di": "Slack のチャネル詳細ダイアログの下部で見つけてください。\n            最初に {{productName}} ボットをチャネルに招待してください。そうしないと投稿が失敗します。",
+        "get_a_notification_when_something_changes_that_n": "あなたが対応する必要な変更が起きたときに通知を受け取ります — Slack ワークスペースは不要で、\n        どのような認証情報も必要ありません。\n        {{productName}} の通知センターとデスクトップに送られます。",
         "gh": "gh",
         "git_github_com_your_org_ops_memory_git": "git@github.com:your-org/ops-memory.git",
         "git_pull_or_push": "git pull / push",
@@ -3847,7 +3847,7 @@
         "loading": "読み込み中…",
         "main": "main",
         "min": "分",
-        "mirror_incidents_to_a_channel_as_a_live_board_on": "インシデントをチャネルにライブボードとしてミラーリング：インシデントごとに1つのメッセージで、\n        状態は適切に更新され、診断はスレッド内にあります。\n        Kiro Crew が既に持っている Slack 接続を使用します — このアプリは Slack トークンを独自に保存しません。",
+        "mirror_incidents_to_a_channel_as_a_live_board_on": "インシデントをチャネルにライブボードとしてミラーリング：インシデントごとに1つのメッセージで、\n        状態は適切に更新され、診断はスレッド内にあります。\n        {{productName}} が既に持っている Slack 接続を使用します — このアプリは Slack トークンを独自に保存しません。",
         "mirror_incidents_to_slack": "インシデントを Slack にミラーリング",
         "mode_act_label": "実行",
         "mode_help_act": "ルールで明示的にホワイトリストに登録したシグナルパターンのアクションを実行します。ルールはソースとリソースパターンに名前を付ける必要があります — 「すべて」ルールはありません。すべての実行が監査されます。",
@@ -12280,7 +12280,7 @@
         "cancel_setup_of": "Cancel setup of {{tag}}",
         "launched_by_junction": "{{productName}} が起動",
         "added_by_you": "Added by you",
-        "doesnt_manage": "Kiro Crew does not manage this machine",
+        "doesnt_manage": "{{productName}} does not manage this machine",
         "stop": "Stop",
         "stop_crew": "Stop {{name}}",
         "delete": "Delete…",
@@ -12294,7 +12294,7 @@
         "copy_command": "Copy command",
         "copy_policy_json": "Copy policy JSON",
         "copied": "Copied",
-        "profile_name_only": "Kiro Crew saves the profile name only — never your keys or tokens.",
+        "profile_name_only": "{{productName}} saves the profile name only — never your keys or tokens.",
         "prereq_credentials": "AWS credentials",
         "credentials_ok": "Using profile {{profile}} → account {{account}}.",
         "credentials_bad": "Could not reach AWS with this profile. Check your credentials, then re-check.",
@@ -12331,8 +12331,8 @@
         "your_code": "Your code: {{code}}",
         "open_sign_in": "Open sign-in page",
         "launch_done": "Done — your new crew is ready and now appears in Your crews.",
-        "runs_on_gateway": "This runs on the gateway, not in this tab — leave the page or switch crews and it keeps going. Keep Kiro Crew running until it finishes.",
-        "unverified_cloud_note": "Kiro Crew cannot verify whether this machine has AWS resources",
+        "runs_on_gateway": "This runs on the gateway, not in this tab — leave the page or switch crews and it keeps going. Keep {{productName}} running until it finishes.",
+        "unverified_cloud_note": "{{productName}} cannot verify whether this machine has AWS resources",
         "remove_warning": "Remove only takes it off this list. If this is a cloud crew, its EC2 instance keeps running and billing — delete it from the AWS console.",
         "checking_against": "Checked against profile {{profile}} in {{region}}.",
         "no_profile_set": "none set (AWS CLI default)",
@@ -12710,7 +12710,7 @@
     "tabs": {
       "about": {
         "description": "バージョン、更新チャネル、更新確認、およびライセンス",
-        "label": "Kiro Crew について"
+        "label": "{{productName}} について"
       },
       "browser": {
         "description": "Playwright ブラウザーモード、拡張トークン、および認証設定",

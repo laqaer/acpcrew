@@ -559,7 +559,7 @@ describe('MdNotebookPage — settings, guarded mutations and editor keys', () =>
     await waitFor(() => expect(clearBtn).not.toBeDisabled())
   })
 
-  it('records a vault dropping out of the Kiro Crew knowledge library', async () => {
+  it('records a vault dropping out of the Junction knowledge library', async () => {
     api.listVaults.mockResolvedValue({
       vaults: [aVault({ knowledge: true })],
       hasPat: false,

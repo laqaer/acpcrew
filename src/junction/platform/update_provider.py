@@ -1,6 +1,6 @@
 """Policy-only update provider seam for enterprise self-update.
 
-Abstracts *how* Kiro Crew checks for and applies updates behind a single
+Abstracts *how* Junction checks for and applies updates behind a single
 operator-supplied :class:`CommandProvider`.
 
 **Trust placement (security-critical).** A command provider runs unsandboxed

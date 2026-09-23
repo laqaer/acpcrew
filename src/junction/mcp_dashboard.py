@@ -36,7 +36,7 @@ always available and already returns every session's title and key), they cannot
 delete a folder or a conversation, and the worst outcome is a sidebar the user
 has to tidy. Contrast the keystone leaves in ``security.py``
 (``computer_use.json``, ``browser-mode-enabled``, the Ops Mission Control mode):
-each grants reach OUTSIDE Kiro Crew — desktop input synthesis, the operator's
+each grants reach OUTSIDE Junction — desktop input synthesis, the operator's
 logged-in browser, writes against production incident tooling — or is the
 security floor itself, and each is therefore stored where the agent cannot write.
 

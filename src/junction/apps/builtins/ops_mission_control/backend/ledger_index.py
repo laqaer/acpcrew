@@ -2,7 +2,7 @@
 
 This is the "back to database" half of the git-native sync. `ledger.jsonl` is the
 synced source of truth (small, diffable, merge-reconcilable); this module projects it
-into Kiro Crew's `VectorMemoryStore` so a *similar* failure — not just a
+into Junction's `VectorMemoryStore` so a *similar* failure — not just a
 fingerprint-identical one — can surface a lesson a teammate learned.
 
 **Vectors are never committed.** The embedding model is sha256-pinned, so a vector is
@@ -207,7 +207,7 @@ def search_similar(store: Any, query: str, *, limit: int = 5) -> list[dict]:
 
     Tag-filtered to ``SOURCE_TAG`` so an ops investigation searching for a failure does
     not get back unrelated conversational memories — the index is shared with the rest
-    of Kiro Crew, and an ops query wants ops knowledge.
+    of Junction, and an ops query wants ops knowledge.
 
     Returns ``[]`` on any fault: semantic recall is additive to fingerprint matching,
     never a prerequisite for it.

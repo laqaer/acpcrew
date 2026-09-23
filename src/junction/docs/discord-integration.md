@@ -94,12 +94,12 @@ user who may run the agent, and optionally add approved server thread IDs.
 Or edit the local configuration directly:
 
 ```bash
-# ~/.kiro/crew/.env
+# ~/.junction/.env
 DISCORD_BOT_TOKEN=<your bot token>
 ```
 
 ```json
-// ~/.kiro/crew/config.json
+// ~/.junction/config.json
 {
   "discord": {
     "enabled": true,
@@ -179,7 +179,7 @@ Portal or clear the thread allow-list and restart in DM-only mode.
   authorized to drive the agent, which is a different claim.
 - **Conversation scope.** Approved participants in one thread share that
   thread's agent session and context. DMs remain isolated per user.
-- **Token handling.** The token lives in `~/.kiro/crew/.env` (mode 0600), is
+- **Token handling.** The token lives in `~/.junction/.env` (mode 0600), is
   masked in Settings, excluded from agent subprocess environments, and can be
   changed only from the machine running the gateway.
 

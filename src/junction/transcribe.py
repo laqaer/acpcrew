@@ -977,7 +977,7 @@ def _whisper_thread_count() -> int:
     Whisper decoding is autoregressive: thousands of tiny parallel regions, each
     ending in a barrier that completes only when its slowest worker arrives. Wide
     pools therefore cost latency per step rather than buying throughput, and on a
-    host with other work (a Kiro Crew host runs the gateway and agent sessions
+    host with other work (a Junction host runs the gateway and agent sessions
     alongside) the workers are time-sliced, so a barrier waits on threads the
     scheduler has not run yet.
 
@@ -997,7 +997,7 @@ def _thread_capped_env() -> dict[str, str]:
 
     Also strips every var matching a prefix in
     :data:`sandbox._PYTHON_ENV_PREFIXES` (``PYTHONPATH``/``PYTHONHOME``/…): the Whisper CLIs are installed
-    out-of-band and run under their own interpreter, so Kiro Crew's bundled
+    out-of-band and run under their own interpreter, so Junction's bundled
     packages (numpy, torch) must not leak into their runtime. Reusing the
     shared list instead of hand-listing keys keeps this scrub site from
     drifting when the interpreter-env set grows.
@@ -1035,7 +1035,7 @@ async def _run_whisper_cli(
 
     Shared by ``_transcribe_native`` (openai-whisper) and ``_transcribe_mlx``
     (mlx_whisper). The environment comes from :func:`_thread_capped_env`, which
-    isolates the CLI from Kiro Crew's own Python packages and bounds its intra-op
+    isolates the CLI from Junction's own Python packages and bounds its intra-op
     parallelism. Each writes a ``.txt`` transcript into a temp ``out_dir`` we own
     and clean up. ``build_args`` lets callers express their differing flags (the
     two CLIs use hyphenated vs underscored option names).

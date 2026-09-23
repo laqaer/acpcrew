@@ -57,13 +57,13 @@ https://api.slack.com/apps?new_app=1&manifest_yaml=...
 If the URL doesn't work, generate the raw YAML instead:
 
 ```bash
-junction manifest -o ~/.kiro/crew/slack-manifest.yaml
+junction manifest -o ~/.junction/slack-manifest.yaml
 ```
 
 Then:
 1. Go to <https://api.slack.com/apps> → **Create New App** → **From a manifest**
 2. Select your workspace
-3. Paste the contents of `~/.kiro/crew/slack-manifest.yaml`
+3. Paste the contents of `~/.junction/slack-manifest.yaml`
 4. Click **Create**
 
 </details>
@@ -195,7 +195,7 @@ and configure that token only in the integration that consumes it.
 | Short Description | Dashboard access, allowlist, and channel tracking |
 | Usage Hint | `dashboard [duration] \| @user \| #channel` |
 
-The command name you choose here must match the `slack.command` value in `~/.kiro/crew/config.json` (default: `junction`):
+The command name you choose here must match the `slack.command` value in `~/.junction/config.json` (default: `junction`):
 
 ```json
 {
@@ -252,13 +252,13 @@ tokens from an older installation.
 If you prefer to configure tokens manually instead of using `junction setup`:
 
 ```bash
-mkdir -p ~/.kiro/crew
-cat > ~/.kiro/crew/.env << 'EOF'
+mkdir -p ~/.junction
+cat > ~/.junction/.env << 'EOF'
 SLACK_APP_TOKEN=xapp-your-app-token-here
 SLACK_BOT_TOKEN=xoxb-your-bot-token-here
 JUNCTION_OWNER_ID=your-slack-member-id
 EOF
-chmod 600 ~/.kiro/crew/.env
+chmod 600 ~/.junction/.env
 ```
 
 ### Owner-Only Access
@@ -363,11 +363,11 @@ instead of a link.
    `127.0.0.1`, so exempting it would be an auth bypass. The only loopback
    carve-out is a small set of internal API paths reserved for Junction's own
    processes (doctor, the MCP servers), and those additionally require a
-   matching `X-Internal-Secret` read from `~/.kiro/crew/.local_secret`
+   matching `X-Internal-Secret` read from `~/.junction/.local_secret`
 
 ### Dashboard URL Configuration
 
-Set `dashboard.url` in `~/.kiro/crew/config.json` to the host and port you reach
+Set `dashboard.url` in `~/.junction/config.json` to the host and port you reach
 the dashboard on:
 
 ```json

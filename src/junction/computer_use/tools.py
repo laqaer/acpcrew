@@ -40,7 +40,7 @@ and capture work, and all audit happen here. That split is not stylistic:
    ``accessibility`` or ``app_post`` click never reaches it at all;
 5. **the always-on target policy (``policy.check_app``) — the real refusal.** The
    built-in denylist floor, which an operator's allow-list can narrow but never
-   widen. This is what stops the agent driving Kiro Crew's own window.
+   widen. This is what stops the agent driving Junction's own window.
    ``computer_launch_app`` is the one verb whose target is not resolved in step 2 —
    it has no window yet, which is the point of it — so it runs the SAME
    ``check_app`` inside its own branch, against an ``AppRef`` synthesized from the

@@ -164,7 +164,7 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('sends the user to Kiro CLI setup instead of installing anything', async () => {
-    // Kiro Crew does not install Kiro CLI. A missing CLI must offer a link to
+    // Junction does not install Kiro CLI. A missing CLI must offer a link to
     // Kiro's own setup page and NO install action of any kind, so there is
     // nothing for the user to press that would download and run a script.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({ platform: 'Windows' }))
@@ -218,7 +218,7 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('exposes no way to start a sign-in from the dashboard', async () => {
-    // Kiro Crew does not authenticate for the user: there is no device-flow
+    // Junction does not authenticate for the user: there is no device-flow
     // trigger, no sign-in URL, and no device code surfaced anywhere.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({ installed: true }))
 
@@ -354,7 +354,7 @@ describe('KiroPrerequisiteGate', () => {
 
   it('gates on a spec that is PRESENT but which kiro-cli refuses', async () => {
     // The gap the missing-specs card cannot cover: statting the file says it is
-    // there, while kiro-cli drops it from its agent table, so Kiro Crew's agent
+    // there, while kiro-cli drops it from its agent table, so Junction's agent
     // silently becomes kiro-cli's default one with none of its MCP servers.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({
       installed: true,

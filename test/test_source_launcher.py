@@ -17,7 +17,7 @@ _POSIX_ONLY = pytest.mark.skipif(os.name != "posix", reason="POSIX shell launche
 
 def _copy_launcher(tmp_path: Path) -> tuple[Path, Path]:
     """Copy the real wrapper into an install root whose path contains spaces."""
-    install_root = tmp_path / "Kiro Crew checkout"
+    install_root = tmp_path / "Junction checkout"
     launcher = install_root / "bin" / "junction"
     launcher.parent.mkdir(parents=True)
     shutil.copy2(_SOURCE_LAUNCHER, launcher)

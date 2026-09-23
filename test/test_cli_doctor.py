@@ -1164,9 +1164,9 @@ class TestEffectiveModelSection:
         assert issues == ["agent spec unreadable"]
 
     def test_project_local_spec_is_flagged_as_shadowing(self, capsys) -> None:
-        """kiro-cli resolves <project>/.kiro/agents FIRST and Kiro Crew's own
+        """kiro-cli resolves <project>/.kiro/agents FIRST and Junction's own
         resolver never reads it, so that file can decide what actually runs while
-        every Kiro Crew surface reports something else."""
+        every Junction surface reports something else."""
         from junction.agent import AGENT_FILENAME
 
         self._install_spec(None)

@@ -73,7 +73,7 @@ holds a profile name, not an account number.
 On the console at `/deploy`:
 
 1. Register the **profile name** and **region**. Registered profiles are kept in
-   `~/.kiro/crew/deploy/profiles.json`, and one of them is the default. Optionally supply a
+   `~/.junction/deploy/profiles.json`, and one of them is the default. Optionally supply a
    12-digit account plus a role name and Junction writes a `credential_process` entry that assumes
    that role; only `region` and `credential_process` are ever written to your AWS config, never
    credential material.
@@ -144,7 +144,7 @@ not installed.
 
 The reaper is installed once per account by an operator, with
 `scripts/install-reaper.sh --profile <P> --region <R>` from
-`~/.kiro/crew/skills/artifact-deploy/`. It is an operator step by design: the stack creates an IAM
+`~/.junction/skills/artifact-deploy/`. It is an operator step by design: the stack creates an IAM
 role, and Junction never writes IAM. When a finite-TTL deploy is refused, the 409 body carries
 that exact command with your profile and region already filled in.
 
@@ -202,7 +202,7 @@ Artifact Deploy is built to keep Junction out of credential and account manageme
 to serve content from a bucket that is never itself public.
 
 ### 6.1 Credentials never touch Junction
-- Only the **profile name** is stored (in `~/.kiro/crew/deploy/profiles.json`).
+- Only the **profile name** is stored (in `~/.junction/deploy/profiles.json`).
 - Every AWS call runs through the **`aws` CLI as a subprocess** with `--profile` rather than an
   in-process SDK, so credential resolution stays in your OS credential store.
 - Junction **never writes IAM** and never creates or manages accounts, users, or roles. You apply
@@ -316,4 +316,4 @@ nothing running in the box can re-open a route.
 | Profile saved but nothing works | The profile has to exist on the **gateway host**, not on your laptop (see 1.1). |
 | Blank or missing remote preview on an app card | The deployed site's headers do not allow framing from localhost. The card falls back to a status panel with a plain link; re-deploying a base-stack site applies the current template. |
 | App card still says "Not deployed" after a deploy | Only the agent-driven deploy path back-fills the card's metadata. After a raw script deploy from a terminal, ask the agent to record the public URL and lifecycle status on the artifact. |
-| Two base stacks, or duplicate buckets and distributions, in one account | A pre-rename install left a parallel set of stacks. Follow `~/.kiro/crew/skills/artifact-deploy/MIGRATION.md` to move live sites over and remove the old set. |
+| Two base stacks, or duplicate buckets and distributions, in one account | A pre-rename install left a parallel set of stacks. Follow `~/.junction/skills/artifact-deploy/MIGRATION.md` to move live sites over and remove the old set. |

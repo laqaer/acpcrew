@@ -19,7 +19,7 @@
 # Security posture:
 #   - Non-root user (junction, uid 1000). All state lives under
 #     /home/junction so a single volume mount persists everything: gateway
-#     home (~/.kiro/crew), kiro-cli credentials, agents, skills.
+#     home (~/.junction), kiro-cli credentials, agents, skills.
 #   - JUNCTION_BIND=0.0.0.0 binds the container's network namespace only;
 #     nothing reaches the host unless the operator publishes the port
 #     (-p 5476:5476). Token auth is always mounted server-side (see

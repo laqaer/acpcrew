@@ -1126,7 +1126,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "slack/gateway.py::_warn_if_kiro_cli_outdated",
         "testing/harness.py::spawn_feature_gateway",
         # Apple on-device speech (macOS only). None of these takes an agent-authored
-        # command: the argv is a fixed toolchain path, the helper Kiro Crew itself
+        # command: the argv is a fixed toolchain path, the helper Junction itself
         # compiled, or ffmpeg — and every variable part is a positional argument to
         # execve (no shell), so a hostile value can only be a bad filename, not a
         # second command. `_to_native_audio` mirrors the already-allowlisted

@@ -1,12 +1,12 @@
 # A second ACP backend
 
-Kiro Crew drives one first-class agent harness, `kiro-cli`, over ACP. It also
+Junction drives one first-class agent harness, `kiro-cli`, over ACP. It also
 supports a **second, adapted ACP backend** (`agent.acp_backend = "kas"`); the
 default and first-class path stays `kiro-cli`. `agent.provider` remains `"acp"`
 — the harness is never the provider selector (see
 [harness-parity.md](harness-parity.md)).
 
-**Scope.** This documents the Kiro Crew-side integration only. The second backend
+**Scope.** This documents the Junction-side integration only. The second backend
 is not open source; its wire shapes, storage, auth, and process internals are
 not described here. Where its on-the-wire signals differ from `kiro-cli`'s, the
 difference is absorbed in one Crew module (below), which is the only place that

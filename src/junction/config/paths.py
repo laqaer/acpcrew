@@ -269,7 +269,7 @@ def shared_kiro_settings_writable() -> bool:
     """False when this process must not write the user's kiro-cli settings.
 
     ``~/.kiro/settings/mcp.json`` belongs to the kiro-cli installation, not to a
-    Kiro Crew data home, so it is resolved from the real home and a throwaway
+    Junction data home, so it is resolved from the real home and a throwaway
     instance shares it with the operator's live one. A pod is throwaway by
     construction: its home is empty, so any decision it reaches about which MCP
     servers should exist is a decision about a different install. Writing that
@@ -650,11 +650,11 @@ def project_agents_dir(project_dir: str | Path) -> Path:
 
     kiro-cli resolves ``--agent <name>`` against ``$PWD/.kiro/agents`` before the
     user-level directory, with NO upward walk — invoked from a subdirectory it does
-    not find the repo root's agents. Kiro Crew launches kiro-cli with the session's
+    not find the repo root's agents. Junction launches kiro-cli with the session's
     project directory as its cwd, so this is exactly the directory the backend
     itself searches for that session.
 
-    Read-only by construction: nothing in Kiro Crew writes here, because the
+    Read-only by construction: nothing in Junction writes here, because the
     directory belongs to the user's checkout and is typically version-controlled.
     """
     return Path(project_dir) / ".kiro" / "agents"
@@ -663,8 +663,8 @@ def project_agents_dir(project_dir: str | Path) -> Path:
 def project_kiro_dir(project_dir: str | Path) -> Path:
     """The ``<project>/.kiro`` directory itself, which also holds agent specs.
 
-    Distinct from :func:`project_agents_dir` because Kiro Crew additionally honors
-    ``<project>/.kiro/*.agent-spec.json`` — a Kiro Crew-only convention that
+    Distinct from :func:`project_agents_dir` because Junction additionally honors
+    ``<project>/.kiro/*.agent-spec.json`` — a Junction-only convention that
     predates ``.kiro/agents/`` and remains in use by projects driven from Slack.
     """
     return Path(project_dir) / ".kiro"

@@ -50,9 +50,9 @@ that session as its wake target). Cron scripts must live under
 ``<config_dir>/crons/``, so copy the synced skill asset there first, then
 register::
 
-  cp ~/.kiro/crew/skills/junction-dev/babysit/scripts/pr_watch.py \\
-     ~/.kiro/crew/crons/pr_watch.py
-  cron_add(script="~/.kiro/crew/crons/pr_watch.py:watch", ...)
+  cp ~/.junction/skills/junction-dev/babysit/scripts/pr_watch.py \\
+     ~/.junction/crons/pr_watch.py
+  cron_add(script="~/.junction/crons/pr_watch.py:watch", ...)
 """
 
 from __future__ import annotations
@@ -435,5 +435,5 @@ def watch(ctx) -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover -- cron-only entry point
-    print("pr_watch.py is a Kiro Crew script cron; register it with cron_add.")
+    print("pr_watch.py is a Junction script cron; register it with cron_add.")
     sys.exit(2)

@@ -1810,10 +1810,23 @@ class TestDragTool:
         Retargeted from a terminal (no longer refused) onto Junction's own window,
         which stays refused because driving our own Settings UI would route around
         the keystone that holds the primary enable.
+
+        The window has to be staged. A bare query of the product name is also a
+        substring of the fake catalog's ``dev.junction.*`` bundle ids, so resolve
+        would hand back Fake Files and the drag would run.
         """
         _enable(keystone)
-        result = _dispatch(TOOL_DRAG, app="Kiro Crew", from_x=1, from_y=2, to_x=3, to_y=4)
+        ours = AppRef(
+            name="Junction",
+            pid=4109,
+            bundle_id="dev.kiro.crew",
+            window_id=8810,
+            window_title="Settings",
+        )
+        fake_backend.apps = (ours,)
+        result = _dispatch(TOOL_DRAG, app=ours.name, from_x=1, from_y=2, to_x=3, to_y=4)
         assert result.startswith(ERROR_PREFIX)
+        assert "blocked target" in result
         assert not [args for name, args in fake_backend.calls if name == "drag"]
 
     def test_drag_result_carries_the_refreshed_tree(

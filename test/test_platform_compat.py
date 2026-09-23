@@ -85,7 +85,7 @@ class TestReexecPythonModule:
         assert os.environ["PYTHONIOENCODING"] == "utf-8:backslashreplace"
 
     def test_posix_preserves_full_argv0_and_pins_utf8(self, monkeypatch):
-        executable = "/opt/Kiro Crew/bin/python3"
+        executable = "/opt/Junction/bin/python3"
         calls = []
         monkeypatch.setattr(pc, "IS_WINDOWS", False)
         monkeypatch.setattr(pc.sys, "executable", executable)

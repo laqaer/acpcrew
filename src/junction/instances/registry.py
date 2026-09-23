@@ -2,7 +2,7 @@
 
 Backs the *Instances* feature (multi-instance management). The registry is a
 small JSON file at ``~/.kiro/crew/instances.json``. Each record describes how to
-reach one remote Kiro Crew over **either SSH or AWS SSM Session Manager**
+reach one remote Junction over **either SSH or AWS SSM Session Manager**
 (``connection_method``); the *local* instance is implicit (the gateway itself)
 and is never stored here.
 
@@ -158,7 +158,7 @@ def validate_ttl(ttl: str) -> None:
 
 @dataclass
 class Instance:
-    """One remote Kiro Crew instance reachable over SSH or SSM.
+    """One remote Junction instance reachable over SSH or SSM.
 
     Holds the connection coordinates plus the lazy-reconnect ``was_connected``
     hint. The local instance is implicit and is never represented by an

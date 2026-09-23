@@ -1715,7 +1715,7 @@ class TestServiceEnvironment:
         It is the ONLY input DASHBOARD_PORT reads, so a service definition that
         cannot carry it can only ever bind the default 5476 — broken by
         construction on any host where that port is taken, which includes every
-        host running Kiro Crew's own instance tunnel (it pins
+        host running Junction's own instance tunnel (it pins
         local_port == remote_port).
         """
         monkeypatch.delenv("JUNCTION_PORT", raising=False)
@@ -1817,11 +1817,11 @@ class TestServiceEnvironment:
         from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/Kiro Crew/junction")
-        monkeypatch.setenv("JUNCTION_KIRO_BIN", "/opt/Kiro Crew/kiro-cli")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/Junction App/junction")
+        monkeypatch.setenv("JUNCTION_KIRO_BIN", "/opt/Junction App/kiro-cli")
         unit = svc_linux.render_unit()
-        assert 'ExecStart="/opt/Kiro Crew/junction" gateway' in unit
-        assert 'Environment="JUNCTION_KIRO_BIN=/opt/Kiro Crew/kiro-cli"\n' in unit
+        assert 'ExecStart="/opt/Junction App/junction" gateway' in unit
+        assert 'Environment="JUNCTION_KIRO_BIN=/opt/Junction App/kiro-cli"\n' in unit
         # The bare unquoted forms must NOT appear (would break systemd parsing).
         assert "ExecStart=/opt/Kiro Crew/junction gateway" not in unit
 
@@ -1886,7 +1886,7 @@ class TestServiceEnvironment:
 
         link = tmp_path / "live-gateway"
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", link)
-        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/Kiro Crew/junction")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/Junction App/junction")
         resolved = svc_macos.junction_bin()
         assert " " in resolved, "the spaced override must survive resolution"
         svc_macos.write_live_program(svc_macos.render_live_program(resolved))
@@ -2669,8 +2669,11 @@ class TestEnforcementVerificationIsSafeAndFaithful:
         argv = calls[0]
         assert "/usr/bin/python3" in argv
         assert _sys.executable not in argv
-        # And the payload must not import our own (user-writable) package.
-        assert "junction" not in " ".join(argv)
+        # The payload must not import our own (user-writable) package. The
+        # profile name on the aa-exec argv is allowed to contain the product
+        # token; the python -c snippet is what sudo would execute.
+        snippet = argv[argv.index("-c") + 1]
+        assert "junction" not in snippet
 
     def test_a_missing_trusted_tool_is_inconclusive_not_a_failure_claim(self, monkeypatch):
         from junction.service import apparmor as aa
@@ -2968,7 +2971,7 @@ class TestLauncherExecPathIsSafeToAttach:
         """A space is fine — the rendered attachment is quoted."""
         from junction.service import apparmor as aa
 
-        app = durable_dir / "Kiro Crew.AppImage"
+        app = durable_dir / "Junction App.AppImage"
         app.write_text("#!/bin/sh\n")
 
         resolved, problem = aa.validate_exec_path(str(app))

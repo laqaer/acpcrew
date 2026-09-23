@@ -276,7 +276,7 @@ describe('SettingsPanel general section', () => {
   it('offers Auto plus the real language registry, and stages the pick', async () => {
     await mount()
     const select = screen.getByRole('combobox') as HTMLSelectElement
-    // '' is "follow Kiro Crew", which is what the stored empty value means.
+    // '' is "follow Junction", which is what the stored empty value means.
     expect(select.value).toBe('')
     expect(within(select).getByRole('option', { name: 'Auto' })).toBeTruthy()
     expect(select.options.length).toBeGreaterThan(1)

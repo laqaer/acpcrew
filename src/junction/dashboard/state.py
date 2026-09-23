@@ -2332,7 +2332,7 @@ def build_refusal_recovery_prompt(refusals: list[tuple[str, str]]) -> str:
     if not refusals:
         return ""
     lines = [
-        "One or more tool calls in your previous turn were blocked by a Kiro Crew "
+        "One or more tool calls in your previous turn were blocked by a Junction "
         "safety policy, which ended the turn early. This was NOT a user action — "
         "do not treat it as a cancellation or interruption by the user.",
         "",
@@ -2364,7 +2364,7 @@ DENY_CAUSE_HOOK_ERROR = "hook_error"
 #: cause → (clause completing "The tool call you just made …", what to do next).
 _DENY_CAUSE_TEXT: dict[str, tuple[str, str]] = {
     DENY_CAUSE_POLICY: (
-        "was blocked by a Kiro Crew safety policy",
+        "was blocked by a Junction safety policy",
         "use an allowed alternative (for a shell command, a read-only variant), use "
         "a different tool, or — if the block is correct and you genuinely cannot "
         "proceed — say so and stop with the reason.",
@@ -2424,7 +2424,7 @@ def build_refusal_steer_notice(title: str, reason: str, *, cause: str = DENY_CAU
     # notice exists to do — the model has just been told the user denied this, and
     # every sentence after this one is spent correcting that.
     return (
-        f"[Kiro Crew host notice] The tool call you just made {clause}. "
+        f"[Junction host notice] The tool call you just made {clause}. "
         "This was NOT a user action — the user did not "
         "cancel, reject, or interrupt anything. The tool result you were handed for "
         "it is generic and wrong about who denied it — on kiro-cli it reads "
@@ -2497,7 +2497,7 @@ def build_tool_stall_recovery_prompt(
     tool_label = tool_title or "a tool call"
     lines = [
         f"Your previous turn stalled: {tool_label} produced no response for "
-        f"~{idle_mins} minute(s) and the turn was ended by a Kiro Crew watchdog. "
+        f"~{idle_mins} minute(s) and the turn was ended by a Junction watchdog. "
         "This was NOT a user action — do not treat it as a cancellation or "
         "interruption by the user.",
         "",

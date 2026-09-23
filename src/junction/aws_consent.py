@@ -1,4 +1,4 @@
-"""Explicit operator consent before Kiro Crew spends money in an AWS account.
+"""Explicit operator consent before Junction spends money in an AWS account.
 
 Two optional features reach a PAID AWS service through the provider's own
 credential chain: Amazon Polly (text-to-speech, :mod:`junction.voice_reply`)

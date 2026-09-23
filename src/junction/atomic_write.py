@@ -253,7 +253,7 @@ def _resolved_or_none(path: Path) -> Path | None:
 
 
 def _owned_roots() -> tuple[Path, ...]:
-    """The directory roots Kiro Crew itself creates and owns.
+    """The directory roots Junction itself creates and owns.
 
     Resolution goes through ``config.paths`` lazily: importing it at module scope
     would tie this leaf helper to the config package, and calling it at import
@@ -288,7 +288,7 @@ def _link_trust_anchor(parent: Path) -> tuple[Path, tuple[str, ...]] | None:
     symlinked ``$HOME`` (``/home/u -> /local/home/u``) or a data home relocated
     onto another disk are both supported, and ``config/loader.py`` documents a
     symlinked ``config.json`` as a normal setup. BELOW the anchor every
-    directory is created by Kiro Crew's own ``mkdir`` calls, so a link there was
+    directory is created by Junction's own ``mkdir`` calls, so a link there was
     planted by something else.
 
     The anchor comes back in *parent*'s own LEXICAL namespace together with the
@@ -371,7 +371,7 @@ def _refuse_linked_parent(path: Path) -> None:
     parent = path.parent
     split = _link_trust_anchor(parent)
     if split is None:
-        # Outside every directory Kiro Crew creates, a link is indistinguishable
+        # Outside every directory Junction creates, a link is indistinguishable
         # from the operator's own layout, so the walk stops at the first
         # ancestor that ALREADY exists: everything below that is a directory
         # this write would create itself, so a link there cannot be ours, while

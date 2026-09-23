@@ -1,7 +1,7 @@
 # Instances Module (multi-instance management over SSH tunnels)
 
-Lets a single Kiro Crew gateway (the **hub**) manage and switch between several
-**remote** Kiro Crew instances (dev hosts, EC2, home servers) over SSH **or AWS
+Lets a single Junction gateway (the **hub**) manage and switch between several
+**remote** Junction instances (dev hosts, EC2, home servers) over SSH **or AWS
 SSM Session Manager** tunnels, embedding each remote dashboard as an iframe pane
 below a switcher strip. Opt-in: off by default (`instances.enabled`). The transport is
 per-instance (`connection_method`) — see §13.
@@ -40,7 +40,7 @@ mint, diagnostics, injection validation, run-marker) plus
 
 ## 1. Overview
 
-A Kiro Crew gateway normally binds the dashboard to loopback only. The Instances
+A Junction gateway normally binds the dashboard to loopback only. The Instances
 feature lets the hub reach *other* gateways running on remote hosts by opening an
 SSH `-L` forward to each remote's loopback dashboard port, minting a short-lived
 dashboard token on the remote, and embedding the remote dashboard in an
@@ -863,14 +863,15 @@ and reconnects.
 The fix: at startup the gateway records the absolute path to *its own* launcher,
 keyed by the port it serves. The mint shell snippet reads that marker first and,
 when it names an executable file, `exec`s it, so mint uses the same venv as the
-live gateway. The snippet probes three data homes in priority order, since the
+live gateway. The snippet probes these data homes in priority order, since the
 remote's non-interactive SSH shell usually does not export `JUNCTION_HOME`:
 
 1. `$JUNCTION_HOME` when set and non-empty,
-2. `$HOME/<CONFIG_DIR_NAME>` (the current default, `.kiro/crew`),
-3. `$HOME/<LEGACY_CONFIG_DIR_NAME>` (`.kirocrew`, for a not-yet-migrated remote).
+2. `$HOME/<CONFIG_DIR_NAME>` (the current default, `.junction`),
+3. `$HOME/<PRIOR_CONFIG_DIR_NAME>` (`.kiro/crew`, kept when `~/.junction` is absent),
+4. `$HOME/<LEGACY_CONFIG_DIR_NAME>` (`.kirocrew`, the older top-level home).
 
-Those two home segments are **interpolated from the shared
+Those home segments are **interpolated from the shared
 `junction.config.paths` constants**, the same ones the marker *writer* derives
 its default from, so reader and writer cannot drift apart on a future data-home
 rename. An absent or stale marker, or one that does not name an executable, falls
@@ -1055,7 +1056,7 @@ Two SSM-specific behaviours:
   `session-manager-plugin` grandchild is what actually holds the forwarded port:
   `terminate()` on the `aws` wrapper alone orphans it and wedges the port. Doing
   this with raw `os.killpg`/`os.getpgid` would silently degrade to
-  wrapper-only termination on Windows, which Kiro Crew supports.
+  wrapper-only termination on Windows, which Junction supports.
 - **Readiness timeout.** `session-manager-plugin` completes a WebSocket handshake
   with the SSM service before binding, so the SSM transport uses a longer default
   connect timeout than a direct ssh TCP connect. An explicit caller-supplied
@@ -1110,7 +1111,7 @@ which is not an egress boundary.
 
 §9 documents reaching an SSM-only instance through an `~/.ssh/config`
 `ProxyCommand` — still valid as a manual option, and still `connection_method="ssh"`:
-the reachability lives in ssh config and Kiro Crew is unaware of it.
+the reachability lives in ssh config and Junction is unaware of it.
 `connection_method="ssm"` is the direct alternative, requiring neither sshd nor a
 key on the remote — and it is now what `cloud/connect.py`'s registry integration
 uses (`register_instance` sets `connection_method="ssm"`, `ssm_target=<instance-id>`).

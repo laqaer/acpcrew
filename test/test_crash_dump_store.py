@@ -286,7 +286,7 @@ def test_dump_first_stack_lines_surfaces_wedged_thread(dumps_dir: Path) -> None:
     lines = dump_first_stack_lines(p, max_lines=8)
     body = "\n".join(lines)
     assert lines[0] == "Timeout (0:00:25)!"
-    assert "_should_prevent_sleep" in body  # the wedged thread's Kiro Crew frame
+    assert "_should_prevent_sleep" in body  # the wedged thread's Junction frame
     assert "queue.py" not in body  # no idle-worker frames
 
 

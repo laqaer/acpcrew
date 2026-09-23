@@ -413,7 +413,7 @@ they are not available by default.
 ### Agent skill not found
 
 Skills are files, not packages: the built-in set is synced from the wheel to
-`~/.kiro/crew/skills/` at startup, and there is no install command to run.
+`~/.junction/skills/` at startup, and there is no install command to run.
 List what the container actually has:
 
 ```bash
@@ -461,7 +461,7 @@ docker stats junction --no-stream
 
 ### Model downloads
 
-The embedding model downloads on first use into `~/.kiro/crew/models/`
+The embedding model downloads on first use into `~/.junction/models/`
 inside the volume (a flat directory — that is the only tree
 `embeddings.py` writes models to). Downloads stage into that same
 directory as `.<model-file>.<pid>.tmp` and are unlinked in a `finally`, so a

@@ -625,7 +625,7 @@ def agents_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 @pytest.fixture
 def identity_bindings(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Bind every Kiro Crew agent name to a same-named kiro agent.
+    """Bind every Junction agent name to a same-named kiro agent.
 
     Without this the real resolver maps an unknown name onto the ``junction``
     default, so ``/api/mcp/active`` would always take the global-scope branch
@@ -714,7 +714,7 @@ class TestActive:
     async def test_agent_alias_resolves_to_the_global_scope(
         self, sandbox: SimpleNamespace, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A Kiro Crew agent name bound to ``junction`` reads the global scope."""
+        """A Junction agent name bound to ``junction`` reads the global scope."""
         import junction.config.loader as loader
 
         monkeypatch.setattr(

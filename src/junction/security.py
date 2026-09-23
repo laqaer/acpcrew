@@ -5185,7 +5185,7 @@ _CREW_SECRET_LEAVES: list[str] = [
     "run",
     # Encrypted secret vault directory — denylists the entire subdirectory so
     # the key file, ciphertext store, lock, and atomic-write temp files are all
-    # unreadable to the agent through any Kiro Crew-mediated channel (PR 1 of
+    # unreadable to the agent through any Junction-mediated channel (PR 1 of
     # #2351). The verb-independent sensitive-path backstop covers a scripted
     # ``python -c "open('~/.kiro/crew/.vault/...')"`` too.
     ".vault",
@@ -5234,7 +5234,7 @@ _WRITE_PROTECTED_HOME_PATHS: list[str] = [
     # an INPUT TO A SECURITY DECISION: the schema accepts
     # ``launchOptions.chromiumSandbox``, so an agent that could rewrite it would
     # turn the browser sandbox OFF for every later browse, and the change persists
-    # until the next gateway start re-converges the file. Kiro Crew generates it
+    # until the next gateway start re-converges the file. Junction generates it
     # directly and does NOT route through this gate, so its own write still works.
     # Paired with the same leaf in _WRITE_PROTECTED_BASH_LEAVES — protected on one
     # path only is not protected.
@@ -5294,7 +5294,7 @@ _WRITE_PROTECTED_HOME_PATHS += [
     # ``@slug/tool -> alias`` triple the user hand-wrote, together with the fingerprint of
     # the spec currently on disk (the spec is readable, so the fingerprint is computable).
     # The next rebuild then resolves the forgery as its own emission and deletes the user's
-    # alias — laundering the edit through Kiro Crew's own trusted writer, which is what makes
+    # alias — laundering the edit through Junction's own trusted writer, which is what makes
     # it worse than editing the spec directly: the deletion is performed and persisted by the
     # legitimate owner of that file. The generation fingerprint cannot defend this, because a
     # forger reads the same spec it does. Found in review (GPT 5.6).
@@ -5318,7 +5318,7 @@ _WRITE_PROTECTED_HOME_PATHS += [
 # unsandboxed on the next start and re-arms on every restart. So the agent's
 # file-edit tool must not be able to author or modify anything under it.
 #
-# WRITE-protection, NOT read+write sensitive: Kiro Crew and kiro-cli both
+# WRITE-protection, NOT read+write sensitive: Junction and kiro-cli both
 # legitimately READ specs (agent_discovery, session mtime scan, the dashboard MCP
 # rows, kiro-cli's own ``--agent`` resolution), so this stays OFF
 # ``_SENSITIVE_HOME_DIRS`` and reads are unaffected — only the write side is
@@ -5354,7 +5354,7 @@ _WRITE_PROTECTED_HOME_PATHS += [_KIRO_AGENTS_DIR]
 # denies bash READS of these leaves too, which is harmless: they carry no secret
 # (so this is NOT in ``_SENSITIVE_HOME_DIRS`` — file-read tools and
 # ``is_sensitive_path`` stay unaffected), and the legitimate readers
-# (``kirocrew doctor``, Kiro Crew's own writers) use Python ``os`` calls, not bash.
+# (``kirocrew doctor``, Junction's own writers) use Python ``os`` calls, not bash.
 #
 # SCOPE NOTE (please do NOT flag incremental regex gaps as new HIGHs): this
 # bash gate is DEFENSE-IN-DEPTH, not the primary control. The primary control
@@ -5368,8 +5368,8 @@ _WRITE_PROTECTED_HOME_PATHS += [_KIRO_AGENTS_DIR]
 #
 # ONE ENTRY IS EXEMPT from that anchoring limit, and the exemption is about
 # severity rather than parser completeness: the alias ownership record's residual
-# threat is the DELETION of a user-authored alias by Kiro
-# Crew's own trusted writer, so its filename is additionally matched
+# threat is the DELETION of a user-authored alias by Junction's
+# own trusted writer, so its filename is additionally matched
 # anchor-independently as a bare path segment (see
 # ``_BARE_TOKEN_PROTECTED_LEAVES`` below). That widening is affordable only
 # because the name is globally distinctive; it is NOT a template for the other
@@ -5440,7 +5440,7 @@ _WRITE_PROTECTED_BASH_LEAVES: tuple[str, ...] = (
 # way it is for credential paths: this filename IS the deletion grant.
 # ``alias_record.load_claimed`` returns the ``@slug/tool -> alias`` pairs the
 # rebuild may STRIP from the agent spec, and nothing else confers that
-# permission — so a forged ``committed`` record makes Kiro Crew's own trusted
+# permission — so a forged ``committed`` record makes Junction's own trusted
 # writer delete an alias the user hand-wrote. The invariant is therefore about
 # the FILENAME and not about how a command spells the way to it: ANY shell
 # command naming this file as a path segment is refused. Anchoring is not part
@@ -8575,7 +8575,7 @@ def _exfil_exempt_hosts() -> frozenset[str]:
     return frozenset(host.lower() for host in _exempt_exact_hosts())
 
 
-# ── Kiro Crew's own Slack app-create deep link ──
+# ── Junction's own Slack app-create deep link ──
 # ``kirocrew manifest --url`` and ``GET /api/slack/manifest`` both hand the user
 # Slack's new-app deep link carrying the bundled app manifest percent-encoded
 # into ``manifest_yaml``. That payload is ~1.9 KB, so the aggregate query-length

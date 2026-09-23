@@ -410,7 +410,7 @@ rest of the filesystem read-only. Measured on the author's host: a strict-mode c
 So a candidate's own `conftest.py` or reproducing test — code the model wrote, executed by the
 gate — can modify same-user files outside the worktree.
 
-**What IS now closed: Kiro Crew's own control files.** The most consequential case was measured
+**What IS now closed: Junction's own control files.** The most consequential case was measured
 and fixed rather than merely documented — a strict-mode child appended to
 `~/.kiro/crew/.data-home-ready` and exited 0, corrupting the installation's own state. Those
 paths are `security.write_protected_home_paths()`, and that protection is enforced by the
@@ -1025,7 +1025,7 @@ makes them dead weight rather than because they were missed:
 |---|---|
 | `proxy_auth.py`, `middleware.py` | the gateway authenticates same-origin requests; there is no proxy hop to sign |
 | `app.py`, `bin/` launcher | `register_routes(app)` mounts on the gateway's own aiohttp app — no second process, no port |
-| `config.py` | paths come from `store.py`, which reads the Kiro Crew data home |
+| `config.py` | paths come from `store.py`, which reads the Junction data home |
 
 One transport difference: the upstream served its MCP tools over HTTP on its own
 allocated port. A builtin has no port, and the app bridge deliberately SKIPS a

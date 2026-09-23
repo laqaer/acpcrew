@@ -710,7 +710,7 @@ class TestCarriedKeyRoundTrip:
 
         Every other non-allowlisted key round-trips, because dropping one would
         silently change behaviour the editor does not own. The marker is the
-        exception: it records that Kiro Crew wrote an entry into a file it does
+        exception: it records that Junction wrote an entry into a file it does
         NOT own, so it is meaningless in the store, and preserving it here would
         let a hand-edit volunteer the entry for management on a shared surface.
         """

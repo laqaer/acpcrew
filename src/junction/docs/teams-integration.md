@@ -93,7 +93,7 @@ Framework **pushes** activities to a messaging endpoint you host. Junction:
 ## 2. Configure Junction
 
 Provide the credentials via environment variables (preferred) in
-`~/.kiro/crew/.env`:
+`~/.junction/.env`:
 
 ```
 MICROSOFT_APP_ID=<your app id>
@@ -101,7 +101,7 @@ MICROSOFT_APP_PASSWORD=<your client secret>
 MICROSOFT_APP_TENANT_ID=<your tenant id or leave unset for multi-tenant>
 ```
 
-Then enable the channel and add your allow-list in `~/.kiro/crew/config.json`:
+Then enable the channel and add your allow-list in `~/.junction/config.json`:
 
 ```json
 {

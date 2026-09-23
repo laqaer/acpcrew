@@ -62,7 +62,7 @@ Semantic memory and the knowledge library need no setup step. Embeddings run
 **in-process** through the vendored llama-cpp-python runtime, so there is no
 separate server and no HTTP hop. On first start the gateway downloads the
 Qwen3-Embedding-0.6B GGUF (about 610 MB) in the background over HTTPS, verifies
-it against a pinned sha256, and installs it under `~/.kiro/crew/models/`.
+it against a pinned sha256, and installs it under `~/.junction/models/`.
 
 While the model is absent (first boot, download in flight, or a failed
 download), memory search degrades to keyword/FTS search and picks embeddings up
@@ -462,9 +462,9 @@ drives your own running Chrome with the sessions you are already logged into.
 
 ## Configuration
 
-- Config file: `~/.kiro/crew/config.json`, managed with
+- Config file: `~/.junction/config.json`, managed with
   `junction config get/set/edit`.
-- Credentials: `~/.kiro/crew/.env` holding messaging-channel tokens (for Slack:
+- Credentials: `~/.junction/.env` holding messaging-channel tokens (for Slack:
   `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN`, `JUNCTION_OWNER_ID`; other channels use
   their own keys). See [slack-setup.md](slack-setup.md) for creating the Slack
   app.
@@ -473,7 +473,7 @@ drives your own running Chrome with the sessions you are already logged into.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `JUNCTION_HOME` | `~/.kiro/crew` | Data directory (config, credentials, databases) |
+| `JUNCTION_HOME` | `~/.junction` | Data directory (config, credentials, databases) |
 | `JUNCTION_PORT` | `5476` | Port the gateway / dashboard listens on |
 | `JUNCTION_EMBED_MODEL_URL` | CDN default | Mirror for the embedding model download |
 | `JUNCTION_EMBED_MODEL_PATH` | unset | Run a local GGUF instead of the bundled model |
@@ -485,35 +485,20 @@ For the installed service the port is baked into the unit at install time — se
 [Running as a service](#running-as-a-service) for how to set and later change
 it.
 
-### The data home lives under `~/.kiro/`
+### The data home is `~/.junction`
 
-Junction stores its data in `~/.kiro/crew`, sharing the `~/.kiro/` base with
-other Kiro-family apps. An existing top-level `~/.kirocrew` install migrates
-automatically on first launch: its data (config, credentials, session history,
-databases) is copied into `~/.kiro/crew`, **overwriting** any file already at
-the same relative path, then verified, then the legacy data is deleted. There is
-no rollback copy and no backup of anything overwritten.
+A new install stores its data in `~/.junction`. Override that location with
+`JUNCTION_HOME`.
 
-Details worth knowing before you upgrade:
+When `~/.junction` does not exist yet and an older data directory is already
+on the machine, Junction keeps using that directory instead of starting empty:
 
-- Re-downloadable bulk content (`models/`, `cache/`) is **not** copied; the new
-  home regenerates it on first start, exactly as a fresh install does.
-- Virtual environments at the legacy root (`venv`, `.venv`, `venvs`) are neither
-  copied nor deleted, because a venv is not relocatable and may be the very
-  interpreter running the migration. The legacy root survives to hold them.
-- If a live gateway holds either home's `gateway.lock`, the move is skipped for
-  that run and completes on the next clean cold start.
-- The migration only runs on the default path. Setting `JUNCTION_HOME` skips it
-  entirely, so set it **before** upgrading if you want the two homes to stay
-  separate.
+1. `~/.kiro/crew`, if that directory is present
+2. otherwise `~/.kirocrew`, if that directory is present
 
-**There is no rollback.** Once the move completes, `~/.kirocrew` is gone, and an
-older release knows nothing of `~/.kiro/crew`, so it would start empty. Back up
-first if you need to be able to go back:
-
-```bash
-cp -a ~/.kirocrew ~/.kirocrew.manual-backup
-```
+Nothing is copied and nothing is deleted. Set `JUNCTION_HOME` before the first
+launch when you want a different directory. Those older paths stay on the
+sensitive-path deny list because they can still hold credentials.
 
 ## Verify the install
 
@@ -830,7 +815,7 @@ The `kiro-cli` backend did not answer in time. Five common causes:
 
 The embedding model is probably still downloading. Check the **Vector Memory**
 section of `junction doctor`, which reports the model state and whether the
-model URL is reachable, and look for the GGUF under `~/.kiro/crew/models/`.
+model URL is reachable, and look for the GGUF under `~/.junction/models/`.
 Search falls back to keyword matching until the model lands, then switches over
 on its own with no restart. For an airgapped or firewalled host, point
 `JUNCTION_EMBED_MODEL_URL` at a mirror; the sha256 pin still verifies the file.
@@ -845,7 +830,7 @@ junction up --port auto   # bind an OS-assigned port if 5476 is taken
 ## Uninstalling
 
 Uninstalling removes the Junction binary and its runtime but **preserves your
-data home** (`~/.kiro/crew`) — configuration, credentials, memory, sessions,
+data home** (`~/.junction`) — configuration, credentials, memory, sessions,
 apps, and the audit chain remain intact. This is intentional: reinstalling picks
 up where you left off without re-running setup or losing history.
 
@@ -874,7 +859,7 @@ Remove both:
 
 ```bash
 rm -f ~/.local/bin/junction
-rm -rf "${JUNCTION_VENV:-${JUNCTION_HOME:-$HOME/.kiro/crew}-venv}"
+rm -rf "${JUNCTION_VENV:-${JUNCTION_HOME:-$HOME/.junction}-venv}"
 ```
 
 If you set `JUNCTION_VENV` to a custom path, verify its contents before
@@ -923,7 +908,7 @@ rm -f ~/Applications/Junction-x86_64.AppImage   # or wherever you saved it
 
 Use **Settings → Apps → Installed apps**, find "Junction", and click
 **Uninstall**. The NSIS uninstaller removes the application directory and
-shortcuts but does not touch `~/.kiro/crew`.
+shortcuts but does not touch `~/.junction`.
 
 ### Docker
 
@@ -947,8 +932,8 @@ all user data:
 # so a full copy of the data home is the only complete backup. Chained with
 # `&&` so a failed copy (e.g. disk full) blocks the delete rather than racing
 # ahead of it. Point the copy at a location you control OUTSIDE the data home:
-cp -a "${JUNCTION_HOME:-$HOME/.kiro/crew}" ~/junction-backup \
-  && rm -rf "${JUNCTION_HOME:-$HOME/.kiro/crew}"
+cp -a "${JUNCTION_HOME:-$HOME/.junction}" ~/junction-backup \
+  && rm -rf "${JUNCTION_HOME:-$HOME/.junction}"
 ```
 
 The backup is a full copy of your credentials (`.env`), signing keys, and
@@ -961,7 +946,7 @@ databases, installed apps, and the embedding model cache.
 
 > **Docker:** the commands above target a host data home. A Docker install keeps
 > everything in the `junction-home` named volume instead, so remove that rather
-> than `~/.kiro/crew`: `docker volume rm junction-home` (or `docker compose down -v`).
+> than `~/.junction`: `docker volume rm junction-home` (or `docker compose down -v`).
 
 > **Note:** App Kit data is preserved per-app by default. To remove an
 > individual app's data before or instead of purging the whole home:
@@ -982,8 +967,8 @@ junction service uninstall 2>/dev/null
 pipx uninstall junction          # or: pip uninstall junction, rm the AppImage, etc.
 
 # 3. Back up and remove the data home (chained so a failed copy blocks the delete)
-cp -a "${JUNCTION_HOME:-$HOME/.kiro/crew}" ~/junction-backup \
-  && rm -rf "${JUNCTION_HOME:-$HOME/.kiro/crew}"
+cp -a "${JUNCTION_HOME:-$HOME/.junction}" ~/junction-backup \
+  && rm -rf "${JUNCTION_HOME:-$HOME/.junction}"
 
 # 4. Reinstall from source (Junction has no public curl|sh CDN)
 git clone https://github.com/myrmitis/junction.git && cd junction
@@ -1010,7 +995,7 @@ For reference, the data home structure and what each uninstall path touches:
   application bundle or image leaves the data home intact.
 - A Linux `.deb` / `.rpm` removal DOES run the package's own post-remove step,
   which drops `/usr/bin/junction-desktop` and the installed AppArmor profile. It
-  deliberately leaves the data home alone: `~/.kiro/crew` holds your sessions,
+  deliberately leaves the data home alone: `~/.junction` holds your sessions,
   memory and credentials, so it is yours to remove (see
   [Removing user data](#removing-user-data)), not the package manager's.
 - App Kit uninstall preserves `apps/<name>/data/` by default. Deleting that app
@@ -1020,14 +1005,11 @@ For reference, the data home structure and what each uninstall path touches:
 
 **Windows NSIS uninstaller behavior.** `nsis.oneClick` is false and
 `nsis.deleteAppDataOnUninstall` is left false, so the uninstaller removes only
-the application install directory and its shortcuts; it never resolves or removes
-the Junction home, which lives outside the install directory. Each signed Windows
-installer must pass an install, create-sentinel-under-`~/.kiro/crew`,
-uninstall, verify-sentinel smoke test before release. A separate Kiro-family
-uninstaller could remove the parent `~/.kiro/` directory; it must exclude
-`~/.kiro/crew` or prompt explicitly. That release-blocking cross-product
-sign-off is tracked in
-[issue #355](https://github.com/myrmitis/junction/issues).
+the application install directory and its shortcuts. It never removes the data
+home. Each signed Windows installer must pass an install,
+create-sentinel-under-`~/.junction`, uninstall, verify-sentinel smoke test
+before release. An older directory Junction is still using (`~/.kiro/crew` or
+`~/.kirocrew`) is also outside the application install directory.
 
 ## Next steps
 

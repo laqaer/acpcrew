@@ -14,7 +14,7 @@ every time. L1 sits between: one consent click, then automated.
 
 ## What a green L1 run actually proves
 
-**Kiro Crew holds no token.** kiro-cli owns the OAuth chain and injects the
+**Junction holds no token.** kiro-cli owns the OAuth chain and injects the
 bearer inside its own process ([mcp-oauth-ownership.md](mcp-oauth-ownership.md)),
 so an exchange opened from the harness carries no credential for a managed
 provider, and the live endpoint answers with an OAuth challenge -- exactly as it

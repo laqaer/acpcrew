@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cloud Agent bootstrap for Kiro Crew.
+# Cloud Agent bootstrap for Junction.
 #
 # Idempotent: safe to re-run. It refreshes the frontend bundle, the backend
 # virtualenv, and the agent config from the checked-out source.

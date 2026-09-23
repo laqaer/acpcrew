@@ -305,7 +305,7 @@ def kas_stub(tmp_path, monkeypatch):
     ``KIRO_HOME`` rather than patching ``Path.home()``: it is the documented override
     and it reaches the resolver this path uses. Note its scope caveat
     (``config/paths.py``) -- today only the agents directory follows it, so it moves
-    where kiro-cli WRITES without moving where Kiro Crew reads. That is enough here,
+    where kiro-cli WRITES without moving where Junction reads. That is enough here,
     because the agents directory is the whole dependency. The rootdir conftest does NOT
     pin it: the variable outranks ``Path.home()``, and many tests isolate this resolver
     by patching that instead.

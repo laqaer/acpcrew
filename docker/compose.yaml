@@ -21,7 +21,7 @@ services:
       # TLS reverse proxy. See docs/guides/docker.md "Networking and security".
       - "127.0.0.1:5476:5476"
     volumes:
-      # One named volume persists everything: gateway state (~/.kiro/crew),
+      # One named volume persists everything: gateway state (~/.junction),
       # kiro-cli credentials, agents, skills. Named volume (not bind mount)
       # so ownership matches the image's non-root user on first use.
       - junction-home:/home/junction

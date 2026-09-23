@@ -358,7 +358,7 @@ class TestWhisperThreadCap:
 
     def test_bundled_python_env_is_still_stripped(self, monkeypatch):
         # Pre-existing contract: the out-of-band CLI runs under its own
-        # interpreter and must not import Kiro Crew's numpy/torch.
+        # interpreter and must not import Junction's numpy/torch.
         env = self._env(
             monkeypatch,
             cpus=32,

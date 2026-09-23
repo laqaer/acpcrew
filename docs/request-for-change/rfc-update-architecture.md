@@ -484,7 +484,7 @@ capability check it never had.
     ranges; a rebuilt environment downloads packages covered by nobody's
     signature. The install step needs locked, hash-pinned constraints (or a
     wheelhouse) inside the verified payload, or the provenance story covers
-    only the Kiro Crew wheel itself.
+    only the Junction wheel itself.
   - **Provenance must bind more than a digest.** The feed is unsigned; an
     actor who controls it can point at a *different* artifact with valid
     provenance from the same repo. Verification must check workflow, commit
@@ -922,7 +922,7 @@ independently; sources in the session record):
   installs. Capability is provenance; consent is policy.
 - **No comparable product exposes a machine-readable capability contract.** They
   all express this through CLI text, hidden menu items, and docs. That is not an
-  argument against §2 — Kiro Crew has one SPA talking to one backend across five
+  argument against §2 — Junction has one SPA talking to one backend across five
   materially different shapes, which none of them do — but it does mean there is
   no prior art to copy, and the contract's cost/benefit rests on that
   single-SPA-many-shapes property specifically.

@@ -1,4 +1,4 @@
-# Design — Kiro Crew App Builder Kit
+# Design — Junction App Builder Kit
 
 ## Overview
 

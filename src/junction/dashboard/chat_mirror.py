@@ -376,7 +376,7 @@ async def api_chat_slot_mirror_link(request: web.Request) -> web.Response:
         # mirrored turn is delivered in _deliver_cross_surface_reply, so a long
         # message arrives in full instead of being cut at 2,000 chars. No Slack
         # mrkdwn conversion here: this path targets Telegram/Discord/Teams.
-        speaker = "You" if row.get("role") == "user" else "Kiro Crew"
+        speaker = "You" if row.get("role") == "user" else "Junction"
         # DISPLAY form, not just the byte scan: a catch-up row reaches the channel
         # without passing a renderer, so a markdown-collapse credential would be
         # reassembled whole by the client. Same floor and same context-aware

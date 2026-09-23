@@ -197,7 +197,7 @@ previous space must be persisted as NULL rather than committed (the post-swap
 backfill re-embeds the row).
 
 This serialization is **per-process only**. It adds no conflict detection or
-notification, and it does not coordinate across separate Kiro Crew processes
+notification, and it does not coordinate across separate Junction processes
 (gateway plus a one-shot CLI), so two processes writing the same key remain
 last-write-wins.
 
@@ -274,7 +274,7 @@ Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`jun
 
 **Download flow** (`ensure_model()` / `start_background_model_download()`):
 - **Salvage fast-path** (`_salvage_legacy_ollama_blob`): before downloading, checks the legacy Ollama blob store (`~/.ollama/models/blobs/sha256-<digest>`, honoring `$OLLAMA_MODELS`) — Ollama stores layer blobs content-addressed and the Ollama-era GGUF is byte-identical, so migrating users skip the 610MB re-download entirely. The copy is sha256-verified like a real download; any failure falls through to the normal download
-- Downloads `qwen3-embedding-0.6b-q8_0.gguf` (Q8_0 quantized, 610MB) over plain HTTPS from the public Kiro Crew CDN — URL resolution order: `JUNCTION_EMBED_MODEL_URL` env var, then the `memory.embed_model_url` config knob, then the built-in `_DEFAULT_MODEL_URL` CDN constant. No git, no cloud SDK. Streaming sha256 is computed while downloading and byte-level progress (`bytes_downloaded`/`bytes_total`) is written to `status` every ~16MB for the dashboard's determinate progress bar
+- Downloads `qwen3-embedding-0.6b-q8_0.gguf` (Q8_0 quantized, 610MB) over plain HTTPS from the public Junction CDN — URL resolution order: `JUNCTION_EMBED_MODEL_URL` env var, then the `memory.embed_model_url` config knob, then the built-in `_DEFAULT_MODEL_URL` CDN constant. No git, no cloud SDK. Streaming sha256 is computed while downloading and byte-level progress (`bytes_downloaded`/`bytes_total`) is written to `status` every ~16MB for the dashboard's determinate progress bar
 - sha256-verifies the file (`06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439` — the trust anchor for every source: a tampered CDN object or mirror can only fail verification); files under `_GGUF_MIN_BYTES` (1MB) are rejected as truncated
 - Installs persistently to `~/.kiro/crew/models/qwen3-embedding-0.6b.gguf` — atomic install: stages into a per-process unique file in the TARGET directory (same filesystem) then `os.replace`, so two concurrent processes (gateway + one-shot CLI) can never interleave writes into a shared staging file
 - **Daemon-thread download** (`_run_download_on_daemon_thread`): the blocking HTTPS transfer runs on a daemon thread (deliberately NOT `run_in_executor` — executor threads are joined at interpreter exit), so Ctrl-C or a finished one-shot CLI is never pinned by an in-flight 610MB transfer
@@ -300,7 +300,7 @@ Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`jun
 |-------|-------|
 | Model | Qwen/Qwen3-Embedding-0.6B (Q8_0 GGUF) |
 | License | Apache-2.0 (on approved list for self-approval) |
-| Source | public Kiro Crew CDN (`_DEFAULT_MODEL_URL`; sha256-pinned; `JUNCTION_EMBED_MODEL_URL` / `memory.embed_model_url` for mirrors) |
+| Source | public Junction CDN (`_DEFAULT_MODEL_URL`; sha256-pinned; `JUNCTION_EMBED_MODEL_URL` / `memory.embed_model_url` for mirrors) |
 | Runtime | Vendored llama-cpp-python 0.3.34 (MIT license, `junction/_vendor/`) |
 | Data flow | Text → in-process function call → float vectors (no data leaves machine) |
 | Policy | Self-approvable under a public dataset / ML model policy |
@@ -310,11 +310,11 @@ Conditions met for self-approval:
 2. Apache-2.0 license — on approved list
 3. Outputs are float vectors — no excluded categories (health, financial, biometric, PII)
 4. Not recreating training data — generating embeddings, not content
-5. Model weights sourced from the sha256-pinned Kiro Crew release bucket (integrity-verified download at runtime)
+5. Model weights sourced from the sha256-pinned Junction release bucket (integrity-verified download at runtime)
 
 ### Why llama.cpp (not TEI)
 
-TEI (Text Embeddings Inference) uses the candle Rust framework with a Metal backend that has an [unmerged memory bug](https://github.com/huggingface/candle/pull/3197) causing unbounded GPU buffer allocation on macOS. The process consumes 4+ GB RAM and never becomes healthy. This affects ALL models on TEI/Metal, not just Qwen3. llama.cpp works correctly on all supported platforms (macOS Metal, Linux CPU) — Kiro Crew vendors it directly via llama-cpp-python, which also removes the external Ollama server the previous design depended on.
+TEI (Text Embeddings Inference) uses the candle Rust framework with a Metal backend that has an [unmerged memory bug](https://github.com/huggingface/candle/pull/3197) causing unbounded GPU buffer allocation on macOS. The process consumes 4+ GB RAM and never becomes healthy. This affects ALL models on TEI/Metal, not just Qwen3. llama.cpp works correctly on all supported platforms (macOS Metal, Linux CPU) — Junction vendors it directly via llama-cpp-python, which also removes the external Ollama server the previous design depended on.
 
 ### Lessons in Vector Memory
 
@@ -396,7 +396,7 @@ The backend `POST /api/memory/migrate` endpoint and the `junction memory migrate
 
 ### Cross-Platform
 
-macOS (Apple Silicon and Intel), Linux (x86_64, arm64/Graviton), and Windows supported. All paths use `pathlib.Path`. GGUF model downloaded over sha256-pinned HTTPS from the Kiro Crew CDN. No runtime install step — native llama.cpp libraries are vendored per platform in `_vendor/llama_cpp_libs/` and selected via `LLAMA_CPP_LIB_PATH` (the old Docker fallback is gone).
+macOS (Apple Silicon and Intel), Linux (x86_64, arm64/Graviton), and Windows supported. All paths use `pathlib.Path`. GGUF model downloaded over sha256-pinned HTTPS from the Junction CDN. No runtime install step — native llama.cpp libraries are vendored per platform in `_vendor/llama_cpp_libs/` and selected via `LLAMA_CPP_LIB_PATH` (the old Docker fallback is gone).
 
 | Platform | Vendored libs | GPU | Notes |
 |----------|--------------|-----|-------|
@@ -417,9 +417,9 @@ memory-side invariants the destination writers enforce.
 
 The selectable `memories` category covers durable memories and preferences from
 supported foreign agents. It is not a raw file-copy path. Imported values pass
-through the same Kiro Crew memory writers, key allowlists, per-entry size/count
+through the same Junction memory writers, key allowlists, per-entry size/count
 limits, injection screening, conflict resolution, deduplication, audit events,
-and active-entry caps described above. Existing Kiro Crew memories/preferences
+and active-entry caps described above. Existing Junction memories/preferences
 win on conflict; re-applying the same foreign item is idempotent through the
 shared import provenance ledger.
 
@@ -440,7 +440,7 @@ copied around those writers.
 User-authored **instruction** documents (`CLAUDE.md`, `AGENTS.md`,
 `~/.claude/rules/*.md`, a workspace's own `CLAUDE.md`) and the directive body of
 a **persona** document (`SOUL.md`) ARE in scope, and are rewritten into
-Kiro Crew's own tiers by the `instructions` category: each directive paragraph
+Junction's own tiers by the `instructions` category: each directive paragraph
 becomes a `Lesson(category="preference")` in `lessons.jsonl` — the highest-priority
 durable tier — while narrative knowledge continues to go to episodic memory via
 the `memories` category. A **foreign memory row the source types as a
@@ -449,7 +449,7 @@ tier (`_add_db_directive`) under the same identity guard and ceiling rather than
 being dropped. Import contributes at most 50 lessons
 (`_MAX_IMPORTED_LESSONS`) because `LessonStore` prunes oldest-first at 200; an
 unbounded import would silently evict the user's own accumulated corrections. What is excluded
-is the persona *role*: a foreign persona document never becomes Kiro Crew's
+is the persona *role*: a foreign persona document never becomes Junction's
 persona (that surface is theme-pack persona, gated by
 `capabilities.theme_persona`), and no foreign text is injected as system-prompt
 identity. Import MUST NOT write `preferences.md` or `projects.md` — the
@@ -889,7 +889,7 @@ Skills with auxiliary files (scripts, assets) include `dir` path so the LLM can 
 - **OFF** (`get_context(budget=None)`): the legacy global-skill dump — every unconfined on-demand skill summarized, unranked and untruncated, under the flat 165k `_CONTEXT_BUDGET_BASE`; confined project bodies retain their independent skills-section cap.
 - **ON** (`get_context(budget)`): `always: true` pinned skills are injected in full, plus a usage-ranked **top-K** of on-demand skills filled up to `budget`. Ranking is by `_rank_key` (`skills.py`) — `(usage_hits, effective_recency)` from the `SkillUsageLedger`, with a recency boost so freshly-added skills escape cold start. The long tail is left discoverable via the `skill_search` tool, the `$skillname` inline token, `cat`, and the per-message trigger auto-loader.
 
-**Usage ledger (`skill_usage.py`, `SkillUsageLedger`):** in-memory per-skill hit tally with debounced, atomic persistence to `skill-usage.json` (`SKILL_USAGE_FILENAME`, co-located with the Kiro Crew home). Entries older than a 30-day TTL (`_MAX_AGE_SECS`) are dropped on load/flush so a stale skill stops occupying a top-K slot. Hits are recorded in two places: the **body-delivery loop** in `context.py` (`_record_use`, called only after `load_skill` succeeds and the body is appended to the prompt) and in `resolve_dollar_skills`. However, since `max_triggered` defaults to 0 the body-delivery recorder is inactive in stock config — `$skillname` is the only source of hits, so lazy-load ranking is effectively recency-only unless the trigger matcher is re-enabled (`max_triggered > 0`). A trigger match alone does NOT earn a hit — only actual delivery does, so pointer-only skills and false-positive matches do not inflate the ranking. Best-effort: ledger init failure falls back to recency-only / unweighted ranking without breaking skill loading.
+**Usage ledger (`skill_usage.py`, `SkillUsageLedger`):** in-memory per-skill hit tally with debounced, atomic persistence to `skill-usage.json` (`SKILL_USAGE_FILENAME`, co-located with the Junction home). Entries older than a 30-day TTL (`_MAX_AGE_SECS`) are dropped on load/flush so a stale skill stops occupying a top-K slot. Hits are recorded in two places: the **body-delivery loop** in `context.py` (`_record_use`, called only after `load_skill` succeeds and the body is appended to the prompt) and in `resolve_dollar_skills`. However, since `max_triggered` defaults to 0 the body-delivery recorder is inactive in stock config — `$skillname` is the only source of hits, so lazy-load ranking is effectively recency-only unless the trigger matcher is re-enabled (`max_triggered > 0`). A trigger match alone does NOT earn a hit — only actual delivery does, so pointer-only skills and false-positive matches do not inflate the ranking. Best-effort: ledger init failure falls back to recency-only / unweighted ranking without breaking skill loading.
 
 **`skill_search` MCP tool (`junction-core`):** greps skill name/description then, only on a metadata miss, the skill body (bounded, tool-call only — never per message). Schema in `mcp_core.py`, validated against `SKILL_SEARCH_SCHEMA` (`validation.py`). Does NOT record usage — searching is not using. Scope is **locally installed skills only**.
 
@@ -1060,7 +1060,7 @@ caches invalidated so the next match sees the change rather than a stale parse.
 default and an absent key is the honest way to say "unchanged". It refuses any
 skill whose file resolves **outside the loader's own skills dir**: `_resolve_path`
 also reaches `skills.extra_paths` and the kiro-cli user/workspace dirs so the
-listing can show those skills, but rewriting a `SKILL.md` Kiro Crew does not own —
+listing can show those skills, but rewriting a `SKILL.md` Junction does not own —
 possibly not even writable — is a side effect nobody asked for. Ownership is
 checked before the write rather than left to the UI, which does gate on source but
 does not stand between the endpoint and a direct caller. A skill with no
@@ -1088,7 +1088,7 @@ skills that have since moved or been removed, and ranking naively by them puts a
 nonexistent skill first.
 
 It also carries `owned` — whether the `SKILL.md` sits under the directory
-Kiro Crew owns. A skill reached through `skills.extra_paths` still reports
+Junction owns. A skill reached through `skills.extra_paths` still reports
 `source: junction`, so source alone cannot gate the toggle; the UI hides the
 control when `owned` is `false` instead of offering one the writer always
 refuses. The listing's check is deliberately syscall-free (a path comparison, no
@@ -1262,7 +1262,7 @@ tool/filter, agent/scope, environment, header, credential, token, and cookie
 fields reject the whole server rather than producing a narrowed definition.
 Remote URLs with any query or fragment are rejected, even when the parameter
 name is not credential-like. Secret values themselves are never returned in
-scan/apply output or written to Kiro Crew config. If the destination
+scan/apply output or written to Junction config. If the destination
 `mcpServers` value already exists but is malformed, import reports a conflict
 and preserves it byte-for-byte. The MCP phase runs outside the dashboard config
 lock because MCP handlers take the MCP file lock before the config lock; this
@@ -1278,7 +1278,7 @@ may be ignored, but nested `tools.include` or `tools.exclude` is tool scoping an
 rejects the entire server.
 
 MCP import is merge-only. Before writing, collision detection canonicalizes
-server aliases and reserves names from every effective source: the Kiro Crew
+server aliases and reserves names from every effective source: the Junction
 data-home file, Kiro global settings, bundled/project/installed agent config,
 managed servers, and edition-contributed server/scope files. An exact or
 alias-equivalent foreign name is rejected, so a disabled import cannot shadow
@@ -1518,9 +1518,9 @@ truth and the char count is derived. `_resolve_caps(window)` rescales all of the
 message on the fallback path), not an additive section, so it is excluded from
 the sum.
 
-Beyond Kiro Crew's own assembly, kiro-cli manages its own context window:
+Beyond Junction's own assembly, kiro-cli manages its own context window:
 `_kiro.dev/compaction/status` notifications signal that it summarized older turns,
-and Kiro Crew resets its context-usage accounting at that chokepoint. Separately,
+and Junction resets its context-usage accounting at that chokepoint. Separately,
 `SessionManager` trips a circuit breaker after `_CIRCUIT_BREAKER_THRESHOLD` = 5
 consecutive turn FAILURES for a session key and resets the session; that counter
 tracks failures, not compactions.
@@ -1546,7 +1546,7 @@ A spawning parent decides which of three groups its sub-agent inherits, via `inc
 | `lessons` | `[Learned corrections]` (global + workspace), `[USER PROFILE]` | yes |
 | `project` | `[DOCUMENTATION]` pointer, steering resources (CC backend only), `[PROJECT]` directory line | yes |
 
-The steering row carries a backend caveat: the steering block is injected only on the Claude Code backend (`is_cc`), because on the ACP/kiro backend `kiro-cli --agent` loads the agent's own `resources` natively. `include_project=false` therefore suppresses steering on CC only — an ACP sub-agent still receives it, and nothing in Kiro Crew can prevent that from this call site.
+The steering row carries a backend caveat: the steering block is injected only on the Claude Code backend (`is_cc`), because on the ACP/kiro backend `kiro-cli --agent` loads the agent's own `resources` natively. `include_project=false` therefore suppresses steering on CC only — an ACP sub-agent still receives it, and nothing in Junction can prevent that from this call site.
 
 conduct is not switchable because every member is an output contract or a capability pointer: a sub-agent without the skills index cannot discover what it can do, and one without `_CRITICAL_RULES` cannot format what it reports back.
 

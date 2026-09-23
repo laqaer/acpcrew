@@ -13,7 +13,7 @@ to **your current session**. Every `interval_secs` the message is re-injected
 as your next turn. User messages defer a due fire until their turn ends but do
 NOT restart the countdown, so the loop stays on schedule even in a session the
 user is actively chatting in. You keep the full conversation context, memory,
-and tools on every cycle. Loops persist to `~/.kiro/crew/autonudge.json` and
+and tools on every cycle. Loops persist to `~/.junction/autonudge.json` and
 survive gateway restarts (the countdown resumes where it left off).
 
 Works from:
@@ -116,7 +116,7 @@ cycle, then:
 for hours and `TMPDIR` is periodically reaped by the OS, which would silently
 reset the streak — the same erasure as compaction, just a different eraser. Use
 the data home beside the loop's stop sentinel, i.e.
-`${JUNCTION_HOME:-$HOME/.kiro/crew}/workspace/.babysit-key-<loop-id>`, which is the
+`${JUNCTION_HOME:-$HOME/.junction}/workspace/.babysit-key-<loop-id>`, which is the
 convention `stop_sentinel_path` already follows and is not machine-cleaned. Write
 `$HOME`, not `~`: a tilde inside a parameter-expansion default is not expanded, so
 the literal `~` would survive and the state would land in a `~/` directory
@@ -168,7 +168,7 @@ actually armed. The applier runs after the tool returns, and its failure
 message is not visible to you, so a confident-looking success string is
 consistent with nothing being scheduled at all.
 
-Confirm against state, not the reply: read `~/.kiro/crew/autonudge.json` (or
+Confirm against state, not the reply: read `~/.junction/autonudge.json` (or
 `GET /api/autonudge`) and check the loop is present, then that `cycle_count`
 advances on the next cycle. If it never appears, no monitoring is running —
 fall back to an in-turn `wait`+poll loop and tell the user monitoring is not
@@ -215,17 +215,17 @@ script cron (zero tokens, every ~5 min)
 
 Arm it **from the session that owns the babysit** — the cron captures that
 session as its wake target; armed anywhere else, the wake lands in the wrong
-chat. Cron scripts must live under `~/.kiro/crew/crons/`, so copy the synced
+chat. Cron scripts must live under `~/.junction/crons/`, so copy the synced
 skill asset there first (re-copy on every arm — it keeps the copy current
 with skill updates):
 
 ```
-cp ~/.kiro/crew/skills/junction-dev/babysit/scripts/pr_watch.py \
-   ~/.kiro/crew/crons/pr_watch.py
+cp ~/.junction/skills/junction-dev/babysit/scripts/pr_watch.py \
+   ~/.junction/crons/pr_watch.py
 
 cron_add(
   name="pr-watch #1234",
-  script="~/.kiro/crew/crons/pr_watch.py:watch",
+  script="~/.junction/crons/pr_watch.py:watch",
   every=300,
   timeout=120,
   message='{"repo": "owner/name", "pr": 1234,
@@ -378,7 +378,7 @@ repo (do **not** `cd` into the skill folder; the scripts read which repo they ar
 talking about from your cwd):
 
 ```bash
-SKILL_DIR="${JUNCTION_HOME:-$HOME/.kiro/crew}/skills/junction-dev/prepare-pr"
+SKILL_DIR="${JUNCTION_HOME:-$HOME/.junction}/skills/junction-dev/prepare-pr"
 python3 "$SKILL_DIR/scripts/pr_status.py" <pr#>     # exit 0 clean / 10 running / 20 blocked / 2 env
 python3 "$SKILL_DIR/scripts/pr_status.py" <pr#> --json   # same exit code, plus the progress key on stdout
 python3 "$SKILL_DIR/scripts/pr_findings.py" <pr#>   # only after 20: failed steps, log tails, threads
@@ -543,7 +543,7 @@ Two limits worth knowing before you trust it on an arbitrary PR:
    the idle gap, so a 12-cycle cap took 4.1 hours. Cycle count does not bound
    spend. Budget the wall clock you would actually accept (e.g. `14400` for four
    hours) so a stalled loop dies on time rather than on arithmetic.
-3. **Confirm it armed.** Read `~/.kiro/crew/autonudge.json` and check your
+3. **Confirm it armed.** Read `~/.junction/autonudge.json` and check your
    loop is there. The tool's reply is not evidence — see above.
 4. **Tell the user monitoring is active and END YOUR TURN.** The loop wakes
    you — do not wait+poll on top of it.
@@ -573,7 +573,7 @@ monitor_start(
            gh pr view 247 --json mergeable,mergeStateStatus,reviewDecision —
            rules 6 and 7 of the babysit skill govern what each value means.
            Then run
-           python3 \"${JUNCTION_HOME:-$HOME/.kiro/crew}/skills/junction-dev/prepare-pr/scripts/pr_status.py\" 247
+           python3 \"${JUNCTION_HOME:-$HOME/.junction}/skills/junction-dev/prepare-pr/scripts/pr_status.py\" 247
            and act on its exit code, passing --json so the progress key is
            machine-comparable (10 = still running, report nothing and do not
            read bot bodies or job logs;

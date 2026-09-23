@@ -388,7 +388,7 @@ def _load_llama_class():
             logger.warning(
                 "Vendored llama.cpp install for %s is incomplete — missing %s in %s. "
                 "This is a packaging defect, not an unsupported platform; reinstall "
-                "Kiro Crew from a current release, or point %s at a complete lib "
+                "Junction from a current release, or point %s at a complete lib "
                 "directory. Memory falls back to keyword search.",
                 libs_dirname,
                 ", ".join(absent),

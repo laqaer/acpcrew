@@ -57,7 +57,7 @@ running does not reach it, and neither launchd nor systemd passes the installing
 shell's environment to the service. Put it where the gateway reads it at boot:
 
 ```bash
-P=~/.kiro/crew/.env
+P=~/.junction/.env
 touch "$P" && chmod 600 "$P"
 printf '%s\n' "KIRO_API_KEY=$KIRO_API_KEY" >> "$P"
 junction service restart   # or restart however you run the gateway
@@ -67,7 +67,7 @@ The `chmod` comes first on purpose: under a standard `022` umask a file created
 by the append alone is `0644`, and the gateway only forces `0600` the next time
 it reads it — so the key would be readable by other local users until then. The
 quoting matters for the same reason if your crew home contains a space. Every
-key in `~/.kiro/crew/.env` is loaded into the gateway's environment at startup;
+key in `~/.junction/.env` is loaded into the gateway's environment at startup;
 a bare `KIRO_API_KEY=` with no value does not count, because falsy values are
 skipped. Do not put the key in the systemd unit or in
 `/etc/junction/junction.env` — both are readable by any local user.
@@ -158,7 +158,7 @@ on another port with `JUNCTION_PORT`.
 
 ### Slack not responding
 
-- Verify `~/.kiro/crew/.env` has current `SLACK_APP_TOKEN` and
+- Verify `~/.junction/.env` has current `SLACK_APP_TOKEN` and
   `SLACK_BOT_TOKEN` values
 - Check that `JUNCTION_OWNER_ID` is your user ID **in the workspace where the
   bot is installed**. Only the owner is authorized, so a user ID copied from a
@@ -304,7 +304,7 @@ junction config set agent.completion_keep tail        # keep the conclusion
 junction config set agent.completion_keep_chars 5000  # 0 disables truncation
 ```
 
-The full transcript lives at `~/.kiro/crew/subagents/<agent_id>/result.txt` and
+The full transcript lives at `~/.junction/subagents/<agent_id>/result.txt` and
 is retained for a grace window (1 hour by default) after delivery so
 `spawn_status`, `read`, and `grep` can pull the full text before the reaper
 prunes it. Raise the window if you routinely read transcripts long after the
@@ -334,9 +334,9 @@ Tail a background gateway's output with `junction logs -f`.
 
 1. Stop the gateway: Ctrl+C, or `junction stop` if it is running detached
 2. Check the logs for the actual error: `junction logs -n 200`
-3. Reset sessions: delete `~/.kiro/crew/session_map.json`
+3. Reset sessions: delete `~/.junction/session_map.json`
 4. Fix or reset config: `junction config edit`, or delete
-   `~/.kiro/crew/config.json` to fall back to defaults
+   `~/.junction/config.json` to fall back to defaults
 5. Reconfigure from scratch: `junction setup`
 
 None of these touch `memory.db`, so your memory survives all five. To roll back

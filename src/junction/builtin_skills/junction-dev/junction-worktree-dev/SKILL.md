@@ -1,19 +1,19 @@
 ---
 name: junction-worktree-dev
-description: "HARD RULE for developing the Kiro Crew source repo ITSELF (not for users' own projects): every change is built and verified inside a git worktree, never against the live gateway. Covers worktree creation, the blocking local build gates (pytest + isort + flake8 + mypy + tsc + vitest), the built-dist gotcha, feature flags, live preview paths (dev-backend.sh or isolated pods), and the PR workflow. Use only when building, testing, switching, or verifying a change to Kiro Crew's own codebase."
+description: "HARD RULE for developing the Junction source repo ITSELF (not for users' own projects): every change is built and verified inside a git worktree, never against the live gateway. Covers worktree creation, the blocking local build gates (pytest + isort + flake8 + mypy + tsc + vitest), the built-dist gotcha, feature flags, live preview paths (dev-backend.sh or isolated pods), and the PR workflow. Use only when building, testing, switching, or verifying a change to Junction's own codebase."
 triggers: junction worktree, junction build gate, junction dev, junction source, contribute to junction, junction repo
 repo_scope: src/junction
 ---
 
-# HARD RULE: Kiro Crew development happens inside a git worktree
+# HARD RULE: Junction development happens inside a git worktree
 
 > **Scope guard: this skill applies ONLY when the working directory is the
-> Kiro Crew source repository (or a worktree of it).** If you are working in any
+> Junction source repository (or a worktree of it).** If you are working in any
 > other project, ignore this skill entirely — its rules (worktree mandate,
-> build gates, single-commit squash, force-push) are conventions of the Kiro Crew repo
+> build gates, single-commit squash, force-push) are conventions of the Junction repo
 > and may be wrong or harmful elsewhere.
 
-Every local Kiro Crew change — frontend, backend, or both — is developed, built,
+Every local Junction change — frontend, backend, or both — is developed, built,
 and verified in a dedicated **git worktree**, never by editing the live checkout
 or developing against the running gateway directly. One feature = one worktree.
 This is the single most important rule; violating it is the most common way to
@@ -21,13 +21,13 @@ waste hours.
 
 ## Rule 0 — Every change is developed in a worktree (FE + BE together)
 
-- **Every** Kiro Crew change happens in a dedicated worktree. Never edit the
+- **Every** Junction change happens in a dedicated worktree. Never edit the
   live/production checkout, and never develop against the running gateway.
-- A Kiro Crew feature spans **two layers**: `src/junction/` (backend, Python)
+- A Junction feature spans **two layers**: `src/junction/` (backend, Python)
   and `website/` (frontend, React/Vite). A worktree carries both; even a
   backend-only change lives in a worktree.
 - **Single-active model.** Making a worktree "live" swaps the *code* behind the
-  same dashboard URL and the same shared data home — `~/.kiro/crew` by default
+  same dashboard URL and the same shared data home — `~/.junction` by default
   (legacy installs auto-migrate from `~/.kirocrew` on first launch;
   `JUNCTION_HOME` overrides) — including your REAL DB and sessions. Only one
   worktree is live at a time. Be deliberate about migrations, and switch back
@@ -153,10 +153,10 @@ Build a dedicated CI-parity venv once and reuse it for every worktree
 (mypy reads config from the worktree root's `pyproject.toml`):
 
 ```bash
-python3 -m venv ~/.kiro/crew/venvs/mypy-ci
-~/.kiro/crew/venvs/mypy-ci/bin/pip install -e ".[voice]" --group dev   # from repo root; never add faiss
+python3 -m venv ~/.junction/venvs/mypy-ci
+~/.junction/venvs/mypy-ci/bin/pip install -e ".[voice]" --group dev   # from repo root; never add faiss
 # then from any worktree root:
-~/.kiro/crew/venvs/mypy-ci/bin/mypy src/junction/
+~/.junction/venvs/mypy-ci/bin/mypy src/junction/
 ```
 
 **Order matters:** if you changed frontend code, rebuild the dist (Rule 3)
@@ -218,17 +218,17 @@ the gate that lets you push.
 ## Rule 4 — Feature flags live in the active instance's `$JUNCTION_HOME/config.json`
 
 - Flags belong in the config of the instance you are actually looking at.
-  Each runtime has its own home: the live gateway uses `~/.kiro/crew/` (the
+  Each runtime has its own home: the live gateway uses `~/.junction/` (the
   default since the data-home move; legacy `~/.kirocrew` auto-migrates),
   `dev-backend.sh` uses the worktree's `.kirocrew-dev/`, and each pod has its
-  own isolated `JUNCTION_HOME`. Editing `~/.kiro/crew/config.json` while
+  own isolated `JUNCTION_HOME`. Editing `~/.junction/config.json` while
   previewing via dev-backend or a pod changes your PRODUCTION config and does
   nothing to the preview — edit the preview instance's own `config.json`.
 - Config is read live (fingerprint cache) — edits are picked up without a
   gateway restart.
 - Flags belong in config, not per-worktree code, so they persist across
   worktree switches when a worktree is made live (worktrees made live share
-  the live `~/.kiro/crew` home).
+  the live `~/.junction` home).
 - If a flagged feature "doesn't show," check the flag in the **running
   instance's** config BEFORE suspecting the bundle — an absent flag (or a flag
   set in the wrong instance's home), not a missing build, is the common cause.
@@ -244,7 +244,7 @@ step with several paths; use whichever your environment supports:
    ./dev-backend.sh
    ```
    Starts the gateway on its own dev port using `.kirocrew-dev/` as its data
-   directory (isolated from your production `~/.kiro/crew/`). It uses
+   directory (isolated from your production `~/.junction/`). It uses
    `PYTHONPATH=src` so code changes are picked up on restart. Ctrl+C to stop,
    re-run after changes.
 
@@ -276,14 +276,14 @@ git worktree at /workplace/<you>/junction-wt-<name>: ...
 
 That warning is the guard working, not a failure. Consequence to know about: the
 preview runs against the **real install's** agents and MCP servers, so it is safe
-but not self-contained — a change to Kiro Crew's own managed MCP servers
+but not self-contained — a change to Junction's own managed MCP servers
 (`mcp-core`, `mcp-cron`, `mcp-computer`) is not exercised by a worktree preview.
 Verify those with unit tests, or temporarily point the real spec at the worktree
 and put it back afterwards.
 
 **Do not reach for `KIRO_HOME` to get around this yet.** It is kiro-cli's
 directory-wide override — it moves sessions, settings, skills and steering too,
-and Kiro Crew still reads the host paths for most of those, so setting it breaks
+and Junction still reads the host paths for most of those, so setting it breaks
 session resume. Making it a real isolation switch means routing the remaining
 ~two dozen `~/.kiro/**` readers through `kiro_home()` first.
 

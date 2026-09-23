@@ -6665,7 +6665,7 @@ class TestApplyResourceLimits:
 
 
 class TestJunctionSlackAppCreateLink:
-    """Kiro Crew's OWN Slack app-create deep link survives the exfil redactor.
+    """Junction's OWN Slack app-create deep link survives the exfil redactor.
 
     ``junction manifest --url`` and ``GET /api/slack/manifest`` emit
     ``https://api.slack.com/apps?new_app=1&manifest_yaml=<encoded manifest>``.

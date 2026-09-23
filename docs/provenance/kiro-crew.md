@@ -16,8 +16,9 @@ this checkout.
 ## What stays
 
 The Python gateway, dashboard, memory, cron, skills, MCP, governance, and
-the keystone. Package identifiers stay `junction` / `JUNCTION_HOME` /
-`~/.kiro/crew` until a dedicated rename.
+the keystone. The package is `junction`, the environment prefix is
+`JUNCTION_`, and a new data home is `~/.junction`. An existing
+`~/.kiro/crew` or `~/.kirocrew` is kept when `~/.junction` is absent.
 
 `kiro-cli` remains a selectable ACP backend and is **not** required.
 

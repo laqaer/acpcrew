@@ -298,8 +298,8 @@ def _doctor_effective_model(cfg: JunctionConfig, project_dir: str, issues: list[
     print(f"  tracking:    {tracking} ({_safe_display(pinned_agent)})")
 
     # kiro-cli resolves --agent against <project>/.kiro/agents FIRST, with no
-    # upward walk, and Kiro Crew's own resolver never reads that directory. So a
-    # project-local spec can decide what actually RUNS while every Kiro Crew
+    # upward walk, and Junction's own resolver never reads that directory. So a
+    # project-local spec can decide what actually RUNS while every Junction
     # surface reports something else -- worth naming even though it is rare.
     # *project_dir* is the caller's already-resolved value (env, else the saved
     # project_dir file), so this agrees with the Project section above.
@@ -699,7 +699,7 @@ def _doctor_mcp_governance(agent_path: Path, issues: list[str]) -> None:
     This exists because the section above cannot detect either failure.
     Governance is enforced inside kiro-cli when it assembles a session: it drops
     every ``mcpServers`` entry whose registry marker does not match the account's
-    access mode. Kiro Crew's own handshake probe spawns each server directly and
+    access mode. Junction's own handshake probe spawns each server directly and
     therefore still reports it healthy, so an affected host reads green here
     while `spawn_run`, `cron_add` and `learn_add` are absent from every session.
     """
@@ -1735,8 +1735,8 @@ def _doctor_agents_janitor(issues: list[str], sweep_backups: bool) -> None:
     something broke* must not silently unlink files, including recovery backups,
     in the same invocation. Actual deletion is left to the fire-and-forget boot
     sweep, and the report mirrors that sweep's scope: backups are only counted
-    when ``agent.sweep_agents_backups`` is enabled (*sweep_backups*), since Kiro
-    Crew authors none of them and the boot sweep leaves foreign backups alone by
+    when ``agent.sweep_agents_backups`` is enabled (*sweep_backups*), since Junction
+    authors none of them and the boot sweep leaves foreign backups alone by
     default. Advisory only (never appended to ``issues``): reclaimable junk is
     housekeeping, not a setup fault, and the scan is fail-open so it can never
     abort the run.
@@ -1832,7 +1832,7 @@ def _discord_msg_content_line(
 
 
 def _discord_unused_intent_line(label: str, name: str, state: str) -> None:
-    """Flag a privileged intent nothing in Kiro Crew reads, if it is granted.
+    """Flag a privileged intent nothing in Junction reads, if it is granted.
 
     Silent when the intent is off (the wanted state) or unknown (the probe
     already reported that once), so this line only ever appears when there is
@@ -2757,7 +2757,7 @@ def _doctor(
                 _age_h = _age_s / 3600
                 print(f"  last dump:   ⚠️  {_latest.name} ({_age_h:.1f}h ago)")
                 # 8 lines = preamble + thread header + ~6 frames: enough to
-                # reach past the asyncio plumbing into the Kiro Crew frame
+                # reach past the asyncio plumbing into the Junction frame
                 # that identifies WHERE the loop wedged.
                 _stack = dump_first_stack_lines(_latest, max_lines=8)
                 if _stack:

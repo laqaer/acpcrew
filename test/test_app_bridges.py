@@ -1445,7 +1445,7 @@ class TestStdioInterpreterResolution:
     def test_a_gateway_module_server_is_pinned_to_the_gateway_interpreter(
         self, tmp_path, app_env, monkeypatch
     ):
-        # A stdio server that runs Kiro Crew's OWN code (`-m junction...`) must
+        # A stdio server that runs Junction's OWN code (`-m junction...`) must
         # run under the gateway's interpreter even when the app has a venv: app
         # venvs are created without --system-site-packages, so junction is not
         # importable there and the venv interpreter dies on import — silently,

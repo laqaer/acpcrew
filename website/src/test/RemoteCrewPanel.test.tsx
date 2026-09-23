@@ -49,7 +49,7 @@ async function openRowMenu(u: ReturnType<typeof userEvent.setup>, name: RegExp =
 
 const CLOUD_INSTANCE = {
   id: 'kc1',
-  name: 'Kiro Crew Cloud (kc-3f9a)',
+  name: 'Junction Cloud (kc-3f9a)',
   connection_method: 'ssm' as const,
   ssm_target: 'i-0abc123456789def0',
   ssh_host: '',
@@ -89,7 +89,7 @@ const RUNNING_JOB = {
   steps: [
     { key: 'preflight', label: 'Checked your AWS setup', state: 'done' as const },
     { key: 'provision', label: 'Created the instance', state: 'done' as const },
-    { key: 'install', label: 'Installing Kiro Crew', state: 'active' as const },
+    { key: 'install', label: 'Installing Junction', state: 'active' as const },
     { key: 'connect', label: 'Connect', state: 'pending' as const },
   ],
 }
@@ -131,7 +131,7 @@ describe('RemoteCrewPanel', () => {
     // Once known, it is correctly a cloud row: Stop + the two-step Delete, no plain Remove.
     expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
     await openRowMenu(u)
-    expect(screen.getByRole('menuitem', { name: 'Stop Kiro Crew Cloud (kc-3f9a)' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Stop Junction Cloud (kc-3f9a)' })).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: /^Remove/i })).not.toBeInTheDocument()
   })
 
@@ -186,7 +186,7 @@ describe('RemoteCrewPanel', () => {
 
     // The trash is confirm-gated, and the warning states what Remove does NOT do.
     await openRowMenu(u)
-    await u.click(screen.getByRole('menuitem', { name: /Remove Kiro Crew Cloud/i }))
+    await u.click(screen.getByRole('menuitem', { name: /Remove Junction Cloud/i }))
     expect(await screen.findByText(/keeps running and billing/i)).toBeInTheDocument()
     expect(api.removeInstance).not.toHaveBeenCalled()
   })
@@ -336,7 +336,7 @@ describe('RemoteCrewPanel', () => {
     renderWithProviders(<RemoteCrewPanel />)
 
     await openRowMenu(u)
-    await u.click(await screen.findByRole('menuitem', { name: /^Start Kiro Crew Cloud/i }))
+    await u.click(await screen.findByRole('menuitem', { name: /^Start Junction Cloud/i }))
     await waitFor(() => expect(api.cloudStart).toHaveBeenCalledWith('kc-3f9a', expect.anything()))
   })
 
@@ -366,9 +366,9 @@ describe('RemoteCrewPanel', () => {
     renderWithProviders(<RemoteCrewPanel />)
 
     await openRowMenu(u)
-    await u.click(await screen.findByRole('menuitem', { name: /^Stop Kiro Crew Cloud/i }))
+    await u.click(await screen.findByRole('menuitem', { name: /^Stop Junction Cloud/i }))
     // While in flight the clicked button reports progress rather than still saying "Stop".
-    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop Kiro Crew Cloud/i })).toHaveTextContent('…'))
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop Junction Cloud/i })).toHaveTextContent('…'))
     release({ ok: true })
   })
 
@@ -383,7 +383,7 @@ describe('RemoteCrewPanel', () => {
     renderWithProviders(<RemoteCrewPanel />)
 
     await openRowMenu(u)
-    await u.click(await screen.findByRole('menuitem', { name: /^Delete Kiro Crew Cloud/i }))
+    await u.click(await screen.findByRole('menuitem', { name: /^Delete Junction Cloud/i }))
     await u.click(await screen.findByRole('button', { name: /^Confirm deleting/i }))
     await waitFor(() => expect(api.cloudDestroy).toHaveBeenCalledWith('kc-3f9a', expect.anything()))
     // The row now reflects the in-flight teardown and cannot be re-triggered.
@@ -431,8 +431,8 @@ describe('RemoteCrewPanel', () => {
     // Cloud row carries the cloud attribution + a Stop control; manual row does not.
     expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
     expect(screen.getByText(/does not manage this machine/i)).toBeInTheDocument()
-    await openRowMenu(u, /More actions for Kiro Crew Cloud/i)
-    expect(screen.getByRole('menuitem', { name: 'Stop Kiro Crew Cloud (kc-3f9a)' })).toBeInTheDocument()
+    await openRowMenu(u, /More actions for Junction Cloud/i)
+    expect(screen.getByRole('menuitem', { name: 'Stop Junction Cloud (kc-3f9a)' })).toBeInTheDocument()
 
     // The still-launching job shows a "Setting up" row with step progress + the note.
     expect(screen.getByText(/Setting up/)).toBeInTheDocument()
@@ -549,6 +549,6 @@ describe('RemoteCrewPanel', () => {
     await u.click(launch)
     await waitFor(() => expect(api.cloudLaunch).toHaveBeenCalledWith({ profile: '', region: 'us-east-1', size_key: 'balanced' }))
     // Progress card polls the job and renders its steps.
-    expect(await screen.findByText('Installing Kiro Crew')).toBeInTheDocument()
+    expect(await screen.findByText('Installing Junction')).toBeInTheDocument()
   })
 })

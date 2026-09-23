@@ -42,7 +42,7 @@ def die(msg: str) -> NoReturn:
     sys.exit(1)
 
 
-# State lives under the ACTIVE data home, not a hardcoded ~/.kiro/crew, so a
+# State lives under the ACTIVE data home, not a hardcoded ~/.junction, so a
 # dev instance (JUNCTION_HOME=~/.kirocrew-dev) keeps its own pidfiles instead of
 # sharing mirror state with a production install.
 def _resolve_home() -> Path:

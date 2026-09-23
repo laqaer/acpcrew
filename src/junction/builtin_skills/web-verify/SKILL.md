@@ -41,13 +41,13 @@ a panel session that did not exist.
 > file is already oversized, downscale it BEFORE reading it:
 >
 > ```bash
-> python3 "${JUNCTION_HOME:-$HOME/.kiro/crew}/skills/web-verify/scripts/downscale_image.py" "/abs/path/shot.png"
+> python3 "${JUNCTION_HOME:-$HOME/.junction}/skills/web-verify/scripts/downscale_image.py" "/abs/path/shot.png"
 > ```
 >
 > On native Windows, run the same script with that machine's launcher (`py` or
 > `python`); the script itself is OS-agnostic. It takes paths as arguments (so a
 > path with an apostrophe or a space is the shell's problem, not the script's),
-> rewrites only files actually over the cap, and re-execs itself under Kiro Crew's
+> rewrites only files actually over the cap, and re-execs itself under Junction's
 > own venv interpreter when the Python you invoked has no Pillow.
 >
 > The error is asymmetric, which is why the cap is not a nicety: downscaling only
@@ -79,7 +79,7 @@ to the other two backends unchanged; only the navigate and screenshot calls diff
 ## Steps
 
 1. **Get a loopback URL serving your change.** Never the live gateway. For the
-   Kiro Crew repo that means an isolated instance from the worktree you edited
+   Junction repo that means an isolated instance from the worktree you edited
    (`./dev-backend.sh`, or `junction pod up <worktree> --json` for a
    `{base_url, token}` handle: see the `junction-worktree-dev` and `pod-e2e`
    skills). For a user's own project it is their dev server (`npm run dev`, and so
@@ -93,7 +93,7 @@ to the other two backends unchanged; only the navigate and screenshot calls diff
    verifies nothing. The command prints the page URL, the title, and a snapshot
    path, which is enough to confirm you landed on the right page without opening
    the YAML. **Expect one approval prompt here.** Navigation to loopback is not
-   auto-approved: every local control plane lives there, Kiro Crew's own
+   auto-approved: every local control plane lives there, Junction's own
    dashboard included, and driving that dashboard is how an agent would widen its
    own permissions. Approve it and carry on — the prompt is the boundary working,
    not a broken install. Everything after it (`snapshot`, `click`, `screenshot`)

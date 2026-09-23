@@ -386,7 +386,11 @@ class TestTokenMint:
             build_remote_token_command("", ttl="20h", port=99999)
 
     def test_token_command_prefers_run_marker_for_port(self):
-        from junction.config.paths import CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME
+        from junction.config.paths import (
+            CONFIG_DIR_NAME,
+            LEGACY_CONFIG_DIR_NAME,
+            PRIOR_CONFIG_DIR_NAME,
+        )
         from junction.instances.token_mint import (
             build_candidate_command,
             build_remote_token_command,
@@ -395,20 +399,22 @@ class TestTokenMint:
         # empty remote_bin + port -> run-marker clause runs BEFORE the candidate
         # ladder, keyed by the same port, and execs the recorded launcher. The
         # marker is probed under each candidate data home (JUNCTION_HOME override,
-        # the current default, then the legacy home) so a migrated remote whose
-        # non-interactive SSH shell doesn't export JUNCTION_HOME still hits the
-        # marker written under the new default home. The default/legacy home
-        # segments are asserted via the SHARED config.paths constants (not
-        # re-hardcoded literals) so that re-hardcoding — the read/write desync
-        # this fix closes — fails this test loudly at PR time.
+        # the current default, the previous home, then the older top-level home)
+        # so a remote whose non-interactive SSH shell doesn't export JUNCTION_HOME
+        # still hits the marker. The home segments are asserted via the SHARED
+        # config.paths constants (not re-hardcoded literals) so that
+        # re-hardcoding — the read/write desync this fix closes — fails this
+        # test loudly at PR time.
         default_marker = f'"$HOME/{CONFIG_DIR_NAME}/run/gateway-7879.bin"'
+        prior_marker = f'"$HOME/{PRIOR_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
         legacy_marker = f'"$HOME/{LEGACY_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
         cmd = build_remote_token_command("", ttl="20h", port=7879)
         assert '"${JUNCTION_HOME:+$JUNCTION_HOME/run/gateway-7879.bin}"' in cmd
         assert default_marker in cmd
+        assert prior_marker in cmd
         assert legacy_marker in cmd
-        # new default home is probed before the legacy home
-        assert cmd.index(default_marker) < cmd.index(legacy_marker)
+        # current home, then the previous home, then the older top-level home
+        assert cmd.index(default_marker) < cmd.index(prior_marker) < cmd.index(legacy_marker)
         assert 'exec "$__kb" token --ttl 20h --port 7879;' in cmd
         assert cmd.index("for __mk in ") < cmd.index("for b in ")  # marker tried first
         # it still falls through to the candidate ladder (older remotes/no marker)

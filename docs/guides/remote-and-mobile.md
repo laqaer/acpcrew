@@ -71,7 +71,7 @@ is `acp`. `agent.acp_backend` defaults to `auto`. A vendor agent CLI is
 optional — install one only when you want that harness. Junction does not
 sign you into a vendor account.
 
-The credentials Junction itself reads from `~/.kiro/crew/.env` are chat-platform
+The credentials Junction itself reads from `~/.junction/.env` are chat-platform
 and owner-identity credentials (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
 `JUNCTION_OWNER_ID`, and the equivalents for Discord / Telegram / Teams / WeCom
 / Webex). Model credentials stay with the harness or the optional model-plane
@@ -157,13 +157,13 @@ What matters, and where it lives:
 
 | Category | Path | Why |
 |---|---|---|
-| Structured memory | `~/.kiro/crew/workspace/memory/` | `preferences.md`, `projects.md`, daily `history/` |
-| Vector + FTS databases | `~/.kiro/crew/memory.db`, `memory_index.db` | Semantic/episodic memory (`vector_memory.py`) and the FTS5 index (`memory.py`) |
-| Lessons | `~/.kiro/crew/memory.db`, falling back to `lessons.jsonl` | See the note below |
-| Config | `~/.kiro/crew/config.json` | Chat-platform tokens, model prefs, dashboard settings |
-| Skills | `~/.kiro/crew/skills/` | Custom skill definitions |
-| Webhook hooks | `~/.kiro/crew/hooks.json` | Script-hook definitions (`hooks.py` `ScriptHookStore`) |
-| Cron jobs | `~/.kiro/crew/crons.json` | Scheduled recurring jobs (`cron.py`) |
+| Structured memory | `~/.junction/workspace/memory/` | `preferences.md`, `projects.md`, daily `history/` |
+| Vector + FTS databases | `~/.junction/memory.db`, `memory_index.db` | Semantic/episodic memory (`vector_memory.py`) and the FTS5 index (`memory.py`) |
+| Lessons | `~/.junction/memory.db`, falling back to `lessons.jsonl` | See the note below |
+| Config | `~/.junction/config.json` | Chat-platform tokens, model prefs, dashboard settings |
+| Skills | `~/.junction/skills/` | Custom skill definitions |
+| Webhook hooks | `~/.junction/hooks.json` | Script-hook definitions (`hooks.py` `ScriptHookStore`) |
+| Cron jobs | `~/.junction/crons.json` | Scheduled recurring jobs (`cron.py`) |
 
 > **Where lessons actually live.** Both stores exist and the vector store wins
 > when it holds anything. `learn.py` appends to `<config_dir>/lessons.jsonl`,
@@ -175,21 +175,21 @@ What matters, and where it lives:
 
 What NOT to carry over:
 
-- `~/.kiro/crew/kiro_pids.txt`, `kiro_session_pids.txt`, and the
+- `~/.junction/kiro_pids.txt`, `kiro_session_pids.txt`, and the
   `session_pid_<pid>.txt` / `.sig` sidecars: live PID tracking
   (`session_pid.py`), meaningless on another host and actively misleading if
   copied.
-- `~/.kiro/crew/security_events.jsonl`: the tamper-evident SEL audit chain
+- `~/.junction/security_events.jsonl`: the tamper-evident SEL audit chain
   (`sel.py`); it belongs to the host that wrote it.
-- `~/.kiro/crew/.env`, `.local_secret`, `sel_hmac.key`: secrets. Re-enter the
+- `~/.junction/.env`, `.local_secret`, `sel_hmac.key`: secrets. Re-enter the
   `.env` credentials with `junction setup`; the other two are regenerated.
 
 Keeping two hosts loosely in sync afterwards is just rsync (replace the SSH
 target):
 
 ```bash
-alias mc-sync='rsync -avz ~/.kiro/crew/workspace/memory/ user@your-host.example.com:~/.kiro/crew/workspace/memory/ \
-  && rsync -avz ~/.kiro/crew/memory.db ~/.kiro/crew/memory_index.db user@your-host.example.com:~/.kiro/crew/'
+alias mc-sync='rsync -avz ~/.junction/workspace/memory/ user@your-host.example.com:~/.junction/workspace/memory/ \
+  && rsync -avz ~/.junction/memory.db ~/.junction/memory_index.db user@your-host.example.com:~/.junction/'
 ```
 
 Run it only while both gateways are stopped, or you will copy a live WAL-mode
@@ -415,7 +415,7 @@ A shared corporate tailnet is not a private network — every member who can rea
 the Serve endpoint is inside your trust boundary, so keep the ACL narrow.
 
 For the tunnel providers above (cloudflared / ngrok / Funnel) set the URL in
-`~/.kiro/crew/config.json` and restart:
+`~/.junction/config.json` and restart:
 
 ```json
 {
@@ -545,7 +545,7 @@ dead and you need a fresh one.
   scheduling refreshes; the mint screen appears once the remaining access session
   runs out.
 
-Chains persist in `~/.kiro/crew/refresh_chains.json` (mode `0600`), so they
+Chains persist in `~/.junction/refresh_chains.json` (mode `0600`), so they
 survive a gateway restart. On a gateway old enough to predate the feature,
 `GET /api/auth/me` returns 404; the frontend logs once and falls back to the
 20-hour URL-mint behaviour.

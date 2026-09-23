@@ -140,7 +140,7 @@ class KnowledgeWatcher:
         Runs every sweep so a project opened after startup is picked up without a
         restart. Gated on ``knowledge.auto_register_project_docs``; re-reads
         config each sweep so toggling the flag takes effect immediately, matching
-        Kiro Crew's live-config behaviour. Never raises into the sweep: a
+        Junction's live-config behaviour. Never raises into the sweep: a
         discovery failure must not stop registered sources from being scanned.
         """
         try:

@@ -372,7 +372,7 @@ def _build_caller_block(channel_id: Optional[str]) -> dict[str, str]:
     # Diagnostic identity only — the OS user. USERNAME is the Windows spelling
     # of USER; check both so this dimension is not empty on one platform.
     # (A ``JUNCTION_PRINCIPAL`` override existed historically but nothing ever
-    # set it — Kiro Crew is single-operator, so it was deleted.)
+    # set it — Junction is single-operator, so it was deleted.)
     principal = (
         os.environ.get("USER") or os.environ.get("USERNAME") or ""
     )

@@ -3,7 +3,7 @@
 Adapts the supervised-child + state-machine design of
 ``junction.tunnel.manager.TunnelManager`` (which points *outward* to expose the
 dashboard) to point *inward*: for each connected remote instance it supervises a
-local child process that forwards a loopback port to the remote Kiro Crew's
+local child process that forwards a loopback port to the remote Junction's
 dashboard port, over one of two transports (``Instance.connection_method``):
 
 * ``"ssh"`` (default): ``ssh -N -L 127.0.0.1:LP:127.0.0.1:RP <ssh_host>``.
@@ -1975,7 +1975,7 @@ class SshTunnelManager:
         return diag
 
     async def restart_remote(self, instance_id: str) -> dict:
-        """Restart the remote Kiro Crew gateway over the instance's transport.
+        """Restart the remote Junction gateway over the instance's transport.
 
         Uses the remote ``junction restart`` (itself systemd/launchd-aware),
         resolved via the run-marker first (the running gateway's own launcher,
@@ -2169,7 +2169,7 @@ class SshTunnelManager:
                             # user cannot act on.
                             return False, {
                                 "error": (
-                                    "instance is running an older Kiro Crew that cannot "
+                                    "instance is running an older Junction that cannot "
                                     "receive sessions — update it, then reconnect"
                                 ),
                                 "code": "transfer_peer_too_old",

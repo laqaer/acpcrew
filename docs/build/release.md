@@ -1,6 +1,6 @@
 # Release Reference
 
-The single reference for how a Kiro Crew release is cut, what CI does at each
+The single reference for how a Junction release is cut, what CI does at each
 step, where the artifacts land, and how to verify one.
 
 Ownership boundary: [CONTRIBUTING.md](../../CONTRIBUTING.md) → "Releasing New
@@ -683,7 +683,7 @@ promoted-stable install to the insider feed. The consequences to know:
   (`stampedChannel`), not on the followed channel, because that statement is
   about the bytes and stays literally true on a promoted stable install.
 
-The specific to Kiro Crew part is install ordering: the app supervises a bundled
+The specific to Junction part is install ordering: the app supervises a bundled
 Python gateway child, so before `quitAndInstall` the client stops it gracefully
 (`POST /api/shutdown`, then SIGTERM, then SIGKILL) and disarms the liveness
 watchdog that would otherwise resurrect it mid-swap. Choosing "Later" defers to

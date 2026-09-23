@@ -1,4 +1,4 @@
-"""Session transfer — copy a session between Kiro Crew instances.
+"""Session transfer — copy a session between Junction instances.
 
 Two halves live here:
 

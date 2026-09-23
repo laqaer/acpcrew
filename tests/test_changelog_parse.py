@@ -10,7 +10,7 @@ from junction.changelog import base_version, build_release_list, parse_sections,
 # and preamble before the first section, and h3 subsections inside the body.
 REAL_SHAPE = """# Changelog
 
-All notable changes to Kiro Crew are documented in this file.
+All notable changes to Junction are documented in this file.
 
 ## [0.1.2] — 2026-07-30
 

@@ -447,7 +447,7 @@ async def _handle_incidents(request: web.Request) -> web.StreamResponse:
 def _slack_client(request: web.Request) -> Any | None:
     """The gateway's live Slack client, or None when Slack is not configured.
 
-    Passed explicitly into slack_out rather than fetched from a global: Kiro Crew
+    Passed explicitly into slack_out rather than fetched from a global: Junction
     has no global state accessor, and an explicit dependency is testable.
     """
     return slack_out.client_from_state(request.app.get("state"))
@@ -1750,7 +1750,7 @@ async def _handle_put_settings(request: web.Request) -> web.StreamResponse:
 
     # Slack output. A channel ID is not a credential, so it belongs here rather
     # than in the secret store — and this app stores no Slack token at all, it
-    # reuses Kiro Crew's own client (see slack_out for why).
+    # reuses Junction's own client (see slack_out for why).
     if slack_enabled is not None:
         await asyncio.to_thread(slack_out.set_settings, enabled=slack_enabled)
         applied["slack_enabled"] = slack_enabled

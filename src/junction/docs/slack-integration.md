@@ -169,7 +169,7 @@ your own workspace.
    `message.groups`, `app_mention`, `app_home_opened`, `file_change`, and
    `member_joined_channel`. Install or reinstall the app to grant the scopes and
    get the bot token (`xoxb-`).
-5. **Set credentials** in `~/.kiro/crew/.env` (`SLACK_APP_TOKEN`,
+5. **Set credentials** in `~/.junction/.env` (`SLACK_APP_TOKEN`,
    `SLACK_BOT_TOKEN`, `JUNCTION_OWNER_ID`).
 6. **Slash command** (optional) — the command name is configurable via
    `slack.command` in config.json (default: `junction`). Each app instance

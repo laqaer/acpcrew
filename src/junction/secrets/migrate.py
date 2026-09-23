@@ -1,6 +1,6 @@
 """One-time importer that moves plaintext Jira ``.env`` tokens into the vault.
 
-Kiro Crew stored the Jira API token as a plaintext ``KEY=VALUE`` line in the
+Junction stored the Jira API token as a plaintext ``KEY=VALUE`` line in the
 data home's ``.env`` (``~/.kiro/crew/.env``). The encrypted vault
 (:class:`~junction.secrets.SecretVault`) supersedes that store, and the
 ``secret://`` resolver / vault-aware Jira consumer reads the secret without
@@ -613,7 +613,7 @@ def format_report(report: MigrationReport) -> str:
             lines.append("")
             lines.append("The original values were REWRITTEN in place to secret:// references;")
             lines.append("the plaintext is no longer present for these keys. Any values that")
-            lines.append("Kiro Crew does not recognize as credentials were left untouched. If")
+            lines.append("Junction does not recognize as credentials were left untouched. If")
             lines.append(f"you keep a backup of {ep}, delete the plaintext copy once verified.")
 
     if report.already_referenced:

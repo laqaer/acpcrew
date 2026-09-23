@@ -235,14 +235,14 @@ chat. Read the [security architecture](docs/architecture/security-deep-dive.md) 
 
 **Installer details.** The installer resolves the channel feed, verifies the wheel's SHA-256 against
 the published manifest, installs through `pipx` when available or a managed
-virtual environment at `~/.kiro/crew-venv` (beside the data home; override with
-`JUNCTION_VENV`), and records the channel in `~/.kiro/crew/channel`. The channels
+virtual environment at `~/.junction-venv` (beside the data home; override with
+`JUNCTION_VENV`), and records the channel in `~/.junction/channel`. The channels
 are `stable`, `insider`, and `nightly`, and `JUNCTION_CHANNEL` sets the default.
 On Linux and macOS, when the system lacks a Python 3.10+ interpreter the
 installer provisions one itself — no package manager, no sudo: it downloads a
 SHA-256-pinned [uv](https://docs.astral.sh/uv/) binary (or uses your installed
 `uv`) and installs a python-build-standalone CPython 3.12 into
-`~/.kiro/crew-python`. Pass `--managed-python` to always use the provisioned
+`~/.junction-python`. Pass `--managed-python` to always use the provisioned
 interpreter and skip the system ones. The
 signed installer never pipes an unsigned third-party script into a shell.
 
@@ -258,7 +258,7 @@ pip install .
 
 **Semantic memory.** Semantic memory needs no setup. Embeddings run in-process, and the Gateway
 downloads its embedding model in the background on first start, verifies it,
-and stores it under `~/.kiro/crew/models`. Until the model lands, memory search
+and stores it under `~/.junction/models`. Until the model lands, memory search
 falls back to keyword search and picks up embeddings automatically without a
 restart. Set `JUNCTION_EMBED_MODEL_URL` to point at a mirror for airgapped
 installs.
@@ -272,7 +272,7 @@ and chat surfaces connect to that Gateway.
 
 | Deployment | How to run it | Where Junction and its state live |
 |---|---|---|
-| **Mac app, local** | Install or build the desktop app with `make desktop` | The app starts its bundled Gateway. Agent sessions, ACP processes, and `~/.kiro/crew` stay on your Mac. |
+| **Mac app, local** | Install or build the desktop app with `make desktop` | The app starts its bundled Gateway. Agent sessions, ACP processes, and `~/.junction` stay on your Mac. |
 | **Native local** | `make build`, or install a wheel from `make wheel` | The Gateway and agent runtime run directly on your macOS, Linux, or Windows machine. |
 | **Local container** | Build from this checkout and persist the data home | The Gateway and agent runtime run in a container on your machine. |
 | **Remote hardware** | Follow the [remote host guide](docs/guides/remote-and-mobile.md) and install the service | The Gateway, agent sessions, and state run continuously on your Linux server, home lab, or cloud instance. Connect the desktop app or browser through an SSH tunnel. |
@@ -313,7 +313,7 @@ always-on VPS, home server, or cloud VM in your account, follow the
 [remote host guide](docs/guides/remote-and-mobile.md). Junction does not require a
 Junction-hosted control plane.
 
-**Configure it.** User data lives under `~/.kiro/crew` by default. Manage the
+**Configure it.** User data lives under `~/.junction` by default. Manage the
 main configuration with `junction config get`, `set`, and `edit`.
 
 ```json
@@ -336,12 +336,12 @@ main configuration with `junction config get`, `set`, and `edit`.
 `agent.provider` is fixed to `acp`. The gateway drives an ACP runtime over the
 Agent Client Protocol (a vendor agent CLI is optional). Set the dashboard port with `JUNCTION_PORT` or
 `junction up --port <n>`. Messaging-channel credentials (Slack, Discord,
-Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
+Telegram, and the rest) live in `~/.junction/.env` rather than the JSON config.
 
 **Troubleshoot quickly.** Start with `junction doctor --quick`, then `junction doctor`. For an ACP timeout,
 confirm an ACP runtime is installed (`junction planes`), then allow extra time for the
 first MCP startup. For memory search, check that the embedding
-model finished downloading under `~/.kiro/crew/models`. For a stale MCP configuration, run
+model finished downloading under `~/.junction/models`. For a stale MCP configuration, run
 `junction setup --agent-only`, or add `--clean` to rebuild it.
 
 **Find the logs.** When you need to debug, the fastest path is
@@ -353,15 +353,15 @@ gateway log otherwise. Raise verbosity with `junction up -v` (INFO:
 session lifecycle and context usage) or `-vv` (DEBUG: full ACP events and
 message traces); set the persistent default with
 `junction config set agent.log_level`, or change it at runtime from the
-dashboard **Logs** page. Under `~/.kiro/crew` (or your `JUNCTION_HOME`) you can
+dashboard **Logs** page. Under `~/.junction` (or your `JUNCTION_HOME`) you can
 also read the raw files directly:
 
 | File | What it holds |
 |---|---|
-| `~/.kiro/crew/gateway.log` | Main gateway log when running in the foreground. |
-| `~/.kiro/crew/security_events.jsonl` | Append-only security and tool-access events. Inspect with `junction security events`, `audit`, and `verify`. |
-| `~/.kiro/crew/audit.log` | Human-readable audit trail of privileged operations. |
-| `~/.kiro/crew/subagents/<agent_id>/result.txt` | Full transcript of a completed subagent, kept for a grace window after it finishes. |
+| `~/.junction/gateway.log` | Main gateway log when running in the foreground. |
+| `~/.junction/security_events.jsonl` | Append-only security and tool-access events. Inspect with `junction security events`, `audit`, and `verify`. |
+| `~/.junction/audit.log` | Human-readable audit trail of privileged operations. |
+| `~/.junction/subagents/<agent_id>/result.txt` | Full transcript of a completed subagent, kept for a grace window after it finishes. |
 
 See the [Troubleshooting guide](src/junction/docs/troubleshooting.md) for the
 full log-level reference and emergency recovery steps.
@@ -430,7 +430,7 @@ address. The receiving CDN is configured **not to log client IP addresses** — 
 log delivery does not include that field, so no IP is stored at all.
 
 **Automatically off** in CI, and whenever `JUNCTION_HOME` points somewhere other
-than `~/.kiro/crew` (dev instances and pods are never counted).
+than `~/.junction` (dev instances and pods are never counted).
 
 **Enterprise administrators can pin it off entirely.** A `capabilities.telemetry`
 entry in the security policy blocks both outbound signals regardless of the local

@@ -79,7 +79,7 @@ _LINE_FLUSH_LEN = 200
 class _LineBuffer:
     """Coalesce a stream of tiny text chunks into COHERENT lines for the activity feed.
 
-    The Kiro Crew provider streams assistant text as many sub-word fragments ("ismatched-",
+    The Junction provider streams assistant text as many sub-word fragments ("ismatched-",
     "ncation would"). Emitting one feed event per fragment makes the live log unreadable
     (the exact symptom the user reported). This buffers fragments and flushes a line only
     on a real boundary — a newline, a sentence end (``. ``/``! ``/``? ``), or when the
@@ -703,7 +703,7 @@ class AgentRunner:
         # such need and runs `--dangerously-skip-permissions`, so it should see no
         # credential dir at all. Verified on this host that "standard" left ~/.aws
         # readable to the child; "strict" hides it (+ .gnupg, gh, gcloud, kube, …).
-        # strip_python_env so the agent's own tooling can't inherit Kiro Crew's interpreter
+        # strip_python_env so the agent's own tooling can't inherit Junction's interpreter
         # paths and import from this process's tree.
         sandboxed, scrubbed_env, cleanup = sandboxed_spawn_argv(
             list(cmd),
@@ -1117,9 +1117,9 @@ def _summarize_stream_event(obj: dict) -> dict | None:
 
 
 class SessionAgentRunner:
-    """A backend-AGNOSTIC agent runner that drives a Kiro Crew **provider/session** instead
+    """A backend-AGNOSTIC agent runner that drives a Junction **provider/session** instead
     of shelling out to ``claude -p`` directly (task #23). The provider is whatever the
-    Kiro Crew config selects (whichever LLM provider backend the user configured), so ANY
+    Junction config selects (whichever LLM provider backend the user configured), so ANY
     backend can power the autonomous loop — not just a single CLI on PATH.
 
     It matches :class:`AgentRunner`'s surface exactly (``run`` → :class:`AgentResult`,
@@ -1160,7 +1160,7 @@ class SessionAgentRunner:
         self._total_cost_usd = 0.0
         self._stop_check = stop_check
         self._on_activity = on_activity if callable(on_activity) else None
-        # The Kiro Crew provider factory (``cfg.create_provider_factory()``). Injectable for
+        # The Junction provider factory (``cfg.create_provider_factory()``). Injectable for
         # tests; resolved lazily from config when None so importing this module never loads
         # the whole config/provider stack.
         self._provider_factory = provider_factory
@@ -1171,7 +1171,7 @@ class SessionAgentRunner:
 
     @staticmethod
     def available() -> bool:
-        """True iff a Kiro Crew provider factory can be built (a backend is configured).
+        """True iff a Junction provider factory can be built (a backend is configured).
         Lets the backend prefer this runner and fall back to the subprocess ``claude -p``
         runner only when no provider is available."""
         try:
@@ -1283,7 +1283,7 @@ class SessionAgentRunner:
             )
         if factory is None:
             return AgentResult(
-                ok=False, error="no Kiro Crew provider configured", duration_s=time.monotonic() - t0
+                ok=False, error="no Junction provider configured", duration_s=time.monotonic() - t0
             )
         try:
             return asyncio.run(
@@ -1687,7 +1687,7 @@ def author_bug_fix(
             "Replace <test_path> with the test file (or file::case) you are running.\n"
         )
     prompt = (
-        "You are the implementation step of an autonomous Kiro Crew BUG-fix loop.\n"
+        "You are the implementation step of an autonomous Junction BUG-fix loop.\n"
         f"Working dir is an isolated git worktree: {worktree}\n"
         "Investigate this candidate defect surface and, ONLY IF a real defect exists, "
         "fix it:\n"

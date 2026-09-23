@@ -656,9 +656,9 @@ class TestBrowserHostedDashboardIsRefused:
     @pytest.mark.parametrize(
         "title",
         [
-            "Kiro Crew",  # the plain tab title
-            "(3) Kiro Crew",  # the unread-badge prefix (App.tsx)
-            "Artifacts — Kiro Crew",  # a popout frame's suffix
+            "Junction",  # the plain tab title
+            "(3) Junction",  # the unread-badge prefix (App.tsx)
+            "Artifacts — Junction",  # a popout frame's suffix
             "junction",  # the no-space spelling
             "KIRO CREW",  # case must not matter
         ],
@@ -678,7 +678,7 @@ class TestBrowserHostedDashboardIsRefused:
         title-only rule would have let the native app through.
         """
         native = AppRef(
-            name="Kiro Crew", pid=1, bundle_id="dev.kiro.crew", window_title="Settings"
+            name="Junction", pid=1, bundle_id="dev.kiro.crew", window_title="Settings"
         )
         assert policy.check_app(native, PolicyConfig()) is not None
 
@@ -723,10 +723,10 @@ class TestMultiWindowHostPrefersTheDeniedTitle:
     @pytest.mark.parametrize(
         "titles",
         [
-            ("Hacker News", "Kiro Crew"),  # dashboard in a BACKGROUND window
-            ("Kiro Crew", "Hacker News"),  # dashboard first
-            ("", "Kiro Crew"),  # untitled window listed first
-            ("Hacker News", "GitHub", "Kiro Crew"),  # third of three
+            ("Hacker News", "Junction"),  # dashboard in a BACKGROUND window
+            ("Junction", "Hacker News"),  # dashboard first
+            ("", "Junction"),  # untitled window listed first
+            ("Hacker News", "GitHub", "Junction"),  # third of three
         ],
     )
     def test_any_dashboard_window_refuses_the_whole_process(self, titles, monkeypatch):

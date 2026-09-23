@@ -1931,7 +1931,7 @@ def resolve_stdio_command(cfg: dict, app_root: Path | None = None) -> dict:
         base = base[:-4]
     if base in _BARE_PYTHON:
         if _targets_gateway_module(cfg):
-            # The server runs Kiro Crew's OWN code (``-m junction...``). App
+            # The server runs Junction's OWN code (``-m junction...``). App
             # venvs are created WITHOUT --system-site-packages, so junction is
             # not importable there and the venv interpreter would die on
             # import; and even a venv that pip-installed its own junction is a

@@ -1,6 +1,6 @@
 # Session and Slack Thread Linking
 
-How a Slack thread maps onto a Kiro Crew session, and how messages mirror in both
+How a Slack thread maps onto a Junction session, and how messages mirror in both
 directions across the two surfaces.
 
 The invariant the whole design serves: **one conversation, one kiro-cli session,
@@ -11,7 +11,7 @@ transcript.
 ## Where the link lives
 
 The link is persisted on the session map entry (`session_map.py`,
-`~/.kiro/crew/session_map.json`), not in a gateway-lifetime dict, so it survives a
+`~/.junction/session_map.json`), not in a gateway-lifetime dict, so it survives a
 restart. Two fields on the entry:
 
 ```

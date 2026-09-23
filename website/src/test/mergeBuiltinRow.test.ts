@@ -5,7 +5,7 @@ import type { RegistryApp } from '../components/appstore/types'
 /**
  * The precedence IS the contract, and it used to be spelled twice with opposite
  * answers: the browse list preferred the server row while the detail page
- * preferred the local manifest, so one app could read "Kiro Crew ·
+ * preferred the local manifest, so one app could read "Junction ·
  * Developer Tools" in the list and "junction · Productivity" one click later.
  * These tests pin the single answer both surfaces now share.
  */

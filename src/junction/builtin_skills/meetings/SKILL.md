@@ -12,7 +12,7 @@ it in full after every batch.
 
 ## Where the data lives
 
-All paths are under `~/.kiro/crew/apps/meetings/data/`:
+All paths are under `~/.junction/apps/meetings/data/`:
 
 | Path | What it is |
 |---|---|

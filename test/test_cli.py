@@ -4735,7 +4735,7 @@ class TestDoctorEmbeddings:
     ):
         """Under LLAMA_CPP_LIB_PATH, point at the override — not a reinstall.
 
-        The libs load from the operator's directory, so "reinstall Kiro Crew"
+        The libs load from the operator's directory, so "reinstall Junction"
         would send them to replace a package they are deliberately not loading
         from, while saying nothing about the dir that actually failed. Mirrors
         the loader's exemption so the two diagnostics cannot disagree.

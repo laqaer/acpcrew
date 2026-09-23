@@ -179,7 +179,7 @@ _GEMINI_PROJECT_RESOURCES_KEY = "projectResources"
 _GEMINI_PROJECT_RESOURCE_LIST_KEY = "resources"
 _GEMINI_PROJECT_FOLDER_KEY = "folderUri"
 _GEMINI_FILE_URI_SCHEME = "file://"
-# Directories that exist under the shared home but have no Kiro Crew
+# Directories that exist under the shared home but have no Junction
 # destination. Antigravity kept Skills, Hooks, Subagents and plugins; only the
 # skills path can land here, and only when it is a SKILL.md package.
 _GEMINI_UNSUPPORTED_DIRS = (
@@ -2335,7 +2335,7 @@ def _normalized_gemini_spec(spec: dict[str, Any]) -> dict[str, Any]:
     has the final say. That keeps the credential boundary intact: a server with
     a populated ``env``, or with an unsupported field such as
     ``authProviderType``, is still refused with its own diagnostic rather than
-    being reshaped into something Kiro Crew cannot actually run.
+    being reshaped into something Junction cannot actually run.
     """
     rewritten: dict[str, Any] = {}
     has_url = "url" in spec
@@ -2493,7 +2493,7 @@ def _scan_gemini(scan: _Scan) -> None:
 
 
 def _scan_lineage_install(scan: _Scan) -> None:
-    """Scan an agent that shares Kiro Crew's OWN on-disk layout.
+    """Scan an agent that shares Junction's OWN on-disk layout.
 
     A predecessor, a rename, or a fork of this product writes the same files in
     the same places — ``config.json``, ``mcp.json``, ``recent_projects.json``,
@@ -3770,7 +3770,7 @@ def _sources() -> dict[str, _Source]:
 
 
 def _managed_mcp_names() -> frozenset[str]:
-    """MCP server names owned by Kiro Crew or by a known foreign agent, casefolded.
+    """MCP server names owned by Junction or by a known foreign agent, casefolded.
 
     Never imported: the entry points at a runtime the user is migrating away
     from, so carrying it over hands them a server that cannot start. Callers MUST

@@ -216,7 +216,7 @@ class TestTheOneRetainedRefusalIsNotHere:
         from junction.computer_use import policy
         from junction.computer_use.types import AppRef, PolicyConfig
 
-        ours = AppRef(name="Kiro Crew", pid=1, bundle_id="dev.kiro.crew")
+        ours = AppRef(name="Junction", pid=1, bundle_id="dev.kiro.crew")
         assert policy.check_app(ours, PolicyConfig()) is not None
         # And the gate itself has no opinion about it.
         assert gate.require_computer_use(TOOL_LIST_APPS, session_key="dashboard:main") is None

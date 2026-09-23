@@ -81,7 +81,7 @@ export interface PanelSkin {
 }
 
 /**
- * The live skin. Kiro Crew's variable names first, this app's older aliases second,
+ * The live skin. Junction's variable names first, this app's older aliases second,
  * `kiro-dark` literals last (ink + copper factory default).
  */
 export const THEME_SKIN: PanelSkin = {

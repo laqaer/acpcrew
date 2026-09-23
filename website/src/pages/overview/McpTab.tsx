@@ -101,7 +101,7 @@ function ScopeBadge({
  * Badge label for a probe status.
  *
  * `needs_auth` is not a failure. The status probe runs WITHOUT the OAuth token
- * kiro-cli holds (Kiro Crew keeps no credentials), so a remote OAuth server
+ * kiro-cli holds (Junction keeps no credentials), so a remote OAuth server
  * answers it with 401 while the agent runtime calls the same server fine —
  * reported as "Error / HTTP 401" in #1853.
  *

@@ -3701,7 +3701,7 @@ class TestDisabledIsCrossScope:
     """``McpServerInfo.disabled`` must reflect a ``disabled: true`` in ANY scope.
 
     ``/api/mcp/toggle`` writes the flag into the Kiro-global ``mcp.json``, but the
-    merge only marked rows introduced from the Kiro Crew scope. A server also
+    merge only marked rows introduced from the Junction scope. A server also
     present in the agent config was therefore introduced first with
     ``disabled = False`` and stayed probeable after the user switched it off —
     and now that ``probe_server`` keys its refusal on this flag, under-reporting

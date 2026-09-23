@@ -27,7 +27,7 @@ configuration allows, and rate-limits unprompted group replies.
 ## Setup
 
 1. Install the extra (above) and restart the gateway.
-2. Enable the channel in `~/.kiro/crew/config.json`:
+2. Enable the channel in `~/.junction/config.json`:
 
    ```json
    { "whatsapp": { "enabled": true } }
@@ -44,7 +44,7 @@ configuration allows, and rate-limits unprompted group replies.
    phone: WhatsApp, Settings, Linked devices, Link a device. The code rotates
    every ~20 seconds and the panel follows it until the scan lands.
 4. The badge flips to **Connected**. Pairing state persists in
-   `~/.kiro/crew/whatsapp/session.db`, so you scan once rather than per restart.
+   `~/.junction/whatsapp/session.db`, so you scan once rather than per restart.
 
 ### Pairing starts with the channel, not with the button
 
@@ -264,7 +264,7 @@ and exact, so `/stop the presses` reaches the agent as a sentence.
 - **Not sure whether the channel can run at all** - run `junction doctor`. Its
   **WhatsApp Integration** section reports whether the `whatsapp` extra is
   installed (a missing extra is a hard failure) and whether the linked-device
-  session store exists at `~/.kiro/crew/whatsapp/session.db`. An unpaired store is
+  session store exists at `~/.junction/whatsapp/session.db`. An unpaired store is
   a warning, not a failure: you pair from the dashboard with the gateway running,
   so a channel you just enabled is expected to report it.
 - **A configured group is ignored** - check the gateway log at startup for a line

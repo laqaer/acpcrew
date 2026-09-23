@@ -553,7 +553,7 @@ async def api_mcp_servers(request: web.Request) -> web.Response:
     """GET /api/mcp — list configured MCP servers with enabled state.
 
     Inventory comes from ``list_servers()``, which merges the agent config's
-    ``mcpServers``, the scope-tagged ``mcp.json`` files (Kiro Crew data home
+    ``mcpServers``, the scope-tagged ``mcp.json`` files (Junction data home
     and ``~/.kiro/settings/mcp.json``), and provider-global entries. This
     handler describes what the DASHBOARD shows; it makes no claim about which
     of these sources kiro-cli itself loads at session time — that is backend
@@ -1475,7 +1475,7 @@ async def _offload_config_write(fn, /, *args, **kwargs):
 
 
 def _atomic_write(path: Path, data: dict) -> None:
-    """Atomic JSON write; secret-aware for the store owned by Kiro Crew.
+    """Atomic JSON write; secret-aware for the store owned by Junction.
 
     That store is secret-bearing by construction (``env`` values and remote
     ``headers`` carry credentials), so it is published through

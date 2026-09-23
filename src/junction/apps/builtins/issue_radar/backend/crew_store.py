@@ -171,7 +171,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     #: `crew: in progress` — so it is validated as input on the way in
     #: (:func:`_validated_label`), not trusted because a settings form produced it.
     "needs_human_label": "crew: needs human",
-    "commit_trailer": "Crew: {name} (Kiro Crew Issue Radar)",
+    "commit_trailer": "Crew: {name} (Junction Issue Radar)",
 }
 
 _DEFAULT_CREW: dict[str, Any] = {

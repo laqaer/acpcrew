@@ -834,7 +834,7 @@ def _self_test() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Lint the Kiro Crew documentation trees and their indexes."
+        description="Lint the Junction documentation trees and their indexes."
     )
     parser.add_argument(
         "--test",

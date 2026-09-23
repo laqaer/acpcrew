@@ -56,16 +56,16 @@ ALWAYS_ON_BIN_MCP_SERVERS = (
 OPT_IN_BIN_MCP_SERVERS = ("junction-dashboard",)
 
 # Every managed-binary server name, regardless of how it reaches a spec. This is
-# the cleanup view: Kiro Crew never legitimately writes any of them into the
+# the cleanup view: Junction never legitimately writes any of them into the
 # user's global mcp.json, so a stray entry is purgeable either way.
 JUNCTION_BIN_MCP_SERVERS = ALWAYS_ON_BIN_MCP_SERVERS + OPT_IN_BIN_MCP_SERVERS
 
 # Every managed-binary server name Junction is responsible for removing from
-# the user's global mcp.json (Kiro Crew never legitimately writes these there).
+# the user's global mcp.json (Junction never legitimately writes these there).
 #
 # ALWAYS_ON only, and there is no ownership-proven exception. This purge exists
 # to reclaim entries an OLDER INSTALL METHOD wrote to the global file — but an
-# opt-in server is never written there by any version of Kiro Crew, since the
+# opt-in server is never written there by any version of Junction, since the
 # only way it is ever granted is by hand. So no legitimate residue can exist
 # under that name, and anything found there is necessarily the user's own: to be
 # left alone, not reclaimed on a technicality about how it happens to be spelled.
@@ -112,7 +112,7 @@ def _invokes_deleted_playwright_proxy(spec: object) -> bool:
 
     Matched on the ARGV token, never on the server name. The canonical name was
     ``playwright-mcp``, but that is also what an operator's OWN Playwright server
-    is called, and purging by name would delete a server Kiro Crew never wrote --
+    is called, and purging by name would delete a server Junction never wrote --
     the same trap ``_invokes_superseded_agent`` exists to avoid.
     """
     if not isinstance(spec, dict):
@@ -174,7 +174,7 @@ def clean_stale_managed_mcp() -> list[str]:
     config; genuine user-installed servers are never touched:
 
     * **By name** — ``junction-cron`` / ``junction-core`` (written there by an
-      older install method; Kiro Crew now keeps these in the agent file), plus
+      older install method; Junction now keeps these in the agent file), plus
       the managed servers of any agent an edition declares it supersedes.
     * **By command** — any server whose command is a superseded agent's launcher,
       e.g. a leftover ``npm:@playwright/mcp`` proxy pointing at its old runtime.

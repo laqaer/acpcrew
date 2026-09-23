@@ -1,5 +1,5 @@
 /**
- * Coverage-focused tests for EmbedTabStrip — the tab bar the Kiro Crew IDE
+ * Coverage-focused tests for EmbedTabStrip — the tab bar the Junction IDE
  * plugin renders above the embedded chat.
  *
  * EmbedComponents.test.tsx already exercises the render + click paths, so this

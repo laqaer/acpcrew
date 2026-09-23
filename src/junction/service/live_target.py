@@ -118,7 +118,7 @@ def validate(raw: str) -> Path:
         return _reject(f"the live target's {kcbin} is not executable")
     if not (checkout / "src" / "junction").is_dir():
         return _reject(
-            f"the live target does not look like a Kiro Crew checkout "
+            f"the live target does not look like a Junction checkout "
             f"(no src/junction): {checkout}"
         )
     return checkout
@@ -302,7 +302,7 @@ def maybe_reexec(argv: list[str], *, log: object = None) -> None:
         # The executable is not caller-supplied: it is derived from the
         # keystone-fenced pointer, which only a human-driven dashboard action
         # writes, and `validate` has already confirmed it is an executable file
-        # inside a Kiro Crew checkout. argv is this process's own argv, and env is
+        # inside a Junction checkout. argv is this process's own argv, and env is
         # the inherited environment plus three keys computed here. The rule fires
         # on passing an environment through at all, which is inherent to handing a
         # gateway its own env across the exec.

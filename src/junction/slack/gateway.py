@@ -3219,7 +3219,7 @@ class GatewayOrchestrator:
                         "Dashboard notify failed in cron run-failure alert path", exc_info=True
                     )
                 # Name the machine for the same reason the message path does: a
-                # laptop and a cloud desktop can both run Kiro Crew, and the
+                # laptop and a cloud desktop can both run Junction, and the
                 # alert is the only place the user learns which one failed. Read
                 # once, ahead of both delivery legs, so they cannot disagree.
                 host = socket.gethostname().split(".")[0]

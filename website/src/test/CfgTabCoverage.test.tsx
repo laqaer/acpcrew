@@ -1,5 +1,5 @@
 /**
- * JunctionCfgTab — the Kiro Crew config table on the developer page.
+ * JunctionCfgTab — the Junction config table on the developer page.
  *
  * The file sat at ~3% before this suite: only its module-level constants ran.
  * Everything below aims at the cold paths — the query error/loading boundaries,

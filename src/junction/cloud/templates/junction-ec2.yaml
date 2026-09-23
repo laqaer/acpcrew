@@ -410,7 +410,7 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          # Kiro Crew EC2 bootstrap (cloud-init, first boot, root). EC2 caps
+          # Junction EC2 bootstrap (cloud-init, first boot, root). EC2 caps
           # decoded UserData at 16384 bytes AFTER !Sub expansion, so this
           # script carries only what the instance needs: the rationale for
           # every non-obvious choice lives in the template comments right

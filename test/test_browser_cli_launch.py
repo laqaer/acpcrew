@@ -1,4 +1,4 @@
-"""The launch config that selects the engine Kiro Crew actually installs."""
+"""The launch config that selects the engine Junction actually installs."""
 
 from __future__ import annotations
 
@@ -249,7 +249,7 @@ def test_launch_config_shell_protection_matches_an_existing_protected_leaf() -> 
 
 
 def test_gateway_startup_merges_the_override(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The variable has to reach a command line Kiro Crew never constructs, so the
+    """The variable has to reach a command line Junction never constructs, so the
     wiring is what delivers the fix -- an unwired module changes nothing."""
     import inspect
 

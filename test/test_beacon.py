@@ -852,7 +852,7 @@ class TestStatusOutput:
         )
         expected_optout = f"""  To opt out, choose one:
 
-    1. Kiro Crew CLI (recommended)
+    1. Junction CLI (recommended)
        junction telemetry disable
 
     2. Environment variable (choose your shell)

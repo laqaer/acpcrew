@@ -3,7 +3,7 @@
 When the active model stays throttled past the same-model transient-retry budget,
 the turn is retried on a fallback model instead of failing — visibly, never
 silently. kiro-cli has no fallback mechanism; this feature is entirely
-Kiro Crew-side, built on the substitute `set_model` path.
+Junction-side, built on the substitute `set_model` path.
 
 ## Config
 

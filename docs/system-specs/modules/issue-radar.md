@@ -6,7 +6,7 @@ Issue Radar is an opt-in (`defaultEnabled: false`) built-in app for tracked-item
 and change-request triage across THREE providers — GitHub, GitLab and Azure
 DevOps (see [Providers](#providers)). It connects one or more repos via the
 user's own vendor CLI session (`gh`, `glab` or `az` — no OAuth app, no PAT held
-by Kiro Crew) and provides a 3-column workbench: browse/filter issues (work
+by Junction) and provides a 3-column workbench: browse/filter issues (work
 items on Azure DevOps), view AI-summarized detail + timeline, apply triage
 actions (label, close/reopen), and record per-issue investigation findings
 in a local ledger. A parallel PULL REQUESTS section reuses the same shape —
@@ -46,7 +46,7 @@ provider cannot be registered while the gate silently keeps comparing three.
 | Assignees | a set, capped at 10 | a set (Free keeps only the first) | exactly ONE (`System.AssignedTo`); more than one is REFUSED |
 
 **Every provider is reached by shelling out to its vendor CLI as a raw REST
-passthrough, and Kiro Crew stores NO credential of its own.** `gh api`, `glab api`
+passthrough, and Junction stores NO credential of its own.** `gh api`, `glab api`
 and `az devops invoke` are each the vendor's own generic REST verb, so the client
 modules speak the provider's REST API directly while the CLI owns the token — an
 authenticated `gh`/`glab` session, an `az login` session, or `AZURE_DEVOPS_EXT_PAT`.
@@ -162,7 +162,7 @@ for the same reason.** GitHub Enterprise Server and Azure DevOps Server are both
 unsupported because neither has a credential path this app's transport can use. For
 Azure the reason is concrete: the `azure-devops` CLI extension does not support
 Azure DevOps Server at all, so a CLI-passthrough client cannot serve it. Supporting
-it would mean raw REST plus a credential Kiro Crew stores itself, which is exactly
+it would mean raw REST plus a credential Junction stores itself, which is exactly
 the posture stated above. Both providers are therefore listed in
 `_PINNED_HOSTS`, and `azure_client._resolve_host` refuses every host but
 `dev.azure.com` — including an EMPTY one, rather than defaulting, so a call site
@@ -1180,7 +1180,7 @@ the list, the filters, the selected item — is untouched.
   other two: nothing here has been exercised against `az` on Windows, and the
   shared candidate table carries no well-known-directory entries for `az`, so the
   only Windows resolution path would be the untested override. Use WSL to run the
-  Kiro Crew gateway against Azure DevOps.
+  Junction gateway against Azure DevOps.
 - An authenticated CLI for each provider you actually connect: `gh`, `glab`, or
   `az` with the `azure-devops` extension (`az extension add --name azure-devops`)
   and an `az login` session or `AZURE_DEVOPS_EXT_PAT`. **None of the three is a

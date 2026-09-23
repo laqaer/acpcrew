@@ -91,7 +91,7 @@ describe('productName interpolation variable', () => {
       (RUNTIME_CATALOGS as Record<string, { translation: unknown }>).en.translation,
     )
     const offenders = Object.entries(en)
-      .filter(([key, value]) => !isExempt(key) && value.includes('Kiro Crew'))
+      .filter(([key, value]) => !isExempt(key) && value.includes('Junction'))
       .map(([key]) => key)
     expect(offenders).toEqual([])
   })

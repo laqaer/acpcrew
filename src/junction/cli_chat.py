@@ -238,7 +238,7 @@ def _print_permission_notice(message: str) -> None:
 
 @dataclass(frozen=True)
 class _ToolGate:
-    """Kiro Crew's own PreToolUse gate, plus the identity it is asked under.
+    """Junction's own PreToolUse gate, plus the identity it is asked under.
 
     ``session_key`` and ``agent`` are what let the gate resolve the governance
     ceiling ∩ profile for this surface; without them it can only apply the
@@ -767,7 +767,7 @@ async def _answer_permission(
 ) -> None:
     """Answer a pending permission request so the backend can resume the turn.
 
-    Answering one is an authorization decision, so Kiro Crew's own PreToolUse
+    Answering one is an authorization decision, so Junction's own PreToolUse
     gate runs first and a human is asked only about what survives it. That gate
     is the shared :class:`~junction.hooks.HookManager` -- sensitive paths, the
     built-in denied commands, the governance ceiling -- never a second copy of

@@ -206,7 +206,7 @@ class TeamsTransport(MessagingTransport):
                     f"Teams DM · {identity}",
                     available=available,
                     unavailable_reason=(
-                        "" if available else "Send a message to Kiro Crew in Teams first"
+                        "" if available else "Send a message to Junction in Teams first"
                     ),
                 )
             )

@@ -43,7 +43,7 @@ export function kiroPrerequisiteRefetchInterval(
 // Two behaviors key off it: the faster poll above, and forcing that poll to probe
 // the HOST rather than read the boot-time latch.
 //
-// Forcing matters because Kiro Crew no longer performs setup — the user installs
+// Forcing matters because Junction no longer performs setup — the user installs
 // Kiro CLI from kiro.dev and may sign in from a terminal. Neither of those
 // touches the gateway, and the latched status is refreshed only at boot or on an
 // explicit request, so a latch-reading poll can never observe them and the gate
@@ -786,7 +786,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
   const repairError = repairMutation.data?.agent_spec_repair_error
     || (repairMutation.error ? asSentence(repairMutation.error.message) : '')
     || (status.agent_spec_repair_error ?? '')
-  // Kiro Crew's own agent specs are absent, so kiro-cli answers every
+  // Junction's own agent specs are absent, so kiro-cli answers every
   // session/set_mode with "Mode '<name>' not found" and not one message can
   // succeed. Placed BEFORE the `initial_setup_complete` bail-out -- the only
   // branch here that hijacks an established install -- and gated ON that same
@@ -810,7 +810,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
     )
   }
   // Present but refused. Kiro CLI drops a spec it rejects from its agent table,
-  // so `--agent junction` resolves to the default agent with none of Kiro Crew's
+  // so `--agent junction` resolves to the default agent with none of Junction's
   // MCP servers -- the same total failure as an absent spec, and the one the
   // stat-only check above cannot see. Ordered AFTER missing for the same reason
   // that check is scoped to present files: one fault should raise one card, and
@@ -891,7 +891,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
               </div>
               <StepStatus complete={status.installed} current={!status.installed} />
             </div>
-            {/* A link, not a button: Kiro Crew does not install Kiro CLI. Kiro's
+            {/* A link, not a button: Junction does not install Kiro CLI. Kiro's
                 own page carries the per-platform steps and stays correct as they
                 change, which a digest-pinned in-app installer did not. */}
             {!status.installed && (
@@ -935,7 +935,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
             {/* Rendered VERBATIM from the backend constants, never catalog
                 values: a translated command cannot be typed. Shown only once a CLI
                 exists to sign into — before that the step above owns the screen.
-                Kiro Crew does not run them; the footer's Check again reads the
+                Junction does not run them; the footer's Check again reads the
                 result.
 
                 BOTH tiers are offered, because the sign-in page the bare command
@@ -943,7 +943,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
                 a user on an SSO plan who picks the wrong one authenticates
                 successfully and only discovers the mismatch later, as missing
                 models. Naming the tier here makes it a decision instead of a
-                guess. Kiro Crew does not detect which one applies — that would
+                guess. Junction does not detect which one applies — that would
                 mean inspecting the host's identity configuration — so the copy
                 describes the choice and lets the user make it. */}
             {status.installed && !status.authenticated && (

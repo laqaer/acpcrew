@@ -2680,7 +2680,7 @@ class _Req:
 class TestFollowupRoutes(unittest.IsolatedAsyncioTestCase):
     """Opening a follow-up must never hand back a session that resumed nothing.
 
-    The dashboard's fallback for a failed resume is to replay Kiro Crew's own
+    The dashboard's fallback for a failed resume is to replay Junction's own
     conversation log, and a follow-up slot has none — so a slot created without a
     live mapping answers confidently with no idea what was reviewed. Every branch
     here is about refusing that outcome rather than degrading into it.

@@ -791,7 +791,7 @@ def _setup_sandbox_consent() -> None:
     ``detect_backend() == "none"`` alone is not sufficient: it also covers a
     momentary fork/resource failure, which self-heals on the next spawn and must
     never buy a permanent bypass, and a foreign outer sandbox, where this host's
-    sandbox works and the remedy hands isolation back to Kiro Crew rather than
+    sandbox works and the remedy hands isolation back to Junction rather than
     disabling it. The prompt is also skipped when stdin/stdout are not both a
     terminal, because an unseen question is a hang rather than consent.
 
@@ -821,7 +821,7 @@ def _setup_sandbox_consent() -> None:
     if kind != "no_backend":
         # "" (a backend exists — the Linux/macOS norm) or "foreign_sandbox",
         # where this host's sandbox works and the remedy hands isolation back to
-        # Kiro Crew rather than disabling it. Neither warrants this opt-in.
+        # Junction rather than disabling it. Neither warrants this opt-in.
         return
     # A prompt nobody can see is a hang, not consent: `junction update` runs
     # setup with its output captured and stdin on DEVNULL, so a question asked

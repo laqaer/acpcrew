@@ -464,7 +464,7 @@ def _record_consolidation(consolidated: int, namespace: str | None = None,
         fh.write(json.dumps(entry) + "\n")
 
 
-# Optional Kiro Crew redaction, mirroring pipeline.py: present in the runtime,
+# Optional Junction redaction, mirroring pipeline.py: present in the runtime,
 # absent when the app is driven standalone outside it.
 try:
     from junction.security import redact_credentials, redact_exfiltration_urls

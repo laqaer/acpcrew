@@ -640,7 +640,7 @@ def snapshot_main(
     if parsed is None:
         p = argparse.ArgumentParser(
             prog="junction-snapshot",
-            description="Create a portable .tar.gz snapshot of Kiro Crew state.",
+            description="Create a portable .tar.gz snapshot of Junction state.",
         )
         p.add_argument("output_dir", nargs="?", default=_default_snapshot_dir())
         p.add_argument("--keep", type=int, default=7)
