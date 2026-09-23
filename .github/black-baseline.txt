@@ -926,7 +926,6 @@ test/test_mcp_sync_agent.py
 test/test_mcp_tool_registry.py
 test/test_md_notebook.py
 test/test_meetings_agent_names.py
-test/test_meetings_dictionary.py
 test/test_meetings_providers.py
 test/test_meetings_routes.py
 test/test_meetings_session.py

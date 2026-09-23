@@ -404,9 +404,7 @@ def test_does_not_decline_from_an_appimage_runtime_mount(monkeypatch, tmp_path):
     with tempfile.TemporaryDirectory(prefix="kc-appimage-") as scratch_name:
         mount = Path(scratch_name) / ".mount_KiroXk3Qm9"
         (mount / "usr" / "lib" / "junction").mkdir(parents=True)
-        monkeypatch.setattr(
-            agent, "__file__", str(mount / "usr" / "lib" / "junction" / "agent.py")
-        )
+        monkeypatch.setattr(agent, "__file__", str(mount / "usr" / "lib" / "junction" / "agent.py"))
         _pretend_target_is_shared(monkeypatch, agent, tmp_path / "agents")
 
         assert agent._decline_shared_agent_home(audit=False) is None, (

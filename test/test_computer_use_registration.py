@@ -1054,9 +1054,7 @@ class TestSpecEmissionGate:
             stack.enter_context(
                 patch("junction.agent._shipped_defaults", return_value=cfg_dir / "defaults.json")
             )
-            stack.enter_context(
-                patch("junction.agent._user_overrides_path", return_value=override)
-            )
+            stack.enter_context(patch("junction.agent._user_overrides_path", return_value=override))
             stack.enter_context(
                 patch("junction.agent._prompt_path", return_value=cfg_dir / "prompt.md")
             )

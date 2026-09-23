@@ -285,7 +285,11 @@ def test_every_known_backend_has_a_label() -> None:
         ACP_BACKEND_CLAUDE: PROVIDER_LABEL_CLAUDE,
         ACP_BACKEND_KAS: PROVIDER_LABEL_KAS,
         ACP_BACKEND_AUTO: PROVIDER_LABEL_AUTO,
-        **{backend: backend for backend in ACP_BACKENDS_SPEC_FAMILY if backend != ACP_BACKEND_CLAUDE},
+        **{
+            backend: backend
+            for backend in ACP_BACKENDS_SPEC_FAMILY
+            if backend != ACP_BACKEND_CLAUDE
+        },
     }
     assert set(labels) == set(ACP_BACKENDS_KNOWN), (
         "a known backend has no PROVIDER_LABEL_* of its own, so it would persist "
