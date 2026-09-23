@@ -732,10 +732,14 @@ CLI compaction is blocking (single-user, acceptable).
 the other two are silent aliases. `setup.cfg` still lists `junction`
 for the same entry so older metadata readers keep resolving it.
 
-`junction stop` / `junction restart` classify a live server by console-script
-basename (`junction`, plus the silent aliases) and by server subcommand
-(`up`, `gateway`, `dashboard`, and the historical `start`). A process started
-with `junction up` is the same server as `junction gateway`.
+`junction stop` / `junction restart` classify a live server by the executable
+token's console-script basename (`junction`, plus the silent aliases) and by
+server subcommand (`up`, `gateway`, `dashboard`, and the historical `start`).
+Wrappers such as `sudo` and `env` are skipped. A later argument is not the
+program, so `grep -m junction gateway` is not a server. A process started
+with `junction up` is the same server as `junction gateway`. The module form
+`<python> -m junction <subcmd>` is classified separately and still requires
+a Python interpreter before `-m`.
 
 ### Model-router sidecar
 
