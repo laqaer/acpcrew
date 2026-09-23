@@ -1,11 +1,11 @@
-"""Observe an optional Codex Router sidecar. Do not vendor or start it.
+"""Junction's model plane: a loopback catalog listener plus role routing.
 
-Junction's model plane is a loopback HTTP router (typically ``:4202``) plus a
-LiteLLM gateway (typically ``:4200``). This package probes health, ships the
-namespaced model-choice catalog, and plans role routing. It never copies
-credentials, never logs secret-bearing bodies, and never binds a non-loopback
-host. If the sidecar is absent, the ACP gateway still runs — that is a
-documented degraded mode, not a hard failure.
+``junction up`` starts the listener (typically ``:4202``). This package also
+probes health, ships the namespaced model-choice catalog, and plans role
+routing. It never copies credentials, never logs secret-bearing bodies, and
+never binds a non-loopback host. Provider translation is not bundled. If the
+listener is down, the ACP gateway still runs — that is a documented degraded
+mode, not a hard failure.
 """
 
 from __future__ import annotations

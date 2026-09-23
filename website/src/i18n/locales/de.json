@@ -7135,7 +7135,7 @@
       "copied": "Kopiert!",
       "copyFailed": "Kopieren fehlgeschlagen",
       "copyCommand": "Befehl kopieren",
-      "orEditConfigJson": "Alternativ kannst du ~/.kiro/crew/config.json direkt bearbeiten.",
+      "orEditConfigJson": "Alternativ kannst du ~/.junction/config.json direkt bearbeiten.",
       "openSettingsAriaLabel": "{{key}} in Einstellungen → {{tab}} öffnen",
       "fileSettingAriaLabel": "Reine Datei-Einstellung {{key}}"
     },
@@ -9319,7 +9319,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "Umschaltung vorgemerkt: dieser Worktree wird beim nächsten Start des Gateways live. Führen Sie `{{cmd}}` aus, um sie abzuschließen, oder nutzen Sie das Menü dieser Zeile → Vorgemerkte Umschaltung abbrechen, um sie zurückzunehmen. Bis dahin führt das Gateway weiterhin den vorherigen Checkout aus.",
       "keeps_the_live_checkout_the_live_target_and_disc": "Der laufende Checkout bleibt das Live-Ziel, die vorgemerkte Umschaltung auf {{staged}} wird verworfen (nichts wird neu gestartet)",
       "restarting_completes_the_pending_cutover_boots": "Ein Neustart schließt die ausstehende Umschaltung ab: das Gateway startet mit „{{staged}}“, nicht mit dem aktuellen Checkout. Das Dashboard trennt kurz die Verbindung und verbindet sich automatisch neu. Zum Zurücknehmen stattdessen Vorgemerkte Umschaltung abbrechen verwenden.",
-      "no_checkout_found_action": "Setzen Sie die untenstehende Umgebungsvariable oder tragen Sie dev_fleet.repo_path dauerhaft in die config.json in Ihrem {{productName}}-Datenverzeichnis (standardmäßig ~/.kiro/crew) ein und starten Sie dann das Gateway neu."
+      "no_checkout_found_action": "Setzen Sie die untenstehende Umgebungsvariable oder tragen Sie dev_fleet.repo_path dauerhaft in die config.json in Ihrem {{productName}}-Datenverzeichnis (standardmäßig ~/.junction) ein und starten Sie dann das Gateway neu."
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9494,7 +9494,7 @@
       "save_changes": "Änderungen speichern",
       "select_an_agent_template": "Agent-Template auswählen…",
       "shared_lower": "geteilt",
-      "subdirectory_inside_junction_where_this_workspa": "Unterverzeichnis in ~/.kiro/crew, in dem dieser Workspace seine Daten speichert (Chat-Verlauf, Lektionen, Projekte). Jeder Workspace erhält sein eigenes isoliertes Verzeichnis.",
+      "subdirectory_inside_junction_where_this_workspa": "Unterverzeichnis in ~/.junction, in dem dieser Workspace seine Daten speichert (Chat-Verlauf, Lektionen, Projekte). Jeder Workspace erhält sein eigenes isoliertes Verzeichnis.",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "Die Grundeinstellung, mit der diese Crew startet — ihre Tools, ihre Verbindungen und ihre Anweisungen.",
       "triggers": "Triggers",
       "triggers_hint": "When to route to this crew — free-text guidance the orchestrator reads to pick it. Leave empty to exclude this crew from automatic selection.",
@@ -9954,7 +9954,7 @@
       "displayTab": {
         "auto": "Automatisch",
         "change_the_dashboard_font_family_persists_across": "Ändere die Schriftfamilie des Dashboards. Bleibt über Sitzungen hinweg erhalten.",
-        "choose_a_color_palette_each_theme_supports_dark": "Wähle eine Farbpalette. Jedes Theme unterstützt einen dunklen und einen hellen Modus. Eigene Themes werden in ~/.kiro/crew/themes/ gespeichert.",
+        "choose_a_color_palette_each_theme_supports_dark": "Wähle eine Farbpalette. Jedes Theme unterstützt einen dunklen und einen hellen Modus. Eigene Themes werden in ~/.junction/themes/ gespeichert.",
         "color_theme": "Farb-Theme",
         "creating": "Wird erstellt…",
         "dark": "Dunkel",
@@ -10083,7 +10083,7 @@
         "applied_change_one": "{{count}} Änderung angewendet",
         "applied_change_other": "{{count}} Änderungen angewendet",
         "apply": "Anwenden",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— „Anwenden“ schreibt in ~/.kiro/crew/mcp.json + Anbieter-Globals gemäß Ihrer Auswahl.",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— „Anwenden“ schreibt in ~/.junction/mcp.json + Anbieter-Globals gemäß Ihrer Auswahl.",
         "applying": "Wird angewendet…",
         "clear_search": "Suche leeren",
         "click_to_disable_pending_until_apply": "Zum Deaktivieren klicken (ausstehend bis Anwenden)",
@@ -11831,7 +11831,7 @@
         "i_understand_this_weakens_junction_s_protection": "Ich verstehe, dass dies den Schutz von {{productName}} schwächt.",
         "interactive": "Interaktiv",
         "invalid_regular_expression": "Ungültiger regulärer Ausdruck",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}} implementiert 6 Sicherheitsschichten. Jede Schicht arbeitet unabhängig — ein Angreifer muss alle Schichten gleichzeitig umgehen, um erfolgreich zu sein.",
         "layer_auth": "Auth",
         "layer_n": "Schicht {{n}}",

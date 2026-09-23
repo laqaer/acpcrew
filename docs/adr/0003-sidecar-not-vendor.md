@@ -1,6 +1,6 @@
 # ADR 0003 — Sidecar, not vendor
 
-- Status: accepted
+- Status: accepted. The "operator installs the sidecar" consequence is superseded by [0007](0007-builtin-model-catalog.md). The do-not-vendor list below still holds.
 - Date: 2026-09-19
 - Execution: `bc-39bfeb15-ff12-4636-840a-217a97c555da`
 

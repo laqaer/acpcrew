@@ -89,7 +89,7 @@ export function Hero() {
           className="plate border-l-2 border-l-[#e4a54a] px-5 py-5">
           <div className="kicker mb-3">On this machine</div>
           <pre className="font-mono text-[12.5px] md:text-[13px] leading-relaxed text-[#1c160f] dark:text-[#e4a54a] overflow-x-auto whitespace-pre-wrap break-all">
-{`curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
+{`curl -fsSL https://raw.githubusercontent.com/myrmitis/junction/main/scripts/get-junction.sh | sh
 junction setup && junction up`}
           </pre>
           <p className="mt-3 text-xs text-[#6d6458] dark:text-[#a39b90] leading-relaxed">

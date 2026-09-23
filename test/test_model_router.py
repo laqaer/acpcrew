@@ -365,3 +365,81 @@ async def test_apply_role_model_calls_available_models_method(
     client = _Client()
     assert await apply_role_model(client, ROLE_ORCHESTRATION) == "claude-haiku-4.5"
     assert client.seen == ["claude-haiku-4.5"]
+
+
+def test_embedded_router_serves_catalog_and_refuses_forwarding() -> None:
+    import urllib.error
+    import urllib.request
+
+    from junction.model_router.embedded import (
+        CODE_NO_FORWARD,
+        ensure_embedded_router,
+        stop_embedded_router,
+    )
+
+    bind = ensure_embedded_router(port=0)
+    try:
+        assert bind.owned is True
+        assert bind.host == "127.0.0.1"
+        assert bind.port > 0
+        status = probe_status(router_port=bind.port, gateway_port=9)
+        assert status.router.ok is True
+        assert status.router.health.get("service") == "junction"
+        assert status.to_dict()["status"] == "degraded"
+        again = ensure_embedded_router(port=0)
+        assert again.port == bind.port
+        from junction.loopback_http import loopback_urlopen
+
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{bind.port}/v1/chat/completions",
+            data=b"{}",
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as raised:
+            loopback_urlopen(req, timeout=2)
+        assert raised.value.code == 501
+        body = json.loads(raised.value.read())
+        assert body["code"] == CODE_NO_FORWARD
+        with loopback_urlopen(f"http://127.0.0.1:{bind.port}/catalog", timeout=2) as resp:
+            catalog = json.loads(resp.read())
+        assert catalog["model_count"] >= 1
+        dumped = json.dumps(catalog)
+        assert "sk-" not in dumped
+        assert "BEGIN PRIVATE" not in dumped
+    finally:
+        stop_embedded_router()
+
+
+def test_embedded_router_leaves_a_busy_port_alone() -> None:
+    from junction.model_router.embedded import ensure_embedded_router, stop_embedded_router
+
+    holder = ThreadingHTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
+    port = int(holder.server_address[1])
+    thread = threading.Thread(target=holder.serve_forever, daemon=True)
+    thread.start()
+    try:
+        bind = ensure_embedded_router(port=port)
+        assert bind.owned is False
+        assert bind.port == port
+    finally:
+        holder.shutdown()
+        holder.server_close()
+        stop_embedded_router()
+
+
+def test_builtin_catalog_line_when_health_names_junction() -> None:
+    from junction.planes import format_human_planes
+
+    text = format_human_planes(
+        {
+            "harness": {"default": "auto", "selected": "", "runtimes": []},
+            "model": {
+                "status": "degraded",
+                "router": {"health": {"service": "junction", "ok": True}},
+            },
+            "roles": {"roles": []},
+        },
+        heading="Planes",
+    )
+    assert "built-in catalog" in text
+    assert "provider translation is not bundled" in text

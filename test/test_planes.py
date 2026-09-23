@@ -49,6 +49,7 @@ def test_cli_planes_prints_human_copy_by_default(capsys: pytest.CaptureFixture[s
     out = capsys.readouterr().out
     assert "Junction planes" in out
     assert "never paste provider keys" in out
+    assert "sidecar injects" not in out
     assert "orchestration=economy" in out
     last = out.strip().splitlines()[-1]
     with pytest.raises(json.JSONDecodeError):
@@ -71,9 +72,10 @@ def test_doctor_planes_never_fails(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "Planes" in out
     assert "vendor CLI optional" in out
-    assert "sidecar optional" in out
+    assert "starts with junction up" in out
     assert "orchestration=economy" in out
     assert "never paste provider keys" in out
+    assert "sidecar injects" not in out
 
 
 def test_doctor_quick_skips_the_full_probe(capsys: pytest.CaptureFixture[str]) -> None:
@@ -110,7 +112,7 @@ def test_human_planes_format_is_shared() -> None:
     text = format_human_planes(snap, heading="Planes")
     assert text.startswith("Planes\n")
     assert "vendor CLI optional" in text
-    assert "sidecar optional" in text
+    assert "starts with junction up" in text
     assert "orchestration=economy" in text
     assert "never paste provider keys" in text
 

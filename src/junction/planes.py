@@ -3,7 +3,7 @@
 The two planes already have owners (``acp.runtimes`` and ``model_router``).
 This module does not spawn agents, probe non-loopback hosts, or change the
 Kiro harness path. It is a read-only join so CLI, doctor, and the dashboard
-share one payload: harness inventory, sidecar health, and the role DAG.
+share one payload: harness inventory, model-plane health, and the role DAG.
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ def snapshot_planes(
     router_port: int | None = None,
     gateway_port: int | None = None,
 ) -> dict[str, Any]:
-    """Harness inventory + sidecar health + role DAG. Never crashes the gateway."""
+    """Harness inventory + model-plane health + role DAG. Never crashes the gateway."""
     inventory = harness_inventory(which=which, home=home, env=env)
     selected = ""
     try:
@@ -112,7 +112,7 @@ def format_human_planes(snap: Mapping[str, Any], *, heading: str) -> str:
     """One human screen for planes, doctor, and ``junction up``.
 
     Shared so the three surfaces cannot drift: harness default + selected,
-    sidecar health, role DAG, docked runtimes, and the no-keys rule.
+    model-plane health, role DAG, docked runtimes, and the no-keys rule.
     """
     harness = snap["harness"]
     model = snap["model"]
@@ -120,7 +120,7 @@ def format_human_planes(snap: Mapping[str, Any], *, heading: str) -> str:
     lines = [
         heading,
         (f"  harness: {harness['default']} " f"(selected={selected}; vendor CLI optional)"),
-        f"  model:   {model['status']} (sidecar optional; gateway still works)",
+        _model_line(model),
     ]
     role_bits = " ".join(
         f"{row['role']}={row['cost_class']}"
@@ -132,8 +132,26 @@ def format_human_planes(snap: Mapping[str, Any], *, heading: str) -> str:
     available = [row["id"] for row in harness.get("runtimes", []) if row.get("available")]
     if available:
         lines.append(f"  docked:  {', '.join(available)}")
-    lines.append("never paste provider keys into chat; the sidecar injects them.")
+    lines.append("never paste provider keys into chat.")
     return "\n".join(lines)
+
+
+def _model_line(model: Mapping[str, Any]) -> str:
+    """One status line. The built-in catalog is up when its health names us."""
+    health = {}
+    router = model.get("router")
+    if isinstance(router, Mapping):
+        raw = router.get("health")
+        if isinstance(raw, Mapping):
+            health = raw
+    if health.get("service") == "junction" and model.get("status") != "healthy":
+        return "  model:   built-in catalog (provider translation is not bundled)"
+    status = model.get("status")
+    if status == "healthy":
+        return "  model:   healthy"
+    if status == "unreachable":
+        return "  model:   down (starts with junction up; gateway still works)"
+    return "  model:   degraded (gateway still works)"
 
 
 def print_compose_banner(*, stream: TextIO | None = None) -> None:

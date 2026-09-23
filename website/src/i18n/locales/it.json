@@ -7238,7 +7238,7 @@
       "copied": "Copiato!",
       "copyFailed": "Copia non riuscita",
       "copyCommand": "Copia comando",
-      "orEditConfigJson": "In alternativa, modifica direttamente ~/.kiro/crew/config.json.",
+      "orEditConfigJson": "In alternativa, modifica direttamente ~/.junction/config.json.",
       "openSettingsAriaLabel": "Apri {{key}} in Impostazioni → {{tab}}",
       "fileSettingAriaLabel": "Impostazione solo file {{key}}"
     },
@@ -9461,7 +9461,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "Passaggio preparato: questo worktree diventerà attivo al prossimo avvio del gateway. Esegui `{{cmd}}` per completarlo, oppure usa il menu di questa riga → Annulla il passaggio preparato per annullarlo. Fino ad allora il gateway continua a eseguire il checkout precedente.",
       "keeps_the_live_checkout_the_live_target_and_disc": "Mantiene il checkout attivo come destinazione attiva e scarta il passaggio preparato verso {{staged}} (non viene riavviato nulla)",
       "restarting_completes_the_pending_cutover_boots": "Il riavvio completa il passaggio in sospeso: il gateway ripartirà su \"{{staged}}\", non sul checkout attuale. La dashboard si disconnetterà brevemente e si riconnetterà automaticamente. Per annullare, usa invece Annulla il passaggio preparato.",
-      "no_checkout_found_action": "Imposta la variabile d'ambiente qui sotto, oppure aggiungi dev_fleet.repo_path al config.json nella directory dati di {{productName}} (~/.kiro/crew per impostazione predefinita) per renderla permanente, poi riavvia il gateway."
+      "no_checkout_found_action": "Imposta la variabile d'ambiente qui sotto, oppure aggiungi dev_fleet.repo_path al config.json nella directory dati di {{productName}} (~/.junction per impostazione predefinita) per renderla permanente, poi riavvia il gateway."
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9636,7 +9636,7 @@
       "save_changes": "Salva le modifiche",
       "select_an_agent_template": "Seleziona un modello di agente…",
       "shared_lower": "in comune",
-      "subdirectory_inside_junction_where_this_workspa": "Sottodirectory in ~/.kiro/crew dove questo workspace archivia i suoi dati (cronologia delle chat, lezioni, progetti). Ogni workspace ha la propria directory isolata.",
+      "subdirectory_inside_junction_where_this_workspa": "Sottodirectory in ~/.junction dove questo workspace archivia i suoi dati (cronologia delle chat, lezioni, progetti). Ogni workspace ha la propria directory isolata.",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "La configurazione iniziale che questo crew usa — i suoi strumenti, i suoi collegamenti e le sue istruzioni.",
       "triggers": "Triggers",
       "triggers_hint": "When to route to this crew — free-text guidance the orchestrator reads to pick it. Leave empty to exclude this crew from automatic selection.",
@@ -10100,7 +10100,7 @@
       "displayTab": {
         "auto": "Automatico",
         "change_the_dashboard_font_family_persists_across": "Cambia il carattere della dashboard. Persiste tra le sessioni.",
-        "choose_a_color_palette_each_theme_supports_dark": "Scegli una palette di colori. Ogni tema supporta la modalità scura e chiara. I temi personalizzati sono salvati in ~/.kiro/crew/themes/.",
+        "choose_a_color_palette_each_theme_supports_dark": "Scegli una palette di colori. Ogni tema supporta la modalità scura e chiara. I temi personalizzati sono salvati in ~/.junction/themes/.",
         "color_theme": "Tema colori",
         "creating": "Creazione in corso…",
         "dark": "Scuro",
@@ -10230,7 +10230,7 @@
         "applied_change_one": "{{count}} modifica applicata",
         "applied_change_other": "{{count}} modifiche applicate",
         "apply": "Applica",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— \"Applica\" scrive su ~/.kiro/crew/mcp.json + i valori globali del provider secondo le tue scelte.",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— \"Applica\" scrive su ~/.junction/mcp.json + i valori globali del provider secondo le tue scelte.",
         "applying": "Applicazione in corso…",
         "clear_search": "Cancella ricerca",
         "click_to_disable_pending_until_apply": "Clicca per disattivare (in attesa fino ad Applica)",
@@ -11990,7 +11990,7 @@
         "i_understand_this_weakens_junction_s_protection": "Comprendo che questo indebolisce la protezione di {{productName}}.",
         "interactive": "Interattivo",
         "invalid_regular_expression": "Espressione regolare non valida",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}} implementa 6 livelli di sicurezza. Ogni livello opera in modo indipendente — per riuscire, un attaccante deve aggirarli tutti contemporaneamente.",
         "layer_auth": "Autenticazione",
         "layer_n": "Livello {{n}}",

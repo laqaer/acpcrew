@@ -41,7 +41,7 @@ check both.
 app, the cause is usually launchd's minimal `PATH`, which a shell rc file
 never changes. The fix is `launchctl setenv PATH "$PATH"` plus a full quit and
 relaunch — see the
-[macOS troubleshooting guide](https://github.com/laqaer/junction/blob/main/docs/guides/macos-troubleshooting.md)
+[macOS troubleshooting guide](https://github.com/myrmitis/junction/blob/main/docs/guides/macos-troubleshooting.md)
 for the recipe and how to persist it across reboots.
 
 ### Dashboard asks for sign-in but `kiro-cli` is already authenticated

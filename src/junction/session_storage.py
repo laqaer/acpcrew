@@ -79,6 +79,7 @@ from typing import IO, Any
 from junction import hooks, platform_compat
 from junction.config.paths import (
     CONFIG_DIR_LEAF,
+    CONFIG_DIR_NAME,
     KIRO_BASE_DIR_NAME,
     data_home,
     kiro_home,
@@ -916,7 +917,11 @@ def reclaim_block_reason() -> str:
     # BOTH of these are defaults, not isolation: an install that has not yet
     # migrated legitimately reports the legacy home, and treating that as an
     # isolated instance would refuse every pre-migration install.
-    defaults = {home / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF, _norm(legacy_home())}
+    defaults = {
+        home / CONFIG_DIR_NAME,
+        home / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF,
+        _norm(legacy_home()),
+    }
     data = _norm(data_home())
     if data in defaults:
         # The mirror of the isolated-instance case, and just as destructive: a pod

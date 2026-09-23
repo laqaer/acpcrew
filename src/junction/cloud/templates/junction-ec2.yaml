@@ -85,7 +85,7 @@ Parameters:
     Description: S3 key of the source tarball (junction-src.tar.gz) within SourceBucket.
   JunctionRepo:
     Type: String
-    Default: https://github.com/laqaer/junction.git
+    Default: https://github.com/myrmitis/junction.git
     AllowedPattern: "^[A-Za-z0-9_.:/@+-]{1,255}$"
     Description: Git repo to clone when SourceBucket is not set (public-repo fallback).
   JunctionRef:

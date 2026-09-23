@@ -23,7 +23,7 @@ import asyncio
 import logging
 import re
 
-from junction.config.paths import CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME
+from junction.config.paths import CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME, PRIOR_CONFIG_DIR_NAME
 from junction.instances.constants import DEFAULT_MINT_TIMEOUT_SECS, TTL_PATTERN
 from junction.platform_compat import kill_and_reap
 from junction.security import redact_credentials, redact_exfiltration_urls
@@ -219,7 +219,8 @@ def _run_marker_clause(subcommand: str, port: int) -> str:
 
     1. ``$JUNCTION_HOME`` — an explicit override, if exported into this shell.
     2. ``$HOME/<CONFIG_DIR_NAME>`` — the current default data home.
-    3. ``$HOME/<LEGACY_CONFIG_DIR_NAME>`` — the pre-move legacy home (older remotes).
+    3. ``$HOME/<PRIOR_CONFIG_DIR_NAME>`` — the previous default data home.
+    4. ``$HOME/<LEGACY_CONFIG_DIR_NAME>`` — the older top-level home.
 
     The default/legacy home segments are **interpolated from**
     :data:`junction.config.paths.CONFIG_DIR_NAME` /
@@ -257,6 +258,7 @@ def _run_marker_clause(subcommand: str, port: int) -> str:
         [
             f'"${{JUNCTION_HOME:+$JUNCTION_HOME/{fname}}}"',
             f'"$HOME/{CONFIG_DIR_NAME}/{fname}"',
+            f'"$HOME/{PRIOR_CONFIG_DIR_NAME}/{fname}"',
             f'"$HOME/{LEGACY_CONFIG_DIR_NAME}/{fname}"',
         ]
     )

@@ -6,7 +6,7 @@ as a headless container. It is the recommended way to run Junction
 24/7 on a server or NAS; the strongest fit is the always-on channel bot that
 does not need a desktop session. A vendor agent CLI is optional.
 
-The image publishes at `ghcr.io/laqaer/junction` when the Docker lane runs.
+The image publishes at `ghcr.io/myrmitis/junction` when the Docker lane runs.
 Until a tag exists, build from `docker/Dockerfile` after `make wheel`. Start
 the gateway:
 
@@ -14,7 +14,7 @@ the gateway:
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v junction-home:/home/junction \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 Or with compose: copy [`docker/compose.yaml`](../../docker/compose.yaml) and run
@@ -37,7 +37,7 @@ for. Every published manifest carries SLSA build
 provenance — verify with:
 
 ```
-gh attestation verify oci://ghcr.io/laqaer/junction:stable --repo laqaer/junction
+gh attestation verify oci://ghcr.io/myrmitis/junction:stable --repo myrmitis/junction
 ```
 
 ## First-run setup
@@ -209,7 +209,7 @@ This is strictly less permissive than `--security-opt seccomp=unconfined` or
 **Image-only users** (no repo checkout): download the profile directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/docker/seccomp/junction-seccomp.json \
+curl -fsSL https://raw.githubusercontent.com/myrmitis/junction/main/docker/seccomp/junction-seccomp.json \
   -o junction-seccomp.json
 ```
 
@@ -220,7 +220,7 @@ docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v junction-home:/home/junction \
   --security-opt seccomp=docker/seccomp/junction-seccomp.json \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 Or in compose (add to the `junction` service):
@@ -243,7 +243,7 @@ docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v junction-home:/home/junction \
   -e JUNCTION_ALLOW_UNSANDBOXED=1 \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 In this posture the container is the only isolation boundary. Do not mount

@@ -1,8 +1,7 @@
 # Roadmap
 
-Identity freeze, bootstrap, model plane, then operator-install of the sidecar
-and a human-gated production site. Later renames are human-gated. No calendar
-estimates.
+Identity freeze, bootstrap, then a model catalog that starts with
+`junction up`. No calendar estimates.
 
 Frozen identity: [`WORKING_BRIEF.md`](WORKING_BRIEF.md). Lane map:
 [`docs/TASK_MAP.md`](docs/TASK_MAP.md). Agent loop:
@@ -18,17 +17,17 @@ ADR [0001](docs/adr/0001-product-identity.md). Envelope and execution id in
 
 ### M1 — bootstrap PR
 
-**Merged** as [#23](https://github.com/laqaer/junction/pull/23). Contributor
+**Merged** as [#23](https://github.com/myrmitis/junction/pull/23). Contributor
 docs, `site/` overlay, CLI chrome, model-router health, Vercel hobby preview.
 
 ### M1.5 — model plane catalog + role DAG
 
-**Merged** as [#24](https://github.com/laqaer/junction/pull/24). Namespaced
+**Merged** as [#24](https://github.com/myrmitis/junction/pull/24). Namespaced
 catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 
 ### M1.6 — ship program (this cut)
 
-**Open** as [#26](https://github.com/laqaer/junction/pull/26) on
+**Open** as [#26](https://github.com/myrmitis/junction/pull/26) on
 `cursor/junction-ship-program-55da`. Do not merge in agent executions.
 
 - Advertised-model lookup actually calls ACP `available_models`.
@@ -39,13 +38,12 @@ catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 - Marketing site copy matches what the gateway does today.
 - Ship + maintain roadmaps and the agent-OS loop (no auto-merge).
 
-### M2 — operator-install of the model plane
+### M2 — built-in model catalog
 
-Operator installs the published Codex Router sidecar. Junction keeps
-observing it. Optional `openai_base_url` at the sidecar for agents that
-speak that wire. Namespaced catalog slugs become live wire ids. Secrets
-stay in the router's own entry path; Junction does not paste keys into chat.
-Issue [#22](https://github.com/laqaer/junction/issues/22).
+`junction up` binds a loopback catalog listener and serves `/health` and
+`/catalog`. Provider translation is not bundled. Completion routes answer
+`501`. Secrets stay out of chat and out of the data home. A busy port is
+left to whatever already owns it.
 
 ### M3 — production marketing site
 
@@ -70,14 +68,14 @@ Other names quoted in the same pass, also not purchased:
 `junction.dev` / `.app` / `.ai` / `.so` / `.run` and `usejunction.com` are
 taken. Agents must not buy a domain or change DNS.
 
-### M4 — human-gated identity leftovers
+### M4 — identity leftovers
 
-Each is a dedicated change, not an opportunistic string sweep:
-
-- Catalog-wide dashboard i18n (`{{productName}}` already binds new copy).
-- Package and data-home rename (`junction`, `JUNCTION_HOME`, `~/.kiro/crew`,
-  Electron `productName`).
-- GitHub slug is `laqaer/junction`. Description and homepage are still unset.
+- Package import path is `junction`. Env is `JUNCTION_HOME`. A new install
+  uses `~/.junction`. An older data directory is still opened when the new
+  one is absent, and it stays on the security floor.
+- GitHub slug is `myrmitis/junction`. Site is https://getjunction.dev.
+- Catalog-wide dashboard i18n (`{{productName}}` already binds new copy)
+  still has older path spellings in some locale strings.
 
 ### M5 — publish
 
@@ -117,17 +115,17 @@ is [ADR 0006](docs/adr/0006-agent-os-no-automerge.md).
 Worth doing, not on the bootstrap PR:
 
 - Confirm a domain from the M3 table and attach it to `junction-site`
-  ([#27](https://github.com/laqaer/junction/issues/27)).
-- Install the Codex Router sidecar on a real machine and prove M2
-  ([#22](https://github.com/laqaer/junction/issues/22)).
+  ([#27](https://github.com/myrmitis/junction/issues/27)).
+- Provider translation is intentionally not bundled. Do not vendor another
+  product's router tree to get it.
 - Remaining dashboard catalog literals (`en.json` / locale values) in
-  reviewable chunks ([#28](https://github.com/laqaer/junction/issues/28)).
+  reviewable chunks ([#28](https://github.com/myrmitis/junction/issues/28)).
 - Packaged user docs under `src/junction/docs/` still say the old CLI in
   places; rewrite as a docs PR, not a silent sweep.
 - Create Cursor Automations for scout / implementer / reviewer, and mint
-  the `agent-os/*` labels once ([#29](https://github.com/laqaer/junction/issues/29)).
+  the `agent-os/*` labels once ([#29](https://github.com/myrmitis/junction/issues/29)).
 - Adversarial leftovers: orchestration apply site, brand-gate teaching text
-  ([#30](https://github.com/laqaer/junction/issues/30)).
+  ([#30](https://github.com/myrmitis/junction/issues/30)).
 - PyPI name reservation for `junction` when publish is real.
 - A short demo recording on the marketing site once M2 is true.
 - Do not present Junction as a public fork. Do not vendor Codex Router.

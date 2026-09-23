@@ -46,7 +46,7 @@ from junction.security import (
 logger = logging.getLogger(__name__)
 
 # ── GitHub issue target ──────────────────────────────────────────────────────
-_ISSUE_REPO = "laqaer/junction"
+_ISSUE_REPO = "myrmitis/junction"
 _ISSUE_NEW_URL = f"https://github.com/{_ISSUE_REPO}/issues/new"
 
 # Cap how many rolling files we pull so a huge crash-dump backlog can't bloat

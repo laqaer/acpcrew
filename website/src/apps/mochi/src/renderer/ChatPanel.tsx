@@ -1741,7 +1741,11 @@ const mdComponents: Record<string, React.FC<any>> = {
  */
 function isLocalFilePath(src: unknown): src is string {
   if (typeof src !== 'string' || !src.startsWith('/')) return false
-  return /^\/(?:Users|home|tmp|var|private|etc)\//.test(src) || src.includes('.kiro/crew/')
+  return (
+    /^\/(?:Users|home|tmp|var|private|etc)\//.test(src) ||
+    src.includes('.junction/') ||
+    src.includes('.kiro/crew/')
+  )
 }
 
 /** Inline file chip — shows shortened path with preview + reveal buttons */
