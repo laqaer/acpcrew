@@ -12,8 +12,9 @@ Authority ADR: [`../../../docs/adr/0005-preview-not-production.md`](../../../doc
 ## Verify
 
 Confirm the freeze still holds, docs and site agree on Junction, CLI
-chrome exposes `junction` with aliases, model-router health degrades
-when the sidecar is absent, and preview is hobby-only.
+chrome exposes `junction` with aliases, `junction up` serves the catalog
+and refuses completions, health degrades while `:4200` is down, and preview
+is hobby-only.
 
 ## Do not
 

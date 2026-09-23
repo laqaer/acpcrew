@@ -366,6 +366,56 @@ From a source checkout, use `PYTHONPATH=src python -m junction <subcommand>`
 in place of `junction`. `junction gateway` is the same server as `junction up`
 and remains for scripts.
 
+### What a successful test looks like
+
+`junction doctor --quick` composes both planes and does not start the
+catalog. Before `junction up`, the model line is:
+
+```text
+  model:   down (starts with junction up; gateway still works)
+```
+
+`junction up` prints a compose banner on stderr, then serves the dashboard
+on loopback (default `http://127.0.0.1:5476`):
+
+```text
+Junction compose
+  harness: auto (selected=<id or none installed>; vendor CLI optional)
+  model:   built-in catalog (provider translation is not bundled)
+  roles:   orchestration=economy planning=capable execution=standard
+never paste provider keys into chat.
+```
+
+`selected=` names an ACP runtime already on the machine, or `none installed`.
+The roles line is the unpinned cost classes. A pin in `agent.role_models`
+still wins.
+
+Then:
+
+1. Open the dashboard. Dock an ACP runtime you already installed. Chat uses
+   that harness's own model. The default pin is `auto`.
+2. `junction planes` prints the same compose lines under the heading
+   `Junction planes`.
+3. `junction router catalog` lists namespaced slugs and says
+   `no credentials in this snapshot`.
+4. `junction router plan` prints the role DAG.
+5. `junction router status` prints `model plane: degraded (gateway still works)`.
+   Degraded is expected: the catalog is up and the translation port `:4200`
+   is not bundled. The keys line is `never paste provider keys into chat.`
+6. Probe the listener (port `4202`, or `MODEL_ROUTER_PORT` /
+   `CODEX_ROUTER_PORT` when set):
+
+```bash
+curl -s http://127.0.0.1:4202/health
+curl -s http://127.0.0.1:4202/catalog
+curl -si -X POST http://127.0.0.1:4202/v1/chat/completions
+```
+
+Health is `{"ok":true,"status":"ok","service":"junction"}`. Catalog is the
+shipped snapshot. The POST is HTTP 501 with
+`{"ok":false,"code":"model_router_no_forward"}`. A busy `4202` is left
+alone; probe whatever already owns it instead of starting a second listener.
+
 ### What `junction setup` asks
 
 The wizard installs the agent config, then walks through the workspace
@@ -501,6 +551,13 @@ launch when you want a different directory. Those older paths stay on the
 sensitive-path deny list because they can still hold credentials.
 
 ## Verify the install
+
+The short pass is
+[What a successful test looks like](#what-a-successful-test-looks-like):
+`junction doctor --quick`, then `junction up`, then the catalog health and
+the 501 completion route.
+
+The long pass is:
 
 ```bash
 junction doctor

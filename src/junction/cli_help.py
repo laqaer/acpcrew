@@ -42,7 +42,7 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = (
             ("gateway", "Same server as `up`; kept for scripts"),
             ("service", "Run the gateway as a background service that starts on boot"),
             ("status", "Show runtime stats"),
-            ("router", "Model-router sidecar: status, catalog, and role plan"),
+            ("router", "Model catalog: status, catalog, and role plan"),
             ("restart", "Restart a running gateway (service-aware)"),
             ("stop", "Stop a running gateway"),
             ("logs", "Show gateway logs"),

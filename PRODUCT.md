@@ -2,13 +2,13 @@
 
 **Where coding agents meet the models you want.**
 
-Junction is a local control plane. It docks ACP coding agents and routes
-their inference, with memory and cron, on hardware you control. A vendor
+Junction is a local control plane. It docks ACP coding agents on one
+loopback dashboard, with memory and cron, on hardware you control. A vendor
 agent CLI is optional.
 
-Run Cursor, Claude, Codex, Grok from one local dashboard — and route their
-inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron.
-A vendor agent CLI is optional.
+Run Cursor, Claude, Codex, and Grok from one dashboard. `junction up`
+starts a loopback catalog of model names and a role DAG. The docked agent
+uses the models it already serves. Provider translation is not bundled.
 
 Voice: local-first, precise, no hype.
 
@@ -38,6 +38,18 @@ Two planes, one product. See [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 Memory, cron, skills, and the dashboard come from the gateway that already
 lives in this tree.
+
+## Where it sits
+
+| Product | What you get | What stays yours to do |
+|---|---|---|
+| Cursor, Claude Code, Codex | One harness and that vendor's models | A second tool for every other agent |
+| OpenRouter, LiteLLM | One endpoint that translates provider traffic | Docking agents, local memory, cron, a dashboard |
+| Hosted agent bots | A remote conversation | Your files, your keys, your machine |
+| Junction | Several ACP harnesses, local memory, cron, skills, a sandbox, and a visible catalog and role DAG on loopback | Provider translation. The catalog lists names. Completions on that listener return 501. The harness answers with models it already serves. |
+
+The join is the product: one local switch for agents you already run, plus
+a map of model roles you can see. It is not a second proxy.
 
 ## What it is not
 

@@ -741,12 +741,20 @@ with `junction up` is the same server as `junction gateway`. The module form
 `<python> -m junction <subcmd>` is classified separately and still requires
 a Python interpreter before `-m`.
 
-### Model-router sidecar
+### Model catalog
 
-`junction router status` probes the optional Codex Router model plane on
-loopback (`GET http://127.0.0.1:4202/health`, honoring `MODEL_ROUTER_PORT` /
-`CODEX_ROUTER_PORT`) and reports LiteLLM liveliness on `:4200`. An unreachable
-sidecar is degraded, not a CLI failure: the ACP gateway still runs.
+`junction up` starts a loopback catalog listener (default `127.0.0.1:4202`,
+honoring `MODEL_ROUTER_PORT` / `CODEX_ROUTER_PORT`) before the compose banner.
+`GET /health` and `GET /catalog` only. POST, PUT, and PATCH, including
+`/v1/chat/completions`, return 501
+`{"ok":false,"code":"model_router_no_forward"}`. A busy port is left alone.
+
+`junction router status` probes that listener
+(`GET http://127.0.0.1:4202/health`) and translation liveliness on `:4200`.
+The translation gateway is not bundled, so status stays `degraded` while
+only the catalog is up. That is not a CLI failure: the ACP gateway still
+runs. Human lines say `model plane:` and `never paste provider keys into
+chat.` They do not claim a sidecar injects keys.
 
 `junction router catalog` prints the namespaced model-choice snapshot
 (optional `--provider`, `--class economy|standard|capable`). `junction router

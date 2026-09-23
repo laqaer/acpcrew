@@ -40,10 +40,15 @@ catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 
 ### M2 — built-in model catalog
 
+**Implemented in this checkout. Not on `main` until a human merges.**
 `junction up` binds a loopback catalog listener and serves `/health` and
 `/catalog`. Provider translation is not bundled. Completion routes answer
-`501`. Secrets stay out of chat and out of the data home. A busy port is
-left to whatever already owns it.
+`501` with `code` `model_router_no_forward`. `junction router` does not
+claim a sidecar injects keys. Secrets stay out of chat and out of the data
+home. A busy port is left to whatever already owns it.
+
+The test to run before marketing is
+[What a successful test looks like](docs/guides/install.md#what-a-successful-test-looks-like).
 
 ### M3 — production marketing site
 

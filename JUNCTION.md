@@ -23,16 +23,20 @@ Lane map: [`docs/TASK_MAP.md`](docs/TASK_MAP.md).
 
 1. **Harness plane** — ACP runtime registry (`src/junction/acp/runtimes.py`).
    Default `agent.acp_backend` is `auto`. A vendor agent CLI is optional.
-2. **Model plane** — optional Codex Router sidecar. Junction observes it
-   (`src/junction/model_router/`). Catalog + role DAG live there. It does
-   not vendor the Node tree, copy tray/tunnel/agent-bridges, or reimplement
-   LiteLLM.
+2. **Model plane** — a loopback catalog `junction up` starts
+   (`src/junction/model_router/`). `GET /health` and `GET /catalog` only.
+   Completion routes answer `501` `model_router_no_forward`. It does not
+   vendor the Node tree, copy tray/tunnel/agent-bridges, or reimplement
+   LiteLLM. Translation on `:4200` is not bundled, so status stays
+   `degraded` while only the catalog is up.
 
-If the sidecar is down, the gateway still runs. Document that degradation.
-Never log secrets. Never paste provider keys into chat.
+If the catalog listener is down, the gateway still runs. Document that
+degradation. Never log secrets. Never paste provider keys into chat.
+`junction router` must not claim a sidecar injects keys.
 
 ADRs: [0002](docs/adr/0002-two-planes.md),
-[0003](docs/adr/0003-sidecar-not-vendor.md). Spec:
+[0003](docs/adr/0003-sidecar-not-vendor.md),
+[0007](docs/adr/0007-builtin-model-catalog.md). Spec:
 [`docs/system-specs/modules/model-router.md`](docs/system-specs/modules/model-router.md).
 
 Site: https://getjunction.dev
@@ -63,7 +67,7 @@ Checkout-local skills live under [`.agents/skills/`](.agents/README.md)
 |---|---|
 | `product-identity` | Name, CLI, identifiers that stay |
 | `acp-runtimes` | Harness registry, `auto` default |
-| `model-router` | Sidecar health/status, catalog, role DAG |
+| `model-router` | Catalog listener, health/status, role DAG, no forwarding |
 | `security-keystone` | Ceiling and harness-parity floor |
 | `integration-owner` | Envelope; no merge / spend |
 | `marketing-site` | `site/` overlay and preview |

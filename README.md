@@ -1,5 +1,5 @@
-> **Junction** is a local control plane: dock ACP coding agents and route
-> their models. CLI: `junction`. A vendor agent CLI is optional. Default:
+> **Junction** is a local control plane: dock ACP coding agents and keep a
+> model catalog. CLI: `junction`. A vendor agent CLI is optional. Default:
 > `"agent": { "acp_backend": "auto" }`. See [PRODUCT.md](PRODUCT.md) and
 > [ARCHITECTURE.md](ARCHITECTURE.md).
 
@@ -97,8 +97,9 @@ junction up
 ## Why Junction
 
 A coding-agent CLI is one harness talking to one vendor model. Junction is
-the local switch: dock several ACP agents, then route their inference through
-a role DAG so orchestration stays cheap and planning stays capable.
+the local switch: dock several ACP agents, and spend by role so orchestration
+stays cheap and planning stays capable. The catalog lists other model names.
+It does not forward provider traffic.
 
 **Two planes.** The harness plane docks Cursor, Claude, Codex, Grok, and the
 rest from one registry (`agent.acp_backend` defaults to `auto`). The model

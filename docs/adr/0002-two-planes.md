@@ -1,6 +1,6 @@
 # ADR 0002 — Two planes, composed not dumped
 
-- Status: accepted
+- Status: accepted. The optional-sidecar model plane is superseded by [0007](0007-builtin-model-catalog.md). Two-plane composition still holds.
 - Date: 2026-09-19
 - Execution: `bc-39bfeb15-ff12-4636-840a-217a97c555da`
 

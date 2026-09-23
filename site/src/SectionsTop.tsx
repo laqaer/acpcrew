@@ -82,7 +82,7 @@ export function Hero() {
           </motion.div>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.24 }}
             className="mt-5 text-sm text-[#6d6458] dark:text-[#a39b90]">
-            Loopback dashboard. Provider keys stay in the sidecar — never in chat.
+            Loopback dashboard. Never paste provider keys into chat.
           </motion.p>
         </div>
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
@@ -146,8 +146,8 @@ export function ProblemSolution() {
     'A single window that only speaks one harness',
   ];
   const AFTER = [
-    'Harness plane docks the agent; model plane routes inference',
-    'Keys stay in the sidecar — never paste them into chat',
+    'Harness plane docks the agent you already run',
+    'Keys stay out of chat — the catalog does not forward traffic',
     'Role routing: economy for orchestration, capable for planning',
     'Dock Cursor beside Codex. Memory stays with each thread',
   ];

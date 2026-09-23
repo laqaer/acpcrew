@@ -28,9 +28,9 @@ export const ARCH_PLANES = [
   },
   {
     label: 'Model plane',
-    sub: 'Sidecar, optional',
+    sub: 'Built-in catalog',
     detail:
-      'An optional sidecar routes inference. Junction ships that sidecar’s namespaced model catalog and a role DAG (orchestration, planning, execution) that spends tokens where they return the most work. Advertised harness ids apply now; catalog slugs apply once the sidecar is installed. Never paste provider keys into chat. If the sidecar is absent, the gateway still runs.',
+      'junction up starts a loopback catalog: namespaced model choices and a role DAG (orchestration, planning, execution). Your docked agent uses the models it already serves. Junction does not forward provider traffic. Never paste provider keys into chat. If the catalog is down, the gateway still runs.',
   },
 ];
 
@@ -38,7 +38,7 @@ export const ARCH = [
   { label: 'CLI / Dashboard', sub: 'junction · loopback' },
   { label: 'Gateway', sub: 'Python control plane' },
   { label: 'Harness plane', sub: 'ACP agents' },
-  { label: 'Model plane', sub: 'Sidecar, optional' },
+  { label: 'Model plane', sub: 'Built-in catalog' },
   { label: 'Memory & Cron', sub: 'Local, durable' },
 ];
 
@@ -48,7 +48,7 @@ export const TERMINAL_LINES = [
   { prompt: true, text: 'junction planes' },
   { text: 'Junction planes' },
   { text: '   harness:     ', hl: 'auto' },
-  { text: '   model:       ', hl: 'sidecar optional' },
+  { text: '   model:       ', hl: 'built-in catalog' },
   { prompt: true, text: 'junction up' },
   { text: 'Dashboard:      ', hl: 'loopback' },
   { comment: '   Ready. Two planes, one local install.' },
@@ -63,7 +63,7 @@ export const IN_ACTION = [
   {
     label: 'Route',
     user: 'spend cheap tokens on orchestration and save the capable model for planning',
-    bot: 'Orchestration is economy, planning is capable, execution is standard. Advertised harness ids apply on the live session. Catalog slugs wait for the optional sidecar. If the sidecar is down, this gateway still runs.',
+    bot: 'Orchestration is economy, planning is capable, execution is standard. The docked agent uses models it already serves. The catalog lists the wider set; Junction does not forward that traffic. If the catalog is down, this gateway still runs.',
   },
   {
     label: 'Spend',
@@ -75,7 +75,7 @@ export const IN_ACTION = [
 export const FAQ = [
   {
     q: 'Why not just run an agent CLI?',
-    a: 'A CLI is one harness talking to one vendor model. Junction is the local switch: dock several ACP agents, then route their inference through a role DAG so orchestration stays cheap and planning stays capable. Memory, cron, and the dashboard stay on your machine.',
+    a: 'A CLI is one harness talking to one vendor model. Junction docks several ACP agents on one loopback dashboard, and a role DAG says which cost class should do orchestration, planning, and execution. Memory and cron stay on your machine. The agent still talks to the models it already serves.',
   },
   {
     q: 'Does any data leave my machine?',
@@ -83,11 +83,11 @@ export const FAQ = [
   },
   {
     q: 'How does model routing work?',
-    a: 'Cheap models coordinate, a capable model plans, and everyday coding sits in between. That split works with the models your agent already serves. An optional local sidecar adds a wider catalog later. Never paste provider keys into chat. If the sidecar is absent, Junction still runs.',
+    a: 'Cheap models coordinate, a capable model plans, and everyday coding sits in between. That plan is junction router plan. The live session uses models the docked agent already advertises. The catalog is the map of other choices. Junction does not forward provider traffic. Never paste provider keys into chat.',
   },
   {
     q: 'What models can I use?',
-    a: 'Junction ships the namespaced catalog the model-plane sidecar knows: Kimi, DeepSeek, Grok, Anthropic, Ollama Cloud, ClinePass, Copilot, OpenRouter, and the rest. Live-catalog providers are curated on the sidecar. The default pin is auto. Role routing (orchestration, planning, execution) picks by cost class so cheap models handle coordination and capable models handle planning.',
+    a: 'The docked agent serves its own models, and the default pin is auto. junction router catalog also lists a namespaced snapshot: Kimi, DeepSeek, Grok, Anthropic, Ollama Cloud, ClinePass, Copilot, OpenRouter, and the rest. Those slugs are labels. Junction does not forward completions to them. Role routing picks a cost class so cheap models coordinate and capable models plan.',
   },
   {
     q: 'Do I need a vendor agent CLI?',
@@ -102,7 +102,7 @@ export const FAQ = [
     a: 'Clone github.com/myrmitis/junction, create a branch, and open a PR. See CONTRIBUTING.md.',
   },
   {
-    q: 'What if I skip the model sidecar?',
-    a: 'Junction still docks agents, keeps memory and cron, and serves the loopback dashboard. Role routing uses the models those agents already advertise. The sidecar is how you add a separate catalog — it is not required to start.',
+    q: 'Does Junction forward provider traffic?',
+    a: 'No. junction up serves a loopback catalog and a role DAG. Your docked agent talks to the models it already serves. Completion routes on the catalog answer 501. Never paste provider keys into chat. If the catalog listener is down, the gateway still runs.',
   },
 ];
