@@ -189,7 +189,7 @@ def _marker_port() -> int | None:
 
     Two guards keep this from being a guess:
 
-    * **Ownership.** Only ports where a verified Kiro Crew gateway process is
+    * **Ownership.** Only ports where a verified Junction gateway process is
       listening count (:func:`_gateway_owns_port`); a stale marker, or one whose
       port has been taken over by an unrelated process, is discarded.
     * **Ambiguity.** With several gateways up there is no basis to pick one, so
@@ -362,6 +362,15 @@ def resolve_serving_port() -> int:
 # ``junction stop``.
 _JUNCTION_SERVER_SUBCOMMANDS = frozenset({"up", "gateway", "dashboard", "start"})
 
+# The console stem and the ``-m`` module name are the same word. A later
+# argument that happens to be that word followed by a server subcommand
+# (``grep -m junction gateway somefile``) must not be classified as the
+# gateway: ``junction stop`` SIGTERMs whatever this matcher accepts.
+# These prefixes are not the program; flags and VAR=value after them still
+# belong to the wrapper. A wrapper flag that takes a separate word
+# (``nice -n 10``) is not peeled — that spawn is not how the gateway is launched.
+_ARGV_WRAPPERS = frozenset({"sudo", "env", "nohup", "command", "exec", "time", "nice", "stdbuf"})
+
 
 def _basename_stem(tok: str) -> str:
     """Basename of *tok* without a Windows ``.exe`` suffix.
@@ -386,8 +395,25 @@ def _basename_stem(tok: str) -> str:
     return base
 
 
+def _program_index(tokens: list[str]) -> int:
+    """Index of the executable, skipping wrappers and their own flags.
+
+    The console-script check keys on this index. Matching a later argument
+    would treat ``grep -m junction gateway`` as a gateway process, because
+    the module name and the console stem are the same word.
+    """
+    index = 0
+    while index < len(tokens):
+        if _basename_stem(tokens[index]).lower() not in _ARGV_WRAPPERS:
+            return index
+        index += 1
+        while index < len(tokens) and (tokens[index].startswith("-") or "=" in tokens[index]):
+            index += 1
+    return 0
+
+
 def _args_look_like_junction(args: str) -> bool:
-    """Return ``True`` if a process command-line *args* string is a Kiro Crew server.
+    """Return ``True`` if a process command-line *args* string is a Junction server.
 
     This gates ``os.kill(pid, SIGTERM)`` in ``cli_server._stop``, so it must be
     **precise** (never match an unrelated process that merely mentions
@@ -404,9 +430,11 @@ def _args_look_like_junction(args: str) -> bool:
       a service install and the launchd/systemd service), plus the legacy dotted
       form ``<python> -m junction.<subcmd>``. A Python interpreter must precede
       ``-m`` so we don't misread some other tool's ``-m`` flag (e.g. ``grep -m``).
-    * **Console script** — ``/path/to/junction <subcmd>`` (or the silent
-      aliases ``junction`` / ``acpcrew``). ``up`` is the operator start
-      verb; ``gateway`` remains the script alias.
+    * **Console script** — the executable token (argv0, after wrappers such
+      as ``sudo`` / ``env``) is ``/path/to/junction <subcmd>`` or a silent
+      alias (``junction`` / ``acpcrew``). A later argument is not the
+      program: ``grep -m junction gateway somefile`` must not match. ``up``
+      is the operator start verb; ``gateway`` remains the script alias.
 
     Examples::
 
@@ -434,6 +462,7 @@ def _args_look_like_junction(args: str) -> bool:
     except ValueError:
         tokens = args.split()
 
+    program_index = _program_index(tokens)
     for index, token in enumerate(tokens):
         # --- Module form: "<python> -m junction <subcmd>" / "-m junction.<subcmd>"
         if token == "-m" and index + 1 < len(tokens):
@@ -466,9 +495,11 @@ def _args_look_like_junction(args: str) -> bool:
                     ):
                         return True
 
-        # --- Console-script form: ".../junction <subcmd>" (or a silent alias)
+        # --- Console-script form: the executable is junction (or a silent alias).
+        # A later argument with the same spelling is not the program.
         if (
-            _basename_stem(token) in CLI_CONSOLE_STEMS
+            index == program_index
+            and _basename_stem(token) in CLI_CONSOLE_STEMS
             and index + 1 < len(tokens)
             and tokens[index + 1] in _JUNCTION_SERVER_SUBCOMMANDS
         ):
@@ -478,7 +509,7 @@ def _args_look_like_junction(args: str) -> bool:
 
 
 def _is_junction_process(pid: int) -> bool:
-    """Return ``True`` if *pid* looks like a Kiro Crew gateway process.
+    """Return ``True`` if *pid* looks like a Junction gateway process.
 
     Resolves the process command line cross-platform via
     :func:`platform_compat.process_command_line` (Linux ``/proc``, macOS ``ps``,

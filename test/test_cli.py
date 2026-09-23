@@ -2057,6 +2057,9 @@ class TestArgsLookLikeJunction:
             "/usr/local/bin/junction gateway",
             "acpcrew up",
             "python3 -m junction up",
+            # Wrappers are not the program; the executable after them still is.
+            "sudo -E /usr/local/bin/junction gateway",
+            "env JUNCTION_HOME=/tmp junction up",
         ],
     )
     def test_matches_server_launch_forms(self, args):
