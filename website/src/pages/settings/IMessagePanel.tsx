@@ -11,7 +11,7 @@ import { i18nT } from '../../i18n/t'
 /** Brand name — do-not-translate, so it lives here rather than in the catalog. */
 const CHANNEL_NAME = "iMessage"
 const BRIDGE_URL = 'https://github.com/steipete/imsg'
-const SETUP_GUIDE = 'https://github.com/myrmitis/junction/blob/main/src/junction/docs/imessage-integration.md'
+const SETUP_GUIDE = 'https://github.com/laqaer/junction/blob/main/src/junction/docs/imessage-integration.md'
 
 const SERVICES = ['imessage', 'sms', 'auto']
 

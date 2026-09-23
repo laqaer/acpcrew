@@ -12,7 +12,7 @@ import { i18nT } from '../../i18n/t'
 import ErrorNotice from '../../components/ErrorNotice'
 /** Brand name — do-not-translate, so it lives here rather than in the catalog. */
 const CHANNEL_NAME = "Slack"
-const SETUP_GUIDE = 'https://github.com/myrmitis/junction/blob/main/src/junction/docs/slack-integration.md'
+const SETUP_GUIDE = 'https://github.com/laqaer/junction/blob/main/src/junction/docs/slack-integration.md'
 
 type Draft = {
   owner_id: string

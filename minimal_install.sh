@@ -6,7 +6,7 @@
 # npm + vite (dashboard). scripts/get-junction.sh clones the repository
 # and then runs this file.
 #
-#   git clone https://github.com/myrmitis/junction.git
+#   git clone https://github.com/laqaer/junction.git
 #   cd junction
 #   bash minimal_install.sh
 #

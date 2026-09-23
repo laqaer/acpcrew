@@ -87,7 +87,7 @@ and Node.js 22+. It clones this repository (it is not a release CDN), runs
 [`scripts/get-junction.sh`](../../scripts/get-junction.sh) before you run it.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/myrmitis/junction/main/scripts/get-junction.sh | sh
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
 junction setup
 junction up
 ```
@@ -122,7 +122,7 @@ in the sandbox section. Prefer a package where you can.
 Clone, build the dashboard, install the backend, then compose both planes:
 
 ```bash
-git clone https://github.com/myrmitis/junction.git
+git clone https://github.com/laqaer/junction.git
 cd junction
 python3 -m venv .venv && source .venv/bin/activate
 cd website && npm install && npm run build && cd ..
@@ -200,7 +200,7 @@ Any CLI subcommand works the same way, for example
 The equivalent by hand:
 
 ```bash
-git clone https://github.com/myrmitis/junction.git
+git clone https://github.com/laqaer/junction.git
 cd junction
 cd website && npm install && npm run build && cd ..
 pip install -e ".[voice]"    # [voice] adds the optional speech-to-text extras
@@ -431,7 +431,7 @@ machine has none and reports enterprise-registry failures (mirror login, proxy,
 blocked browser CDN) as specific remedies rather than a raw npm dump:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/myrmitis/junction/main/playwright-cli.sh
+curl -fsSLO https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.sh
 less playwright-cli.sh          # read it before you run it
 sh playwright-cli.sh --version 0.1.18
 ```
@@ -971,7 +971,7 @@ shortcuts but does not touch `~/.junction`.
 
 ```bash
 docker stop junction && docker rm junction   # graceful stop, then remove
-docker rmi ghcr.io/myrmitis/junction:stable # remove the image (match the tag you pulled)
+docker rmi ghcr.io/laqaer/junction:stable # remove the image (match the tag you pulled)
 ```
 
 `docker stop` sends SIGTERM and gives the gateway time to run its shutdown
@@ -1028,7 +1028,7 @@ cp -a "${JUNCTION_HOME:-$HOME/.junction}" ~/junction-backup \
   && rm -rf "${JUNCTION_HOME:-$HOME/.junction}"
 
 # 4. Reinstall from source (Junction has no public curl|sh CDN)
-git clone https://github.com/myrmitis/junction.git && cd junction
+git clone https://github.com/laqaer/junction.git && cd junction
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 

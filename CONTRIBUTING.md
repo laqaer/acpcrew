@@ -5,7 +5,7 @@ we welcome issues and pull requests.
 
 ## Reporting Bugs and Requesting Features
 
-Open a [GitHub issue](https://github.com/myrmitis/junction/issues). Before you
+Open a [GitHub issue](https://github.com/laqaer/junction/issues). Before you
 do, search the open issues, because the fastest resolution is often a thread that
 already exists.
 
@@ -21,7 +21,7 @@ it leaves room for an answer nobody had thought of.
 
 ## Finding Something to Work On
 
-Start with the [open issues](https://github.com/myrmitis/junction/issues). Issues
+Start with the [open issues](https://github.com/laqaer/junction/issues). Issues
 carry an `area:` label naming the subsystem they land in — `area: dashboard`,
 `area: agents`, `area: cron` and so on — so you can filter to the part of the
 codebase you want to work in, and a type label (`bug`, `enhancement`,
@@ -46,7 +46,7 @@ tell you in a paragraph.
 
 ```bash
 # 1. Fork the repo on GitHub, then clone your fork
-git clone https://github.com/myrmitis/junction.git
+git clone https://github.com/laqaer/junction.git
 cd junction
 
 # 2. Build the frontend and bundle it into the package
@@ -491,7 +491,7 @@ workflows triggered by **pull requests opened from a fork**. Three of our
 checks need those credentials to reach Amazon Bedrock, so their behaviour
 depends on *where your branch lives*:
 
-| Check | Fork PR | Branch pushed to `myrmitis/junction` |
+| Check | Fork PR | Branch pushed to `laqaer/junction` |
 | --- | --- | --- |
 | **Opus 4.8 Review** | Skipped (neutral — not a failure) | Runs |
 | **GPT 5.6 Review** | Skipped | Runs |
@@ -507,7 +507,7 @@ depends on *where your branch lives*:
   CodeQL, coverage, build) are green. A maintainer runs the AI review on their
   side (or re-pushes your branch to the upstream repo) and reviews manually.
 - **Getting the AI reviews to run** depends only on *where the branch lives*,
-  never on who you are: the branch has to be on `myrmitis/junction` itself,
+  never on who you are: the branch has to be on `laqaer/junction` itself,
   not on a fork. Pushing a branch directly to the upstream repo requires write
   access — so if you have it, push there and open the PR from that branch to
   get the full suite. Without write access, the fork path above is the correct
@@ -532,7 +532,7 @@ Rules: imperative mood, lowercase summary, no trailing period, wrap body at 72 c
 
 ## Questions?
 
-Open a [GitHub issue](https://github.com/myrmitis/junction/issues) or start a
+Open a [GitHub issue](https://github.com/laqaer/junction/issues) or start a
 discussion in the repository.
 
 ## Security Issues

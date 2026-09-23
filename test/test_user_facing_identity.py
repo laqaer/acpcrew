@@ -90,20 +90,20 @@ def test_public_install_guides_are_junction() -> None:
     assert "ghost family" not in windows
     assert "junction up" in windows
     assert "ghcr.io/kirodotdev" not in docker
-    assert "ghcr.io/myrmitis/junction" in docker
+    assert "ghcr.io/laqaer/junction" in docker
     assert "ghcr.io/kirodotdev" not in compose
-    assert "ghcr.io/myrmitis/junction:stable" in compose
+    assert "ghcr.io/laqaer/junction:stable" in compose
     assert "container_name: junction" in compose
     ec2 = (_REPO_ROOT / "src/junction/cloud/templates/junction-ec2.yaml").read_text(
         encoding="utf-8"
     )
-    assert "https://github.com/myrmitis/junction.git" in ec2
+    assert "https://github.com/laqaer/junction.git" in ec2
     assert "kirodotdev/KiroCrew" not in ec2
     assert "scripts/get-junction.sh" in install
     assert "minimal_install.sh" in install
     gs = (_REPO_ROOT / "src/junction/docs/getting-started.md").read_text(encoding="utf-8")
     assert "scripts/get-junction.sh" in gs
-    assert "```bash\ngit clone https://github.com/myrmitis/junction.git" in gs
+    assert "```bash\ngit clone https://github.com/laqaer/junction.git" in gs
     packaged = (_REPO_ROOT / "src/junction/docs/index.md").read_text(encoding="utf-8")
     assert "A vendor agent CLI is optional" in packaged
     assert "kiro-cli is optional" not in packaged.split("## Core Capabilities", 1)[0]
@@ -113,7 +113,7 @@ def test_operator_install_script_is_junction(tmp_path: Path) -> None:
     script = _REPO_ROOT / "scripts" / "get-junction.sh"
     text = script.read_text(encoding="utf-8")
     assert text.startswith("#!/bin/sh\n")
-    assert "myrmitis/junction" in text
+    assert "laqaer/junction" in text
     assert "*myrmitis/junction*|*laqaer/junction*|*laqaer/acpcrew*" in text
     assert "minimal_install.sh" in text
     assert "Kiro Crew" not in text
@@ -151,7 +151,7 @@ def test_operator_install_script_is_junction(tmp_path: Path) -> None:
         env=env,
     )
     assert result.returncode == 0, result.stderr
-    assert "repo=https://github.com/myrmitis/junction.git" in result.stdout
+    assert "repo=https://github.com/laqaer/junction.git" in result.stdout
     assert f"dest={tmp_path / 'src'}" in result.stdout
     assert "installer=minimal_install.sh" in result.stdout
     assert "next: junction setup && junction up" in result.stdout

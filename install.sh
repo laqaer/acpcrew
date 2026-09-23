@@ -5,7 +5,7 @@
 # Public build. Uses python3/pip (backend) + npm/vite (dashboard).
 #
 # Usage (from a local clone):
-#   git clone https://github.com/myrmitis/junction.git
+#   git clone https://github.com/laqaer/junction.git
 #   cd junction
 #   bash install.sh
 #
@@ -154,7 +154,7 @@ echo ""
 
 if [ ! -f "$JUNCTION_APP_DIR/pyproject.toml" ]; then
     die "Run this from inside a Junction checkout (pyproject.toml not found in $JUNCTION_APP_DIR).
-     git clone https://github.com/myrmitis/junction.git && cd junction && bash install.sh"
+     git clone https://github.com/laqaer/junction.git && cd junction && bash install.sh"
 fi
 
 # ══════════════════════════════════════════════════════════════════════

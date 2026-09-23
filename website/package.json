@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "repository": "https://github.com/myrmitis/junction",
-  "homepage": "https://github.com/myrmitis/junction",
+  "repository": "https://github.com/laqaer/junction",
+  "homepage": "https://github.com/laqaer/junction",
   "type": "module",
   "engines": {
     "node": ">=22"

@@ -14,7 +14,7 @@ Code: `site/` (not `website/` — that is the dashboard SPA). Identity:
 
 - Name: Junction. Tagline: Where coding agents meet the models you want.
 - Two-plane promise; a vendor agent CLI is optional; CLI `junction`; slug
-  `myrmitis/junction`.
+  `laqaer/junction`.
 - Keep the amber already in `site/`. Junction / track motif. No emoji
   icons (lucide on the dashboard; site follows the same no-emoji rule).
 - Drop the ghost emoji and the mint default palette (those read as

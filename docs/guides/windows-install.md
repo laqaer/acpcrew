@@ -40,7 +40,7 @@ on `PATH` can still confuse other tooling. Prefer a real CPython install.
 From a clone, in PowerShell:
 
 ```powershell
-git clone https://github.com/myrmitis/junction.git
+git clone https://github.com/laqaer/junction.git
 cd junction
 .\make.ps1 build
 ```

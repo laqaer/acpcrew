@@ -8,7 +8,7 @@
 
 services:
   junction:
-    image: ghcr.io/myrmitis/junction:stable
+    image: ghcr.io/laqaer/junction:stable
     container_name: junction
     restart: unless-stopped
     ports:

@@ -21,7 +21,7 @@ dynamic = ["dependencies", "optional-dependencies"]
 
 [project.urls]
 Homepage = "https://getjunction.dev"
-Repository = "https://github.com/myrmitis/junction"
+Repository = "https://github.com/laqaer/junction"
 
 [project.scripts]
 junction = "junction._bootstrap:main"
