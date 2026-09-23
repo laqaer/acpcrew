@@ -418,7 +418,7 @@ describe('a provider that needs attention', () => {
     await waitFor(() => expect(mcpCustomUpdate).toHaveBeenCalledWith('notion', {
       url: NOTION_URL, scopes: ['read'], clientId: 'client-1',
     }))
-    // Global scopes are passed through unchanged; only Kiro Crew's own is turned on.
+    // Global scopes are passed through unchanged; only Junction's own is turned on.
     expect(mcpApply).toHaveBeenCalledWith([{ name: 'notion', junction: true, kiroGlobal: true, ccGlobal: false }])
   })
 

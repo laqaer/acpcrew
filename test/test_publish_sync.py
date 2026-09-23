@@ -732,7 +732,7 @@ async def test_refresh_flags_rollback(store, fake_client):
     }
     refreshed = await publish_sync.refresh_publication(art.slug)
     assert refreshed.publication is not None
-    assert refreshed.publication.last_error.startswith("The remote copy changed outside Kiro Crew")
+    assert refreshed.publication.last_error.startswith("The remote copy changed outside Junction")
 
 
 @pytest.mark.asyncio
@@ -740,7 +740,7 @@ async def test_refresh_clears_drift_when_reconciled(store, fake_client):
     art = store.create(name="Doc", content="hello", kind="text")
     await publish_sync.publish(art.slug, visibility="PRIVATE")
     store.update_publication(
-        art.slug, last_error="The remote copy changed outside Kiro Crew: it is showing v9."
+        art.slug, last_error="The remote copy changed outside Junction: it is showing v9."
     )
     # The remote now matches what Junction published again → note clears.
     fake_client.get_response = {

@@ -630,7 +630,7 @@ class AcpRuntime:
 
             self._work_dir = config_dir() / "workspace"
         self._agent = agent
-        # Canonical Kiro Crew agent identity (a cfg.agents key) resolved by the
+        # Canonical Junction agent identity (a cfg.agents key) resolved by the
         # surface that created this runtime — a DIFFERENT namespace from
         # ``agent`` (the kiro template the process spawns with). Default for
         # sessions created on this runtime; a warm-pool rekey overwrites it so
@@ -658,7 +658,7 @@ class AcpRuntime:
         # Whether sessions on this runtime should hold drain_init() open for
         # slow MCP servers (the no-report ceiling). A runtime whose agent is
         # KNOWN to have zero MCP servers — the junction-lite background runtime,
-        # whose config Kiro Crew itself writes with an empty mcpServers map —
+        # whose config Junction itself writes with an empty mcpServers map —
         # opts out so hot one-liner paths (chat titles, suggestions, STT
         # endpointing) don't pay a full ceiling wait that can never be armed.
         self._expect_mcp_reports = expect_mcp_reports
@@ -2100,7 +2100,7 @@ class AcpRuntime:
         only ever reached on the KAS path.
         """
         # Positive liveness signal: this callback fires ONLY when a running
-        # KAS process asks Kiro Crew for a token, so reaching here is direct
+        # KAS process asks Junction for a token, so reaching here is direct
         # proof KAS is serving this runtime. No token is logged — only the
         # fact of the callback, deduped to once-per-runtime at INFO.
         if not self._kas_auth_logged:
@@ -2597,7 +2597,7 @@ class AcpRuntime:
     ) -> AcpSessionHandle:
         """Create a new ACP session on this runtime. Returns a session handle.
 
-        ``crew_agent`` is the canonical Kiro Crew identity for THIS session;
+        ``crew_agent`` is the canonical Junction identity for THIS session;
         None falls back to the runtime's own (spawn-time or rekeyed) identity.
         """
         if not self._initialized:

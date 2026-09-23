@@ -533,7 +533,7 @@ def test_probe_unshare_fast_path_on_loop_when_backend_set(monkeypatch):
 
 
 class TestNoBackendGuidanceNamesTheRightRemedy:
-    """Which remedy is named depends on HOW Kiro Crew was launched."""
+    """Which remedy is named depends on HOW Junction was launched."""
 
     @staticmethod
     def _apparmor_host(monkeypatch):
@@ -650,7 +650,7 @@ class TestNoBackendGuidanceNamesTheRightRemedy:
         msg = sb._no_backend_guidance()
 
         assert str(bundled) in msg
-        assert "while Kiro Crew is open" in msg, "must say the path is live-only"
+        assert "while Junction is open" in msg, "must say the path is live-only"
 
     def test_which_is_not_trusted_as_evidence_the_user_has_the_cli(
         self, monkeypatch, tmp_path

@@ -102,8 +102,8 @@ Settings → Display → **Font Family** reads through them:
 
 | Option | Resolves to |
 |---|---|
-| Sans | the pack's `sans` face, else Kiro Crew's own proportional stack |
-| Mono | the pack's `mono` face, else Kiro Crew's own monospace stack |
+| Sans | the pack's `sans` face, else Junction's own proportional stack |
+| Mono | the pack's `mono` face, else Junction's own monospace stack |
 | System | the OS face — no token, so a pack cannot reach the body font here |
 
 `--mono` reads the mono token too, so code blocks, inline code and diffs follow a

@@ -6,10 +6,9 @@
 #
 # On success this records the resolved node bin directory in
 # "<data-home>/node-bin-dir" so non-interactive callers (e.g. make) can put
-# the right node on PATH without re-running a version manager. The data home is
-# "$JUNCTION_HOME" when set, else "$HOME/.kiro/crew" (the current default) —
-# NOT the pre-move "$HOME/.kirocrew", which is not the data home and must not
-# be written to.
+# the right node on PATH without re-running a version manager. The data home
+# matches junction.config.paths._select_default_home: ~/.junction on a new
+# install, otherwise an existing ~/.kiro/crew or ~/.kirocrew.
 
 # The frontend build (vite 8 / rolldown) requires a Node in the bundler's own
 # declared support range: `vite@8.2.0` and `rolldown@1.2.3` both set
@@ -20,6 +19,27 @@
 # aborts the build with
 #   "The requested module 'node:util' does not provide an export named 'styleText'".
 # See _version_meets_floor for the exact per-line cutoffs.
+# Same choice as junction.config.paths._select_default_home.
+_select_data_home() {
+    if [ -n "${JUNCTION_HOME:-}" ]; then
+        printf '%s\n' "$JUNCTION_HOME"
+        return
+    fi
+    if [ -d "$HOME/.junction" ]; then
+        printf '%s\n' "$HOME/.junction"
+        return
+    fi
+    if [ -d "$HOME/.kiro/crew" ]; then
+        printf '%s\n' "$HOME/.kiro/crew"
+        return
+    fi
+    if [ -d "$HOME/.kirocrew" ]; then
+        printf '%s\n' "$HOME/.kirocrew"
+        return
+    fi
+    printf '%s\n' "$HOME/.junction"
+}
+
 MIN_VERSION="22.12"   # human-readable primary floor, for messages
 TARGET_VERSION=24
 
@@ -172,7 +192,7 @@ EOF
 
 # Directory holding the unofficial glibc-217 Node install, under the data home.
 _glibc217_node_dir() {
-    echo "${JUNCTION_HOME:-$HOME/.kiro/crew}/node-glibc217"
+    echo "$(_select_data_home)/node-glibc217"
 }
 
 # Put a previously-installed glibc-217 node on PATH (if present). Called LAST in
@@ -281,11 +301,11 @@ _install_glibc217_node() {
 }
 
 # Record where node ended up so make / other callers can find it. Writes into
-# the data home ($JUNCTION_HOME, else ~/.kiro/crew) — never the legacy
-# ~/.kirocrew (see header).
+# the selected data home (see header).
 _record_node_bin() {
     if command -v node >/dev/null 2>&1; then
-        local home="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+        local home
+        home="$(_select_data_home)"
         mkdir -p "$home"
         dirname "$(command -v node)" > "$home/node-bin-dir" 2>/dev/null || true
     fi

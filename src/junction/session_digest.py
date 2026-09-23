@@ -34,7 +34,7 @@ def digest(uid: str, stems: tuple[str, ...], sid: str) -> SessionDigest:
     *stems* are the transcript filename stems (canonical + any legacy).
     *sid* is the kiro-cli session id (UUID).
 
-    Reads the Kiro Crew transcript(s) for first_message and turns, then
+    Reads the Junction transcript(s) for first_message and turns, then
     the kiro-cli event log for images (and supplemental turns if the
     transcript is absent).
 
@@ -44,7 +44,7 @@ def digest(uid: str, stems: tuple[str, ...], sid: str) -> SessionDigest:
     turns = 0
     images = 0
 
-    # --- Kiro Crew transcripts: first_message + turns ---
+    # --- Junction transcripts: first_message + turns ---
     sessions_dir = data_home() / SESSIONS_DIR_NAME
     archive_dir = sessions_dir / ARCHIVE_DIR_NAME
 

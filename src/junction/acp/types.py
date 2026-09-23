@@ -191,7 +191,7 @@ ACP_BACKENDS_SESSION_SHARING = frozenset({ACP_BACKEND_KIRO})
 ACP_BACKENDS_STEER = frozenset({ACP_BACKEND_KIRO, ACP_BACKEND_KAS})
 
 # Backends carrying their OWN internal OS sandbox, which on macOS cannot nest
-# inside Kiro Crew's seatbelt (kernel EPERM) — so ``sandbox.wrap_argv`` skips
+# inside Junction's seatbelt (kernel EPERM) — so ``sandbox.wrap_argv`` skips
 # Crew's own layer for them. This is the one membership test that fails OPEN:
 # claiming it for a harness with no internal sandbox hands isolation to a layer
 # that never starts and leaves the agent process unconfined. Only kiro-cli
@@ -239,7 +239,7 @@ PROVIDER_LABEL_AUTO = "auto"
 # KAS reads only fs.readTextFile / fs.writeTextFile / terminal from the top
 # level of clientCapabilities; every other capability it honours lives under
 # _meta.kiro. The ones there are CALLBACK capabilities — KAS calls back into the
-# client to service them — and Kiro Crew implements none, so leaving them
+# client to service them — and Junction implements none, so leaving them
 # undeclared (= false) is correct rather than a gap. Only the settings channel
 # is opened, because that is how a client selects KAS feature flags.
 KAS_CLIENT_CAPABILITIES: dict = {

@@ -1,7 +1,7 @@
 # MCP Server Architecture
 
 How MCP (Model Context Protocol) servers are configured, merged, probed and
-loaded, plus the two invariants every new Kiro Crew MCP tool must satisfy: it
+loaded, plus the two invariants every new Junction MCP tool must satisfy: it
 ships as an MCP tool (not only a CLI command), and it holds no per-caller state.
 
 Related: the CPP extension-point seam this doc reads from is
@@ -10,11 +10,11 @@ ceiling that filters auto-approve is
 [governance](../system-specs/modules/governance.md); the computer-use server's
 own gate model is [computer-use](../system-specs/modules/computer-use.md).
 
-> **Design invariant: Kiro Crew does NOT write to provider globals.**
-> `~/.kiro/settings/mcp.json` is user-owned. Kiro Crew reads it and never mutates
-> it. Kiro Crew's own additions go into the per-agent file it fully owns,
-> `~/.kiro/agents/junction.json`. That keeps tools scoped to Kiro Crew out of every
-> interactive kiro-cli and Kiro IDE session the user runs outside Kiro Crew. If
+> **Design invariant: Junction does NOT write to provider globals.**
+> `~/.kiro/settings/mcp.json` is user-owned. Junction reads it and never mutates
+> it. Junction's own additions go into the per-agent file it fully owns,
+> `~/.kiro/agents/junction.json`. That keeps tools scoped to Junction out of every
+> interactive kiro-cli and Kiro IDE session the user runs outside Junction. If
 > `junction-core` / `junction-cron` ever appear in a provider global, that is
 > leftover state from an older install: clean it from the dashboard MCP panel,
 > or run `junction cli-setup`, which calls the narrowly-scoped
@@ -24,13 +24,13 @@ own gate model is [computer-use](../system-specs/modules/computer-use.md).
 
 | File | Owner | Purpose | Read by |
 |------|-------|---------|---------|
-| `~/.kiro/agents/junction.json` | Kiro Crew gateway (`agent.rebuild_agent_config`) | The rendered Kiro agent: model + tools + merged `mcpServers` | kiro-cli, when spawned as the `junction` agent |
-| `~/.kiro/settings/mcp.json` | User | Kiro global MCP servers | kiro-cli for all agents; merged into Kiro Crew's agent file at render time |
-| `~/.kiro/crew/mcp.json` | User, via the dashboard MCP panel | specific to Kiro Crew additions and per-server tool disables | Kiro Crew gateway only |
+| `~/.kiro/agents/junction.json` | Junction gateway (`agent.rebuild_agent_config`) | The rendered Kiro agent: model + tools + merged `mcpServers` | kiro-cli, when spawned as the `junction` agent |
+| `~/.kiro/settings/mcp.json` | User | Kiro global MCP servers | kiro-cli for all agents; merged into Junction's agent file at render time |
+| `~/.junction/mcp.json` | User, via the dashboard MCP panel | specific to Junction additions and per-server tool disables | Junction gateway only |
 
 `rebuild_agent_config()` writes exactly **one** file, `~/.kiro/agents/junction.json`.
 There is no second rendered agent file and no agent-file renderer for any other
-provider: Kiro Crew is KiroACP-only.
+provider: Junction is KiroACP-only.
 
 ### Provider-global scopes come from the platform seam, not the core
 
@@ -70,11 +70,11 @@ junction`). Onto that base:
 2. **`~/.kiro/settings/mcp.json`** (Kiro global) via `setdefault`.
 3. **Seam-contributed provider globals** via `setdefault`, so they can only fill
    gaps the Kiro global did not. Empty in this build.
-4. **`~/.kiro/crew/mcp.json`** via `update()` on an existing entry, so
-   Kiro Crew's `command`/`args`/`env` win while user-set fields such as
+4. **`~/.junction/mcp.json`** via `update()` on an existing entry, so
+   Junction's `command`/`args`/`env` win while user-set fields such as
    `autoApprove` survive.
 
-Kiro global outranks any seam-contributed provider global because Kiro Crew is
+Kiro global outranks any seam-contributed provider global because Junction is
 kiro-cli-only. Managed servers are skipped by every merge loop: their
 `command`/`args` are set by `_refresh_dynamic_fields()` and must not be
 overwritten by a stale global entry.
@@ -118,8 +118,8 @@ The gateway already merges the Kiro global into the agent file, so the agent
 file is the superset. With `includeMcpJson: true` kiro-cli would merge the
 global a second time at session start, producing duplicate entries and letting a
 stale path in the global shadow the fresh path the gateway just resolved.
-Kiro Crew forces `false` on every agent it manages (the primary agent and every
-app agent). Plain kiro-cli agents outside Kiro Crew keep kiro-cli's own default.
+Junction forces `false` on every agent it manages (the primary agent and every
+app agent). Plain kiro-cli agents outside Junction keep kiro-cli's own default.
 
 ### Managed servers
 
@@ -241,7 +241,7 @@ provenance, re-resolves stale managed commands, and overlays cached probe
 results. Every returned `McpServerInfo` carries a `presence` dict so the
 dashboard can render per-scope badges. The `junction` badge is the **effective**
 state after the merge minus explicit `disabled: true` overrides in
-`~/.kiro/crew/mcp.json`; the other badges are raw membership in that scope's
+`~/.junction/mcp.json`; the other badges are raw membership in that scope's
 file.
 
 Probes run from `POST /api/mcp/probe`:
@@ -448,7 +448,7 @@ server looks safe to stub, and separately whether its backend looks safe to
 share. The verdict is derived on this host from evidence ranked
 observation > measurement > declaration, and a server the gateway has WATCHED
 behave per-client while shared is never offered again. Nothing about which
-servers a machine runs ships with Kiro Crew and nothing leaves the host.
+servers a machine runs ships with Junction and nothing leaves the host.
 
 Full contracts — the two on-disk records, the reason-code vocabulary, what the
 pre-flight can and cannot decide, and the seed-once rule — live in
@@ -463,7 +463,7 @@ changes and exposes Apply / Discard. Only Apply performs writes.
 `POST /api/mcp/apply` takes a batched payload and applies it in a fixed order:
 
 1. **Uninstalls first.** `_purge_server_config()` removes the entry from
-   `~/.kiro/crew/mcp.json`, the Kiro global, every seam-contributed scope, and
+   `~/.junction/mcp.json`, the Kiro global, every seam-contributed scope, and
    directly from `~/.kiro/agents/junction.json`. That last targeted delete is
    required: the rebuild uses the existing agent file as its merge base, so
    without it the additive merge would resurrect the server. Every step is a
@@ -471,8 +471,8 @@ changes and exposes Apply / Discard. Only Apply performs writes.
    the purge changes nothing.
 2. **Scope adds** write the spec into the target scope file.
 3. **Scope removes** strip it. If the server would no longer be inherited into
-   Kiro Crew but the user kept the Kiro Crew badge on, the full spec is first
-   copied into `~/.kiro/crew/mcp.json` (the **preservation rule**), which is why
+   Junction but the user kept the Junction badge on, the full spec is first
+   copied into `~/.junction/mcp.json` (the **preservation rule**), which is why
    "I removed it from the Kiro global and it came back" is correct behavior.
 4. **Per-tool overrides** update `disabledTools` on the entry.
 5. **One rebuild** at the end re-renders the agent file from the new on-disk
@@ -502,7 +502,7 @@ launcher boundary it is.
 ## How app agents reach MCP servers
 
 An app declares MCP servers in its manifest, and
-`apps.bridges._register_mcp_servers()` writes them into Kiro Crew's agent config
+`apps.bridges._register_mcp_servers()` writes them into Junction's agent config
 under a `{app}:{server}` namespace rather than into the shared Kiro global,
 because that global is read by Kiro IDE and every other kiro-cli agent, so an
 app's private tools would leak into surfaces that never installed it.
@@ -701,7 +701,7 @@ entering the model context. See [browser](../system-specs/modules/browser.md).
 `junction-core` is the surface EVERY session carries. kiro-cli reads `tools/list`
 once per session, so a tool listed there spends context in every request of every
 session for as long as the session lives — whether or not that session will ever
-use it. With `agent.tool_search` on (the default) Kiro Crew forces kiro's deferral
+use it. With `agent.tool_search` on (the default) Junction forces kiro's deferral
 always-on, so the per-request cost is a name plus a description rather than a full
 JSON schema; it is smaller, not zero, and it scales with the tool count.
 
@@ -835,7 +835,7 @@ capability cheap and deliberate; it does not prove the user consented to reach t
 agent does not otherwise have. For that, `config.json` is the WRONG home —
 `security.py` spells out why, and the keystone leaves (`computer_use.json`,
 `browser-mode-enabled`, the Ops Mission Control mode) exist because each grants
-something outside Kiro Crew (desktop input synthesis, the operator's logged-in
+something outside Junction (desktop input synthesis, the operator's logged-in
 browser, writes against production incident tooling) or is the security floor
 itself. One of those moved out of agent-writable config after review found exactly
 this mistake.
@@ -990,7 +990,7 @@ no cache entry for, but the result only appears on the next refresh. If it stays
 Unknown, the server is failing its handshake: read the dashboard error text or
 the gateway log.
 
-**Tools present in Kiro Crew but absent in interactive kiro-cli.** That is correct.
+**Tools present in Junction but absent in interactive kiro-cli.** That is correct.
 `junction-core` / `junction-cron` / `junction-computer` are agent-scoped and must
 not appear in interactive kiro-cli or Kiro IDE sessions. If they do, something
 wrote them into a provider global.

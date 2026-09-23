@@ -921,7 +921,7 @@ class TestKiroPrerequisiteWorkflow:
     ) -> None:
         # The readiness whoami runs against the REAL home (like an ACP session),
         # not a credential-minimal rewritten home — so a CLI whose session or
-        # tool registry lives in the real home is detected. Only Kiro Crew's own
+        # tool registry lives in the real home is detected. Only Junction's own
         # secret home is hidden.
         executable = tmp_path / ".local" / "bin" / "kiro-cli"
         _make_executable(executable)
@@ -3444,7 +3444,7 @@ class TestKiroPrerequisiteHandlers:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        # The owner can READ readiness. Neither setup step is a Kiro Crew verb:
+        # The owner can READ readiness. Neither setup step is a Junction verb:
         # obtaining the CLI and signing in both belong to Kiro CLI, so both
         # routes are absent by construction rather than guarded.
         service = KiroPrerequisiteService(
@@ -4434,7 +4434,7 @@ class TestTimedOutProbeIsNotAMissingBinary:
 
 
 class TestJunctionNeverSetsUpKiroCli:
-    """Kiro Crew DETECTS Kiro CLI. It never installs it and never signs in.
+    """Junction DETECTS Kiro CLI. It never installs it and never signs in.
 
     These are contract tests, not behavior tests: they pin the ABSENCE of both
     setup capabilities. The removed install path downloaded a remote shell script
@@ -4775,7 +4775,7 @@ class TestSandboxUnavailableErrorIsTyped:
 class TestAgentSpecsNarrowReadiness:
     """A viable binary + a good ``whoami`` are NOT sufficient for readiness.
 
-    Kiro Crew's own agent specs (``~/.kiro/agents/junction*.json``) were not an
+    Junction's own agent specs (``~/.kiro/agents/junction*.json``) were not an
     input to ``ready`` at all, so an install whose spec write failed reported
     ready while kiro-cli answered every ``session/set_mode`` with
     ``Mode '<name>' not found`` — the gate affirmatively told the user setup was
@@ -5000,7 +5000,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
 
     ``missing_agent_specs`` answers presence by statting the file, which cannot
     see this: kiro-cli drops a spec it rejects from its agent table, so
-    ``--agent junction`` resolves to the default agent with none of Kiro Crew's
+    ``--agent junction`` resolves to the default agent with none of Junction's
     MCP servers and only a line on stderr. That is the shape of the customer
     report behind issue #3116 — "my migrated agents stopped working" with a
     perfectly present file on disk.

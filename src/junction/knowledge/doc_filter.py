@@ -20,7 +20,7 @@ casing. :func:`should_ingest_doc` is the same rule as a directly callable
 predicate, for tests and for measuring a tree without running a scan; a test
 pins the two against each other so they cannot drift.
 
-Measured on the Kiro Crew tree: 2706 walked files, 277 with a document
+Measured on the Junction tree: 2706 walked files, 277 with a document
 extension, 165 after the full filter -- 147 of those in the design/spec/
 reference corpus. File filters control POLLUTION; only a chunk budget controls
 COST (``knowledge.auto_ingest_chunk_budget`` here,

@@ -216,7 +216,7 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
     (
         "Session transfer bundle",
         "dashboard/session_transfer.py",
-        "Transcript content copied to another Kiro Crew instance over an Instances "
+        "Transcript content copied to another Junction instance over an Instances "
         "tunnel. The bundle LEAVES this host, so it is an output boundary: a "
         "transcript written before the redactors existed (or carried in from a "
         "channel) can still hold a raw credential on disk, and relying on the "
@@ -536,7 +536,7 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
     (
         "Onboarding import",
         "onboarding_import.py",
-        "Imported foreign-agent history and config before it enters Kiro Crew.",
+        "Imported foreign-agent history and config before it enters Junction.",
     ),
     (
         "Discord / Telegram / WeCom / Webex",
@@ -1533,7 +1533,7 @@ def _sensitive_path_items() -> list[PostureItem]:
         # as ours just because it shares a string prefix.
         first = entry.split("/", 1)[0]
         if first in own:
-            detail = "Kiro Crew trust root — the agent can neither read nor write it"
+            detail = "Junction trust root — the agent can neither read nor write it"
         else:
             detail = "Third-party credential store"
         items.append(PostureItem(label=f"~/{entry}", detail=detail))

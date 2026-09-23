@@ -1520,7 +1520,7 @@ class AgentConfig:
             "applies to IAM Identity Center and API-key sign-ins). In registry "
             "mode the client connects ONLY to mcpServers entries carrying "
             "'type': \"registry\" that resolve to a catalog entry of the same "
-            "name, so Kiro Crew stamps that marker on the servers it manages. "
+            "name, so Junction stamps that marker on the servers it manages. "
             "Leave false on a personal account: with no registry configured the "
             "filter inverts and registry-marked entries are the ones dropped. "
             "The administrator must also allow-list junction-core, junction-cron "
@@ -1562,7 +1562,7 @@ class AgentConfig:
             "Sweep foreign agent backups",
             "When true, the agents-directory janitor also deletes aged backup "
             "files (*.bak-<digits> / *.json.bak.<digits>, older than 14 days) "
-            "from the shared kiro agents directory. OFF by default: Kiro Crew "
+            "from the shared kiro agents directory. OFF by default: Junction "
             "does not author those backups, so every one it would delete belongs "
             "to another tool whose retention policy is not ours to decide. The "
             "orphaned atomic-write TEMP sweep (24h) always runs and reclaims most "
@@ -1578,7 +1578,7 @@ class AgentConfig:
             "isolation (namespace on Linux, sandbox-exec on macOS) and "
             "automatically defers to kiro-cli's internal sandbox on macOS when "
             "it is enabled (kiro-cli >= 2.13; nested seatbelt causes EPERM). "
-            "Set to 'off' to skip Kiro Crew's own OS-level sandbox — delegation "
+            "Set to 'off' to skip Junction's own OS-level sandbox — delegation "
             "to kiro-cli's internal sandbox still fires on macOS if it is "
             "enabled, and a SECURITY warning is logged when neither layer is "
             "active.",
@@ -1689,7 +1689,7 @@ class AgentConfig:
             "How long auto-approve (YOLO) lasts when it is enabled AD HOC — from "
             "the dashboard picker, Slack, or the API. Every one of those surfaces "
             "uses this same duration. Accepts 30m / 1h / 6h / 12h / 24h, or "
-            "until_shutdown to keep it on with no timed expiry until Kiro Crew "
+            "until_shutdown to keep it on with no timed expiry until Junction "
             "restarts. Timed values are capped at 24h. Does NOT apply to a grant "
             "declared via 'dangerously_skip_permissions' above, which persists.",
             enum=["30m", "1h", "6h", "12h", "24h", "until_shutdown"],
@@ -2173,7 +2173,7 @@ class MessagingConfig:
             "Use Transport",
             "Route inbound Slack messages through the SlackTransport → TurnDriver → "
             "SlackRenderer channel-neutral path instead of the native handle_message "
-            "monolith. Default ON in Kiro Crew (the transport abstraction is the canonical "
+            "monolith. Default ON in Junction (the transport abstraction is the canonical "
             "path, shared with future channels). Set to false to fall back to the legacy "
             "native handler.",
         ),
@@ -2279,7 +2279,7 @@ class MemoryConfig:
         metadata=_meta(
             "Embedding Model URL",
             "Override HTTPS URL for the embedding model GGUF download (mirrored/airgapped "
-            "deployments). Empty uses the public Kiro Crew CDN default; the "
+            "deployments). Empty uses the public Junction CDN default; the "
             "JUNCTION_EMBED_MODEL_URL env var wins over both. The download is "
             "sha256-verified regardless of source.",
         ),
@@ -2465,7 +2465,7 @@ class KnowledgeConfig:
             "Let the agent add documents it comes across during normal work to the "
             "Knowledge Library, so they become searchable later. The agent reads the "
             "document with its own tools, under your approval, and hands over the "
-            "text -- Kiro Crew fetches nothing itself, so the doc-ingest host "
+            "text -- Junction fetches nothing itself, so the doc-ingest host "
             "allowlist below does not apply. Added documents appear in a single "
             "aggregate 'Auto-added' source you can remove in one click. Off by "
             "default: the Library should only hold what you asked it to hold. "
@@ -2534,7 +2534,7 @@ class KnowledgeConfig:
             "Empty = fetch nothing (SSRF-safe deny-by-default). This governs only "
             "that server-fetch path -- it does NOT gate 'Auto-Add Documents' "
             "above, where the agent has already fetched the content under its own "
-            "approval and Kiro Crew fetches nothing. Applying it there would make "
+            "approval and Junction fetches nothing. Applying it there would make "
             "the feature ingest nothing on a default config while its toggle "
             "reads on.",
         ),
@@ -3057,7 +3057,7 @@ class DashboardConfig:
         default=True,
         metadata=_meta(
             "Use Built-in Browser",
-            "When on, the browser tool opens pages in Kiro Crew's built-in panel "
+            "When on, the browser tool opens pages in Junction's built-in panel "
             "(desktop app only). When off, the agent browses via playwright-cli.",
         ),
     )
@@ -3849,7 +3849,7 @@ class TelemetryConfig:
         default=False,
         metadata=_meta(
             "Enabled",
-            "Main switch for Kiro Crew metrics telemetry. Off by default: metric "
+            "Main switch for Junction metrics telemetry. Off by default: metric "
             "call sites are no-ops and nothing is written. When on, a local-first "
             "JSONL sink under ~/.kiro/crew/metrics is enabled (no network egress).",
         ),
@@ -5072,7 +5072,7 @@ class McpConfig:
             "Extra MCP Binary Directories",
             "Additional directories to search for MCP server binaries, ahead of "
             "the built-in locations. Add one when a package manager installs its "
-            "MCP launchers somewhere Kiro Crew does not know about: a server "
+            "MCP launchers somewhere Junction does not know about: a server "
             "declared by bare name that resolves nowhere never starts, and the "
             "session just comes up short of tools. Each entry must be a single "
             "absolute directory (``~`` is expanded); anything else is ignored "
@@ -5104,7 +5104,7 @@ class InstancesConfig:
         metadata=_meta(
             "Enabled",
             "Enable multi-instance management — lets this gateway open SSH tunnels "
-            "to remote Kiro Crews and embed their dashboards. Default off (opt-in). "
+            "to remote Junctions and embed their dashboards. Default off (opt-in). "
             "Enabling also scopes a CSP frame-src relaxation to active tunnel ports.",
         ),
     )
@@ -6680,7 +6680,7 @@ class JunctionConfig:
     instances: InstancesConfig = field(
         default_factory=InstancesConfig,
         metadata=_meta(
-            "Instances", "Multi-instance management — manage/switch remote Kiro Crews over SSH."
+            "Instances", "Multi-instance management — manage/switch remote Junctions over SSH."
         ),
     )
     heartbeat: HeartbeatConfig = field(
@@ -6782,11 +6782,11 @@ class JunctionConfig:
     )
     agents: dict[str, JunctionAgentConfig] = field(
         default_factory=dict,
-        metadata=_meta("Agents", "Named Kiro Crew agent definitions."),
+        metadata=_meta("Agents", "Named Junction agent definitions."),
     )
     default_agent: str = field(
         default="",
-        metadata=_meta("Default Agent", "Active Kiro Crew agent name from the agents section."),
+        metadata=_meta("Default Agent", "Active Junction agent name from the agents section."),
     )
     workspaces: dict[str, WorkspaceConfig] = field(
         default_factory=dict,
@@ -8809,7 +8809,7 @@ def _materialized_kiro_agent(agent_name: str | None, project_dir: str | None = N
 
     *project_dir* adds the session's own ``<project>/.kiro/agents`` scope, which
     kiro-cli searches BEFORE the user-level directory (it resolves ``--agent``
-    against its cwd, and Kiro Crew spawns it with the project dir as cwd). It
+    against its cwd, and Junction spawns it with the project dir as cwd). It
     deliberately does NOT use the snapshot: that is one process-wide set, while the
     project scope differs per session, so sharing it would leak one checkout's
     agents into another's.
@@ -8922,7 +8922,7 @@ def _project_declares_agent(agent_name: str, project_dir: str) -> bool:
 def resolve_crew_identity(
     config: "JunctionConfig", agent: str | None, crew_agent: str | None
 ) -> str:
-    """Canonical Kiro Crew identity (a ``config.agents`` key) for a session.
+    """Canonical Junction identity (a ``config.agents`` key) for a session.
 
     One rule shared by every session-granting path (provider factory, warm-pool
     claim) so cold starts and claims can never disagree. An explicit
@@ -8963,7 +8963,7 @@ def resolve_agent_bindings(
        running the default agent.
 
     *project_dir* is the session's active project directory, which widens step 2 to
-    that project's own ``.kiro`` scope. It must be the same directory Kiro Crew
+    that project's own ``.kiro`` scope. It must be the same directory Junction
     passes as the kiro-cli cwd, so an agent found through it is one the backend
     will genuinely resolve; passing a directory the session does not run in would
     reintroduce the silent-substitution bug this lookup exists to prevent.

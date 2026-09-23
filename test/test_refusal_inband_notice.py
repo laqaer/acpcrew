@@ -403,7 +403,7 @@ class TestCauseSpecificWording:
         assert build_refusal_steer_notice("bash", "denied") == build_refusal_steer_notice(
             "bash", "denied", cause=DENY_CAUSE_POLICY
         )
-        assert "was blocked by a Kiro Crew safety policy" in build_refusal_steer_notice(
+        assert "was blocked by a Junction safety policy" in build_refusal_steer_notice(
             "bash", "denied"
         )
 
@@ -423,7 +423,7 @@ class TestCauseSpecificWording:
         # body one line later, and the body is the part doing the correcting.
         for cause in (DENY_CAUSE_POLICY, DENY_CAUSE_INVALID_NAME, DENY_CAUSE_HOOK_ERROR):
             out = build_refusal_steer_notice("bash", "why", cause=cause)
-            assert out.startswith("[Kiro Crew host notice]"), cause
+            assert out.startswith("[Junction host notice]"), cause
             # "policy" may still appear in the POLICY cause's own clause; what must
             # not survive is the tag claiming every cause is one.
             assert "policy notice" not in out, cause

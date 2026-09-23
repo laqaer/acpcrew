@@ -126,7 +126,7 @@ async def test_api_agent_config_put_strips_governed_grants(tmp_path, monkeypatch
 
 @pytest.mark.asyncio
 async def test_api_agent_config_put_strips_bookkeeping_keys(tmp_path):
-    """A dashboard PUT must not re-pollute the kiro spec with Kiro Crew keys.
+    """A dashboard PUT must not re-pollute the kiro spec with Junction keys.
 
     Regression for #2570: the agent-detail PATCH strips ``model_managed`` /
     ``cc_model``, but the whole-config PUT used to persist them verbatim.

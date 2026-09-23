@@ -124,7 +124,7 @@ glue or a provider selector (see the repo-root `CLAUDE.md`).
 - `agent.provider` is fixed to `"acp"` (enum `["acp"]`); there is no provider to choose.
 - `create_provider_factory()` returns a `Callable` that creates the kiro-cli `AcpProvider`.
 
-An agent spec's model is consumed by kiro-cli before Kiro Crew reaches
+An agent spec's model is consumed by kiro-cli before Junction reaches
 `session/new`, so the live-session entitlement guard cannot diagnose a wrong
 wire spelling at spawn time. Agent create/update validate a pin before
 persisting it: they reuse the role-model validator for advertised ids and

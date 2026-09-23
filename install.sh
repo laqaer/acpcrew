@@ -38,9 +38,28 @@ done
 # ── Constants ──
 # Repo root = directory containing this script (run from a local clone).
 JUNCTION_APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-# Data home: honor JUNCTION_HOME, else the current default ~/.kiro/crew (NOT the
-# pre-move ~/.kirocrew, which is not the data home).
-JUNCTION_DATA_DIR="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+# Data home: same choice as junction.config.paths._select_default_home.
+# A new install uses ~/.junction. An existing previous directory is kept.
+_select_data_home() {
+    if [ -n "${JUNCTION_HOME:-}" ]; then
+        printf '%s\n' "$JUNCTION_HOME"
+        return
+    fi
+    if [ -d "$HOME/.junction" ]; then
+        printf '%s\n' "$HOME/.junction"
+        return
+    fi
+    if [ -d "$HOME/.kiro/crew" ]; then
+        printf '%s\n' "$HOME/.kiro/crew"
+        return
+    fi
+    if [ -d "$HOME/.kirocrew" ]; then
+        printf '%s\n' "$HOME/.kirocrew"
+        return
+    fi
+    printf '%s\n' "$HOME/.junction"
+}
+JUNCTION_DATA_DIR="$(_select_data_home)"
 NODE_VERSION="24"
 # Minimum Node major the frontend build actually supports. Defined here
 # (not just at the post-install check) because DETECTION consults it: a

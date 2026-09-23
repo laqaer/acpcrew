@@ -1,4 +1,4 @@
-# Migration: Playwright MCP + Kiro Crew proxy to Playwright CLI
+# Migration: Playwright MCP + Junction proxy to Playwright CLI
 
 Status: proposed. Replaces the browser stack wholesale rather than adding a
 second path, because two browser backends would double the surface that already
@@ -6,7 +6,7 @@ produces the defects this migration retires.
 
 ## Why
 
-Today an agent drives a browser through `@playwright/mcp` behind a Kiro Crew
+Today an agent drives a browser through `@playwright/mcp` behind a Junction
 proxy that exists to keep accessibility trees out of the model context. The
 proxy earns its keep, but the surrounding machinery does not:
 

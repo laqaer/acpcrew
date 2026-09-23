@@ -221,7 +221,7 @@ def _rewrite_pid_file(path: Path, content: str) -> bool:
         return False
 
 
-# Basenames of agent runtimes whose lifecycle Kiro Crew manages through PID-file
+# Basenames of agent runtimes whose lifecycle Junction manages through PID-file
 # tracking (kiro_pids.txt / kiro_session_pids.txt). Used to re-validate tracked
 # PIDs before a kill, and as a NEGATIVE gate in the work-orphan sweep: these
 # runtimes are reclaimed by their own tracked-PID sweep, never by the
@@ -1285,7 +1285,7 @@ _GATEWAYD_TERM_GRACE_SECONDS = float(TOTAL_SHUTDOWN_BUDGET_SECS)
 def _gatewayd_socket_arg(cmdline: bytes) -> bytes | None:
     """Extract the ``--socket`` argument from a gatewayd cmdline, or ``None``.
 
-    Accepts the two-token ``--socket <path>`` form (the shape every Kiro Crew
+    Accepts the two-token ``--socket <path>`` form (the shape every Junction
     spawn site produces) and the argparse-equivalent ``--socket=<path>``.
     NUL-separated argv ONLY: the space-joined ``ps`` fallback (macOS) cannot
     delimit a path containing spaces, and statting a truncated path would
@@ -1419,13 +1419,13 @@ def _is_sweepable_orphan_work(pid: int, cmdline: bytes, age_seconds: float) -> b
        not sufficient identity.
     2. The ``JUNCTION_SPAWNED`` environ marker (:func:`_env_has_junction_marker`,
        Linux-only, fail-closed elsewhere). The marker is only ever injected
-       into environments Kiro Crew itself spawns (sandbox wrapper, ACP client
+       into environments Junction itself spawns (sandbox wrapper, ACP client
        and runtime, MCP gateway backend) and is inherited by every descendant,
        so it can never identify a user-launched process.
     3. Reparenting to init/systemd --user — guaranteed by the caller, which
        only iterates :func:`_our_orphan_pids` — AND the owning session's
-       LEADER being gone (:func:`_work_orphan_session_leader_alive`). Kiro
-       Crew starts every agent runtime with ``start_new_session=True``, so
+       LEADER being gone (:func:`_work_orphan_session_leader_alive`). Junction
+       starts every agent runtime with ``start_new_session=True``, so
        the runtime is a session leader and every descendant inherits its SID
        — including through ``nohup`` and reparenting. A work process whose
        session leader still exists belongs to a LIVE agent session that may

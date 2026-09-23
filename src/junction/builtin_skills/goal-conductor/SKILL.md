@@ -168,7 +168,7 @@ Each cycle:
 
    **Resolve `<this skill's dir>` from where this SKILL.md was actually loaded
    from** — the skill index names its absolute path. Do NOT hardcode
-   `~/.kiro/crew/skills/goal-conductor`: a `JUNCTION_HOME` override moves the
+   `~/.junction/skills/goal-conductor`: a `JUNCTION_HOME` override moves the
    skills root, so on such an install that path does not exist and every
    evaluator call would fail before patrol ever ran.
 
@@ -395,7 +395,7 @@ watches, and that cost grows with the loop's own history.
   every argv it runs from a fixed template, so `pr_checks` becomes `gh pr
   checks <n>` and nothing else executes. That is deliberate and load-bearing:
   this script is invoked as an approved wrapper, so a spec that could name a
-  command would turn it into a general way to run one, and Kiro Crew's
+  command would turn it into a general way to run one, and Junction's
   denied-command floor cannot see inside it (the floor reads the
   `execute_bash` string, which says `python3 accept_eval.py`). Widening
   happens by adding a purpose-built kind that constructs its own argv — never

@@ -1096,7 +1096,7 @@ class TestDenylistCaseFolding:
         for name, bundle in (
             ("KIRO CREW", "DEV.KIRO.CREW"),
             ("kiro crew", "dev.kiro.crew"),
-            ("Kiro Crew", "Dev.Kiro.Crew"),
+            ("Junction", "Dev.Kiro.Crew"),
         ):
             assert policy.denied_rule_for(AppRef(name=name, pid=1, bundle_id=bundle)) is not None
 

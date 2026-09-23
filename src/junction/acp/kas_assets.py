@@ -1,6 +1,6 @@
 """Locate the KAS (kiro-agent) assets kiro-cli extracted.
 
-KAS ships inside kiro-cli, which unpacks it on first run. Kiro Crew drives that
+KAS ships inside kiro-cli, which unpacks it on first run. Junction drives that
 copy rather than distributing its own: the `kiro-team/kiro-agent` repository is
 restricted-read, and an open-source release cannot hide its contents. Reading
 files already on the user's disk distributes nothing.
@@ -15,8 +15,8 @@ The bundle is staged as a trimmed ``node_modules`` tree, so the entry script sit
 at the package's normal npm path rather than at the top of the version directory.
 
 That layout is kiro-cli's INTERNAL detail and may change, so both halves accept
-an environment override — a user whose kiro-cli moved the files can point Kiro
-Crew at them instead of being hard-blocked.
+an environment override — a user whose kiro-cli moved the files can point Junction
+at them instead of being hard-blocked.
 """
 
 from __future__ import annotations

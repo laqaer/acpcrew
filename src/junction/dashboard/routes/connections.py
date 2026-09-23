@@ -118,7 +118,7 @@ def register(app: web.Application) -> None:
         "/api/instances/{id}/send-session", handlers_instances.api_instances_send_session
     )
 
-    # Cloud provisioning (owner-only, user-initiated) — provision a Kiro Crew
+    # Cloud provisioning (owner-only, user-initiated) — provision a Junction
     # instance in the user's own AWS account as a durable launch job.
     app.router.add_get("/api/cloud/preflight", handlers_cloud.api_cloud_preflight)
     app.router.add_get("/api/cloud/iam-policy", handlers_cloud.api_cloud_iam_policy)

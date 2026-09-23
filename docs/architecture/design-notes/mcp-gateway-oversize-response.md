@@ -58,7 +58,7 @@ For responses that fit within the read limit but exceed the spill threshold:
 
 1. Parse the response as JSON-RPC.
 2. Check if it's a `tools/call` result (has `result.content` list with `text` items).
-3. Write the **full original response** to `~/.kiro/crew/mcp_spill/<server>-<request_id>-<timestamp>.json`.
+3. Write the **full original response** to `~/.junction/mcp_spill/<server>-<request_id>-<timestamp>.json`.
 4. Truncate each text item to the first 16 KiB.
 5. Append a marker: `[Junction: response truncated -- full <N> bytes at <path>. Read with bash: head/grep/jq.]`
 6. Forward the rewritten (smaller) response.
@@ -130,16 +130,16 @@ the maintenance workers the orphan sweeps need. Implementation:
 `mcp_gateway/image_budget.py`.
 
 Scope: this seam covers every **brokered MCP server** (the gateway is the one
-hop Kiro Crew owns between an MCP server and kiro-cli's history). Two shapes
+hop Junction owns between an MCP server and kiro-cli's history). Two shapes
 deliberately stay outside it: images produced by kiro-cli's own built-in
-tools (e.g. its file-read tool in image mode) never transit Kiro Crew and
+tools (e.g. its file-read tool in image mode) never transit Junction and
 must be capped upstream in kiro-cli; and MCP embedded resources
 (`{"type": "resource", "resource": {"blob": ...}}`) are not rewritten because
 no brokered path renders resource blobs to the model today.
 
 ### Spill file format
 
-- **Directory:** `~/.kiro/crew/mcp_spill/` (mode 0700)
+- **Directory:** `~/.junction/mcp_spill/` (mode 0700)
 - **Filename:** `<server_name>-<request_id>-<unix_timestamp>.json`
 - **Content:** Complete original JSON-RPC response line
 - **Cleanup:** Files older than 24h are deleted on gatewayd startup
@@ -155,7 +155,7 @@ no brokered path renders resource blobs to the model today.
 If you see `-32000 "MCP response too large"` errors:
 
 1. **Narrow the query** — ask the tool for less data (e.g. specific sections vs full page).
-2. **Raise the limit** — set `JUNCTION_MCP_READ_LIMIT=134217728` (128 MiB) in your env, or add to `~/.kiro/crew/config.json`:
+2. **Raise the limit** — set `JUNCTION_MCP_READ_LIMIT=134217728` (128 MiB) in your env, or add to `~/.junction/config.json`:
    ```json
    {
      "mcp_gateway": {

@@ -107,7 +107,7 @@ MAX_FRAME_SOURCE_PIXELS = 4 * imaging.MAX_IMAGE_SOURCE_PIXELS
 #: Told to the model (this lands in the conversation history), so it explains
 #: what happened and why retrying with the same tool will not help.
 _OMITTED_TEMPLATE = (
-    "[Kiro Crew: image omitted from this tool result -- it could not be "
+    "[Junction: image omitted from this tool result -- it could not be "
     "rendered within the inline-image budget ({max_edge} px longest edge, "
     "{max_mib} MiB base64). Have the tool save the image to a file and "
     "return the path instead.]"
@@ -125,7 +125,7 @@ _MAX_OMISSION_NOTES = 4
 
 #: Trailing summary for notes suppressed past :data:`_MAX_OMISSION_NOTES`.
 _SUMMARY_TEMPLATE = (
-    "[Kiro Crew: {count} additional image blocks were omitted from this "
+    "[Junction: {count} additional image blocks were omitted from this "
     "tool result for the same reasons as above.]"
 )
 
@@ -133,7 +133,7 @@ _SUMMARY_TEMPLATE = (
 #: Distinct from the budget text: the image itself may be fine; the frame as a
 #: whole asked for more decode work than one relay slot will spend.
 _EXCESS_TEMPLATE = (
-    "[Kiro Crew: image omitted -- this tool result asked for more image "
+    "[Junction: image omitted -- this tool result asked for more image "
     "processing than a single response is allotted; later images were "
     "dropped. Have the tool save extra images to files and return the "
     "paths instead.]"

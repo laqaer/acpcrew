@@ -142,7 +142,7 @@ sequenceDiagram
     GW->>GW: trigger memory consolidation (async)
 ```
 
-Tool calls do **not** simply pass through: every one is evaluated at Kiro Crew's
+Tool calls do **not** simply pass through: every one is evaluated at Junction's
 own PreToolUse gate before kiro-cli is allowed to run it. See
 [Security layers](#security-layers).
 
@@ -446,9 +446,9 @@ Outer to inner:
    blocking (`~/.aws`, `~/.ssh`, the trust-root files) runs here too.
 4. **OS sandbox** (`sandbox.py`). `agent.sandbox` defaults to `auto`, engaging
    OS-level isolation (user namespaces on Linux, `sandbox-exec`/Seatbelt on
-   macOS). On macOS, when kiro-cli's own internal sandbox is enabled, Kiro Crew
+   macOS). On macOS, when kiro-cli's own internal sandbox is enabled, Junction
    delegates to it instead (the two are mutually exclusive because nested
-   Seatbelt profiles fail with EPERM). Set to `off` to skip Kiro Crew's sandbox.
+   Seatbelt profiles fail with EPERM). Set to `off` to skip Junction's sandbox.
 5. **Output redaction.** Credential shapes (AWS access key IDs, presigned-URL
    credential parameters, and more) are scrubbed before text reaches a user or
    an egress tool.
@@ -627,13 +627,13 @@ there is no optional embedding service to stand up.
 
 ## Data home
 
-Persistent state lives under `~/.kiro/crew/` (override with `JUNCTION_HOME`).
+Persistent state lives under `~/.junction/` (override with `JUNCTION_HOME`).
 The root nests under kiro-cli's own `~/.kiro/` so every Kiro-family app shares
 one directory a user can secure; a legacy `~/.kirocrew` is migrated
 automatically. Selected entries:
 
 ```
-~/.kiro/crew/
+~/.junction/
 ├── config.json             # user configuration (+ config.local.json overlay)
 ├── .env                    # channel tokens, owner id
 ├── security_policy.json    # governance POLICY ceiling (trust root)
@@ -661,7 +661,7 @@ Generated kiro-cli agent JSON does **not** live here: it is written to
 `~/.kiro/agents/` (`kiro_home()/agents`), because that is where kiro-cli reads
 agent specs. That directory stays the only *write* target; a project's own
 `<project>/.kiro/agents/` is additionally *read* for sessions bound to a project
-(kiro-cli searches it first, since Kiro Crew runs kiro-cli in that directory).
+(kiro-cli searches it first, since Junction runs kiro-cli in that directory).
 
 ## Feature and subsystem map
 
@@ -743,7 +743,7 @@ graph TB
     end
 
     subgraph "Persistence"
-        DISK["~/.kiro/crew/<br/><i>config, memory, logs</i>"]
+        DISK["~/.junction/<br/><i>config, memory, logs</i>"]
     end
 
     subgraph "Remote"

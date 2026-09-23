@@ -1,4 +1,4 @@
-"""Secret management for Kiro Crew."""
+"""Secret management for Junction."""
 
 from junction.secrets.vault import SecretValue, SecretVault
 

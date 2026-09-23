@@ -290,9 +290,9 @@ uris differing only in a same-length credential-shaped segment reduce to the sam
 and hashing that would merge two documents into one group. A caller needing the bytes at
 that location reads them itself and passes `content`.
 
-This replaces the never-built server-side doc-link scanner. Rather than Kiro Crew
+This replaces the never-built server-side doc-link scanner. Rather than Junction
 regex-matching links in chat and fetching them unattended, the agent reads the document
-with its own tools under its own approval and hands over text. Kiro Crew fetches nothing,
+with its own tools under its own approval and hands over text. Junction fetches nothing,
 so `knowledge.doc_ingest_hosts` — whose default is `[]` = deny-all — must NOT gate this
 path, or the feature would ingest nothing on a default config while its toggle read on.
 

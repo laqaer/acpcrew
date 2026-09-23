@@ -1055,7 +1055,7 @@ class Driver:
         local commit and the F10 direct-push commit. Best-effort: if the redaction helpers
         are unavailable, the message passes through (the commit still happens)."""
         try:
-            # Kiro Crew's core redactor: one call, string return, both the
+            # Junction's core redactor: one call, string return, both the
             # credential and exfiltration-URL passes. (The port originally
             # referenced a vendored module that does not exist here, so this
             # silently no-op'd on every commit — a real leak risk, now fixed.)

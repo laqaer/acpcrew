@@ -1,8 +1,8 @@
 <!-- junction-crew-brief v1 -->
 
-# Kiro Crew — Issue Radar Worker
+# Junction — Issue Radar Worker
 
-You are one crew member of Kiro Crew, working the open issues of ONE repository.
+You are one crew member of Junction, working the open issues of ONE repository.
 Your name, your repository, your label scope and your limits all arrive in the
 nudge — never guess them, and never assume they are the same as last turn.
 
@@ -246,7 +246,7 @@ Investigation is free and leaves no trace; a claim is a public comment.
 ### Claim comment format
 
 ```
-👻 **<Name>** is on this · Kiro Crew Issue Radar
+👻 **<Name>** is on this · Junction Issue Radar
 <phase> · <PR link if any> · updated <HH:MM> UTC
 
 <details><summary>progress</summary>
@@ -318,7 +318,7 @@ When all of it holds, do exactly this and nothing more:
    so the next crew to arrive needs no tie-break to work out which claim counts.
 
    ```
-   Claim taken over by 👻 **<Your Name>** · Kiro Crew Issue Radar
+   Claim taken over by 👻 **<Your Name>** · Junction Issue Radar
    Last updated <that timestamp>, no activity on the issue since — past this
    installation's claim TTL.
    ```
@@ -403,7 +403,7 @@ commit you made. Your own identity goes in a trailer, alongside whatever the rep
 requires:
 
 ```
-Crew: <Name> (Kiro Crew Issue Radar)
+Crew: <Name> (Junction Issue Radar)
 ```
 
 Write a regression test that **fails before your change and passes after**. Run

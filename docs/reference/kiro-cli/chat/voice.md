@@ -1,6 +1,6 @@
 # Voice Input & Output
 
-Kiro Crew supports hands-free interaction through voice input (speech-to-text)
+Junction supports hands-free interaction through voice input (speech-to-text)
 and voice output (text-to-speech). Both work in the dashboard and Slack.
 
 ## Voice Input (Speech-to-Text)
@@ -27,7 +27,7 @@ auto-detected (WebM/Opus preferred, MP4/OGG fallback).
 ### Slack Voice Memos
 
 When STT is enabled, voice memos sent in Slack threads are automatically
-transcribed. Kiro Crew processes the audio and responds to the transcribed text
+transcribed. Junction processes the audio and responds to the transcribed text
 as if you had typed it.
 
 ### Setup (Required for Both)
@@ -88,21 +88,21 @@ status badge stays "not installed".
    `~/.cache/huggingface/hub/`.
 
 `mlx-whisper` is installed out-of-band via `pipx` rather than as a package
-dependency because the `mlx` wheel is arm64-only; Kiro Crew invokes the
+dependency because the `mlx` wheel is arm64-only; Junction invokes the
 `mlx_whisper` CLI as a subprocess, exactly like the `whisper` provider.
 
 ### CPU threads (many-core hosts)
 
-Kiro Crew derives the Whisper subprocess's thread count from the host: **half the
+Junction derives the Whisper subprocess's thread count from the host: **half the
 available cores**, capped at 16. To control it yourself, set `OMP_NUM_THREADS` or
-`OPENBLAS_NUM_THREADS` — if either is set, Kiro Crew leaves both alone and your
+`OPENBLAS_NUM_THREADS` — if either is set, Junction leaves both alone and your
 value is used as-is. The count comes from `sched_getaffinity` where available, so
 a CPU-restricted container gets its real budget rather than the whole machine's.
 
 Why not use every core: Whisper decodes one output step at a time, and each step
 is a small matmul that ends in a thread barrier. Wide thread pools therefore cost
 latency per step instead of buying throughput, and on a host that is doing other
-work — a Kiro Crew host runs the gateway and agent sessions alongside — the
+work — a Junction host runs the gateway and agent sessions alongside — the
 workers get time-sliced, so each barrier waits on threads the scheduler has not
 run yet.
 
@@ -130,12 +130,12 @@ platform but only *available* on arm64 macOS.
    transcription and is cached under `~/.cache/huggingface/hub/`.
 
 `parakeet-mlx` is installed out-of-band via `pipx` for the same arm64-only
-reason as `mlx-whisper`; Kiro Crew invokes the `parakeet-mlx` CLI as a
+reason as `mlx-whisper`; Junction invokes the `parakeet-mlx` CLI as a
 subprocess, reusing the same runner as the `whisper` and `mlx` providers.
 
 ## Voice Output (Text-to-Speech)
 
-Kiro Crew can speak responses aloud using Amazon Polly. Two modes are available:
+Junction can speak responses aloud using Amazon Polly. Two modes are available:
 
 ### Auto-Speak (Non-Interruptive Streaming)
 
@@ -214,7 +214,7 @@ Settings are in **Settings → Chat → Voice (TTS)**, or directly in
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
-| `enabled` | `false` | Turn on voice replies for **every** Kiro Crew response (text-triggered). Also seeds the `auto_reply_to_voice` default — see below. |
+| `enabled` | `false` | Turn on voice replies for **every** Junction response (text-triggered). Also seeds the `auto_reply_to_voice` default — see below. |
 | `provider` | `"polly"` | TTS backend: `"polly"` (AWS, cloud) or `"piper"` (local, offline). Invalid values fall back to `polly` with a warning logged. |
 | `auto_reply_to_voice` | _follows `enabled`_ | **Voice-triggered**: when the user sends a voice memo, auto-respond with voice. Defaults to whatever `enabled` is — set explicitly to override. |
 | **Polly-specific** | | ignored when `provider="piper"` |
@@ -245,7 +245,7 @@ You can also set `auto_reply_to_voice: true` explicitly while leaving
 i.e. text replies stay text, voice memos get a spoken reply.
 
 If TTS is **not configured** (missing `aws` CLI for Polly, missing binary or
-model for Piper), Kiro Crew posts a one-shot **ephemeral** explaining why and
+model for Piper), Junction posts a one-shot **ephemeral** explaining why and
 replies with text only. The ephemeral fires for every opt-in path —
 globally enabled, per-thread `!voice on`, or voice-memo auto-reply — so
 silent fallback never surprises the user.
@@ -272,7 +272,7 @@ Responses are cleaned for natural speech before synthesis:
 
 ### Prerequisites — Amazon Polly (`provider: "polly"`)
 
-- **AWS credentials** with `polly:SynthesizeSpeech` permission. Kiro Crew
+- **AWS credentials** with `polly:SynthesizeSpeech` permission. Junction
   calls the AWS CLI (`aws polly synthesize-speech`) under the hood, so any
   credential method the CLI supports will work:
 

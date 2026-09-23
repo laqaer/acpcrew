@@ -32,7 +32,7 @@ deliberately does not use one.
 ## Quick start
 
 1. **Install the bridge** and confirm it runs (above).
-2. **Turn the channel on** in `~/.kiro/crew/config.json`. Your own handle is the
+2. **Turn the channel on** in `~/.junction/config.json`. Your own handle is the
    allow-list — a phone number or the email on your Apple Account:
    ```json
    "imessage": {

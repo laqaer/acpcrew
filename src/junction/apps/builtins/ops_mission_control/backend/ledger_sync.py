@@ -72,7 +72,7 @@ _GIT_BINARY = "git"
 #: `.invalid` is the reserved TLD for exactly this (RFC 2606), so the address cannot route.
 _COMMIT_IDENTITY = (
     "-c",
-    "user.name=Kiro Crew ops-mission-control",
+    "user.name=Junction ops-mission-control",
     "-c",
     "user.email=ops-mission-control@junction.invalid",
 )

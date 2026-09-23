@@ -79,7 +79,7 @@ spawn — fails closed. Pick one:
   Then restart the gateway.
 - **Or opt into unsandboxed execution (trades isolation — only on a box you
   trust).** Run `junction setup` (it offers this interactively), or set
-  `agent.sandbox_allow_unsandboxed_exec: true` in `~/.kiro/crew/config.json`, then
+  `agent.sandbox_allow_unsandboxed_exec: true` in `~/.junction/config.json`, then
   restart the gateway. This lets agent subprocesses run without any sandbox.
 
 ### Gateway/pods die on logout: "linger disabled"

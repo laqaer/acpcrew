@@ -286,7 +286,7 @@ class RunSupervisor:
             # CREDENTIAL CONFINEMENT PRECONDITION. The subprocess path spawns through
             # `sandboxed_spawn_argv(mode="strict")` + `strip_credential_env`, which hides
             # `~/.aws`, `~/.gnupg`, `gh`/`gcloud`/`kube` config and scrubs the token env. The
-            # PROVIDER path does not: it drives a Kiro Crew session, so isolation is whatever
+            # PROVIDER path does not: it drives a Junction session, so isolation is whatever
             # `cfg.sandbox` says — and that field DEFAULTS TO "off" ("defers isolation to
             # kiro-cli's internal agent sandbox"). On a gateway where kiro-cli provides no
             # sandbox, an injected repository instruction reaching the agent's auto-approved

@@ -8138,7 +8138,7 @@ class TestApiChatModeGlobalOverrideScope:
         """`until_shutdown` is permanent but AD HOC, so the scope rule applies.
 
         Classifying it by permanence instead of source would revoke the grant of
-        every operator who picked "until Kiro Crew restarts".
+        every operator who picked "until Junction restarts".
         """
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         from junction.safety_override import safety_override

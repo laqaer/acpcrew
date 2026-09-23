@@ -37,7 +37,7 @@ This module MUST NOT import ``junction.dashboard.*`` (at module scope or
 lazily): it exists to dissolve that cross-layer dependency. Heavy runtime deps
 (``junction.sel``, ``junction.apps.registry``, ``junction.config.loader``)
 are imported lazily inside functions so Code Review Sage's standalone import
-path (``sage_lib`` without the Kiro Crew runtime) keeps working for callers
+path (``sage_lib`` without the Junction runtime) keeps working for callers
 that guard their import of this module.
 """
 

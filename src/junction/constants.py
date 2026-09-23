@@ -211,7 +211,7 @@ SUBAGENT_COMPLETION_META_KEY = "subagentCompletion"
 # part of the documented Win32 file-naming contract, not a quirk of one build,
 # and it applies to any host the identifier might travel to.
 #
-# ONE definition on purpose. Every Kiro Crew identifier that becomes a path
+# ONE definition on purpose. Every Junction identifier that becomes a path
 # component on disk — a git branch (a loose ref FILE under `.git/refs/heads/`),
 # an app name (a directory under the apps root) — has to refuse the same set,
 # and two copies would drift. Callers lowercase before testing; a caller whose
@@ -278,7 +278,7 @@ GITHUB_SLUG = "myrmitis/junction"
 # it into cli.py and cli_chat.py risks a rename leaving a stale product name in
 # the two most-seen surfaces (bare `junction`, the chat REPL). Import it; never
 # re-inline it. `cloud/ui.py` keeps its own art because it renders a different
-# wordmark ("Kiro Crew Cloud") with ANSI color.
+# wordmark ("Junction Cloud") with ANSI color.
 BANNER = r"""
      _                 _   _
   _ | |_  _ _ _  __ __| |_(_)___ _ _

@@ -82,7 +82,7 @@ def project_scope_satisfied(relpath: str, project_dir: str | Path | None) -> boo
     """Whether an entry scoped to *relpath* applies to *project_dir*.
 
     *relpath* is a path fragment that identifies a repository by something it
-    contains -- ``src/junction`` names the Kiro Crew source tree. The entry
+    contains -- ``src/junction`` names the Junction source tree. The entry
     applies when *project_dir* or any ancestor of it holds that fragment, so a
     session working anywhere inside the tree qualifies while a session outside it
     does not.

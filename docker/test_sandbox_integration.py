@@ -71,7 +71,7 @@ def step1_reproduce_issue():
 
 
 def step2_with_seccomp_profile():
-    """With the Kiro Crew seccomp profile, the inner sandbox should work."""
+    """With the Junction seccomp profile, the inner sandbox should work."""
     banner("STEP 2: With junction-seccomp.json profile")
 
     from junction.sandbox import detect_backend, is_docker_container, userns_available

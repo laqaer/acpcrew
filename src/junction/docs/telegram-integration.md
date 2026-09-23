@@ -13,7 +13,7 @@ nothing to expose.
 You don't have to edit anything by hand. In any Junction session — the
 dashboard, Slack, or the CLI — say something like *"set up the Telegram
 channel."* Junction walks you through creating the bot, then writes the token
-and your user ID into `~/.kiro/crew/.env` and `config.json` and restarts the
+and your user ID into `~/.junction/.env` and `config.json` and restarts the
 gateway for you. You just hand it the bot token when it asks.
 
 Prefer to wire it up yourself? The manual steps are below.
@@ -26,11 +26,11 @@ You'll need a running gateway (`junction up`) and a Telegram account.
    prompts. You'll get a token like `123456789:AA…`.
 2. **Find your user ID** — message **@userinfobot**; it replies with your number
    (e.g. `123456789`). That's the only account your bot will answer.
-3. **Save the token** to `~/.kiro/crew/.env`:
+3. **Save the token** to `~/.junction/.env`:
    ```
    TELEGRAM_BOT_TOKEN=123456789:AA…
    ```
-4. **Turn it on** in `~/.kiro/crew/config.json`:
+4. **Turn it on** in `~/.junction/config.json`:
    ```json
    "telegram": { "enabled": true, "allowed_user_ids": [123456789] }
    ```
@@ -203,7 +203,7 @@ bot is in the Topic and still silent, check `forum_activation`: on `mention` it
 answers only when addressed, and on `off` it answers nothing.
 
 A restart no longer replays your last few messages: the `getUpdates` cursor is
-kept in `~/.kiro/crew/telegram_offset.json`. Delete that file only if you want a
+kept in `~/.junction/telegram_offset.json`. Delete that file only if you want a
 deliberate replay of whatever Telegram still holds.
 
 ## Related docs

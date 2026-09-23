@@ -15,7 +15,7 @@ taken by the user:
 * signing in — ``kiro-cli login`` (:data:`KIRO_CLI_LOGIN_COMMAND`), run by the
   user wherever they already use the CLI.
 
-Kiro Crew neither installs nor authenticates on the user's behalf, so there is no
+Junction neither installs nor authenticates on the user's behalf, so there is no
 installer download, no installer execution, and no device-flow spawn. The
 reasons are the same in both cases: the vendor's own tooling does it better and
 stays correct as it changes, owning it here meant owning a large privileged
@@ -28,7 +28,7 @@ What remains is detection, and detection alone: every subprocess this module
 spawns is one of the two read-only probes above, sandboxed, with a fixed argv.
 No command, argument, URL, or filesystem target is accepted from an HTTP
 request, and the dashboard exposes only a ``status`` read plus the agent-spec
-repair write (which touches Kiro Crew's own files, never the CLI).
+repair write (which touches Junction's own files, never the CLI).
 """
 
 from __future__ import annotations
@@ -373,12 +373,12 @@ class PrerequisiteStatus:
     ready: bool = False
     # Something on the host needs an owner-driven repair before ``ready`` can go
     # true. Only the agent-spec overlay sets it — a missing CLI is NOT a repair
-    # (the user installs it from OFFICIAL_INSTALL_DOCS_URL, which Kiro Crew has no
+    # (the user installs it from OFFICIAL_INSTALL_DOCS_URL, which Junction has no
     # action for), so a false value here says nothing about ``installed``.
     repair_required: bool = False
     initial_setup_complete: bool = False
     docs_url: str = OFFICIAL_INSTALL_DOCS_URL
-    # What the user runs to sign in. Kiro Crew never runs it for them.
+    # What the user runs to sign in. Junction never runs it for them.
     login_command: str = KIRO_CLI_LOGIN_COMMAND
     # The organization-SSO alternative, offered next to ``login_command`` so the
     # tier is an explicit choice rather than whichever option the sign-in page
@@ -414,7 +414,7 @@ class PrerequisiteStatus:
     # time (issue #4577: 4081 SEL ``probe_version`` events, every one
     # ``outcome=failed error=timeout``, on exactly such a host).
     probe_timed_out: bool = False
-    # Kiro Crew's own agent specs (~/.kiro/agents/junction*.json). ``ready``
+    # Junction's own agent specs (~/.kiro/agents/junction*.json). ``ready``
     # requires these on disk, not merely a viable binary and a good ``whoami``:
     # without them kiro-cli answers every ``session/set_mode`` with
     # "Mode '<name>' not found", so an install missing one cannot run a single
@@ -425,11 +425,11 @@ class PrerequisiteStatus:
     # succeeded. Shown verbatim, untranslated: it names the failing install step,
     # which is the one thing a support conversation actually needs.
     agent_spec_repair_error: str = ""
-    # Kiro Crew's own specs that are PRESENT but which kiro-cli refuses to load.
+    # Junction's own specs that are PRESENT but which kiro-cli refuses to load.
     # Presence and acceptance are different questions: a spec on disk that the
     # installed kiro-cli rejects is dropped from its agent table entirely, so
     # ``--agent junction`` resolves to the default agent with only a line on
-    # stderr — every Kiro Crew MCP server silently absent from the session. That
+    # stderr — every Junction MCP server silently absent from the session. That
     # is indistinguishable from a working install to anything that only stats the
     # file, which is why ``missing_agent_specs`` cannot cover it.
     #
@@ -1967,7 +1967,7 @@ class KiroPrerequisiteService:
             mapping.source
             for mapping in _auth_store_mappings(self._platform, self._home, self._environ)
         ]
-        # Kiro Crew's own secret home is always hidden from a probed CLI. The
+        # Junction's own secret home is always hidden from a probed CLI. The
         # credential-minimal probe additionally hides the identity stores; the
         # real-home callers must leave those visible — the readiness probe so a
         # CLI whose valid session lives outside the staged files (an external
@@ -2108,7 +2108,7 @@ class KiroPrerequisiteService:
         except Exception:
             # Unreadable agents dir: report nothing rather than inventing a
             # missing spec and blocking a working install behind a repair card.
-            logger.debug("Could not check Kiro Crew agent specs", exc_info=True)
+            logger.debug("Could not check Junction agent specs", exc_info=True)
             return result
         result["missing_agent_specs"] = list(missing)
         if missing:
@@ -2777,7 +2777,7 @@ class KiroPrerequisiteService:
             return self._status
 
     async def _probe_spec_acceptance(self, executable: str) -> tuple[list[str], str]:
-        """Ask kiro-cli whether it accepts each required Kiro Crew spec on disk.
+        """Ask kiro-cli whether it accepts each required Junction spec on disk.
 
         Returns ``(rejected filenames, first reason)`` — both empty when every
         present spec is accepted.
@@ -2806,7 +2806,7 @@ class KiroPrerequisiteService:
         try:
             specs = await asyncio.to_thread(_present)
         except Exception:
-            logger.debug("Could not enumerate Kiro Crew agent specs", exc_info=True)
+            logger.debug("Could not enumerate Junction agent specs", exc_info=True)
             return [], ""
         rejected: list[str] = []
         detail = ""
@@ -2931,7 +2931,7 @@ class KiroPrerequisiteService:
             # credential store in its own home; that write is the entire point of
             # delegating sign-in to the CLI, and it targets the same store an ACP
             # session already reads. Junction stages nothing and publishes
-            # nothing. Only Kiro Crew's own secret home is hidden, and the user's
+            # nothing. Only Junction's own secret home is hidden, and the user's
             # binary runs IN PLACE, exactly as ACP runs it, so a multi-call CLI
             # can still reach its sibling subcommand executable.
             return await self._run(

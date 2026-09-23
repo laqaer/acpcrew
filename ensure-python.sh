@@ -14,9 +14,8 @@
 # AL2's glibc 2.26. On success the chosen interpreter's real path — symlinks
 # resolved, see _resolve — is recorded in "<data-home>/python-bin" so
 # non-interactive callers (make) can use it without re-running a version
-# manager. The data home is "$JUNCTION_HOME" when set, else
-# "$HOME/.kiro/crew" (the current default) — NOT the pre-move "$HOME/.kirocrew",
-# which is not the data home and must not be written to.
+# manager. The data home matches junction.config.paths._select_default_home:
+# ~/.junction on a new install, otherwise an existing ~/.kiro/crew or ~/.kirocrew.
 
 MIN_MAJOR=3
 MIN_MINOR=10
@@ -79,8 +78,29 @@ _resolve() {
     fi
 }
 
+# Same choice as junction.config.paths._select_default_home.
+_select_data_home() {
+    if [ -n "${JUNCTION_HOME:-}" ]; then
+        printf '%s\n' "$JUNCTION_HOME"
+        return
+    fi
+    if [ -d "$HOME/.junction" ]; then
+        printf '%s\n' "$HOME/.junction"
+        return
+    fi
+    if [ -d "$HOME/.kiro/crew" ]; then
+        printf '%s\n' "$HOME/.kiro/crew"
+        return
+    fi
+    if [ -d "$HOME/.kirocrew" ]; then
+        printf '%s\n' "$HOME/.kirocrew"
+        return
+    fi
+    printf '%s\n' "$HOME/.junction"
+}
+
 _record() {
-    home="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+    home="$(_select_data_home)"
     mkdir -p "$home"
     printf '%s\n' "$1" > "$home/python-bin" 2>/dev/null || true
 }

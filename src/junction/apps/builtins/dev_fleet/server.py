@@ -154,7 +154,7 @@ class RepoUnavailable(RuntimeError):
 
 
 class RepoNotConfigured(RepoUnavailable):
-    """No Kiro Crew checkout could be found, so there is no fleet to manage.
+    """No Junction checkout could be found, so there is no fleet to manage.
 
     Distinct from a discovery FAILURE, where a checkout was named and git could
     not read it: nothing is broken here, the app simply has no checkout to point
@@ -167,7 +167,7 @@ class RepoUnreadable(RepoUnavailable):
     """A checkout was named but is not one this app can manage.
 
     Either git cannot enumerate its worktrees, or the path is a readable
-    directory that does not carry the Kiro Crew markers. Carries the same
+    directory that does not carry the Junction markers. Carries the same
     consequence as RepoNotConfigured for every route except ``/fleet``: the fleet
     is unknown, so no action that needs a worktree can run. Typed separately so
     the two states can be told apart — this one names the path and asks the user
@@ -175,7 +175,7 @@ class RepoUnreadable(RepoUnavailable):
     """
 
 
-#: Set at startup when the resolved checkout does not carry the Kiro Crew markers,
+#: Set at startup when the resolved checkout does not carry the Junction markers,
 #: to the message ``_repo()`` raises. Tiers 1-2 (env var, config) are taken
 #: verbatim, so a configured path can be a readable directory that is not this
 #: project; the message is composed on the executor at startup because it embeds
@@ -199,7 +199,7 @@ def _repo() -> str:
     ``RepoUnavailable`` and say what the degraded answer is.
     """
     if not MAIN_REPO:
-        raise RepoNotConfigured("no Kiro Crew checkout found to manage")
+        raise RepoNotConfigured("no Junction checkout found to manage")
     if _REPO_INVALID_MSG:
         raise RepoUnreadable(_REPO_INVALID_MSG)
     return MAIN_REPO
@@ -220,7 +220,7 @@ def _own_source_checkout() -> str | None:
 
 
 def _is_junction_checkout(path: str) -> bool:
-    """Whether *path* is a Kiro Crew source checkout. Blocking — stats only.
+    """Whether *path* is a Junction source checkout. Blocking — stats only.
 
     Fail-closed: every marker must be present. ``.git`` alone is not enough
     because adopting an unrelated repository would list ITS worktrees and run
@@ -318,7 +318,7 @@ def _repo_source_hint() -> str:
     if isinstance(configured, str) and configured.strip():
         return "It is set by dev_fleet.repo_path in config.json."
     return (
-        "Point Dev Fleet at your Kiro Crew checkout with the "
+        "Point Dev Fleet at your Junction checkout with the "
         "JUNCTION_DEVFLEET_REPO environment variable, or with "
         "dev_fleet.repo_path in config.json."
     )
@@ -331,7 +331,7 @@ def _discover_main_repo() -> str:
     it there. Order: the operator's explicit choice, the active project
     directory, the checkout this gateway runs from, then conventional clone
     locations. Every INFERRED candidate must pass the marker test, so the fleet
-    can only ever be pointed at a real Kiro Crew checkout.
+    can only ever be pointed at a real Junction checkout.
 
     ``""`` means "no checkout found" and is deliberately not a path: inventing
     one made the out-of-the-box dashboard report a checkout as missing that the
@@ -1071,9 +1071,9 @@ def _toolchain_bin(name: str) -> str | None:
       :func:`_build_env` (no credential helpers), and it already executes
       worktree-controlled ``package.json`` scripts -- arbitrary code, by design.
       Requiring a system-owned npm buys nothing there.
-    * Kiro Crew's own supported installer (``install.sh --mise`` /
+    * Junction's own supported installer (``install.sh --mise`` /
       ``ensure-node.sh``) puts node under ``$HOME``, so ``_trusted_bin`` returned
-      ``None`` for npm on exactly the hosts Kiro Crew set up itself, and Pull+Build
+      ``None`` for npm on exactly the hosts Junction set up itself, and Pull+Build
       failed with "no trusted executable for 'npm'".
 
     Managed toolchain first, system npm second: a distribution's node can be
@@ -1881,7 +1881,7 @@ async def _discover_worktrees() -> list[dict]:
         # worktrees root yet" empty state. When MAIN_REPO is wrong that empty
         # state is a lie: the fleet is not empty, it is unreadable. Reaching here
         # means a checkout WAS named — discovery only ever adopts a path that
-        # carries the Kiro Crew markers, so an unverifiable one came from the
+        # carries the Junction markers, so an unverifiable one came from the
         # operator's own env var or config — so name it and raise, and
         # api_dev_fleet_fleet's error path renders the Discovery Error banner.
         # The .git probe is a filesystem stat — on a wedged network mount it
@@ -3698,7 +3698,7 @@ async def _sync_start_locked() -> dict:
         # worth keeping cached, and this path is user-initiated, not a loop.
         _invalidate_toolchain_cache()
         return {"ok": False, "error": (
-            "npm not found. Kiro Crew looks for a Node toolchain in "
+            "npm not found. Junction looks for a Node toolchain in "
             "<data-home>/node-bin-dir (written by ensure-node.sh), then in "
             "mise / asdf / nvm / fnm / volta install dirs, then in "
             f"{_TRUSTED_PATH}. Fix: run `bash ensure-node.sh` in the main "
@@ -4662,7 +4662,7 @@ async def dev_fleet_startup(app: web.Application) -> None:
             lambda: (_is_junction_checkout(discovered), _repo_source_hint()),
         )
         _REPO_INVALID_MSG = None if valid else (
-            f"not a Kiro Crew checkout: {discovered} exists but does not carry the "
+            f"not a Junction checkout: {discovered} exists but does not carry the "
             f"markers (.git, src/junction/, pyproject.toml). {hint}"
         )
     MAIN_REPO = discovered
@@ -4804,7 +4804,7 @@ async def hmac_proxy_middleware(request: web.Request, handler) -> web.Response:
         # Ordered before RepoNotConfigured: it is a SUBCLASS of the same base, so
         # a broader handler first would swallow it and report the wrong code.
         # A checkout was named and cannot be managed (git cannot read it, or it is
-        # a readable directory without the Kiro Crew markers) — distinct code so a
+        # a readable directory without the Junction markers) — distinct code so a
         # client can tell "the path you gave me is wrong" from "tell me where it is".
         return web.json_response(
             {"ok": False, "code": "repo_unreadable", "error": _redact(str(exc))},

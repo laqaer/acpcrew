@@ -195,7 +195,7 @@ def schemas() -> list[dict[str, Any]]:
         {
             "name": "send_notification",
             "description": (
-                "Publish a notification to the Kiro Crew notification center "
+                "Publish a notification to the Junction notification center "
                 "(bell feed) through the system.agent channel (RFC notification "
                 "bus Phase 5). Unlike send_message, this is a pure notification: "
                 "it never sends chat messages or DMs. "
@@ -265,7 +265,7 @@ def schemas() -> list[dict[str, Any]]:
             "name": "delete_message",
             "description": (
                 "Delete a message previously sent by this bot. Only works on "
-                "messages authored by the Kiro Crew bot itself (Slack API constraint). "
+                "messages authored by the Junction bot itself (Slack API constraint). "
                 "Use to clean up transient notifications after the user acknowledges them."
             ),
             "inputSchema": {

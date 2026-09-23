@@ -1292,7 +1292,7 @@ def rewrite_agents(
     """Populate ``overlay_dir`` with rewritten copies of ``source_dir/*.json``.
 
     Never modifies ``source_dir``. Idempotent — safe to call on every
-    Kiro Crew startup. When no input changed since the last completed run
+    Junction startup. When no input changed since the last completed run
     (see :func:`_rewrite_inputs_fingerprint`) the rewrite loop is skipped and
     the cached ``(results, target_env)`` is returned; the stale-file prune
     still runs on that path.

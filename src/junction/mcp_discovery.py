@@ -218,7 +218,7 @@ def _warn_probe_sandbox_unavailable_once(name: str) -> None:
     _probe_sandbox_warned.add(name)
     logger.warning(
         "MCP probe skipped [%s]: no OS-level sandbox backend on this host, so "
-        "Kiro Crew cannot spawn the server to enumerate its tools. The server "
+        "Junction cannot spawn the server to enumerate its tools. The server "
         "itself is unaffected — kiro-cli launches it from the agent config "
         "without this probe. Set agent.sandbox_allow_unsandboxed_exec=true to "
         "enable probing (the dashboard will otherwise show it with 0 tools).",
@@ -601,7 +601,7 @@ class McpServerInfo:
     url: str = ""
     headers: dict[str, str] = field(default_factory=dict)
     # Remote-only OAuth hints carried verbatim to the runtime, which owns the
-    # authorization exchange. Kiro Crew never enforces scopes and never registers
+    # authorization exchange. Junction never enforces scopes and never registers
     # a client — it only refuses to lose these fields while syncing.
     scopes: list[str] = field(default_factory=list)
     client_id: str = ""
@@ -894,7 +894,7 @@ def _spec_scopes(spec: dict) -> list[str]:
     non-list or a list with non-string members degrades to "no scopes"
     rather than propagating a bad shape into the agent config.
 
-    Reads kiro-cli's ``oauthScopes`` as well as Kiro Crew's internal ``scopes``:
+    Reads kiro-cli's ``oauthScopes`` as well as Junction's internal ``scopes``:
     files we emit for kiro-cli carry the former, so a discovery pass that knew
     only the latter would report a scoped server as unscoped.
     """
@@ -998,7 +998,7 @@ def managed_server_is_session_bound(name: str) -> bool:
     ``initialize`` response to read the capability from, and before the first
     probe cycle there is none yet either.
 
-    False for anything not managed by Kiro Crew: a third-party server's identity
+    False for anything not managed by Junction: a third-party server's identity
     handling is not knowable from here, which is what the pre-flight measures.
     """
     if name not in _MANAGED_SERVER_NAMES:
@@ -1426,7 +1426,7 @@ async def _runtime_grant_present(mcp_url: str, name: str) -> bool | None:
     absent, or unknowable", so the two surfaces cannot disagree about the same
     artifacts, and neither can lose the middle answer.
 
-    The probe holds no token of its own (Kiro Crew stores no credentials), so the
+    The probe holds no token of its own (Junction stores no credentials), so the
     runtime's own artifacts are the only evidence available, and they are stat-ed
     for presence, never read. ``mcp_grant`` is a leaf module for exactly that
     reason: the derivation is shared with the mint rather than copied, and it
@@ -1494,7 +1494,7 @@ async def _probe_remote(server: McpServerInfo) -> McpServerInfo:
                         # 401 (or 403 + WWW-Authenticate). That is the expected
                         # reply, not a fault: the kiro-cli runtime holds the
                         # OAuth token and calls the server fine. The probe never
-                        # sees that token (Kiro Crew keeps no credentials), so
+                        # sees that token (Junction keeps no credentials), so
                         # report "needs_auth" instead of a misleading error.
                         server.status = "needs_auth"
                         server.error = ""
@@ -2108,7 +2108,7 @@ async def probe_server(
                 _cache_probe(server)
             return server
         #
-        # The wrap is deliberately KEPT rather than skipped for Kiro Crew's own
+        # The wrap is deliberately KEPT rather than skipped for Junction's own
         # managed servers. "It is our own code" is not the same claim as "the code
         # is unmodified": the package directory is writable by the same uid the
         # agent runs as and is not on the sensitive-path floor, so a prompt-injected
@@ -2125,7 +2125,7 @@ async def probe_server(
         # limitation apart from a genuine handshake failure without parsing prose.
         server.status = "error"
         server.error = (
-            f"mcp_probe_sandbox_unavailable: Kiro Crew could not probe this server "
+            f"mcp_probe_sandbox_unavailable: Junction could not probe this server "
             f"because no OS-level sandbox backend is available on this host. The "
             f"server itself may be fine — kiro-cli launches it from the agent "
             f"config without this probe, so its tools can still work in chat. "
@@ -2517,7 +2517,7 @@ def discover_servers_to_sync() -> list[McpServerInfo]:
                 # re-sync, or the agent config keeps authorizing the old shape.
                 #
                 # Reaching this set is not permission to rewrite anything: each
-                # consumer guards its own surface, so the two that Kiro Crew does
+                # consumer guards its own surface, so the two that Junction does
                 # not own -- the kiro-global file and the Claude Code sidecar --
                 # decide for themselves what an existing entry allows.
                 if (
@@ -2610,7 +2610,7 @@ def junction_managed_names() -> set[str]:
     """Server names the dashboard store owns.
 
     A usable dict under the ``junction`` scope (``<data home>/mcp.json``) is the
-    one signal that Kiro Crew manages a name -- the same discriminator the
+    one signal that Junction manages a name -- the same discriminator the
     agent-spec emit path uses for its OAuth hints, so management means one thing
     everywhere.
 
@@ -2618,7 +2618,7 @@ def junction_managed_names() -> set[str]:
     precondition for every write to a config surface we do not own -- the
     kiro-global ``mcp.json``, the Claude Code ``~/.mcp.json`` sidecar. Discovery
     merges ALL scopes, so a name present only in a user's global file reaches the
-    sync set exactly like a managed one; without the gate a Kiro Crew sync would
+    sync set exactly like a managed one; without the gate a Junction sync would
     rewrite a server the user configured by hand.
 
     It is deliberately NOT sufficient. Managing a NAME says nothing about who

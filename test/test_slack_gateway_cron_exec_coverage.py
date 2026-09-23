@@ -1,4 +1,4 @@
-"""Coverage for the Kiro Crew gateway's deterministic cron-execution paths.
+"""Coverage for the Junction gateway's deterministic cron-execution paths.
 
 ``test_slack_gateway.py`` and ``test_cron_gateway_integration.py`` drive the
 LLM (``message``) arm of ``_cron_callback`` thoroughly, but the two

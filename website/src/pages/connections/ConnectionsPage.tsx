@@ -258,7 +258,7 @@ export function connectionStateFor(
   }
   if (locallyWaiting || awaitingConsent || oauth?.oauthUrl) return 'waiting-for-approval'
   // The status probe carries no OAuth token — kiro-cli owns token custody and
-  // Kiro Crew stores no credential — so a remote OAuth server answers it with 401
+  // Junction stores no credential — so a remote OAuth server answers it with 401
   // and the gateway reports `needs_auth`. Two very different situations produce
   // that identical answer: a server nobody has authorized, and a server
   // authorized OUTSIDE the dashboard, which the runtime calls fine and which

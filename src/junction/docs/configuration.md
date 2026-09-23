@@ -1,7 +1,7 @@
 # Configuration Reference
 
 Everything Junction remembers about how it should behave lives in one JSON file,
-`~/.kiro/crew/config.json`, created automatically on the first `junction up`
+`~/.junction/config.json`, created automatically on the first `junction up`
 run. Most keys are also editable from the dashboard's Settings pages, and this
 page is the reference for the ones that are not: what they mean, what they
 default to, and which environment variables outrank them.
@@ -84,8 +84,8 @@ id); that is deferred to the session-lifecycle work, not the display path.
 
 **KAS gets its token from kiro-cli.** Junction launches KAS with
 `--auth=acp-callback`, so KAS keeps no credential of its own: whenever it needs
-an access token it calls back over ACP (`_kiro/auth/getAccessToken`) and Kiro
-Crew answers by shelling out to `kiro-cli chat _ get-kas-token`, which
+an access token it calls back over ACP (`_kiro/auth/getAccessToken`) and Junction
+answers by shelling out to `kiro-cli chat _ get-kas-token`, which
 resolves-and-refreshes the token. The refresh token never leaves kiro-cli's own
 store, and this process only ever holds a short-lived access token in transit —
 never cached, never logged. This works on any machine where `kiro-cli login` has
@@ -332,13 +332,13 @@ them, so there is no enable switch here: only knobs for *which* model runs.
 |-----|-------------|---------|
 | `auto_update` | Enable automatic update checks | `true` |
 | `timezone` | IANA timezone name, e.g. `"America/Los_Angeles"` | `""` (falls back to UTC) |
-| `snapshot_dir` | Where `junction snapshot` writes tarballs | `""` (`~/.kiro/crew/snapshots`) |
+| `snapshot_dir` | Where `junction snapshot` writes tarballs | `""` (`~/.junction/snapshots`) |
 
 ## Environment Variables
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `JUNCTION_HOME` | Override the config/data directory | `~/.kiro/crew` |
+| `JUNCTION_HOME` | Override the config/data directory | `~/.junction` |
 | `JUNCTION_PORT` | Override the dashboard port | `5476` |
 | `JUNCTION_PROJECT_DIR` | Override the agent-config/skills project directory | Auto-detected |
 | `JUNCTION_WORKSPACE` | Override the workspace root, used as-is with no subdirectory appended | Saved `workspace_dir`, else a platform default |
@@ -359,7 +359,7 @@ A per-job `timezone` on a cron job wins over this global value.
 
 ## Credentials
 
-`~/.kiro/crew/.env` holds messaging-channel credentials and the owner ID. For
+`~/.junction/.env` holds messaging-channel credentials and the owner ID. For
 Slack:
 
 ```
@@ -384,18 +384,18 @@ rules so they cannot be opted out of at all.
 
 | Path | Purpose |
 |------|---------|
-| `~/.kiro/crew/config.json` | Main config |
-| `~/.kiro/crew/config.local.json` | Local overrides that survive upgrades |
-| `~/.kiro/crew/.env` | Slack credentials |
-| `~/.kiro/crew/skills/` | User skills |
-| `~/.kiro/crew/crons.json` | Scheduled jobs |
-| `~/.kiro/crew/hooks.json` | Script hooks |
-| `~/.kiro/crew/lessons.jsonl` | Learned corrections |
-| `~/.kiro/crew/notifications.jsonl` | Notification history |
-| `~/.kiro/crew/models/` | Embedding model, downloaded in the background at startup |
-| `~/.kiro/crew/history/` | Chat history (JSONL) |
-| `~/.kiro/crew/workspace/memory/` | Memory files |
-| `~/.kiro/crew/session_map.json` | Session resume mapping |
-| `~/.kiro/crew/snapshots/` | Default output of `junction snapshot` |
+| `~/.junction/config.json` | Main config |
+| `~/.junction/config.local.json` | Local overrides that survive upgrades |
+| `~/.junction/.env` | Slack credentials |
+| `~/.junction/skills/` | User skills |
+| `~/.junction/crons.json` | Scheduled jobs |
+| `~/.junction/hooks.json` | Script hooks |
+| `~/.junction/lessons.jsonl` | Learned corrections |
+| `~/.junction/notifications.jsonl` | Notification history |
+| `~/.junction/models/` | Embedding model, downloaded in the background at startup |
+| `~/.junction/history/` | Chat history (JSONL) |
+| `~/.junction/workspace/memory/` | Memory files |
+| `~/.junction/session_map.json` | Session resume mapping |
+| `~/.junction/snapshots/` | Default output of `junction snapshot` |
 | `~/.kiro/agents/junction.json` | Installed agent config |
 | `~/.kiro/settings/mcp.json` | Global MCP server config |

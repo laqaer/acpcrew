@@ -675,8 +675,8 @@ def _mcp_effectively_disabled(name: str, server: Any) -> bool:
     """True when ``name`` is disabled in ANY MCP scope (or on the merged row).
 
     Consent lives per scope, so the single flag on the merged row is not the
-    answer: ``list_servers`` only sets ``disabled`` from an entry in the Kiro
-    Crew scope, while ``/api/mcp/toggle`` writes ``disabled: true`` into the
+    answer: ``list_servers`` only sets ``disabled`` from an entry in the Junction
+    scope, while ``/api/mcp/toggle`` writes ``disabled: true`` into the
     KIRO-GLOBAL ``mcp.json``. Reading only the row therefore MISSES a server the
     user switched off in the dashboard whenever a retained agent entry
     introduced the row first — and probing it would spawn the process consent
@@ -759,7 +759,7 @@ async def _handle_mcp_tools_probe(request: web.Request) -> web.Response:
     # point has to repeat the check or it becomes a way around the consent gate.
     #
     # ``McpServerInfo.disabled`` alone is NOT that check. list_servers() only
-    # sets it for an entry in the Kiro Crew scope, but /api/mcp/toggle writes
+    # sets it for an entry in the Junction scope, but /api/mcp/toggle writes
     # ``disabled: true`` into the KIRO-GLOBAL mcp.json — so a server the user
     # switched off in the UI still arrives with ``disabled = False`` whenever a
     # retained agent entry introduced the row first. The effective state is the

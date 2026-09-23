@@ -1255,7 +1255,7 @@ def _http_error_body(exc: urllib.error.HTTPError) -> dict:
         # per tool -- and it is keyed on the CODE, since a genuine permission
         # denial produces the same body and must not be given this explanation.
         message = (
-            "this client authenticated against the wrong Kiro Crew instance. "
+            "this client authenticated against the wrong Junction instance. "
             "The credential it read does not match the gateway now serving that "
             "port, usually because a second gateway started on this machine and "
             "replaced the shared credential file. Restart the gateway (or target "
@@ -1884,7 +1884,7 @@ _CREW_MAX_EVENTS = 20
 def _crew_machine_markers() -> list[tuple[str, str]]:
     """Strings that identify THIS machine, longest first.
 
-    Longest-first matters: the Kiro Crew home normally sits inside the user's
+    Longest-first matters: the Junction home normally sits inside the user's
     home, so scrubbing the home first would leave ``<home>/.kiro/crew/...`` —
     still a directory layout — instead of collapsing the whole prefix.
     """

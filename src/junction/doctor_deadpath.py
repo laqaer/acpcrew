@@ -15,7 +15,7 @@ path-like env value:
   i.e. :data:`~junction.agent_files.OWNED_KIRO_AGENT_FILES`) with dead paths are
   repaired automatically via the existing rebuild path, then re-verified.
 * **Foreign specs** (other tools' agents sharing the directory) are report-only,
-  naming the spec file, the server name, and the dead path. Kiro Crew never
+  naming the spec file, the server name, and the dead path. Junction never
   rewrites what it does not own.
 * **Malformed / unreadable spec JSON** is reported, never crashing the whole
   check (fail-open per file).

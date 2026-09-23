@@ -52,7 +52,7 @@ EXTERNALLY_MANAGED = {
 
 
 class InstallLayout(NamedTuple):
-    """Describes how this Kiro Crew instance was installed."""
+    """Describes how this Junction instance was installed."""
 
     kind: str  # "git", "wheel", "dmg", "appimage", "deb", "rpm", "docker", or "source"
     proj: str  # JUNCTION_PROJECT_DIR value (may be empty for non-git)

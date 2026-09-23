@@ -74,7 +74,7 @@ def api_key_configured(environ: Mapping[str, str] | None = None) -> bool:
     configured host.
 
     Reads the process environment, which by this point also carries anything the
-    credential loader lifted out of Kiro Crew's ``.env``.
+    credential loader lifted out of Junction's ``.env``.
     """
     env = environ if environ is not None else os.environ
     return bool((env.get(_API_KEY_ENV) or "").strip())

@@ -85,7 +85,7 @@ _EXCLUDE_NAMES = frozenset(
 
 
 def find_repo_root() -> Optional[Path]:
-    """The Kiro Crew source root, or ``None`` when this is not a checkout.
+    """The Junction source root, or ``None`` when this is not a checkout.
 
     The non-raising half of :func:`repo_root`, for callers that must *decide*
     whether source shipping is possible rather than fail when it is not — e.g. a

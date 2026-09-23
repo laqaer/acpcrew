@@ -409,7 +409,7 @@ class TestRegistryIntegration:
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 
         rid = connect.register_instance(
-            "i-0abc1234", name="Kiro Crew Cloud", profile="dev", region="us-west-2"
+            "i-0abc1234", name="Junction Cloud", profile="dev", region="us-west-2"
         )
         assert rid is not None
         # Registers over the native SSM transport, not the legacy ssh_host path.
@@ -428,13 +428,13 @@ class TestRegistryIntegration:
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 
-        first = connect.register_instance("i-0abc1234", name="Kiro Crew Cloud")
+        first = connect.register_instance("i-0abc1234", name="Junction Cloud")
         assert first is not None
         # Simulate persisted per-instance state a re-launch must NOT wipe:
         # customized TTL, an allocated local port, and sticky connect intent.
         reg.update(first, ttl="30m", local_port=5599, was_connected=True)
 
-        second = connect.register_instance("i-0abc1234", name="Kiro Crew Cloud")
+        second = connect.register_instance("i-0abc1234", name="Junction Cloud")
         # Re-launch updates in place: same id, no duplicate, state preserved.
         assert second == first
         matches = [i for i in reg.list() if i.ssm_target == "i-0abc1234"]
@@ -452,7 +452,7 @@ class TestRegistryIntegration:
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
         # An SSM record (ssh_host="") and an SSH record (ssm_target="") coexist.
-        connect.register_instance("i-0abc1234", name="Kiro Crew Cloud")
+        connect.register_instance("i-0abc1234", name="Junction Cloud")
         reg.add(name="dev-box", ssh_host="dev-box")
 
         # An empty needle must NOT match an empty transport field of either record.
@@ -467,7 +467,7 @@ class TestRegistryIntegration:
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 
-        connect.register_instance("i-0abc1234", name="Kiro Crew Cloud")
+        connect.register_instance("i-0abc1234", name="Junction Cloud")
         # Removal matches on ssm_target (the native registration).
         assert connect.unregister_instance("i-0abc1234") is True
         assert not any(i.ssm_target == "i-0abc1234" for i in reg.list())
@@ -477,7 +477,7 @@ class TestRegistryIntegration:
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
         # A box registered the old way (ssh_host = instance id) still unregisters.
-        reg.add(name="Kiro Crew Cloud", ssh_host="i-0abc")
+        reg.add(name="Junction Cloud", ssh_host="i-0abc")
         import junction.instances.registry as regmod
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)

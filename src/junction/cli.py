@@ -819,7 +819,7 @@ def _setup_cli_logging(command: str | None, verbose: int) -> None:
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
             datefmt="%H:%M:%S",
         )
-    # Kiro Crew loggers: --verbose CLI flag takes precedence, otherwise
+    # Junction loggers: --verbose CLI flag takes precedence, otherwise
     # fall back to the persistent log_level from config.
     if verbose == 0:
         try:
@@ -834,7 +834,7 @@ def _setup_cli_logging(command: str | None, verbose: int) -> None:
     # On startup, rotate gateway.log → gateway.log.prev so a crash's final
     # lines are never lost.  Only for `gateway` subcommand
     # to avoid renaming the file while the gateway is actively writing.
-    # encoding="utf-8" is REQUIRED on Windows: Kiro Crew logs non-ASCII glyphs and
+    # encoding="utf-8" is REQUIRED on Windows: Junction logs non-ASCII glyphs and
     # the default file encoding there is cp1252, so a RotatingFileHandler without
     # it raises UnicodeEncodeError on the first non-ASCII log record (logging
     # swallows it, but it spams "--- Logging error ---" tracebacks and drops the

@@ -1,6 +1,6 @@
 # Meetings (builtin app)
 
-An AI meeting assistant. Transcribes a live meeting through Kiro Crew's own
+An AI meeting assistant. Transcribes a live meeting through Junction's own
 streaming speech-to-text, stores the finalized transcript, fans each line out to
 a small crew of background agents (structured notes, an HTML/Mermaid diagram, an
 action-item list), and gates the meeting's close behind a review of the extracted
@@ -328,7 +328,7 @@ Fetch safety:
 
 ## Transcript UI and speech-to-text
 
-Kiro Crew's own `/api/ws/stt` (`dashboard/stt_stream.py`).
+Junction's own `/api/ws/stt` (`dashboard/stt_stream.py`).
 `hooks/useMeetingTranscription.ts` conforms to that endpoint's existing wire
 protocol — connect, wait for `{"type":"ready"}`, send 16 kHz Int16 PCM from
 `/pcm-worklet.js`, receive `partial`/`final`/`error`, send `{"type":"stop"}` and

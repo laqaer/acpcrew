@@ -308,7 +308,7 @@ def test_refusal_reply_is_rejected_as_prose():
         "Unable to retrieve the blog post",
         "Here's a title for your conversation",
         "It looks like you shared a link",
-        "Kiro Crew launch blog. Review requested",
+        "Junction launch blog. Review requested",
         "A very long reply that keeps going and going well past any real session title length",
     ],
 )
@@ -319,7 +319,7 @@ def test_prose_replies_rejected(reply):
 @pytest.mark.parametrize(
     "reply",
     [
-        "Kiro Crew launch blog",
+        "Junction launch blog",
         "Node.js upgrade plan",
         "Ship v1.2 to prod",
         "Fix title generation bug",
@@ -372,14 +372,14 @@ async def test_generate_title_keeps_real_reply(monkeypatch):
     """Revert guard: the same path must still return a well-formed title."""
 
     async def _fake_oneliner(*_a, **_kw):
-        return "Kiro Crew launch blog"
+        return "Junction launch blog"
 
     monkeypatch.setattr(chat_title, "run_bg_oneliner", _fake_oneliner)
     title = await chat_title._generate_title_via_kiro(
         SimpleNamespace(sessions=SimpleNamespace()),
         [{"role": "user", "content": "this is the launch blog https://example.com/Intro"}],
     )
-    assert title == "Kiro Crew launch blog"
+    assert title == "Junction launch blog"
 
 
 @pytest.mark.asyncio
@@ -570,7 +570,7 @@ def test_unspaced_script_titles_accepted(reply):
 @pytest.mark.parametrize(
     "raw,expected",
     [
-        ('"Kiro Crew launch blog"', "Kiro Crew launch blog"),
+        ('"Junction launch blog"', "Junction launch blog"),
         ("「修复会话标题语言」", "修复会话标题语言"),
         ("“修复会话标题语言”", "修复会话标题语言"),
         ("修复会话标题语言。", "修复会话标题语言"),
@@ -584,10 +584,9 @@ def test_clean_title_strips_full_width_wrappers(raw, expected):
 def test_reveal_prefixes_unchanged_for_spaced_titles():
     """Revert guard on the animation: latin titles still step one word at a
     time, and the caller still owns the final push."""
-    assert chat_title._title_reveal_prefixes("Kiro Crew launch blog") == [
-        "Kiro",
-        "Kiro Crew",
-        "Kiro Crew launch",
+    assert chat_title._title_reveal_prefixes("Junction launch blog") == [
+        "Junction",
+        "Junction launch",
     ]
     assert chat_title._title_reveal_prefixes("Standalone") == []
 

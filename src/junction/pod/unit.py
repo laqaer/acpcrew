@@ -161,7 +161,7 @@ def unit_is_current(cfg: PodConfig) -> bool:
     baked ExecStart binary no longer exists (:func:`unit_exec_ok`), or the unit
     still carries a directive this build has removed. The second matters on
     UPGRADE — the unit is written once by ``pod install``, so without this check a
-    machine that installed an older Kiro Crew would keep the teardown hook, and
+    machine that installed an older Junction would keep the teardown hook, and
     keep the defect, until someone happened to reinstall by hand.
     """
     if not unit_exec_ok(cfg):

@@ -464,7 +464,7 @@ class TestRepoScope:
         )
         head = skill_md.read_text(encoding="utf-8")[:2048]
         assert "repo_scope: src/junction" in head
-        assert "ONLY for developing Kiro Crew itself" in head
+        assert "ONLY for developing Junction itself" in head
 
 
 class TestRelocatedSkillCleanup:

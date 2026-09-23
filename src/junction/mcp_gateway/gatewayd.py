@@ -1324,7 +1324,7 @@ def env_target_resolver(pool_key: PoolKey) -> Optional[tuple[str, list[str], dic
         return None
     command, *args = parts
     env = _scrub_sensitive_env(dict(os.environ))
-    # Strip the Kiro Crew process's own Python env vars so they don't leak into
+    # Strip the Junction process's own Python env vars so they don't leak into
     # Python-based MCP backends: PYTHONPATH/PYTHONHOME cause import conflicts,
     # and PYTHONPYCACHEPREFIX (desktop-app-only, see pycache_gc.py) would make
     # a pooled backend mirror its stdlib into the shared bytecode cache. Reuses

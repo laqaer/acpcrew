@@ -1,6 +1,6 @@
 """Publish (and unpublish) the dashboard on this machine's tailnet.
 
-The write half of tailnet access. Until this module existed, Kiro Crew never ran
+The write half of tailnet access. Until this module existed, Junction never ran
 ``tailscale serve`` anywhere: the config switch made the gateway *trust* the
 tailnet origin, but actually putting the dashboard on the tailnet was a command
 the operator had to know and type. So the promised one-command experience was

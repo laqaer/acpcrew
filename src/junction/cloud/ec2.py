@@ -349,7 +349,7 @@ def resolve_explicit_subnet(
     if subnet_id not in egress:
         raise aws.AWSError(
             f"subnet {subnet_id} has no verified internet egress route (NAT or "
-            "internet gateway). Kiro Crew needs outbound access to install "
+            "internet gateway). Junction needs outbound access to install "
             "packages and reach SSM — add a NAT (or IGW) default route to the "
             "subnet's route table, then retry.",
             action="ec2:DescribeRouteTables",
@@ -499,7 +499,7 @@ def deploy(
 ) -> DeployResult:
     """Provision (or update) the Junction stack. Idempotent by stack name.
 
-    By default the local source is packaged and uploaded only when Kiro Crew is
+    By default the local source is packaged and uploaded only when Junction is
     running from a checkout; packaged installs use the template's public-repo
     clone path. Explicit ``ship_source=True`` remains fail-closed when no checkout
     exists. ``subnet_id`` pins the launch to an explicit subnet (validated by

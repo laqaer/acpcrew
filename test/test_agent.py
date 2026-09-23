@@ -1672,7 +1672,7 @@ class TestKiroHooksFiltering:
         )
 
     def test_sanitize_agent_hooks_repairs_owned_files_subtractively(self, tmp_path: Path):
-        """The repair removes only Kiro Crew's legacy key from every owned spec."""
+        """The repair removes only Junction's legacy key from every owned spec."""
         from junction.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
         from junction.agent_files import OWNED_KIRO_AGENT_FILES
 
@@ -4201,7 +4201,7 @@ class TestRefreshDynamicFieldsStripsStaleUrl:
         assert config["mcpServers"]["deepwiki"]["url"] == "https://mcp.deepwiki.com/mcp"
 
     def test_non_managed_server_oauth_hints_preserved(self):
-        """scopes/clientId are passthrough — the runtime, not Kiro Crew, uses them."""
+        """scopes/clientId are passthrough — the runtime, not Junction, uses them."""
         from junction.agent import _refresh_dynamic_fields
 
         config = {
@@ -4557,7 +4557,7 @@ class TestMcpMergePriority:
     def test_the_authorship_marker_never_reaches_the_rendered_spec(self, tmp_path: Path):
         """A shared-file marker is provenance, not configuration.
 
-        The marker records that Kiro Crew wrote an entry into a file it does NOT
+        The marker records that Junction wrote an entry into a file it does NOT
         own. The rendered spec is ours, so carrying the key through would put a
         field in front of the runtime that says nothing to it -- and would change
         the emitted spec for every managed remote, which nothing about recording

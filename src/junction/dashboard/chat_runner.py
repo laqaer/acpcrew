@@ -1569,7 +1569,7 @@ def _emit_mcp_oauth_request(
             f"🚫 {label} sent an authentication URL containing a credential "
             "pattern (rejected). If this is a self-hosted or otherwise "
             "unlisted identity provider, its authorization endpoint may need "
-            "adding to oauth_endpoints.json in the Kiro Crew data home; "
+            "adding to oauth_endpoints.json in the Junction data home; "
             "otherwise ask the server owner to fix the URL.",
             "msg msg-warn",
             meta={
@@ -6013,7 +6013,7 @@ async def _run_chat(
                     # Forgery gate: record the directive-tool name ONLY
                     # from the trusted _meta.kiro identity — never the title.
                     # The single shared predicate (also used by the messaging
-                    # TurnDriver) requires Kiro Crew's OWN core MCP server and a
+                    # TurnDriver) requires Junction's OWN core MCP server and a
                     # canonical directive-tool name; a shell tool (no
                     # mcp_server_name, canonical tool_name "execute_bash") or a
                     # third-party server exposing a same-named tool can never

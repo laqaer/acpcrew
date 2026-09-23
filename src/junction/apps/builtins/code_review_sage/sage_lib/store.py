@@ -144,7 +144,7 @@ def restrict_to_owner(path: str | os.PathLike) -> None:
     ``OSError`` the callers' temp-file cleanup relies on.
 
     The standalone fallback is that bare chmod, matching the guard on
-    ``config_dir`` above: outside the Kiro Crew runtime there is no stdlib way to
+    ``config_dir`` above: outside the Junction runtime there is no stdlib way to
     set a Windows DACL, and refusing the write would be worse than the POSIX
     behaviour this app has always had.
     """
@@ -185,7 +185,7 @@ def open_locked_temp(directory: str | os.PathLike, *,
     return fd, tmp
 
 
-# Optional Kiro Crew redaction. Lives here rather than in `pipeline` because readers
+# Optional Junction redaction. Lives here rather than in `pipeline` because readers
 # outside the posting path need it too, and `pipeline` imports `discovery`, so a
 # reader in `discovery` cannot import `pipeline` back.
 try:                                   # pragma: no cover - import shape
@@ -198,7 +198,7 @@ def redact_text(text: str) -> str:
     """Scrub credentials + exfiltration URLs from model-written text.
 
     Applied at every boundary where such text leaves this app -- the code-review
-    system it posts to, and the dashboard it renders in. No-op when the Kiro Crew
+    system it posts to, and the dashboard it renders in. No-op when the Junction
     redaction lib is not importable (standalone use).
     """
     if redact_exfiltration_urls is None or redact_credentials is None:

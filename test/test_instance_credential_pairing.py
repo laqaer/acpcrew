@@ -324,7 +324,7 @@ class TestEveryToolGetsTheExplanation:
 
     def test_auth_mismatch_is_rewritten_for_every_caller(self) -> None:
         out = self._body(b'{"error": "Forbidden", "code": "internal_auth_mismatch"}')
-        assert "wrong Kiro Crew instance" in out["error"]
+        assert "wrong Junction instance" in out["error"]
         assert out["error"] != "Forbidden"
 
     def test_a_plain_forbidden_is_not_misdiagnosed(self) -> None:
@@ -348,7 +348,7 @@ class TestEveryToolGetsTheExplanation:
             learn.mcp_core, "_resolve_session_key", return_value="dashboard:chat-1"
         ):
             out = learn.learn_add("learn_add", {"rule": "always check the port"})
-        assert "wrong Kiro Crew instance" in out
+        assert "wrong Junction instance" in out
         assert out.strip() != "Error: Forbidden"
 
 

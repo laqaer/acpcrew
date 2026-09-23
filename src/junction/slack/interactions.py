@@ -2121,7 +2121,7 @@ async def _handle_allowlist(
                 await _orch.slack.post_message(
                     dm,
                     "✅ You've been added to the allowlist. You can now message me!\n\n"
-                    "⚠️ *Do not enter sensitive or confidential data into Kiro Crew.*"
+                    "⚠️ *Do not enter sensitive or confidential data into Junction.*"
                     " Follow your organization's data handling policy when using this tool.",
                 )
             except Exception:

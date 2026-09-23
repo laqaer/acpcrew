@@ -1,4 +1,4 @@
-"""Kiro Crew Auto Triage Pipeline — a full-page view of Kiro Crew's own
+"""Junction Auto Triage Pipeline — a full-page view of Junction's own
 auto-triage pipeline.
 
 The pipeline itself is a chain of scheduled jobs that already exist and already

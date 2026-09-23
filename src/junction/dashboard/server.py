@@ -3464,7 +3464,7 @@ async def start_dashboard(
     # agent runs the CLI as a shell command, so only an inherited environment
     # reaches it. Absent by default, in which case this adds nothing.
     os.environ.update(browser_cli_token.cli_env_overrides())
-    # Name the engine Kiro Crew actually installs. The CLI's own default is the
+    # Name the engine Junction actually installs. The CLI's own default is the
     # branded Chrome channel at an OS path the product never provisions, so
     # without this the first browse fails on a host where every readiness signal
     # is honestly green. Same channel and same reason as the two above; defers to

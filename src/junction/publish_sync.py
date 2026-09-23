@@ -114,7 +114,7 @@ WRAPPER_REVISION: int = 2
 # egress boundary: script-src deliberately admits jsdelivr/cdnjs, and CSP does
 # not govern top-level navigation. Origin-level isolation (no cookies, no
 # storage, no parent DOM) additionally depends on the destination rendering it
-# in a sandboxed iframe, which the provider owns and Kiro Crew cannot enforce;
+# in a sandboxed iframe, which the provider owns and Junction cannot enforce;
 # it is an expectation of the viewer, not a guarantee made here.
 _CSP = (
     "default-src 'none'; "
@@ -669,7 +669,7 @@ async def unpublish(slug: str) -> None:
 
 # Sentinel prefix for the out-of-band-drift sync note, so refresh can both set
 # and later clear it without clobbering a genuine push-conflict message.
-_DRIFT_PREFIX = "The remote copy changed outside Kiro Crew"
+_DRIFT_PREFIX = "The remote copy changed outside Junction"
 
 # This prefix is not only displayed -- it is PERSISTED in `last_error` and matched
 # back on the next reconcile. Publications written before the display-name rename
@@ -747,8 +747,8 @@ async def refresh_publication(slug: str) -> Artifact:
             f"v{expected_dest_v}" if expected_dest_v is not None else "an unknown version"
         )
         drift_msg = (
-            f"{_DRIFT_PREFIX}: it is showing {cur_v_str} (Kiro Crew published "
-            f"{expected_str}). Force re-sync to re-publish Kiro Crew's current version."
+            f"{_DRIFT_PREFIX}: it is showing {cur_v_str} (Junction published "
+            f"{expected_str}). Force re-sync to re-publish Junction's current version."
         )
         if pub.last_error != drift_msg:
             fields["last_error"] = drift_msg

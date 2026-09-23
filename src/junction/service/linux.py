@@ -54,7 +54,7 @@ ENV_FILE_PATH = ENV_DIR / "junction.env"
 # clobbers operator edits). Everything is commented out so the file changes
 # nothing until an operator opts in.
 _ENV_FILE_TEMPLATE = """\
-# Kiro Crew service environment overrides.
+# Junction service environment overrides.
 #
 # This file is read by the systemd unit (EnvironmentFile=) AFTER the values
 # baked in at `junction service install` time, so anything set here WINS. Edit
@@ -140,7 +140,7 @@ def render_unit(apparmor_profile: str = "") -> str:
     """Render the systemd system-unit file contents.
 
     Runs the gateway as the invoking user (``User=``, ``Group=``) so it
-    has access to ``$HOME/.kiro/crew``, the user's config, etc. The PATH
+    has access to that account's data home and config. The PATH
     is set explicitly so subprocess invocations of git, node, etc.
     resolve the same way they would from an interactive shell.
 

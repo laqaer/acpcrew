@@ -213,7 +213,7 @@ def test_declares_an_in_process_backend_that_imports() -> None:
 def test_requires_the_desktop_app_declaratively() -> None:
     """A flag the shell reads, not a shell command it runs.
 
-    The companion needs Kiro Crew's desktop app to have somewhere to draw its
+    The companion needs Junction's desktop app to have somewhere to draw its
     window, and this is how that is stated — so the dashboard can gate the tile
     instead of the enable failing on a machine with no shell.
     """

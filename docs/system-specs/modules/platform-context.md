@@ -644,9 +644,9 @@ is byte-identical) with no `CONTRACT_VERSION` bump.
   `safe_context_call`), de-duped by name so an on-disk agent of the same name
   wins. Within the on-disk scan a **project** agent shadows a user-level one of
   the same name (and the shadowing is logged), mirroring kiro-cli — which resolves
-  `--agent` against its cwd first, and which Kiro Crew spawns with the session's
+  `--agent` against its cwd first, and which Junction spawns with the session's
   project directory as that cwd, so the project entry is the one that would
-  actually run. Kiro Crew's legacy `<project>/.kiro/*.agent-spec.json` convention is
+  actually run. Junction's legacy `<project>/.kiro/*.agent-spec.json` convention is
   deliberately NOT scanned here (only the Slack handler opts into it): kiro-cli
   cannot activate such a name, and this list is a dispatch surface. Each row is a
   plain dict of `AgentInfo` fields (`name` required;
@@ -916,7 +916,7 @@ new module/class names.
 - `config.knowledge.doc_ingest_hosts` (list) — SSRF-safe allowlist for the
   server-side fetch path only; empty = deny-by-default. The agent-driven
   `auto_add_documents` path (renamed from `auto_ingest_doc_links`) is NOT gated
-  on it: the agent hands over text it already fetched, Kiro Crew fetches nothing.
+  on it: the agent hands over text it already fetched, Junction fetches nothing.
 - `JunctionConfig._extra_sections` (private) — unknown top-level config.json
   sections captured at `load()`, re-emitted by `to_dict()`, so an edition
   section is not dropped on `save()`/PATCH. Excluded from the JSON schema

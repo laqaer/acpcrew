@@ -1322,7 +1322,7 @@ async def api_vault_forget(request: web.Request) -> web.Response:
 
 
 async def api_vault_knowledge(request: web.Request) -> web.Response:
-    """Persist a vault's 'sync to Kiro Crew knowledge' preference.
+    """Persist a vault's 'sync to Junction knowledge' preference.
 
     Registration with the Knowledge library happens in the UI, which runs
     inside the dashboard and carries the user's session. This only records the

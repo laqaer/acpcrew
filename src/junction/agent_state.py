@@ -128,7 +128,7 @@ def lift_and_strip_bookkeeping(config: MutableMapping[str, object], name: str) -
 
     kiro-cli rejects unknown fields on the whole agent spec. Every writer that
     persists a kiro agent JSON must run this so those keys, owned only by
-    Kiro Crew, never land on disk. When the sidecar already holds a value, a
+    Junction, never land on disk. When the sidecar already holds a value, a
     stale key in *config* is discarded rather than clobbering the
     authoritative sidecar (same rule as ``migrate_agent_specs`` /
     ``_refresh_dynamic_fields`` / the per-agent PATCH handler).

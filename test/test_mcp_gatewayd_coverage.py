@@ -9,7 +9,7 @@ watchdog, the backend acquire/respawn helpers, and the CLI entry points.
 
 Everything here is driven with in-memory doubles -- no socket is bound, no
 subprocess is spawned, and every filesystem write lands under ``tmp_path`` or
-the per-test ``JUNCTION_HOME`` that Kiro Crew's conftest pins.
+the per-test ``JUNCTION_HOME`` that Junction's conftest pins.
 """
 
 from __future__ import annotations

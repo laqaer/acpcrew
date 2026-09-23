@@ -3,7 +3,7 @@
 Middle rung of the Connections launch ladder (L0 = the account-free metadata
 probe, L2 = the manual UI gate); the full contract -- verdict table, runbook,
 known gap -- lives in ``docs/architecture/design-notes/connections-l1-smoke.md``.
-Invariants: **Kiro Crew holds no token** (kiro-cli injects the bearer in its own
+Invariants: **Junction holds no token** (kiro-cli injects the bearer in its own
 process, so a managed provider's healthy reply is an OAuth challenge -- graded
 ``GRANT_HELD``, never ``NEEDS_RECONSENT``, reserved for attributable
 rejections); **L1 never initiates consent** (absent grant = ``SKIPPED``); an

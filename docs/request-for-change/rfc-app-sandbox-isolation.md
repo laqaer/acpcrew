@@ -17,7 +17,7 @@ A buggy or malicious app with a valid app token can currently:
 - Spawn unlimited subagents, exhausting compute
 - Send notifications impersonating the system
 
-The app identity system (App Kit §6) provides authentication but not authorization. We need per-app sandboxing so one app cannot destroy another app's state or degrade the user's Kiro Crew experience.
+The app identity system (App Kit §6) provides authentication but not authorization. We need per-app sandboxing so one app cannot destroy another app's state or degrade the user's Junction experience.
 
 ---
 

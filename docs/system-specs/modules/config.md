@@ -310,9 +310,9 @@ is never widened into a search path.
 
 ### `project_agents_dir(project_dir)` / `project_kiro_dir(project_dir)` (`config/paths.py`)
 The **project** scope, read-only: `<project>/.kiro/agents` (kiro-cli's own workspace
-agents dir) and `<project>/.kiro` (which holds Kiro Crew's older
+agents dir) and `<project>/.kiro` (which holds Junction's older
 `*.agent-spec.json` convention). kiro-cli resolves `--agent` against
-`$PWD/.kiro/agents` before the user-level dir with **no upward walk**, and Kiro Crew
+`$PWD/.kiro/agents` before the user-level dir with **no upward walk**, and Junction
 spawns kiro-cli with the session's project directory as its cwd, so this is exactly
 the directory the backend searches for that session.
 
@@ -649,7 +649,7 @@ class AgentConfig:
     streaming: bool = True
     model: str = "auto"            # resolved from agent config
     provider: str = "acp"          # fixed to "acp" (kiro-cli) — the only provider
-    sandbox: str = "auto"          # default "auto" (namespace on Linux, seatbelt on macOS; delegates to kiro-cli's internal sandbox on macOS when enabled); "off" skips Kiro Crew's sandbox
+    sandbox: str = "auto"          # default "auto" (namespace on Linux, seatbelt on macOS; delegates to kiro-cli's internal sandbox on macOS when enabled); "off" skips Junction's sandbox
     sandbox_allow_no_isolation: bool = False  # SEC-009: acknowledge running un-isolated when no sandbox backend exists; false = loud SECURITY warning, true = info-level
     enforce_denied_commands: str = "all"  # "all" or "junction"
     soft_stop_budget_secs: float = 10.0  # seconds to wait for cooperative cancel before hard kill [0.5, 60.0]

@@ -443,7 +443,7 @@ class TurnDriver:
                 # Forgery gate: record the directive-tool name ONLY from the
                 # trusted ``_meta.kiro`` identity — never the LLM-authored
                 # title. The single shared predicate (also used by the
-                # dashboard consumer in chat_runner) requires Kiro Crew's OWN
+                # dashboard consumer in chat_runner) requires Junction's OWN
                 # core MCP server and a canonical directive-tool name; a shell
                 # tool (no mcp_server_name, canonical tool_name like
                 # "execute_bash") or a third-party server exposing a same-named

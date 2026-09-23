@@ -1022,7 +1022,7 @@ class SessionMap:
     def mapped_sids_by_key(self) -> dict[str, str]:
         """Session key to kiro-cli session ID, for every entry that has one.
 
-        A session ID present here is one Kiro Crew can still resume. Callers that
+        A session ID present here is one Junction can still resume. Callers that
         account for or reclaim disk space need both halves of this relation: the
         IDs to exclude from deletion, and the key each ID belongs to so a
         session's transcript can be paired with its replay log. Returning the

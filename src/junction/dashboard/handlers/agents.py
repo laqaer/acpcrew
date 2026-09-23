@@ -258,7 +258,7 @@ async def api_agent_config(request: web.Request) -> web.Response:
             # directory per ref, which is synchronous filesystem work — running it
             # inline would stall the aiohttp event loop for the duration.
             await asyncio.to_thread(sanitize_agent_config_governance, config)
-            # Never persist Kiro Crew bookkeeping into the kiro spec —
+            # Never persist Junction bookkeeping into the kiro spec —
             # kiro-cli rejects unknown fields and drops the agent (#2570).
             # Offloaded like the governance filter above: this reads/writes the
             # agent_model_state.json sidecar, the same class of synchronous
@@ -271,7 +271,7 @@ async def api_agent_config(request: web.Request) -> web.Response:
             changed = await asyncio.to_thread(agent_state.lift_and_strip_bookkeeping, config, name)
             if changed:
                 logger.info(
-                    "Stripped Kiro Crew bookkeeping keys from a PUT to agent config for %r",
+                    "Stripped Junction bookkeeping keys from a PUT to agent config for %r",
                     name,
                 )
             # Offloaded + atomic: a crash or disk-full mid-write on a bare
@@ -1430,7 +1430,7 @@ async def api_agent_detail(request: web.Request) -> web.Response:
                             else:
                                 # Explicit pick: freeze it against default bumps.
                                 agent_state.set_model_managed(agent_name, False)
-                        # Never persist Kiro Crew bookkeeping into the kiro spec —
+                        # Never persist Junction bookkeeping into the kiro spec —
                         # kiro-cli rejects unknown fields and drops the agent. Same
                         # shared helper as the PUT handler and migrate_agent_specs(),
                         # so this fourth writer can't drift from the other three
@@ -1521,7 +1521,7 @@ async def api_capability_mcp_registry(request: web.Request) -> web.Response:
 
 
 async def api_junction_agents(request: web.Request) -> web.Response:
-    """GET /api/agents — list all Kiro Crew agent definitions, most-used first.
+    """GET /api/agents — list all Junction agent definitions, most-used first.
 
     Also surfaces the requesting session's project-scope agents
     (``<project>/.kiro/agents``, resolved via ``X-Session-Key``) tagged

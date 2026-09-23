@@ -43,7 +43,7 @@ def _kiro_agents_dir() -> Path:
 
 # Discovery scopes. A ``project`` agent comes from the session's own checkout and
 # SHADOWS a ``global`` agent of the same name, mirroring kiro-cli: it resolves
-# ``--agent`` against ``$PWD/.kiro/agents`` before ``~/.kiro/agents``. Kiro Crew
+# ``--agent`` against ``$PWD/.kiro/agents`` before ``~/.kiro/agents``. Junction
 # spawns kiro-cli with the session's project dir as cwd, so the shadowing is a
 # property of the backend rather than a policy choice here — surfacing the losing
 # entry as separately selectable would advertise an agent that cannot be reached.
@@ -135,7 +135,7 @@ class AgentInfo:
 
 SKILL_URI_PREFIX = "skill://"
 
-# Kiro Crew-only spec convention, predating ``.kiro/agents/`` and still used by
+# Junction-only spec convention, predating ``.kiro/agents/`` and still used by
 # projects driven from Slack. kiro-cli does NOT read this location, so a name
 # declared only here is NOT dispatchable: offering it as an agent would hand
 # kiro-cli a mode it cannot activate. It is therefore excluded from discovery by
@@ -208,8 +208,8 @@ def project_agent_files(
     location kiro-cli itself resolves ``--agent`` against, and therefore the only
     one whose names are dispatchable.
 
-    *include_legacy* additionally returns ``<project>/.kiro/*.agent-spec.json``, Kiro
-    Crew's own older convention. It defaults to ``False`` because every dispatch
+    *include_legacy* additionally returns ``<project>/.kiro/*.agent-spec.json``, Junction's
+    own older convention. It defaults to ``False`` because every dispatch
     surface (the agent picker, ``spawn_run`` validation, per-turn resolution) must
     offer only agents the backend can actually activate; a legacy-only name would be
     accepted here and then fail at ``session/set_mode``. Slack passes ``True`` to
@@ -742,7 +742,7 @@ def list_agents(
     (``<project>/.kiro/agents`` plus ``<project>/.kiro/*.agent-spec.json``). A
     project agent SHADOWS a user-level agent of the same name and the shadowing is
     logged, mirroring kiro-cli — which resolves ``--agent`` against its cwd first,
-    and is spawned by Kiro Crew with the session's project dir as that cwd. The
+    and is spawned by Junction with the session's project dir as that cwd. The
     losing entry is not returned: it is unreachable for this session, so listing it
     would offer an agent that cannot run.
 
@@ -814,7 +814,7 @@ def list_agents(
                 )
 
     # Project scope LAST so it shadows: kiro-cli resolves --agent against its cwd
-    # before the user-level dir, and Kiro Crew spawns it with the session's project
+    # before the user-level dir, and Junction spawns it with the session's project
     # dir as cwd, so the project entry is what would actually run. The warning
     # mirrors kiro-cli's own conflict notice — shadowing is correct here, silent
     # shadowing is not, because the two configs can differ in tools and permissions.

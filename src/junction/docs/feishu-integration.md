@@ -31,12 +31,12 @@ Lark).
 5. **Publish the app** so your tenant can install it.
 6. **Find your open_id** — the console's API Explorer, or any inbound message
    in the gateway log, shows the sender's `open_id` (it starts with `ou_`).
-7. **Save the credentials** to `~/.kiro/crew/.env`:
+7. **Save the credentials** to `~/.junction/.env`:
    ```
    FEISHU_APP_ID=cli_xxxxxxxxxxxx
    FEISHU_APP_SECRET=your-app-secret
    ```
-8. **Turn it on** in `~/.kiro/crew/config.json`:
+8. **Turn it on** in `~/.junction/config.json`:
    ```json
    "feishu": {
      "enabled": true,

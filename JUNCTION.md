@@ -37,11 +37,12 @@ ADRs: [0002](docs/adr/0002-two-planes.md),
 
 Site: https://getjunction.dev
 
-## Implementation identifiers (until a dedicated rename)
+## Implementation identifiers
 
-`junction`, `JUNCTION_HOME`, `~/.kiro/crew`, Electron `productName`.
-GitHub slug is `myrmitis/junction`. The brand gate still forbids concatenated `Junction`
-in **new prose**. Junction is allowed. Do not retarget the data home.
+`junction`, `JUNCTION_HOME`, `~/.junction`, Electron `productName` Junction.
+GitHub slug is `myrmitis/junction`. A new install uses `~/.junction`. When
+that directory is absent, an existing `~/.kiro/crew` or `~/.kirocrew` is kept.
+The brand gate still forbids the concatenated upstream brand token in new prose.
 
 ## Security and harness (do not weaken)
 

@@ -2,7 +2,7 @@
   "name": "demo-app",
   "version": "0.1.0",
   "displayName": "Demo App",
-  "description": "Minimal proof-of-concept for the Kiro Crew federated app platform",
+  "description": "Minimal proof-of-concept for the Junction federated app platform",
   "author": "junction",
   "tags": ["demo", "platform"],
   "ui": {

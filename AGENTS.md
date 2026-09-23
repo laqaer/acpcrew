@@ -26,9 +26,9 @@ is optional.
   not the product name).
 - **Frontend:** React + TS + Vite SPA in `website/`; the built `dist/` is staged
   into `src/junction/static/dist/` and served by the backend.
-- **Data home:** `~/.kiro/crew`, overridden with `JUNCTION_HOME`. The legacy
-  `~/.kirocrew` is fully deprecated and no longer auto-migrates; it survives only
-  in sensitive-path deny lists, which must keep covering it.
+- **Data home:** `~/.junction`, overridden with `JUNCTION_HOME`. If
+  `~/.junction` is absent and `~/.kiro/crew` or `~/.kirocrew` already exists,
+  that older directory is kept. All three stay on the sensitive-path deny list.
 - **Distribution:** public GitHub, plain setuptools, public PyPI / public npm.
 - **CLI:** `junction` (silent aliases exist for older entry points).
 
@@ -168,8 +168,8 @@ Never hardcode a model id (`claude-*`, `opus*`, `sonnet*`, `haiku*`, `gpt-*`,
 
 ## Harness parity: Kiro is first-class, the rest are adapted
 
-Never express "this is the Kiro harness" as the ABSENCE of another harness. Kiro
-Crew drives one first-class harness — `kiro-cli` (`ACP_BACKEND_KIRO`, spelled
+Never express "this is the Kiro harness" as the ABSENCE of another harness. Junction
+drives one first-class harness — `kiro-cli` (`ACP_BACKEND_KIRO`, spelled
 `""`) — and adapts the others (the dormant `ACP_BACKEND_CLAUDE` seam, KAS, and
 any bring-your-own harness). A negative test like `not is_claude_backend` reads
 correctly with two harnesses and then silently hands the third a capability, a
@@ -481,7 +481,8 @@ Windows specifics: [windows-install](docs/guides/windows-install.md).
   implementation: [mcp](docs/architecture/mcp.md).
 - **A skill that any shipped feature, tool, or doc references MUST live in
   `src/junction/builtin_skills/`.** That is the only path bundled into the
-  package and copied into a user's `~/.kiro/crew/skills/`. Top-level `skills/` is
+  package and copied into the data home's `skills/` directory
+  (`~/.junction/skills/` on a new install). Top-level `skills/` is
   repo-checkout-only and reaches no installed user.
 
 ## Injected messages are not the user
@@ -495,4 +496,5 @@ formats: [injected-messages](docs/system-specs/common/injected-messages.md).
 
 `junction gateway --approval yolo` auto-approves ALL tools and refuses to start
 unless `JUNCTION_HOME` is explicitly set to a non-default path. Never point it at
-`~/.kiro/crew`. All harness flags: [cli](docs/system-specs/modules/cli.md).
+`~/.junction`, or at a previous home still in use (`~/.kiro/crew`, `~/.kirocrew`).
+All harness flags: [cli](docs/system-specs/modules/cli.md).

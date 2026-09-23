@@ -169,7 +169,7 @@ slot: an overlay `id` must name a component compiled into the dashboard bundle, 
 there is no ESM `entryPoint` for overlays the way `ui.pages` has one. An installed app
 declaring `ui.overlays` is refused at install, and a self-registered one is refused
 when slots are resolved -- `builtin` provenance is assigned only by the builtin
-registration Kiro Crew runs at startup and cannot be self-reported. Treat this as the
+registration Junction runs at startup and cannot be self-reported. Treat this as the
 mechanism builtin apps use to replace a host surface, not yet as a third-party
 extension point.
 

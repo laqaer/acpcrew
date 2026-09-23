@@ -622,7 +622,7 @@ def default_confinement() -> "str | None":
       matching hosts where the scope probe failed and no scope was applied).
     """
     if os.environ.get("JUNCTION_SANDBOX_ACTIVE"):
-        return "the Dev Fleet backend runs inside the Kiro Crew OS sandbox"
+        return "the Dev Fleet backend runs inside the Junction OS sandbox"
     try:
         cgroup = Path("/proc/self/cgroup").read_text(encoding="utf-8")
     except OSError:

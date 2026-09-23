@@ -54,11 +54,11 @@ def _ensure_utf8_process_environment() -> None:
 
     ``sys.stdout.reconfigure`` can repair the current process, but Windows
     implements ``os.execv`` by creating a successor process.  Its standard
-    streams are constructed before Kiro Crew code runs, so the encoding must be
+    streams are constructed before Junction code runs, so the encoding must be
     present in the environment at interpreter startup.  POSIX ``execv`` keeps
     the current environment, where an inherited ``PYTHONIOENCODING`` can also
     override the platform's normal UTF-8 defaults.  Overwrite inherited settings
-    deliberately: Kiro Crew's process tree emits Unicode as part of its normal
+    deliberately: Junction's process tree emits Unicode as part of its normal
     protocols and boot output.
     """
     os.environ.update(_UTF8_PROCESS_ENV)
@@ -390,7 +390,7 @@ def tcc_prune_walk_dirs(root: str, dirpath: str, dirnames: list[str]) -> list[st
 
 
 def ensure_utf8_console() -> None:
-    """Keep Kiro Crew's process tree UTF-8 and repair current Windows streams.
+    """Keep Junction's process tree UTF-8 and repair current Windows streams.
 
     Junction prints non-ASCII glyphs throughout its CLI/gateway output. On
     Windows the default console code page is cp1252, and when stdout is a pipe
@@ -655,7 +655,7 @@ def try_acquire_lock(fd: int, *, exclusive: bool = False) -> bool:
 
 
 def probe_file_persistence(directory: Path) -> str | None:
-    """Verify that *directory* supports every primitive the Kiro Crew
+    """Verify that *directory* supports every primitive the Junction
     persistence paths depend on: creating a new file (``tempfile.mkstemp``),
     writing bytes to it, taking an advisory lock (:func:`file_lock`),
     atomically replacing it (``os.replace``), and removing it — the exact

@@ -1,13 +1,13 @@
 ---
 name: writing-tests
-description: "How to write a Kiro Crew backend test that has NO side effects and does not flake. Use when adding, editing, reviewing, or debugging a pytest test in the Kiro Crew source repo: which conftest is under your file, what leaks (temp dirs, the real data home, ~/.kiro, cron, threads, child processes), how to tell which of the five flake classes you have and where each one's fix is written, and the cross-platform traps on macOS/Linux/Windows and arm64. Also covers diagnosing a residue failure and keeping the parallel suite fast."
+description: "How to write a Junction backend test that has NO side effects and does not flake. Use when adding, editing, reviewing, or debugging a pytest test in the Junction source repo: which conftest is under your file, what leaks (temp dirs, the real data home, ~/.kiro, cron, threads, child processes), how to tell which of the five flake classes you have and where each one's fix is written, and the cross-platform traps on macOS/Linux/Windows and arm64. Also covers diagnosing a residue failure and keeping the parallel suite fast."
 triggers: write a test, add a test, fix a flaky test, test is flaky, test side effect, temp dir residue, tmp residue, junction test, pytest junction, test isolation, conftest, xdist, test leaked
 repo_scope: src/junction
 ---
 
-# Writing a Kiro Crew test that does not leak and does not flake
+# Writing a Junction test that does not leak and does not flake
 
-> **Scope guard: this skill applies ONLY to the Kiro Crew source repository** (or a
+> **Scope guard: this skill applies ONLY to the Junction source repository** (or a
 > worktree of it). Its rules are conventions of this repo's suite. In any other
 > project, ignore it.
 >
@@ -75,7 +75,7 @@ it is a "your shell stops working" issue.
 
 `JUNCTION_HOME` is pinned per test at the rootdir, which is what makes `config_dir()`
 safe — and it needs to be, because resolving it is **not a read**: it creates the home
-and its marker, and can run the `~/.kirocrew` → `~/.kiro/crew` migration.
+and its marker, and can run the `~/.kirocrew` → `~/.junction` migration.
 
 Two shapes escape the env var:
 

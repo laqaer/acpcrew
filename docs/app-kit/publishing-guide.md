@@ -2,7 +2,7 @@
 
 The full path an app takes: develop, test locally, list it in a registry, users
 install it. An "app" is a package that contributes agents, skills, SOPs, MCP
-servers, cron jobs, backend routes, or dashboard UI pages to Kiro Crew.
+servers, cron jobs, backend routes, or dashboard UI pages to Junction.
 
 This guide covers the publish-facing surface (store listing, assets, registry
 entry, review). The complete field reference is
@@ -62,7 +62,7 @@ own repo.
 The App Store fetches each listed app's `app.json` with `git archive` and caches
 it for 24 hours (an external registry's index is cached for 1 hour). Image paths
 inside the manifest are rewritten to blob-proxy URLs, so nothing has to be
-mirrored into the Kiro Crew repo. Push a new version and the store picks it up on
+mirrored into the Junction repo. Push a new version and the store picks it up on
 the next refresh.
 
 ## 3. Categories come from your tags
@@ -169,7 +169,7 @@ Execution model:
   executes it. Do not put work an update depends on there. Make `onInstall`
   idempotent instead, since a registry update re-runs it.
 
-Only declare `onUninstall` for state Kiro Crew cannot see: app binaries outside
+Only declare `onUninstall` for state Junction cannot see: app binaries outside
 the data home, shell aliases, launchd plists. For `resources: "gateway"` apps the
 gateway already deregisters agents, skills, MCP entries, and cron jobs, so do not
 duplicate that. For `resources: "app"` apps the gateway deregisters nothing and
@@ -193,7 +193,7 @@ your script owns all of it.
 
 | Field | Description |
 |-------|-------------|
-| `managedBy` | Default resolution strategy. `"gateway"` resolves each entry through the edition's `CapabilityManager` seam; `"app"` means Kiro Crew only checks existence. A per-entry object (`{"id": ..., "managedBy": ...}`) overrides it. |
+| `managedBy` | Default resolution strategy. `"gateway"` resolves each entry through the edition's `CapabilityManager` seam; `"app"` means Junction only checks existence. A per-entry object (`{"id": ..., "managedBy": ...}`) overrides it. |
 | `capabilities.mcp` / `capabilities.skills` | Capability packages the app needs but does not provide. |
 | `capabilities.agents` | Declarable, but no edition has an install operation for it, so it is always reported unresolved. Declare `managedBy: "app"` or install it out of band. |
 | `commands` | REQUIRED host executables, probed with `which`. A miss is reported in `missing` and warned about; it does not block the install. |
@@ -206,11 +206,11 @@ stock install.
 
 `dependencies.capabilities.mcp` is not `mcpServers`. `mcpServers` are servers
 your app itself provides and runs, and the gateway registers them into
-Kiro Crew's own agent config. `capabilities.mcp` are external servers your app
+Junction's own agent config. `capabilities.mcp` are external servers your app
 merely consumes.
 
 Resolved dependencies are recorded in a reference-counting ledger at
-`~/.kiro/crew/dependency-ledger.json`. On uninstall each declared dependency is
+`~/.junction/dependency-ledger.json`. On uninstall each declared dependency is
 classified as removable (this app is its only recorded owner), shared (another
 app also owns it), or user-installed (absent from the ledger). Only removable
 entries are cleaned, and the uninstall request can override that:
@@ -237,7 +237,7 @@ named entries.
 |-------|---------|-------------|
 | `os` | `["macos", "linux"]` | Platforms the app can run on: `macos`, `linux`, `windows`. This constrains the machine the GATEWAY runs on. |
 | `arch` | any | Architecture restriction; empty means any. |
-| `installMode` | `"server"` | `"server"`: Kiro Crew clones and installs. `"client"`: the app must be installed on the user's own machine. |
+| `installMode` | `"server"` | `"server"`: Junction clones and installs. `"client"`: the app must be installed on the user's own machine. |
 | `clientInstall.shell` | | One-liner the user runs in their local terminal. `{{gateway_url}}` and `{{gateway_host}}` are substituted with the dashboard origin and the gateway hostname. |
 | `clientInstall.postInstall` | | Follow-up command shown as a hint (for example, launching the app). |
 | `requiresDesktopApp` | `false` | The app's UI needs the Electron shell (native always-on-top windows, global shortcuts, tray). A UX gate only: the browser marker is client-side and spoofable, so nothing security-relevant may depend on it. |
@@ -302,7 +302,7 @@ rebuild.
 
 ## 9. What gets copied at install time
 
-Install and update copy the source tree into `~/.kiro/crew/apps/{name}/` with two
+Install and update copy the source tree into `~/.junction/apps/{name}/` with two
 safeguards:
 
 - **Symlinks are never followed.** A symlink resolving inside your app source
@@ -319,7 +319,7 @@ safeguards:
 
 ### Third-party executable code is off by default
 
-Code shipped inside the Kiro Crew package (a built-in app) is exempt, but every
+Code shipped inside the Junction package (a built-in app) is exempt, but every
 other app's **executable** surfaces refuse to run unless the operator sets
 `agent.apps_allow_third_party` to the JSON boolean `true` in `config.json`. That
 covers registry installs and their install scripts, `detectInstalled`, backend
@@ -352,10 +352,10 @@ MyAppRepo/
 There are two listing surfaces, and they take different paths:
 
 **The official App Store catalog** lives in its own repository,
-[KiroCrewApps](https://github.com/kirodotdev/KiroCrewApps) — not in the Kiro Crew
+[KiroCrewApps](https://github.com/kirodotdev/KiroCrewApps) — not in this
 repo. Since the catalog became the store's inventory, publishing an entry there
-is what makes your app appear in the store *and installable*, with **no Kiro
-Crew release involved**. You author a `git` source (URL + a branch or tag; the
+is what makes your app appear in the store *and installable*, with **no Junction
+release involved**. You author a `git` source (URL + a branch or tag; the
 publish pipeline resolves and pins the exact commit) plus a category, and open a
 pull request on that repository. Its README documents the authored schema, the
 validators, and the two-schema (authored vs published) contract. Clients install
@@ -363,10 +363,10 @@ the pinned commit exactly and read update availability from the published
 entry's `version` field, so publishing a new revision of the catalog is also how
 an update reaches users.
 
-**The bundled seed** (`src/junction/apps/app-registry.json` in the Kiro Crew
+**The bundled seed** (`src/junction/apps/app-registry.json` in the Junction
 repo) is the catalog's offline snapshot, not the listing surface: it is what a
 client falls back to when the catalog host is unreachable. Entries here ride the
-Kiro Crew release train. A catalog row for the same repository supersedes the
+Junction release train. A catalog row for the same repository supersedes the
 seed row, so the seed needs touching only when offline availability matters.
 
 The seed (and any federated registry index) uses this row shape:
@@ -395,12 +395,12 @@ The seed (and any federated registry index) uses this row shape:
 
 To reach the official store, open the pull request on **KiroCrewApps** (add your
 entry to `catalog/official-registry.json` there; run its `tools/validate.py`
-first). A seed change in the Kiro Crew repo follows the normal contribution flow
+first). A seed change in the Junction repo follows the normal contribution flow
 and ships with the next release.
 
 ## 11. Federated external registries
 
-A team can host its own registry without Kiro Crew review per app. Users opt in by
+A team can host its own registry without Junction review per app. Users opt in by
 adding it to their config:
 
 ```json
@@ -415,7 +415,7 @@ The index is read as `app-registry.json` at the repo root, falling back to
 discovering `apps/*/app.json` when no index file exists. Repo and branch values
 are validated against strict patterns, and unsafe `subdirectory` values are
 dropped from the index. Manage registries with `GET`/`PUT /api/apps/registries`
-(the PUT blocks adding the Kiro Crew repo itself) and `POST
+(the PUT blocks adding the Junction repo itself) and `POST
 /api/apps/registries/refresh`.
 
 **Trust model:** the user explicitly opts in by adding the registry, and the repo
@@ -472,7 +472,7 @@ The store's Install button (`POST /api/apps/registry/install`, or the SSE varian
 2. Check `platform`, and answer with client-install instructions instead if the
    gateway's OS cannot run it.
 3. Check `minJunctionVersion`.
-4. Clone into `~/.kiro/crew/app-sources/{name}/` (persistent, one workspace per
+4. Clone into `~/.junction/app-sources/{name}/` (persistent, one workspace per
    app; 60s timeout) and run a detected build: `npm install` plus `npm run build`
    when `package.json` declares a build script, or `pip install .` /
    `pip install -r requirements.txt` for a Python source tree. A missing
@@ -483,7 +483,7 @@ The store's Install button (`POST /api/apps/registry/install`, or the SSE varian
    credential-free.
 5. Run `setup.onInstall` (300s).
 6. Resolve declared dependencies.
-7. For a gateway-managed app: copy into `~/.kiro/crew/apps/{name}/`, register
+7. For a gateway-managed app: copy into `~/.junction/apps/{name}/`, register
    resources, and start the backend. For `resources: "app"`: pre-register from
    the cloned manifest so the app appears immediately, and let the app finish its
    own registration on next launch.
@@ -531,7 +531,7 @@ installed one.
 - Patch for fixes, minor for features, major for breaking changes (agent config
   schema, MCP tool interface).
 - `minJunctionVersion` is checked on install and update; too-old gateways get a
-  clear error telling the user to update Kiro Crew first.
+  clear error telling the user to update Junction first.
 - Users update from the store or via `POST /api/apps/{name}/update`. For a
   registry-sourced app this re-clones, rebuilds, re-runs `onInstall`, and swaps
   resources only after the fresh install has succeeded, so a failed update leaves
@@ -552,13 +552,13 @@ installed one.
 - [ ] Agent JSON files are valid; skill `SKILL.md` files have proper frontmatter
 - [ ] Install script is non-interactive, idempotent, and exits 0 within 300s
 - [ ] `onUninstall` cleans up everything created outside
-      `~/.kiro/crew/apps/{name}/`, and nothing the gateway already manages
+      `~/.junction/apps/{name}/`, and nothing the gateway already manages
 - [ ] `README.md` explains what the app does and how to use it
 - [ ] The app installs and enables cleanly from a local clone
 
 Reviewers check that the manifest is complete, the permissions are proportionate,
 resource paths do not traverse, any install script is safe to run, and the app is
-useful to Kiro Crew users.
+useful to Junction users.
 
 ## 15. Quick reference
 

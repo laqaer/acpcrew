@@ -42,7 +42,7 @@ _REFRESH_INTERVAL_SECS = 6 * 60 * 60
 _MAX_GENERATED_TIPS = 8
 
 _PROMPT_TEMPLATE = """\
-You are generating personalized feature tips for a developer assistant called Kiro Crew.
+You are generating personalized feature tips for a developer assistant called Junction.
 
 Based on the user context and the feature catalog below, generate {max_tips} tips \
 for features the user would benefit from but may not know about.
@@ -68,7 +68,7 @@ like the product documentation, not like marketing:
   "Spawn parallel background workers for fan-out research and multi-package work"
   "Persistent preferences, project context, and learned corrections across sessions"
 
-ACTION — every tip must be immediately usable. Many Kiro Crew features are \
+ACTION — every tip must be immediately usable. Many Junction features are \
 triggered by a keyboard shortcut or a Settings/config toggle, NOT by chatting; \
 when so, name the EXACT key, Settings path, or config command in the body so the \
 reader can act without opening docs. If the feature is invoked by asking the \

@@ -1,6 +1,6 @@
 ---
 name: pod-e2e
-description: "ONLY for developing Kiro Crew itself -- if the project you are working on is anything else, ignore this skill: it drives Kiro Crew's own pod tooling, which does not exist in another repository. Runs end-to-end tests (backend API + frontend Playwright) for a Kiro Crew feature worktree against an ISOLATED throwaway pod instance, without touching the live gateway. Use when asked to e2e-test / smoke-test / verify a Kiro Crew worktree's feature hands-off, run API + browser tests on a pod, or prove a new backend route + UI work together. NOT for testing the live instance, and NOT a general-purpose e2e or smoke-test skill."
+description: "ONLY for developing Junction itself -- if the project you are working on is anything else, ignore this skill: it drives Junction's own pod tooling, which does not exist in another repository. Runs end-to-end tests (backend API + frontend Playwright) for a Junction feature worktree against an ISOLATED throwaway pod instance, without touching the live gateway. Use when asked to e2e-test / smoke-test / verify a Junction worktree's feature hands-off, run API + browser tests on a pod, or prove a new backend route + UI work together. NOT for testing the live instance, and NOT a general-purpose e2e or smoke-test skill."
 triggers: e2e test, smoke test, pod test, verify worktree, test pod, run e2e, end to end
 repo_scope: src/junction
 ---

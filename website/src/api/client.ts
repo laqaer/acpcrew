@@ -82,7 +82,7 @@ export type McpShareReason = {
  */
 export type McpShareRecommendation = {
   strength: string
-  // Two axes, not one verdict. `recommendStub` is the safe half — Kiro Crew's
+  // Two axes, not one verdict. `recommendStub` is the safe half — Junction's
   // stub in the path, backend still 1:1 with the session — while
   // `recommendShare` is the one that introduces co-tenancy. A bulk action has to
   // consult whichever one the global sharing switch makes true of a click.
@@ -666,7 +666,7 @@ export interface DeniedCommandRule {
   enabled: boolean
   pinned: boolean
   /** Why the rule is locked (forced-on, non-toggleable): 'floor' = enforced by
-   *  an always-on floor built into Kiro Crew; 'policy' = governance-pinned;
+   *  an always-on floor built into Junction; 'policy' = governance-pinned;
    *  null/absent = freely toggleable. Additive — `pinned` keeps its
    *  governance-only meaning. */
   lock_reason?: 'floor' | 'policy' | null
@@ -1580,7 +1580,7 @@ export interface KiroPrerequisiteStatus {
    */
   sandbox_remedy: string
   /**
-   * Kiro Crew's own agent spec files missing from the kiro-cli agents directory.
+   * Junction's own agent spec files missing from the kiro-cli agents directory.
    * Non-empty means kiro-cli will answer every session/set_mode with
    * "Mode '<name>' not found", so `ready` is forced false and `repair_required`
    * true — a viable binary and a good `whoami` are NOT sufficient on their own.
@@ -1593,10 +1593,10 @@ export interface KiroPrerequisiteStatus {
    */
   agent_spec_repair_error: string
   /**
-   * Kiro Crew's own specs that are PRESENT on disk but which the installed
+   * Junction's own specs that are PRESENT on disk but which the installed
    * kiro-cli refuses to load. Presence and acceptance are different questions: a
    * rejected spec is dropped from kiro-cli's agent table, so `--agent junction`
-   * resolves to the default agent with none of Kiro Crew's MCP servers — the
+   * resolves to the default agent with none of Junction's MCP servers — the
    * same total failure as an absent spec, which statting the file cannot detect.
    * Non-empty forces `ready` false and `repair_required` true.
    *

@@ -26,7 +26,7 @@ requests and can reject *before* execution, rather than the app gating tool call
 after the fact.
 
 A resume that would not restore the review is refused rather than attempted. The
-dashboard's fallback for a failed resume is to replay Kiro Crew's own conversation
+dashboard's fallback for a failed resume is to replay Junction's own conversation
 log, and a follow-up session has none, so a session opened anyway would answer
 confidently with no idea what was reviewed. The panel therefore says why it is
 offering nothing: the review kept no session, its transcript is gone, or the run

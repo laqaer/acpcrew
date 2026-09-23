@@ -1,7 +1,7 @@
 """In-process HTTP surface for the auto-improvement app.
 
 The ported app ran its own aiohttp process on a gateway-assigned port and
-authenticated every request with a proxy HMAC header. A Kiro Crew builtin
+authenticated every request with a proxy HMAC header. A Junction builtin
 does not: ``register_routes(app)`` mounts handlers on the gateway's OWN aiohttp
 application at startup, so requests are same-origin and already authenticated by
 the gateway's middleware. That deletes the app's ``proxy_auth.py`` +
@@ -99,7 +99,7 @@ _CONFIG_WRITABLE = frozenset(
         # Opt-in: acknowledge that the LOOP's authoring agent runs without this app's own
         # strict credential masking. Default OFF, fail-closed. The subprocess path spawns
         # through `sandboxed_spawn_argv(mode="strict")` + `strip_credential_env`, which hides
-        # `~/.aws`/`~/.gnupg`/`gh` stores; the PROVIDER path drives a Kiro Crew session
+        # `~/.aws`/`~/.gnupg`/`gh` stores; the PROVIDER path drives a Junction session
         # instead, so isolation is whatever the gateway's `sandbox` setting gives — and only
         # 'cc'/'strict' profiles hide credential directories from the agent. On a gateway
         # with default 'auto'/'standard' (which exposes .aws/.ssh for workflow use), a

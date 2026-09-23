@@ -13,8 +13,8 @@ original defect:
 | Reachability | does the endpoint answer? | `/api/mcp` (a real kiro-cli handshake) |
 | Authorization | does kiro-cli hold a grant? | `/api/connections/status` (this note) |
 
-The status probe carries no OAuth token — kiro-cli owns token custody and Kiro
-Crew stores no credential — so a remote OAuth server answers it with 401 and the
+The status probe carries no OAuth token — kiro-cli owns token custody and Junction
+stores no credential — so a remote OAuth server answers it with 401 and the
 gateway reports `needs_auth`. **Two different situations produce that identical
 answer**: a provider nobody has authorized, and a provider authorized *outside*
 the dashboard, which the runtime calls fine and which raised no `mcp_oauth`
@@ -36,7 +36,7 @@ revocation performed AT THE PROVIDER: the tokenless reachability probe answers
 until the runtime actually fails a call (or the artifacts are removed locally).
 This is the honest ceiling of local facts — falsifying it would require a
 token-bearing liveness call, which belongs to the warm-runtime seam this slice
-deliberately does not build (kiro-cli owns token custody; Kiro Crew never
+deliberately does not build (kiro-cli owns token custody; Junction never
 holds a credential to probe with). The inverse direction — a grant present but
 the badge stale-downgraded — self-heals within one 30-second poll.
 
@@ -48,7 +48,7 @@ Status vocabulary, all judged from local facts:
 | `awaiting_consent` | no grant, but a mint is in flight (`minting`/`waiting`) |
 | `not_connected` | no grant and nothing pending |
 
-`accountLabel` is deliberately **absent**. Kiro Crew never sees a provider
+`accountLabel` is deliberately **absent**. Junction never sees a provider
 credential, and neither the unauthenticated handshake nor the runtime's
 notifications carry an account identity, so there is nothing truthful to report;
 inventing a label locally would put an unverified identity on the card.

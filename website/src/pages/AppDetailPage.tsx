@@ -270,7 +270,7 @@ export default function AppDetailPage() {
         // the browse list uses. Spelled separately, the two chains disagreed:
         // this page preferred the manifest (`m.author || registryEntry?.author`)
         // while the list preferred the row, so one app could read
-        // "Kiro Crew · Developer Tools" in the list and "junction · Productivity"
+        // "Junction · Developer Tools" in the list and "junction · Productivity"
         // one click later. The catalog is the store's inventory on both surfaces
         // or on neither.
         if (registryEntry && isBuiltinServerRow(registryEntry)) {

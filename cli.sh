@@ -98,7 +98,7 @@ Installs the prebuilt `junction` wheel for a release channel: resolves the
 channel feed, verifies its signature against the installer-pinned public key,
 downloads the wheel over HTTPS, verifies its SHA-256 against the signed digest,
 then installs it (pipx if available, else a managed venv BESIDE the data home —
-"$JUNCTION_HOME"-venv or ~/.kiro/crew-venv, never inside the data home itself).
+~/.junction-venv on a new install, never inside the data home itself).
 Records the channel in the data home. There is no unsigned fallback.
 
 Options / env:
@@ -115,7 +115,7 @@ Options / env:
   JUNCTION_VENV                        override the managed venv location
   JUNCTION_PYTHON_DIR                  override where uv-provisioned interpreters
                                        are stored (default: beside the data home,
-                                       ~/.kiro/crew-python)
+                                       ~/.junction-python on a new install)
 EOF
       exit 0 ;;
     *) echo "junction-install: unknown argument '$1'" >&2; exit 2 ;;
@@ -125,6 +125,29 @@ FEED_BASE="${FEED_BASE%/}"
 ARTIFACT_BASE="${ARTIFACT_BASE%/}"
 
 err() { echo "junction-install: $*" >&2; exit 1; }
+
+# Same choice as junction.config.paths._select_default_home. A new install
+# uses ~/.junction. When that directory is absent, an existing previous data
+# directory is kept so this installer does not start a second home.
+_select_data_home() {
+  if [ -n "${JUNCTION_HOME:-}" ]; then
+    printf '%s\n' "$JUNCTION_HOME"
+    return
+  fi
+  if [ -d "$HOME/.junction" ]; then
+    printf '%s\n' "$HOME/.junction"
+    return
+  fi
+  if [ -d "$HOME/.kiro/crew" ]; then
+    printf '%s\n' "$HOME/.kiro/crew"
+    return
+  fi
+  if [ -d "$HOME/.kirocrew" ]; then
+    printf '%s\n' "$HOME/.kirocrew"
+    return
+  fi
+  printf '%s\n' "$HOME/.junction"
+}
 
 # The channel name IS the storage path segment: publish-cli.yml writes
 # feed/<channel>/latest-cli.json and cli/<channel>/<version>/ using the literal
@@ -284,7 +307,7 @@ _provision_python_via_uv() {
   # The interpreter store lives BESIDE the data home, like the managed venv and
   # for the same blast-radius reason: no data-home-wide operation may ever
   # reach the interpreter that the venv's shebangs point at.
-  _uv_data_home="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+  _uv_data_home="$(_select_data_home)"
   _uv_py_dir="${JUNCTION_PYTHON_DIR:-${_uv_data_home%/}-python}"
   UV_PYTHON_INSTALL_DIR="$_uv_py_dir" "$_uv_bin" python install "$UV_PYTHON_SERIES" \
     || return 1
@@ -308,7 +331,7 @@ PY=""
 # importantly the one `junction update` performs -- would silently flip a
 # --managed-python install back onto whatever system interpreter it finds.
 # Opt back out explicitly with --system-python (or JUNCTION_MANAGED_PYTHON=0).
-_DATA_HOME="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+_DATA_HOME="$(_select_data_home)"
 # The marker is agent-writable state, so the READ is guarded like the write:
 # only a plain regular file counts (a planted symlink -- e.g. to /dev/zero --
 # or a FIFO would wedge an unbounded read or spoof the mode), and the read is
@@ -504,7 +527,7 @@ else
   # absolute shebangs — and leave a dangling ~/.local/bin/junction and no working
   # CLI. Keeping the venv out of the data home means no home-wide operation can
   # ever reach the interpreter.
-  _DATA_HOME_FOR_VENV="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+  _DATA_HOME_FOR_VENV="$(_select_data_home)"
   VENV="${JUNCTION_VENV:-${_DATA_HOME_FOR_VENV%/}-venv}"
   _OLD_VENV="${_DATA_HOME_FOR_VENV%/}/venv"
   echo "Installing into managed venv at $VENV ..."
@@ -583,7 +606,7 @@ else
   fi
 fi
 
-_DATA_HOME="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+_DATA_HOME="$(_select_data_home)"
 mkdir -p "$_DATA_HOME"
 # Atomic, symlink-proof marker writes. A plain `>` redirection FOLLOWS a
 # pre-planted symlink at the destination -- the data home is agent-writable,

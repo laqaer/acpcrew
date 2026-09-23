@@ -50,7 +50,7 @@ class TestTitleIsDenied:
         assert policy.title_is_denied("   ") is False
 
     def test_a_dashboard_tab_title_is_denied_by_substring(self) -> None:
-        assert policy.title_is_denied("(3) Kiro Crew — Settings") is True
+        assert policy.title_is_denied("(3) Junction — Settings") is True
 
     def test_an_unrelated_title_is_allowed(self) -> None:
         assert policy.title_is_denied("Zibblefax — untitled") is False

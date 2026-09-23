@@ -141,7 +141,7 @@ def no_gh(monkeypatch):
 
 @pytest.fixture
 def parity_repo(tmp_path):
-    """A synthetic repo that resolve_profile.py recognises as Kiro Crew.
+    """A synthetic repo that resolve_profile.py recognises as Junction.
 
     Carries real copies of both reviewer workflows and both base-ref prompt
     files, a backend AUTOSDE.yaml, and deliberately NO website/AUTOSDE.yaml so

@@ -137,7 +137,7 @@ Browse at `http://localhost:6777`. The backend serves the built frontend assets 
 
 | Env var | Purpose | Default |
 |---------|---------|---------|
-| `JUNCTION_HOME` | Config/data directory override | `~/.kiro/crew` |
+| `JUNCTION_HOME` | Config/data directory override | `~/.junction` |
 | `JUNCTION_PORT` | Dashboard port override | `5476` |
 | `JUNCTION_KIRO_BIN` | Explicit path to the `kiro-cli` binary (overrides PATH auto-detection) | auto-detected |
 
@@ -375,10 +375,10 @@ user.
 
 ## Extending Junction
 
-- **Skills** — drop markdown files in `skills/` or `~/.kiro/crew/skills/`. See [skills/README.md](skills/README.md) for the full format reference
+- **Skills** — drop markdown files in `skills/` or `~/.junction/skills/`. See [skills/README.md](skills/README.md) for the full format reference
 - **MCP tools** — add to `mcp_core.py` or `mcp_cron.py`. Every LLM-facing command must have an MCP tool
-- **Hooks** — configure in `~/.kiro/crew/config.json`
-- **Lessons** — self-learned from corrections, stored in `~/.kiro/crew/lessons.jsonl`
+- **Hooks** — configure in `~/.junction/config.json`
+- **Lessons** — self-learned from corrections, stored in `~/.junction/lessons.jsonl`
 
 ## Tests
 

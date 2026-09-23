@@ -6,7 +6,7 @@
 
 **Dependency direction is one-way:** `slack` / `dashboard` → `messaging`, never the reverse. The `junction.messaging` package imports nothing from `junction.slack` or `junction.dashboard`; its only first-party dependencies are the shared lower-level helpers — `acp.types` event constants, the `security` redactors (`redact_credentials` / `redact_exfiltration_urls`), and `sel` for audit.
 
-Slack's transport path is gated behind the `messaging.use_transport` config flag (default `true` in Kiro Crew, so the abstraction is the canonical path); when off, Slack's native `handle_message` path runs instead.
+Slack's transport path is gated behind the `messaging.use_transport` config flag (default `true` in Junction, so the abstraction is the canonical path); when off, Slack's native `handle_message` path runs instead.
 
 ## Architecture — the three layers
 
@@ -466,7 +466,7 @@ Session keys are namespaced as `f"{channel_type}:{conversation_id}"` (`session_k
 
 ## Config flag & routing
 
-`MessagingConfig.use_transport` (`config/loader.py`, default `True` in Kiro Crew; exposed in `config.json` under `messaging`) is the single switch. `slack/events.py::_route_message` checks `orch._cfg.messaging.use_transport`; when `True` it creates a task on `handle_message_transport` and skips the native `handle_message` monolith. (There is no challenge-redirect in this fork — Slack messages are processed inline.) Approval mode is resolved by `_resolve_approval_mode(orch)` (respects configured mode + operator YOLO/SafetyOverride TTL), and the per-channel `slack.channels.<id>.agent` override is passed through.
+`MessagingConfig.use_transport` (`config/loader.py`, default `True` in Junction; exposed in `config.json` under `messaging`) is the single switch. `slack/events.py::_route_message` checks `orch._cfg.messaging.use_transport`; when `True` it creates a task on `handle_message_transport` and skips the native `handle_message` monolith. (There is no challenge-redirect in this fork — Slack messages are processed inline.) Approval mode is resolved by `_resolve_approval_mode(orch)` (respects configured mode + operator YOLO/SafetyOverride TTL), and the per-channel `slack.channels.<id>.agent` override is passed through.
 
 ## Proactive sends (`send_message`'s `channel_type`)
 
@@ -1504,7 +1504,7 @@ a conversation they are still holding. Existing thread IDs still require a REST 
 Discord type 10/11/12. An approved thread is a shared disclosure
 boundary: every member who can view it can read agent/tool output. Enabling any
 thread also means Discord delivers message content from every server channel
-the bot can see, although Kiro Crew immediately discards traffic outside
+the bot can see, although Junction immediately discards traffic outside
 approved threads. Bot-authored messages (including our own) are dropped as a
 loop guard. `DISCORD_BOT_TOKEN` is on the sandbox agent env denylist.
 

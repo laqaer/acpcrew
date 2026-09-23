@@ -158,7 +158,7 @@ if [ "$WITH_VOICE" -eq 1 ]; then
     _pip_target="${REPO_ROOT}[voice]"
     info "Including voice extras (.[voice])"
 fi
-JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" -q && ok "Kiro Crew client installed" || { warn "pip install failed"; exit 1; }
+JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" -q && ok "Junction client installed" || { warn "pip install failed"; exit 1; }
 mkdir -p "$HOME/.local/bin"
 ln -sf "$_venv/bin/junction" "$HOME/.local/bin/junction"
 KC="$_venv/bin/junction"

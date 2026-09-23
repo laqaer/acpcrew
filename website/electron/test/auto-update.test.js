@@ -447,7 +447,7 @@ function makeDeps(opts = {}) {
     // Bundle location seams. Default to a normal /Applications install so every
     // pre-existing test keeps arming the updater; the bundle-location guard
     // tests below drive these to the refused states.
-    resourcesPath = "/Applications/Kiro Crew.app/Contents/Resources",
+    resourcesPath = "/Applications/Junction.app/Contents/Resources",
     bundleWritable = true,
     // Externally-managed verdict. null (the default) = not managed, decided
     // here so no test's outcome depends on the host filesystem.
@@ -1208,7 +1208,7 @@ test("readExternallyManaged: env override points at a marker file", (t) => {
 
 test("translocated bundle returns disabled:'translocated' and never arms the updater", () => {
   const { deps, calls } = makeDeps({
-    resourcesPath: "/private/var/folders/ab/cd/d/AppTranslocation/UUID/d/Kiro Crew.app/Contents/Resources",
+    resourcesPath: "/private/var/folders/ab/cd/d/AppTranslocation/UUID/d/Junction.app/Contents/Resources",
   });
   const u = initAutoUpdate(deps);
   assert.strictEqual(u.disabled, "translocated");
@@ -1224,7 +1224,7 @@ test("translocated bundle returns disabled:'translocated' and never arms the upd
 
 test("read-only volume returns disabled:'volume' and never arms the updater", () => {
   const { deps, calls } = makeDeps({
-    resourcesPath: "/Volumes/Kiro Crew 1.0.0/Kiro Crew.app/Contents/Resources",
+    resourcesPath: "/Volumes/Junction 1.0.0/Junction.app/Contents/Resources",
     bundleWritable: false,
   });
   const u = initAutoUpdate(deps);
@@ -1239,7 +1239,7 @@ test("WRITABLE volume still arms: an external disk is not a read-only image", ()
   // it, so refusing on the path alone would strand a legitimately updatable
   // install with no updates and a boot-time nag.
   const { deps, calls } = makeDeps({
-    resourcesPath: "/Volumes/External SSD/Kiro Crew.app/Contents/Resources",
+    resourcesPath: "/Volumes/External SSD/Junction.app/Contents/Resources",
     bundleWritable: true,
   });
   const u = initAutoUpdate(deps);
@@ -1255,7 +1255,7 @@ test("guard is macOS-only: a linux /Volumes-shaped path still arms", () => {
   // detection; see the comment in auto-update.js.
   const { deps, calls } = makeDeps({
     osPlatform: "linux",
-    resourcesPath: "/Volumes/whatever/Kiro Crew.app/Contents/Resources",
+    resourcesPath: "/Volumes/whatever/Junction.app/Contents/Resources",
     bundleWritable: false,
   });
   const u = initAutoUpdate(deps);

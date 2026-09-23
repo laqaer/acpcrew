@@ -244,7 +244,7 @@ convenient way to refer to each endpoint — the same endpoints any client
 (including raw `fetch`) talks to.
 
 When `app_name` is set and no explicit auth is provided, the client auto-reads
-the app secret from `~/.kiro/crew/apps/{name}/.app_secret` and exchanges it
+the app secret from `~/.junction/apps/{name}/.app_secret` and exchanges it
 for a short-lived token via `POST /api/apps/{name}/token`.
 
 ### Authentication
@@ -320,7 +320,7 @@ WebSocket event types: `chat_chunk`, `chat_done`, `chat_message`, `chat_error`,
 > (`pr_watch`). The ~15 sibling pollers this abstraction was derived from
 > cannot migrate onto it yet, so a second real consumer has not yet tested the
 > contract. Treat the shapes below as subject to change until one has: build on
-> them, but expect `Observation` / `Tick` to gain fields, and pin the Kiro Crew
+> them, but expect `Observation` / `Tick` to gain fields, and pin the Junction
 > version your app was tested against.
 
 An app that needs to keep an eye on an external thing — a deploy, a ticket, a
@@ -448,8 +448,8 @@ Rules:
 | `listMcpServers()` | `Promise<McpServerInfo[]>` | List registered MCP servers |
 | `registerMcpServer(def)` | `Promise<void>` | Register an MCP server (requires name + command) |
 | `removeMcpServer(name)` | `Promise<void>` | Remove an MCP server |
-| `registerAppMcp(name, entry)` | `Promise<void>` | Write MCP entry to `~/.kiro/crew/mcp.json` (Node.js only) |
-| `unregisterAppMcp(name)` | `Promise<void>` | Remove MCP entry from `~/.kiro/crew/mcp.json` (Node.js only) |
+| `registerAppMcp(name, entry)` | `Promise<void>` | Write MCP entry to `~/.junction/mcp.json` (Node.js only) |
+| `unregisterAppMcp(name)` | `Promise<void>` | Remove MCP entry from `~/.junction/mcp.json` (Node.js only) |
 
 ### Agent & Skill Installation (Node.js only)
 
@@ -457,7 +457,7 @@ Rules:
 |--------|---------|-------------|
 | `installAgentConfig(name, config)` | `void` | Install agent JSON to `~/.kiro/agents/` (merges mcpServers) |
 | `removeAgentConfig(name)` | `void` | Remove agent config |
-| `installSkill(name, srcDir)` | `void` | Copy skill directory to `~/.kiro/crew/skills/` |
+| `installSkill(name, srcDir)` | `void` | Copy skill directory to `~/.junction/skills/` |
 | `removeSkill(name)` | `void` | Remove skill directory |
 
 ### Agent Runtime
@@ -761,7 +761,7 @@ an installed app is in dev mode the gateway serves its UI files with
 `Cache-Control: no-store` and watches the app's `ui/` directory; on any file
 change it broadcasts an `app_reload` WebSocket event and the dashboard reloads
 the app so edits appear immediately. The recommended setup symlinks
-`~/.kiro/crew/apps/<name>/ui/` to your source tree so the watcher sees edits at
+`~/.junction/apps/<name>/ui/` to your source tree so the watcher sees edits at
 the real files.
 
 **Contract surface:**
@@ -783,7 +783,7 @@ the real files.
 **Cost model:** dev mode is off for essentially all gateways. The
 authoritative per-app state is the `installed.json` `dev` field above; to keep
 the steady-state cost negligible the gateway also maintains an **internal,
-unstable cache** (a small sentinel file under `~/.kiro/crew/apps/`, plus an
+unstable cache** (a small sentinel file under `~/.junction/apps/`, plus an
 in-memory mirror) listing the app names currently in dev mode. The watcher
 `stat()`s only that one file each second and walks a `ui/` tree solely for apps
 in the set — so a gateway with no dev apps pays one `stat()` per second and

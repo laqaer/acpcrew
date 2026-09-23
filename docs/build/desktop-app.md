@@ -1,7 +1,7 @@
-# Kiro Crew Desktop App
+# Junction Desktop App
 
 The desktop app is an [Electron](https://www.electronjs.org/) shell that wraps
-the Kiro Crew web dashboard and embeds a **self-contained Python backend**. The
+the Junction web dashboard and embeds a **self-contained Python backend**. The
 backend uses a [python-build-standalone](https://github.com/indygreg/python-build-standalone)
 (PBS) interpreter with all dependencies installed via `uv`/`pip` into the bundled
 interpreter — end users need **no** Python, pip, npm, or node. They just
@@ -30,7 +30,7 @@ The electron-builder configuration lives in
 
 - **appId:** `dev.junction.desktop`
 - **productName:** `Junction`
-- macOS display name: `Kiro Crew` via `CFBundleDisplayName`; `CFBundleName`
+- macOS display name: `Junction` via `CFBundleDisplayName`; `CFBundleName`
   remains aligned with `productName` because Electron uses it to locate the
   `Junction Helper` app bundles during startup
 - mac target: `dmg` (category `public.app-category.developer-tools`). The DMG
@@ -43,14 +43,14 @@ The electron-builder configuration lives in
   captions either — Finder draws them in dark text even under Dark Mode, so they
   read on the accent directly.
 - Windows target: assisted NSIS. A 164×314 welcome/finish sidebar and a 150×57
-  page header reuse the Kiro Crew logo while preserving native NSIS controls,
+  page header reuse the Junction logo while preserving native NSIS controls,
   localization, the per-user default, and the no-UAC default path. The installer
   cross-fades the native top-level dialog at page boundaries with Win32's
   alpha-blended window animation, honoring the client-area animation preference.
   It performs no timer-driven bitmap work or `Sleep` on the NSIS UI thread;
   Windows CI installs the real artifact, records its duration, and enforces a
   5-minute ceiling. Auto-updates skip the assisted wizard's decision pages but
-  keep its native extraction progress visible, then relaunch Kiro Crew and close
+  keep its native extraction progress visible, then relaunch Junction and close
   automatically. A legacy silent `/S --updated` invocation is converted to the
   same visible update path so the transition works from already-fielded clients.
 - linux targets: `AppImage`, `deb`, `rpm` (category `Development`). One backend
@@ -426,7 +426,7 @@ provider:
 3. It verifies authentication with `kiro-cli whoami`.
 
 If either check fails, the shared React setup gate appears in both the desktop
-shell and browser dashboard. Kiro Crew performs neither setup step: the gate
+shell and browser dashboard. Junction performs neither setup step: the gate
 links out to <https://kiro.dev/cli/> to obtain the CLI, and names the commands
 the user runs to sign in — `kiro-cli login` for a personal account, or
 `kiro-cli login --use-device-flow --license pro` for organization SSO. Both
@@ -447,7 +447,7 @@ minimal allowlisted environment rather than the desktop shell's credentials;
 version probes use the strict OS sandbox and hide every known Kiro identity
 store. `whoami` and device-login run for any runnable candidate; they use a
 standard sandbox with a temporary home containing only Kiro identity token
-files, so unrelated AWS, SSH, GitHub, Kubernetes, and Kiro Crew state remain
+files, so unrelated AWS, SSH, GitHub, Kubernetes, and Junction state remain
 unavailable, and POSIX auth still executes a private snapshot of the exact
 resolved bytes. Timed-out commands signal a POSIX process group only
 while its leader still anchors that identity; on Windows, exact retained process
@@ -572,7 +572,7 @@ unit-testable without mocking globals.
 
 ## Code signing & notarization (macOS)
 
-An unsigned `.app`/DMG is quarantined by Gatekeeper and shows **"Kiro Crew is
+An unsigned `.app`/DMG is quarantined by Gatekeeper and shows **"Junction is
 damaged and can't be opened"** when downloaded on another Mac. To distribute a
 DMG that opens cleanly you must sign it with a **Developer ID Application**
 certificate and **notarize** it with Apple. (Local builds without credentials
@@ -624,12 +624,12 @@ clear the quarantine flag.
 
 macOS gates `~/Downloads`, `~/Documents`, `~/Desktop`, `~/Pictures`, `~/Movies`
 and `~/Music` behind **TCC** (Transparency, Consent and Control). The first time
-an app reads one of them, macOS shows a modal *"Kiro Crew would like to access
+an app reads one of them, macOS shows a modal *"Junction would like to access
 files in your Downloads folder"*, and consent is recorded **per (app, folder)
 pair** — so an operation that incidentally touches three of those folders
 produces **three separate prompts**, one after another.
 
-Nothing Kiro Crew does at startup needs those folders. They were only ever
+Nothing Junction does at startup needs those folders. They were only ever
 reached *incidentally*, by the `@`-mention file picker's filesystem walk when it
 fell back to bare `$HOME` as a catch-all search root (no project selected). That
 single unscoped walk descended into `Downloads`/`Documents`/`Desktop` and
@@ -641,7 +641,7 @@ root is `$HOME` itself
 `dashboard/file_index.py` and the `/api/file-search` fallback). Two consequences
 worth knowing:
 
-- **Explicit access is unaffected.** If you point Kiro Crew at a project inside
+- **Explicit access is unaffected.** If you point Junction at a project inside
   `~/Documents`, browse to `~/Downloads` directly, or even name `$HOME` itself as
   the project, the root is scoped by definition and is walked in full — only the
   *unscoped* `$HOME` fallback prunes. macOS still shows its own one-time prompt
@@ -666,7 +666,7 @@ entitlement, and the `Info.plist` usage string only supplies the prompt's
 wording. Get this wrong and the failure is deeply misleading:
 
 > **Symptom:** voice input reports *"Microphone permission denied"* instantly,
-> **no** system prompt ever appears, and there is no Kiro Crew row under System
+> **no** system prompt ever appears, and there is no Junction row under System
 > Settings › Privacy & Security › Microphone to switch on. The same mic works in
 > Chrome at the same origin on the same machine.
 
@@ -742,7 +742,7 @@ declaration.
 > an IoT device, another dev box — fails **instantly** with errno 65
 > (`EHOSTUNREACH`, "No route to host") in ~0.000s rather than timing out. `ping`
 > and ARP to the same host succeed, so it reads as a routing fault. There is no
-> Kiro Crew row under System Settings › Privacy & Security › Local Network, and
+> Junction row under System Settings › Privacy & Security › Local Network, and
 > `tccutil reset LocalNetwork com.amazon.kiro.crew` fails because no TCC record
 > exists to reset.
 

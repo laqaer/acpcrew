@@ -135,7 +135,7 @@ def register_mcp_path_dirs(*dirs: str) -> tuple[str, ...]:
     """Contribute directories to the MCP binary search path. Returns the accepted ones.
 
     The programmatic half of the seam described above: a downstream build, a
-    packaged distribution, or a host embedding Kiro Crew can name the directories
+    packaged distribution, or a host embedding Junction can name the directories
     ITS package manager installs MCP launchers into, without forking this module
     and without a per-user config file. Call it during startup, before the first
     session or MCP probe; :func:`augmented_path` reads the registry on every
@@ -245,7 +245,7 @@ _NODE_TREE_DIRS = (
     "{home}/.local/share/node/bin",
 )
 # Standalone trees under the DATA home -- where ``ensure-node.sh`` unpacks the
-# unofficial glibc-2.17 build, i.e. a Node Kiro Crew installed itself. Relative
+# unofficial glibc-2.17 build, i.e. a Node Junction installed itself. Relative
 # paths, resolved against ``data_home()`` separately from the ``$HOME`` templates
 # above because that call can fail (see :func:`node_bin_dirs`).
 _NODE_TREE_DATA_HOME_DIRS = ("node-glibc217/bin",)
@@ -390,7 +390,7 @@ def node_bin_dirs() -> tuple[str, ...]:
     supported install path -- put node under ``$HOME``. A non-login gateway
     (systemd / launchd) does not inherit those on ``$PATH``, and build callers
     additionally pin PATH to system dirs, so without this the build cannot see
-    the very node Kiro Crew installed for it.
+    the very node Junction installed for it.
 
     Cached for the process lifetime: the globs must run once, matching
     :func:`node_all_bin_dirs`. A node installed while a long-lived
@@ -874,7 +874,7 @@ def mcp_search_path(env_path: str) -> str:
 #
 # * ``LD_*`` / ``DYLD_*`` are dynamic-loader channels honoured by every
 #   ELF/Mach-O binary in the spawn chain, the sandbox wrapper included.
-# * ``PYTHON*`` matters because Kiro Crew's Linux sandbox launcher IS a Python
+# * ``PYTHON*`` matters because Junction's Linux sandbox launcher IS a Python
 #   process: ``sandbox._python_launcher_argv`` returns
 #   ``[sys.executable, <generated script>, *argv]`` (sandbox.py), and that
 #   interpreter starts with the env we hand ``Popen``. A declared

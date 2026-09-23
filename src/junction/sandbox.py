@@ -168,9 +168,9 @@ _SENSITIVE_ENV_PREFIXES: list[str] = [
 # launched under the sandbox (e.g. the MCP servers kiro-cli spawns, such as
 # ord-mcp, which bundle their own interpreter + deps, or any Python the agent's
 # shell runs).
-#  - PYTHONPATH / PYTHONHOME: Kiro Crew's runtime may export PYTHONPATH
+#  - PYTHONPATH / PYTHONHOME: Junction's runtime may export PYTHONPATH
 #    pointing at its own site-packages; a foreign server that inherits it
-#    prepends Kiro Crew's site-packages to sys.path and imports Kiro Crew's
+#    prepends Junction's site-packages to sys.path and imports Junction's
 #    fastmcp/cryptography instead of its own -> ABI collision + init hang.
 #  - PYTHONPYCACHEPREFIX: the packaged desktop app exports it at
 #    ``<data home>/cache/pycache`` so the embedded interpreter keeps bytecode
@@ -2221,8 +2221,8 @@ def _delegate_to_kiro_internal_sandbox(
 
     This is NOT the forbidden silent unsandboxed fallback: the child still
     runs under kiro-cli's own sandbox. On macOS the delegation is config-driven
-    mutual exclusion with Kiro Crew's seatbelt; on Windows it is restricted to a
-    positive first-party Kiro backend classification because Kiro Crew has no
+    mutual exclusion with Junction's seatbelt; on Windows it is restricted to a
+    positive first-party Kiro backend classification because Junction has no
     native OS wrapper there. The decision is deterministic (never a reaction to
     a wrap failure), logged loudly once per process, and every delegated spawn
     is SEL-audited on an audit-or-deny basis. If the audit event cannot be
@@ -2256,7 +2256,7 @@ def _delegate_to_kiro_internal_sandbox(
             outcome="delegated",
             resources=(
                 "Windows Kiro backend delegation: kiro internal sandbox owns "
-                "this spawn; Kiro Crew has no native Windows sandbox backend"
+                "this spawn; Junction has no native Windows sandbox backend"
                 if sys.platform == "win32"
                 else "macOS sandbox mutual exclusion: kiro internal sandbox on -> "
                 "Junction seatbelt off for this kiro-cli spawn"
@@ -2267,12 +2267,12 @@ def _delegate_to_kiro_internal_sandbox(
         )
     except Exception:
         # Fail closed (security-controls): a security delegation that cannot
-        # be audited does not happen. The caller continues through Kiro Crew's
+        # be audited does not happen. The caller continues through Junction's
         # normal policy: macOS gets its seatbelt; Windows, which has no native
         # backend, raises SandboxUnavailableError rather than run unaudited.
         logger.warning(
             "SEL audit failed for sandbox delegation — refusing unaudited "
-            "delegation; falling back to Kiro Crew's sandbox policy",
+            "delegation; falling back to Junction's sandbox policy",
             exc_info=True,
         )
         return None
@@ -2283,7 +2283,7 @@ def _delegate_to_kiro_internal_sandbox(
         _kiro_delegation_warned = True
         logger.warning(
             "SECURITY: delegating this %s kiro-cli spawn to kiro-cli's internal "
-            "sandbox and skipping Kiro Crew's OS wrapper. Env scrubbing still "
+            "sandbox and skipping Junction's OS wrapper. Env scrubbing still "
             "applies.",
             "Windows" if sys.platform == "win32" else "macOS",
         )
@@ -2548,7 +2548,7 @@ def configured_sandbox_mode() -> str:
     with the shipped ``agent.sandbox`` default but ignores what the operator
     actually configured. Where ``agent.sandbox`` is an explicit ``"off"`` —
     isolation deferred to kiro-cli's own internal sandbox, which cannot nest
-    inside Kiro Crew's (macOS Seatbelt returns EPERM) — a spawn that takes the
+    inside Junction's (macOS Seatbelt returns EPERM) — a spawn that takes the
     parameter default asks for a STRICTER tier than the operator configured. On
     a backend-less host an unclassified spawn then fail-closes while a delegated
     Kiro chat path can run; the reviewed Windows Kiro sites carry explicit
@@ -2609,7 +2609,7 @@ _IN_SANDBOX_MARKER = "JUNCTION_SANDBOX_ACTIVE"
 # Companion to ``_IN_SANDBOX_MARKER``: records WHICH tier the outer sandbox was
 # built at (``standard``/``cc``/``strict``), exported at the same two launcher
 # sites and with the same non-droppable placement (after each platform's env
-# scrub / ``-u`` flags). The marker alone proves "a Kiro Crew sandbox is active"
+# scrub / ``-u`` flags). The marker alone proves "a Junction sandbox is active"
 # but not its tier; without this record the nested passthrough is tier-blind —
 # an in-sandbox caller requesting ``strict`` under a ``standard`` outer sandbox
 # silently runs at ``standard``. The passthrough compares this against the
@@ -2697,7 +2697,7 @@ def _no_backend_guidance() -> str:
     only concrete thing that text suggests is the opt-out, which turns off the
     isolation the message exists to protect.
 
-    The remedy differs by HOW Kiro Crew was launched, so it is named per shape:
+    The remedy differs by HOW Junction was launched, so it is named per shape:
 
     * AppImage / desktop app — nothing applies a profile to a directly launched
       binary, so attach one to it (``junction sandbox install-profile``).
@@ -2740,7 +2740,7 @@ def _no_backend_guidance() -> str:
             # it, and it is the same binary the desktop app already spawns.
             cli = _bundled_cli_invocation() or "junction"
             where = (
-                " (that path is inside the running app, so run it while Kiro Crew " "is open)"
+                " (that path is inside the running app, so run it while Junction " "is open)"
                 if cli != "junction"
                 else ""
             )
@@ -2805,7 +2805,7 @@ def unavailable_kind() -> str:
     reports ``"none"`` for a momentary fork/resource failure, which self-heals on
     the next spawn and must never buy a permanent bypass — and for a foreign
     outer sandbox, where the host's own sandbox is fine and the remedy is to hand
-    isolation back to Kiro Crew rather than disable it.
+    isolation back to Junction rather than disable it.
     """
     if detect_backend() != "none":
         return ""
@@ -3045,7 +3045,7 @@ def _warn_first_party_unconfined_once(argv: list[str]) -> None:
     _warn_first_party_unconfined_once._warned = True  # type: ignore[attr-defined]
     logger.warning(
         "SECURITY: no OS-level sandbox backend on this host — spawning a "
-        "first-party fixed-argv Kiro Crew helper UNCONFINED (its full command "
+        "first-party fixed-argv Junction helper UNCONFINED (its full command "
         "line is derived inside this package with no agent, repo, or "
         "user-config input; the credential environment is scrubbed). "
         "Hostile-input spawn paths are unaffected: they keep failing closed "
@@ -3365,7 +3365,7 @@ def wrap_argv(
     if mode == "off":
         # Fix #2: verify kiro-cli delegation before honoring "off". The
         # documented invariant (sandbox.py:1680-1681) requires that when
-        # Kiro Crew's seatbelt is off, kiro-cli's internal sandbox is ON —
+        # Junction's seatbelt is off, kiro-cli's internal sandbox is ON —
         # but the old early return never checked. Now we verify the delegation
         # on macOS kiro-cli spawns; on Linux (where kiro's internal sandbox
         # doesn't apply) or non-kiro spawns, "off" means genuinely unconfined.
@@ -3566,7 +3566,7 @@ def wrap_argv(
     # allow-all outer profile), so exactly one layer can own isolation. When
     # kiro's internal sandbox is enabled, it is that layer for kiro-cli spawns;
     # Junction's sandbox stays on for everything else and whenever kiro's is off.
-    # Windows has no Kiro Crew OS sandbox backend. Official Kiro ACP spawns are
+    # Windows has no Junction OS sandbox backend. Official Kiro ACP spawns are
     # positively classified by their reviewed callers and delegate to Kiro's
     # built-in sandbox by default; basename inference is deliberately
     # insufficient to grant this exception. All other Windows spawns retain the
@@ -3598,7 +3598,7 @@ def wrap_argv(
                 return delegated
             if sys.platform == "darwin":
                 # Preserve macOS's audit-failure fallback: once delegation is
-                # refused, Kiro Crew's own seatbelt remains the safe owner.
+                # refused, Junction's own seatbelt remains the safe owner.
                 return sandbox_exec_argv(argv, sandbox_level, strip_python_env=strip_python_env)
 
     backend = detect_backend(config_mode=mode)
@@ -3773,7 +3773,7 @@ def wrap_argv(
                     "agent.sandbox_allow_unsandboxed_exec — that flag is set on "
                     "this host and is deliberately powerless against the policy, "
                     "so editing config.json cannot resolve this. A governed host "
-                    "also withholds the first-party carve-out, so Kiro Crew's own "
+                    "also withholds the first-party carve-out, so Junction's own "
                     "built-in spawns are refused here too: this host runs no "
                     "agent subprocess until it has a working sandbox backend "
                     "(see docs/system-specs/modules/security.md) or the policy "

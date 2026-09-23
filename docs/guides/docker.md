@@ -113,7 +113,7 @@ which need no file edit at all.)
 
 ## State and upgrades
 
-All persistent state — gateway home (`~/.kiro/crew`), kiro-cli credentials,
+All persistent state — gateway home (`~/.junction`), kiro-cli credentials,
 agents, skills — lives under `/home/junction`. One named volume covers all
 of it. Upgrade by pulling the newer image; state carries over:
 

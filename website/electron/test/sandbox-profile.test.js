@@ -49,10 +49,10 @@ describe("describeSandboxProfileNeed", () => {
   it("quotes a CLI path containing spaces", () => {
     const need = describeSandboxProfileNeed({
       ...restricted,
-      cliBin: "/opt/Kiro Crew/bin/junction",
+      cliBin: "/opt/Junction/bin/junction",
     });
 
-    assert.equal(need.command.includes("'/opt/Kiro Crew/bin/junction'"), true);
+    assert.equal(need.command.includes("'/opt/Junction/bin/junction'"), true);
   });
 
   // The sysctl being exactly 1 is the discriminator for the whole feature, not

@@ -1,4 +1,4 @@
-# Implementation Plan — Kiro Crew App Builder Kit
+# Implementation Plan — Junction App Builder Kit
 
 - [ ] 0. Define the tool-part encoding contract + producer (PREREQUISITE — do this first)
   - Specify the `tool-view` fenced JSON block carried in agent message text: `{"tool":"<name>","schemaVersion":1,"data":{...}}`, riding the existing markdown/`<mcwidget>` transport with NO backend wire-format change

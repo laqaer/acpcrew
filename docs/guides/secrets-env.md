@@ -117,12 +117,12 @@ unit), so they cannot read the root-owned file.
 - **Do not** put secrets as plain string values inside `mcp.json` — the
   file has no access controls beyond POSIX permissions and is easy to
   accidentally commit or share.
-- **Do not** add custom keys to `~/.kiro/crew/.env` expecting them to be
+- **Do not** add custom keys to `~/.junction/.env` expecting them to be
   agent-isolated — the gateway loads them and propagates them to all child
   processes including the agent.  A warning is logged, but the key still
   reaches the process tree.  Use the vault once available.
 - **Do not** store MCP secrets in user-readable paths — a file at
-  `~/.kiro/crew/mcp-secrets.env` or `~/.kiro/.env` is accessible to the
+  `~/.junction/mcp-secrets.env` or `~/.kiro/.env` is accessible to the
   agent via filesystem reads.  Use root-owned paths (`/etc/junction/`)
   or wait for the encrypted vault.
 

@@ -55,7 +55,7 @@ digits, no leading/trailing or doubled space).
 ### §1.1 Spacing at a script boundary
 
 Put a half-width space between a Latin run and adjacent Japanese
-(`Kiro Crew を起動`), except where the Latin run is the head of a compound the
+(`Junction を起動`), except where the Latin run is the head of a compound the
 language has absorbed (`MCPサーバー`). This one is **review-only**: the boundary
 is a judgement call and a mechanical rule would fire on every absorbed compound.
 
@@ -96,7 +96,7 @@ the cue — so a legitimate `ライト` ("light theme") is never caught.
 ## §3 Do not translate
 
 Product names stay in Latin script. The list is in `glossary.json` under `dnt`:
-`Junction` / `Kiro Crew`, `Kiro`, `Slack`, `Discord`, `MCP`, `GitHub`, `Playwright`, etc.
+`Junction` / `Junction`, `Kiro`, `Slack`, `Discord`, `MCP`, `GitHub`, `Playwright`, etc.
 
 Also stays in English: AWS service names, key legends (Enter, Shift, ⌘),
 `main`/`origin`/`HEAD`, paths, filenames, config keys, and `cron` (the syntax —

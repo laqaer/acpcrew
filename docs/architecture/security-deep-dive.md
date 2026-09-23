@@ -1,6 +1,6 @@
 # Security Deep Dive
 
-The security **architecture**: what Kiro Crew defends against, where its trust
+The security **architecture**: what Junction defends against, where its trust
 boundaries sit, and how the layers compose. Mechanism detail (exact rule tables,
 regex shapes, per-function algorithms) lives in the module specs and is linked
 from here rather than restated:
@@ -21,7 +21,7 @@ while the code it describes keeps changing.
 
 ## Threat model
 
-Kiro Crew runs an LLM agent with filesystem and shell access on the operator's own
+Junction runs an LLM agent with filesystem and shell access on the operator's own
 machine. The dominant threat is **prompt injection from content the agent reads**
 (web pages, repository files, Slack thread history, imported documents): text
 that is data as far as the operator is concerned, but that the model may follow as
@@ -50,7 +50,7 @@ DNS rebinding, unauthenticated remote access, and the rest) is in
 
 | Boundary | Trusted side | Untrusted side | Enforced by |
 |---|---|---|---|
-| Gateway process ↔ agent subprocess | Kiro Crew gateway | `kiro-cli` + every tool/MCP descendant | OS sandbox (`sandbox.py`), env scrub, cgroup scope |
+| Gateway process ↔ agent subprocess | Junction gateway | `kiro-cli` + every tool/MCP descendant | OS sandbox (`sandbox.py`), env scrub, cgroup scope |
 | Agent tool request ↔ execution | the PreToolUse gate's decision | the tool call as the model phrased it | `hooks.py:HookManager.on_tool_call` |
 | Operator ceiling ↔ agent | keystone files under the data home | every agent read/write path | `security.is_sensitive_path` / `is_sensitive_write_path` |
 | Agent output ↔ any human or external service | nothing | all agent-derived text | `redact_credentials` / `redact_exfiltration_urls` / `StreamRedactor` |
@@ -58,7 +58,7 @@ DNS rebinding, unauthenticated remote access, and the rest) is in
 | Slack workspace ↔ gateway | owner + allowlisted users | every other Slack sender | owner lock, `is_allowed_user`, Enterprise Grid check |
 
 The single most important structural property: **the PreToolUse gate is
-Kiro Crew's own gate, not the agent's.** Denied commands and the governance
+Junction's own gate, not the agent's.** Denied commands and the governance
 ceiling are evaluated in `hooks.py` and are never written into a `kiro-cli` agent
 JSON, so an agent config that omits or edits its own deny list cannot weaken the
 ceiling.
@@ -89,7 +89,7 @@ active YOLO grant can never route around a hard deny.
 Confines the `kiro-cli` subprocess tree with platform-native isolation, hiding
 credential directories by bind-mount (Linux user + mount namespaces) or file-read
 denial (macOS Seatbelt), and scrubbing credential-bearing environment variables
-on the way in. Windows has no Kiro Crew OS wrapper, so positively identified
+on the way in. Windows has no Junction OS wrapper, so positively identified
 official Kiro CLI spawns delegate to the CLI's built-in sandbox; their environment
 is scrubbed by the parent before spawn. The parent gateway process is unaffected.
 
@@ -97,12 +97,12 @@ is scrubbed by the parent before spawn. The parent gateway process is unaffected
 (namespace on Linux, sandbox-exec on macOS).** The only alternative value is
 `"off"` (`config/loader.py`, `AgentConfig.sandbox`, `enum=["auto", "off"]`;
 the same two-value enum gates the dashboard config editor in
-`dashboard/handlers/core.py`). `"off"` skips Kiro Crew's own sandbox but still
+`dashboard/handlers/core.py`). `"off"` skips Junction's own sandbox but still
 delegates to `kiro-cli`'s internal agent sandbox on macOS when it is enabled,
-which cannot nest inside Kiro Crew's
+which cannot nest inside Junction's
 Seatbelt wrap (the macOS kernel returns EPERM even under an allow-all outer
 profile), so exactly one layer can own isolation per spawn. Setting `"auto"`
-re-enables Kiro Crew's own sandbox.
+re-enables Junction's own sandbox.
 
 `wrap_argv`'s internal tier vocabulary is wider than the config enum: `standard`
 (what `auto` resolves to), `cc`, `strict` and `off`. Those extra tiers are reached
@@ -134,7 +134,7 @@ Two properties are load-bearing at the architecture level:
 - **Delegation is audited, never silent.** When `kiro-cli`'s internal sandbox owns
   isolation for a spawn, the decision is config-driven (never a reaction to a wrap
   failure), logged once per process, and SEL-audited on an audit-or-deny basis: if
-  the audit cannot be written, the delegation is refused. Kiro Crew's own Seatbelt
+  the audit cannot be written, the delegation is refused. Junction's own Seatbelt
   takes the spawn on macOS; Windows returns to its no-backend fail-closed policy.
 
 **Launcher shims are deliberately not bypassed on the delegated path.** On that
@@ -158,7 +158,7 @@ covered without it. It is, three times over, at different altitudes:
 - Anything that still reaches tool output is caught by redaction (Layer 4) before
   it reaches a human or an external service.
 
-`SSH_AUTH_SOCK` is scrubbed whenever a Kiro Crew sandbox tier is active, so
+`SSH_AUTH_SOCK` is scrubbed whenever a Junction sandbox tier is active, so
 ssh-agent forwarding is unavailable inside a confined spawn. Operators who depend
 on passphrase-protected keys or hardware tokens use key files directly or leave
 `agent.sandbox` at `off`.
@@ -173,7 +173,7 @@ marker, whose mere presence is a trust signal). Path matching checks the fully
 symlink-resolved target as well as the lexically normalized and raw forms, so a
 workspace symlink into a blocked directory is refused through the link.
 
-`hooks.safe_read_file()` is the guarded read used by Kiro Crew's own non-tool file
+`hooks.safe_read_file()` is the guarded read used by Junction's own non-tool file
 access: it re-checks the resolved target and then opens the canonical path with
 `O_NOFOLLOW`, which closes the TOCTOU window where the final component is swapped
 for a symlink after the check.
@@ -192,7 +192,7 @@ restart. Every legitimate reader and writer opens these paths directly rather
 than through the shared gate, so real functionality is unaffected.
 
 Each leaf is registered under every known data-home prefix, so a not-yet-migrated
-legacy home is fenced identically to the current `~/.kiro/crew`.
+legacy home is fenced identically to the current `~/.junction`.
 
 **Do not weaken this when editing the path or bash matchers.** Write and extract
 verbs must stay covered: a bash command that merely *names* a write-protected
@@ -220,7 +220,7 @@ model's title **and** the raw command:
   `DeniedCommandRule` records (stable `id`, regex `pattern`, `category`,
   human `description`) covering credential exfiltration, destructive
   infrastructure and data operations, publishing to a protected branch, and
-  self-protection (the agent disabling Kiro Crew or minting its own dashboard
+  self-protection (the agent disabling Junction or minting its own dashboard
   token). Default-ON, user-configurable from Settings → Security; the governance
   `commands` scope is the enterprise force-pin that cannot be opted out of
   (tightest-wins).
@@ -325,7 +325,7 @@ health; it logs loudly and proceeds, still confined by the outer boundary.
 Governance is a second, orthogonal axis to the layers above:
 `effective = POLICY ∩ PROFILE`, tightest-wins. Level 1 POLICY is loaded at boot
 from the trust-root path and is never merged from `config.json`; Level 2 PROFILE
-is a per-surface, narrow-only ceiling. Both are enforced at Kiro Crew's own
+is a per-surface, narrow-only ceiling. Both are enforced at Junction's own
 PreToolUse gate, which is what lets a policy deny a tool or MCP call **even when
 the `kiro-cli` agent config granted it**.
 
@@ -462,7 +462,7 @@ text is framed as explicitly untrusted data with a SEL event on every drop.
 
 ## Credential file handling
 
-`load_credentials()` tightens `~/.kiro/crew/.env` to owner-only mode at load time
+`load_credentials()` tightens `~/.junction/.env` to owner-only mode at load time
 and warns if it cannot (for example when the file is owned by another user). The
 file is also on the keystone read+write block, so the agent cannot reach it
 through any tool or shell form regardless of its filesystem mode: owner-only
@@ -509,7 +509,7 @@ minimum length are decoded and re-checked, so a shorter encoded fragment, or one
 split across messages, can pass. Cross-message correlation and entropy-based
 detection would extend it.
 
-**Write protection covers Kiro Crew's own trust root, not the user's shell
+**Write protection covers Junction's own trust root, not the user's shell
 startup files.** Credential directories and the keystone are read+write blocked,
 and `config.json` plus the migration marker are write-blocked, but ordinary
 persistence targets such as `~/.bashrc` or `~/.zshrc` are not: they are not

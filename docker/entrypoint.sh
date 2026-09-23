@@ -53,7 +53,7 @@ set -eu
 # construction. JUNCTION_HOME itself passes through unmodified — the backend
 # applies the identical interpretation to it.
 if ! ACTIVE_HOME=$(python3 -c 'from junction.config.paths import ensure_data_home; print(ensure_data_home())' 2>/dev/null) || [ -z "$ACTIVE_HOME" ]; then
-    ACTIVE_HOME="$HOME/.kiro/crew"
+    ACTIVE_HOME="$HOME/.junction"
     echo "[entrypoint] WARNING: could not resolve the data home via junction" \
          "(broken install?); defaulting to $ACTIVE_HOME." >&2
 fi

@@ -1,6 +1,6 @@
 # Profiling (debug-only)
 
-Kiro Crew ships aggregate duration histograms (`junction.metrics`, off by
+Junction ships aggregate duration histograms (`junction.metrics`, off by
 default) and a stall detector that dumps thread stacks when the event loop wedges
 (`junction.dashboard.loop_watchdog`). Neither attributes time to call paths.
 `junction perf sample` fills that gap: it turns a window of execution into

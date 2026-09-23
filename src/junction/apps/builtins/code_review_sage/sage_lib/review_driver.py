@@ -678,7 +678,7 @@ def _local_secret(port: int) -> str:
     """
     try:
         # Optional dependency, so function-local: this app also runs STANDALONE,
-        # outside the Kiro Crew package, where this import raises and the
+        # outside the Junction package, where this import raises and the
         # crew_home() read below is the only resolution available. A module-scope
         # import would make the module itself unimportable there.
         from junction.config.loader import read_local_secret

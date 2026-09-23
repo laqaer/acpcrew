@@ -1,9 +1,9 @@
 """Node build-toolchain resolution.
 
-Kiro Crew's supported installer (``install.sh --mise`` / ``ensure-node.sh``)
+Junction's supported installer (``install.sh --mise`` / ``ensure-node.sh``)
 installs node under ``$HOME``. Callers that build the SPA pin ``PATH`` to system
 bin dirs for credential safety, so before this resolution existed they could not
-see the very node Kiro Crew installed for them: ``junction pod provision`` died
+see the very node Junction installed for them: ``junction pod provision`` died
 with an unhandled ``FileNotFoundError: 'npm'`` and Dev Fleet's Pull+Build
 reported "no trusted executable for 'npm'".
 """
@@ -354,7 +354,7 @@ def test_hand_unpacked_tarball_under_local_node_is_found(isolated_home):
 
 
 def test_ensure_node_glibc217_tree_is_found_without_the_marker(isolated_home):
-    """The tree Kiro Crew's own installer unpacks must not depend on the marker.
+    """The tree Junction's own installer unpacks must not depend on the marker.
 
     ``ensure-node.sh`` writes ``<data-home>/node-bin-dir`` after installing, but a
     tree installed under a different JUNCTION_HOME (or a marker since deleted)

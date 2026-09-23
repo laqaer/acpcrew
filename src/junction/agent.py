@@ -1335,7 +1335,7 @@ def _sel_hook_rejected(event: str, command: str, reason: str) -> None:
         logger.debug("SEL audit for rejected hook failed", exc_info=True)
 
 
-# Kiro Crew-internal hook keys that must NOT appear in generated kiro-cli agent  # brand-ok
+# Junction-internal hook keys that must NOT appear in generated kiro-cli agent  # brand-ok
 # specs (kiro-cli rejects unknown keys). Excluded when deriving _VALID_HOOK_EVENTS
 # from bundled defaults below, so an internal key never round-trips as an event.
 _INTERNAL_HOOK_KEYS = frozenset(
@@ -1345,7 +1345,7 @@ _INTERNAL_HOOK_KEYS = frozenset(
 # Valid kiro-cli hook event names — the UNION of the hardcoded baseline (kiro-cli's
 # known schema) and any event key present in bundled defaults. Used for generated
 # specs and user-input validation; startup repair is ownership-scoped and removes
-# only legacy keys Kiro Crew serialized. A new event added to defaults.json is
+# only legacy keys Junction serialized. A new event added to defaults.json is
 # automatically accepted without a matching allowlist update (#3362).
 _VALID_HOOK_EVENTS = frozenset(
     {"preToolUse", "postToolUse", "userPromptSubmit", "agentSpawn", "stop"}
@@ -1355,7 +1355,7 @@ _VALID_HOOK_EVENTS = frozenset(
     if k not in _INTERNAL_HOOK_KEYS
 )
 
-# Repair is subtractive against the runtime-only key Kiro Crew is known to have
+# Repair is subtractive against the runtime-only key Junction is known to have
 # serialized into its generated specs. Unknown keys may belong to a newer
 # kiro-cli schema or to the user.
 _LEGACY_JUNCTION_HOOK_KEYS = frozenset({"auto_approve_tools"})
@@ -1966,7 +1966,7 @@ def build_agent_config(*, gated_off: "frozenset[str] | None" = None) -> dict:
     bundled_hooks = bundled.get("hooks")
     if not bundled_hooks:
         raise RuntimeError("Cannot build agent config: hooks missing from bundled defaults")
-    # Strip Kiro Crew-internal keys (auto_approve_tools etc.) that kiro-cli  # brand-ok
+    # Strip Junction-internal keys (auto_approve_tools etc.) that kiro-cli  # brand-ok
     # rejects. _VALID_HOOK_EVENTS already unions in every non-internal bundled
     # event key, so this never drops a new event added to bundled defaults (#3362).
     config["hooks"] = _kiro_hooks_only(bundled_hooks)
@@ -2989,7 +2989,7 @@ def _decline_shared_agent_home(*, audit: bool = True) -> Path | None:
             "servers at this instance's venv and data home, and break them outright "
             "when it is torn down. This instance will use the existing specs instead. "
             "Deliberately no remedy is suggested here: redirecting the agent home via "
-            "KIRO_HOME also relocates kiro-cli's session storage, which Kiro Crew still "
+            "KIRO_HOME also relocates kiro-cli's session storage, which Junction still "
             "reads from the host path -- see kiro_home()'s scope caveat.",
             target,
             Path(__file__).resolve().parents[2],
@@ -4392,7 +4392,7 @@ def _install_research_agent() -> None:
     logger.info("Installed research agent config: %s", path)
 
 
-_CONDUCTOR_SYSTEM_PROMPT = """# Kiro Crew Conductor
+_CONDUCTOR_SYSTEM_PROMPT = """# Junction Conductor
 
 You are `junction-conductor`. You own a long-horizon goal: you decompose it
 into work items, stand up one top-level session per item, patrol their state,
@@ -4817,7 +4817,7 @@ def sync_aim_packages() -> None:
 
 
 def repair_agent_configs() -> None:
-    """Remove legacy Kiro Crew hook keys from agent configs owned by Kiro Crew."""
+    """Remove legacy Junction hook keys from agent configs owned by Junction."""
     _sanitize_agent_hooks()
 
 
@@ -4825,15 +4825,15 @@ _hooks_sanitized_mtimes: dict[str, float] = {}
 
 
 def _sanitize_agent_hooks() -> None:
-    """Remove legacy Kiro Crew hook keys from agent configs owned by Kiro Crew.
+    """Remove legacy Junction hook keys from agent configs owned by Junction.
 
     Kiro-cli rejects unknown variants in the ``hooks`` field (e.g.
     ``auto_approve_tools``), causing it to silently fall back to the
     default agent — losing junction-core, junction-cron.
 
-    Auto-repairs configs carrying keys Kiro Crew wrote in prior versions. Files
+    Auto-repairs configs carrying keys Junction wrote in prior versions. Files
     outside :data:`OWNED_KIRO_AGENT_FILES` and unrecognized hook keys are left
-    untouched because Kiro Crew does not own their schema or contents.
+    untouched because Junction does not own their schema or contents.
     """
     agents_dir = kiro_agents_dir_path()
     for filename in OWNED_KIRO_AGENT_FILES:
@@ -4860,7 +4860,7 @@ def _sanitize_agent_hooks() -> None:
         }
         _atomic_json_write(f, data)
         _hooks_sanitized_mtimes[str(f)] = f.stat().st_mtime
-        logger.info("Removed legacy Kiro Crew hook keys %s from %s", removed_keys, f.name)
+        logger.info("Removed legacy Junction hook keys %s from %s", removed_keys, f.name)
         sel().log_api_access(
             caller="system",
             operation="sanitize_agent_hooks",

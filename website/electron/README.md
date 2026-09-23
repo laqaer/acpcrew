@@ -1,6 +1,6 @@
 # Junction Desktop (Electron)
 
-Desktop shell for the Kiro Crew web dashboard on macOS, Linux, and Windows
+Desktop shell for the Junction web dashboard on macOS, Linux, and Windows
 (Windows is in preview — see the build note below). It automatically starts
 `junction gateway` and connects to `localhost:5476`.
 
@@ -96,7 +96,7 @@ Notes:
   `Junction Setup <version>.exe` (nightly builds:
   `Junction Nightly Setup <version>.exe`), in `website/electron/dist/`.
 - The pinned electron-builder NSIS template is patched during `npm install` to
-  expose Kiro Crew's staged-payload publish hook. On a normal same-volume
+  expose Junction's staged-payload publish hook. On a normal same-volume
   per-user install it renames the large `resources` / `locales` trees into place
   and copies only the small root remainder; per-machine installs keep the
   upstream copy path so files inherit the Program Files ACL. Cross-volume or
@@ -105,7 +105,7 @@ Notes:
   bytecode for the measured gateway import closure, so first launch consumes
   build-time caches rather than generating thousands of files under Defender.
 - The native welcome/finish sidebar and the header used on intermediate pages
-  carry the Kiro Crew logo and ghost artwork. The standard NSIS controls and
+  carry the Junction logo and ghost artwork. The standard NSIS controls and
   localized instructions remain native. Page boundaries use a short Win32
   alpha-blended cross-fade that follows the system client-area animation setting;
   extraction itself stays on the native progress page without timer-driven art.
@@ -186,7 +186,7 @@ each launch to get a fresh JWT — no manual paste required.
 ### Token flow (per tab)
 
 ```
-1. Try local ~/.kiro/crew/.local_secret → /api/token/local on the tab's port
+1. Try local ~/.junction/.local_secret → /api/token/local on the tab's port
    (with a temporary ~/.kirocrew read fallback during one-time migration)
 2. If remote host configured for this port:
    SSH: export PATH=<remotePath> JUNCTION_PORT=<port>; <bin> token

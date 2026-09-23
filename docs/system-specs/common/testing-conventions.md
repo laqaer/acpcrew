@@ -568,7 +568,7 @@ The knobs, tightest-wins:
 | `-n <N>` on the command line | Bypasses the budget entirely. xdist only calls it for `auto`/`logical`. |
 | `--maxprocesses=<N>` | Clamps *after* the budget, so it can only tighten. |
 | `JUNCTION_MAX_TEST_WORKERS` | Per-run ceiling, default 32. |
-| `PYTEST_XDIST_AUTO_NUM_WORKERS` | xdist's own ceiling. Honoured here, because this hook replaces xdist's default implementation. Kiro Crew seeds it with a memory-aware cap at every agent spawn boundary. |
+| `PYTEST_XDIST_AUTO_NUM_WORKERS` | xdist's own ceiling. Honoured here, because this hook replaces xdist's default implementation. Junction seeds it with a memory-aware cap at every agent spawn boundary. |
 | `JUNCTION_TEST_SLOT_DIR` | Where the slot locks live. Point it at a throwaway dir to measure without contending with another run. |
 
 If the suite is slow on your machine, the answer is usually not a bigger `-n`: run

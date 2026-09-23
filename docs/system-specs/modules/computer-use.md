@@ -925,7 +925,7 @@ exactly as a running app is already evaluated.
 Every other verb resolves an `AppRef` from the window list first, so `policy.check_app`
 sees a bundle id, a process name and a window title. A launch has only the name the
 caller typed, so `tools._dispatch` synthesizes an `AppRef` from it. The self-target
-rule — the one that keeps the agent out of Kiro Crew's own Settings — matches on name
+rule — the one that keeps the agent out of Junction's own Settings — matches on name
 **substrings**, so it does fire on a name-only ref; a hypothetical denylist entry
 naming only a bundle prefix would not. What closes the rest is a **second**
 `check_app` after the launch, against the identity the OS actually reported: an app
@@ -2386,8 +2386,8 @@ ONLY one, and the consequences should be stated rather than discovered:
   third is load-bearing: the dashboard is also reachable as a **browser tab**, where
   the app identity is Chrome's or Safari's and a bundle/name rule cannot fire at all
   (reviewer finding). `DeniedApp.title_substrings` matches the resolved window title,
-  as a substring — the tab title takes a badge prefix (`(3) Kiro Crew`) and popouts a
-  `… — Kiro Crew` suffix. And because input is delivered per-PID
+  as a substring — the tab title takes a badge prefix (`(3) Junction`) and popouts a
+  `… — Junction` suffix. And because input is delivered per-PID
   (`CGEventPostToPid`), `apps_macos.list_apps` prefers a DENIED title over an
   innocuous one when one process owns several windows: a dashboard in a background
   tab must refuse the whole browser, not just that window.

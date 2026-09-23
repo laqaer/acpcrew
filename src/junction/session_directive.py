@@ -189,7 +189,7 @@ def directive_tool_for(mcp_server_name: str, tool_name: str) -> str:
 
     THE forgery-gate identity predicate, spelled once: a directive-tool name is
     honoured ONLY when the call's trusted ``_meta.kiro`` identity says it was
-    served by Kiro Crew's OWN core MCP server (:data:`CORE_MCP_SERVER`) AND its
+    served by Junction's OWN core MCP server (:data:`CORE_MCP_SERVER`) AND its
     CANONICAL tool name resolves to a :data:`DIRECTIVE_TOOLS` member via
     :func:`match_tool`. Both ``EVENT_TOOL_CALL`` consumers (the dashboard's
     ``chat_runner`` and ``messaging.driver.TurnDriver``) MUST call this instead

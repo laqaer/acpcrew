@@ -3,7 +3,7 @@
 ## Overview
 
 A **dynamic workflow** is one LLM-authored Python module that orchestrates several
-Kiro Crew agents through ordered phases. The module declares a pure-literal `META`
+Junction agents through ordered phases. The module declares a pure-literal `META`
 dict and a single `async def workflow(ctx)` entrypoint; the engine validates it
 statically, executes it in a restricted namespace under hard ceilings, and streams
 a typed event journal that drives the UI, the chat `workflow_*` MCP tools, and
@@ -246,7 +246,7 @@ same terminal path.
 > early-stop never trips and no `budget_update` event is ever emitted. Wiring
 > per-call token cost into `charge()` is the missing half.
 
-### ports native to Kiro Crew
+### ports native to Junction
 
 Four Protocols, each `Optional` on `ctx` and `None` when the host did not wire it:
 
@@ -436,7 +436,7 @@ misuse still fails at run time with the explicit unwired-port error.
 ## Structured output (`schema=`)
 
 `schema.py` is a dependency-free validator for the JSON-Schema **subset** the DSL
-actually uses. Kiro Crew's provider layer has no native schema enforcement and the
+actually uses. Junction's provider layer has no native schema enforcement and the
 runtime ships neither `jsonschema` nor a JSON-Schema-consuming pydantic path.
 
 Supported: `type` (`object`, `array`, `string`, `integer`, `number`, `boolean`,
@@ -616,7 +616,7 @@ ids cannot collide with restored ones.
 ### Authoring
 
 `author(intent)` turns a natural-language intent into a validated script using the
-same in-session model plumbing as the rest of Kiro Crew, looping up to
+same in-session model plumbing as the rest of Junction, looping up to
 `_AUTHOR_RETRIES + 1` = 3 attempts and feeding the validation errors back on each
 retry. `_strip_fence` peels only the opening fence line and a trailing fence, never
 splitting on every ``` , because a literal triple backtick inside the script body

@@ -947,7 +947,7 @@ async def _run_sync(mod, locked):
     MAIN_REPO is pinned because the sync refuses outright when no checkout was
     discovered, and these tests are about the sync's own behaviour: leaving it
     ambient makes them pass or fail on whether the HOST running them happens to
-    sit in a Kiro Crew checkout. Assertions that quote the repo path must use
+    sit in a Junction checkout. Assertions that quote the repo path must use
     ``_SYNC_REPO`` rather than reading ``mod.MAIN_REPO``.
 
     The venv-origin guard is answered by the module's autouse fixture; a test
@@ -2791,7 +2791,7 @@ async def test_fleet_handler_missing_repo_returns_error_payload():
     async def boom():
         raise RuntimeError(
             "main checkout not found: /nope/junction is missing or not a git "
-            "checkout. Set JUNCTION_DEVFLEET_REPO to your Kiro Crew checkout, "
+            "checkout. Set JUNCTION_DEVFLEET_REPO to your Junction checkout, "
             "or clone it to ~/junction."
         )
 
@@ -2814,7 +2814,7 @@ async def test_fleet_handler_missing_repo_returns_error_payload():
 
 
 def _make_checkout(root: Path) -> Path:
-    """Create a directory carrying every Kiro Crew checkout marker."""
+    """Create a directory carrying every Junction checkout marker."""
     (root / ".git").mkdir(parents=True)
     (root / "src" / "junction").mkdir(parents=True)
     (root / "pyproject.toml").write_text("[project]\nname = 'kiro-crew'\n")
@@ -2947,7 +2947,7 @@ async def test_fleet_handler_reports_needs_setup_without_an_error():
     ``needs_setup`` and NO ``error``, so the page asks where the checkout is
     instead of rendering a red banner against a path the user never chose."""
     async def unconfigured():
-        raise mod.RepoNotConfigured("no Kiro Crew checkout found to manage")
+        raise mod.RepoNotConfigured("no Junction checkout found to manage")
 
     with patch.object(mod, "_fleet_refresh", new=unconfigured), \
          patch.object(mod, "_fleet_cached", new=unconfigured):
@@ -2968,7 +2968,7 @@ async def test_discover_worktrees_refuses_a_configured_non_junction_repo():
     not also mean the wrong tree gets `worktree remove` run inside it."""
     run = AsyncMock(return_value=(0, "worktree /some/other/repo\n", ""))
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: /some/other/repo ..."), \
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: /some/other/repo ..."), \
          patch.object(mod, "_run_cmd", new=run):
         with pytest.raises(mod.RepoUnreadable) as exc:
             await mod._discover_worktrees()
@@ -2976,7 +2976,7 @@ async def test_discover_worktrees_refuses_a_configured_non_junction_repo():
     # happily, so the guard cannot rely on a non-zero exit.
     run.assert_not_awaited()
     assert "/some/other/repo" in str(exc.value)
-    assert "not a Kiro Crew checkout" in str(exc.value)
+    assert "not a Junction checkout" in str(exc.value)
 
 
 @pytest.mark.asyncio
@@ -2992,7 +2992,7 @@ async def test_auto_prune_reaper_idles_for_a_configured_non_junction_repo():
     prune = AsyncMock()
     sel = MagicMock()
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: ..."), \
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: ..."), \
          patch.object(mod, "_auto_prune_cfg", return_value=(True, 0.01)), \
          patch.object(mod, "_auto_prune_once", new=prune), \
          patch.object(mod, "_sel", return_value=sel), \
@@ -3010,17 +3010,17 @@ async def test_sync_refuses_a_configured_non_junction_repo():
     refresher never pass through _discover_worktrees, and `pull --ff-only` plus
     `pip install -e` inside an unrelated repository is the worst outcome here."""
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: /some/other/repo ..."):
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: /some/other/repo ..."):
         res = await mod._sync_start_locked()
     assert res["ok"] is False
-    assert "not a Kiro Crew checkout" in res["error"]
+    assert "not a Junction checkout" in res["error"]
 
 
 @pytest.mark.asyncio
 async def test_status_refresher_idles_for_a_configured_non_junction_repo():
     run = AsyncMock(return_value=(0, "", ""))
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: /some/other/repo ..."), \
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: /some/other/repo ..."), \
          patch.object(mod, "_run_cmd", new=run):
         await mod._status_refresher()
     # Returned without fetching: no git ran against the unrelated repository.
@@ -3058,7 +3058,7 @@ async def test_sync_refuses_without_a_repo():
     with patch.object(mod, "MAIN_REPO", ""):
         res = await mod._sync_start_locked()
     assert res["ok"] is False
-    assert "no Kiro Crew checkout" in res["error"]
+    assert "no Junction checkout" in res["error"]
 
 
 @pytest.mark.asyncio
@@ -3070,7 +3070,7 @@ async def test_unconfigured_repo_answers_a_coded_409_not_a_500():
     secret = "s" * 32
 
     async def boom(request):
-        raise mod.RepoNotConfigured("no Kiro Crew checkout found to manage")
+        raise mod.RepoNotConfigured("no Junction checkout found to manage")
 
     app = web.Application(middlewares=[mod.hmac_proxy_middleware])
     app.router.add_get("/api/prune-candidates", boom)

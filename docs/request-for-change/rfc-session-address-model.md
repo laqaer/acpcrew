@@ -22,7 +22,7 @@ Everything measured below was read at `b23ab77af`. Paths are repo-relative.
 
 ## 1. Problem statement
 
-A conversation in Kiro Crew has one identity, the `session_key`. A dashboard tab is a `_ChatSlot`, and its name is that key with every `:` folded to `_`, because a slot name has to match a transcript filename on disk. Chat apps — seven of them — attach to conversations and detach from them.
+A conversation in Junction has one identity, the `session_key`. A dashboard tab is a `_ChatSlot`, and its name is that key with every `:` folded to `_`, because a slot name has to match a transcript filename on disk. Chat apps — seven of them — attach to conversations and detach from them.
 
 Before PR #1366 (3 August 2026) the two directions were not symmetric. A conversation sent from the dashboard to a chat app stayed one conversation. A conversation that *started* in a chat app became **two** the moment its dashboard tab opened: the tab could only write a key beginning `dashboard:`, so it read one file and wrote another. It ran a second agent process seeded with the last 50 messages, and PRs #808 (29 July) and #1112 (2 August) added a 30-second job that compared the two transcripts and copied across the difference. That copying stopped for good the first time anything else wrote to the tab, and nothing said it had stopped.
 

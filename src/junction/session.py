@@ -714,7 +714,7 @@ class FirstTurnState(Enum):
     # consumed its own; ``open_task_session``'s cold path instead registers
     # FRESH unconsumed, exactly as it left ``is_new`` armed before).
     NOTHING_ARMED = auto()
-    # Fresh session: the first real turn injects Kiro Crew history.
+    # Fresh session: the first real turn injects Junction history.
     FRESH = auto()
     # Natively resumed — a speculative resume creator's ACP ``session/load``
     # restored the persisted transcript, so the first real turn must skip
@@ -748,8 +748,8 @@ class _Session:
     # convention. ``RESUMED`` is selected only by a SPECULATIVE creator whose
     # provider start restored the persisted transcript via ACP session/load —
     # the existing-session fast path and the won-race path otherwise report
-    # ``resumed=False``, which would make the real first turn inject Kiro
-    # Crew history on top of the natively-replayed transcript. Selected
+    # ``resumed=False``, which would make the real first turn inject Junction
+    # history on top of the natively-replayed transcript. Selected
     # atomically at registration; read and cleared in one consume.
     first_turn: FirstTurnState = FirstTurnState.FRESH
     # Set when an identity sweep found this session BUSY and therefore left its
@@ -1405,7 +1405,7 @@ class SessionManager:
                     runtime = AcpRuntime(
                         agent="junction-lite",
                         sandbox_mode=getattr(self._cfg.agent, "sandbox", "auto"),
-                        # junction-lite's config is written by Kiro Crew itself
+                        # junction-lite's config is written by Junction itself
                         # with an empty mcpServers map, so no MCP server can
                         # ever report on this runtime. Opting out keeps hot
                         # one-liner paths (chat titles, suggestions, STT

@@ -13,7 +13,7 @@ superseded-by: []
 ---
 # RFC: Pluggable agent model providers
 
-- Status: draft — **this RFC recommends that Kiro Crew support provider choice
+- Status: draft — **this RFC recommends that Junction support provider choice
   for the agent model, and asks the maintainers to amend the `AGENTS.md` "Other
   providers" invariant accordingly.** No design is proposed here: the shape of
   the seam is a separate discussion, and deliberately out of scope so the
@@ -27,7 +27,7 @@ superseded-by: []
 ## Summary
 
 `agent.provider` is fixed to `acp`, so the agent model always arrives through
-kiro-cli. `AGENTS.md` reinforces this under *Never re-add*: "Kiro Crew is
+kiro-cli. `AGENTS.md` reinforces this under *Never re-add*: "Junction is
 KiroACP-only".
 
 **This RFC recommends lifting that invariant.** Not because it was wrong when
@@ -60,8 +60,8 @@ downstream — and cheaper to *reason about*, because the failure modes are in t
 tree instead of in someone's branch. For a capability this basic, the
 maintenance argument points toward main.
 
-**Data residency is a harder constraint here than for a coding assistant.** Kiro
-Crew runs unattended and reads whatever the work requires — source code and
+**Data residency is a harder constraint here than for a coding assistant.** Junction
+runs unattended and reads whatever the work requires — source code and
 proprietary repositories, internal infrastructure and its credentials, and for
 users who wire up those surfaces, browser pages, messages and calendars. For many
 teams the blocker is not a preference about models; it is that prompts and file
@@ -70,7 +70,7 @@ the only answer to that, and documentation cannot substitute for it. Today those
 teams have no supported configuration, so they either fork or walk.
 
 **Bedrock is the version of "yes" an organization can already give.** Teams
-evaluating Kiro Crew commonly have Bedrock quota, IAM, VPC endpoints, model
+evaluating Junction commonly have Bedrock quota, IAM, VPC endpoints, model
 guardrails and consolidated billing in place. Routing agent traffic through
 infrastructure they already govern turns adoption from a procurement question
 into a configuration change. That is a disproportionate adoption unlock for a
@@ -78,7 +78,7 @@ small surface, and it is the single cheapest option to accept.
 
 **Cost shape follows the product's own direction.** Long autonomous runs — crons,
 monitors, sub-agent fan-out — are where routine steps dominate spend, and they
-are exactly the workloads Kiro Crew has been growing toward. `agent.tips_model`
+are exactly the workloads Junction has been growing toward. `agent.tips_model`
 and `agent.judge_model` already establish that per-role model selection is a
 shape this project accepts. Provider choice is the same idea one level down.
 
