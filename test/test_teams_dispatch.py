@@ -9,9 +9,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.teams.client import TeamsInbound
-from kiro_crew.teams.transport_dispatch import TeamsDispatcher
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
+from junction.teams.client import TeamsInbound
+from junction.teams.transport_dispatch import TeamsDispatcher
 
 
 class FakeProvider:
@@ -272,12 +272,12 @@ class TestTurn:
         assert (key, "assistant", "hi there") in conv.appended
 
     @pytest.mark.asyncio
-    async def test_agent_resolves_to_kirocrew_when_unset(self) -> None:
+    async def test_agent_resolves_to_junction_when_unset(self) -> None:
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
         sessions = FakeSessions(provider)
         d = _dispatcher(sessions, FakeCtx(), FakeClient(), cfg=_cfg(default_agent=""))
         await d.handle_message(_inbound("hi"))
-        assert sessions.last_agent == "kirocrew"
+        assert sessions.last_agent == "junction"
 
     @pytest.mark.asyncio
     async def test_cold_start_failure_finalizes_and_skips_release(self) -> None:
@@ -384,7 +384,7 @@ class TestInboundGovernance:
         # ``inbound_permitted`` wrapper, which resolves
         # ``channel_inbound_permitted`` from dispatch's globals at call time --
         # so this one patch covers both the channel-side and pipeline gates.
-        monkeypatch.setattr("kiro_crew.messaging.dispatch.channel_inbound_permitted", _deny)
+        monkeypatch.setattr("junction.messaging.dispatch.channel_inbound_permitted", _deny)
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
         sessions = FakeSessions(provider)
         client = FakeClient()

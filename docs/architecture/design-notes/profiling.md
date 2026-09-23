@@ -1,9 +1,9 @@
 # Profiling (debug-only)
 
-Kiro Crew ships aggregate duration histograms (`kiro_crew.metrics`, off by
+Kiro Crew ships aggregate duration histograms (`junction.metrics`, off by
 default) and a stall detector that dumps thread stacks when the event loop wedges
-(`kiro_crew.dashboard.loop_watchdog`). Neither attributes time to call paths.
-`kirocrew perf sample` fills that gap: it turns a window of execution into
+(`junction.dashboard.loop_watchdog`). Neither attributes time to call paths.
+`junction perf sample` fills that gap: it turns a window of execution into
 **folded stacks**, the format speedscope, flamegraph.pl and Perfetto all import.
 
 ## It is off by default
@@ -14,11 +14,11 @@ background sampler at rest, and no HTTP endpoint — the CLI is the only entry
 point.
 
 ```bash
-export KIROCREW_DEBUG=1
+export JUNCTION_DEBUG=1
 ```
 
 Without it every `perf` command refuses and explains how to enable it. A value of
-`0`, `false`, `no` or `off` also reads as disabled, so `KIROCREW_DEBUG=0` does
+`0`, `false`, `no` or `off` also reads as disabled, so `JUNCTION_DEBUG=0` does
 not accidentally switch profiling on.
 
 ## Profiling a code path (no extra dependency)
@@ -28,8 +28,8 @@ thread while it runs. This works everywhere with no extra install and is the
 right tool for "why is this one operation slow".
 
 ```bash
-KIROCREW_DEBUG=1 kirocrew perf sample \
-  --call kiro_crew.history:ConversationLog.list_sessions \
+JUNCTION_DEBUG=1 junction perf sample \
+  --call junction.history:ConversationLog.list_sessions \
   --interval 0.002 \
   --output /tmp/list-sessions.folded
 ```
@@ -40,11 +40,11 @@ written — the stacks leading to a failure are usually the point.
 ## Profiling a running gateway (needs py-spy)
 
 With no `--call`, the sampler attaches to another process: `--pid`, or the
-running gateway's PID read from `$KIROCREW_HOME/gateway.lock`.
+running gateway's PID read from `$JUNCTION_HOME/gateway.lock`.
 
 ```bash
-pip install "kirocrew[perf]"
-KIROCREW_DEBUG=1 kirocrew perf sample --seconds 30 --output /tmp/gateway.folded
+pip install "junction[perf]"
+JUNCTION_DEBUG=1 junction perf sample --seconds 30 --output /tmp/gateway.folded
 ```
 
 A foreign process cannot be sampled from pure Python, so this path requires
@@ -77,17 +77,17 @@ tracer, or missing privileges) rather than assuming it is a permissions problem.
 macOS behaves differently — py-spy reads via `task_for_pid` there, where several
 readers can hold a task port — so a refusal on macOS points at privileges.
 
-## Profiling the desktop app (`kirocrew desktop metrics`)
+## Profiling the desktop app (`junction desktop metrics`)
 
 The two commands above sample **Python**. They cannot tell you anything about the
 Electron shell itself -- if the desktop app is burning CPU in its renderer or
 growing a window's working set, a py-spy attach on the gateway shows nothing
 unusual.
 
-`kirocrew desktop metrics` covers that half:
+`junction desktop metrics` covers that half:
 
 ```
-KIROCREW_DEBUG=1 kirocrew desktop metrics
+JUNCTION_DEBUG=1 junction desktop metrics
 ```
 
 ### It reads a recording; it does not query the running app
@@ -101,14 +101,14 @@ Electron instance does not let it read the first one's metrics. Getting a live
 sample on demand would therefore require the desktop app to listen for a request
 -- a new local network surface whose only purpose is debugging.
 
-Rather than add one, the app **records**: when it starts with `KIROCREW_DEBUG`
+Rather than add one, the app **records**: when it starts with `JUNCTION_DEBUG`
 set, `website/electron/perf-metrics.js` samples its own per-process metrics every
 5 seconds into a bounded artifact next to the gateway log, and this command reads
 that file.
 
 Consequences to keep in mind:
 
-- The app must have been **started** with `KIROCREW_DEBUG` set. Setting the
+- The app must have been **started** with `JUNCTION_DEBUG` set. Setting the
   variable in the shell you run the CLI from changes nothing about an app that is
   already running without it -- restart the app.
 - You see the retained window (the last 120 samples, about ten minutes), not the
@@ -129,12 +129,12 @@ Electron's own log directory, per platform:
 
 | Platform | Path |
 |---|---|
-| macOS | `~/Library/Logs/KiroCrew/desktop-metrics.json` |
-| Linux | `${XDG_CONFIG_HOME:-~/.config}/KiroCrew/logs/desktop-metrics.json` |
-| Windows | `%APPDATA%\KiroCrew\logs\desktop-metrics.json` |
+| macOS | `~/Library/Logs/Junction/desktop-metrics.json` |
+| Linux | `${XDG_CONFIG_HOME:-~/.config}/Junction/logs/desktop-metrics.json` |
+| Windows | `%APPDATA%\Junction\logs\desktop-metrics.json` |
 
-Nightly builds install under their own product name (`KiroCrew Nightly`), so they
-log to a sibling directory -- `~/Library/Logs/KiroCrew Nightly/` and equivalents.
+Nightly builds install under their own product name (`Junction Nightly`), so they
+log to a sibling directory -- `~/Library/Logs/Junction Nightly/` and equivalents.
 Both are probed, and if both have recorded, the **newest** artifact wins: with
 release and nightly side by side, the build you just reproduced against is the one
 that wrote last.
@@ -147,7 +147,7 @@ processes are listed.
 
 | Code | Meaning |
 |---|---|
-| 1 | `KIROCREW_DEBUG` not set |
+| 1 | `JUNCTION_DEBUG` not set |
 | 3 | No artifact found (usually: the app was not started with the flag) |
 | 5 | Artifact unreadable, malformed, or a version this build does not understand |
 
@@ -156,7 +156,7 @@ processes are listed.
 Each line is `outermost;...;innermost <sample-count>`, hottest first:
 
 ```
-run (kiro_crew/cli.py:702);search (kiro_crew/history.py:412) 184
+run (junction/cli.py:702);search (junction/history.py:412) 184
 ```
 
 Open it at <https://speedscope.app> (local, nothing is uploaded) or pipe it to
@@ -190,7 +190,7 @@ before attaching it to a public issue.
 | `--pid PID` | Attach to this PID (default: the running gateway) |
 | `--seconds N` | Attach duration, 1–300 (default 10). Applies to the attach path |
 | `--interval S` | Seconds between samples, 0.001–1.0 (default 0.005) |
-| `--output PATH` | Where to write the profile (default `./kirocrew-profile.folded`) |
+| `--output PATH` | Where to write the profile (default `./junction-profile.folded`) |
 
 Exit codes: `1` gate off or nothing sampled, `2` bad arguments or an
 unresolvable `--call`, `3` py-spy missing, `4` py-spy timed out, `5` py-spy

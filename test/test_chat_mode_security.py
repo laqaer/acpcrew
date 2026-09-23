@@ -1,6 +1,6 @@
 """Security contract of ``api_chat_mode`` (issue #4454).
 
-``api_chat_mode`` (``src/kiro_crew/dashboard/chat_handlers.py``) carried three
+``api_chat_mode`` (``src/junction/dashboard/chat_handlers.py``) carried three
 defects, all in the ordering between slot validation and global mutation:
 
 1. ``trust_reads`` silently widened to EVERY slot when the named slot did not
@@ -29,11 +29,11 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_state
 
-from kiro_crew.dashboard.chat_handlers import api_chat_mode
-from kiro_crew.safety_override import (
+from junction.dashboard.chat_handlers import api_chat_mode
+from junction.safety_override import (
     reset_singleton,
 )
-from kiro_crew.safety_override import safety_override as real_safety_override
+from junction.safety_override import safety_override as real_safety_override
 
 
 @web.middleware
@@ -58,8 +58,8 @@ def _make_mode_app(state) -> web.Application:
 
 @pytest.fixture(autouse=True)
 def _hermetic_home(tmp_path, monkeypatch):
-    """Redirect KIROCREW_HOME so SEL writes never touch the developer's home."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    """Redirect JUNCTION_HOME so SEL writes never touch the developer's home."""
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
 
 
 @pytest.fixture(autouse=True)
@@ -71,7 +71,7 @@ def _isolate_safety_override():
 
 @pytest.fixture
 def state(tmp_path, monkeypatch):
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     st = _make_state(tmp_path)
     st.broadcast_ws = MagicMock()
     st.push_slots_update = MagicMock()
@@ -118,7 +118,7 @@ async def test_trust_reads_unknown_slot_is_400_and_revokes_nothing(state) -> Non
     state.get_or_create_slot("s1")
     state.get_or_create_slot("s2")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             resp = await client.post(
                 "/api/chat/mode", json={"mode": "trust_reads", "slot": "ghost"}
@@ -153,7 +153,7 @@ async def test_falsy_non_string_slot_key_is_rejected_for_trust(state) -> None:
     state.get_or_create_slot("s1")
     state.get_or_create_slot("s2")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             for bad in ([], {}, 0, False):
                 resp = await client.post("/api/chat/mode", json={"mode": "trust", "slot": bad})
@@ -168,7 +168,7 @@ async def test_falsy_non_string_slot_key_is_rejected_for_trust(state) -> None:
 async def test_falsy_non_string_slot_key_is_rejected_for_trust_reads(state) -> None:
     state.get_or_create_slot("s1")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             resp = await client.post("/api/chat/mode", json={"mode": "trust_reads", "slot": []})
             assert resp.status == 400
@@ -191,7 +191,7 @@ async def test_rejected_normal_request_leaves_the_global_grant_active(state) -> 
     """
     state.get_or_create_slot("s1")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             resp = await client.post("/api/chat/mode", json={"mode": "normal", "slot": " "})
             assert resp.status == 400
@@ -204,7 +204,7 @@ async def test_rejected_normal_request_leaves_the_global_grant_active(state) -> 
 async def test_rejected_trust_request_leaves_the_global_grant_active(state) -> None:
     state.get_or_create_slot("s1")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             resp = await client.post("/api/chat/mode", json={"mode": "trust", "slot": "ghost"})
             assert resp.status == 400
@@ -217,7 +217,7 @@ async def test_rejected_trust_reads_does_not_touch_existing_slots(state) -> None
     state.get_or_create_slot("s1")
     state.get_or_create_slot("s2")
     with patch(
-        "kiro_crew.dashboard.chat_handlers.safety_override",
+        "junction.dashboard.chat_handlers.safety_override",
         return_value=_FakeOverride(active=True),
     ):
         async with _client(state) as client:
@@ -289,7 +289,7 @@ async def test_named_slot_trust_reads_leaves_an_active_grant_live(state) -> None
     state.get_or_create_slot("s1")
     state.get_or_create_slot("s2")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             resp = await client.post("/api/chat/mode", json={"mode": "trust_reads", "slot": "s1"})
             assert resp.status == 200
@@ -305,7 +305,7 @@ async def test_named_slot_trust_leaves_an_active_grant_live(state) -> None:
     state.get_or_create_slot("s1")
     state.get_or_create_slot("s2")
     override = _FakeOverride(active=True)
-    with patch("kiro_crew.dashboard.chat_handlers.safety_override", return_value=override):
+    with patch("junction.dashboard.chat_handlers.safety_override", return_value=override):
         async with _client(state) as client:
             resp = await client.post("/api/chat/mode", json={"mode": "trust", "slot": "s1"})
             assert resp.status == 200
@@ -359,7 +359,7 @@ async def test_deactivate_runs_off_the_event_loop(state) -> None:
             return False
 
     with patch(
-        "kiro_crew.dashboard.chat_handlers.safety_override",
+        "junction.dashboard.chat_handlers.safety_override",
         return_value=_TrackingOverride(),
     ):
         async with _client(state) as client:

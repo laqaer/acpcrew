@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.model_router.probe import (
+from junction.model_router.probe import (
     CODE_INVALID_PORT,
     CODE_OK,
     CODE_UNREACHABLE,
@@ -98,7 +98,7 @@ def test_env_port_override(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_cli_status_prints_json_without_secrets(
     health_server: _HealthServer, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    from kiro_crew.model_router.cli import run_router_command
+    from junction.model_router.cli import run_router_command
 
     args = argparse.Namespace(router_action="status", router_port=health_server.port)
     run_router_command(args)
@@ -115,8 +115,8 @@ def test_cli_status_prints_json_without_secrets(
 async def test_api_status_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
     from aiohttp.test_utils import make_mocked_request
 
-    from kiro_crew.model_router import api
-    from kiro_crew.model_router.probe import EndpointStatus, RouterStatus
+    from junction.model_router import api
+    from junction.model_router.probe import EndpointStatus, RouterStatus
 
     fake = RouterStatus(
         reachable=False,
@@ -138,7 +138,7 @@ async def test_api_status_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_router_is_a_listed_cli_command() -> None:
-    from kiro_crew import cli_help
+    from junction import cli_help
 
     assert "router" in cli_help.SUMMARIES
     assert "planes" in cli_help.SUMMARIES
@@ -147,7 +147,7 @@ def test_router_is_a_listed_cli_command() -> None:
 def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:
     import re
 
-    from kiro_crew.model_router.catalog import MODEL_ID_MAX_LEN, MODEL_ID_PATTERN
+    from junction.model_router.catalog import MODEL_ID_MAX_LEN, MODEL_ID_PATTERN
 
     assert MODEL_ID_MAX_LEN == 64
     assert re.fullmatch(MODEL_ID_PATTERN, "")
@@ -163,7 +163,7 @@ def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:
 
 
 def test_catalog_includes_codex_router_model_choices() -> None:
-    from kiro_crew.model_router.catalog import load_catalog
+    from junction.model_router.catalog import load_catalog
 
     catalog = load_catalog()
     slugs = {row.slug for row in catalog.models}
@@ -181,7 +181,7 @@ def test_catalog_includes_codex_router_model_choices() -> None:
     dumped = json.dumps(catalog.to_dict())
     assert "sk-" not in dumped
     # ``auth_kind: api_key`` names how the sidecar authenticates, not a secret.
-    from kiro_crew.model_router.routing import annotated_catalog
+    from junction.model_router.routing import annotated_catalog
 
     annotated = annotated_catalog()
     by_slug = {row["slug"]: row["cost_class"] for row in annotated["models"]}
@@ -191,7 +191,7 @@ def test_catalog_includes_codex_router_model_choices() -> None:
 
 
 def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
-    from kiro_crew.model_router.routing import (
+    from junction.model_router.routing import (
         COST_CAPABLE,
         COST_ECONOMY,
         COST_STANDARD,
@@ -234,7 +234,7 @@ def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
 def test_cli_catalog_and_plan_print_json_without_secrets(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from kiro_crew.model_router.cli import run_router_command
+    from junction.model_router.cli import run_router_command
 
     run_router_command(argparse.Namespace(router_action="catalog", provider="", cost_class=""))
     catalog_out = capsys.readouterr().out
@@ -256,7 +256,7 @@ def test_cli_catalog_and_plan_print_json_without_secrets(
 async def test_api_catalog_and_plan() -> None:
     from aiohttp.test_utils import make_mocked_request
 
-    from kiro_crew.model_router import api
+    from junction.model_router import api
 
     catalog_resp = await api.api_catalog(make_mocked_request("GET", "/api/model-router/catalog"))
     assert catalog_resp.status == 200
@@ -276,7 +276,7 @@ async def test_api_catalog_and_plan() -> None:
 
 
 def test_orchestrator_turn_role_picks_dag_stage() -> None:
-    from kiro_crew.model_router.routing import (
+    from junction.model_router.routing import (
         ROLE_EXECUTION,
         ROLE_ORCHESTRATION,
         ROLE_PLANNING,
@@ -291,8 +291,8 @@ def test_orchestrator_turn_role_picks_dag_stage() -> None:
 
 @pytest.mark.asyncio
 async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.MonkeyPatch) -> None:
-    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-    from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+    from junction.config.loader import AgentConfig, JunctionConfig
+    from junction.model_router.routing import ROLE_PLANNING, apply_role_model
 
     class _Client:
         def __init__(self) -> None:
@@ -302,9 +302,9 @@ async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.Monk
             self.seen.append(model_id)
 
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
+        "junction.config.loader.JunctionConfig.load",
         classmethod(
-            lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-k3"}))
+            lambda cls: JunctionConfig(agent=AgentConfig(role_models={"planning": "kimi-k3"}))
         ),
     )
     client = _Client()
@@ -317,8 +317,8 @@ async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.MonkeyPatch) -> None:
-    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-    from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+    from junction.config.loader import AgentConfig, JunctionConfig
+    from junction.model_router.routing import ROLE_PLANNING, apply_role_model
 
     class _Client:
         def __init__(self) -> None:
@@ -328,9 +328,9 @@ async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.Monkey
             self.seen.append(model_id)
 
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
+        "junction.config.loader.JunctionConfig.load",
         classmethod(
-            lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-oauth/k3"}))
+            lambda cls: JunctionConfig(agent=AgentConfig(role_models={"planning": "kimi-oauth/k3"}))
         ),
     )
     client = _Client()
@@ -342,8 +342,8 @@ async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.Monkey
 async def test_apply_role_model_calls_available_models_method(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-    from kiro_crew.model_router.routing import ROLE_ORCHESTRATION, apply_role_model
+    from junction.config.loader import AgentConfig, JunctionConfig
+    from junction.model_router.routing import ROLE_ORCHESTRATION, apply_role_model
 
     class _Client:
         def __init__(self) -> None:
@@ -359,8 +359,8 @@ async def test_apply_role_model_calls_available_models_method(
             self.seen.append(model_id)
 
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
-        classmethod(lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={}))),
+        "junction.config.loader.JunctionConfig.load",
+        classmethod(lambda cls: JunctionConfig(agent=AgentConfig(role_models={}))),
     )
     client = _Client()
     assert await apply_role_model(client, ROLE_ORCHESTRATION) == "claude-haiku-4.5"

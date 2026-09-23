@@ -95,11 +95,11 @@ const store = configureStore({
       },
       subagents: {
         a1: {
-          id: 'a1', task: 'audit the transcript cards', agent: 'kirocrew',
+          id: 'a1', task: 'audit the transcript cards', agent: 'junction',
           status: 'running', streaming: '', lastTool: 'fs_read', startedAt: 0, elapsed: 4200,
         },
         a2: {
-          id: 'a2', task: 'audit the turn grouping', agent: 'kirocrew',
+          id: 'a2', task: 'audit the turn grouping', agent: 'junction',
           status: 'done', streaming: '', lastTool: '', startedAt: 0, elapsed: 9100,
         },
       },
@@ -144,7 +144,7 @@ const WF_COMPLETION = [
 
 const SA_COMPLETION = [
   '[Subagent completion event]',
-  'Agent `a1` (kirocrew) completed ✅',
+  'Agent `a1` (junction) completed ✅',
   'Task: Audit the transcript cards',
   '',
   'Reported per-component props and root classes.',

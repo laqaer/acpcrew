@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.apps import official_editorial as oe
+from junction.apps import official_editorial as oe
 
 
 @pytest.fixture(autouse=True)

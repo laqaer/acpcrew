@@ -23,7 +23,7 @@ import { serveDist } from './lib/serve-dist.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/model-multiplier'
 const SLOT = 'chat-model-multiplier'
-const PROJECT = '/home/user/workspace/KiroCrew'
+const PROJECT = '/home/user/workspace/Junction'
 
 mkdirSync(OUT, { recursive: true })
 
@@ -83,7 +83,7 @@ async function main() {
 
     await page.route('**/api/**', async route => {
       const path = new URL(route.request().url()).pathname
-      if (path === '/api/config/kirocrew') {
+      if (path === '/api/config/junction') {
         return json(route, {
           agent: { model: 'claude-opus-5', reasoning_effort: 'high', provider: 'acp' },
           session: { autocompact_pct: 90 },
@@ -101,11 +101,11 @@ async function main() {
       if (path.startsWith('/api/effort-levels')) return json(route, ['low', 'medium', 'high', 'xhigh', 'max'])
       if (path === '/api/agents') {
         return json(route, {
-          agents: [{ name: 'default', kiro_agent: 'kirocrew', description: 'Default crew agent' }],
+          agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default crew agent' }],
           default_agent: 'default',
         })
       }
-      if (path.startsWith('/api/agents/detail/')) return json(route, { name: 'kirocrew', model: 'claude-opus-5', skills: [] })
+      if (path.startsWith('/api/agents/detail/')) return json(route, { name: 'junction', model: 'claude-opus-5', skills: [] })
       if (path === '/api/agents/installed') return json(route, [])
       if (path === '/api/kiro-prerequisite') {
         return json(route, {

@@ -22,9 +22,9 @@ from typing import Any
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.dashboard import channel_slots
-from kiro_crew.history import _safe_key
-from kiro_crew.messaging.link import (
+from junction.dashboard import channel_slots
+from junction.history import _safe_key
+from junction.messaging.link import (
     channel_namespace_of,
     is_channel_session_key,
 )
@@ -65,14 +65,14 @@ class TestChannelKeyPredicates:
     def test_recognizes_every_channel_namespace(self) -> None:
         for key in (
             "slack:1785370133.085469",
-            "discord:kirocrew:direct:U1",
-            "telegram:kirocrew:direct:U1",
-            "whatsapp:kirocrew:direct:U1",
-            "webex:kirocrew:direct:U1",
-            "wecom:kirocrew:direct:U1",
-            "teams:kirocrew:direct:U1",
-            "weixin:kirocrew:direct:U1",
-            "unified:kirocrew",
+            "discord:junction:direct:U1",
+            "telegram:junction:direct:U1",
+            "whatsapp:junction:direct:U1",
+            "webex:junction:direct:U1",
+            "wecom:junction:direct:U1",
+            "teams:junction:direct:U1",
+            "weixin:junction:direct:U1",
+            "unified:junction",
         ):
             assert is_channel_session_key(key), key
 
@@ -83,8 +83,8 @@ class TestChannelKeyPredicates:
         instance while every synthetic ``slack:`` fixture passed.
         """
         assert is_channel_session_key("slack_1785370133.085469")
-        assert is_channel_session_key("discord_kirocrew_direct_U1")
-        assert is_channel_session_key("unified_kirocrew")
+        assert is_channel_session_key("discord_junction_direct_U1")
+        assert is_channel_session_key("unified_junction")
         assert channel_namespace_of("slack_1.1") == "slack"
         assert channel_slots.channel_label("slack_1.1") == "Slack"
 
@@ -178,8 +178,8 @@ class TestEligibility:
 
     def test_slot_name_is_the_channel_key_folded_to_the_filename_charset(self) -> None:
         assert channel_slots.channel_slot_name("slack:1.1") == "slack_1.1"
-        assert channel_slots.channel_slot_name("discord:kirocrew:direct:U1") == (
-            "discord_kirocrew_direct_U1"
+        assert channel_slots.channel_slot_name("discord:junction:direct:U1") == (
+            "discord_junction_direct_U1"
         )
 
     def test_closed_beats_pinned(self) -> None:
@@ -388,7 +388,7 @@ class TestSurfaceChannelSession:
             dashboard_state,
             _session("slack:1.1"),
             {
-                "agent": "kirocrew",
+                "agent": "junction",
                 "model": "claude-opus-5",
                 "workspace": "default",
                 "project": "p1",
@@ -399,7 +399,7 @@ class TestSurfaceChannelSession:
             [],
         )
         assert slot is not None
-        assert slot.agent == "kirocrew"
+        assert slot.agent == "junction"
         assert slot.model == "claude-opus-5"
         assert slot.project == "p1"
         assert slot.folder_id == "f1"
@@ -683,8 +683,8 @@ class TestReconcilePass:
         derivations must land on the same string or a dismissed tab silently
         reopens on the next pass. Driven through real keys on both sides — a
         hardcoded slot name on each side would agree by construction."""
-        session = _session("discord:kirocrew:direct:U1", modified=NOW - 60)
-        _map_stems(dashboard_state, "discord:kirocrew:direct:U1")
+        session = _session("discord:junction:direct:U1", modified=NOW - 60)
+        _map_stems(dashboard_state, "discord:junction:direct:U1")
         dashboard_state.conversation_log = _FakeLog([session], {})
         dashboard_state.push_slots_update = lambda: None  # type: ignore[method-assign]
 
@@ -794,7 +794,7 @@ class TestClosedAtStamp:
     """
 
     def _bound_slot(self, tmp_path: Any, monkeypatch: Any) -> tuple[Any, Any]:
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("slack_1.1", linked_session_key="slack:1.1")
         slot.append("user", "hello")
@@ -811,7 +811,7 @@ class TestClosedAtStamp:
     ) -> None:
         """With no caller-supplied instant the save falls back to save time
         (callers with no user gesture to anchor to)."""
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_persistence import _save_slot_to_history
 
         state, slot = self._bound_slot(tmp_path, monkeypatch)
 
@@ -834,7 +834,7 @@ class TestClosedAtStamp:
         shared transcript, so without preserving the pre-close mtime the close
         outruns itself and the tab reopens on the next pass.
         """
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_persistence import _save_slot_to_history
 
         state, slot = self._bound_slot(tmp_path, monkeypatch)
         path = tmp_path / "slack_1.1.jsonl"
@@ -863,7 +863,7 @@ class TestClosedAtStamp:
         OLDER than the close, hiding a conversation the reactivation rule should
         surface. The persisted closed_at must be the instant the user acted —
         the value note_slot_closed returned — not the (later) save time."""
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_persistence import _save_slot_to_history
 
         state, slot = self._bound_slot(tmp_path, monkeypatch)
 
@@ -885,7 +885,7 @@ class TestClosedAtStamp:
         assert channel_slots._RECENT_CLOSES[dashboard_state]["slack_1.1"] == returned
 
     def test_open_save_carries_no_close_fields(self, tmp_path: Any, monkeypatch: Any) -> None:
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_persistence import _save_slot_to_history
 
         state, slot = self._bound_slot(tmp_path, monkeypatch)
 

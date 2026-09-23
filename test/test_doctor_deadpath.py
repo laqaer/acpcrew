@@ -1,4 +1,4 @@
-"""Tests for the doctor dead-path check (kiro_crew.doctor_deadpath).
+"""Tests for the doctor dead-path check (junction.doctor_deadpath).
 
 Covers the four scenarios the check must get right, on fabricated spec dirs
 under ``tmp_path`` (never the real agents dir):
@@ -20,8 +20,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import doctor_deadpath as dp
-from kiro_crew.agent_files import AGENT_FILENAME
+from junction import doctor_deadpath as dp
+from junction.agent_files import AGENT_FILENAME
 
 
 @pytest.fixture
@@ -50,7 +50,7 @@ class TestLooksLikeSinglePath:
         assert dp._looks_like_single_absolute_path("tool/bin/x") is False
 
     def test_bare_token_is_not(self) -> None:
-        assert dp._looks_like_single_absolute_path("kirocrew") is False
+        assert dp._looks_like_single_absolute_path("junction") is False
 
     def test_posix_path_list_is_not_a_single_path(self) -> None:
         # The explicit false-positive to avoid: a colon-joined PATH.
@@ -119,7 +119,7 @@ class TestDefaultRepairDirGuard:
     ) -> None:
         calls: list[bool] = []
         monkeypatch.setattr(
-            "kiro_crew.agent.rebuild_agent_config", lambda *a, **k: calls.append(True)
+            "junction.agent.rebuild_agent_config", lambda *a, **k: calls.append(True)
         )
         other = tmp_path / "elsewhere"
         other.mkdir()
@@ -135,7 +135,7 @@ class TestDefaultRepairDirGuard:
     ) -> None:
         calls: list[bool] = []
         monkeypatch.setattr(
-            "kiro_crew.agent.rebuild_agent_config", lambda *a, **k: calls.append(True)
+            "junction.agent.rebuild_agent_config", lambda *a, **k: calls.append(True)
         )
         _write_spec(agents_dir, AGENT_FILENAME, {"srv": {"command": str(agents_dir / "gone")}})
 
@@ -149,13 +149,13 @@ class TestManagedRepair:
         dead = str(agents_dir / "gone" / "python")  # does not exist
         live = str(agents_dir)  # exists
         spec = _write_spec(
-            agents_dir, AGENT_FILENAME, {"kirocrew-core": {"command": dead, "args": []}}
+            agents_dir, AGENT_FILENAME, {"junction-core": {"command": dead, "args": []}}
         )
 
         def fake_repair() -> None:
             # Simulate rebuild rewriting the managed spec to a live command.
             spec.write_text(
-                json.dumps({"mcpServers": {"kirocrew-core": {"command": live}}}),
+                json.dumps({"mcpServers": {"junction-core": {"command": live}}}),
                 encoding="utf-8",
             )
 
@@ -171,7 +171,7 @@ class TestManagedRepair:
 
     def test_managed_spec_repair_that_does_not_take_is_a_finding(self, agents_dir: Path) -> None:
         dead = str(agents_dir / "gone" / "python")
-        _write_spec(agents_dir, AGENT_FILENAME, {"kirocrew-core": {"command": dead}})
+        _write_spec(agents_dir, AGENT_FILENAME, {"junction-core": {"command": dead}})
 
         def noop_repair() -> None:
             pass  # repair fails to clear the dead path
@@ -185,7 +185,7 @@ class TestManagedRepair:
 
     def test_repair_is_only_invoked_when_a_managed_spec_is_dead(self, agents_dir: Path) -> None:
         live = str(agents_dir)
-        _write_spec(agents_dir, AGENT_FILENAME, {"kirocrew-core": {"command": live}})
+        _write_spec(agents_dir, AGENT_FILENAME, {"junction-core": {"command": live}})
         calls = {"n": 0}
 
         def counting_repair() -> None:
@@ -230,7 +230,7 @@ class TestPathListIgnored:
             agents_dir,
             AGENT_FILENAME,
             {
-                "kirocrew-core": {
+                "junction-core": {
                     "command": str(agents_dir),  # live command
                     "env": {"PATH": "/nonexistent/a:/nonexistent/b:/bin"},
                 }
@@ -251,7 +251,7 @@ class TestPathListIgnored:
             {
                 "srv": {
                     "command": str(agents_dir),
-                    "env": {"KIROCREW_HOME": dead_home},
+                    "env": {"JUNCTION_HOME": dead_home},
                 }
             },
         )
@@ -260,7 +260,7 @@ class TestPathListIgnored:
 
         foreign = report.foreign_dead
         assert len(foreign) == 1
-        assert foreign[0].dead[0].where == "env[KIROCREW_HOME]"
+        assert foreign[0].dead[0].where == "env[JUNCTION_HOME]"
         assert foreign[0].dead[0].path == dead_home
 
 

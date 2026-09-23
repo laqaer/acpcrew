@@ -1,9 +1,9 @@
 {
-  "name": "kirocrew-desktop",
+  "name": "junction-desktop",
   "version": "0.5.0",
   "description": "Junction \u2014 local control plane for coding agents",
   "homepage": "https://github.com/laqaer/junction",
-  "desktopName": "kirocrew-desktop.desktop",
+  "desktopName": "junction-desktop.desktop",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -28,7 +28,7 @@
   },
   "build": {
     "appId": "com.amazon.kiro.crew",
-    "productName": "KiroCrew",
+    "productName": "Junction",
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "icon.icns",
@@ -52,7 +52,7 @@
     "linux": {
       "category": "Development",
       "icon": "build/icons",
-      "executableName": "kirocrew-desktop",
+      "executableName": "junction-desktop",
       "maintainer": "Junction Maintainers <hello@chartingstars.com>",
       "synopsis": "Persistent AI agent workspace with memory, schedules, and unattended work",
       "syncDesktopName": true,
@@ -64,7 +64,7 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "deb": {
-      "packageName": "kirocrew",
+      "packageName": "junction",
       "packageCategory": "devel",
       "priority": "optional",
       "publish": [
@@ -87,7 +87,7 @@
       ]
     },
     "rpm": {
-      "packageName": "kirocrew",
+      "packageName": "junction",
       "packageCategory": "Development/Tools",
       "publish": [
         {

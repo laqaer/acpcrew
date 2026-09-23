@@ -1,5 +1,5 @@
 /** Append resolve=1 for relative paths. The backend resolves such paths
- * against KIROCREW_PROJECT_DIR; absolute and ~-paths pass through unchanged. */
+ * against JUNCTION_PROJECT_DIR; absolute and ~-paths pass through unchanged. */
 function withResolve(url: string, filePath: string): string {
   return isAbsolute(filePath) ? url : url + '&resolve=1'
 }

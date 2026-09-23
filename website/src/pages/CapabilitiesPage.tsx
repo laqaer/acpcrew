@@ -6,7 +6,7 @@ import RestartButton from '../components/RestartButton'
 import { useProvider } from '../providers'
 import { useConnectionsUiEnabled } from '../hooks/useConnectionsUi'
 import AgentsPage from './AgentsPage'
-import KiroCrewAgentsPage from './KiroCrewAgentsPage'
+import JunctionAgentsPage from './JunctionAgentsPage'
 import HooksPage from './HooksPage'
 import ConnectionsPage from './connections/ConnectionsPage'
 import { SkillsTab, PromptsTab, SteeringTab } from './overview'
@@ -23,7 +23,7 @@ import { SkillsTab, PromptsTab, SteeringTab } from './overview'
  *
  * A flag rather than a revert because the team asked to keep the code on main
  * and test from there: set `connections_ui: true` in the running instance's
- * `$KIROCREW_HOME/config.json` to exercise the gallery locally. Config is read
+ * `$JUNCTION_HOME/config.json` to exercise the gallery locally. Config is read
  * live, so no gateway restart is needed. The predicate lives in
  * hooks/useConnectionsUi so chat's banner gate reads the same answer.
  */
@@ -58,7 +58,7 @@ export default function CapabilitiesPage() {
   return (
     <SidePanelLayout title={t('pages.capabilitiesPage.agent_capabilities')} tabs={tabs} rememberKey="capabilities" headerRight={<RestartButton />}>
       {tab => <>
-        {tab === 'crews' && <KiroCrewAgentsPage embedded />}
+        {tab === 'crews' && <JunctionAgentsPage embedded />}
         {tab === 'templates' && <AgentsPage embedded />}
         {tab === 'mcp' && <ConnectionsPage servicesEnabled={connectionsUiEnabled} />}
         {tab === 'skills' && <SkillsTab />}

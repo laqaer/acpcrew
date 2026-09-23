@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.conductor_skill — conductor SKILL.md generation.
+"""Tests for junction.conductor_skill — conductor SKILL.md generation.
 
 The conductor is now a STATIC delegation guide: the crew roster is resolved at
 call time via the `select_crew` tool, not inlined here. So the skill neither
@@ -25,7 +25,7 @@ def _read_skill(tmp_path: Path) -> str:
 
 
 def _gen(skills_loader) -> str:
-    from kiro_crew.conductor_skill import generate_conductor_skill
+    from junction.conductor_skill import generate_conductor_skill
 
     generate_conductor_skill(skills_loader)
     return _read_skill(skills_loader._dir)

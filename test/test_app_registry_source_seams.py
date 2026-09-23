@@ -21,8 +21,8 @@ import json
 
 import pytest
 
-from kiro_crew.apps import registry as reg_mod
-from kiro_crew.apps.registry import (
+from junction.apps import registry as reg_mod
+from junction.apps.registry import (
     _TRUST_INDEX,
     _TRUST_OWNER,
     _configured_registry_hosts,
@@ -33,10 +33,10 @@ from kiro_crew.apps.registry import (
     _registry_trust_tier,
     is_clone_host_trusted,
 )
-from kiro_crew.config import loader as loader_mod
-from kiro_crew.config.loader import ExternalRegistryConfig, KiroCrewConfig
-from kiro_crew.platform.bootstrap import build_default_context
-from kiro_crew.platform.defaults import DefaultAppsLoader
+from junction.config import loader as loader_mod
+from junction.config.loader import ExternalRegistryConfig, JunctionConfig
+from junction.platform.bootstrap import build_default_context
+from junction.platform.defaults import DefaultAppsLoader
 
 FORGE = "https://forge.example.com/org/app-registry.git"
 SIBLING = "https://forge.example.com/org/some-private-app.git"
@@ -60,21 +60,21 @@ def _with_loader(monkeypatch, rows):
     the module imports ``current_context`` by value, so rebinding the origin
     would leave this module's reference untouched.
     """
-    base = build_default_context(KiroCrewConfig())
+    base = build_default_context(JunctionConfig())
     ctx = dataclasses.replace(base, apps_loader=_Loader(rows))
     monkeypatch.setattr(reg_mod, "current_context", lambda: ctx)
 
 
 def _with_config(monkeypatch, registries):
-    """Pin what ``KiroCrewConfig.load()`` reports for ``registries``.
+    """Pin what ``JunctionConfig.load()`` reports for ``registries``.
 
     Patches the loader module attribute, which is what ``_effective_registries``
     resolves at call time — the same config boundary the rest of the registry
     tests stub.
     """
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.registries = list(registries)
-    monkeypatch.setattr(loader_mod.KiroCrewConfig, "load", staticmethod(lambda: cfg))
+    monkeypatch.setattr(loader_mod.JunctionConfig, "load", staticmethod(lambda: cfg))
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +314,7 @@ class TestPinnedRegistries:
             def default_registries(self):
                 return bogus
 
-        base = build_default_context(KiroCrewConfig())
+        base = build_default_context(JunctionConfig())
         ctx = dataclasses.replace(base, apps_loader=_Bogus())
         monkeypatch.setattr(reg_mod, "current_context", lambda: ctx)
         _with_config(monkeypatch, [])
@@ -329,7 +329,7 @@ class TestPinnedRegistries:
             def default_registries(self):
                 raise RuntimeError("companion exploded")
 
-        base = build_default_context(KiroCrewConfig())
+        base = build_default_context(JunctionConfig())
         ctx = dataclasses.replace(base, apps_loader=_Broken())
         monkeypatch.setattr(reg_mod, "current_context", lambda: ctx)
         configured = [ExternalRegistryConfig(name="mine", repo=FORGE)]
@@ -340,7 +340,7 @@ class TestPinnedRegistries:
         def _boom():
             raise OSError("config.json unreadable")
 
-        monkeypatch.setattr(loader_mod.KiroCrewConfig, "load", staticmethod(_boom))
+        monkeypatch.setattr(loader_mod.JunctionConfig, "load", staticmethod(_boom))
         _with_loader(monkeypatch, [{"name": "official", "repo": FORGE}])
         rows = _effective_registries()
         assert [r.name for r in rows] == ["official"]
@@ -468,7 +468,7 @@ class TestTrustTier:
             encoding="utf-8",
         )
         monkeypatch.setattr(loader_mod, "config_path", lambda: cfg_file)
-        loaded = loader_mod.KiroCrewConfig.load()
+        loaded = loader_mod.JunctionConfig.load()
         assert [r.trust for r in loaded.registries] == ["owner"]
 
     def test_a_config_predating_the_field_reads_as_index(self, monkeypatch, tmp_path):
@@ -478,7 +478,7 @@ class TestTrustTier:
             encoding="utf-8",
         )
         monkeypatch.setattr(loader_mod, "config_path", lambda: cfg_file)
-        loaded = loader_mod.KiroCrewConfig.load()
+        loaded = loader_mod.JunctionConfig.load()
         assert [r.trust for r in loaded.registries] == [_TRUST_INDEX]
 
 

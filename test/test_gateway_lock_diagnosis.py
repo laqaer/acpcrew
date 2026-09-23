@@ -40,7 +40,7 @@ _ORPHANING_HOLDER = """
 import os, sys, time
 sys.path[:0] = {syspath!r}
 from pathlib import Path
-from kiro_crew.gateway_lock import GatewayLock
+from junction.gateway_lock import GatewayLock
 home, pid_file = Path(sys.argv[1]), sys.argv[2]
 GatewayLock(home).acquire()
 child = os.fork()
@@ -92,7 +92,7 @@ def test_flock_is_held_by_a_fork_orphan(tmp_path, reap):
     Fails if the primitive is swapped for a POSIX record lock -- which would
     trade this loud, recoverable wedge for a silent loss of the guard.
     """
-    from kiro_crew.gateway_lock import GatewayLock, GatewayLockError
+    from junction.gateway_lock import GatewayLock, GatewayLockError
 
     home = tmp_path / "home"
     home.mkdir()
@@ -107,7 +107,7 @@ def test_flock_is_held_by_a_fork_orphan(tmp_path, reap):
     # compare the dead parent against the surviving child and fail.
     if sys.platform != "linux":
         pytest.skip("holder identity needs /proc")
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     if platform_compat.pids_holding_file(home / "gateway.lock") is None:
         pytest.skip("/proc/<pid>/fd not readable here")
@@ -137,7 +137,7 @@ def test_pids_holding_file_finds_the_real_holder(tmp_path):
     """Holder resolution comes from /proc, not from the pid inside the file."""
     if sys.platform != "linux":
         pytest.skip("/proc scanning is Linux-only")
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     path = tmp_path / "gateway.lock"
     path.write_text("999999\n")  # a pid that is not us
@@ -163,7 +163,7 @@ def test_pids_holding_file_finds_the_real_holder(tmp_path):
 @pytest.fixture
 def refused_lock(monkeypatch, tmp_path):
     """A home whose lock always appears held, plus a stale pid on disk."""
-    from kiro_crew import gateway_lock, platform_compat
+    from junction import gateway_lock, platform_compat
 
     (tmp_path / gateway_lock.LOCK_FILENAME).write_text("4242\n", encoding="utf-8")
     monkeypatch.setattr(platform_compat, "try_acquire_lock", lambda *a, **k: False)
@@ -171,7 +171,7 @@ def refused_lock(monkeypatch, tmp_path):
 
 
 def _refusal(home, port=None):
-    from kiro_crew.gateway_lock import GatewayLock, GatewayLockError
+    from junction.gateway_lock import GatewayLock, GatewayLockError
 
     with pytest.raises(GatewayLockError) as excinfo:
         GatewayLock(home, port=port).acquire()
@@ -180,7 +180,7 @@ def _refusal(home, port=None):
 
 def test_refusal_names_the_live_acquirer_from_proc_locks(monkeypatch, refused_lock):
     """A live acquirer is authoritative: name it, and never suggest killing it."""
-    from kiro_crew import gateway_lock, platform_compat
+    from junction import gateway_lock, platform_compat
 
     monkeypatch.setattr(platform_compat, "flock_owner_pid", lambda _p: 16968)
     monkeypatch.setattr(platform_compat, "pid_exists", lambda _p: True)
@@ -199,7 +199,7 @@ def test_refusal_names_the_live_acquirer_from_proc_locks(monkeypatch, refused_lo
 
 def test_refusal_names_the_dead_acquirer_and_the_single_inheritor(monkeypatch, refused_lock):
     """The wedge: acquirer dead, one opener, parent gone, serving nothing."""
-    from kiro_crew import gateway_lock, platform_compat
+    from junction import gateway_lock, platform_compat
 
     monkeypatch.setattr(platform_compat, "flock_owner_pid", lambda _p: 23184)
     monkeypatch.setattr(platform_compat, "pid_exists", lambda pid: False)
@@ -223,7 +223,7 @@ def test_refusal_withholds_kill_when_the_candidates_parent_is_alive(monkeypatch,
     This is the shape a healthy starting gateway has -- one thread, no listener
     yet -- so the parent is the fact that discriminates it from an orphan.
     """
-    from kiro_crew import gateway_lock, platform_compat
+    from junction import gateway_lock, platform_compat
 
     monkeypatch.setattr(platform_compat, "flock_owner_pid", lambda _p: 23184)
     monkeypatch.setattr(platform_compat, "pid_exists", lambda pid: pid == 9001)
@@ -241,7 +241,7 @@ def test_refusal_withholds_kill_when_the_candidates_parent_is_alive(monkeypatch,
 
 def test_refusal_withholds_kill_from_a_candidate_that_is_serving_http(monkeypatch, refused_lock):
     """Answering HTTP proves a live gateway, whatever /proc/locks says."""
-    from kiro_crew import gateway_lock, platform_compat
+    from junction import gateway_lock, platform_compat
 
     monkeypatch.setattr(platform_compat, "flock_owner_pid", lambda _p: 23184)
     monkeypatch.setattr(platform_compat, "pid_exists", lambda pid: False)
@@ -258,7 +258,7 @@ def test_refusal_withholds_kill_from_a_candidate_that_is_serving_http(monkeypatc
 
 def test_refusal_refuses_to_guess_between_multiple_openers(monkeypatch, refused_lock):
     """Two openers -> ambiguous. Offer no kill command for either."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     monkeypatch.setattr(platform_compat, "flock_owner_pid", lambda _p: 23184)
     monkeypatch.setattr(platform_compat, "pid_exists", lambda _p: False)
@@ -274,7 +274,7 @@ def test_refusal_refuses_to_guess_between_multiple_openers(monkeypatch, refused_
 
 def test_refusal_degrades_honestly_without_proc_locks(monkeypatch, refused_lock):
     """No /proc/locks (non-Linux): fall back to the recorded pid, say it may be stale."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     monkeypatch.setattr(platform_compat, "flock_owner_pid", lambda _p: None)
     monkeypatch.setattr(platform_compat, "pids_holding_file", lambda _p: None)

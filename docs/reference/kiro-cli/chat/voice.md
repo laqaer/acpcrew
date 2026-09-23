@@ -45,7 +45,7 @@ device.
    ```bash
    sudo dnf install -y python3.11 python3.11-pip python3.11-devel gcc gcc-c++
    sudo dnf install -y gcc make nasm diffutils
-   bash /path/to/KiroCrew/scripts/build-ffmpeg.sh
+   bash /path/to/Junction/scripts/build-ffmpeg.sh
    ```
 
    **macOS:**
@@ -167,7 +167,7 @@ to hear it read aloud. This works independently of auto-speak.
 
 ### Slack Voice Replies
 
-Use the `/kirocrew voice` slash command to open a settings modal where you can
+Use the `/junction voice` slash command to open a settings modal where you can
 configure voice, engine, speed, and pitch.
 
 The legacy `!voice` inline commands still work but are deprecated:

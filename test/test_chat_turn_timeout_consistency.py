@@ -32,10 +32,10 @@ from pathlib import Path
 # Source files known to contain ``_run_chat`` dispatches.  When a new
 # dispatch site lands in another file, add it here.
 _DISPATCH_FILES = (
-    "src/kiro_crew/dashboard/chat_handlers.py",
-    "src/kiro_crew/dashboard/chat_runner.py",
-    "src/kiro_crew/dashboard/handlers/messaging.py",
-    "src/kiro_crew/slack/gateway.py",
+    "src/junction/dashboard/chat_handlers.py",
+    "src/junction/dashboard/chat_runner.py",
+    "src/junction/dashboard/handlers/messaging.py",
+    "src/junction/slack/gateway.py",
 )
 
 
@@ -51,8 +51,8 @@ def test_cap_matches_inner_acp_prompt_timeout() -> None:
     transport layer's promised "longest legitimate turn" budget, otherwise
     legitimate long-running agentic turns die at the wall.
     """
-    from kiro_crew.acp import client as acp_client
-    from kiro_crew.constants import CHAT_TURN_TIMEOUT
+    from junction.acp import client as acp_client
+    from junction.constants import CHAT_TURN_TIMEOUT
 
     assert CHAT_TURN_TIMEOUT == acp_client._DEFAULT_PROMPT_TIMEOUT, (
         "CHAT_TURN_TIMEOUT must match _DEFAULT_PROMPT_TIMEOUT in acp/client.py — "
@@ -67,7 +67,7 @@ def test_cap_value_is_seven_thousand_two_hundred() -> None:
     7200s aligns with the ACP layer underneath. If you intend to change this,
     update docs/system-specs/modules/learn-cron-dashboard.md too.
     """
-    from kiro_crew.constants import CHAT_TURN_TIMEOUT
+    from junction.constants import CHAT_TURN_TIMEOUT
 
     assert CHAT_TURN_TIMEOUT == 7200.0
 

@@ -1,6 +1,6 @@
 ---
 name: gateway-restart
-description: Gracefully restart the KiroCrew gateway from within a running agent session, preserving conversation continuity via scheduled resume jobs. Use when user says "restart yourself", "restart gateway", "reload config", or after config changes that require a restart.
+description: Gracefully restart the Junction gateway from within a running agent session, preserving conversation continuity via scheduled resume jobs. Use when user says "restart yourself", "restart gateway", "reload config", or after config changes that require a restart.
 triggers: restart, reload, restart yourself, restart gateway, apply changes, reload config
 ---
 
@@ -8,17 +8,17 @@ triggers: restart, reload, restart yourself, restart gateway, apply changes, rel
 
 ## Overview
 
-Gracefully restart the KiroCrew gateway from within a running agent session. The challenge: `kirocrew restart` is blocked by kiro-cli's security filter, and killing the gateway kills the current session. This skill teaches the agent to schedule the restart externally and resume the conversation afterward.
+Gracefully restart the Junction gateway from within a running agent session. The challenge: `junction restart` is blocked by kiro-cli's security filter, and killing the gateway kills the current session. This skill teaches the agent to schedule the restart externally and resume the conversation afterward.
 
 ## Core Concepts
 
 ### The Problem
 
-The agent cannot directly run `kirocrew restart` — kiro-cli blocks it. Even if it could, the restart would kill the agent mid-response. The solution is a two-phase approach: schedule resume jobs, then trigger the restart via a mechanism that runs outside the agent session.
+The agent cannot directly run `junction restart` — kiro-cli blocks it. Even if it could, the restart would kill the agent mid-response. The solution is a two-phase approach: schedule resume jobs, then trigger the restart via a mechanism that runs outside the agent session.
 
 ### Restart Mechanism
 
-The agent cannot run `kirocrew restart` directly — kiro-cli's security filter blocks it at the shell command level (regex match on the command string). Platform-specific scripts handle this indirectly:
+The agent cannot run `junction restart` directly — kiro-cli's security filter blocks it at the shell command level (regex match on the command string). Platform-specific scripts handle this indirectly:
 
 **Linux / macOS:**
 
@@ -31,14 +31,14 @@ The script sleeps 10 seconds (giving the session time to respond), then invokes 
 **Windows:**
 
 ```powershell
-$kiroBin = (Get-Command kirocrew).Source
+$kiroBin = (Get-Command junction).Source
 $logFile = Join-Path $env:USERPROFILE ".kiro\crew\logs\restart.log"
-Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"<path>\do-restart.ps1`"", "-KirocrewBin", "`"$kiroBin`"", "-LogFile", "`"$logFile`""
+Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"<path>\do-restart.ps1`"", "-JunctionBin", "`"$kiroBin`"", "-LogFile", "`"$logFile`""
 ```
 
-The PowerShell script (`do-restart.ps1`) accepts `-KirocrewBin` (the resolved absolute path to `kirocrew.exe`) and `-LogFile` (optional, for diagnosing silent failures). It sleeps 10 seconds, then calls the binary. `Start-Process -WindowStyle Hidden` creates a detached process that survives the gateway's death. Unlike Unix, Windows has no `nohup`/`disown` — `Start-Process` with `-WindowStyle Hidden` is the equivalent pattern for fire-and-forget background work.
+The PowerShell script (`do-restart.ps1`) accepts `-JunctionBin` (the resolved absolute path to `junction.exe`) and `-LogFile` (optional, for diagnosing silent failures). It sleeps 10 seconds, then calls the binary. `Start-Process -WindowStyle Hidden` creates a detached process that survives the gateway's death. Unlike Unix, Windows has no `nohup`/`disown` — `Start-Process` with `-WindowStyle Hidden` is the equivalent pattern for fire-and-forget background work.
 
-> **Important:** Always resolve `kirocrew` to an absolute path at schedule time (before the detached process launches). A hidden process may not inherit the same PATH as the agent session — this is the documented Windows reality. If resolution fails, the script falls back to PATH lookup and then to `python -m kiro_crew.cli restart` via the venv Python. All path arguments passed to `Start-Process -ArgumentList` must be wrapped in escaped quotes (`` `"..`" ``) to handle paths containing spaces (e.g. `C:\Users\John Smith\...`).
+> **Important:** Always resolve `junction` to an absolute path at schedule time (before the detached process launches). A hidden process may not inherit the same PATH as the agent session — this is the documented Windows reality. If resolution fails, the script falls back to PATH lookup and then to `python -m junction.cli restart` via the venv Python. All path arguments passed to `Start-Process -ArgumentList` must be wrapped in escaped quotes (`` `"..`" ``) to handle paths containing spaces (e.g. `C:\Users\John Smith\...`).
 
 ### Resume Jobs
 
@@ -95,11 +95,11 @@ nohup /path/to/skills/gateway-restart/do-restart.sh >/dev/null 2>&1 & disown
 
 **Windows:**
 ```powershell
-$kiroBin = (Get-Command kirocrew).Source
+$kiroBin = (Get-Command junction).Source
 $scriptPath = Join-Path (Split-Path $PSScriptRoot) "skills\gateway-restart\do-restart.ps1"
 if (-not (Test-Path $scriptPath)) { $scriptPath = "$env:USERPROFILE\.kiro\crew\skills\gateway-restart\do-restart.ps1" }
 $logFile = "$env:USERPROFILE\.kiro\crew\logs\restart.log"
-Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-KirocrewBin", "`"$kiroBin`"", "-LogFile", "`"$logFile`""
+Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-JunctionBin", "`"$kiroBin`"", "-LogFile", "`"$logFile`""
 ```
 
 The script's 10-second delay gives the current session time to finish responding.
@@ -114,8 +114,8 @@ The script's 10-second delay gives the current session time to finish responding
 
 - User explicitly asks ("restart yourself", "reload")
 - Config change made that requires restart (`config.json`, `mcp.json`, agent files)
-- After applying a KiroCrew update (see self-update skill)
-- After changing the gateway model (`kirocrew config set model <X>`)
+- After applying a Junction update (see self-update skill)
+- After changing the gateway model (`junction config set model <X>`)
 
 ## Consent and Offering Restarts
 
@@ -135,7 +135,7 @@ If the user grants blanket permission for a specific scenario (e.g. "yes, always
 
 ```python
 learn_add(
-    rule="Okay to automatically restart the gateway after applying a KiroCrew update.",
+    rule="Okay to automatically restart the gateway after applying a Junction update.",
     category="preference",
 )
 ```

@@ -71,7 +71,7 @@ const REQUIRED_STDLIB_PARTS = [
  *
  * @param {{existsSync: Function, readdirSync: Function}} fs
  * @param {typeof import("path")} path
- * @param {string} backendRoot  the `…/backend-dist/kirocrew-backend` directory
+ * @param {string} backendRoot  the `…/backend-dist/junction-backend` directory
  * @returns {string|null} absolute stdlib dir, or null if none is present yet
  */
 function resolveStdlibDir(fs, path, backendRoot) {
@@ -122,7 +122,7 @@ function hasBundledInterpreter(fs, path, backendRoot) {
  *
  * @param {{existsSync: Function, readdirSync: Function}} fs
  * @param {typeof import("path")} path
- * @param {string} backendRoot  the `…/backend-dist/kirocrew-backend` directory
+ * @param {string} backendRoot  the `…/backend-dist/junction-backend` directory
  * @returns {string[]} missing part names ([] = complete or not applicable).
  *   `["Lib"]` means the stdlib root itself is not there yet, i.e. extraction has
  *   barely begun.
@@ -205,7 +205,7 @@ const STDLIB_MODULE_NAMES = new Set([
  *
  * Deliberately narrow in two ways. The module must belong to the stdlib set, so a
  * missing THIRD-PARTY or first-party dependency (a genuine packaging defect, e.g.
- * `aiohttp` or `kiro_crew.foo`) is never excused as "still installing". And only
+ * `aiohttp` or `junction.foo`) is never excused as "still installing". And only
  * the CURRENT launch attempt is read: the log is append-only across launches, so
  * a traceback from an earlier attempt must not relabel this attempt's unrelated
  * failure (a SIGKILL, a bound port) as an unfinished install, which would show a
@@ -286,7 +286,7 @@ function shouldReclassifyAsInstalling({
   // Already labelled by the pre-spawn refusal — nothing to re-derive.
   if (failure.incompleteBundle) return false;
   // Only OUR bundled interpreter can be half-extracted. A user's own install or
-  // a PATH `kirocrew` failing on a stdlib import is a broken environment, not an
+  // a PATH `junction` failing on a stdlib import is a broken environment, not an
   // unfinished download, and telling that user to "wait for the installer" would
   // be actively misleading. Taken from the caller, which knows which binary it
   // chose, rather than re-parsed out of the log.

@@ -26,7 +26,7 @@ ${childOutput}`,
     bundled: true,
   });
 
-const ROOT = "/mock/backend-dist/kirocrew-backend";
+const ROOT = "/mock/backend-dist/junction-backend";
 const WIN_PY = path.join(ROOT, "python.exe");
 
 // A fully-extracted package: the dir AND the __init__.py that makes it
@@ -85,18 +85,18 @@ describe("interpreter detection", () => {
 
   it("judges a POSIX tree (bin/python3.12)", () => {
     const bin = path.join(ROOT, "bin");
-    const fs = fakeFs([bin], { [bin]: ["python3.12", "kirocrew"] });
+    const fs = fakeFs([bin], { [bin]: ["python3.12", "junction"] });
     assert.deepStrictEqual(missingFor(fs, ROOT), ["Lib"]);
   });
 
   it("stays silent on the legacy flat layout (frozen exe, no interpreter tree)", () => {
-    const flat = path.join(ROOT, "kirocrew-backend");
+    const flat = path.join(ROOT, "junction-backend");
     assert.deepStrictEqual(missingFor(fakeFs([flat]), ROOT), []);
   });
 
   it("stays silent on a bin/ dir holding no python3 binary", () => {
     const bin = path.join(ROOT, "bin");
-    const fs = fakeFs([bin], { [bin]: ["kirocrew"] });
+    const fs = fakeFs([bin], { [bin]: ["junction"] });
     assert.deepStrictEqual(missingFor(fs, ROOT), []);
   });
 });
@@ -140,7 +140,7 @@ describe("stdlib layout resolution", () => {
     const bin = path.join(ROOT, "bin");
     const fs = fakeFsCaseInsensitive(
       [bin, lib, py, ...allPkgPaths(py)],
-      { [lib]: ["python3.12", "pkgconfig"], [bin]: ["python3.12", "kirocrew"] }
+      { [lib]: ["python3.12", "pkgconfig"], [bin]: ["python3.12", "junction"] }
     );
     assert.deepStrictEqual(missingFor(fs, ROOT), []);
   });
@@ -169,14 +169,14 @@ describe("findMissingBundleParts", () => {
     const py = path.join(lib, "python3.12");
     const bin = path.join(ROOT, "bin");
     const existing = [bin, lib, py, ...allPkgPaths(py)];
-    const fs = fakeFs(existing, { [lib]: ["python3.12"], [bin]: ["python3.12", "kirocrew"] });
+    const fs = fakeFs(existing, { [lib]: ["python3.12"], [bin]: ["python3.12", "junction"] });
     assert.deepStrictEqual(findMissingBundleParts(fs, path, ROOT), []);
   });
 
   // The gate must stay silent on trees it does not model, or it would refuse a
   // launch that would actually have worked.
   it("reports nothing for the legacy flat layout (no interpreter tree to check)", () => {
-    const flat = path.join(ROOT, "kirocrew-backend");
+    const flat = path.join(ROOT, "junction-backend");
     assert.deepStrictEqual(findMissingBundleParts(fakeFs([flat]), path, ROOT), []);
   });
 
@@ -244,7 +244,7 @@ describe("crash matching (via shouldReclassifyAsInstalling)", () => {
   // The exact traceback this whole change exists to explain.
   const REAL_LOG = [
     "Traceback (most recent call last):",
-    '  File "...\\Lib\\site-packages\\kiro_crew\\platform_compat.py", line 29, in <module>',
+    '  File "...\\Lib\\site-packages\\junction\\platform_compat.py", line 29, in <module>',
     "    from pathlib import Path",
     '  File "...\\Lib\\pathlib.py", line 20, in <module>',
     "    from urllib.parse import quote_from_bytes as urlquote_from_bytes",
@@ -276,7 +276,7 @@ describe("crash matching (via shouldReclassifyAsInstalling)", () => {
   });
 
   it("does not excuse a missing first-party module", () => {
-    assert.equal(crashIsInstalling("ModuleNotFoundError: No module named 'kiro_crew'"), false);
+    assert.equal(crashIsInstalling("ModuleNotFoundError: No module named 'junction'"), false);
   });
 
   // A dotted stdlib name means the package landed but a submodule had not —
@@ -290,7 +290,7 @@ describe("crash matching (via shouldReclassifyAsInstalling)", () => {
 
   it("still refuses a dotted NON-stdlib name", () => {
     assert.equal(
-      crashIsInstalling("ModuleNotFoundError: No module named 'kiro_crew.acp'"),
+      crashIsInstalling("ModuleNotFoundError: No module named 'junction.acp'"),
       false
     );
   });
@@ -312,7 +312,7 @@ describe("crash matching (via shouldReclassifyAsInstalling)", () => {
   it("does not excuse a partially initialized NON-stdlib package", () => {
     assert.equal(
       crashIsInstalling(
-        "ImportError: cannot import name 'x' from partially initialized module 'kiro_crew'"
+        "ImportError: cannot import name 'x' from partially initialized module 'junction'"
       ),
       false
     );

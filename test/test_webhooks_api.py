@@ -16,8 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew import webhooks
-from kiro_crew.dashboard.handlers import hooks as H
+from junction import webhooks
+from junction.dashboard.handlers import hooks as H
 
 
 @pytest.fixture()
@@ -28,7 +28,7 @@ def wired(tmp_path, monkeypatch):
     monkeypatch.setattr(H, "_sel", lambda: MagicMock())
     monkeypatch.setattr(H, "_legacy_hook_token", lambda: "")
     monkeypatch.setattr(
-        H, "_installed_agent_names", lambda: {"kirocrew", "code-reviewer", "oncall"}
+        H, "_installed_agent_names", lambda: {"junction", "code-reviewer", "oncall"}
     )
     # The failed-auth throttle, the replay seen-set and the in-flight session
     # registry are all process-global, so leaking them between tests would make a
@@ -241,7 +241,7 @@ class TestTokenEndpoints:
     @pytest.mark.asyncio
     async def test_create_rejects_bad_label(self, wired):
         resp = await H.api_webhook_token_create(
-            _req("POST", "/api/webhooks/tokens", {"label": "  ", "agent": "kirocrew"})
+            _req("POST", "/api/webhooks/tokens", {"label": "  ", "agent": "junction"})
         )
         assert resp.status == 400
         assert "required" in (await _payload(resp))["error"]
@@ -257,14 +257,14 @@ class TestTokenEndpoints:
             r = await H.api_webhook_token_create(
                 _req(
                     "POST", "/api/webhooks/tokens",
-                    {"label": f"Bot {i}", "agent": "kirocrew"},
+                    {"label": f"Bot {i}", "agent": "junction"},
                 )
             )
             assert r.status == 201
         resp = await H.api_webhook_token_create(
             _req(
                 "POST", "/api/webhooks/tokens",
-                {"label": "Too many", "agent": "kirocrew"},
+                {"label": "Too many", "agent": "junction"},
             )
         )
         assert resp.status == 400
@@ -300,7 +300,7 @@ class TestTokenEndpoints:
     @pytest.mark.asyncio
     async def test_patch_reports_an_unavailable_store(self, wired):
         store = webhooks.token_store()
-        _raw, _secret, entry = store.create("Review Bot", agent="kirocrew")
+        _raw, _secret, entry = store.create("Review Bot", agent="junction")
         store.path.write_text("{truncated", encoding="utf-8")
 
         resp = await H.api_webhook_token_update(
@@ -364,7 +364,7 @@ class TestTokenEndpoints:
             await H.api_webhook_token_create(
                 _req(
                     "POST", "/api/webhooks/tokens",
-                    {"label": "A", "agent": "kirocrew"},
+                    {"label": "A", "agent": "junction"},
                 )
             )
         )
@@ -372,7 +372,7 @@ class TestTokenEndpoints:
             await H.api_webhook_token_create(
                 _req(
                     "POST", "/api/webhooks/tokens",
-                    {"label": "B", "agent": "kirocrew"},
+                    {"label": "B", "agent": "junction"},
                 )
             )
         )
@@ -1009,7 +1009,7 @@ class TestVerifyHookToken:
         raw, _secret, entry = webhooks.token_store().create("Review Bot")
         assert H._verify_hook_token(_bearer(raw)) == entry["id"]
 
-        alt = make_mocked_request("POST", "/api/hooks/agent", headers={"x-kirocrew-token": raw})
+        alt = make_mocked_request("POST", "/api/hooks/agent", headers={"x-junction-token": raw})
         assert H._verify_hook_token(alt) == entry["id"]
 
         bare = make_mocked_request("POST", "/api/hooks/agent")
@@ -1022,7 +1022,7 @@ class TestVerifyHookToken:
     def test_legacy_reader_tolerates_non_dict_config(self, monkeypatch):
         cfg = MagicMock()
         cfg.hooks = ["not", "a", "dict"]
-        monkeypatch.setattr(H.KiroCrewConfig, "load", staticmethod(lambda: cfg))
+        monkeypatch.setattr(H.JunctionConfig, "load", staticmethod(lambda: cfg))
         assert H._legacy_hook_token() == ""
 
 
@@ -1568,7 +1568,7 @@ class TestDeliveryPathTypeSafety:
 
     def test_the_redactor_really_does_raise_on_a_non_string(self):
         """Pins the premise, so this stays a real guard and not a style rule."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         with pytest.raises(TypeError):
             redact_exfiltration_urls(123)  # type: ignore[arg-type]

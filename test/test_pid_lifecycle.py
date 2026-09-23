@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from kiro_crew import platform_compat
+from junction import platform_compat
 
 # These tests exercise POSIX-only process-management semantics: process-group
 # APIs (os.killpg / os.getpgrp / os.getpgid), POSIX identity/age probes
@@ -29,7 +29,7 @@ _POSIX_ONLY = pytest.mark.skipif(
 def pid_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect _pid_file_path to a temp file."""
     p = tmp_path / "kiro_pids.txt"
-    monkeypatch.setattr("kiro_crew.session_pid._pid_file_path", lambda: p)
+    monkeypatch.setattr("junction.session_pid._pid_file_path", lambda: p)
     return p
 
 
@@ -37,19 +37,19 @@ def pid_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def session_pid_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect _session_pid_file_path to a temp file."""
     p = tmp_path / "kiro_session_pids.txt"
-    monkeypatch.setattr("kiro_crew.session_pid._session_pid_file_path", lambda: p)
+    monkeypatch.setattr("junction.session_pid._session_pid_file_path", lambda: p)
     return p
 
 
 class TestTrackUntrack:
     def test_track_pid_creates_file(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _track_pid
+        from junction.session_pid import _track_pid
 
         _track_pid(12345)
         assert "12345" in pid_file.read_text(encoding="utf-8")
 
     def test_track_multiple(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _track_pid
+        from junction.session_pid import _track_pid
 
         _track_pid(111)
         _track_pid(222)
@@ -57,7 +57,7 @@ class TestTrackUntrack:
         assert lines == ["111", "222"]
 
     def test_untrack_pid(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _track_pid, _untrack_pid
+        from junction.session_pid import _track_pid, _untrack_pid
 
         _track_pid(111)
         _track_pid(222)
@@ -66,7 +66,7 @@ class TestTrackUntrack:
         assert lines == ["222"]
 
     def test_untrack_nonexistent(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _track_pid, _untrack_pid
+        from junction.session_pid import _track_pid, _untrack_pid
 
         _track_pid(111)
         _untrack_pid(999)  # should not crash
@@ -86,9 +86,9 @@ class TestTrackUntrack:
         3-field ``gw:pid:token``) and absent on others (2-field ``gw:pid``),
         which would otherwise make the expected value host-dependent.
         """
-        from kiro_crew.session_pid import _track_session_pid, _untrack_session_pid
+        from junction.session_pid import _track_session_pid, _untrack_session_pid
 
-        monkeypatch.setattr("kiro_crew.session_pid._pid_start_token", lambda p: token)
+        monkeypatch.setattr("junction.session_pid._pid_start_token", lambda p: token)
         _track_session_pid(111)
         _track_session_pid(222)
         _untrack_session_pid(111)
@@ -98,14 +98,14 @@ class TestTrackUntrack:
         assert lines == [f"{gw}:222{suffix}"]
 
     def test_untrack_session_pid_missing_file(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _untrack_session_pid
+        from junction.session_pid import _untrack_session_pid
 
         _untrack_session_pid(999)  # should not crash on missing file
         assert not session_pid_file.exists()
 
     def test_untrack_session_pid_other_gateway_untouched(self, session_pid_file: Path) -> None:
         """Untracking our PID must NOT remove other gateways' entries for same child PID."""
-        from kiro_crew.session_pid import _track_session_pid, _untrack_session_pid
+        from junction.session_pid import _track_session_pid, _untrack_session_pid
 
         _track_session_pid(111)
         # Simulate another gateway's entry for the same child PID
@@ -116,7 +116,7 @@ class TestTrackUntrack:
         assert lines == ["99999:111"]
 
     def test_track_child_pids_with_parent(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _track_child_pids
+        from junction.session_pid import _track_child_pids
 
         _track_child_pids({100: None, 200: None, 300: None}, parent_pid=999)
         lines = pid_file.read_text(encoding="utf-8").strip().splitlines()
@@ -124,7 +124,7 @@ class TestTrackUntrack:
 
     def test_track_child_pids_dedup(self, pid_file: Path) -> None:
         """Duplicate child:parent entries should not be written."""
-        from kiro_crew.session_pid import _track_child_pids
+        from junction.session_pid import _track_child_pids
 
         _track_child_pids({100: None, 200: None}, parent_pid=999)
         _track_child_pids({100: None, 300: None}, parent_pid=999)
@@ -132,7 +132,7 @@ class TestTrackUntrack:
         assert sorted(lines) == ["100:999", "200:999", "300:999"]
 
     def test_untrack_child_pids(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _track_child_pids, _untrack_child_pids
+        from junction.session_pid import _track_child_pids, _untrack_child_pids
 
         _track_child_pids({100: None, 200: None, 300: None}, parent_pid=999)
         _untrack_child_pids({100: None, 300: None})
@@ -141,7 +141,7 @@ class TestTrackUntrack:
 
     def test_untrack_child_pids_preserves_bare_pid(self, pid_file: Path) -> None:
         """Untracking child PIDs must not remove bare PID lines (kiro-cli parents)."""
-        from kiro_crew.session_pid import _track_child_pids, _track_pid, _untrack_child_pids
+        from junction.session_pid import _track_child_pids, _track_pid, _untrack_child_pids
 
         _track_pid(100)  # bare parent line
         _track_child_pids({100: None}, parent_pid=999)  # child line with same PID
@@ -153,7 +153,7 @@ class TestTrackUntrack:
 class TestCleanupOrphanedMcpServers:
     def test_dead_child_pruned(self, pid_file: Path) -> None:
         """Dead child PIDs should be removed from the file silently."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("99999:1\n")  # child=99999, parent=1
         _cleanup_orphaned_mcp_servers()
@@ -161,7 +161,7 @@ class TestCleanupOrphanedMcpServers:
 
     def test_alive_child_with_alive_parent_survives(self, pid_file: Path) -> None:
         """Child whose parent session is still alive should NOT be killed."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         my_pid = os.getpid()
         child_pid = 77777
@@ -170,7 +170,7 @@ class TestCleanupOrphanedMcpServers:
         def fake_pid_exists(pid: int) -> bool:
             return pid in (child_pid, my_pid)  # both alive
 
-        with patch("kiro_crew.session_pid.platform_compat.pid_exists", side_effect=fake_pid_exists):
+        with patch("junction.session_pid.platform_compat.pid_exists", side_effect=fake_pid_exists):
             killed = _cleanup_orphaned_mcp_servers()
 
         assert killed == 0
@@ -178,7 +178,7 @@ class TestCleanupOrphanedMcpServers:
 
     def test_alive_child_with_dead_parent_killed(self, pid_file: Path) -> None:
         """Child whose parent session died should be killed (PPid=1 confirms orphan)."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("77777:99999\n")  # parent 99999 is dead
 
@@ -186,9 +186,9 @@ class TestCleanupOrphanedMcpServers:
             return pid == 77777  # child alive, parent dead
 
         with (
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", side_effect=fake_pid_exists),
-            patch("kiro_crew.session_pid.platform_compat.kill_pid"),
-            patch("kiro_crew.platform_compat.get_ppid", return_value=1),
+            patch("junction.session_pid.platform_compat.pid_exists", side_effect=fake_pid_exists),
+            patch("junction.session_pid.platform_compat.kill_pid"),
+            patch("junction.platform_compat.get_ppid", return_value=1),
         ):
             killed = _cleanup_orphaned_mcp_servers()
 
@@ -196,7 +196,7 @@ class TestCleanupOrphanedMcpServers:
 
     def test_alive_child_with_dead_parent_pid_reused(self, pid_file: Path) -> None:
         """Child PID reused by unrelated process should NOT be killed."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("77777:99999\n")
 
@@ -204,8 +204,8 @@ class TestCleanupOrphanedMcpServers:
             return pid == 77777  # child alive (reused PID), parent dead
 
         with (
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", side_effect=fake_pid_exists),
-            patch("kiro_crew.platform_compat.get_ppid", return_value=5555),
+            patch("junction.session_pid.platform_compat.pid_exists", side_effect=fake_pid_exists),
+            patch("junction.platform_compat.get_ppid", return_value=5555),
         ):
             killed = _cleanup_orphaned_mcp_servers()
 
@@ -214,34 +214,34 @@ class TestCleanupOrphanedMcpServers:
 
     def test_bare_pid_dead_pruned(self, pid_file: Path) -> None:
         """Dead bare PIDs should be pruned from the file."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("99999\n")
 
-        with patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=False):
+        with patch("junction.session_pid.platform_compat.pid_exists", return_value=False):
             killed = _cleanup_orphaned_mcp_servers()
         assert killed == 0
         assert "99999" not in pid_file.read_text(encoding="utf-8")
 
     def test_bare_pid_alive_kept(self, pid_file: Path) -> None:
         """Alive bare PIDs should be kept in the file."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("88888\n")
 
-        with patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True):
+        with patch("junction.session_pid.platform_compat.pid_exists", return_value=True):
             killed = _cleanup_orphaned_mcp_servers()
         assert killed == 0
         assert "88888" in pid_file.read_text(encoding="utf-8")
 
     def test_empty_file(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("")
         assert _cleanup_orphaned_mcp_servers() == 0
 
     def test_no_file(self, pid_file: Path) -> None:
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         assert _cleanup_orphaned_mcp_servers() == 0
 
@@ -250,7 +250,7 @@ class TestCleanupOrphanedSessions:
     @_POSIX_ONLY
     def test_preserves_non_kiro_pids(self, session_pid_file: Path) -> None:
         """Bug fix: non-kiro PIDs (MCP servers) must survive — not killed."""
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
         session_pid_file.write_text("99998\n99999\n")
 
@@ -263,16 +263,16 @@ class TestCleanupOrphanedSessions:
         # _is_managed_agent_process(False) branch.
         with (
             patch(
-                "kiro_crew.session_pid._is_managed_agent_process", side_effect=lambda p: p == 99998
+                "junction.session_pid._is_managed_agent_process", side_effect=lambda p: p == 99998
             ),
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_liveness",
+                "junction.session_pid.platform_compat.pid_liveness",
                 return_value=platform_compat.PID_ALIVE,
             ),
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True),
-            patch("kiro_crew.session_pid.platform_compat.kill_pid"),
+            patch("junction.session_pid.platform_compat.pid_exists", return_value=True),
+            patch("junction.session_pid.platform_compat.kill_pid"),
         ):
             cleanup_orphaned_sessions()
 
@@ -283,7 +283,7 @@ class TestCleanupOrphanedSessions:
     @_POSIX_ONLY
     def test_kiro_pids_killed(self, session_pid_file: Path) -> None:
         """Kiro PIDs should be SIGKILL'd."""
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
         session_pid_file.write_text("99998\n")
 
@@ -293,18 +293,18 @@ class TestCleanupOrphanedSessions:
             kills.append((pid, sig))
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
             # The sweep's liveness gate is pid_liveness() (tri-state), not pid_exists();
             # ALIVE -> falls through to the kill path. pid_exists is still patched for
             # the post-kill re-probe branch.
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_liveness",
+                "junction.session_pid.platform_compat.pid_liveness",
                 return_value=platform_compat.PID_ALIVE,
             ),
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True),
-            patch("kiro_crew.session_pid.platform_compat.kill_pid", side_effect=fake_kill),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid.platform_compat.pid_exists", return_value=True),
+            patch("junction.session_pid.platform_compat.kill_pid", side_effect=fake_kill),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
         ):
             cleanup_orphaned_sessions()
 
@@ -314,9 +314,9 @@ class TestCleanupOrphanedSessions:
         self, tmp_path: Path, session_pid_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Malformed session_pid_*.txt files (e.g. MagicMock leak) should be deleted."""
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
-        monkeypatch.setattr("kiro_crew.session_pid.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.session_pid.config_dir", lambda: tmp_path)
         session_pid_file.write_text("")  # no kiro PIDs to kill
 
         # Create one valid (dead process) and one malformed pid file
@@ -324,7 +324,7 @@ class TestCleanupOrphanedSessions:
         (tmp_path / "session_pid_mock.get_pid().txt").write_text("sess-mock")
 
         with (
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
             patch("os.kill", side_effect=ProcessLookupError),
         ):
             cleanup_orphaned_sessions()
@@ -337,9 +337,9 @@ class TestCleanupOrphanedSessions:
         self, tmp_path: Path, session_pid_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """OSError on malformed pid file unlink should not abort the cleanup loop."""
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
-        monkeypatch.setattr("kiro_crew.session_pid.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.session_pid.config_dir", lambda: tmp_path)
         session_pid_file.write_text("")
 
         # Create malformed + valid pid files
@@ -356,7 +356,7 @@ class TestCleanupOrphanedSessions:
         monkeypatch.setattr(Path, "unlink", unlink_that_fails_on_bad)
 
         with (
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
             patch("os.kill", side_effect=ProcessLookupError),
         ):
             cleanup_orphaned_sessions()  # should not raise
@@ -369,7 +369,7 @@ class TestCleanupOrphanedSessions:
 class TestResetStateUntracksParentPid:
     def test_reset_state_untracks_parent_pid(self) -> None:
         """Verify _reset_state calls _untrack_pid with the saved PID."""
-        from kiro_crew.acp.client import AcpClient
+        from junction.acp.client import AcpClient
 
         client = AcpClient.__new__(AcpClient)
         client._process = None
@@ -387,7 +387,7 @@ class TestResetStateUntracksParentPid:
         mock_task.done.return_value = False
         client._stderr_task = mock_task
 
-        with patch("kiro_crew.session._untrack_pid") as mock_untrack:
+        with patch("junction.session._untrack_pid") as mock_untrack:
             client._reset_state()
 
         assert client._pid is None
@@ -405,12 +405,12 @@ class TestFindOrphanMcpCandidates:
 
     def test_excludes_pids_in_active_set(self) -> None:
         """PIDs present in active_pids are never returned as candidates."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[100, 200]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch.object(Path, "read_bytes", return_value=b"kirocrew_sandbox_abc.py"),
+            patch("junction.session_pid._our_orphan_pids", return_value=[100, 200]),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch.object(Path, "read_bytes", return_value=b"junction_sandbox_abc.py"),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids={100, 200})
@@ -425,18 +425,18 @@ class TestFindOrphanMcpCandidates:
         The candidate is already gone, which is what the sweep wants, so the
         expected TOCTOU race must not emit exc_info.
         """
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[22620]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[22620]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(
                 Path,
                 "read_bytes",
                 side_effect=FileNotFoundError(2, "No such file or directory"),
             ),
             patch("os.getpid", return_value=1),
-            caplog.at_level("DEBUG", logger="kiro_crew.session_pid"),
+            caplog.at_level("DEBUG", logger="junction.session_pid"),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -451,17 +451,17 @@ class TestFindOrphanMcpCandidates:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """`ps -p <dead-pid>` exits non-zero — same race, same quiet handling."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[9140]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[9140]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch(
-                "kiro_crew.session_pid.subprocess.check_output",
+                "junction.session_pid.subprocess.check_output",
                 side_effect=subprocess.CalledProcessError(1, "ps"),
             ),
             patch("os.getpid", return_value=1),
-            caplog.at_level("DEBUG", logger="kiro_crew.session_pid"),
+            caplog.at_level("DEBUG", logger="junction.session_pid"),
         ):
             mock_sys.platform = "darwin"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -475,14 +475,14 @@ class TestFindOrphanMcpCandidates:
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
         """A genuinely unexpected probe failure still logs exc_info."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[555]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[555]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", side_effect=PermissionError(13, "denied")),
             patch("os.getpid", return_value=1),
-            caplog.at_level("DEBUG", logger="kiro_crew.session_pid"),
+            caplog.at_level("DEBUG", logger="junction.session_pid"),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -492,18 +492,18 @@ class TestFindOrphanMcpCandidates:
         assert len(records) == 1
         assert records[0].exc_info is not None
 
-    def test_excludes_non_kirocrew_processes(self) -> None:
+    def test_excludes_non_junction_processes(self) -> None:
         """Orphans without known MCP entrypoint markers are skipped."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[300]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[300]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(
                 Path, "read_bytes", return_value=b"/usr/bin/python3\x00some_other_script.py"
             ),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -511,15 +511,15 @@ class TestFindOrphanMcpCandidates:
         assert result == []
 
     def test_excludes_non_entrypoint_vim_grep(self) -> None:
-        """Non-Python processes mentioning kirocrew in args (e.g. vim, grep) are skipped."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        """Non-Python processes mentioning junction in args (e.g. vim, grep) are skipped."""
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[350]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch.object(Path, "read_bytes", return_value=b"vim\x00/tmp/kirocrew_sandbox_abc.log"),
+            patch("junction.session_pid._our_orphan_pids", return_value=[350]),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch.object(Path, "read_bytes", return_value=b"vim\x00/tmp/junction_sandbox_abc.log"),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -535,40 +535,40 @@ class TestFindOrphanMcpCandidates:
         must exist on disk: a gatewayd whose socket is GONE is deliberately
         sweepable via the reachability path (_is_sweepable_orphan_gatewayd).
         """
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         live_sock = tmp_path / "gw.sock"
         live_sock.write_text("")
         cmdline = (
-            b"python3\x00-m\x00kiro_crew.mcp_gateway.gatewayd"
+            b"python3\x00-m\x00junction.mcp_gateway.gatewayd"
             b"\x00--socket\x00" + os.fsencode(str(live_sock))
         )
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[360]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[360]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=cmdline),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
 
         assert result == []
 
-    def test_includes_kirocrew_orphan_not_in_active(self) -> None:
+    def test_includes_junction_orphan_not_in_active(self) -> None:
         """Orphaned process with sandbox wrapper entrypoint and not in active set is a candidate."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[400]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[400]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(
                 Path,
                 "read_bytes",
-                return_value=b"python3\x00/tmp/kirocrew_sandbox_xyz.py",
+                return_value=b"python3\x00/tmp/junction_sandbox_xyz.py",
             ),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -577,10 +577,10 @@ class TestFindOrphanMcpCandidates:
 
     def test_excludes_own_pid(self) -> None:
         """The gateway's own PID is never returned."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[999]),
+            patch("junction.session_pid._our_orphan_pids", return_value=[999]),
             patch("os.getpid", return_value=999),
         ):
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -588,7 +588,7 @@ class TestFindOrphanMcpCandidates:
         assert result == []
 
     def test_does_not_match_builder_mcp(self) -> None:
-        """builder-mcp is NOT a KiroCrew-spawned process in this public fork.
+        """builder-mcp is NOT a Junction-spawned process in this public fork.
 
         Regression guard: the upstream project's reaper lists ``builder-mcp`` (an
         internal server it manages), but the de-Amazoned fork never spawns
@@ -596,14 +596,14 @@ class TestFindOrphanMcpCandidates:
         ``builder-mcp`` orphan would SIGKILL an unrelated process, so the marker
         is deliberately absent here.
         """
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[410]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[410]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=b"builder-mcp\x00--stdio"),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -612,17 +612,17 @@ class TestFindOrphanMcpCandidates:
 
     def test_matches_macos_space_separated_cmdline(self) -> None:
         """macOS ps output (space-separated) is correctly parsed."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         def mock_check_output(cmd, **kwargs):
             # Single combined ps call returns "<etime> <command...>"
             if "etime=" in cmd and "command=" in cmd:
-                return b"   05:00 python3 /tmp/kirocrew_sandbox_xyz.py"
+                return b"   05:00 python3 /tmp/junction_sandbox_xyz.py"
             return b""
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[420]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[420]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch(
                 "subprocess.check_output",
                 side_effect=mock_check_output,
@@ -636,18 +636,18 @@ class TestFindOrphanMcpCandidates:
 
     def test_skips_young_processes(self) -> None:
         """Processes younger than _ORPHAN_MIN_AGE_SECONDS are never candidates."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[450]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[450]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(
                 Path,
                 "read_bytes",
-                return_value=b"python3\x00/tmp/kirocrew_sandbox_new.py",
+                return_value=b"python3\x00/tmp/junction_sandbox_new.py",
             ),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=50.0),
+            patch("junction.session_pid._linux_pid_age", return_value=50.0),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -661,15 +661,15 @@ class TestKillOrphanMcps:
 
     def test_uses_killpg_when_pgid_differs(self) -> None:
         """If orphan is its own group leader, kill via killpg."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpgid", return_value=500),
             patch("os.killpg") as mock_killpg,
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch.object(Path, "read_bytes", return_value=b"python3\x00kirocrew_sandbox_x.py"),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch.object(Path, "read_bytes", return_value=b"python3\x00junction_sandbox_x.py"),
         ):
             mock_sys.platform = "linux"
             killed = kill_orphan_mcps([500])
@@ -679,15 +679,15 @@ class TestKillOrphanMcps:
 
     def test_falls_back_to_direct_kill_when_pgid_matches(self) -> None:
         """If orphan shares our pgid, use direct os.kill (not _kill_pid_tree)."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpgid", return_value=1000),
             patch("os.kill") as mock_kill,
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch.object(Path, "read_bytes", return_value=b"python3\x00kirocrew_sandbox_x.py"),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch.object(Path, "read_bytes", return_value=b"python3\x00junction_sandbox_x.py"),
         ):
             mock_sys.platform = "linux"
             killed = kill_orphan_mcps([600])
@@ -697,15 +697,15 @@ class TestKillOrphanMcps:
 
     def test_direct_kill_handles_already_dead(self) -> None:
         """ProcessLookupError on direct kill is handled gracefully."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpgid", return_value=1000),
             patch("os.kill", side_effect=ProcessLookupError),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch.object(Path, "read_bytes", return_value=b"python3\x00kirocrew_sandbox_x.py"),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch.object(Path, "read_bytes", return_value=b"python3\x00junction_sandbox_x.py"),
         ):
             mock_sys.platform = "linux"
             killed = kill_orphan_mcps([600])
@@ -714,7 +714,7 @@ class TestKillOrphanMcps:
 
     def test_respects_max_kill_cap(self) -> None:
         """Never kills more than _ORPHAN_SWEEP_MAX_KILLS in one pass."""
-        from kiro_crew.session_pid import _ORPHAN_SWEEP_MAX_KILLS, kill_orphan_mcps
+        from junction.session_pid import _ORPHAN_SWEEP_MAX_KILLS, kill_orphan_mcps
 
         pids = list(range(1000, 1000 + _ORPHAN_SWEEP_MAX_KILLS + 10))
         with (
@@ -722,8 +722,8 @@ class TestKillOrphanMcps:
             patch("os.getpgid", side_effect=lambda pid: pid),
             patch("os.killpg"),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch.object(Path, "read_bytes", return_value=b"python3\x00kirocrew_sandbox_x.py"),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch.object(Path, "read_bytes", return_value=b"python3\x00junction_sandbox_x.py"),
         ):
             mock_sys.platform = "linux"
             killed = kill_orphan_mcps(pids)
@@ -732,7 +732,7 @@ class TestKillOrphanMcps:
 
     def test_handles_already_dead_process(self) -> None:
         """ProcessLookupError during kill is silently handled."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
@@ -744,12 +744,12 @@ class TestKillOrphanMcps:
 
     def test_skips_recycled_pid_on_reverify(self) -> None:
         """If cmdline no longer matches at kill time, PID is skipped (TOCTOU)."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=b"/usr/bin/bash\x00script.sh"),
             patch("os.killpg") as mock_killpg,
             patch("os.kill") as mock_kill,
@@ -769,20 +769,20 @@ class TestKillOrphanMcps:
         subprocess.CalledProcessError (a SubprocessError, NOT an OSError). The
         except tuple must catch it so the loop continues to the next PID.
         """
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         def mock_check_output(cmd, **kwargs):
             # cmd[-1] is the str(pid) being re-verified
             if cmd[-1] == "700":
                 raise subprocess.CalledProcessError(1, cmd)
-            return b"python3 /tmp/kirocrew_sandbox_x.py"
+            return b"python3 /tmp/junction_sandbox_x.py"
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpgid", side_effect=lambda p: p),
             patch("os.killpg") as mock_killpg,
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch("subprocess.check_output", side_effect=mock_check_output),
         ):
             mock_sys.platform = "darwin"
@@ -797,27 +797,27 @@ class TestParseEtime:
     """Tests for _parse_etime (ps etime format parser)."""
 
     def test_minutes_seconds(self) -> None:
-        from kiro_crew.session_pid import _parse_etime
+        from junction.session_pid import _parse_etime
 
         assert _parse_etime("05:30") == 330.0
 
     def test_hours_minutes_seconds(self) -> None:
-        from kiro_crew.session_pid import _parse_etime
+        from junction.session_pid import _parse_etime
 
         assert _parse_etime("01:05:30") == 3930.0
 
     def test_days_hours_minutes_seconds(self) -> None:
-        from kiro_crew.session_pid import _parse_etime
+        from junction.session_pid import _parse_etime
 
         assert _parse_etime("2-01:00:00") == 2 * 86400 + 3600
 
     def test_invalid_returns_zero(self) -> None:
-        from kiro_crew.session_pid import _parse_etime
+        from junction.session_pid import _parse_etime
 
         assert _parse_etime("garbage") == 0.0
 
     def test_empty_returns_zero(self) -> None:
-        from kiro_crew.session_pid import _parse_etime
+        from junction.session_pid import _parse_etime
 
         assert _parse_etime("") == 0.0
 
@@ -832,7 +832,7 @@ class TestOurOrphanPids:
         Exercises the real Linux branch (systemd --user subreaper detection in
         pass 1 + PPid parsing in pass 2), not the macOS ps path.
         """
-        from kiro_crew.session_pid import _our_orphan_pids
+        from junction.session_pid import _our_orphan_pids
 
         class _FakeProcEntry:
             def __init__(self, name: str, uid: int, comm: str, ppid: str) -> None:
@@ -865,8 +865,8 @@ class TestOurOrphanPids:
         proc_root.iterdir.return_value = entries
 
         with (
-            patch("kiro_crew.session_pid.sys") as mock_sys,
-            patch("kiro_crew.session_pid.Path", return_value=proc_root),
+            patch("junction.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.Path", return_value=proc_root),
             patch("os.getuid", return_value=my_uid),
         ):
             mock_sys.platform = "linux"
@@ -885,10 +885,10 @@ class TestOurOrphanPids:
         launcher child is a live sibling and must be excluded; only the
         init-reparented pid is returned.
         """
-        from kiro_crew.session_pid import _our_orphan_pids
+        from junction.session_pid import _our_orphan_pids
 
         with (
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch(
                 "subprocess.check_output",
                 return_value=b"  500    42\n  600     1\n",
@@ -904,10 +904,10 @@ class TestOurOrphanPids:
 
     def test_returns_empty_on_exception(self) -> None:
         """Returns empty list on failure, does not raise."""
-        from kiro_crew.session_pid import _our_orphan_pids
+        from junction.session_pid import _our_orphan_pids
 
         with (
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch("subprocess.check_output", side_effect=OSError("ps failed")),
             patch("os.getuid", return_value=1000),
         ):
@@ -931,7 +931,7 @@ class TestLinuxPidAge:
                 node.read_text.return_value = uptime
             return node
 
-        return patch("kiro_crew.session_pid.Path", side_effect=fake_path)
+        return patch("junction.session_pid.Path", side_effect=fake_path)
 
     def test_age_with_spaces_and_parens_in_comm(self) -> None:
         """starttime is read from field 22 even when comm contains spaces/parens.
@@ -940,7 +940,7 @@ class TestLinuxPidAge:
         starts at the state field. starttime_ticks=500000, clk_tck=100 →
         5000s offset; uptime=10000s → age=5000s.
         """
-        from kiro_crew.session_pid import _linux_pid_age
+        from junction.session_pid import _linux_pid_age
 
         # pid (comm) state ppid ... starttime(field 22 == index 19 after state)
         post_comm = "S 1 1 1 0 -1 0 0 0 0 0 0 0 0 0 0 20 0 1 500000 0 0"
@@ -953,7 +953,7 @@ class TestLinuxPidAge:
 
     def test_malformed_stat_returns_zero(self) -> None:
         """Too-few fields → IndexError → 0.0 fail-safe (min-age guard skips)."""
-        from kiro_crew.session_pid import _linux_pid_age
+        from junction.session_pid import _linux_pid_age
 
         with self._patch_proc("999 (proc) S 1 1\n"), patch("os.sysconf", return_value=100):
             age = _linux_pid_age(999, now=123456.0)
@@ -968,7 +968,7 @@ class TestIsManagedAgentProcess:
         Exercises the platform_compat.process_matches call (the real
         /proc/<pid>/cmdline read on Linux) without killing anything.
         """
-        from kiro_crew.session_pid import _is_managed_agent_process
+        from junction.session_pid import _is_managed_agent_process
 
         assert _is_managed_agent_process(os.getpid()) is False
 
@@ -976,14 +976,14 @@ class TestIsManagedAgentProcess:
 class TestSyncKillProvider:
     def test_no_pid_returns_early(self) -> None:
         """Provider with no client/_proc/_active_proc PID → early return."""
-        from kiro_crew.session_pid import _sync_kill_provider
+        from junction.session_pid import _sync_kill_provider
 
         provider = MagicMock(spec=["_client", "_proc", "_active_proc"])
         provider._client = None
         provider._proc = None
         provider._active_proc = None
 
-        with patch("kiro_crew.session_pid.platform_compat.kill_pid") as mock_kill:
+        with patch("junction.session_pid.platform_compat.kill_pid") as mock_kill:
             _sync_kill_provider(provider)
 
         mock_kill.assert_not_called()
@@ -999,7 +999,7 @@ class TestSyncKillProvider:
         through the POSIX escalation loop (kill_pid is recorded, not real, so
         the loop runs both iterations deterministically), then reaps the child.
         """
-        from kiro_crew.session_pid import _sync_kill_provider
+        from junction.session_pid import _sync_kill_provider
 
         proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
         try:
@@ -1017,7 +1017,7 @@ class TestSyncKillProvider:
                 return True
 
             with patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=fake_kill,
             ):
                 _sync_kill_provider(provider)
@@ -1034,7 +1034,7 @@ class TestSyncKillProvider:
     )
     def test_posix_already_dead_on_sigterm(self) -> None:
         """ProcessLookupError on first signal → early return (already dead)."""
-        from kiro_crew.session_pid import _sync_kill_provider
+        from junction.session_pid import _sync_kill_provider
 
         provider = MagicMock(spec=["_client", "_proc", "_active_proc"])
         provider._client = None
@@ -1050,7 +1050,7 @@ class TestSyncKillProvider:
             raise ProcessLookupError()
 
         with patch(
-            "kiro_crew.session_pid.platform_compat.kill_pid",
+            "junction.session_pid.platform_compat.kill_pid",
             side_effect=fake_kill,
         ):
             _sync_kill_provider(provider)
@@ -1062,7 +1062,7 @@ class TestSyncKillProvider:
 class TestCleanupOrphanedMcpServersExtra:
     def test_bare_pid_non_numeric_skipped(self, pid_file: Path) -> None:
         """A bare (no-colon) line that is not an int is skipped via ValueError."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("not_a_number\n")
 
@@ -1074,7 +1074,7 @@ class TestCleanupOrphanedMcpServersExtra:
 
     def test_orphan_kill_oserror_swallowed(self, pid_file: Path) -> None:
         """kill_pid raising OSError on an orphaned child is swallowed; entry pruned."""
-        from kiro_crew.session_pid import _cleanup_orphaned_mcp_servers
+        from junction.session_pid import _cleanup_orphaned_mcp_servers
 
         pid_file.write_text("77777:99999\n")  # parent 99999 dead
 
@@ -1086,12 +1086,12 @@ class TestCleanupOrphanedMcpServersExtra:
 
         with (
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_exists",
+                "junction.session_pid.platform_compat.pid_exists",
                 side_effect=fake_pid_exists,
             ),
-            patch("kiro_crew.platform_compat.get_ppid", return_value=1),
+            patch("junction.platform_compat.get_ppid", return_value=1),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=fake_kill,
             ),
         ):
@@ -1118,10 +1118,10 @@ class TestPidGoneOrUnmanaged:
     """
 
     def test_dead_pid_is_safe_to_untrack(self) -> None:
-        from kiro_crew.session_pid import _pid_gone_or_unmanaged
+        from junction.session_pid import _pid_gone_or_unmanaged
 
         with patch(
-            "kiro_crew.platform_compat.pid_liveness",
+            "junction.platform_compat.pid_liveness",
             return_value=platform_compat.PID_DEAD,
         ):
             assert _pid_gone_or_unmanaged(4242) is True
@@ -1131,7 +1131,7 @@ class TestPidGoneOrUnmanaged:
         # is a managed agent: it may be an un-reaped survivor, and the periodic
         # sweep re-validates ownership before reaping. This is the fail-safe
         # direction — we never untrack something that is still alive here.
-        from kiro_crew.session_pid import _pid_gone_or_unmanaged
+        from junction.session_pid import _pid_gone_or_unmanaged
 
         assert _pid_gone_or_unmanaged(os.getpid()) is False
 
@@ -1140,19 +1140,19 @@ class TestPidGoneOrUnmanaged:
         # PID_UNSIGNALABLE, which we treat as "retain" (the sweep re-validates
         # ownership off the hot path). Never orphaning a live survivor is the
         # invariant; a retained-but-recycled PID is harmless.
-        from kiro_crew.session_pid import _pid_gone_or_unmanaged
+        from junction.session_pid import _pid_gone_or_unmanaged
 
         with patch(
-            "kiro_crew.platform_compat.pid_liveness",
+            "junction.platform_compat.pid_liveness",
             return_value=platform_compat.PID_UNSIGNALABLE,
         ):
             assert _pid_gone_or_unmanaged(4242) is False
 
     def test_alive_pid_is_retained(self) -> None:
-        from kiro_crew.session_pid import _pid_gone_or_unmanaged
+        from junction.session_pid import _pid_gone_or_unmanaged
 
         with patch(
-            "kiro_crew.platform_compat.pid_liveness",
+            "junction.platform_compat.pid_liveness",
             return_value=platform_compat.PID_ALIVE,
         ):
             assert _pid_gone_or_unmanaged(4242) is False
@@ -1165,78 +1165,78 @@ class TestMarkedMcpLauncherPredicates:
     """Positive-ID sweep path for fingerprint-less MCP launchers (npx)."""
 
     def test_matches_npx_playwright_null_separated(self) -> None:
-        from kiro_crew.session_pid import _is_marked_mcp_launcher
+        from junction.session_pid import _is_marked_mcp_launcher
 
         cmdline = b"npx\x00@playwright/mcp\x00--headless"
         assert _is_marked_mcp_launcher(cmdline) is True
 
     def test_matches_npx_playwright_space_separated(self) -> None:
         """macOS ps output is space-separated — substring match covers both."""
-        from kiro_crew.session_pid import _is_marked_mcp_launcher
+        from junction.session_pid import _is_marked_mcp_launcher
 
         cmdline = b"/usr/local/bin/node /usr/lib/node_modules/@playwright/mcp/cli.js"
         assert _is_marked_mcp_launcher(cmdline) is True
 
     def test_matches_generic_start_server(self) -> None:
-        from kiro_crew.session_pid import _is_marked_mcp_launcher
+        from junction.session_pid import _is_marked_mcp_launcher
 
         cmdline = b"/bin/sh\x00-c\x00some-launcher mcp start-server slack-mcp"
         assert _is_marked_mcp_launcher(cmdline) is True
 
     def test_rejects_peer_gateway(self) -> None:
-        from kiro_crew.session_pid import _is_marked_mcp_launcher
+        from junction.session_pid import _is_marked_mcp_launcher
 
-        cmdline = b"python3\x00-m\x00kiro_crew.mcp_gateway.gatewayd\x00mcp start-server"
+        cmdline = b"python3\x00-m\x00junction.mcp_gateway.gatewayd\x00mcp start-server"
         assert _is_marked_mcp_launcher(cmdline) is False
 
     def test_rejects_unrelated_process(self) -> None:
-        from kiro_crew.session_pid import _is_marked_mcp_launcher
+        from junction.session_pid import _is_marked_mcp_launcher
 
         assert _is_marked_mcp_launcher(b"vim\x00notes-about-mcp.md") is False
 
     def test_sweepable_requires_env_marker_for_marked_launcher(self) -> None:
         """npx cmdline WITHOUT the environ marker is NOT sweepable."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_mcp
+        from junction.session_pid import _is_sweepable_orphan_mcp
 
         cmdline = b"npx\x00@playwright/mcp\x00--headless"
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=False):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=False):
             assert _is_sweepable_orphan_mcp(1234, cmdline) is False
 
     def test_sweepable_with_env_marker(self) -> None:
-        from kiro_crew.session_pid import _is_sweepable_orphan_mcp
+        from junction.session_pid import _is_sweepable_orphan_mcp
 
         cmdline = b"npx\x00@playwright/mcp\x00--headless"
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=True):
             assert _is_sweepable_orphan_mcp(1234, cmdline) is True
 
     def test_fingerprinted_cmdline_never_reads_environ(self) -> None:
         """The pre-existing marker path must not depend on the environ read."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_mcp
+        from junction.session_pid import _is_sweepable_orphan_mcp
 
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker") as mock_env:
-            assert _is_sweepable_orphan_mcp(1, b"kirocrew_sandbox_abc\x00--stdio") is True
+        with patch("junction.session_pid._env_has_junction_marker") as mock_env:
+            assert _is_sweepable_orphan_mcp(1, b"junction_sandbox_abc\x00--stdio") is True
         mock_env.assert_not_called()
 
 
-class TestEnvHasKirocrewMarker:
+class TestEnvHasJunctionMarker:
     """/proc/<pid>/environ positive-identity read."""
 
     def test_non_linux_fails_closed(self) -> None:
-        from kiro_crew.session_pid import _env_has_kirocrew_marker
+        from junction.session_pid import _env_has_junction_marker
 
-        with patch("kiro_crew.session_pid.sys") as mock_sys:
+        with patch("junction.session_pid.sys") as mock_sys:
             mock_sys.platform = "darwin"
-            assert _env_has_kirocrew_marker(os.getpid()) is False
+            assert _env_has_junction_marker(os.getpid()) is False
 
     def test_read_failure_fails_closed(self) -> None:
-        from kiro_crew.session_pid import _env_has_kirocrew_marker
+        from junction.session_pid import _env_has_junction_marker
 
         with (
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", side_effect=PermissionError),
         ):
             mock_sys.platform = "linux"
-            assert _env_has_kirocrew_marker(1) is False
+            assert _env_has_junction_marker(1) is False
 
     @pytest.mark.skipif(sys.platform != "linux", reason="/proc is Linux-only")
     def test_real_child_with_marker(self) -> None:
@@ -1248,31 +1248,31 @@ class TestEnvHasKirocrewMarker:
         """
         import time
 
-        from kiro_crew.constants import KIROCREW_SPAWNED_ENV, KIROCREW_SPAWNED_VALUE
-        from kiro_crew.session_pid import _env_has_kirocrew_marker
+        from junction.constants import JUNCTION_SPAWNED_ENV, JUNCTION_SPAWNED_VALUE
+        from junction.session_pid import _env_has_junction_marker
 
-        env = {**os.environ, KIROCREW_SPAWNED_ENV: KIROCREW_SPAWNED_VALUE}
+        env = {**os.environ, JUNCTION_SPAWNED_ENV: JUNCTION_SPAWNED_VALUE}
         proc = subprocess.Popen(["sleep", "30"], env=env)
         try:
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
-                if _env_has_kirocrew_marker(proc.pid):
+                if _env_has_junction_marker(proc.pid):
                     break
                 time.sleep(0.05)
-            assert _env_has_kirocrew_marker(proc.pid) is True
+            assert _env_has_junction_marker(proc.pid) is True
         finally:
             proc.kill()
             proc.wait()
 
     @pytest.mark.skipif(sys.platform != "linux", reason="/proc is Linux-only")
     def test_real_child_without_marker(self) -> None:
-        from kiro_crew.constants import KIROCREW_SPAWNED_ENV
-        from kiro_crew.session_pid import _env_has_kirocrew_marker
+        from junction.constants import JUNCTION_SPAWNED_ENV
+        from junction.session_pid import _env_has_junction_marker
 
-        env = {k: v for k, v in os.environ.items() if k != KIROCREW_SPAWNED_ENV}
+        env = {k: v for k, v in os.environ.items() if k != JUNCTION_SPAWNED_ENV}
         proc = subprocess.Popen(["sleep", "30"], env=env)
         try:
-            assert _env_has_kirocrew_marker(proc.pid) is False
+            assert _env_has_junction_marker(proc.pid) is False
         finally:
             proc.kill()
             proc.wait()
@@ -1282,17 +1282,17 @@ class TestMarkedLauncherSweepIntegration:
     """find + kill phases honor the marked-launcher positive-ID path."""
 
     def test_find_includes_marked_npx_orphan(self) -> None:
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[700]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[700]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=b"npx\x00@playwright/mcp\x00--headless"),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1303,15 +1303,15 @@ class TestMarkedLauncherSweepIntegration:
 
     def test_find_excludes_unmarked_npx_orphan(self) -> None:
         """A user's own npx process (no environ marker) is never a candidate."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[710]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[710]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=b"npx\x00@playwright/mcp\x00--headless"),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=False),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=False),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -1320,18 +1320,18 @@ class TestMarkedLauncherSweepIntegration:
 
     @_POSIX_ONLY
     def test_kill_reverify_honors_marked_launcher(self) -> None:
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpgid", return_value=720),
             patch("os.killpg") as mock_killpg,
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=b"npx\x00@playwright/mcp\x00--headless"),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1343,7 +1343,7 @@ class TestMarkedLauncherSweepIntegration:
 
     @_POSIX_ONLY
     def test_kill_reverify_skips_unmarked_launcher(self) -> None:
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
@@ -1351,9 +1351,9 @@ class TestMarkedLauncherSweepIntegration:
             patch("os.killpg") as mock_killpg,
             patch("os.kill") as mock_kill,
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=b"npx\x00@playwright/mcp\x00--headless"),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=False),
+            patch("junction.session_pid._env_has_junction_marker", return_value=False),
         ):
             mock_sys.platform = "linux"
             killed = kill_orphan_mcps([730])
@@ -1372,16 +1372,16 @@ class TestIsSweepableOrphanWork:
     _PYTEST_CMDLINE = b"/usr/bin/python3\x00-m\x00pytest\x00test/\x00-x\x00-q"
 
     def test_marked_orphaned_old_work_process_is_sweepable(self) -> None:
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
         with (
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1389,20 +1389,20 @@ class TestIsSweepableOrphanWork:
 
     def test_xdist_execnet_worker_is_sweepable(self) -> None:
         """pytest-xdist popen workers run under execnet's bootstrap cmdline."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
         worker = (
             b"/repo/.venv/bin/python\x00-u\x00-c"
             b"\x00import sys;exec(eval(sys.stdin.readline()))"
         )
         with (
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1415,40 +1415,40 @@ class TestIsSweepableOrphanWork:
         still polls its log — SID still points at the live leader, so the
         sweep must leave the run alone. The environ is never read.
         """
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
         with (
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=True,
             ),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker") as mock_env,
+            patch("junction.session_pid._env_has_junction_marker") as mock_env,
         ):
             assert _is_sweepable_orphan_work(1234, self._PYTEST_CMDLINE, 700.0) is False
         mock_env.assert_not_called()
 
     def test_unreadable_sid_fails_closed(self) -> None:
         """SID read failure -> assume the owner is alive -> never sweep."""
-        from kiro_crew.session_pid import _work_orphan_session_leader_alive
+        from junction.session_pid import _work_orphan_session_leader_alive
 
-        with patch("kiro_crew.session_pid._linux_pid_sid", return_value=-1):
+        with patch("junction.session_pid._linux_pid_sid", return_value=-1):
             assert _work_orphan_session_leader_alive(1234) is True
 
     def test_self_session_leader_fails_closed(self) -> None:
         """A setsid'd coordinator (own leader) carries no ownership info -> kept."""
-        from kiro_crew.session_pid import _work_orphan_session_leader_alive
+        from junction.session_pid import _work_orphan_session_leader_alive
 
-        with patch("kiro_crew.session_pid._linux_pid_sid", return_value=1234):
+        with patch("junction.session_pid._linux_pid_sid", return_value=1234):
             assert _work_orphan_session_leader_alive(1234) is True
 
     def test_dead_leader_means_session_ended(self) -> None:
         """Leader gone (or PID recycled into a non-leader) -> session ended."""
-        from kiro_crew.session_pid import _work_orphan_session_leader_alive
+        from junction.session_pid import _work_orphan_session_leader_alive
 
         def fake_sid(pid: int) -> int:
             return 500 if pid == 1234 else -1  # leader 500 unreadable = gone
 
-        with patch("kiro_crew.session_pid._linux_pid_sid", side_effect=fake_sid):
+        with patch("junction.session_pid._linux_pid_sid", side_effect=fake_sid):
             assert _work_orphan_session_leader_alive(1234) is False
 
     def test_marked_detached_daemon_is_not_sweepable(self) -> None:
@@ -1459,10 +1459,10 @@ class TestIsSweepableOrphanWork:
         Those are intentional survivors — the shape gate excludes them, and
         their environ is never even read.
         """
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
         daemon = b"/usr/bin/node\x00/opt/serve-sim/cli.js\x00--udid\x00ABC123"
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker") as mock_env:
+        with patch("junction.session_pid._env_has_junction_marker") as mock_env:
             assert _is_sweepable_orphan_work(1234, daemon, 7000.0) is False
         mock_env.assert_not_called()
 
@@ -1470,22 +1470,22 @@ class TestIsSweepableOrphanWork:
         """'pytest' inside a path ARGUMENT must not match (structural, not
         substring): ``nohup node /work/pytest-dashboard/server.js`` is a
         daemon, not a test run."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
         daemon = b"/usr/bin/node\x00/work/pytest-dashboard/server.js"
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker") as mock_env:
+        with patch("junction.session_pid._env_has_junction_marker") as mock_env:
             assert _is_sweepable_orphan_work(1234, daemon, 7000.0) is False
         mock_env.assert_not_called()
 
     def test_venv_pytest_console_script_is_sweepable(self) -> None:
         """argv0 basename exactly ``pytest`` (venv console script) matches."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
         console = b"/repo/.venv/bin/pytest\x00test/\x00-q"
         with (
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1494,7 +1494,7 @@ class TestIsSweepableOrphanWork:
     def test_bootstrap_payload_as_free_arg_is_not_sweepable(self) -> None:
         """The execnet payload only matches as the argument OF ``-c`` — the
         same bytes appearing as any other argv element do not qualify."""
-        from kiro_crew.session_pid import _work_sweep_cmdline_is_test_runner
+        from junction.session_pid import _work_sweep_cmdline_is_test_runner
 
         free = b"/usr/bin/grep\x00import sys;exec(eval(sys.stdin.readline()))\x00log"
         assert _work_sweep_cmdline_is_test_runner(free) is False
@@ -1505,22 +1505,22 @@ class TestIsSweepableOrphanWork:
         Age is checked FIRST so a young process never even has its environ
         read; the env-marker mock asserts it stays uncalled.
         """
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker") as mock_env:
+        with patch("junction.session_pid._env_has_junction_marker") as mock_env:
             assert _is_sweepable_orphan_work(1234, self._PYTEST_CMDLINE, 599.0) is False
         mock_env.assert_not_called()
 
     def test_mcp_floor_is_not_enough_for_work_class(self) -> None:
         """The 120s MCP floor must NOT admit work processes (dedicated floor)."""
-        from kiro_crew.session_pid import (
+        from junction.session_pid import (
             _ORPHAN_MIN_AGE_SECONDS,
             _ORPHAN_WORK_MIN_AGE_SECONDS,
             _is_sweepable_orphan_work,
         )
 
         assert _ORPHAN_WORK_MIN_AGE_SECONDS > _ORPHAN_MIN_AGE_SECONDS
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=True):
             assert (
                 _is_sweepable_orphan_work(
                     1234, self._PYTEST_CMDLINE, _ORPHAN_MIN_AGE_SECONDS + 1
@@ -1529,17 +1529,17 @@ class TestIsSweepableOrphanWork:
             )
 
     def test_unmarked_work_process_is_not_sweepable(self) -> None:
-        """No KIROCREW_SPAWNED environ marker — a user's own pytest is safe."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        """No JUNCTION_SPAWNED environ marker — a user's own pytest is safe."""
+        from junction.session_pid import _is_sweepable_orphan_work
 
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=False):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=False):
             assert _is_sweepable_orphan_work(1234, self._PYTEST_CMDLINE, 700.0) is False
 
     def test_managed_agent_basename_is_not_sweepable(self) -> None:
         """kiro-cli/claude runtimes stay owned by their tracked-PID lifecycle."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=True):
             assert (
                 _is_sweepable_orphan_work(
                     1234, b"/usr/local/bin/kiro-cli\x00chat\x00--acp", 700.0
@@ -1550,21 +1550,21 @@ class TestIsSweepableOrphanWork:
 
     def test_gateway_entrypoint_is_not_sweepable(self) -> None:
         """Agent-launched peer gateways (e.g. dev pods) are never swept."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=True):
             assert (
                 _is_sweepable_orphan_work(
-                    1234, b"python3\x00-m\x00kiro_crew.mcp_gateway.gatewayd", 700.0
+                    1234, b"python3\x00-m\x00junction.mcp_gateway.gatewayd", 700.0
                 )
                 is False
             )
 
     def test_empty_cmdline_is_not_sweepable(self) -> None:
         """Kernel threads / zombies (empty cmdline) are never candidates."""
-        from kiro_crew.session_pid import _is_sweepable_orphan_work
+        from junction.session_pid import _is_sweepable_orphan_work
 
-        with patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True):
+        with patch("junction.session_pid._env_has_junction_marker", return_value=True):
             assert _is_sweepable_orphan_work(1234, b"", 700.0) is False
 
 
@@ -1574,17 +1574,17 @@ class TestWorkOrphanSweepIntegration:
     _PYTEST_CMDLINE = b"/usr/bin/python3\x00-m\x00pytest\x00test/\x00-x\x00-q"
 
     def test_find_includes_marked_old_work_orphan(self) -> None:
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[900]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[900]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=self._PYTEST_CMDLINE),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=700.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._linux_pid_age", return_value=700.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1594,17 +1594,17 @@ class TestWorkOrphanSweepIntegration:
         assert result == [900]
 
     def test_find_excludes_young_marked_work_orphan(self) -> None:
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[901]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[901]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=self._PYTEST_CMDLINE),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1614,15 +1614,15 @@ class TestWorkOrphanSweepIntegration:
         assert result == []
 
     def test_find_excludes_unmarked_work_orphan(self) -> None:
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[902]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[902]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=self._PYTEST_CMDLINE),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=700.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=False),
+            patch("junction.session_pid._linux_pid_age", return_value=700.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=False),
         ):
             mock_sys.platform = "linux"
             result = find_orphan_mcp_candidates(active_pids=set())
@@ -1631,19 +1631,19 @@ class TestWorkOrphanSweepIntegration:
 
     def test_find_excludes_marked_kiro_cli_orphan(self) -> None:
         """Managed agent runtime carrying the marker still isn't work-swept."""
-        from kiro_crew.session_pid import find_orphan_mcp_candidates
+        from junction.session_pid import find_orphan_mcp_candidates
 
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[903]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[903]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(
                 Path, "read_bytes", return_value=b"/usr/local/bin/kiro-cli\x00chat\x00--acp"
             ),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=700.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._linux_pid_age", return_value=700.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
         ):
@@ -1654,25 +1654,25 @@ class TestWorkOrphanSweepIntegration:
 
     def test_kill_sweeps_whole_subtree_leaf_first(self) -> None:
         """Descendants (incl. grandchildren) die before parents; root last."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         kill_order: list[int] = []
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=self._PYTEST_CMDLINE),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=700.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._linux_pid_age", return_value=700.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
             # Preorder: 910 -> [911, 912(-> 913)]; 913 is a grandchild.
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[911, 912, 913]),
+            patch("junction.acp.client._get_child_pids", return_value=[911, 912, 913]),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, _sig: kill_order.append(p),
             ),
         ):
@@ -1685,16 +1685,16 @@ class TestWorkOrphanSweepIntegration:
 
     def test_kill_reverify_skips_now_young_or_unmarked(self) -> None:
         """Kill-phase re-verify fails closed when the marker is gone (TOCTOU)."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         with (
             patch("os.getpgrp", return_value=1000),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=self._PYTEST_CMDLINE),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=700.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=False),
-            patch("kiro_crew.session_pid.platform_compat.kill_pid") as mock_kill,
+            patch("junction.session_pid._linux_pid_age", return_value=700.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=False),
+            patch("junction.session_pid.platform_compat.kill_pid") as mock_kill,
         ):
             mock_sys.platform = "linux"
             killed = kill_orphan_mcps([920])
@@ -1704,28 +1704,28 @@ class TestWorkOrphanSweepIntegration:
 
     def test_subtree_kill_respects_global_cap(self) -> None:
         """The _ORPHAN_SWEEP_MAX_KILLS cap bounds subtree members too."""
-        from kiro_crew.session_pid import kill_orphan_mcps
+        from junction.session_pid import kill_orphan_mcps
 
         kill_order: list[int] = []
 
         with (
-            patch("kiro_crew.session_pid._ORPHAN_SWEEP_MAX_KILLS", 3),
+            patch("junction.session_pid._ORPHAN_SWEEP_MAX_KILLS", 3),
             patch("os.getpgrp", return_value=1000),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=self._PYTEST_CMDLINE),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=700.0),
-            patch("kiro_crew.session_pid._env_has_kirocrew_marker", return_value=True),
+            patch("junction.session_pid._linux_pid_age", return_value=700.0),
+            patch("junction.session_pid._env_has_junction_marker", return_value=True),
             patch(
-                "kiro_crew.session_pid._work_orphan_session_leader_alive",
+                "junction.session_pid._work_orphan_session_leader_alive",
                 return_value=False,
             ),
             patch(
-                "kiro_crew.acp.client._get_child_pids",
+                "junction.acp.client._get_child_pids",
                 return_value=[931, 932, 933, 934, 935],
             ),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, _sig: kill_order.append(p),
             ),
         ):
@@ -1739,19 +1739,19 @@ class TestWorkOrphanSweepIntegration:
 
 
 class TestSpawnedMarkerInjection:
-    """Every provider/MCP spawn site injects the KIROCREW_SPAWNED marker."""
+    """Every provider/MCP spawn site injects the JUNCTION_SPAWNED marker."""
 
     def test_sandboxed_spawn_argv_injects_marker(self) -> None:
-        from kiro_crew.constants import KIROCREW_SPAWNED_ENV, KIROCREW_SPAWNED_VALUE
-        from kiro_crew.sandbox import sandboxed_spawn_argv
+        from junction.constants import JUNCTION_SPAWNED_ENV, JUNCTION_SPAWNED_VALUE
+        from junction.sandbox import sandboxed_spawn_argv
 
         with (
-            patch("kiro_crew.sandbox.wrap_argv", return_value=(["echo"], None)),
-            patch("kiro_crew.sandbox.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.sandbox.wrap_argv", return_value=(["echo"], None)),
+            patch("junction.sandbox.cgroup_scope_argv", side_effect=lambda a: a),
         ):
             _, env, _ = sandboxed_spawn_argv(["echo"], env={"PATH": "/bin"})
 
-        assert env.get(KIROCREW_SPAWNED_ENV) == KIROCREW_SPAWNED_VALUE
+        assert env.get(JUNCTION_SPAWNED_ENV) == JUNCTION_SPAWNED_VALUE
 
     def test_spawn_site_source_registry(self) -> None:
         """Drift guard: the marker constant must appear at every known
@@ -1761,7 +1761,7 @@ class TestSpawnedMarkerInjection:
         The fork is KiroACP-only, so upstream's ``providers/claude_code.py``
         spawn site is intentionally absent from this list (the module is
         deleted in the public fork)."""
-        src_root = Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+        src_root = Path(__file__).resolve().parent.parent / "src" / "junction"
         spawn_sites = [
             "sandbox.py",
             "acp/runtime.py",
@@ -1770,8 +1770,8 @@ class TestSpawnedMarkerInjection:
         ]
         for rel in spawn_sites:
             content = (src_root / rel).read_text(encoding="utf-8")
-            assert "KIROCREW_SPAWNED_ENV" in content, (
-                f"{rel} no longer injects the KIROCREW_SPAWNED marker — "
+            assert "JUNCTION_SPAWNED_ENV" in content, (
+                f"{rel} no longer injects the JUNCTION_SPAWNED marker — "
                 "escaped MCP trees from this site become unsweepable"
             )
 
@@ -1789,9 +1789,9 @@ class TestPidStartTokenIdentityGuard:
         self, session_pid_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Entries carry ``gw:pid:token`` so the sweep can verify identity."""
-        from kiro_crew.session_pid import _track_session_pid
+        from junction.session_pid import _track_session_pid
 
-        monkeypatch.setattr("kiro_crew.session_pid._pid_start_token", lambda p: "tok123")
+        monkeypatch.setattr("junction.session_pid._pid_start_token", lambda p: "tok123")
         _track_session_pid(4242)
         assert session_pid_file.read_text(encoding="utf-8").strip() == f"{os.getpid()}:4242:tok123"
 
@@ -1799,9 +1799,9 @@ class TestPidStartTokenIdentityGuard:
         self, session_pid_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """No token (Windows / ps failure) → legacy 2-field entry."""
-        from kiro_crew.session_pid import _track_session_pid
+        from junction.session_pid import _track_session_pid
 
-        monkeypatch.setattr("kiro_crew.session_pid._pid_start_token", lambda p: None)
+        monkeypatch.setattr("junction.session_pid._pid_start_token", lambda p: None)
         _track_session_pid(4242)
         assert session_pid_file.read_text(encoding="utf-8").strip() == f"{os.getpid()}:4242"
 
@@ -1809,10 +1809,10 @@ class TestPidStartTokenIdentityGuard:
         self, session_pid_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A legacy entry must not be duplicated by a token-bearing re-track."""
-        from kiro_crew.session_pid import _track_session_pid
+        from junction.session_pid import _track_session_pid
 
         session_pid_file.write_text(f"{os.getpid()}:4242\n")
-        monkeypatch.setattr("kiro_crew.session_pid._pid_start_token", lambda p: "tok123")
+        monkeypatch.setattr("junction.session_pid._pid_start_token", lambda p: "tok123")
         _track_session_pid(4242)
         lines = session_pid_file.read_text(encoding="utf-8").strip().splitlines()
         assert lines == [f"{os.getpid()}:4242"]
@@ -1821,9 +1821,9 @@ class TestPidStartTokenIdentityGuard:
         self, session_pid_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Untrack matches the token-bearing form, not just the legacy one."""
-        from kiro_crew.session_pid import _track_session_pid, _untrack_session_pid
+        from junction.session_pid import _track_session_pid, _untrack_session_pid
 
-        monkeypatch.setattr("kiro_crew.session_pid._pid_start_token", lambda p: "tok123")
+        monkeypatch.setattr("junction.session_pid._pid_start_token", lambda p: "tok123")
         _track_session_pid(4242)
         _untrack_session_pid(4242)
         assert session_pid_file.read_text(encoding="utf-8").strip() == ""
@@ -1834,34 +1834,34 @@ class TestPidStartTokenIdentityGuard:
         The PID is live and its cmdline matches an agent, so every pre-existing
         guard passes; only the start-token comparison catches the recycle.
         """
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
         # Dead gateway (999999) : live child PID, recorded with an OLD token.
         session_pid_file.write_text("999999:99998:oldtoken\n")
         kills: list[tuple[int, int]] = []
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
             # Live process now reports a DIFFERENT token → PID was recycled.
-            patch("kiro_crew.session_pid._pid_start_token", return_value="newtoken"),
+            patch("junction.session_pid._pid_start_token", return_value="newtoken"),
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_liveness",
+                "junction.session_pid.platform_compat.pid_liveness",
                 return_value=platform_compat.PID_ALIVE,
             ),
             # The owning gateway (999999) must read as DEAD or _skip_tagged
             # skips the entry and the test passes vacuously; the child is alive.
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_exists",
+                "junction.session_pid.platform_compat.pid_exists",
                 side_effect=lambda p: p != 999999,
             ),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
             # Grace disabled so the ONLY thing that can save the process is the
             # identity check under test.
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
         ):
             cleanup_orphaned_sessions()
 
@@ -1874,30 +1874,30 @@ class TestPidStartTokenIdentityGuard:
         transient probe failure orphans it permanently (the fail-safe stated in
         _pid_gone_or_unmanaged: "any inconclusive result retains").
         """
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
         entry = "999999:99998:recorded-token"
         session_pid_file.write_text(entry + "\n")
         kills: list[tuple[int, int]] = []
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
             # Identity unreadable (probe failure) — neither match nor mismatch.
-            patch("kiro_crew.session_pid._pid_start_token", return_value=None),
+            patch("junction.session_pid._pid_start_token", return_value=None),
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_liveness",
+                "junction.session_pid.platform_compat.pid_liveness",
                 return_value=platform_compat.PID_ALIVE,
             ),
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_exists",
+                "junction.session_pid.platform_compat.pid_exists",
                 side_effect=lambda p: p != 999999,
             ),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
         ):
             cleanup_orphaned_sessions()
 
@@ -1905,7 +1905,7 @@ class TestPidStartTokenIdentityGuard:
 
     def test_session_roots_unreadable_token_retains_entry(self, session_pid_file: Path) -> None:
         """Same fail-safe in the periodic root sweep: retain, don't kill or drop."""
-        from kiro_crew.session_pid import cleanup_orphaned_session_roots
+        from junction.session_pid import cleanup_orphaned_session_roots
 
         entry = "999999:99998:recorded-token"
         session_pid_file.write_text(entry + "\n")
@@ -1915,13 +1915,13 @@ class TestPidStartTokenIdentityGuard:
             return platform_compat.PID_DEAD if pid == 999999 else platform_compat.PID_ALIVE
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_start_token", return_value=None),
-            patch("kiro_crew.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
-            patch("kiro_crew.session_pid.platform_compat.get_ppid", return_value=1),
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_start_token", return_value=None),
+            patch("junction.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
+            patch("junction.session_pid.platform_compat.get_ppid", return_value=1),
+            patch("junction.session_pid.platform_compat.pid_exists", return_value=True),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
         ):
@@ -1944,7 +1944,7 @@ class TestPidStartTokenIdentityGuard:
         ever reaps it again. The token is strictly stronger evidence of identity
         than the parent, so it must not be vetoed by the PPid heuristic.
         """
-        from kiro_crew.session_pid import cleanup_orphaned_session_roots
+        from junction.session_pid import cleanup_orphaned_session_roots
 
         entry = "999999:99998:sametoken"
         session_pid_file.write_text(entry + "\n")
@@ -1954,15 +1954,15 @@ class TestPidStartTokenIdentityGuard:
             return platform_compat.PID_DEAD if pid == 999999 else platform_compat.PID_ALIVE
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_start_token", return_value="sametoken"),
-            patch("kiro_crew.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_start_token", return_value="sametoken"),
+            patch("junction.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
             # The subreaper that adopted the orphan -- neither init(1), nor the
             # dead gateway PID, nor the -1 probe-failure sentinel.
-            patch("kiro_crew.session_pid.platform_compat.get_ppid", return_value=7447),
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True),
+            patch("junction.session_pid.platform_compat.get_ppid", return_value=7447),
+            patch("junction.session_pid.platform_compat.pid_exists", return_value=True),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
         ):
@@ -1977,30 +1977,30 @@ class TestPidStartTokenIdentityGuard:
     @_POSIX_ONLY
     def test_matching_token_still_killed(self, session_pid_file: Path) -> None:
         """A genuine orphan (token matches) is still reaped — no regression."""
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
         session_pid_file.write_text("999999:99998:sametoken\n")
         kills: list[tuple[int, int]] = []
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_start_token", return_value="sametoken"),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_start_token", return_value="sametoken"),
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_liveness",
+                "junction.session_pid.platform_compat.pid_liveness",
                 return_value=platform_compat.PID_ALIVE,
             ),
             # The owning gateway (999999) must read as DEAD or _skip_tagged
             # skips the entry and the test passes vacuously; the child is alive.
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_exists",
+                "junction.session_pid.platform_compat.pid_exists",
                 side_effect=lambda p: p != 999999,
             ),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
         ):
             cleanup_orphaned_sessions()
 
@@ -2009,29 +2009,29 @@ class TestPidStartTokenIdentityGuard:
     @_POSIX_ONLY
     def test_legacy_entry_without_token_still_swept(self, session_pid_file: Path) -> None:
         """Back-compat: a 2-field entry keeps its old cmdline+grace behavior."""
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
         session_pid_file.write_text("999999:99998\n")
         kills: list[tuple[int, int]] = []
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_liveness",
+                "junction.session_pid.platform_compat.pid_liveness",
                 return_value=platform_compat.PID_ALIVE,
             ),
             # The owning gateway (999999) must read as DEAD or _skip_tagged
             # skips the entry and the test passes vacuously; the child is alive.
             patch(
-                "kiro_crew.session_pid.platform_compat.pid_exists",
+                "junction.session_pid.platform_compat.pid_exists",
                 side_effect=lambda p: p != 999999,
             ),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
         ):
             cleanup_orphaned_sessions()
 
@@ -2044,7 +2044,7 @@ class TestPidStartTokenIdentityGuard:
         A ``split(":", 1)`` parse would int("99998:tok") -> ValueError and prune
         the entry, silently dropping every token-bearing line from the sweep.
         """
-        from kiro_crew.session_pid import cleanup_orphaned_session_roots
+        from junction.session_pid import cleanup_orphaned_session_roots
 
         session_pid_file.write_text("999999:99998:sametoken\n")
         kills: list[tuple[int, int]] = []
@@ -2054,13 +2054,13 @@ class TestPidStartTokenIdentityGuard:
             return platform_compat.PID_DEAD if pid == 999999 else platform_compat.PID_ALIVE
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_start_token", return_value="sametoken"),
-            patch("kiro_crew.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
-            patch("kiro_crew.session_pid.platform_compat.get_ppid", return_value=1),
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_start_token", return_value="sametoken"),
+            patch("junction.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
+            patch("junction.session_pid.platform_compat.get_ppid", return_value=1),
+            patch("junction.session_pid.platform_compat.pid_exists", return_value=True),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
         ):
@@ -2070,7 +2070,7 @@ class TestPidStartTokenIdentityGuard:
 
     def test_session_roots_sweep_spares_recycled_pid(self, session_pid_file: Path) -> None:
         """Token mismatch in the periodic root sweep → prune, never kill."""
-        from kiro_crew.session_pid import cleanup_orphaned_session_roots
+        from junction.session_pid import cleanup_orphaned_session_roots
 
         session_pid_file.write_text("999999:99998:oldtoken\n")
         kills: list[tuple[int, int]] = []
@@ -2079,13 +2079,13 @@ class TestPidStartTokenIdentityGuard:
             return platform_compat.PID_DEAD if pid == 999999 else platform_compat.PID_ALIVE
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_start_token", return_value="newtoken"),
-            patch("kiro_crew.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
-            patch("kiro_crew.session_pid.platform_compat.get_ppid", return_value=1),
-            patch("kiro_crew.session_pid.platform_compat.pid_exists", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_start_token", return_value="newtoken"),
+            patch("junction.session_pid.platform_compat.pid_liveness", side_effect=fake_liveness),
+            patch("junction.session_pid.platform_compat.get_ppid", return_value=1),
+            patch("junction.session_pid.platform_compat.pid_exists", return_value=True),
             patch(
-                "kiro_crew.session_pid.platform_compat.kill_pid",
+                "junction.session_pid.platform_compat.kill_pid",
                 side_effect=lambda p, s: kills.append((p, s)),
             ),
         ):
@@ -2098,14 +2098,14 @@ class TestSpawnGraceCrossPlatform:
     @_POSIX_ONLY
     def test_grace_applies_on_macos(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Regression: the grace window was Linux-only, so macOS never got it."""
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         monkeypatch.setattr(sp.sys, "platform", "darwin")
         monkeypatch.setattr(sp, "_pid_age_seconds", lambda p: 5.0)
         assert sp._pid_in_spawn_grace(4242) is True
 
     def test_old_process_not_in_grace_on_macos(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         monkeypatch.setattr(sp.sys, "platform", "darwin")
         monkeypatch.setattr(sp, "_pid_age_seconds", lambda p: sp.SWEEP_SPAWN_GRACE_SECONDS + 1)
@@ -2114,7 +2114,7 @@ class TestSpawnGraceCrossPlatform:
     @_POSIX_ONLY
     def test_unknown_age_treated_as_young(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Unreadable age → safe direction (skip the kill)."""
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         monkeypatch.setattr(sp.sys, "platform", "darwin")
         monkeypatch.setattr(sp, "_pid_age_seconds", lambda p: None)
@@ -2124,7 +2124,7 @@ class TestSpawnGraceCrossPlatform:
         """macOS age comes from the in-process start id — no subprocess/ps."""
         import time as _time
 
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         monkeypatch.setattr(sp.sys, "platform", "darwin")
         monkeypatch.setattr(sp.platform_compat, "IS_WINDOWS", False)
@@ -2134,7 +2134,7 @@ class TestSpawnGraceCrossPlatform:
         assert age is not None and 85.0 <= age <= 95.0
 
     def test_macos_age_none_when_identity_unknown(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         monkeypatch.setattr(sp.sys, "platform", "darwin")
         monkeypatch.setattr(sp.platform_compat, "IS_WINDOWS", False)
@@ -2143,7 +2143,7 @@ class TestSpawnGraceCrossPlatform:
 
     def test_windows_has_no_grace(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Windows keeps prior behavior (no age source, sweep stays functional)."""
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         monkeypatch.setattr(sp.platform_compat, "IS_WINDOWS", True)
         assert sp._pid_in_spawn_grace(4242) is False
@@ -2164,9 +2164,9 @@ class TestSweepSparesLiveProcess:
     def test_live_process_with_recycled_entry_survives(
         self, session_pid_file: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.session_pid import cleanup_orphaned_sessions
+        from junction.session_pid import cleanup_orphaned_sessions
 
-        monkeypatch.setattr("kiro_crew.session_pid.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.session_pid.config_dir", lambda: tmp_path)
         victim = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
         try:
             # Stale entry from a DEAD gateway naming the live PID, with a token
@@ -2175,7 +2175,7 @@ class TestSweepSparesLiveProcess:
 
             with (
                 # Cmdline check passes (as it did in the real incident).
-                patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
+                patch("junction.session_pid._is_managed_agent_process", return_value=True),
                 # The owning gateway (999999) must read as DEAD, or `_skip_tagged`
                 # keeps the entry and the prune assertion below fails. Pinned rather
                 # than assumed: 999999 is a perfectly ordinary live PID on a host
@@ -2184,12 +2184,12 @@ class TestSweepSparesLiveProcess:
                 # that one PID is faked -- every other, the live victim included,
                 # still goes to the real probe.
                 patch(
-                    "kiro_crew.session_pid.platform_compat.pid_exists",
+                    "junction.session_pid.platform_compat.pid_exists",
                     side_effect=lambda p: p != 999999 and platform_compat.pid_exists(p),
                 ),
                 # Grace disabled: isolate the identity check as the sole guard.
-                patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-                patch("kiro_crew.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
+                patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+                patch("junction.session_pid._cleanup_orphaned_mcp_servers", return_value=0),
             ):
                 cleanup_orphaned_sessions()
 
@@ -2239,13 +2239,13 @@ class TestPidFileRewriteIsAtomic:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        from kiro_crew.session_pid import _write_back_pid_file
+        from junction.session_pid import _write_back_pid_file
 
         original = "100:200:tokA\n101:201:tokB\n102:202:tokC\n"
         session_pid_file.write_text(original, encoding="utf-8")
-        monkeypatch.setattr("kiro_crew.atomic_write.replace_with_retry", self._fail_rename)
+        monkeypatch.setattr("junction.atomic_write.replace_with_retry", self._fail_rename)
 
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session_pid"):
+        with caplog.at_level(logging.ERROR, logger="junction.session_pid"):
             _write_back_pid_file({"101:201:tokB"})
 
         # The rewrite never landed, so the ledger must still name all three
@@ -2260,14 +2260,14 @@ class TestPidFileRewriteIsAtomic:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        from kiro_crew.session_pid import _untrack_session_pid
+        from junction.session_pid import _untrack_session_pid
 
         gw = os.getpid()
         original = f"{gw}:900:tokX\n{gw}:901:tokY\n"
         session_pid_file.write_text(original, encoding="utf-8")
-        monkeypatch.setattr("kiro_crew.atomic_write.replace_with_retry", self._fail_rename)
+        monkeypatch.setattr("junction.atomic_write.replace_with_retry", self._fail_rename)
 
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session_pid"):
+        with caplog.at_level(logging.ERROR, logger="junction.session_pid"):
             _untrack_session_pid(900)
 
         assert session_pid_file.read_text(encoding="utf-8") == original
@@ -2279,13 +2279,13 @@ class TestPidFileRewriteIsAtomic:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        from kiro_crew.session_pid import _untrack_pid
+        from junction.session_pid import _untrack_pid
 
         original = "700\n701\n702\n"
         pid_file.write_text(original, encoding="utf-8")
-        monkeypatch.setattr("kiro_crew.atomic_write.replace_with_retry", self._fail_rename)
+        monkeypatch.setattr("junction.atomic_write.replace_with_retry", self._fail_rename)
 
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session_pid"):
+        with caplog.at_level(logging.ERROR, logger="junction.session_pid"):
             _untrack_pid(701)
 
         assert pid_file.read_text(encoding="utf-8") == original
@@ -2297,13 +2297,13 @@ class TestPidFileRewriteIsAtomic:
         monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        from kiro_crew.session_pid import _untrack_child_pids
+        from junction.session_pid import _untrack_child_pids
 
         original = "800:1\n801:1\n"
         pid_file.write_text(original, encoding="utf-8")
-        monkeypatch.setattr("kiro_crew.atomic_write.replace_with_retry", self._fail_rename)
+        monkeypatch.setattr("junction.atomic_write.replace_with_retry", self._fail_rename)
 
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session_pid"):
+        with caplog.at_level(logging.ERROR, logger="junction.session_pid"):
             _untrack_child_pids({801: object()})
 
         assert pid_file.read_text(encoding="utf-8") == original
@@ -2324,18 +2324,18 @@ class TestPidFileRewriteIsAtomic:
         this rewrite unguarded during gateway start, so the error escaping here
         would abort startup.
         """
-        from kiro_crew.session_pid import _write_back_pid_file
+        from junction.session_pid import _write_back_pid_file
 
         def _sharing_violation(*_a: object, **_kw: object) -> None:
             raise PermissionError(32, "The process cannot access the file")
 
         original = "100:200:tokA\n101:201:tokB\n"
         session_pid_file.write_text(original, encoding="utf-8")
-        monkeypatch.setattr("kiro_crew.platform_compat.IS_WINDOWS", True)
-        monkeypatch.setattr("kiro_crew.atomic_write.os.replace", _sharing_violation)
+        monkeypatch.setattr("junction.platform_compat.IS_WINDOWS", True)
+        monkeypatch.setattr("junction.atomic_write.os.replace", _sharing_violation)
 
         # Runs with a live event loop, which is what disables the retry.
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session_pid"):
+        with caplog.at_level(logging.ERROR, logger="junction.session_pid"):
             _write_back_pid_file({"101:201:tokB"})
 
         assert session_pid_file.read_text(encoding="utf-8") == original
@@ -2344,7 +2344,7 @@ class TestPidFileRewriteIsAtomic:
     def test_successful_rewrite_lands_and_leaves_no_temp_residue(
         self, session_pid_file: Path
     ) -> None:
-        from kiro_crew.session_pid import _write_back_pid_file
+        from junction.session_pid import _write_back_pid_file
 
         session_pid_file.write_text("100:200:tokA\n101:201:tokB\n", encoding="utf-8")
 
@@ -2356,7 +2356,7 @@ class TestPidFileRewriteIsAtomic:
 
     def test_no_truncating_writer_remains_in_session_pid(self) -> None:
         """Ratchet: every PID-file rewrite goes through the atomic chokepoint."""
-        import kiro_crew.session_pid as sp
+        import junction.session_pid as sp
 
         source = Path(str(sp.__file__)).read_text(encoding="utf-8")
         assert ".write_text(" not in source, (

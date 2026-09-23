@@ -71,7 +71,7 @@ async function main() {
         packaged: true,
         disabled: 'externally-managed',
         managedBy: withMeta ? 'internal-registry' : '',
-        updateCommand: withMeta ? 'pkgtool update kirocrew' : '',
+        updateCommand: withMeta ? 'pkgtool update junction' : '',
       }),
       setChannel: async () => ({ ok: true }),
     }

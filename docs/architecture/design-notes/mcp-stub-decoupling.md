@@ -143,7 +143,7 @@ unrelated session.
 
 - Changing `PoolKey`. It gains no dimension, in this change or any other.
 - `UNPOOLABLE_SERVERS` — Kiro Crew's own MCP servers, which bind to
-  `KIROCREW_SESSION_KEY` and are passed through unwrapped. They are already
+  `JUNCTION_SESSION_KEY` and are passed through unwrapped. They are already
   per-session by construction; giving them stubs is a separate change.
 - HTTP/SSE MCP entries. They need no stub and stay raw in the settings overlay.
 - Per-server MCP Apps control. Orthogonal to stub emission.

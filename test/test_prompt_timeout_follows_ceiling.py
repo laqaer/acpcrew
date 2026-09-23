@@ -28,25 +28,25 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.acp import client as acp_client
-from kiro_crew.acp.client import (
+from junction.acp import client as acp_client
+from junction.acp.client import (
     _DEFAULT_PROMPT_TIMEOUT,
     _PROMPT_TIMEOUT_MARGIN_SECS,
     _effective_prompt_timeout,
     resolve_prompt_timeout,
 )
-from kiro_crew.config.loader import (
+from junction.config.loader import (
     CHAT_TURN_TIMEOUT_MAX,
     CHAT_TURN_TIMEOUT_MIN,
-    KiroCrewConfig,
+    JunctionConfig,
     _clamp_security_bounds,
     _safe_int,
 )
-from kiro_crew.dashboard import turn_dispatch as td
+from junction.dashboard import turn_dispatch as td
 
 
 def _patch_loaded_ceiling(monkeypatch, value: object) -> None:
-    """Patch ``KiroCrewConfig.load`` on the CLASS.
+    """Patch ``JunctionConfig.load`` on the CLASS.
 
     The resolver imports the class lazily inside the function and
     ``turn_dispatch`` holds a module-scope reference — both resolve to the same
@@ -58,10 +58,10 @@ def _patch_loaded_ceiling(monkeypatch, value: object) -> None:
         def _raise(cls):  # noqa: ANN001
             raise RuntimeError("no config here")
 
-        monkeypatch.setattr(KiroCrewConfig, "load", classmethod(_raise))
+        monkeypatch.setattr(JunctionConfig, "load", classmethod(_raise))
         return
     cfg = SimpleNamespace(agent=SimpleNamespace(chat_turn_timeout_secs=value))
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: cfg))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: cfg))
 
 
 class TestResolvePromptTimeout:
@@ -219,7 +219,7 @@ class TestTransportEntryPointsResolveNone:
     def test_session_handle_prompt_defaults_to_none(self) -> None:
         import inspect
 
-        from kiro_crew.acp.session_handle import AcpSessionHandle
+        from junction.acp.session_handle import AcpSessionHandle
 
         sig = inspect.signature(AcpSessionHandle.prompt)
         assert sig.parameters["timeout"].default is None

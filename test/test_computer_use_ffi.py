@@ -50,9 +50,9 @@ import struct
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.computer_use import macos_ffi, snapshot_macos
-from kiro_crew.computer_use.types import ComputerUseUnsupported, SnapshotRequest
+from junction import platform_compat
+from junction.computer_use import macos_ffi, snapshot_macos
+from junction.computer_use.types import ComputerUseUnsupported, SnapshotRequest
 
 # Sentinel handle values. Distinct and non-zero so a truthiness bug (treating a
 # valid handle as NULL) shows up as a wrong branch rather than passing by luck.
@@ -1269,7 +1269,7 @@ def test_cannot_complete_triggers_the_opt_in_and_exactly_one_retry(fakes: _Fakes
     """``-25204`` -> set ``AXManualAccessibility`` -> retry ONCE.
 
     Both halves matter. Without the opt-in, every Electron app (Slack, VS Code,
-    Obsidian, KiroCrew's own desktop app) looks permanently empty. Without the
+    Obsidian, Junction's own desktop app) looks permanently empty. Without the
     "exactly one retry" bound, a genuinely broken app costs the full poll wait on
     every single call.
 
@@ -1346,7 +1346,7 @@ def test_window_list_parses_entries_and_releases_the_array(fakes: _Fakes):
             macos_ffi.CG_WINDOW_NUMBER: fakes.new_number(2),
             macos_ffi.CG_WINDOW_OWNER_PID: fakes.new_number(637),
             macos_ffi.CG_WINDOW_OWNER_NAME: fakes.new_string("Google Chrome"),
-            macos_ffi.CG_WINDOW_NAME: fakes.new_string("KiroCrew — GitHub"),
+            macos_ffi.CG_WINDOW_NAME: fakes.new_string("Junction — GitHub"),
             macos_ffi.CG_WINDOW_LAYER: fakes.new_number(0),
         }
     )
@@ -1358,7 +1358,7 @@ def test_window_list_parses_entries_and_releases_the_array(fakes: _Fakes):
     assert windows[0].pid == 637
     assert windows[0].window_id == 2
     assert windows[0].owner_name == "Google Chrome"
-    assert windows[0].title == "KiroCrew — GitHub"
+    assert windows[0].title == "Junction — GitHub"
     assert windows[0].layer == 0
     assert array in fakes.heap.released
 
@@ -1455,7 +1455,7 @@ def test_post_key_sets_flags_on_every_event_including_a_no_modifier_one(fakes: _
 
 def test_post_key_applies_a_modifier_mask_verbatim(fakes: _Fakes):
     """A requested mask reaches every event unchanged (no OR with live state)."""
-    from kiro_crew.computer_use import keymap
+    from junction.computer_use import keymap
 
     keycode, flags = keymap.parse_key("cmd+shift+a")
     macos_ffi.post_key(637, keycode, flags)
@@ -1958,7 +1958,7 @@ def test_shots_dir_default_uses_the_platform_tempdir(fakes: _Fakes):
     """
     import tempfile
 
-    from kiro_crew.computer_use.types import SCREENSHOT_DIR_NAME
+    from junction.computer_use.types import SCREENSHOT_DIR_NAME
 
     path = macos_ffi.shots_dir_default()
     assert path.startswith(tempfile.gettempdir())

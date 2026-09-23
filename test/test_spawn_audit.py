@@ -1,6 +1,6 @@
 """Subprocess-spawn audit — security-review finding 92e24570.
 
-Every subprocess spawn in ``src/kiro_crew`` must be either
+Every subprocess spawn in ``src/junction`` must be either
 
 * routed through the sandbox chokepoint (its enclosing function calls
   ``sandboxed_spawn_argv``, ``wrap_argv``, or the regression-pinned async
@@ -28,7 +28,7 @@ The remaining unrouted spawns below are pre-existing and fall into these
 groups, none of which is the finding's agent-influenced-spawn vector:
 
 * Operator-invoked CLI / setup / doctor / self-update (fixed argv against our
-  own install: git pull, pip, npm, kiro-cli/kirocrew update,
+  own install: git pull, pip, npm, kiro-cli/junction update,
   systemctl/launchctl, node/ollama bootstrap).
 * Internal process management (read our own ppid; enumerate/kill our own
   managed/orphaned processes) and system-metrics probes (fixed sysctl/ps/etc).
@@ -75,7 +75,7 @@ import ast
 import functools
 from pathlib import Path
 
-_SRC_ROOT = Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+_SRC_ROOT = Path(__file__).resolve().parent.parent / "src" / "junction"
 
 
 def _is_bundled_skill_asset(path: Path) -> bool:
@@ -293,13 +293,13 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # recorded, rendered through ``str()``. Nothing here is agent-influenced.
         "platform_compat.py::process_start_time",
         "apps/backend.py::_resolve_nvm_path",
-        # py-spy attach for `kirocrew perf sample --pid`: fixed list-argv (no
+        # py-spy attach for `junction perf sample --pid`: fixed list-argv (no
         # shell=True), binary resolved via shutil.which rather than from input,
         # and every value is either a range-validated int (pid/seconds/rate) or a
         # path passed as a flag VALUE. NOT sandboxed because py-spy's whole job is
         # reading another process's memory (ptrace / task_for_pid) — a sandbox that
         # scrubbed that capability would break the feature it is guarding. Gated
-        # behind KIROCREW_DEBUG and reachable only from the CLI.
+        # behind JUNCTION_DEBUG and reachable only from the CLI.
         "cli_perf.py::_sample_out_of_process",
         # The SINGLE shared gh spawn chokepoint (github_runner.run_gh), serving
         # Issue Radar (`_gh_run`), Code Review Sage (`run_gh_json`,
@@ -708,8 +708,8 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "dep_sync.py::sync",
         "dep_sync.py::sync_or_reinstall",
         # Foreground last-resort restart (Make Live on hosts with no drivable
-        # service manager): a detached `kirocrew restart --port <marker port>`,
-        # fixed argv whose binary is validated (basenamed kirocrew, absolute,
+        # service manager): a detached `junction restart --port <marker port>`,
+        # fixed argv whose binary is validated (basenamed junction, absolute,
         # executable) from the gateway's own keystone-fenced run-marker or
         # shutil.which — never agent input. Deliberately NOT sandboxed for the
         # same reason as cli_server.py::_spawn_detached_gateway above: the child
@@ -720,7 +720,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # resolve through the CapabilityManager seam, so the resolver spawns no
         # subprocess at all and needs no allowlist entry.)
         # Browser Mode setup/install path, run only from the dashboard settings
-        # save (off the event loop) or the `kirocrew browse setup` CLI. Fixed
+        # save (off the event loop) or the `junction browse setup` CLI. Fixed
         # argv of trusted node-toolchain tools resolved via find_node_tool
         # (npm/npx/node) plus the ``playwright install <engine>`` subcommand,
         # ``browser_cli`` spawns the Playwright CLI toolchain on fixed argv that
@@ -807,7 +807,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "cli_server.py::_spawn_detached_gateway",
         "cli_server.py::_update",
         # The agent-only config refresh extracted from _update: a fixed argv
-        # (`<this interpreter> -m kiro_crew setup --agent-only`) built from
+        # (`<this interpreter> -m junction setup --agent-only`) built from
         # sys.executable plus literals, cwd from the detected install layout —
         # no shell, no PATH lookup, nothing agent-influenced. stdin=DEVNULL
         # and TimeoutExpired handling are pinned by
@@ -818,7 +818,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "cli_server.py::_update_wheel",
         "cli_setup.py::_setup_electron",
         # Cursor Motion overlay renderer: `<this interpreter> -m
-        # kiro_crew.computer_use.overlay_proc`, a fixed argv built from
+        # junction.computer_use.overlay_proc`, a fixed argv built from
         # sys.executable plus a module constant — no shell, no PATH lookup, and
         # nothing agent-supplied (pinned structurally by
         # test_computer_use_unsupported.py::test_overlay_spawn_is_a_fixed_module_launch).
@@ -888,12 +888,12 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "cloud/ssm.py::_run_install_command",
         "cloud/ssm.py::open_port_forward",
         "dashboard/chat_voice.py::api_voice_voices",
-        # Computer-use permission probe: `<our own kirocrew binary> computer
+        # Computer-use permission probe: `<our own junction binary> computer
         # doctor --json`, a fixed argv (module constants) with no shell and no
         # agent-reachable input — the handler passes nothing from the request
-        # body. The binary is resolved by `agent._kirocrew_mcp_invocation`, i.e.
+        # body. The binary is resolved by `agent._junction_mcp_invocation`, i.e.
         # the SAME install as the running gateway (or `sys.executable -m
-        # kiro_crew`), never a PATH shim the agent could plant. It exists as a
+        # junction`), never a PATH shim the agent could plant. It exists as a
         # subprocess precisely to keep the native ctypes probe OUT of the
         # gateway: a missing ctypes argtypes is a SIGSEGV, not an exception, and
         # in-process it would take the chat sessions, cron scheduler and Slack
@@ -917,7 +917,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "dashboard/handlers/terminal.py::api_terminal_ws",
         "dashboard/handlers/updates.py::_apply",
         # The update check's git side: fixed `git fetch` / `rev-parse` / `show` /
-        # `diff` list-argv (no shell=True) run in KIROCREW_PROJECT_DIR, an operator
+        # `diff` list-argv (no shell=True) run in JUNCTION_PROJECT_DIR, an operator
         # environment value, never agent input. Read-only version comparison —
         # nothing here writes to the tree.
         "dashboard/handlers/updates.py::_check_git_checkout",
@@ -936,7 +936,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "env.py::_run",
         "env.py::activate_mise",
         # Node bootstrap: runs the bundled ``ensure-node.sh`` (a fixed `bash
-        # <script>` argv, script path derived from KIROCREW_PROJECT_DIR / the
+        # <script>` argv, script path derived from JUNCTION_PROJECT_DIR / the
         # module's own location, never agent input) when no node resolves. Same
         # class as cli.py::_ensure_node, which invokes the identical script.
         "env.py::ensure_node",
@@ -950,7 +950,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # The shared ahead/behind divergence count: a read-only ``git rev-list
         # --count --left-right HEAD...<upstream>`` fixed list-argv (no shell)
         # run against the install's own checkout. Callers pass the repo path
-        # (KIROCREW_PROJECT_DIR, an operator environment value) and the
+        # (JUNCTION_PROJECT_DIR, an operator environment value) and the
         # upstream spelling — a literal ``@{u}`` or ``origin/<branch>`` where
         # <branch> is git's own ``rev-parse --abbrev-ref HEAD`` output sitting
         # after the ``origin/`` prefix so it cannot become an option. Nothing
@@ -965,7 +965,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "instances/diagnostics.py::_run_stdout",
         "instances/ssh_tunnel_manager.py::start",
         "instances/token_mint.py::mint_remote_token",
-        "instances/token_mint.py::run_remote_kirocrew",
+        "instances/token_mint.py::run_remote_junction",
         # The iMessage bridge child (`<cli_path> rpc [--db-path <p>]`). Fixed
         # list-argv, no shell: both paths come from the operator's own
         # `config.json` `imessage` section, which the settings API writes only
@@ -992,7 +992,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "platform/update_governance.py::_git_probe",
         # Read-only `git rev-parse --show-toplevel` deciding whether the install
         # root IS a working tree. Fixed list-argv (no shell=True); the only
-        # variable is the path, which comes from KIROCREW_PROJECT_DIR — an
+        # variable is the path, which comes from JUNCTION_PROJECT_DIR — an
         # operator environment value, never agent input — and is absolutized,
         # NUL-rejected and dash-rejected before being passed to `-C`, so it cannot
         # be read as an option. The environment is stripped of the GIT_DIR family
@@ -1047,7 +1047,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "power.py::_spawn_posix_inhibitor",
         "pod/cli.py::_logs",
         # launchd twin of pod/runtime.py::_run below: the single chokepoint for
-        # `launchctl <verb> gui/<uid>/dev.kirocrew.pod.<name>`. Argv is a fixed
+        # `launchctl <verb> gui/<uid>/dev.junction.pod.<name>`. Argv is a fixed
         # verb set plus a label built from a validate_name-checked pod name —
         # not agent-influenced. Same disposition as the systemctl wrapper.
         "pod/launchd.py::launchctl",
@@ -1058,7 +1058,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         "sandbox.py::_probe_sandbox_exec",
         "sandbox.py::_ssh_supports_accept_new",
         # The aggregate slice-ceiling apply: `systemctl --user set-property
-        # --runtime kirocrew-agents.slice MemoryMax=<N>M MemorySwapMax=0
+        # --runtime junction-agents.slice MemoryMax=<N>M MemorySwapMax=0
         # TasksMax=<N>`. Argv is a fixed verb plus module-constant unit name;
         # the only variable tokens are integers derived from config/sysconf
         # (type-checked, junk falls back to defaults) — not agent-influenced.
@@ -1067,7 +1067,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # are confined by.
         "sandbox.py::ensure_agents_slice_limits",
         # The agent-slice MemoryHigh reconciler. Fixed argv: `systemctl --user
-        # set-property --runtime kirocrew-agents.slice MemoryHigh=<value>`, where
+        # set-property --runtime junction-agents.slice MemoryHigh=<value>`, where
         # the binary is resolved with shutil.which (never a caller-supplied PATH)
         # and <value> is derived from host RAM, never from agent input.
         # Sandboxing it would also be circular: it CONFIGURES the cgroup
@@ -1089,7 +1089,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # it goes through the caller's privileged runner rather than spawning.)
         # The binaries are resolved with shutil.which (never a caller-supplied PATH),
         # the only variable argument is a tempfile path this module just wrote,
-        # and the whole flow runs from `kirocrew service install` on a TTY, not
+        # and the whole flow runs from `junction service install` on a TTY, not
         # from an agent turn. Sandboxing them would also be circular: their
         # purpose is to make the sandbox constructible in the first place.
         "service/apparmor.py::parser_version",
@@ -1108,7 +1108,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # artifact base, never from feed data). The child is the cli.sh
         # installer, which performs its own RSA-SHA256 signature verification.
         # NOT sandbox-routed because the installer must write to the managed
-        # venv and symlink ~/.local/bin/kirocrew.
+        # venv and symlink ~/.local/bin/junction.
         "slack/gateway.py::_auto_apply_wheel_update",
         # Pluggable update provider: CommandProvider runs operator-configured
         # shell commands from security_policy.json or config.json (sensitive
@@ -1176,7 +1176,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
 )
 
 
-# First-party fixed-argv spawn sites: every call site in ``src/kiro_crew`` that
+# First-party fixed-argv spawn sites: every call site in ``src/junction`` that
 # passes the ``first_party_fixed_argv`` keyword into the sandbox chokepoint
 # (``sandboxed_spawn_argv`` / ``wrap_argv``). The flag buys an UNCONFINED spawn
 # on a backend-less host (issue #1563 carve-out), so "first-party" must be a
@@ -1189,7 +1189,7 @@ FIRST_PARTY_SPAWNS: frozenset[str] = frozenset(
         # The managed-server probe. The flag value is COMPUTED, not literal:
         # ``_is_first_party_managed_argv`` requires the spec's command+args+env
         # to EQUAL what this package derives for the managed server
-        # (``agent._kirocrew_mcp_invocation`` + ``agent._managed_mcp_env``, the
+        # (``agent._junction_mcp_invocation`` + ``agent._managed_mcp_env``, the
         # single sources of truth the specs are force-re-resolved from) — never
         # user-config text. Env is compared because the probe merges the spec's
         # env into the child environment and ``LD_PRELOAD`` changes what code
@@ -1385,10 +1385,10 @@ def test_every_spawn_is_routed_or_allowlisted():
     unrouted = _collect_unrouted_spawns()
     unexpected = unrouted - BENIGN_SPAWNS
     assert not unexpected, (
-        "New unrouted subprocess spawn(s) found in src/kiro_crew:\n  "
+        "New unrouted subprocess spawn(s) found in src/junction:\n  "
         + "\n  ".join(sorted(unexpected))
         + "\n\nRoute agent-influenced spawns through "
-        "kiro_crew.sandbox.sandboxed_spawn_argv (OS sandbox + scrubbed env), "
+        "junction.sandbox.sandboxed_spawn_argv (OS sandbox + scrubbed env), "
         "or, if the command/args/cwd are NOT agent-influenced, add the "
         "file::function key to BENIGN_SPAWNS in this test with a justification. "
         "See security-review finding 92e24570."
@@ -1456,7 +1456,7 @@ def test_every_routed_spawn_applies_resource_limits():
     assert not missing, (
         "Sandbox-routed spawn(s) missing a resource-limit preexec_fn:\n  "
         + "\n  ".join(sorted(missing))
-        + "\n\nPass preexec_fn=kiro_crew.sandbox.resource_limit_preexec() to the "
+        + "\n\nPass preexec_fn=junction.sandbox.resource_limit_preexec() to the "
         "spawn (kernel RLIMIT ceiling — fork bomb / FD / mem / CPU), or add the "
         "file::function key to PREEXEC_EXEMPT with a justification. "
         "See security-review finding bdf0d7e5."
@@ -1490,7 +1490,7 @@ def test_every_routed_spawn_applies_cgroup_scope():
     assert not missing, (
         "Sandbox-routed spawn(s) missing a cgroup v2 scope:\n  "
         + "\n  ".join(sorted(missing))
-        + "\n\nWrap the final argv with kiro_crew.sandbox.cgroup_scope_argv() "
+        + "\n\nWrap the final argv with junction.sandbox.cgroup_scope_argv() "
         "(pids.max + memory.max fork-bomb / memory-DoS ceiling), or route the "
         "spawn through sandboxed_spawn_argv which applies it. "
         "See security-review finding bdf0d7e5."
@@ -1522,11 +1522,11 @@ def test_bundled_skill_assets_are_not_imported():
     assert app_bundled, "app-bundled skill assets (apps/builtins/*/skills/**) not matched"
 
     asset_modules = {
-        "kiro_crew." + p.relative_to(_SRC_ROOT).with_suffix("").as_posix().replace("/", ".")
+        "junction." + p.relative_to(_SRC_ROOT).with_suffix("").as_posix().replace("/", ".")
         for p in assets
     }
     asset_packages = {
-        "kiro_crew." + p.relative_to(_SRC_ROOT).parent.as_posix().replace("/", ".") for p in assets
+        "junction." + p.relative_to(_SRC_ROOT).parent.as_posix().replace("/", ".") for p in assets
     }
 
     offenders: list[str] = []
@@ -1548,7 +1548,7 @@ def test_bundled_skill_assets_are_not_imported():
     assert not offenders, (
         "Gateway code imports a bundled skill asset, which the spawn audit "
         "exempts:\n  " + "\n  ".join(sorted(offenders)) + "\n\nEither move the "
-        "shared logic into a real module under src/kiro_crew (where the spawn "
+        "shared logic into a real module under src/junction (where the spawn "
         "audit reviews it), or drop the import."
     )
 

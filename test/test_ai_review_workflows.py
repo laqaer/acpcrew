@@ -17,8 +17,8 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 # contract assertion runs against the pair.
 FP_LANES = ("first-principles-review.yml", "fork-first-principles-review.yml")
 REVIEW_PROMPTS = ROOT / ".github" / "review-prompts"
-PREPARE_PR_SKILL = ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr" / "SKILL.md"
-PREPARE_PR_FINDINGS = ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr" / "scripts" / "pr_findings.py"
+PREPARE_PR_SKILL = ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr" / "SKILL.md"
+PREPARE_PR_FINDINGS = ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr" / "scripts" / "pr_findings.py"
 
 
 def _bash() -> str | None:
@@ -1058,18 +1058,18 @@ class TestFirstPrinciplesScopeGateBehavior:
         [
             # A plain FIX of existing backend code now RUNS: judging whether it
             # reached the cause is this lane's whole point.
-            ("src/kiro_crew/session.py", True),
+            ("src/junction/session.py", True),
             ("website/src/pages/Thing.tsx", True),
             ("config/defaults.json", True),
             ("scripts/check_brand_name.py", True),
             # This lane reviews its own kind of change too.
             (".github/workflows/first-principles-review.yml", True),
             # A mixed diff runs on the strength of its one source file.
-            ("docs/guides/x.md\nsrc/kiro_crew/session.py", True),
+            ("docs/guides/x.md\nsrc/junction/session.py", True),
             # Capability-free diffs skip: tests ship no capability, and docs,
             # screenshots and generated files never match at all.
             ("test/test_session.py", False),
-            ("src/kiro_crew/apps/builtins/meetings/tests/test_routes.py", False),
+            ("src/junction/apps/builtins/meetings/tests/test_routes.py", False),
             ("website/src/pages/Thing.test.tsx", False),
             ("docs/ci/ci-and-reviews.md", False),
             ("temp-screenshots/feature/shot.png", False),
@@ -1195,7 +1195,7 @@ class TestUxScopeGateSurvivesAWideDiff:
         # The UI file comes FIRST so `grep -q` can answer immediately -- the
         # worst case for the writer, and the one that manufactured 141.
         touched = "website/src/App.tsx\n" + "\n".join(
-            f"src/kiro_crew/module_{i}.py" for i in range(tail_files)
+            f"src/junction/module_{i}.py" for i in range(tail_files)
         )
         # Via a FILE, not the environment: a 200k-line value blows past the
         # execve argument/environment limit (E2BIG) long before it reaches the
@@ -1237,7 +1237,7 @@ class TestUxScopeGateSurvivesAWideDiff:
         bash = _bash()
         if bash is None:
             pytest.skip("the scope gate runs only under Bash")
-        touched = "src/kiro_crew/session.py\ndocs/ci/ci-and-reviews.md"
+        touched = "src/junction/session.py\ndocs/ci/ci-and-reviews.md"
         github_output = tmp_path / "github_output"
         github_output.touch()  # the Actions runtime pre-creates $GITHUB_OUTPUT
         script = (

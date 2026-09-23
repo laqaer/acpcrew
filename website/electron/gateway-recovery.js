@@ -32,7 +32,7 @@ const GATEWAY_OWNERSHIP_STATES = Object.freeze(["none", "spawned", "reused-local
 /**
  * Classify an adopted (reuse-path) gateway into the ownership vocabulary.
  * Positive identification requires BOTH a same-family health answer and a
- * local LISTEN owner ("kirocrew"/"service"); anything less (tunnel, no visible
+ * local LISTEN owner ("junction"/"service"); anything less (tunnel, no visible
  * owner, probe failure) stays "none" — the never-kill/never-respawn external
  * classification. Pure so the classification rule is unit-testable without
  * Electron.
@@ -42,11 +42,11 @@ const GATEWAY_OWNERSHIP_STATES = Object.freeze(["none", "spawned", "reused-local
  *                               decideGatewayAction); only "same-family" is a
  *                               positive family identification.
  * @param {string} o.localOwner  the LISTEN-owner classification for the port
- *                               ("kirocrew" | "service" | "other" | "none" | …).
+ *                               ("junction" | "service" | "other" | "none" | …).
  * @returns {"reused-service" | "reused-local" | "none"}
  */
 function classifyAdoptedGateway({ reason, localOwner }) {
-  const local = reason === "same-family" && (localOwner === "kirocrew" || localOwner === "service");
+  const local = reason === "same-family" && (localOwner === "junction" || localOwner === "service");
   if (!local) return "none";
   return localOwner === "service" ? "reused-service" : "reused-local";
 }

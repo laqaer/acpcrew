@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 
-from kiro_crew.dashboard import session_health
+from junction.dashboard import session_health
 
 
 def _ts_from_file(path: Path) -> str:
@@ -28,7 +28,7 @@ def test_dead_provider_is_not_flagged(tmp_path: Path) -> None:
     _write_log(log, [""])  # touch to get mtime
     ts = _ts_from_file(log)
     _write_log(log, [
-        f"{ts} WARNING kiro_crew.session: Session chat-2-1776999999 has dead provider — removing stale entry",
+        f"{ts} WARNING junction.session: Session chat-2-1776999999 has dead provider — removing stale entry",
     ])
     result = session_health.compute_session_health(log_path=log, now=log.stat().st_mtime)
     assert "chat-2-1776999999" not in result
@@ -40,7 +40,7 @@ def test_detects_prompt_stuck(tmp_path: Path) -> None:
     _write_log(log, [""])  # touch to get mtime
     ts = _ts_from_file(log)
     _write_log(log, [
-        f"{ts} WARNING kiro_crew.dashboard.chat: ACP error in slot chat-9-1776732990: Prompt error: {{'code': -32603, 'message': 'Internal error', 'data': 'Prompt already in progress'}}",
+        f"{ts} WARNING junction.dashboard.chat: ACP error in slot chat-9-1776732990: Prompt error: {{'code': -32603, 'message': 'Internal error', 'data': 'Prompt already in progress'}}",
     ])
     result = session_health.compute_session_health(log_path=log, now=log.stat().st_mtime)
     assert result["chat-9-1776732990"]["reason"] == "prompt_stuck"
@@ -59,7 +59,7 @@ def test_detects_prompt_stuck_from_formatted_message(tmp_path: Path) -> None:
     _write_log(log, [""])  # touch to get mtime
     ts = _ts_from_file(log)
     _write_log(log, [
-        f"{ts} WARNING kiro_crew.dashboard.chat: ACP error in slot chat-7-1776999111: "
+        f"{ts} WARNING junction.dashboard.chat: ACP error in slot chat-7-1776999111: "
         "[AcpPromptBusy] I'm still processing a previous request. Please wait a "
         "moment and try again.",
     ])
@@ -73,7 +73,7 @@ def test_other_acp_error_classes_are_not_prompt_stuck(tmp_path: Path) -> None:
     _write_log(log, [""])  # touch to get mtime
     ts = _ts_from_file(log)
     _write_log(log, [
-        f"{ts} WARNING kiro_crew.dashboard.chat: ACP error in slot chat-8-1776999222: "
+        f"{ts} WARNING junction.dashboard.chat: ACP error in slot chat-8-1776999222: "
         "[AcpError] Bedrock is throttling requests.",
     ])
     result = session_health.compute_session_health(log_path=log, now=log.stat().st_mtime)
@@ -85,9 +85,9 @@ def test_ignores_internal_background_sessions(tmp_path: Path) -> None:
     _write_log(log, [""])  # touch to get mtime
     ts = _ts_from_file(log)
     _write_log(log, [
-        f"{ts} WARNING kiro_crew.slack.gateway: Injected timeout error for subagent abc into slot _bg",
-        f"{ts} WARNING kiro_crew.slack.gateway: Injected timeout error for subagent def into slot cron_367da8a3",
-        f"{ts} WARNING kiro_crew.slack.gateway: Injected timeout error for subagent ghi into slot cron:daily_check",
+        f"{ts} WARNING junction.slack.gateway: Injected timeout error for subagent abc into slot _bg",
+        f"{ts} WARNING junction.slack.gateway: Injected timeout error for subagent def into slot cron_367da8a3",
+        f"{ts} WARNING junction.slack.gateway: Injected timeout error for subagent ghi into slot cron:daily_check",
     ])
     result = session_health.compute_session_health(log_path=log, now=log.stat().st_mtime)
     assert result == {}
@@ -98,8 +98,8 @@ def test_last_reason_wins_per_slot(tmp_path: Path) -> None:
     _write_log(log, [""])  # touch to get mtime
     ts = _ts_from_file(log)
     _write_log(log, [
-        f"{ts} WARNING kiro_crew.slack.gateway: Injected timeout error for subagent abc into slot chat-3-111",
-        f"{ts} WARNING kiro_crew.dashboard.chat: ACP error in slot chat-3-111: Prompt already in progress",
+        f"{ts} WARNING junction.slack.gateway: Injected timeout error for subagent abc into slot chat-3-111",
+        f"{ts} WARNING junction.dashboard.chat: ACP error in slot chat-3-111: Prompt already in progress",
     ])
     result = session_health.compute_session_health(log_path=log, now=log.stat().st_mtime)
     assert result["chat-3-111"]["reason"] == "prompt_stuck"
@@ -112,7 +112,7 @@ def test_skips_lines_outside_window(tmp_path: Path) -> None:
     mtime_dt = datetime.datetime.fromtimestamp(log.stat().st_mtime)
     old = (mtime_dt - datetime.timedelta(minutes=20)).strftime("%H:%M:%S")
     _write_log(log, [
-        f"{old} WARNING kiro_crew.dashboard.chat: ACP error in slot chat-4-222: Prompt already in progress",
+        f"{old} WARNING junction.dashboard.chat: ACP error in slot chat-4-222: Prompt already in progress",
     ])
     result = session_health.compute_session_health(log_path=log)
     assert result == {}

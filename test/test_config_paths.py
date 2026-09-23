@@ -1,11 +1,11 @@
-"""Tests for the pure path-primitives leaf ``kiro_crew.config.paths``.
+"""Tests for the pure path-primitives leaf ``junction.config.paths``.
 
 These pin two properties of the config-loader decoupling refactor:
 
 1. The path primitives behave identically to their historical
-   ``kiro_crew.config.loader`` definitions (back-compat).
-2. ``kiro_crew.config.paths`` is a genuine leaf — importing it pulls in **no**
-   ``kiro_crew`` modules (in particular not the heavy ``config.loader``), so the
+   ``junction.config.loader`` definitions (back-compat).
+2. ``junction.config.paths`` is a genuine leaf — importing it pulls in **no**
+   ``junction`` modules (in particular not the heavy ``config.loader``), so the
    modules that only need ``config_dir()`` don't transitively load the DTOs,
    schema validation, the process-global cache, and the provider factory.
 """
@@ -18,47 +18,47 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.config import paths
+from junction.config import paths
 
 
 class TestConfigDir:
-    """``config_dir()`` resolves ~/.kiro/crew, honoring KIROCREW_HOME."""
+    """``config_dir()`` resolves ~/.kiro/crew, honoring JUNCTION_HOME."""
 
     @pytest.fixture(autouse=True)
     def _reset_resolved_home(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # config_dir() caches the resolved data home in a module global for the
         # process lifetime; reset it so each test resolves fresh against its own
-        # patched Path.home / KIROCREW_HOME rather than a value another test cached.
+        # patched Path.home / JUNCTION_HOME rather than a value another test cached.
         monkeypatch.setattr(paths, "_resolved_home", None)
 
-    def test_default_is_home_dotkiro_crew(
+    def test_default_is_home_dotjunction(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
         result = paths.config_dir()
         assert result == tmp_path / ".kiro" / "crew"
         assert result.is_dir()  # created on access
 
-    def test_kirocrew_home_override(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    def test_junction_home_override(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         home = tmp_path / "custom-home"
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         result = paths.config_dir()
         assert result == home.resolve()
         assert result.is_dir()
 
-    def test_kirocrew_home_system_dir_is_ignored(
+    def test_junction_home_system_dir_is_ignored(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         # A system directory must be refused and fall back to ~/.kiro/crew.
-        monkeypatch.setenv("KIROCREW_HOME", "/usr")
+        monkeypatch.setenv("JUNCTION_HOME", "/usr")
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
         result = paths.config_dir()
         assert result == tmp_path / ".kiro" / "crew"
 
 
 class TestConfigPackageDir:
-    """``config_package_dir()`` points at the installed ``kiro_crew/config/``."""
+    """``config_package_dir()`` points at the installed ``junction/config/``."""
 
     def test_points_at_config_package_with_defaults_json(self) -> None:
         pkg = paths.config_package_dir()
@@ -129,26 +129,26 @@ class TestSafeDirName:
 class TestLeafPurity:
     """The whole point of the extraction: importing the leaf is cheap.
 
-    Importing ``kiro_crew.config.paths`` in a fresh interpreter must NOT import
-    ``kiro_crew.config.loader`` (or any other ``kiro_crew`` submodule). Run in a
+    Importing ``junction.config.paths`` in a fresh interpreter must NOT import
+    ``junction.config.loader`` (or any other ``junction`` submodule). Run in a
     subprocess so the already-warm modules in this test process don't mask a
     regression.
     """
 
-    def test_importing_paths_pulls_no_kiro_crew_modules(self) -> None:
+    def test_importing_paths_pulls_no_junction_modules(self) -> None:
         code = (
             "import sys\n"
-            "import kiro_crew.config.paths\n"
+            "import junction.config.paths\n"
             "leaked = sorted(\n"
             "    m for m in sys.modules\n"
-            "    if m.startswith('kiro_crew')\n"
-            "    and m not in {'kiro_crew', 'kiro_crew.config', 'kiro_crew.config.paths'}\n"
+            "    if m.startswith('junction')\n"
+            "    and m not in {'junction', 'junction.config', 'junction.config.paths'}\n"
             ")\n"
             "print(','.join(leaked))\n"
         )
         import os
 
-        # Ensure kiro_crew is importable in the subprocess on local dev runs
+        # Ensure junction is importable in the subprocess on local dev runs
         # where PYTHONPATH may not already include the src/ directory.
         src_dir = str(Path(__file__).resolve().parents[1] / "src")
         env = dict(os.environ)
@@ -161,14 +161,14 @@ class TestLeafPurity:
             env=env,
         )
         leaked = [m for m in out.stdout.strip().split(",") if m]
-        assert leaked == [], f"config.paths leaf leaked kiro_crew modules: {leaked}"
+        assert leaked == [], f"config.paths leaf leaked junction modules: {leaked}"
 
 
 class TestBackCompatReexport:
-    """All primitives remain importable from ``kiro_crew.config.loader``."""
+    """All primitives remain importable from ``junction.config.loader``."""
 
     def test_loader_reexports_match_paths(self) -> None:
-        from kiro_crew.config import loader
+        from junction.config import loader
 
         for name in (
             "config_dir",
@@ -182,9 +182,9 @@ class TestBackCompatReexport:
             assert getattr(loader, name) is getattr(paths, name), name
 
     def test_config_package_lazy_surface(self) -> None:
-        # `from kiro_crew.config import X` still resolves the public surface
+        # `from junction.config import X` still resolves the public surface
         # without eagerly importing the loader at package import time.
-        import kiro_crew.config as cfg
+        import junction.config as cfg
 
         assert cfg.config_dir is paths.config_dir
-        assert cfg.KiroCrewConfig.__name__ == "KiroCrewConfig"
+        assert cfg.JunctionConfig.__name__ == "JunctionConfig"

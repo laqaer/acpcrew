@@ -32,10 +32,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.acp.client as client_mod
-import kiro_crew.acp.runtime as runtime_mod
-from kiro_crew.acp.client import AcpClient, _resolve_spawn_env
-from kiro_crew.acp.runtime import AcpRuntime
+import junction.acp.client as client_mod
+import junction.acp.runtime as runtime_mod
+from junction.acp.client import AcpClient, _resolve_spawn_env
+from junction.acp.runtime import AcpRuntime
 
 
 async def _stop_stderr_drain(client: AcpClient) -> None:
@@ -95,10 +95,10 @@ class TestClientSpawnOffLoop:
         mock_proc.returncode = None
 
         with (
-            patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+            patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
             patch.object(client_mod, "ensure_agent_materialized"),
             patch(
-                "kiro_crew.acp.client.wrap_argv",
+                "junction.acp.client.wrap_argv",
                 return_value=(["/usr/bin/kiro-cli", "acp"], None),
             ),
             patch(
@@ -106,8 +106,8 @@ class TestClientSpawnOffLoop:
                 new_callable=AsyncMock,
                 return_value=mock_proc,
             ),
-            patch("kiro_crew.session._track_pid"),
-            patch("kiro_crew.session._track_session_pid"),
+            patch("junction.session._track_pid"),
+            patch("junction.session._track_session_pid"),
             # PID 12345 may be a real host process; without this, the early
             # descendant scan can find its children and _track_child_pids then
             # writes tracking state (mkdir included) on the loop thread —
@@ -187,10 +187,10 @@ class TestClientSpawnPidTrackingOffLoop:
         mock_proc.returncode = None
 
         with (
-            patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+            patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
             patch.object(client_mod, "ensure_agent_materialized"),
             patch(
-                "kiro_crew.acp.client.wrap_argv",
+                "junction.acp.client.wrap_argv",
                 return_value=(["/usr/bin/kiro-cli", "acp"], None),
             ),
             patch(
@@ -199,11 +199,11 @@ class TestClientSpawnPidTrackingOffLoop:
                 return_value=mock_proc,
             ),
             patch(
-                "kiro_crew.session._track_pid",
+                "junction.session._track_pid",
                 side_effect=lambda pid: track_threads.append(threading.current_thread()),
             ),
             patch(
-                "kiro_crew.session._track_session_pid",
+                "junction.session._track_session_pid",
                 side_effect=lambda pid: session_track_threads.append(
                     threading.current_thread()
                 ),
@@ -339,10 +339,10 @@ class TestSpawnCancellationSandboxCleanup:
             raise asyncio.CancelledError()
 
         with (
-            patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+            patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
             patch.object(client_mod, "ensure_agent_materialized"),
             patch(
-                "kiro_crew.acp.client.wrap_argv",
+                "junction.acp.client.wrap_argv",
                 return_value=(["/usr/bin/kiro-cli", "acp"], sandbox_file),
             ),
             patch.object(client_mod, "cgroup_scope_argv", side_effect=_cgroup),
@@ -433,10 +433,10 @@ class TestSpawnFailureCannotLeaveAnUntrackedProcess:
         killed = AsyncMock()
 
         with (
-            patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+            patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
             patch.object(client_mod, "ensure_agent_materialized"),
             patch(
-                "kiro_crew.acp.client.wrap_argv",
+                "junction.acp.client.wrap_argv",
                 return_value=(["/usr/bin/kiro-cli", "acp"], None),
             ),
             patch(
@@ -450,9 +450,9 @@ class TestSpawnFailureCannotLeaveAnUntrackedProcess:
                 side_effect=_raise_if("finish_suspended_spawn"),
             ),
             patch.object(client_mod, "_get_start_time", return_value=1.0),
-            patch("kiro_crew.session._track_pid", side_effect=_raise_if("track_pid")),
+            patch("junction.session._track_pid", side_effect=_raise_if("track_pid")),
             patch(
-                "kiro_crew.session._track_session_pid",
+                "junction.session._track_session_pid",
                 side_effect=_raise_if("track_session_pid"),
             ),
             patch.object(client_mod, "_get_child_pids", side_effect=_raise_if("child_scan")),
@@ -481,10 +481,10 @@ class TestSpawnFailureCannotLeaveAnUntrackedProcess:
 
         with (
             caplog.at_level("ERROR"),
-            patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+            patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
             patch.object(client_mod, "ensure_agent_materialized"),
             patch(
-                "kiro_crew.acp.client.wrap_argv",
+                "junction.acp.client.wrap_argv",
                 return_value=(["/usr/bin/kiro-cli", "acp"], None),
             ),
             patch(
@@ -494,9 +494,9 @@ class TestSpawnFailureCannotLeaveAnUntrackedProcess:
             ),
             patch.object(client_mod, "finish_suspended_spawn"),
             patch.object(client_mod, "_get_start_time", return_value=1.0),
-            patch("kiro_crew.session._track_pid"),
+            patch("junction.session._track_pid"),
             patch(
-                "kiro_crew.session._track_session_pid",
+                "junction.session._track_session_pid",
                 side_effect=OSError("no space left on device"),
             ),
             patch.object(client_mod, "_get_child_pids", return_value=[]),

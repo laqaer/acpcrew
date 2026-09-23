@@ -1,4 +1,4 @@
-"""Additional coverage for :mod:`kiro_crew.acp.client`.
+"""Additional coverage for :mod:`junction.acp.client`.
 
 Every test here drives real product code with injected fakes at the boundary the
 product actually calls (``glob``/``subprocess``/``kiro_sessions_dir``/the hook and
@@ -20,8 +20,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import kiro_crew.acp.client as acp_client
-from kiro_crew.acp.client import (
+import junction.acp.client as acp_client
+from junction.acp.client import (
     AcpAuthRequired,
     AcpClient,
     AcpError,
@@ -42,7 +42,7 @@ from kiro_crew.acp.client import (
     advertised_model_ids,
     resolve_usable_model,
 )
-from kiro_crew.acp.types import (
+from junction.acp.types import (
     ACP_BACKEND_CLAUDE,
     EVENT_AGENT_SWITCHED,
     EVENT_COMPLETE,
@@ -60,7 +60,7 @@ from kiro_crew.acp.types import (
     AcpEvent,
     JsonRpcMessage,
 )
-from kiro_crew.hooks import HOOK_EVENT_POST_TOOL_USE
+from junction.hooks import HOOK_EVENT_POST_TOOL_USE
 
 _POSIX_ONLY = pytest.mark.skipif(
     sys.platform == "win32", reason="POSIX-only APIs (os.kill, /proc, ps, AF_UNIX sockets)"
@@ -1549,7 +1549,7 @@ class TestToolInterruptedAudit:
         def _boom():
             raise RuntimeError("SEL backend unavailable")
 
-        monkeypatch.setattr("kiro_crew.sel.sel", _boom)
+        monkeypatch.setattr("junction.sel.sel", _boom)
 
         with caplog.at_level(logging.WARNING, logger=acp_client.logger.name):
             client._emit_tool_interrupted_sel("unit-test")

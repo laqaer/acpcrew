@@ -123,7 +123,7 @@ Two properties are load-bearing at the architecture level:
   log level and does not permit execution. The opt-in's default is
   **platform-independent** — a platform-derived default would grant unconfined
   execution on every backend-less host with no operator having declared it — so
-  the discoverable path is instead a consent step in `kirocrew setup`, which
+  the discoverable path is instead a consent step in `junction setup`, which
   prompts (default no) when `detect_backend()` reports `"none"` and writes the
   key only on an explicit yes.
 - **Windows Kiro delegation is not a global fail-open.** `is_kiro_cli=True` from a
@@ -234,7 +234,7 @@ model's title **and** the raw command:
   without blocking benign local commands.
 
 `SUSPICIOUS_BASH_PATTERNS` / `audit_bash_command()` are a **separate, advisory**
-surface: they back the `kirocrew security audit` history scan and the posture
+surface: they back the `junction security audit` history scan and the posture
 count, and are not enforced at the gate. The gate enforces the narrower checks
 above. Conflating the two is the historical error here, so keep the distinction
 explicit.
@@ -386,7 +386,7 @@ Slack messages are processed **inline** and reach the agent directly, gated by
 `is_allowed_user` and the workspace origin check. There is no challenge-and-
 redirect interception; `send_channel_challenge()` does not exist and must not be
 reintroduced on an upstream sync. The generic signed-token helpers remain and
-back the explicit `/kirocrew dashboard` link command.
+back the explicit `/junction dashboard` link command.
 
 Enterprise Grid validation is a two-layer, **default-open** control: with no
 `slack.allowed_enterprise_ids` configured, every reachable workspace is allowed.
@@ -394,7 +394,7 @@ Enterprise Grid validation is a two-layer, **default-open** control: with no
 Grid) at startup, and each inbound event's `team` is compared against the cached
 allowlist. A governance `channels.posture` policy is the agent-unweakenable
 ceiling on top of the operator-editable config allowlist. A corrupt `config.json`
-does not reopen the control: because `KiroCrewConfig.load()` degrades a torn
+does not reopen the control: because `JunctionConfig.load()` degrades a torn
 config to defaults rather than raising, the module positively detects that case (a
 config file that exists but does not parse) and fails CLOSED, keeping the allowlist
 enforced and admitting NO origin -- not even the just-validated workspace,

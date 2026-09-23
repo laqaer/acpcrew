@@ -8,12 +8,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.slack.blocks import (
+from junction.slack.blocks import (
     review_draft_blocks,
     review_edit_modal,
     review_revise_modal,
 )
-from kiro_crew.slack.handler import (
+from junction.slack.handler import (
     _REVIEW_DRAFT_MAX,
     _REVIEW_DRAFT_TTL,
     _review_drafts,
@@ -21,7 +21,7 @@ from kiro_crew.slack.handler import (
     _review_drafts_pop,
     _review_drafts_set,
 )
-from kiro_crew.slack.interactions import (
+from junction.slack.interactions import (
     _can_act_on_review_draft,
     _delete_review_placeholder,
     _handle_review_approve,
@@ -148,7 +148,7 @@ class TestReviewDraftStorage:
 class TestPostEphemeral:
     @pytest.mark.asyncio
     async def test_post_ephemeral_with_blocks_and_thread(self) -> None:
-        from kiro_crew.slack.client import RealSlackClient
+        from junction.slack.client import RealSlackClient
 
         mock_web = MagicMock()
         mock_web.chat_postEphemeral = AsyncMock()
@@ -166,7 +166,7 @@ class TestPostEphemeral:
 
     @pytest.mark.asyncio
     async def test_post_ephemeral_without_optional_params(self) -> None:
-        from kiro_crew.slack.client import RealSlackClient
+        from junction.slack.client import RealSlackClient
 
         mock_web = MagicMock()
         mock_web.chat_postEphemeral = AsyncMock()
@@ -189,7 +189,7 @@ class TestTeamIdInjection:
     def _client(self):
         """Build a real SlackClient instance with __init__ run so the
         cache exists; the AsyncWebClient is replaced by a MagicMock."""
-        from kiro_crew.slack.client import RealSlackClient
+        from junction.slack.client import RealSlackClient
 
         client = RealSlackClient.__new__(RealSlackClient)
         client._web = MagicMock()
@@ -217,7 +217,7 @@ class TestTeamIdInjection:
 
     def test_record_works_when_init_bypassed(self) -> None:
         """Tests using RealSlackClient.__new__() must not crash."""
-        from kiro_crew.slack.client import RealSlackClient
+        from junction.slack.client import RealSlackClient
 
         c = RealSlackClient.__new__(RealSlackClient)
         c._web = MagicMock()
@@ -249,7 +249,7 @@ class TestTeamIdInjection:
 
     def test_inject_safe_when_init_bypassed(self) -> None:
         """No AttributeError when __init__ skipped (legacy test pattern)."""
-        from kiro_crew.slack.client import RealSlackClient
+        from junction.slack.client import RealSlackClient
 
         c = RealSlackClient.__new__(RealSlackClient)
         c._web = MagicMock()
@@ -489,7 +489,7 @@ def mock_orch():
     orch.consolidator = MagicMock()
     orch.subagent_mgr = MagicMock()
     orch.task_runner = MagicMock()
-    with patch("kiro_crew.slack.interactions._orch", orch):
+    with patch("junction.slack.interactions._orch", orch):
         yield orch
 
 
@@ -500,7 +500,7 @@ def owner_patch():
     def _is_owner(uid: str) -> bool:
         return uid == OWNER_ID
 
-    with patch("kiro_crew.slack.interactions.is_owner", side_effect=_is_owner):
+    with patch("junction.slack.interactions.is_owner", side_effect=_is_owner):
         yield
 
 
@@ -509,7 +509,7 @@ def sel_mock():
     """Patch sel() to capture audit calls."""
     mock_sel = MagicMock()
     mock_log = mock_sel.log_api_access
-    with patch("kiro_crew.slack.interactions.sel", return_value=mock_sel):
+    with patch("junction.slack.interactions.sel", return_value=mock_sel):
         yield mock_log
 
 
@@ -517,7 +517,7 @@ def sel_mock():
 def auth_err_mock():
     """Patch _post_review_auth_error so we can assert it was invoked on denials."""
     mock = AsyncMock()
-    with patch("kiro_crew.slack.interactions._post_review_auth_error", mock):
+    with patch("junction.slack.interactions._post_review_auth_error", mock):
         yield mock
 
 
@@ -585,7 +585,7 @@ class TestHandleReviewApprove:
 
     @pytest.mark.asyncio
     async def test_no_orch_returns(self) -> None:
-        with patch("kiro_crew.slack.interactions._orch", None):
+        with patch("junction.slack.interactions._orch", None):
             await _handle_review_approve(_make_payload(), _make_action())
 
 
@@ -613,7 +613,7 @@ class TestHandleReviewCancel:
 
     @pytest.mark.asyncio
     async def test_no_orch_returns(self) -> None:
-        with patch("kiro_crew.slack.interactions._orch", None):
+        with patch("junction.slack.interactions._orch", None):
             await _handle_review_cancel(_make_payload(), _make_action())
 
 
@@ -702,7 +702,7 @@ class TestHandleReviewEditSubmit:
         # receive the edited agent content, even for the legitimate requester.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -798,11 +798,11 @@ class TestHandleReviewReviseSubmit:
 
         with (
             patch(
-                "kiro_crew.slack.interactions.handle_message",
+                "junction.slack.interactions.handle_message",
                 new_callable=AsyncMock,
             ) as mock_hm,
             patch(
-                "kiro_crew.slack.interactions.asyncio.create_task",
+                "junction.slack.interactions.asyncio.create_task",
                 side_effect=_track_task,
             ),
         ):
@@ -845,5 +845,5 @@ class TestDeleteReviewPlaceholder:
 
     @pytest.mark.asyncio
     async def test_no_orch_no_crash(self) -> None:
-        with patch("kiro_crew.slack.interactions._orch", None):
+        with patch("junction.slack.interactions._orch", None):
             await _delete_review_placeholder("C1", "ts1")  # no crash

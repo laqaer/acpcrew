@@ -28,7 +28,7 @@ from chat_test_helpers import _make_app, _make_state
 @pytest.fixture
 def _patch_sel():
     mock_sel = MagicMock()
-    with patch("kiro_crew.dashboard.chat_handlers.sel", return_value=mock_sel):
+    with patch("junction.dashboard.chat_handlers.sel", return_value=mock_sel):
         yield mock_sel
 
 
@@ -52,7 +52,7 @@ class TestDeliveryIdLifecycle:
 
     @pytest.mark.asyncio
     async def test_a_successful_steer_leaves_no_entry(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -75,7 +75,7 @@ class TestDeliveryIdLifecycle:
     @pytest.mark.asyncio
     async def test_a_refused_steer_leaves_no_entry(self, tmp_path, monkeypatch, _patch_sel):
         """The unwind path must clear it too, or a queue fallback leaks instead."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -96,7 +96,7 @@ class TestDeliveryIdLifecycle:
         self, tmp_path, monkeypatch, _patch_sel
     ):
         """The growth shape is what makes this a leak rather than one stale key."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -120,7 +120,7 @@ class TestSteerPendingTracking:
 
     @pytest.mark.asyncio
     async def test_successful_steer_is_tracked_pending(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -140,7 +140,7 @@ class TestSteerPendingTracking:
 
     @pytest.mark.asyncio
     async def test_failed_steer_not_tracked(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -162,7 +162,7 @@ class TestSteerPendingTracking:
 
     @pytest.mark.asyncio
     async def test_multiple_steers_tracked_in_order(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -185,12 +185,12 @@ class TestSteerConsumedClears:
     """_settle_consumed_steers: snapshot-matched settling via the real helper."""
 
     def _slot(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         return state.get_or_create_slot("test")
 
     def test_snapshot_settles_only_contained_steers(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["fix the bug", "late arrival"]
@@ -200,7 +200,7 @@ class TestSteerConsumedClears:
         assert slot._pending_steers == ["late arrival"]
 
     def test_snapshot_with_all_steers_settles_all(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["a", "b"]
@@ -212,7 +212,7 @@ class TestSteerConsumedClears:
     def test_empty_snapshot_falls_back_to_settling_all(self, tmp_path, monkeypatch):
         # Older backend / redacted echo: no usable text -> pre-review behavior
         # (settle all; duplicate is visible+cancellable, loss is not).
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["a", "b"]
@@ -224,7 +224,7 @@ class TestSteerConsumedClears:
         # "fix the bug" but was never itself consumed — equality matching on
         # parsed blocks must keep it pending (substring matching would settle
         # it and silently lose it when the turn dies).
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["fix", "fix the bug"]
@@ -233,7 +233,7 @@ class TestSteerConsumedClears:
 
     def test_wrapper_text_not_falsely_settled(self, tmp_path, monkeypatch):
         # A steer like "user" must not match the <user_message> wrapper itself.
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["user", "e"]
@@ -243,7 +243,7 @@ class TestSteerConsumedClears:
     def test_whitespace_parity_with_rpc_strip(self, tmp_path, monkeypatch):
         # The steer RPC wraps message.strip(); pending stores the raw message.
         # A trailing-newline pending entry must still settle against its block.
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["do the thing\n"]
@@ -255,7 +255,7 @@ class TestSteerConsumedClears:
         # only ONE of them (the duplicate was registered after kiro-cli
         # snapshotted). Set-membership settling would sweep both and silently
         # lose the second — settling must be count-aware.
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["fix", "fix"]
@@ -263,7 +263,7 @@ class TestSteerConsumedClears:
         assert slot._pending_steers == ["fix"]
 
     def test_duplicate_steers_settle_all_when_snapshot_has_both(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         slot._pending_steers = ["fix", "fix"]
@@ -274,7 +274,7 @@ class TestSteerConsumedClears:
         assert slot._pending_steers == []
 
     def test_noop_without_pending(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_runner import _settle_consumed_steers
+        from junction.dashboard.chat_runner import _settle_consumed_steers
 
         slot = self._slot(tmp_path, monkeypatch)
         _settle_consumed_steers(slot, "<user_message>x</user_message>")
@@ -288,7 +288,7 @@ class TestSteerRegisteredBeforeAwait:
 
     @pytest.mark.asyncio
     async def test_pending_visible_during_steer_await(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -315,7 +315,7 @@ class TestSteerRegisteredBeforeAwait:
 
     @pytest.mark.asyncio
     async def test_failed_steer_unwinds_registration(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -341,14 +341,14 @@ class TestSteerRegisteredBeforeAwait:
     ):
         # The turn's finally ran DURING the await and requeued the steer; the
         # failure path must detect the missing entry and NOT queue it again.
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
 
         async def _steer(message):
             # Simulate _requeue_unconsumed_steers running mid-await.
-            from kiro_crew.dashboard.chat_runner import _requeue_unconsumed_steers
+            from junction.dashboard.chat_runner import _requeue_unconsumed_steers
 
             _requeue_unconsumed_steers(state, slot)
             raise RuntimeError("backend died")
@@ -378,7 +378,7 @@ class TestProductionWiring:
     def _runner_source(self) -> str:
         from pathlib import Path
 
-        import kiro_crew.dashboard.chat_runner as cr
+        import junction.dashboard.chat_runner as cr
 
         return Path(cr.__file__).read_text(encoding="utf-8")
 
@@ -424,7 +424,7 @@ class TestProductionWiring:
     def test_steer_handler_registers_before_await(self):
         from pathlib import Path
 
-        import kiro_crew.dashboard.chat_delivery as cd
+        import junction.dashboard.chat_delivery as cd
 
         src = Path(cd.__file__).read_text(encoding="utf-8")
         register_at = src.index("slot._pending_steers.append(message)")
@@ -440,7 +440,7 @@ class TestSteerRequeueOnTurnDeath:
 
     @pytest.mark.asyncio
     async def test_unconsumed_steers_requeued_at_queue_head(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = state.get_or_create_slot("test")
@@ -450,7 +450,7 @@ class TestSteerRequeueOnTurnDeath:
         slot._pending_steers = ["steer-1", "steer-2"]
 
         # Execute the requeue block exactly as _run_chat's finally does.
-        from kiro_crew.dashboard.chat_runner import _requeue_unconsumed_steers
+        from junction.dashboard.chat_runner import _requeue_unconsumed_steers
 
         _requeue_unconsumed_steers(state, slot)
 
@@ -467,13 +467,13 @@ class TestSteerRequeueOnTurnDeath:
 
     @pytest.mark.asyncio
     async def test_no_pending_steers_is_noop(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = state.get_or_create_slot("test")
         slot.queue_append("existing")
 
-        from kiro_crew.dashboard.chat_runner import _requeue_unconsumed_steers
+        from junction.dashboard.chat_runner import _requeue_unconsumed_steers
 
         _requeue_unconsumed_steers(state, slot)
 
@@ -482,13 +482,13 @@ class TestSteerRequeueOnTurnDeath:
 
     @pytest.mark.asyncio
     async def test_requeue_survives_broadcast_failure(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock(side_effect=RuntimeError("ws down"))
         slot = state.get_or_create_slot("test")
         slot._pending_steers = ["important"]
 
-        from kiro_crew.dashboard.chat_runner import _requeue_unconsumed_steers
+        from junction.dashboard.chat_runner import _requeue_unconsumed_steers
 
         _requeue_unconsumed_steers(state, slot)  # must not raise
 
@@ -515,7 +515,7 @@ class TestRequeuedThenCancelledSteer:
     async def test_cancelled_requeue_is_not_persisted_as_delivered(
         self, tmp_path, monkeypatch, _patch_sel
     ):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -560,7 +560,7 @@ class TestHardKillDiscardsSteers:
 
     @pytest.mark.asyncio
     async def test_force_stop_clears_pending_steers(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         state.push_slots_update = MagicMock()

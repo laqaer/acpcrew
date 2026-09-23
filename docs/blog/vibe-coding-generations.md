@@ -185,9 +185,9 @@ before 4.0.
 
 That second limit has a ceiling I can measure, and it is in this repository.
 Episodic ranking multiplies similarity by `math.exp(-0.03 * days_old)`
-(`src/kiro_crew/vector_memory.py:1562` and `:1651`, on `4506e9c92`), which is a
+(`src/junction/vector_memory.py:1562` and `:1651`, on `4506e9c92`), which is a
 half-life of about 23 days. The score is then rounded to four decimals
-(`src/kiro_crew/vector_memory.py:1565`), so once a memory is roughly a year old a
+(`src/junction/vector_memory.py:1565`), so once a memory is roughly a year old a
 typical score underflows to `0.0000` and the sort order is gone with it.
 Retrieval benchmarking with the harness in
 [#2123](https://github.com/kirodotdev/KiroCrew/pull/2123) measures turn-level

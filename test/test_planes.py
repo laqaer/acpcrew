@@ -9,10 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.acp.types import ACP_BACKEND_AUTO, ACP_BACKEND_CURSOR
-from kiro_crew.cli_doctor import _doctor, _doctor_planes
-from kiro_crew.constants import CLI_BIN, PRODUCT_NAME
-from kiro_crew.planes import api_planes, harness_inventory, run_planes_command, snapshot_planes
+from junction.acp.types import ACP_BACKEND_AUTO, ACP_BACKEND_CURSOR
+from junction.cli_doctor import _doctor, _doctor_planes
+from junction.constants import CLI_BIN, PRODUCT_NAME
+from junction.planes import api_planes, harness_inventory, run_planes_command, snapshot_planes
 
 
 def test_harness_inventory_marks_kiro_optional() -> None:
@@ -102,7 +102,7 @@ async def test_api_planes_always_200() -> None:
 
 
 def test_human_planes_format_is_shared() -> None:
-    from kiro_crew.planes import format_human_planes
+    from junction.planes import format_human_planes
 
     snap = snapshot_planes(
         which=lambda _name: None, home=Path("/tmp"), router_port=9, gateway_port=9
@@ -116,7 +116,7 @@ def test_human_planes_format_is_shared() -> None:
 
 
 def test_compose_banner_writes_the_given_stream() -> None:
-    from kiro_crew.planes import print_compose_banner
+    from junction.planes import print_compose_banner
 
     buf = io.StringIO()
     print_compose_banner(stream=buf)

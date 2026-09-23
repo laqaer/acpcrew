@@ -8,9 +8,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 
-const { patchConfigMock, kirocrewConfigMock } = vi.hoisted(() => ({
+const { patchConfigMock, junctionConfigMock } = vi.hoisted(() => ({
   patchConfigMock: vi.fn(() => Promise.resolve({})),
-  kirocrewConfigMock: vi.fn(() => Promise.resolve({
+  junctionConfigMock: vi.fn(() => Promise.resolve({
     knowledge: {
       auto_ingest_chunk_budget: 200,
       max_sources: 50,
@@ -23,7 +23,7 @@ const { patchConfigMock, kirocrewConfigMock } = vi.hoisted(() => ({
 
 vi.mock('../api/client', () => ({
   api: {
-    kirocrewConfig: kirocrewConfigMock,
+    junctionConfig: junctionConfigMock,
     patchConfig: patchConfigMock,
   },
 }))
@@ -58,7 +58,7 @@ function rejectOnce(mock: ReturnType<typeof vi.fn>) {
 
 beforeEach(() => {
   patchConfigMock.mockClear()
-  kirocrewConfigMock.mockClear()
+  junctionConfigMock.mockClear()
 })
 
 describe('KnowledgeSettingsTab', () => {

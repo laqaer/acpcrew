@@ -210,7 +210,7 @@ export default function SettingsPage() {
       // roster (no Instances), so the two must not restore each other's tab.
       rememberKey={embedded ? 'settings-embedded' : 'settings'}
       headerRight={<SettingsSearch />}
-      footer={<span className="text-[12px] text-muted">{i18nT('pages.settingsPage.kirocrew_v')}{version}</span>}
+      footer={<span className="text-[12px] text-muted">{i18nT('pages.settingsPage.junction_v')}{version}</span>}
     >
       {tab => <>
         {tab === 'overview' && <OverviewPanel />}

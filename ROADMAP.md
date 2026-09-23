@@ -75,7 +75,7 @@ taken. Agents must not buy a domain or change DNS.
 Each is a dedicated change, not an opportunistic string sweep:
 
 - Catalog-wide dashboard i18n (`{{productName}}` already binds new copy).
-- Package and data-home rename (`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`,
+- Package and data-home rename (`junction`, `JUNCTION_HOME`, `~/.kiro/crew`,
   Electron `productName`).
 - GitHub slug is `laqaer/junction`. Description and homepage are still unset.
 
@@ -122,7 +122,7 @@ Worth doing, not on the bootstrap PR:
   ([#22](https://github.com/laqaer/junction/issues/22)).
 - Remaining dashboard catalog literals (`en.json` / locale values) in
   reviewable chunks ([#28](https://github.com/laqaer/junction/issues/28)).
-- Packaged user docs under `src/kiro_crew/docs/` still say the old CLI in
+- Packaged user docs under `src/junction/docs/` still say the old CLI in
   places; rewrite as a docs PR, not a silent sweep.
 - Create Cursor Automations for scout / implementer / reviewer, and mint
   the `agent-os/*` labels once ([#29](https://github.com/laqaer/junction/issues/29)).

@@ -27,7 +27,7 @@ const mockApi = vi.hoisted(() => ({
   defaultAgent: vi.fn(),
   agentDetail: vi.fn(),
   agentMetadata: vi.fn(),
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   skills: vi.fn(),
   agentPatch: vi.fn(),
   spawnClear: vi.fn(),
@@ -49,14 +49,14 @@ vi.mock('../providers', () => ({
 
 import AgentsPage from '../pages/AgentsPage'
 
-const KIROCREW = {
-  name: 'kirocrew',
-  description: 'kirocrew agent',
+const JUNCTION = {
+  name: 'junction',
+  description: 'junction agent',
   source: 'builtin',
   model: 'claude-opus-4.8',
   skills: [],
   mcp_servers: [],
-  filename: 'kirocrew.json',
+  filename: 'junction.json',
 }
 
 function renderPage() {
@@ -83,12 +83,12 @@ beforeEach(() => {
   mockApi.spawnList.mockResolvedValue({ agents: [] })
   mockApi.sessionsContext.mockResolvedValue({ sessions: [] })
   mockApi.sessionsUsage.mockResolvedValue({ usage: null })
-  mockApi.agentsInstalled.mockResolvedValue([KIROCREW])
+  mockApi.agentsInstalled.mockResolvedValue([JUNCTION])
   mockApi.mcpProbeCache.mockResolvedValue([])
   mockApi.agentMetadata.mockResolvedValue({ content: '' })
-  mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+  mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
   mockApi.skills.mockResolvedValue([])
-  mockApi.agentDetail.mockResolvedValue({ ...KIROCREW, unmanaged_skills: [] })
+  mockApi.agentDetail.mockResolvedValue({ ...JUNCTION, unmanaged_skills: [] })
 })
 
 describe('meter bar labels adapt to the fill underneath them', () => {

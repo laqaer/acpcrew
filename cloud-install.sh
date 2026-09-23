@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # ======================================================================
-#  KiroCrew — cloud launcher bootstrap (macOS / Linux)
+#  Junction — cloud launcher bootstrap (macOS / Linux)
 # ======================================================================
 #  Ensures the client prerequisites — Python, the AWS CLI, and the SSM
 #  Session Manager plugin — then hands off to the Python launcher wizard
-#  (`kirocrew cloud launch`), which provisions + configures an EC2 instance
+#  (`junction cloud launch`), which provisions + configures an EC2 instance
 #  in YOUR OWN AWS account and opens the dashboard.
 #
 #  This is the thin cold-start bootstrapper: all interesting logic lives in
-#  the Python `kiro_crew.cloud` module (testable, cross-platform). It NEVER
+#  the Python `junction.cloud` module (testable, cross-platform). It NEVER
 #  stores AWS credentials — the aws CLI resolves them from your profile/SSO.
 #
 #  Usage (from a clone):   bash cloud-install.sh [--size <tier>] [--non-interactive] [--voice]
@@ -62,7 +62,7 @@ SUDO=""
 if [ "$(id -u)" != "0" ] && has sudo; then SUDO="sudo"; fi
 
 echo
-echo "  ${MAGENTA}${BOLD}KiroCrew — run on your own AWS${RESET}"
+echo "  ${MAGENTA}${BOLD}Junction — run on your own AWS${RESET}"
 echo "  ${DIM}Platform: $OS $ARCH${RESET}"
 
 # --- 1. Python -------------------------------------------------------------
@@ -147,9 +147,9 @@ else
     rm -rf "$tmp"
 fi
 
-# --- 4. KiroCrew client + launch ------------------------------------------
-step 4 "KiroCrew client"
-info "Installing the KiroCrew client (pip, editable)…"
+# --- 4. Junction client + launch ------------------------------------------
+step 4 "Junction client"
+info "Installing the Junction client (pip, editable)…"
 _venv="$REPO_ROOT/.venv"
 [ -x "$_venv/bin/python" ] || "$PY" -m venv "$_venv"
 "$_venv/bin/pip" install --upgrade pip -q 2>/dev/null || true
@@ -158,25 +158,25 @@ if [ "$WITH_VOICE" -eq 1 ]; then
     _pip_target="${REPO_ROOT}[voice]"
     info "Including voice extras (.[voice])"
 fi
-KIROCREW_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" -q && ok "Kiro Crew client installed" || { warn "pip install failed"; exit 1; }
+JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" -q && ok "Kiro Crew client installed" || { warn "pip install failed"; exit 1; }
 mkdir -p "$HOME/.local/bin"
-ln -sf "$_venv/bin/kirocrew" "$HOME/.local/bin/kirocrew"
-KC="$_venv/bin/kirocrew"
+ln -sf "$_venv/bin/junction" "$HOME/.local/bin/junction"
+KC="$_venv/bin/junction"
 
 # Confirm AWS is configured before launching.
 if ! aws sts get-caller-identity >/dev/null 2>&1; then
     warn "AWS credentials aren't configured yet."
     info "Run one of:  ${CYAN}aws configure sso${RESET}  (recommended)  or  ${CYAN}aws configure${RESET}"
-    info "Then launch:  ${CYAN}kirocrew cloud launch${RESET}"
+    info "Then launch:  ${CYAN}junction cloud launch${RESET}"
     exit 0
 fi
 ok "AWS credentials resolve."
 
 if [ "$NONINTERACTIVE" -eq 1 ]; then
-    info "Prerequisites ready. Launch when you're set:  ${CYAN}kirocrew cloud launch${RESET}"
+    info "Prerequisites ready. Launch when you're set:  ${CYAN}junction cloud launch${RESET}"
     exit 0
 fi
 
 echo
-echo "  ${CYAN}Launching KiroCrew on AWS…${RESET}"
+echo "  ${CYAN}Launching Junction on AWS…${RESET}"
 if [ -n "$SIZE" ]; then "$KC" cloud launch --size "$SIZE"; else "$KC" cloud launch; fi

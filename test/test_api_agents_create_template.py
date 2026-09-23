@@ -1,6 +1,6 @@
 """Tests for the ``kiro_agent`` template contract on POST /api/agents.
 
-``kiro_agent`` used to default to ``"kirocrew"`` when a create request omitted
+``kiro_agent`` used to default to ``"junction"`` when a create request omitted
 it. Because dispatch flattens a crew alias to its ``kiro_agent`` pointer
 (``config.loader.resolve_agent_bindings``), such a crew was offered in the chat
 picker and then the DEFAULT agent answered — the "picker reverts to default"
@@ -14,7 +14,7 @@ The contract these tests pin:
   to look anything up;
 * existence is resolved through ``list_agents()`` — the hardened spec reader —
   never a raw filesystem probe;
-* ``"kirocrew"`` stays a perfectly legal explicit CHOICE, because a crew that
+* ``"junction"`` stays a perfectly legal explicit CHOICE, because a crew that
   boots the built-in agent against its own workspace/memory store is the common
   case and must keep working;
 * an unknown template is accepted with a WARNING rather than refused, matching
@@ -40,28 +40,28 @@ def _owner_caller(monkeypatch):
     its own enumerate-the-invariant coverage in
     test_agents_endpoints_owner_auth.py."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
 
 def _fake_config():
-    """A stand-in KiroCrewConfig recording whether save() was reached."""
+    """A stand-in JunctionConfig recording whether save() was reached."""
     saved: list[bool] = []
     return SimpleNamespace(
         agent=SimpleNamespace(provider="acp"),
         agents={},
-        default_agent="kirocrew",
+        default_agent="junction",
         save=lambda: saved.append(True),
         saved=saved,
     )
 
 
 def _make_app() -> web.Application:
-    from kiro_crew.dashboard.handlers.agents import api_kirocrew_agents_create
+    from junction.dashboard.handlers.agents import api_junction_agents_create
 
     app = web.Application()
-    app.router.add_post("/api/agents", api_kirocrew_agents_create)
+    app.router.add_post("/api/agents", api_junction_agents_create)
     return app
 
 
@@ -82,15 +82,15 @@ async def _post(body, cfg, installed=(), spy=None):
 
     with (
         patch(
-            "kiro_crew.dashboard.handlers.agents.KiroCrewConfig.load",
+            "junction.dashboard.handlers.agents.JunctionConfig.load",
             return_value=cfg,
         ),
         patch(
-            "kiro_crew.dashboard.handlers.agents.list_agents",
+            "junction.dashboard.handlers.agents.list_agents",
             new=_list_agents,
         ),
         patch(
-            "kiro_crew.dashboard.handlers.agents._sel",
+            "junction.dashboard.handlers.agents._sel",
             return_value=SimpleNamespace(
                 log_api_access=lambda **kwargs: None,
             ),
@@ -193,17 +193,17 @@ class TestTemplateNameGrammar:
 
 class TestExplicitTemplateStillWorks:
     @pytest.mark.asyncio
-    async def test_builtin_kirocrew_is_a_legal_choice(self):
+    async def test_builtin_junction_is_a_legal_choice(self):
         """Only the silent DEFAULT is refused — the value itself is legitimate."""
         cfg = _fake_config()
         status, data = await _post(
-            {"name": "researcher", "kiro_agent": "kirocrew", "workspace": "research"},
+            {"name": "researcher", "kiro_agent": "junction", "workspace": "research"},
             cfg,
-            installed=("kirocrew",),
+            installed=("junction",),
         )
         assert status == 200
         assert data["ok"] is True
-        assert cfg.agents["researcher"].kiro_agent == "kirocrew"
+        assert cfg.agents["researcher"].kiro_agent == "junction"
         assert cfg.agents["researcher"].workspace == "research"
 
     @pytest.mark.asyncio
@@ -213,7 +213,7 @@ class TestExplicitTemplateStillWorks:
             status, _ = await _post(
                 {"name": "crew-a", "kiro_agent": "reviewer"},
                 cfg,
-                installed=("kirocrew", "reviewer"),
+                installed=("junction", "reviewer"),
             )
         assert status == 200
         assert "not in the installed agent listing" not in caplog.text
@@ -227,7 +227,7 @@ class TestMissingTemplateWarnsButCreates:
             status, _ = await _post(
                 {"name": "crew-c", "kiro_agent": "not-installed"},
                 cfg,
-                installed=("kirocrew",),
+                installed=("junction",),
             )
         # Accepted (an edition may resolve it even when unlisted)…
         assert status == 200

@@ -1,5 +1,5 @@
 """
-Generate kirocrew-seccomp.json by patching Docker's built-in default profile.
+Generate junction-seccomp.json by patching Docker's built-in default profile.
 
 Extends the Docker default allow-list with three unconditional ALLOW rules:
   - unshare  — lets the inner sandbox call unshare(CLONE_NEWUSER/CLONE_NEWNS)
@@ -16,9 +16,9 @@ combinations that arg-filtered rules cannot reliably match across kernel
 versions.  The profile is still far less permissive than --privileged or
 --security-opt seccomp=unconfined (all other Docker default restrictions apply).
 
-Usage (run from repo root to regenerate kirocrew-seccomp.json):
+Usage (run from repo root to regenerate junction-seccomp.json):
   docker run --rm -v .:/repo -w /repo python:3.12-slim \\
-    python docker/seccomp/gen_profile.py > docker/seccomp/kirocrew-seccomp.json
+    python docker/seccomp/gen_profile.py > docker/seccomp/junction-seccomp.json
 
 If the fetch fails the script exits with code 1 — it never silently overwrites
 a valid profile with a broken one.

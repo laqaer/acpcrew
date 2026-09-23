@@ -37,12 +37,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.acp.session_provider import AcpSessionProvider
+from junction.acp.session_provider import AcpSessionProvider
 
 
 def _handle_with_transcript(tmp_path, sid: str = "sid-provider"):
     """A real AcpSessionHandle carrying a real transcript, mid-turn."""
-    from kiro_crew.acp.session_handle import AcpSessionHandle
+    from junction.acp.session_handle import AcpSessionHandle
 
     handle = AcpSessionHandle.__new__(AcpSessionHandle)
     handle._session_id = sid
@@ -76,7 +76,7 @@ async def test_shutdown_destroys_the_handle_when_cancelled_mid_cancel(tmp_path, 
     handle.cancel = _suspended_cancel
     provider = AcpSessionProvider(handle, runtime, owns_runtime=False)
 
-    monkeypatch.setattr("kiro_crew.acp.session_handle.kiro_sessions_dir", lambda: sessions)
+    monkeypatch.setattr("junction.acp.session_handle.kiro_sessions_dir", lambda: sessions)
 
     task = asyncio.ensure_future(provider.shutdown())
     await entered.wait()
@@ -102,9 +102,9 @@ async def test_a_cancel_that_merely_times_out_still_destroys(tmp_path, monkeypat
 
     handle.cancel = _slow_cancel
     provider = AcpSessionProvider(handle, runtime, owns_runtime=False)
-    monkeypatch.setattr("kiro_crew.acp.session_handle.kiro_sessions_dir", lambda: sessions)
+    monkeypatch.setattr("junction.acp.session_handle.kiro_sessions_dir", lambda: sessions)
     monkeypatch.setattr(
-        "kiro_crew.acp.session_provider.asyncio.wait_for",
+        "junction.acp.session_provider.asyncio.wait_for",
         AsyncMock(side_effect=asyncio.TimeoutError()),
     )
 
@@ -121,7 +121,7 @@ async def test_an_idle_session_still_destroys(tmp_path, monkeypatch):
     handle._turn_done.set()  # no active turn
     handle.cancel = AsyncMock()
     provider = AcpSessionProvider(handle, runtime, owns_runtime=False)
-    monkeypatch.setattr("kiro_crew.acp.session_handle.kiro_sessions_dir", lambda: sessions)
+    monkeypatch.setattr("junction.acp.session_handle.kiro_sessions_dir", lambda: sessions)
 
     await provider.shutdown()
 

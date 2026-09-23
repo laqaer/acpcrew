@@ -1,11 +1,11 @@
 """Tests for the MCP Apps UI→tool callback path.
 
-Gateway side (:mod:`kiro_crew.mcp_gateway.app_call`) is tested against the
+Gateway side (:mod:`junction.mcp_gateway.app_call`) is tested against the
 REAL ``test/fake_mcp_app_server.py`` child process pooled in a real
 :class:`BackendPool` — proving spool-token gating, app-visibility enforcement
 and the ephemeral-stub forward on live pipes.
 
-Dashboard side (:mod:`kiro_crew.dashboard.handlers.mcp_apps`) is tested with
+Dashboard side (:mod:`junction.dashboard.handlers.mcp_apps`) is tested with
 ``aiohttp``'s test client against a scripted unix-socket fake gateway.
 """
 
@@ -21,13 +21,13 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import mcp_apps as mcp_apps_handlers
-from kiro_crew.mcp_apps_render import load_spool
-from kiro_crew.mcp_gateway import apps
-from kiro_crew.mcp_gateway.app_call import handle_app_call
-from kiro_crew.mcp_gateway.apps import write_spool
-from kiro_crew.mcp_gateway.backend import MCP_APPS_ENV_FLAG, Backend
-from kiro_crew.mcp_gateway.pool import BackendPool, PoolKey
+from junction.dashboard.handlers import mcp_apps as mcp_apps_handlers
+from junction.mcp_apps_render import load_spool
+from junction.mcp_gateway import apps
+from junction.mcp_gateway.app_call import handle_app_call
+from junction.mcp_gateway.apps import write_spool
+from junction.mcp_gateway.backend import MCP_APPS_ENV_FLAG, Backend
+from junction.mcp_gateway.pool import BackendPool, PoolKey
 
 SERVER_PATH = Path(__file__).parent / "fake_mcp_app_server.py"
 
@@ -172,7 +172,7 @@ async def test_app_call_cancellation_is_audited(apps_flag_on, spool_tmp, monkeyp
     leave a SEL record. The CancelledError is audited "cancelled" and
     re-raised — never silently swallowed (it is a BaseException, so the
     handler's `except Exception` never catches it)."""
-    import kiro_crew.mcp_gateway.app_call as app_call_mod
+    import junction.mcp_gateway.app_call as app_call_mod
 
     audits: list[tuple[str, str]] = []
     monkeypatch.setattr(
@@ -263,14 +263,14 @@ async def test_app_call_rejects_schema_violating_arguments(apps_flag_on, spool_t
 async def test_app_call_denied_by_governance_mcp_scope(apps_flag_on, spool_tmp, tmp_path, monkeypatch):
     """An enterprise `mcp`-scope deny on @server/tool binds the app-originated
     path exactly like the model path (single ceiling across both invocation
-    authorities). Policy loaded via the real KIROCREW_SECURITY_POLICY seam."""
+    authorities). Policy loaded via the real JUNCTION_SECURITY_POLICY seam."""
     policy = tmp_path / "policy.json"
     policy.write_text(json.dumps({
         "version": 1,
         "boot": {"fail_closed": True},
         "mcp": {"mode": "deny", "deny": ["@fake-mcp-app/save_state"]},
     }))
-    monkeypatch.setenv("KIROCREW_SECURITY_POLICY", str(policy))
+    monkeypatch.setenv("JUNCTION_SECURITY_POLICY", str(policy))
     live = await _spawn_pooled_server()
     try:
         spool_id = _spool_record()
@@ -299,14 +299,14 @@ async def test_app_call_denied_when_the_reloaded_policy_signature_is_bad(
     the original bytes says nothing about what it loads now. Under a genuine
     ``require_policy_signature`` opt-in a non-verified reload denies.
     """
-    from kiro_crew.platform.admission import hmac_signature
-    from kiro_crew.platform.governance import policy_signing_payload
+    from junction.platform.admission import hmac_signature
+    from junction.platform.governance import policy_signing_payload
 
     adm = tmp_path / "admission_policy.json"
     adm.write_text(json.dumps({
         "require_policy_signature": True, "trust_keys": {"fleet": "k"},
     }))
-    monkeypatch.setenv("KIROCREW_ADMISSION_POLICY", str(adm))
+    monkeypatch.setenv("JUNCTION_ADMISSION_POLICY", str(adm))
     body = {
         "version": 1,
         "boot": {"fail_closed": True},
@@ -317,7 +317,7 @@ async def test_app_call_denied_when_the_reloaded_policy_signature_is_bad(
     body["mcp"]["deny"].append("@never/matched")  # tampered AFTER signing
     policy = tmp_path / "policy.json"
     policy.write_text(json.dumps(body))
-    monkeypatch.setenv("KIROCREW_SECURITY_POLICY", str(policy))
+    monkeypatch.setenv("JUNCTION_SECURITY_POLICY", str(policy))
     live = await _spawn_pooled_server()
     try:
         spool_id = _spool_record()
@@ -347,10 +347,10 @@ async def test_app_call_is_not_denied_when_no_policy_is_readable_here(
     adm.write_text(json.dumps({
         "require_policy_signature": True, "trust_keys": {"fleet": "k"},
     }))
-    monkeypatch.setenv("KIROCREW_ADMISSION_POLICY", str(adm))
-    monkeypatch.delenv("KIROCREW_SECURITY_POLICY", raising=False)
+    monkeypatch.setenv("JUNCTION_ADMISSION_POLICY", str(adm))
+    monkeypatch.delenv("JUNCTION_SECURITY_POLICY", raising=False)
     monkeypatch.setattr(
-        "kiro_crew.platform.governance._policy_home_path", lambda: tmp_path / "nope.json"
+        "junction.platform.governance._policy_home_path", lambda: tmp_path / "nope.json"
     )
     live = await _spawn_pooled_server()
     try:
@@ -369,7 +369,7 @@ async def test_app_call_governance_evaluation_error_fails_closed(apps_flag_on, s
     Plane A's soft fail-open — this path has no always-on deny floor)."""
     policy = tmp_path / "broken.json"
     policy.write_text("{not json")
-    monkeypatch.setenv("KIROCREW_SECURITY_POLICY", str(policy))
+    monkeypatch.setenv("JUNCTION_SECURITY_POLICY", str(policy))
     live = await _spawn_pooled_server()
     try:
         spool_id = _spool_record()
@@ -472,7 +472,7 @@ async def test_app_call_still_denies_model_only_tool(apps_flag_on, spool_tmp):
     """Loosening the DEFAULT must not loosen an explicit exclusion."""
     live = await _spawn_pooled_server()
     try:
-        from kiro_crew.mcp_gateway import app_call as app_call_mod
+        from junction.mcp_gateway import app_call as app_call_mod
 
         async def _model_only(backend, **_):
             return {"secret": {"name": "secret",
@@ -503,7 +503,7 @@ async def test_app_call_denies_a_malformed_declaration(apps_flag_on, spool_tmp):
     """
     live = await _spawn_pooled_server()
     try:
-        from kiro_crew.mcp_gateway import app_call as app_call_mod
+        from junction.mcp_gateway import app_call as app_call_mod
 
         async def _unreadable(backend, **_):
             return {"secret": {"name": "secret",
@@ -527,7 +527,7 @@ async def test_app_call_tools_list_is_fetched_fresh_per_call(apps_flag_on, spool
     """Authorization input is never cached: each app call re-fetches
     tools/list, so a server-side visibility revocation takes effect on the
     very next call (no stale-authorization window)."""
-    from kiro_crew.mcp_gateway import app_call as app_call_mod
+    from junction.mcp_gateway import app_call as app_call_mod
 
     live = await _spawn_pooled_server()
     try:

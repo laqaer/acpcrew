@@ -639,7 +639,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onToggleWatch, watchPanelV
   }, [])
 
   useEffect(() => {
-    // Load history from KiroCrew slot
+    // Load history from Junction slot
     api?.getChatHistory?.().then((history: any) => {
       if (Array.isArray(history)) {
         const mapped = history
@@ -1169,8 +1169,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ onToggleWatch, watchPanelV
              editSoul (the soul concept was removed — each avatar carries its own
              persona), doctor (all eight of upstream's checks verified that a
              SELF-INSTALLING standalone app had installed itself; as a builtin the
-             app manager owns that and `kirocrew doctor` covers the host), quit
-             (KiroCrew owns the app lifecycle; the pet is disabled from the App
+             app manager owns that and `junction doctor` covers the host), quit
+             (Junction owns the app lifecycle; the pet is disabled from the App
              Store). resetMochi is BACK and implemented — see mochiApi.resetMochi
              and the /reset route. */
           items={[
@@ -1601,7 +1601,7 @@ const LocalImage: React.FC<{ path: string; onClickImage?: (src: string) => void 
 
 /**
  * Streaming-aware markdown renderer.
- * Ported from KiroCrew's MarkdownRenderer — handles incomplete code fences
+ * Ported from Junction's MarkdownRenderer — handles incomplete code fences
  * during streaming so partial responses render as proper markdown instead of
  * raw text.
  */

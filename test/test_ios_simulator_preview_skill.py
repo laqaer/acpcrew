@@ -5,7 +5,7 @@ properties are worth locking in, because both broke in practice while it was
 being built and neither fails loudly at runtime:
 
 1. **The launcher ships and is discoverable.** The skill is the only bundled
-   skill outside ``kirocrew-dev/`` with a ``scripts/`` payload, so a packaging
+   skill outside ``junction-dev/`` with a ``scripts/`` payload, so a packaging
    glob that stops at ``SKILL.md`` would leave the documented command pointing
    at a file that is not installed.
 2. **The launcher's hard-won invariants stay in the code.** Each assertion below
@@ -36,7 +36,7 @@ posix_only = pytest.mark.skipif(
 SKILL_DIR = (
     Path(__file__).resolve().parents[1]
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "builtin_skills"
     / "ios-simulator-preview"
 )
@@ -66,9 +66,9 @@ class TestSkillFilesShip:
         assert "description:" in head
 
     def test_documented_launcher_path_resolves_via_skill_dir(self, skill_md: str) -> None:
-        """The documented path must honor KIROCREW_HOME (same convention as
+        """The documented path must honor JUNCTION_HOME (same convention as
         prepare-pr), not hardcode a home that a relocated install won't have."""
-        assert '"${KIROCREW_HOME:-$HOME/.kiro/crew}/skills/ios-simulator-preview"' in skill_md
+        assert '"${JUNCTION_HOME:-$HOME/.kiro/crew}/skills/ios-simulator-preview"' in skill_md
         assert '"$SKILL_DIR/scripts/sim_mirror.py"' in skill_md
 
     def test_macos_only_is_stated(self, skill_md: str) -> None:
@@ -175,11 +175,11 @@ class TestReviewFindings:
         assert pin, "SERVE_SIM_VERSION not found"
         assert re.fullmatch(r"\d+\.\d+\.\d+", pin.group(1)), pin.group(1)
 
-    def test_state_dir_honors_kirocrew_home(self, launcher: str) -> None:
+    def test_state_dir_honors_junction_home(self, launcher: str) -> None:
         """Hardcoding ~/.kiro/crew makes a dev instance
-        (KIROCREW_HOME=~/.kirocrew-dev) share pidfile state with a production
+        (JUNCTION_HOME=~/.kirocrew-dev) share pidfile state with a production
         install, so one's `stop` reaches into the other's mirrors."""
-        assert 'os.environ.get("KIROCREW_HOME")' in launcher
+        assert 'os.environ.get("JUNCTION_HOME")' in launcher
         assert "STATE_DIR = _HOME" in launcher
 
     def test_subprocess_timeout_yields_json_error_not_traceback(self, launcher: str) -> None:
@@ -223,7 +223,7 @@ class TestReviewFindings:
     def test_vendor_cleanup_is_gated_on_local_ownership(self, launcher: str) -> None:
         """The vendor `--kill` flag addresses a mirror by UDID alone and cannot
         tell whose it is. Run unconditionally, a `stop` (or a `start`) in one
-        KIROCREW_HOME would tear down a live mirror another home owns for the
+        JUNCTION_HOME would tear down a live mirror another home owns for the
         same device."""
         assert "subprocess.run(NPX" not in launcher, "ungated vendor cleanup call"
         assert '"tracked": tracked' in launcher
@@ -268,7 +268,7 @@ class TestReviewFindings:
 
         env = {
             **os.environ,
-            "KIROCREW_HOME": str(home),
+            "JUNCTION_HOME": str(home),
             "PATH": f"{shim_dir}:{os.environ.get('PATH', '')}",
         }
         p = subprocess.run(
@@ -320,7 +320,7 @@ class TestReviewFindings:
 
         env = {
             **os.environ,
-            "KIROCREW_HOME": str(tmp_path / "home"),
+            "JUNCTION_HOME": str(tmp_path / "home"),
             "PATH": f"{shim_dir}:{os.environ.get('PATH', '')}",
         }
         p = subprocess.run(
@@ -348,7 +348,7 @@ class TestReviewFindings:
 
     def test_relative_data_home_is_refused_not_silently_resolved(self, launcher: str) -> None:
         """The launcher is invoked by path from whatever directory the session is
-        in, so a relative KIROCREW_HOME would resolve per-caller: a `start` from
+        in, so a relative JUNCTION_HOME would resolve per-caller: a `start` from
         one project directory would be invisible to a `stop` from another."""
         assert "def _resolve_home" in launcher
         assert ".expanduser()" in launcher          # env vars carry ~ unexpanded
@@ -368,7 +368,7 @@ class TestReviewFindings:
         p = subprocess.run(
             [sys.executable, str(SKILL_DIR / "scripts" / "sim_mirror.py"), "status"],
             capture_output=True, text=True, timeout=60, cwd=tmp_path,
-            env={**os.environ, "KIROCREW_HOME": "relhome"},
+            env={**os.environ, "JUNCTION_HOME": "relhome"},
         )
         assert p.returncode == 1
         assert "Traceback" not in p.stderr, p.stderr
@@ -386,7 +386,7 @@ class TestReviewFindings:
         p = subprocess.run(
             [sys.executable, str(SKILL_DIR / "scripts" / "sim_mirror.py"), "status"],
             capture_output=True, text=True, timeout=60,
-            env={**os.environ, "HOME": str(fake_home), "KIROCREW_HOME": "~/crewhome"},
+            env={**os.environ, "HOME": str(fake_home), "JUNCTION_HOME": "~/crewhome"},
         )
         assert p.returncode == 0, p.stderr
         assert json.loads(p.stdout) == {"mirrors": []}
@@ -423,7 +423,7 @@ class TestReviewFindings:
 
         env = {
             **os.environ,
-            "KIROCREW_HOME": str(home),
+            "JUNCTION_HOME": str(home),
             "PATH": f"{shim_dir}:{os.environ.get('PATH', '')}",
         }
         p = subprocess.run(

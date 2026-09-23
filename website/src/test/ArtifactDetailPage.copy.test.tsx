@@ -22,7 +22,7 @@ vi.mock('../utils/clipboard', () => ({
 // Stub the embedded chat page — covered by its own suites.
 vi.mock('../pages/ChatPage', () => ({
   default: () => <div data-testid="chat-page" />,
-  PREFILL_STORAGE_KEY: 'kirocrew_prefill',
+  PREFILL_STORAGE_KEY: 'junction_prefill',
 }))
 
 const RAW = '# Release notes\n\n- raw **markdown** source'

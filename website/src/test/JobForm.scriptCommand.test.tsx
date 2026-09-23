@@ -91,8 +91,8 @@ describe('JobForm script/command edit path', () => {
     renderWithProviders(
       <JobForm
         job={makeJob({ script: '~/.kirocrew/crons/nba_progress_nudge.py:run' })}
-        agents={[{ name: 'kirocrew', description: '' } as never]}
-        defaultAgent="kirocrew"
+        agents={[{ name: 'junction', description: '' } as never]}
+        defaultAgent="junction"
         onSaved={() => {}}
         layout="vertical"
       />,
@@ -111,8 +111,8 @@ describe('JobForm script/command edit path', () => {
     renderWithProviders(
       <JobForm
         job={makeJob({ message: 'do the thing' })}
-        agents={[{ name: 'kirocrew', description: '' } as never]}
-        defaultAgent="kirocrew"
+        agents={[{ name: 'junction', description: '' } as never]}
+        defaultAgent="junction"
         onSaved={() => {}}
         layout="vertical"
       />,

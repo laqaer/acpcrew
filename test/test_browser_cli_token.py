@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.browser_cli import token as mod
+from junction.browser_cli import token as mod
 
 
 @pytest.fixture()
@@ -147,7 +147,7 @@ class TestItIsRegisteredAsACredential:
     def test_the_file_is_a_known_secret_leaf(self):
         # The agent inherits the token through the environment and never needs to
         # open the file, so the file stays behind the secret floor.
-        from kiro_crew.security import _CREW_SECRET_LEAVES
+        from junction.security import _CREW_SECRET_LEAVES
 
         assert mod._TOKEN_FILE in _CREW_SECRET_LEAVES
 

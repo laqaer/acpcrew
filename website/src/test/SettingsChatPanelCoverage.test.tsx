@@ -52,7 +52,7 @@ const BASE_MC = {
 const {
   dashboardConfigMock,
   updateDashboardConfigMock,
-  kirocrewConfigMock,
+  junctionConfigMock,
   patchConfigMock,
   modelsMock,
   modelRouterCatalogMock,
@@ -61,7 +61,7 @@ const {
 } = vi.hoisted(() => ({
   dashboardConfigMock: vi.fn(),
   updateDashboardConfigMock: vi.fn(() => Promise.resolve({})),
-  kirocrewConfigMock: vi.fn(),
+  junctionConfigMock: vi.fn(),
   patchConfigMock: vi.fn(() => Promise.resolve({})),
   modelsMock: vi.fn(() =>
     Promise.resolve([
@@ -80,7 +80,7 @@ vi.mock('../api/client', () => ({
   api: {
     dashboardConfig: dashboardConfigMock,
     updateDashboardConfig: updateDashboardConfigMock,
-    kirocrewConfig: kirocrewConfigMock,
+    junctionConfig: junctionConfigMock,
     patchConfig: patchConfigMock,
     models: modelsMock,
     modelRouterCatalog: modelRouterCatalogMock,
@@ -118,7 +118,7 @@ function seedMc(over: {
   dashboard?: Record<string, unknown>
   knowledge?: Record<string, unknown>
 } = {}) {
-  kirocrewConfigMock.mockImplementation(() =>
+  junctionConfigMock.mockImplementation(() =>
     Promise.resolve({
       session: { ...BASE_MC.session, ...over.session },
       agent: { ...BASE_MC.agent, ...over.agent },
@@ -163,7 +163,7 @@ beforeEach(() => {
   localStorage.clear()
   dashboardConfigMock.mockReset()
   updateDashboardConfigMock.mockReset()
-  kirocrewConfigMock.mockReset()
+  junctionConfigMock.mockReset()
   patchConfigMock.mockReset()
   modelRouterCatalogMock.mockReset()
   tipsStatusMock.mockReset()
@@ -194,13 +194,13 @@ describe('ChatPanel — load failures', () => {
   })
 
   it('surfaces a config load failure and refetches on Retry', async () => {
-    rejectOnce(kirocrewConfigMock)
+    rejectOnce(junctionConfigMock)
     wrap()
     expect(await screen.findByText('Failed to load config.')).toBeInTheDocument()
-    expect(kirocrewConfigMock).toHaveBeenCalledTimes(1)
+    expect(junctionConfigMock).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
-    await waitFor(() => expect(kirocrewConfigMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(junctionConfigMock).toHaveBeenCalledTimes(2))
     await waitFor(() =>
       expect(screen.queryByText('Failed to load config.')).not.toBeInTheDocument()
     )
@@ -208,7 +208,7 @@ describe('ChatPanel — load failures', () => {
 
   it('shows one Retry per failed query when both fail', async () => {
     rejectOnce(dashboardConfigMock)
-    rejectOnce(kirocrewConfigMock)
+    rejectOnce(junctionConfigMock)
     wrap()
     await screen.findByText('Failed to load dashboard config.')
     await screen.findByText('Failed to load config.')

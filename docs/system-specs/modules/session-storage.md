@@ -2,9 +2,9 @@
 
 ## Overview
 
-`src/kiro_crew/session_storage.py` measures what conversations cost on disk and
-reclaims that space when a user asks. `src/kiro_crew/session_digest.py` reads a
-single session's content for the detail view. `src/kiro_crew/dashboard/handlers/session_storage.py`
+`src/junction/session_storage.py` measures what conversations cost on disk and
+reclaims that space when a user asks. `src/junction/session_digest.py` reads a
+single session's content for the detail view. `src/junction/dashboard/handlers/session_storage.py`
 exposes both over HTTP. Reclaiming stages files under `<data home>/trash/sessions/`
 rather than unlinking them; emptying that trash is the only irreversible step and
 the only one that returns space to the filesystem.
@@ -98,7 +98,7 @@ the legacy stem fails instead of agreeing with itself.
 ## An instance that cannot see who is live must not reclaim
 
 The exclusion set comes from **this** instance's session map, but the kiro-cli
-replay store can be shared. When `KIROCREW_HOME` is overridden while `KIRO_HOME` is
+replay store can be shared. When `JUNCTION_HOME` is overridden while `KIRO_HOME` is
 not — a dev gateway or a pod — this instance has its own map and the machine-wide
 store, so every session belonging to the default instance is missing from the map it
 consults: a resumable conversation reads as retired and could be staged and then
@@ -109,7 +109,7 @@ outright. Two things about how it decides:
 
 - It compares **resolved paths**, never whether the environment variables are set.
   Both overrides are validated and silently fall back to the default when they name
-  an unsafe target, so `KIRO_HOME=/etc` beside an isolated `KIROCREW_HOME` leaves
+  an unsafe target, so `KIRO_HOME=/etc` beside an isolated `JUNCTION_HOME` leaves
   the process on the shared store while a presence test reports it isolated.
 - It decides by **containment**, not by comparing the store against its default
   location. Once the data home is isolated, the store must be that data home or live
@@ -120,16 +120,16 @@ outright. Two things about how it decides:
   install that has not yet migrated legitimately resolves to `~/.kirocrew`, and
   treating that as an isolated instance refused every such install.
 - The refusal is **symmetric**. A default instance is also blocked when a
-  discoverable co-tenant shares its store: a pod isolates `KIROCREW_HOME` but
+  discoverable co-tenant shares its store: a pod isolates `JUNCTION_HOME` but
   deliberately not `KIRO_HOME`, so each pod home under the pod root reads the
   machine-wide replay store while keeping its own session map — and from the default
   side, the pod's sessions read as retired. `_replay_store_cotenants()` enumerates
   the pod root (host-side state at a known location) and the message names the
   eviction command, because a refusal a user cannot act on is not better than the
-  hazard. A dev gateway pointed at some other `KIROCREW_HOME` is **not**
+  hazard. A dev gateway pointed at some other `JUNCTION_HOME` is **not**
   discoverable and remains a Known Limitation.
 
-Because that check reads real host state, tests must isolate `KIROCREW_POD_ROOT`
+Because that check reads real host state, tests must isolate `JUNCTION_POD_ROOT`
 alongside the homes, or their result depends on whether the machine happens to have
 pods.
 

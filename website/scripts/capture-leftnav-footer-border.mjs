@@ -37,7 +37,7 @@ const SCENES = [
 ]
 
 const slots = [
-  { key: 's1', title: 'Rail footer divider', messages: 4, running: false, agent: 'kirocrew', mode: '', created: '2026-08-11T01:00:00Z', last_ts: '2026-08-11T04:00:00Z', folder_id: '' },
+  { key: 's1', title: 'Rail footer divider', messages: 4, running: false, agent: 'junction', mode: '', created: '2026-08-11T01:00:00Z', last_ts: '2026-08-11T04:00:00Z', folder_id: '' },
 ]
 
 mkdirSync(OUT, { recursive: true })

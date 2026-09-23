@@ -72,7 +72,7 @@ bias by the task:
 **Chairman:** the main session by default; use a top-tier synthesizer (an Anthropic
 Opus/Sonnet-class model) when the panel diverges or stakes are high.
 
-**Agent selection (only when the conductor skill is enabled).** If KiroCrew's
+**Agent selection (only when the conductor skill is enabled).** If Junction's
 **conductor skill** is on — you will see its agent-roster routing table loaded in your
 context — a member may be an **(agent, model) tuple** rather than a bare model: pass
 `spawn_run(agent="<roster-name>", model="<id>")` to run a specialist agent (e.g. a code
@@ -217,7 +217,7 @@ changes.
 
 ## Ceiling / upgrade path
 
-Prompt-and-orchestration only — no KiroCrew core changes. If it proves valuable,
+Prompt-and-orchestration only — no Junction core changes. If it proves valuable,
 promote to a first-class `council` MCP tool over `SubagentManager` (which already
 accepts a per-subagent `model=`) or a `workflow_run` template — a monitorable,
 one-call primitive with per-member model + mode selection, and a read-only tool

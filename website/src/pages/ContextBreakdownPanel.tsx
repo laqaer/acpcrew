@@ -30,7 +30,7 @@ export interface ContextTrace {
   totals: Record<string, number>
   injected_chars: number
   user_chars: number
-  // The model context KiroCrew did NOT inject (kiro-cli's own prompt + tool
+  // The model context Junction did NOT inject (kiro-cli's own prompt + tool
   // catalogue), derived from peak token occupancy via a chars-per-token ratio.
   // An ESTIMATE — surfaced hatched and labelled as one everywhere it renders.
   estimated_other_chars: number
@@ -352,7 +352,7 @@ function ContextBreakdownCard({ trace }: { trace: ContextTrace }) {
   const colorOf = (label: string) => colorMap.get(label) ?? darkest
 
   const totalWindow = trace.injected_chars + trace.estimated_other_chars
-  const kirocrewAdded = Math.max(0, trace.injected_chars - trace.user_chars)
+  const junctionAdded = Math.max(0, trace.injected_chars - trace.user_chars)
   const pctOf = (n: number) => (totalWindow > 0 ? (n / totalWindow) * 100 : 0)
 
   const numbered = trace.turns.map((turn, i) => ({ turn, n: i + 1 }))
@@ -364,7 +364,7 @@ function ContextBreakdownCard({ trace }: { trace: ContextTrace }) {
   const hasCredits = trace.turns.some(t => t.credits !== undefined)
   const totalCredits = trace.turns.reduce((sum, t) => sum + (t.credits ?? 0), 0)
 
-  // Whole-window summary: aggregate blocks + the estimated non-KiroCrew remainder.
+  // Whole-window summary: aggregate blocks + the estimated non-Junction remainder.
   const groupedTotals = groupBlocks(trace.totals)
   const windowNonUser = Object.entries(groupedTotals)
     .filter(([label]) => label !== USER_LABEL)
@@ -444,9 +444,9 @@ function ContextBreakdownCard({ trace }: { trace: ContextTrace }) {
           accent
         />
         <Stat
-          label={i18nT('pages.contextBreakdown.strip_kirocrew_added')}
-          value={fmtPct(pctOf(kirocrewAdded))}
-          sub={i18nT('pages.contextBreakdown.strip_kirocrew_added_sub', { chars: fmtN(kirocrewAdded) })}
+          label={i18nT('pages.contextBreakdown.strip_junction_added')}
+          value={fmtPct(pctOf(junctionAdded))}
+          sub={i18nT('pages.contextBreakdown.strip_junction_added_sub', { chars: fmtN(junctionAdded) })}
         />
         <Stat
           label={i18nT('pages.contextBreakdown.strip_kiro_builtin')}

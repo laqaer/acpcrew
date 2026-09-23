@@ -154,7 +154,7 @@ export default function InstalledAppCard({
             {/* Open button — all app types */}
             {hasOpenCommand && (
               <Btn primary onClick={() => api.openApp(app.name).then((res: { remote?: boolean; command?: string; message?: string } | null) => {
-                if (res?.remote) setRemoteCmd(res.command || res.message || i18nT('components.appstore.installedAppCard.app_cannot_be_opened_kirocrew_is_running_in_a_he'))
+                if (res?.remote) setRemoteCmd(res.command || res.message || i18nT('components.appstore.installedAppCard.app_cannot_be_opened_junction_is_running_in_a_he'))
               }).catch(() => {})}>
                 <ExternalLink size={14} /> {i18nT('components.appstore.installedAppCard.open')}
               </Btn>
@@ -259,9 +259,9 @@ export default function InstalledAppCard({
           )}
           <div className="text-[11px] text-muted">
             {i18nT('components.appstore.installedAppCard.installed')} {fmtDateNumeric(app.installedAt)}
-            {m?.minKiroCrewVersion && <span className="ml-3">{i18nT('components.appstore.installedAppCard.min_version')} {m.minKiroCrewVersion}</span>}
+            {m?.minJunctionVersion && <span className="ml-3">{i18nT('components.appstore.installedAppCard.min_version')} {m.minJunctionVersion}</span>}
             {isSelfManaged && <div className="mt-1">{i18nT('components.appstore.installedAppCard.management_app_handles_its_own_agent_skill_mcp_r')}</div>}
-            {isBuiltin && <div className="mt-1">{i18nT('components.appstore.installedAppCard.built_in_this_feature_is_part_of_the_kirocrew_da')}</div>}
+            {isBuiltin && <div className="mt-1">{i18nT('components.appstore.installedAppCard.built_in_this_feature_is_part_of_the_junction_da')}</div>}
             {app.source && !isBuiltin && <div className="mt-1 truncate" title={app.source}>{i18nT('components.appstore.installedAppCard.source')} {app.source}</div>}
             {app.origin && <div className="mt-1">{i18nT('components.appstore.installedAppCard.origin')} {app.origin} {i18nT('components.appstore.installedAppCard.resources')} {app.resources || 'gateway'} {i18nT('components.appstore.installedAppCard.lifecycle')} {app.lifecycle || 'gateway'}</div>}
           </div>

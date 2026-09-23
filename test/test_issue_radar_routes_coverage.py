@@ -25,7 +25,7 @@ That is what this file covers, at three levels:
 
 Everything is patched at the ``github_client`` / ``store`` boundary, so no ``gh``
 subprocess runs, no network is touched, and nothing is written outside the
-per-test ``KIROCREW_HOME`` that ``conftest.py`` pins. No sleeps and no
+per-test ``JUNCTION_HOME`` that ``conftest.py`` pins. No sleeps and no
 wall-clock assertions, so ordering and duration cannot make these flaky.
 """
 import json
@@ -37,8 +37,8 @@ from urllib.parse import urlencode
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.apps.builtins.issue_radar.backend import github_client as gh
-from kiro_crew.apps.builtins.issue_radar.backend import provider, routes, store
+from junction.apps.builtins.issue_radar.backend import github_client as gh
+from junction.apps.builtins.issue_radar.backend import provider, routes, store
 
 BASE = "/api/apps/issue-radar"
 SHA = "a" * 40
@@ -593,7 +593,7 @@ class TestRegisterRoutes(unittest.TestCase):
         self.assertNotIn("merge", routes._BULK_PR_ACTIONS)
 
     def test_the_watcher_lifecycle_hooks_are_registered(self):
-        from kiro_crew.apps.builtins.issue_radar.backend import watch
+        from junction.apps.builtins.issue_radar.backend import watch
 
         self.assertIn(watch.start_watcher, self.app.on_startup)
         self.assertIn(watch.stop_watcher, self.app.on_cleanup)

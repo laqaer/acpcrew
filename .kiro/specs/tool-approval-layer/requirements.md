@@ -3,7 +3,7 @@
 ## Introduction
 
 Kiro Crew already intercepts every agent tool call before it executes. The backend
-`HookManager.on_tool_call` gate (`src/kiro_crew/hooks.py`) classifies each PreToolUse
+`HookManager.on_tool_call` gate (`src/junction/hooks.py`) classifies each PreToolUse
 event as `TOOL_ALLOW`, `TOOL_AUTO_APPROVE`, or `TOOL_DENY` — enforcing sensitive-path,
 exfiltration, write-protected-config, deny-by-default-shell, and governance rules
 *before* the tool runs. When a call is neither auto-approved nor denied, the frontend

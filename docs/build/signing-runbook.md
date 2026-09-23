@@ -93,9 +93,9 @@ per-identifier, so an unfamiliar identifier is rejected; any future distinct
 identifier needs onboarding first. `sign-dmg.sh` defaults to the onboarded app
 identifier for that reason, and it must not be changed as part of a string scrub.
 
-Published **filenames** are pinned to the `KiroCrew` basename on every channel,
-even though the nightly bundle is `KiroCrew Nightly.app`. CDN keys and the
-latest-DMG permalink (`desktop/<channel>/latest/KiroCrew.dmg`) are a public
+Published **filenames** are pinned to the `Junction` basename on every channel,
+even though the nightly bundle is `Junction Nightly.app`. CDN keys and the
+latest-DMG permalink (`desktop/<channel>/latest/Junction.dmg`) are a public
 contract, so deriving filenames from the bundle name would silently rename keys
 and break the permalink. The DMG's **volume** name does follow the bundle.
 
@@ -202,14 +202,14 @@ tags it, which is the same principal who could merge it.
 The credential is an Apple app-specific password for the team's enrolled Apple
 account. Custody rules:
 
-- **CI copy: AWS Secrets Manager**, secret id `kirocrew/signing/apple-notary`,
+- **CI copy: AWS Secrets Manager**, secret id `junction/signing/apple-notary`,
   fetched by the same OIDC role used for signing. The JSON carries `apple_id`,
   `password` and `team_id`. It is never a GitHub secret and never a workflow env
   literal: a dedicated secret store gives custody, an audit trail, and a rotation
   lifecycle that a repository secret does not.
 - **Local copy: the macOS Keychain**, via
-  `xcrun notarytool store-credentials "KiroCrewNotary" ...`. Every local command
-  then uses `--keychain-profile "KiroCrewNotary"`.
+  `xcrun notarytool store-credentials "JunctionNotary" ...`. Every local command
+  then uses `--keychain-profile "JunctionNotary"`.
 - **Never paste the password** into chat, tickets, docs, or a shell command line
   that lands in a shared log. Type it only into the Apple portal, into
   `store-credentials` in your own terminal, or into the Secrets Manager console
@@ -250,7 +250,7 @@ whenever convenient, and not urgent while the password path works.
 ## Troubleshooting
 
 **Notarization returns `Invalid`.** Pull the itemized log with
-`xcrun notarytool log <submission-id> --keychain-profile KiroCrewNotary`. Every
+`xcrun notarytool log <submission-id> --keychain-profile JunctionNotary`. Every
 listed binary must be Developer ID signed with hardened runtime and a secure
 timestamp. If binaries are listed, manifest coverage regressed: check
 `generate-manifest.py`'s scope rules and its layout tripwire.

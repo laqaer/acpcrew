@@ -35,14 +35,14 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.apps.builtins.issue_radar.backend import (
+from junction.apps.builtins.issue_radar.backend import (
     crew_routes,
     crew_store,
     routes,
     store,
 )
 
-OWNER, REPO = "kirodotdev", "KiroCrew"  # brand-ok: the repository name
+OWNER, REPO = "kirodotdev", "Junction"  # brand-ok: the repository name
 BASE = "/api/apps/issue-radar"
 
 
@@ -525,7 +525,7 @@ class TitleHintDegradationTest(unittest.TestCase):
         _step(self.root, self.cid, 5109, "claimed", "claim", "mine")
 
     def test_an_unreadable_title_cache_still_folds_the_lane(self):
-        import kiro_crew.apps.builtins.issue_radar.backend.store as ir_store
+        import junction.apps.builtins.issue_radar.backend.store as ir_store
 
         def boom(*a, **k):
             raise OSError("cache vanished mid-refresh")

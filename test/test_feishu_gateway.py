@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.feishu.gateway import _resolve_approval_mode, maybe_start_feishu
-from kiro_crew.messaging.driver import APPROVAL_AUTO, APPROVAL_INTERACTIVE
+from junction.feishu.gateway import _resolve_approval_mode, maybe_start_feishu
+from junction.messaging.driver import APPROVAL_AUTO, APPROVAL_INTERACTIVE
 
 
 class _FakeState:
@@ -70,9 +70,9 @@ class TestResolveApprovalMode:
         assert _resolve_approval_mode(orch) == APPROVAL_INTERACTIVE
 
 
-@patch("kiro_crew.feishu.gateway.LarkClient")
-@patch("kiro_crew.feishu.gateway.FeishuTransport")
-@patch("kiro_crew.feishu.gateway.FeishuDispatcher")
+@patch("junction.feishu.gateway.LarkClient")
+@patch("junction.feishu.gateway.FeishuTransport")
+@patch("junction.feishu.gateway.FeishuDispatcher")
 class TestMaybeStartFeishu:
     @pytest.mark.asyncio
     async def test_noop_when_disabled(self, mock_dispatcher, mock_transport, mock_client) -> None:

@@ -580,7 +580,7 @@ export interface RepoSettings {
   unlabeled_is_untriaged: boolean
   /** Label names that mark newcomer / first-issue-friendly work. */
   good_first_issue_labels: string[]
-  /** Watch this repo in the background and push a KiroCrew notification when a
+  /** Watch this repo in the background and push a Junction notification when a
    * new issue is opened. Opt-in (default false). */
   notify_on_new_issue: boolean
   /** Monotonic counter bumped by every write. A PUT replaces the whole document,
@@ -926,7 +926,7 @@ export function repoBody(ref: RepoRef): Record<string, string> {
 // ── crews ───────────────────────────────────────────────────────────────────
 //
 // Every shape below MIRRORS the backend store,
-// `src/kiro_crew/apps/builtins/issue_radar/backend/crew_store.py` — that module is
+// `src/junction/apps/builtins/issue_radar/backend/crew_store.py` — that module is
 // the SOURCE OF TRUTH for the phase list, the three phase classifications, the
 // event kinds and every record field. A crew record has no upstream to refetch
 // from (unlike an issue, where a schema mismatch is just a cache miss), so these

@@ -1,13 +1,13 @@
 ---
 name: feature-request
-description: Conversational workflow for gathering user feedback and filing GitHub Issues on the KiroCrew repository. Load when the user clicks "Request a Feature", wants to report a bug, or suggest an improvement.
+description: Conversational workflow for gathering user feedback and filing GitHub Issues on the Junction repository. Load when the user clicks "Request a Feature", wants to report a bug, or suggest an improvement.
 triggers: request a feature, request feature, feature request, report a bug, bug report, file an issue, github issue, I have an idea, something's broken, suggestion
 ---
 
 # Feature Request / Issue Report
 
 Conversational workflow for gathering user feedback and creating GitHub Issues
-on the KiroCrew repository.
+on the Junction repository.
 
 **Trigger:** User clicks "Request a Feature" button, or says "report a bug",
 "feature request", "I have an idea", "something's broken".

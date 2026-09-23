@@ -20,8 +20,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew import session_storage as session_storage_module
-from kiro_crew.dashboard.handlers import session_storage as handler
+from junction import session_storage as session_storage_module
+from junction.dashboard.handlers import session_storage as handler
 
 _DAY = 86400.0
 
@@ -40,7 +40,7 @@ def stores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]
     kiro_home = crew_home / "kiro"
     (crew_home / "sessions" / "archive").mkdir(parents=True)
     (kiro_home / "sessions" / "cli").mkdir(parents=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+    monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
     monkeypatch.setenv("KIRO_HOME", str(kiro_home))
     return crew_home, kiro_home
 

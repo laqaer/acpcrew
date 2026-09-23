@@ -8,7 +8,7 @@ import subprocess
 
 import pytest
 
-from kiro_crew.dashboard.handlers import updates
+from junction.dashboard.handlers import updates
 
 
 def _init_repo(path) -> None:
@@ -46,10 +46,10 @@ class TestUpdateCheckGitGuard:
         # branch is the one that ran.
         info = updates.get_update_info()
         assert info["error_code"] == "feed_malformed"
-        assert info["managed_by"] == "kirocrew"
+        assert info["managed_by"] == "junction"
 
     def test_skips_git_when_no_dot_git(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         self._stub_feed(monkeypatch)
 
         def _boom(*a, **k):  # pragma: no cover - must not be called
@@ -60,7 +60,7 @@ class TestUpdateCheckGitGuard:
         self._assert_took_the_feed_path()
 
     def test_skips_git_when_no_project_dir(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
         self._stub_feed(monkeypatch)
 
         def _boom(*a, **k):  # pragma: no cover
@@ -73,7 +73,7 @@ class TestUpdateCheckGitGuard:
     def test_apply_rejects_non_git_checkout(self, monkeypatch, tmp_path):
         # POST /api/update on a tarball install must 409 with a clear
         # "redeploy" message instead of running git status/pull and failing.
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         def _boom(*a, **k):  # pragma: no cover - must not be called
             raise AssertionError("git must not run without a .git dir")
@@ -94,16 +94,16 @@ class TestUpdateCheckGitGuard:
         # destructive action, so IT enforces the precondition: 409 with the
         # counts, and git pull must never start.
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
         async def _no_provider():
             return None
 
-        monkeypatch.setattr("kiro_crew.platform.update_provider.apply_policy_update", _no_provider)
+        monkeypatch.setattr("junction.platform.update_provider.apply_policy_update", _no_provider)
         monkeypatch.setattr(updates, "update_blocked_reason", lambda url: None)
 
         calls: list[tuple[str, ...]] = []
@@ -149,16 +149,16 @@ class TestUpdateCheckGitGuard:
         # remote cannot be reached, the distance below would be computed from
         # stale refs, so the endpoint refuses instead of pulling blind.
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
         async def _no_provider():
             return None
 
-        monkeypatch.setattr("kiro_crew.platform.update_provider.apply_policy_update", _no_provider)
+        monkeypatch.setattr("junction.platform.update_provider.apply_policy_update", _no_provider)
         monkeypatch.setattr(updates, "update_blocked_reason", lambda url: None)
 
         calls: list[tuple[str, ...]] = []
@@ -206,16 +206,16 @@ class TestUpdateCheckGitGuard:
         # distance it cannot read must refuse too — never read as "in sync"
         # and wave the pull through.
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
         async def _no_provider():
             return None
 
-        monkeypatch.setattr("kiro_crew.platform.update_provider.apply_policy_update", _no_provider)
+        monkeypatch.setattr("junction.platform.update_provider.apply_policy_update", _no_provider)
         monkeypatch.setattr(updates, "update_blocked_reason", lambda url: None)
 
         calls: list[tuple[str, ...]] = []
@@ -263,9 +263,9 @@ class TestUpdateCheckGitGuard:
         # Linked git worktrees and submodules have .git as a *file* pointing at
         # the real git dir — update checks must still run there.
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
         called = {"n": 0}
@@ -286,9 +286,9 @@ class TestUpdateCheckGitGuard:
 
     def test_proceeds_when_dot_git_present(self, monkeypatch, tmp_path):
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
         called = {"n": 0}

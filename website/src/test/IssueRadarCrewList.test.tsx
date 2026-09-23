@@ -32,7 +32,7 @@ const crew = (over: Partial<Crew> & { status?: string }): Crew => ({
   name: 'Andromeda',
   avatar_seed: 'Andromeda',
   avatar_variant: null,
-  agent: 'kirocrew',
+  agent: 'junction',
   model: '',
   extra_prompt: '',
   labels: [],

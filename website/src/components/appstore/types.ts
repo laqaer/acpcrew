@@ -110,7 +110,7 @@ export type InstalledApp = {
     }
     permissions?: { api?: string[]; events?: string[]; mcpTools?: string[]; storage?: boolean; cron?: boolean; network?: boolean }
     setup?: { onInstall?: string; onUpdate?: string; onUninstall?: string; onEnable?: string; onDisable?: string }
-    minKiroCrewVersion?: string
+    minJunctionVersion?: string
     iconPath?: string
     repo?: string
     screenshots?: string[]
@@ -157,11 +157,11 @@ export function sourceLabel(app: Pick<RegistryApp, '_registry' | 'origin' | 'pro
   if (app._registry) return app._registry
   if (app.provenance === 'builtin') return i18nT('components.appstore.types.built_in')
   if (app.provenance === 'official' || app.provenance === 'core') {
-    return i18nT('components.appstore.types.kirocrew_registry')
+    return i18nT('components.appstore.types.junction_registry')
   }
   // Legacy fallback (older gateway: no ``provenance`` field).
   if (app.origin === 'builtin') return i18nT('components.appstore.types.built_in')
-  return i18nT('components.appstore.types.kirocrew_registry')
+  return i18nT('components.appstore.types.junction_registry')
 }
 
 /**
@@ -185,7 +185,7 @@ export function isVerified(app: Pick<RegistryApp, 'origin' | 'author' | '_regist
   if (typeof app.verified === 'boolean') return app.verified
   // Legacy fallback (older gateway: no ``verified`` field).
   if (app.origin === 'builtin') return true
-  return (app.author || '').toLowerCase() === 'kirocrew'
+  return (app.author || '').toLowerCase() === 'junction'
 }
 
 /** The ``source`` prefix ``install_from_registry`` records on a cloned app. */

@@ -68,7 +68,7 @@ Verified at `5cd92ff99`:
   reproduce the same library on a second install short of re-adding every
   source by hand.
 * There is no Jira, Confluence, or ServiceNow reader anywhere in
-  `src/kiro_crew` (grep for either term returns zero hits), and no manifest
+  `src/junction` (grep for either term returns zero hits), and no manifest
   format that names external context sources.
 * **Sessions have no grouping concept.** `slot.project` ties one session to
   one directory, but nothing groups the many sessions working the same body of

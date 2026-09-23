@@ -13,11 +13,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.mcp_discovery import (
+from junction import platform_compat
+from junction.mcp_discovery import (
     SCOPE_CC_GLOBAL,
     SCOPE_KIRO_GLOBAL,
-    SCOPE_KIROCREW,
+    SCOPE_JUNCTION,
     McpServerInfo,
     _cache_probe,
     _get_cached,
@@ -33,7 +33,7 @@ from kiro_crew.mcp_discovery import (
     probe_server,
     sync_to_agent_config,
 )
-from kiro_crew.subprocess_utf8 import UTF8_TEXT
+from junction.subprocess_utf8 import UTF8_TEXT
 
 
 def _clear_cache() -> None:
@@ -53,7 +53,7 @@ def _passthrough_sandbox(monkeypatch):
     def _passthrough(argv, *a, env=None, **k):
         return list(argv), dict(env if env is not None else _os.environ), None
 
-    monkeypatch.setattr("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _passthrough)
+    monkeypatch.setattr("junction.mcp_discovery.sandboxed_spawn_argv", _passthrough)
 
 
 class TestMcpServerInfo:
@@ -143,25 +143,25 @@ class TestListServers:
         _clear_cache()
 
     def test_list_merges_installed_config(self, tmp_path, monkeypatch) -> None:
-        """defaults.json has no mcpServers; installed kirocrew.json does."""
+        """defaults.json has no mcpServers; installed junction.json does."""
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        installed = {"mcpServers": {"kirocrew-cron": {"command": "kirocrew", "args": ["mcp-cron"]}}}
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(installed))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        installed = {"mcpServers": {"junction-cron": {"command": "junction", "args": ["mcp-cron"]}}}
+        (kiro_dir / "junction.json").write_text(json.dumps(installed))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         # The installed-config branch resolves ``kiro_agents_dir()``, which reads
         # ``Path.home`` in ``config.paths`` -- NOT the name patched above. Point the
         # binding this module holds at the tmp tree instead, or the assertion below is
         # answered by whatever the operator's own ~/.kiro/agents happens to contain.
-        monkeypatch.setattr("kiro_crew.mcp_discovery.kiro_agents_dir", lambda: kiro_dir)
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "nope.json",))
+        monkeypatch.setattr("junction.mcp_discovery.kiro_agents_dir", lambda: kiro_dir)
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "nope.json",))
         servers = list_servers()
         names = {s.name for s in servers}
-        assert "kirocrew-cron" in names
+        assert "junction-cron" in names
 
     def test_list_from_agent_config(self, tmp_path, monkeypatch) -> None:
         agent_dir = tmp_path / "agents"
@@ -173,16 +173,16 @@ class TestListServers:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         servers = list_servers()
         names = {s.name for s in servers}
         assert "my-server" in names
         assert "other-srv" in names
 
     def test_list_empty_no_config(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "nope.json",))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "nope.json",))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         servers = list_servers()
         assert servers == []
 
@@ -191,12 +191,12 @@ class TestListServers:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"agent-srv": {"command": "a"}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"ext-srv": {"command": "b", "args": ["--x"]}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         servers = list_servers()
         names = {s.name for s in servers}
         assert "agent-srv" in names
@@ -210,10 +210,10 @@ class TestListServers:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"shared": {"command": "agent-cmd"}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(json.dumps({"mcpServers": {"shared": {"command": "mcp-cmd"}}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         servers = list_servers()
         shared = [s for s in servers if s.name == "shared"]
         assert len(shared) == 1
@@ -227,20 +227,20 @@ class TestListServers:
         cfg = {
             "mcpServers": {
                 "npm:@playwright/mcp": {
-                    "command": "kirocrew",
+                    "command": "junction",
                     "args": ["mcp-playwright-proxy"],
                 },
                 "playwright-mcp": {
-                    "command": "kirocrew",
+                    "command": "junction",
                     "args": ["mcp-playwright-proxy"],
                 },
                 "plain-srv": {"command": "p"},
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "nope.json",))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "nope.json",))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         servers = list_servers()
         names = [s.name for s in servers]
         assert names.count("playwright-mcp") == 1
@@ -258,24 +258,24 @@ class TestListServers:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "x",))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "x",))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         servers = list_servers()
         names = {s.name for s in servers}
         assert "enabled-srv" in names
         assert "disabled-srv" not in names
 
-    def test_list_surfaces_kirocrew_disabled_servers_as_disabled_rows(
+    def test_list_surfaces_junction_disabled_servers_as_disabled_rows(
         self, tmp_path, monkeypatch
     ) -> None:
-        """KiroCrew-scope disabled entries get a row marked disabled.
+        """Junction-scope disabled entries get a row marked disabled.
 
         Consent-disabled installs/custom adds land with ``disabled: true``
-        in the KiroCrew scope; the table's enable action is the consent
+        in the Junction scope; the table's enable action is the consent
         step, so the row must exist (previously these were invisible)."""
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -287,7 +287,7 @@ class TestListServers:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         servers = list_servers()
         by_name = {s.name: s for s in servers}
         assert "active" in by_name
@@ -295,9 +295,9 @@ class TestListServers:
         # The disabled entry is present but flagged — and never probed.
         assert "inactive" in by_name
         assert by_name["inactive"].disabled is True
-        assert by_name["inactive"].presence["kirocrew"] is False
+        assert by_name["inactive"].presence["junction"] is False
 
-    def test_kirocrew_disabled_row_survives_agent_mirror(self, tmp_path, monkeypatch) -> None:
+    def test_junction_disabled_row_survives_agent_mirror(self, tmp_path, monkeypatch) -> None:
         """The row still surfaces when config sync mirrored the disable.
 
         Custom-add/install config sync writes the consent-disabled entry
@@ -313,9 +313,9 @@ class TestListServers:
         mcp_json.write_text(
             json.dumps({"mcpServers": {"pending": {"command": "a", "disabled": True}}})
         )
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         servers = [s for s in list_servers() if s.name == "pending"]
         assert len(servers) == 1
         assert servers[0].disabled is True
@@ -324,21 +324,21 @@ class TestListServers:
     async def test_probe_all_never_probes_disabled_rows(self, tmp_path, monkeypatch) -> None:
         """Consent-disabled rows are excluded from probing — a probe would
         spawn the server process the user has not yet consented to run."""
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"pending": {"command": "definitely-not-run", "disabled": True}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         probed: list[str] = []
 
         async def fake_probe(server):
             probed.append(server.name)
             return server
 
-        monkeypatch.setattr("kiro_crew.mcp_discovery.probe_server", fake_probe)
-        from kiro_crew.mcp_discovery import probe_all
+        monkeypatch.setattr("junction.mcp_discovery.probe_server", fake_probe)
+        from junction.mcp_discovery import probe_all
 
         await probe_all()
         assert "pending" not in probed
@@ -352,9 +352,9 @@ class TestListServers:
         )
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(json.dumps({"mcpServers": {"srv": {"command": "b"}}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         assert not any(s.name == "srv" for s in list_servers())
 
     def test_disabled_mcp_json_still_carries_disabled_tools(self, tmp_path, monkeypatch) -> None:
@@ -368,9 +368,9 @@ class TestListServers:
         mcp_json.write_text(
             json.dumps({"mcpServers": {"srv": {"disabled": True, "disabledTools": ["t1"]}}})
         )
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         servers = list_servers()
         assert len(servers) == 1
         assert servers[0].disabled_tools == ["t1"]
@@ -388,9 +388,9 @@ class TestListServers:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "x",))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "x",))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         servers = list_servers()
         assert len(servers) == 1
         s = servers[0]
@@ -405,7 +405,7 @@ class TestListServers:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         kiro_mcp = tmp_path / "kiro_mcp.json"
@@ -414,13 +414,13 @@ class TestListServers:
                 {"mcpServers": {"shared": {"command": "kiro"}, "kiro-only": {"command": "k"}}}
             )
         )
-        kirocrew_mcp = tmp_path / "kirocrew_mcp.json"
-        kirocrew_mcp.write_text(
+        junction_mcp = tmp_path / "junction_mcp.json"
+        junction_mcp.write_text(
             json.dumps(
-                {"mcpServers": {"shared": {"command": "kirocrew"}, "mc-only": {"command": "m"}}}
+                {"mcpServers": {"shared": {"command": "junction"}, "mc-only": {"command": "m"}}}
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp, kirocrew_mcp))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp, junction_mcp))
 
         servers = list_servers()
         names = {s.name for s in servers}
@@ -435,14 +435,14 @@ class TestListServers:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         bad = tmp_path / "bad.json"
         bad.write_text("{invalid json")
         good = tmp_path / "good.json"
         good.write_text(json.dumps({"mcpServers": {"srv": {"command": "x"}}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (bad, good))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (bad, good))
 
         servers = list_servers()
         assert any(s.name == "srv" for s in servers)
@@ -452,14 +452,14 @@ class TestListServers:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         bad = tmp_path / "bad.json"
         bad.write_text(json.dumps({"mcpServers": ["not", "a", "dict"]}))
         good = tmp_path / "good.json"
         good.write_text(json.dumps({"mcpServers": {"srv": {"command": "x"}}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (bad, good))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (bad, good))
 
         servers = list_servers()
         assert any(s.name == "srv" for s in servers)
@@ -469,23 +469,23 @@ class TestListServers:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         blocked = tmp_path / "blocked.json"
         blocked.write_text("{}")
         good = tmp_path / "good.json"
         good.write_text(json.dumps({"mcpServers": {"srv": {"command": "x"}}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (blocked, good))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (blocked, good))
 
-        original = __import__("kiro_crew.hooks", fromlist=["safe_read_file"]).safe_read_file
+        original = __import__("junction.hooks", fromlist=["safe_read_file"]).safe_read_file
 
         def _mock_safe_read(path: str) -> str:
             if "blocked" in path:
                 raise PermissionError("Blocked: sensitive path")
             return original(path)
 
-        monkeypatch.setattr("kiro_crew.mcp_discovery.safe_read_file", _mock_safe_read)
+        monkeypatch.setattr("junction.mcp_discovery.safe_read_file", _mock_safe_read)
 
         servers = list_servers()
         assert any(s.name == "srv" for s in servers)
@@ -501,13 +501,13 @@ class TestExtraScopeSeam:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         cc = tmp_path / "cc.json"
         cc.write_text(json.dumps({"mcpServers": {"companion-srv": {"command": "x"}}}))
         # OSS default: seam contributes nothing.
-        monkeypatch.setattr("kiro_crew.mcp_discovery._extra_scope_sources", lambda: [])
+        monkeypatch.setattr("junction.mcp_discovery._extra_scope_sources", lambda: [])
 
         by_source = _load_mcp_json_by_source()
         assert by_source.get("ccGlobal") == {}
@@ -518,13 +518,13 @@ class TestExtraScopeSeam:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         cc = tmp_path / "cc.json"
         cc.write_text(json.dumps({"mcpServers": {"companion-srv": {"command": "x"}}}))
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery._extra_scope_sources", lambda: [(cc, "ccGlobal")]
+            "junction.mcp_discovery._extra_scope_sources", lambda: [(cc, "ccGlobal")]
         )
 
         by_source = _load_mcp_json_by_source()
@@ -541,13 +541,13 @@ class TestExtraScopeSeam:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         vendor = tmp_path / "vendor.json"
         vendor.write_text(json.dumps({"mcpServers": {"vendor-srv": {"command": "x"}}}))
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery._extra_scope_sources",
+            "junction.mcp_discovery._extra_scope_sources",
             lambda: [(vendor, "vendorGlobal")],
         )
 
@@ -572,7 +572,7 @@ class TestExtraScopeSeam:
         _CORE_SCOPE_ORDER fix (ccGlobal dropped from the core tuple)."""
         # _scope_priority orders core scopes first, seam scopes in the tail.
         by_source = {
-            SCOPE_KIROCREW: {},
+            SCOPE_JUNCTION: {},
             SCOPE_KIRO_GLOBAL: {"shared-srv": {"command": "kiro"}},
             SCOPE_CC_GLOBAL: {"shared-srv": {"command": "cc"}},
         }
@@ -586,7 +586,7 @@ class TestExtraScopeSeam:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _clear_cache()
 
         kiro_mcp = tmp_path / "kiro.json"
@@ -602,11 +602,11 @@ class TestExtraScopeSeam:
             )
         )
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery._MCP_SOURCES", ((kiro_mcp, SCOPE_KIRO_GLOBAL),)
+            "junction.mcp_discovery._MCP_SOURCES", ((kiro_mcp, SCOPE_KIRO_GLOBAL),)
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp,))
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery._extra_scope_sources", lambda: [(cc_mcp, "ccGlobal")]
+            "junction.mcp_discovery._extra_scope_sources", lambda: [(cc_mcp, "ccGlobal")]
         )
 
         server = next(s for s in list_servers() if s.name == "shared-srv")
@@ -621,7 +621,7 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"existing": {"command": "a"}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -633,7 +633,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         new = discover_servers_to_sync()
         assert len(new) == 1
         assert new[0].name == "brand-new"
@@ -643,7 +643,7 @@ class TestDiscoverNew:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         headers = {"Authorization": "Bearer sync-secret", "X-Tenant": "acme"}
         mcp_json.write_text(
@@ -658,7 +658,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -679,7 +679,7 @@ class TestDiscoverNew:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -693,7 +693,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -712,7 +712,7 @@ class TestDiscoverNew:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -726,7 +726,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -739,7 +739,7 @@ class TestDiscoverNew:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -754,7 +754,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -772,7 +772,7 @@ class TestDiscoverNew:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -786,7 +786,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -804,7 +804,7 @@ class TestDiscoverNew:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -815,7 +815,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -832,10 +832,10 @@ class TestDiscoverNew:
             "clientId": "public-client-id",
         }
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {"remote": entry}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(json.dumps({"mcpServers": {"remote": entry}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         assert discover_servers_to_sync() == []
 
@@ -862,11 +862,11 @@ class TestDiscoverNew:
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         (agent_dir / "defaults.json").write_text(json.dumps({"mcpServers": {}}))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         spec = {"url": "https://mcp.example.com/v1", **spec_extra}
         mcp_json.write_text(json.dumps({"mcpServers": {"remote": spec}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         result = discover_servers_to_sync()
 
@@ -879,10 +879,10 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"srv": {"command": "a"}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(json.dumps({"mcpServers": {"srv": {"command": "a"}}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         new = discover_servers_to_sync()
         assert new == []
 
@@ -892,12 +892,12 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"srv": {"command": "a", "env": {}}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"srv": {"command": "a", "env": {"KEY": "val"}}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert len(result) == 1
         assert result[0].name == "srv"
@@ -912,35 +912,35 @@ class TestDiscoverNew:
         strings would flag every synced server on every refresh, re-syncing
         forever.
         """
-        from kiro_crew.env import spec_env_path
+        from junction.env import spec_env_path
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         expanded = spec_env_path("/opt/shims")
         cfg = {"mcpServers": {"srv": {"command": "a", "env": {"PATH": expanded}}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"srv": {"command": "a", "env": {"PATH": "/opt/shims"}}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         assert discover_servers_to_sync() == []
 
     def test_discover_flags_changed_path_fragment(self, tmp_path, monkeypatch) -> None:
         """A genuinely edited env.PATH still triggers a re-sync."""
-        from kiro_crew.env import spec_env_path
+        from junction.env import spec_env_path
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
         cfg = {"mcpServers": {"srv": {"command": "a", "env": {"PATH": spec_env_path("/opt/old")}}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"srv": {"command": "a", "env": {"PATH": "/opt/new"}}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert len(result) == 1
         assert result[0].env == {"PATH": "/opt/new"}
@@ -951,12 +951,12 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"srv": {"command": "a", "env": {"KEY": "val"}}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"srv": {"command": "a", "env": {"KEY": "val"}}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert result == []
 
@@ -966,12 +966,12 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"srv": {"command": "a", "env": {"EXISTING": "keep", "NEW": "val"}}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps({"mcpServers": {"srv": {"command": "a", "env": {"NEW": "val"}}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert result == []
 
@@ -993,7 +993,7 @@ class TestDiscoverNew:
             }
         }
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -1007,7 +1007,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert result == []
 
@@ -1017,7 +1017,7 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(
             json.dumps(
@@ -1029,7 +1029,7 @@ class TestDiscoverNew:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert len(result) == 1
         assert result[0].name == "enabled-srv"
@@ -1040,38 +1040,38 @@ class TestDiscoverNew:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"srv": {"command": "/usr/local/bin/my-server"}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         mcp_json = tmp_path / "mcp.json"
         mcp_json.write_text(json.dumps({"mcpServers": {"srv": {"command": "my-server"}}}))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
         result = discover_servers_to_sync()
         assert result == []
 
 
 class TestCommandsDiverged:
     def test_identical_commands(self) -> None:
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("foo", "foo") is False
 
     def test_short_vs_resolved_path(self) -> None:
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("deep-research", "/home/user/.toolbox/bin/deep-research") is False
 
     def test_resolved_vs_short(self) -> None:
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("/usr/bin/server", "server") is False
 
     def test_genuinely_different_commands(self) -> None:
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("old-server", "new-server") is True
 
     def test_distinct_absolute_paths_sharing_a_basename_diverge(self) -> None:
         """Two different binaries with the same file name are NOT the same server."""
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("/opt/a/bin/srv", "/opt/b/bin/srv") is True
 
@@ -1082,7 +1082,7 @@ class TestCommandsDiverged:
         name that ``PATH`` lookup turned into ``/usr/bin/srv`` — treating it as
         one would silently skip syncing a genuinely changed command.
         """
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("bin/srv", "/usr/bin/srv") is True
         assert _commands_diverged("./srv", "/usr/bin/srv") is True
@@ -1098,7 +1098,7 @@ class TestCommandsDiverged:
         Only the ``shutil.which``-resolved (rooted) side may shed its suffix;
         folding it off both sides would collapse distinct executables.
         """
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("foo.bat", r"C:\x\foo.cmd") is True
         assert _commands_diverged("myserver.js", r"C:\x\myserver.exe") is True
@@ -1114,7 +1114,7 @@ class TestCommandsDiverged:
         ``shutil.which`` spells the extension as ``PATHEXT`` does. Treating that as
         divergence would re-sync and reset every session on every startup.
         """
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         monkeypatch.setenv("PATHEXT", ".COM;.EXE;.BAT;.CMD")
         assert _commands_diverged("npx", r"C:\Program Files\nodejs\npx.CMD") is False
@@ -1125,7 +1125,7 @@ class TestCommandsDiverged:
         reason="Windows-only: paths are case-insensitive and accept either separator.",
     )
     def test_separator_and_case_variants_do_not_diverge(self) -> None:
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged(r"C:\tools\srv.exe", "C:/Tools/SRV.exe") is False
 
@@ -1139,7 +1139,7 @@ class TestCommandsDiverged:
         ``ntpath.isabs('/usr/bin/srv')`` is False (no drive), so a rooted-path check
         alone would read the whole string as a bare command name.
         """
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("srv", "/usr/bin/srv") is False
         assert _commands_diverged(r"\tools\srv", "srv") is False
@@ -1149,7 +1149,7 @@ class TestCommandsDiverged:
         reason="POSIX-only: filenames are case-sensitive there, unlike Windows.",
     )
     def test_case_differing_commands_diverge_on_posix(self) -> None:
-        from kiro_crew.mcp_discovery import _commands_diverged
+        from junction.mcp_discovery import _commands_diverged
 
         assert _commands_diverged("Server", "/usr/bin/server") is True
 
@@ -1183,12 +1183,12 @@ class TestSyncToAgentConfig:
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps({"mcpServers": {}, "tools": [], "allowedTools": []}))
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1207,14 +1207,14 @@ class TestSyncToAgentConfig:
             "tools": ["execute_bash"],
             "allowedTools": [],
         }
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps(cfg))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1227,13 +1227,13 @@ class TestSyncToAgentConfig:
         """Works even when no config exists yet — install_agent creates it."""
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        config_path = kiro_dir / "kirocrew.json"
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        config_path = kiro_dir / "junction.json"
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1247,14 +1247,14 @@ class TestSyncToAgentConfig:
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
         cfg: dict = {"mcpServers": {}, "tools": [], "allowedTools": []}
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps(cfg))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1289,12 +1289,12 @@ class TestSyncToAgentConfig:
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps({"mcpServers": {}, "tools": [], "allowedTools": []}))
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1315,14 +1315,14 @@ class TestSyncToAgentConfig:
             "tools": ["@aws-outlook-mcp"],
             "allowedTools": ["@aws-outlook-mcp"],
         }
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps(cfg))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1350,14 +1350,14 @@ class TestSyncToAgentConfig:
             "tools": ["@my-mcp"],
             "allowedTools": ["@my-mcp"],
         }
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps(cfg))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1379,15 +1379,15 @@ class TestSyncToAgentConfig:
             "tools": ["@my-mcp"],
             "allowedTools": ["@my-mcp"],
         }
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps(cfg))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         # install_agent() is called internally — mock it to verify delegation
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1411,14 +1411,14 @@ class TestSyncToAgentConfig:
             "tools": ["@my-mcp"],
             "allowedTools": ["@my-mcp"],
         }
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps(cfg))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
         monkeypatch.setattr("shutil.which", lambda x, **kw: None)
 
         install_called = []
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: install_called.append(True) or config_path,
         )
 
@@ -1454,11 +1454,11 @@ class TestSyncToAgentConfig:
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        config_path = kiro_dir / "kirocrew.json"
+        config_path = kiro_dir / "junction.json"
         config_path.write_text(json.dumps({"mcpServers": {}, "tools": [], "allowedTools": []}))
 
         monkeypatch.setattr(
-            "kiro_crew.agent.install_agent",
+            "junction.agent.install_agent",
             lambda **kw: config_path,
         )
 
@@ -1467,7 +1467,7 @@ class TestSyncToAgentConfig:
         mcp_json.write_text(
             json.dumps({"mcpServers": {"disabled-srv": {"command": "x", "disabled": True}}})
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (mcp_json,))
 
         disabled_srv = McpServerInfo(name="disabled-srv", command="x")
         sync_to_agent_config([disabled_srv])
@@ -1545,9 +1545,9 @@ class TestProbeCache:
         agent_dir.mkdir()
         cfg = {"mcpServers": {"my-srv": {"command": "cmd"}}}
         (agent_dir / "defaults.json").write_text(json.dumps(cfg))
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "x",))
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (tmp_path / "x",))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
 
         # Before probe: unknown
         servers = list_servers()
@@ -1649,7 +1649,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "ok"
@@ -1692,7 +1692,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "ok"
@@ -1714,7 +1714,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "error"
@@ -1740,7 +1740,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "needs_auth"
@@ -1762,7 +1762,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "needs_auth"
@@ -1784,7 +1784,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "error"
@@ -1814,7 +1814,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "error"
@@ -1822,7 +1822,7 @@ class TestProbeRemote:
 
     def test_needs_authorization_predicate(self) -> None:
         """Unit-level truth table for _needs_authorization."""
-        from kiro_crew.mcp_discovery import _needs_authorization
+        from junction.mcp_discovery import _needs_authorization
 
         # Tokenless 401 → authenticate.
         assert _needs_authorization(401, {}, {}) is True
@@ -1840,7 +1840,7 @@ class TestProbeRemote:
 
     def test_a_real_oauth_challenge_is_recognised(self) -> None:
         """The two pieces of evidence that make a 401 an OAuth challenge."""
-        from kiro_crew.mcp_discovery import _is_bearer_challenge
+        from junction.mcp_discovery import _is_bearer_challenge
 
         assert _is_bearer_challenge(
             'Bearer resource_metadata="https://mcp.example.ai/.well-known/'
@@ -1876,7 +1876,7 @@ class TestProbeRemote:
         An http or javascript metadata URL from an unauthenticated endpoint is not
         evidence of anything, so it does not count toward recognition.
         """
-        from kiro_crew.mcp_discovery import _is_bearer_challenge
+        from junction.mcp_discovery import _is_bearer_challenge
 
         assert _is_bearer_challenge(challenge) is False
 
@@ -1899,8 +1899,8 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
-            "kiro_crew.mcp_discovery._runtime_grant_present", AsyncMock(return_value=False)
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
+            "junction.mcp_discovery._runtime_grant_present", AsyncMock(return_value=False)
         ):
             result = await _probe_remote(server)
 
@@ -1927,8 +1927,8 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
-            "kiro_crew.mcp_discovery._runtime_grant_present", AsyncMock(return_value=True)
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
+            "junction.mcp_discovery._runtime_grant_present", AsyncMock(return_value=True)
         ):
             result = await _probe_remote(server)
 
@@ -1966,8 +1966,8 @@ class TestProbeRemote:
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
         grant_lookup = AsyncMock(return_value=False)
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
-            "kiro_crew.mcp_discovery._runtime_grant_present", grant_lookup
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
+            "junction.mcp_discovery._runtime_grant_present", grant_lookup
         ):
             result = await _probe_remote(server)
 
@@ -1987,7 +1987,7 @@ class TestProbeRemote:
 
     def test_the_probe_cache_round_trips_the_authorization_evidence(self) -> None:
         """The panel is served from this cache, so the evidence has to survive it."""
-        from kiro_crew.mcp_discovery import _cache_probe, probe_metadata
+        from junction.mcp_discovery import _cache_probe, probe_metadata
 
         server = McpServerInfo(
             name="cached-remote",
@@ -2025,8 +2025,8 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
-            "kiro_crew.mcp_discovery._runtime_grant_present", AsyncMock(return_value=None)
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session), patch(
+            "junction.mcp_discovery._runtime_grant_present", AsyncMock(return_value=None)
         ):
             result = await _probe_remote(server)
 
@@ -2047,10 +2047,10 @@ class TestProbeRemote:
         what turns a row into "Sign-in required". Without the opt-in that acted-on
         access leaves no trail at all.
         """
-        from kiro_crew.mcp_discovery import _runtime_grant_present
+        from junction.mcp_discovery import _runtime_grant_present
 
         lookup = AsyncMock(return_value=False)
-        with patch("kiro_crew.mcp_discovery.grant_observed", lookup):
+        with patch("junction.mcp_discovery.grant_observed", lookup):
             assert await _runtime_grant_present("https://example.com/mcp", "remote") is False
 
         lookup.assert_awaited_once_with("https://example.com/mcp", audit_absence=True)
@@ -2069,8 +2069,8 @@ class TestProbeRemote:
         in-process ``sys.modules`` check would always find it.
         """
         probe = (
-            "import sys; import kiro_crew.mcp_discovery;"
-            " print('MINT' if 'kiro_crew.connections.mint' in sys.modules else 'CLEAN')"
+            "import sys; import junction.mcp_discovery;"
+            " print('MINT' if 'junction.connections.mint' in sys.modules else 'CLEAN')"
         )
         out = subprocess.run(
             [sys.executable, "-c", probe], capture_output=True, timeout=180, **UTF8_TEXT
@@ -2106,7 +2106,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "needs_auth"
@@ -2122,14 +2122,14 @@ class TestProbeRemote:
         The probe's own failure path therefore names the server, never the url —
         this line lands in gateway.log, which is not a credential store.
         """
-        from kiro_crew.mcp_discovery import _runtime_grant_present
+        from junction.mcp_discovery import _runtime_grant_present
 
         secret_url = "https://user:sup3r-secret@mcp.example.com/mcp?token=abcd1234"
 
         # ``None`` is what an unreadable cache home resolves to: ``grant_presence``
         # classifies the failed stat itself, so nothing raises out to this caller.
-        with patch("kiro_crew.mcp_discovery.grant_observed", AsyncMock(return_value=None)):
-            with caplog.at_level(logging.DEBUG, logger="kiro_crew.mcp_discovery"):
+        with patch("junction.mcp_discovery.grant_observed", AsyncMock(return_value=None)):
+            with caplog.at_level(logging.DEBUG, logger="junction.mcp_discovery"):
                 present = await _runtime_grant_present(secret_url, "higgsfield")
 
         # None, not False: the lookup could not answer, and the payload must not
@@ -2152,7 +2152,7 @@ class TestProbeRemote:
         mock_session.__aenter__ = AsyncMock(return_value=mock_session)
         mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("kiro_crew.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
+        with patch("junction.mcp_discovery.aiohttp.ClientSession", return_value=mock_session):
             result = await _probe_remote(server)
 
         assert result.status == "error"
@@ -2162,7 +2162,7 @@ class TestProbeRemote:
         """probe_server dispatches to _probe_remote for url-based servers."""
         server = McpServerInfo(name="remote", url="https://example.com/mcp")
 
-        with patch("kiro_crew.mcp_discovery._probe_remote", new_callable=AsyncMock) as mock_remote:
+        with patch("junction.mcp_discovery._probe_remote", new_callable=AsyncMock) as mock_remote:
             mock_remote.return_value = server
             result = await probe_server(server)
 
@@ -2174,7 +2174,7 @@ class TestProbeRemote:
         """probe_server does NOT dispatch to _probe_remote for command-based servers."""
         server = McpServerInfo(name="local", command="nonexistent-cmd-xyz")
 
-        with patch("kiro_crew.mcp_discovery._probe_remote", new_callable=AsyncMock) as mock_remote:
+        with patch("junction.mcp_discovery._probe_remote", new_callable=AsyncMock) as mock_remote:
             result = await probe_server(server)
 
         mock_remote.assert_not_awaited()
@@ -2235,9 +2235,9 @@ class TestProbeServerConsentGate:
         server = McpServerInfo(name="held", command="true", disabled=True)
 
         with (
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/bin/true"),
+            patch("junction.mcp_discovery.shutil.which", return_value="/bin/true"),
             patch(
-                "kiro_crew.mcp_discovery.create_subprocess_limited",
+                "junction.mcp_discovery.create_subprocess_limited",
                 new_callable=AsyncMock,
             ) as mock_spawn,
         ):
@@ -2256,7 +2256,7 @@ class TestProbeServerConsentGate:
         """
         server = McpServerInfo(name="held-remote", url="https://example.com/mcp", disabled=True)
 
-        with patch("kiro_crew.mcp_discovery._probe_remote", new_callable=AsyncMock) as mock_remote:
+        with patch("junction.mcp_discovery._probe_remote", new_callable=AsyncMock) as mock_remote:
             result = await probe_server(server)
 
         mock_remote.assert_not_awaited()
@@ -2274,9 +2274,9 @@ class TestProbeServerConsentGate:
         server.disabled = "yes"  # type: ignore[assignment]
 
         with (
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/bin/true"),
+            patch("junction.mcp_discovery.shutil.which", return_value="/bin/true"),
             patch(
-                "kiro_crew.mcp_discovery.create_subprocess_limited",
+                "junction.mcp_discovery.create_subprocess_limited",
                 new_callable=AsyncMock,
             ) as mock_spawn,
         ):
@@ -2304,7 +2304,7 @@ class TestProbeServerConsentGate:
         _cache_probe(probed)
 
         disabled = McpServerInfo(name="was-ok", command="true", disabled=True)
-        with patch("kiro_crew.mcp_discovery.shutil.which", return_value="/bin/true"):
+        with patch("junction.mcp_discovery.shutil.which", return_value="/bin/true"):
             await probe_server(disabled)
 
         status, tools, *_rest = _get_cached("was-ok")
@@ -2353,7 +2353,7 @@ class TestProbeTempContainment:
         # configured volume instead of ENOSPC-ing the data home.
         import sys
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         server = McpServerInfo(
             name="declared-temp",
@@ -2377,7 +2377,7 @@ class TestProbeTempContainment:
         # (a side effect of patching IS_POSIX) leaks nothing.
         import sys
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -2436,7 +2436,7 @@ class TestProbeTempContainment:
         # on POSIX the finally would double-cover it and mask a regression.
         import sys
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -2457,7 +2457,7 @@ class TestProbeTempContainment:
 
         server = McpServerInfo(name="spawnfail", command=sys.executable, args=["-c", "pass"])
         with patch(
-            "kiro_crew.mcp_discovery.create_subprocess_limited",
+            "junction.mcp_discovery.create_subprocess_limited",
             new_callable=AsyncMock,
             side_effect=OSError("spawn failed"),
         ):
@@ -2476,7 +2476,7 @@ class TestProbeTempContainment:
         # allocated. Mirrors the backend chokepoint's pruning.
         import sys
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -2490,7 +2490,7 @@ class TestProbeTempContainment:
             env={"TMP": str(tmp_path / "chosen")},
         )
         with patch(
-            "kiro_crew.mcp_discovery.create_subprocess_limited",
+            "junction.mcp_discovery.create_subprocess_limited",
             new_callable=AsyncMock,
             side_effect=OSError("stop after env capture"),
         ) as spawn_mock:
@@ -2513,7 +2513,7 @@ class TestProbeTempContainment:
         # tree-faithful, so the probe's finally DOES reclaim its private dir.
         import sys
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -2548,8 +2548,8 @@ class TestProbeServerProcessCleanup:
         server = McpServerInfo(name="test", command="echo")
 
         with (
-            patch("kiro_crew.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
         ):
             proc.stdout = AsyncMock()
             proc.stdout.readline = AsyncMock(return_value=b"")
@@ -2567,8 +2567,8 @@ class TestProbeServerProcessCleanup:
         server = McpServerInfo(name="test", command="echo")
 
         with (
-            patch("kiro_crew.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
         ):
             proc.stdout = AsyncMock()
             proc.stdout.readline = AsyncMock(return_value=b"")
@@ -2586,8 +2586,8 @@ class TestProbeServerProcessCleanup:
         server = McpServerInfo(name="test", command="echo")
 
         with (
-            patch("kiro_crew.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
         ):
             proc.stdout = AsyncMock()
             proc.stdout.readline = AsyncMock(return_value=b"")
@@ -2605,8 +2605,8 @@ class TestProbeServerProcessCleanup:
         server = McpServerInfo(name="test", command="echo")
 
         with (
-            patch("kiro_crew.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
         ):
             proc.stdout = AsyncMock()
             proc.stdout.readline = AsyncMock(return_value=b"")
@@ -2623,7 +2623,7 @@ class TestProbeServerProcessCleanup:
         ``install_agent`` agree — a divergence here is what let a server report
         healthy on the dashboard and fail in a session.
         """
-        from kiro_crew.env import spec_env_path
+        from junction.env import spec_env_path
 
         monkeypatch.setenv("PATH", "/usr/bin")
         proc = self._make_mock_proc()
@@ -2635,8 +2635,8 @@ class TestProbeServerProcessCleanup:
             return proc
 
         with (
-            patch("kiro_crew.mcp_discovery.asyncio.create_subprocess_exec", side_effect=_spawn),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.asyncio.create_subprocess_exec", side_effect=_spawn),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
         ):
             proc.stdout = AsyncMock()
             proc.stdout.readline = AsyncMock(return_value=b"")
@@ -2653,13 +2653,13 @@ class TestInstallAgentRemote:
     """Test that install_agent preserves remote url-based MCP servers."""
 
     def test_install_preserves_remote_server(self, tmp_path, monkeypatch) -> None:
-        from kiro_crew.agent import install_agent
+        from junction.agent import install_agent
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
         (agent_dir / "prompt.md").write_text("prompt")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
@@ -2671,32 +2671,32 @@ class TestInstallAgentRemote:
             "tools": [],
             "allowedTools": [],
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir)
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", kiro_dir)
         monkeypatch.setattr(
-            "kiro_crew.agent._KIRO_MCP_JSON", tmp_path / "nonexistent_kiro_mcp.json"
+            "junction.agent._KIRO_MCP_JSON", tmp_path / "nonexistent_kiro_mcp.json"
         )
-        monkeypatch.setattr("kiro_crew.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
-        monkeypatch.setattr("kiro_crew.agent._KIROCREW_BIN", "/usr/bin/kirocrew")
+        monkeypatch.setattr("junction.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
+        monkeypatch.setattr("junction.agent._JUNCTION_BIN", "/usr/bin/junction")
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: None)
 
         install_agent()
 
-        data = json.loads((kiro_dir / "kirocrew.json").read_text(encoding="utf-8"))
+        data = json.loads((kiro_dir / "junction.json").read_text(encoding="utf-8"))
         assert "deepwiki" in data["mcpServers"]
         assert data["mcpServers"]["deepwiki"]["url"] == "https://mcp.deepwiki.com/mcp"
         assert "local-srv" not in data["mcpServers"]
 
     def test_install_merges_kiro_mcp_json(self, tmp_path, monkeypatch) -> None:
         """install_agent picks up servers from ~/.kiro/settings/mcp.json."""
-        from kiro_crew.agent import install_agent
+        from junction.agent import install_agent
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
         (agent_dir / "prompt.md").write_text("prompt")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
@@ -2707,15 +2707,15 @@ class TestInstallAgentRemote:
             json.dumps({"mcpServers": {"deepwiki": {"url": "https://mcp.deepwiki.com/mcp"}}})
         )
 
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir)
-        monkeypatch.setattr("kiro_crew.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
-        monkeypatch.setattr("kiro_crew.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
-        monkeypatch.setattr("kiro_crew.agent._KIROCREW_BIN", "/usr/bin/kirocrew")
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", kiro_dir)
+        monkeypatch.setattr("junction.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
+        monkeypatch.setattr("junction.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
+        monkeypatch.setattr("junction.agent._JUNCTION_BIN", "/usr/bin/junction")
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: None)
 
         install_agent()
 
-        data = json.loads((kiro_dir / "kirocrew.json").read_text(encoding="utf-8"))
+        data = json.loads((kiro_dir / "junction.json").read_text(encoding="utf-8"))
         assert "deepwiki" in data["mcpServers"]
         assert data["mcpServers"]["deepwiki"]["url"] == "https://mcp.deepwiki.com/mcp"
 
@@ -2725,25 +2725,25 @@ class TestGetProbeTimeout:
 
     def test_get_probe_timeout_reads_config(self) -> None:
         """_get_probe_timeout() returns the config value when available."""
-        from kiro_crew.mcp_discovery import _get_probe_timeout
+        from junction.mcp_discovery import _get_probe_timeout
 
         mock_cfg = MagicMock()
         mock_cfg.dashboard.mcp_probe_timeout_secs = 45
         mock_cls = MagicMock()
         mock_cls.load.return_value = mock_cfg
 
-        with patch("kiro_crew.config.loader.KiroCrewConfig", mock_cls):
+        with patch("junction.config.loader.JunctionConfig", mock_cls):
             result = _get_probe_timeout()
         assert result == 45
 
     def test_get_probe_timeout_fallback(self) -> None:
         """_get_probe_timeout() returns 15 when config is unavailable."""
-        from kiro_crew.mcp_discovery import _PROBE_TIMEOUT_SECS, _get_probe_timeout
+        from junction.mcp_discovery import _PROBE_TIMEOUT_SECS, _get_probe_timeout
 
         mock_cls = MagicMock()
         mock_cls.load.side_effect = RuntimeError("no config")
 
-        with patch("kiro_crew.config.loader.KiroCrewConfig", mock_cls):
+        with patch("junction.config.loader.JunctionConfig", mock_cls):
             result = _get_probe_timeout()
         assert result == _PROBE_TIMEOUT_SECS
         assert result == 15
@@ -2775,7 +2775,7 @@ class TestProbeServerTimeout:
 
         with (
             patch("asyncio.create_subprocess_exec", return_value=mock_proc),
-            patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls,
+            patch("junction.config.loader.JunctionConfig") as mock_cls,
         ):
             mock_cfg = MagicMock()
             mock_cfg.dashboard.mcp_probe_timeout_secs = 42
@@ -2807,7 +2807,7 @@ class TestProbeServerTimeout:
 
         with (
             patch("asyncio.create_subprocess_exec", return_value=mock_proc),
-            patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls,
+            patch("junction.config.loader.JunctionConfig") as mock_cls,
         ):
             mock_cls.load.side_effect = RuntimeError("corrupt config")
 
@@ -2826,7 +2826,7 @@ class TestProbeRemoteTimeout:
         server = McpServerInfo(name="remote", url="https://example.com/mcp")
 
         with (
-            patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls,
+            patch("junction.config.loader.JunctionConfig") as mock_cls,
             patch("aiohttp.ClientSession") as mock_session_cls,
         ):
             mock_cfg = MagicMock()
@@ -2852,69 +2852,69 @@ class TestProbeRemoteTimeout:
 class TestFixStaleManagedCommand:
     """Tests for _fix_stale_managed_command.
 
-    The managed invocation is delegated to ``_kirocrew_mcp_invocation`` (the
+    The managed invocation is delegated to ``_junction_mcp_invocation`` (the
     single source of truth), which returns a runnable ``(command, args)`` —
-    either a standalone ``kirocrew`` binary (POSIX ``bin/kirocrew`` / Windows
-    ``Scripts\\kirocrew.exe``) or the ``<interpreter> -m kiro_crew <sub>``
+    either a standalone ``junction`` binary (POSIX ``bin/junction`` / Windows
+    ``Scripts\\junction.exe``) or the ``<interpreter> -m junction <sub>``
     fallback. ``_fix_stale_managed_command`` must rewrite BOTH command and args
     onto the spec (rewriting only the command silently dropped the fallback's
-    args and spawned a bare ``kirocrew`` that isn't on PATH — the Windows
-    ``command not found: kirocrew`` regression)."""
+    args and spawned a bare ``junction`` that isn't on PATH — the Windows
+    ``command not found: junction`` regression)."""
 
     @pytest.fixture(autouse=True)
     def _reset_cache(self):
-        import kiro_crew.mcp_discovery as _d
+        import junction.mcp_discovery as _d
 
         _d._resolved_managed_invocation = {}
         yield
         _d._resolved_managed_invocation = {}
 
     def test_rewrites_command_and_args_from_invocation(self):
-        """Both command and args come from _kirocrew_mcp_invocation."""
-        from kiro_crew.mcp_discovery import _fix_stale_managed_command
+        """Both command and args come from _junction_mcp_invocation."""
+        from junction.mcp_discovery import _fix_stale_managed_command
 
-        spec = {"command": "/stale/bin/kirocrew", "args": ["mcp-core"]}
+        spec = {"command": "/stale/bin/junction", "args": ["mcp-core"]}
         with patch(
-            "kiro_crew.agent._kirocrew_mcp_invocation",
-            return_value=("/usr/local/bin/kirocrew", ["mcp-core"]),
+            "junction.agent._junction_mcp_invocation",
+            return_value=("/usr/local/bin/junction", ["mcp-core"]),
         ) as inv:
-            _fix_stale_managed_command("kirocrew-core", spec)
+            _fix_stale_managed_command("junction-core", spec)
         inv.assert_called_once_with("mcp-core")
-        assert spec["command"] == "/usr/local/bin/kirocrew"
+        assert spec["command"] == "/usr/local/bin/junction"
         assert spec["args"] == ["mcp-core"]
 
     def test_applies_python_dash_m_fallback_with_args(self):
-        """When no standalone binary resolves, the python -m kiro_crew fallback
+        """When no standalone binary resolves, the python -m junction fallback
         (command + its args) is applied — regression for Windows where rewriting
-        the command alone left a bare 'kirocrew' that isn't on PATH."""
-        from kiro_crew.mcp_discovery import _fix_stale_managed_command
+        the command alone left a bare 'junction' that isn't on PATH."""
+        from junction.mcp_discovery import _fix_stale_managed_command
 
-        spec = {"command": "kirocrew", "args": []}
+        spec = {"command": "junction", "args": []}
         with patch(
-            "kiro_crew.agent._kirocrew_mcp_invocation",
-            return_value=("/venv/Scripts/python.exe", ["-m", "kiro_crew", "mcp-cron"]),
+            "junction.agent._junction_mcp_invocation",
+            return_value=("/venv/Scripts/python.exe", ["-m", "junction", "mcp-cron"]),
         ):
-            _fix_stale_managed_command("kirocrew-cron", spec)
+            _fix_stale_managed_command("junction-cron", spec)
         assert spec["command"] == "/venv/Scripts/python.exe"
-        assert spec["args"] == ["-m", "kiro_crew", "mcp-cron"]
+        assert spec["args"] == ["-m", "junction", "mcp-cron"]
 
     def test_maps_each_managed_server_to_its_subcommand(self):
-        from kiro_crew.mcp_discovery import _fix_stale_managed_command
+        from junction.mcp_discovery import _fix_stale_managed_command
 
-        for name, sub in (("kirocrew-core", "mcp-core"), ("kirocrew-cron", "mcp-cron")):
+        for name, sub in (("junction-core", "mcp-core"), ("junction-cron", "mcp-cron")):
             spec = {"command": "x", "args": []}
             with patch(
-                "kiro_crew.agent._kirocrew_mcp_invocation", return_value=("/bin/kirocrew", [sub])
+                "junction.agent._junction_mcp_invocation", return_value=("/bin/junction", [sub])
             ) as inv:
                 _fix_stale_managed_command(name, spec)
             inv.assert_called_once_with(sub)
             assert spec["args"] == [sub]
 
     def test_skips_non_managed_server(self):
-        from kiro_crew.mcp_discovery import _fix_stale_managed_command
+        from junction.mcp_discovery import _fix_stale_managed_command
 
         spec = {"command": "/nonexistent/path/other", "args": []}
-        with patch("kiro_crew.agent._kirocrew_mcp_invocation") as inv:
+        with patch("junction.agent._junction_mcp_invocation") as inv:
             _fix_stale_managed_command("other-server", spec)
         inv.assert_not_called()
         assert spec["command"] == "/nonexistent/path/other"
@@ -2922,23 +2922,23 @@ class TestFixStaleManagedCommand:
     def test_caches_resolution_across_calls(self):
         """The invocation is resolved once and reused (no repeated subprocess
         work on every list_servers() call)."""
-        from kiro_crew.mcp_discovery import _fix_stale_managed_command
+        from junction.mcp_discovery import _fix_stale_managed_command
 
         with patch(
-            "kiro_crew.agent._kirocrew_mcp_invocation", return_value=("/bin/kirocrew", ["mcp-core"])
+            "junction.agent._junction_mcp_invocation", return_value=("/bin/junction", ["mcp-core"])
         ) as inv:
-            _fix_stale_managed_command("kirocrew-core", {"command": "x", "args": []})
-            _fix_stale_managed_command("kirocrew-core", {"command": "y", "args": []})
+            _fix_stale_managed_command("junction-core", {"command": "x", "args": []})
+            _fix_stale_managed_command("junction-core", {"command": "y", "args": []})
         inv.assert_called_once()  # cached after the first resolve
 
     def test_resolution_failure_leaves_spec_untouched(self):
         """If invocation resolution raises, the spec is left as-is (no crash)."""
-        from kiro_crew.mcp_discovery import _fix_stale_managed_command
+        from junction.mcp_discovery import _fix_stale_managed_command
 
-        spec = {"command": "/old/kirocrew", "args": ["mcp-core"]}
-        with patch("kiro_crew.agent._kirocrew_mcp_invocation", side_effect=RuntimeError("boom")):
-            _fix_stale_managed_command("kirocrew-core", spec)
-        assert spec["command"] == "/old/kirocrew"
+        spec = {"command": "/old/junction", "args": ["mcp-core"]}
+        with patch("junction.agent._junction_mcp_invocation", side_effect=RuntimeError("boom")):
+            _fix_stale_managed_command("junction-core", spec)
+        assert spec["command"] == "/old/junction"
 
 
 class TestSharedServerToolsRegistration:
@@ -2946,13 +2946,13 @@ class TestSharedServerToolsRegistration:
 
     def test_shared_servers_added_to_tools_and_allowedtools(self, tmp_path, monkeypatch) -> None:
         """Enabled shared servers appear in both tools and allowedTools."""
-        from kiro_crew.agent import rebuild_agent_config
+        from junction.agent import rebuild_agent_config
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
         (agent_dir / "prompt.md").write_text("prompt")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
@@ -2969,32 +2969,32 @@ class TestSharedServerToolsRegistration:
             )
         )
 
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir)
-        monkeypatch.setattr("kiro_crew.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
-        monkeypatch.setattr("kiro_crew.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
-        monkeypatch.setattr("kiro_crew.agent._KIROCREW_BIN", "/usr/bin/kirocrew")
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", kiro_dir)
+        monkeypatch.setattr("junction.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
+        monkeypatch.setattr("junction.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
+        monkeypatch.setattr("junction.agent._JUNCTION_BIN", "/usr/bin/junction")
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: "/usr/bin/srv")
 
         rebuild_agent_config()
 
-        data = json.loads((kiro_dir / "kirocrew.json").read_text(encoding="utf-8"))
+        data = json.loads((kiro_dir / "junction.json").read_text(encoding="utf-8"))
         assert "my-srv" in data["mcpServers"]
         assert "@my-srv" in data.get("tools", [])
         assert "@my-srv" in data.get("allowedTools", [])
 
     def test_disabled_shared_server_removed_from_tools(self, tmp_path, monkeypatch) -> None:
         """Disabled shared server is removed from tools/allowedTools."""
-        from kiro_crew.agent import rebuild_agent_config
+        from junction.agent import rebuild_agent_config
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
         (agent_dir / "prompt.md").write_text("prompt")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        (kiro_dir / "kirocrew.json").write_text(
+        (kiro_dir / "junction.json").write_text(
             json.dumps(
                 {
                     "mcpServers": {"my-srv": {"command": "srv"}},
@@ -3016,31 +3016,31 @@ class TestSharedServerToolsRegistration:
             )
         )
 
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir)
-        monkeypatch.setattr("kiro_crew.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
-        monkeypatch.setattr("kiro_crew.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
-        monkeypatch.setattr("kiro_crew.agent._KIROCREW_BIN", "/usr/bin/kirocrew")
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", kiro_dir)
+        monkeypatch.setattr("junction.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
+        monkeypatch.setattr("junction.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
+        monkeypatch.setattr("junction.agent._JUNCTION_BIN", "/usr/bin/junction")
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: "/usr/bin/srv")
 
         rebuild_agent_config()
 
-        data = json.loads((kiro_dir / "kirocrew.json").read_text(encoding="utf-8"))
+        data = json.loads((kiro_dir / "junction.json").read_text(encoding="utf-8"))
         assert "@my-srv" not in data.get("tools", [])
         assert "@my-srv" not in data.get("allowedTools", [])
 
     def test_reenabled_server_added_back(self, tmp_path, monkeypatch) -> None:
         """Server re-enabled in mcp.json gets added back to tools/allowedTools."""
-        from kiro_crew.agent import rebuild_agent_config
+        from junction.agent import rebuild_agent_config
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
         (agent_dir / "prompt.md").write_text("prompt")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
-        (kiro_dir / "kirocrew.json").write_text(
+        (kiro_dir / "junction.json").write_text(
             json.dumps(
                 {
                     "mcpServers": {"my-srv": {"command": "srv", "disabled": True}},
@@ -3062,28 +3062,28 @@ class TestSharedServerToolsRegistration:
             )
         )
 
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir)
-        monkeypatch.setattr("kiro_crew.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
-        monkeypatch.setattr("kiro_crew.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
-        monkeypatch.setattr("kiro_crew.agent._KIROCREW_BIN", "/usr/bin/kirocrew")
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", kiro_dir)
+        monkeypatch.setattr("junction.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
+        monkeypatch.setattr("junction.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
+        monkeypatch.setattr("junction.agent._JUNCTION_BIN", "/usr/bin/junction")
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: "/usr/bin/srv")
 
         rebuild_agent_config()
 
-        data = json.loads((kiro_dir / "kirocrew.json").read_text(encoding="utf-8"))
+        data = json.loads((kiro_dir / "junction.json").read_text(encoding="utf-8"))
         assert "@my-srv" in data.get("tools", [])
         assert "@my-srv" in data.get("allowedTools", [])
         assert "disabled" not in data["mcpServers"]["my-srv"]
 
     def test_disabled_removal_no_tools_key(self, tmp_path, monkeypatch) -> None:
         """Disabled removal doesn't crash when config has no tools key."""
-        from kiro_crew.agent import rebuild_agent_config
+        from junction.agent import rebuild_agent_config
 
         agent_dir = tmp_path / "agents"
         agent_dir.mkdir()
-        (agent_dir / "defaults.json").write_text(json.dumps({"name": "kirocrew"}))
+        (agent_dir / "defaults.json").write_text(json.dumps({"name": "junction"}))
         (agent_dir / "prompt.md").write_text("prompt")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         kiro_dir = tmp_path / ".kiro" / "agents"
         kiro_dir.mkdir(parents=True)
@@ -3100,15 +3100,15 @@ class TestSharedServerToolsRegistration:
             )
         )
 
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir)
-        monkeypatch.setattr("kiro_crew.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
-        monkeypatch.setattr("kiro_crew.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
-        monkeypatch.setattr("kiro_crew.agent._KIROCREW_BIN", "/usr/bin/kirocrew")
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", kiro_dir)
+        monkeypatch.setattr("junction.agent._KIRO_MCP_JSON", settings_dir / "mcp.json")
+        monkeypatch.setattr("junction.agent._CC_MCP_JSON", tmp_path / "nonexistent_cc.json")
+        monkeypatch.setattr("junction.agent._JUNCTION_BIN", "/usr/bin/junction")
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: None)
 
         rebuild_agent_config()
 
-        data = json.loads((kiro_dir / "kirocrew.json").read_text(encoding="utf-8"))
+        data = json.loads((kiro_dir / "junction.json").read_text(encoding="utf-8"))
         assert "@disabled-srv" not in data.get("tools", [])
         assert "@disabled-srv" not in data.get("allowedTools", [])
 
@@ -3123,7 +3123,7 @@ class TestProbeServerStderrCapture:
     async def test_stderr_captured_when_child_exits_before_response(self, tmp_path) -> None:
         """Child writes to stderr and exits without speaking MCP → stderr
         tail is appended to `server.error`."""
-        from kiro_crew.mcp_discovery import probe_server
+        from junction.mcp_discovery import probe_server
 
         stub = tmp_path / "broken-server.sh"
         stub.write_text(
@@ -3132,7 +3132,7 @@ class TestProbeServerStderrCapture:
         stub.chmod(0o755)
 
         server = McpServerInfo(name="broken", command=str(stub))
-        with patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls:
+        with patch("junction.config.loader.JunctionConfig") as mock_cls:
             mock_cfg = MagicMock()
             mock_cfg.dashboard.mcp_probe_timeout_secs = 2
             mock_cls.load.return_value = mock_cfg
@@ -3147,7 +3147,7 @@ class TestProbeServerStderrCapture:
     async def test_successful_probe_does_not_mention_stderr(self, tmp_path) -> None:
         """Healthy server's benign stderr warnings must not bleed into
         `server.error`."""
-        from kiro_crew.mcp_discovery import probe_server
+        from junction.mcp_discovery import probe_server
 
         stub = tmp_path / "noisy-ok-server.sh"
         stub.write_text(
@@ -3165,7 +3165,7 @@ class TestProbeServerStderrCapture:
         stub.chmod(0o755)
 
         server = McpServerInfo(name="noisy-ok", command=str(stub))
-        with patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls:
+        with patch("junction.config.loader.JunctionConfig") as mock_cls:
             mock_cfg = MagicMock()
             mock_cfg.dashboard.mcp_probe_timeout_secs = 3
             mock_cls.load.return_value = mock_cfg
@@ -3180,7 +3180,7 @@ class TestProbeServerStderrCapture:
     async def test_stderr_tail_is_bounded(self, tmp_path) -> None:
         """Very large stderr is truncated so it cannot explode logs or
         dashboard responses."""
-        from kiro_crew.mcp_discovery import probe_server
+        from junction.mcp_discovery import probe_server
 
         stub = tmp_path / "verbose-broken.sh"
         stub.write_text(
@@ -3193,7 +3193,7 @@ class TestProbeServerStderrCapture:
         stub.chmod(0o755)
 
         server = McpServerInfo(name="verbose", command=str(stub))
-        with patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls:
+        with patch("junction.config.loader.JunctionConfig") as mock_cls:
             mock_cfg = MagicMock()
             mock_cfg.dashboard.mcp_probe_timeout_secs = 2
             mock_cls.load.return_value = mock_cfg
@@ -3208,7 +3208,7 @@ class TestProbeServerStderrCapture:
     async def test_credential_in_stderr_is_redacted(self, tmp_path) -> None:
         """stderr is untrusted output — credentials and exfiltration URLs
         must be scrubbed before they land in `server.error`."""
-        from kiro_crew.mcp_discovery import probe_server
+        from junction.mcp_discovery import probe_server
 
         stub = tmp_path / "leaky-server.sh"
         stub.write_text(
@@ -3219,7 +3219,7 @@ class TestProbeServerStderrCapture:
         stub.chmod(0o755)
 
         server = McpServerInfo(name="leaky", command=str(stub))
-        with patch("kiro_crew.config.loader.KiroCrewConfig") as mock_cls:
+        with patch("junction.config.loader.JunctionConfig") as mock_cls:
             mock_cfg = MagicMock()
             mock_cfg.dashboard.mcp_probe_timeout_secs = 2
             mock_cls.load.return_value = mock_cfg
@@ -3238,7 +3238,7 @@ class TestProbeServerStderrCapture:
         agent.sandbox_allow_unsandboxed_exec; the old 200-char cap discarded
         it, so a Windows user saw '...Probe detail: not Linux. I' and no fix.
         """
-        from kiro_crew.mcp_discovery import _PROBE_ERROR_MAX_CHARS, probe_server
+        from junction.mcp_discovery import _PROBE_ERROR_MAX_CHARS, probe_server
 
         # A credential early in the message must be REDACTED (not merely
         # truncated away): raising the cap must not widen a disclosure hole.
@@ -3255,13 +3255,13 @@ class TestProbeServerStderrCapture:
         # Resolve the command, then fail at the sandbox chokepoint with the long
         # message — the real path a Windows host takes with no sandbox backend.
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery.shutil.which", lambda *a, **k: "/usr/bin/srv"
+            "junction.mcp_discovery.shutil.which", lambda *a, **k: "/usr/bin/srv"
         )
 
         def boom(*_a: object, **_k: object) -> object:
             raise RuntimeError(long_msg)
 
-        monkeypatch.setattr("kiro_crew.mcp_discovery.sandboxed_spawn_argv", boom)
+        monkeypatch.setattr("junction.mcp_discovery.sandboxed_spawn_argv", boom)
         result = await probe_server(server)
 
         assert result.status == "error"
@@ -3308,7 +3308,7 @@ class TestProbeStdioMalformedResponse:
 
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: "/usr/bin/srv")
         with patch(
-            "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+            "junction.mcp_discovery.asyncio.create_subprocess_exec",
             AsyncMock(return_value=proc),
         ):
             result = asyncio.run(probe_server(server))
@@ -3330,7 +3330,7 @@ class TestProbeStdioMalformedResponse:
 
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: "/usr/bin/srv")
         with patch(
-            "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+            "junction.mcp_discovery.asyncio.create_subprocess_exec",
             AsyncMock(return_value=proc),
         ):
             result = asyncio.run(probe_server(server))
@@ -3350,7 +3350,7 @@ class TestProbeStdioMalformedResponse:
 
         monkeypatch.setattr("shutil.which", lambda cmd, path=None: "/usr/bin/srv")
         with patch(
-            "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+            "junction.mcp_discovery.asyncio.create_subprocess_exec",
             AsyncMock(return_value=proc),
         ):
             result = asyncio.run(probe_server(server))
@@ -3424,7 +3424,7 @@ class TestReadStdioJsonrpcResponse:
     @pytest.mark.asyncio
     async def test_banner_flood_capped(self) -> None:
         """More than _MAX_BANNER_LINES junk lines → give up (None), don't hang."""
-        from kiro_crew.mcp_discovery import _MAX_BANNER_LINES
+        from junction.mcp_discovery import _MAX_BANNER_LINES
 
         lines = [b"noise\n"] * (_MAX_BANNER_LINES + 5)
         lines.append(b'{"jsonrpc":"2.0","id":1,"result":{}}\n')
@@ -3450,7 +3450,7 @@ class TestReadStdioJsonrpcResponse:
     @pytest.mark.asyncio
     async def test_notifications_do_not_count_toward_cap(self) -> None:
         """>_MAX_BANNER_LINES JSON-RPC notifications must NOT trip the banner cap."""
-        from kiro_crew.mcp_discovery import _MAX_BANNER_LINES
+        from junction.mcp_discovery import _MAX_BANNER_LINES
 
         notif = b'{"jsonrpc":"2.0","method":"notifications/progress","params":{}}\n'
         lines = [notif] * (_MAX_BANNER_LINES + 10)
@@ -3463,7 +3463,7 @@ class TestReadStdioJsonrpcResponse:
     @pytest.mark.asyncio
     async def test_blank_lines_do_not_count_toward_cap(self) -> None:
         """>_MAX_BANNER_LINES blank lines must NOT trip the banner cap."""
-        from kiro_crew.mcp_discovery import _MAX_BANNER_LINES
+        from junction.mcp_discovery import _MAX_BANNER_LINES
 
         lines = [b"\n"] * (_MAX_BANNER_LINES + 10)
         lines.append(b'{"jsonrpc":"2.0","id":3,"result":{}}\n')
@@ -3475,7 +3475,7 @@ class TestReadStdioJsonrpcResponse:
     @pytest.mark.asyncio
     async def test_cap_boundary_exact(self) -> None:
         """Exactly _MAX_BANNER_LINES junk lines still lets the response through."""
-        from kiro_crew.mcp_discovery import _MAX_BANNER_LINES
+        from junction.mcp_discovery import _MAX_BANNER_LINES
 
         lines = [b"noise\n"] * _MAX_BANNER_LINES
         lines.append(b'{"jsonrpc":"2.0","id":7,"result":{}}\n')
@@ -3487,7 +3487,7 @@ class TestReadStdioJsonrpcResponse:
     @pytest.mark.asyncio
     async def test_cap_boundary_one_over(self) -> None:
         """One junk line past the cap drops the response (returns None)."""
-        from kiro_crew.mcp_discovery import _MAX_BANNER_LINES
+        from junction.mcp_discovery import _MAX_BANNER_LINES
 
         lines = [b"noise\n"] * (_MAX_BANNER_LINES + 1)
         lines.append(b'{"jsonrpc":"2.0","id":7,"result":{}}\n')
@@ -3528,8 +3528,8 @@ class TestProbeServerBannerTolerance:
         server = McpServerInfo(name="local-chorus-mcp", command="local-chorus-mcp")
 
         with (
-            patch("kiro_crew.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/local-chorus-mcp"),
+            patch("junction.mcp_discovery.asyncio.create_subprocess_exec", return_value=proc),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/local-chorus-mcp"),
         ):
             result = await probe_server(server)
 
@@ -3560,7 +3560,7 @@ class TestProbeGroupReap:
     @pytest.mark.asyncio
     async def test_spawn_uses_start_new_session_on_posix(self) -> None:
         """The probe child must be its own session/process-group leader."""
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         if not platform_compat.IS_POSIX:
             pytest.skip("POSIX-only spawn flag")
@@ -3569,11 +3569,11 @@ class TestProbeGroupReap:
 
         with (
             patch(
-                "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+                "junction.mcp_discovery.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
-            patch("kiro_crew.mcp_discovery.os.killpg"),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.os.killpg"),
         ):
             await probe_server(server)
 
@@ -3586,7 +3586,7 @@ class TestProbeGroupReap:
         MCP-tree accumulation)."""
         import signal as _signal
 
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         if not platform_compat.IS_POSIX:
             pytest.skip("killpg is POSIX-only")
@@ -3595,11 +3595,11 @@ class TestProbeGroupReap:
 
         with (
             patch(
-                "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+                "junction.mcp_discovery.asyncio.create_subprocess_exec",
                 return_value=proc,
             ),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
-            patch("kiro_crew.mcp_discovery.os.killpg") as mock_killpg,
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.os.killpg") as mock_killpg,
         ):
             await probe_server(server)
 
@@ -3608,7 +3608,7 @@ class TestProbeGroupReap:
     @pytest.mark.asyncio
     async def test_teardown_tolerates_empty_group(self) -> None:
         """ESRCH (group already empty) must not surface as a probe error."""
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         if not platform_compat.IS_POSIX:
             pytest.skip("killpg is POSIX-only")
@@ -3617,11 +3617,11 @@ class TestProbeGroupReap:
 
         with (
             patch(
-                "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+                "junction.mcp_discovery.asyncio.create_subprocess_exec",
                 return_value=proc,
             ),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
-            patch("kiro_crew.mcp_discovery.os.killpg", side_effect=ProcessLookupError),
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.os.killpg", side_effect=ProcessLookupError),
         ):
             result = await probe_server(server)
 
@@ -3631,7 +3631,7 @@ class TestProbeGroupReap:
     @pytest.mark.asyncio
     async def test_teardown_refuses_non_int_pid(self) -> None:
         """Mock/sentinel pids must never coerce into killpg(1) == init."""
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         if not platform_compat.IS_POSIX:
             pytest.skip("killpg is POSIX-only")
@@ -3641,11 +3641,11 @@ class TestProbeGroupReap:
 
         with (
             patch(
-                "kiro_crew.mcp_discovery.asyncio.create_subprocess_exec",
+                "junction.mcp_discovery.asyncio.create_subprocess_exec",
                 return_value=proc,
             ),
-            patch("kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
-            patch("kiro_crew.mcp_discovery.os.killpg") as mock_killpg,
+            patch("junction.mcp_discovery.shutil.which", return_value="/usr/bin/echo"),
+            patch("junction.mcp_discovery.os.killpg") as mock_killpg,
         ):
             await probe_server(server)
 
@@ -3657,7 +3657,7 @@ class TestProbeGroupReap:
         answers must leave NO survivors after the probe returns."""
         import time as _time
 
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         if not platform_compat.IS_POSIX:
             pytest.skip("process groups are POSIX-only")
@@ -3672,13 +3672,13 @@ class TestProbeGroupReap:
         )
         script.chmod(0o755)
 
-        monkeypatch.setattr("kiro_crew.mcp_discovery._get_probe_timeout", lambda: 1)
+        monkeypatch.setattr("junction.mcp_discovery._get_probe_timeout", lambda: 1)
         # The child deliberately never exits, so `probe_server`'s teardown pays its
         # graceful-exit budget AND its post-SIGKILL budget in full (2 x 5s) before
         # reaching the process-group reap this test is about. Shrink both: the reap
         # is what is asserted, and waiting out the real budget made this the single
         # slowest test in the suite at 12s.
-        monkeypatch.setattr("kiro_crew.mcp_discovery._PROBE_TEARDOWN_WAIT_SECS", 0.5)
+        monkeypatch.setattr("junction.mcp_discovery._PROBE_TEARDOWN_WAIT_SECS", 0.5)
         server = McpServerInfo(name="fake", command=str(script))
         result = await probe_server(server)
         assert result.status == "error"  # timed out, as designed
@@ -3719,15 +3719,15 @@ class TestDisabledIsCrossScope:
         (agent_dir / "defaults.json").write_text(
             json.dumps({"mcpServers": {"srv": agent_spec}}), encoding="utf-8"
         )
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         kiro_mcp = tmp_path / "kiro-mcp.json"
         kiro_mcp.write_text(
             json.dumps({"mcpServers": {"srv": global_spec}}), encoding="utf-8"
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp,))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp,))
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery._MCP_SOURCES", ((kiro_mcp, SCOPE_KIRO_GLOBAL),)
+            "junction.mcp_discovery._MCP_SOURCES", ((kiro_mcp, SCOPE_KIRO_GLOBAL),)
         )
 
     def test_kiro_global_disable_marks_an_agent_introduced_row(
@@ -3776,7 +3776,7 @@ class TestDisabledIsCrossScope:
         # Patch the actual spawn primitive (the stdio path is inline in
         # probe_server, not a helper), so this asserts on the real side effect
         # consent gates rather than on a stand-in.
-        monkeypatch.setattr("kiro_crew.mcp_discovery.create_subprocess_limited", _no_spawn)
+        monkeypatch.setattr("junction.mcp_discovery.create_subprocess_limited", _no_spawn)
         row = next(s for s in list_servers() if s.name == "srv")
         out = await probe_server(row)
         assert out.status == "disabled"
@@ -3796,7 +3796,7 @@ class TestDisabledIsCrossScope:
             json.dumps({"mcpServers": {"playwright-mcp": {"command": "npx"}}}),
             encoding="utf-8",
         )
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         kiro_mcp = tmp_path / "kiro-mcp.json"
         kiro_mcp.write_text(
             json.dumps(
@@ -3804,10 +3804,10 @@ class TestDisabledIsCrossScope:
             ),
             encoding="utf-8",
         )
-        monkeypatch.setattr("kiro_crew.mcp_discovery.Path.home", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp,))
+        monkeypatch.setattr("junction.mcp_discovery.Path.home", lambda: tmp_path)
+        monkeypatch.setattr("junction.mcp_discovery._MCP_JSON_PATHS", (kiro_mcp,))
         monkeypatch.setattr(
-            "kiro_crew.mcp_discovery._MCP_SOURCES", ((kiro_mcp, SCOPE_KIRO_GLOBAL),)
+            "junction.mcp_discovery._MCP_SOURCES", ((kiro_mcp, SCOPE_KIRO_GLOBAL),)
         )
         rows = {s.name: s for s in list_servers()}
         assert "playwright-mcp" in rows
@@ -3831,7 +3831,7 @@ class TestWindowsTeardownOffLoop:
     def test_kill_process_tree_is_offloaded(self) -> None:
         import inspect
 
-        from kiro_crew import mcp_discovery
+        from junction import mcp_discovery
 
         src = inspect.getsource(mcp_discovery.probe_server)
         assert "kill_process_tree" in src, "teardown moved -- retarget this guard"
@@ -3856,8 +3856,8 @@ class TestProbeSandboxUnavailable:
 
     @pytest.mark.asyncio
     async def test_sandbox_refusal_is_reported_as_a_probe_limitation(self, monkeypatch) -> None:
-        import kiro_crew.mcp_discovery as md
-        from kiro_crew.sandbox import SandboxUnavailableError
+        import junction.mcp_discovery as md
+        from junction.sandbox import SandboxUnavailableError
 
         monkeypatch.setattr(md, "_probe_sandbox_warned", set())
 
@@ -3871,8 +3871,8 @@ class TestProbeSandboxUnavailable:
         # A THIRD-PARTY server: managed ones never reach the spawn path at all
         # (their tools are read in-process), so they cannot exercise this branch.
         server = McpServerInfo(name="playwright-mcp", command="node")
-        with patch("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _refuse), patch(
-            "kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/node"
+        with patch("junction.mcp_discovery.sandboxed_spawn_argv", _refuse), patch(
+            "junction.mcp_discovery.shutil.which", return_value="/usr/bin/node"
         ):
             result = await probe_server(server)
 
@@ -3887,7 +3887,7 @@ class TestProbeSandboxUnavailable:
         """The spawn is the only thing that proves the server can START.
 
         `_fix_stale_managed_command` exists because the managed invocation does go
-        stale ("command not found: kirocrew; the built-in cron/core tools then never
+        stale ("command not found: junction; the built-in cron/core tools then never
         load"), and the probe was the one surface that caught it. Short-circuiting
         on the server name would report `ok` for a managed server that cannot run —
         silently changing what `ok` means in the shared `_cache_probe` store.
@@ -3898,9 +3898,9 @@ class TestProbeSandboxUnavailable:
             spawned["yes"] = True
             raise RuntimeError("stop at the wrap")
 
-        server = McpServerInfo(name="kirocrew-core", command="kirocrew", args=["mcp-core"])
-        with patch("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _wrap), patch(
-            "kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/kirocrew"
+        server = McpServerInfo(name="junction-core", command="junction", args=["mcp-core"])
+        with patch("junction.mcp_discovery.sandboxed_spawn_argv", _wrap), patch(
+            "junction.mcp_discovery.shutil.which", return_value="/usr/bin/junction"
         ):
             await probe_server(server)
 
@@ -3917,18 +3917,18 @@ class TestProbeSandboxUnavailable:
         sandbox could not confine anything on this host anyway — hence fallback,
         never primary.
         """
-        import kiro_crew.mcp_discovery as md
-        from kiro_crew.sandbox import SandboxUnavailableError
+        import junction.mcp_discovery as md
+        from junction.sandbox import SandboxUnavailableError
 
         monkeypatch.setattr(md, "_managed_in_process_warned", set())
 
         def _refuse(*args, **kwargs):
             raise SandboxUnavailableError("no backend", kind="no_backend", detail="not Linux")
 
-        for name, expect_tools in (("kirocrew-core", True), ("kirocrew-cron", True)):
-            server = McpServerInfo(name=name, command="kirocrew", args=["mcp-x"])
-            with patch("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _refuse), patch(
-                "kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/kirocrew"
+        for name, expect_tools in (("junction-core", True), ("junction-cron", True)):
+            server = McpServerInfo(name=name, command="junction", args=["mcp-x"])
+            with patch("junction.mcp_discovery.sandboxed_spawn_argv", _refuse), patch(
+                "junction.mcp_discovery.shutil.which", return_value="/usr/bin/junction"
             ):
                 result = await probe_server(server)
 
@@ -3939,14 +3939,14 @@ class TestProbeSandboxUnavailable:
     async def test_a_third_party_server_gets_no_declaration_fallback(self) -> None:
         """Only OUR OWN servers have a declaration to read; a third-party one keeps
         the honest probe-limitation error."""
-        from kiro_crew.sandbox import SandboxUnavailableError
+        from junction.sandbox import SandboxUnavailableError
 
         def _refuse(*args, **kwargs):
             raise SandboxUnavailableError("no backend", kind="no_backend", detail="not Linux")
 
         server = McpServerInfo(name="playwright-mcp", command="node")
-        with patch("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _refuse), patch(
-            "kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/node"
+        with patch("junction.mcp_discovery.sandboxed_spawn_argv", _refuse), patch(
+            "junction.mcp_discovery.shutil.which", return_value="/usr/bin/node"
         ):
             result = await probe_server(server)
 
@@ -3964,12 +3964,12 @@ class TestProbeSandboxUnavailable:
         """
         import logging
 
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         monkeypatch.setattr(md, "_probe_sandbox_warned", set())
         with caplog.at_level(logging.WARNING, logger=md.logger.name):
-            md._warn_probe_sandbox_unavailable_once("kirocrew-core")
-            md._warn_probe_sandbox_unavailable_once("kirocrew-core")
+            md._warn_probe_sandbox_unavailable_once("junction-core")
+            md._warn_probe_sandbox_unavailable_once("junction-core")
 
         warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
         assert len(warnings) == 1, [r.getMessage() for r in warnings]
@@ -3985,37 +3985,37 @@ class TestFirstPartyManagedArgv:
     scope could pair with user-config command text.
     """
 
-    _INVOCATION = ("/opt/kirocrew/bin/kirocrew", ["mcp-core"])
+    _INVOCATION = ("/opt/junction/bin/junction", ["mcp-core"])
 
     def _patch_invocation(self, monkeypatch) -> None:
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         monkeypatch.setattr(
-            md, "_resolved_managed_invocation", {"kirocrew-core": self._INVOCATION}
+            md, "_resolved_managed_invocation", {"junction-core": self._INVOCATION}
         )
         # Default install: the package-derived managed env is empty.
-        monkeypatch.setattr("kiro_crew.agent._managed_mcp_env", lambda: {})
+        monkeypatch.setattr("junction.agent._managed_mcp_env", lambda: {})
 
     def test_self_derived_managed_argv_is_first_party(self, monkeypatch) -> None:
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         self._patch_invocation(monkeypatch)
         assert md._is_first_party_managed_argv(
-            "kirocrew-core", self._INVOCATION[0], list(self._INVOCATION[1]), {}
+            "junction-core", self._INVOCATION[0], list(self._INVOCATION[1]), {}
         )
 
     def test_customized_command_under_a_managed_name_is_not(self, monkeypatch) -> None:
         """A managed NAME with user-config command text (the mcp.json-sourced
         case, which ``_fix_stale_managed_command`` never re-resolves) must keep
         the full fail-close + opt-in behavior."""
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         self._patch_invocation(monkeypatch)
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core", "/home/user/evil-shim", list(self._INVOCATION[1]), {}
+            "junction-core", "/home/user/evil-shim", list(self._INVOCATION[1]), {}
         )
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core", self._INVOCATION[0], ["mcp-core", "--extra"], {}
+            "junction-core", self._INVOCATION[0], ["mcp-core", "--extra"], {}
         )
 
     def test_spec_env_under_a_managed_name_is_not_first_party(self, monkeypatch) -> None:
@@ -4023,11 +4023,11 @@ class TestFirstPartyManagedArgv:
         what code runs), and ``probe_server`` merges the spec's env into the
         child environment — so any key this package did not derive disqualifies
         the spec from the unconfined carve-out."""
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         self._patch_invocation(monkeypatch)
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core",
+            "junction-core",
             self._INVOCATION[0],
             list(self._INVOCATION[1]),
             {"LD_PRELOAD": "/tmp/evil.so"},
@@ -4035,59 +4035,59 @@ class TestFirstPartyManagedArgv:
 
     def test_the_package_derived_home_pin_still_matches(self, monkeypatch) -> None:
         """Under an override home the managed spec legitimately carries exactly
-        the ``KIROCREW_HOME`` pin this package derived — that must still count
+        the ``JUNCTION_HOME`` pin this package derived — that must still count
         as first-party, and any EXTRA key alongside it must not."""
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         self._patch_invocation(monkeypatch)
-        pin = {"KIROCREW_HOME": "/data/override-home"}
-        monkeypatch.setattr("kiro_crew.agent._managed_mcp_env", lambda: dict(pin))
+        pin = {"JUNCTION_HOME": "/data/override-home"}
+        monkeypatch.setattr("junction.agent._managed_mcp_env", lambda: dict(pin))
         assert md._is_first_party_managed_argv(
-            "kirocrew-core", self._INVOCATION[0], list(self._INVOCATION[1]), dict(pin)
+            "junction-core", self._INVOCATION[0], list(self._INVOCATION[1]), dict(pin)
         )
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core",
+            "junction-core",
             self._INVOCATION[0],
             list(self._INVOCATION[1]),
             {**pin, "LD_PRELOAD": "/tmp/evil.so"},
         )
         # A spec MISSING the derived pin is also not the derived invocation.
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core", self._INVOCATION[0], list(self._INVOCATION[1]), {}
+            "junction-core", self._INVOCATION[0], list(self._INVOCATION[1]), {}
         )
 
     def test_the_interpreter_fallback_is_never_first_party(self, monkeypatch) -> None:
-        """`python -m kiro_crew` prepends the child's CWD to sys.path (3.10 has
-        no -P), so a planted `kiro_crew/` tree in an untrusted cwd would shadow
+        """`python -m junction` prepends the child's CWD to sys.path (3.10 has
+        no -P), so a planted `junction/` tree in an untrusted cwd would shadow
         the install — only a resolved console-script binary qualifies."""
         import sys
 
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
-        fallback = (sys.executable, ["-m", "kiro_crew", "mcp-core"])
-        monkeypatch.setattr(md, "_resolved_managed_invocation", {"kirocrew-core": fallback})
-        monkeypatch.setattr("kiro_crew.agent._managed_mcp_env", lambda: {})
+        fallback = (sys.executable, ["-m", "junction", "mcp-core"])
+        monkeypatch.setattr(md, "_resolved_managed_invocation", {"junction-core": fallback})
+        monkeypatch.setattr("junction.agent._managed_mcp_env", lambda: {})
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core", fallback[0], list(fallback[1]), {}
+            "junction-core", fallback[0], list(fallback[1]), {}
         )
 
     def test_third_party_server_is_never_first_party(self, monkeypatch) -> None:
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         self._patch_invocation(monkeypatch)
         assert not md._is_first_party_managed_argv("playwright-mcp", "node", [], {})
 
     def test_resolution_failure_fails_toward_not_first_party(self, monkeypatch) -> None:
-        import kiro_crew.mcp_discovery as md
+        import junction.mcp_discovery as md
 
         monkeypatch.setattr(md, "_resolved_managed_invocation", {})
 
         def _boom(subcommand):
             raise RuntimeError("no install")
 
-        monkeypatch.setattr("kiro_crew.agent._kirocrew_mcp_invocation", _boom)
+        monkeypatch.setattr("junction.agent._junction_mcp_invocation", _boom)
         assert not md._is_first_party_managed_argv(
-            "kirocrew-core", self._INVOCATION[0], list(self._INVOCATION[1]), {}
+            "junction-core", self._INVOCATION[0], list(self._INVOCATION[1]), {}
         )
 
     @pytest.mark.asyncio
@@ -4102,10 +4102,10 @@ class TestFirstPartyManagedArgv:
             raise RuntimeError("stop at the wrap")
 
         server = McpServerInfo(
-            name="kirocrew-core", command=self._INVOCATION[0], args=list(self._INVOCATION[1])
+            name="junction-core", command=self._INVOCATION[0], args=list(self._INVOCATION[1])
         )
-        with patch("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _capture), patch(
-            "kiro_crew.mcp_discovery.shutil.which", return_value=self._INVOCATION[0]
+        with patch("junction.mcp_discovery.sandboxed_spawn_argv", _capture), patch(
+            "junction.mcp_discovery.shutil.which", return_value=self._INVOCATION[0]
         ):
             await probe_server(server)
 
@@ -4121,8 +4121,8 @@ class TestFirstPartyManagedArgv:
             raise RuntimeError("stop at the wrap")
 
         server = McpServerInfo(name="playwright-mcp", command="node")
-        with patch("kiro_crew.mcp_discovery.sandboxed_spawn_argv", _capture), patch(
-            "kiro_crew.mcp_discovery.shutil.which", return_value="/usr/bin/node"
+        with patch("junction.mcp_discovery.sandboxed_spawn_argv", _capture), patch(
+            "junction.mcp_discovery.shutil.which", return_value="/usr/bin/node"
         ):
             await probe_server(server)
 

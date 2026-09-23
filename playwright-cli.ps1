@@ -62,7 +62,7 @@ $WrapperName = "playwright-cli"
 $PublicNpmRegistry = "https://registry.npmjs.org/"
 # The floor that matters is not the package's own engines.node (>= 18) but the one
 # Kiro Crew's browsing requires of this CLI: MIN_NODE_MAJOR in
-# src/kiro_crew/browser_cli/install.py. Accepting less would install a CLI the
+# src/junction/browser_cli/install.py. Accepting less would install a CLI the
 # product refuses to drive. A test binds the two together. A bootstrap installs
 # Node 22 LTS.
 $MinNodeMajor = 20
@@ -133,10 +133,10 @@ Options:
   -Help                  this text
 
 Environment:
-  KIROCREW_HOME                 data home (default ~\.kiro\crew)
-  KIROCREW_PLAYWRIGHT_CLI_HOME  overrides -Prefix
-  KIROCREW_NPM_REGISTRY         overrides -Registry
-  KIROCREW_NODE_BIN_DIR         an existing Node bin dir to reuse
+  JUNCTION_HOME                 data home (default ~\.kiro\crew)
+  JUNCTION_PLAYWRIGHT_CLI_HOME  overrides -Prefix
+  JUNCTION_NPM_REGISTRY         overrides -Registry
+  JUNCTION_NODE_BIN_DIR         an existing Node bin dir to reuse
   HTTPS_PROXY                   honored by npm and the Node download
   NO_PROXY                      honored by npm only
   NODE_EXTRA_CA_CERTS           CA bundle for a TLS-terminating proxy
@@ -174,7 +174,7 @@ if ($NodeVersion -notmatch '^[0-9]+(\.[0-9]+)*$') {
 }
 
 if ([string]::IsNullOrWhiteSpace($Registry)) {
-    $Registry = if ($env:KIROCREW_NPM_REGISTRY) { $env:KIROCREW_NPM_REGISTRY } else { $PublicNpmRegistry }
+    $Registry = if ($env:JUNCTION_NPM_REGISTRY) { $env:JUNCTION_NPM_REGISTRY } else { $PublicNpmRegistry }
 }
 
 if ([string]::IsNullOrWhiteSpace($DownloadHost)) {
@@ -275,7 +275,7 @@ function Deny-UrlCredential([string]$Label, [string]$Url, [string]$Alternative) 
     }
 }
 if ($PSBoundParameters.ContainsKey("Registry")) {
-    Deny-UrlCredential "-Registry" $Registry ("Set KIROCREW_NPM_REGISTRY in the " +
+    Deny-UrlCredential "-Registry" $Registry ("Set JUNCTION_NPM_REGISTRY in the " +
         "environment instead, or run 'npm login --registry <url>' first.")
 }
 if ($PSBoundParameters.ContainsKey("DownloadHost")) {
@@ -288,10 +288,10 @@ if ($NodeMirror) {
 }
 if ($DownloadHost) { Require-Https "-DownloadHost" $DownloadHost }
 
-$dataHome = if ($env:KIROCREW_HOME) { $env:KIROCREW_HOME } else { Join-Path $HOME ".kiro\crew" }
+$dataHome = if ($env:JUNCTION_HOME) { $env:JUNCTION_HOME } else { Join-Path $HOME ".kiro\crew" }
 if ([string]::IsNullOrWhiteSpace($Prefix)) {
-    $Prefix = if ($env:KIROCREW_PLAYWRIGHT_CLI_HOME) {
-        $env:KIROCREW_PLAYWRIGHT_CLI_HOME
+    $Prefix = if ($env:JUNCTION_PLAYWRIGHT_CLI_HOME) {
+        $env:JUNCTION_PLAYWRIGHT_CLI_HOME
     } else {
         Join-Path $dataHome "playwright-cli"
     }
@@ -378,7 +378,7 @@ function Try-Node([string]$Candidate) {
     # Parity with the .sh guard against ':' in a candidate's directory. ';' is legal
     # in an NTFS name and is also the PATH separator, so accepting it would splice
     # bogus entries into the npm subprocess PATH and into the generated .cmd
-    # wrapper. Reachable via KIROCREW_NODE_BIN_DIR, the node-bin-dir marker, or a
+    # wrapper. Reachable via JUNCTION_NODE_BIN_DIR, the node-bin-dir marker, or a
     # PATH lookup; $Prefix is already screened for it upstream.
     if ((Split-Path -Parent $Candidate) -match ';') { return $false }
     # $ErrorActionPreference is 'Stop' globally, and Windows PowerShell 5.1 wraps
@@ -399,7 +399,7 @@ function Try-Node([string]$Candidate) {
     if ([int]$major -lt $MinNodeMajor) { return $false }
     $script:NodeExe = $Candidate
     # Embedded in the generated wrapper too, and every candidate funnels through
-    # here -- $env:KIROCREW_NODE_BIN_DIR, the marker file and a PATH lookup can
+    # here -- $env:JUNCTION_NODE_BIN_DIR, the marker file and a PATH lookup can
     # each be relative.
     $script:NodeBinDir = Get-AbsolutePath (Split-Path -Parent $Candidate)
     return $true
@@ -409,7 +409,7 @@ function Try-Node([string]$Candidate) {
 # earlier, then one the caller named, then whatever is on PATH.
 function Resolve-Node {
     if (Try-Node (Join-Path $Prefix "node\node.exe")) { return $true }
-    if ($env:KIROCREW_NODE_BIN_DIR -and (Try-Node (Join-Path $env:KIROCREW_NODE_BIN_DIR "node.exe"))) { return $true }
+    if ($env:JUNCTION_NODE_BIN_DIR -and (Try-Node (Join-Path $env:JUNCTION_NODE_BIN_DIR "node.exe"))) { return $true }
     $marker = Join-Path $dataHome "node-bin-dir"
     if (Test-Path -LiteralPath $marker -PathType Leaf) {
         # An empty marker yields $null, and .Trim() on it throws -- which under the

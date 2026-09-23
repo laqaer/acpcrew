@@ -1,8 +1,8 @@
-"""Tests for kiro_crew.imessage.plaintext (markdown flattening + splitting)."""
+"""Tests for junction.imessage.plaintext (markdown flattening + splitting)."""
 
 from __future__ import annotations
 
-from kiro_crew.imessage.plaintext import chunk_plaintext, to_plaintext
+from junction.imessage.plaintext import chunk_plaintext, to_plaintext
 
 
 class TestCodeBlocksPassThroughVerbatim:
@@ -33,7 +33,7 @@ class TestInlineMarkupIsFlattened:
         assert to_plaintext("**b** *i* __b__ _i_ ***bi*** ~~s~~") == "b i b i bi s"
 
     def test_inline_code_loses_its_backticks(self) -> None:
-        assert to_plaintext("run `kirocrew status` now") == "run kirocrew status now"
+        assert to_plaintext("run `junction status` now") == "run junction status now"
 
     def test_heading_marker_is_dropped(self) -> None:
         assert to_plaintext("### Title\nbody") == "Title\nbody"

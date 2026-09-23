@@ -12,12 +12,12 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from kiro_crew.deploy import webapp_types
+from junction.deploy import webapp_types
 
 # ─── F1: reaper.sh OAC uses fullmatch not startswith ────────────────────────
 
 _REAPER_SH = Path(__file__).resolve().parent.parent / (
-    "src/kiro_crew/deploy/skills/artifact-deploy/scripts/reaper.sh"
+    "src/junction/deploy/skills/artifact-deploy/scripts/reaper.sh"
 )
 
 
@@ -57,7 +57,7 @@ class TestF2PendingConfirmDigest:
         """Verify the code path sets expected_content_digest param."""
         import inspect
 
-        from kiro_crew.deploy import handlers
+        from junction.deploy import handlers
         source = inspect.getsource(handlers)
         # The fix adds: params["expected_content_digest"] = stored_digest
         assert 'params["expected_content_digest"]' in source, (
@@ -87,7 +87,7 @@ class TestF3TeardownManifestIdentity:
         """handlers.py contains the identity cross-verification logic."""
         import inspect
 
-        from kiro_crew.deploy import handlers
+        from junction.deploy import handlers
         source = inspect.getsource(handlers)
         assert "identity_mismatch" in source, (
             "_expire_manifest_best_effort must check distribution_id mismatch"
@@ -132,7 +132,7 @@ class TestF6APIServerDeployRoutes:
         """start_api_server source calls _register_deploy_routes."""
         import inspect
 
-        from kiro_crew.dashboard import server
+        from junction.dashboard import server
         source = inspect.getsource(server.start_api_server)
         assert "_register_deploy_routes" in source, (
             "start_api_server must call _register_deploy_routes(app)"
@@ -145,7 +145,7 @@ class TestF3IdentityWiring:
     that parses to '' makes the teardown cross-verify a dead check."""
 
     def test_parser_reads_distribution_id(self):
-        from kiro_crew.deploy.webapp_types import webapp_metadata_from_dict
+        from junction.deploy.webapp_types import webapp_metadata_from_dict
         meta = webapp_metadata_from_dict({
             "slug": "x", "deploy_target": {"provider": "aws",
                                            "distribution_id": "E2ABCDEF123456"},
@@ -157,14 +157,14 @@ class TestF3IdentityWiring:
         # A non-allowlisted event_type raises inside the best-effort
         # try/except and silently skips persistence (dead check).
         from pathlib import Path
-        src = Path(__file__).parent.parent / "src" / "kiro_crew" / "deploy" / "handlers.py"
+        src = Path(__file__).parent.parent / "src" / "junction" / "deploy" / "handlers.py"
         text = src.read_text(encoding="utf-8")
         assert 'event_type="edited"' in text
         assert "_persist_dist_id" in text
 
     def test_writeback_flows_result_distribution_id(self):
         from pathlib import Path
-        src = Path(__file__).parent.parent / "src" / "kiro_crew" / "deploy" / "handlers.py"
+        src = Path(__file__).parent.parent / "src" / "junction" / "deploy" / "handlers.py"
         text = src.read_text(encoding="utf-8")
         idx = text.index("_persist_dist_id")
         window = text[idx - 500: idx + 900]

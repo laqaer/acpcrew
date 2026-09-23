@@ -303,7 +303,7 @@ function CrewRow({
           <div className="mt-1"><StatusBadge status={inst.status} /></div>
           <div className="text-[11px] text-muted-strong mt-1">
             {isCloud
-              ? i18nT('pages.settings.remoteCrewPanel.launched_by_kiro_crew')
+              ? i18nT('pages.settings.remoteCrewPanel.launched_by_junction')
               : unverifiedCloud
                 ? i18nT('pages.settings.remoteCrewPanel.unverified_cloud_note')
                 : `${i18nT('pages.settings.remoteCrewPanel.added_by_you')} · ${i18nT('pages.settings.remoteCrewPanel.doesnt_manage')}`}
@@ -1008,7 +1008,7 @@ export function RemoteCrewPanel() {
         {restartPending && (
           <div role="status" className="flex items-start gap-2 px-3 py-2 mb-3 text-[13px] rounded-md bg-warn/10 text-warn border border-warn/30">
             <AlertTriangle size={14} className="lucide-inline mt-0.5 shrink-0" />
-            <span>{i18nT('pages.settings.instancesPanel.disabled_in_config_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.kirocrew_restart')}</code>) {i18nT('pages.settings.instancesPanel.to_fully_tear_down_any_tunnels_still_running_fro')}</span>
+            <span>{i18nT('pages.settings.instancesPanel.disabled_in_config_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.junction_restart')}</code>) {i18nT('pages.settings.instancesPanel.to_fully_tear_down_any_tunnels_still_running_fro')}</span>
           </div>
         )}
         <Btn primary onClick={() => enableMutation.mutate()} disabled={enableMutation.isPending}>
@@ -1075,7 +1075,7 @@ export function RemoteCrewPanel() {
             {needsRestart && (
               <div role="status" className="flex items-start gap-2 px-3 py-2 mb-3 text-[13px] rounded-md bg-warn/10 text-warn border border-warn/30">
                 <AlertTriangle size={14} className="lucide-inline mt-0.5 shrink-0" />
-                <span>{i18nT('pages.settings.instancesPanel.disabled_in_config_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.kirocrew_restart')}</code>) {i18nT('pages.settings.instancesPanel.to_fully_tear_down_any_tunnels_still_running_fro')}</span>
+                <span>{i18nT('pages.settings.instancesPanel.disabled_in_config_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.junction_restart')}</code>) {i18nT('pages.settings.instancesPanel.to_fully_tear_down_any_tunnels_still_running_fro')}</span>
               </div>
             )}
             {listLoading ? (

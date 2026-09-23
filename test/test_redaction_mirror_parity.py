@@ -48,16 +48,16 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from kiro_crew.security import _CREDENTIAL_PATTERNS
+from junction.security import _CREDENTIAL_PATTERNS
 
 ROOT = Path(__file__).resolve().parents[1]
 
-BACKEND = ROOT / "src" / "kiro_crew" / "security.py"
+BACKEND = ROOT / "src" / "junction" / "security.py"
 PREPARE_PR = (
-    ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr" / "scripts" / "pr_findings.py"
+    ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr" / "scripts" / "pr_findings.py"
 )
 FRONTEND = ROOT / "website" / "src" / "utils" / "sanitize.ts"
-TOKEN_MINT = ROOT / "src" / "kiro_crew" / "instances" / "token_mint.py"
+TOKEN_MINT = ROOT / "src" / "junction" / "instances" / "token_mint.py"
 
 
 def _jwt_alternatives() -> tuple[str, str]:

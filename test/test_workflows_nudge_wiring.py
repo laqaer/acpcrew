@@ -29,10 +29,10 @@ from types import SimpleNamespace
 
 import pytest
 
-import kiro_crew.autonudge_authz as autonudge_authz
-from kiro_crew.autonudge import binding_key_for
-from kiro_crew.autonudge_authz import authorize_and_add_nudge
-from kiro_crew.workflows.service import WorkflowService
+import junction.autonudge_authz as autonudge_authz
+from junction.autonudge import binding_key_for
+from junction.autonudge_authz import authorize_and_add_nudge
+from junction.workflows.service import WorkflowService
 
 pytestmark = pytest.mark.asyncio
 
@@ -254,7 +254,7 @@ async def test_autonudge_add_survives_caller_cancellation(tmp_path, monkeypatch)
     shielded: the caller sees CancelledError, but the arm+persist completes."""
     import threading
 
-    from kiro_crew.autonudge import AutoNudgeService
+    from junction.autonudge import AutoNudgeService
 
     svc = AutoNudgeService(base_dir=tmp_path)
     write_started = threading.Event()
@@ -361,12 +361,12 @@ async def test_authz_rejects_spoofed_discord_session() -> None:
     # User IS allowlisted, but the requested key is NOT their current session →
     # deny-by-default rejects the spoof (the core cross-session-injection guard).
     disp = FakeDiscordDispatcher(
-        authorized={"42"}, current={"42": "discord:kirocrew:direct:42"}
+        authorized={"42"}, current={"42": "discord:junction:direct:42"}
     )
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(discord=disp),
-        slot_key="discord:kirocrew:direct:99",  # someone else's user id
+        slot_key="discord:junction:direct:99",  # someone else's user id
         message="pwn",
         source="workflow",
     )
@@ -380,7 +380,7 @@ async def test_authz_rejects_unallowlisted_discord_user() -> None:
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(discord=disp),
-        slot_key="discord:kirocrew:direct:42",
+        slot_key="discord:junction:direct:42",
         message="pwn",
         source="workflow",
     )
@@ -532,7 +532,7 @@ async def test_author_prompt_advertises_only_wired_primitives() -> None:
     ctx.cron / ctx.memory / ctx.learn ...) MUST be wired in ``_runner`` first,
     or this test fails — the drift can't silently reappear.
     """
-    from kiro_crew.workflows.service import _AUTHOR_SYSTEM
+    from junction.workflows.service import _AUTHOR_SYSTEM
 
     advertised = set(_CTX_TOKEN_RE.findall(_AUTHOR_SYSTEM))
     assert advertised, "coherence check: the authoring prompt names ctx primitives"

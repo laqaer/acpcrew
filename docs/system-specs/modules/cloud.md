@@ -2,12 +2,12 @@
 
 ## Overview
 
-`src/kiro_crew/cloud/` runs KiroCrew on the user's **own** AWS EC2 instance with a
+`src/junction/cloud/` runs Junction on the user's **own** AWS EC2 instance with a
 single command. It provisions a CloudFormation stack, ships an available local
 checkout (or clones the public repo from packaged installs), signs `kiro-cli` in
 over SSM, and opens the dashboard through an SSM port-forward. Command surface
 (wired in `cli_cloud.py`, invoked via
-`kirocrew cloud <action>`):
+`junction cloud <action>`):
 
 ```
 launch | list | status | connect | tunnel | login | logout | stop | start | destroy | iam-policy | iam-boundary | doctor
@@ -25,7 +25,7 @@ single hard boundary in the default posture**:
 - (2) the shell `deniedCommands` in `config/defaults.json` (kiro-cli
   `execute_bash`/`shell`) block both the raw AWS CLI verbs (`aws ec2
   terminate-instances` / `delete-*`, `aws cloudformation delete-stack`) **and**
-  the `kirocrew cloud destroy|stop|start|launch|connect|tunnel|login|logout` wrappers
+  the `junction cloud destroy|stop|start|launch|connect|tunnel|login|logout` wrappers
   (the latter mint/print tokens); read-only `list`/`status` stay allowed. The
   AWS patterns tolerate global options in BOTH positions — before the service
   AND between the service and the operation
@@ -35,7 +35,7 @@ single hard boundary in the default posture**:
   The block covers the low-level `s3api` write surface too (`put-object`,
   `copy-object`, the multipart-upload family, `put-bucket-*`), not just the
   high-level `aws s3 cp/mv/sync` — otherwise the launcher's `s3:PutObject` grant
-  to `kirocrew-src-*` would be an agent exfiltration path. It also blocks the
+  to `junction-src-*` would be an agent exfiltration path. It also blocks the
   launcher's **creation/mutation** verbs (`cloudformation deploy/create-stack/
   update-stack/*-change-set`, `ec2 run-instances/create-security-group/
   authorize-security-group-*`, `iam create-role/put-role-policy/
@@ -45,7 +45,7 @@ single hard boundary in the default posture**:
   `security.py`'s underscored `BUILTIN_DENY_PATTERNS`, which don't match
   hyphenated CLI strings;
 - (3) an in-layer chokepoint — `run_aws` calls `assert_chokepoint_allowed()`,
-  which under an agent session (`KIROCREW_SESSION_KEY` set) allows only an
+  which under an agent session (`JUNCTION_SESSION_KEY` set) allows only an
   **exact** read-only `(service, operation)` allowlist and refuses everything
   else, including secret reads (`secretsmanager get-secret-value` / `ssm
   get-parameter --with-decryption` / `ssm get-command-invocation`); the
@@ -53,7 +53,7 @@ single hard boundary in the default posture**:
 
 **Honest containment model.** Layers (2) and (3) are *best-effort friction*, not
 containment: a code-executing agent can obfuscate a shell string,
-`del os.environ['KIROCREW_SESSION_KEY']` before an in-process call, or — since
+`del os.environ['JUNCTION_SESSION_KEY']` before an in-process call, or — since
 the **default `agent.sandbox = "auto"` resolves to `standard`, which does NOT
 hide `~/.aws`** — just run `aws`/boto3 directly. So the load-bearing control is
 the **least-privilege IAM scope of the operator's own credentials** (`iam.py` —
@@ -68,16 +68,16 @@ claim that a hostile in-process agent is fully contained.
 | Module | Role |
 |--------|------|
 | `aws.py` | The single `run_aws` chokepoint — fixed argv, no shell, sandbox-wrapped, `--profile` only (never boto3, never a raw key). `checked`/`checked_json`; `AccessDenied → exact IAM action` mapping; `env_credentials_hint()`. |
-| `ec2.py` | `deploy`/`status`/`stop`/`start`/`destroy` via `aws cloudformation` + `ec2`; AZ- **and egress-**aware `discover_network` + `resolve_explicit_subnet` (`--subnet` pin, same guarantees); tag-based stateless discovery; `_validate_cidr`. `find_stack` verifies BOTH `kirocrew:managed=true` AND `kirocrew:instance==<tag>` before status/stop/start/destroy touch a stack — so a same-prefix managed stack with a different instance tag can't be acted on by the wrong `--tag`. |
-| `iam.py` | Least-privilege launcher policy generator (applied by the user, never by KiroCrew) + read-only reachability check + the **content-fixed instance permissions-boundary document** (`boundary_policy_document`/`boundary_arn`) and its constants (`BOUNDARY_NAME`). |
+| `ec2.py` | `deploy`/`status`/`stop`/`start`/`destroy` via `aws cloudformation` + `ec2`; AZ- **and egress-**aware `discover_network` + `resolve_explicit_subnet` (`--subnet` pin, same guarantees); tag-based stateless discovery; `_validate_cidr`. `find_stack` verifies BOTH `junction:managed=true` AND `junction:instance==<tag>` before status/stop/start/destroy touch a stack — so a same-prefix managed stack with a different instance tag can't be acted on by the wrong `--tag`. |
+| `iam.py` | Least-privilege launcher policy generator (applied by the user, never by Junction) + read-only reachability check + the **content-fixed instance permissions-boundary document** (`boundary_policy_document`/`boundary_arn`) and its constants (`BOUNDARY_NAME`). |
 | `ssm.py` | SSM `send-command` run-and-poll (base64-wrapped remote scripts) + `start-session` port-forward; `port_is_free` / `wait_for_local_port`. |
 | `login.py` | `kiro-cli` device-code / social sign-in on the box over SSM, plus `logout` — the account switch. `login` short-circuits on an existing session, so `logout` is what makes a different Kiro account reachable without a hand-run SSM command. It kills any still-polling background `kiro-cli login` **and** any live `kiro-cli acp` runtime **before** signing out (otherwise the login re-authenticates the old account, and an ACP runtime keeps serving the old account's in-memory credential until its next 401), removes the login log/PID/FIFO (they hold the previous device-code URL + code, which must never be re-shown as a fresh prompt), and confirms the result with `is_logged_in` rather than the exit code — `kiro-cli logout` exits non-zero when there was no session to drop, which is still the requested state. That confirmation fails CLOSED: it requires a positive signed-out sentinel (`__NOAUTH__`), so an SSM timeout or transport error — where the session may still be active — reports failure rather than a false "signed out". The same fail-closed applies to the cleanup command itself: if that SSM invocation doesn't return `Success`, the kills it was meant to do can't be trusted and logout reports failure without probing. The CLI warns the operator that in-flight chats/cron sessions are stopped (their runtimes are killed). |
 | `connect.py` | SSM port-forward + token mint + open browser; Instances-registry integration; `redact_token`. |
-| `source.py` | Detect and package an editable local checkout (`git archive`, tarfile fallback) and upload it to a per-account S3 bucket; packaged installs instead use the template's public-repo clone fallback. The secret-excluding filter is shared by both packaging paths. Also **`ensure_instance_boundary`** — creates the shared, immutable `kirocrew-ec2-boundary` managed policy once (create-if-not-exists, never re-versioned) and returns its ARN; `delete_instance_boundary` for admin cleanup. |
+| `source.py` | Detect and package an editable local checkout (`git archive`, tarfile fallback) and upload it to a per-account S3 bucket; packaged installs instead use the template's public-repo clone fallback. The secret-excluding filter is shared by both packaging paths. Also **`ensure_instance_boundary`** — creates the shared, immutable `junction-ec2-boundary` managed policy once (create-if-not-exists, never re-versioned) and returns its ARN; `delete_instance_boundary` for admin cleanup. |
 | `config.py` | Persisted profile / region / tag (**never credentials**); `load()` tolerates a hand-edited/corrupt `cloud.json` — bad JSON *or* a non-object shape falls back to defaults rather than crashing every cloud command. |
 | `sizes.py` | arm64/Graviton size tiers (16 GB default `t4g.xlarge`). |
 | `ui.py` / `wizard.py` | Terminal UI + the interactive launch flow. `_deploy_with_progress` runs the blocking deploy on a daemon thread and captures the `aws cloudformation deploy` child via a `proc_sink`, so a Ctrl+C on the main (poll) thread terminates it instead of orphaning it (~1800s). An unknown `--size`/`size_key` on the public `launch()` entrypoint yields a clean rc=1 + message, not an uncaught `KeyError`. Resuming a saved stack (`launch` after `stop`) first calls `_ensure_running_and_ssm_ready` — starts a `stopped` instance and waits for SSM `Online` before sign-in/tunnel (which are SSM-only and would otherwise fail); a `terminated` instance fails clean pointing at `--new`. `last_tag` is persisted (`cfg.save()`) **only after** a deploy confirms healthy — a failed first launch leaves no saved pointer, so the next `launch` retries clean instead of resuming a rolled-back/instance-less stack; `_saved_launch_is_usable` additionally ignores a stale saved tag (from an older build) whose stack is in a `_FAILED_STATES` status or has no instance. |
-| `templates/kirocrew-ec2.yaml` | The CloudFormation stack. |
+| `templates/junction-ec2.yaml` | The CloudFormation stack. |
 
 ## Provisioning shape
 
@@ -95,7 +95,7 @@ installing those SDKs after startup would otherwise require a gateway restart.
 
 When the installed module belongs to a valid source checkout, the launcher
 packages that checkout and uploads it to a launcher-owned bucket
-(`kirocrew-src-<account>-<region>`); the instance downloads it with its own IAM
+(`junction-src-<account>-<region>`); the instance downloads it with its own IAM
 role (`s3:GetObject` scoped to the single object). Wheel and desktop installs
 have no checkout to package, so `ec2.deploy` omits `SourceBucket` by default and
 the template clones the public repository/ref instead. An explicit
@@ -161,7 +161,7 @@ exits non-zero.
   mangle them. `${!tail_ctx}` in the template is a `!Sub` literal escape, not a
   bug (guarded by a test).
 - **IMDSv2 enforced** on the instance (`HttpTokens: required`, hop limit 1):
-  KiroCrew runs a prompt-injectable agent, so an SSRF/injection that reaches the
+  Junction runs a prompt-injectable agent, so an SSRF/injection that reaches the
   metadata endpoint must not read the instance role's STS credentials via IMDSv1.
 - **No unverified remote scripts in bootstrap.** Node.js installs from the AL2023
   AppStream `dnf` repo (the reliable primary path, validated live). The
@@ -173,13 +173,13 @@ exits non-zero.
 - **Least-privilege, tag-/prefix-scoped IAM.** The RCE-adjacent SSM verbs
   (`ssm:StartSession` / `ssm:SendCommand` on instances) and the EC2 destructive
   verbs (`DeleteSecurityGroup` / `RevokeSecurityGroupIngress` / `DeleteTags`)
-  require `kirocrew:managed=true`; CloudFormation stack mutation/delete is scoped
-  to `stack/kirocrew-*/*`, and the change-set verbs (which `aws cloudformation
+  require `junction:managed=true`; CloudFormation stack mutation/delete is scoped
+  to `stack/junction-*/*`, and the change-set verbs (which `aws cloudformation
   deploy` authorizes on the **changeSet ARN**, not just the stack ARN) are a
-  separate statement scoped to both `changeSet/kirocrew-*/*` and
-  `stack/kirocrew-*/*` (scoping to `stack/*` alone would deny the launch under
+  separate statement scoped to both `changeSet/junction-*/*` and
+  `stack/junction-*/*` (scoping to `stack/*` alone would deny the launch under
   the generated policy); only enumerate/`GetTemplateSummary` stay on `*`.
-  `iam:PassRole` is scoped to `kirocrew-ec2-*`; S3 is scoped to `kirocrew-src-*`.
+  `iam:PassRole` is scoped to `junction-ec2-*`; S3 is scoped to `junction-src-*`.
   Command-history
   read is minimal: `ssm:GetCommandInvocation` (needed to poll `send-command`
   results) is granted but `ssm:ListCommandInvocations` is NOT, so a leaked
@@ -187,7 +187,7 @@ exits non-zero.
   minted dashboard token.
 - **Create verbs require the managed request-tag (per-resource-ARN split).**
   `ec2:RunInstances` and `ec2:CreateSecurityGroup` require
-  `aws:RequestTag/kirocrew:managed=true`, so a leaked launcher credential can't
+  `aws:RequestTag/junction:managed=true`, so a leaked launcher credential can't
   create untagged instances/SGs that sit outside the tag-gated
   Stop/Terminate/Delete/Authorize statements. Because these calls authorize
   **per-resource** across ARNs that don't carry the tag (RunInstances also creates
@@ -204,26 +204,26 @@ exits non-zero.
 - **Escalation primitives constrained + immutable, pre-created permissions
   boundary.** `ec2:CreateTags` is gated by an `ec2:CreateAction` condition
   (`RunInstances`/`CreateSecurityGroup`) so it can only tag at creation — a holder
-  can't tag an *existing* resource `kirocrew:managed=true` to pull it under the
+  can't tag an *existing* resource `junction:managed=true` to pull it under the
   tag-gated Stop/Terminate/Delete statements. `iam:AttachRolePolicy`/`DetachRolePolicy`
   are pinned by `iam:PolicyARN` to exactly `AmazonSSMManagedInstanceCore`. The
   `PutRolePolicy` escalation is closed by a **required permissions boundary** that
   is now **shared, content-fixed, and immutable** — closing the earlier
   self-authorship gap:
-  - The boundary is a **single** managed policy named `kirocrew-ec2-boundary`
+  - The boundary is a **single** managed policy named `junction-ec2-boundary`
     (NO per-`StackTag` suffix), created **once** by launcher CODE
     (`source.ensure_instance_boundary`, via the `aws.run_aws` chokepoint) —
     **not** per-launch CloudFormation. It is create-if-not-exists (tolerates
     `EntityAlreadyExists`) and NEVER re-versioned. Its content = the exact
     `AmazonSSMManagedInstanceCore` action set + `s3:GetObject` on
-    `kirocrew-src-<account>-*/*` (region-agnostic — IAM is global; the
+    `junction-src-<account>-*/*` (region-agnostic — IAM is global; the
     whole-prefix read is safe because a boundary only *caps*, and the role's
     INLINE `SourceObjectRead` policy still pins the actual read to the single
     derived object).
   - The template no longer creates the boundary; the `InstanceRole` references it
     by a FIXED ARN via a new `PermissionsBoundaryArn` parameter (AllowedPattern
-    `^arn:aws:iam::[0-9]{12}:policy/kirocrew-ec2-boundary$`), which the launcher
-    fills with `arn:aws:iam::<account>:policy/kirocrew-ec2-boundary`.
+    `^arn:aws:iam::[0-9]{12}:policy/junction-ec2-boundary$`), which the launcher
+    fills with `arn:aws:iam::<account>:policy/junction-ec2-boundary`.
   - The launcher policy grants only `iam:CreatePolicy` + `iam:GetPolicy` on that
     **exact** ARN (`IamInstanceBoundaryCreateOnce`) — and NO
     `CreatePolicyVersion`/`DeletePolicyVersion`/`DeletePolicy`. This is the crux:
@@ -232,7 +232,7 @@ exits non-zero.
     make an existing boundary permissive**. So the ceiling holds not just against
     the prompt-injectable on-box agent but against a leaked *launcher* credential.
   - `iam:CreateRole` remains gated on `ArnLike iam:PermissionsBoundary ==
-    arn:…:policy/kirocrew-ec2-boundary` (`ArnLike`, NOT `StringEquals` — the
+    arn:…:policy/junction-ec2-boundary` (`ArnLike`, NOT `StringEquals` — the
     latter would deny CreateRole under the generated policy; verified with the
     IAM policy simulator). `PutRolePolicy` is a separate role-ARN-scoped statement
     — a boundary set at CreateRole can't be removed by it.
@@ -240,27 +240,27 @@ exits non-zero.
     `CreatePolicy` could be run by an attacker holding the launcher policy BEFORE
     the legitimate first launch, seeding a permissive boundary at that name. That
     is materially smaller than the old "author an arbitrary boundary at any time"
-    hole. Operators who want it gone entirely run `kirocrew cloud iam-boundary`
+    hole. Operators who want it gone entirely run `junction cloud iam-boundary`
     once as an admin, then drop the `IamInstanceBoundaryCreateOnce` statement from
     the applied launcher policy (the launcher then only *references* the ARN, with
     no `CreatePolicy` grant). The agent-shell deny-list also blocks
     `aws iam create-policy`/`create-policy-version`.
   The instance role's inline `s3:GetObject` is still pinned to the **derived**
-  launcher path (`kirocrew-src-${AccountId}-${Region}/${StackTag}/…`), not the
+  launcher path (`junction-src-${AccountId}-${Region}/${StackTag}/…`), not the
   `SourceBucket`/`SourceKey` deploy params — so a caller can't grant the box read
   on an arbitrary S3 object. `ec2:AuthorizeSecurityGroup{Ingress,Egress}` are
-  tag-gated (`aws:ResourceTag/kirocrew:managed=true`) so a leaked credential
+  tag-gated (`aws:ResourceTag/junction:managed=true`) so a leaked credential
   can't open ingress on an unrelated security group.
 - **`PutRolePolicy`/`PassRole` tag-gated (not just name-prefix).** Both
   `iam:PutRolePolicy` and `iam:PassRole` (to EC2) additionally require
-  `aws:ResourceTag/kirocrew:managed=true` on the target role — not just the
-  `kirocrew-ec2-*` name prefix. Without the tag gate, a leaked launcher credential
-  could target a **pre-existing** `kirocrew-ec2-*` role that a third party created
+  `aws:ResourceTag/junction:managed=true` on the target role — not just the
+  `junction-ec2-*` name prefix. Without the tag gate, a leaked launcher credential
+  could target a **pre-existing** `junction-ec2-*` role that a third party created
   out-of-band **without** our permissions boundary (so `CreateRole`'s boundary gate
   never applied), inline an admin policy, and pass it to EC2. The tag makes the
   constraint non-spoofable: only a role WE created via the boundary-gated
   `CreateRole` — which applies `Tags` **atomically** at creation (see the
-  template's `InstanceRole.Tags`) — carries `kirocrew:managed=true`, and the tag
+  template's `InstanceRole.Tags`) — carries `junction:managed=true`, and the tag
   lands in the same call, so there is no untagged window before CFN's subsequent
   `PutRolePolicy`. `aws:ResourceTag` (the global key, honored by both actions —
   verified with the IAM policy simulator: allowed with the tag, `implicitDeny`
@@ -270,10 +270,10 @@ exits non-zero.
 - **`iam:TagRole` gated so the tag gate can't be self-defeated.** The tag gate
   above is only non-spoofable if the *same* launcher policy can't apply the tag
   to an arbitrary role — otherwise a leaked credential could tag a pre-existing
-  unbounded `kirocrew-ec2-*` role `kirocrew:managed=true`, then inline admin +
+  unbounded `junction-ec2-*` role `junction:managed=true`, then inline admin +
   pass it. `iam:TagRole` is therefore **not** unconditioned in the role-management
   statement; it is its own statement gated on
-  `aws:ResourceTag/kirocrew:managed=true` (`IamTagRoleOnManaged`). `TagRole` is
+  `aws:ResourceTag/junction:managed=true` (`IamTagRoleOnManaged`). `TagRole` is
   still *required* because CloudFormation's `CreateRole` passes the role's `Tags`
   inline and AWS authorizes that as `iam:TagRole` (`id_tags_roles.html`). The
   gate works because of an empirically-verified asymmetry (least-privilege
@@ -288,7 +288,7 @@ exits non-zero.
   propagate that key into the `CreateRole`-embedded `TagRole` check (it denied the
   legitimate create in the harness); `aws:ResourceTag` is the key that works.
 - **Anti-squat bucket pin, end to end.** The launcher source bucket name is
-  deterministic (`kirocrew-src-<account>-<region>`) and thus globally
+  deterministic (`junction-src-<account>-<region>`) and thus globally
   guessable/squattable. Every S3 op that could ship or reveal source pins
   `--expected-bucket-owner <account>`: `head-bucket`/`create-bucket`
   (`ensure_bucket`) AND the upload/delete — so a delete-and-recreate race between
@@ -300,11 +300,11 @@ exits non-zero.
   upload/delete is **derived from the (fail-closed-resolved) bucket name**
   (`_account_from_bucket`), NOT a second `sts:get-caller-identity` — a transient
   STS `""` would otherwise silently DROP the pin and ship/delete without owner
-  verification; if the account can't be derived (the `kirocrew-src-unknown-*`
+  verification; if the account can't be derived (the `junction-src-unknown-*`
   fallback), upload raises and delete returns `removed=False` rather than issue an
   unpinned call. The public-access block is
   enforced (fail-closed) on **every** `ensure_bucket` path — freshly-created AND
-  reused — not just on create, so a pre-existing `kirocrew-src-*` bucket whose
+  reused — not just on create, so a pre-existing `junction-src-*` bucket whose
   BPA was disabled can't silently receive private source (the call is idempotent).
 - **SSM-only by default** — no inbound ports, no SSH key; the gateway binds
   loopback and is reached via tunnel + minted token. The dashboard token transits
@@ -366,20 +366,20 @@ exits non-zero.
   package the submodule's untracked/gitignored files — so we never let tar walk
   a directory for us. On top of that, both paths run the denylist (`.kirocrew*`,
   `.aws`, `.ssh`, `.gnupg`, `.env*`, `*.pem`/`*.key`/`*.p12`, credential
-  filenames) and drop a custom-named `KIROCREW_HOME` (incl. nested) under the
+  filenames) and drop a custom-named `JUNCTION_HOME` (incl. nested) under the
   repo. `redact_token()` strips JWTs before any log line.
 
 ## Bootstrappers
 
 `install.ps1` (Windows client) and `cloud-install.sh` (macOS/Linux) ensure the
 `aws` CLI + `session-manager-plugin` + Python are present, then hand off to
-`kirocrew cloud launch`. They install *client* prerequisites only — the gateway
+`junction cloud launch`. They install *client* prerequisites only — the gateway
 always runs on the Linux EC2 box, never on Windows.
 `cloud-install.sh --voice` additionally installs the existing `voice` extra in
 the launcher's managed client venv; the EC2 bootstrap includes that extra by
 default regardless of this client-side flag.
 
-`kirocrew cloud launch` runs `python -m kiro_crew`, which imports the whole CLI —
+`junction cloud launch` runs `python -m junction`, which imports the whole CLI —
 including gateway/cron/session modules (plus `apps/bridges` and the PTY
 `dashboard/handlers/terminal`) that use POSIX `fcntl` (`flock` for advisory
 locks, `ioctl` for PTY control). **All** such modules on the CLI import path

@@ -1,5 +1,5 @@
 // Design Tweak — dashboard builtin page (compiled React, SPA-native).
-// Ported from the federated-ESM app (window.__kirocrew_modules) to a compiled
+// Ported from the federated-ESM app (window.__junction_modules) to a compiled
 // builtin: real ESM imports, SPA-native api/router/chat wiring, and strict
 // types. Layout, styling and behavior are preserved from the original; the
 // authoring style is now plain JSX (the original `createElement` form hid every

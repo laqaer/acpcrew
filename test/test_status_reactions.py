@@ -13,7 +13,7 @@ from typing import Any, Generator
 
 import pytest
 
-from kiro_crew.messaging.status_reactions import (
+from junction.messaging.status_reactions import (
     LadderTimings,
     PhaseReactionLadder,
     StallEmojis,
@@ -21,9 +21,9 @@ from kiro_crew.messaging.status_reactions import (
     merge_phase_emojis,
     phase_for_tool_title,
 )
-from kiro_crew.messaging.status_reactions import tool_to_phase as shared_tool_to_phase
-from kiro_crew.slack import handler as handler_mod
-from kiro_crew.slack.handler import (
+from junction.messaging.status_reactions import tool_to_phase as shared_tool_to_phase
+from junction.slack import handler as handler_mod
+from junction.slack.handler import (
     StatusReactionController,
     _tool_to_phase,
 )

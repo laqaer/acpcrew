@@ -44,7 +44,7 @@ export function ChannelDisabledPanel({
           {label} {i18nT('pages.settings.channelDisabledPanel.policy_status_unavailable')}
         </div>
         <p className="text-sm text-muted leading-relaxed">
-          {i18nT('pages.settings.channelDisabledPanel.kirocrew_couldn_t_confirm_whether_your_organizat')}
+          {i18nT('pages.settings.channelDisabledPanel.junction_couldn_t_confirm_whether_your_organizat')}
         </p>
       </div>
     )

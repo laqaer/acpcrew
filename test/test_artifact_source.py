@@ -1,4 +1,4 @@
-"""Tests for :mod:`kiro_crew.artifact_source` — the copy-vs-link decision.
+"""Tests for :mod:`junction.artifact_source` — the copy-vs-link decision.
 
 The decision is ORDERED, and the order is the whole point: a disposable root
 wins over a git repository (a throwaway clone in the temp dir is still
@@ -18,8 +18,8 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew import artifact_source
-from kiro_crew.artifact_source import (
+from junction import artifact_source
+from junction.artifact_source import (
     COPY,
     LINK,
     classify_source,
@@ -220,7 +220,7 @@ class TestNonGitProjectsLink:
         root, and a forged artifact naming ``source_root="/"`` would then
         authorize reading any file the process can open.
         """
-        from kiro_crew import artifact_source as mod
+        from junction import artifact_source as mod
 
         # Treat tmp_path as a filesystem root: dirname(root) == root is the
         # portable root test, so fake exactly that for this one path.
@@ -239,7 +239,7 @@ class TestNonGitProjectsLink:
     ) -> None:
         """`$HOME` is never a project root, and `.kiro` is why this matters.
 
-        KiroCrew's own data home is ``~/.kiro/crew``, so ``~/.kiro`` exists for
+        Junction's own data home is ``~/.kiro/crew``, so ``~/.kiro`` exists for
         every user. Treating that as a marker would make the whole home
         directory a project and turn a loose ``~/notes.md`` into a LIVE link
         whose artifact edits overwrite the original file.
@@ -297,10 +297,10 @@ class TestClassifySourceProjectWalk:
     def test_git_FILE_worktree_counts_as_repo(self, narrow_tempdir, tmp_path: Path) -> None:
         # A git worktree's .git is a FILE (gitdir pointer). os.path.exists is
         # used precisely so worktrees don't report as "not a repo" — this is
-        # the KiroCrew development layout itself.
-        wt = tmp_path / "kirocrew-wt-feature"
+        # the Junction development layout itself.
+        wt = tmp_path / "junction-wt-feature"
         wt.mkdir()
-        (wt / ".git").write_text("gitdir: /workplace/user/KiroCrew/.git/worktrees/feature\n")
+        (wt / ".git").write_text("gitdir: /workplace/user/Junction/.git/worktrees/feature\n")
         target = _file(wt / "src" / "mod.md")
         assert classify_source(target) == (LINK, str(wt))
 

@@ -1,7 +1,7 @@
 /**
  * Tests for the stale pre-owner session re-auth prompt.
  *
- * A session signed in before `KIROCREW_OWNER_ID` was configured carries a
+ * A session signed in before `JUNCTION_OWNER_ID` was configured carries a
  * bootstrap token subject forever (refresh re-mints from the incoming subject),
  * so the backend labels its owner-gate denial `401 stale_session_reauth`. On
  * that signal — and ONLY that signal — the client must prompt re-authentication

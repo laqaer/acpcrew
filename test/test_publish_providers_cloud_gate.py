@@ -11,10 +11,10 @@ import dataclasses
 
 import pytest
 
-from kiro_crew.apps import routes as app_routes
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.platform import context as ctx_mod
-from kiro_crew.platform.bootstrap import build_default_context
+from junction.apps import routes as app_routes
+from junction.config.loader import JunctionConfig
+from junction.platform import context as ctx_mod
+from junction.platform.bootstrap import build_default_context
 
 
 class _NoCloud:
@@ -34,7 +34,7 @@ class _AllowCloud:
 
 
 def _with_policy(monkeypatch, policy):
-    base = build_default_context(KiroCrewConfig())
+    base = build_default_context(JunctionConfig())
     monkeypatch.setattr(
         ctx_mod, "current_context", lambda: dataclasses.replace(base, external_access=policy)
     )

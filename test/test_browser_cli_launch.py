@@ -7,14 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.browser_cli import launch as mod
+from junction.browser_cli import launch as mod
 
 
 def test_launch_config_path_is_under_the_data_home(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     home = tmp_path / "home"
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
 
     assert mod.launch_config_path() == home / "playwright-cli-config.json"
 
@@ -26,7 +26,7 @@ def test_launch_config_path_is_independent_of_cwd(
 
     A cwd-derived config would apply to some turns and not others.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     first = tmp_path / "somewhere"
     second = tmp_path / "elsewhere"
     first.mkdir()
@@ -50,7 +50,7 @@ def test_config_names_the_engine_under_the_nested_browser_key(
     That is why this asserts the shape and not merely that the value appears
     somewhere in the file.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     path = mod.write_config()
 
@@ -65,9 +65,9 @@ def test_engine_is_the_one_the_capability_gate_requires(
     """The config must name the engine `install-browser` fetched and `browser_ok`
     gates on, or the product would install one browser and launch another --
     which is the whole defect this module exists to close."""
-    from kiro_crew.browser_cli import install
+    from junction.browser_cli import install
 
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     assert mod.LAUNCH_ENGINE in install.BROWSER_ENGINES
     engine = mod.desired_config()["browser"]
@@ -83,7 +83,7 @@ def test_config_does_not_touch_the_browser_sandbox(
     A host that cannot run it needs an operator decision, which is what deferring
     to an operator-set `PLAYWRIGHT_MCP_CONFIG` provides.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     body = json.dumps(mod.desired_config())
 
@@ -94,7 +94,7 @@ def test_config_does_not_touch_the_browser_sandbox(
 def test_cli_env_overrides_points_the_cli_at_the_generated_config(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     monkeypatch.delenv(mod.CONFIG_ENV, raising=False)
 
     env = mod.cli_env_overrides()
@@ -107,7 +107,7 @@ def test_cli_env_override_value_is_absolute(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The CLI resolves a relative config path against its own working directory."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     monkeypatch.delenv(mod.CONFIG_ENV, raising=False)
 
     value = mod.cli_env_overrides()[mod.CONFIG_ENV]
@@ -122,7 +122,7 @@ def test_an_operator_set_config_is_never_overridden(
     launch options for a host that cannot run the browser sandbox. Replacing it
     would both override that choice and remove the escape hatch these narrow
     defaults rely on."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     monkeypatch.setenv(mod.CONFIG_ENV, "/operator/owned.json")
 
     assert mod.cli_env_overrides() == {}
@@ -133,7 +133,7 @@ def test_a_blank_operator_value_is_not_treated_as_a_choice(
 ) -> None:
     """An empty or whitespace value selects no config, so it is not a preference
     to preserve -- honouring it would leave the CLI on its own default browser."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     monkeypatch.setenv(mod.CONFIG_ENV, "   ")
 
     assert mod.cli_env_overrides() == {mod.CONFIG_ENV: str(mod.launch_config_path())}
@@ -142,7 +142,7 @@ def test_a_blank_operator_value_is_not_treated_as_a_choice(
 def test_write_is_idempotent_and_converges_a_stale_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     first = mod.write_config()
     assert first is not None
@@ -160,7 +160,7 @@ def test_an_unreadable_existing_config_is_rewritten(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Undecodable bytes are a reason to write, not a reason to skip."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     path = mod.launch_config_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"\xff\xfe not utf-8")
@@ -175,7 +175,7 @@ def test_an_unwritable_config_yields_no_override(
     """Pointing the CLI at a path that does not exist is worse than leaving it on
     its own default: it fails on the missing config instead of the missing
     browser, which is less diagnosable for the same broken outcome."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     monkeypatch.delenv(mod.CONFIG_ENV, raising=False)
     monkeypatch.setattr(mod, "write_config", lambda: None)
 
@@ -197,9 +197,9 @@ def test_the_launch_config_is_write_protected_from_the_agent(
     Asserted on BOTH paths, because a leaf on only one is reachable through the
     other, and the two gates are separate matchers.
     """
-    from kiro_crew import security
+    from junction import security
 
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     path = str(mod.launch_config_path())
 
     # 1. the file-edit gate
@@ -230,7 +230,7 @@ def test_launch_config_shell_protection_matches_an_existing_protected_leaf() -> 
     Asserting parity is what protects the invariant: it fails if someone protects
     one leaf and not the other, and it does not pretend a gap is closed.
     """
-    from kiro_crew import security
+    from junction import security
 
     ours = "playwright-cli-config.json"
     existing = "apps/ops-mission-control/data/rotation.yaml"
@@ -253,7 +253,7 @@ def test_gateway_startup_merges_the_override(monkeypatch: pytest.MonkeyPatch) ->
     wiring is what delivers the fix -- an unwired module changes nothing."""
     import inspect
 
-    from kiro_crew.dashboard import server
+    from junction.dashboard import server
 
     source = inspect.getsource(server)
 
@@ -269,7 +269,7 @@ def test_gateway_startup_does_not_write_the_config_on_the_event_loop() -> None:
     """
     import inspect
 
-    from kiro_crew.dashboard import server
+    from junction.dashboard import server
 
     source = inspect.getsource(server)
 

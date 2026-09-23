@@ -10,7 +10,7 @@ import ModelDropdownList from '../components/ModelDropdownList'
 import AgentSkillsEditor from '../components/AgentSkillsEditor'
 import SimpleSelect from '../components/SimpleSelect'
 import CrewAvatar from '../components/CrewAvatar'
-import type { KiroCrewAgent } from '../components/AgentSelector'
+import type { JunctionAgent } from '../components/AgentSelector'
 import InfoTip from '../components/InfoTip'
 import ListDetailBack from '../components/ListDetailBack'
 import { useProvider } from '../providers'
@@ -204,7 +204,7 @@ function ContextUsageCard({ ctx, installed }: { ctx: CtxSession[]; installed: In
               <div key={s.key}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="text-sm font-medium text-text">{s.name}</div>
-                  <div className="text-[13px] text-muted font-mono">{s.agent && s.agent !== 'kirocrew' ? <span className={`mr-1.5 ${installed.find(a => a.name === s.agent)?.source === 'kirocrew' ? 'text-accent' : 'text-aim'}`}>{s.agent}</span> : null}{shortModel(s.model)}</div>
+                  <div className="text-[13px] text-muted font-mono">{s.agent && s.agent !== 'junction' ? <span className={`mr-1.5 ${installed.find(a => a.name === s.agent)?.source === 'junction' ? 'text-accent' : 'text-aim'}`}>{s.agent}</span> : null}{shortModel(s.model)}</div>
                 </div>
                 <div className="relative h-5 bg-bg-elevated rounded-full overflow-hidden border border-border">
                   {awaiting ? (
@@ -435,8 +435,8 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
       const a = await api.agentsInstalled()
       if (!Array.isArray(a)) return []
       ;(a as InstalledAgent[]).sort((x, y) => {
-        if (x.name === 'kirocrew') return -1; if (y.name === 'kirocrew') return 1
-        if (x.name === 'kirocrew-lite') return -1; if (y.name === 'kirocrew-lite') return 1
+        if (x.name === 'junction') return -1; if (y.name === 'junction') return 1
+        if (x.name === 'junction-lite') return -1; if (y.name === 'junction-lite') return 1
         return x.name.localeCompare(y.name)
       })
       return a as InstalledAgent[]
@@ -458,14 +458,14 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
    *  own bindings are edited on the Crews tab.
    *
    *  Deliberately the SAME key and the SAME cached shape as the Crews tab
-   *  (`KiroCrewAgentsPage.tsx`): one shared QueryClient keeps one value per
+   *  (`JunctionAgentsPage.tsx`): one shared QueryClient keeps one value per
    *  key, so an observer that stored the unwrapped array here would be handed
    *  to that page as `agentsData` (rendering an empty roster) and its object to
    *  this one (`crews.filter` on an object throws during render). Storing the
    *  response verbatim and selecting from it also dedupes the fetch. */
-  const { data: crewsData, isError: crewsFailed, refetch: refetchCrews } = useQuery<{ agents?: KiroCrewAgent[]; default_agent?: string }>({
-    queryKey: ['kirocrew-agents'],
-    queryFn: () => api.kirocrewAgents(),
+  const { data: crewsData, isError: crewsFailed, refetch: refetchCrews } = useQuery<{ agents?: JunctionAgent[]; default_agent?: string }>({
+    queryKey: ['junction-agents'],
+    queryFn: () => api.junctionAgents(),
   })
   const crews = useMemo(() => crewsData?.agents ?? [], [crewsData])
 
@@ -641,7 +641,7 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
   const defaultLoaded = defaultAgentData !== undefined && !defaultFailed
   const blockedBy: 'owner' | 'default' | 'crews' | 'unloaded' | null =
     !listed ? 'owner'
-      : (listed.source === 'kirocrew' || listed.source === 'package') ? 'owner'
+      : (listed.source === 'junction' || listed.source === 'package') ? 'owner'
         : (!defaultLoaded || !crewsLoaded || setDefaultMut.isPending) ? 'unloaded'
           : defaultAgent === listed.name ? 'default'
             : usedBy.length > 0 ? 'crews'
@@ -662,7 +662,7 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
       aria-selected={selectedAgent?.name === a.name}
       /* Named explicitly rather than by its composed text: the metadata line
          below is decoration (a model id and two glyph counts), and announcing
-         "kirocrew claude-opus-5 3 2" buries the one word that identifies the
+         "junction claude-opus-5 3 2" buries the one word that identifies the
          row. The default marker is folded in because the star carries it
          visually and nothing else in the row would say it. */
       aria-label={defaultAgent === a.name ? `${a.name} — ${i18nT('pages.agentsPage.default')}` : a.name}
@@ -737,7 +737,7 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
             <EmptyState
               icon={<LayoutTemplate className="lucide-inline" aria-hidden="true" />}
               title={i18nT('pages.agentsPage.no_agent_templates_yet')}
-              subtitle={i18nT('pages.agentsPage.templates_come_with_kirocrew_or_with_an_app_you_i')}
+              subtitle={i18nT('pages.agentsPage.templates_come_with_junction_or_with_an_app_you_i')}
             />
           </div>
         ) : (

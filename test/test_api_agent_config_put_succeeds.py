@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers import api_agent_config
+from junction.dashboard.handlers import api_agent_config
 
 
 @pytest.fixture(autouse=True)
@@ -22,15 +22,15 @@ def _owner_caller(monkeypatch):
     its own enumerate-the-invariant coverage in
     test_agents_endpoints_owner_auth.py."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
 
 @pytest.mark.asyncio
 async def test_api_agent_config_put_succeeds(tmp_path):
-    installed = tmp_path / "kirocrew.json"
-    installed.write_text(json.dumps({"name": "kirocrew"}))
+    installed = tmp_path / "junction.json"
+    installed.write_text(json.dumps({"name": "junction"}))
     defaults = tmp_path / "defaults.json"
     mc_cfg = tmp_path / "config.json"
 
@@ -44,16 +44,16 @@ async def test_api_agent_config_put_succeeds(tmp_path):
     request.json = mock_json
 
     with (
-        patch("kiro_crew.dashboard.handlers._installed_agent_config", return_value=installed),
-        patch("kiro_crew.dashboard.handlers._find_agent_config", return_value=defaults),
-        patch("kiro_crew.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
-        patch("kiro_crew.dashboard.handlers.config_path", return_value=mc_cfg),
+        patch("junction.dashboard.handlers._installed_agent_config", return_value=installed),
+        patch("junction.dashboard.handlers._find_agent_config", return_value=defaults),
+        patch("junction.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
+        patch("junction.dashboard.handlers.config_path", return_value=mc_cfg),
         patch(
-            "kiro_crew.agent.build_agent_config",
+            "junction.agent.build_agent_config",
             return_value={"toolsSettings": {"execute_bash": {"deniedCommands": ["rm -rf"]}}},
         ),
         patch(
-            "kiro_crew.dashboard.handlers.agents.get_shipped_tools",
+            "junction.dashboard.handlers.agents.get_shipped_tools",
             return_value={"tools": ["a", "c"], "allowedTools": ["b"]},
         ),
     ):
@@ -74,13 +74,13 @@ async def test_api_agent_config_put_strips_governed_grants(tmp_path, monkeypatch
     through the governance filter — else a governed @denied allowedTools entry or
     a governed server's autoApprove written here restores the bypass the per-ref
     writers close. Executable (not source-inspection) coverage of that writer."""
-    import kiro_crew.platform.governance as gov
+    import junction.platform.governance as gov
 
     # Govern @denied only; everything else may auto-approve.
     monkeypatch.setattr(gov, "may_skip_gate_now", lambda ref: ref != "@denied")
 
-    installed = tmp_path / "kirocrew.json"
-    installed.write_text(json.dumps({"name": "kirocrew"}))
+    installed = tmp_path / "junction.json"
+    installed.write_text(json.dumps({"name": "junction"}))
     defaults = tmp_path / "defaults.json"
     mc_cfg = tmp_path / "config.json"
 
@@ -105,11 +105,11 @@ async def test_api_agent_config_put_strips_governed_grants(tmp_path, monkeypatch
     request.json = mock_json
 
     with (
-        patch("kiro_crew.dashboard.handlers._installed_agent_config", return_value=installed),
-        patch("kiro_crew.dashboard.handlers._find_agent_config", return_value=defaults),
-        patch("kiro_crew.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
-        patch("kiro_crew.dashboard.handlers.config_path", return_value=mc_cfg),
-        patch("kiro_crew.dashboard.handlers.agents.get_shipped_tools", return_value={"tools": [], "allowedTools": []}),
+        patch("junction.dashboard.handlers._installed_agent_config", return_value=installed),
+        patch("junction.dashboard.handlers._find_agent_config", return_value=defaults),
+        patch("junction.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
+        patch("junction.dashboard.handlers.config_path", return_value=mc_cfg),
+        patch("junction.dashboard.handlers.agents.get_shipped_tools", return_value={"tools": [], "allowedTools": []}),
     ):
         response = await api_agent_config(request)
 
@@ -133,10 +133,10 @@ async def test_api_agent_config_put_strips_bookkeeping_keys(tmp_path):
     kiro-cli ``deny_unknown_fields`` then rejects the entire agent until the
     next ``migrate_agent_specs`` heal on gateway rebuild.
     """
-    from kiro_crew import agent_state
+    from junction import agent_state
 
-    installed = tmp_path / "kirocrew.json"
-    installed.write_text(json.dumps({"name": "kirocrew"}))
+    installed = tmp_path / "junction.json"
+    installed.write_text(json.dumps({"name": "junction"}))
     defaults = tmp_path / "defaults.json"
     mc_cfg = tmp_path / "config.json"
 
@@ -147,7 +147,7 @@ async def test_api_agent_config_put_strips_bookkeeping_keys(tmp_path):
     async def mock_json():
         return {
             "config": {
-                "name": "kirocrew",
+                "name": "junction",
                 "tools": ["a"],
                 "allowedTools": ["b"],
                 "model_managed": True,
@@ -158,11 +158,11 @@ async def test_api_agent_config_put_strips_bookkeeping_keys(tmp_path):
     request.json = mock_json
 
     with (
-        patch("kiro_crew.dashboard.handlers._installed_agent_config", return_value=installed),
-        patch("kiro_crew.dashboard.handlers._find_agent_config", return_value=defaults),
-        patch("kiro_crew.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
-        patch("kiro_crew.dashboard.handlers.config_path", return_value=mc_cfg),
-        patch("kiro_crew.agent.get_shipped_tools", return_value={"tools": [], "allowedTools": []}),
+        patch("junction.dashboard.handlers._installed_agent_config", return_value=installed),
+        patch("junction.dashboard.handlers._find_agent_config", return_value=defaults),
+        patch("junction.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
+        patch("junction.dashboard.handlers.config_path", return_value=mc_cfg),
+        patch("junction.agent.get_shipped_tools", return_value={"tools": [], "allowedTools": []}),
     ):
         response = await api_agent_config(request)
 
@@ -170,24 +170,24 @@ async def test_api_agent_config_put_strips_bookkeeping_keys(tmp_path):
     written = json.loads(installed.read_text(encoding="utf-8"))
     assert "model_managed" not in written
     assert "cc_model" not in written
-    assert written["name"] == "kirocrew"
+    assert written["name"] == "junction"
     # Lifted into the sidecar when previously unset (same rule as migrate).
-    assert agent_state.get_model_managed("kirocrew") is True
-    assert agent_state.get_cc_model("kirocrew") == "claude-sonnet-4.6"
+    assert agent_state.get_model_managed("junction") is True
+    assert agent_state.get_cc_model("junction") == "claude-sonnet-4.6"
 
 
 @pytest.mark.asyncio
 async def test_api_agent_config_put_does_not_clobber_sidecar(tmp_path):
     """A stale bookkeeping key in the PUT body must not overwrite the sidecar."""
-    from kiro_crew import agent_state
+    from junction import agent_state
 
-    installed = tmp_path / "kirocrew.json"
-    installed.write_text(json.dumps({"name": "kirocrew"}))
+    installed = tmp_path / "junction.json"
+    installed.write_text(json.dumps({"name": "junction"}))
     defaults = tmp_path / "defaults.json"
     mc_cfg = tmp_path / "config.json"
 
-    agent_state.set_model_managed("kirocrew", False)
-    agent_state.set_cc_model("kirocrew", "test-model-stub")
+    agent_state.set_model_managed("junction", False)
+    agent_state.set_cc_model("junction", "test-model-stub")
 
     request = MagicMock(spec=web.Request)
     request.method = "PUT"
@@ -196,7 +196,7 @@ async def test_api_agent_config_put_does_not_clobber_sidecar(tmp_path):
     async def mock_json():
         return {
             "config": {
-                "name": "kirocrew",
+                "name": "junction",
                 "tools": ["a"],
                 "allowedTools": ["b"],
                 "model_managed": True,
@@ -207,11 +207,11 @@ async def test_api_agent_config_put_does_not_clobber_sidecar(tmp_path):
     request.json = mock_json
 
     with (
-        patch("kiro_crew.dashboard.handlers._installed_agent_config", return_value=installed),
-        patch("kiro_crew.dashboard.handlers._find_agent_config", return_value=defaults),
-        patch("kiro_crew.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
-        patch("kiro_crew.dashboard.handlers.config_path", return_value=mc_cfg),
-        patch("kiro_crew.agent.get_shipped_tools", return_value={"tools": [], "allowedTools": []}),
+        patch("junction.dashboard.handlers._installed_agent_config", return_value=installed),
+        patch("junction.dashboard.handlers._find_agent_config", return_value=defaults),
+        patch("junction.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
+        patch("junction.dashboard.handlers.config_path", return_value=mc_cfg),
+        patch("junction.agent.get_shipped_tools", return_value={"tools": [], "allowedTools": []}),
     ):
         response = await api_agent_config(request)
 
@@ -219,8 +219,8 @@ async def test_api_agent_config_put_does_not_clobber_sidecar(tmp_path):
     written = json.loads(installed.read_text(encoding="utf-8"))
     assert "model_managed" not in written
     assert "cc_model" not in written
-    assert agent_state.get_model_managed("kirocrew") is False
-    assert agent_state.get_cc_model("kirocrew") == "test-model-stub"
+    assert agent_state.get_model_managed("junction") is False
+    assert agent_state.get_cc_model("junction") == "test-model-stub"
 
 
 @pytest.mark.asyncio
@@ -240,8 +240,8 @@ async def test_api_agent_config_put_uses_atomic_write(tmp_path):
     non-atomic write on the installed-spec path.
     """
 
-    installed = tmp_path / "kirocrew.json"
-    installed.write_text(json.dumps({"name": "kirocrew"}))
+    installed = tmp_path / "junction.json"
+    installed.write_text(json.dumps({"name": "junction"}))
     defaults = tmp_path / "defaults.json"
     mc_cfg = tmp_path / "config.json"
 
@@ -262,17 +262,17 @@ async def test_api_agent_config_put_uses_atomic_write(tmp_path):
         path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
     with (
-        patch("kiro_crew.dashboard.handlers._installed_agent_config", return_value=installed),
-        patch("kiro_crew.dashboard.handlers._find_agent_config", return_value=defaults),
-        patch("kiro_crew.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
-        patch("kiro_crew.dashboard.handlers.config_path", return_value=mc_cfg),
+        patch("junction.dashboard.handlers._installed_agent_config", return_value=installed),
+        patch("junction.dashboard.handlers._find_agent_config", return_value=defaults),
+        patch("junction.dashboard.handlers._reset_all_sessions", new_callable=AsyncMock),
+        patch("junction.dashboard.handlers.config_path", return_value=mc_cfg),
         patch(
-            "kiro_crew.dashboard.handlers.agents.get_shipped_tools",
+            "junction.dashboard.handlers.agents.get_shipped_tools",
             return_value={"tools": [], "allowedTools": []},
         ),
         # Intercept write_config_atomically as imported into agents.py.
         patch(
-            "kiro_crew.dashboard.handlers.agents.write_config_atomically",
+            "junction.dashboard.handlers.agents.write_config_atomically",
             side_effect=_fake_atomic,
         ),
     ):

@@ -34,12 +34,12 @@ from typing import Any, Callable
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-import kiro_crew.apps.bridges as bridges_mod
-import kiro_crew.apps.hooks_integration as hooks_mod
-import kiro_crew.apps.routes as routes_mod
-import kiro_crew.dashboard.handlers_instances as handlers_instances_mod
-import kiro_crew.instances.ssh_tunnel_manager as ssh_tunnel_manager_mod
-from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager, TunnelStatus
+import junction.apps.bridges as bridges_mod
+import junction.apps.hooks_integration as hooks_mod
+import junction.apps.routes as routes_mod
+import junction.dashboard.handlers_instances as handlers_instances_mod
+import junction.instances.ssh_tunnel_manager as ssh_tunnel_manager_mod
+from junction.instances.ssh_tunnel_manager import SshTunnelManager, TunnelStatus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -136,7 +136,7 @@ async def test_handle_publish_providers_collects_off_the_loop_thread(
 ) -> None:
     """The publish-provider collection (walk + per-provider config reads)
     must not run on the loop thread."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     loop_thread = threading.current_thread()
     walk_threads: list[threading.Thread] = []
     monkeypatch.setattr(routes_mod, "list_apps", _recorder(walk_threads, result=[]))
@@ -297,10 +297,10 @@ def test_list_apps_is_read_only_under_version_drift(
     races real mutators (install/enable/register) and silently overwrites
     their fields. The manifest version is still reflected in the RETURNED
     metadata (display), just not persisted from this path."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     import json as _json
 
-    from kiro_crew.apps.manager import InstalledApp, _write_installed, apps_dir, list_apps
+    from junction.apps.manager import InstalledApp, _write_installed, apps_dir, list_apps
 
     app_root = apps_dir() / "drift-app"
     app_root.mkdir(parents=True)
@@ -390,7 +390,7 @@ def test_no_direct_registry_write_in_async_frames() -> None:
     worker holds it across an fsync) may not be called directly inside an
     async frame of the tunnel manager. Sync helpers (e.g. _reserved_ports) are
     separate frames and stay out of scope."""
-    import kiro_crew.instances.ssh_tunnel_manager as stm_mod
+    import junction.instances.ssh_tunnel_manager as stm_mod
 
     write_methods = {
         "update",

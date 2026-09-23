@@ -1,4 +1,4 @@
-"""The ``kirocrew-computer`` MCP server — a THIN SHIM (``mcp_computer.py``).
+"""The ``junction-computer`` MCP server — a THIN SHIM (``mcp_computer.py``).
 
 The architecture this file pins: the stdio MCP process implements **nothing**. It
 resolves the caller's session identity STRICTLY, forwards over loopback with the
@@ -45,13 +45,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew import mcp_computer
-from kiro_crew.computer_use import backend as cu_backend
-from kiro_crew.computer_use import index as cu_index
-from kiro_crew.computer_use import policy as cu_policy
-from kiro_crew.computer_use import service as cu_service
-from kiro_crew.computer_use import tools as cu_tools
-from kiro_crew.computer_use.types import (
+from junction import mcp_computer
+from junction.computer_use import backend as cu_backend
+from junction.computer_use import index as cu_index
+from junction.computer_use import policy as cu_policy
+from junction.computer_use import service as cu_service
+from junction.computer_use import tools as cu_tools
+from junction.computer_use.types import (
     ALL_TOOLS,
     CLICK_METHOD_GLOBAL,
     CLICK_METHOD_SKY_CLICK,
@@ -74,14 +74,14 @@ from kiro_crew.computer_use.types import (
     TOOL_TYPE_TEXT,
     AppRef,
 )
-from kiro_crew.testing.fake_computer_use import (
+from junction.testing.fake_computer_use import (
     FAKE_CREDENTIAL_FIXTURE,
     FAKE_FILES_APP,
     FAKE_LOGIN_APP,
     FAKE_SECRET_VALUE,
     FakeComputerUseBackend,
 )
-from kiro_crew.validation import MCP_COMPUTER_SCHEMAS, ValidationError
+from junction.validation import MCP_COMPUTER_SCHEMAS, ValidationError
 
 # A session key that looks attended. The gate refuses unattended surfaces
 # (``cron:``/``subagent:``/``taskrunner``) even with no profile on disk, so an
@@ -91,13 +91,13 @@ _SESSION = "dashboard:main"
 
 @pytest.fixture
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect ``KIROCREW_HOME`` so the keystone lands in a tmp dir.
+    """Redirect ``JUNCTION_HOME`` so the keystone lands in a tmp dir.
 
     Mandatory, not hygiene: without it a developer's real
     ``~/.kiro/crew/computer_use.json`` would decide whether these tests see the
     feature as enabled.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     return tmp_path
 
 
@@ -144,11 +144,11 @@ def ceiling(home: Path, monkeypatch: pytest.MonkeyPatch):
     """
     import dataclasses
 
-    from kiro_crew.config.loader import KiroCrewConfig
-    from kiro_crew.platform import context as ctx_mod
-    from kiro_crew.platform import governance_profiles as gp
-    from kiro_crew.platform.bootstrap import build_default_context
-    from kiro_crew.platform.governance import parse_policy
+    from junction.config.loader import JunctionConfig
+    from junction.platform import context as ctx_mod
+    from junction.platform import governance_profiles as gp
+    from junction.platform.bootstrap import build_default_context
+    from junction.platform.governance import parse_policy
 
     profiles = home / "profiles"
     profiles.mkdir(exist_ok=True)
@@ -156,7 +156,7 @@ def ceiling(home: Path, monkeypatch: pytest.MonkeyPatch):
     gp.reset_store()
 
     def _install(computer_use: dict) -> None:
-        base = build_default_context(KiroCrewConfig.load())
+        base = build_default_context(JunctionConfig.load())
         body = {"version": 1, "boot": {"fail_closed": True}, "computer_use": computer_use}
         ctx_mod.set_context(dataclasses.replace(base, governance=parse_policy(body)))
 
@@ -388,7 +388,7 @@ def test_scroll_direction_is_an_enum():
 
 def test_oversized_text_is_rejected():
     """The type-text cap is enforced at the schema, before anything is typed."""
-    from kiro_crew.computer_use.types import MAX_TYPE_TEXT_LEN
+    from junction.computer_use.types import MAX_TYPE_TEXT_LEN
 
     with pytest.raises(ValidationError):
         mcp_computer._validate_args(
@@ -426,8 +426,8 @@ def test_an_unresolved_session_key_PROCEEDS_with_an_empty_identity(
     * the unattended-surface rule was removed by product decision, so there is no
       longer a surface class to protect;
     * neither accepted identity source EXISTS for a GUI-launched kiro-cli on macOS.
-      ``KIROCREW_SESSION_KEY`` is injected only by the ACP spawn path and
-      ``KIROCREW_HOST_PID`` only by the Linux sandbox launcher — so the refusal made
+      ``JUNCTION_SESSION_KEY`` is injected only by the ACP spawn path and
+      ``JUNCTION_HOST_PID`` only by the Linux sandbox launcher — so the refusal made
       the feature unusable on its only supported platform, which is how it was found.
 
     The call reaches the gateway. What is lost is audit ATTRIBUTION, not a control —
@@ -584,8 +584,8 @@ async def test_gateway_dispatch_runs_on_the_bounded_subprocess_pool(
     Pinned by recording WHICH executor the handler hands the work to, because the
     defect is invisible in behaviour — both pools return the same answer.
     """
-    from kiro_crew.dashboard.handlers import computer_use as cu_api
-    from kiro_crew.executors import subprocess_executor
+    from junction.dashboard.handlers import computer_use as cu_api
+    from junction.executors import subprocess_executor
 
     loop = asyncio.get_running_loop()
     seen: list[object] = []
@@ -597,7 +597,7 @@ async def test_gateway_dispatch_runs_on_the_bounded_subprocess_pool(
             seen.append(executor)
             return loop.run_in_executor(executor, fn, *args)
 
-    monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", lambda *a, **k: "ok")
+    monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", lambda *a, **k: "ok")
     monkeypatch.setattr(cu_api.asyncio, "get_running_loop", _RecordingLoop)
 
     request = _InvokeRequest({"tool": TOOL_LIST_APPS, "args": {}, "session_key": _SESSION})
@@ -629,7 +629,7 @@ class _InvokeRequest(dict):
 
 def test_server_identity_is_slash_free_and_stable():
     """The server key must contain no ``/`` — kiro-cli splits ``@server`` refs on it."""
-    assert mcp_computer.SERVER_NAME == "kirocrew-computer"
+    assert mcp_computer.SERVER_NAME == "junction-computer"
     assert "/" not in mcp_computer.SERVER_NAME
     assert mcp_computer.SERVER_VERSION
 
@@ -643,7 +643,7 @@ def test_call_tool_emits_a_sel_invocation_on_validation_failure(
     why the prefix is load-bearing rather than cosmetic.
     """
     _enable(keystone)
-    with patch("kiro_crew.mcp_shared.sel") as sel_factory:
+    with patch("junction.mcp_shared.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         result = mcp_computer._call_tool(TOOL_CLICK, {"app": "Finder", "element_index": True})
@@ -693,7 +693,7 @@ def test_ttl_expiry_names_the_age(
     without it reads like a generic failure the model may retry blindly.
     """
     _enable(keystone)
-    from kiro_crew.computer_use.types import SNAPSHOT_TTL_SECS
+    from junction.computer_use.types import SNAPSHOT_TTL_SECS
 
     clock = {"now": 1000.0}
     monkeypatch.setattr(cu_index.time, "monotonic", lambda: clock["now"])
@@ -898,7 +898,7 @@ def test_no_result_ever_carries_an_image_content_block(
     policy someone can regress. Asserted through the real response builder for
     every tool's output.
     """
-    from kiro_crew.validation import build_tool_response
+    from junction.validation import build_tool_response
 
     _enable(keystone)
     outputs = [_get_state(), _dispatch(TOOL_LIST_APPS), _dispatch(TOOL_END_TURN)]
@@ -913,7 +913,7 @@ def test_get_state_relays_a_path_not_bytes(keystone: Path, fake_backend: FakeCom
     """Only the screenshot PATH reaches the model; the bytes never do."""
     import base64
 
-    from kiro_crew.testing.fake_computer_use import FAKE_JPEG_BYTES
+    from junction.testing.fake_computer_use import FAKE_JPEG_BYTES
 
     _enable(keystone)
     state = _get_state()
@@ -1054,7 +1054,7 @@ def test_sel_records_a_tool_invocation_on_success(
     authenticated app is exactly the event a later investigation needs.
     """
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         assert not _dispatch(TOOL_LIST_APPS).startswith(ERROR_PREFIX)
@@ -1075,7 +1075,7 @@ def test_sel_records_a_PRE_GATE_refusal(keystone: Path, fake_backend: FakeComput
     exactly the signal an investigation wants.
     """
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         # No snapshot yet, so the cached-element lookup refuses before the gate.
@@ -1099,7 +1099,7 @@ def test_a_refusal_audit_carries_NO_desktop_detail(
     """
     _enable(keystone)
     _get_state()
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         _dispatch(TOOL_CLICK, app=FAKE_FILES_APP.name, element_index=9999)
@@ -1111,7 +1111,7 @@ def test_a_refusal_audit_carries_NO_desktop_detail(
 def test_a_validation_refusal_is_audited_too(keystone: Path, fake_backend: FakeComputerUseBackend):
     """The exact case in the finding: a bad argument never reaches the gate."""
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         result = _dispatch(TOOL_CLICK, app=FAKE_FILES_APP.name, x="bad", y=1)
@@ -1123,7 +1123,7 @@ def test_an_audit_failure_never_turns_a_refusal_into_a_crash(
     keystone: Path, fake_backend: FakeComputerUseBackend
 ):
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         recorder.log_tool_invocation.side_effect = RuntimeError("sel is down")
         sel_factory.return_value = recorder
@@ -1171,7 +1171,7 @@ def test_every_refusal_exit_goes_through_an_AUDITED_helper():
 def test_a_static_pre_gate_refusal_is_audited(keystone: Path, fake_backend: FakeComputerUseBackend):
     """The exact case in the finding: a malformed pointer request."""
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         # ``x`` with no ``y`` is not a target, so the request shape is refused.
@@ -1182,7 +1182,7 @@ def test_a_static_pre_gate_refusal_is_audited(keystone: Path, fake_backend: Fake
 
 def test_a_disabled_feature_refusal_is_audited(home: Path):
     """Even the earliest exit records the attempt."""
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         assert _dispatch(TOOL_LIST_APPS).startswith(ERROR_PREFIX)
@@ -1191,7 +1191,7 @@ def test_a_disabled_feature_refusal_is_audited(home: Path):
 
 def test_an_unknown_tool_refusal_is_audited(keystone: Path):
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         assert _dispatch("computer_teleport").startswith(ERROR_PREFIX)
@@ -1208,7 +1208,7 @@ def test_sel_records_the_resolved_identity_not_the_agents_claim(
     the gate is fed the resolved identity.
     """
     _enable(keystone)
-    with patch("kiro_crew.computer_use.tools.sel") as sel_factory:
+    with patch("junction.computer_use.tools.sel") as sel_factory:
         recorder = MagicMock()
         sel_factory.return_value = recorder
         # Query by a loose fragment; the audit must carry the resolved label.
@@ -1232,7 +1232,7 @@ def test_denial_text_does_not_disclose_the_ceiling(
 def test_read_only_and_mutating_sets_partition_the_tools():
     """The classification the PreToolUse gate keys on must be total and disjoint.
 
-    ``computer_end_turn`` is neither: it drops KiroCrew's OWN cache and touches no
+    ``computer_end_turn`` is neither: it drops Junction's OWN cache and touches no
     other application, so it is control-plane.
     """
     assert READ_ONLY_TOOLS & MUTATING_TOOLS == frozenset()
@@ -1263,7 +1263,7 @@ def test_every_tool_is_classified_by_the_governance_action_table(tool: str):
     without a row would then needlessly prompt, which is what this enumeration
     catches.
     """
-    from kiro_crew.platform.governance import (
+    from junction.platform.governance import (
         CU_CLASS_CONTROL,
         CU_CLASS_MUTATE,
         CU_CLASS_OBSERVE,
@@ -1593,7 +1593,7 @@ class TestCursorMotionIsWiredToThePointerPath:
     @pytest.fixture
     def motions(self, monkeypatch) -> list:
         """Record ``show_pointer_motion`` calls instead of drawing anything."""
-        from kiro_crew.computer_use import overlay as overlay_mod
+        from junction.computer_use import overlay as overlay_mod
 
         seen: list = []
         monkeypatch.setattr(
@@ -1687,7 +1687,7 @@ class TestCursorMotionIsWiredToThePointerPath:
         methods warp the cursor, which is the invariant that keeps ``auto`` off the
         real-pointer path.
         """
-        from kiro_crew.computer_use import gate as cu_gate
+        from junction.computer_use import gate as cu_gate
 
         asked: list[str] = []
         monkeypatch.setattr(
@@ -1721,7 +1721,7 @@ class TestCursorMotionIsWiredToThePointerPath:
             def log_governance_decision(self, **kwargs):
                 pass
 
-        monkeypatch.setattr("kiro_crew.sel.sel", lambda: _Sel())
+        monkeypatch.setattr("junction.sel.sel", lambda: _Sel())
         _enable(keystone)
         _get_state()
         _dispatch(TOOL_CLICK, app=FAKE_FILES_APP.name, x=1, y=2, click_method="global")
@@ -1741,7 +1741,7 @@ class TestCursorMotionIsWiredToThePointerPath:
             def log_governance_decision(self, **kwargs):
                 pass
 
-        monkeypatch.setattr("kiro_crew.sel.sel", lambda: _Sel())
+        monkeypatch.setattr("junction.sel.sel", lambda: _Sel())
         _enable(keystone)
         _get_state()
         _dispatch(TOOL_CLICK, app=FAKE_FILES_APP.name, element_index=_pressable_index())
@@ -1807,7 +1807,7 @@ class TestDragTool:
     ):
         """The one retained refusal applies to the new verb like every other one.
 
-        Retargeted from a terminal (no longer refused) onto KiroCrew's own window,
+        Retargeted from a terminal (no longer refused) onto Junction's own window,
         which stays refused because driving our own Settings UI would route around
         the keystone that holds the primary enable.
         """
@@ -1918,7 +1918,7 @@ class TestTheSkillContractMatchesTheRuntime:
     """
 
     _SKILL = (
-        Path(__file__).resolve().parents[1] / "src/kiro_crew/builtin_skills/computer-use/SKILL.md"
+        Path(__file__).resolve().parents[1] / "src/junction/builtin_skills/computer-use/SKILL.md"
     )
 
     _SPEC = Path(__file__).resolve().parents[1] / "docs/system-specs/modules/computer-use.md"
@@ -2001,7 +2001,7 @@ class TestTheSkillContractMatchesTheRuntime:
         two from drifting, since ``SKILL.md`` ships to every pip/DMG install and is
         what tells the model this is an answer rather than a fault.
         """
-        from kiro_crew.computer_use.types import TRUNCATED_WINDOW_NOTE
+        from junction.computer_use.types import TRUNCATED_WINDOW_NOTE
 
         text = self._SKILL.read_text(encoding="utf-8")
         # The distinctive opening clause, not the whole sentence: the table wraps it.
@@ -2032,8 +2032,8 @@ class TestUnresolvedSessionsAreNamespaced:
 
     def test_two_unresolved_sessions_do_not_share_a_snapshot_slot(self):
         """The bug, at the layer it actually lived in."""
-        from kiro_crew.computer_use.index import SnapshotIndex
-        from kiro_crew.computer_use.types import ElementRec, Snapshot
+        from junction.computer_use.index import SnapshotIndex
+        from junction.computer_use.types import ElementRec, Snapshot
 
         app = AppRef(name="Notes", pid=1, window_id=7)
 
@@ -2125,7 +2125,7 @@ class TestTheDriftWalkHonoursTheSnapshotBudget:
 
     @staticmethod
     def _wide_tree(count: int = 1500):
-        from kiro_crew.testing.fake_computer_use import FakeNode
+        from junction.testing.fake_computer_use import FakeNode
 
         return FakeNode(
             role="AXWindow",

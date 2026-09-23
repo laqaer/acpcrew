@@ -12,7 +12,7 @@
  * cookie — NOT the app-sdk hooks, which require <AppApiProvider> and only wrap
  * standalone/installed apps via AppHost.
  *
- * Backend contract: kiro_crew/apps/builtins/ops_mission_control/backend/routes.py
+ * Backend contract: junction/apps/builtins/ops_mission_control/backend/routes.py
  * Design: docs/system-specs/modules/ops-mission-control.md
  */
 import { useMemo, useState } from 'react'

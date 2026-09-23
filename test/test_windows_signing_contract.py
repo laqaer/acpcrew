@@ -62,13 +62,13 @@ SIGN_HOOK = ROOT / "website" / "electron" / "scripts" / "sign-windows.js"
 # a rename on either side has to be a deliberate, visible edit here: the Signer
 # application name doubles as the IAM role prefix AND the sts:ExternalId, so
 # changing it forces Signer to recreate the signing profiles or every job starts
-# failing with AccessDeniedException. Deployed in KiroCrewPublishCDK
+# failing with AccessDeniedException. Deployed in JunctionPublishCDK
 # lib/windows-signer-stack.ts.
-SIGNER_APPLICATION_NAME = "KiroCrewWindows"
+SIGNER_APPLICATION_NAME = "JunctionWindows"
 EXPECTED_SIGNING_ENV = {
-    "WINDOWS_SIGNING_UNSIGNED_BUCKET": "kirocrew-windows-unsigned-116101834266",
-    "WINDOWS_SIGNING_SIGNED_BUCKET": "kirocrew-windows-signed-116101834266",
-    "WINDOWS_SIGNING_PROFILE_ID": "KiroCrewWindowsExe",
+    "WINDOWS_SIGNING_UNSIGNED_BUCKET": "junction-windows-unsigned-116101834266",
+    "WINDOWS_SIGNING_SIGNED_BUCKET": "junction-windows-signed-116101834266",
+    "WINDOWS_SIGNING_PROFILE_ID": "JunctionWindowsExe",
     "WINDOWS_SIGNING_ARTIFACT_ROLE": (
         f"arn:aws:iam::116101834266:role/{SIGNER_APPLICATION_NAME}-ArtifactAccessRole"
     ),
@@ -378,7 +378,7 @@ def test_the_updater_offers_exactly_the_channels_that_publish_windows() -> None:
     assert release["with"]["promotion_base_version"], "stable promotion needs a base version"
     # The stable installer comes from the verified handoff artifact, never from a
     # fresh build-windows upload.
-    assert "KiroCrew-notarized-stable-" in release["with"]["installer_artifact"]
+    assert "Junction-notarized-stable-" in release["with"]["installer_artifact"]
 
     published = {nightly["with"]["channel"]} | {"insider", "stable"}
     assert client_channels == published, (
@@ -456,7 +456,7 @@ def test_publishing_callers_consume_the_artifact_the_build_uploads() -> None:
             assert (
                 f"|| '{upload_name}'" in consumed
             ), f"{caller}'s fresh-build branch does not name {upload_name!r}: {consumed!r}"
-            assert "KiroCrew-notarized-stable-" in consumed, (
+            assert "Junction-notarized-stable-" in consumed, (
                 f"{caller}'s promotion branch must consume the verified handoff "
                 f"artifact, not a fresh build: {consumed!r}"
             )

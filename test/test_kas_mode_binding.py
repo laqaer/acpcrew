@@ -18,11 +18,11 @@ import sys
 
 import pytest
 
-from kiro_crew.acp import session_handle as sh
-from kiro_crew.acp.kas_agents import _KAS_FALLBACK_PROMPT
-from kiro_crew.acp.kas_assets import ENV_KAS_NODE, ENV_KAS_SCRIPT
-from kiro_crew.acp.runtime import AcpRuntime
-from kiro_crew.acp.types import ACP_BACKEND_KAS
+from junction.acp import session_handle as sh
+from junction.acp.kas_agents import _KAS_FALLBACK_PROMPT
+from junction.acp.kas_assets import ENV_KAS_NODE, ENV_KAS_SCRIPT
+from junction.acp.runtime import AcpRuntime
+from junction.acp.types import ACP_BACKEND_KAS
 
 
 @pytest.fixture(autouse=True)
@@ -112,19 +112,19 @@ def crew_agent(tmp_path, monkeypatch):
     """A materialized agent spec the projection can read, in an isolated dir."""
     agents_dir = tmp_path / "agents"
     agents_dir.mkdir()
-    (agents_dir / "kirocrew.json").write_text(
+    (agents_dir / "junction.json").write_text(
         json.dumps(
             {
-                "name": "kirocrew",
+                "name": "junction",
                 "description": "test crew agent",
                 "prompt": "You are Kiro.",
-                "tools": ["fs_read", "@kirocrew-core"],
+                "tools": ["fs_read", "@junction-core"],
             }
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr("kiro_crew.acp.runtime.kiro_agents_dir", lambda: agents_dir)
-    monkeypatch.setattr("kiro_crew.acp.runtime.ensure_agent_materialized", lambda _a: True)
+    monkeypatch.setattr("junction.acp.runtime.kiro_agents_dir", lambda: agents_dir)
+    monkeypatch.setattr("junction.acp.runtime.ensure_agent_materialized", lambda _a: True)
     return agents_dir
 
 
@@ -137,24 +137,24 @@ class TestModeBinding:
         """The whole chain: inject -> advertised as a mode -> activated."""
         runtime = AcpRuntime(
             work_dir=tmp_path / "ws",
-            agent="kirocrew",
+            agent="junction",
             sandbox_mode="off",
             acp_backend=ACP_BACKEND_KAS,
         )
         try:
             await runtime.spawn()
-            handle = await runtime.create_session(cwd=tmp_path / "ws", agent="kirocrew")
+            handle = await runtime.create_session(cwd=tmp_path / "ws", agent="junction")
             assert handle is not None
         finally:
             await runtime.kill()
 
         seen = json.loads(mode_stub.read_text(encoding="utf-8"))
-        assert [a["id"] for a in seen["injected"]] == ["kirocrew"]
+        assert [a["id"] for a in seen["injected"]] == ["junction"]
         assert seen["injected"][0]["prompt"] == "You are Kiro."
-        assert seen["injected"][0]["tools"] == ["fs_read", "@kirocrew-core"]
+        assert seen["injected"][0]["tools"] == ["fs_read", "@junction-core"]
         # Activation had to happen, and had to name the injected agent — not a
         # built-in that KAS would have run in its place.
-        assert seen["set_mode"] == "kirocrew"
+        assert seen["set_mode"] == "junction"
 
     @pytest.mark.asyncio
     async def test_runtime_default_agent_is_activated_without_explicit_request(
@@ -168,7 +168,7 @@ class TestModeBinding:
         """
         runtime = AcpRuntime(
             work_dir=tmp_path / "wsd",
-            agent="kirocrew",
+            agent="junction",
             sandbox_mode="off",
             acp_backend=ACP_BACKEND_KAS,
         )
@@ -181,8 +181,8 @@ class TestModeBinding:
             await runtime.kill()
 
         seen = json.loads(mode_stub.read_text(encoding="utf-8"))
-        assert [a["id"] for a in seen["injected"]] == ["kirocrew"]
-        assert seen["set_mode"] == "kirocrew"
+        assert [a["id"] for a in seen["injected"]] == ["junction"]
+        assert seen["set_mode"] == "junction"
 
     @pytest.mark.asyncio
     async def test_prompt_is_inlined_not_sent_as_a_file_uri(
@@ -191,21 +191,21 @@ class TestModeBinding:
         """KAS rejects ``file://`` here; the client owns the read."""
         prompt_file = tmp_path / "prompt.md"
         prompt_file.write_text("inlined from disk", encoding="utf-8")
-        (crew_agent / "kirocrew.json").write_text(
+        (crew_agent / "junction.json").write_text(
             json.dumps(
-                {"name": "kirocrew", "prompt": f"file://{prompt_file}", "tools": ["fs_read"]}
+                {"name": "junction", "prompt": f"file://{prompt_file}", "tools": ["fs_read"]}
             ),
             encoding="utf-8",
         )
         runtime = AcpRuntime(
             work_dir=tmp_path / "ws2",
-            agent="kirocrew",
+            agent="junction",
             sandbox_mode="off",
             acp_backend=ACP_BACKEND_KAS,
         )
         try:
             await runtime.spawn()
-            await runtime.create_session(cwd=tmp_path / "ws2", agent="kirocrew")
+            await runtime.create_session(cwd=tmp_path / "ws2", agent="junction")
         finally:
             await runtime.kill()
 
@@ -217,24 +217,24 @@ class TestModeBinding:
         self, mode_stub, crew_agent, tmp_path
     ):
         """KAS requires a non-empty prompt where kiro-cli tolerates an empty
-        one. Crew's own prompt-less utility agents (e.g. ``kirocrew-lite``, which
+        one. Crew's own prompt-less utility agents (e.g. ``junction-lite``, which
         ships ``"prompt": ""``) must fall back to the small inline KAS prompt
         rather than crash the session. The tool allowlist still comes from the
         spec, so the fallback never widens the agent's capabilities.
         """
-        (crew_agent / "kirocrew.json").write_text(
-            json.dumps({"name": "kirocrew", "tools": ["fs_read"], "prompt": ""}),
+        (crew_agent / "junction.json").write_text(
+            json.dumps({"name": "junction", "tools": ["fs_read"], "prompt": ""}),
             encoding="utf-8",
         )
         runtime = AcpRuntime(
             work_dir=tmp_path / "ws3",
-            agent="kirocrew",
+            agent="junction",
             sandbox_mode="off",
             acp_backend=ACP_BACKEND_KAS,
         )
         try:
             await runtime.spawn()
-            await runtime.create_session(cwd=tmp_path / "ws3", agent="kirocrew")
+            await runtime.create_session(cwd=tmp_path / "ws3", agent="junction")
         finally:
             await runtime.kill()
 
@@ -253,10 +253,10 @@ class TestModeBinding:
         for a restricted app or subagent agent means a BROADER agent than the
         caller asked for, so this must raise rather than degrade.
         """
-        (crew_agent / "kirocrew.json").write_text(
+        (crew_agent / "junction.json").write_text(
             json.dumps(
                 {
-                    "name": "kirocrew",
+                    "name": "junction",
                     "tools": ["fs_read"],
                     "prompt": f"file://{tmp_path / 'does-not-exist.md'}",
                 }
@@ -265,14 +265,14 @@ class TestModeBinding:
         )
         runtime = AcpRuntime(
             work_dir=tmp_path / "ws3",
-            agent="kirocrew",
+            agent="junction",
             sandbox_mode="off",
             acp_backend=ACP_BACKEND_KAS,
         )
         try:
             await runtime.spawn()
             with pytest.raises(Exception) as exc:
-                await runtime.create_session(cwd=tmp_path / "ws3", agent="kirocrew")
+                await runtime.create_session(cwd=tmp_path / "ws3", agent="junction")
             assert "onto KAS" in str(exc.value)
         finally:
             await runtime.kill()
@@ -290,7 +290,7 @@ class TestKiroPathUntouched:
     async def test_no_custom_agents_for_the_kiro_backend(self, mode_stub, crew_agent, tmp_path):
         runtime = AcpRuntime(
             work_dir=tmp_path / "ws4",
-            agent="kirocrew",
+            agent="junction",
             sandbox_mode="off",
         )
-        assert await runtime._kas_custom_agents("kirocrew") is None
+        assert await runtime._kas_custom_agents("junction") is None

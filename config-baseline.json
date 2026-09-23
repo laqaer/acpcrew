@@ -238,7 +238,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Enterprise MCP Registry Mode",
-      "help": "Set true when this Kiro account is governed by an enterprise MCP registry (Kiro console -> Shared settings -> MCP Registry URL, which applies to IAM Identity Center and API-key sign-ins). In registry mode the client connects ONLY to mcpServers entries carrying 'type': \"registry\" that resolve to a catalog entry of the same name, so Kiro Crew stamps that marker on the servers it manages. Leave false on a personal account: with no registry configured the filter inverts and registry-marked entries are the ones dropped. The administrator must also allow-list kirocrew-core, kirocrew-cron and kirocrew-computer in the registry by those exact names.",
+      "help": "Set true when this Kiro account is governed by an enterprise MCP registry (Kiro console -> Shared settings -> MCP Registry URL, which applies to IAM Identity Center and API-key sign-ins). In registry mode the client connects ONLY to mcpServers entries carrying 'type': \"registry\" that resolve to a catalog entry of the same name, so Kiro Crew stamps that marker on the servers it manages. Leave false on a personal account: with no registry configured the filter inverts and registry-marked entries are the ones dropped. The administrator must also allow-list junction-core, junction-cron and junction-computer in the registry by those exact names.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false
@@ -339,7 +339,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Allow Unsandboxed Execution",
-      "help": "When true, allow agent subprocesses to execute without any sandbox backend (fail-open). When false (default), wrap_argv raises a RuntimeError if no sandbox backend is available and mode is not 'off', preventing unsandboxed execution entirely (fail-closed). This is distinct from sandbox_allow_no_isolation which only controls warning severity — this field controls whether execution proceeds at all. The default is platform-independent: on a host with no backend (any Windows host, a Linux kernel refusing user namespaces) `kirocrew setup` OFFERS this opt-in interactively and writes it only on an explicit yes, so unconfined execution stays operator-declared and is never enabled implicitly by the platform.",
+      "help": "When true, allow agent subprocesses to execute without any sandbox backend (fail-open). When false (default), wrap_argv raises a RuntimeError if no sandbox backend is available and mode is not 'off', preventing unsandboxed execution entirely (fail-closed). This is distinct from sandbox_allow_no_isolation which only controls warning severity — this field controls whether execution proceeds at all. The default is platform-independent: on a host with no backend (any Windows host, a Linux kernel refusing user namespaces) `junction setup` OFFERS this opt-in interactively and writes it only on an explicit yes, so unconfined execution stays operator-declared and is never enabled implicitly by the platform.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false
@@ -451,7 +451,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Jail",
-      "help": "Process-isolation jail mode for agent-bearing commands. 'auto' uses a jail when the active edition supplies a working backend (the public edition has none, so 'auto' and 'on' are no-ops there); 'off' disables it. Disable per-invocation with --no-jail or KIROCREW_NO_JAIL=1.",
+      "help": "Process-isolation jail mode for agent-bearing commands. 'auto' uses a jail when the active edition supplies a working backend (the public edition has none, so 'auto' and 'on' are no-ops there); 'off' disables it. Disable per-invocation with --no-jail or JUNCTION_NO_JAIL=1.",
       "hasChildren": false,
       "enumValues": [
         "auto",
@@ -975,7 +975,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Log Level",
-      "help": "Persistent log level for the kiro_crew logger. Applied at startup; overridden by --verbose CLI flag.",
+      "help": "Persistent log level for the junction logger. Applied at startup; overridden by --verbose CLI flag.",
       "hasChildren": false,
       "enumValues": [
         "DEBUG",
@@ -1473,7 +1473,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Embedding Model URL",
-      "help": "Override HTTPS URL for the embedding model GGUF download (mirrored/airgapped deployments). Empty uses the public Kiro Crew CDN default; the KIROCREW_EMBED_MODEL_URL env var wins over both. The download is sha256-verified regardless of source.",
+      "help": "Override HTTPS URL for the embedding model GGUF download (mirrored/airgapped deployments). Empty uses the public Kiro Crew CDN default; the JUNCTION_EMBED_MODEL_URL env var wins over both. The download is sha256-verified regardless of source.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -1487,7 +1487,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Embedding Model Path",
-      "help": "Absolute path to a local GGUF embedding model to use INSTEAD of the bundled Qwen3-Embedding-0.6B. When set, the default model is never downloaded or installed, so a custom model survives a default-model version change. Set embedding_dim to the model's output width. Changing the model changes the vector space, so stored embeddings are regenerated automatically. The KIROCREW_EMBED_MODEL_PATH env var wins over this.",
+      "help": "Absolute path to a local GGUF embedding model to use INSTEAD of the bundled Qwen3-Embedding-0.6B. When set, the default model is never downloaded or installed, so a custom model survives a default-model version change. Set embedding_dim to the model's output width. Changing the model changes the vector space, so stored embeddings are regenerated automatically. The JUNCTION_EMBED_MODEL_PATH env var wins over this.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -1881,7 +1881,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Doc-Ingest Host Allowlist",
-      "help": "Exact hostnames whose links may be fetched by KIROCREW ITSELF and ingested, for an edition that wires a server-side doc-link scanner. Empty = fetch nothing (SSRF-safe deny-by-default). This governs only that server-fetch path -- it does NOT gate 'Auto-Add Documents' above, where the agent has already fetched the content under its own approval and Kiro Crew fetches nothing. Applying it there would make the feature ingest nothing on a default config while its toggle reads on.",
+      "help": "Exact hostnames whose links may be fetched by JUNCTION ITSELF and ingested, for an edition that wires a server-side doc-link scanner. Empty = fetch nothing (SSRF-safe deny-by-default). This governs only that server-fetch path -- it does NOT gate 'Auto-Add Documents' above, where the agent has already fetched the content under its own approval and Kiro Crew fetches nothing. Applying it there would make the feature ingest nothing on a default config while its toggle reads on.",
       "hasChildren": true,
       "enumValues": null,
       "defaultValue": []
@@ -2459,7 +2459,7 @@
       "sensitive": true,
       "tags": [],
       "label": "OTLP Endpoint",
-      "help": "Opt-in OpenTelemetry OTLP/HTTP metrics endpoint (e.g. http://localhost:4318/v1/metrics). EMPTY = no network egress (default). When set, aggregated metrics are ALSO pushed to this collector in addition to the local JSONL sink; requires the kirocrew[otlp] package extra to be installed (rec #1: OTLP opt-in only, no egress by default).",
+      "help": "Opt-in OpenTelemetry OTLP/HTTP metrics endpoint (e.g. http://localhost:4318/v1/metrics). EMPTY = no network egress (default). When set, aggregated metrics are ALSO pushed to this collector in addition to the local JSONL sink; requires the junction[otlp] package extra to be installed (rec #1: OTLP opt-in only, no egress by default).",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -2473,7 +2473,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Anonymous Usage Beacon",
-      "help": "Anonymous daily heartbeat so maintainers can see how many copies are actively running, which versions are in use, and which distribution channels they came from. Sends EXACTLY five fields, at most once per day: a random installation id, app release (major.minor.patch only — build stamps are stripped), Python minor version, distribution channel, and a first-run bit. NEVER sends prompts, model output, file contents, paths, repo names, credentials, hostname, username, IP address, operating system, CPU architecture, release channel, or governance posture. Automatically suppressed in CI and for a non-default KIROCREW_HOME. Opt out with KIROCREW_TELEMETRY_DISABLED=1 or by turning this off; an enterprise policy can also pin it off via the capabilities.telemetry governance scope, which this switch cannot override. Independent of the 'enabled' switch above, which is local-only metrics collection and still never egresses.",
+      "help": "Anonymous daily heartbeat so maintainers can see how many copies are actively running, which versions are in use, and which distribution channels they came from. Sends EXACTLY five fields, at most once per day: a random installation id, app release (major.minor.patch only — build stamps are stripped), Python minor version, distribution channel, and a first-run bit. NEVER sends prompts, model output, file contents, paths, repo names, credentials, hostname, username, IP address, operating system, CPU architecture, release channel, or governance posture. Automatically suppressed in CI and for a non-default JUNCTION_HOME. Opt out with JUNCTION_TELEMETRY_DISABLED=1 or by turning this off; an enterprise policy can also pin it off via the capabilities.telemetry governance scope, which this switch cannot override. Independent of the 'enabled' switch above, which is local-only metrics collection and still never egresses.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": true
@@ -2906,7 +2906,7 @@
       "sensitive": false,
       "tags": [],
       "label": "MCP Apps (retired, opt-out still honoured)",
-      "help": "RETIRED GOING FORWARD, but a stored `false` KEEPS ITS OPT-OUT. Nothing writes this key any more and MCP Management does not surface it: MCP Apps capability follows whether a server gets a stub, because the stub is what carries the render and callback path, so a preference cannot grant it. It can still WITHHOLD it — a released version treated `false` here as a trustworthy opt-out, so an operator who turned MCP Apps off stays off (tightest-wins: it beats KIROCREW_MCP_APPS=1, and an unreadable config fails closed). Absent defaults True, so 'not configured' is not an opt-out. To GET server-authored UI, turn on the server's stub in MCP Management — and clear a stored `false` here if you have one. The only other MCP Apps preference is where it renders (dashboard.mcp_app_panel). See docs/architecture/design-notes/mcp-stub-decoupling.md.",
+      "help": "RETIRED GOING FORWARD, but a stored `false` KEEPS ITS OPT-OUT. Nothing writes this key any more and MCP Management does not surface it: MCP Apps capability follows whether a server gets a stub, because the stub is what carries the render and callback path, so a preference cannot grant it. It can still WITHHOLD it — a released version treated `false` here as a trustworthy opt-out, so an operator who turned MCP Apps off stays off (tightest-wins: it beats JUNCTION_MCP_APPS=1, and an unreadable config fails closed). Absent defaults True, so 'not configured' is not an opt-out. To GET server-authored UI, turn on the server's stub in MCP Management — and clear a stored `false` here if you have one. The only other MCP Apps preference is where it renders (dashboard.mcp_app_panel). See docs/architecture/design-notes/mcp-stub-decoupling.md.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": true
@@ -2934,7 +2934,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Socket Path",
-      "help": "Local endpoint for the broker. Empty -> $KIROCREW_HOME/mcp-gateway/gateway.sock. A unix socket at this path on POSIX; on Windows the path is not created, it only derives the named-pipe name and locates the lock file beside it.",
+      "help": "Local endpoint for the broker. Empty -> $JUNCTION_HOME/mcp-gateway/gateway.sock. A unix socket at this path on POSIX; on Windows the path is not created, it only derives the named-pipe name and locates the lock file beside it.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -2948,7 +2948,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Overlay Dir",
-      "help": "Directory of rewritten agent JSON. Broker stubs from these specs are injected into each kiro-cli session via ACP session/new. Empty -> $KIROCREW_HOME/mcp-gateway/agents.",
+      "help": "Directory of rewritten agent JSON. Broker stubs from these specs are injected into each kiro-cli session via ACP session/new. Empty -> $JUNCTION_HOME/mcp-gateway/agents.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -3102,7 +3102,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Read Buffer Limit",
-      "help": "Maximum bytes for a single MCP response line before asyncio drops it. Default 64 MiB. Responses exceeding this are fast-failed with -32000. Env override: KIROCREW_MCP_READ_LIMIT.",
+      "help": "Maximum bytes for a single MCP response line before asyncio drops it. Default 64 MiB. Responses exceeding this are fast-failed with -32000. Env override: JUNCTION_MCP_READ_LIMIT.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": 67108864
@@ -3116,7 +3116,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Response Spill Threshold",
-      "help": "Tool-call responses larger than this (bytes) have their text content written to ~/.kiro/crew/mcp_spill/ and truncated inline to 16 KiB + a file path marker. Default 256 KiB. Set 0 to disable spilling. Env override: KIROCREW_MCP_SPILL_THRESHOLD.",
+      "help": "Tool-call responses larger than this (bytes) have their text content written to ~/.kiro/crew/mcp_spill/ and truncated inline to 16 KiB + a file path marker. Default 256 KiB. Set 0 to disable spilling. Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": 262144
@@ -3269,7 +3269,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Mint Timeout (secs)",
-      "help": "How long to wait for the remote `kirocrew token` mint to return before failing a connect. When unset, SSH uses 30s and SSM uses 90s (its dispatch latency is higher). The mint runs over the same ssh transport as the tunnel, so a host behind a ProxyCommand or jump host pays the proxy handshake here too. An explicit value applies to both transports, so size it for the slowest transport you use. Clamped to [10, 120].",
+      "help": "How long to wait for the remote `junction token` mint to return before failing a connect. When unset, SSH uses 30s and SSM uses 90s (its dispatch latency is higher). The mint runs over the same ssh transport as the tunnel, so a host behind a ProxyCommand or jump host pays the proxy handshake here too. An explicit value applies to both transports, so size it for the slowest transport you use. Clamped to [10, 120].",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": null,
@@ -3470,7 +3470,7 @@
         "allowed_users": [],
         "tracking_channels": [],
         "open_channels": [],
-        "command": "kirocrew",
+        "command": "junction",
         "forward_to_agent_callback": "",
         "trusted_bot_ids": [],
         "allowed_enterprise_ids": [],
@@ -3578,7 +3578,7 @@
       "help": "Slack slash command trigger word.",
       "hasChildren": false,
       "enumValues": null,
-      "defaultValue": "kirocrew"
+      "defaultValue": "junction"
     },
     {
       "path": "slack.forward_to_agent_callback",
@@ -3732,7 +3732,7 @@
         "slack"
       ],
       "label": "Use Tunnel URL in Slack",
-      "help": "When true, dashboard links posted to Slack (e.g. via /kirocrew dashboard) use the tunnel URL if one is active. When false (default), Slack links always use the configured dashboard origin or host:port. Disabled by default until the tunnel mechanism is scaled for general use.",
+      "help": "When true, dashboard links posted to Slack (e.g. via /junction dashboard) use the tunnel URL if one is active. When false (default), Slack links always use the configured dashboard origin or host:port. Disabled by default until the tunnel mechanism is scaled for general use.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false
@@ -5821,7 +5821,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Phone Sign-In Lasts Until Restart",
-      "help": "Keep a phone signed in for as long as this gateway process runs. The QR code still has to be scanned within its short window; after that the phone is not signed out for being idle in ordinary use, and a gateway restart signs it out. The one remaining idle limit is the refresh credential's own 30-day lifetime, which each visit renews, so a phone that goes untouched for 30 days re-scans. Turn this OFF to go back to a timed session that expires on a clock whether or not the gateway is still running. Either way `kirocrew logout` ends the session immediately, and the session stays pinned to the peer it was established from.",
+      "help": "Keep a phone signed in for as long as this gateway process runs. The QR code still has to be scanned within its short window; after that the phone is not signed out for being idle in ordinary use, and a gateway restart signs it out. The one remaining idle limit is the refresh credential's own 30-day lifetime, which each visit renews, so a phone that goes untouched for 30 days re-scans. Turn this OFF to go back to a timed session that expires on a clock whether or not the gateway is still running. Either way `junction logout` ends the session immediately, and the session stays pinned to the peer it was established from.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": true
@@ -6582,7 +6582,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Name Mode",
-      "help": "Tunnel naming: 'username' uses 'kirocrew', 'hash' uses 'kirocrew-<hostHash>' for multi-host disambiguation.",
+      "help": "Tunnel naming: 'username' uses 'junction', 'hash' uses 'junction-<hostHash>' for multi-host disambiguation.",
       "hasChildren": false,
       "enumValues": [
         "username",
@@ -6857,10 +6857,10 @@
       "sensitive": false,
       "tags": [],
       "label": "Source",
-      "help": "Agent origin: kirocrew or builtin.",
+      "help": "Agent origin: junction or builtin.",
       "hasChildren": false,
       "enumValues": null,
-      "defaultValue": "kirocrew"
+      "defaultValue": "junction"
     },
     {
       "path": "agents.*.watchdog_tool_stall_suspect_secs",
@@ -7084,7 +7084,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Snapshot Directory",
-      "help": "Directory for kirocrew snapshot output. Defaults to ~/.kiro/crew/snapshots if empty.",
+      "help": "Directory for junction snapshot output. Defaults to ~/.kiro/crew/snapshots if empty.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""

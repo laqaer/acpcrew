@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.security import (
+from junction.security import (
     _GIT_PUBLISH_RULE_PATTERNS,
     BUILTIN_DENIED_RULES,
     BUILTIN_DENY_PATTERNS,
@@ -52,12 +52,12 @@ class TestCatalog:
         searched the pattern directly and would have gone green on a floor that had stopped
         running at all.
 
-        The module form is why the union matters. `python -m kiro_crew token` mints the
+        The module form is why the union matters. `python -m junction token` mints the
         identical token, but its argv PROGRAM is the interpreter and the underscored import
         name is not a console-script spelling — so neither the command-position regex nor
         `_is_self_program` saw it. `_is_self_module_invocation` closes it structurally.
         """
-        from kiro_crew import security
+        from junction import security
 
         effective = list(
             security.compute_effective_denied(security.BUILTIN_DENIED_RULES, (), False, (), ())
@@ -72,62 +72,62 @@ class TestCatalog:
             "kirocrew -v --no-jail token",
             "kiro-crew token",
             # The module form, in the spellings a shell accepts.
-            "python -m kiro_crew token",
-            "python3 -m kiro_crew token --port 6777",
-            "python -mkiro_crew token",
-            "python -m kiro_crew pod token",
+            "python -m junction token",
+            "python3 -m junction token --port 6777",
+            "python -mjunction token",
+            "python -m junction pod token",
             # Interpreter flags that take a SEPARATE operand. The first version of the module
             # check stopped at the first token not starting with `-`, so the operand (`dev`)
             # ended the scan and the mint went through one flag deeper. Review caught it.
-            "python -X dev -m kiro_crew token",
-            "python -W ignore -m kiro_crew token",
-            "python -Q new -m kiro_crew token",
-            "python -X utf8 -X dev -m kiro_crew token",
-            "python3 -B -X dev -m kiro_crew pod token",
+            "python -X dev -m junction token",
+            "python -W ignore -m junction token",
+            "python -Q new -m junction token",
+            "python -X utf8 -X dev -m junction token",
+            "python3 -B -X dev -m junction pod token",
             # ATTACHED operands are one token and need no skip — covered because the
             # separate-operand fix must not break them.
-            "python -Xdev -m kiro_crew token",
-            "python -Wignore -m kiro_crew token",
+            "python -Xdev -m junction token",
+            "python -Wignore -m junction token",
             # `-x` is a real flag that takes NO operand, and the skip set is lowercased (the
             # floor sees an already-lowercased command, so `-X` arrives as `-x`). A bare `-m`
             # after it must still register as the marker rather than be eaten as an operand.
-            "python -x -m kiro_crew token",
+            "python -x -m junction token",
             # `-c` is the same escape one flag over: an inline program that imports the
             # package reaches the identical mint. Two defects had to be fixed together —
             # the module check read the payload as a script name and bailed, and the verb
             # scan treated the `;` INSIDE the quoted payload as a command separator, ending
             # one token before `token`. Both found in review.
-            'python -c "from kiro_crew.cli import main; main()" token',
-            "python3 -c 'import kiro_crew.cli; kiro_crew.cli.main()' token",
-            'python -c "from kiro_crew import cli; cli.main()" token --port 6777',
+            'python -c "from junction.cli import main; main()" token',
+            "python3 -c 'import junction.cli; junction.cli.main()' token",
+            'python -c "from junction import cli; cli.main()" token --port 6777',
             # Attached spelling: payload inside the same token.
-            'python -c"import kiro_crew.cli;kiro_crew.cli.main()" token',
+            'python -c"import junction.cli;junction.cli.main()" token',
             # Behind an interpreter flag that takes a separate operand.
-            'python -X dev -c "import kiro_crew.cli; kiro_crew.cli.main()" token',
+            'python -X dev -c "import junction.cli; junction.cli.main()" token',
             # Reached without a literal `import` statement.
-            "python -c \"__import__('kiro_crew.cli').cli.main()\" token",
+            "python -c \"__import__('junction.cli').cli.main()\" token",
             # NO `token` ARGV WORD AT ALL. An inline payload is arbitrary Python running with
             # the interpreter's authority, so it can BUILD the verb instead of passing it —
             # which is why the `-c` form is denied on the IMPORT rather than on the verb. The
             # verb requirement holds everywhere else (`kirocrew doctor` is legitimate) but is
             # not enforceable here. Found in review (GPT 5.6).
             "python -c \"import sys; sys.argv.append('token'); "
-            'from kiro_crew.cli import main; main()"',
-            'python -c "from kiro_crew.cli import main; import sys; '
+            'from junction.cli import main; main()"',
+            'python -c "from junction.cli import main; import sys; '
             "sys.argv=['x','token']; main()\"",
-            "python -c \"from kiro_crew.cli import main; main(['token'])\"",
-            'python -c "import kiro_crew.cli as c; c.main()"',
-            'python -X dev -c "import kiro_crew.cli"',
+            "python -c \"from junction.cli import main; main(['token'])\"",
+            'python -c "import junction.cli as c; c.main()"',
+            'python -X dev -c "import junction.cli"',
             # STDIN forms: `python -` and a bare interpreter read the program from stdin, so a
             # heredoc body or a pipe producer reaches the CLI with nothing in argv. The program
             # text is visible on the command line, and matching the import THERE -- in the
             # heredoc body, the redirected file, or the pipe producer, and nowhere else in the
             # frame (see TestStdinProgramTextScoping) -- is the same fail-closed call.
-            "python - <<'PY'\nfrom kiro_crew.cli import main; main()\nPY",
-            "python3 - <<EOF\nimport kiro_crew.cli\nEOF",
-            "echo 'from kiro_crew.cli import main; main()' | python -",
-            "python -X dev - <<'PY'\nimport kiro_crew.cli\nPY",
-            "python << 'PY'\nimport kiro_crew.cli; kiro_crew.cli.main()\nPY",
+            "python - <<'PY'\nfrom junction.cli import main; main()\nPY",
+            "python3 - <<EOF\nimport junction.cli\nEOF",
+            "echo 'from junction.cli import main; main()' | python -",
+            "python -X dev - <<'PY'\nimport junction.cli\nPY",
+            "python << 'PY'\nimport junction.cli; junction.cli.main()\nPY",
         ):
             assert security.is_denied(
                 blocked, denied_regexes=effective
@@ -144,8 +144,8 @@ class TestCatalog:
             "pkill disjunction",
             "pytest test/test_token_auth.py",
             # The product as a module, but not the mint verb.
-            "python -m kiro_crew gateway",
-            "python -X dev -m kiro_crew gateway",
+            "python -m junction gateway",
+            "python -X dev -m junction gateway",
             # A flag operand that happens to look like a path, and a script that is not the
             # product: neither is a module invocation.
             "python -X dev script.py token",
@@ -160,13 +160,13 @@ class TestCatalog:
             "python - <<'PY'\nprint(1)\nPY",
             "echo 'print(1)' | python -",
             # The import name is in a FILENAME being catted to stdin, not the program itself,
-            # and `\bkiro_crew\b` does not match inside `kiro_crew_notes`.
-            "cat kiro_crew_notes.txt | python -",
+            # and `\bjunction\b` does not match inside `junction_notes`.
+            "cat junction_notes.txt | python -",
             "python -c 'import json; print(json.dumps({}))'",
             "python -c 'import sys; print(sys.version)'",
             # Mentions the import name as DATA for another program, not as code we will run.
-            "grep -r kiro_crew src/",
-            "echo 'import kiro_crew.cli' > /tmp/note.txt",
+            "grep -r junction src/",
+            "echo 'import junction.cli' > /tmp/note.txt",
         ):
             assert not security.is_denied(
                 allowed, denied_regexes=effective
@@ -244,7 +244,7 @@ class TestSelfProtectionFlagInterposition:
 
     @staticmethod
     def _effective():
-        from kiro_crew import security
+        from junction import security
 
         return list(
             security.compute_effective_denied(security.BUILTIN_DENIED_RULES, (), False, (), ())
@@ -258,7 +258,7 @@ class TestSelfProtectionFlagInterposition:
         )
 
     def test_bare_and_flag_interposed_forms_are_all_denied(self):
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for rule_id, template in self._TEMPLATES.items():
@@ -274,7 +274,7 @@ class TestSelfProtectionFlagInterposition:
                 ), f"{rule_id}: flag-interposed form not denied: {cmd!r}"
 
     def test_cloud_flag_interposition_denied_for_every_lifecycle_subcommand(self):
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for sub in ("destroy", "stop", "start", "launch", "connect", "tunnel", "login", "logout"):
@@ -291,7 +291,7 @@ class TestSelfProtectionFlagInterposition:
         word sitting AFTER an unrelated subcommand (direct or module form) --
         stay allowed.
         """
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for allowed in (
@@ -306,9 +306,9 @@ class TestSelfProtectionFlagInterposition:
             "kirocrew doctor restart",
             "kirocrew gateway status restart",
             "kirocrew cloud status destroy",
-            "python -m kiro_crew doctor restart",
-            "python -m kiro_crew gateway status restart",
-            "python -m kiro_crew cloud status destroy",
+            "python -m junction doctor restart",
+            "python -m junction gateway status restart",
+            "python -m junction cloud status destroy",
         ):
             assert not security.is_denied(
                 allowed, denied_regexes=effective
@@ -323,7 +323,7 @@ class TestSelfProtectionFlagInterposition:
         aliases the pin would silently fall out of the id map on upgrade and a
         user opt-out could drop a rule the administrator pinned.
         """
-        from kiro_crew import security
+        from junction import security
 
         legacy_to_id = {
             ".*kiro.?crew restart.*": "self-protection-restart",
@@ -343,7 +343,7 @@ class TestSelfProtectionFlagInterposition:
 
     def test_legacy_alias_spellings_stay_out_of_the_enforced_catalog(self):
         """Aliases are lookup-only: not enforced, not built-in, not in the golden."""
-        from kiro_crew import security
+        from junction import security
 
         golden = json.loads(_GOLDEN.read_text(encoding="utf-8"))
         golden_patterns = {g["pattern"] for g in golden}
@@ -400,7 +400,7 @@ class TestSelfProtectionFlagInterposition:
         }
 
     def test_self_protection_subcommands_denied_under_every_shell_dressing(self):
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for rule_id, words in self._SUBCOMMANDS.items():
@@ -434,7 +434,7 @@ class TestSelfProtectionFlagInterposition:
         return cmds
 
     def test_self_protection_denied_under_the_full_quoting_cross(self):
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for rule_id, words in self._SUBCOMMANDS.items():
@@ -457,7 +457,7 @@ class TestSelfProtectionFlagInterposition:
         mint rule is outside the self-protection category -- neither has a
         ``kirocrew ...`` template, so the derivation excludes them.
         """
-        from kiro_crew import security
+        from junction import security
 
         floor_subcommand_ids = {
             rule_id
@@ -479,7 +479,7 @@ class TestSelfProtectionFlagInterposition:
         """A redirection is removed from argv by the shell and can sit anywhere in
         a simple command, so it must not shift the leading subcommand (#4824 r4).
         """
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for cmd in (
@@ -503,7 +503,7 @@ class TestSelfProtectionFlagInterposition:
         bash passes, so a flag or the verb hidden in them must not slip past the
         floor -- shlex leaves the ``$`` and does not decode ANSI-C escapes (#4824 r6).
         """
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for cmd in (
@@ -518,51 +518,51 @@ class TestSelfProtectionFlagInterposition:
             ), f"$-quoted self-protection form not denied: {cmd!r}"
 
     def test_self_protection_module_form_denied_under_shell_dressing(self):
-        """``python -m kiro_crew <subcommand>`` dispatches the same self-action. The
-        escaped module form (``python -m kiro_crew -\\v restart``) slips past the
+        """``python -m junction <subcommand>`` dispatches the same self-action. The
+        escaped module form (``python -m junction -\\v restart``) slips past the
         interpreter-position regex, so the floor resolves the module name and checks
         the operands after it (#4824 r5).
         """
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         for cmd in (
-            "python -m kiro_crew restart",
-            r"python -m kiro_crew -\v restart",  # escaped: regex misses, floor catches
-            r"python -mkiro_crew -\v restart",  # attached -m spelling
-            r"python -m kiro_crew \update",
-            "python -m kiro_crew gateway restart",
-            r"python -m kiro_crew -\v cloud destroy",
+            "python -m junction restart",
+            r"python -m junction -\v restart",  # escaped: regex misses, floor catches
+            r"python -mjunction -\v restart",  # attached -m spelling
+            r"python -m junction \update",
+            "python -m junction gateway restart",
+            r"python -m junction -\v cloud destroy",
         ):
             assert security.is_denied(
                 cmd, denied_regexes=effective
             ), f"module-form self-protection not denied: {cmd!r}"
         # benign module invocations stay allowed at the floor (not a targeted subcommand)
-        assert not security._is_self_restart("python -m kiro_crew status")
-        assert not security._is_self_cloud_destructive("python -m kiro_crew cloud status")
+        assert not security._is_self_restart("python -m junction status")
+        assert not security._is_self_cloud_destructive("python -m junction cloud status")
         assert not security._is_self_restart("python -m pytest test/test_restart.py")
 
     def test_self_protection_module_form_denied_under_version_launchers(self):
-        """Every interpreter launcher spelling of ``-m kiro_crew`` dispatches the
+        """Every interpreter launcher spelling of ``-m junction`` dispatches the
         same self-action (#5837, folded from the retired TestCatalog matrix).
 
         The spellings come from ``security._PYTHON_PROGRAM_RE``: version-suffixed
         binaries, the Windows ``py`` launcher (its version selector is an
         interpreter flag taking no operand), interpreter flags with separate
-        operands (``-X dev``), and the attached ``-mkiro_crew`` form. Each is
+        operands (``-X dev``), and the attached ``-mjunction`` form. Each is
         crossed with a bare and flag-interposed tail plus the full quoting
         cross from ``_quoting_cross``, so every launcher cell the retired
         TestCatalog matrix asserted survives here.
         """
-        from kiro_crew import security
+        from junction import security
 
         effective = self._effective()
         launchers = (
-            "python -m kiro_crew",
-            "python3 -B -m kiro_crew",
-            "python3.12 -X dev -m kiro_crew",
-            "py -3.12 -m kiro_crew",
-            "python -mkiro_crew",
+            "python -m junction",
+            "python3 -B -m junction",
+            "python3.12 -X dev -m junction",
+            "py -3.12 -m junction",
+            "python -mjunction",
         )
         for launcher in launchers:
             for rule_id, words in self._SUBCOMMANDS.items():
@@ -577,8 +577,8 @@ class TestSelfProtectionFlagInterposition:
         # The same launchers running a benign subcommand (or another program
         # entirely) stay allowed -- the launcher spelling is not the trigger.
         for allowed in (
-            "py -3.12 -m kiro_crew status",
-            "python3.12 -X dev -m kiro_crew doctor",
+            "py -3.12 -m junction status",
+            "python3.12 -X dev -m junction doctor",
             "python3 -B -m pytest test/test_restart.py",
         ):
             assert not security.is_denied(
@@ -589,7 +589,7 @@ class TestSelfProtectionFlagInterposition:
         """The floor matches a real subcommand invocation, not a mention, a
         benign subcommand, or a different rule's verb.
         """
-        from kiro_crew import security
+        from junction import security
 
         assert not security._is_self_restart("kirocrew -v status")
         assert not security._is_self_cloud_destructive("kirocrew cloud status")
@@ -716,14 +716,14 @@ class TestLazyPossessiveGapSplit:
     """
 
     def test_split_absorbs_lazy_and_possessive_modifier(self):
-        from kiro_crew.security import _split_deny_frags
+        from junction.security import _split_deny_frags
 
         assert _split_deny_frags(r"curl.*?evil\.example") == ["curl", r"evil\.example"]
         assert _split_deny_frags(r"rm.*+secret") == ["rm", "secret"]
         assert _split_deny_frags(r"a.*?b.*c.*+d") == ["a", "b", "c", "d"]
 
     def test_lazy_gap_rule_still_matches_end_to_end(self):
-        from kiro_crew.security import _DenyMatcher
+        from junction.security import _DenyMatcher
 
         m = _DenyMatcher(r"curl.*?evil\.example")
         assert m._disabled is False
@@ -733,7 +733,7 @@ class TestLazyPossessiveGapSplit:
     def test_lazy_user_deny_blocks_via_is_denied(self):
         # A user-authored lazy pattern accepted by is_safe_user_regex must
         # actually deny the matching command (not silently allow it).
-        from kiro_crew.security import is_safe_user_regex
+        from junction.security import is_safe_user_regex
 
         pattern = r"curl.*?evil\.example"
         assert is_safe_user_regex(pattern) is True
@@ -756,7 +756,7 @@ class TestGreedyFragmentUnderConsume:
     def test_greedy_gap_pattern_still_matches(self):
         import re
 
-        from kiro_crew.security import _DenyMatcher
+        from junction.security import _DenyMatcher
 
         pattern = r"rm .+.*--no-preserve-root"
         target = "rm x--no-preserve-root"
@@ -769,7 +769,7 @@ class TestGreedyFragmentUnderConsume:
         assert m.match("ls -la") is False
 
     def test_greedy_gap_user_deny_blocks_via_is_denied(self):
-        from kiro_crew.security import is_safe_user_regex
+        from junction.security import is_safe_user_regex
 
         pattern = r"rm .+.*--no-preserve-root"
         assert is_safe_user_regex(pattern) is True
@@ -777,7 +777,7 @@ class TestGreedyFragmentUnderConsume:
         assert is_denied("echo hello", denied_regexes=[pattern]) is None
 
     def test_underconsume_detector(self):
-        from kiro_crew.security import _frags_can_underconsume
+        from junction.security import _frags_can_underconsume
 
         # Non-final greedy variable-width tail → unsafe (route to bounded).
         assert _frags_can_underconsume(["rm .+", "--no-preserve-root"]) is True
@@ -807,7 +807,7 @@ class TestUserPatternExactSemantics:
     def test_alternation_before_gap_matches(self):
         import re
 
-        from kiro_crew.security import _DenyMatcher
+        from junction.security import _DenyMatcher
 
         pattern = r"(ab|a).*b"
         assert re.search(pattern, "ab", re.IGNORECASE) is not None
@@ -817,7 +817,7 @@ class TestUserPatternExactSemantics:
         assert m.match("ab") is True
 
     def test_user_alternation_deny_blocks_via_is_denied(self):
-        from kiro_crew.security import is_safe_user_regex
+        from junction.security import is_safe_user_regex
 
         pattern = r"(ab|a).*b"
         assert is_safe_user_regex(pattern) is True
@@ -828,7 +828,7 @@ class TestUserPatternExactSemantics:
         # Even a pattern the fragment splitter COULD handle is routed to the
         # exact engine when it is not a built-in — no reliance on the splitter's
         # fidelity for user input.
-        from kiro_crew.security import _DenyMatcher
+        from junction.security import _DenyMatcher
 
         m = _DenyMatcher(r"curl.*evil")  # simple, fragmentable, but user-supplied
         assert m._bounded is True
@@ -837,7 +837,7 @@ class TestUserPatternExactSemantics:
     def test_builtins_keep_fragment_fast_path(self):
         # A representative non-alternation built-in stays on the linear fragment
         # path (not bounded) — preserving the ReDoS-safe fast path for the 137.
-        from kiro_crew.security import (
+        from junction.security import (
             BUILTIN_DENIED_RULES,
             _DenyMatcher,
             _has_top_level_alternation,
@@ -860,7 +860,7 @@ class TestUserPatternExactSemantics:
         # Python's re can't give all three). The built-in SECURITY FLOOR is NOT
         # bounded: a destructive built-in after a long prefix in one segment is
         # still caught at full length.
-        from kiro_crew.security import _DENY_FALLBACK_SCAN_MAX_CHARS
+        from junction.security import _DENY_FALLBACK_SCAN_MAX_CHARS
 
         # Built-in floor: full-input (no truncation) — a >cap prefix in the SAME
         # segment does not hide a destructive built-in.
@@ -1051,7 +1051,7 @@ class TestIsDeniedReDoSResistance:
         The small-size absolute CPU budget stays as the catastrophic-blowup backstop for cost
         added outside the matcher, where this trace cannot see it.
         """
-        from kiro_crew.security import _DENY_MATCHER_CACHE, _deny_matcher
+        from junction.security import _DENY_MATCHER_CACHE, _deny_matcher
 
         builds = (
             lambda n: "/.ssh/ " + ("python open " * n),
@@ -1285,7 +1285,7 @@ class TestUserRegexReDoSGate:
         inherit the built-in scrub: wrapping the fragment in an outer quantifier
         nests its ``*`` and backtracks catastrophically.  Only a COMPLETE
         built-in pattern is exempt."""
-        from kiro_crew.security import (
+        from junction.security import (
             _DANGEROUS_AWS_FLAG_RUN,
             _LINEARIZED_AWS_FLAG_RUN,
         )
@@ -1553,7 +1553,7 @@ class TestBuiltinRuleMatcherShape:
         assert unsafe == [], f"these built-ins would be DISABLED at runtime: {unsafe}"
 
     def test_no_regex_tier_matcher_is_disabled(self):
-        from kiro_crew.security import _deny_matcher
+        from junction.security import _deny_matcher
 
         disabled = [r.id for r in self._regex_tier_rules() if _deny_matcher(r.pattern)._disabled]
         assert disabled == [], f"these built-ins match nothing: {disabled}"
@@ -1562,7 +1562,7 @@ class TestBuiltinRuleMatcherShape:
         # Both rules were narrowed away from ``.*``-gapped co-occurrence, so each
         # reduces to a single fragment matched with exact ``re.search`` over the
         # WHOLE command — not the length-capped bounded scan.
-        from kiro_crew.security import _deny_matcher
+        from junction.security import _deny_matcher
 
         for rule_id in (_RULE_KILL, _RULE_MINT):
             matcher = _deny_matcher(_rule_pattern(rule_id))
@@ -1603,7 +1603,7 @@ class TestSelfProtectionFloorIsAdditive:
         """
         import re as _re
 
-        from kiro_crew.security import _is_credential_mint, _is_self_kill
+        from junction.security import _is_credential_mint, _is_self_kill
 
         predicate = _is_self_kill if rule_id == _RULE_KILL else _is_credential_mint
         rx = _re.compile(_rule_pattern(rule_id), _re.IGNORECASE)
@@ -1633,7 +1633,7 @@ class TestSelfProtectionFloorIsAdditive:
     def test_tokenizer_failure_does_not_allow_a_mint(self, monkeypatch):
         # Simulate the floor's tokenizer failing outright.  The command must
         # still be denied, by the regex half of the union.
-        import kiro_crew.security as sec
+        import junction.security as sec
 
         def _boom(_cmd):
             raise ValueError("simulated tokenizer failure")
@@ -1652,7 +1652,7 @@ class TestSelfProtectionFloorIsAdditive:
         """
         import os as _os
 
-        from kiro_crew.security import normalize_shell_command
+        from junction.security import normalize_shell_command
 
         monkeypatch.setattr(_os.path, "expanduser", lambda _p: r"C:\Users\runneradmin")
         # The guard is that this RETURNS rather than raising.
@@ -2228,7 +2228,7 @@ class TestNameAsDataIsNotAnInvocation:
             f"ssh remote-host {_NAME} {_TOK}",
             f"docker exec c {_NAME} {_TOK}",
             f"sudo {_KA} {_NAME}",
-            f"KIROCREW_HOME=/tmp/h {_NAME} {_TOK}",
+            f"JUNCTION_HOME=/tmp/h {_NAME} {_TOK}",
             f"env FOO=1 {_NAME} {_TOK}",
             f"nohup {_NAME} {_TOK}",
             f"timeout 5 {_NAME} {_TOK}",
@@ -3151,7 +3151,7 @@ class TestCredentialMintSegmentScoping:
             f'"/opt/custom/{_NAME}" {_TOK}',
             f"$(which {_NAME}) {_TOK}",
             f"docker exec {_NAME} {_NAME} {_TOK} --ttl 2h",
-            f"KIROCREW_HOME=/tmp/h KIROCREW_PORT=6777 {_NAME} {_TOK}",
+            f"JUNCTION_HOME=/tmp/h JUNCTION_PORT=6777 {_NAME} {_TOK}",
         ],
     )
     def test_mint_invocation_still_blocked(self, cmd):
@@ -3402,9 +3402,9 @@ class TestCredentialMintSegmentScoping:
         "cmd",
         [
             f"cd /workplace/x/{_NAME}-wt-y && pytest test/test_{_TOK}_auth.py",
-            f"cd /workplace/x/{_NAME}-wt-y && grep -n mint src/kiro_crew/{_TOK}_auth.py",
+            f"cd /workplace/x/{_NAME}-wt-y && grep -n mint src/junction/{_TOK}_auth.py",
             f"tail -20 /tmp/{_NAME}-gw.log | sed 's/{_TOK}=.*/REDACTED/'",
-            f"KIROCREW_HOME=/tmp/h ./bin/{_NAME} gateway  # banner prints the auth {_TOK}",
+            f"JUNCTION_HOME=/tmp/h ./bin/{_NAME} gateway  # banner prints the auth {_TOK}",
             f"cat /tmp/{_NAME}-dev/config.json  # contains a {_TOK} field",
             f"grep -rn {_TOK} ~/.{_NAME}/skills/",
             f"{_NAME} doctor 2>&1 | grep {_TOK}",
@@ -3440,7 +3440,7 @@ class TestSelfFloorShortCircuit:
     """
 
     def _descent_calls(self, monkeypatch, text: str) -> int:
-        from kiro_crew import security
+        from junction import security
 
         calls = {"n": 0}
         real = security._self_token_frames
@@ -3481,10 +3481,10 @@ class TestSelfFloorShortCircuit:
         never matches ``kiro[-.]?crew``. The gate must answer True for all of
         them (over-matching is safe; under-matching is a bypass).
         """
-        from kiro_crew import security
+        from junction import security
 
         for evasive in (
-            "python -m kiro_crew token",  # underscored module spelling
+            "python -m junction token",  # underscored module spelling
             "[k]irocrew token",  # one-char bracket class
             "kiro$()crew token",  # empty command substitution
             "kiro${x:-crew} token",  # parameter default
@@ -3500,7 +3500,7 @@ class TestSelfFloorShortCircuit:
 
     def test_gated_predicates_still_deny_the_obfuscation_corpus(self):
         """End-to-end: the predicates (with the gate in front) keep firing."""
-        from kiro_crew import security
+        from junction import security
 
         for mint in (
             "[k]irocrew token",
@@ -3515,7 +3515,7 @@ class TestSelfFloorShortCircuit:
         assert security._is_self_kill("pkill -f kirocrew")
 
     def test_gate_declines_plain_text_without_machinery(self):
-        from kiro_crew import security
+        from junction import security
 
         for plain in (
             "ls -la /tmp/foo",
@@ -3532,7 +3532,7 @@ class TestSelfFloorShortCircuit:
         ``~`` must therefore be in the machinery class, or the gate opens a
         real bypass (pre-push review finding).
         """
-        from kiro_crew import security
+        from junction import security
 
         # expanduser reads HOME on POSIX but USERPROFILE on Windows — set
         # both so the tilde target resolves under the product tree everywhere.
@@ -3552,7 +3552,7 @@ class TestSelfFloorShortCircuit:
         the dynamic-exec marker on the quote-stripped text too, not only on the
         raw text (pre-merge review finding, confirmed by two reviewers).
         """
-        from kiro_crew import security
+        from junction import security
 
         glued = "ex" + '""' + "ec"
         cmd = f'python -c "{glued}(open(chr(47)).read())"'
@@ -3578,7 +3578,7 @@ class TestStdinProgramTextScoping:
     ``_has_self_importing_inline_program`` used to search that whole frame for the
     import name, which made an unrelated neighbour's FILE PATH satisfy the check --
     a benign ``python - <<'PY' … PY`` in the same script as any command naming a
-    ``kiro_crew`` path read as a credential mint, with no ``token`` word anywhere.
+    ``junction`` path read as a credential mint, with no ``token`` word anywhere.
     """
 
     # Every one of these is read-only or a formatter run, and none carries the mint
@@ -3586,20 +3586,20 @@ class TestStdinProgramTextScoping:
     BENIGN_NEIGHBOUR = (
         # The report's own case 2, reduced: format two source files, then edit one
         # through a heredoc whose payload does not import anything.
-        "isort src/kiro_crew/mcp_core.py\npython3 - <<'PY'\nprint(1)\nPY",
+        "isort src/junction/mcp_core.py\npython3 - <<'PY'\nprint(1)\nPY",
         # The same shape behind the other two separators a frame preserves.
-        "isort src/kiro_crew/x.py && python3 -",
-        "black src/kiro_crew/security.py; python3 - <<'PY'\nprint(2)\nPY",
+        "isort src/junction/x.py && python3 -",
+        "black src/junction/security.py; python3 - <<'PY'\nprint(2)\nPY",
         # Order does not matter: the neighbour may follow the interpreter too.
-        "python3 - <<PY\nprint(1)\nPY\nisort src/kiro_crew/x.py",
+        "python3 - <<PY\nprint(1)\nPY\nisort src/junction/x.py",
         # A here-string whose payload is harmless, next to a product-named path.
-        "isort src/kiro_crew/x.py\npython3 - <<<'print(1)'",
+        "isort src/junction/x.py\npython3 - <<<'print(1)'",
         # A substitution operand whose text is harmless, next to a product-named path.
-        "isort src/kiro_crew/x.py\npython3 - <<<$(printf %s 'print(1)')",
+        "isort src/junction/x.py\npython3 - <<<$(printf %s 'print(1)')",
         # A stdin redirect belonging to ANOTHER command, with no interpreter in play.
-        "isort src/kiro_crew/x.py\ncat < notes.txt",
+        "isort src/junction/x.py\ncat < notes.txt",
         # A pipe that does NOT feed this interpreter (it consumes its output).
-        "python3 - <<PY\nprint(1)\nPY\n| grep kiro_crew",
+        "python3 - <<PY\nprint(1)\nPY\n| grep junction",
     )
 
     # Every way the shell can put a PROGRAM on a simple command's stdin, at every
@@ -3608,99 +3608,99 @@ class TestStdinProgramTextScoping:
     # here-string and post-program spellings, and every omission was a real bypass.
     REAL_STDIN_REACH = (
         # Heredoc body, in every spelling of the marker.
-        "python3 - <<'PY'\nimport kiro_crew\nPY",
-        "python3 - <<-PY\nimport kiro_crew\nPY",
-        "python3 - << PY\nimport kiro_crew\nPY",
-        "python << 'PY'\nimport kiro_crew\nPY",
+        "python3 - <<'PY'\nimport junction\nPY",
+        "python3 - <<-PY\nimport junction\nPY",
+        "python3 - << PY\nimport junction\nPY",
+        "python << 'PY'\nimport junction\nPY",
         # An unterminated heredoc runs to the end of the frame (over-block, not under).
-        "python3 - <<PY\nimport kiro_crew\n",
+        "python3 - <<PY\nimport junction\n",
         # A body LINE that merely CONTAINS the tag word is not a closing delimiter:
         # bash closes only on a line holding it ALONE, and line structure does not
         # survive tokenizing, so the body must end at the LAST occurrence of the tag.
         # `# EOF` is an ordinary Python comment and was enough to close it early.
-        "python3 - <<EOF\n# EOF\nimport kiro_crew\nEOF",
-        "python3 - <<EOF\nx = 1  # EOF\nimport kiro_crew\nEOF",
-        "python3 - <<PY\nprint('PY')\nimport kiro_crew\nPY",
+        "python3 - <<EOF\n# EOF\nimport junction\nEOF",
+        "python3 - <<EOF\nx = 1  # EOF\nimport junction\nEOF",
+        "python3 - <<PY\nprint('PY')\nimport junction\nPY",
         # A command AFTER the closing tag is a NEW command, not this interpreter's
         # script argument -- reading it as one made the detector answer False and
         # skipped the branch entirely, leaving the heredoc payload unscanned.
-        "python3 <<PY\nimport kiro_crew\nPY\necho ok",
-        "python3 - <<PY\nimport kiro_crew\nPY; echo ok",
-        "python3 - <<PY\nimport kiro_crew\nPY && echo ok",
+        "python3 <<PY\nimport junction\nPY\necho ok",
+        "python3 - <<PY\nimport junction\nPY; echo ok",
+        "python3 - <<PY\nimport junction\nPY && echo ok",
         # HERE-STRING: the operand itself is the program on stdin. `<<<` also starts with
         # `<<`, so reading it as a heredoc made the payload a delimiter and dropped it.
-        "python3 - <<<'import kiro_crew'",
-        "python3 -<<<'import kiro_crew'",
-        "python3 <<<'import kiro_crew'",
-        "python3 - <<< 'import kiro_crew'",
-        "python3 - <<<$'import kiro_crew'",
+        "python3 - <<<'import junction'",
+        "python3 -<<<'import junction'",
+        "python3 <<<'import junction'",
+        "python3 - <<< 'import junction'",
+        "python3 - <<<$'import junction'",
         # Pipe producer -- the left side writes this interpreter's stdin.  Every
         # spacing spelling, because the tokenizer splits on whitespace only, so the
         # operator glues into a neighbouring word and `|` is often NOT its own token.
-        "echo 'import kiro_crew' | python3 -",
-        "echo 'import kiro_crew'|python3 -",
-        "echo 'import kiro_crew' |python3 -",
-        "echo 'import kiro_crew'| python3 -",
-        "cat src/kiro_crew/cli.py | python3 -",
-        "cat src/kiro_crew/cli.py|python3 -",
-        "printf 'import kiro_crew'|python3",
-        "echo 'import kiro_crew' | python3",
+        "echo 'import junction' | python3 -",
+        "echo 'import junction'|python3 -",
+        "echo 'import junction' |python3 -",
+        "echo 'import junction'| python3 -",
+        "cat src/junction/cli.py | python3 -",
+        "cat src/junction/cli.py|python3 -",
+        "printf 'import junction'|python3",
+        "echo 'import junction' | python3",
         # Stdin redirect -- the file's CONTENT becomes the program.
-        "python3 - < src/kiro_crew/cli.py",
-        "python3 -<src/kiro_crew/cli.py",
-        "python3 - 0< src/kiro_crew/cli.py",
+        "python3 - < src/junction/cli.py",
+        "python3 -<src/junction/cli.py",
+        "python3 - 0< src/junction/cli.py",
         # Process substitution and command substitution -- the operand is one shell WORD
         # whose text carries whitespace, so it spans tokens to its closing delimiter.
-        "python3 - < <(echo 'import kiro_crew')",
-        'python3 - <<<$(printf %s "import kiro_crew")',
-        "python3 - <<<`printf %s 'import kiro_crew'`",
-        'python3 - <<<"${x:-import kiro_crew}"',
-        'python3 - < $(printf %s "src/kiro_crew/cli.py")',
-        "python3 - <<<$(cat src/kiro_crew/cli.py)",
+        "python3 - < <(echo 'import junction')",
+        'python3 - <<<$(printf %s "import junction")',
+        "python3 - <<<`printf %s 'import junction'`",
+        'python3 - <<<"${x:-import junction}"',
+        'python3 - < $(printf %s "src/junction/cli.py")',
+        "python3 - <<<$(cat src/junction/cli.py)",
         # A QUOTED delimiter inside the substitution: quoting is stripped before this
         # code sees the tokens, so balancing the count is not decidable and the operand
         # must span to the LAST closer.
-        "python3 - <<<$(true ')'; printf %s \"import kiro_crew\")",
-        'python3 - <<<$(echo ")" ; printf %s "import kiro_crew")',
+        "python3 - <<<$(true ')'; printf %s \"import junction\")",
+        'python3 - <<<$(echo ")" ; printf %s "import junction")',
         # A split operand with NO `-`, where the detector must consume the whole operand
         # rather than read the substitution's second token as a script path.
-        'python <<< $(printf %s "import kiro_crew")',
-        'python3 <<< $(printf %s "import kiro_crew")',
-        'python3 < $(printf %s "src/kiro_crew/cli.py")',
+        'python <<< $(printf %s "import junction")',
+        'python3 <<< $(printf %s "import junction")',
+        'python3 < $(printf %s "src/junction/cli.py")',
         # A redirection may appear ANYWHERE in a simple command, before the program
         # name included.  These are ordinary bash and reach the identical mint.
-        "<<'PY' python -\nimport kiro_crew\nPY",
-        "<<PY python3 -\nimport kiro_crew\nPY",
-        "<src/kiro_crew/cli.py python3 -",
-        "< src/kiro_crew/cli.py python3 -",
-        "<<<'import kiro_crew' python3 -",
+        "<<'PY' python -\nimport junction\nPY",
+        "<<PY python3 -\nimport junction\nPY",
+        "<src/junction/cli.py python3 -",
+        "< src/junction/cli.py python3 -",
+        "<<<'import junction' python3 -",
         # ... a marker and its BODY may straddle the program name, so the carrier walk
         # cannot be split per side of the interpreter without losing the association.
-        "<<EOF python -\nimport kiro_crew\nEOF",
-        "<<EOF python3 -\nimport kiro_crew\nEOF",
-        "<< EOF python -\nimport kiro_crew\nEOF",
+        "<<EOF python -\nimport junction\nEOF",
+        "<<EOF python3 -\nimport junction\nEOF",
+        "<< EOF python -\nimport junction\nEOF",
         # ... including GLUED to the program name with no space at all, which is one
         # single token: `python3<<<'…'`.  Excluding the interpreter's own token from the
         # walk is what missed these.
-        'python3<<<"import kiro_crew"',
-        "python3<<<'import kiro_crew'",
-        "python3<src/kiro_crew/cli.py",
-        "python3<<PY\nimport kiro_crew\nPY",
-        "python3<<-PY\nimport kiro_crew\nPY",
-        "python<<<'import kiro_crew'",
-        "python<<EOF\nimport kiro_crew\nEOF",
-        "python3<<EOF\nimport kiro_crew\nEOF",
+        'python3<<<"import junction"',
+        "python3<<<'import junction'",
+        "python3<src/junction/cli.py",
+        "python3<<PY\nimport junction\nPY",
+        "python3<<-PY\nimport junction\nPY",
+        "python<<<'import junction'",
+        "python<<EOF\nimport junction\nEOF",
+        "python3<<EOF\nimport junction\nEOF",
     )
 
     def test_benign_neighbour_no_longer_reads_as_a_mint(self):
-        from kiro_crew import security
+        from junction import security
 
         for cmd in self.BENIGN_NEIGHBOUR:
             assert not security._is_credential_mint(cmd.lower()), f"frame contamination: {cmd!r}"
             assert security.is_denied(cmd) is None, f"frame contamination: {cmd!r}"
 
     def test_real_stdin_reach_stays_denied(self):
-        from kiro_crew import security
+        from junction import security
 
         for cmd in self.REAL_STDIN_REACH:
             assert security.is_denied(cmd) is not None, f"stdin reach not blocked: {cmd!r}"
@@ -3711,17 +3711,17 @@ class TestStdinProgramTextScoping:
         Asserted on the helper directly, so the SCOPE is pinned rather than only its
         effect on one deny verdict.
         """
-        from kiro_crew import security
+        from junction import security
 
         tokens = security.normalize_shell_command(
-            "isort src/kiro_crew/mcp_core.py\npython3 - <<'PY'\nprint(1)\nPY"
+            "isort src/junction/mcp_core.py\npython3 - <<'PY'\nprint(1)\nPY"
         )
         i = tokens.index("python3")
         assert list(security._stdin_program_text(tokens, i)) == ["print(1)"]
 
-        piped = security.normalize_shell_command("echo 'import kiro_crew' | python3 -")
+        piped = security.normalize_shell_command("echo 'import junction' | python3 -")
         j = piped.index("python3")
-        assert "import kiro_crew" in list(security._stdin_program_text(piped, j))
+        assert "import junction" in list(security._stdin_program_text(piped, j))
 
     def test_bare_interpreter_with_a_heredoc_is_recognised_as_reading_stdin(self):
         """``python << 'PY' … PY`` (no ``-``) really does read its program from stdin.
@@ -3734,20 +3734,20 @@ class TestStdinProgramTextScoping:
         the import anywhere in the frame.  Once the scan is scoped to real carriers
         that accident stops covering it, so the detector has to be right.
         """
-        from kiro_crew import security
+        from junction import security
 
         for cmd, expect_stdin in (
-            ("python << 'PY'\nimport kiro_crew\nPY", True),
-            ("python <<PY\nimport kiro_crew\nPY", True),
-            ("python <<-PY\nimport kiro_crew\nPY", True),
-            ("python <<<'import kiro_crew'", True),
-            ("python <<< 'import kiro_crew'", True),
-            ('python <<< $(printf %s "import kiro_crew")', True),
+            ("python << 'PY'\nimport junction\nPY", True),
+            ("python <<PY\nimport junction\nPY", True),
+            ("python <<-PY\nimport junction\nPY", True),
+            ("python <<<'import junction'", True),
+            ("python <<< 'import junction'", True),
+            ('python <<< $(printf %s "import junction")', True),
             ("python < prog.py", True),
             ("python script.py", False),
             ("python script.py < input.txt", False),
             ("python -c 'print(1)'", False),
-            ("python -m kiro_crew gateway", False),
+            ("python -m junction gateway", False),
         ):
             frame = security.normalize_shell_command(cmd)
             i = next(
@@ -3768,9 +3768,9 @@ class TestStdinProgramTextScoping:
         token is a visible refusal.  If this assertion ever flips, the tightening that
         did it must be checked against the no-space spellings above.
         """
-        from kiro_crew import security
+        from junction import security
 
-        assert security.is_denied("grep kiro_crew src | head; python3 -") is not None
+        assert security.is_denied("grep junction src | head; python3 -") is not None
 
     def test_rule_does_not_fire_on_its_own_pattern_text(self):
         """Quoting this rule must not trip it.
@@ -3780,7 +3780,7 @@ class TestStdinProgramTextScoping:
         #2660 reported the claim failing in practice.  Pin it so discussing,
         documenting or testing the rule by quoting it stays possible.
         """
-        from kiro_crew import security
+        from junction import security
 
         rule = next(
             r for r in security.BUILTIN_DENIED_RULES if r.id == "credential-exfil-kirocrew-token"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.cloud import sizes
+from junction.cloud import sizes
 
 
 class TestTierCatalog:

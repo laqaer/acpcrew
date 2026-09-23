@@ -1,7 +1,7 @@
 """Build gate: every unguarded third-party import is declared in setup.cfg.
 
 Static AST check that fails the build when a module-level third-party import
-in core ``kiro_crew`` source is NOT declared in ``setup.cfg [options]
+in core ``junction`` source is NOT declared in ``setup.cfg [options]
 install_requires``. This prevents the recurring pattern where a dependency
 is present in a dev environment but missing from ``setup.cfg``
 — silently breaking pip-based installs (editable, one-line, auto-update) with
@@ -9,7 +9,7 @@ is present in a dev environment but missing from ``setup.cfg``
 
 Hermetic — no network, no package installation, pure AST + configparser.
 
-Scope: only core kiro_crew modules (excludes apps/builtins/, knowledge/,
+Scope: only core junction modules (excludes apps/builtins/, knowledge/,
 workflows/ sub-trees which have their own dependency management).
 
 The historical PyYAML gap and the opentelemetry
@@ -55,7 +55,7 @@ _EXEMPT: set[str] = {
     "httpx",
 }
 
-# Sub-trees within kiro_crew that are NOT core startup and have their own
+# Sub-trees within junction that are NOT core startup and have their own
 # dependency management (app builtins have requirements.txt, knowledge/
 # and workflows/ are feature modules loaded lazily).
 _EXCLUDED_SUBTREES: tuple[str, ...] = (
@@ -73,13 +73,13 @@ _EXCLUDED_SUBTREES: tuple[str, ...] = (
 
 
 def _src_root() -> pathlib.Path:
-    """Locate the kiro_crew source tree."""
+    """Locate the junction source tree."""
     try:
-        import kiro_crew  # noqa: PLC0415
+        import junction  # noqa: PLC0415
 
-        return pathlib.Path(kiro_crew.__file__).resolve().parent
+        return pathlib.Path(junction.__file__).resolve().parent
     except Exception:
-        return pathlib.Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+        return pathlib.Path(__file__).resolve().parent.parent / "src" / "junction"
 
 
 def _setup_cfg_path() -> pathlib.Path:
@@ -144,7 +144,7 @@ def _is_in_try_except_importerror(node: ast.stmt, tree: ast.Module) -> bool:
 
 
 def test_otlp_extra_declares_exact_http_exporter_version():
-    """The documented kirocrew[otlp] install path must remain usable."""
+    """The documented junction[otlp] install path must remain usable."""
     cfg = configparser.ConfigParser()
     cfg.read(_setup_cfg_path())
     requirements = [
@@ -173,7 +173,7 @@ def test_pyproject_declares_optional_dependencies_dynamic():
     treats ``pip install -e ".[dev]"`` as a plain install and exits 0 with only
     a warning ("does not provide the extra 'dev'"), so no test tooling is
     installed and ``make test`` dies on a missing ``.venv/bin/pytest``. The same
-    omission also broke the published wheel's ``kirocrew[voice]`` install path.
+    omission also broke the published wheel's ``junction[voice]`` install path.
     """
     text = _pyproject_text()
     dynamic_lines = [ln for ln in text.splitlines() if ln.strip().startswith("dynamic")]
@@ -309,7 +309,7 @@ def _collect_unguarded_imports(filepath: pathlib.Path) -> list[tuple[str, str]]:
         for root, stmt in imports_to_check:
             if root in stdlib or root.startswith("_"):
                 continue
-            if root == "kiro_crew":
+            if root == "junction":
                 continue
             if root in _EXEMPT:
                 continue
@@ -319,7 +319,7 @@ def _collect_unguarded_imports(filepath: pathlib.Path) -> list[tuple[str, str]]:
 
 
 def test_all_unguarded_third_party_imports_are_declared():
-    """Every module-level unguarded third-party import in core kiro_crew
+    """Every module-level unguarded third-party import in core junction
     MUST be in setup.cfg install_requires."""
     src_root = _src_root()
     declared = _parse_install_requires()
@@ -367,9 +367,9 @@ def test_noop_recorder_when_otel_missing(monkeypatch):
         if k.startswith("opentelemetry")
         or k
         in (
-            "kiro_crew.metrics.provider",
-            "kiro_crew.metrics.recorder",
-            "kiro_crew.metrics.local_exporter",
+            "junction.metrics.provider",
+            "junction.metrics.recorder",
+            "junction.metrics.local_exporter",
         )
     ]
     saved = {k: sys.modules.pop(k) for k in to_remove}
@@ -388,10 +388,10 @@ def test_noop_recorder_when_otel_missing(monkeypatch):
     try:
         # Re-import provider — it should set _OTEL_AVAILABLE = False and
         # degrade to the MetricsRecorder(None) no-op path (contract).
-        spec = importlib.util.find_spec("kiro_crew.metrics.provider")
+        spec = importlib.util.find_spec("junction.metrics.provider")
         assert spec is not None
         prov = importlib.util.module_from_spec(spec)
-        sys.modules["kiro_crew.metrics.provider"] = prov
+        sys.modules["junction.metrics.provider"] = prov
         spec.loader.exec_module(prov)
 
         assert prov._OTEL_AVAILABLE is False
@@ -408,6 +408,6 @@ def test_noop_recorder_when_otel_missing(monkeypatch):
         # Restore modules
         sys.modules.update(saved)
         # Remove our injected module
-        sys.modules.pop("kiro_crew.metrics.provider", None)
+        sys.modules.pop("junction.metrics.provider", None)
         # Re-import cleanly
-        importlib.import_module("kiro_crew.metrics.provider")
+        importlib.import_module("junction.metrics.provider")

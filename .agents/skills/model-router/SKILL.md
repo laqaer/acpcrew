@@ -6,7 +6,7 @@ description: "Junction model plane: observe the optional Codex Router sidecar. U
 # Model router — observe, do not vendor
 
 Contract: [`../../../docs/system-specs/modules/model-router.md`](../../../docs/system-specs/modules/model-router.md).
-Code: `src/kiro_crew/model_router/`. ADRs
+Code: `src/junction/model_router/`. ADRs
 [0002](../../../docs/adr/0002-two-planes.md),
 [0003](../../../docs/adr/0003-sidecar-not-vendor.md).
 Provenance: [`../../../docs/provenance/codex-router.md`](../../../docs/provenance/codex-router.md).

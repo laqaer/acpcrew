@@ -22,7 +22,7 @@ superseded-by: []
 
 ## Summary
 
-KiroCrew's i18n mechanism is **structurally rigorous and linguistically
+Junction's i18n mechanism is **structurally rigorous and linguistically
 unmeasured**. The structural half is, in places, better than industry practice:
 CLDR plural categories are exactly correct in all ten locales, key parity is
 exact, and the ratchet design is more disciplined than the norm. The unmeasured
@@ -232,12 +232,12 @@ neighbouring content**, in any locale. No bidi fixture or rendered reproduction
 exists, so the blast radius is unmeasured.
 
 **Backend, Electron, CLI and site are English-only.** No `gettext`, `babel`, or
-`Accept-Language` anywhere in `src/kiro_crew`; `dashboard.language` is stored,
+`Accept-Language` anywhere in `src/junction`; `dashboard.language` is stored,
 served, and injected into the LLM prompt only. Native menus
 (`website/electron/app-menu.js`), tray and dialogs
 (`website/electron/main.js:1091-1102` and `website/electron/main.js:355-444`), and
 update notifications (`website/electron/main.js:2040-2042`) are hardcoded.
-`src/kiro_crew/builtin_skills` has 79 user-facing
+`src/junction/builtin_skills` has 79 user-facing
 `print`/`echo` lines and zero i18n references. `site/` has no `i18n` directory.
 
 ### Medium
@@ -245,7 +245,7 @@ update notifications (`website/electron/main.js:2040-2042`) are hardcoded.
 - A stored or server-provided tag that is not an exact `SUPPORTED_CODES` member is
   **discarded** rather than negotiated (`website/src/i18n/detect.ts:133`), while the
   backend accepts any tag matching its own **conservative BCP-47 subset**
-  (`src/kiro_crew/dashboard/handlers/core.py:299-307,377`). `dashboard.language='de-AT'`
+  (`src/junction/dashboard/handlers/core.py:299-307,377`). `dashboard.language='de-AT'`
   silently becomes browser-detected.
 - Script subtags are ignored: `zh-Hant` resolves to `zh-CN` (Simplified).
 - `pt` is Brazilian content — 96 `arquivo` and 72 `você` occurrences across 71

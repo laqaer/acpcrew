@@ -8,9 +8,9 @@ Builds use plain `pip` + `npm`/Vite + `pytest`, driven by the repo-root
 
 > **Platforms: macOS, Linux, and Windows.** macOS and Linux use the `Makefile` /
 > `setup.sh` paths below. Windows runs natively from a Python source install
-> (`pip install -e ".[voice]"`, launched via `python -m kiro_crew up` or
+> (`pip install -e ".[voice]"`, launched via `python -m junction up` or
 > `junction up`); all POSIX-only process, signal, file-lock and metrics calls
-> route through `kiro_crew.platform_compat`. See
+> route through `junction.platform_compat`. See
 > [windows-install.md](windows-install.md) for the Windows walkthrough.
 
 ---
@@ -69,9 +69,9 @@ download), memory search degrades to keyword/FTS search and picks embeddings up
 automatically once the model lands, with no gateway restart. Two escape
 hatches exist for mirrored or airgapped installs:
 
-- `KIROCREW_EMBED_MODEL_URL` (or `memory.embed_model_url`) points the download
+- `JUNCTION_EMBED_MODEL_URL` (or `memory.embed_model_url`) points the download
   at a mirror. The sha256 pin still verifies whatever it fetches.
-- `KIROCREW_EMBED_MODEL_PATH` (or `memory.embed_model_path`) runs a local GGUF
+- `JUNCTION_EMBED_MODEL_PATH` (or `memory.embed_model_path`) runs a local GGUF
   of your own instead. In that mode the default model is never downloaded.
 
 `memory.embedding_provider` accepts only `llama_cpp`; any other value in an old
@@ -142,7 +142,7 @@ run the gateway straight out of `src/`:
 
 ```bash
 make build                                   # npm build + editable backend install into .venv
-PYTHONPATH=src python -m kiro_crew up   # -> http://localhost:5476
+PYTHONPATH=src python -m junction up   # -> http://localhost:5476
 ```
 
 On Windows the same targets run through `make.ps1`, because `make` is not part
@@ -151,14 +151,14 @@ of a Windows install and the Makefile's recipes are POSIX-shaped
 
 ```powershell
 .\make.ps1 build                             # same two steps, same artifacts
-$env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m kiro_crew up
+$env:PYTHONPATH="src"; .\.venv\Scripts\python.exe -m junction up
 ```
 
 The venv interpreter is named explicitly rather than a bare `python`: the
 dependencies live only in `.venv`, and on Windows a bare `python` resolves to the
 system interpreter (or the Microsoft Store alias stub), which would fail at
 import. `.\.venv\Scripts\Activate.ps1` first is the other way, after which
-`python` and `kirocrew` both resolve inside the venv.
+`python` and `junction` both resolve inside the venv.
 
 The two drivers expose the same target set, and
 `test/test_build_target_parity.py` fails the build if one gains a target the
@@ -169,7 +169,7 @@ venv puts its executables in `.venv\Scripts\`, and the macOS-only
 `make build` runs two steps:
 
 1. **`frontend`**: `npm ci` (or `npm install`) + `npm run build` in `website/`,
-   then copies `website/dist` into `src/kiro_crew/static/dist` so the backend
+   then copies `website/dist` into `src/junction/static/dist` so the backend
    serves the SPA.
 2. **`backend`**: creates `.venv` and runs an editable install with the `dev`
    extra (`pip install -e ".[dev]"`).
@@ -188,14 +188,14 @@ the `winget` command to run if nothing usable is found. It honors the same
 `packaging/build-desktop.sh`, which provisions its own `uv` and
 python-build-standalone interpreter on every platform.
 
-After the backend target runs, `bin/kirocrew` resolves its real install root,
-sets `KIROCREW_PROJECT_DIR`, and delegates to `.venv/bin/kirocrew`. That console
-script comes from the editable package metadata (`kiro_crew._bootstrap:main`),
-so the virtual environment makes `src/kiro_crew` importable without the wrapper
+After the backend target runs, `bin/junction` resolves its real install root,
+sets `JUNCTION_PROJECT_DIR`, and delegates to `.venv/bin/junction`. That console
+script comes from the editable package metadata (`junction._bootstrap:main`),
+so the virtual environment makes `src/junction` importable without the wrapper
 modifying `PYTHONPATH`; caller-provided entries pass through unchanged.
 
 Any CLI subcommand works the same way, for example
-`PYTHONPATH=src python -m kiro_crew setup` or `... doctor`.
+`PYTHONPATH=src python -m junction setup` or `... doctor`.
 
 The equivalent by hand:
 
@@ -218,29 +218,29 @@ junction up                 # -> loopback dashboard
 ```
 
 Junction is pure Python, so the wheel is platform-independent:
-`dist/kirocrew-<version>-py3-none-any.whl` (for example
-`kirocrew-0.1.2-py3-none-any.whl`). One wheel serves every OS. The dashboard is
+`dist/junction-<version>-py3-none-any.whl` (for example
+`junction-0.1.2-py3-none-any.whl`). One wheel serves every OS. The dashboard is
 folded in by the custom `BuildWithFrontend` build step in
 [`setup.py`](../../setup.py), which also bundles `CHANGELOG.md` so the
 dashboard's changelog view works on a wheel install with no source tree.
 
-The pip install name is **`kirocrew`**; the import package is `kiro_crew`;
-the user-facing CLI is **`junction`**. Silent aliases `acpcrew` and `kirocrew`
+The pip install name is **`junction`**; the import package is `junction`;
+the user-facing CLI is **`junction`**. Silent aliases `acpcrew` and `junction`
 dispatch to the same entry.
 
 Installed console scripts:
 
 | Command | Entry point |
 |---------|-------------|
-| `junction` | `kiro_crew._bootstrap:main` |
-| `acpcrew` | `kiro_crew._bootstrap:main` |
-| `kirocrew` | `kiro_crew._bootstrap:main` |
+| `junction` | `junction._bootstrap:main` |
+| `acpcrew` | `junction._bootstrap:main` |
+| `junction` | `junction._bootstrap:main` |
 
 `pyproject.toml`'s `[project.scripts]` declares all three. Because a `[project]`
 table exists, setuptools reads the entry points from there and ignores
 `setup.cfg`'s `console_scripts`.
 
-Optional extras (install with e.g. `pip install "kirocrew[voice]"`):
+Optional extras (install with e.g. `pip install "junction[voice]"`):
 
 | Extra | Adds | For |
 |-------|------|-----|
@@ -280,12 +280,12 @@ and the three Linux formats come from one backend tree packaged three times.
 #### Installing a Linux desktop package
 
 ```bash
-sudo apt install ./KiroCrew-x86_64.deb     # Debian, Ubuntu
-sudo dnf install ./KiroCrew-x86_64.rpm     # Fedora, RHEL, CentOS Stream, AL2023
+sudo apt install ./Junction-x86_64.deb     # Debian, Ubuntu
+sudo dnf install ./Junction-x86_64.rpm     # Fedora, RHEL, CentOS Stream, AL2023
 ```
 
-Either one installs to `/opt/KiroCrew`, registers the application-menu entry and
-MIME database, refreshes the icon cache, links `/usr/bin/kirocrew-desktop`, and —
+Either one installs to `/opt/Junction`, registers the application-menu entry and
+MIME database, refreshes the icon cache, links `/usr/bin/junction-desktop`, and —
 on a host whose AppArmor supports the bundled profile — installs and loads the
 `userns` profile the agent sandbox needs, so no manual `sandbox install-profile`
 step is required. The fixed install path is what makes all of that durable.
@@ -293,8 +293,8 @@ step is required. The fixed install path is what makes all of that durable.
 Updates arrive through the app (**About → Check for updates**), which downloads
 the new package and hands it to `dpkg` / `rpm`. That needs root, so expect one
 elevation prompt (`pkexec` or `sudo`) at install time — it is the package
-manager doing the write, not the app. `sudo apt remove kirocrew` /
-`sudo dnf remove kirocrew` uninstalls; see
+manager doing the write, not the app. `sudo apt remove junction` /
+`sudo dnf remove junction` uninstalls; see
 [Uninstalling](#uninstalling) for what happens to your data.
 
 The AppImage needs no root and no package manager, which is the reason to pick
@@ -333,7 +333,7 @@ Linux, `.\make.ps1 <target>` on Windows.
 | Target | What it does |
 |--------|--------------|
 | `make build` | Frontend (npm/Vite) + backend into `.venv` |
-| `make frontend` | Dashboard only: npm build, staged into `src/kiro_crew/static/dist` |
+| `make frontend` | Dashboard only: npm build, staged into `src/junction/static/dist` |
 | `make backend` | Backend only: `.venv` + editable install with the `dev` extra |
 | `make wheel` | Self-contained pip wheel with the dashboard bundled, into `dist/` |
 | `make backend-bin` | Frozen standalone backend binary (host arch only) |
@@ -362,7 +362,7 @@ junction doctor --quick   # compose both planes without serving
 junction up               # compose, then serve the loopback dashboard
 ```
 
-From a source checkout, use `PYTHONPATH=src python -m kiro_crew <subcommand>`
+From a source checkout, use `PYTHONPATH=src python -m junction <subcommand>`
 in place of `junction`. `junction gateway` is the same server as `junction up`
 and remains for scripts.
 
@@ -406,13 +406,13 @@ Design notes and the exit-code table:
 web dashboard is fully functional without any messaging credentials. Connect a
 channel later -- Slack (`junction setup --slack` or
 [slack-setup.md](slack-setup.md)),
-[Discord](../../src/kiro_crew/docs/discord-integration.md),
-[Telegram](../../src/kiro_crew/docs/telegram-integration.md),
-[Teams](../../src/kiro_crew/docs/teams-integration.md),
-[Webex](../../src/kiro_crew/docs/webex-integration.md),
-[WeCom](../../src/kiro_crew/docs/wecom-integration.md),
-[WeChat](../../src/kiro_crew/docs/weixin-integration.md), or
-[WhatsApp](../../src/kiro_crew/docs/whatsapp-integration.md) --
+[Discord](../../src/junction/docs/discord-integration.md),
+[Telegram](../../src/junction/docs/telegram-integration.md),
+[Teams](../../src/junction/docs/teams-integration.md),
+[Webex](../../src/junction/docs/webex-integration.md),
+[WeCom](../../src/junction/docs/wecom-integration.md),
+[WeChat](../../src/junction/docs/weixin-integration.md), or
+[WhatsApp](../../src/junction/docs/whatsapp-integration.md) --
 when you want to reach the same agent away from your desk.
 
 These flags narrow the wizard:
@@ -421,7 +421,7 @@ These flags narrow the wizard:
 |------|--------|
 | `--agent-only` | Install the agent config and stop, skipping the workspace and every credential prompt |
 | `--slack` | Run the guided Slack credential + slash-command setup (opt-in) |
-| `--clean` | Fresh agent config: ignore the existing `kirocrew.json` and regenerate from defaults instead of merging your MCP servers and tools forward |
+| `--clean` | Fresh agent config: ignore the existing `junction.json` and regenerate from defaults instead of merging your MCP servers and tools forward |
 | `--electron-only` | Install only the macOS desktop app |
 
 The two combine: `junction setup --agent-only --clean` rebuilds the agent config
@@ -463,9 +463,9 @@ drives your own running Chrome with the sessions you are already logged into.
 ## Configuration
 
 - Config file: `~/.kiro/crew/config.json`, managed with
-  `kirocrew config get/set/edit`.
+  `junction config get/set/edit`.
 - Credentials: `~/.kiro/crew/.env` holding messaging-channel tokens (for Slack:
-  `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN`, `KIROCREW_OWNER_ID`; other channels use
+  `SLACK_APP_TOKEN`, `SLACK_BOT_TOKEN`, `JUNCTION_OWNER_ID`; other channels use
   their own keys). See [slack-setup.md](slack-setup.md) for creating the Slack
   app.
 
@@ -473,12 +473,12 @@ drives your own running Chrome with the sessions you are already logged into.
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `KIROCREW_HOME` | `~/.kiro/crew` | Data directory (config, credentials, databases) |
-| `KIROCREW_PORT` | `5476` | Port the gateway / dashboard listens on |
-| `KIROCREW_EMBED_MODEL_URL` | CDN default | Mirror for the embedding model download |
-| `KIROCREW_EMBED_MODEL_PATH` | unset | Run a local GGUF instead of the bundled model |
+| `JUNCTION_HOME` | `~/.kiro/crew` | Data directory (config, credentials, databases) |
+| `JUNCTION_PORT` | `5476` | Port the gateway / dashboard listens on |
+| `JUNCTION_EMBED_MODEL_URL` | CDN default | Mirror for the embedding model download |
+| `JUNCTION_EMBED_MODEL_PATH` | unset | Run a local GGUF instead of the bundled model |
 
-`KIROCREW_PORT` is an environment variable validated at CLI entry, not a config
+`JUNCTION_PORT` is an environment variable validated at CLI entry, not a config
 key. `--port` on the CLI overrides it (`--port auto` binds an OS-assigned
 ephemeral port). The `dashboard.url` config key only advertises a remote URL.
 For the installed service the port is baked into the unit at install time — see
@@ -503,7 +503,7 @@ Details worth knowing before you upgrade:
   interpreter running the migration. The legacy root survives to hold them.
 - If a live gateway holds either home's `gateway.lock`, the move is skipped for
   that run and completes on the next clean cold start.
-- The migration only runs on the default path. Setting `KIROCREW_HOME` skips it
+- The migration only runs on the default path. Setting `JUNCTION_HOME` skips it
   entirely, so set it **before** upgrading if you want the two homes to stay
   separate.
 
@@ -539,7 +539,7 @@ junction service status
 junction service uninstall
 ```
 
-On Linux this writes `/etc/systemd/system/kirocrew.service` (sudo is prompted
+On Linux this writes `/etc/systemd/system/junction.service` (sudo is prompted
 for the unit file and the `systemctl` calls; the gateway itself runs as your own
 user, never under sudo). When you are already root — a minimal container or
 `root` login — no `sudo` binary is required. On macOS it writes a launchd plist
@@ -549,42 +549,42 @@ The gateway runs untrusted agent tools, so it must run as a **non-root** user:
 the installer sets `User=` to the account behind `sudo` (`$SUDO_USER`, else
 `$USER`), and **refuses to install a `User=root` service**. From a bare `root`
 login (or `sudo` with no `$SUDO_USER`), first create or pick a normal account and
-install as it, e.g. `sudo -u <user> KIROCREW_KIRO_BIN=... junction service
-install` (the official Docker image already runs as the `kirocrew` user).
+install as it, e.g. `sudo -u <user> JUNCTION_KIRO_BIN=... junction service
+install` (the official Docker image already runs as the `junction` user).
 
 ### Setting the service port
 
 A system service inherits none of your shell environment, so `export
-KIROCREW_PORT=…` in your shell does **not** reach it. Set the port when you
+JUNCTION_PORT=…` in your shell does **not** reach it. Set the port when you
 install so it is baked into the unit:
 
 ```bash
-KIROCREW_PORT=5477 junction service install
+JUNCTION_PORT=5477 junction service install
 ```
 
 To change it later without reinstalling, edit the overrides file the installer
 creates and restart:
 
 ```bash
-sudo sed -i 's/^#\?KIROCREW_PORT=.*/KIROCREW_PORT=5477/' /etc/kirocrew/kirocrew.env
-sudo systemctl restart kirocrew
+sudo sed -i 's/^#\?JUNCTION_PORT=.*/JUNCTION_PORT=5477/' /etc/junction/junction.env
+sudo systemctl restart junction
 ```
 
-`/etc/kirocrew/kirocrew.env` is read by the unit via `EnvironmentFile=`, so its
+`/etc/junction/junction.env` is read by the unit via `EnvironmentFile=`, so its
 values override the install-time snapshot and survive a reinstall. Use this to
 move the service off the default `5476` when that port is already taken (for
 example by a local crew you also run on this host — there is one
-`kirocrew.service` unit, so re-running `service install` updates it in place
+`junction.service` unit, so re-running `service install` updates it in place
 rather than creating a second service).
 
 **The `EnvironmentFile=` directive only exists in units written by v0.2.0 or
 later.** Upgrading the package never rewrites an already-installed unit, so a
 unit installed by an older release (v0.1.3 and earlier) silently ignores
-`/etc/kirocrew/kirocrew.env` — editing it changes nothing. Check which kind you
+`/etc/junction/junction.env` — editing it changes nothing. Check which kind you
 have:
 
 ```bash
-grep EnvironmentFile /etc/systemd/system/kirocrew.service
+grep EnvironmentFile /etc/systemd/system/junction.service
 ```
 
 No output means the directive is missing. Either re-run `junction service
@@ -599,24 +599,24 @@ common case — use a systemd drop-in. Drop-ins are systemd's own override
 mechanism: they apply to the unit no matter which release wrote it, and they
 survive reinstalls, `service install` re-runs, and even
 `junction service uninstall` (which removes the unit but never touches
-`/etc/systemd/system/kirocrew.service.d/`).
+`/etc/systemd/system/junction.service.d/`).
 
 ```bash
-sudo mkdir -p /etc/systemd/system/kirocrew.service.d
-sudo tee /etc/systemd/system/kirocrew.service.d/proxy.conf > /dev/null <<'EOF'
+sudo mkdir -p /etc/systemd/system/junction.service.d
+sudo tee /etc/systemd/system/junction.service.d/proxy.conf > /dev/null <<'EOF'
 [Service]
 Environment="HTTPS_PROXY=http://proxy.example.com:3128"
 Environment="HTTP_PROXY=http://proxy.example.com:3128"
 Environment="NO_PROXY=localhost,127.0.0.1"
 EOF
 sudo systemctl daemon-reload
-sudo systemctl restart kirocrew
+sudo systemctl restart junction
 ```
 
 A new or edited drop-in is not picked up until `systemctl daemon-reload` runs —
 restarting alone is not enough. Verify what the unit resolved to with
-`systemctl cat kirocrew` (drop-ins are printed below the unit) or
-`systemctl show kirocrew --property=Environment`.
+`systemctl cat junction` (drop-ins are printed below the unit) or
+`systemctl show junction --property=Environment`.
 
 For remote hosts, see [remote-and-mobile.md](remote-and-mobile.md).
 
@@ -644,9 +644,9 @@ junction service install
 ```
 
 Where, and only where, this mechanism is the one in play, the installer also
-writes `/etc/apparmor.d/kirocrew-userns` and loads it. The profile grants
-exactly one permission (`userns`) and is applied by systemd to the kirocrew
-service only, via `AppArmorProfile=-kirocrew-userns` in the unit. It is a
+writes `/etc/apparmor.d/junction-userns` and loads it. The profile grants
+exactly one permission (`userns`) and is applied by systemd to the junction
+service only, via `AppArmorProfile=-junction-userns` in the unit. It is a
 **named** profile with no attachment path, so it cannot apply to any other
 process, and it is the same approach stock Ubuntu already uses for `chrome` and
 `brave`.
@@ -668,7 +668,7 @@ terminal) does not pick up the profile, because systemd is what applies it —
 and there is no unprivileged way to enter it yourself. `aa_change_onexec()` into
 a named profile is not permitted for an ordinary unconfined user, and `aa-exec`
 does **not** fail when it cannot transition: it execs the command unconfined, so
-`aa-exec -p kirocrew-userns -- junction up` appears to work and changes
+`aa-exec -p junction-userns -- junction up` appears to work and changes
 nothing. Run the gateway as the service instead.
 
 ### The AppImage (desktop app) needs its own profile
@@ -686,18 +686,18 @@ agent spawns fail closed exactly as before. Attach a profile to the AppImage
 instead:
 
 ```bash
-kirocrew sandbox install-profile --path ~/Applications/kirocrew.AppImage
+junction sandbox install-profile --path ~/Applications/junction.AppImage
 ```
 
-**If you only ever downloaded the AppImage, you have no `kirocrew` on your
+**If you only ever downloaded the AppImage, you have no `junction` on your
 PATH** — the CLI is bundled inside the app, which is the whole point of that
 download. Use the bundled copy instead. The sandbox error message in the app
 prints the exact absolute path for you; it looks like this, and it is valid while
 the app is running:
 
 ```bash
-'/tmp/.mount_XXXXXX/resources/backend-dist/kirocrew-backend/bin/kirocrew' \
-  sandbox install-profile --path ~/Applications/kirocrew.AppImage
+'/tmp/.mount_XXXXXX/resources/backend-dist/junction-backend/bin/junction' \
+  sandbox install-profile --path ~/Applications/junction.AppImage
 ```
 
 Do **not** prefix that with `sudo`. The command elevates only the three steps
@@ -708,15 +708,15 @@ code with privilege for no reason.
 Then restart the app. To check whether the launch you are looking at is covered:
 
 ```bash
-kirocrew sandbox status
+junction sandbox status
 ```
 
-This writes `/etc/apparmor.d/kirocrew-launcher`, granting the same single
+This writes `/etc/apparmor.d/junction-launcher`, granting the same single
 `userns` permission — but **attached** to that executable path, which is how the
 kernel can apply it at exec time with no cooperation from the process. The
 backend the app spawns inherits it. It is the same mechanism stock Ubuntu uses
 for `/etc/apparmor.d/chrome`, `brave`, `1password` and `Discord`.
-`kirocrew sandbox remove-profile` unloads and removes it.
+`junction sandbox remove-profile` unloads and removes it.
 
 Three things the command refuses to do, because an attachment is a permission
 grant keyed on a path:
@@ -739,7 +739,7 @@ grant keyed on a path:
 
 Because the profile is attached to a path, **moving or renaming the AppImage
 silently stops it applying** — the kernel reports no error, the profile just
-never matches. `kirocrew sandbox status` detects that and names the stale path;
+never matches. `junction sandbox status` detects that and names the stale path;
 re-running `install-profile` re-points it. Replacing the file in place (an
 in-place update) keeps working, since the path is unchanged.
 
@@ -749,7 +749,7 @@ no correct profile to attach for a foreground run: the only executable involved
 is a shared Python interpreter, and attaching there would hand unprivileged user
 namespaces to every Python process on the machine.
 
-> Earlier versions of this page suggested `aa-exec -p kirocrew-userns -- kirocrew
+> Earlier versions of this page suggested `aa-exec -p junction-userns -- junction
 > gateway`. That does not work and has been removed. Entering a **named** profile
 > requires `aa_change_onexec`, which an unprivileged unconfined process is not
 > permitted to do, and `aa-exec` does not fail loudly when it cannot transition —
@@ -770,7 +770,7 @@ sandbox probe names the failing step so you can tell them apart:
 
 | Symptom | Mechanism | Remedy |
 |---|---|---|
-| `unshare(CLONE_NEWNS)` fails `EPERM`, sysctl is `1` | Ubuntu >= 23.10 AppArmor userns restriction | `junction service install`, or `kirocrew sandbox install-profile` for the AppImage (this page) |
+| `unshare(CLONE_NEWNS)` fails `EPERM`, sysctl is `1` | Ubuntu >= 23.10 AppArmor userns restriction | `junction service install`, or `junction sandbox install-profile` for the AppImage (this page) |
 | `unshare(CLONE_NEWUSER)` fails `ENOSPC` / `EUSERS` | `user.max_user_namespaces=0` (CIS-hardened host) | Raise that sysctl |
 | `unshare` fails and `kernel.unprivileged_userns_clone=0` | Debian-family legacy knob (defaults to 1 since Debian 11) | Set it to 1 |
 | `unshare` fails `EINVAL` / `ENOSYS` | Kernel built without `CONFIG_USER_NS` | None short of a different kernel |
@@ -781,7 +781,7 @@ To see which step is failing on your host:
 
 ```bash
 python3 -c "
-import kiro_crew.sandbox as sb
+import junction.sandbox as sb
 sb.reset_backend(); print(sb.detect_backend(), sb._last_unshare_failure)"
 ```
 
@@ -820,7 +820,7 @@ The `kiro-cli` backend did not answer in time. Five common causes:
    exports, so a gateway that works when run from your terminal can still time
    out as a service. Set the proxy variables on the unit with a
    [systemd drop-in](#setting-other-environment-variables-systemd-drop-in),
-   then `sudo systemctl daemon-reload && sudo systemctl restart kirocrew`.
+   then `sudo systemctl daemon-reload && sudo systemctl restart junction`.
    Agent sessions inherit the service environment, so this fixes them. One
    known gap: the first-run setup gate's login probe currently filters proxy
    variables out even when the unit carries them, so it can stay stuck on
@@ -833,7 +833,7 @@ section of `junction doctor`, which reports the model state and whether the
 model URL is reachable, and look for the GGUF under `~/.kiro/crew/models/`.
 Search falls back to keyword matching until the model lands, then switches over
 on its own with no restart. For an airgapped or firewalled host, point
-`KIROCREW_EMBED_MODEL_URL` at a mirror; the sha256 pin still verifies the file.
+`JUNCTION_EMBED_MODEL_URL` at a mirror; the sha256 pin still verifies the file.
 
 ### The gateway will not start
 
@@ -864,7 +864,7 @@ Then follow the section matching your install method.
 If an older `cli.sh` path used `pipx`:
 
 ```bash
-pipx uninstall kirocrew
+pipx uninstall junction
 ```
 
 ### Managed venv leftover
@@ -873,18 +873,18 @@ If an older `cli.sh` path created a managed venv and a symlink.
 Remove both:
 
 ```bash
-rm -f ~/.local/bin/kirocrew
-rm -rf "${KIROCREW_VENV:-${KIROCREW_HOME:-$HOME/.kiro/crew}-venv}"
+rm -f ~/.local/bin/junction
+rm -rf "${JUNCTION_VENV:-${JUNCTION_HOME:-$HOME/.kiro/crew}-venv}"
 ```
 
-If you set `KIROCREW_VENV` to a custom path, verify its contents before
+If you set `JUNCTION_VENV` to a custom path, verify its contents before
 removing it — `cli.sh` overlays that directory with venv files, and an `rm -rf`
 on a path you already used for something else will take that too.
 
 ### pip / pip wheel install
 
 ```bash
-pip uninstall kirocrew
+pip uninstall junction
 ```
 
 If installed in a dedicated virtualenv:
@@ -900,14 +900,14 @@ Remove the editable install and the build artifacts:
 ```bash
 # Chained so a failed `cd` (wrong path) can never run `rm -rf` in your current directory:
 cd /path/to/acpcrew \
-  && pip uninstall kirocrew \
+  && pip uninstall junction \
   && rm -rf .venv build dist   # editable install, local venv, and build outputs
 ```
 
 ### macOS desktop app (DMG / zip)
 
 1. Quit Junction from the menu bar or Dock.
-2. Drag **KiroCrew.app** from `/Applications` to the Trash (or `rm -rf`).
+2. Drag **Junction.app** from `/Applications` to the Trash (or `rm -rf`).
 
 There is no installer package or receipt to clean — the DMG is a drag-install.
 
@@ -916,7 +916,7 @@ There is no installer package or receipt to clean — the DMG is a drag-install.
 Delete the AppImage file wherever you placed it:
 
 ```bash
-rm -f ~/Applications/KiroCrew-x86_64.AppImage   # or wherever you saved it
+rm -f ~/Applications/Junction-x86_64.AppImage   # or wherever you saved it
 ```
 
 ### Windows (NSIS installer)
@@ -929,7 +929,7 @@ shortcuts but does not touch `~/.kiro/crew`.
 
 ```bash
 docker stop junction && docker rm junction   # graceful stop, then remove
-docker rmi ghcr.io/laqaer/kirocrew:stable # remove the image (match the tag you pulled)
+docker rmi ghcr.io/laqaer/junction:stable # remove the image (match the tag you pulled)
 ```
 
 `docker stop` sends SIGTERM and gives the gateway time to run its shutdown
@@ -947,8 +947,8 @@ all user data:
 # so a full copy of the data home is the only complete backup. Chained with
 # `&&` so a failed copy (e.g. disk full) blocks the delete rather than racing
 # ahead of it. Point the copy at a location you control OUTSIDE the data home:
-cp -a "${KIROCREW_HOME:-$HOME/.kiro/crew}" ~/kirocrew-backup \
-  && rm -rf "${KIROCREW_HOME:-$HOME/.kiro/crew}"
+cp -a "${JUNCTION_HOME:-$HOME/.kiro/crew}" ~/junction-backup \
+  && rm -rf "${JUNCTION_HOME:-$HOME/.kiro/crew}"
 ```
 
 The backup is a full copy of your credentials (`.env`), signing keys, and
@@ -960,8 +960,8 @@ This deletes configuration, credentials (`.env`), session history, memory
 databases, installed apps, and the embedding model cache.
 
 > **Docker:** the commands above target a host data home. A Docker install keeps
-> everything in the `kirocrew-home` named volume instead, so remove that rather
-> than `~/.kiro/crew`: `docker volume rm kirocrew-home` (or `docker compose down -v`).
+> everything in the `junction-home` named volume instead, so remove that rather
+> than `~/.kiro/crew`: `docker volume rm junction-home` (or `docker compose down -v`).
 
 > **Note:** App Kit data is preserved per-app by default. To remove an
 > individual app's data before or instead of purging the whole home:
@@ -979,11 +979,11 @@ junction stop                        # stop a foreground gateway (service uninst
 junction service uninstall 2>/dev/null
 
 # 2. Uninstall the binary (use the matching command from above)
-pipx uninstall kirocrew          # or: pip uninstall kirocrew, rm the AppImage, etc.
+pipx uninstall junction          # or: pip uninstall junction, rm the AppImage, etc.
 
 # 3. Back up and remove the data home (chained so a failed copy blocks the delete)
-cp -a "${KIROCREW_HOME:-$HOME/.kiro/crew}" ~/kirocrew-backup \
-  && rm -rf "${KIROCREW_HOME:-$HOME/.kiro/crew}"
+cp -a "${JUNCTION_HOME:-$HOME/.kiro/crew}" ~/junction-backup \
+  && rm -rf "${JUNCTION_HOME:-$HOME/.kiro/crew}"
 
 # 4. Reinstall from source (Junction has no public curl|sh CDN)
 git clone https://github.com/laqaer/junction.git && cd junction
@@ -1009,7 +1009,7 @@ For reference, the data home structure and what each uninstall path touches:
 - The macOS DMG/zip and the Linux AppImage have no cleanup hook, so removing the
   application bundle or image leaves the data home intact.
 - A Linux `.deb` / `.rpm` removal DOES run the package's own post-remove step,
-  which drops `/usr/bin/kirocrew-desktop` and the installed AppArmor profile. It
+  which drops `/usr/bin/junction-desktop` and the installed AppArmor profile. It
   deliberately leaves the data home alone: `~/.kiro/crew` holds your sessions,
   memory and credentials, so it is yours to remove (see
   [Removing user data](#removing-user-data)), not the package manager's.
@@ -1032,13 +1032,13 @@ sign-off is tracked in
 ## Next steps
 
 - [Slack setup](slack-setup.md): create and configure the Slack app.
-- Other channels: [Discord](../../src/kiro_crew/docs/discord-integration.md),
-  [Telegram](../../src/kiro_crew/docs/telegram-integration.md),
-  [Teams](../../src/kiro_crew/docs/teams-integration.md),
-  [Webex](../../src/kiro_crew/docs/webex-integration.md),
-  [WeCom](../../src/kiro_crew/docs/wecom-integration.md),
-  [WeChat](../../src/kiro_crew/docs/weixin-integration.md), and
-  [WhatsApp](../../src/kiro_crew/docs/whatsapp-integration.md).
+- Other channels: [Discord](../../src/junction/docs/discord-integration.md),
+  [Telegram](../../src/junction/docs/telegram-integration.md),
+  [Teams](../../src/junction/docs/teams-integration.md),
+  [Webex](../../src/junction/docs/webex-integration.md),
+  [WeCom](../../src/junction/docs/wecom-integration.md),
+  [WeChat](../../src/junction/docs/weixin-integration.md), and
+  [WhatsApp](../../src/junction/docs/whatsapp-integration.md).
 - [Remote and mobile access](remote-and-mobile.md): 24/7 operation on a remote
   host, and reaching the dashboard from a phone.
 - [Architecture overview](../architecture/overview.md): system diagrams and the

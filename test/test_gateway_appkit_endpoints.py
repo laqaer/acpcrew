@@ -23,20 +23,20 @@ from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app as _make_chat_app
 from chat_test_helpers import _make_state as _make_chat_state
 
-from kiro_crew.apps.manager import APP_MANIFEST_FILENAME
-from kiro_crew.apps.routes import register_app_routes
-from kiro_crew.dashboard import chat_persistence, chat_runner
-from kiro_crew.dashboard.chat import api_chat_slot_context, api_chat_slot_note
-from kiro_crew.dashboard.chat_handlers import _MAX_DEFERRED_NOTES
-from kiro_crew.dashboard.chat_persistence import save_slot_off_loop
-from kiro_crew.dashboard.chat_runner import drain_pending_context
-from kiro_crew.dashboard.chat_utils import (
+from junction.apps.manager import APP_MANIFEST_FILENAME
+from junction.apps.routes import register_app_routes
+from junction.dashboard import chat_persistence, chat_runner
+from junction.dashboard.chat import api_chat_slot_context, api_chat_slot_note
+from junction.dashboard.chat_handlers import _MAX_DEFERRED_NOTES
+from junction.dashboard.chat_persistence import save_slot_off_loop
+from junction.dashboard.chat_runner import drain_pending_context
+from junction.dashboard.chat_utils import (
     _history_key_for,
     effective_session_key,
     slot_history_key,
 )
-from kiro_crew.dashboard.handlers import api_mcp_server_detail
-from kiro_crew.dashboard.state import _MAX_PENDING_CONTEXT, DashboardState, _ChatSlot
+from junction.dashboard.handlers import api_mcp_server_detail
+from junction.dashboard.state import _MAX_PENDING_CONTEXT, DashboardState, _ChatSlot
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -50,15 +50,15 @@ def mcp_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     mcp_json.parent.mkdir(parents=True)
     mcp_json.write_text('{"mcpServers": {}}')
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.mcp._GLOBAL_MCP_JSON", mcp_json
+        "junction.dashboard.handlers.mcp._GLOBAL_MCP_JSON", mcp_json
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.mcp._MCP_LOCK_PATH",
+        "junction.dashboard.handlers.mcp._MCP_LOCK_PATH",
         mcp_json.with_suffix(".lock"),
     )
     # Stub _sync_mcp_to_agent to avoid touching real agent config
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.mcp._sync_mcp_to_agent",
+        "junction.dashboard.handlers.mcp._sync_mcp_to_agent",
         lambda *a, **kw: None,
     )
     return mcp_json
@@ -67,9 +67,9 @@ def mcp_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.fixture()
 def app_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Set up a temp app environment with a test app installed."""
-    home = tmp_path / "kirocrew-home"
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     # Create a test app
     app_dir = home / "apps" / "test-app"
     app_dir.mkdir(parents=True)
@@ -87,15 +87,15 @@ def app_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         "version": "1.0.0",
         "displayName": "Test App",
         "enabled": True,
-        "managed": "kirocrew",
+        "managed": "junction",
     }
     (app_dir / "installed.json").write_text(json.dumps(installed))
     # Stub bridges to avoid touching real kiro agents dir
-    import kiro_crew.apps.bridges as bridges_mod
+    import junction.apps.bridges as bridges_mod
     kiro_agents = tmp_path / "kiro-agents"
     kiro_agents.mkdir()
     monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
-    import kiro_crew.apps.backend as bmod
+    import junction.apps.backend as bmod
     bmod._processes.clear()
     bmod._allocated_ports.clear()
     return home
@@ -508,7 +508,7 @@ class TestContextDrain:
         frame changed underneath it — e.g. the #4780 silent-consumption
         contract line would never have shown up here).
         """
-        from kiro_crew.dashboard.chat_runner import (
+        from junction.dashboard.chat_runner import (
             _CONTEXT_FRAME_CONTRACT,
             drain_pending_context,
         )
@@ -600,9 +600,9 @@ class TestReverseProxy:
     @pytest.fixture(autouse=True)
     def _proxy_env(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         """Set up a temp environment for proxy tests."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         # Create a test app with a secret
         app_dir = home / "apps" / "proxy-app"
         app_dir.mkdir(parents=True)
@@ -628,15 +628,15 @@ class TestReverseProxy:
         }
         (app_dir / "installed.json").write_text(json.dumps(installed))
         # Stub bridges
-        import kiro_crew.apps.bridges as bridges_mod
+        import junction.apps.bridges as bridges_mod
         kiro_agents = tmp_path / "kiro-agents"
         kiro_agents.mkdir()
         monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
         bmod._processes.clear()
         bmod._allocated_ports.clear()
         # Clear secret cache
-        from kiro_crew.apps.routes import _app_secret_cache
+        from junction.apps.routes import _app_secret_cache
         _app_secret_cache.clear()
         self._home = home
 
@@ -657,7 +657,7 @@ class TestReverseProxy:
         """
         from unittest.mock import MagicMock
 
-        from kiro_crew.apps.routes import handle_app_api_proxy
+        from junction.apps.routes import handle_app_api_proxy
 
         request = MagicMock()
         request.match_info = {"name": "proxy-app", "path": "foo/../etc/passwd"}
@@ -682,7 +682,7 @@ class TestReverseProxy:
         """
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.routes import handle_app_api_proxy
+        from junction.apps.routes import handle_app_api_proxy
 
         # Flip the fixture's app to disabled; everything else stays valid.
         installed_path = self._home / "apps" / "proxy-app" / "installed.json"
@@ -695,7 +695,7 @@ class TestReverseProxy:
         request.match_info = {"name": "proxy-app", "path": "health"}
         request.get = lambda key, default="": default   # dashboard caller, not an app
 
-        with patch("kiro_crew.apps.routes.sel") as mock_sel:
+        with patch("junction.apps.routes.sel") as mock_sel:
             resp = await handle_app_api_proxy(request)
 
         assert resp.status == 403, f"expected 403, got {resp.status}"
@@ -725,7 +725,7 @@ class TestReverseProxy:
         """
         from unittest.mock import MagicMock
 
-        from kiro_crew.apps.routes import handle_app_api_proxy
+        from junction.apps.routes import handle_app_api_proxy
 
         meta = json.loads((self._home / "apps" / "proxy-app" / "installed.json").read_text())
         assert meta["enabled"] is True
@@ -745,7 +745,7 @@ class TestReverseProxy:
         (CWE-269 cross-app guard). Called directly with a crafted request."""
         from unittest.mock import MagicMock
 
-        from kiro_crew.apps.routes import handle_app_api_proxy
+        from junction.apps.routes import handle_app_api_proxy
 
         request = MagicMock()
         request.match_info = {"name": "proxy-app", "path": "health"}
@@ -763,8 +763,8 @@ class TestReverseProxy:
         PAST the 403 guard without exercising the header-forwarding path."""
         from unittest.mock import MagicMock
 
-        import kiro_crew.apps.routes as rmod
-        from kiro_crew.apps.routes import handle_app_api_proxy
+        import junction.apps.routes as rmod
+        from junction.apps.routes import handle_app_api_proxy
 
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: "")
         request = MagicMock()
@@ -792,7 +792,7 @@ class TestReverseProxy:
             "schemaVersion": 2,
         }
         (app_dir / "installed.json").write_text(json.dumps(installed))
-        import kiro_crew.apps.routes as rmod
+        import junction.apps.routes as rmod
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: "http://127.0.0.1:19999")
         # Clear cache so the missing secret is detected
         rmod._app_secret_cache.clear()
@@ -806,7 +806,7 @@ class TestReverseProxy:
     @pytest.mark.asyncio
     async def test_backend_unreachable_returns_502(self, monkeypatch):
         """Proxy to unreachable backend returns 502."""
-        import kiro_crew.apps.routes as rmod
+        import junction.apps.routes as rmod
 
         # Point to a port that's definitely not listening
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: "http://127.0.0.1:19999")
@@ -819,7 +819,7 @@ class TestReverseProxy:
 
     @pytest.mark.asyncio
     async def test_hmac_header_present_and_valid(self, monkeypatch):
-        """Proxy request includes X-KiroCrew-Proxy with valid HMAC."""
+        """Proxy request includes X-Junction-Proxy with valid HMAC."""
         import hashlib
         import hmac as _hmac
 
@@ -839,7 +839,7 @@ class TestReverseProxy:
         await site.start()
         port = runner.addresses[0][1]
 
-        import kiro_crew.apps.routes as rmod
+        import junction.apps.routes as rmod
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: f"http://127.0.0.1:{port}")
 
         try:
@@ -848,8 +848,8 @@ class TestReverseProxy:
                 assert resp.status == 200
 
             # Verify HMAC header was forwarded
-            proxy_header = received_headers.get("x-kirocrew-proxy", "")
-            assert proxy_header, "X-KiroCrew-Proxy header missing"
+            proxy_header = received_headers.get("x-junction-proxy", "")
+            assert proxy_header, "X-Junction-Proxy header missing"
             assert ":" in proxy_header
 
             ts, sig = proxy_header.split(":", 1)
@@ -888,7 +888,7 @@ class TestReverseProxy:
         await site.start()
         port = runner.addresses[0][1]
 
-        import kiro_crew.apps.routes as rmod
+        import junction.apps.routes as rmod
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: f"http://127.0.0.1:{port}")
 
         try:
@@ -902,7 +902,7 @@ class TestReverseProxy:
 
             # Verify HMAC includes query string — proxy preserves /api/
             # prefix in forwarded path, so msg includes it.
-            proxy_header = received_headers.get("x-kirocrew-proxy", "")
+            proxy_header = received_headers.get("x-junction-proxy", "")
             ts, sig = proxy_header.split(":", 1)
             empty_body_hash = hashlib.sha256(b"").hexdigest()
             msg = f"{ts}:GET:/api/data?user=alice&limit=10:" + empty_body_hash
@@ -923,14 +923,14 @@ class TestReverseProxy:
     @pytest.mark.asyncio
     async def test_hmac_includes_percent_encoded_query_string_with_spaces(self, monkeypatch):
         """HMAC signature correctly signs percent-encoded query parameters (spaces, #, non-ASCII)."""
-        from kiro_crew.apps.proxy_auth import verify_proxy_request
+        from junction.apps.proxy_auth import verify_proxy_request
 
         received_headers: dict[str, str] = {}
 
         async def echo_handler(request: web.Request) -> web.Response:
             for k, v in request.headers.items():
                 received_headers[k.lower()] = v
-            auth_hdr = request.headers.get("x-kirocrew-proxy", "")
+            auth_hdr = request.headers.get("x-junction-proxy", "")
             verified = verify_proxy_request(
                 auth_hdr,
                 method=request.method,
@@ -950,7 +950,7 @@ class TestReverseProxy:
         await site.start()
         port = runner.addresses[0][1]
 
-        import kiro_crew.apps.routes as rmod
+        import junction.apps.routes as rmod
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: f"http://127.0.0.1:{port}")
 
         try:
@@ -987,7 +987,7 @@ class TestReverseProxy:
         await site.start()
         port = runner.addresses[0][1]
 
-        import kiro_crew.apps.routes as rmod
+        import junction.apps.routes as rmod
         monkeypatch.setattr(rmod, "_resolve_app_backend_url", lambda name: f"http://127.0.0.1:{port}")
 
         body_bytes = b'{"hello": "world", "n": 42}'
@@ -996,8 +996,8 @@ class TestReverseProxy:
                 resp = await client.post("/apps/proxy-app/api/echo", data=body_bytes)
                 assert resp.status == 200
 
-            proxy_header = received_headers.get("x-kirocrew-proxy", "")
-            assert proxy_header, "X-KiroCrew-Proxy header missing"
+            proxy_header = received_headers.get("x-junction-proxy", "")
+            assert proxy_header, "X-Junction-Proxy header missing"
             ts, sig = proxy_header.split(":", 1)
 
             # Signature binds sha256 of the actual (non-empty) body.
@@ -1033,10 +1033,10 @@ class TestSSRFGuard:
 
     def test_rejects_gateway_own_port(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         """Backend URL pointing to gateway's own port is rejected."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
-        monkeypatch.setenv("KIROCREW_PORT", "5476")
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_PORT", "5476")
 
         app_dir = home / "apps" / "evil-app"
         app_dir.mkdir(parents=True)
@@ -1056,20 +1056,20 @@ class TestSSRFGuard:
         }
         (app_dir / "installed.json").write_text(json.dumps(installed))
 
-        import kiro_crew.apps.bridges as bridges_mod
+        import junction.apps.bridges as bridges_mod
         kiro_agents = tmp_path / "kiro-agents"
         kiro_agents.mkdir(exist_ok=True)
         monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
 
-        from kiro_crew.apps.routes import _resolve_app_backend_url
+        from junction.apps.routes import _resolve_app_backend_url
         result = _resolve_app_backend_url("evil-app")
         assert result is None, f"Expected None for self-referential URL, got {result}"
 
     def test_rejects_non_loopback(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         """Backend URL pointing to external host is rejected."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
 
         app_dir = home / "apps" / "ext-app"
         app_dir.mkdir(parents=True)
@@ -1089,21 +1089,21 @@ class TestSSRFGuard:
         }
         (app_dir / "installed.json").write_text(json.dumps(installed))
 
-        import kiro_crew.apps.bridges as bridges_mod
+        import junction.apps.bridges as bridges_mod
         kiro_agents = tmp_path / "kiro-agents"
         kiro_agents.mkdir(exist_ok=True)
         monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
 
-        from kiro_crew.apps.routes import _resolve_app_backend_url
+        from junction.apps.routes import _resolve_app_backend_url
         result = _resolve_app_backend_url("ext-app")
         assert result is None, f"Expected None for non-loopback URL, got {result}"
 
     def test_allows_valid_loopback(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         """Backend URL on loopback with non-gateway port is allowed."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
-        monkeypatch.setenv("KIROCREW_PORT", "5476")
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_PORT", "5476")
 
         app_dir = home / "apps" / "good-app"
         app_dir.mkdir(parents=True)
@@ -1123,12 +1123,12 @@ class TestSSRFGuard:
         }
         (app_dir / "installed.json").write_text(json.dumps(installed))
 
-        import kiro_crew.apps.bridges as bridges_mod
+        import junction.apps.bridges as bridges_mod
         kiro_agents = tmp_path / "kiro-agents"
         kiro_agents.mkdir(exist_ok=True)
         monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
 
-        from kiro_crew.apps.routes import _resolve_app_backend_url
+        from junction.apps.routes import _resolve_app_backend_url
         result = _resolve_app_backend_url("good-app")
         assert result == "http://127.0.0.1:8080"
 
@@ -2307,7 +2307,7 @@ class TestNoteEndpoint:
         app.router.add_post("/api/chat/slots/{slot}/context", api_chat_slot_context)
         events: list[dict] = []
         with patch(
-            "kiro_crew.dashboard.chat_handlers.sel",
+            "junction.dashboard.chat_handlers.sel",
             lambda: SimpleNamespace(log_api_access=lambda **kw: events.append(kw)),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -2444,7 +2444,7 @@ class TestNoteEndpoint:
         """
         import inspect
 
-        from kiro_crew.dashboard import chat_orchestrator, chat_runner
+        from junction.dashboard import chat_orchestrator, chat_runner
 
         queued = inspect.getsource(chat_runner._start_next_queued_turn)
         assert "flush_deferred_notes" in queued
@@ -2476,9 +2476,9 @@ class TestNoteEndpoint:
         flush above that drain. Draining is the mechanism by which a successor
         starts, so a sixth seam is caught wherever it is added.
         """
-        import kiro_crew
+        import junction
 
-        root = Path(kiro_crew.__file__).resolve().parent
+        root = Path(junction.__file__).resolve().parent
         found: list[tuple[str, str, bool]] = []
         for path in sorted(root.rglob("*.py")):
             if "__pycache__" in path.parts:
@@ -2675,7 +2675,7 @@ class TestNoteEndpoint:
         """
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.dashboard.chat_handlers import _reset_slot_session
+        from junction.dashboard.chat_handlers import _reset_slot_session
 
         state = _make_state(tmp_path)
         slot = _ChatSlot("s1")
@@ -2731,7 +2731,7 @@ class TestNoteEndpoint:
                 return {"content": "x"}
 
         with patch(
-            "kiro_crew.dashboard.chat_handlers.sel",
+            "junction.dashboard.chat_handlers.sel",
             lambda: SimpleNamespace(log_api_access=lambda **kw: events.append(kw)),
         ):
             resp = await api_chat_slot_note(_Req())
@@ -2795,10 +2795,10 @@ class TestNoteEndpoint:
         """
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.chat import _stage_loop
+        from junction.dashboard.chat import _stage_loop
 
         for module in ("state", "chat", "chat_orchestrator"):
-            monkeypatch.setattr(f"kiro_crew.dashboard.{module}.config_dir", lambda: tmp_path)
+            monkeypatch.setattr(f"junction.dashboard.{module}.config_dir", lambda: tmp_path)
 
         state = MagicMock()
         state.broadcast_ws = MagicMock()
@@ -2822,7 +2822,7 @@ class TestNoteEndpoint:
             slot.task = asyncio.get_running_loop().create_future()
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat
+            "junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat
         )
 
         await _stage_loop(state, slot, auto_run=True)
@@ -2841,10 +2841,10 @@ class TestNoteEndpoint:
         """A slot mid-plan, wired the way api_chat_plan_action wires one."""
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.chat_orchestrator import OrchestrationTracker
+        from junction.dashboard.chat_orchestrator import OrchestrationTracker
 
         for module in ("state", "chat", "chat_orchestrator"):
-            monkeypatch.setattr(f"kiro_crew.dashboard.{module}.config_dir", lambda: tmp_path)
+            monkeypatch.setattr(f"junction.dashboard.{module}.config_dir", lambda: tmp_path)
 
         state = MagicMock()
         state.broadcast_ws = MagicMock()
@@ -2873,8 +2873,8 @@ class TestNoteEndpoint:
         the note was dropped. On cancellation the slot is then saved closed, so
         that drop is permanent.
         """
-        from kiro_crew.dashboard import chat_orchestrator
-        from kiro_crew.dashboard.chat import _stage_loop
+        from junction.dashboard import chat_orchestrator
+        from junction.dashboard.chat import _stage_loop
 
         state, slot = self._stage_slot(tmp_path, monkeypatch)
         started = asyncio.Event()
@@ -2911,8 +2911,8 @@ class TestNoteEndpoint:
         ``_cancelled`` false -- which is why the fix keys on who owns the task
         rather than on that flag.
         """
-        from kiro_crew.dashboard import chat_orchestrator
-        from kiro_crew.dashboard.chat import _stage_loop
+        from junction.dashboard import chat_orchestrator
+        from junction.dashboard.chat import _stage_loop
 
         state, slot = self._stage_slot(tmp_path, monkeypatch, timeout=1)
 
@@ -2996,7 +2996,7 @@ class TestAutomaticSuccessorsDoNotConsumeNotes:
         """
         import inspect
 
-        from kiro_crew.dashboard import chat_orchestrator
+        from junction.dashboard import chat_orchestrator
 
         src = inspect.getsource(chat_orchestrator._stage_loop)
         assert src.count("flush_deferred_notes") == 1
@@ -3041,7 +3041,7 @@ class TestImmediateNoteSessionBinding:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
         """Neither half may reach the session the slot is rebound to."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_chat_state(tmp_path)
         slot = _ChatSlot("cron-42")
         slot._app = "owner-app"
@@ -3072,7 +3072,7 @@ class TestImmediateNoteSessionBinding:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
         """Control: the guard drops ONLY content whose session actually changed."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_chat_state(tmp_path)
         slot = _ChatSlot("cron-42")
         slot._app = "owner-app"
@@ -3101,7 +3101,7 @@ class TestImmediateNoteSessionBinding:
         rebind the slot, so reading the routing twice authorizes the row against
         one session and then writes the file of another.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_chat_state(tmp_path)
         slot = _ChatSlot("cron-42")
         slot._app = "owner-app"
@@ -3168,9 +3168,9 @@ class TestCleanupPersistsHeldNotes:
         context reaches nobody. The visible row survives either way, which is why
         the sibling test above cannot see this.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr(
-            "kiro_crew.autonudge.get_instance",
+            "junction.autonudge.get_instance",
             lambda: MagicMock(list_all=MagicMock(return_value=[])),
         )
         state = _make_chat_state(tmp_path)
@@ -3228,9 +3228,9 @@ class TestCleanupPersistsHeldNotes:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
         """A note accepted with 200 must be in the archived record."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr(
-            "kiro_crew.autonudge.get_instance",
+            "junction.autonudge.get_instance",
             lambda: MagicMock(list_all=MagicMock(return_value=[])),
         )
         state = _make_chat_state(tmp_path)
@@ -3286,9 +3286,9 @@ class TestCleanupPersistsHeldNotes:
         saying so. Reverting the cancel is not the fix: it would delete the bulk
         cleanup's only flush, which the sibling tests above pin.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr(
-            "kiro_crew.autonudge.get_instance",
+            "junction.autonudge.get_instance",
             lambda: MagicMock(list_all=MagicMock(return_value=[])),
         )
         state = _make_chat_state(tmp_path)
@@ -3305,7 +3305,7 @@ class TestCleanupPersistsHeldNotes:
 
         try:
             with patch(
-                "kiro_crew.dashboard.chat_handlers.save_slot_off_loop", new=_failing_save
+                "junction.dashboard.chat_handlers.save_slot_off_loop", new=_failing_save
             ):
                 async with self._make_client(state) as client:
                     resp = await client.post(
@@ -3347,7 +3347,7 @@ class TestPersistenceRebindDenialIsAudited:
     ):
         from types import SimpleNamespace
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_chat_state(tmp_path)
         slot = _ChatSlot("s1")
         state._slots["s1"] = slot
@@ -3365,7 +3365,7 @@ class TestPersistenceRebindDenialIsAudited:
         events: list[dict] = []
 
         with patch(
-            "kiro_crew.dashboard.chat_persistence.sel",
+            "junction.dashboard.chat_persistence.sel",
             lambda: SimpleNamespace(log_api_access=lambda **kw: events.append(kw)),
         ):
             chat_persistence._save_slot_to_history(state, slot, messages=window, force=True)
@@ -3398,7 +3398,7 @@ class TestPersistenceRebindDenialIsAudited:
         """Count-gated: this is the periodic path, so a clean save must stay silent."""
         from types import SimpleNamespace
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_chat_state(tmp_path)
         slot = _ChatSlot("s2")
         state._slots["s2"] = slot
@@ -3408,7 +3408,7 @@ class TestPersistenceRebindDenialIsAudited:
         events: list[dict] = []
 
         with patch(
-            "kiro_crew.dashboard.chat_persistence.sel",
+            "junction.dashboard.chat_persistence.sel",
             lambda: SimpleNamespace(log_api_access=lambda **kw: events.append(kw)),
         ):
             chat_persistence._save_slot_to_history(state, slot, messages=window, force=True)
@@ -3423,19 +3423,19 @@ class TestUninstallAppSourcesCleanup:
 
     @pytest.fixture(autouse=True)
     def _uninstall_env(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         # Stub bridges
-        import kiro_crew.apps.bridges as bridges_mod
+        import junction.apps.bridges as bridges_mod
         kiro_agents = tmp_path / "kiro-agents"
         kiro_agents.mkdir()
         monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
         bmod._processes.clear()
         bmod._allocated_ports.clear()
         # Clear secret cache
-        from kiro_crew.apps.routes import _app_secret_cache
+        from junction.apps.routes import _app_secret_cache
         _app_secret_cache.clear()
         self._home = home
 
@@ -3523,7 +3523,7 @@ class TestStreamingLogLines:
     the streaming install endpoint."""
 
     def test_append_pushes_to_queue(self) -> None:
-        from kiro_crew.apps.registry import StreamingLogLines
+        from junction.apps.registry import StreamingLogLines
         q: asyncio.Queue[str | None] = asyncio.Queue()
         sl = StreamingLogLines(q)
         sl.append("line 1")
@@ -3534,7 +3534,7 @@ class TestStreamingLogLines:
         assert q.get_nowait() == "line 2"
 
     def test_extend_pushes_each_line(self) -> None:
-        from kiro_crew.apps.registry import StreamingLogLines
+        from junction.apps.registry import StreamingLogLines
         q: asyncio.Queue[str | None] = asyncio.Queue()
         sl = StreamingLogLines(q)
         sl.extend(["a", "b", "c"])
@@ -3542,7 +3542,7 @@ class TestStreamingLogLines:
         assert q.qsize() == 3
 
     def test_join_works_like_plain_list(self) -> None:
-        from kiro_crew.apps.registry import StreamingLogLines
+        from junction.apps.registry import StreamingLogLines
         q: asyncio.Queue[str | None] = asyncio.Queue()
         sl = StreamingLogLines(q)
         sl.append("hello")
@@ -3551,7 +3551,7 @@ class TestStreamingLogLines:
 
     def test_full_queue_does_not_raise(self) -> None:
         """When the queue is full, append should silently drop (not block)."""
-        from kiro_crew.apps.registry import StreamingLogLines
+        from junction.apps.registry import StreamingLogLines
         q: asyncio.Queue[str | None] = asyncio.Queue(maxsize=1)
         sl = StreamingLogLines(q)
         sl.append("first")   # fills the queue
@@ -3560,7 +3560,7 @@ class TestStreamingLogLines:
         assert q.qsize() == 1  # only first made it
 
     def test_empty_list_join(self) -> None:
-        from kiro_crew.apps.registry import StreamingLogLines
+        from junction.apps.registry import StreamingLogLines
         q: asyncio.Queue[str | None] = asyncio.Queue()
         sl = StreamingLogLines(q)
         assert "\n".join(sl) == ""
@@ -3617,7 +3617,7 @@ class TestRegistryInstallStream:
         the companion test below pins separately.
         """
         monkeypatch.setattr(
-            "kiro_crew.apps.official_catalog.inventory_for_install",
+            "junction.apps.official_catalog.inventory_for_install",
             lambda name: None,
         )
         async with self._make_client() as client:
@@ -3644,7 +3644,7 @@ class TestRegistryInstallStream:
         coordinates. Both branches are now deterministic instead of being
         selected by the CI runner's live network (#4236).
         """
-        from kiro_crew.apps import official_catalog
+        from junction.apps import official_catalog
 
         def _outage(name: str) -> None:
             raise official_catalog.CatalogUnavailable(
@@ -3652,7 +3652,7 @@ class TestRegistryInstallStream:
             )
 
         monkeypatch.setattr(
-            "kiro_crew.apps.official_catalog.inventory_for_install", _outage,
+            "junction.apps.official_catalog.inventory_for_install", _outage,
         )
         async with self._make_client() as client:
             resp = await client.post(
@@ -3686,11 +3686,11 @@ class TestRegistryInstallStream:
             }
 
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.install_from_registry", _fake_install,
+            "junction.apps.routes.install_from_registry", _fake_install,
         )
         # Stub register_app to avoid touching real bridges
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.register_app",
+            "junction.apps.routes.register_app",
             lambda name: type("R", (), {"to_dict": lambda self: {"ok": True}})(),
         )
 
@@ -3724,7 +3724,7 @@ class TestRegistryInstallStream:
             return {"ok": False, "name": name, "error": "build failed", "log": "\n".join(log_lines or [])}
 
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.install_from_registry", _fake_install,
+            "junction.apps.routes.install_from_registry", _fake_install,
         )
 
         async with self._make_client() as client:
@@ -3754,7 +3754,7 @@ class TestRegistryInstallStream:
             }
 
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.install_from_registry", _fake_install,
+            "junction.apps.routes.install_from_registry", _fake_install,
         )
 
         async with self._make_client() as client:
@@ -3778,7 +3778,7 @@ class TestRegistryInstallStream:
             raise RuntimeError("unexpected crash")
 
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.install_from_registry", _fake_install,
+            "junction.apps.routes.install_from_registry", _fake_install,
         )
 
         async with self._make_client() as client:
@@ -3808,7 +3808,7 @@ class TestInstallFromRegistryLogLines:
         verdict depends on the runner's network.
         """
         monkeypatch.setattr(
-            "kiro_crew.apps.official_catalog.inventory_for_install",
+            "junction.apps.official_catalog.inventory_for_install",
             lambda name: None,
         )
 
@@ -3816,7 +3816,7 @@ class TestInstallFromRegistryLogLines:
     async def test_custom_log_lines_receives_entries(self) -> None:
         """When a custom log_lines is passed, it should receive entries
         (even if the install fails early due to missing registry entry)."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
         custom: list[str] = []
         result = await install_from_registry("nonexistent", log_lines=custom)
         assert result["ok"] is False
@@ -3827,7 +3827,7 @@ class TestInstallFromRegistryLogLines:
     @pytest.mark.asyncio
     async def test_default_log_lines_is_plain_list(self) -> None:
         """When log_lines is not passed, a plain list is used internally."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
         result = await install_from_registry("nonexistent")
         assert result["ok"] is False
         assert "not found" in result.get("error", "")
@@ -3866,10 +3866,10 @@ class TestRegistryInstallStreamSecurity:
             return {"ok": True, "name": name, "message": "ok", "log": "\n".join(log_lines or [])}
 
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.install_from_registry", _fake_install,
+            "junction.apps.routes.install_from_registry", _fake_install,
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.register_app",
+            "junction.apps.routes.register_app",
             lambda name: type("R", (), {"to_dict": lambda self: {"ok": True}})(),
         )
 
@@ -3905,10 +3905,10 @@ class TestRegistryInstallStreamSecurity:
             return {"ok": True, "name": name, "message": "ok", "log": "\n".join(log_lines or [])}
 
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.install_from_registry", _fake_install,
+            "junction.apps.routes.install_from_registry", _fake_install,
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.routes.register_app",
+            "junction.apps.routes.register_app",
             lambda name: type("R", (), {"to_dict": lambda self: {"ok": True}})(),
         )
 

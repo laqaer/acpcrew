@@ -1,7 +1,7 @@
 """Tests for session storage measurement and the trash/restore cycle.
 
 Both stores are addressed through their real resolvers by pointing
-``KIROCREW_HOME`` and ``KIRO_HOME`` at temp directories, rather than patching the
+``JUNCTION_HOME`` and ``KIRO_HOME`` at temp directories, rather than patching the
 module's bound names, so the tests exercise the same path resolution the product
 uses and a change to where either store lives fails here.
 
@@ -19,10 +19,10 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import session_storage
-from kiro_crew.config import paths
-from kiro_crew.history import transcript_stem
-from kiro_crew.session_storage import SessionIndex, SessionStorageError
+from junction import session_storage
+from junction.config import paths
+from junction.history import transcript_stem
+from junction.session_storage import SessionIndex, SessionStorageError
 
 _NOW = 1_700_000_000.0
 _DAY = 86400.0
@@ -54,7 +54,7 @@ def stores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]
     kiro_home = crew_home / "kiro"
     (crew_home / "sessions" / "archive").mkdir(parents=True)
     (kiro_home / "sessions" / "cli").mkdir(parents=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+    monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
     monkeypatch.setenv("KIRO_HOME", str(kiro_home))
     return crew_home, kiro_home
 
@@ -879,7 +879,7 @@ class TestScanCache:
         first = tmp_path / "home-a"
         (first / "sessions").mkdir(parents=True)
         (first / "kiro" / "sessions" / "cli").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_HOME", str(first))
+        monkeypatch.setenv("JUNCTION_HOME", str(first))
         monkeypatch.setenv("KIRO_HOME", str(first / "kiro"))
         _cli_half(first / "kiro", "aaaa1111", log_bytes=32, age_days=40)
         assert len(session_storage.list_units(_index())) == 1
@@ -887,7 +887,7 @@ class TestScanCache:
         second = tmp_path / "home-b"
         (second / "sessions").mkdir(parents=True)
         (second / "kiro" / "sessions" / "cli").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_HOME", str(second))
+        monkeypatch.setenv("JUNCTION_HOME", str(second))
         monkeypatch.setenv("KIRO_HOME", str(second / "kiro"))
 
         assert session_storage.list_units(_index()) == [], "an empty store must read as empty"
@@ -934,7 +934,7 @@ class TestSharedStoreRefusal:
     ) -> None:
         crew_home = tmp_path / "crew"
         (crew_home / "sessions").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
         monkeypatch.delenv("KIRO_HOME", raising=False)
 
         assert session_storage.reclaim_block_reason() != ""
@@ -948,11 +948,11 @@ class TestSharedStoreRefusal:
     def test_isolating_neither_home_is_allowed(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         # The co-tenant check reads the pod root, which is real host state — point it
         # at an empty dir so this asserts the guard and not the developer's machine.
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         # Pin the default home rather than clearing the memo. Clearing it makes the
         # next data_home() RE-RESOLVE, which on a real machine initializes or
         # migrates the operator's actual data home — and leaves that resolution
@@ -971,9 +971,9 @@ class TestSharedStoreRefusal:
         refused every pre-migration install — including the machine this feature
         was measured on.
         """
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         monkeypatch.setattr(paths, "_resolved_home", paths.legacy_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
 
@@ -987,7 +987,7 @@ class TestSharedStoreRefusal:
         crew_home.mkdir()
         shared_store = tmp_path / "shared-kiro"
         shared_store.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
         monkeypatch.setenv("KIRO_HOME", str(shared_store))
 
         # Not the DEFAULT store, so a default-location test would pass it — and
@@ -1002,7 +1002,7 @@ class TestSharedStoreRefusal:
         crew_home.mkdir()
         own_store = crew_home / "kiro"
         own_store.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
         monkeypatch.setenv("KIRO_HOME", str(own_store))
 
         assert session_storage.reclaim_block_reason() == ""
@@ -1081,8 +1081,8 @@ class TestSharedStoreRefusal:
         (pod / "session_map.json").write_text(
             json.dumps({"dashboard:chat-1": {"sid": "podsid01"}}), encoding="utf-8"
         )
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
@@ -1109,8 +1109,8 @@ class TestSharedStoreRefusal:
         (pod / "session_map.json").write_text(
             json.dumps({"dashboard:chat-1": {"sid": "sharedsid1"}}), encoding="utf-8"
         )
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
@@ -1135,8 +1135,8 @@ class TestSharedStoreRefusal:
         (pod_root / "wt-long-gone").mkdir(parents=True)
         # What an evicted pod leaves behind: its audit log, and no session map.
         (pod_root / "wt-long-gone" / "security_events.jsonl").write_text("", encoding="utf-8")
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
@@ -1164,8 +1164,8 @@ class TestSharedStoreRefusal:
         (pod / "session_map.json").write_text(
             json.dumps({"dashboard:chat-1": "legacysid01"}), encoding="utf-8"
         )
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
@@ -1237,7 +1237,7 @@ class TestSharedStoreRefusal:
         pod = pod_root / "wt-symlinked"
         pod.mkdir(parents=True)
         (pod / "session_map.json").symlink_to(secret)
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
 
         def refuse_everything(resolved: str) -> bool:
             return Path(resolved) == secret
@@ -1269,7 +1269,7 @@ class TestSharedStoreRefusal:
         pod = pod_root / "wt-binary"
         pod.mkdir(parents=True)
         (pod / "session_map.json").write_bytes(b"\xff\xfe{\x00")
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
 
         protected, refusals = session_storage.cotenant_sids()
 
@@ -1291,8 +1291,8 @@ class TestSharedStoreRefusal:
         pod = pod_root / "wt-corrupt"
         pod.mkdir(parents=True)
         (pod / "session_map.json").write_text("{not json", encoding="utf-8")
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pod_root))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pod_root))
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
@@ -1324,8 +1324,8 @@ class TestSharedStoreRefusal:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A normal single install must not be refused by the co-tenant check."""
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "no-pods-here"))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "no-pods-here"))
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.delenv("KIRO_HOME", raising=False)
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
@@ -1505,7 +1505,7 @@ class TestSharedStoreRefusal:
         """An unsafe override is silently rejected, so presence proves nothing."""
         crew_home = tmp_path / "crew3"
         (crew_home / "sessions").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
         # A filesystem/drive root is refused on EVERY platform (a root is its own
         # parent). A POSIX system directory like /etc is not portable: on Windows it
         # resolves to C:\etc, which the validator accepts, so the override would be
@@ -1590,7 +1590,7 @@ class TestSharedStoreRefusal:
         """A client must be able to explain instead of offering a doomed button."""
         crew_home = tmp_path / "crew2"
         (crew_home / "sessions").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
         monkeypatch.delenv("KIRO_HOME", raising=False)
 
         report = session_storage.measure(_index(), now=_NOW)
@@ -1643,7 +1643,7 @@ class TestBuckets:
 
 class TestTrashAccounting:
     def test_missing_stores_report_zero(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "absent-crew"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "absent-crew"))
         monkeypatch.setenv("KIRO_HOME", str(tmp_path / "absent-kiro"))
 
         report = session_storage.measure(_index(), now=_NOW)

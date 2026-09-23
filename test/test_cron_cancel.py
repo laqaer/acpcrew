@@ -15,15 +15,15 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.cron import CronJob, CronSchedule, CronService
-from kiro_crew.cron_history import CronHistoryStore
-from kiro_crew.cron_script import (
+from junction.cron import CronJob, CronSchedule, CronService
+from junction.cron_history import CronHistoryStore
+from junction.cron_script import (
     _CANCELLED_PROC_JOBS,
     _RUNNING_PROCS,
     kill_running_process,
     run_command_sandboxed,
 )
-from kiro_crew.dashboard.handlers.cron import api_cron_cancel
+from junction.dashboard.handlers.cron import api_cron_cancel
 
 
 def _mock_sessions() -> MagicMock:
@@ -73,7 +73,7 @@ class TestCronServiceCancel:
         refresh_calls: list[str] = []
         svc._push_refresh = refresh_calls.append
 
-        with patch("kiro_crew.sel.sel") as mock_sel, patch.object(svc, "_save"):
+        with patch("junction.sel.sel") as mock_sel, patch.object(svc, "_save"):
             assert await svc.cancel("run1") is True
 
         assert job.last_status == "error"
@@ -111,8 +111,8 @@ class TestCronServiceCancel:
         svc._running_tasks["script1"] = MagicMock(done=MagicMock(return_value=False))
 
         with patch(
-            "kiro_crew.cron_script.kill_running_process", return_value=True
-        ) as mock_kill, patch("kiro_crew.sel.sel"), patch.object(svc, "_save"):
+            "junction.cron_script.kill_running_process", return_value=True
+        ) as mock_kill, patch("junction.sel.sel"), patch.object(svc, "_save"):
             assert await svc.cancel("script1") is True
 
         mock_kill.assert_called_once_with("script1")
@@ -133,7 +133,7 @@ class TestCronServiceCancel:
         svc._job_start_times["run2"] = time.time() - 5
         svc._running_tasks["run2"] = MagicMock(done=MagicMock(return_value=False))
 
-        with patch("kiro_crew.sel.sel"), patch.object(svc, "_save"):
+        with patch("junction.sel.sel"), patch.object(svc, "_save"):
             await svc.cancel("run2")
 
         assert job.consecutive_failures == 3
@@ -177,9 +177,9 @@ class TestSubprocessRegistry:
         sessions._sessions = {"cron:guard": session}
         svc._sessions = sessions
 
-        with patch("kiro_crew.acp.client._get_child_pids", return_value=[]), \
-             patch("kiro_crew.acp.client._is_our_child", return_value=True), \
-             patch("kiro_crew.acp.client._kill_escaped_children"), \
+        with patch("junction.acp.client._get_child_pids", return_value=[]), \
+             patch("junction.acp.client._is_our_child", return_value=True), \
+             patch("junction.acp.client._kill_escaped_children"), \
              patch("os.getpgid", return_value=1), \
              patch("os.killpg") as mock_killpg, \
              patch("os.kill") as mock_kill:
@@ -207,9 +207,9 @@ class TestSubprocessRegistry:
             result.update(run_command_sandboxed("sleep 30", timeout=60, job_id="cancelme"))
 
         with patch(
-            "kiro_crew.cron_script.wrap_argv", side_effect=lambda argv, mode: (argv, None)
+            "junction.cron_script.wrap_argv", side_effect=lambda argv, mode: (argv, None)
         ), patch(
-            "kiro_crew.cron_script.cgroup_scope_argv", side_effect=lambda argv: argv
+            "junction.cron_script.cgroup_scope_argv", side_effect=lambda argv: argv
         ), patch(
             # The shell probe (_resolve_command_shell) also calls wrap_argv to
             # sandbox-route its POSIX-strict test. On macOS where /bin/sh is bash
@@ -217,7 +217,7 @@ class TestSubprocessRegistry:
             # and returns None, aborting before the subprocess is spawned. Patch
             # the resolver to return a known-good shell so the registry/cancel
             # mechanics under test can actually run.
-            "kiro_crew.cron_script._resolve_command_shell", return_value="/bin/sh"
+            "junction.cron_script._resolve_command_shell", return_value="/bin/sh"
         ):
             t = threading.Thread(target=_run)
             t.start()
@@ -253,13 +253,13 @@ class TestSubprocessRegistry:
         # that a job_id-less run is NOT added to the registry — mechanics that
         # don't need the sandbox.
         with patch(
-            "kiro_crew.cron_script.wrap_argv", side_effect=lambda argv, mode: (argv, None)
+            "junction.cron_script.wrap_argv", side_effect=lambda argv, mode: (argv, None)
         ), patch(
-            "kiro_crew.cron_script.cgroup_scope_argv", side_effect=lambda argv: argv
+            "junction.cron_script.cgroup_scope_argv", side_effect=lambda argv: argv
         ), patch(
             # Bypass the runtime shell probe (which itself spawns a child) — the
             # test is about the registry, not shell fingerprinting.
-            "kiro_crew.cron_script._resolve_command_shell", return_value=posix_test_shell
+            "junction.cron_script._resolve_command_shell", return_value=posix_test_shell
         ):
             result = run_command_sandboxed("echo hi", timeout=10)
         assert result["status"] == "ok"

@@ -19,13 +19,13 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.acp._dispatch import (
+from junction.acp._dispatch import (
     extract_tool_purpose,
     is_tool_purpose_key,
     parse_session_update,
     select_tool_title,
 )
-from kiro_crew.acp.types import EVENT_TOOL_CALL_UPDATE, TOOL_PURPOSE_KEYS
+from junction.acp.types import EVENT_TOOL_CALL_UPDATE, TOOL_PURPOSE_KEYS
 
 
 @pytest.mark.parametrize("key", list(TOOL_PURPOSE_KEYS))

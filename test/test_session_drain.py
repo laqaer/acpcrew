@@ -14,9 +14,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-import kiro_crew.session as session_mod
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.session import (
+import junction.session as session_mod
+from junction.config import JunctionConfig
+from junction.session import (
     SessionClosingError,
     SessionManager,
     _provider_has_active_turn,
@@ -27,7 +27,7 @@ from kiro_crew.session import (
 
 @pytest.fixture
 def cfg():
-    c = KiroCrewConfig()
+    c = JunctionConfig()
     c.session.timeout_secs = 2
     return c
 
@@ -472,7 +472,7 @@ def test_acp_runtime_kill_is_sigterm_first_with_grace():
     """The teardown kill must send SIGTERM with a non-trivial grace window
     before escalating to SIGKILL, so kiro-cli can release its native-session
     lock. Guards against a regression that shortens the grace to ~0."""
-    from kiro_crew.acp.runtime import AcpRuntime
+    from junction.acp.runtime import AcpRuntime
 
     # SIGTERM grace is generous enough for lock release, and a separate reap
     # window follows the SIGKILL escalation.
@@ -486,7 +486,7 @@ def test_acp_client_kill_is_sigterm_first():
     refactor can't silently drop straight to SIGKILL."""
     import inspect as _inspect
 
-    from kiro_crew.acp import client as _client
+    from junction.acp import client as _client
 
     src = _inspect.getsource(_client.AcpClient._kill_process)
     assert "SIGTERM" in src

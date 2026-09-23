@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew import publish_provider as pp
-from kiro_crew.publish_provider import (
+from junction import publish_provider as pp
+from junction.publish_provider import (
     Capability,
     CapabilityNotSupportedError,
     CommentAnchor,

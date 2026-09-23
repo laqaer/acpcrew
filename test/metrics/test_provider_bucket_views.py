@@ -2,7 +2,7 @@
 
 Context: bucket boundaries used to be ONE shared array applied through a single
 catch-all ``View(instrument_type=Histogram)``. Its top bound was 60s, sized for
-session startup, so the first ``kirocrew.turn.duration`` sample ever recorded
+session startup, so the first ``junction.turn.duration`` sample ever recorded
 (227589ms) fell into the +Inf overflow bucket and the aggregator reported
 ``p50 == p90 == 60000`` — a ceiling artifact rendered as a real latency.
 
@@ -23,9 +23,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.dashboard.handlers.telemetry import _Hist
-from kiro_crew.metrics import provider as provider_mod
-from kiro_crew.metrics.provider import (
+from junction.dashboard.handlers.telemetry import _Hist
+from junction.metrics import provider as provider_mod
+from junction.metrics.provider import (
     _FAST_BUCKETS_MS,
     _HISTOGRAM_BUCKETS_MS,
     _STARTUP_BUCKETS_MS,
@@ -35,7 +35,7 @@ from kiro_crew.metrics.provider import (
 _SRC = Path(provider_mod.__file__).resolve().parent.parent
 # Histogram instrument names are the `.duration` metrics (all ms); counters
 # end in `.count` / `.acquire` / `.action` / `.outcome` and carry no bounds.
-_NAME_RE = re.compile(r'"(kirocrew\.[a-z0-9_.]*\.duration)"')
+_NAME_RE = re.compile(r'"(junction\.[a-z0-9_.]*\.duration)"')
 
 
 def _source_histogram_names() -> set[str]:
@@ -53,8 +53,8 @@ class TestCompleteness:
     def test_source_scan_finds_the_known_instruments(self):
         """Guard the guard: a scan that matches nothing would pass vacuously."""
         names = _source_histogram_names()
-        assert "kirocrew.turn.duration" in names
-        assert "kirocrew.session.startup.duration" in names
+        assert "junction.turn.duration" in names
+        assert "junction.session.startup.duration" in names
         assert len(names) >= 7
 
     def test_every_source_histogram_has_bounds(self):
@@ -285,10 +285,10 @@ class TestViewWiring:
         """The regression: 227589ms must fall inside an explicit bucket."""
         mp, reader = self._provider()
         mp.get_meter("t").create_histogram(
-            "kirocrew.turn.duration", unit="ms"
+            "junction.turn.duration", unit="ms"
         ).record(227589)
 
-        (dp,) = self._points(reader, "kirocrew.turn.duration")
+        (dp,) = self._points(reader, "junction.turn.duration")
         counts = list(dp.bucket_counts)
         overflow_index = len(dp.explicit_bounds)
         assert counts[overflow_index] == 0, "sample fell into the +Inf bucket"
@@ -301,24 +301,24 @@ class TestViewWiring:
     def test_no_duplicate_streams_per_instrument(self):
         mp, reader = self._provider()
         meter = mp.get_meter("t")
-        meter.create_histogram("kirocrew.turn.duration", unit="ms").record(5000)
+        meter.create_histogram("junction.turn.duration", unit="ms").record(5000)
         meter.create_histogram(
-            "kirocrew.session.startup.duration", unit="ms"
+            "junction.session.startup.duration", unit="ms"
         ).record(4400)
 
-        assert len(self._points(reader, "kirocrew.turn.duration")) == 1
-        assert len(self._points(reader, "kirocrew.session.startup.duration")) == 1
+        assert len(self._points(reader, "junction.turn.duration")) == 1
+        assert len(self._points(reader, "junction.session.startup.duration")) == 1
 
     def test_each_instrument_gets_its_own_family(self):
         mp, reader = self._provider()
         meter = mp.get_meter("t")
-        meter.create_histogram("kirocrew.turn.duration", unit="ms").record(60000)
+        meter.create_histogram("junction.turn.duration", unit="ms").record(60000)
         meter.create_histogram(
-            "kirocrew.mcp.backend.acquire.duration", unit="ms"
+            "junction.mcp.backend.acquire.duration", unit="ms"
         ).record(1)
 
-        (turn,) = self._points(reader, "kirocrew.turn.duration")
-        (fast,) = self._points(reader, "kirocrew.mcp.backend.acquire.duration")
+        (turn,) = self._points(reader, "junction.turn.duration")
+        (fast,) = self._points(reader, "junction.mcp.backend.acquire.duration")
         assert list(turn.explicit_bounds) == list(_TURN_BUCKETS_MS)
         assert list(fast.explicit_bounds) == list(_FAST_BUCKETS_MS)
 
@@ -327,7 +327,7 @@ class TestAggregatorReadsRealPercentiles:
     """End-to-end: the fix must change what the Telemetry page reports."""
 
     def test_turn_percentiles_are_no_longer_pinned_to_the_ceiling(self):
-        from kiro_crew.dashboard.handlers.telemetry import _pct_from_buckets
+        from junction.dashboard.handlers.telemetry import _pct_from_buckets
 
         # Same sample, old vs new boundaries.
         old_bounds = _STARTUP_BUCKETS_MS  # what every histogram used to get

@@ -76,13 +76,13 @@ describe('isolatePreviewHost', () => {
     expect(isolatePreviewHost('http://localhost:5173/', 'localhost')).toBe('http://127.0.0.1:5173/')
     expect(isolatePreviewHost('http://127.0.0.1:5173/', '127.0.0.1')).toBe('http://localhost:5173/')
   })
-  it('isolates a same-host *.localhost dashboard (e.g. kirocrew.localhost) to 127.0.0.1', () => {
-    expect(isolatePreviewHost('http://kirocrew.localhost:5173/', 'kirocrew.localhost'))
+  it('isolates a same-host *.localhost dashboard (e.g. junction.localhost) to 127.0.0.1', () => {
+    expect(isolatePreviewHost('http://junction.localhost:5173/', 'junction.localhost'))
       .toBe('http://127.0.0.1:5173/')
   })
   it('leaves a preview host that already differs from the dashboard host', () => {
     expect(isolatePreviewHost('http://127.0.0.1:5173/', 'localhost')).toBe('http://127.0.0.1:5173/')
-    expect(isolatePreviewHost('http://localhost:5173/', 'kirocrew.localhost')).toBe('http://localhost:5173/')
+    expect(isolatePreviewHost('http://localhost:5173/', 'junction.localhost')).toBe('http://localhost:5173/')
   })
   it('leaves non-loopback hosts untouched', () => {
     expect(isolatePreviewHost('https://example.com/', 'localhost')).toBe('https://example.com/')
@@ -113,7 +113,7 @@ describe('isDashboardOrigin', () => {
     // both are the same listening server — which refuses to be framed.
     expect(isDashboardOrigin('http://127.0.0.1:6776/api/hooks/agent', 'http://localhost:6776/')).toBe(true)
     expect(isDashboardOrigin('http://localhost:6776/', 'http://127.0.0.1:6776/chat')).toBe(true)
-    expect(isDashboardOrigin('http://127.0.0.1:6776/', 'http://kirocrew.localhost:6776/')).toBe(true)
+    expect(isDashboardOrigin('http://127.0.0.1:6776/', 'http://junction.localhost:6776/')).toBe(true)
   })
   it('does not match a dev server on a different port', () => {
     expect(isDashboardOrigin('http://localhost:5173/', 'http://localhost:6776/')).toBe(false)
@@ -499,20 +499,20 @@ describe('WebPreviewPanel', () => {
   it('dispatches a snip request when the crop button is clicked', () => {
     let fired = false
     const handler = () => { fired = true }
-    window.addEventListener('kirocrew-web-preview-snip', handler)
+    window.addEventListener('junction-web-preview-snip', handler)
     try {
       renderWithProviders(<WebPreviewPanel sessionKey="sess-1" />)
       fireEvent.click(screen.getByLabelText('Screenshot an area into the chat'))
       expect(fired).toBe(true)
     } finally {
-      window.removeEventListener('kirocrew-web-preview-snip', handler)
+      window.removeEventListener('junction-web-preview-snip', handler)
     }
   })
 
   it('broadcasts preview-expand true/false as the expand button toggles', () => {
     const seen: boolean[] = []
     const handler = (e: Event) => seen.push(!!(e as CustomEvent<{ expanded?: boolean }>).detail?.expanded)
-    window.addEventListener('kirocrew-preview-expand', handler)
+    window.addEventListener('junction-preview-expand', handler)
     try {
       renderWithProviders(<WebPreviewPanel sessionKey="sess-1" />)
       fireEvent.click(screen.getByLabelText('Expand preview'))
@@ -520,7 +520,7 @@ describe('WebPreviewPanel', () => {
       fireEvent.click(screen.getByLabelText('Collapse'))
       expect(seen).toContain(false)
     } finally {
-      window.removeEventListener('kirocrew-preview-expand', handler)
+      window.removeEventListener('junction-preview-expand', handler)
     }
   })
 })

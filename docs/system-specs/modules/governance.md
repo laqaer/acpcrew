@@ -1,7 +1,7 @@
 # Governance Model (two-level Policy ∩ Profile)
 
-The `kiro_crew.platform.governance` + `kiro_crew.platform.governance_profiles`
-modules implement KiroCrew's **two-level security governance model**. Governance
+The `junction.platform.governance` + `junction.platform.governance_profiles`
+modules implement Junction's **two-level security governance model**. Governance
 is resolved by a single rule — *the tightest boundary wins*:
 
 - **Level 1 — POLICY** (`GovernanceCeiling`): the enterprise security ceiling,
@@ -11,12 +11,12 @@ is resolved by a single rule — *the tightest boundary wins*:
   that may only *narrow* what policy permits.
 
 The effective permission for any item is `policy ∩ profile`. This spec is the
-implementation companion to the design doc (Pippin `kirocrew/MVTDhLpm2SSW`).
+implementation companion to the design doc (Pippin `junction/MVTDhLpm2SSW`).
 
-> Scope: this governs **KiroCrew's own** security boundaries — what the host
+> Scope: this governs **Junction's own** security boundaries — what the host
 > performs on behalf of the agent across every surface (CLI, dashboard, Slack,
 > cron, heartbeat, sub-agents, apps). The underlying kiro-cli agent config
-> (`~/.kiro/agents/*.json`) is **out of scope**: KiroCrew enforces its own
+> (`~/.kiro/agents/*.json`) is **out of scope**: Junction enforces its own
 > ceiling at its own gate even when the kiro side grants more.
 
 ## The four archetypes (one composition algebra each)
@@ -95,7 +95,7 @@ evaluator edits.
 
 `load_security_policy()` precedence (first present wins):
 
-1. `KIROCREW_SECURITY_POLICY` env path — fleet hot-override, highest.
+1. `JUNCTION_SECURITY_POLICY` env path — fleet hot-override, highest.
 2. companion-bundled resource (the `amazon` edition packages it; the public core
    passes `None`).
 3. `~/.kiro/crew/security_policy.json` — standalone operator-authored.
@@ -156,7 +156,7 @@ else*; a per-app profile that could redirect the update source would be
 privilege escalation.
 
 `platform/update_governance.py` is the one seam the three update paths share
-(`POST /api/update`, `kirocrew update`, the gateway-boot auto-apply) so they
+(`POST /api/update`, `junction update`, the gateway-boot auto-apply) so they
 cannot drift. It resolves the remote git would *actually* fetch from — reading
 `branch.<name>.remote` rather than assuming `origin`, via `ls-remote --get-url`
 so `url.<base>.insteadOf` rewriting is applied — and returns a blocking reason or
@@ -168,7 +168,7 @@ boundary against a local operator who could edit the checkout directly.
 **Roll the build before the pin.** The parser fails closed on an unknown key, so a
 build predating `updates` refuses to boot on a pinned policy — which inverts the
 `min_version` case, since the stale hosts a floor targets are exactly the ones
-that would stop booting. Recovery is a manual `kirocrew update`.
+that would stop booting. Recovery is a manual `junction update`.
 
 ## Policy authenticity (`identity.signature`)
 
@@ -284,7 +284,7 @@ which parses fine — so fail-closing on a *malformed* file would catch only a c
 variant of an attack the design already concedes, while turning a non-atomic fleet
 push or a hand-edit typo into an unbootable host. Corruption there is a reliability
 event: it is logged at WARNING, plugin admission independently fails closed on the
-same file, and `kirocrew doctor` reports it.
+same file, and `junction doctor` reports it.
 
 
 **Threat model.** This detects **offline / at-rest tampering and substitution** of
@@ -299,7 +299,7 @@ tamper-**evident** to the host that loads it. Symmetric HMAC also means the
 verifier holds a secret capable of *producing* signatures, so key distribution is
 the residual weakness an asymmetric successor removes.
 
-`kirocrew policy show` prints the verdict verbatim
+`junction policy show` prints the verdict verbatim
 (`GovernanceCeiling.signature_summary()`) so an operator can tell an established
 issuer from a decorative one — it previously printed a bare `issuer` that no check
 had ever established.
@@ -326,8 +326,8 @@ boot integrity check that fails closed if a refactor ever drops them.
 
 **`~/.kiro/agents/*.json` and `~/.kiro/settings/mcp.json` are NOT on the floor
 today** — an honest gap worth stating here because it bounds what the ceiling can
-claim. Verified on the current tree: `is_sensitive_path("~/.kiro/agents/kirocrew.json")`
-is `False` and `echo x > ~/.kiro/agents/kirocrew.json` is not blocked. Since
+claim. Verified on the current tree: `is_sensitive_path("~/.kiro/agents/junction.json")`
+is `False` and `echo x > ~/.kiro/agents/junction.json` is not blocked. Since
 `hooks.on_tool_call` runs **only** from the `EVENT_PERMISSION_REQUEST` branch (the
 `EVENT_TOOL_CALL` branch is documented informational-only — "the tool is already
 running (auto-approved by kiro-cli). Hook results cannot block execution"), an
@@ -737,11 +737,11 @@ read-your-writes should add it deliberately, with its own tests.
   STILL denied when the enterprise ceiling pins the equivalent pattern —
   tightest-wins. The call sites thread `session_key`/`agent` (they default to
   `""`, so non-governed callers are unaffected).
-- **Plane B — kiro agent JSON**: out of scope (v1). KiroCrew no longer writes
+- **Plane B — kiro agent JSON**: out of scope (v1). Junction no longer writes
   `deniedCommands` into `~/.kiro/agents/*.json` at all — the
   `agent._enforce_denied_commands` injection path is retired — so the hooks gate
   is the SOLE denied-command enforcement point, not a secondary layer. The gate
-  is authoritative; KiroCrew does not regenerate `~/.kiro/agents/*.json`.
+  is authoritative; Junction does not regenerate `~/.kiro/agents/*.json`.
 - **Plane C — out-of-band executors**: the cron `command` (runs via `sh -c`
   outside the ACP flow) is gated in `mcp_cron._vet_command_governance`; the
   cron *capability* on/off gate in `mcp_cron._vet_cron_capability_governance`.
@@ -806,7 +806,7 @@ either level permits. In particular:
   settings, credentials, hooks, native personas/agents, raw instructions, and
   runtime state are never imported.
 - The strict settings allowlist excludes governance and security controls.
-  Preserving an existing KiroCrew value on collision cannot be overridden by
+  Preserving an existing Junction value on collision cannot be overridden by
   foreign precedence.
 - Imported workspace references grant no filesystem permission. Any later tool
   use is evaluated by the ordinary filesystem scopes and sensitive-path
@@ -1115,10 +1115,10 @@ denials leave the same forensic trail.
   expect its deny rows to be effectively permanent for anyone bound by that
   policy, not something end users can narrow per-rule.
 - **Per-app profile binding via MCP chokepoints is best-effort.** The managed
-  `kirocrew-core` MCP server is spawned by kiro-cli, not by an app backend, so
-  `KIROCREW_APP_NAME` is absent there — `learn_add`/`send_message` resolve the
+  `junction-core` MCP server is spawned by kiro-cli, not by an app backend, so
+  `JUNCTION_APP_NAME` is absent there — `learn_add`/`send_message` resolve the
   per-SURFACE profile + policy ceiling (the enforced path), not a per-app
-  profile. An app's own in-process tool calls (which carry `KIROCREW_APP_NAME`)
+  profile. An app's own in-process tool calls (which carry `JUNCTION_APP_NAME`)
   do bind a per-app profile. App blast-radius is contained today by the `apps`
   activation allowlist + per-surface profiles.
 - **Shell GUI automation is a `commands` item, never re-parsed.** `osascript`,
@@ -1139,12 +1139,12 @@ denials leave the same forensic trail.
 - **Raster capture has two channels and neither is governed.** Computer use has no
   `observations` scope any more, and `playwright-cli screenshot` is a shell command
   rather than a tool call, so an `mcp` deny cannot reach it at all. A fleet that
-  means "no raster capture" must deny `@kirocrew-computer` via the `mcp` scope
+  means "no raster capture" must deny `@junction-computer` via the `mcp` scope
   **and** the browser CLI via the `commands` scope.
 - **The `mcp`-scope deny is now the ONLY governance lever over computer use, and it
-  is keyed on a renameable alias.** `mcp.deny: ["@kirocrew-computer"]` works on
+  is keyed on a renameable alias.** `mcp.deny: ["@junction-computer"]` works on
   unmodified shipped code, but the server key is derived by `mcp_server_alias()` from
-  an agent-mutable config: verified `mcp__kirocrew-computer2__click` and
+  an agent-mutable config: verified `mcp__junction-computer2__click` and
   `mcp__cu__click` both PERMIT under that deny. With the `capabilities.computer_use`
   row removed there is no authoritative ban behind it — a fleet that must guarantee
   the feature is off should not ship the keystone enable, and should treat the alias
@@ -1160,7 +1160,7 @@ denials leave the same forensic trail.
   The real pointer path (`click_method: "global"`, which warps the operator's
   physical cursor) has no row either — it is reachable whenever the feature is on,
   and is audited under its own SEL `tool_kind` rather than gated.
-- **`kirocrew computer call` is subject to the same checks as an agent call.** The
+- **`junction computer call` is subject to the same checks as an agent call.** The
   CLI harness routes through the same `computer_use.tools.dispatch_tool` chokepoint,
   so the keystone enable and the target policy apply to it, bound to the attended
   `cli` surface (session key `cli_chat`). There is nothing governance-side left for a
@@ -1181,7 +1181,7 @@ denials leave the same forensic trail.
 
 > **Capability `profile-absence` semantics (deliberate deviation from spec A.4
 > rule 8).** The spec says a profile that OMITS a capability defaults it to
-> `false`. KiroCrew instead treats an omitted scope as *not governed by the
+> `false`. Junction instead treats an omitted scope as *not governed by the
 > profile* (truth-table "not-governed" → bounded by policy alone), because the
 > stricter reading would turn every minimal profile (e.g. one that governs only
 > `tools`) into a near-deny-all of all capabilities. To disable a capability a
@@ -1344,7 +1344,7 @@ ungoverned):
 **Recorded maintainer decision (2026-07-24, PR #107):** "consent =
 surprise-prevention UX, not authorization" is **accepted as the v1
 contract** for installed-pack personas, and `capabilities.theme_persona`
-ships `capability_default=True`. Rationale: KiroCrew is a single-user,
+ships `capability_default=True`. Rationale: Junction is a single-user,
 self-hosted tool where the pack installer is the machine owner; the persona is
 tone-only, content-bound (sha256), and enterprise-disableable via the row
 above — while a default-off would make every installed persona silently dead
@@ -1373,7 +1373,7 @@ by the `capabilities.telemetry` `SCOPE_CATALOG` capability row
 change, mirroring the theme rows above).
 
 **Why a governance row when a Settings toggle already exists.** The toggle, the CLI
-and the `KIROCREW_TELEMETRY_DISABLED` env var are all *operator* controls: anyone on
+and the `JUNCTION_TELEMETRY_DISABLED` env var are all *operator* controls: anyone on
 the machine can flip them, and the agent can reach the first two. A managed fleet
 frequently may not egress to a vendor endpoint at all, which needs a control the
 running app cannot undo. Because the row is read from the trust-root
@@ -1387,9 +1387,9 @@ Consulted at **four** chokepoints — the send gate plus EVERY write path to
 | Chokepoint | Pinned-off behavior |
 |---|---|
 | `beacon.telemetry_permitted()` | Refuses both heartbeat and receipt egress. Ranked **above** the config flag so the reported reason names the policy, not the (now irrelevant) local value |
-| `PATCH /api/config/kirocrew` (`handlers/core.py`) | **403** on `telemetry.beacon_enabled=true` |
-| `kirocrew telemetry enable` (`cli_commands.py`) | Exits **1** without writing config.json |
-| `kirocrew config set [--local] …` (`cli_config.py`) | Exits **1** without writing. The *generic* setter reaches the same key, and `--local` writes the overlay that takes PRECEDENCE over the base file |
+| `PATCH /api/config/junction` (`handlers/core.py`) | **403** on `telemetry.beacon_enabled=true` |
+| `junction telemetry enable` (`cli_commands.py`) | Exits **1** without writing config.json |
+| `junction config set [--local] …` (`cli_config.py`) | Exits **1** without writing. The *generic* setter reaches the same key, and `--local` writes the overlay that takes PRECEDENCE over the base file |
 
 Writing `false` is **always** permitted at both write chokepoints. The ceiling is a
 floor on privacy, so a narrower local choice composes with it (tightest-wins), and
@@ -1484,8 +1484,8 @@ half-control:
 |---|---|
 | `tailnet.resolve_tailnet_host()` | Contributes no origin **and does not spawn the CLI**, so the pin closes both halves an administrator objects to. Checked ahead of the daemon call |
 | `tailnet_serve.publish()` | Refuses to run `tailscale serve`, so the dashboard is never put on the tailnet in the first place. Checked before the spawn — refusing after publishing would be theatre |
-| `PATCH /api/config/kirocrew` (`handlers/core.py`) | **403** on `dashboard.tailscale.enabled=true` |
-| `kirocrew config set [--local] …` (`cli_config.py`) | Exits **1** without writing. The generic setter reaches the same key, and `--local` writes the overlay that takes PRECEDENCE over the base file |
+| `PATCH /api/config/junction` (`handlers/core.py`) | **403** on `dashboard.tailscale.enabled=true` |
+| `junction config set [--local] …` (`cli_config.py`) | Exits **1** without writing. The generic setter reaches the same key, and `--local` writes the overlay that takes PRECEDENCE over the base file |
 
 `tailnet_serve.unpublish()` is deliberately **not** gated, and the asymmetry is
 load-bearing rather than an oversight. `is_governance_pinned_off` returns true both
@@ -1548,14 +1548,14 @@ either one now aborts governance boot (see the `_MATCHERS` note above).
 **What replaced it.** One operator opt-in on the keystone `computer_use.json`,
 which `security._SENSITIVE_HOME_DIRS` fences the agent away from. The agent cannot
 read or write that file, so it cannot enable its own desktop automation — and it
-cannot drive KiroCrew's own window either (`computer_use/policy.py`), so it cannot
+cannot drive Junction's own window either (`computer_use/policy.py`), so it cannot
 click the toggle in the UI. Those two facts are the entire boundary.
 
 **What this costs, stated plainly.** There is no way to express "computer use is
 allowed but only for Preview", "read-only desktop access", "never type into a
 password field" (beyond the always-on floor), or "every action must be approved" as
 policy. A fleet that needs any of those should not enable the feature. The
-`mcp` scope still works as a blunt instrument: denying `@kirocrew-computer` removes
+`mcp` scope still works as a blunt instrument: denying `@junction-computer` removes
 the tools entirely, which is the one governance lever that remains.
 
 **If it is ever re-governed**, the rows belong back in this file's `SCOPE_CATALOG`
@@ -1587,7 +1587,7 @@ operation / item / reason are ALSO redacted via `redact_via_context` **before**
 
 ## CLI
 
-`kirocrew policy {show | validate | explain <scope> <item> | profile <name>}` —
+`junction policy {show | validate | explain <scope> <item> | profile <name>}` —
 read-only operator diagnostics. `show` reports the ceiling's **proven** provenance
 (`signed and verified` / `signed but UNVERIFIED` / `unsigned`) rather than a bare
 issuer string. `explain` traces the rule/layer/reason and the live gate verdict. Deliberately **not** exposed as an MCP tool: it surfaces

@@ -3,11 +3,11 @@
 Two exposed MCP providers that ship the same tool name leave one of the two
 unreachable, because kiro-cli addresses a tool by bare name. Every reachable row
 of the resolver's governing decision table (EXPOSURE x IDENTITY x DECLARATION
-LIFECYCLE, see :mod:`kiro_crew.connections.tool_aliases`) has a named test here,
+LIFECYCLE, see :mod:`junction.connections.tool_aliases`) has a named test here,
 followed by the emission pass's own three invariants.
 
 Ownership of an already-written alias is decided by the persisted record in
-:mod:`kiro_crew.connections.alias_record`, never by the shape of the name, so
+:mod:`junction.connections.alias_record`, never by the shape of the name, so
 that module's invariants are covered too -- including the GENERATION BINDING that
 keeps a record from ever being read as a description of a spec it does not match.
 The state table in that module's docstring names every crash boundary, and each
@@ -26,8 +26,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.connections import RegistryValidationError, get_all_registry_providers
-from kiro_crew.connections.alias_record import (
+from junction.connections import RegistryValidationError, get_all_registry_providers
+from junction.connections.alias_record import (
     AliasGeneration,
     begin_transaction,
     commit_transaction,
@@ -38,8 +38,8 @@ from kiro_crew.connections.alias_record import (
     spec_fingerprint,
     split_tool_ref,
 )
-from kiro_crew.connections.registry import _load_registry
-from kiro_crew.connections.tool_aliases import (
+from junction.connections.registry import _load_registry
+from junction.connections.tool_aliases import (
     declared_tool_aliases,
     derived_alias,
     exposed_declared_tools,
@@ -137,7 +137,7 @@ def test_row1_whole_server_pair_with_no_shared_declaration_aliases_nothing():
 
 
 def test_row2_a_renamed_declaration_replaces_the_old_alias():
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     renamed = {
         "linear": {"list_projects": "linear_projects"},
@@ -153,7 +153,7 @@ def test_row2_a_renamed_declaration_replaces_the_old_alias():
 
 
 def test_row3_a_withdrawn_declaration_yields_no_alias():
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     with patch.object(ta, "declared_tool_aliases", return_value={"vercel": {"x": "vercel_x"}}):
         assert _aliases(_servers("linear", "vercel"), ["@linear", "@vercel"]) == {}
@@ -191,7 +191,7 @@ def test_row4_whole_server_against_a_non_overlapping_per_tool_aliases_nothing():
 
 
 def test_row5_a_renamed_declaration_applies_to_the_exposed_tool_only():
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     renamed = {
         "linear": {"list_issues": "linear_issues", "get_issue": "linear_issue"},
@@ -520,7 +520,7 @@ def test_an_absent_or_non_dict_map_fingerprints_apart_from_an_empty_one(absent):
 
 
 def test_a_committed_record_round_trips_through_disk(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     target = _gen(_MAP_LV, {_L, _V})
     commit_transaction(target)
     assert load_claimed(target.fingerprint) == frozenset({_L, _V})
@@ -540,7 +540,7 @@ def test_a_committed_record_is_fingerprint_gated(tmp_path, monkeypatch):
     shadowing); deleting a user's alias is data loss. The failure direction is what is
     being chosen here, not the failure rate.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     commit_transaction(_gen(_MAP_LV, {_L, _V}))
 
     # Recorded generation is on disk -> honoured.
@@ -569,7 +569,7 @@ def test_an_orphaned_committed_record_cannot_delete_a_user_alias(tmp_path, monke
     it describes is gone. Meanwhile a triple it names is now present from ANOTHER
     source -- the user wrote it by hand. An ungated claim would strip it.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     commit_transaction(_gen(_MAP_LV, {_L, _V}))
 
     # The spec is GONE: no toolAliases key at all (missing spec, or a spec that never
@@ -594,7 +594,7 @@ def test_a_committed_record_matching_the_spec_is_still_honoured(tmp_path, monkey
     that emitted it is what authorizes clearing it. That path still works, because the
     map on disk IS the recorded generation until this pass changes it.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     target = _gen(_MAP_LV, {_L, _V})
     commit_transaction(target)
 
@@ -619,8 +619,8 @@ def test_the_ownership_record_is_write_protected_from_agent_tools():
     Derived from the live list and the module's own filename, so moving the record without
     moving its protection fails here.
     """
-    from kiro_crew import security
-    from kiro_crew.connections.alias_record import _RECORD_FILENAME
+    from junction import security
+    from junction.connections.alias_record import _RECORD_FILENAME
 
     # The entry must name the file the module actually writes, in every crew home root.
     assert record_path().name == _RECORD_FILENAME
@@ -644,8 +644,8 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
     Derived from the module's own filename and the live leaf list, so moving the record
     without moving its shell protection fails here.
     """
-    from kiro_crew import security
-    from kiro_crew.connections.alias_record import _RECORD_FILENAME
+    from junction import security
+    from junction.connections.alias_record import _RECORD_FILENAME
 
     # drift guard: the bash leaf list must stay pinned to the file the module writes
     assert _RECORD_FILENAME in security._WRITE_PROTECTED_BASH_LEAVES
@@ -694,7 +694,7 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
 
     # The module's own writer does not route through either gate, so both record writes
     # still work: it opens the path directly via ``atomic_write`` in Python, not via bash.
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     target = _gen(_MAP_L, {_L})
     commit_transaction(target)
     assert record_path().exists()
@@ -703,7 +703,7 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
 
 
 def test_an_absent_record_reads_as_empty(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     assert not record_path().exists()
     assert load_claimed(spec_fingerprint(_MAP_L)) == frozenset()
 
@@ -732,7 +732,7 @@ def test_an_absent_record_reads_as_empty(tmp_path, monkeypatch):
 def test_a_corrupt_or_unknown_record_reads_as_empty(payload, tmp_path, monkeypatch):
     """Invariant 4: losing the record must degrade to "every pair is the user's",
     never to deleting entries on a bad parse."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     path = record_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload, encoding="utf-8")
@@ -741,7 +741,7 @@ def test_a_corrupt_or_unknown_record_reads_as_empty(payload, tmp_path, monkeypat
 
 def test_a_record_entry_that_is_not_three_strings_is_dropped(tmp_path, monkeypatch):
     """Dropping a malformed entry UNDERSTATES, which is the safe direction."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     path = record_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -771,7 +771,7 @@ def test_a_pending_record_resolves_to_the_target_when_the_spec_write_landed(
 ):
     """Rows 4/5. The map on disk IS the target generation, so the emission it
     describes is real and must be reclaimed rather than abandoned."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     previous, target = _gen(_MAP_LV, {_L, _V}), _gen(_MAP_L, {_L})
     begin_transaction(previous, target)
 
@@ -783,7 +783,7 @@ def test_a_pending_record_resolves_to_the_previous_when_the_spec_write_did_not_l
 ):
     """Rows 2/3. The map on disk is still the previous generation, so the claim that
     was already valid for it is the only one that may be acted on."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     previous, target = _gen(_MAP_LV, {_L, _V}), _gen(_MAP_L, {_L})
     begin_transaction(previous, target)
 
@@ -793,7 +793,7 @@ def test_a_pending_record_resolves_to_the_previous_when_the_spec_write_did_not_l
 def test_a_pending_record_matching_neither_generation_claims_nothing(tmp_path, monkeypatch):
     """Row 8. Something that is not this pass changed the map, so neither candidate
     describes what is on disk and the record may authorize nothing."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     begin_transaction(_gen(_MAP_LV, {_L, _V}), _gen(_MAP_L, {_L}))
 
     hand_edited = {"@linear/list_projects": "my_projects"}
@@ -803,7 +803,7 @@ def test_a_pending_record_matching_neither_generation_claims_nothing(tmp_path, m
 def test_a_no_op_transaction_resolves_to_its_target(tmp_path, monkeypatch):
     """Both candidates share a fingerprint when the map did not change, so the tie
     must go to the target: it describes that same map and is the newer emission."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     begin_transaction(_gen(_MAP_L, frozenset()), _gen(_MAP_L, {_L}))
 
     assert load_claimed(spec_fingerprint(_MAP_L)) == frozenset({_L})
@@ -812,7 +812,7 @@ def test_a_no_op_transaction_resolves_to_its_target(tmp_path, monkeypatch):
 def test_committing_replaces_the_pending_record(tmp_path, monkeypatch):
     """After a clean pass the previous generation is no longer recoverable, and must
     not be: it no longer describes anything on disk."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     previous, target = _gen(_MAP_LV, {_L, _V}), _gen(_MAP_L, {_L})
     begin_transaction(previous, target)
     commit_transaction(target)
@@ -852,7 +852,7 @@ def test_a_record_without_a_valid_fingerprint_claims_nothing(
     including on the committed branch, whose freedom from an EQUALITY gate is only
     sound while the record is demonstrably ours.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     payload = {
         "version": 2,
         "status": status,
@@ -876,7 +876,7 @@ def test_a_pending_record_with_a_malformed_previous_generation_ignores_it(
     fingerprint is always a real :func:`spec_fingerprint` value, so anything that is
     not one can never equal it. The target still resolves normally.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     target = _gen(_MAP_L, {_L})
     path = record_path()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -915,10 +915,10 @@ def test_both_record_writes_raise_instead_of_swallowing(phase, tmp_path, monkeyp
     an unwritable data home is reported when it happens rather than surfacing later
     as aliases nothing explains.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     target = _gen(_MAP_L, {_L})
     with patch(
-        "kiro_crew.connections.alias_record.atomic_write", side_effect=OSError("read-only")
+        "junction.connections.alias_record.atomic_write", side_effect=OSError("read-only")
     ):
         with pytest.raises(OSError, match="read-only"):
             if phase == "pending":
@@ -931,12 +931,12 @@ def test_a_failed_pending_write_leaves_the_earlier_record_intact(tmp_path, monke
     """Row 1's state. ``atomic_write`` leaves the destination alone on failure, so
     the record still describes the PREVIOUS generation -- which is safe only because
     the pass then refuses to advance the spec past it."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     previous = _gen(_MAP_LV, {_L, _V})
     commit_transaction(previous)
 
     with patch(
-        "kiro_crew.connections.alias_record.atomic_write", side_effect=OSError("read-only")
+        "junction.connections.alias_record.atomic_write", side_effect=OSError("read-only")
     ):
         with pytest.raises(OSError):
             begin_transaction(previous, _gen(_MAP_L, {_L}))
@@ -946,19 +946,19 @@ def test_a_failed_pending_write_leaves_the_earlier_record_intact(tmp_path, monke
 
 def _rebuild_env(tmp_path, monkeypatch):
     """Point ``rebuild_agent_config`` at a throwaway project, data home and spec."""
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.apps import bridges
+    from junction import agent as agent_mod
+    from junction.apps import bridges
 
     project = tmp_path / "project" / "agents"
     project.mkdir(parents=True)
-    (project / "defaults.json").write_text(json.dumps({"name": "kirocrew"}), encoding="utf-8")
+    (project / "defaults.json").write_text(json.dumps({"name": "junction"}), encoding="utf-8")
     (project / "prompt.md").write_text("prompt", encoding="utf-8")
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path / "project"))
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path / "project"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     kiro_dir = tmp_path / ".kiro" / "agents"
     kiro_dir.mkdir(parents=True)
-    spec_path = kiro_dir / "kirocrew.json"
+    spec_path = kiro_dir / "junction.json"
     monkeypatch.setattr(agent_mod, "KIRO_AGENTS_DIR", kiro_dir)
     monkeypatch.setattr(agent_mod, "_KIRO_MCP_JSON", tmp_path / "absent-kiro.json")
     monkeypatch.setattr(agent_mod, "_CC_MCP_JSON", tmp_path / "absent-cc.json")
@@ -978,8 +978,8 @@ def test_a_commit_failure_surfaces_out_of_the_real_rebuild_and_stays_recoverable
     next pass instead of being stranded, which is what the two-file ordering could
     never offer at this boundary.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
 
@@ -1015,8 +1015,8 @@ def test_a_pending_write_failure_skips_the_pass_without_failing_the_rebuild(
     maintenance stands down. Letting the OSError out would let an unwritable sidecar
     take down spec repair.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: True)
@@ -1031,7 +1031,7 @@ def test_a_pending_write_failure_skips_the_pass_without_failing_the_rebuild(
 def test_a_broken_registry_does_not_abort_the_rebuild_at_import_time(tmp_path, monkeypatch):
     """FIX B: the alias import is a submodule import, so it runs the package __init__.
 
-    ``kiro_crew.connections.__init__`` imports the registry, which validates
+    ``junction.connections.__init__`` imports the registry, which validates
     registry.json EAGERLY at module level (``_PROVIDERS = _load_registry()``). So a
     corrupt or newly-invalid registry raises at the IMPORT, which is upstream of every
     fail-closed guard inside the pass -- an optional feature would take down agent-spec
@@ -1041,20 +1041,20 @@ def test_a_broken_registry_does_not_abort_the_rebuild_at_import_time(tmp_path, m
     """
     import builtins
 
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections.registry import RegistryValidationError
+    from junction import agent as agent_mod
+    from junction.connections.registry import RegistryValidationError
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     user_map = {"@notion/search": "notion_search"}
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": dict(user_map)}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": dict(user_map)}), encoding="utf-8"
     )
 
     real_import = builtins.__import__
 
     def _registry_is_broken(name, *args, **kwargs):
         # The real exception from the real chain: __init__ -> registry -> _load_registry.
-        if name == "kiro_crew.connections.alias_record":
+        if name == "junction.connections.alias_record":
             raise RegistryValidationError("registry.json entry 3: slug is not a string")
         return real_import(name, *args, **kwargs)
 
@@ -1065,7 +1065,7 @@ def test_a_broken_registry_does_not_abort_the_rebuild_at_import_time(tmp_path, m
 
     written = json.loads(spec_path.read_text(encoding="utf-8"))
     assert written["toolAliases"] == user_map, "the on-disk alias map was not preserved"
-    assert written["name"] == "kirocrew", "the rest of the spec was written normally"
+    assert written["name"] == "junction", "the rest of the spec was written normally"
     # No ownership transition was opened: with no record module there is no claim to
     # retire, and an absent record reads as empty, so the pairs on disk stay the user's.
     assert not record_path().exists(), "the pass stood down, so it wrote no record"
@@ -1074,7 +1074,7 @@ def test_a_broken_registry_does_not_abort_the_rebuild_at_import_time(tmp_path, m
 def test_an_empty_emission_relinquishes_every_earlier_claim(tmp_path, monkeypatch):
     """Committing an EMPTY emission is not a no-op: it is how the pass gives up pairs
     it no longer writes. Skipping it would leave a superseded triple claimable."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     commit_transaction(_gen(_MAP_L, {_L}))
     relinquished = _gen(None, frozenset())
     commit_transaction(relinquished)
@@ -1245,7 +1245,7 @@ def _isolated_alias_record(tmp_path, monkeypatch):
     each test starts with no record at all -- the missing-record case -- and the
     two ``_apply`` calls inside one test share the record the way two rebuilds do.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
 
 def _spec(*slugs: str, tools: list | None = None) -> dict:
@@ -1265,7 +1265,7 @@ def _apply(config: dict, *, enabled: bool = True, persist: bool = True) -> dict:
     and commits after. ``persist=False`` models a hard kill in exactly that window,
     which is state-table row 4.
     """
-    from kiro_crew import agent
+    from junction import agent
 
     previous = _gen(config.get("toolAliases"), frozenset())
     previous_claim = load_claimed(previous.fingerprint)
@@ -1355,7 +1355,7 @@ def test_a_renamed_registry_declaration_replaces_the_stranded_alias():
     """A tool-key rename is the reachable form of registry drift -- an alias-value
     rename is unreachable, because the validator pins each alias to its own
     derivation. Either way the superseded pair must not outlive its declaration."""
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     first = _apply(_spec("linear", "vercel"))
     assert first["toolAliases"]["@linear/list_projects"] == "linear_list_projects"
@@ -1374,7 +1374,7 @@ def test_a_renamed_registry_declaration_replaces_the_stranded_alias():
 
 
 def test_a_withdrawn_registry_declaration_drops_its_alias():
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     first = _apply(_spec("linear", "vercel"))
     with patch.object(ta, "declared_tool_aliases", return_value={"vercel": {"x": "vercel_x"}}):
@@ -1426,7 +1426,7 @@ def test_a_user_alias_survives_even_when_it_shadows_a_generated_destination():
 
 
 def test_a_user_authored_alias_survives_registry_drift():
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     config = _spec("linear", "vercel")
     config["toolAliases"] = {"@linear/list_projects": "issues_from_linear"}
@@ -1563,7 +1563,7 @@ def _fail_nth_record_write(n: int):
     patch would fail the pending one first -- which the pass handles by standing down,
     never reaching the boundary under test.
     """
-    from kiro_crew.connections import alias_record
+    from junction.connections import alias_record
 
     real = alias_record.atomic_write
     calls = {"n": 0}
@@ -1588,7 +1588,7 @@ def test_row5_a_commit_failure_leaves_the_emission_recoverable():
     # lands and only the commit fails.
     second = {**_spec("linear"), "toolAliases": dict(first["toolAliases"])}
     with patch(
-        "kiro_crew.connections.alias_record.atomic_write", _fail_nth_record_write(2)
+        "junction.connections.alias_record.atomic_write", _fail_nth_record_write(2)
     ):
         with pytest.raises(OSError):
             _apply(second)
@@ -1630,13 +1630,13 @@ def test_row1_a_failed_transaction_open_leaves_the_map_at_the_durable_generation
     agent-spec repair, and the aliases must not advance past a record that cannot
     describe them.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     durable = {"@notion/search": "my_notion_search"}
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": durable}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": durable}), encoding="utf-8"
     )
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: True)
     monkeypatch.setattr(alias_record, "begin_transaction", _raise_read_only)
@@ -1660,7 +1660,7 @@ def test_row1_a_failed_transaction_open_stops_the_pass_before_it_touches_the_spe
 
     config = {**_spec("linear"), "toolAliases": dict(first["toolAliases"])}
     with patch(
-        "kiro_crew.connections.alias_record.atomic_write", side_effect=OSError("read-only")
+        "junction.connections.alias_record.atomic_write", side_effect=OSError("read-only")
     ):
         with pytest.raises(OSError):
             _apply(config)
@@ -1723,19 +1723,19 @@ def test_the_whole_record_sequence_runs_under_the_lock_that_guards_the_spec(
 
     So the order must be read -> spec -> record, with the lock held throughout.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.apps import bridges
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.apps import bridges
+    from junction.connections import alias_record
 
     project = tmp_path / "project" / "agents"
     project.mkdir(parents=True)
-    (project / "defaults.json").write_text(json.dumps({"name": "kirocrew"}), encoding="utf-8")
+    (project / "defaults.json").write_text(json.dumps({"name": "junction"}), encoding="utf-8")
     (project / "prompt.md").write_text("prompt", encoding="utf-8")
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path / "project"))
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path / "project"))
 
     kiro_dir = tmp_path / ".kiro" / "agents"
     kiro_dir.mkdir(parents=True)
-    spec_path = kiro_dir / "kirocrew.json"
+    spec_path = kiro_dir / "junction.json"
     monkeypatch.setattr(agent_mod, "KIRO_AGENTS_DIR", kiro_dir)
     monkeypatch.setattr(agent_mod, "_KIRO_MCP_JSON", tmp_path / "absent-kiro.json")
     monkeypatch.setattr(agent_mod, "_CC_MCP_JSON", tmp_path / "absent-cc.json")
@@ -1822,7 +1822,7 @@ def test_an_unreadable_registry_leaves_the_record_untouched():
     """The pass returns None on a registry failure, and must NOT then open a
     transaction: forgetting a real emission strands those aliases for good, which is
     the "permanently unclearable" failure narrowing produced."""
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     first = _apply(_spec("linear", "vercel"))
     before = _claimed(first)
@@ -1843,7 +1843,7 @@ def test_the_gate_off_pass_writes_no_record():
     config = _spec("linear", "vercel")
     config["toolAliases"] = {"@linear/list_projects": "linear_list_projects"}
 
-    from kiro_crew import agent
+    from junction import agent
 
     with patch.object(agent, "_connection_tool_aliases_enabled", return_value=False):
         assert agent._apply_connection_tool_aliases(config) is None
@@ -1854,7 +1854,7 @@ def test_a_spec_without_servers_leaves_the_record_alone():
     first = _apply(_spec("linear", "vercel"))
     before = _claimed(first)
 
-    from kiro_crew import agent
+    from junction import agent
 
     with patch.object(agent, "_connection_tool_aliases_enabled", return_value=True):
         assert agent._apply_connection_tool_aliases({"tools": []}) is None
@@ -1932,7 +1932,7 @@ def _derivational_ownership(record, ref, alias):
 
 def _declared_only_derivational_ownership(record, ref, alias):
     """Rejected rule 3: rule 2, narrowed to providers that currently declare."""
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     parts = split_tool_ref(ref)
     if parts is None or alias != derived_alias(parts[0], parts[1]):
@@ -1949,7 +1949,7 @@ def _alias_blind_ownership(record, ref, alias):
 
 
 def _with_ownership_rule(rule):
-    return patch("kiro_crew.connections.alias_record.is_recorded_emission", new=rule)
+    return patch("junction.connections.alias_record.is_recorded_emission", new=rule)
 
 
 def test_reverting_to_prefix_ownership_deletes_a_hand_written_alias():
@@ -1986,7 +1986,7 @@ def test_narrowing_ownership_to_declared_providers_strands_the_pair_forever():
     """The fix attempted in round 3 and reverted: withdrawing a declaration takes
     its slug out of the test, so the pair that declaration stranded can never be
     recognised again -- permanently unclearable, on every future rebuild."""
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     stale = dict(_apply(_spec("linear", "vercel"))["toolAliases"])
 
@@ -2078,7 +2078,7 @@ def test_committing_before_the_spec_write_strands_the_emission_it_should_recover
       holds are unreclaimable; the real pass writes a PENDING record here, whose
       ``previous`` candidate is exactly what a lost spec write resolves to (rows 2/3).
     """
-    from kiro_crew import agent
+    from junction import agent
 
     reversed_order = _spec("linear", "vercel")
     with patch.object(agent, "_connection_tool_aliases_enabled", return_value=True):
@@ -2158,9 +2158,9 @@ def test_relinquishing_does_not_depend_on_the_commit_landing():
 def test_the_alias_map_is_reconciled_from_the_spec_on_disk(tmp_path):
     """``config`` carries a PRE-LOCK spec read, so the map in it can be a generation
     behind by the time the write happens. The value that counts is the one on disk."""
-    from kiro_crew import agent
+    from junction import agent
 
-    spec = tmp_path / "kirocrew.json"
+    spec = tmp_path / "junction.json"
     spec.write_text(json.dumps({"toolAliases": _MAP_L}), encoding="utf-8")
 
     config = {"toolAliases": {"@vercel/list_projects": "stale"}}
@@ -2187,9 +2187,9 @@ def test_a_present_spec_with_no_usable_alias_map_reconciles_to_absent(on_disk, t
     a hand-edited ``[]`` would carry the broken file forward and cost the user every
     tool. Dropping it means a rebuild repairs it even when the alias pass never runs.
     """
-    from kiro_crew import agent
+    from junction import agent
 
-    spec = tmp_path / "kirocrew.json"
+    spec = tmp_path / "junction.json"
     spec.write_text(on_disk, encoding="utf-8")
 
     config = {"toolAliases": {"@vercel/list_projects": "stale"}}
@@ -2206,7 +2206,7 @@ def test_a_missing_spec_preserves_the_assembled_alias_map(tmp_path):
     ``toolAliases``. Treating "no file" like "file with a broken value" would erase
     that override before it was ever written.
     """
-    from kiro_crew import agent
+    from junction import agent
 
     assembled = {"@notion/search": "my_notion_search"}
     config = {"toolAliases": dict(assembled)}
@@ -2224,11 +2224,11 @@ def test_a_clean_rebuild_does_not_reimport_an_invalid_alias_map(tmp_path, monkey
     kiro-cli would keep rejecting the spec -- the repair the user asked for would do
     nothing.
     """
-    from kiro_crew import agent as agent_mod
+    from junction import agent as agent_mod
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": []}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": []}), encoding="utf-8"
     )
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: False)
 
@@ -2246,11 +2246,11 @@ def test_a_clean_rebuild_discards_the_old_specs_alias_map(tmp_path, monkeypatch)
     rebuild would make this one key the exception, silently surviving the reset the
     user asked for.
     """
-    from kiro_crew import agent as agent_mod
+    from junction import agent as agent_mod
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": {"@notion/search": "notion_search"}}),
+        json.dumps({"name": "junction", "toolAliases": {"@notion/search": "notion_search"}}),
         encoding="utf-8",
     )
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: False)
@@ -2272,12 +2272,12 @@ def test_a_gate_off_clean_rebuild_retires_the_stale_claim(tmp_path, monkeypatch)
     has it deleted by the next rebuild. That is the deletion hazard the generation
     binding exists to remove, reached through the clean path instead of a crash.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": _MAP_LV}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": _MAP_LV}), encoding="utf-8"
     )
     alias_record.commit_transaction(_gen(_MAP_LV, {_L, _V}))
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: False)
@@ -2302,12 +2302,12 @@ def test_a_gate_off_rebuild_that_changes_nothing_leaves_the_record_alone(
     generated pair it named would become permanently the user's -- unclaimable, so a
     later disconnect could never remove it.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": _MAP_LV}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": _MAP_LV}), encoding="utf-8"
     )
     alias_record.commit_transaction(_gen(_MAP_LV, {_L, _V}))
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: False)
@@ -2324,13 +2324,13 @@ def test_a_clean_rebuild_preserves_a_user_alias_it_cannot_prove_is_generated(
 ):
     """The user-data direction on the clean path: with no record naming it, a map
     entry is the user's, and the transition retires nothing it did not own."""
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     hand_written = {"@notion/search": "notion_search"}
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": hand_written}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": hand_written}), encoding="utf-8"
     )
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: False)
 
@@ -2350,12 +2350,12 @@ def test_a_commit_failure_on_a_gate_off_clean_write_stays_recoverable(
     survives -- and because its target fingerprint matches the clean map now on disk,
     the retirement still resolves instead of leaving the old claim in force.
     """
-    from kiro_crew import agent as agent_mod
-    from kiro_crew.connections import alias_record
+    from junction import agent as agent_mod
+    from junction.connections import alias_record
 
     spec_path = _rebuild_env(tmp_path, monkeypatch)
     spec_path.write_text(
-        json.dumps({"name": "kirocrew", "toolAliases": _MAP_LV}), encoding="utf-8"
+        json.dumps({"name": "junction", "toolAliases": _MAP_LV}), encoding="utf-8"
     )
     alias_record.commit_transaction(_gen(_MAP_LV, {_L, _V}))
     monkeypatch.setattr(agent_mod, "_connection_tool_aliases_enabled", lambda: False)
@@ -2378,7 +2378,7 @@ def test_an_overlapping_rebuild_cannot_resurrect_a_removed_alias(tmp_path):
     reconcile it writes that stale map back and the removed alias returns -- and its
     fingerprint would certify a generation that is no longer on disk.
     """
-    from kiro_crew import agent
+    from junction import agent
 
     # First rebuild: both providers mounted, then vercel disconnects and is cleaned.
     first = _apply(_spec("linear", "vercel"))
@@ -2386,7 +2386,7 @@ def test_an_overlapping_rebuild_cannot_resurrect_a_removed_alias(tmp_path):
     second = _apply({**_spec("linear"), "toolAliases": dict(stale_snapshot)})
     assert "toolAliases" not in second
 
-    spec = tmp_path / "kirocrew.json"
+    spec = tmp_path / "junction.json"
     spec.write_text(json.dumps(second), encoding="utf-8")
 
     # Third rebuild, assembled from the PRE-LOCK read that still has both aliases.
@@ -2400,9 +2400,9 @@ def test_an_overlapping_rebuild_cannot_resurrect_a_removed_alias(tmp_path):
 def test_a_gate_off_rebuild_does_not_write_back_a_pre_lock_snapshot(tmp_path):
     """The resurrection does not need the pass to run, which is why the reconcile is
     unconditional: a gate-off or fail-closed rebuild would write the stale map too."""
-    from kiro_crew import agent
+    from junction import agent
 
-    spec = tmp_path / "kirocrew.json"
+    spec = tmp_path / "junction.json"
     spec.write_text(json.dumps({"tools": []}), encoding="utf-8")
 
     config = {**_spec("linear"), "toolAliases": dict(_MAP_L)}
@@ -2464,7 +2464,7 @@ def test_a_generated_alias_colliding_with_a_natural_tool_name_is_skipped():
     """A destination equal to a real tool name on an exposed provider would
     recreate the shadowing. Reachable because a natural name may itself carry the
     slug prefix that destinations use."""
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     declarations = {
         "linear": {"list_projects": "linear_teams", "linear_teams": "linear_teams_alt"},
@@ -2478,7 +2478,7 @@ def test_a_generated_alias_colliding_with_a_natural_tool_name_is_skipped():
 
 
 def test_a_generated_alias_colliding_with_a_builtin_is_skipped():
-    from kiro_crew.connections import tool_aliases as ta
+    from junction.connections import tool_aliases as ta
 
     declarations = {
         "linear": {"list_projects": "linear_fs_read"},
@@ -2538,8 +2538,8 @@ def test_a_non_string_alias_value_is_dropped():
 
 
 def test_a_broken_registry_does_not_fail_the_rebuild():
-    from kiro_crew import agent
-    from kiro_crew.connections import tool_aliases as ta
+    from junction import agent
+    from junction.connections import tool_aliases as ta
 
     config = _spec("linear", "vercel")
     with patch.object(agent, "_connection_tool_aliases_enabled", return_value=True), patch.object(
@@ -2551,8 +2551,8 @@ def test_a_broken_registry_does_not_fail_the_rebuild():
 
 def test_a_broken_registry_does_not_clear_existing_aliases():
     """Failure must not be indistinguishable from 'no collisions', which clears."""
-    from kiro_crew import agent
-    from kiro_crew.connections import tool_aliases as ta
+    from junction import agent
+    from junction.connections import tool_aliases as ta
 
     config = _spec("linear")
     config["toolAliases"] = {"@custom/thing": "mine"}
@@ -2579,7 +2579,7 @@ def test_a_broken_registry_does_not_clear_existing_aliases():
     ],
 )
 def test_the_gate_is_off_unless_explicitly_true(raw, expected):
-    from kiro_crew import agent
+    from junction import agent
 
     with patch.object(agent, "_load_json", return_value=raw):
         assert agent._connection_tool_aliases_enabled() is expected
@@ -2590,7 +2590,7 @@ def test_the_gate_is_off_unless_explicitly_true(raw, expected):
 
 def test_importing_agent_does_not_eagerly_load_the_registry(tmp_path):
     """The registry validates at MODULE level, so an eager import would make a
-    malformed registry.json break `import kiro_crew.agent` -- the module that
+    malformed registry.json break `import junction.agent` -- the module that
     installs and repairs the agent spec -- before any guard runs.
 
     Checked in a SUBPROCESS against real sys.modules, not by reading agent.py's
@@ -2600,9 +2600,9 @@ def test_importing_agent_does_not_eagerly_load_the_registry(tmp_path):
     import sys
 
     probe = (
-        "import sys, kiro_crew.agent; "
-        "assert 'kiro_crew.connections.registry' not in sys.modules, "
-        "sorted(m for m in sys.modules if m.startswith('kiro_crew.connections'))"
+        "import sys, junction.agent; "
+        "assert 'junction.connections.registry' not in sys.modules, "
+        "sorted(m for m in sys.modules if m.startswith('junction.connections'))"
     )
     # ``-B`` + a throwaway cwd keep the child's imports side-effect free: without
     # them it writes ``__pycache__`` bytecode into the source tree it imports.

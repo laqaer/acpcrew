@@ -10,7 +10,7 @@ booleans and non-integral, malformed, or non-finite values. Imported settings ar
 type-validated before they are written, and the CLI converts typed values before
 writing.
 
-The config module (`kiro_crew/config/loader.py`) loads runtime configuration from `~/.kiro/crew/config.json` using stdlib dataclasses with sensible defaults.
+The config module (`junction/config/loader.py`) loads runtime configuration from `~/.kiro/crew/config.json` using stdlib dataclasses with sensible defaults.
 
 A feature whose section spends tokens on the user's behalf defaults to off and
 documents its knobs in its own spec — `session_summary` is the current example
@@ -22,12 +22,12 @@ gateway from starting.
 
 ## Data Home Location
 
-KiroCrew's data root nests **under kiro-cli's own `~/.kiro/` base** so all
+Junction's data root nests **under kiro-cli's own `~/.kiro/` base** so all
 Kiro-family apps share a single directory a user can secure. `config_dir()`
-(in `kiro_crew/config/paths.py`, re-exported from `kiro_crew/config/loader.py`)
+(in `junction/config/paths.py`, re-exported from `junction/config/loader.py`)
 is the single accessor and resolves to:
 
-1. `$KIROCREW_HOME` when set (used as-is; refuses system directories like `/`,
+1. `$JUNCTION_HOME` when set (used as-is; refuses system directories like `/`,
    `/usr`, `/System`, `/etc`), else
 2. `~/.kiro/crew` (the default).
 
@@ -37,19 +37,19 @@ resolves and `mkdir`s the home above. The one-time `~/.kirocrew` → `~/.kiro/cr
 data-home migration that earlier releases carried has been **removed** (see
 `docs/system-specs/post-launch-removals.md`). A leftover top-level `~/.kirocrew`
 from an old install is never read, migrated, or deleted; it is left in place —
-still credential-gated by the `.kirocrew` security-path spelling — and `kirocrew
+still credential-gated by the `.kirocrew` security-path spelling — and `junction
 doctor` reports it, warning rather than advising deletion when it still holds a
 virtual environment (`venv`/`.venv`/`venvs`), since that may be the running
 interpreter.
 
 **Repository-controlled uninstall contract.** Every uninstall path owned by this
-repository preserves the KiroCrew data home by default. `kirocrew service
+repository preserves the Junction data home by default. `junction service
 uninstall` removes only its service definition; the Python/npm packages define
 no uninstall lifecycle hook; and the desktop shell's generated NSIS uninstaller
 removes only installed program state: its install directory, shortcuts,
 channel-scoped updater cache, and any legacy “start with Windows” registry entry
 (`deleteAppDataOnUninstall` stays false), without
-resolving or removing the KiroCrew home. App Kit uninstall also preserves the
+resolving or removing the Junction home. App Kit uninstall also preserves the
 app's `data/` subtree unless the dedicated `purge_data=true` API action (CLI
 `--purge-data`, or an explicit dashboard choice) is supplied. The API checks
 for the literal boolean `true`; absent, legacy, or malformed values fail closed
@@ -57,7 +57,7 @@ to preservation. A whole-home purge is never coupled to uninstall.
 
 **Uninstaller consideration (external dependency).** Because the data home now
 lives under `~/.kiro/`, a hypothetical Kiro-family uninstaller that removes
-`~/.kiro/` would also remove `~/.kiro/crew` and take KiroCrew's data — config,
+`~/.kiro/` would also remove `~/.kiro/crew` and take Junction's data — config,
 credentials, memory DB, session history, and the SEL audit chain — with it. This
 is a persisted-data one-way door, and — unlike when an archived rollback copy
 existed — there is now no `~/.kirocrew.archived` fallback for ANY install
@@ -66,14 +66,14 @@ existed — there is now no `~/.kirocrew.archived` fallback for ANY install
 Any Kiro-family uninstaller spec **MUST** either explicitly exclude
 `~/.kiro/crew` from a `~/.kiro/`-wide wipe, or prompt before deleting it.
 Independently, a user who wants the data home entirely outside `~/.kiro/` can set
-`KIROCREW_HOME` to relocate it.
+`JUNCTION_HOME` to relocate it.
 
 **Technical hedge — recovery-pointer breadcrumb.** `config_dir()` writes a small,
 non-secret `~/.kirocrew.breadcrumb` pointer file at the top-level home
 (`RECOVERY_BREADCRUMB_NAME`), deliberately **outside** `~/.kiro/`, recording the
 data-home path (see `_write_recovery_breadcrumb`). It is idempotent (rewritten
 only when the recorded path changes), best-effort (never blocks startup), and
-written only on the default path (a `KIROCREW_HOME` override carries no `~/.kiro/`
+written only on the default path (a `JUNCTION_HOME` override carries no `~/.kiro/`
 wipe risk). It is **not a backup** — just a durable signpost that survives a
 `~/.kiro/`-wide uninstaller wipe so a user or support script can find any
 surviving data or understand what was removed. This narrows, but does not
@@ -82,7 +82,7 @@ eliminate, the one-way-door risk above; the release gate still stands.
 > **Release gate (UNINSTALLER-EXCLUDE-CREW).** This is a pre-release,
 > human-sign-off dependency, NOT a code change in this repo: the code cannot
 > constrain another product's uninstaller. Before the first release that ships
-> data under `~/.kiro/`, the KiroCrew product owner MUST confirm the
+> data under `~/.kiro/`, the Junction product owner MUST confirm the
 > Kiro-family uninstaller either excludes `~/.kiro/crew` or prompts — because
 > there is no `~/.kirocrew.archived` fallback for any install, so a
 > `~/.kiro/`-wide wipe would be unrecoverable total data loss. Until confirmed,
@@ -93,7 +93,7 @@ eliminate, the one-way-door risk above; the release gate still stands.
 > before tagging the first release containing this change.
 
 **Paths are resolved per call, never captured at import.** Because
-`config_dir()` re-reads `$KIROCREW_HOME` on every call and the migration above
+`config_dir()` re-reads `$JUNCTION_HOME` on every call and the migration above
 is deliberately lazy, the resolved value is only correct at the moment it is
 needed. Modules therefore MUST NOT bind a path factory result to a module-level
 constant:
@@ -104,7 +104,7 @@ _SOME_DIR = config_dir() / "some"        # WRONG -- frozen at import
 
 An import-time binding captures whatever home was active when the module was
 first imported, which breaks two things at once: pod isolation (a pod exports
-its own `KIROCREW_HOME`) and test isolation — `conftest.py`'s autouse `_isolate_kirocrew_home`
+its own `JUNCTION_HOME`) and test isolation — `conftest.py`'s autouse `_isolate_junction_home`
 fixture runs *after* collection has already imported the module under test, so
 it cannot reach a frozen constant. That last hole let a local test run write
 2128 fixture rows into an operator's real usage store.
@@ -123,7 +123,7 @@ def _some_dir() -> Path:
 Annotating the override as `Path | None` is load-bearing: any consumer that
 still reads the constant directly becomes a **mypy error** rather than a silent
 `None` at runtime. This is enforced repo-wide by
-`test/test_lazy_data_home_paths.py`, which walks the AST of `src/kiro_crew` for
+`test/test_lazy_data_home_paths.py`, which walks the AST of `src/junction` for
 module-level assignments calling any factory declared in `config/paths.py` and
 fails on every hit. The factory list is derived from `paths.py` itself, so a
 newly added factory is covered without editing the test. Issue #874.
@@ -141,7 +141,7 @@ directory is. So the accessors above call **`data_home()`**:
 
 | branch | behaviour |
 | --- | --- |
-| a **valid** `KIROCREW_HOME` override | delegates to `config_dir()` every call, so an override set *after* import is honoured. That branch performs no breadcrumb refresh — only a cheap `mkdir`. |
+| a **valid** `JUNCTION_HOME` override | delegates to `config_dir()` every call, so an override set *after* import is honoured. That branch performs no breadcrumb refresh — only a cheap `mkdir`. |
 | default home already resolved | returns the cached `_resolved_home` directly — no `mkdir`, no breadcrumb. |
 | not yet resolved | delegates to `config_dir()`, so the **first** resolution in a process creates the home and refreshes the breadcrumb once. |
 
@@ -165,31 +165,31 @@ handlers.
 `workspace_root()` returns the base directory for all LLM working directories (kiro-cli cwd, task runner output, etc.):
 
 Resolution order:
-1. `KIROCREW_WORKSPACE` env var — used as-is (no `kirocrew-workspace` subdirectory appended)
-2. Saved path in `~/.kiro/crew/workspace_dir` (written by `kirocrew setup`; re-running setup preserves the existing value as the prompt default)
+1. `JUNCTION_WORKSPACE` env var — used as-is (no `junction-workspace` subdirectory appended)
+2. Saved path in `~/.kiro/crew/workspace_dir` (written by `junction setup`; re-running setup preserves the existing value as the prompt default)
 3. Platform default:
 
 | Platform | Path |
 |----------|------|
-| macOS | `/Volumes/workplace/kirocrew-workspace` (falls back to `~/workplace/kirocrew-workspace` if `/Volumes/workplace` doesn't exist) |
-| Linux | `~/workplace/kirocrew-workspace` |
+| macOS | `/Volumes/workplace/junction-workspace` (falls back to `~/workplace/junction-workspace` if `/Volumes/workplace` doesn't exist) |
+| Linux | `~/workplace/junction-workspace` |
 
 Each session/task gets an isolated subdirectory under this root via `_session_work_dir(key)`:
-- Chat sessions: `kirocrew-workspace/cli_chat`, `kirocrew-workspace/{thread_ts}`
-- Background: `kirocrew-workspace/_bg`
-- Cron: `kirocrew-workspace/cron_{job_id}`
-- TaskRunner: `kirocrew-workspace/taskrunner_main`
-- Background session: `kirocrew-workspace/_bg`
+- Chat sessions: `junction-workspace/cli_chat`, `junction-workspace/{thread_ts}`
+- Background: `junction-workspace/_bg`
+- Cron: `junction-workspace/cron_{job_id}`
+- TaskRunner: `junction-workspace/taskrunner_main`
+- Background session: `junction-workspace/_bg`
 
 The parent directory is created on first call if it doesn't exist.
 
 ## Project Directory Resolution
 
-`KIROCREW_PROJECT_DIR` env var controls where agent config and skills are loaded from:
+`JUNCTION_PROJECT_DIR` env var controls where agent config and skills are loaded from:
 
-1. Env var `KIROCREW_PROJECT_DIR` (if set and valid)
-2. CWD walk-up — CLI walks up from CWD looking for `skills/` + `src/kiro_crew/` (the `agents/` dir was removed in commit bbbc1f6e when agent config moved into `src/kiro_crew/config/`)
-3. Saved path in `~/.kiro/crew/project_dir` (written by `kirocrew setup`)
+1. Env var `JUNCTION_PROJECT_DIR` (if set and valid)
+2. CWD walk-up — CLI walks up from CWD looking for `skills/` + `src/junction/` (the `agents/` dir was removed in commit bbbc1f6e when agent config moved into `src/junction/config/`)
+3. Saved path in `~/.kiro/crew/project_dir` (written by `junction setup`)
 4. Bundled fallback — `config/defaults.json` and `builtin_skills/` inside the package
 
 The CLI (`cli.py:main()`) auto-detects and sets the env var at startup.
@@ -228,7 +228,7 @@ Two surfaces render it, and neither writes:
   operator's live choice and says nothing about what the base materialized, so a
   base drift is still reported when an overlay masks it, and an overlay-only value
   is not reported at all.
-- `kirocrew doctor` prints a `Stored Defaults` section reading `config.json`
+- `junction doctor` prints a `Stored Defaults` section reading `config.json`
   directly. Drift is informational and does NOT become an issue; an unreadable or
   malformed config does.
 
@@ -244,10 +244,10 @@ does not have.
 
 User overrides can be placed in `~/.kiro/crew/config.local.json`. This file is
 deep-merged on top of `config.json` at load time and is never touched by
-`kirocrew setup` or package upgrades.
+`junction setup` or package upgrades.
 
 Resolution order:
-1. Load `config.json` (managed by KiroCrew, may be regenerated on upgrade)
+1. Load `config.json` (managed by Junction, may be regenerated on upgrade)
 2. Deep-merge `config.local.json` on top (user-owned, never touched by setup/migration)
 3. Return merged result
 
@@ -255,14 +255,14 @@ Resolution order:
 
 ```bash
 # Save a setting to config.local.json (persists across upgrades):
-kirocrew config set --local agent.yolo true
+junction config set --local agent.yolo true
 
 # Save to config.json (may be overwritten on upgrade):
-kirocrew config set agent.yolo true
+junction config set agent.yolo true
 ```
 
 ### `config_local_path() -> Path`
-Returns `~/.kiro/crew/config.local.json` (or `$KIROCREW_HOME/config.local.json`).
+Returns `~/.kiro/crew/config.local.json` (or `$JUNCTION_HOME/config.local.json`).
 
 ### `_deep_merge(base: dict, overlay: dict) -> dict`
 Recursively merges overlay into base. Dict values merge recursively; all other
@@ -270,7 +270,7 @@ types in overlay replace base values.
 
 ## APIs
 
-### `KiroCrewConfig.load() -> KiroCrewConfig`
+### `JunctionConfig.load() -> JunctionConfig`
 Loads config from disk. Merges `config.local.json` overlay if present.
 Returns defaults if file is missing or invalid.
 
@@ -286,12 +286,12 @@ runtime edit is reflected on the next `load()`; `save()` also invalidates it
 eagerly via `_invalidate_config_cache()`. The defaults-only path (neither file
 present) is not cached.
 
-### `KiroCrewConfig._resolve_agent_model() -> str`
-Reads model from installed agent config (`~/.kiro/agents/kirocrew.json`),
+### `JunctionConfig._resolve_agent_model() -> str`
+Reads model from installed agent config (`~/.kiro/agents/junction.json`),
 falling back to the bundled `config_package_dir()/defaults.json` (i.e.
-`src/kiro_crew/config/defaults.json`), then `DEFAULT_MODEL`.
+`src/junction/config/defaults.json`), then `DEFAULT_MODEL`.
 
-### `KiroCrewConfig._resolve_named_agent_model(agent, agents_dir=None) -> str`
+### `JunctionConfig._resolve_named_agent_model(agent, agents_dir=None) -> str`
 Returns a named agent's own kiro `model` field, or `""` if none. Used by
 `SessionManager.get_or_create` so an explicit global `agent.model` ranks *below*
 a per-agent model pin (per-agent pin > global default). Reads only the kiro
@@ -301,7 +301,7 @@ a per-agent model pin (per-agent pin > global default). Reads only the kiro
 ### `kiro_agents_dir() -> Path` (`config/paths.py`)
 Leaf helper returning `~/.kiro/agents` — the **user-level** scope. Lives in the leaf
 module so `loader.py` (and `_resolve_named_agent_model`'s `agents_dir` DI seam) can
-locate installed agent JSONs without importing `kiro_crew.agent` — which imports
+locate installed agent JSONs without importing `junction.agent` — which imports
 `config.loader` and would create an import cycle.
 
 Deliberately **single-valued**: it is the WRITE target as well as a read scope
@@ -494,23 +494,23 @@ Known follow-up (#1429): the snapshot makes this module a second home for agent
 discovery beside `apps/registry`, and `_resolve_named_agent_model` below still
 reads that directory without the sensitive-path gate.
 
-### `KiroCrewConfig.create_provider_factory() -> Callable`
+### `JunctionConfig.create_provider_factory() -> Callable`
 Returns a factory for LLMProvider instances. Resolves `"auto"` model
 before creating the provider.
 
-### `KiroCrewConfig.to_dict() -> dict`
+### `JunctionConfig.to_dict() -> dict`
 Serializes config to the JSON structure used by `config.json`. Uses `_configured_port`
-(the file value) instead of `dashboard_port` (which may be overridden by `KIROCREW_PORT`
+(the file value) instead of `dashboard_port` (which may be overridden by `JUNCTION_PORT`
 env var) to avoid clobbering the saved port on write-back.
 
-### `KiroCrewConfig.save() -> None`
+### `JunctionConfig.save() -> None`
 Writes current config to `~/.kiro/crew/config.json` via `to_dict()`, through
 `write_config_atomically()` (see below). Invalidates the `load()` validated-data
 cache so the next load reflects the write immediately.
 
 ### Partial config updates: `read_config_for_update()` / `write_config_atomically()`
 
-Many callers do not hold a whole `KiroCrewConfig` — they flip one toggle
+Many callers do not hold a whole `JunctionConfig` — they flip one toggle
 (`auto_update`), persist one channel, or seed one default. That shape is a
 **read the whole file → mutate one key → write it all back** cycle, and both
 halves of it are data-loss-prone. These two helpers are the required primitives
@@ -568,41 +568,41 @@ say) are still last-writer-wins per key, since each read its own snapshot before
 mutating. In-process dashboard handlers additionally take `_get_config_lock()`,
 which serializes them against each other but not against a separate process.
 
-One deliberate exception: the interactive `kirocrew config set --local` path
+One deliberate exception: the interactive `junction config set --local` path
 overwrites a corrupt `config.local.json` rather than failing closed — the user
 typed an explicit command and sees the result on stdout. Pinned by
 `test_config_overlay.py::TestCliConfigSetLocal`.
 
 ### `config_dir() -> Path`
 Returns `~/.kiro/crew/` (nested under kiro-cli's `~/.kiro/` base). Overridden by
-`KIROCREW_HOME` env var (refuses system directories like `/`, `/usr`, `/System`,
+`JUNCTION_HOME` env var (refuses system directories like `/`, `/usr`, `/System`,
 `/etc`). On the default (non-override) path, a pre-move `~/.kirocrew` is migrated
 once into `~/.kiro/crew` — see "Data Home Location & Migration" above.
 
 ### `config_path() -> Path`
-Returns `~/.kiro/crew/config.json` (or `$KIROCREW_HOME/config.json` if overridden).
+Returns `~/.kiro/crew/config.json` (or `$JUNCTION_HOME/config.json` if overridden).
 
 ### Agent Bookkeeping Sidecar (`agent_model_state.json`)
 
-KiroCrew tracks two pieces of per-agent state that are **not** part of the
+Junction tracks two pieces of per-agent state that are **not** part of the
 kiro-cli agent schema: `model_managed` (whether an agent's `model` tracks the
 shipped default or is a frozen user pick) and `cc_model` (a per-agent Claude
 Code model). kiro-cli validates `~/.kiro/agents/*.json` with serde
 `deny_unknown_fields` and rejects the *entire* spec on any unknown key, then
 silently falls back to the default agent (`--agent <name>` resolves to default
 with only a stderr "no agent with name X found" line). To keep every spec
-schema-valid, this state lives in a KiroCrew-owned sidecar
-`~/.kiro/crew/agent_model_state.json` (honoring `KIROCREW_HOME`), keyed by agent
+schema-valid, this state lives in a Junction-owned sidecar
+`~/.kiro/crew/agent_model_state.json` (honoring `JUNCTION_HOME`), keyed by agent
 name:
 
 ```json
 {
-  "kirocrew":           {"model_managed": true},
-  "kirocrew-heartbeat": {"cc_model": "claude-sonnet-4.6"}
+  "junction":           {"model_managed": true},
+  "junction-heartbeat": {"cc_model": "claude-sonnet-4.6"}
 }
 ```
 
-- Read/written via `kiro_crew/agent_state.py` (atomic, lock-guarded near-leaf
+- Read/written via `junction/agent_state.py` (atomic, lock-guarded near-leaf
   module: stdlib + `config.paths` + `atomic_write` only).
 - `build_agent_config()` is pure (writes no spec key); `rebuild_agent_config()`
   seeds managed-state on a fresh/clean install (never clobbering a frozen pick).
@@ -631,7 +631,7 @@ name:
   `migrate_agent_specs()`, and `_refresh_dynamic_fields()` — so none of them
   can drift from the other three.
 
-Note: KiroCrew is KiroACP (kiro-cli) only — the deleted `claude_code` provider
+Note: Junction is KiroACP (kiro-cli) only — the deleted `claude_code` provider
 was the sole reader of spec `cc_model`, so `cc_model` is now dead config. The
 lite/heartbeat installers still write it to the sidecar (harmless bookkeeping)
 purely to keep the kiro spec schema-clean; nothing in the fork resolves it.
@@ -651,7 +651,7 @@ class AgentConfig:
     provider: str = "acp"          # fixed to "acp" (kiro-cli) — the only provider
     sandbox: str = "auto"          # default "auto" (namespace on Linux, seatbelt on macOS; delegates to kiro-cli's internal sandbox on macOS when enabled); "off" skips Kiro Crew's sandbox
     sandbox_allow_no_isolation: bool = False  # SEC-009: acknowledge running un-isolated when no sandbox backend exists; false = loud SECURITY warning, true = info-level
-    enforce_denied_commands: str = "all"  # "all" or "kirocrew"
+    enforce_denied_commands: str = "all"  # "all" or "junction"
     soft_stop_budget_secs: float = 10.0  # seconds to wait for cooperative cancel before hard kill [0.5, 60.0]
     yolo: bool = False             # permanent YOLO mode (skip tool approval); tracked via _yolo_from_config flag
     max_subagents: int = 3         # concurrent subagent cap; 0 = auto-size from host memory/CPU. Load-time: 0 (auto) or [3, 64] — a fixed pin of 1/2 is raised to 3
@@ -761,10 +761,10 @@ class TelegramConfig:
 # Additional top-level DTOs (not fully expanded here — see loader.py):
 # OrchestratorConfig, CronHistoryConfig, TunnelConfig, InstancesConfig, HeartbeatConfig,
 # WorkspaceConfig, MemoryStoreConfig, ExternalRegistryConfig,
-# KiroCrewAgentConfig, SlackConfig.
+# JunctionAgentConfig, SlackConfig.
 
 @dataclass
-class KiroCrewConfig:
+class JunctionConfig:
     agent: AgentConfig
     session: SessionConfig
     taskrunner: TaskRunnerConfig
@@ -1093,7 +1093,7 @@ newer import marker remains a cache only and continues to yield to server state.
 
 Foreign settings are never deep-merged into `config.json`. The importer applies
 only its explicit non-security settings allowlist, preserves every existing
-KiroCrew value on collision, and reports unsupported or secret-bearing source
+Junction value on collision, and reports unsupported or secret-bearing source
 settings without copying them. Foreign credentials, security policy,
 approval/sandbox settings, agent/runtime state, hooks, and arbitrary unknown
 config sections cannot enter configuration through this path.
@@ -1101,7 +1101,7 @@ config sections cannot enter configuration through this path.
 ### `ChannelConfig.from_dict(data: dict) -> ChannelConfig`
 Parses a channel config entry from JSON. Invalid activation values fall back to `"mention"`.
 
-### `KiroCrewConfig.channel_config(channel_id: str) -> ChannelConfig`
+### `JunctionConfig.channel_config(channel_id: str) -> ChannelConfig`
 Returns the effective config for a channel:
 1. Explicit entry in `slack_channels` → returned as-is
 2. DM channel (`D`-prefix) → `ChannelConfig(activation=slack_dm_activation)`
@@ -1111,10 +1111,10 @@ Returns the effective config for a channel:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `KIROCREW_HOME` | Override config/data directory | `~/.kiro/crew` |
-| `KIROCREW_PORT` | Override dashboard port (dev mode — run dev + prod side by side) | `5476` |
-| `KIROCREW_WORKSPACE` | Override workspace root directory | Platform-dependent |
-| `KIROCREW_PROJECT_DIR` | Override agent config/skills directory | Auto-detected |
+| `JUNCTION_HOME` | Override config/data directory | `~/.kiro/crew` |
+| `JUNCTION_PORT` | Override dashboard port (dev mode — run dev + prod side by side) | `5476` |
+| `JUNCTION_WORKSPACE` | Override workspace root directory | Platform-dependent |
+| `JUNCTION_PROJECT_DIR` | Override agent config/skills directory | Auto-detected |
 ```
 
 ## Config File Format
@@ -1146,7 +1146,7 @@ Returns the effective config for a channel:
   },
   "hooks": {},
   "slack": {
-    "command": "kirocrew",
+    "command": "junction",
     "allowed_users": [],
     "tracking_channels": [],
     "dm_activation": "always",
@@ -1165,18 +1165,18 @@ Returns the effective config for a channel:
 
 The `dashboard.url` field controls where the dashboard is reachable. From it, the system derives the port to bind on, the bind address (`0.0.0.0` for non-loopback hosts, `127.0.0.1` otherwise), and the allowed origins for CSRF/WebSocket checks. When omitted, defaults to `localhost:5476`.
 
-A **malformed** `dashboard.url` (e.g. an unterminated IPv6 literal `http://[::1` or a non-numeric port `http://host:notaport`) does **not** abort startup: `parse_dashboard_url` degrades to the defaults (`""` host, port `5476`) and logs a warning, so a single typo in the config can never take the gateway down on boot. `KIROCREW_PORT` still overrides the port regardless.
+A **malformed** `dashboard.url` (e.g. an unterminated IPv6 literal `http://[::1` or a non-numeric port `http://host:notaport`) does **not** abort startup: `parse_dashboard_url` degrades to the defaults (`""` host, port `5476`) and logs a warning, so a single typo in the config can never take the gateway down on boot. `JUNCTION_PORT` still overrides the port regardless.
 
 Once the dashboard's TCP site is listening, the gateway **exports the
-actually-bound port as `KIROCREW_BOUND_PORT`** into its own environment, so
+actually-bound port as `JUNCTION_BOUND_PORT`** into its own environment, so
 every child it spawns (kiro-cli sessions and their MCP stdio servers) inherits
 the truth instead of re-deriving a guess from `dashboard.url` — a portless URL
 would otherwise collapse to the default port in the child even when the
 gateway is bound elsewhere (including `--port auto`, where the OS assigns the
 port and no config field ever names it). It is a **distinct variable from
-`KIROCREW_PORT`** on purpose: `KIROCREW_PORT` means operator intent and is
+`JUNCTION_PORT`** on purpose: `JUNCTION_PORT` means operator intent and is
 persisted by `service_environment()` into unit files, while
-`KIROCREW_BOUND_PORT` is ephemeral observed truth that must never be frozen
+`JUNCTION_BOUND_PORT` is ephemeral observed truth that must never be frozen
 into persistent config. Clients read it via `port_resolution.resolve_client_port`,
 one precedence step below the operator override.
 
@@ -1184,8 +1184,8 @@ one precedence step below the operator override.
 
 When `agent.model` is `"auto"` (default):
 
-1. `~/.kiro/agents/kirocrew.json` → `model` field (installed agent config)
-2. `config_package_dir()/defaults.json` → `model` field (bundled `src/kiro_crew/config/defaults.json`)
+1. `~/.kiro/agents/junction.json` → `model` field (installed agent config)
+2. `config_package_dir()/defaults.json` → `model` field (bundled `src/junction/config/defaults.json`)
 3. Falls back to `DEFAULT_MODEL` (passed through to provider)
 
 ## Error Handling

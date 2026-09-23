@@ -14,9 +14,9 @@ import React from 'react'
  * component.
  */
 
-const { patchConfigMock, kirocrewConfigMock } = vi.hoisted(() => ({
+const { patchConfigMock, junctionConfigMock } = vi.hoisted(() => ({
   patchConfigMock: vi.fn(() => Promise.resolve({})),
-  kirocrewConfigMock: vi.fn(() => Promise.resolve({})),
+  junctionConfigMock: vi.fn(() => Promise.resolve({})),
 }))
 
 vi.mock('../api/client', () => ({
@@ -24,7 +24,7 @@ vi.mock('../api/client', () => ({
     dashboardConfig: () => Promise.resolve({ restore_sessions: false, restore_window_minutes: 30, merge_queued_messages: false, widget_density: 'more' }),
     voiceConfig: () => Promise.resolve({ enabled: false, voice: 'Ruth', engine: 'neural', rate: '100%', autoSpeak: false, aws_profile: '', region: '' }),
     sttConfig: () => Promise.resolve({ enabled: false, provider: '', model: '', available: false, streaming: false, transcribe_region: '', transcribe_profile: '', language_code: 'en-US', models: {}, language_codes: [] }),
-    kirocrewConfig: kirocrewConfigMock,
+    junctionConfig: junctionConfigMock,
     models: () => Promise.resolve([{ model_name: 'auto', description: 'Default' }]),
     patchConfig: patchConfigMock,
     updateDashboardConfig: () => Promise.resolve({}),
@@ -42,7 +42,7 @@ const BASE_CFG = {
 }
 
 function seed(dashboard: Record<string, string>) {
-  kirocrewConfigMock.mockImplementation(() => Promise.resolve({ ...BASE_CFG, dashboard }))
+  junctionConfigMock.mockImplementation(() => Promise.resolve({ ...BASE_CFG, dashboard }))
 }
 
 function wrap(ui: React.ReactElement) {

@@ -137,7 +137,7 @@ describe("macOS bundle naming", () => {
   );
 
   it("keeps CFBundleName aligned with productName for Electron helpers", () => {
-    assert.equal(pkg.build.productName, "KiroCrew");
+    assert.equal(pkg.build.productName, "Junction");
     assert.equal(
       Object.hasOwn(extendInfo, "CFBundleName"),
       false,
@@ -285,7 +285,7 @@ describe("first-download installer design contract", () => {
     assert.match(buildScript, /DLLs\/_tkinter\.pyd DLLs\/tcl\*\.dll DLLs\/tk\*\.dll/);
     assert.match(
       buildScript,
-      /precompile_windows\.py" \\\r?\n\s*--root "\$out" --module kiro_crew\.cli_server/
+      /precompile_windows\.py" \\\r?\n\s*--root "\$out" --module junction\.cli_server/
     );
   });
 
@@ -666,7 +666,7 @@ describe("uninstall data preservation contract", () => {
     // NSIS generates its own uninstaller, so there is no in-app uninstall
     // handler to audit any more -- the guarantee moves entirely into config.
     // deleteAppDataOnUninstall MUST stay false/absent: it would delete the
-    // Electron userData dir on uninstall, and the KiroCrew home under
+    // Electron userData dir on uninstall, and the Junction home under
     // ~/.kiro/crew is user data that survives an uninstall by design.
     assert.notEqual(
       electronPkg.build.nsis?.deleteAppDataOnUninstall,
@@ -692,7 +692,7 @@ describe("uninstall data preservation contract", () => {
 
   it("uses an assisted installer so nightly installs beside stable", () => {
     // getWindowsInstallationDirName(appInfo, !oneClick || isPerMachine) in
-    // app-builder-lib only uses productFilename ("KiroCrew" / "KiroCrew
+    // app-builder-lib only uses productFilename ("Junction" / "Junction
     // Nightly") when that flag is true. Under oneClick+perUser it falls back to
     // appInfo.sanitizedName -- the npm package name -- which would put both
     // channels in ONE directory named after the package rather than the product.
@@ -711,10 +711,10 @@ describe("uninstall data preservation contract", () => {
     // it -- the same class as the nsis.guid hazard above. The launcher and
     // desktop-entry names are per-install paths and must move with it.
     for (const override of [
-      "-c.deb.packageName=kirocrew-nightly",
-      "-c.rpm.packageName=kirocrew-nightly",
-      "-c.linux.executableName=kirocrew-desktop-nightly",
-      "-c.extraMetadata.desktopName=kirocrew-desktop-nightly.desktop",
+      "-c.deb.packageName=junction-nightly",
+      "-c.rpm.packageName=junction-nightly",
+      "-c.linux.executableName=junction-desktop-nightly",
+      "-c.extraMetadata.desktopName=junction-desktop-nightly.desktop",
     ]) {
       assert.ok(
         nightlyOverrides.includes(override),
@@ -723,10 +723,10 @@ describe("uninstall data preservation contract", () => {
     }
     // And the stable defaults they override must be the ones actually shipped,
     // so a rename on either side fails here instead of silently colliding.
-    assert.equal(electronPkg.build.deb.packageName, "kirocrew");
-    assert.equal(electronPkg.build.rpm.packageName, "kirocrew");
-    assert.equal(electronPkg.build.linux.executableName, "kirocrew-desktop");
-    assert.equal(electronPkg.desktopName, "kirocrew-desktop.desktop");
+    assert.equal(electronPkg.build.deb.packageName, "junction");
+    assert.equal(electronPkg.build.rpm.packageName, "junction");
+    assert.equal(electronPkg.build.linux.executableName, "junction-desktop");
+    assert.equal(electronPkg.desktopName, "junction-desktop.desktop");
     // syncDesktopName is what ties Electron's app_id and the entry's
     // StartupWMClass to desktopName; without it the nightly override above
     // would move the filename but not the window association.
@@ -847,13 +847,13 @@ describe("uninstall data preservation contract", () => {
       "utf8"
     );
     assert.ok(
-      buildScript.includes("-c.extraMetadata.name=kirocrew-desktop-nightly"),
+      buildScript.includes("-c.extraMetadata.name=junction-desktop-nightly"),
       "build-desktop.sh must give the nightly channel its own npm name, or the " +
         "uninstaller's cache removal reaches into the other channel's install"
     );
     // The stable default it overrides must be the one actually shipped, so a
     // rename on either side fails here instead of silently re-sharing.
-    assert.equal(electronPkg.name, "kirocrew-desktop");
+    assert.equal(electronPkg.name, "junction-desktop");
   });
 
   it("gives nightly its own Windows appId so a channel update cannot orphan the other's shortcuts", () => {

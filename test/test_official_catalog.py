@@ -19,7 +19,7 @@ import urllib.request
 
 import pytest
 
-from kiro_crew.apps import official_catalog as oc
+from junction.apps import official_catalog as oc
 
 
 def doc(**over):

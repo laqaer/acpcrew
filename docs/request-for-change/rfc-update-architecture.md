@@ -21,7 +21,7 @@ superseded-by: []
   (`feat/emergency-release-controls`, open) adds a feed-served minimum version +
   mandatory-update modal for the desktop lane only, without the capability
   contract.
-- Correction to the reference below: KiroCrew ships **five** distribution shapes, not the set implied — `beacon.py:155` lists `{dmg, appimage, wheel, source, docker}`.
+- Correction to the reference below: Junction ships **five** distribution shapes, not the set implied — `beacon.py:155` lists `{dmg, appimage, wheel, source, docker}`.
 - Author: zezhexu
 - Created: 2026-07-31
 - Related: `docs/build/release.md` (channels, release branches, promotion),
@@ -81,7 +81,7 @@ so no rc-to-rc step was detectable.
 
 ## Summary
 
-KiroCrew ships in five distribution shapes and has three disjoint update
+Junction ships in five distribution shapes and has three disjoint update
 mechanisms, one of which covers no shape a user is told to install. The
 mechanisms themselves are legitimate — a notarized app bundle and a
 pipx-managed wheel share nothing at the byte level, so any product shipping
@@ -101,15 +101,15 @@ sequence becomes shared and explicit.
 
 ### Current state
 
-Five shapes, enumerated at `src/kiro_crew/beacon.py:136`:
+Five shapes, enumerated at `src/junction/beacon.py:136`:
 
 ```python
 KNOWN_DISTRIBUTIONS = frozenset({"dmg", "appimage", "wheel", "source", "docker"})
 ```
 
 Each packaging path stamps that value at build time into a generated
-`kiro_crew/_build_info.py` (via `scripts/stamp-distribution.sh`), which
-`beacon.distribution()` prefers over the `KIROCREW_DISTRIBUTION` env var: a
+`junction/_build_info.py` (via `scripts/stamp-distribution.sh`), which
+`beacon.distribution()` prefers over the `JUNCTION_DISTRIBUTION` env var: a
 baked module ships with the artifact and a running install cannot change it,
 whereas the env var is inherited by child processes and settable by anyone with
 a shell. Windows (NSIS) has no value in the set and reports `source`. The
@@ -124,7 +124,7 @@ Three mechanisms:
 | — none — | | `wheel`, `docker` |
 
 All three backend entry points to the git path guard on roughly the same two
-conditions — `KIROCREW_PROJECT_DIR` set, and a `.git` present — and, as of
+conditions — `JUNCTION_PROJECT_DIR` set, and a `.git` present — and, as of
 `8861f89e`, with the **same** semantics:
 
 - `dashboard/handlers/updates.py:383` (`_do_update_check`) — `os.path.exists`
@@ -177,8 +177,8 @@ re-asked which shapes it still governs.
 ### Problems
 
 1. **The headline install cannot update.** `cli.sh` (README's first
-   instruction) produces a `wheel` install. `kirocrew update` exits 1 on it —
-   `❌ KIROCREW_PROJECT_DIR not set — cannot locate source tree`
+   instruction) produces a `wheel` install. `junction update` exits 1 on it —
+   `❌ JUNCTION_PROJECT_DIR not set — cannot locate source tree`
    (`cli_server.py:1145`) or `❌ No git repo at …` (`:1151`). The documented
    update command does not work for the documented install method. The only
    route is re-running the installer.
@@ -197,7 +197,7 @@ re-asked which shapes it still governs.
      `updateAvailable` includes `desktopUpdateAvailable` (`App.tsx:728`,
      mirrored from the Electron updater). It POSTs to the git-only
      `/api/update`, which answers 400 or `409 Not a git checkout — update by
-     redeploying (e.g. \`kirocrew cloud launch\`)`. A `.dmg` user is told to run
+     redeploying (e.g. \`junction cloud launch\`)`. A `.dmg` user is told to run
      a cloud launcher.
 
    Three surfaces, three different couplings to the same unstated fact.
@@ -273,7 +273,7 @@ two is the reason the current UI is wrong: it asks a shape question
 
 ### §2 The update capability contract
 
-`KIROCREW_DISTRIBUTION` is promoted from a telemetry-only stamp to a
+`JUNCTION_DISTRIBUTION` is promoted from a telemetry-only stamp to a
 first-class runtime property, and one module — `platform/update_capability.py`
 — derives the contract from it. Served on the status payload and on
 `GET /api/update/check`:
@@ -281,7 +281,7 @@ first-class runtime property, and one module — `platform/update_capability.py`
 ```json
 {
   "supported": true,
-  "managed_by": "electron | kirocrew | git | container | none",
+  "managed_by": "electron | junction | git | container | none",
   "mode": "auto | consent | notify | none",
   "can_download": true,
   "can_apply": true,
@@ -348,7 +348,7 @@ the hard way in that PR:
   is the only thing that installs bytes), so a URL taken from it would let a
   tampered feed choose what the user pastes into a shell.
 - **It must pin its transport.** `--proto '=https'` is mandatory on any emitted
-  `curl … | sh`: the artifact base is overridable (`KIROCREW_CDN_BASE`), so
+  `curl … | sh`: the artifact base is overridable (`JUNCTION_CDN_BASE`), so
   without it an `http://` override hands the user a command that fetches an
   installer in plaintext and executes it. This was a blocking review finding on
   #1734, and `cli.sh` already passes the flag on every fetch it makes itself —
@@ -376,7 +376,7 @@ permanently indeterminate.
 
 `can_apply` means **appliable by the running process without the user leaving
 the app**. It is not "can this install ever be updated": `source` and `wheel`
-can both be updated from a terminal, and `kirocrew update` genuinely applies on
+can both be updated from a terminal, and `junction update` genuinely applies on
 `source` today (`cli_server.py:1140-1152`). `can_apply` is the field an
 implementer reads to decide whether to render an in-app Apply button, so it must
 answer only that question.
@@ -386,8 +386,8 @@ Derivation, by shape:
 | Shape | `managed_by` | `can_apply` | `mode` | `remediation` |
 |---|---|---|---|---|
 | `dmg`, `appimage` | `electron` | true | `consent` | — |
-| `wheel` | `kirocrew` | true (Phase 2) | `notify` | — (in-app after Phase 2) |
-| `source` | `git` | false | `notify` | `kirocrew update` |
+| `wheel` | `junction` | true (Phase 2) | `notify` | — (in-app after Phase 2) |
+| `source` | `git` | false | `notify` | `junction update` |
 | `docker` | `container` | false | `notify` | pull a newer image tag |
 | unavailable (dev build, translocated, read-only volume) | `none` | false | `none` | shape-specific string |
 
@@ -422,7 +422,7 @@ capability check it never had.
   **Managed-venv replacement mechanics (invariants, not a settled design).**
   `cli.sh` has two install branches, and only one of them is pipx. The other —
   the default when pipx is absent — is a fixed-path managed venv
-  (`${KIROCREW_HOME}-venv`, `cli.sh:331`) upgraded **in place** today. For that
+  (`${JUNCTION_HOME}-venv`, `cli.sh:331`) upgraded **in place** today. For that
   shape the promising direction is *versioned trees with atomic promotion*:
   build `crew-venv-<version>` completely while the old gateway keeps serving,
   then promote a stable path to point at it, then restart. (Precedent:
@@ -438,7 +438,7 @@ capability check it never had.
     missing-path window — and is not atomic on NFS at all. Atomic promotion is
     a sibling symlink replaced via `rename(2)` / `os.replace`.
   - **Every persisted launch path must resolve through the stable path.** At
-    least four exist today: `KIROCREW_SERVICE_BIN`, the `kirocrew_bin()` value
+    least four exist today: `JUNCTION_SERVICE_BIN`, the `junction_bin()` value
     systemd renders into `ExecStart`, the generated macOS live-gateway
     launcher, and the non-service restart in `updates.py`, which re-execs
     `sys.executable` — the old version-specific interpreter. Fixing only the
@@ -451,7 +451,7 @@ capability check it never had.
     directory without breaking the live venv's absolute shebangs) a protocol
     of its own. That protocol is now defined:
 
-    **First-migration protocol.** The existing `${KIROCREW_HOME}-venv` real
+    **First-migration protocol.** The existing `${JUNCTION_HOME}-venv` real
     directory is **never renamed, moved, or converted in place** — renaming it
     breaks its own absolute shebangs while a gateway may still be running from
     it, and a non-empty directory cannot be atomically replaced by a symlink
@@ -518,7 +518,7 @@ capability check it never had.
   runs unattended, forever — so the wheel engine must be the first consumer,
   with the verification key pinned in the client rather than fetched from the
   channel it is meant to police.
-- **source** — explicit `kirocrew update` only. The boot-time automatic apply is
+- **source** — explicit `junction update` only. The boot-time automatic apply is
   removed.
 - **docker** — no self-update. The contract says so and names image pull.
 
@@ -531,7 +531,7 @@ post-restart verification.
 | | nightly | insider | stable |
 |---|---|---|---|
 | desktop | background download by default, install on next quit (opt out in About) | same | same |
-| wheel | notify + explicit apply (in-app button or `kirocrew update`) | same | same |
+| wheel | notify + explicit apply (in-app button or `junction update`) | same | same |
 | source | notify only | same | same |
 
 **Amended (desktop row).** This row originally read "opt-in background staging"
@@ -557,7 +557,7 @@ bytes and committing them — is now carried by the download/install split
 instead of by the channel.
 
 **"Explicit" means a deliberate user action, not necessarily a terminal.** An
-in-app Apply button and `kirocrew update` in a terminal both qualify, and since
+in-app Apply button and `junction update` in a terminal both qualify, and since
 the backend can invoke the install helper it can serve both — which is why
 `wheel` carries `can_apply: true` after Phase 2. They are **not equivalent in
 authority**, however: the in-app path additionally requires the host-local
@@ -660,7 +660,7 @@ missing `check_status` reads as `unchecked`, never as "current".)
 **Phase 2 — wheel updater.** A wheel apply path: feed resolution, **provenance
 verification** (§3), external-helper pipx replacement, and a gateway drain
 request when one is running. Reachable two ways from the same backend entry
-point — `kirocrew update` in a terminal, and an in-app Apply button — which is
+point — `junction update` in a terminal, and an in-app Apply button — which is
 what flips `can_apply` true for `wheel` (§4). Introduces `state` and the
 download half of `progress` (§2.3).
 
@@ -684,7 +684,7 @@ not need rewriting; a future release may drop the field.
 Three live surfaces currently offer or persist that key, and **all three** must
 go in the same phase, or Phase 1 ships a switch over a key that governs nothing:
 
-- the raw-config toggle in `KiroCrewCfgTab.tsx:271`;
+- the raw-config toggle in `JunctionCfgTab.tsx:271`;
 - the AboutPanel toggle (`AboutPanel.tsx:342,364,377,549-550`);
 - `POST /api/update/auto` (`dashboard/handlers/updates.py:218-234`), which
   writes it into `config.json`.
@@ -715,7 +715,7 @@ contract tells it not to.
   the pin must be evaluated before any path offers or stages a newer version.
 - **The helper is not a boundary against a compromised gateway, and this RFC
   does not pretend otherwise.** Both candidate locations (the pipx-managed
-  package, `KIROCREW_HOME`) are writable by the OS user the gateway runs as, so
+  package, `JUNCTION_HOME`) are writable by the OS user the gateway runs as, so
   an actor who can already write as that user can replace the helper with one
   that skips verification — the helper verifying provenance *itself* is
   circular, because the attacker replaces the verifier. What the helper and the
@@ -774,7 +774,7 @@ see §4.
 
 1. Where does the wheel install helper live, and is a real local boundary worth
    building? A console script in the same distribution has a bootstrap problem —
-   it is part of what gets replaced — and a copy in `KIROCREW_HOME` is writable
+   it is part of what gets replaced — and a copy in `JUNCTION_HOME` is writable
    by the same user. Neither location is immutable on a single-user install, and
    per the Security section that gap cannot be closed by having the helper verify
    provenance itself: an actor who can rewrite the helper can rewrite the check.
@@ -782,7 +782,7 @@ see §4.
    covered by provenance verification; local code execution as the user is not)
    or to pay for a genuine boundary — a system-installed, root-owned helper, or
    handing the swap to pipx itself.
-2. Does `kirocrew update` on a running gateway refuse, or signal a drain? §5
+2. Does `junction update` on a running gateway refuse, or signal a drain? §5
    prefers the drain; the refusal is simpler and may be the right Phase 2 scope.
 3. Should `docker` report `supported: false` or `supported: true` with
    `can_apply: false`? The latter lets the UI show version drift, which seems
@@ -847,7 +847,7 @@ see §4.
    **Mechanism.** Apply from the SPA *arms* a pending update request (single-
    use nonce; TTL ≈ 10 minutes; recorded with target version, channel,
    artifact digest, attempt id, and request source). Approval requires an
-   action the SPA cannot perform for itself: `kirocrew update approve` run on
+   action the SPA cannot perform for itself: `junction update approve` run on
    the gateway host, whose identity comes from loopback + filesystem access
    rather than the dashboard session. Only an armed-and-approved request may
    enter §5's drain-then-swap. The audit record gains the approval's origin
@@ -856,7 +856,7 @@ see §4.
    **What this rules out and keeps.** One-click remote apply is deliberately
    ruled out in Phase 2. A future policy key could relax the step-up for
    fleets that accept the reduced posture, but it is not part of this design
-   and would need its own review. `kirocrew update` run in a terminal on the
+   and would need its own review. `junction update` run in a terminal on the
    host already *is* the step-up, so the CLI path needs no extra ceremony.
 
 ## Provenance

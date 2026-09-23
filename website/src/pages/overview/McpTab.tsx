@@ -27,7 +27,7 @@ async function fetchServers(): Promise<McpServer[]> {
   return await api.mcpServers()
 }
 
-// A scope key: the core scopes 'kirocrew' / 'kiroGlobal', or a provider scope
+// A scope key: the core scopes 'junction' / 'kiroGlobal', or a provider scope
 // id like 'ccGlobal' contributed at runtime via the extra_mcp_scopes() seam.
 type ScopeKey = string
 
@@ -37,7 +37,7 @@ type PendingChange = {
   uninstall?: boolean
 }
 
-const DEFAULT_PRESENCE: McpScopePresence = { kirocrew: true, kiroGlobal: false }
+const DEFAULT_PRESENCE: McpScopePresence = { junction: true, kiroGlobal: false }
 
 function effectivePresence(s: McpServer, pending: PendingChange | undefined): McpScopePresence {
   // Spread so provider scopes (e.g. ccGlobal) carried on the server's presence
@@ -334,7 +334,7 @@ export default function McpTab({ onManagedProviderClick }: McpTabProps = {}) {
         // effectivePresence(s, undefined) correctly returns the server's
         // current on-disk presence.
         const eff = effectivePresence(s, p)
-        change.kirocrew = eff.kirocrew
+        change.junction = eff.junction
         change.kiroGlobal = eff.kiroGlobal
         // Seam scopes: send each provider scope's effective presence so the
         // backend preserves/updates it. Omitting one means "preserve" backend
@@ -413,7 +413,7 @@ export default function McpTab({ onManagedProviderClick }: McpTabProps = {}) {
         <div className="mb-3 p-3 rounded border border-[var(--warn)] bg-warn/20 flex items-center justify-between">
           <div className="text-[13px] text-[var(--warn)]">
             <AlertTriangle className="lucide-inline" /> {i18nT('pages.overview.mcpTab.pending_change', { count: pendingCount })}
-            <span className="ml-2 text-muted">{i18nT('pages.overview.mcpTab.apply_commits_to_kirocrew_mcp_json_provider_glob')}</span>
+            <span className="ml-2 text-muted">{i18nT('pages.overview.mcpTab.apply_commits_to_junction_mcp_json_provider_glob')}</span>
           </div>
           <div className="flex gap-2">
             <Btn onClick={() => apply.mutate()} disabled={apply.isPending}>
@@ -459,7 +459,7 @@ export default function McpTab({ onManagedProviderClick }: McpTabProps = {}) {
             ROWS set scrollWidth, which the scroller's own box never reports. */}
         <table ref={attachMcpTable} className="w-full border-collapse table-striped"><thead><tr>
           <SortableHeader label={i18nT('pages.overview.mcpTab.name')} sortKey="name" sort={mcpSort} onToggle={toggleMcpSort} />
-          <th className="text-left text-muted text-[12px] uppercase tracking-[.04em] px-2.5 py-2 border-b border-border font-medium">{i18nT('pages.overview.mcpTab.kirocrew')}</th>
+          <th className="text-left text-muted text-[12px] uppercase tracking-[.04em] px-2.5 py-2 border-b border-border font-medium">{i18nT('pages.overview.mcpTab.junction')}</th>
           <th className="text-left text-muted text-[12px] uppercase tracking-[.04em] px-2.5 py-2 border-b border-border font-medium">{i18nT('pages.overview.mcpTab.globals')}</th>
           <SortableHeader label={i18nT('pages.overview.mcpTab.status')} sortKey="status" sort={mcpSort} onToggle={toggleMcpSort} />
           <SortableHeader label={i18nT('pages.overview.mcpTab.tools')} sortKey="tools" sort={mcpSort} onToggle={toggleMcpSort} />
@@ -514,12 +514,12 @@ export default function McpTab({ onManagedProviderClick }: McpTabProps = {}) {
                 </td>
                 <td className="px-2.5 py-2 border-b border-border text-sm whitespace-nowrap">
                   <ScopeBadge
-                    label={i18nT('pages.overview.mcpTab.kirocrew')}
-                    scope="kirocrew"
-                    active={eff.kirocrew}
-                    pendingChange={!pendingUninstall && !!p?.scopes && 'kirocrew' in p.scopes}
+                    label={i18nT('pages.overview.mcpTab.junction')}
+                    scope="junction"
+                    active={eff.junction}
+                    pendingChange={!pendingUninstall && !!p?.scopes && 'junction' in p.scopes}
                     disabled={pendingUninstall}
-                    onClick={() => toggleScope(s.name, 'kirocrew', !eff.kirocrew, base)}
+                    onClick={() => toggleScope(s.name, 'junction', !eff.junction, base)}
                   />
                 </td>
                 <td className="px-2.5 py-2 border-b border-border text-sm whitespace-nowrap">
@@ -647,7 +647,7 @@ export default function McpTab({ onManagedProviderClick }: McpTabProps = {}) {
                     <Btn onClick={() => revertRow(s.name)}>{i18nT('pages.overview.mcpTab.undo')}</Btn>
                   ) : (
                     <div className="flex gap-1 justify-end">
-                      {s.kirocrewManaged && (
+                      {s.junctionManaged && (
                         <Btn onClick={() => setEditTarget(s.name)} aria-label={i18nT('pages.overview.mcpTab.edit_json_for', { name: s.name })} title={i18nT('pages.overview.mcpTab.edit_the_server_s_json_spec')}><Braces size={13} /></Btn>
                       )}
                       <Btn danger onClick={() => stageUninstall(s.name)}>{i18nT('pages.overview.mcpTab.uninstall')}</Btn>

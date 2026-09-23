@@ -18,10 +18,10 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.messaging.attachments import Attachment, IngestResult
-from kiro_crew.messaging.attachments import cleanup as cleanup_attachments
-from kiro_crew.wecom.client import WeComInbound
-from kiro_crew.wecom.commands import (
+from junction.messaging.attachments import Attachment, IngestResult
+from junction.messaging.attachments import cleanup as cleanup_attachments
+from junction.wecom.client import WeComInbound
+from junction.wecom.commands import (
     COMMAND_SPEC,
     build_help_text,
     build_override_usage,
@@ -29,7 +29,7 @@ from kiro_crew.wecom.commands import (
     parse_command,
     parse_mid_turn_override,
 )
-from kiro_crew.wecom.transport_dispatch import WeComDispatcher
+from junction.wecom.transport_dispatch import WeComDispatcher
 
 
 class FakeClient:
@@ -159,7 +159,7 @@ def _permit_inbound(monkeypatch):
     async def _permit(_channel: str) -> bool:
         return True
 
-    monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.inbound_permitted", _permit)
+    monkeypatch.setattr("junction.wecom.transport_dispatch.inbound_permitted", _permit)
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +184,7 @@ class TestCommandCatalogue:
         async def fake_drive_turn(turn, *, sessions, ctx_builder):
             drove.append(turn.user_text)
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.drive_turn", fake_drive_turn)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.drive_turn", fake_drive_turn)
 
         for name, _desc in COMMAND_SPEC:
             client = FakeClient()
@@ -334,7 +334,7 @@ class TestLinkCommandsStayOffTheLoop:
             return "✅ Unlinked.", []
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.release_conversation_location", fake_release
+            "junction.wecom.transport_dispatch.release_conversation_location", fake_release
         )
         d = _dispatcher(sessions, FakeClient())
 
@@ -390,7 +390,7 @@ class TestCleanupCoversEveryAwaitAfterIngest:
             return IngestResult(image_paths=[str(plaintext)])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
 
         # SYNC: the real one is called through asyncio.to_thread, so an async fake
@@ -398,7 +398,7 @@ class TestCleanupCoversEveryAwaitAfterIngest:
         def cancelled_bind(sessions, *, key, location):
             raise asyncio.CancelledError()
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.bind_origin_mirror", cancelled_bind)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.bind_origin_mirror", cancelled_bind)
         d = _dispatcher(FakeSessions(), FakeClient())
 
         with pytest.raises(asyncio.CancelledError):
@@ -430,10 +430,10 @@ class TestTurnPathStaysOffTheLoop:
             threads.append(threading.get_ident())
             return True
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.bind_origin_mirror", recording_bind)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.bind_origin_mirror", recording_bind)
         d = _dispatcher(FakeSessions(), FakeClient())
 
-        await d._bind_origin_mirror("wecom:kirocrew:direct:Wei", _inbound("hi"))
+        await d._bind_origin_mirror("wecom:junction:direct:Wei", _inbound("hi"))
 
         assert threads, "the bind never ran"
         assert threading.get_ident() not in threads, (
@@ -456,7 +456,7 @@ class TestTurnPathStaysOffTheLoop:
 
         d = _dispatcher(Recording(), FakeClient())
 
-        await d._bind_origin_mirror("wecom:kirocrew:direct:Wei", _inbound("hi"))
+        await d._bind_origin_mirror("wecom:junction:direct:Wei", _inbound("hi"))
 
         assert threads == [threading.get_ident()]
 
@@ -525,7 +525,7 @@ class TestACaptionIsNeverACommand:
             return IngestResult(text_blocks=["[image]"])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
 
         drove: list = []
@@ -533,7 +533,7 @@ class TestACaptionIsNeverACommand:
         async def fake_drive_turn(turn, *, sessions, ctx_builder):
             drove.append(turn.user_text)
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.drive_turn", fake_drive_turn)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.drive_turn", fake_drive_turn)
         client = FakeClient()
         d = _dispatcher(FakeSessions(), client)
 
@@ -559,13 +559,13 @@ class TestACaptionIsNeverACommand:
             return IngestResult(text_blocks=["[image]"])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
 
         async def fake_drive_turn(turn, *, sessions, ctx_builder):
             pass
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.drive_turn", fake_drive_turn)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.drive_turn", fake_drive_turn)
         d = _dispatcher(FakeSessions(), FakeClient())
 
         await d.handle_message(_inbound(caption, attachments=[_pair()]))
@@ -583,7 +583,7 @@ class TestACaptionIsNeverACommand:
         async def fake_drive_turn(turn, *, sessions, ctx_builder):
             drove.append(turn.user_text)
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.drive_turn", fake_drive_turn)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.drive_turn", fake_drive_turn)
         client = FakeClient()
         d = _dispatcher(FakeSessions(), client)
 
@@ -610,7 +610,7 @@ class TestIngestMedia:
             return IngestResult(image_paths=[str(shot)], text_blocks=["[image: shot.png]"])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
         inbound = _inbound("what is this?", attachments=[_pair()])
         d = _dispatcher(FakeSessions(), FakeClient())
@@ -629,7 +629,7 @@ class TestIngestMedia:
         async def boom(pairs, **kw):
             raise RuntimeError("cdn gone")
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.process_wecom_attachments", boom)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.process_wecom_attachments", boom)
         inbound = _inbound("look", attachments=[_pair()])
         d = _dispatcher(FakeSessions(), FakeClient())
 
@@ -647,7 +647,7 @@ class TestIngestMedia:
         async def boom(pairs, **kw):
             raise RuntimeError("cdn gone")
 
-        monkeypatch.setattr("kiro_crew.wecom.transport_dispatch.process_wecom_attachments", boom)
+        monkeypatch.setattr("junction.wecom.transport_dispatch.process_wecom_attachments", boom)
         d = _dispatcher(FakeSessions(), FakeClient())
         text, _ = await d._ingest_media(_inbound("", attachments=[_pair()]), "", "Wei")
         assert text == "[附件无法读取]"
@@ -690,7 +690,7 @@ class TestIngestMedia:
             return IngestResult(image_paths=[str(shot)])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
         client = FakeClient()
         d = _dispatcher(sessions, client)
@@ -714,7 +714,7 @@ class TestIngestMedia:
             return IngestResult(rejections=["[Attachment shot.png — too large]"])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
         d = _dispatcher(FakeSessions(), FakeClient())
 
@@ -731,7 +731,7 @@ class TestIngestMedia:
             return IngestResult(rejections=["[Attachment shot.png — too large]"])
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
         d = _dispatcher(FakeSessions(), FakeClient())
         text, _ = await d._ingest_media(_inbound("", attachments=[_pair()]), "", "Wei")
@@ -741,7 +741,7 @@ class TestIngestMedia:
 class TestProcessWeComAttachments:
     @pytest.mark.asyncio
     async def test_no_pairs_does_no_network_work(self) -> None:
-        from kiro_crew.wecom.attachments import process_wecom_attachments
+        from junction.wecom.attachments import process_wecom_attachments
 
         assert await process_wecom_attachments([]) == IngestResult()
 
@@ -750,7 +750,7 @@ class TestProcessWeComAttachments:
         self, monkeypatch, tmp_path
     ) -> None:
         # The key is PER OBJECT, so the download closure must reach the right one.
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         seen: list[tuple[str, str]] = []
 
@@ -777,7 +777,7 @@ class TestProcessWeComAttachments:
         assert (tmp_path / "out.bin").read_bytes().startswith(b"\x89PNG")
 
     def test_the_blocking_write_helper_writes_exactly_the_bytes(self, tmp_path) -> None:
-        from kiro_crew.wecom.attachments import _write_bytes
+        from junction.wecom.attachments import _write_bytes
 
         dest = tmp_path / "x.bin"
         _write_bytes(str(dest), b"abc")
@@ -789,7 +789,7 @@ class TestProcessWeComAttachments:
         # HTTPS_PROXY unless asked, so on a proxy-only host an unproxied download
         # fails while the (proxied) WebSocket stays connected and the badge stays
         # green -- the picture just never arrives.
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         seen: list[str | None] = []
 
@@ -819,7 +819,7 @@ class TestProcessWeComAttachments:
             return IngestResult()
 
         monkeypatch.setattr(
-            "kiro_crew.wecom.transport_dispatch.process_wecom_attachments", fake_process
+            "junction.wecom.transport_dispatch.process_wecom_attachments", fake_process
         )
         client = FakeClient()
         client.proxy = "http://proxy:3128"  # type: ignore[misc]
@@ -832,7 +832,7 @@ class TestProcessWeComAttachments:
         # Every inbound frame becomes its own turn task, so an authorized media
         # burst would otherwise start an unbounded number of ingests, each holding
         # ciphertext AND a decrypted copy before reaching any session lock.
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         monkeypatch.setattr(mod, "_INGEST_GATE", None)  # a fresh gate on this loop
         live = 0
@@ -866,7 +866,7 @@ class TestProcessWeComAttachments:
         # With handle_audio=False the shared pipeline skipped an AUDIO item with no
         # rejection and no audit row, so an audio-only message produced an empty
         # turn and the sender was told nothing.
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         seen: dict = {}
 
@@ -905,7 +905,7 @@ class TestProcessWeComAttachments:
         dispatcher never sees the paths it was supposed to delete. What is left
         behind is the user's audio in the clear.
         """
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         monkeypatch.setattr(mod, "_INGEST_GATE", None)
         plaintext = tmp_path / "decrypted.mp3"
@@ -943,7 +943,7 @@ class TestProcessWeComAttachments:
         moving the call: it is submitted to the executor, so an interrupted await
         cannot skip it.
         """
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         monkeypatch.setattr(mod, "_INGEST_GATE", None)
         plaintext = tmp_path / "decrypted.mp3"
@@ -952,7 +952,7 @@ class TestProcessWeComAttachments:
         real_cleanup = mod.cleanup_offloaded
 
         async def recording_cleanup(paths):
-            import kiro_crew.messaging.attachments as shared
+            import junction.messaging.attachments as shared
 
             original = shared.cleanup
 
@@ -999,7 +999,7 @@ class TestProcessWeComAttachments:
         refused and everything between 2 and 20 MB that it accepted, which is the
         local-only rejection these per-channel overrides exist to prevent.
         """
-        from kiro_crew.wecom import attachments as mod
+        from junction.wecom import attachments as mod
 
         monkeypatch.setattr(mod, "_INGEST_GATE", None)
         five_mb = 5 * 1024 * 1024
@@ -1034,14 +1034,14 @@ class TestProcessWeComAttachments:
         # Not an oversight and not a platform limit: max_text_bytes budgets what is
         # READ into gateway memory, and only max_text_inject can reach the prompt.
         # Pinned so raising it to the transport ceiling is a deliberate act.
-        from kiro_crew.wecom.attachments import WECOM_INGEST_LIMITS as lim
+        from junction.wecom.attachments import WECOM_INGEST_LIMITS as lim
 
         assert lim.max_text_bytes < lim.max_document_bytes
         assert lim.max_text_inject <= lim.max_text_bytes
 
     def test_every_transport_ceiling_matches_wecoms_documented_maximum(self) -> None:
-        from kiro_crew.wecom.attachments import WECOM_INGEST_LIMITS as lim
-        from kiro_crew.wecom.media import MAX_MEDIA_BYTES
+        from junction.wecom.attachments import WECOM_INGEST_LIMITS as lim
+        from junction.wecom.media import MAX_MEDIA_BYTES
 
         assert lim.max_image_bytes == 10 * 1024 * 1024
         assert lim.max_document_bytes == 20 * 1024 * 1024
@@ -1055,7 +1055,7 @@ class TestProcessWeComAttachments:
         # multiple always adds 1..32 bytes, so a file at exactly the platform
         # maximum arrives larger than it is. Equality rejected precisely the
         # largest valid attachments, before decryption.
-        from kiro_crew.wecom.media import WECOM_MAX_PLAINTEXT_BYTES
+        from junction.wecom.media import WECOM_MAX_PLAINTEXT_BYTES
 
         assert lim.max_document_bytes == WECOM_MAX_PLAINTEXT_BYTES
         assert MAX_MEDIA_BYTES - WECOM_MAX_PLAINTEXT_BYTES >= 32, (

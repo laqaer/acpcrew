@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.sel — Security Event Log."""
+"""Tests for junction.sel — Security Event Log."""
 
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ from unittest.mock import patch
 
 import pytest
 
-import kiro_crew.sel as sel_mod
-from kiro_crew import platform_compat
-from kiro_crew.sel import SecurityEvent, SecurityEventLog, _infer_source, sel, sel_hmac_key_path
+import junction.sel as sel_mod
+from junction import platform_compat
+from junction.sel import SecurityEvent, SecurityEventLog, _infer_source, sel, sel_hmac_key_path
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def _make_event(**overrides) -> SecurityEvent:
         "timestamp": "2026-05-13T00:00:00+00:00",
         "event_type": "tool_invocation",
         "caller_identity": "dashboard:abc",
-        "agent": "kirocrew",
+        "agent": "junction",
         "source": "dashboard",
         "operation": "execute_bash",
     }
@@ -167,7 +167,7 @@ class TestEventLogging:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="execute_bash",
         )
@@ -183,7 +183,7 @@ class TestEventLogging:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="cli_chat",
-            agent="kirocrew",
+            agent="junction",
             source="cli",
             operation="fs_write",
         )
@@ -202,7 +202,7 @@ class TestEventLogging:
                 timestamp="2026-01-01T00:00:00+00:00",
                 event_type="tool_invocation",
                 caller_identity="dashboard:slot0",
-                agent="kirocrew",
+                agent="junction",
                 source="dashboard",
                 operation=f"op{i}",
             ))
@@ -265,7 +265,7 @@ class TestVerifyIntegrity:
                 timestamp="2026-01-01T00:00:00+00:00",
                 event_type="tool_invocation",
                 caller_identity="dashboard:slot0",
-                agent="kirocrew",
+                agent="junction",
                 source="dashboard",
                 operation=f"op{i}",
             ))
@@ -279,7 +279,7 @@ class TestVerifyIntegrity:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="op0",
         ))
@@ -288,7 +288,7 @@ class TestVerifyIntegrity:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="op1",
         ))
@@ -314,7 +314,7 @@ class TestRecent:
                 timestamp=f"2026-01-01T00:0{i}:00+00:00",
                 event_type="tool_invocation",
                 caller_identity="dashboard:slot0",
-                agent="kirocrew",
+                agent="junction",
                 source="dashboard",
                 operation=f"op{i}",
             ))
@@ -335,7 +335,7 @@ class TestPrune:
             timestamp="2020-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="old_op",
         ))
@@ -344,7 +344,7 @@ class TestPrune:
             timestamp="2099-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="new_op",
         ))
@@ -368,7 +368,7 @@ class TestForwardCallback:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="test_op",
         ))
@@ -385,7 +385,7 @@ class TestForwardCallback:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="test_op",
         ))
@@ -405,7 +405,7 @@ class TestThreadSafety:
                     timestamp="2026-01-01T00:00:00+00:00",
                     event_type="tool_invocation",
                     caller_identity="dashboard:slot0",
-                    agent="kirocrew",
+                    agent="junction",
                     source="dashboard",
                     operation=f"op{start_id}_{i}",
                 ))
@@ -435,7 +435,7 @@ class TestInferSource:
         ("cli_chat", "cli"),
         # Namespaced messaging channels are attributed to their transport (#815),
         # matching context._runtime_display_name's set (#979) — via ``{ns}:`` …
-        ("discord:123:kirocrew", "discord"),
+        ("discord:123:junction", "discord"),
         ("telegram:456", "telegram"),
         ("wecom:c1", "wecom"),
         ("weixin:c1", "weixin"),
@@ -467,7 +467,7 @@ class TestSingleton:
 
     def test_sel_accessor(self, sel_dir):
         """The module-level sel() function returns the singleton."""
-        with patch("kiro_crew.sel._default_dir", lambda: sel_dir):
+        with patch("junction.sel._default_dir", lambda: sel_dir):
             instance = sel()
             assert isinstance(instance, SecurityEventLog)
 
@@ -479,7 +479,7 @@ class TestReadLastHash:
             timestamp="2026-01-01T00:00:00+00:00",
             event_type="tool_invocation",
             caller_identity="dashboard:slot0",
-            agent="kirocrew",
+            agent="junction",
             source="dashboard",
             operation="op1",
         ))
@@ -531,7 +531,7 @@ class TestHmacKeyManagementExtras:
         def _boom(*a, **kw):
             raise OSError("chmod denied")
 
-        monkeypatch.setattr("kiro_crew.platform_compat.os.chmod", _boom)
+        monkeypatch.setattr("junction.platform_compat.os.chmod", _boom)
         log = SecurityEventLog(base_dir=tmp_path, sync=True)
         assert (tmp_path / "trust" / "sel_hmac.key").exists()
         assert log._hmac_key
@@ -550,7 +550,7 @@ class TestHmacKeyManagementExtras:
         def _refuse(_target):
             raise OSError("icacls failed")
 
-        monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", _refuse)
+        monkeypatch.setattr("junction.platform_compat.restrict_to_owner", _refuse)
         log = SecurityEventLog(base_dir=tmp_path, sync=True)
         assert (tmp_path / "trust" / "sel_hmac.key").exists()
         assert log._hmac_key
@@ -567,7 +567,7 @@ class TestHmacKeyManagementExtras:
         the write window, issue #5285). Asserted by measuring the file's SIZE
         at lockdown time — zero means no key byte existed yet.
         """
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         trust_dir = tmp_path / "trust"
         calls: list[tuple[Path, int]] = []
@@ -579,7 +579,7 @@ class TestHmacKeyManagementExtras:
                 calls.append((p, os.stat(p).st_size))
             return real_restrict(target)
 
-        monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", _measuring)
+        monkeypatch.setattr("junction.platform_compat.restrict_to_owner", _measuring)
         log = SecurityEventLog(base_dir=tmp_path, sync=True)
 
         assert log._hmac_key
@@ -1122,7 +1122,7 @@ class TestHmacKeyPermissionEnforcement:
         def _boom(*a, **kw):
             raise OSError("chmod denied")
 
-        monkeypatch.setattr("kiro_crew.platform_compat.os.chmod", _boom)
+        monkeypatch.setattr("junction.platform_compat.os.chmod", _boom)
         log = SecurityEventLog(base_dir=tmp_path, sync=True)
         assert log._hmac_key == key
 
@@ -1434,7 +1434,7 @@ class TestHmacKeyTrustDirMigration:
         (tmp_path / "trust" / "sel_hmac.key").write_bytes(planted_key)
         (tmp_path / "sel_hmac.key").write_bytes(legacy_key)
 
-        with caplog.at_level("WARNING", logger="kiro_crew.sel"):
+        with caplog.at_level("WARNING", logger="junction.sel"):
             log = SecurityEventLog(base_dir=tmp_path, sync=True)
         assert log._hmac_key == legacy_key
         assert (tmp_path / "trust" / "sel_hmac.key").read_bytes() == legacy_key
@@ -1487,7 +1487,7 @@ class TestHmacKeyTrustDirMigration:
         """Without a live singleton the accessor falls back to the same
         trust/ default the singleton would use."""
         self._reset()
-        monkeypatch.setattr("kiro_crew.sel._default_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.sel._default_dir", lambda: tmp_path)
         assert sel_hmac_key_path() == tmp_path / "trust" / "sel_hmac.key"
 
     def test_readonly_config_dir_with_legacy_key_still_boots(
@@ -1578,7 +1578,7 @@ class TestHmacKeyTrustDirMigration:
             raise PermissionError(30, "Read-only file system", str(path))
 
         monkeypatch.setattr(
-            "kiro_crew.platform_compat.unlink_link_or_junction", _deny_unlink
+            "junction.platform_compat.unlink_link_or_junction", _deny_unlink
         )
         log = SecurityEventLog(base_dir=tmp_path, sync=True)
         assert log._hmac_key == legacy_key
@@ -1598,7 +1598,7 @@ class TestHmacKeyTrustDirMigration:
         """The recovery path for the dependent protocol: SEL caches the
         validated bytes at init, so they stay available when the file behind the
         frozen resolved path no longer loads."""
-        from kiro_crew.sel import _sel_hmac_key_bytes
+        from junction.sel import _sel_hmac_key_bytes
 
         log = SecurityEventLog(base_dir=tmp_path, sync=True)
         assert _sel_hmac_key_bytes() == log._hmac_key
@@ -1609,7 +1609,7 @@ class TestHmacKeyTrustDirMigration:
     def test_key_bytes_accessor_is_none_without_a_live_singleton(self) -> None:
         """The verifying MCP process has no singleton; it must get None rather
         than a partially-constructed instance's attribute."""
-        from kiro_crew.sel import _sel_hmac_key_bytes
+        from junction.sel import _sel_hmac_key_bytes
 
         self._reset()
         assert _sel_hmac_key_bytes() is None
@@ -1619,8 +1619,8 @@ class TestHmacKeyTrustDirMigration:
         loads the key, so a concurrent reader can see an instance whose
         ``_hmac_key`` does not exist yet. ``_initialized`` is the barrier that
         makes that window return None instead of raising or yielding garbage."""
-        from kiro_crew.sel import SecurityEventLog as _SEL
-        from kiro_crew.sel import _sel_hmac_key_bytes
+        from junction.sel import SecurityEventLog as _SEL
+        from junction.sel import _sel_hmac_key_bytes
 
         self._reset()
         try:
@@ -1635,7 +1635,7 @@ class TestHmacKeyTrustDirMigration:
         """Handing out raw trust-root bytes is safe only under the file-first
         ordering its ONE caller enforces; a second caller would inherit none of
         it. Pin the caller set rather than trusting the underscore."""
-        root = Path(__file__).resolve().parents[1] / "src" / "kiro_crew"
+        root = Path(__file__).resolve().parents[1] / "src" / "junction"
         callers = {
             path
             for path in root.rglob("*.py")
@@ -1893,7 +1893,7 @@ class TestSizeRotation:
         log = SecurityEventLog(base_dir=sel_dir, sync=True)
         _fill(log, 200)
         before = len(log.recent(limit=10_000))
-        with patch("kiro_crew.sel.os.replace", side_effect=OSError("boom")):
+        with patch("junction.sel.os.replace", side_effect=OSError("boom")):
             _fill(log, 300, start=1000)
         after = log.recent(limit=10_000)
         assert len(after) > before, "events were dropped when rotation failed"
@@ -1956,7 +1956,7 @@ class TestRotationIsSerializedAcrossProcesses:
         """
         log = SecurityEventLog(base_dir=sel_dir, sync=True)
         with patch(
-            "kiro_crew.sel.platform_compat.file_lock",
+            "junction.sel.platform_compat.file_lock",
             side_effect=AssertionError("blocking lock helper used on the audit path"),
         ):
             _fill(log, 200)
@@ -1979,7 +1979,7 @@ class TestRotationIsSerializedAcrossProcesses:
     def test_below_the_cap_no_cross_process_lock_is_taken(self, sel_dir, small_segments):
         """The audit hot path must not pay for a lock it does not need."""
         log = SecurityEventLog(base_dir=sel_dir, sync=True)
-        with patch("kiro_crew.sel.platform_compat.try_acquire_lock") as locker:
+        with patch("junction.sel.platform_compat.try_acquire_lock") as locker:
             _fill(log, 3)  # nowhere near the cap
         locker.assert_not_called()
 
@@ -2016,7 +2016,7 @@ class TestRotationIsSerializedAcrossProcesses:
 
         log._live_seen = (pre_dev, pre_ino, _pre_size)
         log._last_hash = stale_tip
-        with patch("kiro_crew.sel.platform_compat.try_acquire_lock", return_value=False):
+        with patch("junction.sel.platform_compat.try_acquire_lock", return_value=False):
             with patch.object(
                 SecurityEventLog,
                 "_live_identity",
@@ -2078,11 +2078,11 @@ class TestRotationIsSerializedAcrossProcesses:
         log = SecurityEventLog(base_dir=sel_dir, sync=True)
         _fill(log, 200)
         before = log._segments_oldest_first()
-        with patch("kiro_crew.sel.platform_compat.is_link_or_junction") as is_link:
+        with patch("junction.sel.platform_compat.is_link_or_junction") as is_link:
             # The segment DIR check must still pass; only the lock path is linked.
             is_link.side_effect = lambda p: Path(p).name == ".rotate.lock"
             with patch(
-                "kiro_crew.sel.platform_compat.unlink_link_or_junction",
+                "junction.sel.platform_compat.unlink_link_or_junction",
                 side_effect=OSError("read-only"),
             ):
                 _fill(log, 300, start=4000)
@@ -2397,7 +2397,7 @@ class TestAppendValidatesTheFileByFd:
                 live.write_text(json.dumps(asdict(sibling)) + "\n", encoding="utf-8")
             return real_open(path, flags, *args, **kwargs)
 
-        with patch("kiro_crew.sel.os.open", rotating_open):
+        with patch("junction.sel.os.open", rotating_open):
             _fill(log, 1, start=7000)
 
         assert rotated, "precondition: the injected rotation fired"
@@ -2573,7 +2573,7 @@ class TestSegmentEnumerationIsBounded:
                 examined += 1
                 return entry
 
-        with patch("kiro_crew.sel.os.scandir", _CountingScandir):
+        with patch("junction.sel.os.scandir", _CountingScandir):
             log._segments_oldest_first()
 
         assert examined <= sel_mod._SEGMENT_SCAN_CAP + 1, (
@@ -2905,7 +2905,7 @@ class TestTwoWritersCannotBothClaimGenesis:
                 live.write_text(json.dumps(asdict(first)) + "\n", encoding="utf-8")
             return result
 
-        with patch("kiro_crew.sel.os.replace", replace_then_race):
+        with patch("junction.sel.os.replace", replace_then_race):
             with patch.object(
                 SecurityEventLog, "_live_size", return_value=sel_mod._SEGMENT_MAX_BYTES
             ):
@@ -3220,9 +3220,9 @@ class TestSegmentDirIsNotFollowedThroughALink:
         """
         log = SecurityEventLog(base_dir=sel_dir, sync=True)
         _fill(log, 200)
-        with patch("kiro_crew.sel.platform_compat.is_link_or_junction", return_value=True):
+        with patch("junction.sel.platform_compat.is_link_or_junction", return_value=True):
             with patch(
-                "kiro_crew.sel.platform_compat.unlink_link_or_junction",
+                "junction.sel.platform_compat.unlink_link_or_junction",
                 side_effect=OSError("read-only"),
             ):
                 before = log._segments_oldest_first()
@@ -3441,7 +3441,7 @@ class TestPlantedSegmentsAreNotReadAsHistory:
             "timestamp": "2020-01-01T00:00:00+00:00",
             "event_type": "tool_invocation",
             "caller_identity": "dashboard:victim",
-            "agent": "kirocrew",
+            "agent": "junction",
             "source": "dashboard",
             "operation": "rm -rf /",
             "outcome": "approved",
@@ -3693,7 +3693,7 @@ class TestTimeWindowRead:
             read_bytes += len(chunk)
             return chunk
 
-        with patch("kiro_crew.sel.os.read", counting_read, create=True):
+        with patch("junction.sel.os.read", counting_read, create=True):
             with patch.object(Path, "read_text", side_effect=AssertionError("whole-file read")):
                 assert len(log.recent(limit=5)) == 5
 
@@ -3843,7 +3843,7 @@ class TestMetadataRedaction:
         """Fail-closed containment: if the redactor raises, the event lands
         with placeholder metadata and the raw text never reaches disk."""
         with patch(
-            "kiro_crew.sel._redacted_metadata_copy",
+            "junction.sel._redacted_metadata_copy",
             side_effect=RuntimeError("simulated redactor failure"),
         ):
             log.log(_make_event(
@@ -3866,7 +3866,7 @@ class TestMetadataRedaction:
             return {k: v for k, v in metadata.items()}
 
         try:
-            with patch("kiro_crew.sel._redacted_metadata_copy", side_effect=_flaky):
+            with patch("junction.sel._redacted_metadata_copy", side_effect=_flaky):
                 log.log(_make_event(event_id="ok1", metadata={"query": "fine"}))
                 log.log(_make_event(event_id="bad1", metadata={"poison": "x"}))
                 log.log(_make_event(event_id="ok2", metadata={"query": "also fine"}))
@@ -3914,11 +3914,11 @@ class TestMetadataRedaction:
         log.log(_make_event(
             event_id="ident1",
             caller_identity="dashboard:slot-AKIA-not-a-key",
-            downstream_service="kirocrew-core",
+            downstream_service="junction-core",
         ))
         data = json.loads(self._disk_text(sel_dir).strip())
         assert data["caller_identity"] == "dashboard:slot-AKIA-not-a-key"
-        assert data["downstream_service"] == "kirocrew-core"
+        assert data["downstream_service"] == "junction-core"
 
     def test_lowercased_aws_key_never_reaches_disk(self, log, sel_dir):
         """SEL callers may normalize case before logging (the file-search
@@ -3958,7 +3958,7 @@ class TestMetadataRedaction:
         would cut a credential in half and leave a prefix that no full-token
         grammar matches, so redaction must run on the whole string BEFORE the
         clip. Place the key so the clip lands mid-token."""
-        from kiro_crew.sel import _MAX_ARG_LEN
+        from junction.sel import _MAX_ARG_LEN
 
         # Key starts 10 chars before the clip point, so a clip-first order would
         # keep its first 10 characters and drop the rest.
@@ -3988,7 +3988,7 @@ class TestMetadataRedaction:
         assert len(data["error"]) <= _MAX_ARG_LEN
 
     def test_api_access_helper_also_redacts_before_clipping(self, log, sel_dir):
-        from kiro_crew.sel import _MAX_ARG_LEN
+        from junction.sel import _MAX_ARG_LEN
 
         prefix = "path=" + ("y" * (_MAX_ARG_LEN - 15))
         log.log_api_access(

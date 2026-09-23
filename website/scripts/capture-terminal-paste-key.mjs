@@ -67,12 +67,12 @@ async function stubContext(context, theme) {
     '/api/dashboard/branding': { bot_name: 'Kiro Crew', avatar: '/logo.png' },
     '/api/recent-projects': { dirs: [] },
     '/api/agents': {
-      agents: [{ name: 'kirocrew', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default' }],
-      default_agent: 'kirocrew',
+      agents: [{ name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' }],
+      default_agent: 'junction',
     },
-    '/api/agents/installed': [{ name: 'kirocrew' }],
+    '/api/agents/installed': [{ name: 'junction' }],
     '/api/workspaces': { workspaces: [{ name: 'default' }] },
-    '/api/chat/agents': [{ name: 'kirocrew', source: 'builtin' }],
+    '/api/chat/agents': [{ name: 'junction', source: 'builtin' }],
     '/api/kiro-prerequisite': {
       platform: 'linux', installed: true, authenticated: true, ready: true,
       initial_setup_complete: true, can_auto_install: false, can_login: false,
@@ -85,7 +85,7 @@ async function stubContext(context, theme) {
     // Create-slot must return a keyed slot object — an empty-array answer puts
     // a keyless slot in redux and crashes the shell.
     if (path === '/api/chat/slots' && route.request().method() === 'POST') {
-      return json(route, { key: 'fixture-chat', title: 'New Session…', agent: 'kirocrew' })
+      return json(route, { key: 'fixture-chat', title: 'New Session…', agent: 'junction' })
     }
     if (path === '/api/theme/boot') return json(route, { mode: theme, theme: '' })
     if (Object.hasOwn(FIXTURES, path)) return json(route, FIXTURES[path])

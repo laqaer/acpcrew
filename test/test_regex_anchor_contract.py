@@ -32,8 +32,8 @@ from types import ModuleType
 
 import pytest
 
-from kiro_crew.apps.builtins.papyrus import backend as papyrus_backend
-from kiro_crew.apps.builtins.papyrus.backend import gitops, store
+from junction.apps.builtins.papyrus import backend as papyrus_backend
+from junction.apps.builtins.papyrus.backend import gitops, store
 
 #: Packages whose modules validate client-supplied input on a request path.
 #: The structural walk imports every module in each and inspects its

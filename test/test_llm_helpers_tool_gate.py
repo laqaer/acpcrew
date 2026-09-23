@@ -16,10 +16,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew import llm_helpers
-from kiro_crew.acp.client import AcpError
-from kiro_crew.llm_helpers import ToolApprovalPolicy, stream_and_collect
-from kiro_crew.providers.base import (
+from junction import llm_helpers
+from junction.acp.client import AcpError
+from junction.llm_helpers import ToolApprovalPolicy, stream_and_collect
+from junction.providers.base import (
     EVENT_COMPLETE,
     EVENT_PERMISSION_REQUEST,
     EVENT_TEXT_CHUNK,
@@ -92,7 +92,7 @@ async def test_a_hook_security_deny_is_flagged_as_a_security_block():
     """The exfiltration/deny-list gate routes through HookManager, not the
     unconditional arms. Classifying only the unconditional arms as security
     would let a hook-blocked cron go on recording success forever."""
-    from kiro_crew.hooks import ToolHookResult
+    from junction.hooks import ToolHookResult
 
     provider = _ScriptedProvider(_script(_BENIGN_TITLE))
     hooks = MagicMock()
@@ -116,7 +116,7 @@ async def test_a_hook_security_deny_is_flagged_as_a_security_block():
 async def test_a_governance_deny_is_not_a_security_block():
     """Policy state is not a defect in the attempt: the same call becomes allowed
     when the ceiling loosens, so it must not feed a durable failure budget."""
-    from kiro_crew.hooks import ToolHookResult
+    from junction.hooks import ToolHookResult
 
     provider = _ScriptedProvider(_script(_BENIGN_TITLE))
     hooks = MagicMock()

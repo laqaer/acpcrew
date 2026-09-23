@@ -19,8 +19,8 @@ import importlib
 
 import pytest
 
-from kiro_crew import mcp_discovery
-from kiro_crew.mcp_discovery import (
+from junction import mcp_discovery
+from junction.mcp_discovery import (
     _MANAGED_SERVER_TOOL_MODULES,
     managed_server_is_session_bound,
 )
@@ -28,13 +28,13 @@ from kiro_crew.mcp_discovery import (
 #: Managed server name -> the function that starts its stdio loop. Separate from
 #: the discovery map because that map points at the module whose ``_list_tools``
 #: is read; this names the entry point whose argument is the fact under test.
-#: ``kirocrew-core`` is the odd one out — the other three all call theirs
+#: ``junction-core`` is the odd one out — the other three all call theirs
 #: ``run_mcp_server``.
 _SERVE_ENTRY = {
-    "kirocrew-core": "run_mcp_core_server",
-    "kirocrew-cron": "run_mcp_server",
-    "kirocrew-computer": "run_mcp_server",
-    "kirocrew-dashboard": "run_mcp_server",
+    "junction-core": "run_mcp_core_server",
+    "junction-cron": "run_mcp_server",
+    "junction-computer": "run_mcp_server",
+    "junction-dashboard": "run_mcp_server",
 }
 
 
@@ -114,10 +114,10 @@ def test_the_concrete_verdicts_are_spelled_out() -> None:
     """The concrete answers the dashboard renders, spelled out.
 
     Kept alongside the derived checks above because those pass just as happily if
-    every managed server flipped at once. ``kirocrew-core``, ``kirocrew-cron``
-    and ``kirocrew-dashboard`` consume the injected caller block and refuse or
+    every managed server flipped at once. ``junction-core``, ``junction-cron``
+    and ``junction-dashboard`` consume the injected caller block and refuse or
     safely namespace an unidentified caller, so none is session-bound.
-    ``kirocrew-computer`` also advertises and consumes the block (#4659 — its
+    ``junction-computer`` also advertises and consumes the block (#4659 — its
     pooled attribution is correct for every caller the gateway can name), but
     it stays session-bound DELIBERATELY: an unnamed caller proceeds under
     ``unresolved:<pid>``, which on a pooled backend is one shared namespace for
@@ -125,10 +125,10 @@ def test_the_concrete_verdicts_are_spelled_out() -> None:
     the only platform with a driver. It flips when #5322 gives unnamed callers
     isolated namespaces.
     """
-    assert managed_server_is_session_bound("kirocrew-core") is False
-    assert managed_server_is_session_bound("kirocrew-cron") is False
-    assert managed_server_is_session_bound("kirocrew-computer") is True
-    assert managed_server_is_session_bound("kirocrew-dashboard") is False
+    assert managed_server_is_session_bound("junction-core") is False
+    assert managed_server_is_session_bound("junction-cron") is False
+    assert managed_server_is_session_bound("junction-computer") is True
+    assert managed_server_is_session_bound("junction-dashboard") is False
 
 
 def test_a_third_party_server_is_not_claimed_either_way() -> None:

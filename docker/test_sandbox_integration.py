@@ -6,13 +6,13 @@ Run inside a container:
     docker run --rm -v .:/repo -w /repo python:3.12-slim \
         bash -c "pip install -e . -q && python docker/test_sandbox_integration.py step1"
 
-  Step 2 (with kirocrew seccomp profile):
-    docker run --rm --security-opt seccomp=docker/seccomp/kirocrew-seccomp.json \
+  Step 2 (with junction seccomp profile):
+    docker run --rm --security-opt seccomp=docker/seccomp/junction-seccomp.json \
         -v .:/repo -w /repo python:3.12-slim \
         bash -c "pip install -e . -q && python docker/test_sandbox_integration.py step2"
 
   Step 3 (unsandboxed consent via env var):
-    docker run --rm -e KIROCREW_ALLOW_UNSANDBOXED=1 \
+    docker run --rm -e JUNCTION_ALLOW_UNSANDBOXED=1 \
         -v .:/repo -w /repo python:3.12-slim \
         bash -c "pip install -e . -q && python docker/test_sandbox_integration.py step3"
 """
@@ -30,7 +30,7 @@ def step1_reproduce_issue():
     """Default Docker seccomp blocks unshare → must show Docker-specific guidance."""
     banner("STEP 1: Reproduce issue #1617 (default seccomp)")
 
-    from kiro_crew.sandbox import detect_backend, is_docker_container, wrap_argv
+    from junction.sandbox import detect_backend, is_docker_container, wrap_argv
 
     print(f"  in_container : {is_docker_container()}")
     print(f"  backend      : {detect_backend()}")
@@ -51,7 +51,7 @@ def step1_reproduce_issue():
         # Validate the new Docker-specific guidance is present
         checks = {
             "mentions seccomp profile": "seccomp" in msg,
-            "mentions KIROCREW_ALLOW_UNSANDBOXED": "KIROCREW_ALLOW_UNSANDBOXED" in msg,
+            "mentions JUNCTION_ALLOW_UNSANDBOXED": "JUNCTION_ALLOW_UNSANDBOXED" in msg,
             "does NOT say 'install a supported sandbox backend'": "install a supported sandbox backend" not in msg,
             "mentions docs/guides/docker.md": "docs/guides/docker.md" in msg,
         }
@@ -72,9 +72,9 @@ def step1_reproduce_issue():
 
 def step2_with_seccomp_profile():
     """With the Kiro Crew seccomp profile, the inner sandbox should work."""
-    banner("STEP 2: With kirocrew-seccomp.json profile")
+    banner("STEP 2: With junction-seccomp.json profile")
 
-    from kiro_crew.sandbox import detect_backend, is_docker_container, userns_available
+    from junction.sandbox import detect_backend, is_docker_container, userns_available
 
     print(f"  in_container    : {is_docker_container()}")
     print(f"  userns_available: {userns_available()}")
@@ -93,7 +93,7 @@ def step2_with_seccomp_profile():
         print()
         print("NOTE: userns_available() = False — WSL2 kernel may lack CONFIG_USER_NS.")
         print("This is an expected failure on WSL2 Docker CE without user namespace support.")
-        print("Use Option B (KIROCREW_ALLOW_UNSANDBOXED=1) instead. See docs/docker.md.")
+        print("Use Option B (JUNCTION_ALLOW_UNSANDBOXED=1) instead. See docs/docker.md.")
     else:
         print(f"FAIL: expected backend='namespace', got {backend!r}")
         sys.exit(1)
@@ -105,20 +105,20 @@ def step3_unsandboxed_consent():
 
     import os
 
-    from kiro_crew.sandbox import detect_backend, is_docker_container, wrap_argv
+    from junction.sandbox import detect_backend, is_docker_container, wrap_argv
 
     print(f"  in_container              : {is_docker_container()}")
     print(f"  backend                   : {detect_backend()}")
-    print(f"  KIROCREW_ALLOW_UNSANDBOXED: {os.environ.get('KIROCREW_ALLOW_UNSANDBOXED', '(not set)')}")
+    print(f"  JUNCTION_ALLOW_UNSANDBOXED: {os.environ.get('JUNCTION_ALLOW_UNSANDBOXED', '(not set)')}")
     print()
-    print("  Note: KIROCREW_ALLOW_UNSANDBOXED=1 is processed by the container")
+    print("  Note: JUNCTION_ALLOW_UNSANDBOXED=1 is processed by the container")
     print("  entrypoint, which writes sandbox_allow_unsandboxed_exec=true into")
     print("  config.json. Testing the underlying config flag directly instead.")
 
     assert is_docker_container(), "FAIL: should be inside a container"
 
     # Patch the config-read function directly since we have no entrypoint here.
-    import kiro_crew.sandbox as _sandbox
+    import junction.sandbox as _sandbox
     original = _sandbox._allow_unsandboxed_exec
     _sandbox._allow_unsandboxed_exec = lambda: True
     try:

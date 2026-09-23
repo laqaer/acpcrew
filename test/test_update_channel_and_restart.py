@@ -21,9 +21,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers import updates
-from kiro_crew.platform import update_layout
-from kiro_crew.platform.update_layout import InstallLayout
+from junction.dashboard.handlers import updates
+from junction.platform import update_layout
+from junction.platform.update_layout import InstallLayout
 
 
 @pytest.fixture(autouse=True)
@@ -130,7 +130,7 @@ class TestChannelEndpoint:
     def test_the_switch_never_reads_the_channel_file_on_the_event_loop(
         self, _isolated_channel_home
     ):
-        """The invalidation must not re-read ``$KIROCREW_HOME/channel``.
+        """The invalidation must not re-read ``$JUNCTION_HOME/channel``.
 
         The endpoint is a coroutine, and ``release_channel()`` is a synchronous
         ``read_text`` on the data home — which the operator may have put on NFS or
@@ -366,7 +366,7 @@ class TestChannelEndpoint:
                 await release.wait()
                 # The verdict the OLD channel's feed would have produced.
                 updates._set_update_info(
-                    managed_by="kirocrew",
+                    managed_by="junction",
                     channel="stable",
                     update_available=True,
                     latest_version="1.2.3",
@@ -427,7 +427,7 @@ class TestChannelEndpoint:
         shell-out, because a command-managed host owes the caller the same
         answer regardless of what the install tree happens to look like.
         """
-        from kiro_crew.platform.update_provider import CommandProvider
+        from junction.platform.update_provider import CommandProvider
 
         provider = CommandProvider(check_command="check-cmd")
         with (

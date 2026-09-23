@@ -1,10 +1,10 @@
-# Getting Started with KiroCrew Apps
+# Getting Started with Junction Apps
 
-Build, install, and run your first KiroCrew app in 5 minutes.
+Build, install, and run your first Junction app in 5 minutes.
 
 ## Prerequisites
 
-- KiroCrew installed and running (`kirocrew gateway`)
+- Junction installed and running (`junction gateway`)
 - Node.js 22+ (24 LTS recommended) (for apps with UI)
 
 ## 1. Create an App Directory
@@ -38,7 +38,7 @@ Every app needs an `app.json`. See [Manifest Reference](manifest-reference.md) f
   "name": "my-dashboard",
   "version": "0.1.0",
   "displayName": "My Dashboard",
-  "description": "A KiroCrew app: My Dashboard",
+  "description": "A Junction app: My Dashboard",
   "author": "yourname",
   "agents": ["agents/sample-agent.json"],
   "skills": ["skills/sample-skill"],
@@ -58,18 +58,18 @@ Every app needs an `app.json`. See [Manifest Reference](manifest-reference.md) f
 ### UI Page — React Component
 
 Edit `ui/src/App.tsx`. Your app is a standard React component that uses
-`@kirocrew/app-sdk` hooks and `@kirocrew/app-sdk/ui` shared components.
+`@junction/app-sdk` hooks and `@junction/app-sdk/ui` shared components.
 
-> **You do not `npm install` `@kirocrew/app-sdk`.** The dashboard host provides
+> **You do not `npm install` `@junction/app-sdk`.** The dashboard host provides
 > it (and React, ReactDOM, lucide-react) at runtime through its import map: the
-> bare `@kirocrew/app-sdk` specifier resolves to the host's vendored copy via
-> `window.__kirocrew_modules`. This guarantees your app shares the host's exact
+> bare `@junction/app-sdk` specifier resolves to the host's vendored copy via
+> `window.__junction_modules`. This guarantees your app shares the host's exact
 > React instance (so hooks work) and stays a small bundle. Mark these as
 > externals in your build (don't bundle them).
 
 ```tsx
-import { useAppApi, useAppEvents } from '@kirocrew/app-sdk'
-import { Card, CardTitle, PageHeader, StatCard } from '@kirocrew/app-sdk/ui'
+import { useAppApi, useAppEvents } from '@junction/app-sdk'
+import { Card, CardTitle, PageHeader, StatCard } from '@junction/app-sdk/ui'
 import { useState, useEffect } from 'react'
 
 export default function MyDashboard() {
@@ -112,7 +112,7 @@ Edit `agents/sample-agent.json` to customize your agent:
   "model": "auto",
   "description": "Analyzes data and generates reports",
   "prompt": "You are a data analyst assistant.",
-  "tools": ["@kirocrew-core"]
+  "tools": ["@junction-core"]
 }
 ```
 
@@ -132,7 +132,7 @@ This produces `dist/index.mjs` — the ESM bundle loaded by the dashboard.
 
 ## 4. Install and Enable
 
-Install via the KiroCrew dashboard REST API or the App Store UI:
+Install via the Junction dashboard REST API or the App Store UI:
 
 ```bash
 # Via curl (REST API)
@@ -143,9 +143,9 @@ curl -X POST http://localhost:5476/api/apps/install \
 curl -X POST http://localhost:5476/api/apps/my-dashboard/enable
 ```
 
-Or open the KiroCrew dashboard → App Store → install from local path.
+Or open the Junction dashboard → App Store → install from local path.
 
-Your app now appears in the KiroCrew dashboard sidebar.
+Your app now appears in the Junction dashboard sidebar.
 
 ## 5. Iterate
 
@@ -163,7 +163,7 @@ Agent and skill changes take effect on the next agent invocation (no rebuild nee
 
 ## App SDK Hooks
 
-Available in `@kirocrew/app-sdk`:
+Available in `@junction/app-sdk`:
 
 | Hook | Purpose |
 |------|---------|
@@ -171,14 +171,14 @@ Available in `@kirocrew/app-sdk`:
 | `useAppEvents(event, cb)` | Subscribe to real-time WebSocket events |
 | `useTheme()` | Reactive theme (mode, accent, colorTheme) |
 | `useAppInfo()` | App metadata (name, version, permissions) |
-| `useNavigate()` | Navigate to KiroCrew routes |
+| `useNavigate()` | Navigate to Junction routes |
 | `useNotify()` | Show toast notifications |
 | `useNavBadge()` | Update sidebar badge count |
 | `useChatLauncher()` | Navigate to chat with optional agent and message |
 
 ## Chat Marker Protocol
 
-Also in `@kirocrew/app-sdk`, for an app that renders agent messages itself. An agent puts follow-up
+Also in `@junction/app-sdk`, for an app that renders agent messages itself. An agent puts follow-up
 choices and steer acknowledgements inline in its prose (`[OPTIONS: a | b]`,
 `[STEERING steer-<id>: …]`); these parse them out so your UI can show buttons instead of raw syntax.
 
@@ -199,7 +199,7 @@ roles the dashboard leaves undrawn. See
 
 ## Shared UI Components
 
-Available in `@kirocrew/app-sdk/ui`:
+Available in `@junction/app-sdk/ui`:
 
 `Card`, `CardTitle`, `Btn`, `SendBtn`, `Input`, `SearchInput`, `Badge`,
 `AimBadge`, `StatCard`, `Skeleton`, `ContentSkeleton`, `EmptyState`,
@@ -235,18 +235,18 @@ undeclared paths throws an error.
 
 ## Python Client
 
-For Python apps, CLI tools, or services that need to talk to KiroCrew Gateway:
+For Python apps, CLI tools, or services that need to talk to Junction Gateway:
 
 ```bash
-pip install kirocrew-client
+pip install junction-client
 ```
 
 ```python
 import asyncio
-from kirocrew_client import KiroCrewClient
+from junction_client import JunctionClient
 
 async def main():
-    async with KiroCrewClient(app_name="my-tool") as mc:
+    async with JunctionClient(app_name="my-tool") as mc:
         # Check connectivity
         ok = await mc.ping()
         print(f"Gateway reachable: {ok}")
@@ -266,14 +266,14 @@ async def main():
 asyncio.run(main())
 ```
 
-The `kirocrew-client` package is async (uses `aiohttp`) and standalone — no
-dependency on the KiroCrew main package. It covers the full Gateway API surface.
+The `junction-client` package is async (uses `aiohttp`) and standalone — no
+dependency on the Junction main package. It covers the full Gateway API surface.
 
 See [API Reference](api-reference.md) for the full method list.
 
 ## Publishing Your App
 
 Once your app works locally, publish it to the App Store registry so other
-KiroCrew users can install it with one click.
+Junction users can install it with one click.
 
 See [Publishing Guide](publishing-guide.md) for the full workflow.

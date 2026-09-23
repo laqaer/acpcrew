@@ -14,9 +14,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew import artifacts as art_mod
-from kiro_crew.artifacts import ArtifactStore
-from kiro_crew.dashboard.handlers import artifacts as h
+from junction import artifacts as art_mod
+from junction.artifacts import ArtifactStore
+from junction.dashboard.handlers import artifacts as h
 
 
 @pytest.fixture
@@ -293,8 +293,8 @@ class TestEditComment:
 
     @pytest.mark.asyncio
     async def test_edit_pushes_in_place_for_liveprov_origin(self, store, monkeypatch):
-        from kiro_crew.artifacts import ArtifactComment
-        from kiro_crew.publish_provider import Capability
+        from junction.artifacts import ArtifactComment
+        from junction.publish_provider import Capability
 
         # A comment that was shared to a live provider — origin carries the remote id.
         store.add_comment(
@@ -316,7 +316,7 @@ class TestEditComment:
         prov.capabilities.return_value = {Capability.COMMENTS_EDIT}
         prov.edit_comment = edit
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.artifacts.get_provider", lambda name: prov
+            "junction.dashboard.handlers.artifacts.get_provider", lambda name: prov
         )
 
         resp = await h.api_artifact_edit_comment(
@@ -331,7 +331,7 @@ class TestEditComment:
 
     @pytest.mark.asyncio
     async def test_edit_stays_local_when_provider_lacks_edit_capability(self, store, monkeypatch):
-        from kiro_crew.artifacts import ArtifactComment
+        from junction.artifacts import ArtifactComment
 
         # A mirror provider-origin comment: provider has no COMMENTS_EDIT → local-only.
         store.add_comment(
@@ -352,7 +352,7 @@ class TestEditComment:
         prov.capabilities.return_value = set()  # no COMMENTS_EDIT
         prov.edit_comment = AsyncMock()
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.artifacts.get_provider", lambda name: prov
+            "junction.dashboard.handlers.artifacts.get_provider", lambda name: prov
         )
 
         resp = await h.api_artifact_edit_comment(
@@ -371,11 +371,11 @@ class TestEditComment:
         # False) even though the provider supports COMMENTS_EDIT.
         import dataclasses
 
-        from kiro_crew.artifacts import ArtifactComment
-        from kiro_crew.platform import context as ctx_mod
-        from kiro_crew.platform.bootstrap import build_default_context
-        from kiro_crew.platform.governance import parse_policy
-        from kiro_crew.publish_provider import Capability
+        from junction.artifacts import ArtifactComment
+        from junction.platform import context as ctx_mod
+        from junction.platform.bootstrap import build_default_context
+        from junction.platform.governance import parse_policy
+        from junction.publish_provider import Capability
 
         store.add_comment(
             "doc",
@@ -395,12 +395,12 @@ class TestEditComment:
         prov.capabilities.return_value = {Capability.COMMENTS_EDIT}
         prov.edit_comment = AsyncMock()
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.artifacts.get_provider", lambda name: prov
+            "junction.dashboard.handlers.artifacts.get_provider", lambda name: prov
         )
         # Ceiling: publish enabled, but destinations allow only "mirrorprov".
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        base = build_default_context(KiroCrewConfig.load())
+        base = build_default_context(JunctionConfig.load())
         ceiling = parse_policy(
             {
                 "version": 1,
@@ -472,7 +472,7 @@ class TestAgentDeleteComment:
 
     @pytest.mark.asyncio
     async def test_agent_delete_provider_origin_403(self, store):
-        from kiro_crew.artifacts import ArtifactComment
+        from junction.artifacts import ArtifactComment
 
         store.add_comment(
             "doc",
@@ -577,7 +577,7 @@ class TestFetchOnViewMerge:
     """
 
     def _publish(self, store: ArtifactStore) -> None:
-        from kiro_crew.artifacts import ArtifactPublication
+        from junction.artifacts import ArtifactPublication
 
         store.set_publication(
             "doc",
@@ -585,7 +585,7 @@ class TestFetchOnViewMerge:
         )
 
     def _patch_provider(self, monkeypatch, remote):
-        from kiro_crew.publish_provider import Capability
+        from junction.publish_provider import Capability
 
         class _Prov:
             def capabilities(self):
@@ -599,7 +599,7 @@ class TestFetchOnViewMerge:
 
     @pytest.mark.asyncio
     async def test_provider_author_redacted_at_read_boundary(self, store, monkeypatch):
-        from kiro_crew.publish_provider import RemoteComment
+        from junction.publish_provider import RemoteComment
 
         self._publish(store)
         self._patch_provider(
@@ -624,7 +624,7 @@ class TestFetchOnViewMerge:
 
     @pytest.mark.asyncio
     async def test_merged_mirror_carries_routing_metadata(self, store, monkeypatch):
-        from kiro_crew.publish_provider import RemoteComment
+        from junction.publish_provider import RemoteComment
 
         self._publish(store)
         self._patch_provider(

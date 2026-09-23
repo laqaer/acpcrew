@@ -23,7 +23,7 @@ import { i18nT } from '../i18n/t'
  * One scrollable dashboard, no nested tab bar: a health hero, the stat-tile
  * grid, and summary cards that drill into the two deep surfaces (memory
  * browser, usage report) via a URL-backed `?view=` param — the same
- * list-detail pattern as the Channels tab. KiroCrew/agent config viewers and
+ * list-detail pattern as the Channels tab. Junction/agent config viewers and
  * the memory graph live on the Developer page; configuration import/export is
  * on the Import tab.
  */

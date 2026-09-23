@@ -14,8 +14,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.executors as ex
-from kiro_crew.cron import CronJob, CronSchedule
+import junction.executors as ex
+from junction.cron import CronJob, CronSchedule
 
 
 async def _stalled_gate(*_args, **_kwargs):
@@ -31,7 +31,7 @@ async def _stalled_gate(*_args, **_kwargs):
 
 
 def _make_gw():
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     gw = GatewayOrchestrator.__new__(GatewayOrchestrator)
     gw.sessions = MagicMock()
@@ -98,10 +98,10 @@ async def _run_script_callback(gw, job, script_result=None, vet_reason=None, sid
     )
 
     with (
-        patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-        patch("kiro_crew.slack.gateway.run_script_sandboxed", **mock_kw) as mock_run,
-        patch("kiro_crew.slack.gateway.vet_job_at_fire_time", return_value=vet_reason),
-        patch("kiro_crew.slack.gateway.sel"),
+        patch("junction.slack.gateway.CronService") as mock_cron_cls,
+        patch("junction.slack.gateway.run_script_sandboxed", **mock_kw) as mock_run,
+        patch("junction.slack.gateway.vet_job_at_fire_time", return_value=vet_reason),
+        patch("junction.slack.gateway.sel"),
     ):
 
         def capture_cron(on_job=None, **kw):
@@ -136,16 +136,16 @@ async def _run_command_callback(gw, job, cmd_result=None, side_effect=None, vet_
     # Only stand in for the gate when simulating a denial: other tests here drive
     # the REAL gate, and patching it unconditionally would silence them.
     gate = (
-        patch("kiro_crew.slack.gateway.vet_job_at_fire_time", return_value=vet_reason)
+        patch("junction.slack.gateway.vet_job_at_fire_time", return_value=vet_reason)
         if vet_reason is not None
         else nullcontext()
     )
 
     with (
-        patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-        patch("kiro_crew.slack.gateway.run_command_sandboxed", **mock_kw) as mock_run,
+        patch("junction.slack.gateway.CronService") as mock_cron_cls,
+        patch("junction.slack.gateway.run_command_sandboxed", **mock_kw) as mock_run,
         gate,
-        patch("kiro_crew.slack.gateway.sel"),
+        patch("junction.slack.gateway.sel"),
     ):
 
         def capture_cron(on_job=None, **kw):
@@ -240,20 +240,20 @@ class TestScriptExecution:
         """A busy store on the Done removal must hand off to defer_removal, not
         silently drop it (Arbiter BLOCK item 1). Otherwise the completed job
         lingers enabled and re-fires."""
-        from kiro_crew.cron import CronStoreBusy
+        from junction.cron import CronStoreBusy
 
         gw = _make_gw()
         job = _make_script_job()
         captured_cb = None
 
         with (
-            patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
+            patch("junction.slack.gateway.CronService") as mock_cron_cls,
             patch(
-                "kiro_crew.slack.gateway.run_script_sandboxed",
+                "junction.slack.gateway.run_script_sandboxed",
                 return_value={"status": "done", "message": "CR merged"},
             ),
-            patch("kiro_crew.slack.gateway.vet_job_at_fire_time", return_value=None),
-            patch("kiro_crew.slack.gateway.sel"),
+            patch("junction.slack.gateway.vet_job_at_fire_time", return_value=None),
+            patch("junction.slack.gateway.sel"),
         ):
 
             def capture_cron(on_job=None, **kw):
@@ -311,9 +311,9 @@ class TestScriptExecution:
         captured_cb = None
 
         with (
-            patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-            patch("kiro_crew.slack.gateway.run_script_sandboxed") as mock_run,
-            patch("kiro_crew.slack.gateway.sel"),
+            patch("junction.slack.gateway.CronService") as mock_cron_cls,
+            patch("junction.slack.gateway.run_script_sandboxed") as mock_run,
+            patch("junction.slack.gateway.sel"),
         ):
 
             def capture_cron(on_job=None, **kw):
@@ -553,9 +553,9 @@ class TestCommandExecution:
         gw = _make_gw()
         job = _make_command_job()
         with (
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
             patch(
-                "kiro_crew.mcp_cron._vet_command_governance",
+                "junction.mcp_cron._vet_command_governance",
                 return_value="Error: cron command blocked by governance policy: denied",
             ),
         ):
@@ -572,7 +572,7 @@ class TestCommandExecution:
         gw = _make_gw()
         job = _make_command_job()
         with patch(
-            "kiro_crew.mcp_cron._vet_cron_capability_governance",
+            "junction.mcp_cron._vet_cron_capability_governance",
             return_value="Error: cron scheduling blocked by governance policy: disabled",
         ):
             result, mock_run = await _run_command_callback(
@@ -587,8 +587,8 @@ class TestCommandExecution:
         gw = _make_gw()
         job = _make_command_job()
         with (
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
-            patch("kiro_crew.mcp_cron._vet_command_governance", return_value=None),
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
+            patch("junction.mcp_cron._vet_command_governance", return_value=None),
         ):
             result, mock_run = await _run_command_callback(
                 gw, job, {"status": "ok", "output": "hello\n", "exit_code": 0}
@@ -612,14 +612,14 @@ class TestFireTimeGatesScriptAndMessage:
         captured_cb = None
 
         with (
-            patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
+            patch("junction.slack.gateway.CronService") as mock_cron_cls,
             patch(
-                "kiro_crew.slack.gateway.run_script_sandboxed", return_value=script_result
+                "junction.slack.gateway.run_script_sandboxed", return_value=script_result
             ) as mock_run,
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=cap),
-            patch("kiro_crew.mcp_cron.resolve_script_path", return_value=("/tmp/x.py", "run")),
-            patch("kiro_crew.mcp_cron._vet_script_file", return_value=script_vet) as mock_vet_file,
-            patch("kiro_crew.slack.gateway.sel") as mock_sel,
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=cap),
+            patch("junction.mcp_cron.resolve_script_path", return_value=("/tmp/x.py", "run")),
+            patch("junction.mcp_cron._vet_script_file", return_value=script_vet) as mock_vet_file,
+            patch("junction.slack.gateway.sel") as mock_sel,
         ):
 
             def capture_cron(on_job=None, **kw):
@@ -705,9 +705,9 @@ class TestFireTimeGatesScriptAndMessage:
         captured_cb = None
 
         with (
-            patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=cap),
-            patch("kiro_crew.slack.gateway.sel") as mock_sel,
+            patch("junction.slack.gateway.CronService") as mock_cron_cls,
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=cap),
+            patch("junction.slack.gateway.sel") as mock_sel,
         ):
 
             def capture_cron(on_job=None, **kw):
@@ -778,7 +778,7 @@ class TestFireTimeDenyOneShotRetention:
     @pytest.mark.asyncio
     async def test_allowed_run_resets_flag_via_execute(self):
         # CronService._execute resets the marker at the start of every run.
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         job = _make_script_job()
         job.fire_time_denied = True  # stale from a prior denied run
@@ -792,7 +792,7 @@ class TestFireTimeDenyOneShotRetention:
         assert job.fire_time_denied is False
 
     def test_merge_retains_denied_delete_after_run_job(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         job = svc.add_job(name="one-shot", message="go", at_ts=9999999999.0)
@@ -818,7 +818,7 @@ class TestFireTimeDenyOneShotRetention:
     async def test_denied_past_due_at_job_does_not_stay_due(self):
         """A past-due at-job denied at fire time must be parked disabled —
         leaving it enabled would make it due again on every timer tick."""
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         job = _make_script_job(schedule=CronSchedule(kind="at", at_ts=1.0), delete_after_run=True)
 
@@ -840,13 +840,13 @@ class TestFireTimeAuditTrail:
     governance_decision event keyed cron:<job.id>."""
 
     def test_allowed_fire_emits_governance_decision(self):
-        from kiro_crew.mcp_cron import vet_job_at_fire_time
+        from junction.mcp_cron import vet_job_at_fire_time
 
         job = _make_command_job()
         with (
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
-            patch("kiro_crew.mcp_cron._vet_command_governance", return_value=None),
-            patch("kiro_crew.mcp_cron.sel") as mock_sel,
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
+            patch("junction.mcp_cron._vet_command_governance", return_value=None),
+            patch("junction.mcp_cron.sel") as mock_sel,
         ):
             assert vet_job_at_fire_time(job) is None
         calls = mock_sel.return_value.log_governance_decision.call_args_list
@@ -856,16 +856,16 @@ class TestFireTimeAuditTrail:
         )
 
     def test_denied_fire_emits_governance_decision(self):
-        from kiro_crew.mcp_cron import vet_job_at_fire_time
+        from junction.mcp_cron import vet_job_at_fire_time
 
         job = _make_command_job()
         with (
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
             patch(
-                "kiro_crew.mcp_cron._vet_command_governance",
+                "junction.mcp_cron._vet_command_governance",
                 return_value="Error: cron command blocked by governance policy: x",
             ),
-            patch("kiro_crew.mcp_cron.sel") as mock_sel,
+            patch("junction.mcp_cron.sel") as mock_sel,
         ):
             assert vet_job_at_fire_time(job) is not None
         calls = mock_sel.return_value.log_governance_decision.call_args_list
@@ -875,16 +875,16 @@ class TestFireTimeAuditTrail:
         )
 
     def test_script_body_deny_emits_scoped_decision(self):
-        from kiro_crew.mcp_cron import vet_job_at_fire_time
+        from junction.mcp_cron import vet_job_at_fire_time
 
         job = _make_script_job()
         with (
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
-            patch("kiro_crew.mcp_cron.resolve_script_path", return_value=("/tmp/x.py", "run")),
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
+            patch("junction.mcp_cron.resolve_script_path", return_value=("/tmp/x.py", "run")),
             patch(
-                "kiro_crew.mcp_cron._vet_script_file", return_value="Error: cron script blocked: x"
+                "junction.mcp_cron._vet_script_file", return_value="Error: cron script blocked: x"
             ),
-            patch("kiro_crew.mcp_cron.sel") as mock_sel,
+            patch("junction.mcp_cron.sel") as mock_sel,
         ):
             assert vet_job_at_fire_time(job) is not None
         calls = mock_sel.return_value.log_governance_decision.call_args_list
@@ -898,7 +898,7 @@ class TestTimeoutPersistence:
     """Test that timeout field survives save/load cycle."""
 
     def test_timeout_round_trips(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         job = svc.add_job(
@@ -979,7 +979,7 @@ def _make_llm_job(**overrides):
 
 def _make_gw_for_llm():
     """Extended _make_gw with attributes the LLM single-agent path needs."""
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     gw = GatewayOrchestrator.__new__(GatewayOrchestrator)
     gw.sessions = MagicMock()
@@ -1030,11 +1030,11 @@ async def _run_llm_callback(gw, job, *, get_or_create_side_effect=None):
     _stream_mock = AsyncMock(return_value="Agent response here")
 
     with (
-        patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-        patch("kiro_crew.slack.gateway.run_in_embed_pool", _embed_mock),
-        patch("kiro_crew.slack.gateway.stream_and_collect", _stream_mock),
-        patch("kiro_crew.slack.gateway.sel"),
-        patch("kiro_crew.slack.gateway.build_cron_session_context") as mock_ctx,
+        patch("junction.slack.gateway.CronService") as mock_cron_cls,
+        patch("junction.slack.gateway.run_in_embed_pool", _embed_mock),
+        patch("junction.slack.gateway.stream_and_collect", _stream_mock),
+        patch("junction.slack.gateway.sel"),
+        patch("junction.slack.gateway.build_cron_session_context") as mock_ctx,
     ):
 
         mock_ctx.return_value = (f"cron:{job.id}", job.message)
@@ -1153,7 +1153,7 @@ class TestThrottleFallbackCronWiring:
         gw = _make_gw_for_llm()
         job = _make_llm_job(model="")
         with patch(
-            "kiro_crew.slack.gateway.configured_fallback_chain",
+            "junction.slack.gateway.configured_fallback_chain",
             return_value=("fb-1", "fb-2"),
         ):
             _result, stream_mock = await _run_llm_callback(gw, job)
@@ -1161,7 +1161,7 @@ class TestThrottleFallbackCronWiring:
 
     @pytest.mark.asyncio
     async def test_fallback_served_run_is_annotated(self):
-        from kiro_crew.llm_helpers import TURN_FALLBACK_ATTR
+        from junction.llm_helpers import TURN_FALLBACK_ATTR
 
         gw = _make_gw_for_llm()
         job = _make_llm_job(model="")
@@ -1180,7 +1180,7 @@ class TestThrottleFallbackCronWiring:
     async def test_fallback_served_run_blanks_pinned_model_in_usage_row(self):
         """A pinned job.model must NOT be billed while a fallback served the
         turn — the usage row blanks it so model_source reports what ran."""
-        from kiro_crew.llm_helpers import TURN_FALLBACK_ATTR
+        from junction.llm_helpers import TURN_FALLBACK_ATTR
 
         gw = _make_gw_for_llm()
         job = _make_llm_job(model="pinned-model")
@@ -1191,7 +1191,7 @@ class TestThrottleFallbackCronWiring:
             return (provider_mock, True, False)
 
         with patch(
-            "kiro_crew.slack.gateway.persist_token_record_async", new_callable=AsyncMock
+            "junction.slack.gateway.persist_token_record_async", new_callable=AsyncMock
         ) as persist_mock:
             await _run_llm_callback(gw, job, get_or_create_side_effect=_side_effect)
         assert persist_mock.await_count >= 1
@@ -1204,7 +1204,7 @@ class TestThrottleFallbackCronWiring:
         gw = _make_gw_for_llm()
         job = _make_llm_job(model="pinned-model")
         with patch(
-            "kiro_crew.slack.gateway.persist_token_record_async", new_callable=AsyncMock
+            "junction.slack.gateway.persist_token_record_async", new_callable=AsyncMock
         ) as persist_mock:
             await _run_llm_callback(gw, job)
         assert persist_mock.await_count >= 1
@@ -1213,7 +1213,7 @@ class TestThrottleFallbackCronWiring:
     def test_annotate_noop_without_marker(self):
         from types import SimpleNamespace
 
-        from kiro_crew.slack.gateway import _annotate_model_fallback
+        from junction.slack.gateway import _annotate_model_fallback
 
         provider = SimpleNamespace()
         assert _annotate_model_fallback("text", provider) == "text"
@@ -1221,8 +1221,8 @@ class TestThrottleFallbackCronWiring:
     def test_annotate_malformed_marker_is_noop(self):
         from types import SimpleNamespace
 
-        from kiro_crew.llm_helpers import TURN_FALLBACK_ATTR
-        from kiro_crew.slack.gateway import _annotate_model_fallback
+        from junction.llm_helpers import TURN_FALLBACK_ATTR
+        from junction.slack.gateway import _annotate_model_fallback
 
         provider = SimpleNamespace()
         setattr(provider, TURN_FALLBACK_ATTR, ("only-one",))
@@ -1239,7 +1239,7 @@ class TestExecutePreservesCallbackStatus:
 
     @pytest.mark.asyncio
     async def test_execute_preserves_callback_error(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
 
@@ -1256,7 +1256,7 @@ class TestExecutePreservesCallbackStatus:
 
     @pytest.mark.asyncio
     async def test_execute_marks_ok_when_callback_clean(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
 
@@ -1271,7 +1271,7 @@ class TestExecutePreservesCallbackStatus:
 
     @pytest.mark.asyncio
     async def test_execute_marks_error_when_callback_raises(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
 
@@ -1286,7 +1286,7 @@ class TestExecutePreservesCallbackStatus:
 
     @pytest.mark.asyncio
     async def test_execute_clears_stale_error_on_success(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         results = ["error", "clean"]
@@ -1318,9 +1318,9 @@ class TestCronUsageRow:
         # Patch gateway's own bindings: the imports are at module scope there,
         # so patching the source module would not be seen by the call site.
         with (
-            patch("kiro_crew.slack.gateway.persist_token_record_async", persist),
+            patch("junction.slack.gateway.persist_token_record_async", persist),
             patch(
-                "kiro_crew.slack.gateway.read_context_tokens",
+                "junction.slack.gateway.read_context_tokens",
                 MagicMock(return_value=(1234, 200000)),
                 create=True,
             ),
@@ -1342,22 +1342,22 @@ class TestCronUsageRow:
 
         persist = AsyncMock()
         with (
-            patch("kiro_crew.slack.gateway.persist_token_record_async", persist),
+            patch("junction.slack.gateway.persist_token_record_async", persist),
             patch(
-                "kiro_crew.slack.gateway.read_context_tokens",
+                "junction.slack.gateway.read_context_tokens",
                 MagicMock(return_value=(10, 100)),
                 create=True,
             ),
             patch(
-                "kiro_crew.slack.gateway.read_effective_agent",
-                MagicMock(return_value="kirocrew"),
+                "junction.slack.gateway.read_effective_agent",
+                MagicMock(return_value="junction"),
                 create=True,
             ),
         ):
             await _run_llm_callback(gw, job)
 
         persist.assert_awaited_once()
-        assert persist.await_args.kwargs["agent"] == "kirocrew"
+        assert persist.await_args.kwargs["agent"] == "junction"
 
     @pytest.mark.asyncio
     async def test_downgraded_cron_does_not_record_rejected_model(self):
@@ -1376,9 +1376,9 @@ class TestCronUsageRow:
 
         persist = AsyncMock()
         with (
-            patch("kiro_crew.slack.gateway.persist_token_record_async", persist),
+            patch("junction.slack.gateway.persist_token_record_async", persist),
             patch(
-                "kiro_crew.slack.gateway.read_context_tokens",
+                "junction.slack.gateway.read_context_tokens",
                 MagicMock(return_value=(10, 100)),
                 create=True,
             ),
@@ -1396,7 +1396,7 @@ class TestCronUsageRow:
         job = _make_script_job()
 
         persist = AsyncMock()
-        with patch("kiro_crew.slack.gateway.persist_token_record_async", persist):
+        with patch("junction.slack.gateway.persist_token_record_async", persist):
             await _run_script_callback(gw, job, {"status": "ok"})
 
         persist.assert_not_awaited()
@@ -1407,7 +1407,7 @@ class TestCronUsageRow:
         job = _make_command_job()
 
         persist = AsyncMock()
-        with patch("kiro_crew.slack.gateway.persist_token_record_async", persist):
+        with patch("junction.slack.gateway.persist_token_record_async", persist):
             await _run_command_callback(
                 gw, job, {"status": "ok", "output": "hello\n", "exit_code": 0}
             )
@@ -1424,7 +1424,7 @@ def test_shutdown_cancel_keeps_the_last_completed_result(tmp_path) -> None:
     """
     import asyncio
 
-    from kiro_crew.cron import CronJob, CronSchedule, CronService
+    from junction.cron import CronJob, CronSchedule, CronService
 
     async def _hang(*args, **kwargs):
         await asyncio.sleep(9999)
@@ -1480,12 +1480,12 @@ async def _run_script_callback_behind_a_busy_worker(gw, job, script_result, hold
     ex.shutdown_maintenance_executor()
     with (
         patch.object(ex, "_MAX_CRON_WORKERS", 1),
-        patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
+        patch("junction.slack.gateway.CronService") as mock_cron_cls,
         patch(
-            "kiro_crew.slack.gateway.run_script_sandboxed", return_value=script_result
+            "junction.slack.gateway.run_script_sandboxed", return_value=script_result
         ) as mock_run,
-        patch("kiro_crew.slack.gateway.vet_job_at_fire_time", side_effect=_vet),
-        patch("kiro_crew.slack.gateway.sel"),
+        patch("junction.slack.gateway.vet_job_at_fire_time", side_effect=_vet),
+        patch("junction.slack.gateway.sel"),
     ):
 
         def capture_cron(on_job=None, **kw):
@@ -1596,7 +1596,7 @@ class TestCronPoolQueueWait:
         reason. Asserts the counter and the pause flag, not merely the absence of
         an exception.
         """
-        from kiro_crew.cron import _AUTO_PAUSE_THRESHOLD
+        from junction.cron import _AUTO_PAUSE_THRESHOLD
 
         gw = _make_gw()
         job = _make_script_job()
@@ -1613,7 +1613,7 @@ class TestCronPoolQueueWait:
     @pytest.mark.asyncio
     async def test_repeated_starvation_never_auto_pauses_a_healthy_command(self):
         """The command branch carries the same counter and the same fix."""
-        from kiro_crew.cron import _AUTO_PAUSE_THRESHOLD
+        from junction.cron import _AUTO_PAUSE_THRESHOLD
 
         gw = _make_gw()
         job = _make_command_job()
@@ -1640,7 +1640,7 @@ class TestCronPoolQueueWait:
         Fails pre-fix: the command job below is killed at its 2s wake budget with
         ``Timed out after 2s`` and its payload never runs.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         ex.shutdown_maintenance_executor()
         release = threading.Event()
@@ -1674,7 +1674,7 @@ class TestCronPoolQueueWait:
         a wedged worker cannot leave an entry un-failed forever. Only command and
         script jobs dispatch through the pool, so only they get the allowance.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         job = CronJob(
@@ -1704,7 +1704,7 @@ class TestCronPoolQueueWait:
         carries the retain-on-refusal property; starvation needs the same one for
         the same reason, without borrowing the *policy* meaning of that flag.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         svc._load()
@@ -1743,7 +1743,7 @@ class TestCronPoolQueueWait:
         """
         import time
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         svc._load()
@@ -1786,7 +1786,7 @@ class TestCronPoolQueueWait:
         svc._jobs = [job]
         reaped = _AsyncMock()
         svc._force_reap = reaped  # type: ignore[method-assign]
-        with patch("kiro_crew.cron._REAPER_INTERVAL", 0.01):
+        with patch("junction.cron._REAPER_INTERVAL", 0.01):
             loop_task = asyncio.ensure_future(svc._reaper_loop())
             await asyncio.sleep(0.25)
             loop_task.cancel()
@@ -1811,7 +1811,7 @@ class TestCronPoolQueueWait:
         Fails pre-fix: with the reaper unchanged its deadline is 1800s, the job
         below has been in flight 1850s, and it is reaped.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         job = _make_command_job(timeout_secs=1800)  # the default wake budget
@@ -1828,7 +1828,7 @@ class TestCronPoolQueueWait:
         The point of the reaper is to catch a run whose ``wait_for`` never fired.
         Accounting for queue wait must move that threshold, not remove it.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         job = _make_command_job(timeout_secs=1800)
@@ -1843,7 +1843,7 @@ class TestCronPoolQueueWait:
         Widening the reaper for every job would delay the force-kill backstop by a
         quarter of an hour for runs that can never have queued.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         job = CronJob(
@@ -1882,7 +1882,7 @@ class TestCronPoolQueueWait:
         Fails pre-fix: with every cron worker held, the gate queues and the job is
         killed at its 2s budget without ever dispatching.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         ex.shutdown_maintenance_executor()
         release = threading.Event()
@@ -1891,9 +1891,9 @@ class TestCronPoolQueueWait:
             captured_cb = None
 
             with (
-                patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-                patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
-                patch("kiro_crew.slack.gateway.sel"),
+                patch("junction.slack.gateway.CronService") as mock_cron_cls,
+                patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
+                patch("junction.slack.gateway.sel"),
             ):
 
                 def capture_cron(on_job=None, **kw):
@@ -1969,14 +1969,14 @@ class TestCronPoolQueueWait:
         two are structurally blind to, because they raise something the caller's
         ``except`` clause catches and a ``CancelledError`` is not caught there.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         gw = _make_gw()
         captured_cb = None
         with (
-            patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
-            patch("kiro_crew.mcp_cron._vet_cron_capability_governance", return_value=None),
-            patch("kiro_crew.slack.gateway.sel"),
+            patch("junction.slack.gateway.CronService") as mock_cron_cls,
+            patch("junction.mcp_cron._vet_cron_capability_governance", return_value=None),
+            patch("junction.slack.gateway.sel"),
         ):
 
             def capture_cron(on_job=None, **kw):
@@ -2011,14 +2011,14 @@ class TestCronPoolQueueWait:
             # phase, and the two raise different exception types.
             gate_work = (
                 patch(
-                    "kiro_crew.slack.gateway.vet_job_at_fire_time",
+                    "junction.slack.gateway.vet_job_at_fire_time",
                     lambda job: release.wait(20.0),
                 )
                 if slow_gate
                 else nullcontext()
             )
             gate_stall = (
-                patch("kiro_crew.slack.gateway.run_in_cron_gate_pool", _stalled_gate)
+                patch("junction.slack.gateway.run_in_cron_gate_pool", _stalled_gate)
                 if cancel_gate
                 else nullcontext()
             )
@@ -2100,8 +2100,8 @@ class TestCronPoolQueueWait:
         """
         import math
 
-        import kiro_crew.cron as cron_mod
-        from kiro_crew.cron import (
+        import junction.cron as cron_mod
+        from junction.cron import (
             CronService,
             _pool_queue_allowance,
             _vet_allowance,
@@ -2153,7 +2153,7 @@ class TestCronPoolQueueWait:
         Fails pre-fix: the reaper's threshold is 2700s, the job below has been in
         flight 2715s, and it is reaped while still inside its execution deadline.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         job = _make_command_job(timeout_secs=1800)
@@ -2242,7 +2242,7 @@ class TestCronPoolQueueWait:
         at-job disabled. Conflating them would park a job for a policy decision
         that was never made.
         """
-        from kiro_crew.slack.gateway import _await_cron_fire_time_gate
+        from junction.slack.gateway import _await_cron_fire_time_gate
 
         for verdict in (None, "denied by policy"):
             job = CronJob(
@@ -2256,7 +2256,7 @@ class TestCronPoolQueueWait:
             async def _verdict_gate(*_a, _v=verdict, **_kw):
                 return _v
 
-            with patch("kiro_crew.slack.gateway.run_in_cron_gate_pool", _verdict_gate):
+            with patch("junction.slack.gateway.run_in_cron_gate_pool", _verdict_gate):
                 reason, starved = await _await_cron_fire_time_gate(
                     job, tool_name="t", tool_kind="k"
                 )
@@ -2294,8 +2294,8 @@ class TestCronPoolQueueWait:
         would also pass if the clear were deleted outright: the command and
         script cases are what pin the clear still firing where it belongs.
         """
-        import kiro_crew.executors as ex
-        from kiro_crew.slack.gateway import _await_cron_fire_time_gate
+        import junction.executors as ex
+        from junction.slack.gateway import _await_cron_fire_time_gate
 
         job = CronJob(
             id="j1",
@@ -2310,7 +2310,7 @@ class TestCronPoolQueueWait:
         async def _starved_gate(*_a, **_kw):
             raise ex.CronQueueTimeout(300.0)
 
-        with patch("kiro_crew.slack.gateway.run_in_cron_gate_pool", _starved_gate):
+        with patch("junction.slack.gateway.run_in_cron_gate_pool", _starved_gate):
             reason, starved = await _await_cron_fire_time_gate(job, tool_name="t", tool_kind="k")
 
         assert starved is True and reason is None, "starvation did not report as starved"
@@ -2372,7 +2372,7 @@ class TestClaimBackstopRetainsAnUnstartedOneShot:
     async def test_backstop_retains_only_the_run_that_never_started(
         self, tmp_path, grant_claim, expect_retained
     ):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         svc._load()
@@ -2386,7 +2386,7 @@ class TestClaimBackstopRetainsAnUnstartedOneShot:
         assert any(j.id == created.id for j in svc.list_jobs())
 
         gw = _make_gw()
-        with patch("kiro_crew.slack.gateway.run_in_cron_pool", self._pool(grant_claim=grant_claim)):
+        with patch("junction.slack.gateway.run_in_cron_pool", self._pool(grant_claim=grant_claim)):
             await _run_command_callback(gw, created, {"status": "ok", "output": "x"})
 
         assert created.run_never_started is expect_retained, (
@@ -2410,7 +2410,7 @@ class TestClaimBackstopRetainsAnUnstartedOneShot:
     @pytest.mark.asyncio
     async def test_a_deny_leaves_retention_to_fire_time_denied(self, tmp_path):
         """A deny must NOT borrow this marker -- its readers park an at-job disabled."""
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         svc._load()
@@ -2426,7 +2426,7 @@ class TestClaimBackstopRetainsAnUnstartedOneShot:
             return func(*args)  # the wrapper raises CronClaimTimeDenied itself
 
         gw = _make_gw()
-        with patch("kiro_crew.slack.gateway.run_in_cron_pool", _denying_pool):
+        with patch("junction.slack.gateway.run_in_cron_pool", _denying_pool):
             await _run_command_callback(
                 gw, created, {"status": "ok", "output": "x"}, vet_reason="denied by policy"
             )
@@ -2489,7 +2489,7 @@ class TestClaimBackstopDoesNotConsumeTheFailureBudget:
         gw = _make_gw()
         job = _make_command_job(consecutive_failures=3)
 
-        with patch("kiro_crew.slack.gateway.run_in_cron_pool", self._pool(grant_claim=grant_claim)):
+        with patch("junction.slack.gateway.run_in_cron_pool", self._pool(grant_claim=grant_claim)):
             await _run_command_callback(gw, job, {"status": "ok", "output": "x"})
 
         assert job.consecutive_failures == expected_count, (
@@ -2510,7 +2510,7 @@ class TestClaimBackstopDoesNotConsumeTheFailureBudget:
         gw = _make_gw()
         job = _make_script_job(consecutive_failures=3)
 
-        with patch("kiro_crew.slack.gateway.run_in_cron_pool", self._pool(grant_claim=grant_claim)):
+        with patch("junction.slack.gateway.run_in_cron_pool", self._pool(grant_claim=grant_claim)):
             await _run_script_callback(gw, job, {"status": "ok"})
 
         assert job.consecutive_failures == expected_count, (
@@ -2571,7 +2571,7 @@ class TestACancellationAtTheClaimAwaitKeepsItsOneShot:
 
     @staticmethod
     def _one_shot(tmp_path, **kw):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path, on_job=lambda *a, **k: None)
         svc._load()
@@ -2592,7 +2592,7 @@ class TestACancellationAtTheClaimAwaitKeepsItsOneShot:
         # Re-raised, so cooperative cancellation is preserved: swallowing it here
         # would leave the caller believing the run completed.
         with patch(
-            "kiro_crew.slack.gateway.run_in_cron_pool",
+            "junction.slack.gateway.run_in_cron_pool",
             self._cancelling_pool(grant_claim=grant_claim),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -2626,7 +2626,7 @@ class TestACancellationAtTheClaimAwaitKeepsItsOneShot:
         gw = _make_gw()
 
         with patch(
-            "kiro_crew.slack.gateway.run_in_cron_pool",
+            "junction.slack.gateway.run_in_cron_pool",
             self._cancelling_pool(grant_claim=grant_claim),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -2663,7 +2663,7 @@ class TestACancellationAtTheClaimAwaitKeepsItsOneShot:
             return func(*args)  # the wrapper raises CronClaimTimeDenied itself
 
         gw = _make_gw()
-        with patch("kiro_crew.slack.gateway.run_in_cron_pool", _denying_pool):
+        with patch("junction.slack.gateway.run_in_cron_pool", _denying_pool):
             await _run_command_callback(
                 gw, created, {"status": "ok", "output": "x"}, vet_reason="denied by policy"
             )

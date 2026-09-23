@@ -28,12 +28,12 @@ from typing import Any, Optional
 
 import pytest
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.mcp_gateway import claim as claim_mod
-from kiro_crew.mcp_gateway import gatewayd as gw
-from kiro_crew.mcp_gateway import socketsec
-from kiro_crew.mcp_gateway import stub as stub_mod
-from kiro_crew.mcp_gateway import transport
+from junction import platform_compat as pc
+from junction.mcp_gateway import claim as claim_mod
+from junction.mcp_gateway import gatewayd as gw
+from junction.mcp_gateway import socketsec
+from junction.mcp_gateway import stub as stub_mod
+from junction.mcp_gateway import transport
 
 pytestmark = pytest.mark.xdist_group("mcp_gateway")
 
@@ -416,7 +416,7 @@ async def test_claim_zero_connections_warns_and_audits(
 
     monkeypatch.setattr(gw, "SecurityEventLog", _FakeSEL)
     gw._CONN_INDEX.clear()
-    with caplog.at_level("WARNING", logger="kiro_crew.mcp_gateway.gatewayd"):
+    with caplog.at_level("WARNING", logger="junction.mcp_gateway.gatewayd"):
         ack = await gw._apply_claim(_claim(777777, "dashboard:chat-GHOST"))
     assert ack == {"type": "claim-noop", "updated": 0, "connections": 0}
     assert any("ZERO connections" in r.message for r in caplog.records)
@@ -728,7 +728,7 @@ async def test_claim_skips_recycled_pid(
     WARN, denied audit."""
     sel = _fake_sel(monkeypatch)
     conn = _indexed_conn(_PID, "111", "dashboard:original-owner")
-    with caplog.at_level("WARNING", logger="kiro_crew.mcp_gateway.gatewayd"):
+    with caplog.at_level("WARNING", logger="junction.mcp_gateway.gatewayd"):
         ack = await gw._apply_claim(_claim_with_token(_PID, "dashboard:new-owner", "222"))
     assert ack == {"type": "claimed", "updated": 0, "connections": 1, "skipped": 1}
     assert conn.caller is not None

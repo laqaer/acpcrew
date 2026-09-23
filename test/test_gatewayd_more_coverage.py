@@ -29,9 +29,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.mcp_gateway import gatewayd as gw
-from kiro_crew.mcp_gateway.backend import Backend, BackendGone, _PendingRequest
-from kiro_crew.mcp_gateway.pool import BackendUnavailable, PoolAtCapacity, PoolKey
+from junction.mcp_gateway import gatewayd as gw
+from junction.mcp_gateway.backend import Backend, BackendGone, _PendingRequest
+from junction.mcp_gateway.pool import BackendUnavailable, PoolAtCapacity, PoolKey
 
 pytestmark = pytest.mark.xdist_group("mcp_gateway")
 
@@ -315,8 +315,8 @@ class TestControlFrames:
     async def test_app_call_is_refused_and_audited_when_the_feature_is_off(
         self, peer_ok, monkeypatch
     ):
-        from kiro_crew.mcp_gateway import app_call as app_call_mod
-        from kiro_crew.mcp_gateway import backend as backend_mod
+        from junction.mcp_gateway import app_call as app_call_mod
+        from junction.mcp_gateway import backend as backend_mod
 
         monkeypatch.setattr(backend_mod, "_mcp_apps_enabled", lambda: False)
         audits: list[tuple[tuple[Any, ...], dict[str, Any]]] = []
@@ -346,8 +346,8 @@ class TestControlFrames:
 
     @pytest.mark.asyncio
     async def test_app_call_is_forwarded_when_the_feature_is_on(self, peer_ok, monkeypatch):
-        from kiro_crew.mcp_gateway import app_call as app_call_mod
-        from kiro_crew.mcp_gateway import backend as backend_mod
+        from junction.mcp_gateway import app_call as app_call_mod
+        from junction.mcp_gateway import backend as backend_mod
 
         monkeypatch.setattr(backend_mod, "_mcp_apps_enabled", lambda: True)
         handled = AsyncMock(return_value={"type": "app-call-result", "ok": True})

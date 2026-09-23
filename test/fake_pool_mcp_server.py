@@ -12,7 +12,7 @@ non-register frame, so one ``initialize`` per stub is enough to force the
 spawn-or-reuse decision the launch count is about.
 
 Given an OPTIONAL second path argument, it also advertises
-``kirocrew.caller-identity`` and appends the ``sessionKey`` of every
+``junction.caller-identity`` and appends the ``sessionKey`` of every
 ``tools/call``'s caller block to that file -- turning "did gatewayd hand this
 shared backend each session's own identity?" into another line read. Advertising
 is bundled with recording deliberately: gatewayd injects only into a backend that
@@ -36,7 +36,7 @@ def main() -> int:
     log = sys.argv[1]
     # Optional second argument: a path to record the caller block each tools/call
     # arrived with, one line per call. Passing it also makes this server ADVERTISE
-    # ``kirocrew.caller-identity`` -- gatewayd injects the block only into a
+    # ``junction.caller-identity`` -- gatewayd injects the block only into a
     # backend that advertised, so a recorder that did not advertise would observe
     # nothing and read as "injection is broken". Default off so the pooling tests
     # that only count launches keep the exact handshake they assert against.
@@ -61,7 +61,7 @@ def main() -> int:
         if method == "tools/call" and caller_log:
             params = msg.get("params") or {}
             meta = params.get("_meta") or {}
-            block = meta.get("kirocrew.caller") or {}
+            block = meta.get("junction.caller") or {}
             # The empty string is a meaningful observation -- it is what a
             # backend sees when nothing injected -- so record it rather than
             # skipping the line.
@@ -77,7 +77,7 @@ def main() -> int:
         params = msg.get("params") or {}
         capabilities: dict = {"tools": {}}
         if caller_log:
-            capabilities["experimental"] = {"kirocrew.caller-identity": {"schemaVersion": 1}}
+            capabilities["experimental"] = {"junction.caller-identity": {"schemaVersion": 1}}
         reply = {
             "jsonrpc": "2.0",
             "id": msg.get("id"),

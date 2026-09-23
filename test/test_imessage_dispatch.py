@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.imessage.transport_dispatch (IMessageDispatcher)."""
+"""Tests for junction.imessage.transport_dispatch (IMessageDispatcher)."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.imessage.client import IMessageInbound
-from kiro_crew.imessage.transport_dispatch import IMessageDispatcher
+from junction.imessage.client import IMessageInbound
+from junction.imessage.transport_dispatch import IMessageDispatcher
 
 HANDLE = "+15551234567"
 
@@ -89,9 +89,9 @@ class FakeSessions:
 
 
 def _cfg() -> Any:
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
-    return KiroCrewConfig()
+    return JunctionConfig()
 
 
 def _dispatcher(
@@ -128,7 +128,7 @@ def _permit(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _yes(_channel: str) -> bool:
         return True
 
-    monkeypatch.setattr("kiro_crew.imessage.transport_dispatch.inbound_permitted", _yes)
+    monkeypatch.setattr("junction.imessage.transport_dispatch.inbound_permitted", _yes)
 
 
 class TestCommandIntercept:
@@ -170,7 +170,7 @@ class TestCommandIntercept:
         async def _no(_channel: str) -> bool:
             return False
 
-        monkeypatch.setattr("kiro_crew.imessage.transport_dispatch.inbound_permitted", _no)
+        monkeypatch.setattr("junction.imessage.transport_dispatch.inbound_permitted", _no)
         dispatcher, client, _ = _dispatcher()
         await dispatcher.handle_message(_inbound("/help"))
         assert client.sent == []
@@ -318,8 +318,8 @@ class TestSessionIdentity:
         dispatcher, _, _ = _dispatcher()
         assert dispatcher._session_key(HANDLE).startswith("imessage:")
 
-    def test_the_agent_falls_back_to_the_canonical_kirocrew_agent(self) -> None:
+    def test_the_agent_falls_back_to_the_canonical_junction_agent(self) -> None:
         # Otherwise the session loads kiro-cli's bare default and has no
         # spawn_run / cron tools.
         dispatcher, _, _ = _dispatcher()
-        assert dispatcher._resolve_agent() == "kirocrew"
+        assert dispatcher._resolve_agent() == "junction"

@@ -10,7 +10,7 @@ import { configureStore } from '@reduxjs/toolkit'
 
 import ModelEffortDropdown from '../components/ModelEffortDropdown'
 import AgentSelector from '../components/AgentSelector'
-import type { KiroCrewAgent } from '../components/AgentSelector'
+import type { JunctionAgent } from '../components/AgentSelector'
 import chatReducer from '../store/chatSlice'
 import dashboardReducer from '../store/dashboardSlice'
 import notificationsReducer from '../store/notificationsSlice'
@@ -56,8 +56,8 @@ const baseProps = {
   onListKeyDown: vi.fn(),
 }
 
-const agents: KiroCrewAgent[] = [
-  { name: 'coding', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default', description: 'Coding agent', source: 'kirocrew' },
+const agents: JunctionAgent[] = [
+  { name: 'coding', kiro_agent: 'junction', workspace: 'default', memory_store: 'default', description: 'Coding agent', source: 'junction' },
 ]
 
 function wrap(ui: React.ReactElement) {

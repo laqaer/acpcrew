@@ -1,6 +1,6 @@
 const sourceColorMap: Record<string, string> = {
   aim: 'bg-aim/15 text-aim',
-  kirocrew: 'bg-bg-elevated text-muted border border-border',
+  junction: 'bg-bg-elevated text-muted border border-border',
   project: 'text-ok',
 }
 const defaultColor = 'bg-muted/10 text-muted'

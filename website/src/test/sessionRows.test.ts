@@ -22,7 +22,7 @@ const session = (over: Partial<SessionPayloadRow> = {}): SessionPayloadRow => ({
   title: 'A chat',
   slot_key: 'chat-1',
   untitled: false,
-  agent: 'kirocrew',
+  agent: 'junction',
   channel: 'dashboard',
   pid: 7,
   owns_runtime: true,
@@ -40,7 +40,7 @@ const session = (over: Partial<SessionPayloadRow> = {}): SessionPayloadRow => ({
 const task = (over: Partial<TaskPayloadRow> = {}): TaskPayloadRow => ({
   id: 't1',
   task: 'a task',
-  agent: 'kirocrew-research',
+  agent: 'junction-research',
   parent: 'dashboard:chat-1',
   rss_mb: 50,
   peak_rss_mb: 60,

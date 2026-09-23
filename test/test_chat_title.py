@@ -9,8 +9,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.dashboard import chat_title
-from kiro_crew.dashboard.chat_title import (
+from junction.dashboard import chat_title
+from junction.dashboard.chat_title import (
     _TITLE_MAX_ATTACHMENT_FILES,
     _TITLE_MAX_ATTACHMENT_PATH_LENGTH,
     _TITLE_SOURCE_SCAN_LIMIT,
@@ -482,7 +482,7 @@ def test_prompt_language_slot_is_the_only_insertion():
 )
 def test_ui_language_only_accepts_a_tag_shaped_value(monkeypatch, stored, expected):
     cfg = SimpleNamespace(dashboard=SimpleNamespace(language=stored))
-    monkeypatch.setattr(chat_title.KiroCrewConfig, "load", staticmethod(lambda: cfg))
+    monkeypatch.setattr(chat_title.JunctionConfig, "load", staticmethod(lambda: cfg))
     assert chat_title._ui_language() == expected
 
 
@@ -492,13 +492,13 @@ def test_ui_language_failure_does_not_break_titling(monkeypatch):
     def _boom():
         raise OSError("config unreadable")
 
-    monkeypatch.setattr(chat_title.KiroCrewConfig, "load", staticmethod(_boom))
+    monkeypatch.setattr(chat_title.JunctionConfig, "load", staticmethod(_boom))
     assert chat_title._ui_language() == ""
 
 
 @pytest.mark.asyncio
 async def test_ui_language_is_read_off_the_event_loop(monkeypatch):
-    """`KiroCrewConfig.load()` is synchronous file IO, which AUTOSDE's
+    """`JunctionConfig.load()` is synchronous file IO, which AUTOSDE's
     no-blocking-call-on-event-loop rule forbids on the gateway's single loop.
     Assert the resolution actually reaches a worker thread rather than trusting
     the call site to stay correct."""

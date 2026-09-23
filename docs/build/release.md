@@ -65,7 +65,7 @@ rebuild that hopes for reproducibility. The mechanism:
 - **Stable DISPLAYS a clean base version even though the bytes keep the RC
   stamp.** The embedded version cannot change under promotion, so the remedy is
   at the read layer: `_display_version()` in
-  `src/kiro_crew/dashboard/handlers/updates.py` folds the running version to its
+  `src/junction/dashboard/handlers/updates.py` folds the running version to its
   bare `X.Y.Z` on the **stable** channel only (insider/nightly keep the full
   stamp), so About and the Releases page show `0.4.0`, not `0.4.0rc3` /
   `0.4.0-insider.3`. It is DISPLAY-ONLY — every version *comparison* still reads
@@ -126,7 +126,7 @@ concurrency group, and their version derivation.
 | `publish-cli.yml` | reusable publish | Wheel + `SHA256SUMS` + KMS-signed `cli-manifest.json` to `cli/<channel>/<version>/`, the same signed manifest to `feed/<channel>/latest-cli.json`, and a PEP 503 index under `feed/<channel>/simple/`. |
 | `publish-linux.yml` | reusable publish | One Linux artifact to `desktop/<channel>/<version>/`, its channel file under `<feed prefix>/latest-linux[-arm64].yml`, then the `latest/` alias. Invoked ONCE PER (ARCH, FORMAT) PAIR — `arch: x64\|arm64` × `format: appimage\|deb\|rpm`, six callers — each with its own keys and feed, so no two ever share one. |
 | `sign-and-notarize.yml` | reusable publish | Three chained jobs (`sign`, `notarize`, `publish`) covering the whole macOS trust chain and the mac feed write. |
-| `publish-docker.yml` | reusable publish | Multi-arch (`linux/amd64,linux/arm64`) image built from the same wheel, pushed to `ghcr.io/<owner>/kirocrew`. |
+| `publish-docker.yml` | reusable publish | Multi-arch (`linux/amd64,linux/arm64`) image built from the same wheel, pushed to `ghcr.io/<owner>/junction`. |
 | `publish-installer.yml` | independent publish | Publishes `cli.sh` to the distribution bucket root. Triggered by a push to `main` touching `cli.sh` (path-filtered), plus manual dispatch. **Not** part of a channel release. |
 
 Release-adjacent, deliberately outside the release path:
@@ -158,28 +158,28 @@ hostnames means future protective policy on the byte surface can never touch the
 availability-critical feed path.
 
 ```
-cli/<channel>/<version>/kirocrew-<version>-py3-none-any.whl   immutable
+cli/<channel>/<version>/junction-<version>-py3-none-any.whl   immutable
 cli/<channel>/<version>/SHA256SUMS                            immutable
 cli/<channel>/<version>/cli-manifest.json                     immutable
-desktop/<channel>/<version>/KiroCrew.zip                      immutable
-desktop/<channel>/<version>/KiroCrew.dmg                      immutable
-desktop/<channel>/<version>/KiroCrew-x86_64.AppImage          immutable
-desktop/<channel>/<version>/KiroCrew-aarch64.AppImage         immutable
-desktop/<channel>/<version>/KiroCrew-x86_64.deb               immutable
-desktop/<channel>/<version>/KiroCrew-aarch64.deb              immutable
-desktop/<channel>/<version>/KiroCrew-x86_64.rpm               immutable
-desktop/<channel>/<version>/KiroCrew-aarch64.rpm              immutable
-desktop/<channel>/latest/KiroCrew.dmg                         pointer, max-age=300
-desktop/<channel>/latest/KiroCrew-x86_64.AppImage             pointer, max-age=300
-desktop/<channel>/latest/KiroCrew-aarch64.AppImage            pointer, max-age=300
-desktop/<channel>/latest/KiroCrew-<arch>.deb                  pointer, max-age=300
-desktop/<channel>/latest/KiroCrew-<arch>.rpm                  pointer, max-age=300
+desktop/<channel>/<version>/Junction.zip                      immutable
+desktop/<channel>/<version>/Junction.dmg                      immutable
+desktop/<channel>/<version>/Junction-x86_64.AppImage          immutable
+desktop/<channel>/<version>/Junction-aarch64.AppImage         immutable
+desktop/<channel>/<version>/Junction-x86_64.deb               immutable
+desktop/<channel>/<version>/Junction-aarch64.deb              immutable
+desktop/<channel>/<version>/Junction-x86_64.rpm               immutable
+desktop/<channel>/<version>/Junction-aarch64.rpm              immutable
+desktop/<channel>/latest/Junction.dmg                         pointer, max-age=300
+desktop/<channel>/latest/Junction-x86_64.AppImage             pointer, max-age=300
+desktop/<channel>/latest/Junction-aarch64.AppImage            pointer, max-age=300
+desktop/<channel>/latest/Junction-<arch>.deb                  pointer, max-age=300
+desktop/<channel>/latest/Junction-<arch>.rpm                  pointer, max-age=300
 feed/<channel>/latest-mac.yml                                 pointer, max-age=300
 feed/<channel>/latest-mac.json                                pointer, max-age=300 (legacy bridge)
 feed/<channel>/latest-linux.yml                               pointer, max-age=300  (x64)
 feed/<channel>/latest-linux-arm64.yml                         pointer, max-age=300  (arm64)
 feed/<channel>/latest-cli.json                                pointer, no-cache
-feed/<channel>/simple/  +  feed/<channel>/simple/kirocrew/    pointer, no-cache
+feed/<channel>/simple/  +  feed/<channel>/simple/junction/    pointer, no-cache
 cli.sh                                                        pointer, no-cache (only root object)
 ```
 
@@ -213,7 +213,7 @@ costs nothing.
 
 ### GitHub Container Registry
 
-`ghcr.io/<owner>/kirocrew`, resolved from `github.repository_owner` so forks
+`ghcr.io/<owner>/junction`, resolved from `github.repository_owner` so forks
 publish into their own namespace. Tag discipline mirrors the CDN keys: the
 **version** tag is immutable (a re-run that finds it present skips the build,
 verifies the existing digest already carries this repo's provenance via
@@ -223,7 +223,7 @@ stable) moves only after the version tag and its attestation exist. GHCR needs
 no AWS credentials: the push authenticates with the workflow's own
 `GITHUB_TOKEN`, so this lane also works on forks.
 
-The GHCR package is public, so `docker pull ghcr.io/kirodotdev/kirocrew:stable`
+The GHCR package is public, so `docker pull ghcr.io/kirodotdev/junction:stable`
 works with no login. That is not automatic: GHCR creates every package private
 and inherits only *access permissions* from the linked repository, never
 visibility — a public repo does not imply a pullable image, and the flip is
@@ -238,7 +238,7 @@ and authenticate with a token carrying `read:packages`.
 
 `release.yml`'s `github-release` job attaches the wheel, the sdist, the
 AppImage, and the two gated macOS artifacts, renamed
-`KiroCrew-<version>-universal-mac.zip` and `KiroCrew-<version>-universal.dmg`.
+`Junction-<version>-universal-mac.zip` and `Junction-<version>-universal.dmg`.
 It accepts macOS bytes **only** from the exact name-bound artifact the notarize
 job attached after the Gatekeeper gate, and re-validates them structurally
 before publishing (ZIP CRC plus exactly one top-level `.app`; DMG `koly` UDIF
@@ -252,20 +252,20 @@ job that has it: the signing jobs hold AWS credentials but never
 
 ### There is no PyPI publish
 
-Nothing in the repository publishes to PyPI, and `pip install kirocrew` from
+Nothing in the repository publishes to PyPI, and `pip install junction` from
 PyPI is not a supported path. `publish-cli.yml` builds a **private static PEP 503
 index** per channel under `feed/<channel>/simple/` and installs go through it:
 
 ```bash
-pip install --pre kirocrew --extra-index-url https://updates.crew.kiro.dev/feed/insider/simple/
+pip install --pre junction --extra-index-url https://updates.crew.kiro.dev/feed/insider/simple/
 ```
 
 `--extra-index-url` (not `--index-url`) is deliberate: the channel index carries
-only `kirocrew`, so cutting off PyPI would fail on dependency resolution. pip
+only `junction`, so cutting off PyPI would fail on dependency resolution. pip
 verifies the `#sha256=` fragment on each link, giving the same fail-closed
 integrity as the feed. Because CloudFront with OAC does not resolve directory
-indexes, the workflow uploads both `.../simple/kirocrew/index.html` and the
-literal trailing-slash key `.../simple/kirocrew/` that pip requests, using
+indexes, the workflow uploads both `.../simple/junction/index.html` and the
+literal trailing-slash key `.../simple/junction/` that pip requests, using
 `s3api put-object` (an `s3 cp` to a trailing-slash destination silently writes a
 different key). The project page is merged with the live one so prior versions
 stay installable, and a non-200/non-404 fetch aborts the step rather than
@@ -306,7 +306,7 @@ version derivation and `uses:` calls.
    `GITHUB_ENV`, a file, or a log.
 3. **publish** (ubuntu). Copies the gated zip and DMG to the distribution
    bucket, writes `latest-mac.yml`, writes the legacy `latest-mac.json` bridge,
-   then the human `latest/KiroCrew.dmg` alias. Separate from notarize so a
+   then the human `latest/Junction.dmg` alias. Separate from notarize so a
    transient S3 failure retries as a two-minute ubuntu job instead of repeating
    two Apple submissions, and so the expensive macOS runner never burns minutes
    on uploads. Its `if:` starts with `success()`, which is required: a custom
@@ -339,7 +339,7 @@ read-then-write race.
 
 ## Version stamping
 
-The in-code `__version__` in `src/kiro_crew/__init__.py` is the source of truth
+The in-code `__version__` in `src/junction/__init__.py` is the source of truth
 for non-tag builds. A tagged release overrides all three manifests at build
 time. See CONTRIBUTING.md → "Bumping the in-code version" for the three files
 and why the base must stay a bare `X.Y.Z`.
@@ -396,7 +396,7 @@ Stick to one convention (`-rc.N`) per base version.
 
 ### Version numbering policy
 
-`__version__` in `src/kiro_crew/__init__.py` is the branch's DECLARED identity.
+`__version__` in `src/junction/__init__.py` is the branch's DECLARED identity.
 A tagged build overrides all three manifests from the tag (the table above), so
 the in-code value is what a non-tag build reports and what the promote sequence
 manipulates — the final byte stamp is decided by the tag, not this value.
@@ -405,7 +405,7 @@ manipulates — the final byte stamp is decided by the tag, not this value.
   tag matches.** The branch reads as what it is: `__version__ = "X.Y.Z-rc.N"`,
   tags `vX.Y.Z-insider.N`. Do not leave a release branch declaring a bare
   `X.Y.Z` while it is still cutting RCs. All three version files
-  (`src/kiro_crew/__init__.py`, `pyproject.toml`,
+  (`src/junction/__init__.py`, `pyproject.toml`,
   `website/electron/package.json`) use the **same dual-valid spelling**
   `X.Y.Z-rc.N` — valid SemVer and valid (non-canonical) PEP 440. The canonical
   PEP 440 form (`0.4.0rc4`) is forbidden in `__init__.py`:
@@ -455,11 +455,11 @@ signed with a non-exportable RSA KMS key:
   "key_id": "sha256:<SubjectPublicKeyInfo DER digest>",
   "pub_date": "2026-07-18T06:15:00Z",
   "python_requires": ">=3.10",
-  "schema": "kirocrew-cli-artifact-manifest-v1",
+  "schema": "junction-cli-artifact-manifest-v1",
   "sha256": "<wheel digest>",
   "signature": "<base64 RSA signature over canonical JSON without this field>",
   "version": "0.2.0",
-  "wheel_url": "https://download.crew.kiro.dev/cli/insider/0.2.0/kirocrew-0.2.0-py3-none-any.whl"
+  "wheel_url": "https://download.crew.kiro.dev/cli/insider/0.2.0/junction-0.2.0-py3-none-any.whl"
 }
 ```
 
@@ -516,12 +516,12 @@ curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel {nightly|i
 The installer resolves the channel feed, verifies it as described above,
 installs with `pipx` when available (otherwise a managed venv beside the data
 home), and records the channel in `~/.kiro/crew/channel`. Default channel is
-`stable`; `KIROCREW_CHANNEL` overrides it, and `--version` pins an exact wheel
+`stable`; `JUNCTION_CHANNEL` overrides it, and `--version` pins an exact wheel
 through the immutable `cli/<channel>/<version>/cli-manifest.json` instead of the
 mutable feed. This download path is separate from the source install
-(`install.sh`, a git clone plus `pip install -e .`), which is what `kirocrew
+(`install.sh`, a git clone plus `pip install -e .`), which is what `junction
 update` refreshes: that command needs a git checkout at
-`KIROCREW_PROJECT_DIR` and runs `git fetch` plus `git reset --hard` (checking a
+`JUNCTION_PROJECT_DIR` and runs `git fetch` plus `git reset --hard` (checking a
 governance source pin on the remote URL first, so the fleet, not the human at the
 terminal, decides which remote a host may take code from), then rebuilds the
 frontend, reinstalls with `pip install -e .`, and re-runs
@@ -588,7 +588,7 @@ The client resolves `{feedBase}/{channel}/` as a **directory** (the trailing
 slash matters: without it `new URL("latest-mac.yml", base)` replaces the last
 segment and resolves the wrong channel) and the library appends the platform
 filename. The feed base defaults to `https://updates.crew.kiro.dev/feed` and is
-overridable through `KIROCREW_UPDATE_FEED`, which enforces HTTPS except on
+overridable through `JUNCTION_UPDATE_FEED`, which enforces HTTPS except on
 loopback so the local harness works. The yml lives on the pointer host while
 `files[].url` entries are absolute byte-host URLs; electron-updater's
 `newUrlFromBase` ignores the base for absolute URLs, which is what preserves the
@@ -601,20 +601,20 @@ electron-updater string-compares it and a hex value fails every download:
 ```yaml
 version: 0.1.0-nightly.20260721t061155
 files:
-  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/KiroCrew.zip
+  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
     sha512: '<base64>'
     size: 123456789
-  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/KiroCrew.dmg
+  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.dmg
     sha512: '<base64>'
     size: 234567890
-path: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/KiroCrew.zip
+path: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
 sha512: '<base64>'
 releaseDate: '2026-07-21T06:22:13Z'
 ```
 
 The zip is the update payload (the updater's `findFile` skips dmg/pkg); the DMG
 entry is listed for tooling parity and stays the human first-install download,
-which is why it also gets its own `desktop/<channel>/latest/KiroCrew.dmg`
+which is why it also gets its own `desktop/<channel>/latest/Junction.dmg`
 permalink. Downloads are verified fail-closed against the feed's `sha512` before
 install, and on macOS Squirrel.Mac additionally validates the swapped bundle's
 code signature, which is precisely why the feed may only ever point at signed
@@ -692,7 +692,7 @@ natural quit through a `before-quit` hook in the same stop-gateway-first order.
 ## Windows
 
 `build-windows.yml` builds and **Authenticode-signs** the NSIS `Setup.exe`
-through AWS Signer during the build (signing profile `KiroCrewWindowsExe`),
+through AWS Signer during the build (signing profile `JunctionWindowsExe`),
 whenever `AWS_WINDOWS_SIGNING_ROLE_ARN` is present and the caller passed
 `use_prod_environment: true`. Signing happens inside the build because the NSIS
 installer compresses its own already-signed executables.
@@ -703,9 +703,9 @@ an immutable versioned key, then the feed, then the mutable `latest/` alias.
 Nightly and insider publish a fresh signed build; stable republishes the verified
 promotion bundle's installer (see the stable note below).
 
-    desktop/<channel>/<version>/KiroCrew-Setup.exe            immutable
-    desktop/<channel>/<version>/KiroCrew-Setup.exe.blockmap   immutable
-    desktop/<channel>/latest/KiroCrew-Setup.exe               pointer, max-age=300
+    desktop/<channel>/<version>/Junction-Setup.exe            immutable
+    desktop/<channel>/<version>/Junction-Setup.exe.blockmap   immutable
+    desktop/<channel>/latest/Junction-Setup.exe               pointer, max-age=300
     feed/<channel>/latest.yml                                 pointer, max-age=300
 
 Three things about this lane are deliberate rather than incidental:
@@ -769,7 +769,7 @@ Three things about this lane are deliberate rather than incidental:
   forces that job's result to `success` even on failure, so the check would assert
   nothing.
 
-The `KiroCrew-Setup.exe` basename is a public contract: it is what
+The `Junction-Setup.exe` basename is a public contract: it is what
 `manualDownloadUrl()` hands a user whose in-app update failed, which is why it
 carries neither the version nor electron-builder's spaces. The blockmap must
 travel with the installer or electron-updater silently falls back to a full
@@ -842,14 +842,14 @@ CH=stable
 BYTES=https://download.crew.kiro.dev
 PTR=https://updates.crew.kiro.dev
 
-curl -fsSI "$BYTES/desktop/$CH/latest/KiroCrew.dmg" | head -1
-curl -fsSI "$BYTES/desktop/$CH/latest/KiroCrew-x86_64.AppImage" | head -1
-curl -fsSI "$BYTES/desktop/$CH/latest/KiroCrew-aarch64.AppImage" | head -1
+curl -fsSI "$BYTES/desktop/$CH/latest/Junction.dmg" | head -1
+curl -fsSI "$BYTES/desktop/$CH/latest/Junction-x86_64.AppImage" | head -1
+curl -fsSI "$BYTES/desktop/$CH/latest/Junction-aarch64.AppImage" | head -1
 curl -fsS  "$PTR/feed/$CH/latest-mac.yml"
 curl -fsS  "$PTR/feed/$CH/latest-linux.yml"
 curl -fsS  "$PTR/feed/$CH/latest-linux-arm64.yml"
 curl -fsS  "$PTR/feed/$CH/latest-cli.json" > /tmp/feed.json
-curl -fsS  "$PTR/feed/$CH/simple/kirocrew/" | head -5
+curl -fsS  "$PTR/feed/$CH/simple/junction/" | head -5
 
 # authenticate the CLI feed with the same checks cli.sh runs
 python3 packaging/signing/cli-manifest.py verify \
@@ -896,7 +896,7 @@ Every release lands a `## [X.Y.Z] — YYYY-MM-DD` section in `CHANGELOG.md`
 through a normal PR, alongside any version bump. The section format (ordering,
 tone, contributor lines) is specified once in
 [AGENTS.md](../../AGENTS.md) → "Release Changelog". The dashboard reads the
-changelog from `KIROCREW_PROJECT_DIR/CHANGELOG.md` for source installs and from
+changelog from `JUNCTION_PROJECT_DIR/CHANGELOG.md` for source installs and from
 the bundled copy inside the package for wheel installs.
 
 **`main` holds the canonical copy.** A release branch necessarily carries its

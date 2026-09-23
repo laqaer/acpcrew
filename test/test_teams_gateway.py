@@ -10,9 +10,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import kiro_crew.teams.gateway as teams_gateway
-from kiro_crew.dashboard.handlers.messaging import api_teams_config_get
-from kiro_crew.teams.gateway import maybe_start_teams
+import junction.teams.gateway as teams_gateway
+from junction.dashboard.handlers.messaging import api_teams_config_get
+from junction.teams.gateway import maybe_start_teams
 
 
 class _FakeState:
@@ -113,7 +113,7 @@ class TestStatusEndpoint:
     @pytest.mark.asyncio
     async def test_status_reflects_state_and_config(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.messaging.is_direct_local_request",
+            "junction.dashboard.handlers.messaging.is_direct_local_request",
             lambda req: True,
         )
         # Config with teams enabled + allow-list. The secret is env-only, so
@@ -135,9 +135,9 @@ class TestStatusEndpoint:
         state.teams_connected = True
         try:
             with unittest.mock.patch(
-                "kiro_crew.config.loader.config_path", return_value=tmp
+                "junction.config.loader.config_path", return_value=tmp
             ), unittest.mock.patch(
-                "kiro_crew.config.loader.KiroCrewConfig.load_credentials",
+                "junction.config.loader.JunctionConfig.load_credentials",
                 return_value={"MICROSOFT_APP_PASSWORD": "secret"},
             ):
                 resp = await api_teams_config_get(_FakeRequest(state))

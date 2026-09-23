@@ -2,7 +2,7 @@
 
 Contributor and agent-OS skills for **this checkout**. They are not
 packaged. A skill that any shipped feature, tool, or packaged doc
-references must live in `src/kiro_crew/builtin_skills/`. Top-level
+references must live in `src/junction/builtin_skills/`. Top-level
 `skills/` is checkout-only and reaches no installed user.
 
 Product overlay: [`../JUNCTION.md`](../JUNCTION.md). Envelope:

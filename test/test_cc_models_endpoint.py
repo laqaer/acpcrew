@@ -14,8 +14,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from kiro_crew import model_registry
-from kiro_crew.dashboard.handlers.agents import (
+from junction import model_registry
+from junction.dashboard.handlers.agents import (
     _advertised_cc_models,
     _cc_models,
 )

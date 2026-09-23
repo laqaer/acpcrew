@@ -14,8 +14,8 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from kiro_crew.apps.lifecycle import LifecycleDispatcher
-from kiro_crew.apps.manifest import app_name_error
+from junction.apps.lifecycle import LifecycleDispatcher
+from junction.apps.manifest import app_name_error
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -103,10 +103,10 @@ class TestLifecycleHookOrdering:
         work_dir = tmp_path / uuid.uuid4().hex
         work_dir.mkdir()
         # dispatch_startup → _build_context → app_dir(name)/"data".mkdir() resolves
-        # against config_dir() == ~/.kirocrew unless KIROCREW_HOME is isolated. Each
+        # against config_dir() == ~/.kirocrew unless JUNCTION_HOME is isolated. Each
         # generated name would otherwise leak a real apps/<name>/data/ dir (one per
         # hypothesis example → thousands over a dev's test history). Pin it to tmp.
-        monkeypatch.setenv("KIROCREW_HOME", str(work_dir))
+        monkeypatch.setenv("JUNCTION_HOME", str(work_dir))
 
         apps = [_make_app_info(n, on_startup="backend.hooks:on_startup") for n in names]
         dispatcher = LifecycleDispatcher()
@@ -198,19 +198,19 @@ class TestShellBeforePython:
         }
 
         # Pre-mock dashboard.server to avoid circular import with mimir
-        if "kiro_crew.dashboard.server" not in sys.modules:
-            sys.modules["kiro_crew.dashboard.server"] = MagicMock()
+        if "junction.dashboard.server" not in sys.modules:
+            sys.modules["junction.dashboard.server"] = MagicMock()
 
         with (
-            patch("kiro_crew.apps.routes.get_app", return_value=fake_app_info),
-            patch("kiro_crew.apps.routes.enable_app", return_value=MagicMock(ok=True, to_dict=lambda: {"ok": True})),
-            patch("kiro_crew.apps.routes.register_app", return_value=MagicMock(to_dict=lambda: {})),
-            patch("kiro_crew.apps.routes.start_app_backend", return_value=None),
-            patch("kiro_crew.apps.routes._run_lifecycle_script", side_effect=mock_shell),
-            patch("kiro_crew.apps.routes.on_app_enable", side_effect=mock_python),
-            patch("kiro_crew.apps.routes.sel", return_value=MagicMock()),
+            patch("junction.apps.routes.get_app", return_value=fake_app_info),
+            patch("junction.apps.routes.enable_app", return_value=MagicMock(ok=True, to_dict=lambda: {"ok": True})),
+            patch("junction.apps.routes.register_app", return_value=MagicMock(to_dict=lambda: {})),
+            patch("junction.apps.routes.start_app_backend", return_value=None),
+            patch("junction.apps.routes._run_lifecycle_script", side_effect=mock_shell),
+            patch("junction.apps.routes.on_app_enable", side_effect=mock_python),
+            patch("junction.apps.routes.sel", return_value=MagicMock()),
         ):
-            from kiro_crew.apps.routes import handle_enable_app
+            from junction.apps.routes import handle_enable_app
 
             # Build a minimal fake request
             request = MagicMock()
@@ -273,11 +273,11 @@ class TestLifecycleHookTimeout:
     @pytest.fixture(autouse=True)
     def _isolate_home(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         # _build_context → app_dir(name)/"data".mkdir(); pin it off the real home.
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     def test_gateway_cleanup_does_not_spend_shutdown_hook_budget(self) -> None:
         """Gateway cleanup must check retained startup ownership without waiting."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         assert lifecycle_mod._GATEWAY_STARTUP_CLEANUP_TIMEOUT_SEC == 0.0
 
@@ -286,7 +286,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A settled retained startup permits its app's shutdown hook."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
         release = asyncio.Event()
@@ -327,7 +327,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A bounded ownership failure must not overlap shutdown with startup."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.02)
         monkeypatch.setattr(
@@ -373,7 +373,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Ownership checks include hookless apps and begin concurrently."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(
             lifecycle_mod, "_GATEWAY_STARTUP_CLEANUP_TIMEOUT_SEC", 0.05
@@ -418,7 +418,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A startup hook can outlive readiness but remains owned until completion."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
 
@@ -453,7 +453,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Timeout preserves ownership instead of asking the hook to cancel."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
 
@@ -497,7 +497,7 @@ class TestLifecycleHookTimeout:
         """A timed-out startup task remains the sole invocation until it exits."""
         from unittest.mock import MagicMock
 
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
         audit = MagicMock()
@@ -548,7 +548,7 @@ class TestLifecycleHookTimeout:
         """A terminal awaiter must never hide a still-running app worker thread."""
         import threading
 
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
         started = threading.Event()
@@ -598,7 +598,7 @@ class TestLifecycleHookTimeout:
         """Child cancellation before the deadline must remain fail-closed."""
         import threading
 
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 1.0)
         app_name = "early-cancel-app"
@@ -649,7 +649,7 @@ class TestLifecycleHookTimeout:
         """Cancelling the dispatcher must not cancel or orphan its child hook."""
         import threading
 
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 1.0)
         app_name = "parent-cancel-app"
@@ -703,7 +703,7 @@ class TestLifecycleHookTimeout:
         """Self-cancellation cannot make a live to_thread worker look stopped."""
         import threading
 
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
         app_name = "cancel-app"
@@ -767,7 +767,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Readiness proceeds, while teardown still waits for true completion."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
         release = asyncio.Event()
@@ -814,7 +814,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Shutdown stays pending until third-party hook code has actually stopped."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.01)
         started = asyncio.Event()
@@ -847,7 +847,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The shared teardown receives a hard-failure marker for residual code."""
-        import kiro_crew.apps.hooks_integration as integration
+        import junction.apps.hooks_integration as integration
 
         class _Dispatcher:
             _cron_service = None
@@ -876,7 +876,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A retryable teardown failure must not start unbounded app code."""
-        import kiro_crew.apps.hooks_integration as integration
+        import junction.apps.hooks_integration as integration
 
         invoked = False
 
@@ -914,7 +914,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The integration layer must not filter ownership by hook presence."""
-        import kiro_crew.apps.hooks_integration as integration
+        import junction.apps.hooks_integration as integration
 
         seen: list[str] = []
 
@@ -939,7 +939,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A sync hook returns before the iscoroutine check → runs to completion."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         # Even with a zero deadline, a sync hook is unaffected: it never awaits.
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.0)
@@ -989,7 +989,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """dispatch_startup continues past a hung app; independent apps still start."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
 
@@ -1028,7 +1028,7 @@ class TestLifecycleHookTimeout:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The timeout outcome keeps the established hook-path resource value."""
-        import kiro_crew.apps.lifecycle as lifecycle_mod
+        import junction.apps.lifecycle as lifecycle_mod
 
         monkeypatch.setattr(lifecycle_mod, "_HOOK_TIMEOUT_SEC", 0.05)
 

@@ -11,9 +11,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew import beacon
-from kiro_crew.apps import install_receipt, manager, registry
-from kiro_crew.apps.manager import AppResult
+from junction import beacon
+from junction.apps import install_receipt, manager, registry
+from junction.apps.manager import AppResult
 
 _SECRET = "0123456789abcdef" * 4  # 64-hex receipt-only secret
 _BEACON_ID = "0123456789abcdef0123456789abcdef"  # a heartbeat id, for independence checks
@@ -402,7 +402,7 @@ class TestNonRegistryPaths:
     def app_home(self, tmp_path, monkeypatch):
         home = tmp_path / "home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         monkeypatch.setattr(manager, "app_admission_denied", lambda *_a, **_k: None)
         monkeypatch.setattr(manager, "app_execution_denied", lambda *_a, **_k: None)
         monkeypatch.setattr(manager, "sel", lambda: MagicMock())

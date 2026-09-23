@@ -50,7 +50,7 @@ const PASSTHROUGH_LITERALS = new Set([
 function isExempt(key: string): boolean {
   const parts = key.split('.')
   if (parts.includes('manifest')) return true
-  if (parts[parts.length - 1] === 'star_kirocrew_on_github') return true
+  if (parts[parts.length - 1] === 'star_junction_on_github') return true
   if (PASSTHROUGH_LITERALS.has(key)) return true
   return false
 }

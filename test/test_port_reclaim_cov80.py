@@ -1,4 +1,4 @@
-"""Coverage for the platform-specific edges of :mod:`kiro_crew.dashboard.port_reclaim`.
+"""Coverage for the platform-specific edges of :mod:`junction.dashboard.port_reclaim`.
 
 ``test_port_reclaim.py`` covers the outcome matrix with every collaborator
 injected. Untested there: the POSIX ``lsof`` lookup and its three degrade paths,
@@ -17,8 +17,8 @@ import subprocess
 
 import pytest
 
-import kiro_crew.cli_server as cli_server
-from kiro_crew.dashboard import port_reclaim as pr
+import junction.cli_server as cli_server
+from junction.dashboard import port_reclaim as pr
 
 
 async def _unhealthy(_port: int, _timeout: float) -> bool:
@@ -223,14 +223,14 @@ def test_describe_holders_names_a_wedged_fork(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_default_identity_check_is_the_shared_cli_server_gate(monkeypatch) -> None:
-    """With no injected checker, reclaim uses the same gate as `kirocrew stop`."""
+    """With no injected checker, reclaim uses the same gate as `junction stop`."""
     asked: list[int] = []
 
-    def _is_kirocrew(pid: int) -> bool:
+    def _is_junction(pid: int) -> bool:
         asked.append(pid)
         return False
 
-    monkeypatch.setattr(cli_server, "_is_kirocrew_process", _is_kirocrew)
+    monkeypatch.setattr(cli_server, "_is_junction_process", _is_junction)
     monkeypatch.setattr(pr.platform_compat, "process_thread_count", lambda _pid: 4)
 
     outcome = await pr.reclaim_stale_gateway_port(
@@ -256,7 +256,7 @@ async def test_default_terminator_is_used_when_none_injected(monkeypatch) -> Non
     outcome = await pr.reclaim_stale_gateway_port(
         5476,
         list_listeners=lambda _p: [8888],
-        is_kirocrew=lambda _pid: True,
+        is_junction=lambda _pid: True,
         probe_healthy=_unhealthy,
     )
 
@@ -288,7 +288,7 @@ async def test_wedged_ps_on_the_pre_signal_recheck_is_unavailable() -> None:
     outcome = await pr.reclaim_stale_gateway_port(
         5476,
         list_listeners=lambda _p: [1234],
-        is_kirocrew=_checker,
+        is_junction=_checker,
         probe_healthy=_unhealthy,
         terminate=_terminate,
         identity_timeout=0.15,

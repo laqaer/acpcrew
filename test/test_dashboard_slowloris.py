@@ -1,6 +1,6 @@
 """Regression tests for the slowloris / CWE-400 read-timeout mitigation.
 
-Covers the connection-level guard in ``kiro_crew.dashboard.slowloris`` and its
+Covers the connection-level guard in ``junction.dashboard.slowloris`` and its
 wiring into the dashboard / API server start paths:
 
 - a connection that dribbles the request line/headers without ever completing
@@ -19,8 +19,8 @@ import aiohttp
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard import server as dashboard_server
-from kiro_crew.dashboard.slowloris import (
+from junction.dashboard import server as dashboard_server
+from junction.dashboard.slowloris import (
     SlowlorisAppRunner,
     SlowlorisRequestHandler,
     SlowlorisServer,

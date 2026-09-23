@@ -460,7 +460,7 @@ export default [
               // A GATEWAY WIRE MARKER whose tag is bracketed ALL-CAPS, e.g.
               // `[SYSTEM] Sub-agent synthesis:`. These are matched byte-for-byte
               // with `startsWith` against Python constants in
-              // src/kiro_crew/dashboard/state.py and the matched prefix is then
+              // src/junction/dashboard/state.py and the matched prefix is then
               // SLICED OFF, so no character reaches the screen — translating one
               // silently stops its card from rendering in that locale. Real site:
               // the `PREFIXES` table in pages/chat/RecoveryCard.tsx, an ALL-CAPS
@@ -646,7 +646,7 @@ export default [
               // `[Continue — requested by the user]`. These are matched with
               // `startsWith` against gateway-authored transcript rows and must stay
               // BYTE-IDENTICAL to the Python constants in
-              // `src/kiro_crew/dashboard/state.py`; the matched prefix is then SLICED
+              // `src/junction/dashboard/state.py`; the matched prefix is then SLICED
               // OFF, so no character of it ever reaches the screen — the card's visible
               // copy comes from `i18nT()`. Translating one would silently stop every
               // recovery card from rendering in that locale, which is the failure this
@@ -841,7 +841,7 @@ export default [
               '^(css|cx|clsx|twMerge|cva|cn)$',
               // Storage, telemetry and routing take machine keys.
               '(local|session)Storage\\.\\w+', 'navigate', 'track', 'emit',
-              // KiroCrew's own telemetry shim (`src/rum.ts`). Its first argument is
+              // Junction's own telemetry shim (`src/rum.ts`). Its first argument is
               // a machine event name (`notifications_open`) and its second a tag
               // bag (`{ source: 'topbar' }`) — never rendered, so never copy. Sits
               // beside `track`/`emit` above, which are the same shape.
@@ -1161,7 +1161,7 @@ export default [
   // Aperture-registered literals for the session-pulse survey (a radio
   // question's response values, and the question text itself). Both are
   // compared/sent by value against Aperture's registered form template
-  // (category=KiroCrew, name=SessionFeedback, version=1.0.1) — ingestion  // brand-ok: registered category id
+  // (category=Junction, name=SessionFeedback, version=1.0.1) — ingestion  // brand-ok: registered category id
   // 400s on any text/type mismatch, so translating either would break the
   // submission rather than localize it. See the module's own header.
   {

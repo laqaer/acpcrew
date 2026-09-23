@@ -1,6 +1,6 @@
 """Regression test for the dashboard WS status-count offload fix.
 
-``src/kiro_crew/dashboard/ws.py`` used to call ``state.crons.list_jobs()`` and
+``src/junction/dashboard/ws.py`` used to call ``state.crons.list_jobs()`` and
 ``state.lessons.load_all()`` inline on the event loop inside the periodic WS
 status pusher. Both do blocking file I/O, so on a slow/large home dir they
 stalled the loop — and with it every other WebSocket/coroutine on the gateway.
@@ -25,7 +25,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.dashboard.ws import _load_status_counts
+from junction.dashboard.ws import _load_status_counts
 
 
 @pytest.mark.asyncio

@@ -11,7 +11,7 @@ was covered:
   exists: on macOS, whose BSD ``readlink`` has no ``-f`` before Ventura, the
   command failed and both sides fell back to the unresolved path, hiding it.
 * ``_resolve_checkout`` matched only the worktree DIRECTORY basename, including
-  in the branch-matching awk branch, so a short pod name that ``kirocrew pod up``
+  in the branch-matching awk branch, so a short pod name that ``junction pod up``
   accepts (it resolves ``feat/<name>``) was unresolvable whenever the directory
   basename differed from the branch leaf.
 
@@ -31,7 +31,7 @@ import pytest
 
 SCRIPT = (
     Path(__file__).resolve().parent.parent
-    / "src/kiro_crew/apps/builtins/dev_fleet/skills/pod-e2e/scripts/pod-e2e.sh"
+    / "src/junction/apps/builtins/dev_fleet/skills/pod-e2e/scripts/pod-e2e.sh"
 )
 
 
@@ -239,7 +239,7 @@ def test_resolver_matches_a_directory_basename(tmp_path):
 def test_resolver_prefers_feat_over_another_branch_with_the_same_leaf(tmp_path):
     """Regression: a leaf match would pick fix/foo and test the WRONG checkout.
 
-    `kirocrew pod up foo` resolves feat/foo, so the harness must too — otherwise
+    `junction pod up foo` resolves feat/foo, so the harness must too — otherwise
     the suite reports a verdict for a branch nobody booted.
     """
     got = _resolve("foo", str(tmp_path), porcelain=PORCELAIN_AMBIGUOUS, tmp=tmp_path)

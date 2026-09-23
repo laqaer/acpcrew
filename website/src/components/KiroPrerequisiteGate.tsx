@@ -105,7 +105,7 @@ function SetupShell({
               asideHeadline || i18nT('components.kiroPrerequisiteGate.your_crew_is_almost_ready'),
             panelBody:
               asideBody
-              || i18nT('components.kiroPrerequisiteGate.install_kiro_cli_sign_in_once_and_kiro_crew_will'),
+              || i18nT('components.kiroPrerequisiteGate.install_kiro_cli_sign_in_once_and_junction_will'),
             panelFootnote: i18nT(
               'components.kiroPrerequisiteGate.secure_setup_on_your_gateway_host',
             ),
@@ -189,7 +189,7 @@ function OwnerSetupRequired({
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">
           {authRequired
             ? i18nT('api.client.stale_owner_session_sign_in_again')
-            : i18nT('components.kiroPrerequisiteGate.ask_the_kiro_crew_owner_to_install_kiro_cli_and')}
+            : i18nT('components.kiroPrerequisiteGate.ask_the_junction_owner_to_install_kiro_cli_and')}
         </p>
         {/* "Check again" re-probes readiness, which cannot change for this
             viewer until they sign back in — a retry that cannot succeed is a
@@ -214,7 +214,7 @@ function OwnerSetupRequired({
 // this only ever suppresses first-run setup chrome for someone the gateway
 // already confirmed had completed setup, and it never grants session
 // readiness (that stays server-driven via `ready`).
-const SETUP_COMPLETE_KEY = 'kirocrew:kiro-setup-complete'
+const SETUP_COMPLETE_KEY = 'junction:kiro-setup-complete'
 
 function rememberedSetupComplete(): boolean {
   return safeGetItem(SETUP_COMPLETE_KEY) === '1'
@@ -335,7 +335,7 @@ function CopyCommand({ children }: { children: ReactNode }) {
  * pointer, which is still strictly more than the bare errno it replaced.
  *
  * Exactly ONE command per mechanism, deliberately. The AppArmor case previously
- * also offered `aa-exec -p kirocrew-userns` for a hand-started gateway, which is
+ * also offered `aa-exec -p junction-userns` for a hand-started gateway, which is
  * worse than no advice: entering a named profile is not permitted for an
  * unconfined user, and `aa-exec` execs the command anyway instead of failing, so
  * the user gets a remedy that looks applied and changes nothing. The profile is
@@ -413,7 +413,7 @@ function SandboxRemedy({ remedy, transient }: { remedy: string; transient: boole
         </>
       ) : null}
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        {i18nT('components.kiroPrerequisiteGate.run_kirocrew_doctor_on_the_gateway_host_for_a_ful')}
+        {i18nT('components.kiroPrerequisiteGate.run_junction_doctor_on_the_gateway_host_for_a_ful')}
       </p>
       <CopyCommand>
         <code>junction doctor</code>
@@ -459,7 +459,7 @@ function SandboxUnavailable({
     failureKind === 'transient'
       ? i18nT('components.kiroPrerequisiteGate.the_check_hit_a_temporary_limit_and_was_not_cach')
       : failureKind === 'foreign_sandbox'
-        ? i18nT('components.kiroPrerequisiteGate.another_sandbox_already_confines_kiro_crew_so_it')
+        ? i18nT('components.kiroPrerequisiteGate.another_sandbox_already_confines_junction_so_it')
         : remedy === 'apparmor_userns'
           ? i18nT('components.kiroPrerequisiteGate.this_host_allows_user_namespaces_but_the_kernel_d')
           : i18nT('components.kiroPrerequisiteGate.this_host_provides_no_os_level_sandbox_so_kiro_c')
@@ -471,7 +471,7 @@ function SandboxUnavailable({
   return (
     <SetupShell
       asideHeadline={i18nT('components.kiroPrerequisiteGate.sandbox_unavailable')}
-      asideBody={i18nT('components.kiroPrerequisiteGate.kiro_crew_isolates_the_agent_in_an_os_level_sand')}
+      asideBody={i18nT('components.kiroPrerequisiteGate.junction_isolates_the_agent_in_an_os_level_sand')}
       footer={
         <Btn type="button" disabled={retrying} onClick={onRetry}>
           <RefreshCw className={`lucide-inline ${retrying ? 'animate-spin' : ''}`} />
@@ -527,7 +527,7 @@ function AgentSpecsMissing({
   return (
     <SetupShell
       asideHeadline={i18nT('components.kiroPrerequisiteGate.agent_specs_missing')}
-      asideBody={i18nT('components.kiroPrerequisiteGate.kiro_crew_installs_the_agent_specs_kiro_cli_load')}
+      asideBody={i18nT('components.kiroPrerequisiteGate.junction_installs_the_agent_specs_kiro_cli_load')}
     >
       <>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-danger/10 text-danger">
@@ -537,10 +537,10 @@ function AgentSpecsMissing({
           {i18nT('components.kiroPrerequisiteGate.agent_specs_missing')}
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-strong">
-          {i18nT('components.kiroPrerequisiteGate.kiro_crew_s_agent_specs_are_not_installed')}
+          {i18nT('components.kiroPrerequisiteGate.junction_s_agent_specs_are_not_installed')}
         </h1>
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">
-          {i18nT('components.kiroPrerequisiteGate.kiro_crew_writes_its_own_agent_specs_where_kiro')}
+          {i18nT('components.kiroPrerequisiteGate.junction_writes_its_own_agent_specs_where_kiro')}
         </p>
         <div className="mt-5 w-full max-w-lg text-left">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
@@ -598,7 +598,7 @@ function AgentSpecsRejected({
   return (
     <SetupShell
       asideHeadline={i18nT('components.kiroPrerequisiteGate.agent_specs_rejected')}
-      asideBody={i18nT('components.kiroPrerequisiteGate.kiro_crew_installs_the_agent_specs_kiro_cli_load')}
+      asideBody={i18nT('components.kiroPrerequisiteGate.junction_installs_the_agent_specs_kiro_cli_load')}
     >
       <>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-danger/10 text-danger">
@@ -608,7 +608,7 @@ function AgentSpecsRejected({
           {i18nT('components.kiroPrerequisiteGate.agent_specs_rejected')}
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-text-strong">
-          {i18nT('components.kiroPrerequisiteGate.kiro_cli_will_not_load_kiro_crew_s_agent_specs')}
+          {i18nT('components.kiroPrerequisiteGate.kiro_cli_will_not_load_junction_s_agent_specs')}
         </h1>
         <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">
           {i18nT('components.kiroPrerequisiteGate.the_files_are_on_disk_but_kiro_cli_refuses_them')}
@@ -653,7 +653,7 @@ function AgentSpecsRejected({
             <code> outside the catalog: a translator must not be able to alter a
             string the user pastes into a shell, and prose cannot be copied. */}
         <p className="mt-4 max-w-lg text-[13px] leading-relaxed text-muted">
-          {i18nT('components.kiroPrerequisiteGate.repair_rewrites_the_specs_kiro_crew_owns')}
+          {i18nT('components.kiroPrerequisiteGate.repair_rewrites_the_specs_junction_owns')}
         </p>
         <ul className="mt-3 w-full max-w-lg list-none space-y-2 text-left">
           <li className="text-sm leading-relaxed text-muted">
@@ -810,7 +810,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
     )
   }
   // Present but refused. Kiro CLI drops a spec it rejects from its agent table,
-  // so `--agent kirocrew` resolves to the default agent with none of Kiro Crew's
+  // so `--agent junction` resolves to the default agent with none of Kiro Crew's
   // MCP servers -- the same total failure as an absent spec, and the one the
   // stat-only check above cannot see. Ordered AFTER missing for the same reason
   // that check is scoped to present files: one fault should raise one card, and
@@ -869,7 +869,7 @@ export default function KiroPrerequisiteGate({ children }: { children: ReactNode
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-text-strong">{i18nT('components.kiroPrerequisiteGate.set_up_kiro')}</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
-              {i18nT('components.kiroPrerequisiteGate.kiro_crew_uses_kiro_cli_as_its_agent_engine_comp')}{' '}
+              {i18nT('components.kiroPrerequisiteGate.junction_uses_kiro_cli_as_its_agent_engine_comp')}{' '}
               <strong className="font-semibold text-text">{platform} {i18nT('components.kiroPrerequisiteGate.gateway_host')}</strong>{i18nT('components.kiroPrerequisiteGate.then_the_dashboard_will_open_automatically')}
             </p>
           </div>

@@ -181,18 +181,18 @@ describe('usePanelTabs', () => {
 
   it('openFolder keys on folder: so a directory never collides with a file tab', () => {
     const { result } = renderHook(() => usePanelTabs())
-    act(() => result.current.openFolder('/Users/me/workspace/KiroCrew', 'chat-a'))
+    act(() => result.current.openFolder('/Users/me/workspace/Junction', 'chat-a'))
     expect(result.current.activeTab).toMatchObject({
-      id: 'folder:/Users/me/workspace/KiroCrew', kind: 'folder', title: 'KiroCrew', slot: 'chat-a',
+      id: 'folder:/Users/me/workspace/Junction', kind: 'folder', title: 'Junction', slot: 'chat-a',
     })
     // Re-opening the same directory focuses the existing tab, not a duplicate.
-    act(() => result.current.openFolder('/Users/me/workspace/KiroCrew'))
+    act(() => result.current.openFolder('/Users/me/workspace/Junction'))
     expect(result.current.tabs).toHaveLength(1)
     // A same-named FILE is a separate tab — the id prefixes keep them apart.
-    act(() => result.current.openFile('/Users/me/workspace/KiroCrew', 'x'))
+    act(() => result.current.openFile('/Users/me/workspace/Junction', 'x'))
     expect(result.current.tabs.map(t => t.id)).toEqual([
-      'folder:/Users/me/workspace/KiroCrew',
-      'file:/Users/me/workspace/KiroCrew',
+      'folder:/Users/me/workspace/Junction',
+      'file:/Users/me/workspace/Junction',
     ])
   })
 

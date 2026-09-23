@@ -14,7 +14,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "kiro_crew"
+SRC = Path(__file__).resolve().parents[1] / "src" / "junction"
 
 # Files that historically had config_dir() inside async functions (issue #1057).
 _ASYNC_CHECKED_FILES = [

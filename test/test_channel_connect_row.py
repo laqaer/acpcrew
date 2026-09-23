@@ -15,8 +15,8 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_state
 
-from kiro_crew.messaging.link import ChannelLink, legacy_dashboard_mirror_key
-from kiro_crew.session_map import SessionMap
+from junction.messaging.link import ChannelLink, legacy_dashboard_mirror_key
+from junction.session_map import SessionMap
 
 
 def _real_map(tmp_path, monkeypatch) -> SessionMap:
@@ -25,7 +25,7 @@ def _real_map(tmp_path, monkeypatch) -> SessionMap:
     `SessionMap` resolves its own path from `config_dir()`, so the redirect has to
     happen before construction rather than being passed in.
     """
-    monkeypatch.setattr("kiro_crew.session_map.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.session_map.config_dir", lambda: tmp_path)
     return SessionMap()
 
 
@@ -50,8 +50,8 @@ def _with_real_storage(state, sm: SessionMap):
 
 
 def _make_app(state):
-    from kiro_crew.dashboard.chat_mirror import api_chat_slot_mirror_pause
-    from kiro_crew.dashboard.chat_slack import api_chat_slot_slack_pause
+    from junction.dashboard.chat_mirror import api_chat_slot_mirror_pause
+    from junction.dashboard.chat_slack import api_chat_slot_slack_pause
 
     app = web.Application()
     app["state"] = state
@@ -215,14 +215,14 @@ class TestTheSendPathHonoursIt:
         a disconnected channel noisy at worst; failing closed makes a live one
         silently dead.
         """
-        from kiro_crew.dashboard.chat_utils import mirror_is_paused, slack_mirror_is_paused
+        from junction.dashboard.chat_utils import mirror_is_paused, slack_mirror_is_paused
 
         state = MagicMock()  # is_slack_paused() returns a truthy MagicMock
         assert slack_mirror_is_paused(state, "dashboard:s1") is False
         assert mirror_is_paused(state, "dashboard:s1") is False
 
     def test_predicates_report_a_real_disconnect(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_utils import mirror_is_paused, slack_mirror_is_paused
+        from junction.dashboard.chat_utils import mirror_is_paused, slack_mirror_is_paused
 
         sm = _real_map(tmp_path, monkeypatch)
         sm.set_slack_link("dashboard:s1", "ts-1", "C-1")
@@ -244,7 +244,7 @@ class TestTheSendPathHonoursIt:
         """
         import inspect
 
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         src = inspect.getsource(chat_runner)
         gate = src.index("and not slack_mirror_is_paused(state, session_key)")
@@ -256,7 +256,7 @@ class TestTheSendPathHonoursIt:
         conversation reads as a question that was never answered."""
         import inspect
 
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         for fn in (
             chat_runner._deliver_cross_surface_reply,
@@ -269,7 +269,7 @@ class TestTheSendPathHonoursIt:
 
 class TestTheWireReportsIt:
     def test_every_row_carries_paused(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         sm = _real_map(tmp_path, monkeypatch)
         _with_real_storage(state, sm)
@@ -290,7 +290,7 @@ class TestTheWireReportsIt:
 class TestEndpoints:
     @pytest.mark.asyncio
     async def test_slack_pause_refuses_when_nothing_is_connected(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         _with_real_storage(state, _real_map(tmp_path, monkeypatch))
         state.get_or_create_slot("s1")
@@ -301,7 +301,7 @@ class TestEndpoints:
 
     @pytest.mark.asyncio
     async def test_slack_pause_sets_and_clears_delivery(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         sm = _with_real_storage(state, _real_map(tmp_path, monkeypatch))
         slot = state.get_or_create_slot("s1")
@@ -334,7 +334,7 @@ class TestEndpoints:
         channel. `null` is the interesting case: truthiness would read it as
         connect, which is the unsafe direction.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         sm = _with_real_storage(state, _real_map(tmp_path, monkeypatch))
         slot = state.get_or_create_slot("s1")
@@ -366,9 +366,9 @@ class TestEndpoints:
         user connected to a channel they are trying to leave — a gate that makes
         the situation worse is not fail-closed, it is broken.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_slack.vet_and_audit",
+            "junction.dashboard.chat_slack.vet_and_audit",
             MagicMock(side_effect=RuntimeError("policy blew up")),
         )
         state = _make_state(tmp_path)
@@ -387,7 +387,7 @@ class TestEndpoints:
 
     @pytest.mark.asyncio
     async def test_mirror_pause_refuses_when_nothing_is_connected(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         _with_real_storage(state, _real_map(tmp_path, monkeypatch))
         state.get_or_create_slot("s1")
@@ -398,7 +398,7 @@ class TestEndpoints:
 
     @pytest.mark.asyncio
     async def test_mirror_pause_sets_delivery(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         sm = _with_real_storage(state, _real_map(tmp_path, monkeypatch))
         slot = state.get_or_create_slot("s1")
@@ -422,7 +422,7 @@ class TestEndpoints:
         The second half is what stops this passing vacuously: deleting the note
         block outright would satisfy the first assertion and fail the second.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         sm = _with_real_storage(state, _real_map(tmp_path, monkeypatch))
         slot = state.get_or_create_slot("s1")
@@ -433,7 +433,7 @@ class TestEndpoints:
         # Returning None keeps the note itself out of scope: reaching the resolver
         # at all is the defect, so the call is the assertion.
         resolve = MagicMock(return_value=None)
-        monkeypatch.setattr("kiro_crew.dashboard.chat_mirror._resolve_mirror_target", resolve)
+        monkeypatch.setattr("junction.dashboard.chat_mirror._resolve_mirror_target", resolve)
 
         async with TestClient(TestServer(_make_app(state))) as client:
             resp = await client.post(

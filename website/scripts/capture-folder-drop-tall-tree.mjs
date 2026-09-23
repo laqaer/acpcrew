@@ -30,7 +30,7 @@ import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
 
-const OUT = process.argv[2] || (process.env.KIROCREW_SCRATCH || '/tmp') + '/repro-drop-parent'
+const OUT = process.argv[2] || (process.env.JUNCTION_SCRATCH || '/tmp') + '/repro-drop-parent'
 mkdirSync(OUT, { recursive: true })
 
 const REAL = process.env.REPRO_REAL === '1'
@@ -48,7 +48,7 @@ const realFolders = [
   { id: 'mesh', name: 'MeshClaw', order: 2, collapsed: true },
   { id: 'meshsub1', name: 'cr review', order: 3, collapsed: true, parent_id: 'mesh' },
   { id: 'personal', name: 'Personal', order: 9, collapsed: true },
-  { id: 'autofix', name: 'kirocrew-github-autofix', order: 12, collapsed: true },
+  { id: 'autofix', name: 'junction-github-autofix', order: 12, collapsed: true },
 ]
 
 const folders = REAL ? realFolders : [
@@ -59,7 +59,7 @@ const folders = REAL ? realFolders : [
 ]
 
 const slot = (key, title, folder_id, last_ts) => ({
-  key, title, messages: 4, running: false, agent: 'kirocrew',
+  key, title, messages: 4, running: false, agent: 'junction',
   created: '2026-07-20T01:00:00Z', last_ts, folder_id,
 })
 

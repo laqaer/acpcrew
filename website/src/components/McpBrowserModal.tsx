@@ -75,7 +75,7 @@ export default function McpBrowserModal({ open, onClose }: Props) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
   }, [])
 
-  // The installed flag is derived server-side from KiroCrew's configured
+  // The installed flag is derived server-side from Junction's configured
   // servers on every search. Reset the session-local optimistic state and
   // refetch on each open so uninstalls made while the modal was closed are
   // reflected in both the results and the installed-servers table.

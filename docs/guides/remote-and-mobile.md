@@ -73,7 +73,7 @@ sign you into a vendor account.
 
 The credentials Junction itself reads from `~/.kiro/crew/.env` are chat-platform
 and owner-identity credentials (`SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`,
-`KIROCREW_OWNER_ID`, and the equivalents for Discord / Telegram / Teams / WeCom
+`JUNCTION_OWNER_ID`, and the equivalents for Discord / Telegram / Teams / WeCom
 / Webex). Model credentials stay with the harness or the optional model-plane
 sidecar. Never paste provider keys into chat.
 
@@ -88,7 +88,7 @@ cd junction
 
 # Build the frontend bundle and stage it into the package
 cd website && npm install && npm run build && cd ..
-cp -R website/dist src/kiro_crew/static/dist
+cp -R website/dist src/junction/static/dist
 
 # Install the backend (ships the bundled dashboard)
 pip install .
@@ -119,7 +119,7 @@ tmux survives an SSH disconnect but does **not** auto-restart on crash or
 auto-start on reboot. Move to [a real service](#3-keep-it-alive-as-a-service)
 once the smoke test passes, and **kill the tmux session first**: only one
 gateway can own the dashboard port, which defaults to `5476`
-(`config/loader.py` `_DEFAULT_PORT`, overridable with the `KIROCREW_PORT`
+(`config/loader.py` `_DEFAULT_PORT`, overridable with the `JUNCTION_PORT`
 environment variable). Two gateways on one port means the second one fails to
 bind.
 
@@ -203,7 +203,7 @@ The gateway binds `127.0.0.1` and stays there. `is_local_only()` in
 `dashboard/urls.py` always returns `True` in this build, so **setting
 `dashboard.url` does not widen the bind**: it only changes the host used in
 generated links and adds that origin to the CSRF/WebSocket allowlist. The one
-bind override is `KIROCREW_BIND` (an IP address, validated by
+bind override is `JUNCTION_BIND` (an IP address, validated by
 `bind_address_for()`), which exists for containers where published ports map to
 a bridge interface; the official Docker image sets it. Both server paths mount
 the token-auth middleware unconditionally, so a wider bind never exposes an
@@ -228,7 +228,7 @@ ssh -fN -L 7779:localhost:7779 user@your-host.example.com   # background
 
 Pass `-C` to enable SSH transport compression. A hand-rolled tunnel gets no
 compression by default, while Junction's own tunnel manager turns it on for
-exactly this traffic (`src/kiro_crew/instances/ssh_tunnel_manager.py`): the
+exactly this traffic (`src/junction/instances/ssh_tunnel_manager.py`): the
 forwarded stream carries the dashboard SPA bundle plus all API/WS payloads,
 which are highly compressible, and the gateway does not gzip at the HTTP layer.
 
@@ -245,7 +245,7 @@ file is at `%USERPROFILE%\.ssh\config`).
 If your browser reaches the dashboard on a *different* local port than the
 remote one (`ssh -L 8777:localhost:5476`), the browser sends Origin
 `http://localhost:8777`, which is not in the default allowlist. Opt that port in
-with `KIROCREW_ALLOWED_LOOPBACK_PORTS` on the gateway host; the CSRF check
+with `JUNCTION_ALLOWED_LOOPBACK_PORTS` on the gateway host; the CSRF check
 deliberately does not blanket-trust every loopback port, because a malicious
 local page on an arbitrary port would otherwise pass it.
 
@@ -263,13 +263,13 @@ With [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/
 
 ```bash
 cloudflared tunnel login
-cloudflared tunnel create kirocrew
-cloudflared tunnel route dns kirocrew kirocrew.example.com
-cloudflared tunnel --url http://localhost:5476 run kirocrew
+cloudflared tunnel create junction
+cloudflared tunnel route dns junction junction.example.com
+cloudflared tunnel --url http://localhost:5476 run junction
 ```
 
 With [ngrok](https://ngrok.com/docs) the equivalent is
-`ngrok http --domain=kirocrew.example.com 5476`.
+`ngrok http --domain=junction.example.com 5476`.
 
 **If you use Tailscale, prefer `tailscale serve` over Funnel.** The two are not
 the same and the difference is the whole security story:
@@ -300,10 +300,10 @@ the same and the difference is the whole security story:
   ```bash
   junction config set dashboard.tailscale.enabled true   # once per machine
   junction restart
-  kirocrew tailnet up
+  junction tailnet up
   junction token                                         # the link to open on the phone
   ```
-  `kirocrew tailnet up` runs `tailscale serve` for you — HTTPS on 443 in front of
+  `junction tailnet up` runs `tailscale serve` for you — HTTPS on 443 in front of
   the dashboard's loopback port — and prints the URL to open on your phone. That is
   the half that used to be an undocumented command you had to know and type.
 
@@ -330,7 +330,7 @@ the same and the difference is the whole security story:
   `config set` is cheaper than carrying that risk on every run.
 
   `tailnet up` also needs to know which port to publish, and it will not guess: it
-  takes `--port`, `KIROCREW_PORT`, or the run marker of a gateway that is actually
+  takes `--port`, `JUNCTION_PORT`, or the run marker of a gateway that is actually
   listening. With none of those it refuses rather than publishing whatever happens to
   hold the configured port, because `tailscale serve` will expose an unrelated local
   service to every device on your tailnet just as readily as the dashboard.
@@ -342,10 +342,10 @@ the same and the difference is the whole security story:
   refused, the card and command print what Tailscale itself said rather than a
   generic failure.
 
-  `kirocrew tailnet status` shows the three things that are independently
+  `junction tailnet status` shows the three things that are independently
   required — whether the setting is on, whether a MagicDNS name resolves right
   now, and whether serve is actually pointing at this dashboard. Any one of them
-  being wrong looks identical from your phone. `kirocrew tailnet down` stops
+  being wrong looks identical from your phone. `junction tailnet down` stops
   publishing and leaves the setting alone, since the trusted origin is unreachable
   without serve anyway.
 
@@ -420,7 +420,7 @@ For the tunnel providers above (cloudflared / ngrok / Funnel) set the URL in
 ```json
 {
   "dashboard": {
-    "url": "https://kirocrew.example.com"
+    "url": "https://junction.example.com"
   }
 }
 ```
@@ -460,7 +460,7 @@ service installer such as `cloudflared service install`).
 > tunnelled browser that keeps rotating stays authenticated for as long as it
 > keeps being used.
 >
-> **`kirocrew logout` ends those sessions.** It bumps a persisted revocation
+> **`junction logout` ends those sessions.** It bumps a persisted revocation
 > generation that both access and refresh tokens embed, so established access
 > cookies and refresh chains alike are rejected on their next request. The
 > dashboard's own sign-out (`POST /api/auth/logout`) is the narrower control:
@@ -477,7 +477,7 @@ service installer such as `cloudflared service install`).
 
 ### Getting a link on your phone
 
-1. In your Junction DM, send `/kirocrew dashboard` (or `/kirocrew dashboard 6h`).
+1. In your Junction DM, send `/junction dashboard` (or `/junction dashboard 6h`).
 2. The bot DMs you `https://<tunnel-url>/?token=...`.
 3. Tap it. The link exchanges the token for an access cookie **and** a 30-day
    refresh cookie, so this is not a daily ritual — see
@@ -503,7 +503,7 @@ Three clocks. The first two are signed into the access token payload
 | Access session TTL (`session_exp`) | 1 hour by default, 20 hours maximum (`MAX_SESSION_TTL_SECS = 20 * 3600`) | How long the access cookie the link mints stays valid |
 | Refresh TTL | 30 days (`MAX_REFRESH_TTL_SECS = 30 * 86400`) | How long the dashboard can silently mint a new access cookie without a new link |
 
-**You re-run `/kirocrew dashboard` or `junction token` roughly once per 30 _idle_
+**You re-run `/junction dashboard` or `junction token` roughly once per 30 _idle_
 days — not every 20 hours.** Opening the link sets two cookies, not one: the
 access cookie plus an `mc_refresh_<port>` refresh cookie (HttpOnly,
 path-restricted to `/api/auth`). The dashboard schedules a
@@ -523,8 +523,8 @@ another link.
 
 The access-session numbers still govern the initial mint. The chat-command
 default is 1 hour (`ttl = 3600` in `slack/events.py` and `slack/handler.py`);
-pass a duration to raise it (`/kirocrew dashboard 6h`,
-`/kirocrew dashboard 20h`). `parse_duration` accepts `<N>h` or `<N>m` and clamps
+pass a duration to raise it (`/junction dashboard 6h`,
+`/junction dashboard 20h`). `parse_duration` accepts `<N>h` or `<N>m` and clamps
 to the 20-hour ceiling, so asking for more silently gets you 20 hours rather than
 an error. `junction token` defaults straight to `20h`. The 5-minute click window
 is not the session length: it only means a link left sitting in a DM overnight is
@@ -536,7 +536,7 @@ dead and you need a fresh one.
 - **Signing out in the dashboard** (`POST /api/auth/logout`) — revokes that
   browser's chain and denylists its access cookie, leaving other browsers'
   sessions alive.
-- **`kirocrew logout`** — ends **all** sessions globally, refresh chains
+- **`junction logout`** — ends **all** sessions globally, refresh chains
   included: it bumps a persisted revocation generation that every access and
   refresh token embeds, so tokens minted before the logout are rejected.
 - **Reuse detection** — a consumed refresh token replayed outside a 60-second
@@ -620,13 +620,13 @@ the browser holds, on the same clocks as [Session duration](#session-duration).
 
 A terminal-held tunnel dies with the terminal. A LaunchAgent survives reboots
 and reconnects after sleep. A ready-made plist is at
-[`assets/com.kirocrew.tunnel.plist`](assets/com.kirocrew.tunnel.plist):
+[`assets/com.junction.tunnel.plist`](assets/com.junction.tunnel.plist):
 
 ```bash
-cp docs/guides/assets/com.kirocrew.tunnel.plist ~/Library/LaunchAgents/
+cp docs/guides/assets/com.junction.tunnel.plist ~/Library/LaunchAgents/
 sed -i '' 's|ALIAS@DEV_DESKTOP_HOSTNAME|user@your-host.example.com|g' \
-  ~/Library/LaunchAgents/com.kirocrew.tunnel.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.kirocrew.tunnel.plist
+  ~/Library/LaunchAgents/com.junction.tunnel.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.junction.tunnel.plist
 ```
 
 Verify with the token-free liveness probe (`/api/status` needs a token,
@@ -639,10 +639,10 @@ curl -s http://localhost:5476/api/health     # {"ok": true, ...}
 Manage it:
 
 ```bash
-tail -f /tmp/kirocrew-tunnel.log
-launchctl kickstart -k gui/$(id -u)/com.kirocrew.tunnel                            # restart
-launchctl bootout gui/$(id -u)/com.kirocrew.tunnel                                 # stop
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.kirocrew.tunnel.plist  # start
+tail -f /tmp/junction-tunnel.log
+launchctl kickstart -k gui/$(id -u)/com.junction.tunnel                            # restart
+launchctl bootout gui/$(id -u)/com.junction.tunnel                                 # stop
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.junction.tunnel.plist  # start
 ```
 
 The plist sets `ServerAliveInterval=30`, `ServerAliveCountMax=3`,
@@ -658,15 +658,15 @@ Opens the tunnel if needed, mints a token on the remote, and opens the browser.
 #!/bin/zsh -e
 # Required parameters:
 # @raycast.schemaVersion 1
-# @raycast.title Open KiroCrew
+# @raycast.title Open Junction
 # @raycast.mode compact
 # Optional parameters:
-# @raycast.packageName KiroCrew Utils
+# @raycast.packageName Junction Utils
 # Documentation:
 # @raycast.description Get a token and open the dashboard
 REMOTE_HOST="user@your-host.example.com"
 REMOTE_CMD='source ~/.zshrc; junction token'
-DEBUG_LOG="/tmp/kirocrew_debug.log"
+DEBUG_LOG="/tmp/junction_debug.log"
 
 if lsof -i :5476 -sTCP:LISTEN > /dev/null 2>&1; then
   echo "Tunnel already open"
@@ -698,17 +698,17 @@ junction service install
 ```
 
 On Linux this writes a **system-level** systemd unit at
-`/etc/systemd/system/kirocrew.service` and enables it, so the gateway survives
+`/etc/systemd/system/junction.service` and enables it, so the gateway survives
 SSH disconnects, restarts on failure, and starts on boot
 (`WantedBy=multi-user.target`). On macOS it writes a launchd LaunchAgent at
-`~/Library/LaunchAgents/dev.kirocrew.gateway.plist` with `RunAtLoad`,
+`~/Library/LaunchAgents/dev.junction.gateway.plist` with `RunAtLoad`,
 `KeepAlive=true`, and a finite `ExitTimeOut`, so it starts at login, relaunches
 after exit, and force-kills only after the graceful stop deadline. An explicit
 `junction stop` unloads the agent so it stays down for the current login session.
 
 ```bash
 junction service status      # service state
-kirocrew logs -f             # tail live logs
+junction logs -f             # tail live logs
 junction stop                # stop
 junction restart             # restart (service-aware)
 junction service uninstall   # remove the unit / plist
@@ -716,7 +716,7 @@ junction service uninstall   # remove the unit / plist
 
 **Sudo scope on Linux:** the install shells out to `sudo install` (to place the
 unit as root-owned `0644`) and `sudo systemctl` (daemon-reload, enable,
-restart). No kirocrew, MCP, or LLM code path runs under sudo. Once started the
+restart). No junction, MCP, or LLM code path runs under sudo. Once started the
 gateway runs as `User=$USER Group=$(id -gn)`, not root. The unit also caps
 crash-looping with `StartLimitBurst=3` / `StartLimitIntervalSec=300` and pins
 `LimitNOFILE=65536`, because a stock 1024 FD limit fails the frontend
@@ -771,8 +771,8 @@ lingering, the user manager (and everything under it) is torn down when your
 last login session ends, which defeats the entire point of running 24/7.
 
 Verify with `systemctl --user status`, then install the user unit with the helper
-script [`assets/setup.sh`](assets/setup.sh). It resolves the `kirocrew` binary
-and the Node version, renders [`assets/kirocrew.service`](assets/kirocrew.service)
+script [`assets/setup.sh`](assets/setup.sh). It resolves the `junction` binary
+and the Node version, renders [`assets/junction.service`](assets/junction.service)
 into `~/.config/systemd/user/`, and enables it. It reads the template from its
 own directory, so run it from there, and it refuses to proceed if a gateway is
 already running (that port conflict again):
@@ -789,16 +789,16 @@ Or do it by hand:
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp docs/guides/assets/kirocrew.service ~/.config/systemd/user/
-sed -i "s|KIROCREW_BIN|$(command -v kirocrew)|g" ~/.config/systemd/user/kirocrew.service
-sed -i "s/%u/$(whoami)/g" ~/.config/systemd/user/kirocrew.service
-sed -i "s/NVM_NODE_VERSION/$(node --version)/g" ~/.config/systemd/user/kirocrew.service
+cp docs/guides/assets/junction.service ~/.config/systemd/user/
+sed -i "s|JUNCTION_BIN|$(command -v junction)|g" ~/.config/systemd/user/junction.service
+sed -i "s/%u/$(whoami)/g" ~/.config/systemd/user/junction.service
+sed -i "s/NVM_NODE_VERSION/$(node --version)/g" ~/.config/systemd/user/junction.service
 systemctl --user daemon-reload
-systemctl --user enable kirocrew
-systemctl --user start kirocrew
+systemctl --user enable junction
+systemctl --user start junction
 ```
 
-`systemctl --user status kirocrew` should report `active (running)`.
+`systemctl --user status junction` should report `active (running)`.
 
 > **`Failed to get D-Bus connection` while running `systemctl --user`?** Your
 > shell has no `XDG_RUNTIME_DIR`, which is how the client finds the per-user bus
@@ -810,10 +810,10 @@ Manage a user unit:
 
 | Action | Command |
 |---|---|
-| Status | `systemctl --user status kirocrew` |
-| Restart | `systemctl --user restart kirocrew` |
-| Logs | `journalctl --user -u kirocrew -f` |
-| Uninstall | `systemctl --user disable --now kirocrew` |
+| Status | `systemctl --user status junction` |
+| Restart | `systemctl --user restart junction` |
+| Logs | `journalctl --user -u junction -f` |
+| Uninstall | `systemctl --user disable --now junction` |
 
 ### Hand-rolled system unit
 
@@ -821,11 +821,11 @@ If you want to customize the unit rather than let `junction service install`
 generate it:
 
 ```bash
-KIROCREW_BIN=$(command -v kirocrew 2>/dev/null || echo "$HOME/.local/bin/kirocrew")
+JUNCTION_BIN=$(command -v junction 2>/dev/null || echo "$HOME/.local/bin/junction")
 
-sudo tee /etc/systemd/system/kirocrew.service << EOF
+sudo tee /etc/systemd/system/junction.service << EOF
 [Unit]
-Description=KiroCrew AI Agent Gateway
+Description=Junction AI Agent Gateway
 After=network-online.target
 Wants=network-online.target
 StartLimitBurst=3
@@ -834,23 +834,23 @@ StartLimitIntervalSec=300
 [Service]
 Type=simple
 User=$(whoami)
-ExecStart=$KIROCREW_BIN gateway
+ExecStart=$JUNCTION_BIN gateway
 Restart=on-failure
 RestartSec=10
 LimitNOFILE=65536
 WorkingDirectory=$HOME
 Environment=HOME=$HOME
-Environment=PATH=$(dirname $KIROCREW_BIN):$HOME/.local/bin:$HOME/.nvm/versions/node/$(node -v 2>/dev/null || echo v20.0.0)/bin:/usr/local/bin:/usr/bin
+Environment=PATH=$(dirname $JUNCTION_BIN):$HOME/.local/bin:$HOME/.nvm/versions/node/$(node -v 2>/dev/null || echo v20.0.0)/bin:/usr/local/bin:/usr/bin
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now kirocrew
+sudo systemctl enable --now junction
 ```
 
-Tail it with `sudo journalctl -u kirocrew -f`. Getting `PATH` right matters:
+Tail it with `sudo journalctl -u junction -f`. Getting `PATH` right matters:
 the unit does not inherit your interactive shell's environment, so `kiro-cli`,
 `node`, and `npx` must all be reachable from the `PATH` you set here or MCP
 servers and tool calls fail with ENOENT.
@@ -863,23 +863,23 @@ servers and tool calls fail with ENOENT.
 |---|---|
 | `junction: command not found` after install | Put pip's script dir on `PATH` (often `~/.local/bin`), then `source ~/.bashrc` or re-login |
 | Agent backend errors or timeouts | Dock an ACP runtime (`junction planes` lists them). A vendor agent CLI is optional; `junction doctor --quick` reports the compose snapshot |
-| Service will not start | `sudo journalctl -u kirocrew -n 50` (system unit) or `journalctl --user -u kirocrew -n 50` (user unit) |
-| Service restart-loops then gives up | `StartLimitBurst=3` within 5 minutes stops the loop on purpose. Read the logs, fix the cause, then `sudo systemctl reset-failed kirocrew` |
+| Service will not start | `sudo journalctl -u junction -n 50` (system unit) or `journalctl --user -u junction -n 50` (user unit) |
+| Service restart-loops then gives up | `StartLimitBurst=3` within 5 minutes stops the loop on purpose. Read the logs, fix the cause, then `sudo systemctl reset-failed junction` |
 | `systemctl --user` says `Failed to get D-Bus connection` | `export XDG_RUNTIME_DIR=/run/user/$(id -u)` |
 | Gateway will not bind the port | Something else already owns it, usually a tmux gateway. `tmux kill-session -t junction`, then `ss -ltnp \| grep 5476` |
 | SSH tunnel connection refused | Confirm the gateway is running and listening: `ss -ltnp \| grep 5476` on the remote host |
 | Dashboard loads over the tunnel but the live view flaps online/offline | The TLS-terminating proxy must forward `X-Forwarded-Proto: https`; without it the auth cookie is set without `Secure` and mobile browsers withhold it from the `wss://` upgrade. Refresh itself keeps working (the refresh cookie is `SameSite=Lax`, so it still rides ordinary HTTPS requests), but both cookies then lack `Secure` and could be sent over plain HTTP — fix the header rather than living with it |
 | Chat link still points at `localhost` | Set `dashboard.url` in `config.json` and restart the gateway |
 | Link opens to "token expired" | The presigned URL must be opened within 5 minutes. Request a fresh link |
-| Session drops sooner than you expect | You should be refreshed silently for 30 sliding days. If you are re-minting every ~20 hours instead, the refresh cookie is not reaching `/api/auth/refresh` — confirm the browser is sending an `mc_refresh_<port>` cookie whose port suffix matches the port the gateway resolved for the request, and check the browser console for `[refresh]` warnings. Raising the initial mint (`/kirocrew dashboard 20h`) only widens the access cookie; it does not repair a broken refresh |
+| Session drops sooner than you expect | You should be refreshed silently for 30 sliding days. If you are re-minting every ~20 hours instead, the refresh cookie is not reaching `/api/auth/refresh` — confirm the browser is sending an `mc_refresh_<port>` cookie whose port suffix matches the port the gateway resolved for the request, and check the browser console for `[refresh]` warnings. Raising the initial mint (`/junction dashboard 20h`) only widens the access cookie; it does not repair a broken refresh |
 | Phone cannot reach the tunnel URL | Verify the tunnel process is running and connected on the gateway host |
 | Settings will not save over the tunnel | By design. Config-write and secret-reveal endpoints require a direct-local request, and forwarding headers mark a tunnelled request as remote. Change these over an SSH session on the host |
-| "Embeddings not ready" in the dashboard | The ~610MB model downloads in the background over HTTPS on gateway start. `junction doctor` probes the resolved URL; set `KIROCREW_EMBED_MODEL_URL` for a mirror. Memory falls back to keyword search until it lands, and the agent keeps working |
+| "Embeddings not ready" in the dashboard | The ~610MB model downloads in the background over HTTPS on gateway start. `junction doctor` probes the resolved URL; set `JUNCTION_EMBED_MODEL_URL` for a mirror. Memory falls back to keyword search until it lands, and the agent keeps working |
 
 ## See also
 
 - [install.md](install.md): all build and install methods
-- [docker.md](docker.md): container deployment, including `KIROCREW_BIND`
+- [docker.md](docker.md): container deployment, including `JUNCTION_BIND`
 - [slack-setup.md](slack-setup.md): chat app creation and configuration
 - [../system-specs/features/dashboard-token-auth.md](../system-specs/features/dashboard-token-auth.md): the full access + refresh cookie design
 - [../architecture/security-deep-dive.md](../architecture/security-deep-dive.md): token auth, origin checks, the local-request gate

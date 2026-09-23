@@ -22,8 +22,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.subagent import SubagentInfo, SubagentManager
-from kiro_crew.subagent_scale import SubagentEventCoalescer
+from junction.subagent import SubagentInfo, SubagentManager
+from junction.subagent_scale import SubagentEventCoalescer
 
 # ``SubagentManager.spawn`` refuses -- registering no task -- while the host
 # looks short of memory, which is the runner's state, not this test's input.
@@ -147,19 +147,19 @@ def _mock_ctx() -> MagicMock:
 
 class TestBatchIdentity:
     def test_digest_chunk_size_env_guarded(self):
-        """A malformed KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE must never crash
+        """A malformed JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE must never crash
         gateway import — guarded parse falls back to the default and clamps
         to a positive range (a zero/negative chunk size would flush forever)."""
         import os
         from unittest.mock import patch as _patch
 
-        from kiro_crew.slack.gateway import _digest_chunk_size
+        from junction.slack.gateway import _digest_chunk_size
 
-        with _patch.dict(os.environ, {"KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE": "foo"}):
+        with _patch.dict(os.environ, {"JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE": "foo"}):
             assert _digest_chunk_size() == 10
-        with _patch.dict(os.environ, {"KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE": "-5"}):
+        with _patch.dict(os.environ, {"JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE": "-5"}):
             assert _digest_chunk_size() == 1  # clamped to positive
-        with _patch.dict(os.environ, {"KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE": "25"}):
+        with _patch.dict(os.environ, {"JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE": "25"}):
             assert _digest_chunk_size() == 25
 
     def test_batch_members_pending_scoped_to_batch(self):
@@ -337,7 +337,7 @@ class TestBatchIdentity:
         would never fire (GPT 5.6 round-5 HIGH)."""
         mgr = SubagentManager(sessions=_mock_sessions(), ctx_builder=_mock_ctx())
         mgr._spawn_stagger_secs = 0.0
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"), \
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"), \
                 patch.object(SubagentManager, "_run", new=AsyncMock()):
             mgr.spawn("t1", batch_id="wv", batch_total=3)
             mgr.spawn("t2", batch_id="wv", batch_total=3)
@@ -373,7 +373,7 @@ class TestBatchIdentity:
         mgr = SubagentManager(
             sessions=_mock_sessions(), ctx_builder=_mock_ctx(), on_done=_on_done
         )
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             rejected = mgr.spawn("   ", batch_id="wv9", batch_total=2)
             plain = mgr.spawn("   ")  # non-batch rejection: no announce
         await asyncio.sleep(0)  # let the scheduled announce run
@@ -408,7 +408,7 @@ class TestBatchIdentity:
         mgr._is_yolo = None
         mgr._on_spawn_approval = None  # no approval callback configured
         mgr._spawn_stagger_secs = 0.0
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             rejected = mgr.spawn("do work", batch_id="wvA", batch_total=2)
         await asyncio.sleep(0)
         assert rejected is not None and rejected.done
@@ -438,7 +438,7 @@ class TestBatchIdentity:
         m1.done = True
         mgr._agents = {"m1": m1}
         assert mgr.batch_members_pending("wvL") is True  # wedged pre-fix
-        with patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.sel"):
             mgr.record_lost_submission(
                 "wvL", 3, "connection refused", parent_session_key="dashboard:main"
             )
@@ -459,7 +459,7 @@ class TestBatchIdentity:
         window, with live members, or with queued members are left alone."""
         import time as _time
 
-        from kiro_crew.subagent import _WAVE_STUCK_SECS
+        from junction.subagent import _WAVE_STUCK_SECS
 
         mgr = SubagentManager(sessions=_mock_sessions(), ctx_builder=_mock_ctx())
         now = _time.time()
@@ -477,7 +477,7 @@ class TestBatchIdentity:
         mgr._batch_progress_ts = {
             "stuck": stale, "alive": stale, "fresh": now, "full": stale,
         }
-        with patch("kiro_crew.subagent.sel"), \
+        with patch("junction.subagent.sel"), \
                 patch.object(mgr, "record_lost_submission") as rec:
             mgr._sweep_stuck_waves(now)
         assert rec.call_count == 1
@@ -493,7 +493,7 @@ class TestBatchIdentity:
         import io
         import urllib.error
 
-        from kiro_crew.mcp_core import _http_error_body
+        from junction.mcp_core import _http_error_body
 
         def _err(payload: bytes):
             return urllib.error.HTTPError(
@@ -517,7 +517,7 @@ class TestBatchIdentity:
 
         mgr._on_event = _spy
         # Skip actual execution — spawn creates the task; cancel it right away.
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"), \
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"), \
                 patch.object(SubagentManager, "_run", new=AsyncMock()):
             i1 = mgr.spawn("t1", batch_id="wave1", batch_total=3)
             i2 = mgr.spawn("t2", batch_id="wave1", batch_total=3)
@@ -534,7 +534,7 @@ class TestBatchIdentity:
     async def test_standalone_spawn_has_no_batch(self):
         mgr = SubagentManager(sessions=_mock_sessions(), ctx_builder=_mock_ctx())
         mgr._spawn_stagger_secs = 0.0
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"), \
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"), \
                 patch.object(SubagentManager, "_run", new=AsyncMock()):
             info = mgr.spawn("solo task")
             await asyncio.sleep(0)
@@ -587,11 +587,11 @@ class TestStallDampening:
 
 
 def _make_orchestrator():
-    from kiro_crew.config import KiroCrewConfig
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.config import JunctionConfig
+    from junction.slack.gateway import GatewayOrchestrator
 
-    cfg = KiroCrewConfig()
-    with patch.object(cfg, "load_credentials", return_value={"KIROCREW_OWNER_ID": "U_OWNER"}):
+    cfg = JunctionConfig()
+    with patch.object(cfg, "load_credentials", return_value={"JUNCTION_OWNER_ID": "U_OWNER"}):
         return GatewayOrchestrator(cfg, no_dashboard=False, no_crons=True, no_open=True)
 
 
@@ -657,8 +657,8 @@ def _wire_hold_settlement(orch, slot, mgr):
 
 class TestWaveDigest:
     def _capture_on_done(self, orch):
-        with patch("kiro_crew.slack.handler.is_yolo_mode", return_value=False):
-            with patch("kiro_crew.slack.gateway.SubagentManager") as mock_sm:
+        with patch("junction.slack.handler.is_yolo_mode", return_value=False):
+            with patch("junction.slack.gateway.SubagentManager") as mock_sm:
                 mock_sm_inst = MagicMock()
                 mock_sm_inst.start_reaper = MagicMock()
                 mock_sm.return_value = mock_sm_inst
@@ -707,8 +707,8 @@ class TestWaveDigest:
             assert _directive_user_origin is False
             injected.append(text)
 
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered"):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered"):
             for i in range(total):
                 # running_agents_for: members still pending until the last one
                 mgr.batch_members_pending = MagicMock(
@@ -785,10 +785,10 @@ class TestWaveDigest:
                     time.sleep(0.01)
             return 60.0
 
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered"), \
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered"), \
                 patch(
-                    "kiro_crew.dashboard.turn_dispatch.chat_turn_timeout_secs",
+                    "junction.dashboard.turn_dispatch.chat_turn_timeout_secs",
                     _held_resolver,
                 ):
             for i in range(total):
@@ -819,7 +819,7 @@ class TestWaveDigest:
         orch.dashboard_state.get_slot = MagicMock(return_value=slot)
         mgr, on_done = self._capture_on_done(orch)
         total = 12
-        with patch("kiro_crew.slack.gateway._run_chat", new_callable=AsyncMock):
+        with patch("junction.slack.gateway._run_chat", new_callable=AsyncMock):
             for i in range(total):
                 mgr.batch_members_pending = MagicMock(
                     return_value=i != total - 1
@@ -877,8 +877,8 @@ class TestWaveDigest:
                 _on_consumed()
 
         marked: list[str] = []
-        with patch("kiro_crew.slack.gateway._run_chat", _consuming_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered",
+        with patch("junction.slack.gateway._run_chat", _consuming_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered",
                       side_effect=marked.append):
             for i, m in enumerate(members):
                 mgr.batch_members_pending = MagicMock(return_value=i != total - 1)
@@ -930,7 +930,7 @@ class TestWaveDigest:
         marked: list[str] = []
         info = SubagentInfo(id="last", task="t")
         info._digest_settle_ids = ["h1", "h2"]
-        with patch("kiro_crew.subagent.mark_delivered", side_effect=marked.append):
+        with patch("junction.subagent.mark_delivered", side_effect=marked.append):
             mgr._settle_digest_holds(info)
         assert marked == ["h1", "h2"]
         assert info._digest_settle_ids == []  # idempotent re-entry safe
@@ -942,7 +942,7 @@ class TestWaveDigest:
         # unchanged, only its owning function moved.
         import inspect
 
-        from kiro_crew import subagent as _mod
+        from junction import subagent as _mod
         src = inspect.getsource(_mod.SubagentManager._report_terminal)
         on_done_pos = src.index("await asyncio.wait_for(self._on_done(info)")
         settle_pos = src.index("self._settle_digest_holds(info)")
@@ -1005,8 +1005,8 @@ class TestWaveDigest:
                 _on_consumed()
 
         marked: list[str] = []
-        with patch("kiro_crew.slack.gateway._run_chat", _gated_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered",
+        with patch("junction.slack.gateway._run_chat", _gated_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered",
                       side_effect=marked.append):
             for i, m in enumerate(members[:10]):
                 mgr.batch_members_pending = MagicMock(return_value=True)
@@ -1108,8 +1108,8 @@ class TestWaveDigest:
         members = [self._member(i, total) for i in range(total)]
 
         marked: list[str] = []
-        with patch("kiro_crew.slack.gateway._run_chat", new_callable=AsyncMock), \
-                patch("kiro_crew.subagent_persistence.mark_delivered",
+        with patch("junction.slack.gateway._run_chat", new_callable=AsyncMock), \
+                patch("junction.subagent_persistence.mark_delivered",
                       side_effect=marked.append):
             for i, m in enumerate(members[:10]):
                 mgr.batch_members_pending = MagicMock(return_value=True)
@@ -1187,8 +1187,8 @@ class TestWaveDigest:
             _slot._last_turn_auth_required = True
 
         marked: list[str] = []
-        with patch("kiro_crew.slack.gateway._run_chat", _auth_required_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered",
+        with patch("junction.slack.gateway._run_chat", _auth_required_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered",
                       side_effect=marked.append):
             for i, m in enumerate(members[:10]):
                 mgr.batch_members_pending = MagicMock(return_value=True)
@@ -1247,8 +1247,8 @@ class TestWaveDigest:
             raise RuntimeError("injection turn died")
 
         marked: list[str] = []
-        with patch("kiro_crew.slack.gateway._run_chat", _failing_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered",
+        with patch("junction.slack.gateway._run_chat", _failing_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered",
                       side_effect=marked.append):
             for i, m in enumerate(members[:10]):
                 mgr.batch_members_pending = MagicMock(return_value=True)
@@ -1301,8 +1301,8 @@ class TestWaveDigest:
             assert _directive_user_origin is False
             injected.append(text)
 
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered"):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered"):
             for i in range(total):
                 mgr.batch_members_pending = MagicMock(return_value=i != total - 1)
                 # Mid-wave failure (held member) trips the ceiling; the LAST
@@ -1347,8 +1347,8 @@ class TestWaveDigest:
             assert _directive_user_origin is False
             injected.append(text)
 
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered"):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered"):
             for i in range(total):
                 mgr.batch_members_pending = MagicMock(
                     return_value=i != total - 1
@@ -1393,7 +1393,7 @@ class TestWaveDigest:
         )
         solo.done = True
         solo.result = "solo result"
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat):
             await on_done(solo)
             await _settle(lambda: len(injected) >= 1)
         assert len(injected) == 1
@@ -1448,7 +1448,7 @@ class TestDigestHoldDeadline:
         neither chunk trigger can fire. Once the oldest hold ages past the
         deadline the sweep forces the partial digest out instead of waiting for
         the straggler (up to 30 min for a hang)."""
-        from kiro_crew.subagent import DIGEST_HOLD_SECS
+        from junction.subagent import DIGEST_HOLD_SECS
 
         mgr = self._mgr(pending=True)
         now = time.time()
@@ -1471,7 +1471,7 @@ class TestDigestHoldDeadline:
         """When no member is outstanding the real wave-close digest (counts +
         release guidance) is already in flight; forcing a partial one here would
         race it and could double-deliver the same members."""
-        from kiro_crew.subagent import DIGEST_HOLD_SECS
+        from junction.subagent import DIGEST_HOLD_SECS
 
         mgr = self._mgr(pending=False)
         now = time.time()
@@ -1483,14 +1483,14 @@ class TestDigestHoldDeadline:
         forced.assert_not_called()
 
     def test_deadline_zero_disables_sweep(self):
-        """``KIROCREW_SUBAGENT_DIGEST_HOLD_SECS=0`` is the documented opt-out
+        """``JUNCTION_SUBAGENT_DIGEST_HOLD_SECS=0`` is the documented opt-out
         back to count-trigger-only behavior."""
         mgr = self._mgr()
         now = time.time()
         m = self._held_member(0)
         m._digest_held_at = now - 100_000.0
         mgr._agents["h0"] = m
-        with patch("kiro_crew.subagent.DIGEST_HOLD_SECS", 0.0), \
+        with patch("junction.subagent.DIGEST_HOLD_SECS", 0.0), \
                 patch.object(mgr, "force_digest_flush") as forced:
             mgr._sweep_digest_holds(now)
         forced.assert_not_called()
@@ -1498,7 +1498,7 @@ class TestDigestHoldDeadline:
     def test_unheld_members_never_trip_the_sweep(self):
         """``_digest_held_at`` is the sweep's ONLY input: a delivered member
         (hold cleared at flush) must not re-trigger a flush forever."""
-        from kiro_crew.subagent import DIGEST_HOLD_SECS
+        from junction.subagent import DIGEST_HOLD_SECS
 
         mgr = self._mgr()
         now = time.time()
@@ -1541,13 +1541,13 @@ class TestDigestHoldDeadline:
 
         marked: list[str] = []
         mgr._on_done = AsyncMock(side_effect=RuntimeError("routing blew up"))
-        with patch("kiro_crew.subagent.mark_delivered", side_effect=marked.append):
+        with patch("junction.subagent.mark_delivered", side_effect=marked.append):
             await mgr._announce_digest_flush(info)
         assert marked == []  # failure → nothing tombstoned
         assert info._digest_settle_ids == ["h0", "h1"]
 
         mgr._on_done = AsyncMock()
-        with patch("kiro_crew.subagent.mark_delivered", side_effect=marked.append):
+        with patch("junction.subagent.mark_delivered", side_effect=marked.append):
             await mgr._announce_digest_flush(info)
         assert marked == ["h0", "h1"]
 
@@ -1600,9 +1600,9 @@ class TestDigestHoldDeadline:
             finished.append(m)
             real._agents[m.id] = m
 
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered"), \
-                patch("kiro_crew.subagent.mark_delivered"):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered"), \
+                patch("junction.subagent.mark_delivered"):
             for m in finished:
                 await on_done(m)
                 await asyncio.sleep(0)
@@ -1614,7 +1614,7 @@ class TestDigestHoldDeadline:
             # getattr keeps the failure BEHAVIORAL on unfixed code (no injection)
             # instead of an AttributeError.
             hold = getattr(__import__(
-                "kiro_crew.subagent", fromlist=["DIGEST_HOLD_SECS"]
+                "junction.subagent", fromlist=["DIGEST_HOLD_SECS"]
             ), "DIGEST_HOLD_SECS", 120.0)
             sweep = getattr(real, "_sweep_digest_holds", lambda _now: None)
             sweep(time.time() + hold + 5)
@@ -1670,8 +1670,8 @@ class TestDigestHoldDeadline:
             m.result = f"result {i}"
             m.result_path = f"/tmp/s{i}/result.txt"
 
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat), \
-                patch("kiro_crew.subagent_persistence.mark_delivered"):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat), \
+                patch("junction.subagent_persistence.mark_delivered"):
             mgr.batch_members_pending = MagicMock(return_value=True)
             for m in members:
                 await on_done(m)
@@ -1748,7 +1748,7 @@ class TestDigestHoldDeadline:
         )
         flush.done = True
         flush._digest_flush_only = True
-        with patch("kiro_crew.slack.gateway._run_chat", side_effect=_fake_run_chat):
+        with patch("junction.slack.gateway._run_chat", side_effect=_fake_run_chat):
             await on_done(flush)
             await asyncio.sleep(0.05)
         assert injected == []
@@ -1773,7 +1773,7 @@ class TestRetryGating:
 
     @pytest.mark.asyncio
     async def test_retry_rejects_running_and_stopped(self):
-        from kiro_crew.dashboard.handlers.messaging import api_spawn_retry
+        from junction.dashboard.handlers.messaging import api_spawn_retry
 
         running = SubagentInfo(id="r1", task="t")
         resp = await api_spawn_retry(self._request(self._mgr_with(running), "r1"))
@@ -1787,7 +1787,7 @@ class TestRetryGating:
 
     @pytest.mark.asyncio
     async def test_retry_respawns_failed_with_original_task(self):
-        from kiro_crew.dashboard.handlers.messaging import api_spawn_retry
+        from junction.dashboard.handlers.messaging import api_spawn_retry
 
         failed = SubagentInfo(id="f1", task="redacted task", parent_session_key="dashboard:m")
         failed.done = True

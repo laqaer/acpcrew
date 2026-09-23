@@ -254,14 +254,14 @@ not coordinate, so reason about them separately:
 
 ### In-Process Embedder (`embeddings.py`)
 
-Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`kiro_crew/_vendor/llama_cpp`) — no external server, no HTTP hop, no runtime pip install. (The Ollama-era remote-URL path — and with it `_validate_url`/`_resolve_blocked_addr` SSRF hardening from commit `76640a75` — was removed together with the network client: there is no embedding URL to validate anymore.)
+Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`junction/_vendor/llama_cpp`) — no external server, no HTTP hop, no runtime pip install. (The Ollama-era remote-URL path — and with it `_validate_url`/`_resolve_blocked_addr` SSRF hardening from commit `76640a75` — was removed together with the network client: there is no embedding URL to validate anymore.)
 
 - `LlamaCppEmbedder.embed(text)` / `embed_batch(texts)` → returns 1024-dim vectors or `None` on any failure (graceful degradation)
 - **Non-blocking model load**: the GGUF load runs on a background daemon thread (`_kick_background_load()`, thread name `kc-embed-load`) — `embed()`/`embed_batch()` NEVER block on the load. When the model isn't in memory yet, the call kicks the background load and returns `None` immediately; memory degrades to keyword search until the load lands. The gateway/dashboard event loop is never stalled by embedding work. `wait_ready(timeout)` exists for sync contexts (tests, one-shot CLI flows) that legitimately want to block — never call it from an event-loop thread
 - The underlying `Llama` object is NOT thread-safe — inference on a loaded model is serialized behind a lock (tens of ms per short text)
 - `get_shared_embedder()` — process-wide singleton (~700MB RSS when loaded), shared by vector memory AND the knowledge library; `close()` unloads the model to free RSS
 - Per-platform native libs live in `_vendor/llama_cpp_libs/{linux_x86_64,linux_aarch64,macos_arm64,macos_x86_64,win_amd64}`, selected at import time via `LLAMA_CPP_LIB_PATH` (upstream-supported override; an operator-set value wins, enabling e.g. a GPU build). Before loading the bundled Linux x86_64 runtime, `_load_llama_class()` intersects the `flags` reported for every visible processor in `/proc/cpuinfo` and requires the baseline compiled into the shipped upstream wheel (AVX, AVX2, BMI2, F16C, FMA, SSE3, SSSE3). A missing or unreadable feature list refuses the native runtime before it can raise an uncatchable SIGILL; memory stays available through keyword search. The gate does not apply to an operator-set `LLAMA_CPP_LIB_PATH`, because that directory may contain a lower-baseline build. Unsupported platforms, incompatible bundled CPUs, and import failures all degrade to keyword-only memory search. See `_vendor/README.md`
-- **The shipped closure is declared, not inferred.** `_REQUIRED_VENDORED_LIBS` names the exact files each platform must carry, and `verify_vendored_libs(root=None)` returns `{platform: [missing…]}` (empty when complete) against a source tree, an unpacked sdist, or an installed wheel. `_load_llama_class()` consults it before importing, so an incomplete install is reported as a **packaging defect naming the absent files** rather than surfacing as ctypes' `Shared library with base name 'llama' not found` — which reads as an unsupported architecture and misdirected the real-world diagnosis of this bug. `kirocrew doctor` prints the same detail. The check is **skipped when `LLAMA_CPP_LIB_PATH` is set**: the libs then load from the operator's directory, so the bundled tree's contents no longer determine whether the runtime works, and refusing on them would disable the documented override for exactly the users an incomplete wheel stranded (the warning names the env var as a remedy for that reason). Each packaging lane selects these files by a different mechanism (MANIFEST.in for the sdist, `package_data` for the wheel — which the desktop bundle inherits, since it pip-installs the project into its bundled interpreter), so each is guarded independently in `test/test_vendored_llama_payload.py`, and both `build.yml` (every PR) and `build-wheel.yml` (release/nightly) re-check the built wheel **and** sdist against the same declaration via the shared `scripts/verify_vendored_payload.py` (one script for both lanes, so they cannot drift into a gate that stops guarding without failing) — the sdist explicitly, because `python -m build --wheel` never evaluates `MANIFEST.in` and so cannot see an sdist regression at all. Linux ships no BLAS backend by design: upstream publishes none in its Linux CPU wheels (macOS gets `libggml-blas` only via the system Accelerate framework), and the Linux `libggml-cpu` carries the optimized GEMM kernels instead
+- **The shipped closure is declared, not inferred.** `_REQUIRED_VENDORED_LIBS` names the exact files each platform must carry, and `verify_vendored_libs(root=None)` returns `{platform: [missing…]}` (empty when complete) against a source tree, an unpacked sdist, or an installed wheel. `_load_llama_class()` consults it before importing, so an incomplete install is reported as a **packaging defect naming the absent files** rather than surfacing as ctypes' `Shared library with base name 'llama' not found` — which reads as an unsupported architecture and misdirected the real-world diagnosis of this bug. `junction doctor` prints the same detail. The check is **skipped when `LLAMA_CPP_LIB_PATH` is set**: the libs then load from the operator's directory, so the bundled tree's contents no longer determine whether the runtime works, and refusing on them would disable the documented override for exactly the users an incomplete wheel stranded (the warning names the env var as a remedy for that reason). Each packaging lane selects these files by a different mechanism (MANIFEST.in for the sdist, `package_data` for the wheel — which the desktop bundle inherits, since it pip-installs the project into its bundled interpreter), so each is guarded independently in `test/test_vendored_llama_payload.py`, and both `build.yml` (every PR) and `build-wheel.yml` (release/nightly) re-check the built wheel **and** sdist against the same declaration via the shared `scripts/verify_vendored_payload.py` (one script for both lanes, so they cannot drift into a gate that stops guarding without failing) — the sdist explicitly, because `python -m build --wheel` never evaluates `MANIFEST.in` and so cannot see an sdist regression at all. Linux ships no BLAS backend by design: upstream publishes none in its Linux CPU wheels (macOS gets `libggml-blas` only via the system Accelerate framework), and the Linux `libggml-cpu` carries the optimized GEMM kernels instead
 - Failed model loads (corrupt file, bad native libs) are retried only after a 300s cooldown so a broken state can't spawn a loader thread per embed call
 
 **Embedding backend abstraction** (`EmbeddingBackend` ABC): the public swap seam for future runtimes (Ollama again, remote endpoints, ONNX) and user-defined models. Surface: `model_id`, `dim`, `is_ready()`, `embed()`, `embed_batch()`, `close()`. Consumers (vector memory, knowledge library) depend only on this interface; everything llama.cpp-specific lives in `LlamaCppEmbedder`. Swap flow: `register_embedding_backend(factory)` + `reset_shared_embedder()` replaces the singleton (pass `None` to restore the default). A backend with a different `model_id`/`dim` produces incomparable vectors — the knowledge library's `embed_signature` folds `model_id` in, so a swap automatically triggers the sig-gated knowledge re-embed; vector memory re-embeds via `migrate`.
@@ -274,12 +274,12 @@ Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`kir
 
 **Download flow** (`ensure_model()` / `start_background_model_download()`):
 - **Salvage fast-path** (`_salvage_legacy_ollama_blob`): before downloading, checks the legacy Ollama blob store (`~/.ollama/models/blobs/sha256-<digest>`, honoring `$OLLAMA_MODELS`) — Ollama stores layer blobs content-addressed and the Ollama-era GGUF is byte-identical, so migrating users skip the 610MB re-download entirely. The copy is sha256-verified like a real download; any failure falls through to the normal download
-- Downloads `qwen3-embedding-0.6b-q8_0.gguf` (Q8_0 quantized, 610MB) over plain HTTPS from the public Kiro Crew CDN — URL resolution order: `KIROCREW_EMBED_MODEL_URL` env var, then the `memory.embed_model_url` config knob, then the built-in `_DEFAULT_MODEL_URL` CDN constant. No git, no cloud SDK. Streaming sha256 is computed while downloading and byte-level progress (`bytes_downloaded`/`bytes_total`) is written to `status` every ~16MB for the dashboard's determinate progress bar
+- Downloads `qwen3-embedding-0.6b-q8_0.gguf` (Q8_0 quantized, 610MB) over plain HTTPS from the public Kiro Crew CDN — URL resolution order: `JUNCTION_EMBED_MODEL_URL` env var, then the `memory.embed_model_url` config knob, then the built-in `_DEFAULT_MODEL_URL` CDN constant. No git, no cloud SDK. Streaming sha256 is computed while downloading and byte-level progress (`bytes_downloaded`/`bytes_total`) is written to `status` every ~16MB for the dashboard's determinate progress bar
 - sha256-verifies the file (`06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439` — the trust anchor for every source: a tampered CDN object or mirror can only fail verification); files under `_GGUF_MIN_BYTES` (1MB) are rejected as truncated
 - Installs persistently to `~/.kiro/crew/models/qwen3-embedding-0.6b.gguf` — atomic install: stages into a per-process unique file in the TARGET directory (same filesystem) then `os.replace`, so two concurrent processes (gateway + one-shot CLI) can never interleave writes into a shared staging file
 - **Daemon-thread download** (`_run_download_on_daemon_thread`): the blocking HTTPS transfer runs on a daemon thread (deliberately NOT `run_in_executor` — executor threads are joined at interpreter exit), so Ctrl-C or a finished one-shot CLI is never pinned by an in-flight 610MB transfer
-- **Retry ladder**: background startup task = up to 6 attempts with exponential backoff (60s base, 30min cap, may span hours); every gateway restart retries; dashboard Enable/Retry click = `DOWNLOAD_ATTEMPTS_INTERACTIVE` (3) attempts for fast feedback. `kirocrew run` (one-shot CLI) never kicks downloads — only the long-lived gateway does
-- Escape hatch: `KIROCREW_SKIP_MODEL_DOWNLOAD=1` skips the download entirely (tests/CI must never trigger a 610MB download; tests additionally pin `OLLAMA_MODELS` to a tmp dir so the salvage path can't fire)
+- **Retry ladder**: background startup task = up to 6 attempts with exponential backoff (60s base, 30min cap, may span hours); every gateway restart retries; dashboard Enable/Retry click = `DOWNLOAD_ATTEMPTS_INTERACTIVE` (3) attempts for fast feedback. `junction run` (one-shot CLI) never kicks downloads — only the long-lived gateway does
+- Escape hatch: `JUNCTION_SKIP_MODEL_DOWNLOAD=1` skips the download entirely (tests/CI must never trigger a 610MB download; tests additionally pin `OLLAMA_MODELS` to a tmp dir so the salvage path can't fire)
 - Concurrent `ensure_model()` calls (startup task + dashboard Enable click) share one in-flight download
 - `status` dict (`step`: `idle`/`downloading`/`verifying`/`waiting_retry`/`ready`/`failed`, plus `error` and `attempt`) is readable at any time by the dashboard status endpoint
 
@@ -289,7 +289,7 @@ Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`kir
 - Prevents concurrent setup attempts (409 if already in progress)
 - `can_retry` flag in status response for frontend retry button
 - `GET /api/memory/embedding-status` — `enabled` is always `true`; `provider` reports the legacy `"ollama"` token (the shipped frontend hard-checks `provider === "ollama"` — kept until the frontend companion change lands); `setup_step` maps the manager's steps to the legacy vocabulary the shipped polling loop terminates on (`ready`→`done`, `failed`→`error`, `downloading`/`verifying`/`waiting_retry`→`downloading`); the raw step and attempt are additionally exposed as `download_step` + `download_attempt` for newer frontends; `server_healthy` = model file present OR model loaded; `model_id` + `model_dim` disclose the embedding model producing vectors (read live from the shared embedder — e.g. `qwen3-embedding:0.6b` / `1024`) so the Memory tab can show which model runs locally
-- `POST /api/memory/embedding-model` — changes the local embedding model at runtime. Two modes, and note which one is the default: `{"path": "...", "validate_only": true}` validates only (returns `size_bytes` without touching the live backend), while **omitting `validate_only` performs the swap** — there is no `apply` flag, so a caller that sends only `path` applies the model. An empty `path` reverts to the bundled model. Refuses with 403 on a restricted session (SEL-audited), 409 while a re-embed is already running (single-flight), and 409 `env_override_active` when `KIROCREW_EMBED_MODEL_PATH` is set, because the env var wins at load and persisting a config path under it would store a path/dim pair the process never uses
+- `POST /api/memory/embedding-model` — changes the local embedding model at runtime. Two modes, and note which one is the default: `{"path": "...", "validate_only": true}` validates only (returns `size_bytes` without touching the live backend), while **omitting `validate_only` performs the swap** — there is no `apply` flag, so a caller that sends only `path` applies the model. An empty `path` reverts to the bundled model. Refuses with 403 on a restricted session (SEL-audited), 409 while a re-embed is already running (single-flight), and 409 `env_override_active` when `JUNCTION_EMBED_MODEL_PATH` is set, because the env var wins at load and persisting a config path under it would store a path/dim pair the process never uses
 - **Apply ordering** (each step gates the next, so a failure rolls back rather than half-applying): build the candidate **gated** (not serving) → install it, retiring the outgoing model in the same step so two ~700MB models never co-reside → `begin_space_change()` → bounded `wait_ready` (600s) → `set_embedding_dim()` → reconcile → **verify the recorded space equals the active signature** → persist config → `activate_shared_embedder()` → backfill in the background. Config is written LAST so a reconcile failure leaves config naming the PREVIOUS model, which is what makes the rollback rebuild that model instead of resurrecting an ungated new one. Every rollback also restores the store's previous vector width, since a store left on the new width rejects every vector against the restored model
 - `GET /api/memory/embedding-status` additionally returns a `reembed` snapshot (`step`: `idle`/`applying`/`running`/`done`/`failed`, plus `done`/`total`/`error`) so the dashboard can render background re-embed progress; the card polls only while that step is busy
 - `POST /api/memory/disable-embeddings` — **gone**: embeddings are always-on. Kept as a graceful HTTP 410 stub (not a 404) because the shipped frontend still renders a Disable button; remove together with the frontend button
@@ -300,8 +300,8 @@ Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`kir
 |-------|-------|
 | Model | Qwen/Qwen3-Embedding-0.6B (Q8_0 GGUF) |
 | License | Apache-2.0 (on approved list for self-approval) |
-| Source | public Kiro Crew CDN (`_DEFAULT_MODEL_URL`; sha256-pinned; `KIROCREW_EMBED_MODEL_URL` / `memory.embed_model_url` for mirrors) |
-| Runtime | Vendored llama-cpp-python 0.3.34 (MIT license, `kiro_crew/_vendor/`) |
+| Source | public Kiro Crew CDN (`_DEFAULT_MODEL_URL`; sha256-pinned; `JUNCTION_EMBED_MODEL_URL` / `memory.embed_model_url` for mirrors) |
+| Runtime | Vendored llama-cpp-python 0.3.34 (MIT license, `junction/_vendor/`) |
 | Data flow | Text → in-process function call → float vectors (no data leaves machine) |
 | Policy | Self-approvable under a public dataset / ML model policy |
 
@@ -360,7 +360,7 @@ Model: `Qwen/Qwen3-Embedding-0.6B` Q8_0 GGUF (610MB). Apache-2.0 licensed. Serve
 | GET | `/api/memory/stats` | Counts, index size, provider status |
 | GET | `/api/memory/embedding-status` | Embedding health + download progress. `enabled` always true; `setup_step` in legacy vocabulary (done/error/idle/downloading); raw `download_step` (idle/downloading/verifying/waiting_retry/ready/failed) + `download_attempt` + `bytes_downloaded`/`bytes_total`; `model_id` + `model_dim` disclose the embedding model + vector dimension; `reembed` reports background re-embed progress (`step` idle/applying/running/done/failed + `done`/`total`/`error`) |
 | POST | `/api/memory/enable-embeddings` | Non-blocking: kicks/adopts the background model download and returns `{"ok": true, "status": "downloading"}` when the model is absent; wires embeddings + updates config when present |
-| POST | `/api/memory/embedding-model` | Change the embedding model. `{"path", "validate_only": true}` validates only; **omitting `validate_only` applies** (no `apply` flag exists). Empty path reverts to bundled. 403 restricted session, 409 while re-embedding, 409 `env_override_active` under `KIROCREW_EMBED_MODEL_PATH` |
+| POST | `/api/memory/embedding-model` | Change the embedding model. `{"path", "validate_only": true}` validates only; **omitting `validate_only` applies** (no `apply` flag exists). Empty path reverts to bundled. 403 restricted session, 409 while re-embedding, 409 `env_override_active` under `JUNCTION_EMBED_MODEL_PATH` |
 | POST | `/api/memory/disable-embeddings` | HTTP 410 stub — embeddings are always-on; kept only until the frontend removes its Disable button |
 | POST | `/api/memory/migrate` | Migrate markdown → structured memory |
 | POST | `/api/memory/import` | Import from JSON export |
@@ -368,12 +368,12 @@ Model: `Qwen/Qwen3-Embedding-0.6B` Q8_0 GGUF (610MB). Apache-2.0 licensed. Serve
 
 ### CLI
 
-`kirocrew memory {list,search,show,stats,audit,export,migrate,import}` — manage memory from the command line:
+`junction memory {list,search,show,stats,audit,export,migrate,import}` — manage memory from the command line:
 - `show [preferences|projects|history]` — read the markdown layer through `MemoryStore` (all three targets when none given); `--format md|json` (json entries carry `path`, `updated_at` mtime in UTC ISO-8601, `content`), `--since YYYY-MM-DD` filters history days. Missing/empty files print as empty rather than erroring
 - `export` — vector-store collections; `--include-markdown` opts in a `markdown` collection (`preferences`/`projects` entries + per-day `history` list from `MemoryStore.markdown_snapshot()`) without changing the default payload shape
 - `migrate` — one-time markdown → structured migration (preferences.md → semantic, history/*.md → episodic)
 - `import <file>` — restore from JSON export with full validation
-- `kirocrew security audit` also scans vector memory for injection patterns
+- `junction security audit` also scans vector memory for injection patterns
 
 ### Migration (`migrate_from_markdown`)
 
@@ -392,7 +392,7 @@ Parses legacy markdown files into structured memory:
    - **Two producers of NULL-vector rows**, not just one: rows migrated before the model landed, and rows written by a bulk writer that passed `write_episodic(defer_embedding=True)` — the foreign-agent importer does this so its apply request is not held for minutes by per-chunk inference (see `docs/system-specs/modules/onboarding-import.md`). Import schedules its own sweep, so this boot sweep is the standing retry, not the only path.
    - The sweep needs **numpy only, not faiss**. Faiss is an optional accelerator and not a declared dependency, so requiring it made the sweep a silent no-op on a stock install. Only the index rebuild is faiss-gated; `search_episodic` falls back to `_sqlite_vector_search` (stdlib cosine over the stored blobs), so the vectors are useful either way.
 
-The backend `POST /api/memory/migrate` endpoint and the `kirocrew memory migrate` CLI remain as a manual escape hatch, but the dashboard no longer calls them.
+The backend `POST /api/memory/migrate` endpoint and the `junction memory migrate` CLI remain as a manual escape hatch, but the dashboard no longer calls them.
 
 ### Cross-Platform
 
@@ -656,10 +656,10 @@ Frontmatter is parsed line-by-line (`_parse_frontmatter`): only a column-0 `key:
 
 Supports nested directories (e.g. `skills/utils/tiny-url/SKILL.md`). The skill name is the relative path from the skills root (e.g. `utils/tiny-url`).
 
-**Source precedence** (project-level wins): `$KIROCREW_PROJECT_DIR/skills/` → `builtin_skills/` (bundled). Auto-copied to `~/.kiro/crew/skills/` on first run. Copies entire skill directories (scripts, assets, etc.).
+**Source precedence** (project-level wins): `$JUNCTION_PROJECT_DIR/skills/` → `builtin_skills/` (bundled). Auto-copied to `~/.kiro/crew/skills/` on first run. Copies entire skill directories (scripts, assets, etc.).
 
 **Project skills (`<project>/.kiro/skills`) — a different source from the one above.**
-`$KIROCREW_PROJECT_DIR/skills/` is a *sync* source: its contents are copied into
+`$JUNCTION_PROJECT_DIR/skills/` is a *sync* source: its contents are copied into
 `~/.kiro/crew/skills/` and thereafter are ordinary local skills. `<project>/.kiro/skills`
 is *discovered in place* for the session whose slot is bound to that project, and is
 never copied. A skill found there is reported with source `kiro-workspace`.
@@ -891,7 +891,7 @@ Skills with auxiliary files (scripts, assets) include `dir` path so the LLM can 
 
 **Usage ledger (`skill_usage.py`, `SkillUsageLedger`):** in-memory per-skill hit tally with debounced, atomic persistence to `skill-usage.json` (`SKILL_USAGE_FILENAME`, co-located with the Kiro Crew home). Entries older than a 30-day TTL (`_MAX_AGE_SECS`) are dropped on load/flush so a stale skill stops occupying a top-K slot. Hits are recorded in two places: the **body-delivery loop** in `context.py` (`_record_use`, called only after `load_skill` succeeds and the body is appended to the prompt) and in `resolve_dollar_skills`. However, since `max_triggered` defaults to 0 the body-delivery recorder is inactive in stock config — `$skillname` is the only source of hits, so lazy-load ranking is effectively recency-only unless the trigger matcher is re-enabled (`max_triggered > 0`). A trigger match alone does NOT earn a hit — only actual delivery does, so pointer-only skills and false-positive matches do not inflate the ranking. Best-effort: ledger init failure falls back to recency-only / unweighted ranking without breaking skill loading.
 
-**`skill_search` MCP tool (`kirocrew-core`):** greps skill name/description then, only on a metadata miss, the skill body (bounded, tool-call only — never per message). Schema in `mcp_core.py`, validated against `SKILL_SEARCH_SCHEMA` (`validation.py`). Does NOT record usage — searching is not using. Scope is **locally installed skills only**.
+**`skill_search` MCP tool (`junction-core`):** greps skill name/description then, only on a metadata miss, the skill body (bounded, tool-call only — never per message). Schema in `mcp_core.py`, validated against `SKILL_SEARCH_SCHEMA` (`validation.py`). Does NOT record usage — searching is not using. Scope is **locally installed skills only**.
 
 **Direct reads.** The model reaches most skills by reading `SKILL.md` itself — a
 file-read tool, or `cat` in a shell — which bypasses the loader and so recorded
@@ -957,7 +957,7 @@ delivery; that call is in-memory and safe inline. A cheap `SKILL.md` substring
 gate runs before the offload, so a tool call touching no skill costs a substring
 scan; observer failures in either phase are logged and swallowed.
 
-**Registry discovery — `skill_discover` / `skill_fetch` MCP tools (`kirocrew-core`).**
+**Registry discovery — `skill_discover` / `skill_fetch` MCP tools (`junction-core`).**
 The agent-facing twins of the dashboard's Skills → Discover panel, covering the
 skills that are *not* on disk. Both are read-only and reach the existing
 `skill_providers/` registry (skills.sh today) through the gateway rather than the
@@ -1011,7 +1011,7 @@ exclude). To keep it off the per-message filesystem/config hot path:
 - the discovered skill-file list is TTL-cached (`_iter`, `_ITER_CACHE_TTL_SECS`),
   invalidated by `create_auto_skill`;
 - the `max_triggered` cap is snapshotted on the loader in `__init__`
-  (`self._max_triggered`) — no `KiroCrewConfig.load()` per message — refreshed
+  (`self._max_triggered`) — no `JunctionConfig.load()` per message — refreshed
   when the loader is rebuilt (per gateway), matching `extra_paths` semantics;
 - exactly **one** SEL audit event is emitted for the matched set (skipped
   entirely when nothing matched, the common case), not one per skill scanned.
@@ -1089,7 +1089,7 @@ nonexistent skill first.
 
 It also carries `owned` — whether the `SKILL.md` sits under the directory
 Kiro Crew owns. A skill reached through `skills.extra_paths` still reports
-`source: kirocrew`, so source alone cannot gate the toggle; the UI hides the
+`source: junction`, so source alone cannot gate the toggle; the UI hides the
 control when `owned` is `false` instead of offering one the writer always
 refuses. The listing's check is deliberately syscall-free (a path comparison, no
 `resolve()`), because `list_skills()` also feeds the session-start skill index on
@@ -1212,21 +1212,21 @@ and exfiltration URLs; clean assets are copied byte-for-byte, including leading
 and trailing whitespace. No per-asset preview truncation is used for either the
 security decision or the copied content.
 
-**Dashboard endpoints**: GET/POST `/api/skills`, GET/PUT/DELETE `/api/skills/{name:.+}`. POST sanitizes name to lowercase + hyphens + slashes. GET `/api/skills` discovery (kirocrew `list_skills()` os.walk + frontmatter, `list_kiro_skills`, and the skill→agent annotation) is fully offloaded to the dedicated `discovery_executor` pool (`executors.py`) via `collect_skills_blocking`, so it never stalls the event loop past the loop-stall watchdog on large catalogs. The annotation is O(agents) — `annotate_skills_with_agents` parses the agent JSONs and pre-expands each agent's `skill://` globs once, then matches every skill against that in-memory set. The discovery pool is deliberately separate from the reaper-critical `maintenance_executor` so browser-triggered scans can't starve the orphan sweep.
+**Dashboard endpoints**: GET/POST `/api/skills`, GET/PUT/DELETE `/api/skills/{name:.+}`. POST sanitizes name to lowercase + hyphens + slashes. GET `/api/skills` discovery (junction `list_skills()` os.walk + frontmatter, `list_kiro_skills`, and the skill→agent annotation) is fully offloaded to the dedicated `discovery_executor` pool (`executors.py`) via `collect_skills_blocking`, so it never stalls the event loop past the loop-stall watchdog on large catalogs. The annotation is O(agents) — `annotate_skills_with_agents` parses the agent JSONs and pre-expands each agent's `skill://` globs once, then matches every skill against that in-memory set. The discovery pool is deliberately separate from the reaper-critical `maintenance_executor` so browser-triggered scans can't starve the orphan sweep.
 
 **LLM tool mechanisms:**
 - MCP tools (native): kiro-cli calls directly — **preferred for all LLM-facing operations**
-  - `kirocrew-cron`: cron scheduling
-  - `kirocrew-core`: spawn, learn, task tools
+  - `junction-cron`: cron scheduling
+  - `junction-core`: spawn, learn, task tools
 - Skills are for on-demand knowledge only (not for CLI command wrappers — use MCP tools instead)
 
 ## MCP Discovery (`mcp_discovery.py`)
 
-Auto-sync at startup + on-demand discovery from dashboard. Default servers: `kirocrew-cron`, `kirocrew-core`.
+Auto-sync at startup + on-demand discovery from dashboard. Default servers: `junction-cron`, `junction-core`.
 
 **Server sources** (merged by `list_servers()`):
 1. `agents/defaults.json` → `mcpServers` (default: none beyond the managed servers)
-2. `~/.kiro/agents/kirocrew.json` → `mcpServers` (installed config, merged)
+2. `~/.kiro/agents/junction.json` → `mcpServers` (installed config, merged)
 3. `~/.kiro/settings/mcp.json` and `~/.kiro/crew/mcp.json` (scanned at startup and on-demand)
 
 **Startup behavior**: gateway calls `_init_mcp_discovery()` which runs `discover_servers_to_sync()` + `sync_to_agent_config()` to auto-add new servers from mcp.json, then logs all configured servers. Discovery/sync failures are caught independently so `list_servers()` always runs. Additionally, `server.py` fires `_bg_mcp_probe()` as a background task at startup to populate the probe cache.
@@ -1245,7 +1245,7 @@ Auto-sync at startup + on-demand discovery from dashboard. Default servers: `kir
 
 **Probing**: spawns each MCP server, sends JSON-RPC `initialize` + `tools/list` handshake, reports status + tool names. **Both calls must succeed for `ok`** — an initialize that answers and a tools/list that does not is a server no session can get a tool out of, so it reports as an error rather than certifying an unusable server. Each result carries `probedAt` (wall-clock) and `probeMode` (`handshake`, or `declared` for a managed server served from its in-process declaration) so the UI can say when and how the status was established. 30-second timeout, 1MB stdout buffer (an MCP server's responses exceed the default 64KB). Cleanup via `finally` block (no zombie processes). Results cached in `handlers.py` with 10-min TTL; GET `/api/mcp/probe` returns cached results non-blocking, POST `/api/mcp/probe` forces a fresh probe and updates cache.
 
-**Enable/Disable**: `POST /api/mcp/toggle` adds/removes `@name` from `tools` and `allowedTools` arrays in installed config (`~/.kiro/agents/kirocrew.json`). Does NOT modify `agents/defaults.json`. Disabled servers stay in `mcpServers` but kiro-cli won't load their tools.
+**Enable/Disable**: `POST /api/mcp/toggle` adds/removes `@name` from `tools` and `allowedTools` arrays in installed config (`~/.kiro/agents/junction.json`). Does NOT modify `agents/defaults.json`. Disabled servers stay in `mcpServers` but kiro-cli won't load their tools.
 
 **Sync**: `POST /api/mcp/sync` runs `sync_discovered_servers()` off the event loop, then applies OAuth hints to the kiro-global file and resets all active sessions so kiro-cli picks up the new config (~30s).
 
@@ -1283,15 +1283,15 @@ data-home file, Kiro global settings, bundled/project/installed agent config,
 managed servers, and edition-contributed server/scope files. An exact or
 alias-equivalent foreign name is rejected, so a disabled import cannot shadow
 an enabled global or installed server. Existing server definitions win on
-collision, and KiroCrew-managed servers (including `kirocrew-core` and
-`kirocrew-cron`) are protected from replacement, deletion, or shadowing by an
+collision, and Junction-managed servers (including `junction-core` and
+`junction-cron`) are protected from replacement, deletion, or shadowing by an
 imported definition. Malformed effective-source JSON or non-object
 `mcpServers` values contribute no names and cannot abort an import. Repeated
 imports deduplicate through the provenance ledger.
 
 ## Auto Skill Creation (`skills.py` + `history.py`)
 
-Hermes-style autonomous skill creation from completed sessions. **Opt-in, and STAGED for approval** — generation is **off by default** (`skills.auto_create_from_sessions` defaults **false**; enable via `kirocrew config set skills.auto_create_from_sessions true` or dashboard Settings → Skills). When on, candidates land in a pending-approval queue (`skills.approval_required` defaults **true**) and nothing goes live unattended. Pipeline: detect (during consolidation) → generate → metadata dedupe → pending queue → human approval → live → archive-if-unused.
+Hermes-style autonomous skill creation from completed sessions. **Opt-in, and STAGED for approval** — generation is **off by default** (`skills.auto_create_from_sessions` defaults **false**; enable via `junction config set skills.auto_create_from_sessions true` or dashboard Settings → Skills). When on, candidates land in a pending-approval queue (`skills.approval_required` defaults **true**) and nothing goes live unattended. Pipeline: detect (during consolidation) → generate → metadata dedupe → pending queue → human approval → live → archive-if-unused.
 
 Key v2 elements (all under `skills.*`):
 - **Staged approval:** new skills route to `auto/.pending/<slug>/`; approve promotes to `auto/<slug>/` (dashboard: Skills → Pending review). Auto-approve for prose-only is opt-in via `approval_required=false`; **script-bearing candidates always require approval**.
@@ -1388,11 +1388,11 @@ Opt-in secondary flag, gated by `auto_create_from_sessions`. When on, the consol
 
 No new command. Users interact via the existing skill management surface:
 
-- Off by default (opt-in). Enable: `kirocrew config set skills.auto_create_from_sessions true` (or dashboard Settings → Skills); auto-approve prose-only: `kirocrew config set skills.approval_required false`
+- Off by default (opt-in). Enable: `junction config set skills.auto_create_from_sessions true` (or dashboard Settings → Skills); auto-approve prose-only: `junction config set skills.approval_required false`
 - Review pending candidates: dashboard Skills → Pending review, or `GET /api/skills/-/pending`
-- List auto skills: filter `kirocrew` skill listings to those under `auto/`, or use `SkillsLoader.list_auto_skills()` in code
+- List auto skills: filter `junction` skill listings to those under `auto/`, or use `SkillsLoader.list_auto_skills()` in code
 - Remove unwanted auto skill: `rm -rf ~/.kiro/crew/skills/auto/<slug>` (or dashboard skill delete when UI lands)
-- Audit trail: `kirocrew security events -n 20 | grep auto_skill`
+- Audit trail: `junction security events -n 20 | grep auto_skill`
 
 ## Hooks (`hooks.py`)
 
@@ -1416,10 +1416,10 @@ a hook is therefore **not portable across platforms**:
 
 | | Shell | Env var in a command | Quote grouping |
 |---|---|---|---|
-| POSIX | `/bin/sh -c <command>` | `$KIROCREW_HOOK_EVENT` | `'…'` and `"…"` |
-| Windows | `%ComSpec% /c "<command>"` | `%KIROCREW_HOOK_EVENT%` | `"…"` only (cmd.exe gives `'` no meaning) |
+| POSIX | `/bin/sh -c <command>` | `$JUNCTION_HOOK_EVENT` | `'…'` and `"…"` |
+| Windows | `%ComSpec% /c "<command>"` | `%JUNCTION_HOOK_EVENT%` | `"…"` only (cmd.exe gives `'` no meaning) |
 
-Both platforms receive the same `KIROCREW_HOOK_EVENT` / `KIROCREW_HOOK_CONTEXT`
+Both platforms receive the same `JUNCTION_HOOK_EVENT` / `JUNCTION_HOOK_CONTEXT`
 env vars and the same hook-event JSON on stdin.
 
 **Windows spawns through `asyncio.create_subprocess_shell`, not an argv.** cmd.exe
@@ -1463,7 +1463,7 @@ never reach an LLM/agent surface.
 
 ### User kiro-cli Hooks (`agent.kiro_hooks` in `config.json`)
 
-User-defined kiro-cli hooks that persist across `kirocrew update`. Follows the
+User-defined kiro-cli hooks that persist across `junction update`. Follows the
 `removedTools` precedent — a raw key in `~/.kiro/crew/config.json` read by
 `_refresh_dynamic_fields()` at install time.
 
@@ -1489,7 +1489,7 @@ Assembles all sources into prompts:
 - Every message: channel history, episodic memory, hook transforms, triggered skills, context rules, OPTIONS hint (interactive sessions only)
 - Runtime identity is turn-aware rather than key-only. Channel and dashboard dispatchers pass trusted `runtime_source` metadata to `build_message()`. New sessions use it for `[RUNTIME]`; follow-up turns refresh `[RUNTIME]` outside the one-time session context. This is required because a stable `dashboard:*` session can be resumed from Discord and `messaging.dm_scope="unified"` intentionally removes the originating channel from the session key. When trusted metadata is absent, namespaced keys (`discord:*`, `telegram:*`, `wecom:*`, `weixin:*`, `webex:*`, `teams:*`, `slack:*`) are recognized directly; bare unknown keys keep the legacy Slack fallback.
 - Thread history is injected only at session start (via `build_session_context`). Within the same ACP session, kiro-cli manages conversation history natively — duplicate injection wastes context window and accelerates compaction.
-- `_CRITICAL_RULES` injected by DEFAULT for every agent (built-in `kirocrew` and custom alike) — it is the dashboard/Slack assistant's own output contract (runtime-conditional diff blocks — tool-made edits render as structured diff cards on the dashboard, so ```diff blocks are required only for non-tool edits or non-dashboard runtimes — `[OPTIONS:]` footer, absolute-path rule with a URL exclusion — a backticked URL renders as a click-to-copy chip rather than a link, so URLs must use markdown link syntax instead), so diff rendering and OPTIONS buttons work universally. A **custom** agent can OPT OUT by setting `includeCrewContext: false` in its materialized `~/.kiro/agents/<...>.json`: a custom app agent ships its own system prompt and output contract, so injecting this on top both conflicts with it and, on a safety-tuned model, reads as an identity override the model refuses as prompt injection. The flag is read through the same sensitive-path-gated scan as the agent prompt (matched by declared `name` or filename stem) and memoized by agent name; an absent/non-boolean flag, an unreadable/missing spec, and the built-in `kirocrew` agent all default to injecting (only an explicit boolean `false` on a custom agent suppresses it). The same opt-out also suppresses the dashboard tool nudges (`ask_question` / `suggest_followup`) that `build_message` adds on dashboard sessions, but NOT the provider-agnostic `[OPTIONS:]` reminder. The `[OPTIONS:]`/diff tags still RENDER for any agent that emits them (the dashboard parses them regardless); the gate only stops the host from MANDATING them where an agent has declared it does not want them.
+- `_CRITICAL_RULES` injected by DEFAULT for every agent (built-in `junction` and custom alike) — it is the dashboard/Slack assistant's own output contract (runtime-conditional diff blocks — tool-made edits render as structured diff cards on the dashboard, so ```diff blocks are required only for non-tool edits or non-dashboard runtimes — `[OPTIONS:]` footer, absolute-path rule with a URL exclusion — a backticked URL renders as a click-to-copy chip rather than a link, so URLs must use markdown link syntax instead), so diff rendering and OPTIONS buttons work universally. A **custom** agent can OPT OUT by setting `includeCrewContext: false` in its materialized `~/.kiro/agents/<...>.json`: a custom app agent ships its own system prompt and output contract, so injecting this on top both conflicts with it and, on a safety-tuned model, reads as an identity override the model refuses as prompt injection. The flag is read through the same sensitive-path-gated scan as the agent prompt (matched by declared `name` or filename stem) and memoized by agent name; an absent/non-boolean flag, an unreadable/missing spec, and the built-in `junction` agent all default to injecting (only an explicit boolean `false` on a custom agent suppresses it). The same opt-out also suppresses the dashboard tool nudges (`ask_question` / `suggest_followup`) that `build_message` adds on dashboard sessions, but NOT the provider-agnostic `[OPTIONS:]` reminder. The `[OPTIONS:]`/diff tags still RENDER for any agent that emits them (the dashboard parses them regardless); the gate only stops the host from MANDATING them where an agent has declared it does not want them.
 - Switchable context groups (see below) let a spawning parent drop whole sections for one sub-agent.
 - Cap: `_CONTEXT_BUDGET_BASE` = 165,000 chars (~55k tokens). Which ceiling applies depends on `skills.lazy_load`: OFF (the default) uses `caps.base` as one flat shared pool; ON uses `caps.max_context`, the SUM of the independent per-section caps (190,575 chars at the reference window), so skills/steering can never eat into memory/lessons space. Note the per-section caps are computed and passed to every section either way; `lazy_load` changes the *global* ceiling and the skills block's shape (full dump vs usage-ranked top-K), not whether sections have caps.
 
@@ -1566,7 +1566,7 @@ are still injected:
 | Block | Skip on resume? | Why |
 |-------|-----------------|-----|
 | `[THREAD CONVERSATION HISTORY]` | ✅ Skip | kiro-cli has full native history |
-| Memory + skills + lessons | ❌ Keep | KiroCrew-specific, not in kiro-cli |
+| Memory + skills + lessons | ❌ Keep | Junction-specific, not in kiro-cli |
 | `[Other chat tabs]` (cross-tab) | ❌ Keep | Reads OTHER sessions' JSONL |
 | `[Recent Session Context]` (provenance) | ❌ Keep | Cross-thread entries |
 | Agent system prompt | ❌ Keep | kiro-cli ACP doesn't load agent prompts |

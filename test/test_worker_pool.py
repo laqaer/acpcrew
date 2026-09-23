@@ -10,7 +10,7 @@ protection registry so they are hermetic (no real PID files / signals).
 import asyncio
 import unittest
 
-from kiro_crew.acp import worker_pool as wp
+from junction.acp import worker_pool as wp
 
 
 class _FakeWorker:

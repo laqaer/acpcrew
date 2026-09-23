@@ -29,7 +29,7 @@ import pytest
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 _ROOT_CONFTEST = _REPO_ROOT / "conftest.py"
-_SRC = _REPO_ROOT / "src" / "kiro_crew"
+_SRC = _REPO_ROOT / "src" / "junction"
 
 
 def _load_root_conftest():
@@ -41,7 +41,7 @@ def _load_root_conftest():
     (a ``@pytest.fixture`` decorator only marks a function; nothing collects
     them from here).
     """
-    spec = importlib.util.spec_from_file_location("_kirocrew_root_conftest", _ROOT_CONFTEST)
+    spec = importlib.util.spec_from_file_location("_junction_root_conftest", _ROOT_CONFTEST)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -83,7 +83,7 @@ _SERVICE_TOOL_VOCABULARY = frozenset(
 #: reason. Reviewed as part of this test rather than buried in a comment.
 _DELIBERATELY_UNGUARDED = {
     # sandbox wraps nearly EVERY subprocess in `systemd-run --user --scope
-    # --slice=kirocrew-agents.slice -p MemoryMax=...` to apply cgroup limits.
+    # --slice=junction-agents.slice -p MemoryMax=...` to apply cgroup limits.
     # Refusing it refuses an ordinary `git config` spawn. Its one service-control
     # use passes `systemctl restart` as the wrapped command, caught on the inner
     # token instead -- pinned by test_wrapped_service_restart_is_refused below.
@@ -261,7 +261,7 @@ class TestRefusalReason:
         """
         argv = [
             "/usr/bin/systemd-run", "--user", "--scope", "-q",
-            "--slice=kirocrew-agents.slice", "-p", "MemoryMax=82386M",
+            "--slice=junction-agents.slice", "-p", "MemoryMax=82386M",
             "--", "/usr/bin/git", "config", "branch.main.remote",
         ]
         assert _root._refusal_reason(argv) is None
@@ -275,12 +275,12 @@ class TestRefusalReason:
         """
         argv = [
             "/usr/bin/systemd-run", "--user", "--scope", "-q",
-            "--", "/usr/bin/systemctl", "--user", "restart", "kirocrew-gateway.service",
+            "--", "/usr/bin/systemctl", "--user", "restart", "junction-gateway.service",
         ]
         assert _root._refusal_reason(argv)
 
     def test_sudo_wrapped_mutation_is_refused(self) -> None:
-        assert _root._refusal_reason(["sudo", "systemctl", "stop", "kirocrew.service"])
+        assert _root._refusal_reason(["sudo", "systemctl", "stop", "junction.service"])
 
     def test_sudo_alone_is_allowed(self) -> None:
         """A privilege prefix is not an action."""
@@ -299,7 +299,7 @@ class TestRefusalReason:
         assert _root._refusal_reason(["echo", "restart the service"]) is None
 
     def test_a_unit_filename_is_ignored(self) -> None:
-        assert _root._refusal_reason(["cat", "kirocrew-gateway.service"]) is None
+        assert _root._refusal_reason(["cat", "junction-gateway.service"]) is None
 
     def test_a_verb_before_the_manager_is_ignored(self) -> None:
         """Only the tail is scanned, so a wrapper's own flags cannot be the action."""
@@ -411,7 +411,7 @@ class TestLaunchdRedirect:
         assert root == resolved or root in resolved.parents, f"{resolved} is not under {root}"
 
     def test_every_macos_install_path_is_redirected(self, _xdg_config_root) -> None:
-        from kiro_crew.service import macos
+        from junction.service import macos
 
         for attr in ("PLIST_DIR", "PLIST_PATH", "LOG_DIR", "STDOUT_LOG", "STDERR_LOG",
                      "LIVE_PROGRAM"):
@@ -419,7 +419,7 @@ class TestLaunchdRedirect:
 
     def test_the_launcher_path_helper_is_redirected(self, _xdg_config_root) -> None:
         """``LaunchdBackend.live_program()`` calls the function, not the constant."""
-        from kiro_crew.service.common import launchd_live_program
+        from junction.service.common import launchd_live_program
 
         self._assert_under(launchd_live_program(), _xdg_config_root)
 
@@ -434,11 +434,11 @@ class TestLaunchdRedirect:
         constant. Subprocess is stubbed here because ``launchctl load`` is a
         mutating verb the execution guard would (correctly) refuse.
         """
-        from kiro_crew.service import macos
+        from junction.service import macos
 
         with mock.patch.object(macos, "_launchctl", return_value=SimpleNamespace(
             returncode=0, stdout="", stderr=""
-        )), mock.patch.object(macos, "kirocrew_bin", return_value="/usr/bin/true"):
+        )), mock.patch.object(macos, "junction_bin", return_value="/usr/bin/true"):
             macos.install()
 
         self._assert_under(macos.LIVE_PROGRAM, _xdg_config_root)
@@ -460,7 +460,7 @@ class TestXdgRedirect:
         A test that forgets to stub it must no longer be able to name the
         operator's real unit directory.
         """
-        from kiro_crew.apps.builtins.dev_fleet import server as mod
+        from junction.apps.builtins.dev_fleet import server as mod
 
         dropin = mod._dropin_path().resolve()
         real = (pathlib.Path.home() / ".config" / "systemd" / "user").resolve()

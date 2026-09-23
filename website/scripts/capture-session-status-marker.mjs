@@ -85,7 +85,7 @@ const slots = [
     // whose box only exists as a flex item, which is why it is seeded and ASSERTED
     // below rather than merely present in the fixture list.
     key: UNREAD, title: 'Terminal font picker round 7', running: false, messages: 24,
-    agent: 'kirocrew', modified: now - 26 * 60, last_ts: ago(26), last_turn_ts: ago(26),
+    agent: 'junction', modified: now - 26 * 60, last_ts: ago(26), last_turn_ts: ago(26),
     folder_id: '', last_message: 'All 59 checks green.',
   },
   {
@@ -123,12 +123,12 @@ async function main() {
       folders: [{ id: 'f1', name: 'bug', collapsed: false, order: 0 }],
       theme,
       // The tint count is SERVER config (`dashboard.recent_tint_count`), read
-      // through the shared kirocrewConfig query — so it has to be answered here
+      // through the shared junctionConfig query — so it has to be answered here
       // rather than seeded into localStorage. `json()` resolves to undefined, so
       // the handled-flag has to be returned explicitly: returning its promise
       // makes the stub fall through and fulfil the same route twice.
       extra: async (path, route) => {
-        if (path === '/api/config/kirocrew') {
+        if (path === '/api/config/junction') {
           await json(route, { dashboard: { recent_tint_count: TINT_COUNT } })
           return true
         }

@@ -14,10 +14,10 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps.discovery import _manifest_to_builtin_dict
-from kiro_crew.apps.manager import APP_MANIFEST_FILENAME, apps_dir, enable_app, install_app
-from kiro_crew.apps.manifest import AppManifest
-from kiro_crew.apps.routes import (
+from junction.apps.discovery import _manifest_to_builtin_dict
+from junction.apps.manager import APP_MANIFEST_FILENAME, apps_dir, enable_app, install_app
+from junction.apps.manifest import AppManifest
+from junction.apps.routes import (
     _provider_is_configured,
     collect_publish_providers,
     register_app_routes,
@@ -120,7 +120,7 @@ def test_collect_skips_provider_without_id_or_endpoint():
 
 
 def test_provider_is_configured_reads_app_config(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     data_dir = apps_dir() / "deploy-web" / "data"
     data_dir.mkdir(parents=True)
     # No config yet → not configured.
@@ -134,13 +134,13 @@ def test_provider_is_configured_reads_app_config(tmp_path, monkeypatch):
 
 
 def test_provider_is_configured_no_field_means_always(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     pp = {**_PP, "configuredField": ""}
     assert _provider_is_configured("deploy-web", pp) is True
 
 
 def test_provider_is_configured_rejects_path_traversal(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     pp = {**_PP, "configFile": "../../../etc/passwd"}
     assert _provider_is_configured("deploy-web", pp) is False
 
@@ -149,20 +149,20 @@ def test_provider_is_configured_rejects_path_traversal(tmp_path, monkeypatch):
 
 
 def _setup_env(tmp_path, monkeypatch):
-    home = tmp_path / "kirocrew-home"
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     kiro_agents = tmp_path / "kiro-agents"
     kiro_agents.mkdir()
-    import kiro_crew.apps.bridges as bridges_mod
+    import junction.apps.bridges as bridges_mod
 
     monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
-    import kiro_crew.apps.backend as bmod
+    import junction.apps.backend as bmod
 
     bmod._processes.clear()
     bmod._allocated_ports.clear()
     monkeypatch.setattr(
-        "kiro_crew.apps.execution.third_party_execution_allowed", lambda: True
+        "junction.apps.execution.third_party_execution_allowed", lambda: True
     )
     return home
 
@@ -287,8 +287,8 @@ def test_save_registry_concurrent_no_lost_updates(tmp_path, monkeypatch):
     """Threaded registry mutations must not lose updates."""
     import threading
 
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-    from kiro_crew.deploy import profiles as profiles_mod
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+    from junction.deploy import profiles as profiles_mod
 
     n_threads = 10
     barrier = threading.Barrier(n_threads)

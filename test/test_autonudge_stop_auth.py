@@ -33,18 +33,18 @@ import asyncio
 
 import pytest
 
-import kiro_crew.mcp_core as mcp_core
-from kiro_crew import autonudge_authz, session_directive
-from kiro_crew.autonudge import (
+import junction.mcp_core as mcp_core
+from junction import autonudge_authz, session_directive
+from junction.autonudge import (
     APPROVAL_STALL_REASON,
     AUTONUDGE_STOP_REASON,
     AutoNudgeService,
     binding_key_for,
 )
-from kiro_crew.dashboard.session_directive_apply import apply_session_directive
-from kiro_crew.mcp_core import _call_tool_inner
-from kiro_crew.mcp_tools._limits import _MONITOR_DEFAULT_MAX_CYCLES
-from kiro_crew.validation import ValidationError
+from junction.dashboard.session_directive_apply import apply_session_directive
+from junction.mcp_core import _call_tool_inner
+from junction.mcp_tools._limits import _MONITOR_DEFAULT_MAX_CYCLES
+from junction.validation import ValidationError
 
 # ── Tool-contract fixtures ────────────────────────────────────────────────────
 
@@ -223,7 +223,7 @@ def test_autonudge_stop_short_circuits_for_non_nudgeable_session(monkeypatch):
 # the loop by ``svc.get_by_slot(binding_key_for(session_key))`` and calls the
 # authz cores; the fakes below record those calls without touching a real
 # AutoNudge service. The authz helpers are imported LAZILY inside the applier
-# from ``kiro_crew.autonudge`` / ``kiro_crew.autonudge_authz``, so they are
+# from ``junction.autonudge`` / ``junction.autonudge_authz``, so they are
 # patched on those modules (not on session_directive_apply).
 
 
@@ -277,7 +277,7 @@ def _fake_slot(*, key="chat-3-1700000000", app=""):
 
 
 def _install_svc(monkeypatch, svc):
-    monkeypatch.setattr("kiro_crew.autonudge.get_instance", lambda: svc)
+    monkeypatch.setattr("junction.autonudge.get_instance", lambda: svc)
 
 
 def _record_add(monkeypatch, *, loop=None, error=None):
@@ -287,7 +287,7 @@ def _record_add(monkeypatch, *, loop=None, error=None):
         calls.append(kwargs)
         return (loop or _FakeLoop("loop-new"), error, "ok")
 
-    monkeypatch.setattr("kiro_crew.autonudge_authz.authorize_and_add_nudge", _fake)
+    monkeypatch.setattr("junction.autonudge_authz.authorize_and_add_nudge", _fake)
     return calls
 
 
@@ -298,7 +298,7 @@ def _record_update(monkeypatch, *, loop=None, error=None):
         calls.append(kwargs)
         return (loop or _FakeLoop("loop-updated"), error, "ok")
 
-    monkeypatch.setattr("kiro_crew.autonudge_authz.authorize_and_update_nudge", _fake)
+    monkeypatch.setattr("junction.autonudge_authz.authorize_and_update_nudge", _fake)
     return calls
 
 

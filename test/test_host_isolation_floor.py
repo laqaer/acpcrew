@@ -4,7 +4,7 @@
 the three halves added around it, each of which protects a different piece of the
 operator's machine from a test that forgot to isolate itself:
 
-* the **data home** -- ``KIROCREW_HOME`` pinned per test, plus the ``~/.kiro`` paths
+* the **data home** -- ``JUNCTION_HOME`` pinned per test, plus the ``~/.kiro`` paths
   production binds at IMPORT time, which the env var cannot reach;
 * the **system temp directory** -- ``tempfile``'s base redirected per run, with residue
   reported rather than silently accumulated;
@@ -15,7 +15,7 @@ Two jobs, the same split ``test_host_service_guard.py`` uses:
 * **Behaviour** -- prove each guard is armed, catches what it claims, and stays silent
   on what it must not touch. A guard nobody exercises is a guard that stops working at
   the next refactor without anybody noticing.
-* **Ratchet** -- pin the guarded set against what ``src/kiro_crew`` actually contains,
+* **Ratchet** -- pin the guarded set against what ``src/junction`` actually contains,
   so a NEW import-time ``Path.home()`` binding cannot land unpinned. Same shape as
   ``test_host_service_guard.py``'s ratchet and ``test_spawn_preexec_guard.py``'s
   ``_ALLOWED``.
@@ -33,11 +33,11 @@ import tempfile
 
 import pytest
 
-from kiro_crew.log_redaction import install_log_redaction
+from junction.log_redaction import install_log_redaction
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 _ROOT_CONFTEST = _REPO_ROOT / "conftest.py"
-_SRC = _REPO_ROOT / "src" / "kiro_crew"
+_SRC = _REPO_ROOT / "src" / "junction"
 
 
 def _load_root_conftest():
@@ -48,7 +48,7 @@ def _load_root_conftest():
     deterministic, and the fixtures it defines are inert in this namespace (a
     ``@pytest.fixture`` decorator only marks a function; nothing collects them here).
     """
-    spec = importlib.util.spec_from_file_location("_kirocrew_isolation_conftest", _ROOT_CONFTEST)
+    spec = importlib.util.spec_from_file_location("_junction_isolation_conftest", _ROOT_CONFTEST)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -88,7 +88,7 @@ def _inside_a_guarded_root(path: pathlib.Path) -> bool:
 
 
 class TestTheDataHomeIsPinnedForEveryTestpath:
-    """``KIROCREW_HOME`` must be a tmp dir here, and it must be the SAME one the
+    """``JUNCTION_HOME`` must be a tmp dir here, and it must be the SAME one the
     package resolves.
 
     These assertions run against the LIVE fixtures rather than a reconstruction,
@@ -99,10 +99,10 @@ class TestTheDataHomeIsPinnedForEveryTestpath:
     operator's live install.
     """
 
-    def test_kirocrew_home_is_not_the_operators_real_home(self) -> None:
-        home = pathlib.Path(os.environ["KIROCREW_HOME"]).resolve()
+    def test_junction_home_is_not_the_operators_real_home(self) -> None:
+        home = pathlib.Path(os.environ["JUNCTION_HOME"]).resolve()
 
-        assert not _inside_a_guarded_root(home), f"KIROCREW_HOME is a real home path: {home}"
+        assert not _inside_a_guarded_root(home), f"JUNCTION_HOME is a real home path: {home}"
 
     def test_config_dir_resolves_to_that_same_pinned_home(self) -> None:
         """The env var is only worth pinning if the package actually follows it.
@@ -111,20 +111,20 @@ class TestTheDataHomeIsPinnedForEveryTestpath:
         lifetime, so this also proves the per-test reset of ``_resolved_home`` works --
         without it a home cached by an earlier test on this xdist worker would win.
         """
-        from kiro_crew.config.paths import config_dir
+        from junction.config.paths import config_dir
 
-        assert config_dir().resolve() == pathlib.Path(os.environ["KIROCREW_HOME"]).resolve()
+        assert config_dir().resolve() == pathlib.Path(os.environ["JUNCTION_HOME"]).resolve()
 
     def test_a_test_can_still_override_the_home_itself(
         self, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The floor is a safety net, not a cage: a test that isolates itself wins."""
-        from kiro_crew.config.paths import config_dir
+        from junction.config.paths import config_dir
 
         mine = tmp_path / "my-own-home"
         mine.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(mine))
-        monkeypatch.setattr("kiro_crew.config.paths._resolved_home", None)
+        monkeypatch.setenv("JUNCTION_HOME", str(mine))
+        monkeypatch.setattr("junction.config.paths._resolved_home", None)
 
         assert config_dir().resolve() == mine.resolve()
 
@@ -137,13 +137,13 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
     home does not reach it and neither does ``_SHARED_KIRO_PATHS`` -- whose own ratchet
     docstring records lazy resolvers as outside its scope. Before this floor part
     existed, a suite run inside a throwaway clone rewrote the machine-wide
-    ``kirocrew.json`` with that clone's venv and a per-test data home in ``env``, and
+    ``junction.json`` with that clone's venv and a per-test data home in ``env``, and
     every new session on the machine then failed ``internal_auth_mismatch`` once both
     were deleted (#4912).
     """
 
     def test_the_spec_write_target_is_not_the_operators_real_home(self) -> None:
-        from kiro_crew import agent
+        from junction import agent
 
         target = agent.kiro_agents_dir_path().resolve()
 
@@ -177,8 +177,8 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
         module that binds the name by hand is what proves the reach, not the
         definition site.
         """
-        from kiro_crew.config import paths
-        from kiro_crew.slack import handler
+        from junction.config import paths
+        from junction.slack import handler
 
         assert paths._agents_dir_override is not None, "the floor installed no override"
         assert handler.kiro_agents_dir is paths.kiro_agents_dir, (
@@ -212,7 +212,7 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
         instead of the tree they just built, which is how an earlier revision of this
         floor broke five test groups at once.
         """
-        from kiro_crew.config import paths
+        from junction.config import paths
 
         monkeypatch.setattr(pathlib.Path, "home", classmethod(lambda cls: tmp_path))
 
@@ -229,13 +229,13 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
         construction; this pins it so a future edit that re-spells the default in both
         places still has to keep them equal.
         """
-        from kiro_crew.config import paths
+        from junction.config import paths
 
         assert paths.kiro_agents_dir() == paths.ambient_agents_dir()
 
     def test_one_directory_is_shared_across_the_seams(self) -> None:
         """A spec written through one seam has to be readable through another."""
-        from kiro_crew import agent, agent_discovery
+        from junction import agent, agent_discovery
 
         assert agent.KIRO_AGENTS_DIR == agent_discovery._KIRO_AGENTS_DIR
 
@@ -250,7 +250,7 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
         a linked git worktree -- green in CI, red on a developer machine, which is the
         setup this repo mandates.
         """
-        from kiro_crew.config import paths
+        from junction.config import paths
 
         assert _inside_a_guarded_root(paths.ambient_agents_dir().resolve()), (
             "ambient_agents_dir followed the override; the write guard can no longer "
@@ -260,7 +260,7 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
             paths.kiro_agents_dir() != paths.ambient_agents_dir()
         ), "the two resolvers agree, so the guard's comparison proves nothing"
 
-        from kiro_crew import agent
+        from junction import agent
 
         assert agent._decline_shared_agent_home(audit=False) is None, (
             "the floor's pinned target is being treated as the shared agent home"
@@ -275,7 +275,7 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
         write guard is the one caller whose question is genuinely about the
         environment.
         """
-        allowed = {"kiro_crew/config/paths.py", "kiro_crew/agent.py"}
+        allowed = {"junction/config/paths.py", "junction/agent.py"}
         callers = set()
         for path in sorted(_SRC.rglob("*.py")):
             if "_vendor" in path.parts:
@@ -351,7 +351,7 @@ class TestTheAgentSpecHomeIsPinnedForEveryTestpath:
         self, tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The floor is a safety net, not a cage."""
-        from kiro_crew import agent
+        from junction import agent
 
         mine = tmp_path / "my-own-agents"
         monkeypatch.setattr(agent, "KIRO_AGENTS_DIR", mine)
@@ -363,7 +363,7 @@ class TestTheSharedKiroPathsArePinned:
     """``~/.kiro`` is kiro-cli's own home -- machine-wide, shared with the real agent.
 
     A test that writes ``~/.kiro/settings/mcp.json`` edits the MCP servers of the
-    operator's LIVE agent, and ``KIROCREW_HOME`` does not help: these paths are bound
+    operator's LIVE agent, and ``JUNCTION_HOME`` does not help: these paths are bound
     at import time from ``Path.home()``, before any test could set an env var.
     """
 
@@ -390,7 +390,7 @@ class TestTheSharedKiroPathsArePinned:
         exist. Pinning both is not enough on its own: they must land in the SAME
         directory, which is what this asserts.
         """
-        from kiro_crew.dashboard.handlers import mcp as mcp_mod
+        from junction.dashboard.handlers import mcp as mcp_mod
 
         assert mcp_mod._MCP_LOCK_PATH.parent == mcp_mod._GLOBAL_MCP_JSON.parent
 
@@ -427,15 +427,15 @@ class TestTheSharedKiroPathRatchet:
         # fixture. It has to move the whole macOS launchd set together (PLIST_DIR,
         # PLIST_PATH, LOG_DIR, STDOUT_LOG, STDERR_LOG, LIVE_PROGRAM) because both
         # consumers import them by value.
-        ("kiro_crew/service/macos.py", "PLIST_DIR"): "covered by _isolate_launchd_paths",
-        ("kiro_crew/service/macos.py", "LOG_DIR"): "covered by _isolate_launchd_paths",
+        ("junction/service/macos.py", "PLIST_DIR"): "covered by _isolate_launchd_paths",
+        ("junction/service/macos.py", "LOG_DIR"): "covered by _isolate_launchd_paths",
         # NOT a data path -- a security MATCHER compiled from the real home. It exists
         # to refuse `tar -C ~/.kiro/crew`, which can drop a `security_policy.json` or a
         # `profiles/` entry into the governance trust root. Pointing it at a tmp dir
         # would make every test that exercises it assert against a pattern that no
         # longer matches the thing it protects -- weakening the guard to satisfy an
         # isolation ratchet, which is backwards.
-        ("kiro_crew/security.py", "_EXTRACT_INTO_TRUST_ROOT_RE"): "security anchor: must name the REAL home",
+        ("junction/security.py", "_EXTRACT_INTO_TRUST_ROOT_RE"): "security anchor: must name the REAL home",
         # Also not redirectable: the home-anchoring IS the security property. These name
         # OTHER products' credential stores (kiro-cli, amazon-q), and the module's own
         # comment records that an entry either equals the home-anchored path inside
@@ -443,14 +443,14 @@ class TestTheSharedKiroPathRatchet:
         # so a redirected value would manufacture a forgeable "trusted" path. They are
         # only ever READ, and `test_kiro_usage_api.py` stubs the tuples per test, which
         # is the right seam: stub the READER, never move the anchor.
-        ("kiro_crew/dashboard/handlers/kiro_usage_api.py", "_CLI_SQLITE_DBS"): "security anchor: must name the REAL home",
-        ("kiro_crew/dashboard/handlers/kiro_usage_api.py", "_OTHER_SQLITE_DBS"): "security anchor: must name the REAL home",
+        ("junction/dashboard/handlers/kiro_usage_api.py", "_CLI_SQLITE_DBS"): "security anchor: must name the REAL home",
+        ("junction/dashboard/handlers/kiro_usage_api.py", "_OTHER_SQLITE_DBS"): "security anchor: must name the REAL home",
         # An ALLOW-LIST root, so the same rule applies from the other direction: the
         # file browser's first permitted root is the operator's real home BY DESIGN,
         # since that is the directory the user is entitled to browse. Redirecting it
         # would make every containment test assert against a root that does not ship.
         # Nothing here writes: the module reads the value to bound path resolution.
-        ("kiro_crew/apps/builtins/file_explorer/server.py", "_HOME"): "security anchor: the browsing allow-list root",
+        ("junction/apps/builtins/file_explorer/server.py", "_HOME"): "security anchor: the browsing allow-list root",
     }
 
     @staticmethod
@@ -556,7 +556,7 @@ class TestTheTempBaseIsRedirected:
     """
 
     @pytest.mark.skipif(
-        bool(os.environ.get("KIROCREW_TMP_PER_TEST")),
+        bool(os.environ.get("JUNCTION_TMP_PER_TEST")),
         reason="per-test diagnostic mode nests the base one level deeper on purpose",
     )
     def test_gettempdir_is_this_runs_own_root(self) -> None:
@@ -669,7 +669,7 @@ class TestTheTempResidueReport:
         screenshot spool lands here rather than in the real temp root. None of that is a
         test forgetting to clean up.
         """
-        for name in ("kirocrew-computer-shots", "playwright-transform-cache-1001",
+        for name in ("junction-computer-shots", "playwright-transform-cache-1001",
                      ".org.chromium.Chromium.AHpK6x"):
             (tmp_path / name).mkdir()
 
@@ -847,11 +847,11 @@ class TestLoggerLevelsAreRestored:
     """A logger's level is PROCESS-GLOBAL, per worker, and HIERARCHICAL.
 
     Together those are what make this leak class so hard to attribute. ``Logger.debug``
-    gates on the EFFECTIVE level, so an explicit level left on ``kiro_crew`` decides what
-    every ``kiro_crew.*`` logger in the worker may emit, and it outranks the root level
+    gates on the EFFECTIVE level, so an explicit level left on ``junction`` decides what
+    every ``junction.*`` logger in the worker may emit, and it outranks the root level
     ``caplog.at_level()`` sets -- the victim gets ``caplog.text == ""``, nothing at all
     rather than the wrong text, from a test that passes alone. The suite reaches this
-    through ``cli._setup_cli_logging``, which pins ``kiro_crew`` at WARNING, and which
+    through ``cli._setup_cli_logging``, which pins ``junction`` at WARNING, and which
     test modules across the suite run for real by driving ``cli.main()`` in process.
 
     ``conftest._restore_logger_levels`` is what removes the class; without a test, an edit
@@ -863,15 +863,15 @@ class TestLoggerLevelsAreRestored:
     independently and the observation passes vacuously.
     """
 
-    def test_this_test_starts_with_an_unconfigured_kiro_crew_logger(self) -> None:
+    def test_this_test_starts_with_an_unconfigured_junction_logger(self) -> None:
         """Which is only true if no earlier test on this worker left a level on it."""
-        assert logging.getLogger("kiro_crew").level == logging.NOTSET
+        assert logging.getLogger("junction").level == logging.NOTSET
 
     def test_a_leaked_level_does_not_reach_the_next_test(self) -> None:
         """Leaks one and deliberately restores nothing -- the floor's job, not ours."""
-        logging.getLogger("kiro_crew").setLevel(logging.WARNING)
+        logging.getLogger("junction").setLevel(logging.WARNING)
         _LOGGER_ORDER["leaked"] = True
-        assert logging.getLogger("kiro_crew").level == logging.WARNING
+        assert logging.getLogger("junction").level == logging.WARNING
 
     def test_the_next_test_sees_the_level_gone(self) -> None:
         """Reads what the previous test recorded. Ordered by definition order in the file."""
@@ -879,23 +879,23 @@ class TestLoggerLevelsAreRestored:
             "the leaking test did not run on this worker, so this assertion proves "
             "nothing -- the xdist_group mark on the class is what keeps them together"
         )
-        level = logging.getLogger("kiro_crew").level
+        level = logging.getLogger("junction").level
         assert level == logging.NOTSET, (
-            f"kiro_crew is still pinned at {logging.getLevelName(level)} -- every "
-            "kiro_crew.* record below that level is now dropped before it reaches the "
+            f"junction is still pinned at {logging.getLevelName(level)} -- every "
+            "junction.* record below that level is now dropped before it reaches the "
             "root handler caplog captures through"
         )
 
-    def test_a_debug_record_from_a_kiro_crew_logger_still_reaches_caplog(self, caplog) -> None:
+    def test_a_debug_record_from_a_junction_logger_still_reaches_caplog(self, caplog) -> None:
         """The capability the level restore exists to protect, asserted directly.
 
         The level assertion above pins the mechanism; this pins the OUTCOME, in the exact
         shape the victim test uses -- ``at_level`` on the root logger, a ``debug`` call on
-        a ``kiro_crew.*`` child -- so a future floor that restores something subtly
+        a ``junction.*`` child -- so a future floor that restores something subtly
         different still has to keep this working.
         """
         with caplog.at_level("DEBUG"):
-            logging.getLogger("kiro_crew.slack.gateway").debug("floor canary")
+            logging.getLogger("junction.slack.gateway").debug("floor canary")
         assert "floor canary" in caplog.text
 
 
@@ -1118,7 +1118,7 @@ class TestTheWorkerBudgetIsMemoryBounded:
         stops asserting anything on the macOS and Windows shards.
         """
         import xdist_budget as budget
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         monkeypatch.setattr(platform_compat, "IS_LINUX", True)
         monkeypatch.setattr(platform_compat, "IS_MACOS", False)
@@ -1168,9 +1168,9 @@ class TestTheWorkerBudgetIsMemoryBounded:
 
         # Imported in-body, not at module scope: this file's own ratchet asserts
         # that no import-time ``~/.kiro`` binding escapes the isolation fixtures,
-        # and importing kiro_crew during COLLECTION binds them against the real
+        # and importing junction during COLLECTION binds them against the real
         # home before any fixture has run.
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         monkeypatch.setattr(platform_compat, "IS_LINUX", True)
         monkeypatch.setattr(platform_compat, "IS_MACOS", False)
@@ -1197,7 +1197,7 @@ class TestTheWorkerBudgetIsMemoryBounded:
         silently dropping to one worker.
         """
         import xdist_budget as budget
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         monkeypatch.setattr(platform_compat, "IS_LINUX", False)
         monkeypatch.setattr(platform_compat, "IS_MACOS", False)

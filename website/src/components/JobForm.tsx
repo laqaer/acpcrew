@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { Input, SendBtn } from './ui'
 import { SettingsToggle } from './settings'
-import AgentSelector, { type KiroCrewAgent } from './AgentSelector'
+import AgentSelector, { type JunctionAgent } from './AgentSelector'
 import SimpleSelect from './SimpleSelect'
 import type { CronJob } from '../types'
 import type { CronPrefill } from '../utils/schedulePresets'
@@ -103,7 +103,7 @@ interface Props {
   job?: CronJob // if provided, edit mode
   /** Seed values for a NEW job (create mode). Ignored when `job` is set. */
   prefill?: CronPrefill
-  agents: KiroCrewAgent[]
+  agents: JunctionAgent[]
   defaultAgent: string
   onSaved: () => void
   /** Vertical layout for side panel, horizontal for inline create */

@@ -68,14 +68,14 @@ vi.mock('framer-motion', async () => {
 
 /* ── Mock api client ── */
 const mockApi = vi.hoisted(() => ({
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   agentsInstalled: vi.fn(),
   workspaces: vi.fn(),
-  kirocrewConfig: vi.fn(),
+  junctionConfig: vi.fn(),
   createWorkspace: vi.fn(),
-  createKirocrewAgent: vi.fn(),
-  updateKirocrewAgent: vi.fn(),
-  deleteKirocrewAgent: vi.fn(),
+  createJunctionAgent: vi.fn(),
+  updateJunctionAgent: vi.fn(),
+  deleteJunctionAgent: vi.fn(),
   agentResolvedModel: vi.fn(),
   setDefaultAgent: vi.fn(),
   createChatSlot: vi.fn(),
@@ -127,7 +127,7 @@ vi.mock('../components/SimpleSelect', () => ({
 }))
 
 
-import KiroCrewAgentsPage from '../pages/KiroCrewAgentsPage'
+import JunctionAgentsPage from '../pages/JunctionAgentsPage'
 import CrewAvatar from '../components/CrewAvatar'
 
 function createTestStore() {
@@ -143,7 +143,7 @@ function renderPage() {
     <QueryClientProvider client={qc}>
       <Provider store={store}>
         <MemoryRouter>
-          <KiroCrewAgentsPage />
+          <JunctionAgentsPage />
         </MemoryRouter>
       </Provider>
     </QueryClientProvider>,
@@ -154,8 +154,8 @@ function renderPage() {
    called "default": otherwise the literal "default" appears three times inside
    its own card and the `default` badge could not be asserted by text. */
 const DEFAULT_CREW = {
-  name: 'kirocrew',
-  kiro_agent: 'kirocrew',
+  name: 'junction',
+  kiro_agent: 'junction',
   workspace: 'core-ws',
   memory_store: 'core-mem',
 }
@@ -167,26 +167,26 @@ const OTHER_CREW = {
   model: 'claude-opus-5',
 }
 
-const AGENTS_RESPONSE = { agents: [DEFAULT_CREW, OTHER_CREW], default_agent: 'kirocrew' }
+const AGENTS_RESPONSE = { agents: [DEFAULT_CREW, OTHER_CREW], default_agent: 'junction' }
 const WORKSPACES_RESPONSE = {
   workspaces: [{ name: 'default' }, { name: 'core-ws' }, { name: 'oncall' }],
 }
-const INSTALLED_RESPONSE = [{ name: 'kirocrew' }, { name: 'oncall-agent' }]
+const INSTALLED_RESPONSE = [{ name: 'junction' }, { name: 'oncall-agent' }]
 const CONFIG_RESPONSE = { memory_stores: { default: {}, 'core-mem': {}, 'oncall-mem': {} } }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockApi.kirocrewAgents.mockResolvedValue(AGENTS_RESPONSE)
+  mockApi.junctionAgents.mockResolvedValue(AGENTS_RESPONSE)
   mockApi.agentsInstalled.mockResolvedValue(INSTALLED_RESPONSE)
   mockApi.workspaces.mockResolvedValue(WORKSPACES_RESPONSE)
-  mockApi.kirocrewConfig.mockResolvedValue(CONFIG_RESPONSE)
-  mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'kirocrew' })
+  mockApi.junctionConfig.mockResolvedValue(CONFIG_RESPONSE)
+  mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'junction' })
   mockApi.models.mockResolvedValue([{ model_name: 'claude-opus-5' }])
   // The mutation hooks read `.error` off the resolved body, so an undefined
   // resolution (a bare vi.fn()) would throw inside onSuccess.
-  mockApi.createKirocrewAgent.mockResolvedValue({})
-  mockApi.updateKirocrewAgent.mockResolvedValue({})
-  mockApi.deleteKirocrewAgent.mockResolvedValue({})
+  mockApi.createJunctionAgent.mockResolvedValue({})
+  mockApi.updateJunctionAgent.mockResolvedValue({})
+  mockApi.deleteJunctionAgent.mockResolvedValue({})
   mockApi.setDefaultAgent.mockResolvedValue({})
   mockApi.createWorkspace.mockResolvedValue({ name: 'staging' })
 })
@@ -196,7 +196,7 @@ async function renderRoster(expectCards = 2) {
   const rendered = renderPage()
   await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(expectCards))
   await waitFor(() => expect(mockApi.workspaces).toHaveBeenCalled())
-  await waitFor(() => expect(mockApi.kirocrewConfig).toHaveBeenCalled())
+  await waitFor(() => expect(mockApi.junctionConfig).toHaveBeenCalled())
   return rendered
 }
 
@@ -253,11 +253,11 @@ describe('crew editor — collision warning', () => {
     await user.click(within(sheet).getByRole('combobox', { name: 'Memory Store' }))
     await user.click(await screen.findByRole('option', { name: 'core-mem' }))
 
-    // kirocrew is already on core-mem, so the warning must name it immediately.
+    // junction is already on core-mem, so the warning must name it immediately.
     await waitFor(() =>
-      expect(within(sheet).getByText(/Also used by kirocrew/)).toBeInTheDocument(),
+      expect(within(sheet).getByText(/Also used by junction/)).toBeInTheDocument(),
     )
-    expect(mockApi.updateKirocrewAgent).not.toHaveBeenCalled()
+    expect(mockApi.updateJunctionAgent).not.toHaveBeenCalled()
 
     // The overview must agree with that warning about WHICH resource collides.
     // Reading a persisted per-agent count here instead of the in-flight value

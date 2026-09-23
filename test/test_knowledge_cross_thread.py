@@ -18,8 +18,8 @@ from datetime import datetime
 
 import pytest
 
-from kiro_crew.knowledge.retrieval import HybridRetriever
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction.knowledge.retrieval import HybridRetriever
+from junction.knowledge.store import KnowledgeStore
 
 
 @pytest.fixture()
@@ -79,7 +79,7 @@ def test_worker_thread_query_does_not_raise(store):
 
 def test_hybrid_retriever_search_from_executor_thread(store):
     """Mirror search_for_context: retriever.search dispatched to a worker pool."""
-    _add_item(store, "Gateway Restart Guide", "Restart the kirocrew gateway with systemctl.")
+    _add_item(store, "Gateway Restart Guide", "Restart the junction gateway with systemctl.")
     _add_item(store, "Unrelated Doc", "Nothing about the query terms here.")
 
     retriever = HybridRetriever(store)
@@ -145,7 +145,7 @@ def test_simpledigraph_reader_survives_concurrent_mutation():
     """A reader traversing the graph must not crash while another thread
     clears+rebuilds it. Pre-fix this raised RuntimeError: dictionary changed
     size during iteration."""
-    from kiro_crew.knowledge.store import SimpleDiGraph
+    from junction.knowledge.store import SimpleDiGraph
 
     g = SimpleDiGraph()
     for i in range(200):

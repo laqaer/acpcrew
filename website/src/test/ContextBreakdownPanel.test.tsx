@@ -7,7 +7,7 @@
  *    the legend drowns in sub-500-char rows.
  *  - the human slice is often a handful of characters; it must keep a floor
  *    width or "your message" silently disappears from every bar.
- *  - the non-KiroCrew remainder is an ESTIMATE (tokens->chars ratio) and must be
+ *  - the non-Junction remainder is an ESTIMATE (tokens->chars ratio) and must be
  *    marked as one wherever it shows.
  *  - an un-recorded session degrades to a readable empty state, not a crash.
  */
@@ -163,7 +163,7 @@ describe('ContextBreakdownPanel rendering', () => {
     expect(screen.queryByRole('tooltip')).toBeNull()
   })
 
-  it('marks the non-KiroCrew remainder as an estimate', () => {
+  it('marks the non-Junction remainder as an estimate', () => {
     const { container } = render(
       <ContextBreakdownPanel
         trace={trace({

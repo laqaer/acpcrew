@@ -10,13 +10,13 @@ this checkout.
 - **Bootstrap base:** `main` at `78424fb73` (see
   [`../../WORKING_BRIEF.md`](../../WORKING_BRIEF.md)).
 - **Multi-ACP:** already on `main`. Default `agent.acp_backend` is
-  `auto`. Registry: `src/kiro_crew/acp/runtimes.py`. Do not re-land it.
+  `auto`. Registry: `src/junction/acp/runtimes.py`. Do not re-land it.
   Facts: [`../../TREE.md`](../../TREE.md).
 
 ## What stays
 
 The Python gateway, dashboard, memory, cron, skills, MCP, governance, and
-the keystone. Package identifiers stay `kiro_crew` / `KIROCREW_HOME` /
+the keystone. Package identifiers stay `junction` / `JUNCTION_HOME` /
 `~/.kiro/crew` until a dedicated rename.
 
 `kiro-cli` remains a selectable ACP backend and is **not** required.

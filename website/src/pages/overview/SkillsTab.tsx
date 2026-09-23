@@ -45,12 +45,12 @@ const displayName = (s: Skill) => s.name.replace(/[-_]/g, ' ').replace(/\b\w/g, 
  *  skips those entirely — and for sources the dashboard cannot write.
  *
  *  `owned === false` is the backend's own write predicate: a skill reached
- *  through `skills.extra_paths` still reports `source: 'kirocrew'`, but
+ *  through `skills.extra_paths` still reports `source: 'junction'`, but
  *  `set_inject_on_trigger` refuses to rewrite it. Gating on the reported
  *  writability, not on source alone, is what keeps the UI from offering a
  *  toggle that always fails. */
 const canControlInjection = (s: Skill) =>
-  s.source === 'kirocrew' && !s.always && s.owned !== false
+  s.source === 'junction' && !s.always && s.owned !== false
 
 /** Short, human label for a skill's provenance — drives the source badge. */
 function sourceLabel(source: Skill['source']): string | null {
@@ -58,7 +58,7 @@ function sourceLabel(source: Skill['source']): string | null {
     case 'package': return i18nT('pages.overview.skillsTab.package')
     case 'kiro-user': return '~/.kiro/skills'
     case 'kiro-workspace': return i18nT('pages.overview.skillsTab.workspace')
-    default: return null  // kirocrew — the default home, no badge needed
+    default: return null  // junction — the default home, no badge needed
   }
 }
 
@@ -147,7 +147,7 @@ export default function SkillsTab() {
     },
   })
 
-  // Two groups: skills KiroCrew can edit (kirocrew + kiro-cli's own dirs) and
+  // Two groups: skills Junction can edit (junction + kiro-cli's own dirs) and
   // read-only AIM-package skills.  The text filter is applied to both.
   const { localSkills, packageSkills } = useMemo(() => {
     const q = skillFilter.toLowerCase()
@@ -312,7 +312,7 @@ export default function SkillsTab() {
               </div>
             ) : (
               <div className="flex flex-col h-full min-h-0">
-                {/* Detail header: name, source badge, Edit/Delete (kirocrew only) */}
+                {/* Detail header: name, source badge, Edit/Delete (junction only) */}
                 {/* Own row, same reason as the edit header: Edit and Delete
                     already fill this row's two-control budget. */}
                 {isMobile && (
@@ -327,7 +327,7 @@ export default function SkillsTab() {
                       <span className={`text-[11px] px-1.5 py-[1px] rounded-full font-bold shrink-0 ${selectedSkill.source === 'package' ? 'bg-aim-subtle text-aim border border-aim/30' : 'bg-bg-elevated text-muted border border-border'}`}>{sourceLabel(selectedSkill.source)}</span>
                     )}
                   </div>
-                  {selectedSkill.source === 'kirocrew' && (
+                  {selectedSkill.source === 'junction' && (
                     <div className="flex gap-2 shrink-0">
                       <Btn disabled={!detailReady} onClick={() => { setDetailEditing(true); setFormData(parseSkillContent(detailContent, selectedSkill.key)) }}>{i18nT('pages.overview.skillsTab.edit')}</Btn>
                       <Btn danger onClick={() => { if (confirm(i18nT('pages.overview.skillsTab.delete_confirm', { name: selectedSkill.key }))) deleteSkill.mutate(selectedSkill.key) }}>{i18nT('pages.overview.skillsTab.delete')}</Btn>

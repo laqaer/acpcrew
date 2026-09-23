@@ -6,8 +6,8 @@ import json
 import os
 import time
 
-from kiro_crew import platform_compat, skill_usage
-from kiro_crew.skill_usage import (
+from junction import platform_compat, skill_usage
+from junction.skill_usage import (
     _MAX_AGE_SECS,
     SkillUsageLedger,
 )

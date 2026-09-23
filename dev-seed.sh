@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copy the KiroCrew data home into .kirocrew-dev/ for local development.
+# Copy the Junction data home into .kirocrew-dev/ for local development.
 # Safe to re-run — wipes .kirocrew-dev first so you get a clean snapshot.
 #
 # Usage: ./dev-seed.sh
@@ -36,4 +36,4 @@ echo "Copying $SRC → .kirocrew-dev/ ..."
 cp -R "$SRC" "$DST"
 
 echo "Done. Start the gateway with:"
-echo "  KIROCREW_HOME=.kirocrew-dev bin/kirocrew gateway"
+echo "  JUNCTION_HOME=.kirocrew-dev bin/junction gateway"

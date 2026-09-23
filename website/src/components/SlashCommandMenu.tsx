@@ -132,7 +132,7 @@ interface Props {
  *   in `interceptSlashCommand`.
  * - QUICK PROMPT (`/plain`): a backend MACRO. The message IS sent, unchanged, and
  *   `ContextBuilder.build_message` swaps the token for the instruction it stands
- *   for (`src/kiro_crew/quick_prompts.py`). It must therefore stay OUT of
+ *   for (`src/junction/quick_prompts.py`). It must therefore stay OUT of
  *   `interceptSlashCommand` — intercepting it would stop it ever reaching the
  *   expansion — and out of the kiro-cli passthrough set, which would forward it
  *   to a harness that has no such command.

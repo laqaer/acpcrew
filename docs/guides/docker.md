@@ -6,15 +6,15 @@ as a headless container. It is the recommended way to run Junction
 24/7 on a server or NAS; the strongest fit is the always-on channel bot that
 does not need a desktop session. A vendor agent CLI is optional.
 
-The image publishes at `ghcr.io/laqaer/kirocrew` when the Docker lane runs.
+The image publishes at `ghcr.io/laqaer/junction` when the Docker lane runs.
 Until a tag exists, build from `docker/Dockerfile` after `make wheel`. Start
 the gateway:
 
 ```
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
-  -v kirocrew-home:/home/kirocrew \
-  ghcr.io/laqaer/kirocrew:stable
+  -v junction-home:/home/junction \
+  ghcr.io/laqaer/junction:stable
 ```
 
 Or with compose: copy [`docker/compose.yaml`](../../docker/compose.yaml) and run
@@ -37,7 +37,7 @@ for. Every published manifest carries SLSA build
 provenance — verify with:
 
 ```
-gh attestation verify oci://ghcr.io/laqaer/kirocrew:stable --repo laqaer/junction
+gh attestation verify oci://ghcr.io/laqaer/junction:stable --repo laqaer/junction
 ```
 
 ## First-run setup
@@ -50,7 +50,7 @@ Two one-time steps after the container is up:
    docker exec -it junction <vendor-cli> login
    ```
 
-   Credentials persist in the `kirocrew-home` volume, so login survives
+   Credentials persist in the `junction-home` volume, so login survives
    container upgrades. A vendor agent CLI is optional.
 
 2. **Open the dashboard** — every request requires a token; mint a login
@@ -74,14 +74,14 @@ home). Pass them with `-e` / compose `environment:`:
 
 | Variable | Purpose |
 |----------|---------|
-| `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `KIROCREW_OWNER_ID` | Slack bot (Socket Mode) |
+| `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `JUNCTION_OWNER_ID` | Slack bot (Socket Mode) |
 | `DISCORD_BOT_TOKEN` | Discord bot |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot |
 | `WECOM_BOT_ID`, `WECOM_SECRET` | WeCom bot |
 | `WEBEX_BOT_TOKEN` | Webex bot |
-| `KIROCREW_PORT` | Dashboard port (default 5476) |
-| `KIROCREW_BIND` | Bind address inside the container (image default `0.0.0.0`; see below) |
-| `KIROCREW_ALLOW_UNSANDBOXED` | Set `1` to explicitly allow agent exec without the inner sandbox (see Sandbox below) |
+| `JUNCTION_PORT` | Dashboard port (default 5476) |
+| `JUNCTION_BIND` | Bind address inside the container (image default `0.0.0.0`; see below) |
+| `JUNCTION_ALLOW_UNSANDBOXED` | Set `1` to explicitly allow agent exec without the inner sandbox (see Sandbox below) |
 
 Credential hygiene: on every start the entrypoint moves the channel
 credentials it finds in the environment into the data home's `.env` file
@@ -99,12 +99,12 @@ browser. The image ships no text editor, so edit those from the host —
 copy the file out, change it, copy it back, restart:
 
 ```
-docker cp junction:/home/kirocrew/.kiro/crew/config.json .
+docker cp junction:/home/junction/.kiro/crew/config.json .
 # edit config.json locally, then:
-docker cp config.json junction:/home/kirocrew/.kiro/crew/config.json
+docker cp config.json junction:/home/junction/.kiro/crew/config.json
 # docker cp writes the file root-owned; hand it back to the gateway user
 # (uid 1000) or the dashboard can never save settings again:
-docker exec -u 0 junction chown kirocrew:kirocrew /home/kirocrew/.kiro/crew/config.json
+docker exec -u 0 junction chown junction:junction /home/junction/.kiro/crew/config.json
 docker restart junction
 ```
 
@@ -114,7 +114,7 @@ which need no file edit at all.)
 ## State and upgrades
 
 All persistent state — gateway home (`~/.kiro/crew`), kiro-cli credentials,
-agents, skills — lives under `/home/kirocrew`. One named volume covers all
+agents, skills — lives under `/home/junction`. One named volume covers all
 of it. Upgrade by pulling the newer image; state carries over:
 
 ```
@@ -126,7 +126,7 @@ the version selector (channel tags track their channel; version tags pin).
 
 ## Networking and security model
 
-- **Why `KIROCREW_BIND=0.0.0.0`:** outside Docker the gateway binds
+- **Why `JUNCTION_BIND=0.0.0.0`:** outside Docker the gateway binds
   loopback only. Inside a container, published ports (`-p`) map to the
   container's bridge interface, so a loopback bind would be unreachable
   from the host. The image therefore binds all interfaces **inside the
@@ -152,7 +152,7 @@ the version selector (channel tags track their channel; version tags pin).
   probe paths.
 - **Exposing beyond localhost:** publishing `5476:5476` opens the TCP
   port, but LAN browsers will still be rejected until their origin is
-  allowed — set `dashboard.url` (or `KIROCREW_CORS_ORIGINS`) to the
+  allowed — set `dashboard.url` (or `JUNCTION_CORS_ORIGINS`) to the
   address you browse from. The supported pattern is a TLS reverse proxy
   in front with `dashboard.url` set to its origin, exactly as for a
   non-container deployment.
@@ -164,7 +164,7 @@ the version selector (channel tags track their channel; version tags pin).
   stays DISABLED (fail-closed) — the gateway, dashboard, and channel bots
   run normally. To enable agents in that situation, either permit user
   namespaces (see **Sandbox troubleshooting** below) or restart with
-  `-e KIROCREW_ALLOW_UNSANDBOXED=1` to explicitly accept unsandboxed agent
+  `-e JUNCTION_ALLOW_UNSANDBOXED=1` to explicitly accept unsandboxed agent
   execution. In the consented posture the container is the only isolation
   boundary: treat its contents (mounted volumes included) as reachable by
   agent commands, and do not mount host paths you would not hand to the
@@ -188,20 +188,20 @@ sandbox and writes one of three postures:
 | Probe result | Env var set? | Posture written | Agent execution |
 |---|---|---|---|
 | Sandbox works ✅ | — | `sandbox=auto` | Namespace-isolated |
-| No backend ❌ | `KIROCREW_ALLOW_UNSANDBOXED=1` | `sandbox_allow_unsandboxed_exec=true` | Allowed — container is the only boundary |
+| No backend ❌ | `JUNCTION_ALLOW_UNSANDBOXED=1` | `sandbox_allow_unsandboxed_exec=true` | Allowed — container is the only boundary |
 | No backend ❌ | _(not set)_ | `sandbox=auto` (default) | **Disabled** (fail-closed) |
 
 The startup log always states which posture was chosen:
 
 ```
 [entrypoint] sandbox probe: namespace backend available → sandbox=auto
-[entrypoint] sandbox probe: no backend (EPERM) → allow_unsandboxed_exec=true (KIROCREW_ALLOW_UNSANDBOXED consent)
-[entrypoint] sandbox probe: no backend (EPERM) → agent exec DISABLED (set KIROCREW_ALLOW_UNSANDBOXED=1 to enable)
+[entrypoint] sandbox probe: no backend (EPERM) → allow_unsandboxed_exec=true (JUNCTION_ALLOW_UNSANDBOXED consent)
+[entrypoint] sandbox probe: no backend (EPERM) → agent exec DISABLED (set JUNCTION_ALLOW_UNSANDBOXED=1 to enable)
 ```
 
 ### Option A — Junction seccomp profile (recommended)
 
-The repo ships `docker/seccomp/kirocrew-seccomp.json`: the Docker default
+The repo ships `docker/seccomp/junction-seccomp.json`: the Docker default
 allow-list extended with unconditional `unshare`, `clone`, and `mount` rules.
 This is strictly less permissive than `--security-opt seccomp=unconfined` or
 `--privileged` — all other Docker default restrictions apply.
@@ -209,8 +209,8 @@ This is strictly less permissive than `--security-opt seccomp=unconfined` or
 **Image-only users** (no repo checkout): download the profile directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/docker/seccomp/kirocrew-seccomp.json \
-  -o kirocrew-seccomp.json
+curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/docker/seccomp/junction-seccomp.json \
+  -o junction-seccomp.json
 ```
 
 Then start the container:
@@ -218,16 +218,16 @@ Then start the container:
 ```bash
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
-  -v kirocrew-home:/home/kirocrew \
-  --security-opt seccomp=docker/seccomp/kirocrew-seccomp.json \
-  ghcr.io/laqaer/kirocrew:stable
+  -v junction-home:/home/junction \
+  --security-opt seccomp=docker/seccomp/junction-seccomp.json \
+  ghcr.io/laqaer/junction:stable
 ```
 
-Or in compose (add to the `kirocrew` service):
+Or in compose (add to the `junction` service):
 
 ```yaml
 security_opt:
-  - seccomp:./docker/seccomp/kirocrew-seccomp.json
+  - seccomp:./docker/seccomp/junction-seccomp.json
 ```
 
 With this profile the inner sandbox runs normally and credential directories
@@ -241,9 +241,9 @@ runtime, Docker Desktop with restricted settings):
 ```bash
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
-  -v kirocrew-home:/home/kirocrew \
-  -e KIROCREW_ALLOW_UNSANDBOXED=1 \
-  ghcr.io/laqaer/kirocrew:stable
+  -v junction-home:/home/junction \
+  -e JUNCTION_ALLOW_UNSANDBOXED=1 \
+  ghcr.io/laqaer/junction:stable
 ```
 
 In this posture the container is the only isolation boundary. Do not mount
@@ -267,7 +267,7 @@ Check from inside a running container:
 
 ```bash
 docker exec junction python3 -c \
-  "from kiro_crew.sandbox import userns_available; print(userns_available())"
+  "from junction.sandbox import userns_available; print(userns_available())"
 ```
 
 - `True` → user namespaces work on the kernel; re-check your seccomp
@@ -279,11 +279,11 @@ docker exec junction python3 -c \
 
 ```bash
 # Check which posture was chosen at startup
-docker logs kirocrew | grep '\[entrypoint\]'
+docker logs junction | grep '\[entrypoint\]'
 
 # Live check from inside the container
 docker exec junction python3 -c \
-  "from kiro_crew.sandbox import detect_backend; print(detect_backend())"
+  "from junction.sandbox import detect_backend; print(detect_backend())"
 # Expected: "namespace" (inner sandbox active) or "none" (unsandboxed)
 ```
 
@@ -299,8 +299,8 @@ The image consumes a built wheel (never the raw source tree), keeping Docker
 bytes identical to pip bytes for a given version:
 
 ```
-make wheel                                   # builds dist/kirocrew-*.whl
-docker build -f docker/Dockerfile -t kirocrew:dev .
+make wheel                                   # builds dist/junction-*.whl
+docker build -f docker/Dockerfile -t junction:dev .
 ```
 
 The Dockerfile consumes the wheel through a BuildKit bind mount, so the build

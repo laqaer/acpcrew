@@ -217,7 +217,7 @@ describe('normalizeKey', () => {
   })
 
   it('leaves other channel namespaces intact', () => {
-    expect(normalizeKey('discord_kirocrew_direct_123')).toBe('discord_kirocrew_direct_123')
+    expect(normalizeKey('discord_junction_direct_123')).toBe('discord_junction_direct_123')
     expect(normalizeKey('teams_a_direct_b')).toBe('teams_a_direct_b')
     expect(normalizeKey('unified_42')).toBe('unified_42')
   })

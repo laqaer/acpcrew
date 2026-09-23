@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.apps.builtins.auto_triage_pipeline.backend import pipeline_fold as fold
+from junction.apps.builtins.auto_triage_pipeline.backend import pipeline_fold as fold
 
 
 @pytest.fixture()

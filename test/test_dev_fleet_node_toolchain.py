@@ -5,7 +5,7 @@ Two symptoms, one cause. ``_trusted_bin`` fails closed on anything under
 tier — but Kiro Crew's own installer puts node under ``$HOME``, so:
 
 * Dev Fleet "Pull + build main" answered ``no trusted executable for 'npm'``;
-* ``kirocrew pod provision`` raised an unhandled ``FileNotFoundError: 'npm'``.
+* ``junction pod provision`` raised an unhandled ``FileNotFoundError: 'npm'``.
 
 The fix gives the node toolchain its own resolution tier. These tests pin the
 security boundary that makes that safe: the toolchain dirs reach the
@@ -22,8 +22,8 @@ from unittest.mock import patch
 
 import pytest
 
-import kiro_crew.apps.builtins.dev_fleet.server as mod
-from kiro_crew.pod import provision as prov
+import junction.apps.builtins.dev_fleet.server as mod
+from junction.pod import provision as prov
 
 
 def _fake_node_bin(d: Path) -> Path:
@@ -293,7 +293,7 @@ def test_provision_reports_a_remedy_instead_of_raising(tmp_path, monkeypatch, ca
     err = capsys.readouterr().err
     assert "npm not found" in err
     assert "ensure-node.sh" in err
-    assert "KIROCREW_NODE_BIN_DIR" in err
+    assert "JUNCTION_NODE_BIN_DIR" in err
 
 
 def test_build_dist_bails_out_when_npm_is_unresolvable(tmp_path, monkeypatch):

@@ -1,6 +1,6 @@
 """``api_session_tool_policy`` must not read the agent config on the gateway loop.
 
-A managed MCP server (kirocrew-core, kirocrew-cron) calls this endpoint to filter
+A managed MCP server (junction-core, junction-cron) calls this endpoint to filter
 its tool list per agent, so it runs on ordinary request traffic. The handler
 resolved the agent's config file inline::
 
@@ -25,7 +25,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.dashboard.handlers import sessions as sessions_mod
+from junction.dashboard.handlers import sessions as sessions_mod
 
 AGENT = "reviewer"
 

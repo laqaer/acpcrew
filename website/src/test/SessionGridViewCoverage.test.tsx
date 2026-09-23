@@ -442,7 +442,7 @@ describe('SessionGridView — picker list', () => {
 
   it('filters by title, key and agent', async () => {
     seedApi([
-      { key: 'a1', title: 'Alpha', agent: 'kirocrew' },
+      { key: 'a1', title: 'Alpha', agent: 'junction' },
       { key: 'b2', title: 'Bravo', agent: 'reviewer' },
     ])
     renderGrid(null)

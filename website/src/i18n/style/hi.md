@@ -46,7 +46,7 @@ before the Latin fallback so conjuncts render correctly.
 ## 3. Do not translate
 
 Product names stay in Latin script. The list is in `glossary.json` under `dnt`.
-`KiroCrew` / `Kiro Crew`, `MCP`, `Slack`, `GitHub` etc. must appear verbatim — do not transliterate
+`Junction` / `Kiro Crew`, `MCP`, `Slack`, `GitHub` etc. must appear verbatim — do not transliterate
 into Devanagari (not `किरोक्रू`).
 
 Checked by `glossary.test.ts`.

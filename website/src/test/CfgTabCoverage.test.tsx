@@ -1,5 +1,5 @@
 /**
- * KiroCrewCfgTab — the Kiro Crew config table on the developer page.
+ * JunctionCfgTab — the Kiro Crew config table on the developer page.
  *
  * The file sat at ~3% before this suite: only its module-level constants ran.
  * Everything below aims at the cold paths — the query error/loading boundaries,
@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor, fireEvent, within, act } from '@testing-library/react'
-import KiroCrewCfgTab from '../pages/overview/KiroCrewCfgTab'
+import JunctionCfgTab from '../pages/overview/JunctionCfgTab'
 import { renderWithProviders } from './helpers'
 import { api } from '../api/client'
 
@@ -90,9 +90,9 @@ const clone = (): typeof CFG => JSON.parse(JSON.stringify(CFG))
 
 function seed(cfg: Cfg = CFG, patched: Cfg = CFG) {
   const m = vi.mocked(api)
-  m.kirocrewConfig = vi.fn().mockResolvedValue(cfg)
+  m.junctionConfig = vi.fn().mockResolvedValue(cfg)
   m.patchConfig = vi.fn().mockResolvedValue(patched)
-  m.saveKirocrewConfig = vi.fn().mockResolvedValue({ ok: true })
+  m.saveJunctionConfig = vi.fn().mockResolvedValue({ ok: true })
   // ThemeProvider (installed by renderWithProviders) boots its own query; the
   // automock would resolve undefined, which React Query rejects out loud.
   m.themeBoot = vi.fn().mockResolvedValue({})
@@ -101,7 +101,7 @@ function seed(cfg: Cfg = CFG, patched: Cfg = CFG) {
 
 /** Render and wait for the first table to replace the skeleton. */
 async function renderTab() {
-  const view = renderWithProviders(<KiroCrewCfgTab />)
+  const view = renderWithProviders(<JunctionCfgTab />)
   expect(await screen.findByText('Junction Agents')).toBeInTheDocument()
   return view
 }
@@ -139,13 +139,13 @@ beforeEach(() => {
 })
 
 // ── Query boundaries ─────────────────────────────────────────────────────
-describe('KiroCrewCfgTab — query boundaries', () => {
+describe('JunctionCfgTab — query boundaries', () => {
   it('shows a skeleton until the config resolves', async () => {
     const m = vi.mocked(api)
     let release: (v: unknown) => void = () => {}
-    m.kirocrewConfig = vi.fn().mockReturnValue(new Promise((res) => { release = res }))
+    m.junctionConfig = vi.fn().mockReturnValue(new Promise((res) => { release = res }))
 
-    const { container } = renderWithProviders(<KiroCrewCfgTab />)
+    const { container } = renderWithProviders(<JunctionCfgTab />)
     expect(container.querySelector('.skeleton')).not.toBeNull()
     expect(screen.queryByText('Junction Agents')).toBeNull()
 
@@ -156,24 +156,24 @@ describe('KiroCrewCfgTab — query boundaries', () => {
 
   it('renders an Error rejection by its message', async () => {
     const m = vi.mocked(api)
-    m.kirocrewConfig = vi.fn().mockRejectedValue(new Error('config file unreadable'))
+    m.junctionConfig = vi.fn().mockRejectedValue(new Error('config file unreadable'))
 
-    renderWithProviders(<KiroCrewCfgTab />)
+    renderWithProviders(<JunctionCfgTab />)
     expect(await screen.findByText('config file unreadable')).toBeInTheDocument()
     expect(screen.queryByText('Config Summary')).toBeNull()
   })
 
   it('stringifies a non-Error rejection', async () => {
     const m = vi.mocked(api)
-    m.kirocrewConfig = vi.fn().mockRejectedValue('gateway offline')
+    m.junctionConfig = vi.fn().mockRejectedValue('gateway offline')
 
-    renderWithProviders(<KiroCrewCfgTab />)
+    renderWithProviders(<JunctionCfgTab />)
     expect(await screen.findByText('gateway offline')).toBeInTheDocument()
   })
 })
 
 // ── The three read-only tables ───────────────────────────────────────────
-describe('KiroCrewCfgTab — tables', () => {
+describe('JunctionCfgTab — tables', () => {
   it('lists agents, badges the default one, and em-dashes a blank template', async () => {
     await renderTab()
     const agents = tables()[0]
@@ -239,7 +239,7 @@ describe('KiroCrewCfgTab — tables', () => {
 })
 
 // ── CfgNumber validation + commit ────────────────────────────────────────
-describe('KiroCrewCfgTab — numeric rows', () => {
+describe('JunctionCfgTab — numeric rows', () => {
   it('rejects a non-numeric value without patching', async () => {
     await renderTab()
 
@@ -314,7 +314,7 @@ describe('KiroCrewCfgTab — numeric rows', () => {
 })
 
 // ── CfgSelect + CfgToggle ────────────────────────────────────────────────
-describe('KiroCrewCfgTab — select and toggle rows', () => {
+describe('JunctionCfgTab — select and toggle rows', () => {
   it('patches the selected option for the row that owns it', async () => {
     const updated = clone()
     updated.agent.sandbox = 'off'
@@ -380,7 +380,7 @@ describe('KiroCrewCfgTab — select and toggle rows', () => {
       expect(screen.getAllByText('read-only config')).toHaveLength(2)
     })
     // onError also invalidates the config query, so it refetches.
-    await waitFor(() => expect(m.kirocrewConfig).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(m.junctionConfig).toHaveBeenCalledTimes(2))
   })
 
   it('applies defaults for the keys an older config file omits', async () => {
@@ -413,7 +413,7 @@ describe('KiroCrewCfgTab — select and toggle rows', () => {
 })
 
 // ── SubagentSettings ─────────────────────────────────────────────────────
-describe('KiroCrewCfgTab — subagent settings', () => {
+describe('JunctionCfgTab — subagent settings', () => {
   const saveBtn = () => screen.getByRole('button', { name: 'Save' })
 
   it('keeps Save disabled until something actually differs', async () => {
@@ -436,19 +436,19 @@ describe('KiroCrewCfgTab — subagent settings', () => {
     fireEvent.click(saveBtn())
 
     expect(await screen.findByText('Saved')).toBeInTheDocument()
-    expect(m.saveKirocrewConfig).toHaveBeenCalledWith({
+    expect(m.saveJunctionConfig).toHaveBeenCalledWith({
       subagent_max_turns: 150,
       max_subagents: 3,
       subagent_auto_max: 16,
       conductor_skill: true,
     })
     // onSaved invalidates the config query.
-    await waitFor(() => expect(m.kirocrewConfig).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(m.junctionConfig).toHaveBeenCalledTimes(2))
   })
 
   it('shows a rejection returned in the payload', async () => {
     const m = vi.mocked(api)
-    m.saveKirocrewConfig = vi.fn().mockResolvedValue({ error: 'value out of range' })
+    m.saveJunctionConfig = vi.fn().mockResolvedValue({ error: 'value out of range' })
 
     await renderTab()
     fireEvent.change(num('Max Turns per Subagent'), { target: { value: '7' } })
@@ -456,12 +456,12 @@ describe('KiroCrewCfgTab — subagent settings', () => {
 
     expect(await screen.findByText('value out of range')).toBeInTheDocument()
     // A rejected save must not refetch as if it had landed.
-    expect(m.kirocrewConfig).toHaveBeenCalledTimes(1)
+    expect(m.junctionConfig).toHaveBeenCalledTimes(1)
   })
 
   it('shows a thrown save error and re-enables the button', async () => {
     const m = vi.mocked(api)
-    m.saveKirocrewConfig = vi.fn().mockRejectedValue(new Error('socket hang up'))
+    m.saveJunctionConfig = vi.fn().mockRejectedValue(new Error('socket hang up'))
 
     await renderTab()
     fireEvent.change(num('Max Concurrent Subagents'), { target: { value: '5' } })
@@ -473,7 +473,7 @@ describe('KiroCrewCfgTab — subagent settings', () => {
 
   it('stringifies a non-Error thrown by the save call', async () => {
     const m = vi.mocked(api)
-    m.saveKirocrewConfig = vi.fn().mockRejectedValue('gateway went away')
+    m.saveJunctionConfig = vi.fn().mockRejectedValue('gateway went away')
 
     await renderTab()
     fireEvent.change(num('Max Turns per Subagent'), { target: { value: '9' } })

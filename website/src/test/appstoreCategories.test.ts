@@ -69,7 +69,7 @@ describe('pickFeatured', () => {
     const apps = [
       app({ name: 'flagged', featured: true }),
       app({ name: 'hero', heroImage: '/x.png' }),
-      app({ name: 'verified', author: 'kirocrew' }),
+      app({ name: 'verified', author: 'junction' }),
       app({ name: 'plain' }),
     ]
     // flagged first, then hero-art app, then verified
@@ -115,18 +115,18 @@ describe('provenance helpers', () => {
     expect(sourceLabel({})).toBe('Junction registry')
   })
 
-  it('verifies built-ins and kirocrew-authored core apps only', () => {
+  it('verifies built-ins and junction-authored core apps only', () => {
     expect(isVerified({ origin: 'builtin', author: 'x' })).toBe(true)
-    expect(isVerified({ author: 'KiroCrew' })).toBe(true)
+    expect(isVerified({ author: 'Junction' })).toBe(true)
     expect(isVerified({ author: 'random' })).toBe(false)
   })
 
   it('never lets an EXTERNAL registry self-award the verified mark', () => {
-    // An external app.json claiming author "KiroCrew" must not be badged as
+    // An external app.json claiming author "Junction" must not be badged as
     // first-party — the badge sits next to an Install that runs setup code
     // with gateway privileges.
-    expect(isVerified({ author: 'KiroCrew', _registry: 'evil-registry' })).toBe(false)
-    expect(isVerified({ author: 'kirocrew', _registry: 'kirodotdev-labs' })).toBe(false)
+    expect(isVerified({ author: 'Junction', _registry: 'evil-registry' })).toBe(false)
+    expect(isVerified({ author: 'junction', _registry: 'kirodotdev-labs' })).toBe(false)
   })
 
   it('rejects a forged origin: "builtin" from an external registry entry', () => {
@@ -196,7 +196,7 @@ describe('server-computed trust fields (issue #580)', () => {
   it('isVerified prefers the server verified field over client derivation', () => {
     // Server verified:false wins over a spoofed author/origin — the server
     // computed it where _registry is authoritative.
-    expect(isVerified({ author: 'KiroCrew', verified: false })).toBe(false)  // brand-ok: author-spoof fixture
+    expect(isVerified({ author: 'Junction', verified: false })).toBe(false)  // brand-ok: author-spoof fixture
     expect(isVerified({ origin: 'builtin', verified: false })).toBe(false)
     // Server verified:true wins over an author that would fail the fallback.
     expect(isVerified({ author: 'random', verified: true })).toBe(true)
@@ -252,7 +252,7 @@ describe('server-computed trust fields (issue #580)', () => {
   it('legacy rows (older gateway, no server fields) derive exactly as before', () => {
     // Back-compat proof: without provenance/verified, results match the
     // pre-#580 client derivation (the untouched suites above double as this).
-    expect(isVerified({ author: 'KiroCrew' })).toBe(true)  // brand-ok: author-spoof fixture
+    expect(isVerified({ author: 'Junction' })).toBe(true)  // brand-ok: author-spoof fixture
     expect(isVerified({ origin: 'builtin', author: 'x' })).toBe(true)
     expect(isVerified({ author: 'random' })).toBe(false)
     expect(sourceLabel({ origin: 'builtin' })).toBe('Built-in')

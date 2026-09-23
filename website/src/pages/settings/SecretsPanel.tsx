@@ -31,7 +31,7 @@ const j = async (r: Response) => {
   }
   return r.json()
 }
-const _sk = { 'X-Session-Key': localStorage.getItem('kiro_crew_token') || '' }
+const _sk = { 'X-Session-Key': localStorage.getItem('junction_token') || '' }
 const get = (url: string) => fetch(url, { headers: { ..._sk } })
 const post = (url: string, body?: object) =>
   fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ..._sk }, body: JSON.stringify(body) })

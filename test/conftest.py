@@ -14,9 +14,9 @@ import warnings
 import pytest
 from hypothesis import HealthCheck, settings
 
-from kiro_crew.safety_override import reset_singleton as _reset_safety_override
-from kiro_crew.slack.client import SlackClientOps
-from kiro_crew.slack.handler import _PHASE_EMOJIS, _build_phase_emojis
+from junction.safety_override import reset_singleton as _reset_safety_override
+from junction.slack.client import SlackClientOps
+from junction.slack.handler import _PHASE_EMOJIS, _build_phase_emojis
 
 if os.name == "nt":
 
@@ -124,13 +124,13 @@ def posix_test_shell() -> str:
 
 
 # ── Windows CI ──────────────────────────────────────────────────────────
-# The backend runs natively on Windows (kiro_crew.platform_compat), but a
+# The backend runs natively on Windows (junction.platform_compat), but a
 # handful of suites exercise POSIX-only-by-design features (OS-level
 # sandbox, process groups / PGID semantics, PTY, AF_UNIX sockets -- see
 # docs/guides/windows-install.md's per-feature table). Skip collecting them on
 # Windows rather than marking test-by-test: several fail at import or
 # fixture time on win32.
-from kiro_crew import platform_compat  # noqa: E402
+from junction import platform_compat  # noqa: E402
 
 if platform_compat.IS_WINDOWS:
     # Read from windows-collect-ignore.txt rather than an inline list: the CI
@@ -191,7 +191,7 @@ def make_dir_link(link: pathlib.Path, target: pathlib.Path) -> None:
 #: ``pytest_collection_modifyitems`` -- which applies the
 #: ``windows-expected-failures.txt`` skips -- lives in the ROOTDIR ``conftest.py``.
 #: That list already names node ids under
-#: ``src/kiro_crew/apps/builtins/auto_improvement/tests/``, and a hook rooted here never
+#: ``src/junction/apps/builtins/auto_improvement/tests/``, and a hook rooted here never
 #: runs when only those in-package tests are collected (which is exactly what CI's
 #: reduced-scope Windows job does on a frontend-only diff), so the skips silently did
 #: not apply where they were needed.
@@ -246,7 +246,7 @@ def _isolate_aim_skills_dir(monkeypatch):
     autouse it made every one of the suite's ~26k tests allocate a temp directory it
     never touched -- the single largest fixed cost in the suite's setup path.
     """
-    from kiro_crew.platform.defaults import DefaultMcpToolingProvider
+    from junction.platform.defaults import DefaultMcpToolingProvider
 
     monkeypatch.setattr(DefaultMcpToolingProvider, "extra_skills", lambda self: [])
 
@@ -401,7 +401,7 @@ def _reset_safety_override_between_tests():
 def _reset_degraded_config_observations():
     """Forget the loader's process-sticky malformed-config observations.
 
-    ``kiro_crew.config.loader`` remembers every malformed config section it has
+    ``junction.config.loader`` remembers every malformed config section it has
     ever seen for the LIFE OF THE PROCESS (deliberately: ``load()``'s migration
     repairs the file on first read, so the observation is the only surviving
     evidence, and the publish gate fails closed on it). Tests share one
@@ -414,7 +414,7 @@ def _reset_degraded_config_observations():
     ``reset_degraded_observations`` documents tests as its only legitimate
     caller; this fixture is that caller.
     """
-    from kiro_crew.config.loader import reset_degraded_observations
+    from junction.config.loader import reset_degraded_observations
 
     reset_degraded_observations()
     yield
@@ -442,7 +442,7 @@ def _restore_autonudge_singleton():
     Retiring the leaked instance's timers goes through ``_cancel_timer``, which is the one
     place that knows a task on a closed loop must be dropped rather than cancelled.
     """
-    from kiro_crew import autonudge as _an
+    from junction import autonudge as _an
 
     inherited = _an._INSTANCE
     try:
@@ -466,7 +466,7 @@ def _reset_reasoning_effort_globals():
     through ``_sync_effort_levels`` -> ``update_reasoning_effort_values``;
     without this, a level like ``"extreme"`` leaks into the global and poisons
     validation tests sharing the xdist worker (e.g. test_chat_slot_reasoning_effort)."""
-    import kiro_crew.dashboard.chat_persistence as _cp
+    import junction.dashboard.chat_persistence as _cp
 
     saved_values = set(_cp._reasoning_effort_values)
     saved_ordered = list(_cp._reasoning_effort_ordered)
@@ -477,10 +477,10 @@ def _reset_reasoning_effort_globals():
         _cp._reasoning_effort_ordered = saved_ordered
 
 
-#: ``_isolation_root`` / ``_isolation_dirs`` / ``_isolate_kirocrew_home`` live in the
+#: ``_isolation_root`` / ``_isolation_dirs`` / ``_isolate_junction_home`` live in the
 #: ROOTDIR ``conftest.py``, not here. The data home has to be pinned for every
 #: testpath, including the ~108 test modules that ship inside the package under
-#: ``src/kiro_crew/apps/builtins/*/tests/`` and never see this file. The fixtures
+#: ``src/junction/apps/builtins/*/tests/`` and never see this file. The fixtures
 #: below still request ``_isolation_dirs`` and resolve it up the hierarchy.
 
 
@@ -496,7 +496,7 @@ def _disable_dev_fleet_background_tasks(monkeypatch):
     (issue #1832). A test that wants the real refresher overrides this itself
     via ``monkeypatch.setattr(mod, "_background_tasks_disabled", lambda: False)``.
     """
-    monkeypatch.setenv("KIROCREW_DEVFLEET_NO_BACKGROUND", "1")
+    monkeypatch.setenv("JUNCTION_DEVFLEET_NO_BACKGROUND", "1")
 
 
 @pytest.fixture(autouse=True)
@@ -523,7 +523,7 @@ def _isolate_kiro_window_cache():
     disk — so a local run matches CI. Tests that need entries seed them in their
     own body.
     """
-    import kiro_crew.model_registry as _mr
+    import junction.model_registry as _mr
 
     saved = dict(_mr._KIRO_WINDOWS)
     _mr._KIRO_WINDOWS.clear()
@@ -555,7 +555,7 @@ def _isolate_message_entry_cache():
     The byte counter is part of the same state, so resetting only the dict would
     leave the memory ceiling mis-accounted and evict a healthy cache.
     """
-    from kiro_crew.dashboard import chat_persistence as _cp
+    from junction.dashboard import chat_persistence as _cp
 
     _cp._entry_cache.clear()
     _cp._entry_cache_bytes = 0
@@ -581,7 +581,7 @@ def _disarm_agent_slice_memory_high():
     switch and restore all four state globals after, so tests of the
     reconciler itself can re-arm explicitly in their own body.
     """
-    import kiro_crew.sandbox as _sb
+    import junction.sandbox as _sb
 
     saved_disabled = _sb._SLICE_MEMHIGH_DISABLED
     saved_applied = _sb._SLICE_MEMHIGH_APPLIED
@@ -601,7 +601,7 @@ def _disarm_agent_slice_memory_high():
 def _reset_options_control_state():
     """Clear the per-message OPTIONS registries between tests.
 
-    ``kiro_crew.slack.outbound`` holds two process-global maps keyed by
+    ``junction.slack.outbound`` holds two process-global maps keyed by
     ``(channel, ts)``: the per-message edit lock, and the once-only answer claim
     that stops a second Send click dispatching a duplicate turn. Both are
     correct as process state in the gateway, where a control's ts is unique and
@@ -612,7 +612,7 @@ def _reset_options_control_state():
     control and every later test's click is silently dropped as a duplicate.
     Reset per test rather than making production defensive about it.
     """
-    from kiro_crew.slack import outbound
+    from junction.slack import outbound
 
     outbound._ANSWERED.clear()
     outbound._EDIT_LOCKS.clear()
@@ -754,9 +754,9 @@ def _git_identity(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture(autouse=True)
 def _enterprise_bypass(monkeypatch: pytest.MonkeyPatch) -> None:
     """Set a default validated team_id so _route_message doesn't reject messages."""
-    monkeypatch.setattr("kiro_crew.slack.enterprise._validated_team_id", "TTEST")
-    monkeypatch.setattr("kiro_crew.slack.enterprise._validated_enterprise_id", "ETEST")
-    monkeypatch.setattr("kiro_crew.slack.enterprise._allowed_team_ids", {"TTEST"})
+    monkeypatch.setattr("junction.slack.enterprise._validated_team_id", "TTEST")
+    monkeypatch.setattr("junction.slack.enterprise._validated_enterprise_id", "ETEST")
+    monkeypatch.setattr("junction.slack.enterprise._allowed_team_ids", {"TTEST"})
 
 
 @pytest.fixture(autouse=True)
@@ -791,7 +791,7 @@ def _clean_slack_thread_state():
     Clearing before and after every test makes each hermetic regardless of
     scheduling. Idempotent with per-file fixtures that already clear a subset.
     """
-    from kiro_crew.slack import handler as _h
+    from junction.slack import handler as _h
 
     for _m in (_h._thread_temporary, _h._thread_incognito, _h._titled_threads, _h._thread_agents):
         _m.clear()
@@ -966,17 +966,17 @@ def _fake_computer_use_backend():
 
     MODULE-scoped, not function-scoped, deliberately: the registration is a
     single module-global assignment plus a singleton drop, and paying that (plus
-    the ``kiro_crew.testing.fake_computer_use`` import) on all ~16k tests would
+    the ``junction.testing.fake_computer_use`` import) on all ~16k tests would
     be pure overhead. Any test that swaps the backend itself is responsible for
     restoring it (see that file's ``restore_registry`` fixture) — a
     function-scoped fixture here would paper over such a leak instead of letting
     it fail.
     """
-    from kiro_crew.computer_use.backend import (
+    from junction.computer_use.backend import (
         register_computer_use_backend,
         reset_shared_backend,
     )
-    from kiro_crew.testing.fake_computer_use import FakeComputerUseBackend
+    from junction.testing.fake_computer_use import FakeComputerUseBackend
 
     register_computer_use_backend(FakeComputerUseBackend)
     reset_shared_backend()
@@ -993,7 +993,7 @@ def _reset_platform_context(monkeypatch):
     must not leak it into the next test.  ``current_context()`` lazily rebuilds
     the standalone default on next access.
 
-    Also pins ``KIROCREW_PROFILE=standalone`` by default so a dev box that has a
+    Also pins ``JUNCTION_PROFILE=standalone`` by default so a dev box that has a
     real SSO-marker directory does not make ``boot_platform`` resolve the
     ``amazon`` profile and fail closed (no companion installed) for the many
     pre-existing tests that drive ``run_gateway`` / boot.  A test that wants the
@@ -1001,10 +1001,10 @@ def _reset_platform_context(monkeypatch):
     runs after this autouse fixture), or composes the context directly via
     ``set_context`` without booting.
     """
-    from kiro_crew.platform.bootstrap import _reset_boot_state
-    from kiro_crew.platform.context import reset_context
+    from junction.platform.bootstrap import _reset_boot_state
+    from junction.platform.context import reset_context
 
-    monkeypatch.setenv("KIROCREW_PROFILE", "standalone")
+    monkeypatch.setenv("JUNCTION_PROFILE", "standalone")
     reset_context()
     _reset_boot_state()
     yield
@@ -1050,7 +1050,7 @@ def _no_release_feed_network(monkeypatch: pytest.MonkeyPatch) -> None:
     fires ``_do_update_check`` as a background task once
     ``_UPDATE_CHECK_INTERVAL`` has elapsed (and ``_last_update_check`` starts at
     ``0.0``, so the first call always qualifies), and any direct call in a test
-    env with no ``KIROCREW_PROJECT_DIR`` takes the feed branch by definition.
+    env with no ``JUNCTION_PROJECT_DIR`` takes the feed branch by definition.
 
     Without this fixture the suite would make real HTTPS requests to
     ``updates.crew.kiro.dev`` — slow, flaky, offline-hostile, and CI traffic
@@ -1067,11 +1067,11 @@ def _no_release_feed_network(monkeypatch: pytest.MonkeyPatch) -> None:
     async def _refuse(url: str) -> tuple[int, bytes]:
         raise AssertionError(
             f"test reached the real release feed ({url}) — stub "
-            "kiro_crew.dashboard.handlers.updates._fetch_feed_bytes instead"
+            "junction.dashboard.handlers.updates._fetch_feed_bytes instead"
         )
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.updates._fetch_feed_bytes", _refuse, raising=True
+        "junction.dashboard.handlers.updates._fetch_feed_bytes", _refuse, raising=True
     )
 
 
@@ -1106,7 +1106,7 @@ def _no_live_catalog_network(monkeypatch: pytest.MonkeyPatch):
     ``_no_release_feed_network`` above, this is a NETWORK guard first and a
     diagnostic second.
     """
-    from kiro_crew.apps import official_catalog
+    from junction.apps import official_catalog
 
     original = official_catalog._open_catalog
 
@@ -1114,7 +1114,7 @@ def _no_live_catalog_network(monkeypatch: pytest.MonkeyPatch):
         url = getattr(req, "full_url", repr(req))
         raise AssertionError(
             f"test reached the live app catalog ({url}) — stub "
-            "kiro_crew.apps.official_catalog.fetch_document (or a higher "
+            "junction.apps.official_catalog.fetch_document (or a higher "
             "seam such as inventory_for_install) instead"
         )
 
@@ -1141,7 +1141,7 @@ def named_cron_caller(monkeypatch):
     owner onto its fake job instead of hardcoding this value.
     """
     key = "dashboard:conftest-slot"
-    monkeypatch.setenv("KIROCREW_SESSION_KEY", key)
+    monkeypatch.setenv("JUNCTION_SESSION_KEY", key)
     return key
 
 
@@ -1176,8 +1176,8 @@ def healthy_host_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     still goes red. A test that is actually ABOUT either guard patches it in its
     own body, which lands on top of this and reverts to it.
     """
-    import kiro_crew.resource_status as resource_status
-    import kiro_crew.subagent as subagent
+    import junction.resource_status as resource_status
+    import junction.subagent as subagent
 
     real_check = subagent.check_memory_available
 

@@ -19,8 +19,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.messaging.driver import APPROVAL_AUTO, APPROVAL_INTERACTIVE
-from kiro_crew.wecom.gateway import (
+from junction.messaging.driver import APPROVAL_AUTO, APPROVAL_INTERACTIVE
+from junction.wecom.gateway import (
     _allowed_userids,
     _resolve_approval_mode,
     maybe_start_wecom,
@@ -80,7 +80,7 @@ def _never_open_a_socket(monkeypatch):
     async def fake_start(self) -> None:
         started.append(True)
 
-    monkeypatch.setattr("kiro_crew.wecom.client.WeComClient.start", fake_start)
+    monkeypatch.setattr("junction.wecom.client.WeComClient.start", fake_start)
     return started
 
 
@@ -165,7 +165,7 @@ class TestStartup:
         async def fake_start(self) -> None:
             order.append("connect")
 
-        monkeypatch.setattr("kiro_crew.wecom.client.WeComClient.start", fake_start)
+        monkeypatch.setattr("junction.wecom.client.WeComClient.start", fake_start)
 
         class RecordingState(FakeState):
             def __setattr__(self, name: str, value: Any) -> None:
@@ -185,7 +185,7 @@ class TestStartup:
         async def boom(self) -> None:
             raise RuntimeError("ws refused")
 
-        monkeypatch.setattr("kiro_crew.wecom.client.WeComClient.start", boom)
+        monkeypatch.setattr("junction.wecom.client.WeComClient.start", boom)
         state = FakeState()
 
         assert await maybe_start_wecom(_orch(state=state)) is None
@@ -235,7 +235,7 @@ class TestSkipReasonWarning:
     """
 
     def test_enabled_without_credentials_warns_once_naming_both(self, caplog) -> None:
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.wecom.gateway"):
+        with caplog.at_level(logging.WARNING, logger="junction.wecom.gateway"):
             warn_if_wecom_uncredentialed(True, "", "")
         warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
         assert len(warnings) == 1
@@ -246,7 +246,7 @@ class TestSkipReasonWarning:
     def test_a_missing_secret_is_named_alone_and_the_present_value_never_leaks(
         self, caplog
     ) -> None:
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.wecom.gateway"):
+        with caplog.at_level(logging.WARNING, logger="junction.wecom.gateway"):
             warn_if_wecom_uncredentialed(True, "bot-1", "")
         warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
         assert len(warnings) == 1
@@ -257,7 +257,7 @@ class TestSkipReasonWarning:
         assert "bot-1" not in msg
 
     def test_a_missing_bot_id_is_named_alone(self, caplog) -> None:
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.wecom.gateway"):
+        with caplog.at_level(logging.WARNING, logger="junction.wecom.gateway"):
             warn_if_wecom_uncredentialed(True, "", "sec-1")
         warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
         assert len(warnings) == 1
@@ -267,14 +267,14 @@ class TestSkipReasonWarning:
         assert "sec-1" not in msg
 
     def test_a_disabled_channel_logs_nothing_at_all(self, caplog) -> None:
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.wecom.gateway"):
+        with caplog.at_level(logging.DEBUG, logger="junction.wecom.gateway"):
             warn_if_wecom_uncredentialed(False, "", "")
-        assert [r for r in caplog.records if r.name == "kiro_crew.wecom.gateway"] == []
+        assert [r for r in caplog.records if r.name == "junction.wecom.gateway"] == []
 
     def test_a_fully_credentialed_channel_logs_nothing(self, caplog) -> None:
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.wecom.gateway"):
+        with caplog.at_level(logging.DEBUG, logger="junction.wecom.gateway"):
             warn_if_wecom_uncredentialed(True, "bot-1", "sec-1")
-        assert [r for r in caplog.records if r.name == "kiro_crew.wecom.gateway"] == []
+        assert [r for r in caplog.records if r.name == "junction.wecom.gateway"] == []
 
     @pytest.mark.asyncio
     async def test_the_factory_itself_stays_silent_for_an_uncredentialed_state(
@@ -282,6 +282,6 @@ class TestSkipReasonWarning:
     ) -> None:
         # The registry never calls the factory when _wecom_enabled is False, so
         # the factory must not duplicate the warning (one WARNING per boot).
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.wecom.gateway"):
+        with caplog.at_level(logging.DEBUG, logger="junction.wecom.gateway"):
             assert await maybe_start_wecom(_orch(enabled=False)) is None
-        assert [r for r in caplog.records if r.name == "kiro_crew.wecom.gateway"] == []
+        assert [r for r in caplog.records if r.name == "junction.wecom.gateway"] == []

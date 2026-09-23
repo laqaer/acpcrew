@@ -12,7 +12,7 @@ What must hold:
   watchlist-changed publish via the mtime watch.
 - A neutralize entry carries ``disabled: true`` so the denied server is never
   launched, and keeps ``disabledTools`` as defense in depth.
-- An app agent's ``@kirocrew-cron`` / ``@kirocrew-core`` tool references get
+- An app agent's ``@junction-cron`` / ``@junction-core`` tool references get
   their server specs materialized (they live in the HOST agent config, so the
   reference dangles without the copy).
 """
@@ -27,8 +27,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.apps.builtins.mochi import hooks
-from kiro_crew.apps.builtins.mochi.queue_poller import QueuePoller
+from junction.apps.builtins.mochi import hooks
+from junction.apps.builtins.mochi.queue_poller import QueuePoller
 
 
 class TestOwnerLoopNeverAwaitsPoll:
@@ -117,7 +117,7 @@ class TestWatchlistMtimeWatch:
 
 class TestNeutralizeDisablesServer:
     def test_neutralize_entry_is_disabled_and_keeps_tool_deny(self, monkeypatch):
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         monkeypatch.setattr(
             bridges, "_global_mcp_specs", lambda: {"amb": {"command": "amb-cmd", "args": []}}
@@ -137,25 +137,25 @@ class TestNeutralizeDisablesServer:
 
 class TestManagedRefsMaterialized:
     def test_managed_tool_refs_get_specs(self):
-        from kiro_crew.apps.bridges import _materialize_managed_refs
+        from junction.apps.bridges import _materialize_managed_refs
 
-        data: dict[str, Any] = {"tools": ["fs_read", "@kirocrew-cron", "@kirocrew-core"]}
+        data: dict[str, Any] = {"tools": ["fs_read", "@junction-cron", "@junction-core"]}
         _materialize_managed_refs(data)
-        assert data["mcpServers"]["kirocrew-cron"]["args"][-1] == "mcp-cron"
-        assert data["mcpServers"]["kirocrew-core"]["args"][-1] == "mcp-core"
+        assert data["mcpServers"]["junction-cron"]["args"][-1] == "mcp-cron"
+        assert data["mcpServers"]["junction-core"]["args"][-1] == "mcp-core"
 
     def test_existing_entry_is_not_overwritten(self):
-        from kiro_crew.apps.bridges import _materialize_managed_refs
+        from junction.apps.bridges import _materialize_managed_refs
 
         data: dict[str, Any] = {
-            "tools": ["@kirocrew-cron"],
-            "mcpServers": {"kirocrew-cron": {"command": "custom"}},
+            "tools": ["@junction-cron"],
+            "mcpServers": {"junction-cron": {"command": "custom"}},
         }
         _materialize_managed_refs(data)
-        assert data["mcpServers"]["kirocrew-cron"]["command"] == "custom"
+        assert data["mcpServers"]["junction-cron"]["command"] == "custom"
 
     def test_unreferenced_managed_servers_stay_out(self):
-        from kiro_crew.apps.bridges import _materialize_managed_refs
+        from junction.apps.bridges import _materialize_managed_refs
 
         data: dict[str, Any] = {"tools": ["fs_read"]}
         _materialize_managed_refs(data)
@@ -181,16 +181,16 @@ class TestNamespacedAgentFileCheck:
     """
 
     def test_namespaced_file_with_matching_name_counts(self, tmp_path, monkeypatch):
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.dashboard.handlers.agents import _namespaced_agent_file_exists
+        import junction.agent as agent_mod
+        from junction.dashboard.handlers.agents import _namespaced_agent_file_exists
 
         monkeypatch.setattr(agent_mod, "KIRO_AGENTS_DIR", tmp_path)
         (tmp_path / "someapp--helper.json").write_text(json.dumps({"name": "helper"}))
         assert _namespaced_agent_file_exists("helper") is True
 
     def test_name_mismatch_does_not_count(self, tmp_path, monkeypatch):
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.dashboard.handlers.agents import _namespaced_agent_file_exists
+        import junction.agent as agent_mod
+        from junction.dashboard.handlers.agents import _namespaced_agent_file_exists
 
         monkeypatch.setattr(agent_mod, "KIRO_AGENTS_DIR", tmp_path)
         # File name pattern matches but the JSON name field is different —
@@ -199,8 +199,8 @@ class TestNamespacedAgentFileCheck:
         assert _namespaced_agent_file_exists("helper") is False
 
     def test_unreadable_file_does_not_count(self, tmp_path, monkeypatch):
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.dashboard.handlers.agents import _namespaced_agent_file_exists
+        import junction.agent as agent_mod
+        from junction.dashboard.handlers.agents import _namespaced_agent_file_exists
 
         monkeypatch.setattr(agent_mod, "KIRO_AGENTS_DIR", tmp_path)
         (tmp_path / "someapp--helper.json").write_text("{not json")
@@ -216,7 +216,7 @@ class TestMergeWriteHonorsConcurrentReset:
     """
 
     def test_merge_write_writes_nothing_when_queue_reset_concurrently(self, tmp_path):
-        from kiro_crew.apps.builtins.mochi.queue_poller import QueuePoller
+        from junction.apps.builtins.mochi.queue_poller import QueuePoller
 
         class _CB:
             pass

@@ -9,7 +9,7 @@ statically, executes it in a restricted namespace under hard ceilings, and strea
 a typed event journal that drives the UI, the chat `workflow_*` MCP tools, and
 resume.
 
-The subsystem lives in `src/kiro_crew/workflows/` (12 modules). This file is the
+The subsystem lives in `src/junction/workflows/` (12 modules). This file is the
 **frozen contract** those modules cite: `workflows/__init__.py` declares the `ctx`
 Protocol and the event vocabulary and points here, `events.py` says the per-type
 `data` field table lives here, and `validate.py` says never to relax a check here
@@ -56,11 +56,11 @@ runner       (may import: __init__, validate, dsl, events, context, schema, regi
 service      (may import: validate, registry, runner, agent_exec, agent_pool, store)
 ```
 
-The same test forbids the engine from importing `kiro_crew.dashboard.state` or
-`kiro_crew.dashboard.ws` directly, so progress leaves the engine only through the
+The same test forbids the engine from importing `junction.dashboard.state` or
+`junction.dashboard.ws` directly, so progress leaves the engine only through the
 injected event sink. `agent_exec`, `agent_pool`, and `store` are **optional
 adapters**, not engine layers: `store.py` and `runner.py` import
-`kiro_crew.config` / `kiro_crew.sel` / `kiro_crew.security` inside `try/except
+`junction.config` / `junction.sel` / `junction.security` inside `try/except
 ImportError` and degrade to a default or a no-op, so the engine stays importable
 standalone.
 
@@ -551,7 +551,7 @@ swallowed, because a bad subscriber must not break a run.
 `WorkflowRunStore` persists **one self-contained JSON file per run** at
 `<workflows dir>/runs/<run_id>.json`. The directory resolves from a `workflows.dir`
 config key when present, else `<config_dir>/workflows` (so `~/.kiro/crew/workflows`
-by default, honoring `KIROCREW_HOME`).
+by default, honoring `JUNCTION_HOME`).
 
 > Open question: `default_workflows_dir()` reads `cfg.workflows.dir` defensively
 > through `getattr`, but the shipped config dataclass has no `workflows` section,
@@ -625,7 +625,7 @@ would otherwise truncate it mid-statement.
 Authoring runs in a **fresh, isolated, ephemeral** session (`wf-author:<id>`), torn
 down with `cleanup=True` the instant it finishes, so a workflow's authoring context
 never pollutes (or is polluted by) chat, consolidation, or another run. It uses the
-tool-less `kirocrew-lite` agent with `ToolApprovalPolicy.REJECT_ALL`: the dominant
+tool-less `junction-lite` agent with `ToolApprovalPolicy.REJECT_ALL`: the dominant
 cold-start cost is loading the full MCP toolset and system prompt, and authoring is
 pure text generation, so lite is what makes a fresh session cheap. `REJECT_ALL` is
 belt-and-suspenders against an alternate ACP backend injecting tools without
@@ -792,7 +792,7 @@ breaks consumers with no warning.
 
 A re-freeze must update, in the same change:
 
-1. `src/kiro_crew/workflows/__init__.py` (the contract itself),
+1. `src/junction/workflows/__init__.py` (the contract itself),
 2. this spec, and
 3. **`test/test_workflows_conformance.py`** (the conformance test).
 

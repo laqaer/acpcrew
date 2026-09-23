@@ -36,10 +36,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.apps.builtins.ops_mission_control.backend import ledger
-from kiro_crew.apps.builtins.ops_mission_control.backend import ledger_sync as ls
-from kiro_crew.apps.builtins.ops_mission_control.backend import providers
-from kiro_crew.apps.builtins.ops_mission_control.backend.models import LedgerEntry
+from junction.apps.builtins.ops_mission_control.backend import ledger
+from junction.apps.builtins.ops_mission_control.backend import ledger_sync as ls
+from junction.apps.builtins.ops_mission_control.backend import providers
+from junction.apps.builtins.ops_mission_control.backend.models import LedgerEntry
 
 #: The real coroutine, captured before any fixture swaps it for the fake. The handful of
 #: tests that cover ``_git``'s OWN body call this rather than the module attribute.
@@ -111,7 +111,7 @@ def omc(tmp_path, monkeypatch):
     """
     data = tmp_path / "data"
     data.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     monkeypatch.setattr(ledger, "app_data_dir", lambda *_a, **_k: data)
 
     policy: dict[str, Any] = {}

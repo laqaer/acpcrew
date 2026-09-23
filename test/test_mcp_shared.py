@@ -11,8 +11,8 @@ from unittest.mock import patch
 
 import pytest
 
-import kiro_crew.mcp_shared as mcp_shared
-from kiro_crew.mcp_shared import _read_message, respond
+import junction.mcp_shared as mcp_shared
+from junction.mcp_shared import _read_message, respond
 
 
 def _make_stdin(data: bytes):
@@ -504,7 +504,7 @@ class TestCallToolWithLoggingRedaction:
     log even when the per-tool handler only scrubbed its own egress copy."""
 
     def test_args_redacted_before_sel_log(self):
-        from kiro_crew.mcp_shared import call_tool_with_logging
+        from junction.mcp_shared import call_tool_with_logging
 
         captured = {}
 
@@ -520,14 +520,14 @@ class TestCallToolWithLoggingRedaction:
         def _inner(_name, _args):
             return "ok"
 
-        with patch("kiro_crew.mcp_shared.sel", return_value=_FakeSel()):
+        with patch("junction.mcp_shared.sel", return_value=_FakeSel()):
             call_tool_with_logging(
                 "artifact_post_comment",
                 {"slug": "doc", "text": f"leak {secret} here"},
                 _validate,
                 _inner,
                 session_key="mcp_core",
-                downstream_service="kirocrew-core",
+                downstream_service="junction-core",
             )
         # The raw AKIA credential must NOT appear in the logged resources.
         assert secret not in captured.get("resources", "")
@@ -544,7 +544,7 @@ class TestCallToolWithLoggingRedaction:
 # worker-thread + select() interleave is POSIX-only (the Windows loop
 # dispatches synchronously), so gate the class accordingly.
 
-from kiro_crew import platform_compat  # noqa: E402
+from junction import platform_compat  # noqa: E402
 
 
 class _LoopHarness:
@@ -735,7 +735,7 @@ def _initialize(req_id) -> dict:
 
 
 def _tools_call_with_caller(req_id, tool_name: str, session_key: str) -> dict:
-    from kiro_crew.mcp_caller import CallerContext, build_caller_meta
+    from junction.mcp_caller import CallerContext, build_caller_meta
 
     msg = _tools_call(req_id, tool_name)
     msg["params"]["_meta"] = build_caller_meta(
@@ -760,13 +760,13 @@ class TestStdioLoopCallerIdentity:
             assert harness.wait_for(lambda: len(harness.responses) >= 1)
             caps = harness.responses[0][1]["capabilities"]
             assert caps["experimental"] == {
-                "kirocrew.caller-identity": {"schemaVersion": 1}
+                "junction.caller-identity": {"schemaVersion": 1}
             }
         finally:
             harness.close()
 
     def test_initialize_omits_capability_by_default(self, monkeypatch):
-        # kirocrew-cron does NOT consume per-call identity — it must stay
+        # junction-cron does NOT consume per-call identity — it must stay
         # single-session (gatewayd refuses to pool non-advertising backends).
         harness = _LoopHarness(monkeypatch, lambda n, a: "ok")
         try:
@@ -779,7 +779,7 @@ class TestStdioLoopCallerIdentity:
     def test_tool_sees_current_caller_from_meta(self, monkeypatch):
         # The dispatch loop must install the gateway-injected caller for the
         # duration of the call and clear it afterwards.
-        from kiro_crew import mcp_caller
+        from junction import mcp_caller
 
         seen: list = []
 
@@ -878,7 +878,7 @@ class TestPerSessionToolPolicy:
 
         monkeypatch.setattr(mcp_shared, "loopback_urlopen", fake_urlopen)
         monkeypatch.setattr(
-            mcp_shared.KiroCrewConfig,
+            mcp_shared.JunctionConfig,
             "load",
             classmethod(lambda cls: type("C", (), {"dashboard": type("D", (), {"url": "http://localhost:5476"})()})()),
         )

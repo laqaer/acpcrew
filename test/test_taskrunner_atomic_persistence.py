@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from kiro_crew.taskrunner import Step, StepStatus, TaskRun, TaskRunner
+from junction.taskrunner import Step, StepStatus, TaskRun, TaskRunner
 
 
 def _make_runner(work_dir: Path) -> TaskRunner:
@@ -196,7 +196,7 @@ class TestAsyncMutationPersistence:
             write_threads.append(threading.get_ident())
             path.write_text(content, encoding="utf-8")
 
-        monkeypatch.setattr("kiro_crew.taskrunner.atomic_write", record_write)
+        monkeypatch.setattr("junction.taskrunner.atomic_write", record_write)
         asyncio.run(runner.update_plan("t1", [{"title": "updated"}]))
 
         assert write_threads

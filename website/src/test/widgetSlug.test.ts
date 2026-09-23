@@ -106,7 +106,7 @@ describe('effectiveWidgetSlug', () => {
 // ── Cross-language parity ───────────────────────────────────────────────────
 //
 // The backend auto-registers every chat-emitted <mcwidget> as an artifact keyed
-// by the SAME slug this module derives (src/kiro_crew/widget_slug.py). If the two
+// by the SAME slug this module derives (src/junction/widget_slug.py). If the two
 // implementations drift, every auto-registered artifact becomes invisible to the
 // probe in WidgetFrame and the star button creates a duplicate — the exact
 // save-then-refresh duplication the deterministic scheme exists to prevent.

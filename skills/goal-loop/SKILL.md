@@ -80,7 +80,7 @@ plain markdown directory you can hand-edit, but the loop's auto-claim /
 auto-move steps will fail and the agent will block every cycle. Install the
 CLI before arming the loop for unattended runs.
 
-**KiroCrew `autonudge_stop` MCP tool** — shipped with KiroCrew ≥ the
+**Junction `autonudge_stop` MCP tool** — shipped with Junction ≥ the
 autonudge CR. Used by the agent to self-halt when DoD is met. No extra
 install.
 

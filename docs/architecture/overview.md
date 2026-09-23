@@ -62,7 +62,7 @@ Three layers sit beneath a session, and the distinction matters:
 
 ### The agent hierarchy
 
-`kirocrew` is itself just an agent config, at the same level as any other. What
+`junction` is itself just an agent config, at the same level as any other. What
 makes it the coordinator is that the gateway defaults to it and it holds the MCP
 tools (`spawn_run`, `cron_add`, `task_run`) that ask the gateway to open sessions
 with other agents. The gateway code is agent-agnostic; coordination behavior
@@ -70,8 +70,8 @@ lives in the agent config.
 
 ```
 Junction Gateway
-  ├── CLI chat / channel DM        → agent.default_agent (falls back to kirocrew)
-  ├── Dashboard slot               → the slot's chosen agent (falls back to kirocrew)
+  ├── CLI chat / channel DM        → agent.default_agent (falls back to junction)
+  ├── Dashboard slot               → the slot's chosen agent (falls back to junction)
   ├── Cron job                     → per-job agent_id, or agent_sequence
   ├── Subagent (spawn_run)         → the spawn's `agent`, else the parent session's
   └── TaskRunner (task_run)        → the agent named when the plan starts
@@ -150,21 +150,21 @@ own PreToolUse gate before kiro-cli is allowed to run it. See
 
 | Path | Purpose |
 |---|---|
-| `src/kiro_crew/` | Python backend: gateway, sessions, memory, cron, MCP servers, built-in apps |
-| `src/kiro_crew/config/defaults.json`, `prompt.md` | Bundled base agent config and system prompt |
-| `src/kiro_crew/builtin_skills/` | Skills bundled into the package, copied to the data home on start |
-| `src/kiro_crew/static/dist/` | Staged frontend bundle served by the backend |
+| `src/junction/` | Python backend: gateway, sessions, memory, cron, MCP servers, built-in apps |
+| `src/junction/config/defaults.json`, `prompt.md` | Bundled base agent config and system prompt |
+| `src/junction/builtin_skills/` | Skills bundled into the package, copied to the data home on start |
+| `src/junction/static/dist/` | Staged frontend bundle served by the backend |
 | `website/` | React + TypeScript + Tailwind dashboard (Vite) |
 | `website/electron/` | Electron desktop shell |
-| `skills/` | Checkout-only reference skills, loaded via `KIROCREW_PROJECT_DIR`; not packaged |
-| `packages/` | Standalone SDK packages (`kirocrew-client-py`) |
+| `skills/` | Checkout-only reference skills, loaded via `JUNCTION_PROJECT_DIR`; not packaged |
+| `packages/` | Standalone SDK packages (`junction-client-py`) |
 | `packaging/`, `docker/` | Desktop bundle + container build inputs |
 | `scripts/` | Build tooling, linters, dev helpers |
 | `docs/` | Contributor and architecture docs (this tree) |
 | `test/` | pytest suite |
 
 A skill that a shipped feature depends on must live in
-`src/kiro_crew/builtin_skills/`; only `src/` is packaged, so a required skill
+`src/junction/builtin_skills/`; only `src/` is packaged, so a required skill
 placed in top-level `skills/` never reaches an installed user.
 
 ## Backend component map
@@ -262,7 +262,7 @@ graph TB
     end
 
     subgraph "kiro-cli Processes"
-        P1[kiro-cli acp --agent kirocrew]
+        P1[kiro-cli acp --agent junction]
         P2[kiro-cli acp --agent reviewer]
         P3[kiro-cli acp --agent ...]
     end
@@ -317,7 +317,7 @@ a surface a human is watching keeps its session, a background job must not.
 
 ### Shutdown order
 
-`kiro_crew.shutdown_event` (an `asyncio.Event`) is the process-wide signal; every
+`junction.shutdown_event` (an `asyncio.Event`) is the process-wide signal; every
 background loop waits on it so Ctrl-C wakes them immediately instead of at the
 next poll. `_shutdown()` in `slack/gateway.py` then tears down in a deliberate
 order, and the order is load-bearing:
@@ -392,7 +392,7 @@ heartbeat prunes files older than `memory.history_max_days` (default 365) off
 disk.
 
 **Embeddings are always-on and in-process**, computed by vendored
-llama-cpp-python under `src/kiro_crew/_vendor/`. `memory.embedding_provider`
+llama-cpp-python under `src/junction/_vendor/`. `memory.embedding_provider`
 accepts only `llama_cpp`; there is no external embedding daemon to install or
 configure, and legacy config values are migrated to `llama_cpp` on load. The
 `EmbeddingBackend` ABC is the swap seam for other runtimes.
@@ -466,7 +466,7 @@ Depth: [`security-deep-dive.md`](security-deep-dive.md),
 
 ## Platform layer (CPP seam)
 
-`src/kiro_crew/platform/` is the **Composed Platform Providers** seam. The core
+`src/junction/platform/` is the **Composed Platform Providers** seam. The core
 defines extension-point Protocols (`interfaces.py`) and ships a `Default*`
 adapter for each; `PlatformContext` (`context.py`) is the frozen bundle read via
 `current_context()`. The core never imports a companion edition and never
@@ -499,14 +499,14 @@ surface up there cannot be built as an app, the missing seam is the bug to file.
 
 **That boundary is enforced against the agent, not against app code.** Every
 control in the table gates the agent's tool-call surface. An app's Python runs in
-the gateway process: `src/kiro_crew/apps/module_loader.py:34-39` states that the
+the gateway process: `src/junction/apps/module_loader.py:34-39` states that the
 permission system "does NOT restrict `import`, filesystem, network, or access to
 in-memory credentials. Installing an app is therefore equivalent to granting it
 full gateway-process privileges." So the table says what no app may be *asked* to
 supply, and the mechanism that would stop one supplying it anyway does not exist
 yet — the keystone path list is a mutable module-level list
-(`src/kiro_crew/security.py:4436`), and app admission admits when no policy file
-is present (`src/kiro_crew/apps/admission.py:25-30`). Read the table as the
+(`src/junction/security.py:4436`), and app admission admits when no policy file
+is present (`src/junction/apps/admission.py:25-30`). Read the table as the
 intended boundary and
 [`../request-for-change/rfc-app-sandbox-isolation.md`](../request-for-change/rfc-app-sandbox-isolation.md)
 as the work that makes it real.
@@ -532,10 +532,10 @@ open against that standard today:
   `on_shutdown`) and `setup.onEnable` / `onDisable` are the in-gateway entry
   points, and none of them lets an app take a position in a flow the core owns.
   `HookManager` is built only from `config.json`'s `hooks` section
-  (`src/kiro_crew/hooks.py:931`) and exposes no registration path.
+  (`src/junction/hooks.py:931`) and exposes no registration path.
 - The platform states no version for its own app-facing surface.
-  `minKiroCrewVersion` is a floor an app declares about the gateway, checked at
-  install and update only (`src/kiro_crew/apps/manager.py:281`), so changing or
+  `minJunctionVersion` is a floor an app declares about the gateway, checked at
+  install and update only (`src/junction/apps/manager.py:281`), so changing or
   withdrawing a seam carries no compatibility promise in the other direction.
 - Manifest fields that nothing reads. `ui.sidebar.section` and `ui.sidebar.order`
   are documented and parsed, and the dashboard does not place apps by them, so
@@ -581,7 +581,7 @@ graph TB
   serves a `text/event-stream` response for a caller that does not pass `ws=1`,
   so the SSE path remains the non-WebSocket fallback.
 - **Bundling:** the production build is staged into
-  `src/kiro_crew/static/dist/` and served by the Python backend, so a `pip`
+  `src/junction/static/dist/` and served by the Python backend, so a `pip`
   install ships the dashboard.
 - **Desktop:** Electron wraps the same SPA with multi-tab `WebContentsView`.
 
@@ -592,7 +592,7 @@ Frontend conventions (icons, components, i18n, data fetching) live in
 
 ```mermaid
 graph LR
-    subgraph "KiroCrew (local)"
+    subgraph "Junction (local)"
         GW2[Gateway]
     end
 
@@ -627,7 +627,7 @@ there is no optional embedding service to stand up.
 
 ## Data home
 
-Persistent state lives under `~/.kiro/crew/` (override with `KIROCREW_HOME`).
+Persistent state lives under `~/.kiro/crew/` (override with `JUNCTION_HOME`).
 The root nests under kiro-cli's own `~/.kiro/` so every Kiro-family app shares
 one directory a user can secure; a legacy `~/.kirocrew` is migrated
 automatically. Selected entries:
@@ -670,45 +670,45 @@ detail; this table is only an index.
 
 | Subsystem | Owning source | Spec |
 |---|---|---|
-| ACP client (JSON-RPC transport to kiro-cli) | `src/kiro_crew/acp/` | [acp-client.md](../system-specs/modules/acp-client.md) |
-| App Kit platform contracts | `src/kiro_crew/apps/` | [app-kit-platform.md](../system-specs/modules/app-kit-platform.md) |
-| Artifacts (persisted generated UI) | `src/kiro_crew/artifacts.py` | [artifacts.md](../system-specs/modules/artifacts.md) |
-| Browser automation auth layer | `src/kiro_crew/browser/` | [browser.md](../system-specs/modules/browser.md) |
-| Channel history buffer | `src/kiro_crew/channel_history.py` | [channel-history.md](../system-specs/modules/channel-history.md) |
-| CLI surface | `src/kiro_crew/cli.py` | [cli.md](../system-specs/modules/cli.md) |
-| Cloud launcher (own EC2 instance) | `src/kiro_crew/cloud/` | [cloud.md](../system-specs/modules/cloud.md) |
-| Computer use (desktop GUI automation) | `src/kiro_crew/computer_use/` | [computer-use.md](../system-specs/modules/computer-use.md) |
-| Configuration (dataclasses, loader, schema) | `src/kiro_crew/config/` | [config.md](../system-specs/modules/config.md) |
-| Dev Fleet app | `src/kiro_crew/apps/builtins/dev_fleet/` | [dev-fleet.md](../system-specs/modules/dev-fleet.md) |
-| Governance model (POLICY ∩ PROFILE) | `src/kiro_crew/platform/governance.py` | [governance.md](../system-specs/modules/governance.md) |
-| Heartbeat (periodic background tasks) | `src/kiro_crew/heartbeat.py` | [heartbeat.md](../system-specs/modules/heartbeat.md) |
-| Conversation history (JSONL + consolidation) | `src/kiro_crew/history.py` | [history.md](../system-specs/modules/history.md) |
-| Instances (multi-instance over SSH) | `src/kiro_crew/instances/` | [instances.md](../system-specs/modules/instances.md) |
-| Issue Radar app | `src/kiro_crew/apps/builtins/issue_radar/` | [issue-radar.md](../system-specs/modules/issue-radar.md) |
-| Knowledge library (ingest + hybrid retrieval) | `src/kiro_crew/knowledge/` | [knowledge.md](../system-specs/modules/knowledge.md) |
-| Self-learning, cron, and dashboard API | `src/kiro_crew/learn.py`, `cron.py`, `dashboard/` | [learn-cron-dashboard.md](../system-specs/modules/learn-cron-dashboard.md) |
-| MCP Apps (interactive `ui://` rendering) | `src/kiro_crew/mcp_gateway/` | [mcp-apps.md](../system-specs/modules/mcp-apps.md) |
-| Markdown Notebook app | `src/kiro_crew/apps/builtins/md_notebook/` | [md-notebook.md](../system-specs/modules/md-notebook.md) |
-| Meetings app | `src/kiro_crew/apps/builtins/meetings/` | [meetings.md](../system-specs/modules/meetings.md) |
-| Memory, skills, and hooks | `src/kiro_crew/memory.py`, `skills.py`, `hooks.py` | [memory-skills-hooks.md](../system-specs/modules/memory-skills-hooks.md) |
-| Messaging transport abstraction | `src/kiro_crew/messaging/` | [messaging.md](../system-specs/modules/messaging.md) |
-| Metrics telemetry (default off) | `src/kiro_crew/metrics/` | [metrics.md](../system-specs/modules/metrics.md) |
-| Mochi app (desktop pet) | `src/kiro_crew/apps/builtins/mochi/` | [mochi.md](../system-specs/modules/mochi.md) |
-| Foreign-agent onboarding import | `src/kiro_crew/onboarding_import.py` | [onboarding-import.md](../system-specs/modules/onboarding-import.md) |
-| Papyrus app (LaTeX authoring) | `src/kiro_crew/apps/builtins/papyrus/` | [papyrus.md](../system-specs/modules/papyrus.md) |
-| Persistent agent channels | `src/kiro_crew/channel.py` | [persistent-agent-channels.md](../system-specs/modules/persistent-agent-channels.md) |
-| Platform context (CPP seam) | `src/kiro_crew/platform/` | [platform-context.md](../system-specs/modules/platform-context.md) |
-| PPTX Maker app | `src/kiro_crew/apps/builtins/pptx_maker/` | [pptx-maker.md](../system-specs/modules/pptx-maker.md) |
-| Providers (LLMProvider ABC + ACP provider) | `src/kiro_crew/providers/` | [providers.md](../system-specs/modules/providers.md) |
-| Security controls (deny rules, paths, auth) | `src/kiro_crew/security.py` | [security.md](../system-specs/modules/security.md) |
-| Security Event Log | `src/kiro_crew/sel.py` | [sel.md](../system-specs/modules/sel.md) |
-| Session manager (pool, expiry, compaction) | `src/kiro_crew/session.py` | [session.md](../system-specs/modules/session.md) |
-| Side conversations | `src/kiro_crew/dashboard/side_state.py` | [side.md](../system-specs/modules/side.md) |
-| Slack gateway and handler | `src/kiro_crew/slack/` | [slack-gateway.md](../system-specs/modules/slack-gateway.md) |
-| Subagents (parallel background agents) | `src/kiro_crew/subagent.py` | [subagent.md](../system-specs/modules/subagent.md) |
-| Task state machine | `src/kiro_crew/task.py` | [task.md](../system-specs/modules/task.md) |
-| TaskRunner (spec to plan to execution) | `src/kiro_crew/taskrunner.py` | [taskrunner.md](../system-specs/modules/taskrunner.md) |
-| Themes | `src/kiro_crew/dashboard/handlers/themes.py` | [themes.md](../system-specs/modules/themes.md) |
+| ACP client (JSON-RPC transport to kiro-cli) | `src/junction/acp/` | [acp-client.md](../system-specs/modules/acp-client.md) |
+| App Kit platform contracts | `src/junction/apps/` | [app-kit-platform.md](../system-specs/modules/app-kit-platform.md) |
+| Artifacts (persisted generated UI) | `src/junction/artifacts.py` | [artifacts.md](../system-specs/modules/artifacts.md) |
+| Browser automation auth layer | `src/junction/browser/` | [browser.md](../system-specs/modules/browser.md) |
+| Channel history buffer | `src/junction/channel_history.py` | [channel-history.md](../system-specs/modules/channel-history.md) |
+| CLI surface | `src/junction/cli.py` | [cli.md](../system-specs/modules/cli.md) |
+| Cloud launcher (own EC2 instance) | `src/junction/cloud/` | [cloud.md](../system-specs/modules/cloud.md) |
+| Computer use (desktop GUI automation) | `src/junction/computer_use/` | [computer-use.md](../system-specs/modules/computer-use.md) |
+| Configuration (dataclasses, loader, schema) | `src/junction/config/` | [config.md](../system-specs/modules/config.md) |
+| Dev Fleet app | `src/junction/apps/builtins/dev_fleet/` | [dev-fleet.md](../system-specs/modules/dev-fleet.md) |
+| Governance model (POLICY ∩ PROFILE) | `src/junction/platform/governance.py` | [governance.md](../system-specs/modules/governance.md) |
+| Heartbeat (periodic background tasks) | `src/junction/heartbeat.py` | [heartbeat.md](../system-specs/modules/heartbeat.md) |
+| Conversation history (JSONL + consolidation) | `src/junction/history.py` | [history.md](../system-specs/modules/history.md) |
+| Instances (multi-instance over SSH) | `src/junction/instances/` | [instances.md](../system-specs/modules/instances.md) |
+| Issue Radar app | `src/junction/apps/builtins/issue_radar/` | [issue-radar.md](../system-specs/modules/issue-radar.md) |
+| Knowledge library (ingest + hybrid retrieval) | `src/junction/knowledge/` | [knowledge.md](../system-specs/modules/knowledge.md) |
+| Self-learning, cron, and dashboard API | `src/junction/learn.py`, `cron.py`, `dashboard/` | [learn-cron-dashboard.md](../system-specs/modules/learn-cron-dashboard.md) |
+| MCP Apps (interactive `ui://` rendering) | `src/junction/mcp_gateway/` | [mcp-apps.md](../system-specs/modules/mcp-apps.md) |
+| Markdown Notebook app | `src/junction/apps/builtins/md_notebook/` | [md-notebook.md](../system-specs/modules/md-notebook.md) |
+| Meetings app | `src/junction/apps/builtins/meetings/` | [meetings.md](../system-specs/modules/meetings.md) |
+| Memory, skills, and hooks | `src/junction/memory.py`, `skills.py`, `hooks.py` | [memory-skills-hooks.md](../system-specs/modules/memory-skills-hooks.md) |
+| Messaging transport abstraction | `src/junction/messaging/` | [messaging.md](../system-specs/modules/messaging.md) |
+| Metrics telemetry (default off) | `src/junction/metrics/` | [metrics.md](../system-specs/modules/metrics.md) |
+| Mochi app (desktop pet) | `src/junction/apps/builtins/mochi/` | [mochi.md](../system-specs/modules/mochi.md) |
+| Foreign-agent onboarding import | `src/junction/onboarding_import.py` | [onboarding-import.md](../system-specs/modules/onboarding-import.md) |
+| Papyrus app (LaTeX authoring) | `src/junction/apps/builtins/papyrus/` | [papyrus.md](../system-specs/modules/papyrus.md) |
+| Persistent agent channels | `src/junction/channel.py` | [persistent-agent-channels.md](../system-specs/modules/persistent-agent-channels.md) |
+| Platform context (CPP seam) | `src/junction/platform/` | [platform-context.md](../system-specs/modules/platform-context.md) |
+| PPTX Maker app | `src/junction/apps/builtins/pptx_maker/` | [pptx-maker.md](../system-specs/modules/pptx-maker.md) |
+| Providers (LLMProvider ABC + ACP provider) | `src/junction/providers/` | [providers.md](../system-specs/modules/providers.md) |
+| Security controls (deny rules, paths, auth) | `src/junction/security.py` | [security.md](../system-specs/modules/security.md) |
+| Security Event Log | `src/junction/sel.py` | [sel.md](../system-specs/modules/sel.md) |
+| Session manager (pool, expiry, compaction) | `src/junction/session.py` | [session.md](../system-specs/modules/session.md) |
+| Side conversations | `src/junction/dashboard/side_state.py` | [side.md](../system-specs/modules/side.md) |
+| Slack gateway and handler | `src/junction/slack/` | [slack-gateway.md](../system-specs/modules/slack-gateway.md) |
+| Subagents (parallel background agents) | `src/junction/subagent.py` | [subagent.md](../system-specs/modules/subagent.md) |
+| Task state machine | `src/junction/task.py` | [task.md](../system-specs/modules/task.md) |
+| TaskRunner (spec to plan to execution) | `src/junction/taskrunner.py` | [taskrunner.md](../system-specs/modules/taskrunner.md) |
+| Themes | `src/junction/dashboard/handlers/themes.py` | [themes.md](../system-specs/modules/themes.md) |
 
 Smaller, feature-scoped specs live in
 [`../system-specs/features/`](../system-specs/features/), and cross-cutting
@@ -771,7 +771,7 @@ graph TB
     SESSION --> DISK
 ```
 
-The dashboard port default is 5476, overridable with `KIROCREW_PORT`.
+The dashboard port default is 5476, overridable with `JUNCTION_PORT`.
 
 ---
 

@@ -36,15 +36,15 @@ describe('selectSubagentActivityCount', () => {
   it('counts started agents in the active slot', () => {
     const store = makeStore()
     store.dispatch(setActiveSlot('a'))
-    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'kirocrew' }))
-    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x2', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'junction' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x2', task: 't', agent: 'junction' }))
     expect(count(store)).toBe(2)
   })
 
   it('counts agents in background slots too — the whole point of a rail dot', () => {
     const store = makeStore()
     store.dispatch(setActiveSlot('a'))
-    store.dispatch(sseSubagentSpawn({ slot: 'b', id: 'y1', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'b', id: 'y1', task: 't', agent: 'junction' }))
     expect(count(store)).toBe(1)
   })
 
@@ -53,7 +53,7 @@ describe('selectSubagentActivityCount', () => {
     // and slotActivity[active].subagents (same object reference).
     const store = makeStore()
     store.dispatch(setActiveSlot('a'))
-    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'junction' }))
     store.dispatch(switchSlot('a'))
     expect(count(store)).toBe(1)
   })
@@ -61,7 +61,7 @@ describe('selectSubagentActivityCount', () => {
   it('drops agents once they finish', () => {
     const store = makeStore()
     store.dispatch(setActiveSlot('a'))
-    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'junction' }))
     store.dispatch(sseSubagentDone({ slot: 'a', id: 'x1', elapsed: 3 }))
     expect(count(store)).toBe(0)
   })
@@ -78,7 +78,7 @@ describe('selectSubagentActivityCount', () => {
   it('sums started and queued across slots', () => {
     const store = makeStore()
     store.dispatch(setActiveSlot('a'))
-    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'a', id: 'x1', task: 't', agent: 'junction' }))
     store.dispatch(sseSubagentQueued({ slot: 'b', queued: 2 }))
     expect(count(store)).toBe(3)
   })

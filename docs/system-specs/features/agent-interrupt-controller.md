@@ -1,7 +1,7 @@
-# Agent Interrupt Controller (`kiro_crew.irq`)
+# Agent Interrupt Controller (`junction.irq`)
 
 Status: implemented (this PR)
-Owners: gateway core (`irq.py`), first probe (`builtin_skills/kirocrew-dev/babysit/scripts/pr_watch.py`)
+Owners: gateway core (`irq.py`), first probe (`builtin_skills/junction-dev/babysit/scripts/pr_watch.py`)
 
 ## 1. Problem
 
@@ -43,7 +43,7 @@ a shared module rather than in a file that gets copied.
 
 ## 2. Solution overview
 
-`kiro_crew.irq` is an interrupt controller for agent sessions. It owns
+`junction.irq` is an interrupt controller for agent sessions. It owns
 everything generic and leaves the caller exactly two domain decisions: what to
 poll, and what counts as an anomaly.
 
@@ -215,7 +215,7 @@ because an app that wants this shape otherwise hand-rolls the four things this
 module exists to get right — but it is published as provisional, not stable:
 expect `Observation` / `Tick` to gain fields once a second probe exercises them.
 
-`kiro_crew.irq` is a supported surface for external apps. An app that needs to
+`junction.irq` is a supported surface for external apps. An app that needs to
 watch something ships a script cron, subclasses `Probe`, and gets masking,
 coalescing, epoch resets, atomic state and the error backstop without writing
 any of them. `__all__` marks the surface; anything outside it is internal.
@@ -225,7 +225,7 @@ A complete probe:
 ```python
 import json
 
-from kiro_crew.irq import Observation, Probe, Severity, Tick, run
+from junction.irq import Observation, Probe, Severity, Tick, run
 
 
 class DeployProbe(Probe):

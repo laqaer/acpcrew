@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from kiro_crew.skills import AutoSkillProvenance, SkillsLoader
+from junction.skills import AutoSkillProvenance, SkillsLoader
 
 
 @pytest.fixture()
@@ -156,7 +156,7 @@ def test_noncanonical_pending_dir_name_is_hidden(loader):
 def test_stage_rolls_back_claim_on_write_failure(loader, monkeypatch):
     """A partial write (e.g. disk full) must not leave a claimed-but-empty
     pending dir that blocks re-staging the slug."""
-    import kiro_crew.skills as S
+    import junction.skills as S
 
     def _boom(**kw):
         raise OSError("disk full")
@@ -232,7 +232,7 @@ def test_redaction_breaking_script_aborts_promotion(loader, monkeypatch):
 def test_failed_move_restores_meta(loader, monkeypatch):
     """If the promotion move fails after .meta.json was removed, the metadata is
     restored so the candidate isn't stranded in pending without it."""
-    import kiro_crew.skills as S
+    import junction.skills as S
 
     _stage(loader, "movefail")
     meta = loader._pending_root() / "movefail" / ".meta.json"

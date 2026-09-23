@@ -15,8 +15,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.config.loader import KiroCrewAgentConfig, KiroCrewConfig
-from kiro_crew.dashboard.handlers.agents import api_agent_detail
+from junction.config.loader import JunctionAgentConfig, JunctionConfig
+from junction.dashboard.handlers.agents import api_agent_detail
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def _owner_caller(monkeypatch):
     its own enumerate-the-invariant coverage in
     test_agents_endpoints_owner_auth.py."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
@@ -45,9 +45,9 @@ def _agent_file(tmp_path, name: str):
     return f
 
 
-async def _delete(tmp_path, name: str, cfg: KiroCrewConfig):
-    with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path), patch.object(
-        KiroCrewConfig, "load", staticmethod(lambda: cfg)
+async def _delete(tmp_path, name: str, cfg: JunctionConfig):
+    with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path), patch.object(
+        JunctionConfig, "load", staticmethod(lambda: cfg)
     ):
         return await api_agent_detail(_delete_request(name))
 
@@ -55,7 +55,7 @@ async def _delete(tmp_path, name: str, cfg: KiroCrewConfig):
 @pytest.mark.asyncio
 async def test_delete_refuses_the_fallback_template(tmp_path):
     f = _agent_file(tmp_path, "scratch")
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.agent.default_agent = "scratch"
 
     resp = await _delete(tmp_path, "scratch", cfg)
@@ -69,8 +69,8 @@ async def test_delete_refuses_the_fallback_template(tmp_path):
 @pytest.mark.asyncio
 async def test_delete_refuses_a_crew_bound_template(tmp_path):
     f = _agent_file(tmp_path, "scratch")
-    cfg = KiroCrewConfig()
-    cfg.agents = {"researcher": KiroCrewAgentConfig(kiro_agent="scratch")}
+    cfg = JunctionConfig()
+    cfg.agents = {"researcher": JunctionAgentConfig(kiro_agent="scratch")}
 
     resp = await _delete(tmp_path, "scratch", cfg)
 
@@ -86,7 +86,7 @@ async def test_delete_matches_the_filename_stem_too(tmp_path):
     """Config may record the stem rather than the JSON's own "name" field."""
     f = tmp_path / "scratch.json"
     f.write_text(json.dumps({"name": "Scratch Pad"}), encoding="utf-8")
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.agent.default_agent = "scratch"
 
     resp = await _delete(tmp_path, "scratch", cfg)
@@ -101,8 +101,8 @@ async def test_delete_refuses_when_config_records_the_stem_but_request_uses_the_
     display name, so `name` never carries the stem that config actually binds."""
     f = tmp_path / "scratch.json"
     f.write_text(json.dumps({"name": "Scratch Pad"}), encoding="utf-8")
-    cfg = KiroCrewConfig()
-    cfg.agents = {"researcher": KiroCrewAgentConfig(kiro_agent="scratch")}
+    cfg = JunctionConfig()
+    cfg.agents = {"researcher": JunctionAgentConfig(kiro_agent="scratch")}
 
     resp = await _delete(tmp_path, "Scratch Pad", cfg)
 
@@ -116,7 +116,7 @@ async def test_delete_refuses_the_top_level_default_the_page_picker_writes(tmp_p
     top-level `default_agent`, not `agent.default_agent`. Guarding only the
     latter would let the UI delete the very template it just made default."""
     f = _agent_file(tmp_path, "scratch")
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.default_agent = "scratch"
 
     resp = await _delete(tmp_path, "scratch", cfg)
@@ -129,10 +129,10 @@ async def test_delete_refuses_the_top_level_default_the_page_picker_writes(tmp_p
 @pytest.mark.asyncio
 async def test_delete_allows_an_unreferenced_template(tmp_path):
     f = _agent_file(tmp_path, "scratch")
-    cfg = KiroCrewConfig()
-    cfg.agent.default_agent = "kirocrew"
-    cfg.default_agent = "kirocrew"
-    cfg.agents = {"researcher": KiroCrewAgentConfig(kiro_agent="kirocrew")}
+    cfg = JunctionConfig()
+    cfg.agent.default_agent = "junction"
+    cfg.default_agent = "junction"
+    cfg.agents = {"researcher": JunctionAgentConfig(kiro_agent="junction")}
 
     resp = await _delete(tmp_path, "scratch", cfg)
 
@@ -153,9 +153,9 @@ async def test_delete_survives_a_structured_name_in_the_spec(tmp_path):
     """
     f = tmp_path / "scratch.json"
     f.write_text(json.dumps({"name": {"id": "scratch"}}), encoding="utf-8")
-    cfg = KiroCrewConfig()
-    cfg.agent.default_agent = "kirocrew"
-    cfg.default_agent = "kirocrew"
+    cfg = JunctionConfig()
+    cfg.agent.default_agent = "junction"
+    cfg.default_agent = "junction"
 
     resp = await _delete(tmp_path, "scratch", cfg)
 
@@ -174,16 +174,16 @@ async def test_delete_guard_reads_config_off_the_event_loop(tmp_path):
     loop_thread = threading.get_ident()
     seen: list[int] = []
 
-    def _load() -> KiroCrewConfig:
+    def _load() -> JunctionConfig:
         seen.append(threading.get_ident())
-        cfg = KiroCrewConfig()
-        cfg.agent.default_agent = "kirocrew"
-        cfg.default_agent = "kirocrew"
+        cfg = JunctionConfig()
+        cfg.agent.default_agent = "junction"
+        cfg.default_agent = "junction"
         return cfg
 
     f = _agent_file(tmp_path, "scratch")
-    with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path), patch.object(
-        KiroCrewConfig, "load", staticmethod(_load)
+    with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path), patch.object(
+        JunctionConfig, "load", staticmethod(_load)
     ):
         resp = await api_agent_detail(_delete_request("scratch"))
 

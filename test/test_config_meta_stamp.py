@@ -2,7 +2,7 @@
 
 The stamp is the first thing to check when a config looks like it came from an
 older schema, so a write must never leave the file without one. The hazard is
-specific to writers that rebuild the file from ``KiroCrewConfig.to_dict()``:
+specific to writers that rebuild the file from ``JunctionConfig.to_dict()``:
 that mapping models the schema only, so any top-level key the dataclass does
 not carry — ``meta`` among them — is absent from the output and the write drops
 it. Writers that mutate the raw dict they read keep the block for free.
@@ -17,8 +17,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew import __version__
-from kiro_crew.config.loader import stamp_config_meta
+from junction import __version__
+from junction.config.loader import stamp_config_meta
 
 _OLD_STAMP = {"lastTouchedVersion": "0.0.1", "lastTouchedAt": "2020-01-01T00:00:00+00:00"}
 
@@ -37,16 +37,16 @@ def _set_args(key: str, value: str, *, local: bool = False) -> argparse.Namespac
 
 
 def _run_config_cmd(args: argparse.Namespace, config_dir: Path) -> None:
-    from kiro_crew.cli_config import _config_cmd
+    from junction.cli_config import _config_cmd
 
     with (
-        patch("kiro_crew.cli_config.config_path", return_value=config_dir / "config.json"),
+        patch("junction.cli_config.config_path", return_value=config_dir / "config.json"),
         patch(
-            "kiro_crew.cli_config.config_local_path",
+            "junction.cli_config.config_local_path",
             return_value=config_dir / "config.local.json",
         ),
-        patch("kiro_crew.config.loader.config_dir", return_value=config_dir),
-        patch("kiro_crew.cli_config.sel"),
+        patch("junction.config.loader.config_dir", return_value=config_dir),
+        patch("junction.cli_config.sel"),
     ):
         _config_cmd(args)
 
@@ -78,7 +78,7 @@ class TestStampConfigMeta:
 
 
 class TestCliConfigSetKeepsMeta:
-    """``kirocrew config set <key> <value>`` rebuilds the file from the dataclass."""
+    """``junction config set <key> <value>`` rebuilds the file from the dataclass."""
 
     def test_set_refreshes_the_stamp_instead_of_dropping_it(self, tmp_path: Path) -> None:
         config_dir = tmp_path / "crew"
@@ -153,7 +153,7 @@ class TestCliConfigSetKeepsMeta:
 
 class TestConfigSaveKeepsMeta:
     def test_save_stamps_the_current_build(self, tmp_path: Path) -> None:
-        from kiro_crew.config import KiroCrewConfig
+        from junction.config import JunctionConfig
 
         config_dir = tmp_path / "crew"
         config_dir.mkdir()
@@ -163,15 +163,15 @@ class TestConfigSaveKeepsMeta:
 
         with (
             patch(
-                "kiro_crew.config.loader.config_path", return_value=config_dir / "config.json"
+                "junction.config.loader.config_path", return_value=config_dir / "config.json"
             ),
             patch(
-                "kiro_crew.config.loader.config_local_path",
+                "junction.config.loader.config_local_path",
                 return_value=config_dir / "config.local.json",
             ),
-            patch("kiro_crew.config.loader.config_dir", return_value=config_dir),
+            patch("junction.config.loader.config_dir", return_value=config_dir),
         ):
-            KiroCrewConfig.load().save()
+            JunctionConfig.load().save()
             saved = json.loads((config_dir / "config.json").read_text(encoding="utf-8"))
 
         assert saved["meta"]["lastTouchedVersion"] == __version__
@@ -190,11 +190,11 @@ class TestRefreshConfigMetaStamp:
 
     def _patch_home(self, config_dir: Path):
         return patch(
-            "kiro_crew.config.loader.config_path", return_value=config_dir / "config.json"
+            "junction.config.loader.config_path", return_value=config_dir / "config.json"
         )
 
     def test_stale_stamp_is_refreshed_and_settings_survive(self, tmp_path: Path) -> None:
-        from kiro_crew.config.loader import refresh_config_meta_stamp
+        from junction.config.loader import refresh_config_meta_stamp
 
         (tmp_path / "config.json").write_text(
             json.dumps({"meta": _OLD_STAMP, **_REAL_SETTINGS}), encoding="utf-8"
@@ -207,7 +207,7 @@ class TestRefreshConfigMetaStamp:
         assert {k: v for k, v in saved.items() if k != "meta"} == _REAL_SETTINGS
 
     def test_missing_meta_block_is_stamped(self, tmp_path: Path) -> None:
-        from kiro_crew.config.loader import refresh_config_meta_stamp
+        from junction.config.loader import refresh_config_meta_stamp
 
         (tmp_path / "config.json").write_text(json.dumps(_REAL_SETTINGS), encoding="utf-8")
         with self._patch_home(tmp_path):
@@ -217,7 +217,7 @@ class TestRefreshConfigMetaStamp:
 
     def test_current_stamp_is_not_rewritten(self, tmp_path: Path) -> None:
         """No mtime churn / ``lastTouchedAt`` bump when nothing is stale."""
-        from kiro_crew.config.loader import refresh_config_meta_stamp, stamp_config_meta
+        from junction.config.loader import refresh_config_meta_stamp, stamp_config_meta
 
         current = stamp_config_meta(dict(_REAL_SETTINGS))
         raw = json.dumps(current)
@@ -227,7 +227,7 @@ class TestRefreshConfigMetaStamp:
         assert (tmp_path / "config.json").read_text(encoding="utf-8") == raw
 
     def test_absent_file_is_left_absent(self, tmp_path: Path) -> None:
-        from kiro_crew.config.loader import refresh_config_meta_stamp
+        from junction.config.loader import refresh_config_meta_stamp
 
         with self._patch_home(tmp_path):
             assert refresh_config_meta_stamp() is False
@@ -235,7 +235,7 @@ class TestRefreshConfigMetaStamp:
 
     def test_unreadable_file_is_never_clobbered(self, tmp_path: Path) -> None:
         """A torn/garbage config must not be replaced with a stamped empty one."""
-        from kiro_crew.config.loader import refresh_config_meta_stamp
+        from junction.config.loader import refresh_config_meta_stamp
 
         (tmp_path / "config.json").write_text("{not json", encoding="utf-8")
         with self._patch_home(tmp_path):
@@ -254,7 +254,7 @@ class TestRefreshConfigMetaStamp:
         """
         import inspect
 
-        from kiro_crew.config import loader
+        from junction.config import loader
 
         src = inspect.getsource(loader.refresh_config_meta_stamp)
         assert "update_config_locked(" in src
@@ -274,7 +274,7 @@ class TestRefreshConfigMetaStamp:
         """
         import inspect
 
-        from kiro_crew.dashboard import server
+        from junction.dashboard import server
 
         src = inspect.getsource(server.start_dashboard)
         assert "asyncio.to_thread(refresh_config_meta_stamp)" in src
@@ -290,31 +290,31 @@ class TestDashboardNeverSurfacesThePersistedMarker:
 
     Issue #3102's reporter found ``lastTouchedVersion: 0.1.3`` in their config
     and reasonably suspected it fed the Settings header. It does not — every
-    status producer reports ``kiro_crew.__version__`` — and this locks that
+    status producer reports ``junction.__version__`` — and this locks that
     in: wiring the persisted marker into any dashboard module fails here.
     """
 
     def test_status_producers_report_the_running_version(self) -> None:
-        import kiro_crew
-        from kiro_crew.dashboard import ws
-        from kiro_crew.dashboard.handlers import updates
+        import junction
+        from junction.dashboard import ws
+        from junction.dashboard.handlers import updates
 
-        assert ws._local_version == kiro_crew.__version__
-        assert updates._local_version == kiro_crew.__version__
+        assert ws._local_version == junction.__version__
+        assert updates._local_version == junction.__version__
 
     def test_api_status_reads_the_module_version(self) -> None:
         import inspect
 
-        from kiro_crew.dashboard import handlers_system
+        from junction.dashboard import handlers_system
 
         src = inspect.getsource(handlers_system.api_status)
-        assert '"version": kiro_crew.__version__' in src
+        assert '"version": junction.__version__' in src
 
     def test_no_dashboard_module_reads_the_marker(self) -> None:
         import re
 
         dashboard_dir = (
-            Path(__file__).resolve().parents[1] / "src" / "kiro_crew" / "dashboard"
+            Path(__file__).resolve().parents[1] / "src" / "junction" / "dashboard"
         )
         # Match an actual READ of the field — subscript or .get() — not a bare
         # mention: a comment documenting "the running version, NOT the

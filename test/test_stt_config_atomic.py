@@ -15,9 +15,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import web
 
-import kiro_crew.dashboard.handlers.core as core
-from kiro_crew.config.loader import config_path
-from kiro_crew.dashboard.handlers.agents import _get_config_lock
+import junction.dashboard.handlers.core as core
+from junction.config.loader import config_path
+from junction.dashboard.handlers.agents import _get_config_lock
 
 
 def _put(body: dict):
@@ -72,7 +72,7 @@ async def test_put_blocks_on_config_lock() -> None:
 @pytest.mark.asyncio
 async def test_put_offloads_atomic_write(monkeypatch) -> None:
     """A slow fsync-backed write must not run on the gateway event loop."""
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     event_loop_thread = threading.get_ident()
     write_threads: list[int] = []

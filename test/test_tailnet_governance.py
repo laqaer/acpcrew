@@ -33,7 +33,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard import tailnet
+from junction.dashboard import tailnet
 
 _SCOPE = "capabilities.tailnet_origin"
 
@@ -50,14 +50,14 @@ _HOST = "desk.tail1a2b3c.ts.net"
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
     """Point the data home at ``tmp_path`` so no test touches a real config."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     return tmp_path
 
 
 def _install_policy(monkeypatch, doc: dict | None) -> None:
     """Install *doc* as the boot-frozen ceiling for the duration of a test."""
-    from kiro_crew.platform import context as pc
-    from kiro_crew.platform.governance import parse_policy
+    from junction.platform import context as pc
+    from junction.platform.governance import parse_policy
 
     ceiling = parse_policy(doc) if doc is not None else None
 
@@ -74,7 +74,7 @@ class TestScopeCatalog:
     """Adding the scope must be a DATA change: one row, nothing else."""
 
     def test_row_is_registered_as_a_default_on_capability(self) -> None:
-        from kiro_crew.platform.governance import CAPABILITY, SCOPE_CATALOG
+        from junction.platform.governance import CAPABILITY, SCOPE_CATALOG
 
         spec = SCOPE_CATALOG[_SCOPE]
         assert spec.kind == CAPABILITY
@@ -84,7 +84,7 @@ class TestScopeCatalog:
 
     def test_a_policy_can_actually_express_the_pin(self) -> None:
         """The loader parses the row without a matcher/scale registry entry."""
-        from kiro_crew.platform.governance import CapabilityGate, parse_policy
+        from junction.platform.governance import CapabilityGate, parse_policy
 
         gate = parse_policy(_PIN_DOC).get(_SCOPE)
         assert isinstance(gate, CapabilityGate)
@@ -112,7 +112,7 @@ class TestGovernancePin:
         """Narrowing to ``layer == "policy"`` is only correct if a genuine Level-1
         pin still reports ``policy``. ``resolve`` wraps the CapabilityGate's own
         ``layer="both"``, so this asserts the wrapping rather than assuming it."""
-        from kiro_crew.platform.governance import parse_policy, resolve
+        from junction.platform.governance import parse_policy, resolve
 
         decision = resolve(parse_policy(_PIN_DOC), None, _SCOPE, "")
         assert decision.permitted is False
@@ -134,7 +134,7 @@ class TestGovernancePin:
         an ordinary ``permitted=False`` Decision, not an exception — which is why
         the probe keys on ``layer``, not on ``permitted`` alone.
         """
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         monkeypatch.setattr(
             gp, "resolve_active_scope", lambda *a, **k: gp.deny_all_profile("_deny_all_unloaded:x")
@@ -147,8 +147,8 @@ class TestGovernancePin:
     ) -> None:
         """Same rule with a real ceiling present, so the ``layer`` test — not the
         ``ceiling is None`` short-circuit — is what produces the answer."""
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.platform.governance import CapabilityGate, Profile
+        from junction.platform import governance_profiles as gp
+        from junction.platform.governance import CapabilityGate, Profile
 
         monkeypatch.setattr(
             gp,
@@ -167,9 +167,9 @@ class TestGovernancePin:
         wrong-PERMIT grows the set of origins the gateway accepts authenticated
         state-changing requests from, on a fleet that forbade it.
         """
-        from kiro_crew.platform import context as pc
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.platform.governance import parse_policy
+        from junction.platform import context as pc
+        from junction.platform import governance_profiles as gp
+        from junction.platform.governance import parse_policy
 
         monkeypatch.setattr(
             gp,
@@ -248,7 +248,7 @@ class TestResolveChokepoint:
 
 
 def _status_app(host: str = "", resolved_at: int = 0) -> web.Application:
-    from kiro_crew.dashboard.handlers import api_tailnet_status
+    from junction.dashboard.handlers import api_tailnet_status
 
     app = web.Application()
     app["tailnet_host"] = host
@@ -258,14 +258,14 @@ def _status_app(host: str = "", resolved_at: int = 0) -> web.Application:
 
 
 async def _get_status(monkeypatch, *, enabled: bool, pinned: bool, host: str, resolved_at: int = 0):
-    from kiro_crew.dashboard.handlers import tailnet as handler_mod
+    from junction.dashboard.handlers import tailnet as handler_mod
 
-    # The handler resolves the probe through ``kiro_crew.dashboard.tailnet``, so
+    # The handler resolves the probe through ``junction.dashboard.tailnet``, so
     # patching it there is what the route actually consults.
     monkeypatch.setattr(tailnet, "is_governance_pinned_off", lambda **_k: pinned)
     monkeypatch.setattr(
         handler_mod,
-        "KiroCrewConfig",
+        "JunctionConfig",
         SimpleNamespace(
             load=lambda: SimpleNamespace(
                 dashboard=SimpleNamespace(tailscale=SimpleNamespace(enabled=enabled))
@@ -324,12 +324,12 @@ class TestStatusState:
     @pytest.mark.asyncio
     async def test_never_500s_on_an_unreadable_config(self, isolated_home, monkeypatch) -> None:
         """An unreadable config is exactly when the operator wants this card."""
-        from kiro_crew.dashboard.handlers import tailnet as handler_mod
+        from junction.dashboard.handlers import tailnet as handler_mod
 
         monkeypatch.setattr(tailnet, "is_governance_pinned_off", lambda **_k: False)
         monkeypatch.setattr(
             handler_mod,
-            "KiroCrewConfig",
+            "JunctionConfig",
             SimpleNamespace(load=lambda: (_ for _ in ()).throw(OSError("boom"))),
         )
         async with TestClient(TestServer(_status_app(_HOST, 5))) as client:
@@ -340,7 +340,7 @@ class TestStatusState:
         assert body["enabled"] is False and body["state"] == "off"
 
     def test_state_precedence_is_a_pure_function(self) -> None:
-        from kiro_crew.dashboard.handlers.tailnet import _derive_state
+        from junction.dashboard.handlers.tailnet import _derive_state
 
         assert _derive_state(pinned=True, enabled=True, host=_HOST) == "pinned"
         assert _derive_state(pinned=False, enabled=False, host=_HOST) == "off"
@@ -352,10 +352,10 @@ class TestStatusState:
 
 
 def _patch_app() -> web.Application:
-    from kiro_crew.dashboard.handlers import api_kirocrew_config_patch
+    from junction.dashboard.handlers import api_junction_config_patch
 
     app = web.Application()
-    app.router.add_patch("/api/config/kirocrew", api_kirocrew_config_patch)
+    app.router.add_patch("/api/config/junction", api_junction_config_patch)
     return app
 
 
@@ -363,14 +363,14 @@ def _patch_app() -> web.Application:
 def tmp_config(tmp_path, monkeypatch):
     cfg_path = tmp_path / "config.json"
     cfg_path.write_text(json.dumps({"auto_update": False}), encoding="utf-8")
-    monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_path)
+    monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_path)
     return cfg_path
 
 
 class TestPatchChokepoint:
     @staticmethod
     def _pin(monkeypatch, pinned: bool) -> None:
-        from kiro_crew.dashboard.handlers import core as core_mod
+        from junction.dashboard.handlers import core as core_mod
 
         monkeypatch.setattr(core_mod, "_tailnet_governance_pinned_off", lambda: pinned)
 
@@ -381,7 +381,7 @@ class TestPatchChokepoint:
         self._pin(monkeypatch, True)
         async with TestClient(TestServer(_patch_app())) as c:
             resp = await c.patch(
-                "/api/config/kirocrew", json={"path": "dashboard.tailscale.enabled", "value": True}
+                "/api/config/junction", json={"path": "dashboard.tailscale.enabled", "value": True}
             )
             assert resp.status == 403
             assert "administrator" in (await resp.json())["error"]
@@ -395,7 +395,7 @@ class TestPatchChokepoint:
         self._pin(monkeypatch, True)
         async with TestClient(TestServer(_patch_app())) as c:
             resp = await c.patch(
-                "/api/config/kirocrew", json={"path": "dashboard.tailscale.enabled", "value": False}
+                "/api/config/junction", json={"path": "dashboard.tailscale.enabled", "value": False}
             )
             assert resp.status == 200
         written = json.loads(tmp_config.read_text(encoding="utf-8"))
@@ -406,7 +406,7 @@ class TestPatchChokepoint:
         self._pin(monkeypatch, False)
         async with TestClient(TestServer(_patch_app())) as c:
             resp = await c.patch(
-                "/api/config/kirocrew", json={"path": "dashboard.tailscale.enabled", "value": True}
+                "/api/config/junction", json={"path": "dashboard.tailscale.enabled", "value": True}
             )
             assert resp.status == 200
         written = json.loads(tmp_config.read_text(encoding="utf-8"))
@@ -418,7 +418,7 @@ class TestPatchChokepoint:
         CSRF origin allowlist an attacker-chosen value."""
         async with TestClient(TestServer(_patch_app())) as c:
             resp = await c.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "dashboard.tailscale.host", "value": "evil.example"},
             )
             assert resp.status == 400
@@ -427,7 +427,7 @@ class TestPatchChokepoint:
     async def test_non_bool_is_rejected(self, tmp_config) -> None:
         async with TestClient(TestServer(_patch_app())) as c:
             resp = await c.patch(
-                "/api/config/kirocrew", json={"path": "dashboard.tailscale.enabled", "value": "on"}
+                "/api/config/junction", json={"path": "dashboard.tailscale.enabled", "value": "on"}
             )
             assert resp.status == 400
 
@@ -436,7 +436,7 @@ class TestPatchChokepoint:
 
 
 class TestCliChokepoint:
-    """``kirocrew config set`` is a second write path, and ``--local`` writes the
+    """``junction config set`` is a second write path, and ``--local`` writes the
     overlay, which takes PRECEDENCE over the base file — so leaving it ungated
     would make the generic setter the one way to store ``true`` on a pinned host."""
 
@@ -458,7 +458,7 @@ class TestCliChokepoint:
 
     @pytest.mark.parametrize("local", [False, True])
     def test_enable_is_refused_under_a_pin(self, isolated_home, monkeypatch, local) -> None:
-        from kiro_crew.cli_config import _config_cmd
+        from junction.cli_config import _config_cmd
 
         self._pin(monkeypatch, True)
         with pytest.raises(SystemExit) as exc:
@@ -470,7 +470,7 @@ class TestCliChokepoint:
                 assert "tailscale" not in path.read_text(encoding="utf-8")
 
     def test_disable_is_still_allowed_under_a_pin(self, isolated_home, monkeypatch) -> None:
-        from kiro_crew.cli_config import _config_cmd
+        from junction.cli_config import _config_cmd
 
         self._pin(monkeypatch, True)
         _config_cmd(self._args("false"))
@@ -478,7 +478,7 @@ class TestCliChokepoint:
         assert data["dashboard"]["tailscale"]["enabled"] is False
 
     def test_unpinned_host_can_still_enable(self, isolated_home, monkeypatch) -> None:
-        from kiro_crew.cli_config import _config_cmd
+        from junction.cli_config import _config_cmd
 
         self._pin(monkeypatch, False)
         _config_cmd(self._args("true"))
@@ -500,7 +500,7 @@ class TestBothStartupSitesStash:
 
     @staticmethod
     def _func(name: str) -> ast.AsyncFunctionDef:
-        from kiro_crew.dashboard import server as server_mod
+        from junction.dashboard import server as server_mod
 
         tree = ast.parse(Path(server_mod.__file__).read_text(encoding="utf-8"))
         for node in tree.body:
@@ -532,9 +532,9 @@ class TestBothStartupSitesStash:
         assert "tailnet_resolved_at" in keys, f"{startup} must stash the resolution timestamp"
 
     def test_the_route_is_registered(self) -> None:
-        from kiro_crew.dashboard import handlers
-        from kiro_crew.dashboard import routes as routes_pkg
-        from kiro_crew.dashboard import server as server_mod
+        from junction.dashboard import handlers
+        from junction.dashboard import routes as routes_pkg
+        from junction.dashboard import server as server_mod
 
         assert hasattr(handlers, "api_tailnet_status")
         # The registration lives in the route table under ``dashboard/routes/``;

@@ -24,7 +24,7 @@ __pycache__/
 /dist/
 
 # Generated agent config — contains machine-specific absolute paths
-.kiro/agents/kirocrew.json
+.kiro/agents/junction.json
 
 # Generated per-machine by install_cc_agent_config()
 .mcp.json
@@ -59,17 +59,17 @@ frontend/dist/
 tui/dist/
 frontend/tsconfig.app.tsbuildinfo
 frontend/tsconfig.node.tsbuildinfo
-src/kiro_crew/static/dist/
-src/kiro_crew/static/dist
+src/junction/static/dist/
+src/junction/static/dist
 # Staging scratch + lock used to swap a built dist into static/dist atomically.
 # An untracked leftover here makes the checkout read as dirty, which
 # fail-closes Dev Fleet's "Prune merged".
-src/kiro_crew/static/.dist.staging.*
-src/kiro_crew/static/.dist.previous.*
+src/junction/static/.dist.staging.*
+src/junction/static/.dist.previous.*
 
 # Build-time provenance stamp (scripts/stamp-distribution.sh). Generated per
 # packaging path; a committed copy would mislabel every other build's beacon.
-src/kiro_crew/_build_info.py
+src/junction/_build_info.py
 
 # JVM crash logs
 hs_err_pid*.log
@@ -86,7 +86,7 @@ Thumbs.db
 *.TASK_PROGRESS.md
 docs/TASK_PLAN_MODE.md
 frontend/src/.backup_pre_mdpanel/
-kirocrew-data.tar.gz
+junction-data.tar.gz
 .kiro/hooks/track-with-agent.kiro.hook
 
 # Agent-workflow scratch — files agents sometimes write into a worktree and
@@ -120,7 +120,7 @@ website/electron/backend-dist/
 website/electron/dist/
 website/electron/node_modules
 # Generated launcher icon (created from icon.png when making the desktop shortcut)
-website/electron/KiroCrew.ico
+website/electron/Junction.ico
 tui/
 mise.toml
 

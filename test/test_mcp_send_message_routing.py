@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.mcp_tools.messaging import schemas
-from kiro_crew.validation import SEND_MESSAGE_SCHEMA, ValidationError, validate_tool_args
+from junction.mcp_tools.messaging import schemas
+from junction.validation import SEND_MESSAGE_SCHEMA, ValidationError, validate_tool_args
 
 
 def _advertised() -> dict:

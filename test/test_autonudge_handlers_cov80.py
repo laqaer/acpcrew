@@ -21,8 +21,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.autonudge import NudgeLoop
-from kiro_crew.dashboard.handlers import autonudge as h
+from junction.autonudge import NudgeLoop
+from junction.dashboard.handlers import autonudge as h
 
 
 class _FakeSvc:

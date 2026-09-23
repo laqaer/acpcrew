@@ -1,4 +1,4 @@
-"""The shared ahead/behind divergence counter (``kiro_crew.git_divergence``).
+"""The shared ahead/behind divergence counter (``junction.git_divergence``).
 
 Four surfaces act on this count and two of them gate hard-to-undo actions
 (the CLI hard reset, the unattended auto-apply's check verdict), so the
@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import git_divergence
-from kiro_crew.git_divergence import (
+from junction import git_divergence
+from junction.git_divergence import (
     DIVERGENCE_TIMEOUT_SEC,
     UNREADABLE_GIT_FAILED,
     UNREADABLE_TIMEOUT,
@@ -276,15 +276,15 @@ class TestNoHandRolledCopies:
     # permitting the regression this guard exists to catch.
     _ALLOWED = {
         # The owner.
-        Path("src/kiro_crew/git_divergence.py"),
+        Path("src/junction/git_divergence.py"),
         # A standalone skill script shipped to users' machines; it must stay
         # dependency-free, so it cannot import the shared module.
-        Path("src/kiro_crew/builtin_skills/kirocrew-dev/prepare-pr/scripts/preflight.py"),
+        Path("src/junction/builtin_skills/junction-dev/prepare-pr/scripts/preflight.py"),
     }
 
     def test_no_new_hand_rolled_divergence_count(self) -> None:
         offenders: list[str] = []
-        for path in sorted((_REPO_ROOT / "src" / "kiro_crew").rglob("*.py")):
+        for path in sorted((_REPO_ROOT / "src" / "junction").rglob("*.py")):
             rel = path.relative_to(_REPO_ROOT)
             if rel in self._ALLOWED:
                 continue
@@ -292,7 +292,7 @@ class TestNoHandRolledCopies:
                 offenders.append(str(rel))
         assert not offenders, (
             "Hand-rolled ahead/behind divergence count outside the shared "
-            "helper. Route the counting through kiro_crew.git_divergence "
+            "helper. Route the counting through junction.git_divergence "
             "(count_divergence / count_divergence_sync, or "
             "divergence_count_args + parse_divergence_counts for a caller "
             "with its own hardened spawn path) instead of re-rolling "

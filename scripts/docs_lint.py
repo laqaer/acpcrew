@@ -27,7 +27,7 @@ change must also update the docs and the indexes. The rule is only real if a
 machine enforces it.
 
 The fourth check guards the other direction: some documentation filenames are an
-API. ``src/kiro_crew/docs/*.md`` is packaged and read at runtime, and specific
+API. ``src/junction/docs/*.md`` is packaged and read at runtime, and specific
 filenames are hardcoded in Python and TypeScript. Renaming one of those without
 updating its consumers breaks a shipped feature rather than a link.
 """
@@ -45,11 +45,11 @@ from pathlib import Path
 # ── What we scan ────────────────────────────────────────────────────────────────
 
 # Documentation roots, each with the index file that must reach every doc in it.
-# ``docs/`` is repo-only contributor/architecture material; ``src/kiro_crew/docs/``
+# ``docs/`` is repo-only contributor/architecture material; ``src/junction/docs/``
 # is PACKAGED end-user material (see MANIFEST.in) and is read at runtime.
 DOC_ROOTS: tuple[str, ...] = (
     "docs",
-    "src/kiro_crew/docs",
+    "src/junction/docs",
     "website/docs",
 )
 
@@ -127,7 +127,7 @@ SKIP_DIR_PATHS: frozenset[str] = frozenset(
         "dist",
         "website/build",
         "website/dist",
-        "src/kiro_crew/static/dist",
+        "src/junction/static/dist",
     }
 )
 
@@ -154,7 +154,7 @@ CODE_SUFFIXES: frozenset[str] = frozenset(
 # qualified with one of these names is a correct cross-repo reference, not a dangling
 # link into this tree.
 _EXTERNAL_REPO_MARKERS: tuple[str, ...] = (
-    "KiroCrewPublishCDK",
+    "JunctionPublishCDK",
     "electron.git",
     # The app catalog's publisher. Its distribution contract is documented in
     # that repo, and the client cites it to explain the base URL it fetches.
@@ -168,20 +168,20 @@ _EXTERNAL_REPO_MARKERS: tuple[str, ...] = (
 # The check is deliberately data-driven rather than a grep, so that adding a
 # coupling is a one-line change here and is impossible to forget silently.
 CODE_COUPLED_DOCS: dict[str, tuple[str, ...]] = {
-    "src/kiro_crew/docs/discord-integration.md": ("website/src/pages/settings/DiscordPanel.tsx",),
-    "src/kiro_crew/docs/slack-integration.md": ("website/src/pages/settings/SlackPanel.tsx",),
-    "src/kiro_crew/docs/teams-integration.md": ("website/src/pages/settings/TeamsPanel.tsx",),
-    "src/kiro_crew/docs/telegram-integration.md": ("website/src/pages/settings/TelegramPanel.tsx",),
-    "src/kiro_crew/docs/webex-integration.md": ("website/src/pages/settings/WebexPanel.tsx",),
-    "src/kiro_crew/docs/wecom-integration.md": ("website/src/pages/settings/WeComPanel.tsx",),
-    "src/kiro_crew/docs/weixin-integration.md": ("website/src/pages/settings/WeixinPanel.tsx",),
+    "src/junction/docs/discord-integration.md": ("website/src/pages/settings/DiscordPanel.tsx",),
+    "src/junction/docs/slack-integration.md": ("website/src/pages/settings/SlackPanel.tsx",),
+    "src/junction/docs/teams-integration.md": ("website/src/pages/settings/TeamsPanel.tsx",),
+    "src/junction/docs/telegram-integration.md": ("website/src/pages/settings/TelegramPanel.tsx",),
+    "src/junction/docs/webex-integration.md": ("website/src/pages/settings/WebexPanel.tsx",),
+    "src/junction/docs/wecom-integration.md": ("website/src/pages/settings/WeComPanel.tsx",),
+    "src/junction/docs/weixin-integration.md": ("website/src/pages/settings/WeixinPanel.tsx",),
     "docs/architecture/security-deep-dive.md": ("website/src/pages/settings/SecurityPanel.tsx",),
     "website/docs/theming-contract.md": ("website/scripts/check-theme-colors.mjs",),
 }
 
-# The tips catalog scans ``src/kiro_crew/docs/*.md`` but only surfaces docs named
+# The tips catalog scans ``src/junction/docs/*.md`` but only surfaces docs named
 # in this allowlist module; every allowlisted name must therefore still resolve.
-TIPS_ALLOWLIST_MODULE = "src/kiro_crew/tips_allowlist.py"
+TIPS_ALLOWLIST_MODULE = "src/junction/tips_allowlist.py"
 
 # Markdown inline/reference links and images: [text](target) and ![alt](target).
 _LINK_RE = re.compile(r"!?\[[^\]]*\]\(\s*(<[^>]*>|[^)\s]+)")
@@ -554,7 +554,7 @@ def check_code_citations(root: Path, findings: Findings) -> None:
                         # inside the package, relative to the package itself.
                         if (
                             (root / ref).exists()
-                            or (root / "src" / "kiro_crew" / ref).exists()
+                            or (root / "src" / "junction" / ref).exists()
                             or (root / "website" / ref).exists()
                         ):
                             continue
@@ -564,7 +564,7 @@ def check_code_citations(root: Path, findings: Findings) -> None:
 def check_code_coupled_docs(root: Path, findings: Findings) -> None:
     """Docs whose filenames are hardcoded in code must still exist.
 
-    ``src/kiro_crew/docs/`` is packaged and read at runtime; specific filenames
+    ``src/junction/docs/`` is packaged and read at runtime; specific filenames
     are baked into TypeScript URL constants and into the tips allowlist. Renaming
     one is a code change, not a docs change.
     """
@@ -581,12 +581,12 @@ def check_code_coupled_docs(root: Path, findings: Findings) -> None:
 
     allowlist = root / TIPS_ALLOWLIST_MODULE
     if allowlist.is_file():
-        packaged = root / "src" / "kiro_crew" / "docs"
+        packaged = root / "src" / "junction" / "docs"
         for match in re.finditer(r'"([A-Za-z0-9][A-Za-z0-9._-]*\.md)"', _read(allowlist)):
             name = match.group(1)
             if not (packaged / name).is_file():
                 findings.coupling.append(
-                    f"src/kiro_crew/docs/{name} is missing but listed in "
+                    f"src/junction/docs/{name} is missing but listed in "
                     f"{TIPS_ALLOWLIST_MODULE} (TIP_DOC_ALLOWLIST)"
                 )
 
@@ -765,7 +765,7 @@ def _self_test() -> int:
         return "conflict_markers"
 
     def plant_phantom_ref(root: Path) -> str:
-        pkg = root / "src" / "kiro_crew"
+        pkg = root / "src" / "junction"
         pkg.mkdir(parents=True)
         (pkg / "mod.py").write_text(
             '"""Spec: ``docs/system-specs/modules/ghost.md``."""\n', encoding="utf-8"
@@ -773,7 +773,7 @@ def _self_test() -> int:
         return "phantom_refs"
 
     def plant_coupling(root: Path) -> str:
-        pkg = root / "src" / "kiro_crew"
+        pkg = root / "src" / "junction"
         pkg.mkdir(parents=True)
         (pkg / "tips_allowlist.py").write_text(
             'TIP_DOC_ALLOWLIST = frozenset({"vanished.md"})\n', encoding="utf-8"

@@ -1,4 +1,4 @@
-"""Unit tests for the ``kirocrew agent`` CLI subcommand group.
+"""Unit tests for the ``junction agent`` CLI subcommand group.
 
 Tests cover list output format, create with defaults, create duplicate,
 update non-existent, and delete default agent.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.cli import main
+from junction.cli import main
 
 
 def _write_config(tmp_path: Path, data: dict) -> Path:
@@ -27,7 +27,7 @@ def _base_config() -> dict:
     return {
         "agents": {
             "default": {
-                "kiro_agent": "kirocrew",
+                "kiro_agent": "junction",
                 "workspace": "default",
                 "memory_store": "default",
             },
@@ -39,14 +39,14 @@ def _base_config() -> dict:
 
 
 class TestAgentList:
-    """Test ``kirocrew agent list`` output format."""
+    """Test ``junction agent list`` output format."""
 
     def test_list_output_format(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         cfg_path = _write_config(tmp_path, _base_config())
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
-            unittest.mock.patch("sys.argv", ["kirocrew", "agent", "list"]),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("sys.argv", ["junction", "agent", "list"]),
         ):
             main()
 
@@ -69,8 +69,8 @@ class TestAgentList:
         cfg_path = _write_config(tmp_path, data)
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
-            unittest.mock.patch("sys.argv", ["kirocrew", "agent", "list"]),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("sys.argv", ["junction", "agent", "list"]),
         ):
             main()
 
@@ -80,16 +80,16 @@ class TestAgentList:
 
 
 class TestAgentCreate:
-    """Test ``kirocrew agent create``."""
+    """Test ``junction agent create``."""
 
     def test_create_with_defaults(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         cfg_path = _write_config(tmp_path, _base_config())
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
             unittest.mock.patch(
                 "sys.argv",
-                ["kirocrew", "agent", "create", "--name", "research"],
+                ["junction", "agent", "create", "--name", "research"],
             ),
         ):
             main()
@@ -100,7 +100,7 @@ class TestAgentCreate:
         # Verify persisted to disk
         saved = json.loads(cfg_path.read_text(encoding="utf-8"))
         assert "research" in saved["agents"]
-        assert saved["agents"]["research"]["kiro_agent"] == "kirocrew"
+        assert saved["agents"]["research"]["kiro_agent"] == "junction"
         assert saved["agents"]["research"]["workspace"] == "default"
         assert saved["agents"]["research"]["memory_store"] == "default"
 
@@ -110,10 +110,10 @@ class TestAgentCreate:
         cfg_path = _write_config(tmp_path, _base_config())
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
             unittest.mock.patch(
                 "sys.argv",
-                ["kirocrew", "agent", "create", "--name", "default"],
+                ["junction", "agent", "create", "--name", "default"],
             ),
             pytest.raises(SystemExit) as exc_info,
         ):
@@ -125,7 +125,7 @@ class TestAgentCreate:
 
 
 class TestAgentUpdate:
-    """Test ``kirocrew agent update``."""
+    """Test ``junction agent update``."""
 
     def test_update_nonexistent_exits_nonzero(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -133,10 +133,10 @@ class TestAgentUpdate:
         cfg_path = _write_config(tmp_path, _base_config())
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
             unittest.mock.patch(
                 "sys.argv",
-                ["kirocrew", "agent", "update", "nonexistent", "--kiro-agent", "x"],
+                ["junction", "agent", "update", "nonexistent", "--kiro-agent", "x"],
             ),
             pytest.raises(SystemExit) as exc_info,
         ):
@@ -148,7 +148,7 @@ class TestAgentUpdate:
 
 
 class TestAgentDelete:
-    """Test ``kirocrew agent delete``."""
+    """Test ``junction agent delete``."""
 
     def test_delete_default_agent_exits_nonzero(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -156,10 +156,10 @@ class TestAgentDelete:
         cfg_path = _write_config(tmp_path, _base_config())
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
             unittest.mock.patch(
                 "sys.argv",
-                ["kirocrew", "agent", "delete", "default"],
+                ["junction", "agent", "delete", "default"],
             ),
             pytest.raises(SystemExit) as exc_info,
         ):
@@ -171,7 +171,7 @@ class TestAgentDelete:
 
 
 class TestAgentResetModel:
-    """``kirocrew agent reset-model`` -- the explicit way back to the default.
+    """``junction agent reset-model`` -- the explicit way back to the default.
 
     Goes through ``main()`` rather than calling the handler directly: the verb
     lives on the SAME ``agent`` subparser group as list/create/update/delete, and
@@ -191,34 +191,34 @@ class TestAgentResetModel:
         The containment assert makes a lapse fail loudly rather than write into a
         real agents directory.
         """
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents_dir = tmp_path / "kiro-agents"
         agents_dir.mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(agent_mod, "KIRO_AGENTS_DIR", agents_dir)
         resolved = agent_mod.kiro_agents_dir_path()
         assert resolved.is_relative_to(tmp_path), f"{resolved} escaped {tmp_path}"
-        body: dict = {"name": "kirocrew", "tools": ["fs_read"]}
+        body: dict = {"name": "junction", "tools": ["fs_read"]}
         if model is not None:
             body["model"] = model
-        spec = agents_dir / "kirocrew.json"
+        spec = agents_dir / "junction.json"
         spec.write_text(json.dumps(body), encoding="utf-8")
         return spec
 
     def test_reset_clears_the_pin_and_keeps_the_rest_of_the_spec(
         self, tmp_path: Path, monkeypatch, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        from kiro_crew import agent_state
+        from junction import agent_state
 
         spec = self._isolated_spec(tmp_path, monkeypatch, "claude-opus-4.8")
 
-        with unittest.mock.patch("sys.argv", ["kirocrew", "agent", "reset-model"]):
+        with unittest.mock.patch("sys.argv", ["junction", "agent", "reset-model"]):
             main()
 
         written = json.loads(spec.read_text(encoding="utf-8"))
         assert "model" not in written
         assert written["tools"] == ["fs_read"], "reset must not regenerate the whole spec"
-        assert agent_state.get_model_managed("kirocrew") is True
+        assert agent_state.get_model_managed("junction") is True
         out = capsys.readouterr().out
         assert "claude-opus-4.8" in out, "the cleared value is reported so it can be re-pinned"
 
@@ -227,7 +227,7 @@ class TestAgentResetModel:
     ) -> None:
         self._isolated_spec(tmp_path, monkeypatch, None)
 
-        with unittest.mock.patch("sys.argv", ["kirocrew", "agent", "reset-model"]):
+        with unittest.mock.patch("sys.argv", ["junction", "agent", "reset-model"]):
             main()
 
         assert "had no pinned model" in capsys.readouterr().out
@@ -236,7 +236,7 @@ class TestAgentResetModel:
         self._isolated_spec(tmp_path, monkeypatch, "claude-opus-4.8")
 
         with unittest.mock.patch(
-            "sys.argv", ["kirocrew", "agent", "reset-model", "--agent", "nope"]
+            "sys.argv", ["junction", "agent", "reset-model", "--agent", "nope"]
         ):
             with pytest.raises(SystemExit) as exc:
                 main()
@@ -250,8 +250,8 @@ class TestAgentResetModel:
         cfg_path = _write_config(tmp_path, _base_config())
 
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_path),
-            unittest.mock.patch("sys.argv", ["kirocrew", "agent", "list"]),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_path),
+            unittest.mock.patch("sys.argv", ["junction", "agent", "list"]),
         ):
             main()
 

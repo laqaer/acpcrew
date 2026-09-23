@@ -133,7 +133,7 @@ export type McpManagedServer = {
   recommendation?: McpShareRecommendation
 }
 
-export const SEARCH_MIN_CHARS = 2  // backend session search threshold (must match kiro_crew.history.SEARCH_MIN_CHARS)
+export const SEARCH_MIN_CHARS = 2  // backend session search threshold (must match junction.history.SEARCH_MIN_CHARS)
 
 /**
  * A Connections provider's approval-URL mint, as the card reads it.
@@ -1145,7 +1145,7 @@ export function checkSessionExpired(r: Response): Response {
 
 /**
  * Recovery prompt for the ONE denial the silent-refresh path can never clear:
- * a session whose token was minted before `KIROCREW_OWNER_ID` was configured.
+ * a session whose token was minted before `JUNCTION_OWNER_ID` was configured.
  * `/api/auth/refresh` re-mints from the incoming subject, so a "successful"
  * refresh would rotate the cookie and keep the stale bootstrap subject — the
  * next owner-gated call is denied again, forever. Only a fresh sign-in (a new
@@ -1595,7 +1595,7 @@ export interface KiroPrerequisiteStatus {
   /**
    * Kiro Crew's own specs that are PRESENT on disk but which the installed
    * kiro-cli refuses to load. Presence and acceptance are different questions: a
-   * rejected spec is dropped from kiro-cli's agent table, so `--agent kirocrew`
+   * rejected spec is dropped from kiro-cli's agent table, so `--agent junction`
    * resolves to the default agent with none of Kiro Crew's MCP servers — the
    * same total failure as an absent spec, which statting the file cannot detect.
    * Non-empty forces `ready` false and `repair_required` true.
@@ -1693,7 +1693,7 @@ export interface AgentImportSelection {
   categories: string[]
 }
 
-/** Skip keeps KiroCrew's item; rename installs alongside; overwrite replaces it
+/** Skip keeps Junction's item; rename installs alongside; overwrite replaces it
  *  after the backend writes a restore copy. Omitting the field means 'skip'. */
 export type AgentImportConflictStrategy = 'skip' | 'rename' | 'overwrite'
 
@@ -2119,7 +2119,7 @@ export const api = {
   agentDetail: (name: string) => fetch('/api/agents/detail/' + encodeURIComponent(name)).then(j),
   agentPatch: (name: string, body: object) => fetch('/api/agents/detail/' + encodeURIComponent(name), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(j),
   agentDelete: (name: string) => fetch('/api/agents/detail/' + encodeURIComponent(name), { method: 'DELETE' }).then(j),
-  // KiroCrew agents
+  // Junction agents
   // sessionKey identifies the CHAT SLOT whose project scope applies. The
   // server resolves project-local agents through
   // active_project_dir(state, session_key); with no key it falls back to
@@ -2127,19 +2127,19 @@ export const api = {
   // slots sit on different projects, so project-scoped agents silently
   // vanish from the picker. Surfaces with no slot context (Channels,
   // Schedule) pass nothing and keep the global-only view.
-  kirocrewAgents: (sessionKey?: string) =>
+  junctionAgents: (sessionKey?: string) =>
     fetch('/api/agents', {
       headers: sessionKey ? { 'X-Session-Key': sessionKey } : { ..._sk },
     }).then(j),
-  /** The model a new session on this KiroCrew agent would run on. Empty
+  /** The model a new session on this Junction agent would run on. Empty
    *  `agent` resolves the configured default agent. */
   agentResolvedModel: (agent: string) =>
     fetch('/api/agents/resolved-model?agent=' + encodeURIComponent(agent)).then(j),
-  syncKirocrewAgents: () => post('/api/agents/sync', {}).then(j),
-  createKirocrewAgent: (body: object) => post('/api/agents', body).then(j),
-  updateKirocrewAgent: (name: string, body: object) =>
+  syncJunctionAgents: () => post('/api/agents/sync', {}).then(j),
+  createJunctionAgent: (body: object) => post('/api/agents', body).then(j),
+  updateJunctionAgent: (name: string, body: object) =>
     put('/api/agents/' + encodeURIComponent(name), body).then(j),
-  deleteKirocrewAgent: (name: string) =>
+  deleteJunctionAgent: (name: string) =>
     del('/api/agents/' + encodeURIComponent(name)).then(j),
   models: () => fetch('/api/models').then(j),
   effortLevels: (slot?: string) =>
@@ -2304,7 +2304,7 @@ export const api = {
 
   // Steering (Kiro steering files — ~/.kiro/steering + <project>/.kiro/steering)
   // sessionKey names the CHAT SLOT whose project `workspace/` keys resolve
-  // against, exactly as it does for kirocrewAgents. Without it the server can
+  // against, exactly as it does for junctionAgents. Without it the server can
   // only fall back to "the single project every slot shares" and fails closed
   // with two chats on different projects, so project steering silently
   // disappears from a tab that has no way to say why. All five verbs take it:
@@ -2422,7 +2422,7 @@ export const api = {
   saveAgentConfig: (config: object) => put('/api/agent/config', { config }).then(j),
   defaultAgent: () => fetch('/api/config/default-agent').then(j),
   setDefaultAgent: (agent: string) => put('/api/config/default-agent', { agent }).then(j),
-  kirocrewConfig: () => fetch('/api/config/kirocrew').then(j),
+  junctionConfig: () => fetch('/api/config/junction').then(j),
   modelRouterCatalog: () =>
     fetch('/api/model-router/catalog').then(j) as Promise<{
       version: number
@@ -2458,8 +2458,8 @@ export const api = {
       gateway: { status: string; code: string }
       code: string
     }>,
-  saveKirocrewConfig: (agent: object) => put('/api/config/kirocrew', { agent }).then(j) as Promise<{ ok?: boolean; restart_required?: boolean; error?: string }>,
-  patchConfig: (path: string, value: unknown) => fetch('/api/config/kirocrew', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, value }) }).then(j),
+  saveJunctionConfig: (agent: object) => put('/api/config/junction', { agent }).then(j) as Promise<{ ok?: boolean; restart_required?: boolean; error?: string }>,
+  patchConfig: (path: string, value: unknown) => fetch('/api/config/junction', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path, value }) }).then(j),
   // Optional integrations — backend endpoints are graceful no-ops on a public
   // install (AIM / kiro usage are stubbed). Kept so the UI compiles and
   // degrades gracefully (panels render empty when the feature is absent).

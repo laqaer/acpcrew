@@ -220,7 +220,7 @@ describe('mochiApi MCP inventory', () => {
     { name: 'plain-name', tools: [{ name: 'a' }, { name: 'b' }] },
     { name: 'slack-mcp', tool_count: 7 },
     { name: 'mochi:tools' },
-    { name: 'kirocrew-core' },
+    { name: 'junction-core' },
     { name: 'unconfigured' },
   ]
 
@@ -266,7 +266,7 @@ describe('mochiApi MCP inventory', () => {
     // The app's OWN server and the host-managed ones are already in the
     // baseline grant; listing them as addable was the bug.
     expect(rows.find((r) => r.name === 'mochi:tools')?.core).toBe(true)
-    expect(rows.find((r) => r.name === 'kirocrew-core')?.core).toBe(true)
+    expect(rows.find((r) => r.name === 'junction-core')?.core).toBe(true)
     expect(rows.find((r) => r.name === 'plain-name')?.core).toBe(false)
   })
 

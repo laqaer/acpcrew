@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.webex.renderer (WebexRenderer, Layer 2b)."""
+"""Tests for junction.webex.renderer (WebexRenderer, Layer 2b)."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.webex.client import WEBEX_MAX_TEXT
-from kiro_crew.webex.renderer import _STATUS_EDIT_BUDGET, WebexRenderer
-from kiro_crew.webex.transport import WEBEX_CAPABILITIES
+from junction.webex.client import WEBEX_MAX_TEXT
+from junction.webex.renderer import _STATUS_EDIT_BUDGET, WebexRenderer
+from junction.webex.transport import WEBEX_CAPABILITIES
 
 
 class FakeClient:

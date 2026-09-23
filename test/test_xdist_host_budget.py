@@ -83,7 +83,7 @@ def _hold_slots_in_subprocess(slot_dir: pathlib.Path, count: int) -> subprocess.
         import os, sys
         sys.path.insert(0, {str(pathlib.Path(ct.__file__).parent)!r})
         sys.path.insert(0, {str(pathlib.Path(ct.__file__).parent.parent / "src")!r})
-        from kiro_crew import platform_compat
+        from junction import platform_compat
         held = []
         for i in range({count}):
             fd = os.open(os.path.join({str(slot_dir)!r}, "worker-%03d.lock" % i),
@@ -113,14 +113,14 @@ def test_slot_dir_is_scoped_by_host(slot_dir: pathlib.Path) -> None:
     assert slot_dir.name == ct._host_key()
 
 
-def test_slot_root_defaults_under_cache_not_kirocrew_home(
+def test_slot_root_defaults_under_cache_not_junction_home(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Must be host-global: two worktrees with different homes still coordinate."""
     monkeypatch.delenv(ct._SLOT_DIR_ENV, raising=False)
-    monkeypatch.setenv("KIROCREW_HOME", "/tmp/some-unrelated-home")
+    monkeypatch.setenv("JUNCTION_HOME", "/tmp/some-unrelated-home")
     resolved = ct._slot_root()
-    assert resolved == pathlib.Path.home() / ".cache" / "kirocrew" / "test-slots"
+    assert resolved == pathlib.Path.home() / ".cache" / "junction" / "test-slots"
     assert "some-unrelated-home" not in str(resolved)
 
 

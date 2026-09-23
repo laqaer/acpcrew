@@ -25,8 +25,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.crew_chat as crew_mod
-from kiro_crew.crew_chat import CrewOrchestrator, CrewStore
+import junction.crew_chat as crew_mod
+from junction.crew_chat import CrewOrchestrator, CrewStore
 
 
 @pytest.fixture(autouse=True)
@@ -34,7 +34,7 @@ def _isolate_crew_dir(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
     monkeypatch.setattr(crew_mod, "data_home", lambda: tmp_path)
 
 
-def _slot(key: str = "s1", agent: str = "kirocrew") -> MagicMock:
+def _slot(key: str = "s1", agent: str = "junction") -> MagicMock:
     slot = MagicMock()
     slot.key = key
     slot.agent = agent
@@ -73,7 +73,7 @@ def _slot_save(side_effect: BaseException | None = None):
     source module would leave the production path calling the real function.
     """
     return patch(
-        "kiro_crew.crew_chat.save_slot_off_loop",
+        "junction.crew_chat.save_slot_off_loop",
         new=AsyncMock(side_effect=side_effect),
     )
 
@@ -487,7 +487,7 @@ class TestIngest:
         st = orch._store("s1")
         e = st.add_msg("build X")
         warm = AsyncMock(side_effect=lambda *a, **k: order.append("warm"))
-        with patch("kiro_crew.crew_chat.warm_project_agents_for_spawn", new=warm), \
+        with patch("junction.crew_chat.warm_project_agents_for_spawn", new=warm), \
              patch.object(orch, "_post"):
             await orch._apply(_slot(), st, {"do": "spawn", "msg_id": e["msg_id"],
                                             "title": "build X"})
@@ -1067,7 +1067,7 @@ class TestGptRoundEleven:
         # message would show up twice.
         import inspect
 
-        from kiro_crew.dashboard import chat_handlers
+        from junction.dashboard import chat_handlers
         src = inspect.getsource(chat_handlers.api_chat)
         crew_branch = src.split('getattr(slot, "mode", "") == "crew"', 1)[1][:600]
         assert "_crew.ingest(" in crew_branch
@@ -1130,7 +1130,7 @@ class TestGptRoundNine:
         # Chat history has TWO sources: the in-memory slot (which carried the
         # marker) and, after a restart, this log — whose append had no cls
         # parameter, so the marker survived a reload but not a restart.
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
         log = ConversationLog(tmp_path)
         log.append("dashboard:s1", "assistant", "an answer",
                    cls="msg msg-a crew-reply")
@@ -1140,7 +1140,7 @@ class TestGptRoundNine:
 
     def test_an_unmarked_message_writes_no_cls_field(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         # Additive: existing callers and existing rows are unchanged.
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
         log = ConversationLog(tmp_path)
         log.append("dashboard:s1", "assistant", "plain")
         rows = log.read_messages("dashboard:s1")
@@ -1720,17 +1720,17 @@ class TestGptRoundFive:
     def test_the_gateway_boot_path_does_not_import_crew(self) -> None:
         """Crew is dashboard-only, so `--no-dashboard` must not pay for it.
 
-        Every module-level `from kiro_crew.crew_chat import ...` this branch added
-        sat on the gateway's import graph (gateway -> kiro_crew.dashboard ->
+        Every module-level `from junction.crew_chat import ...` this branch added
+        sat on the gateway's import graph (gateway -> junction.dashboard ->
         chat_folders / chat_handlers / handlers.sessions), so importing the gateway
         dragged the subsystem in before the API was ready to serve. Measured cost is
         one module -- the point is the repo's boot-path rule, which admits no new
         work there at all, not the size of the win.
         """
         probe = (
-            "import sys, kiro_crew.slack.gateway as g;"
+            "import sys, junction.slack.gateway as g;"
             "print(g.__file__);"
-            "print('kiro_crew.crew_chat' in sys.modules)"
+            "print('junction.crew_chat' in sys.modules)"
         )
         src = Path(crew_mod.__file__).parents[1]
         env = {**os.environ, "PYTHONPATH": str(src)}
@@ -1921,7 +1921,7 @@ class TestGptRoundFive:
         st = orch._store("s1")
         e = st.add_msg("edit the config")
         warmed: list[str] = []
-        with patch("kiro_crew.crew_chat.warm_project_agents_for_spawn",
+        with patch("junction.crew_chat.warm_project_agents_for_spawn",
                    new=AsyncMock(side_effect=lambda _s, cwd: warmed.append(cwd))), \
              patch.object(orch, "_post"):
             await orch._apply(slot, st, {"do": "spawn", "msg_id": e["msg_id"],
@@ -1966,11 +1966,11 @@ class TestGptRoundFive:
 
         prog = (
             "import sys\n"
-            "import kiro_crew.crew_chat  # noqa: F401\n"
-            "bad = [m for m in sys.modules if m.startswith('kiro_crew.dashboard.handlers')]\n"
+            "import junction.crew_chat  # noqa: F401\n"
+            "bad = [m for m in sys.modules if m.startswith('junction.dashboard.handlers')]\n"
             "print('|'.join(sorted(bad)))\n"
         )
-        # Resolve the tree UNDER TEST, not whatever `kiro_crew` the interpreter
+        # Resolve the tree UNDER TEST, not whatever `junction` the interpreter
         # would find on its own — a subprocess inherits no path from pytest, and
         # an installed copy would silently answer for a different revision.
         src_root = str(Path(crew_mod.__file__).resolve().parents[1])
@@ -1987,7 +1987,7 @@ class TestGptRoundFive:
         line — reached only once the tab exists and the user has typed, i.e. an
         unhandled 500 on every message it ever sends. The entry points answer
         first."""
-        from kiro_crew.crew_chat import is_crew_capable_slot_key
+        from junction.crew_chat import is_crew_capable_slot_key
 
         for bad in (".", "..", "...", ""):
             assert not is_crew_capable_slot_key(bad), bad
@@ -2446,7 +2446,7 @@ class TestReconcile:
 
 class TestModePlumbing:
     def test_valid_modes_include_crew(self) -> None:
-        from kiro_crew.dashboard.chat_folders import _VALID_MODES
+        from junction.dashboard.chat_folders import _VALID_MODES
 
         assert "crew" in _VALID_MODES
 
@@ -2631,7 +2631,7 @@ class TestGatewayCrewInit:
     dashboard_state is None silently disabled crew mode on every real boot."""
 
     def test_init_crew_attaches_when_dashboard_ready(self) -> None:
-        from kiro_crew.slack.gateway import GatewayOrchestrator
+        from junction.slack.gateway import GatewayOrchestrator
 
         g = MagicMock()
         g.dashboard_state = MagicMock()
@@ -2641,7 +2641,7 @@ class TestGatewayCrewInit:
         assert isinstance(g.dashboard_state.crew, CrewOrchestrator)
 
     def test_init_crew_noop_without_dashboard(self) -> None:
-        from kiro_crew.slack.gateway import GatewayOrchestrator
+        from junction.slack.gateway import GatewayOrchestrator
 
         g = MagicMock()
         g.dashboard_state = None
@@ -2653,7 +2653,7 @@ class TestGatewayCrewInit:
         # attach logic from _init_subagents, which runs earlier).
         import inspect
 
-        import kiro_crew.slack.gateway as gw
+        import junction.slack.gateway as gw
 
         src = inspect.getsource(gw)
         dash = src.index("await self._init_dashboard()")
@@ -2865,20 +2865,20 @@ class TestCrewNameResolvesToTemplate:
     """`slot.agent` is a CREW name; `spawn(agent=)` validates TEMPLATE names.
 
     They coincide for every crew whose `kiro_agent` repeats its own name, so the
-    defect only ever showed on the default crew (`default` -> `kirocrew`) — which
+    defect only ever showed on the default crew (`default` -> `junction`) — which
     is the crew every session starts on, making crew mode unusable by default.
     """
 
     def _patches(self, mapping: dict[str, str]):
         return (
-            patch.object(crew_mod.KiroCrewConfig, "load", staticmethod(
+            patch.object(crew_mod.JunctionConfig, "load", staticmethod(
                 lambda: _crew_config(mapping))),
             patch.object(crew_mod, "resolve_agent_bindings", _bindings(mapping)),
         )
 
     @pytest.mark.asyncio
     async def test_default_crew_dispatches_as_its_template(self) -> None:
-        cfg_patch, bind_patch = self._patches({"default": "kirocrew"})
+        cfg_patch, bind_patch = self._patches({"default": "junction"})
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
         orch = _orch(subagents=subagents)
@@ -2889,7 +2889,7 @@ class TestCrewNameResolvesToTemplate:
             await orch._apply(slot, st, {"do": "spawn", "msg_id": e["msg_id"], "title": "X"})
         # The crew name would be refused by _validate_agent: no template is named
         # "default".
-        assert subagents.spawn.call_args.kwargs["agent"] == "kirocrew"
+        assert subagents.spawn.call_args.kwargs["agent"] == "junction"
 
     @pytest.mark.asyncio
     async def test_crew_whose_name_matches_its_template_is_unchanged(self) -> None:
@@ -2913,10 +2913,10 @@ class TestCrewNameResolvesToTemplate:
         def _resolve(_cfg, agent_name=None, project_dir=None):  # type: ignore[no-untyped-def]
             del project_dir
             assert agent_name is None  # empty crew resolves as the default
-            return MagicMock(kiro_agent="kirocrew", requested_resolved=True)
+            return MagicMock(kiro_agent="junction", requested_resolved=True)
 
-        cfg_patch = patch.object(crew_mod.KiroCrewConfig, "load", staticmethod(
-            lambda: _crew_config({"default": "kirocrew"})))
+        cfg_patch = patch.object(crew_mod.JunctionConfig, "load", staticmethod(
+            lambda: _crew_config({"default": "junction"})))
         bind_patch = patch.object(crew_mod, "resolve_agent_bindings", _resolve)
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
@@ -2926,7 +2926,7 @@ class TestCrewNameResolvesToTemplate:
         with cfg_patch, bind_patch, patch.object(orch, "_post"):
             await orch._apply(_slot(agent=""), st,
                               {"do": "spawn", "msg_id": e["msg_id"], "title": "X"})
-        assert subagents.spawn.call_args.kwargs["agent"] == "kirocrew"
+        assert subagents.spawn.call_args.kwargs["agent"] == "junction"
 
     @pytest.mark.asyncio
     async def test_resolution_failure_falls_back_to_the_crew_name(self) -> None:
@@ -2938,7 +2938,7 @@ class TestCrewNameResolvesToTemplate:
         orch = _orch(subagents=subagents)
         st = orch._store("s1")
         e = st.add_msg("build X")
-        boom = patch.object(crew_mod.KiroCrewConfig, "load", staticmethod(
+        boom = patch.object(crew_mod.JunctionConfig, "load", staticmethod(
             MagicMock(side_effect=RuntimeError("unreadable config"))))
         with boom, patch.object(orch, "_post"):
             await orch._apply(_slot(agent="cr-analyst"), st,
@@ -2949,18 +2949,18 @@ class TestCrewNameResolvesToTemplate:
     async def test_warm_still_runs_before_resolution(self) -> None:
         # The resolved template may itself be a project agent, which
         # _validate_agent only ever sees through the warmed cache.
-        cfg_patch, bind_patch = self._patches({"default": "kirocrew"})
+        cfg_patch, bind_patch = self._patches({"default": "junction"})
         orch = _orch()
         with cfg_patch, bind_patch, patch.object(
             orch, "_warm_agent_cache", new=AsyncMock()
         ) as warm:
             resolved = await orch._dispatch_agent(_slot(agent="default"))
-        assert resolved == "kirocrew"
+        assert resolved == "junction"
         warm.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_continuation_dispatches_as_the_template(self) -> None:
-        cfg_patch, bind_patch = self._patches({"default": "kirocrew"})
+        cfg_patch, bind_patch = self._patches({"default": "junction"})
         orch = _orch()
         st = orch._store("s1")
         slot = _slot(agent="default")
@@ -2977,7 +2977,7 @@ class TestCrewNameResolvesToTemplate:
             await orch._apply(slot, st, {"do": "route", "msg_id": follow["msg_id"],
                                          "topic_id": t["topic_id"]})
         kwargs = orch._subagents.continue_conversation.call_args.kwargs
-        assert kwargs["agent"] == "kirocrew"
+        assert kwargs["agent"] == "junction"
 
 
 class TestUnknownCrewNameStaysFailClosed:
@@ -3006,14 +3006,14 @@ class TestUnknownCrewNameStaysFailClosed:
     @pytest.mark.asyncio
     async def test_unknown_crew_returns_the_raw_name_not_the_default(self) -> None:
         cfg_patch = patch.object(
-            crew_mod.KiroCrewConfig, "load",
-            staticmethod(lambda: _crew_config({"default": "kirocrew"})))
+            crew_mod.JunctionConfig, "load",
+            staticmethod(lambda: _crew_config({"default": "junction"})))
         bind_patch = patch.object(
-            crew_mod, "resolve_agent_bindings", self._unknown_bindings("kirocrew"))
+            crew_mod, "resolve_agent_bindings", self._unknown_bindings("junction"))
         orch = _orch()
         with cfg_patch, bind_patch:
             resolved = await orch._dispatch_agent(_slot(agent="ghost-crew"))
-        # NOT "kirocrew": the default binding must not be dispatched under an
+        # NOT "junction": the default binding must not be dispatched under an
         # unknown name. The raw name is what _validate_agent refuses.
         assert resolved == "ghost-crew"
 
@@ -3024,10 +3024,10 @@ class TestUnknownCrewNameStaysFailClosed:
         # names) refuses the dispatch instead of silently running the default
         # agent.
         cfg_patch = patch.object(
-            crew_mod.KiroCrewConfig, "load",
-            staticmethod(lambda: _crew_config({"default": "kirocrew"})))
+            crew_mod.JunctionConfig, "load",
+            staticmethod(lambda: _crew_config({"default": "junction"})))
         bind_patch = patch.object(
-            crew_mod, "resolve_agent_bindings", self._unknown_bindings("kirocrew"))
+            crew_mod, "resolve_agent_bindings", self._unknown_bindings("junction"))
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
         orch = _orch(subagents=subagents)
@@ -3044,16 +3044,16 @@ class TestUnknownCrewNameStaysFailClosed:
         # field; a known crew keeps resolving to its template.
         def _resolve(_cfg, agent_name=None, project_dir=None):  # type: ignore[no-untyped-def]
             del project_dir
-            return MagicMock(kiro_agent="kirocrew", requested_resolved=True)
+            return MagicMock(kiro_agent="junction", requested_resolved=True)
 
         cfg_patch = patch.object(
-            crew_mod.KiroCrewConfig, "load",
-            staticmethod(lambda: _crew_config({"default": "kirocrew"})))
+            crew_mod.JunctionConfig, "load",
+            staticmethod(lambda: _crew_config({"default": "junction"})))
         bind_patch = patch.object(crew_mod, "resolve_agent_bindings", _resolve)
         orch = _orch()
         with cfg_patch, bind_patch:
             resolved = await orch._dispatch_agent(_slot(agent="default"))
-        assert resolved == "kirocrew"
+        assert resolved == "junction"
 
 
 class TestDecisionJsonExtraction:

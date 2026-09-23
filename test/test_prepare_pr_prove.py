@@ -28,9 +28,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PROVE = str(
     REPO_ROOT
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "builtin_skills"
-    / "kirocrew-dev"
+    / "junction-dev"
     / "prepare-pr"
     / "scripts"
     / "prove.py"

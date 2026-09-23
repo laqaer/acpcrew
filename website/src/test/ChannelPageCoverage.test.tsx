@@ -6,7 +6,7 @@
 // agents sidebar (state/listen badges, the listen-mode menu, dismiss, Add Agent),
 // the New Channel dialog and its preset picker, the close-channel flow, the
 // error modal fed by `apiError`, the two empty states, and the seven branches of
-// the `kirocrew-channel` window-event handler that stands in for the WebSocket.
+// the `junction-channel` window-event handler that stands in for the WebSocket.
 //
 // Conventions follow ChannelPage.clearContext.test.tsx: the api client is the
 // single seam and is auto-mocked, `renderWithProviders` supplies Redux + Router +
@@ -71,8 +71,8 @@ function mockApi(channels: Raw[], presets?: Raw[]) {
   vi.mocked(api).channelApproveAgent = vi.fn().mockResolvedValue({ ok: true })
   vi.mocked(api).channelClearContext = vi.fn().mockResolvedValue({ ok: true, cleared: [] })
   // AddAgentForm mounts useAgents(), which syncs then lists the agent catalog.
-  vi.mocked(api).syncKirocrewAgents = vi.fn().mockResolvedValue({ ok: true })
-  vi.mocked(api).kirocrewAgents = vi.fn().mockResolvedValue({ agents: [], default_agent: 'legacy-default' })
+  vi.mocked(api).syncJunctionAgents = vi.fn().mockResolvedValue({ ok: true })
+  vi.mocked(api).junctionAgents = vi.fn().mockResolvedValue({ agents: [], default_agent: 'legacy-default' })
 }
 
 /** Render and wait past the "Loading channels..." early return. */
@@ -82,10 +82,10 @@ async function renderPage() {
   return utils
 }
 
-/** Fire one `kirocrew-channel` window event, the page's stand-in for the socket. */
+/** Fire one `junction-channel` window event, the page's stand-in for the socket. */
 function wsEvent(type: string, data: Raw) {
   act(() => {
-    window.dispatchEvent(new CustomEvent('kirocrew-channel', { detail: { type, data } }))
+    window.dispatchEvent(new CustomEvent('junction-channel', { detail: { type, data } }))
   })
 }
 

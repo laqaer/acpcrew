@@ -33,8 +33,8 @@ document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-li
 const FLEET = scene === 'error'
   ? {
     worktrees: [],
-    error: 'main checkout not found: /opt/checkouts/kirocrew is missing or not a git '
-      + 'checkout. It is set by the KIROCREW_DEVFLEET_REPO environment variable.',
+    error: 'main checkout not found: /opt/checkouts/junction is missing or not a git '
+      + 'checkout. It is set by the JUNCTION_DEVFLEET_REPO environment variable.',
   }
   : { worktrees: [], needs_setup: true }
 

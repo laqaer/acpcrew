@@ -14,13 +14,13 @@
 # AL2's glibc 2.26. On success the chosen interpreter's real path — symlinks
 # resolved, see _resolve — is recorded in "<data-home>/python-bin" so
 # non-interactive callers (make) can use it without re-running a version
-# manager. The data home is "$KIROCREW_HOME" when set, else
+# manager. The data home is "$JUNCTION_HOME" when set, else
 # "$HOME/.kiro/crew" (the current default) — NOT the pre-move "$HOME/.kirocrew",
 # which is not the data home and must not be written to.
 
 MIN_MAJOR=3
 MIN_MINOR=10
-TARGET_PY="${KIROCREW_PYTHON_VERSION:-3.12}"
+TARGET_PY="${JUNCTION_PYTHON_VERSION:-3.12}"
 
 # True if $1 is a python that runs AND is >= MIN_MAJOR.MIN_MINOR.
 _py_ok() {
@@ -80,7 +80,7 @@ _resolve() {
 }
 
 _record() {
-    home="${KIROCREW_HOME:-$HOME/.kiro/crew}"
+    home="${JUNCTION_HOME:-$HOME/.kiro/crew}"
     mkdir -p "$home"
     printf '%s\n' "$1" > "$home/python-bin" 2>/dev/null || true
 }

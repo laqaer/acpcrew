@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Build the standalone KiroCrew desktop app end-to-end.
+# Build the standalone Junction desktop app end-to-end.
 #
 # Pipeline (uses the python-build-standalone approach):
 #   1. Build the React dashboard (npm)         -> website/dist
 #   2. Provision a python-build-standalone (PBS) interpreter via uv
-#   3. pip-install kiro_crew + deps INTO the bundled interpreter
+#   3. pip-install junction + deps INTO the bundled interpreter
 #   4. Stage the dashboard into the package's static dir
 #   5. Prune caches/tests/unused stdlib to shrink the bundle
 #   6. Package the desktop app with electron-builder -> DMG (mac) / AppImage (linux)
@@ -19,8 +19,8 @@
 # ARCHITECTURE: on macOS this builds ONE universal .app/DMG by default: the
 # Electron shell is lipo-merged (arm64 + x86_64) by electron-builder, and the
 # backend — which cannot be lipo-merged (a whole PBS tree, not one binary) —
-# ships as TWO complete trees (backend-dist/kirocrew-backend-arm64/ and
-# .../kirocrew-backend-x64/), selected at launch by find-bin.js via
+# ships as TWO complete trees (backend-dist/junction-backend-arm64/ and
+# .../junction-backend-x64/), selected at launch by find-bin.js via
 # process.arch. The x86_64 backend is built under Rosetta 2, so the universal
 # build needs an Apple-Silicon host. Linux always builds host-arch only
 # (AppImage). UNIVERSAL=0 forces a host-arch-only macOS build (faster local
@@ -100,10 +100,10 @@ fi
 ELECTRON_DIR="$ROOT/website/electron"
 
 # Version from the package.
-KC_VERSION="$(grep -m1 '__version__' "$ROOT/src/kiro_crew/__init__.py" \
+KC_VERSION="$(grep -m1 '__version__' "$ROOT/src/junction/__init__.py" \
   | sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/')"
 if [ -z "$KC_VERSION" ]; then
-  echo "ERROR: could not parse __version__ from src/kiro_crew/__init__.py" >&2
+  echo "ERROR: could not parse __version__ from src/junction/__init__.py" >&2
   exit 1
 fi
 
@@ -113,10 +113,10 @@ fi
 # they are ONE app on two update lanes (the in-app channel switcher moves
 # between them), so they keep the package.json defaults. Derivation mirrors
 # auto-update.js channelForVersion: only a "-nightly." stamp changes
-# identity; unstamped dev builds and insider/stable stamps build "KiroCrew".
+# identity; unstamped dev builds and insider/stable stamps build "Junction".
 case "$KC_VERSION" in
-  *-nightly.*) PRODUCT_NAME="KiroCrew Nightly" ;;
-  *)           PRODUCT_NAME="KiroCrew" ;;
+  *-nightly.*) PRODUCT_NAME="Junction Nightly" ;;
+  *)           PRODUCT_NAME="Junction" ;;
 esac
 
 log() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
@@ -132,7 +132,7 @@ restamp_backends() {
     [ -n "$sp" ] || continue
     bash "$ROOT/scripts/stamp-distribution.sh" "$dist" "$sp" >/dev/null
     found=$((found + 1))
-  done < <(find "$ELECTRON_DIR/backend-dist" -type d -path "*/site-packages/kiro_crew" 2>/dev/null)
+  done < <(find "$ELECTRON_DIR/backend-dist" -type d -path "*/site-packages/junction" 2>/dev/null)
   if [ "$found" -eq 0 ]; then
     echo "ERROR: no staged backend tree found to stamp as '$dist'" >&2
     exit 1
@@ -225,12 +225,12 @@ provision_pbs() {
 # Build ONE self-contained backend tree.
 #   $1 = PBS interpreter dir   $2 = output dir   $3 = required Mach-O arch tag
 #        ("" skips the arch gate — used by the non-universal Linux path)
-# Copies the interpreter, pip-installs kiro_crew (full closure), stages the
+# Copies the interpreter, pip-installs junction (full closure), stages the
 # dashboard, writes the relocatable launcher, gates self-containment, prunes.
 build_backend() {
   local pbs_dir="$1" out="$2" want_arch="$3" sp
 
-  log "Installing kiro_crew into the bundled interpreter ($(basename "$out"))…"
+  log "Installing junction into the bundled interpreter ($(basename "$out"))…"
   mkdir -p "$(dirname "$out")"
   cp -R "$pbs_dir" "$out"
 
@@ -248,16 +248,16 @@ build_backend() {
   # >= 49 is arm64-only), and a source build inside the bundle needs toolchains
   # (Rust targets) the build host may lack — an older universal2/x86_64 wheel is
   # the portable choice. No-op where the newest release has a usable wheel.
-  env PYTHONNOUSERSITE=1 PYTHONPATH= KIROCREW_SKIP_FRONTEND=1 \
+  env PYTHONNOUSERSITE=1 PYTHONPATH= JUNCTION_SKIP_FRONTEND=1 \
     "$out/bin/python3.12" -m pip install --prefer-binary \
     --no-warn-script-location --disable-pip-version-check "$ROOT"
 
   # Stage the dashboard dist into the package's static dir.
   sp="$out/lib/python3.12/site-packages"
-  log "Staging dashboard dist into kiro_crew/static/dist…"
-  mkdir -p "$sp/kiro_crew/static"
-  ( cd "$sp/kiro_crew/static" && rm -rf dist && cp -R "$ROOT/website/dist" dist )
-  [ -f "$sp/kiro_crew/static/dist/index.html" ] || {
+  log "Staging dashboard dist into junction/static/dist…"
+  mkdir -p "$sp/junction/static"
+  ( cd "$sp/junction/static" && rm -rf dist && cp -R "$ROOT/website/dist" dist )
+  [ -f "$sp/junction/static/dist/index.html" ] || {
     echo "ERROR: dashboard dist not staged" >&2; exit 1
   }
 
@@ -265,14 +265,14 @@ build_backend() {
   # universal build's two backends are each stamped and no state leaks into the
   # developer's checkout. pip installed from $ROOT, where the module is
   # gitignored and absent, so this is the only place it exists.
-  bash "$ROOT/scripts/stamp-distribution.sh" "$KC_DISTRIBUTION" "$sp/kiro_crew"
+  bash "$ROOT/scripts/stamp-distribution.sh" "$KC_DISTRIBUTION" "$sp/junction"
 
   # Relocatable launcher script.
-  cat > "$out/bin/kirocrew" <<'LAUNCH'
+  cat > "$out/bin/junction" <<'LAUNCH'
 #!/bin/bash
 set -euo pipefail
 # Resolve symlinks before deriving DIR. When this launcher is reached through a
-# symlink (e.g. the ~/.local/bin/kirocrew shim planted on the user's PATH),
+# symlink (e.g. the ~/.local/bin/junction shim planted on the user's PATH),
 # ${BASH_SOURCE[0]} is the symlink path, so a naive dirname points at the
 # symlink's directory and execs the wrong (or missing) python3.12. macOS ships
 # no `readlink -f`, so walk the symlink chain to the real wrapper location.
@@ -283,9 +283,9 @@ while [ -h "$SOURCE" ]; do
   [ "${SOURCE:0:1}" != "/" ] && SOURCE="$DIR/$SOURCE"
 done
 DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
-exec "$DIR/python3.12" -s -m kiro_crew "$@"
+exec "$DIR/python3.12" -s -m junction "$@"
 LAUNCH
-  chmod +x "$out/bin/kirocrew"
+  chmod +x "$out/bin/junction"
 
   # Arch gate: the bundled interpreter must be the arch this tree claims to be
   # (a mismatch ships an app whose backend crashes at launch on the other arch).
@@ -302,7 +302,7 @@ LAUNCH
 
   # Self-containment gate: the full import chain must resolve with no user-site.
   log "Verifying self-containment ($(basename "$out"))…"
-  PYTHONNOUSERSITE=1 "$out/bin/python3.12" -m kiro_crew --version >/dev/null \
+  PYTHONNOUSERSITE=1 "$out/bin/python3.12" -m junction --version >/dev/null \
     || { echo "ERROR: bundled backend is NOT self-contained (missing dep under PYTHONNOUSERSITE=1)" >&2; exit 1; }
 
   # Prune to shrink the bundle.
@@ -323,26 +323,26 @@ LAUNCH
 # PBS Windows layout differs everywhere the POSIX function assumes bin/ and
 # lib/python3.12: python.exe sits at the tree root, site-packages at
 # Lib/site-packages, and the launcher is a .cmd shim (find-bin.js probes
-# bin/kirocrew.cmd on win32; Electron unwraps the shim and spawns
+# bin/junction.cmd on win32; Electron unwraps the shim and spawns
 # python.exe directly -- see main.js).
 #   $1 = PBS interpreter dir   $2 = output dir
 build_backend_windows() {
   local pbs_dir="$1" out="$2" sp
 
-  log "Installing kiro_crew into the bundled interpreter ($(basename "$out"))…"
+  log "Installing junction into the bundled interpreter ($(basename "$out"))…"
   mkdir -p "$(dirname "$out")"
   cp -R "$pbs_dir" "$out"
   find "$out" -name "EXTERNALLY-MANAGED" -delete 2>/dev/null || true
 
-  env PYTHONNOUSERSITE=1 PYTHONPATH= KIROCREW_SKIP_FRONTEND=1 \
+  env PYTHONNOUSERSITE=1 PYTHONPATH= JUNCTION_SKIP_FRONTEND=1 \
     "$out/python.exe" -m pip install --prefer-binary \
     --no-warn-script-location --disable-pip-version-check "$ROOT"
 
   sp="$out/Lib/site-packages"
-  log "Staging dashboard dist into kiro_crew/static/dist…"
-  mkdir -p "$sp/kiro_crew/static"
-  ( cd "$sp/kiro_crew/static" && rm -rf dist && cp -R "$ROOT/website/dist" dist )
-  [ -f "$sp/kiro_crew/static/dist/index.html" ] || {
+  log "Staging dashboard dist into junction/static/dist…"
+  mkdir -p "$sp/junction/static"
+  ( cd "$sp/junction/static" && rm -rf dist && cp -R "$ROOT/website/dist" dist )
+  [ -f "$sp/junction/static/dist/index.html" ] || {
     echo "ERROR: dashboard dist not staged" >&2; exit 1
   }
 
@@ -350,15 +350,15 @@ build_backend_windows() {
   # the honest answer is "source", but stamp it explicitly rather than relying on
   # the module's absence: pip installed from $ROOT, and a stale stamp left in a
   # developer's checkout would otherwise be copied in and mislabel the build.
-  bash "$ROOT/scripts/stamp-distribution.sh" "$KC_DISTRIBUTION" "$sp/kiro_crew"
+  bash "$ROOT/scripts/stamp-distribution.sh" "$KC_DISTRIBUTION" "$sp/junction"
 
   # Relocatable launcher shim: %~dp0 is the .cmd's own directory (bin\),
   # so the interpreter resolves relative to the bundle wherever it lands.
   mkdir -p "$out/bin"
-  printf '@echo off\r\n"%%~dp0..\\python.exe" -s -m kiro_crew %%*\r\n' > "$out/bin/kirocrew.cmd"
+  printf '@echo off\r\n"%%~dp0..\\python.exe" -s -m junction %%*\r\n' > "$out/bin/junction.cmd"
 
   log "Verifying self-containment ($(basename "$out"))…"
-  PYTHONNOUSERSITE=1 "$out/python.exe" -s -m kiro_crew --version >/dev/null \
+  PYTHONNOUSERSITE=1 "$out/python.exe" -s -m junction --version >/dev/null \
     || { echo "ERROR: bundled backend is NOT self-contained (missing dep under PYTHONNOUSERSITE=1)" >&2; exit 1; }
 
   log "Pruning bundle ($(basename "$out"))…"
@@ -367,10 +367,10 @@ build_backend_windows() {
     find Lib/site-packages -type d \( -name tests -o -name test \) -prune -exec rm -rf {} + 2>/dev/null || true
     rm -rf Lib/test Lib/idlelib Lib/tkinter Lib/turtledemo Lib/ensurepip Lib/lib2to3 \
            include libs tcl \
-           Lib/site-packages/kiro_crew/_vendor/llama_cpp_libs/linux_aarch64 \
-           Lib/site-packages/kiro_crew/_vendor/llama_cpp_libs/linux_x86_64 \
-           Lib/site-packages/kiro_crew/_vendor/llama_cpp_libs/macos_arm64 \
-           Lib/site-packages/kiro_crew/_vendor/llama_cpp_libs/macos_x86_64 \
+           Lib/site-packages/junction/_vendor/llama_cpp_libs/linux_aarch64 \
+           Lib/site-packages/junction/_vendor/llama_cpp_libs/linux_x86_64 \
+           Lib/site-packages/junction/_vendor/llama_cpp_libs/macos_arm64 \
+           Lib/site-packages/junction/_vendor/llama_cpp_libs/macos_x86_64 \
            2>/dev/null || true
     rm -f DLLs/_tkinter.pyd DLLs/tcl*.dll DLLs/tk*.dll 2>/dev/null || true )
 
@@ -384,7 +384,7 @@ build_backend_windows() {
   log "Precompiling Windows gateway startup modules ($(basename "$out"))…"
   env PYTHONDONTWRITEBYTECODE=1 PYTHONNOUSERSITE=1 PYTHONPATH= \
     "$out/python.exe" -s "$ROOT/packaging/precompile_windows.py" \
-    --root "$out" --module kiro_crew.cli_server
+    --root "$out" --module junction.cli_server
 
   echo "    $(basename "$out") size: $(du -sh "$out" 2>/dev/null | cut -f1)"
 }
@@ -425,7 +425,7 @@ stdlib_probe_gate() {
 # launcher we just wrote. This catches contract drift between this builder's
 # output layout and find-bin.js's candidate list — a silent mismatch there
 # ships an app that can't spawn its backend (falls through to the bare
-# "kirocrew" PATH fallback -> spawn ENOENT).
+# "junction" PATH fallback -> spawn ENOENT).
 #   $1 = expected launcher path   $2 = arch argument ("" = default process.arch)
 resolver_gate() {
   local expected="$1" arch_arg="$2"
@@ -433,13 +433,13 @@ resolver_gate() {
     log "Verifying find-bin.js resolves ${expected#"$ELECTRON_DIR/"}…"
     node -e '
       const fs=require("fs"), os=require("os"), path=require("path");
-      const { findKirocrewBin } = require(path.join(process.argv[1], "find-bin"));
+      const { findJunctionBin } = require(path.join(process.argv[1], "find-bin"));
       // Simulate the packaged app: resourcesPath and __dirname both point at the
       // electron dir where backend-dist currently lives.
       const arch = process.argv[3] || undefined;
       const resolved = arch
-        ? findKirocrewBin(fs, os, path, process.argv[1], process.argv[1], arch)
-        : findKirocrewBin(fs, os, path, process.argv[1], process.argv[1]);
+        ? findJunctionBin(fs, os, path, process.argv[1], process.argv[1], arch)
+        : findJunctionBin(fs, os, path, process.argv[1], process.argv[1]);
       const expected = process.argv[2];
       // Normalize separators: under Git Bash on Windows the expected path
       // arrives with forward slashes while Node resolves backslashes.
@@ -467,11 +467,11 @@ if [ "$UNIVERSAL" = "1" ]; then
   echo "    arm64 PBS:  $PBS_ARM64"
   echo "    x86_64 PBS: $PBS_X64"
 
-  build_backend "$PBS_ARM64" "$ELECTRON_DIR/backend-dist/kirocrew-backend-arm64" "arm64"
-  build_backend "$PBS_X64" "$ELECTRON_DIR/backend-dist/kirocrew-backend-x64" "x86_64"
+  build_backend "$PBS_ARM64" "$ELECTRON_DIR/backend-dist/junction-backend-arm64" "arm64"
+  build_backend "$PBS_X64" "$ELECTRON_DIR/backend-dist/junction-backend-x64" "x86_64"
 
-  resolver_gate "$ELECTRON_DIR/backend-dist/kirocrew-backend-arm64/bin/kirocrew" "arm64"
-  resolver_gate "$ELECTRON_DIR/backend-dist/kirocrew-backend-x64/bin/kirocrew" "x64"
+  resolver_gate "$ELECTRON_DIR/backend-dist/junction-backend-arm64/bin/junction" "arm64"
+  resolver_gate "$ELECTRON_DIR/backend-dist/junction-backend-x64/bin/junction" "x64"
 else
   log "Provisioning python-build-standalone interpreter (uv)…"
   # Pin to CPython 3.12 (latest stable, matches CI python-version).
@@ -488,11 +488,11 @@ else
   echo "    PBS interpreter: $PBS_DIR"
 
   if [ "$OS" = "windows" ]; then
-    build_backend_windows "$PBS_DIR" "$ELECTRON_DIR/backend-dist/kirocrew-backend"
-    resolver_gate "$ELECTRON_DIR/backend-dist/kirocrew-backend/bin/kirocrew.cmd" ""
+    build_backend_windows "$PBS_DIR" "$ELECTRON_DIR/backend-dist/junction-backend"
+    resolver_gate "$ELECTRON_DIR/backend-dist/junction-backend/bin/junction.cmd" ""
   else
-    build_backend "$PBS_DIR" "$ELECTRON_DIR/backend-dist/kirocrew-backend" ""
-    resolver_gate "$ELECTRON_DIR/backend-dist/kirocrew-backend/bin/kirocrew" ""
+    build_backend "$PBS_DIR" "$ELECTRON_DIR/backend-dist/junction-backend" ""
+    resolver_gate "$ELECTRON_DIR/backend-dist/junction-backend/bin/junction" ""
   fi
 fi
 
@@ -507,7 +507,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
   if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
   EB_ARGS=( "-c.extraMetadata.version=$KC_VERSION" )
-  if [ "$PRODUCT_NAME" = "KiroCrew Nightly" ]; then
+  if [ "$PRODUCT_NAME" = "Junction Nightly" ]; then
     # Same appId (com.amazon.kiro.crew) as production ON PURPOSE:
     # - Finder decides install-replace by FILENAME only, so the distinct
     #   productName alone gives side-by-side installs.
@@ -515,10 +515,10 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
     #   requirement (which pins the bundle id); a distinct nightly id would
     #   strand every existing install at the identity switch.
     # - CDSigner authz is per-identifier; the shared id is already onboarded.
-    # Cost accepted: shared TCC/notification identity, and a kirocrew:// URL
+    # Cost accepted: shared TCC/notification identity, and a junction:// URL
     # scheme could not disambiguate the two apps (none is registered today).
     EB_ARGS+=(
-      "-c.productName=KiroCrew Nightly"
+      "-c.productName=Junction Nightly"
       "-c.mac.icon=icon-nightly.icns"
       "-c.linux.icon=icon-nightly.png"
       "-c.win.icon=icon-nightly.png"
@@ -541,10 +541,10 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       #                     entry's StartupWMClass, which must keep matching
       #
       # productName already differs, so the /opt directory does not collide.
-      "-c.deb.packageName=kirocrew-nightly"
-      "-c.rpm.packageName=kirocrew-nightly"
-      "-c.linux.executableName=kirocrew-desktop-nightly"
-      "-c.extraMetadata.desktopName=kirocrew-desktop-nightly.desktop"
+      "-c.deb.packageName=junction-nightly"
+      "-c.rpm.packageName=junction-nightly"
+      "-c.linux.executableName=junction-desktop-nightly"
+      "-c.extraMetadata.desktopName=junction-desktop-nightly.desktop"
       # The npm package `name` is per-channel for the same reason the Linux
       # package name is. It is not build metadata: appInfo derives
       # updaterCacheDirName from it (`sanitizedName.toLowerCase() +
@@ -556,7 +556,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       # window state. productName and nsis.guid already separate the install
       # directory and the registry key; this separates the per-user state they
       # do not cover.
-      "-c.extraMetadata.name=kirocrew-desktop-nightly"
+      "-c.extraMetadata.name=junction-desktop-nightly"
       # Squirrel.Windows keyed the INSTALL identity off squirrelWindows.name;
       # NSIS keys it off two separate things, and nightly needs both:
       #
@@ -685,4 +685,4 @@ fi
 log "Done. Installer(s) are in $ELECTRON_DIR/dist/"
 ls -1 "$ELECTRON_DIR/dist/"*.{dmg,AppImage,deb,rpm,zip,exe} 2>/dev/null | sed 's/^/   /' || true
 echo ""
-echo "    The .app embeds the backend, so it runs with no PATH kirocrew needed."
+echo "    The .app embeds the backend, so it runs with no PATH junction needed."

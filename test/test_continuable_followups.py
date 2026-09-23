@@ -20,9 +20,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.subagent as subagent_mod
-from kiro_crew.subagent import SubagentInfo, SubagentManager
-from kiro_crew.subagent_persistence import create_agent_folder, read_state, update_state
+import junction.subagent as subagent_mod
+from junction.subagent import SubagentInfo, SubagentManager
+from junction.subagent_persistence import create_agent_folder, read_state, update_state
 
 # Subagent-registry isolation is provided globally by the autouse
 # ``_isolate_subagents_dir`` fixture in ``conftest.py``.
@@ -213,7 +213,7 @@ class TestConversationRegistryRebuild:
         # stamps updated_at=now, so write the timestamps directly.
         import json as _json
 
-        from kiro_crew.subagent_persistence import _agent_dir
+        from junction.subagent_persistence import _agent_dir
 
         def _write_keep_state(run_id: str, conv_key: str, ts: float) -> None:
             create_agent_folder(run_id, task="t")
@@ -301,7 +301,7 @@ class TestRetentionSourceOfTruth:
         assert bool((read_state("conv1") or {}).get("keep")) is False
 
     def _session_manager(self):  # type: ignore[no-untyped-def]
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         with patch.object(SessionManager, "__init__", lambda self: None):
             smgr = SessionManager()  # type: ignore[call-arg]

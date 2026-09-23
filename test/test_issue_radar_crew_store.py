@@ -38,9 +38,9 @@ from contextlib import contextmanager
 
 import pytest
 
-from kiro_crew.apps.builtins.issue_radar.backend import crew_store as cs
+from junction.apps.builtins.issue_radar.backend import crew_store as cs
 
-OWNER, REPO = "kirodotdev", "KiroCrew"  # brand-ok: the repository name
+OWNER, REPO = "kirodotdev", "Junction"  # brand-ok: the repository name
 
 
 def _crew(root, name="Andromeda", **spec):

@@ -20,21 +20,21 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.mcp_gateway import gatewayd, manager
-from kiro_crew.mcp_gateway.backend import HEARTBEAT_PING_ID, Backend
-from kiro_crew.mcp_gateway.hashing import (
+from junction.mcp_gateway import gatewayd, manager
+from junction.mcp_gateway.backend import HEARTBEAT_PING_ID, Backend
+from junction.mcp_gateway.hashing import (
     ENV_SCRUB_PREFIXES,
     hash_effective_env,
     is_secret_env_key,
     non_secret_env,
 )
-from kiro_crew.mcp_gateway.pool import BackendPool, PoolKey
-from kiro_crew.mcp_gateway.rewriter import (
+from junction.mcp_gateway.pool import BackendPool, PoolKey
+from junction.mcp_gateway.rewriter import (
     env_sidecar_dir,
     env_sidecar_name,
     resolve_overlay_dir,
 )
-from kiro_crew.mcp_gateway.shutdown_budget import (
+from junction.mcp_gateway.shutdown_budget import (
     DRAIN_SECS,
     POOL_SHUTDOWN_SECS,
     TOTAL_SHUTDOWN_BUDGET_SECS,
@@ -311,7 +311,7 @@ class TestDeclaredEnvForwarding:
         ``identity_keys`` is the set THE STUB hashed with. Passing a set the
         daemon does not share is how a lying stub is modelled: the daemon
         recomputes under its own configured set and the equality fails."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         sidecar_dir = env_sidecar_dir(resolve_overlay_dir())
         sidecar_dir.mkdir(parents=True, exist_ok=True)
         path = sidecar_dir / env_sidecar_name(key.agent_name, key.server_name)
@@ -340,9 +340,9 @@ class TestDeclaredEnvForwarding:
         classifier short-circuits on ``len(entry_env)`` and never consults the
         forwarder's rules, so only the ON path can drift.
         """
-        from kiro_crew.mcp_gateway import gatewayd
-        from kiro_crew.mcp_gateway.hashing import is_secret_env_key
-        from kiro_crew.mcp_gateway.rewriter import _withheld_env_count
+        from junction.mcp_gateway import gatewayd
+        from junction.mcp_gateway.hashing import is_secret_env_key
+        from junction.mcp_gateway.rewriter import _withheld_env_count
 
         declared = {
             "LOG_LEVEL": "debug",
@@ -392,8 +392,8 @@ class TestDeclaredEnvForwarding:
         learned about ``pool_identity_env`` the count identity below breaks, which
         is the same drift this class already guards for the default set.
         """
-        from kiro_crew.mcp_gateway import gatewayd
-        from kiro_crew.mcp_gateway.rewriter import _withheld_env_count
+        from junction.mcp_gateway import gatewayd
+        from junction.mcp_gateway.rewriter import _withheld_env_count
 
         named = frozenset({"OAUTH_TOKEN"})
         monkeypatch.setattr(gatewayd, "pool_identity_env_keys", lambda: named)
@@ -431,9 +431,9 @@ class TestDeclaredEnvForwarding:
         is in the identity but still refused, which would re-partition the pool on
         every rotation while leaving the entry unpoolable anyway.
         """
-        from kiro_crew.mcp_gateway.rewriter import pool_identity_env_keys
+        from junction.mcp_gateway.rewriter import pool_identity_env_keys
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         (tmp_path / "config.json").write_text(
             json.dumps(
                 {"mcp_gateway": {"pool_identity_env": ["AWS_SECRET_KEY", "OAUTH_TOKEN"]}}
@@ -454,7 +454,7 @@ class TestDeclaredEnvForwarding:
         gate refuses the whole sidecar. No new check: the gate that guards a spec
         edited mid-session guards this identically.
         """
-        from kiro_crew.mcp_gateway import gatewayd
+        from junction.mcp_gateway import gatewayd
 
         # Daemon: nothing opted in. Stub: claims OAUTH_TOKEN is identity.
         monkeypatch.setattr(gatewayd, "pool_identity_env_keys", lambda: frozenset())
@@ -482,7 +482,7 @@ class TestDeclaredEnvForwarding:
         Counting the reads pins the structural fix (the set is a required
         parameter of ``_declared_env_pairs``) rather than the current line order.
         """
-        from kiro_crew.mcp_gateway import gatewayd
+        from junction.mcp_gateway import gatewayd
 
         named = frozenset({"OAUTH_TOKEN"})
         reads = {"n": 0}
@@ -615,12 +615,12 @@ class TestDeclaredEnvForwarding:
         assert gatewayd._declared_non_secret_env(stale) == {}
 
     def test_missing_sidecar_is_not_an_error(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         assert gatewayd._declared_non_secret_env(_pool_key()) == {}
 
     def test_malformed_sidecar_is_ignored(self, tmp_path, monkeypatch):
         key = _pool_key()
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         sidecar_dir = env_sidecar_dir(resolve_overlay_dir())
         sidecar_dir.mkdir(parents=True, exist_ok=True)
         (sidecar_dir / env_sidecar_name(key.agent_name, key.server_name)).write_text(
@@ -630,7 +630,7 @@ class TestDeclaredEnvForwarding:
 
     def test_non_object_sidecar_is_ignored(self, tmp_path, monkeypatch):
         key = _pool_key()
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         sidecar_dir = env_sidecar_dir(resolve_overlay_dir())
         sidecar_dir.mkdir(parents=True, exist_ok=True)
         (sidecar_dir / env_sidecar_name(key.agent_name, key.server_name)).write_text(
@@ -670,28 +670,28 @@ class TestSidecarNaming:
         assert name.endswith(".json")
 
     def test_sidecar_dir_is_a_sibling_of_the_agents_overlay(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         overlay = resolve_overlay_dir()
         assert env_sidecar_dir(overlay) == overlay.parent / "stubs" / "env"
 
 
 def _load_config_from_dict(data: object):
     """Write ``data`` to a temp config file and load it through the real
-    ``KiroCrewConfig.load()`` parse path (mirrors ``test_config_loader``)."""
+    ``JunctionConfig.load()`` parse path (mirrors ``test_config_loader``)."""
     import tempfile
     import unittest.mock
     from pathlib import Path
 
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
         json.dump(data, f)
         tmp = Path(f.name)
     try:
         with unittest.mock.patch(
-            "kiro_crew.config.loader.config_path", return_value=tmp
+            "junction.config.loader.config_path", return_value=tmp
         ):
-            return KiroCrewConfig.load()
+            return JunctionConfig.load()
     finally:
         tmp.unlink(missing_ok=True)
 
@@ -704,7 +704,7 @@ class TestMalformedDeclaredEnv:
 
     @staticmethod
     def _build(tmp_path, env_value):
-        from kiro_crew.mcp_gateway.rewriter import _build_stub_entry, _normalized_env
+        from junction.mcp_gateway.rewriter import _build_stub_entry, _normalized_env
 
         original = {"command": "/bin/true", "args": [], "env": env_value}
         return _build_stub_entry(
@@ -743,7 +743,7 @@ class TestForwardDeclaredEnvFlag:
         whole server its pooling, on the strength of a disagreement that check
         has already ruled out.
         """
-        from kiro_crew.config.loader import McpGatewayConfig
+        from junction.config.loader import McpGatewayConfig
 
         assert McpGatewayConfig().forward_declared_env is True
 

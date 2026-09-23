@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.task_planner import _check_acyclic, decompose_yaml, plan_to_yaml
+from junction.task_planner import _check_acyclic, decompose_yaml, plan_to_yaml
 
 # ── Happy path ──
 
@@ -154,7 +154,7 @@ def test_too_many_agents():
 # ── _check_acyclic directly (iterative DFS) ──
 
 def test_check_acyclic_no_cycle():
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
     tasks = [
         Task(index=1, title="a", description="", depends_on=[]),
         Task(index=2, title="b", description="", depends_on=[1]),
@@ -164,7 +164,7 @@ def test_check_acyclic_no_cycle():
 
 def test_check_acyclic_deep_chain():
     """Iterative DFS handles chains deeper than Python's recursion limit."""
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
     n = 1500
     # Each task depends on the *next* one so DFS from task 1 must chase the full chain (stack depth n).
     tasks = [Task(index=i, title=f"t{i}", description="", depends_on=[i + 1] if i < n else []) for i in range(1, n + 1)]
@@ -224,7 +224,7 @@ def test_decompose_yaml_without_pyyaml(monkeypatch):
 
 def test_plan_to_yaml_roundtrips_titles_and_dag():
     """Serialize → decompose reconstructs the same titles and dependency structure."""
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
 
     tasks = [
         Task(index=1, title="Set up DB", description="create schema"),
@@ -242,7 +242,7 @@ def test_plan_to_yaml_roundtrips_titles_and_dag():
 
 def test_plan_to_yaml_dedups_duplicate_titles():
     """Two tasks with the same title get distinct agent keys (foo / foo-2)."""
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
 
     tasks = [
         Task(index=1, title="Do work", description="a"),
@@ -257,7 +257,7 @@ def test_plan_to_yaml_dedups_duplicate_titles():
 
 def test_plan_to_yaml_extracts_agent_timeout_preamble():
     """A description carrying the import preamble round-trips back into agent/timeout keys."""
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
 
     tasks = [Task(index=1, title="Build", description="Agent: coder\nTimeout: 30m\n\nrun the build")]
     y = plan_to_yaml(tasks)
@@ -271,7 +271,7 @@ def test_plan_to_yaml_extracts_agent_timeout_preamble():
 def test_plan_to_yaml_preamble_multiparagraph_prompt_not_mis_split():
     """DOTALL must not let a blank-line-containing prompt bleed into the timeout
     capture — agent/timeout are single-line, the prompt keeps all paragraphs."""
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
 
     desc = "Agent: coder\nTimeout: 30m\n\nFirst paragraph.\n\nSecond paragraph."
     tasks = [Task(index=1, title="Build", description=desc)]
@@ -285,7 +285,7 @@ def test_plan_to_yaml_preamble_multiparagraph_prompt_not_mis_split():
 
 
 def test_plan_to_yaml_blank_title_falls_back_to_task_index():
-    from kiro_crew.task_models import Task
+    from junction.task_models import Task
 
     tasks = [Task(index=5, title="", description="something")]
     y = plan_to_yaml(tasks)

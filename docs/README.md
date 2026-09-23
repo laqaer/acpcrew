@@ -2,7 +2,7 @@
 
 **This directory is the contributor and architecture documentation.** It is not
 shipped to users: the docs that ship inside the Python package live in
-[`../src/kiro_crew/docs/`](../src/kiro_crew/docs/README.md), and frontend-specific
+[`../src/junction/docs/`](../src/junction/docs/README.md), and frontend-specific
 docs live in [`../website/docs/`](../website/docs/README.md).
 
 New here? Start with [guides/install.md](guides/install.md), then
@@ -52,7 +52,7 @@ commit**. Concretely:
 
 Two constraints that are easy to miss:
 
-- **`src/kiro_crew/docs/` filenames are an API.** That tree is packaged, is read at
+- **`src/junction/docs/` filenames are an API.** That tree is packaged, is read at
   runtime by `tips.py` (gated by `tips_allowlist.py`), and specific filenames are
   hardcoded in dashboard Settings panels. Renaming a file there is a code change.
   The tree is also flat by design: `setup.cfg`'s `package_data` glob does not

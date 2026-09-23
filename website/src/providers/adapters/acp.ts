@@ -38,9 +38,9 @@ function learnWindow(name: string, window: number): void {
   if (name && Number.isFinite(window) && window > 0) LIVE_WINDOWS[name] = window
 }
 
-/** Narrow view of GET /api/config/kirocrew — only the fields the composer needs
+/** Narrow view of GET /api/config/junction — only the fields the composer needs
  *  to resolve what a new session will actually run on. */
-interface KirocrewAgentConfig {
+interface JunctionAgentConfig {
   agent?: { model?: string; reasoning_effort?: string }
 }
 
@@ -195,7 +195,7 @@ export class AcpAdapter implements ProviderAdapter {
     agentTemplateField: 'Agent Template',
     processCountLabel: 'acp_cli',
     warmPoolDescription: 'Pre-spawn ACP CLI processes for instant session start.',
-    configFile: 'kirocrew.json',
+    configFile: 'junction.json',
     pluginRegistryName: 'Packages',
     hooksSection: 'ACP Agent Hooks',
   }
@@ -209,14 +209,14 @@ export class AcpAdapter implements ProviderAdapter {
     // the composer shows the real value before a session exists to report one.
     //
     // This deliberately does NOT re-derive the precedence client-side. The
-    // chain is four tiers deep (the KiroCrew agent's own model, the bound kiro
+    // chain is four tiers deep (the Junction agent's own model, the bound kiro
     // agent's pin, the global agent.model default, the installed agent file)
     // and a second copy of it here would drift from the backend's: a fresh slot
     // would display the kiro agent file's model while the turn actually ran on
     // the configured default, and the mismatch would only self-correct once the
     // first turn backfilled slot.model from the live session.
     //
-    // `agentName` is a KiroCrew agent name (a "crew"), not a kiro agent
+    // `agentName` is a Junction agent name (a "crew"), not a kiro agent
     // template — the per-agent default is stored per crew, and several crews can
     // share one template.
     try {
@@ -227,12 +227,12 @@ export class AcpAdapter implements ProviderAdapter {
     }
   }
 
-  /** KiroCrew's configured default model (Settings → Chat → Default Model).
+  /** Junction's configured default model (Settings → Chat → Default Model).
    *  '' when unset or "auto" — both mean "no explicit default", so callers fall
    *  through to the agent-file model exactly as the backend does. */
   async resolveDefaultModel(): Promise<string> {
     try {
-      const c = (await api.kirocrewConfig()) as KirocrewAgentConfig
+      const c = (await api.junctionConfig()) as JunctionAgentConfig
       const m = c?.agent?.model || ''
       return m === 'auto' ? '' : m
     } catch {
@@ -240,12 +240,12 @@ export class AcpAdapter implements ProviderAdapter {
     }
   }
 
-  /** KiroCrew's configured default reasoning effort (Settings → Chat). '' means
+  /** Junction's configured default reasoning effort (Settings → Chat). '' means
    *  no default, i.e. the model picks its own. A per-slot override outranks it,
    *  matching ConfigLoader._acp()'s `reasoning_effort_override or default`. */
   async resolveDefaultEffort(): Promise<string> {
     try {
-      const c = (await api.kirocrewConfig()) as KirocrewAgentConfig
+      const c = (await api.junctionConfig()) as JunctionAgentConfig
       return c?.agent?.reasoning_effort || ''
     } catch {
       return ''

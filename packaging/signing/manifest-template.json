@@ -2,8 +2,8 @@
   "manifest": {
     "type": "app",
     "os": "osx",
-    "name": "KiroCrew.app",
-    "outputs": [{ "label": "macos", "path": "KiroCrew.app" }],
+    "name": "Junction.app",
+    "outputs": [{ "label": "macos", "path": "Junction.app" }],
     "app": {
       "identifier": "com.amazon.kiro.crew",
       "embedded_requirements": {},

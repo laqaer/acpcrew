@@ -20,14 +20,14 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.apps.bridges import _namespace, _safe_link_name
+from junction.apps.bridges import _namespace, _safe_link_name
 
 # Anchored on the REPO ROOT, derived from this file, never on the CWD. A
 # CWD-relative path resolves differently under `pytest -n auto` (each xdist worker
 # can start elsewhere), which made these pass locally and fail with
 # `FileNotFoundError` in the sharded run.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_APP_DIR = _REPO_ROOT / "src" / "kiro_crew" / "apps" / "builtins" / "pptx_maker"
+_APP_DIR = _REPO_ROOT / "src" / "junction" / "apps" / "builtins" / "pptx_maker"
 _PAGE = _REPO_ROOT / "website" / "src" / "apps" / "pptx-maker" / "PptxMakerPage.tsx"
 
 

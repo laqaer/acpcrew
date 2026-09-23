@@ -2,7 +2,7 @@
 
 Junction runs **natively on Windows** as a Python **source install**.
 The cross-platform process / signal / file-lock / metrics behavior is routed
-through `kiro_crew.platform_compat`, so macOS + Linux behavior is unchanged and
+through `junction.platform_compat`, so macOS + Linux behavior is unchanged and
 the same code path also runs on Windows.
 
 ## Desktop installer
@@ -72,7 +72,7 @@ The equivalent by hand, if you would rather not use the driver:
 ```powershell
 # Build the frontend first (optional but recommended) so the dashboard is bundled:
 #   cd website; npm install; npm run build; cd ..
-#   Copy-Item -Recurse website\dist src\kiro_crew\static\dist
+#   Copy-Item -Recurse website\dist src\junction\static\dist
 
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -94,14 +94,14 @@ Open the dashboard URL printed by the gateway. On first launch, Junction opens
 the **Dock an agent** page if no ACP runtime is available. A vendor agent CLI
 is optional — install one only when you want that harness.
 
-`kirocrew` lands in `.venv\Scripts\`. If a launched (non-shell)
-gateway can't find the built-in `kirocrew-cron` / `kirocrew-core` MCP servers,
+`junction` lands in `.venv\Scripts\`. If a launched (non-shell)
+gateway can't find the built-in `junction-cron` / `junction-core` MCP servers,
 that dir is appended to the MCP spawn `PATH` automatically
 (`env.augmented_path`), and the managed-server invocation falls back to
-`python -m kiro_crew <sub>` when the `kirocrew.exe` wrapper isn't resolvable.
-In the desktop bundle the relocatable `bin\kirocrew.cmd` shim is preferred
-over `Scripts\kirocrew.exe` (whose embedded interpreter path names the build
-machine) and is unwrapped to `<root>\python.exe -P -s -m kiro_crew <sub>` when
+`python -m junction <sub>` when the `junction.exe` wrapper isn't resolvable.
+In the desktop bundle the relocatable `bin\junction.cmd` shim is preferred
+over `Scripts\junction.exe` (whose embedded interpreter path names the build
+machine) and is unwrapped to `<root>\python.exe -P -s -m junction <sub>` when
 spawned.
 
 ## Kiro sandbox delegation and the unsandboxed-exec opt-in
@@ -153,23 +153,23 @@ while the other 503s. Concretely:
 
 | Feature | Status on Windows |
 |---------|-------------------|
-| Core gateway / chat / dashboard | works without `sandbox_allow_unsandboxed_exec` — the official Kiro backend delegates to Kiro CLI's built-in sandbox, while the parent scrubs sensitive environment variables. A source install with a built `website/dist` is linked into `src/kiro_crew/static/dist` at gateway start via a **directory junction** (`platform_compat.symlink_or_junction`), which needs no privilege; a symlink there would need `SeCreateSymbolicLinkPrivilege` and would leave a non-elevated install serving the "not built" page |
+| Core gateway / chat / dashboard | works without `sandbox_allow_unsandboxed_exec` — the official Kiro backend delegates to Kiro CLI's built-in sandbox, while the parent scrubs sensitive environment variables. A source install with a built `website/dist` is linked into `src/junction/static/dist` at gateway start via a **directory junction** (`platform_compat.symlink_or_junction`), which needs no privilege; a symlink there would need `SeCreateSymbolicLinkPrivilege` and would leave a non-elevated install serving the "not built" page |
 | Project skills (`<project>/.kiro/skills`) | not yet — Python on Windows does not expose handle-relative directory traversal that can reject every reparse point before resolving it. Catalog, consent and loading fail closed before canonicalizing the project path, preventing a raced junction to a UNC share from initiating SMB authentication. Global and installed skills continue to work. |
 | Theme-pack install, detail, assets, overlays, topbars, and removal | works — opened pack files are contained with `GetFinalPathNameByHandleW`; descriptor resolution fails closed instead of trusting a pathname-only check |
 | LLM cron jobs (the `message` kind) | works |
 | Script cron jobs | need the `agent.sandbox_allow_unsandboxed_exec` opt-in above — they run through `wrap_argv`, which fail-closes where no OS sandbox backend exists. Without it the job fails with a message naming that setting (it no longer raises an uncaught error) |
 | Command cron jobs (`sh -c "…"`) | not supported on Windows — the stored command is vetted under POSIX-sh semantics, and Windows ships no shell whose language matches: cmd.exe is not POSIX at all, and Git-for-Windows's `sh.exe` is bash and performs brace expansion that hides `cat ~/.a{w,w}s/credentials` from the vet. The job fails-closed with an explanation. Use a **script cron** or an LLM `message` cron on this platform |
-| Script hooks (Settings → Hooks) | need the `agent.sandbox_allow_unsandboxed_exec` opt-in above (like script crons — the hook command routes through `wrap_argv`, which fail-closes where no OS sandbox backend exists; without it the hook returns that message as its `error`). With the opt-in they run in **cmd.exe** language: a hook `command` runs as `%ComSpec% /c "<command>"`, so read the context env vars as `%KIROCREW_HOOK_EVENT%` / `%KIROCREW_HOOK_CONTEXT%` (not `$VAR`), and group arguments with double quotes only (cmd.exe gives `'…'` no meaning). The line reaches cmd.exe verbatim, so a quoted interpreter path with a space works. A hook authored on macOS/Linux is not portable and must be rewritten |
+| Script hooks (Settings → Hooks) | need the `agent.sandbox_allow_unsandboxed_exec` opt-in above (like script crons — the hook command routes through `wrap_argv`, which fail-closes where no OS sandbox backend exists; without it the hook returns that message as its `error`). With the opt-in they run in **cmd.exe** language: a hook `command` runs as `%ComSpec% /c "<command>"`, so read the context env vars as `%JUNCTION_HOOK_EVENT%` / `%JUNCTION_HOOK_CONTEXT%` (not `$VAR`), and group arguments with double quotes only (cmd.exe gives `'…'` no meaning). The line reaches cmd.exe verbatim, so a quoted interpreter path with a space works. A hook authored on macOS/Linux is not portable and must be rewritten |
 | Pull-request source drawer provider fetch/check/resolve | not yet — and for a different reason than it used to be. The provider-CLI **trust** check now works here (see Issue Radar below), but the drawer does not share Issue Radar's spawn: it keeps its own async, sandbox-routed one (`source_providers._run_json`), which refuses on Windows because no OS sandbox backend exists. So the blocker is the sandbox, not the binary check |
-| Issue Radar | works — its `gh` spawn is not sandbox-routed, so the trust check is the only gate, and that is answered by reading the binary's Windows ACL (`kiro_crew.windows_acl`) in place of the POSIX `st_uid` + write-bit walk, which reports nothing on this platform. Refused when any principal outside `{you, SYSTEM, Administrators, TrustedInstaller}` can replace the binary or a parent directory, when the security descriptor is unreadable, or when the gateway token is **elevated** (an elevated gateway spawns elevated children, which makes the walk vacuous). GitHub only on this platform unless `glab` is installed. **If a `gh` you trust is refused**, the override variables (`KIROCREW_ISSUE_RADAR_GH`, `KIROCREW_GH_BIN`) re-enter the same check rather than bypassing it, so the recourse is to install `gh` somewhere only you and the system can write — a per-user `%LOCALAPPDATA%` install is accepted — or to file an issue quoting the refusal, which names the offending principal or the ACE type it could not evaluate |
+| Issue Radar | works — its `gh` spawn is not sandbox-routed, so the trust check is the only gate, and that is answered by reading the binary's Windows ACL (`junction.windows_acl`) in place of the POSIX `st_uid` + write-bit walk, which reports nothing on this platform. Refused when any principal outside `{you, SYSTEM, Administrators, TrustedInstaller}` can replace the binary or a parent directory, when the security descriptor is unreadable, or when the gateway token is **elevated** (an elevated gateway spawns elevated children, which makes the walk vacuous). GitHub only on this platform unless `glab` is installed. **If a `gh` you trust is refused**, the override variables (`JUNCTION_ISSUE_RADAR_GH`, `JUNCTION_GH_BIN`) re-enter the same check rather than bypassing it, so the recourse is to install `gh` somewhere only you and the system can write — a per-user `%LOCALAPPDATA%` install is accepted — or to file an issue quoting the refusal, which names the offending principal or the ACE type it could not evaluate |
 | Spec Builder | works, except **Duplicate** — crash-safe copy publication pins a staging directory and uses the platform's atomic no-replace rename (`renameat2(RENAME_NOREPLACE)` on Linux, `renameatx_np(RENAME_EXCL)` on macOS). Windows provides neither that native contract nor CPython's directory-descriptor operations, so the backend reports the capability as unavailable and the dashboard omits Duplicate instead of falling back to a check-then-rename race or a junction-prone path write. Approval, per-task runs, labels, archive/restore, chat, and whole-plan execution work normally |
 | Code Review Sage | not yet — the provider-CLI trust check now passes, but its review worker hands the session `python3 sage_lib/…` commands and `python3` is not an interpreter on Windows (the name resolves to the Microsoft Store app-execution alias, or to nothing). It refuses with that reason rather than starting a review that produces no result |
 | Browser automation (`playwright-cli`) | works (`npm install -g @playwright/cli@latest`, needs Node.js 20 or newer) |
 | Vector memory / embeddings | works — embeddings run **in-process** through the vendored llama-cpp-python (`_vendor/llama_cpp_libs/win_amd64`), which loads the Qwen3-Embedding-0.6B GGUF from `~/.kiro/crew/models`. No remote endpoint, no Docker and no Ollama server is involved on any platform |
 | STT (whisper / optional cloud transcription) | works |
 | Voice reply (Piper TTS) | not yet — upstream rhasspy/piper ships no Windows binary; Polly (optional) works if the `aws` CLI is present **and** the `agent.sandbox_allow_unsandboxed_exec` opt-in above is set — the `aws polly` spawn routes through `wrap_argv`, which fail-closes where no OS sandbox backend exists. Without it synthesis returns no audio and the log names that setting |
-| SSH tunnel (`kirocrew cloud` remote dashboard) | not yet — needs the OpenSSH client on `PATH` and a signal-handling audit |
-| MCP server tool listing (dashboard MCP page, `junction doctor`) | **built-in servers work, no opt-in** — `kirocrew-core` / `-cron` / `-computer` are probed for real: their command line is derived entirely inside the package (never user-config text), so the first-party carve-out spawns the handshake probe unconfined (env-scrubbed, SEL-audited as `unconfined`) even with no sandbox backend. When that probe cannot run (a transient sandbox failure, a governance sandbox floor, or a customized command for the server), the listing falls back to reading the package's own tool declaration and logs a WARNING noting that `ok` then means "declared" rather than "handshake succeeded". A **third-party** server has no declaration to read and never gets the carve-out, so its listing needs the `agent.sandbox_allow_unsandboxed_exec` opt-in — its binary is named by config and spawning it is what the sandbox exists to confine. The third-party server itself is unaffected: kiro-cli launches it from the agent config without this probe, so its tools still work in chat |
+| SSH tunnel (`junction cloud` remote dashboard) | not yet — needs the OpenSSH client on `PATH` and a signal-handling audit |
+| MCP server tool listing (dashboard MCP page, `junction doctor`) | **built-in servers work, no opt-in** — `junction-core` / `-cron` / `-computer` are probed for real: their command line is derived entirely inside the package (never user-config text), so the first-party carve-out spawns the handshake probe unconfined (env-scrubbed, SEL-audited as `unconfined`) even with no sandbox backend. When that probe cannot run (a transient sandbox failure, a governance sandbox floor, or a customized command for the server), the listing falls back to reading the package's own tool declaration and logs a WARNING noting that `ok` then means "declared" rather than "handshake succeeded". A **third-party** server has no declaration to read and never gets the carve-out, so its listing needs the `agent.sandbox_allow_unsandboxed_exec` opt-in — its binary is named by config and spawning it is what the sandbox exists to confine. The third-party server itself is unaffected: kiro-cli launches it from the agent config without this probe, so its tools still work in chat |
 | MCP gateway (opt-in, OFF by default) | works — a named-pipe transport replaces the AF_UNIX socket, and the peer check uses `GetNamedPipeClientProcessId` + a SID comparison in place of `SO_PEERCRED`. Still opt-in: set `mcp_gateway.enabled` to turn it on |
 | Papyrus (LaTeX editor, opt-in builtin) | works, **but compiling and git need the `agent.sandbox_allow_unsandboxed_exec` opt-in above** — unlike official Kiro, these processes have no proven internal sandbox, so `wrap_argv` keeps the no-backend fail-closed policy. Without it, compile and clone/commit/push/pull answer a clear 422 (`compiler_sandbox_unavailable` / `git_sandbox_unavailable`) naming the remedy rather than a bare "internal error". The managed Tectonic compiler is Windows-pinned (`x86_64-pc-windows-msvc`); Windows-on-ARM has no upstream asset and keeps the manual install path |
 | Computer use — **reading** (`computer_list_apps`, `computer_get_state`) | works, still behind the operator's one keystone opt-in (Settings → Computer Use). Reads the UI Automation tree of a window and can attach a `PrintWindow` screenshot. Two Windows-specific limits: a **non-elevated gateway cannot see an elevated window** (UIPI, and the secure desktop is unreachable to any application — a security property, not a gap), and a window drawn on a swapchain surface **cannot be captured**, so WindowsTerminal returns a tree with no screenshot rather than a blank image. Walking is also markedly slower than macOS — a large Chromium window costs hundreds of milliseconds at the node budget — so raise `max_tree_nodes` deliberately |
@@ -289,7 +289,7 @@ Windows they ask `OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)` instead of
 signalling anything.
 
 `test/test_windows_kill_probe_audit.py` enforces this as a tripwire rather than a
-convention: it walks the AST of every module under `src/kiro_crew` and fails on a
+convention: it walks the AST of every module under `src/junction` and fails on a
 raw signal-0 probe until the author either routes it through the shim or records
 the site in `GATED_PROBES` with a justification for why it can never execute on
 Windows. A second test rejects allowlist entries whose code has since moved or
@@ -429,7 +429,7 @@ stay Windows-skipped in `test/windows-expected-failures.txt`.
   launcher uses `netstat -ano` to identify the listener, PowerShell
   (`Get-CimInstance`) with a WMIC fallback to read its command line, and
   `taskkill /F /PID` only after confirming a Junction executable or
-  `python -m kiro_crew` process. Localized listener-state text is ignored.
+  `python -m junction` process. Localized listener-state text is ignored.
   SSH forwards and unrelated processes are never terminated, and a failed or
   timed-out `netstat` probe is treated as unknown rather than as a free port.
 - **`ModuleNotFoundError: No module named 'fcntl'`** — you installed a
@@ -457,5 +457,5 @@ stay Windows-skipped in `test/windows-expected-failures.txt`.
 - [README](../../README.md) — quick-start Platforms note
 - [install](install.md) — the build-target table shared with macOS and Linux
 - [AGENTS.md](../../AGENTS.md) — the cross-platform shim table
-- `src/kiro_crew/platform_compat.py` — the cross-platform shim
+- `src/junction/platform_compat.py` — the cross-platform shim
 - `make.ps1` — the Windows build driver

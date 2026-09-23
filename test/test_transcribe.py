@@ -13,12 +13,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import dep_sync
-from kiro_crew import platform_compat as _pc
-from kiro_crew import transcribe
-from kiro_crew.config.loader import SttConfig
-from kiro_crew.sandbox import _PYTHON_ENV_PREFIXES
-from kiro_crew.transcribe import (
+from junction import dep_sync
+from junction import platform_compat as _pc
+from junction import transcribe
+from junction.config.loader import SttConfig
+from junction.sandbox import _PYTHON_ENV_PREFIXES
+from junction.transcribe import (
     _THREAD_ENV_VARS,
     _WHISPER_THREAD_CEILING,
     BREW_PATH_DIRS,
@@ -47,7 +47,7 @@ def _no_own_venv(monkeypatch) -> None:
     never gets there. Same reason these tests already stub ``shutil.which`` and
     ``_python3_bin_dir``.
     """
-    monkeypatch.setattr("kiro_crew.transcribe._own_scripts_dir", lambda: "")
+    monkeypatch.setattr("junction.transcribe._own_scripts_dir", lambda: "")
 
 
 class TestFindWhisper:
@@ -67,13 +67,13 @@ class TestFindWhisper:
         assert _find_whisper(str(binary)) is None
 
     def test_empty_path_uses_which(self):
-        with patch("kiro_crew.transcribe.shutil.which", return_value="/usr/bin/whisper"):
+        with patch("junction.transcribe.shutil.which", return_value="/usr/bin/whisper"):
             assert _find_whisper("") == "/usr/bin/whisper"
 
     def test_empty_path_which_none_checks_search_paths(self, tmp_path, monkeypatch):
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        with patch("junction.transcribe.shutil.which", return_value=None):
             _no_own_venv(monkeypatch)
-            monkeypatch.setattr("kiro_crew.transcribe._WHISPER_SEARCH_PATHS", [str(tmp_path / "w")])
+            monkeypatch.setattr("junction.transcribe._WHISPER_SEARCH_PATHS", [str(tmp_path / "w")])
             assert _find_whisper("") is None
 
     def test_finds_whisper_installed_into_our_own_venv(self, tmp_path, monkeypatch):
@@ -81,7 +81,7 @@ class TestFindWhisper:
 
         Nothing else in the search order looks there: ``shutil.which`` only sees
         PATH (a venv is on PATH only after ``activate``, and the gateway runs as
-        ``<venv>/bin/kirocrew``), and ``_python3_bin_dir`` deliberately asks the
+        ``<venv>/bin/junction``), and ``_python3_bin_dir`` deliberately asks the
         SYSTEM python3. So the obvious install left ``is_available()`` False, with
         no fix but setting ``stt.whisper_path`` by hand.
         """
@@ -90,10 +90,10 @@ class TestFindWhisper:
         binary = venv_bin / "whisper"
         binary.write_text("#!/bin/sh\n")
         binary.chmod(0o755)
-        monkeypatch.setattr("kiro_crew.transcribe.sys.executable", str(venv_bin / "python"))
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
-            monkeypatch.setattr("kiro_crew.transcribe._WHISPER_SEARCH_PATHS", [])
-            monkeypatch.setattr("kiro_crew.transcribe._python3_bin_dir", lambda: "")
+        monkeypatch.setattr("junction.transcribe.sys.executable", str(venv_bin / "python"))
+        with patch("junction.transcribe.shutil.which", return_value=None):
+            monkeypatch.setattr("junction.transcribe._WHISPER_SEARCH_PATHS", [])
+            monkeypatch.setattr("junction.transcribe._python3_bin_dir", lambda: "")
             assert _find_whisper("") == str(binary)
 
     def test_our_venv_is_preferred_over_the_system_python(self, tmp_path, monkeypatch):
@@ -113,10 +113,10 @@ class TestFindWhisper:
         theirs.write_text("#!/bin/sh\n")
         theirs.chmod(0o755)
 
-        monkeypatch.setattr("kiro_crew.transcribe.sys.executable", str(venv_bin / "python"))
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
-            monkeypatch.setattr("kiro_crew.transcribe._WHISPER_SEARCH_PATHS", [])
-            monkeypatch.setattr("kiro_crew.transcribe._python3_bin_dir", lambda: str(sys_bin))
+        monkeypatch.setattr("junction.transcribe.sys.executable", str(venv_bin / "python"))
+        with patch("junction.transcribe.shutil.which", return_value=None):
+            monkeypatch.setattr("junction.transcribe._WHISPER_SEARCH_PATHS", [])
+            monkeypatch.setattr("junction.transcribe._python3_bin_dir", lambda: str(sys_bin))
             assert _find_whisper("") == str(ours)
 
     def test_path_still_wins_over_the_venv(self, tmp_path, monkeypatch):
@@ -125,17 +125,17 @@ class TestFindWhisper:
         venv_bin.mkdir(parents=True)
         (venv_bin / "whisper").write_text("#!/bin/sh\n")
         (venv_bin / "whisper").chmod(0o755)
-        monkeypatch.setattr("kiro_crew.transcribe.sys.executable", str(venv_bin / "python"))
-        with patch("kiro_crew.transcribe.shutil.which", return_value="/usr/bin/whisper"):
+        monkeypatch.setattr("junction.transcribe.sys.executable", str(venv_bin / "python"))
+        with patch("junction.transcribe.shutil.which", return_value="/usr/bin/whisper"):
             assert _find_whisper("") == "/usr/bin/whisper"
 
     def test_empty_path_finds_in_search_paths(self, tmp_path, monkeypatch):
         binary = tmp_path / "whisper"
         binary.write_text("#!/bin/sh\n")
         binary.chmod(0o755)
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        with patch("junction.transcribe.shutil.which", return_value=None):
             _no_own_venv(monkeypatch)
-            monkeypatch.setattr("kiro_crew.transcribe._WHISPER_SEARCH_PATHS", [str(binary)])
+            monkeypatch.setattr("junction.transcribe._WHISPER_SEARCH_PATHS", [str(binary)])
             assert _find_whisper("") == str(binary)
 
     def test_tilde_expansion(self, tmp_path, monkeypatch):
@@ -153,11 +153,11 @@ class TestFindWhisper:
         scripts.mkdir()
         exe = scripts / "whisper.exe"
         exe.write_text("")  # no execute bit on Windows
-        monkeypatch.setattr("kiro_crew.transcribe.platform_compat.IS_WINDOWS", True)
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        monkeypatch.setattr("junction.transcribe.platform_compat.IS_WINDOWS", True)
+        with patch("junction.transcribe.shutil.which", return_value=None):
             _no_own_venv(monkeypatch)
-            monkeypatch.setattr("kiro_crew.transcribe._python3_bin_dir", lambda: str(scripts))
-            monkeypatch.setattr("kiro_crew.transcribe._WHISPER_SEARCH_PATHS", [])
+            monkeypatch.setattr("junction.transcribe._python3_bin_dir", lambda: str(scripts))
+            monkeypatch.setattr("junction.transcribe._WHISPER_SEARCH_PATHS", [])
             assert _find_whisper("") == str(exe)
 
 
@@ -222,9 +222,9 @@ class TestNativeFp16Gating:
             Path(out_dir).joinpath("test.txt").write_text("hello world")
             return mock_proc
 
-        with patch("kiro_crew.transcribe._find_whisper", return_value=whisper_bin):
+        with patch("junction.transcribe._find_whisper", return_value=whisper_bin):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
+                "junction.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
             ):
                 result = await transcribe_audio(str(audio), cfg)
         assert result == "hello world"
@@ -271,16 +271,16 @@ class TestWhisperThreadCap:
             monkeypatch.delenv(var, raising=False)
         for key, value in (preset or {}).items():
             monkeypatch.setenv(key, value)
-        monkeypatch.setattr("kiro_crew.transcribe.os.cpu_count", lambda: cpus)
+        monkeypatch.setattr("junction.transcribe.os.cpu_count", lambda: cpus)
         if affinity is None:
-            monkeypatch.delattr("kiro_crew.transcribe.os.sched_getaffinity", raising=False)
+            monkeypatch.delattr("junction.transcribe.os.sched_getaffinity", raising=False)
         else:
             # raising=False because Windows has no os.sched_getaffinity to
             # replace — monkeypatch CREATES it there, which is what lets this
             # test cover the affinity branch on every platform rather than
             # erroring out on the ones that lack the syscall.
             monkeypatch.setattr(
-                "kiro_crew.transcribe.os.sched_getaffinity",
+                "junction.transcribe.os.sched_getaffinity",
                 lambda _pid: affinity,
                 raising=False,
             )
@@ -362,7 +362,7 @@ class TestWhisperThreadCap:
         env = self._env(
             monkeypatch,
             cpus=32,
-            preset={"PYTHONPATH": "/opt/kirocrew/lib", "PYTHONHOME": "/opt/kirocrew"},
+            preset={"PYTHONPATH": "/opt/junction/lib", "PYTHONHOME": "/opt/junction"},
         )
         assert "PYTHONPATH" not in env
         assert "PYTHONHOME" not in env
@@ -377,7 +377,7 @@ class TestWhisperThreadCap:
         merely starts with an entry must be stripped too, exactly as the
         sandbox scrub would strip it.
         """
-        preset = {var: f"/opt/kirocrew/{var.lower()}" for var in _PYTHON_ENV_PREFIXES}
+        preset = {var: f"/opt/junction/{var.lower()}" for var in _PYTHON_ENV_PREFIXES}
         preset.update({f"{var}_SUFFIX": "x" for var in _PYTHON_ENV_PREFIXES})
         env = self._env(monkeypatch, cpus=32, preset=preset)
         for var in _PYTHON_ENV_PREFIXES:
@@ -394,7 +394,7 @@ class TestWhisperThreadCap:
         """Wiring test: the helper is useless if _run_whisper_cli ignores it."""
         for var in _THREAD_ENV_VARS:
             monkeypatch.delenv(var, raising=False)
-        monkeypatch.setattr("kiro_crew.transcribe._whisper_thread_count", lambda: 16)
+        monkeypatch.setattr("junction.transcribe._whisper_thread_count", lambda: 16)
 
         audio = tmp_path / "test.webm"
         audio.write_text("fake audio")
@@ -411,9 +411,9 @@ class TestWhisperThreadCap:
             Path(out_dir).joinpath("test.txt").write_text("hello world")
             return mock_proc
 
-        with patch("kiro_crew.transcribe._find_whisper", return_value="/usr/bin/whisper"):
+        with patch("junction.transcribe._find_whisper", return_value="/usr/bin/whisper"):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
+                "junction.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
             ):
                 assert await transcribe_audio(str(audio), cfg) == "hello world"
 
@@ -427,23 +427,23 @@ class TestWhisperThreadCap:
 
 class TestFindMlxWhisper:
     def test_found_on_path(self):
-        with patch("kiro_crew.transcribe.shutil.which", return_value="/usr/local/bin/mlx_whisper"):
+        with patch("junction.transcribe.shutil.which", return_value="/usr/local/bin/mlx_whisper"):
             assert _find_mlx_whisper() == "/usr/local/bin/mlx_whisper"
 
     def test_not_found(self, monkeypatch):
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
-            monkeypatch.setattr("kiro_crew.transcribe._python3_bin_dir", lambda: "")
-            monkeypatch.setattr("kiro_crew.transcribe._MLX_WHISPER_SEARCH_PATHS", ["/nonexistent"])
+        with patch("junction.transcribe.shutil.which", return_value=None):
+            monkeypatch.setattr("junction.transcribe._python3_bin_dir", lambda: "")
+            monkeypatch.setattr("junction.transcribe._MLX_WHISPER_SEARCH_PATHS", ["/nonexistent"])
             assert _find_mlx_whisper() is None
 
     def test_found_in_search_paths(self, tmp_path, monkeypatch):
         binary = tmp_path / "mlx_whisper"
         binary.write_text("#!/bin/sh\n")
         binary.chmod(0o755)
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
-            monkeypatch.setattr("kiro_crew.transcribe._python3_bin_dir", lambda: "")
+        with patch("junction.transcribe.shutil.which", return_value=None):
+            monkeypatch.setattr("junction.transcribe._python3_bin_dir", lambda: "")
             monkeypatch.setattr(
-                "kiro_crew.transcribe._MLX_WHISPER_SEARCH_PATHS", [str(binary)]
+                "junction.transcribe._MLX_WHISPER_SEARCH_PATHS", [str(binary)]
             )
             assert _find_mlx_whisper() == str(binary)
 
@@ -456,14 +456,14 @@ class TestFindMlxWhisper:
 class TestFindParakeetMlx:
     def test_found_on_path(self):
         with patch(
-            "kiro_crew.transcribe.shutil.which", return_value="/usr/local/bin/parakeet-mlx"
+            "junction.transcribe.shutil.which", return_value="/usr/local/bin/parakeet-mlx"
         ):
             assert _find_parakeet_mlx() == "/usr/local/bin/parakeet-mlx"
 
     def test_not_found(self, monkeypatch):
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        with patch("junction.transcribe.shutil.which", return_value=None):
             monkeypatch.setattr(
-                "kiro_crew.transcribe._PARAKEET_MLX_SEARCH_PATHS", ["/nonexistent"]
+                "junction.transcribe._PARAKEET_MLX_SEARCH_PATHS", ["/nonexistent"]
             )
             assert _find_parakeet_mlx() is None
 
@@ -471,9 +471,9 @@ class TestFindParakeetMlx:
         binary = tmp_path / "parakeet-mlx"
         binary.write_text("#!/bin/sh\n")
         binary.chmod(0o755)
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        with patch("junction.transcribe.shutil.which", return_value=None):
             monkeypatch.setattr(
-                "kiro_crew.transcribe._PARAKEET_MLX_SEARCH_PATHS", [str(binary)]
+                "junction.transcribe._PARAKEET_MLX_SEARCH_PATHS", [str(binary)]
             )
             assert _find_parakeet_mlx() == str(binary)
 
@@ -484,10 +484,10 @@ class TestFindParakeetMlx:
         never find anything here while still paying its cost -- a synchronous
         subprocess spawn on the event loop this function runs on (dashboard
         GET/PUT /api/config/stt)."""
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
-            with patch("kiro_crew.transcribe._python3_bin_dir") as py3_bin_dir:
+        with patch("junction.transcribe.shutil.which", return_value=None):
+            with patch("junction.transcribe._python3_bin_dir") as py3_bin_dir:
                 monkeypatch.setattr(
-                    "kiro_crew.transcribe._PARAKEET_MLX_SEARCH_PATHS", ["/nonexistent"]
+                    "junction.transcribe._PARAKEET_MLX_SEARCH_PATHS", ["/nonexistent"]
                 )
                 assert _find_parakeet_mlx() is None
             py3_bin_dir.assert_not_called()
@@ -503,7 +503,7 @@ class TestFindBrew:
 
     def test_found_on_path(self):
         with patch(
-            "kiro_crew.transcribe.shutil.which", return_value="/opt/homebrew/bin/brew"
+            "junction.transcribe.shutil.which", return_value="/opt/homebrew/bin/brew"
         ):
             assert find_brew() == "/opt/homebrew/bin/brew"
 
@@ -511,16 +511,16 @@ class TestFindBrew:
         brew = tmp_path / "brew"
         brew.write_text("#!/bin/sh\n")
         brew.chmod(0o755)
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        with patch("junction.transcribe.shutil.which", return_value=None):
             monkeypatch.setattr(
-                "kiro_crew.transcribe._BREW_CANDIDATE_PATHS", [str(brew)]
+                "junction.transcribe._BREW_CANDIDATE_PATHS", [str(brew)]
             )
             assert find_brew() == str(brew)
 
     def test_not_installed(self, monkeypatch):
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        with patch("junction.transcribe.shutil.which", return_value=None):
             monkeypatch.setattr(
-                "kiro_crew.transcribe._BREW_CANDIDATE_PATHS", ["/nonexistent/brew"]
+                "junction.transcribe._BREW_CANDIDATE_PATHS", ["/nonexistent/brew"]
             )
             assert find_brew() is None
 
@@ -556,29 +556,29 @@ class TestIsAvailable:
     def test_loads_config_when_none(self):
         mock_cfg = MagicMock()
         mock_cfg.stt = SttConfig(enabled=False)
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=mock_cfg):
+        with patch("junction.config.loader.JunctionConfig.load", return_value=mock_cfg):
             assert is_available(None) is False
 
     def test_mlx_available_when_binary_found(self):
         cfg = SttConfig(enabled=True, provider="mlx")
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
+        with patch("junction.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
             assert is_available(cfg) is True
 
     def test_mlx_unavailable_when_binary_missing(self):
         cfg = SttConfig(enabled=True, provider="mlx")
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value=None):
+        with patch("junction.transcribe._find_mlx_whisper", return_value=None):
             assert is_available(cfg) is False
 
     def test_parakeet_available_when_binary_found(self):
         cfg = SttConfig(enabled=True, provider="parakeet")
         with patch(
-            "kiro_crew.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
+            "junction.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
         ):
             assert is_available(cfg) is True
 
     def test_parakeet_unavailable_when_binary_missing(self):
         cfg = SttConfig(enabled=True, provider="parakeet")
-        with patch("kiro_crew.transcribe._find_parakeet_mlx", return_value=None):
+        with patch("junction.transcribe._find_parakeet_mlx", return_value=None):
             assert is_available(cfg) is False
 
 
@@ -615,14 +615,14 @@ class TestTranscribeAudio:
             return ""
 
         monkeypatch.setattr(
-            "kiro_crew.transcribe._python3_bin_dir", discover_python_bin_dir
+            "junction.transcribe._python3_bin_dir", discover_python_bin_dir
         )
         # This test observes the thread `_python3_bin_dir` runs on, so the probe
         # BEFORE it must miss — otherwise discovery short-circuits and never
         # reaches the call being watched.
         _no_own_venv(monkeypatch)
-        monkeypatch.setattr("kiro_crew.transcribe._WHISPER_SEARCH_PATHS", [])
-        with patch("kiro_crew.transcribe.shutil.which", return_value=None):
+        monkeypatch.setattr("junction.transcribe._WHISPER_SEARCH_PATHS", [])
+        with patch("junction.transcribe.shutil.which", return_value=None):
             result = await transcribe_audio(str(audio), cfg)
 
         assert result is None
@@ -633,7 +633,7 @@ class TestTranscribeAudio:
     async def test_aws_audio_read_runs_off_event_loop(self, tmp_path, monkeypatch):
         from threading import get_ident
 
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         audio = tmp_path / "test.ogg"
         audio.write_bytes(b"fake audio")
@@ -642,9 +642,9 @@ class TestTranscribeAudio:
         # recorded consent for this profile+region, so this case -- which is
         # about WHERE the read runs, not about the gate -- consents first. The
         # refusal itself is covered in `test_aws_consent.py`.
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
-        from kiro_crew import aws_consent
-        from kiro_crew.config.loader import config_dir
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
+        from junction import aws_consent
+        from junction.config.loader import config_dir
 
         config_dir().mkdir(parents=True, exist_ok=True)
         aws_consent.record_grant(
@@ -736,13 +736,13 @@ class TestTranscribeAudio:
         mock_proc.returncode = 0
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
 
-        monkeypatch.setattr("kiro_crew.transcribe.tempfile.mkdtemp", make_output_dir)
+        monkeypatch.setattr("junction.transcribe.tempfile.mkdtemp", make_output_dir)
         monkeypatch.setattr(
-            "kiro_crew.transcribe._collect_whisper_output", collect_output
+            "junction.transcribe._collect_whisper_output", collect_output
         )
-        monkeypatch.setattr("kiro_crew.transcribe.shutil.rmtree", remove_output_dir)
+        monkeypatch.setattr("junction.transcribe.shutil.rmtree", remove_output_dir)
         with patch(
-            "kiro_crew.transcribe.asyncio.create_subprocess_exec",
+            "junction.transcribe.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ):
             result = await transcribe_audio(str(audio), cfg)
@@ -770,7 +770,7 @@ class TestTranscribeAudio:
             return mock_proc
 
         with patch(
-            "kiro_crew.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
+            "junction.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
         ):
             result = await transcribe_audio(str(audio), cfg)
         assert result == "Hello world"
@@ -789,7 +789,7 @@ class TestTranscribeAudio:
         mock_proc.communicate = AsyncMock(return_value=(b"", b"error"))
 
         with patch(
-            "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+            "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
         ):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -807,10 +807,10 @@ class TestTranscribeAudio:
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
 
         with patch(
-            "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+            "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
         ):
             with patch(
-                "kiro_crew.transcribe.asyncio.wait_for", side_effect=asyncio.TimeoutError
+                "junction.transcribe.asyncio.wait_for", side_effect=asyncio.TimeoutError
             ):
                 result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -829,7 +829,7 @@ class TestTranscribeAudio:
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
 
         with patch(
-            "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+            "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
         ):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -838,7 +838,7 @@ class TestTranscribeAudio:
     async def test_loads_config_when_none(self):
         mock_cfg = MagicMock()
         mock_cfg.stt = SttConfig(enabled=False)
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=mock_cfg):
+        with patch("junction.config.loader.JunctionConfig.load", return_value=mock_cfg):
             result = await transcribe_audio("/tmp/test.webm", None)
         assert result is None
 
@@ -847,7 +847,7 @@ class TestTranscribeAudio:
         audio = tmp_path / "test.webm"
         audio.write_text("fake audio")
         cfg = SttConfig(enabled=True, provider="mlx")
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value=None):
+        with patch("junction.transcribe._find_mlx_whisper", return_value=None):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
 
@@ -860,8 +860,8 @@ class TestTranscribeAudio:
         cfg = SttConfig(
             enabled=True, provider="mlx", mlx_model="; rm -rf ~", timeout_secs=10
         )
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
-            with patch("kiro_crew.transcribe.asyncio.create_subprocess_exec") as spawn:
+        with patch("junction.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
+            with patch("junction.transcribe.asyncio.create_subprocess_exec") as spawn:
                 result = await transcribe_audio(str(audio), cfg)
         assert result is None
         spawn.assert_not_called()
@@ -886,9 +886,9 @@ class TestTranscribeAudio:
             Path(out_dir).joinpath("test.txt").write_text("Hola mundo")
             return mock_proc
 
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
+        with patch("junction.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
+                "junction.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
             ):
                 result = await transcribe_audio(str(audio), cfg)
         assert result == "Hola mundo"
@@ -905,9 +905,9 @@ class TestTranscribeAudio:
         mock_proc.returncode = 1
         mock_proc.communicate = AsyncMock(return_value=(b"", b"boom"))
 
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
+        with patch("junction.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+                "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
             ):
                 result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -921,12 +921,12 @@ class TestTranscribeAudio:
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
 
-        with patch("kiro_crew.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
+        with patch("junction.transcribe._find_mlx_whisper", return_value="/usr/bin/mlx_whisper"):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+                "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
             ):
                 with patch(
-                    "kiro_crew.transcribe.asyncio.wait_for", side_effect=asyncio.TimeoutError
+                    "junction.transcribe.asyncio.wait_for", side_effect=asyncio.TimeoutError
                 ):
                     result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -943,7 +943,7 @@ class TestTranscribeParakeet:
         audio = tmp_path / "test.webm"
         audio.write_text("fake audio")
         cfg = SttConfig(enabled=True, provider="parakeet")
-        with patch("kiro_crew.transcribe._find_parakeet_mlx", return_value=None):
+        with patch("junction.transcribe._find_parakeet_mlx", return_value=None):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
 
@@ -957,9 +957,9 @@ class TestTranscribeParakeet:
             enabled=True, provider="parakeet", parakeet_model="; rm -rf ~", timeout_secs=10
         )
         with patch(
-            "kiro_crew.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
+            "junction.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
         ):
-            with patch("kiro_crew.transcribe.asyncio.create_subprocess_exec") as spawn:
+            with patch("junction.transcribe.asyncio.create_subprocess_exec") as spawn:
                 result = await transcribe_audio(str(audio), cfg)
         assert result is None
         spawn.assert_not_called()
@@ -974,9 +974,9 @@ class TestTranscribeParakeet:
         cfg = SttConfig(enabled=True, provider="parakeet", timeout_secs=10)
         cfg.parakeet_model = 12345  # type: ignore[assignment]
         with patch(
-            "kiro_crew.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
+            "junction.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
         ):
-            with patch("kiro_crew.transcribe.asyncio.create_subprocess_exec") as spawn:
+            with patch("junction.transcribe.asyncio.create_subprocess_exec") as spawn:
                 result = await transcribe_audio(str(audio), cfg)
         assert result is None
         spawn.assert_not_called()
@@ -1004,10 +1004,10 @@ class TestTranscribeParakeet:
             return mock_proc
 
         with patch(
-            "kiro_crew.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
+            "junction.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
         ):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
+                "junction.transcribe.asyncio.create_subprocess_exec", side_effect=fake_exec
             ):
                 result = await transcribe_audio(str(audio), cfg)
         assert result == "Hola mundo"
@@ -1028,10 +1028,10 @@ class TestTranscribeParakeet:
         mock_proc.communicate = AsyncMock(return_value=(b"", b"boom"))
 
         with patch(
-            "kiro_crew.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
+            "junction.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
         ):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+                "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
             ):
                 result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -1046,13 +1046,13 @@ class TestTranscribeParakeet:
         mock_proc.communicate = AsyncMock(side_effect=asyncio.TimeoutError)
 
         with patch(
-            "kiro_crew.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
+            "junction.transcribe._find_parakeet_mlx", return_value="/usr/bin/parakeet-mlx"
         ):
             with patch(
-                "kiro_crew.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
+                "junction.transcribe.asyncio.create_subprocess_exec", return_value=mock_proc
             ):
                 with patch(
-                    "kiro_crew.transcribe.asyncio.wait_for", side_effect=asyncio.TimeoutError
+                    "junction.transcribe.asyncio.wait_for", side_effect=asyncio.TimeoutError
                 ):
                     result = await transcribe_audio(str(audio), cfg)
         assert result is None
@@ -1067,7 +1067,7 @@ class TestTranscribeFiles:
     @pytest.mark.xdist_group(name="serial")
     @pytest.mark.asyncio
     async def test_transcribe_audio_files(self):
-        from kiro_crew.slack.events import _transcribe_files
+        from junction.slack.events import _transcribe_files
 
         mock_orch = MagicMock()
         mock_orch.slack = AsyncMock()
@@ -1083,14 +1083,14 @@ class TestTranscribeFiles:
         ]
 
         with patch(
-            "kiro_crew.slack.events.transcribe_audio", new_callable=AsyncMock, return_value="Hello"
+            "junction.slack.events.transcribe_audio", new_callable=AsyncMock, return_value="Hello"
         ):
             result = await _transcribe_files(mock_orch, files)
         assert result == ["Hello"]
 
     @pytest.mark.asyncio
     async def test_skips_non_audio(self):
-        from kiro_crew.slack.events import _transcribe_files
+        from junction.slack.events import _transcribe_files
 
         mock_orch = MagicMock()
         mock_orch.slack = AsyncMock()
@@ -1104,7 +1104,7 @@ class TestTranscribeFiles:
 
     @pytest.mark.asyncio
     async def test_skips_no_url(self):
-        from kiro_crew.slack.events import _transcribe_files
+        from junction.slack.events import _transcribe_files
 
         mock_orch = MagicMock()
         mock_orch.slack = AsyncMock()
@@ -1116,7 +1116,7 @@ class TestTranscribeFiles:
 
     @pytest.mark.asyncio
     async def test_handles_transcription_failure(self):
-        from kiro_crew.slack.events import _transcribe_files
+        from junction.slack.events import _transcribe_files
 
         mock_orch = MagicMock()
         mock_orch.slack = AsyncMock()
@@ -1132,19 +1132,19 @@ class TestTranscribeFiles:
         ]
 
         # Patch where events.py BOUND the symbol, not where it is defined: events.py
-        # does `from kiro_crew.transcribe import transcribe_audio`, so it holds its own
+        # does `from junction.transcribe import transcribe_audio`, so it holds its own
         # module global. Patching the definition left the REAL transcriber running --
         # the assertion passed for the wrong reason and the test was the 3rd slowest in
         # the suite. Matches the sibling test above.
         with patch(
-            "kiro_crew.slack.events.transcribe_audio", new_callable=AsyncMock, return_value=None
+            "junction.slack.events.transcribe_audio", new_callable=AsyncMock, return_value=None
         ):
             result = await _transcribe_files(mock_orch, files)
         assert result == []
 
     @pytest.mark.asyncio
     async def test_handles_exception(self):
-        from kiro_crew.slack.events import _transcribe_files
+        from junction.slack.events import _transcribe_files
 
         mock_orch = MagicMock()
         mock_orch.slack = AsyncMock()
@@ -1171,7 +1171,7 @@ class TestTranscribeFiles:
 class TestSlackClientDownloadFile:
     @pytest.mark.asyncio
     async def test_base_class_raises(self):
-        from kiro_crew.slack.client import SlackClientOps
+        from junction.slack.client import SlackClientOps
 
         class MinimalClient(SlackClientOps):
             async def post_message(self, *a, **kw):
@@ -1250,7 +1250,7 @@ class TestSensitivePathGuard:
         audio = tmp_path / "test.webm"
         audio.write_text("fake")
         cfg = SttConfig(enabled=True, provider="whisper")
-        with patch("kiro_crew.security.is_sensitive_path", return_value=True):
+        with patch("junction.security.is_sensitive_path", return_value=True):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
 
@@ -1259,7 +1259,7 @@ class TestSensitivePathGuard:
         audio = tmp_path / "test.webm"
         audio.write_text("fake")
         cfg = SttConfig(enabled=True, provider="transcribe")
-        with patch("kiro_crew.security.is_sensitive_path", return_value=True):
+        with patch("junction.security.is_sensitive_path", return_value=True):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
 
@@ -1275,8 +1275,8 @@ class TestFfmpegEnsuredForWhisper:
         audio = tmp_path / "test.webm"
         audio.write_text("fake")
         cfg = SttConfig(enabled=True, provider="whisper", whisper_path="/nonexistent")
-        with patch("kiro_crew.security.is_sensitive_path", return_value=False), \
-             patch("kiro_crew.transcribe.ensure_ffmpeg_in_path") as mock_ensure:
+        with patch("junction.security.is_sensitive_path", return_value=False), \
+             patch("junction.transcribe.ensure_ffmpeg_in_path") as mock_ensure:
             await transcribe_audio(str(audio), cfg)
         mock_ensure.assert_called_once()
 
@@ -1285,9 +1285,9 @@ class TestFfmpegEnsuredForWhisper:
         audio = tmp_path / "test.ogg"
         audio.write_text("fake")
         cfg = SttConfig(enabled=True, provider="transcribe")
-        with patch("kiro_crew.security.is_sensitive_path", return_value=False), \
-             patch("kiro_crew.transcribe.ensure_ffmpeg_in_path") as mock_ensure, \
-             patch("kiro_crew.transcribe._transcribe_aws", new_callable=AsyncMock, return_value="hi"):
+        with patch("junction.security.is_sensitive_path", return_value=False), \
+             patch("junction.transcribe.ensure_ffmpeg_in_path") as mock_ensure, \
+             patch("junction.transcribe._transcribe_aws", new_callable=AsyncMock, return_value="hi"):
             await transcribe_audio(str(audio), cfg)
         mock_ensure.assert_not_called()
 
@@ -1301,8 +1301,8 @@ class TestFfmpegCandidateDirsWindows:
     """
 
     def test_windows_dirs_appended(self, monkeypatch):
-        from kiro_crew import platform_compat as pc
-        from kiro_crew import transcribe as tr
+        from junction import platform_compat as pc
+        from junction import transcribe as tr
 
         monkeypatch.setattr(pc, "IS_WINDOWS", True)
         pf = r"C:\Program Files"
@@ -1316,8 +1316,8 @@ class TestFfmpegCandidateDirsWindows:
         assert "/usr/local/bin" in dirs
 
     def test_non_windows_omits_windows_dirs(self, monkeypatch):
-        from kiro_crew import platform_compat as pc
-        from kiro_crew import transcribe as tr
+        from junction import platform_compat as pc
+        from junction import transcribe as tr
 
         monkeypatch.setattr(pc, "IS_WINDOWS", False)
         dirs = tr._ffmpeg_candidate_dirs()
@@ -1331,7 +1331,7 @@ class TestFfmpegCandidateDirsWindows:
         Regression: the prior implementation called ``os.path.isfile(<d>/ffmpeg)``
         which is blind to the ``.exe`` suffix.
         """
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         target_dir = tmp_path / "ffbin"
         target_dir.mkdir()
@@ -1353,7 +1353,7 @@ class TestFfmpegCandidateDirsWindows:
         assert os.environ["PATH"].startswith(str(target_dir))
 
     def test_ensure_ffmpeg_skips_dirs_already_on_path(self, tmp_path, monkeypatch):
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         target_dir = tmp_path / "ffbin"
         target_dir.mkdir()
@@ -1384,7 +1384,7 @@ class TestFfmpegDiscoveryWindowsOnly:
         reason="Windows-only: exercises PATHEXT-driven .exe suffix resolution.",
     )
     def test_ffmpeg_exe_discovered(self, tmp_path, monkeypatch):
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         ffbin = tmp_path / "ffbin"
         ffbin.mkdir()
@@ -1409,7 +1409,7 @@ class TestTranscribeFormatValidation:
         audio = tmp_path / "test.mp3"
         audio.write_text("fake")
         cfg = SttConfig(enabled=True, provider="transcribe")
-        with patch("kiro_crew.security.is_sensitive_path", return_value=False):
+        with patch("junction.security.is_sensitive_path", return_value=False):
             result = await transcribe_audio(str(audio), cfg)
         assert result is None
 
@@ -1512,9 +1512,9 @@ class TestTranscribeAwsTempOwnership:
     @staticmethod
     def _grant_consent(tmp_path, monkeypatch, cfg):
         """Record Transcribe consent so the paid-service gate lets tests pass."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
-        from kiro_crew import aws_consent
-        from kiro_crew.config.loader import config_dir
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
+        from junction import aws_consent
+        from junction.config.loader import config_dir
 
         config_dir().mkdir(parents=True, exist_ok=True)
         aws_consent.record_grant(
@@ -1534,7 +1534,7 @@ class TestTranscribeAwsTempOwnership:
     @staticmethod
     def _owned_temp(tmp_path, monkeypatch):
         """Pin ``_make_temp_ogg`` to a known file so the tests can watch it."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         owned = tmp_path / "owned.ogg"
         owned.write_bytes(b"")
@@ -1548,7 +1548,7 @@ class TestTranscribeAwsTempOwnership:
         """A cancellation mid-``communicate`` must kill the child, reap it, THEN
         remove ``tmp_ogg``, and re-raise — the old ``except Exception`` guard
         did none of that (#5780)."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1584,7 +1584,7 @@ class TestTranscribeAwsTempOwnership:
         )
         monkeypatch.setattr(tr, "_unlink_if_exists", tracked_unlink)
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch("asyncio.create_subprocess_exec", return_value=_Proc()),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -1599,7 +1599,7 @@ class TestTranscribeAwsTempOwnership:
     ):
         """The new cancellation path must not eat the established ``Exception``
         contract: a failed remux logs, removes the temp, and returns None."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1615,7 +1615,7 @@ class TestTranscribeAwsTempOwnership:
             tr, "_load_aws_transcribe_components", lambda: (object, object)
         )
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch("asyncio.create_subprocess_exec", return_value=proc),
         ):
             result = await tr._transcribe_aws(str(src), cfg)
@@ -1630,7 +1630,7 @@ class TestTranscribeAwsTempOwnership:
         """A REPEAT cancellation landing on the cleanup ``end_stream`` await
         escapes its ``except Exception`` guard; the nested ``finally`` must
         still remove ``tmp_ogg`` and let the cancellation propagate (#5780)."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1670,7 +1670,7 @@ class TestTranscribeAwsTempOwnership:
             tr, "_load_aws_transcribe_components", lambda: (FakeClient, FakeHandler)
         )
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch("asyncio.create_subprocess_exec", return_value=remux_proc),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -1686,7 +1686,7 @@ class TestTranscribeAwsTempOwnership:
         the child may still hold the file and the unlink raises
         ``PermissionError``. That must not REPLACE the in-flight cancellation
         — the guard swallows the ``OSError`` and the original propagates."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1714,7 +1714,7 @@ class TestTranscribeAwsTempOwnership:
         )
         monkeypatch.setattr(tr, "_unlink_if_exists", locked_unlink)
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch("asyncio.create_subprocess_exec", return_value=_Proc()),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -1732,7 +1732,7 @@ class TestTranscribeAwsTempOwnership:
         """A cancellation landing on ``create_subprocess_exec`` itself means no
         child exists — the owned temp must still be removed and the
         cancellation must propagate."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1745,7 +1745,7 @@ class TestTranscribeAwsTempOwnership:
             tr, "_load_aws_transcribe_components", lambda: (object, object)
         )
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch(
                 "asyncio.create_subprocess_exec",
                 side_effect=asyncio.CancelledError(),
@@ -1763,7 +1763,7 @@ class TestTranscribeAwsTempOwnership:
         """When the off-loop unlink hop is itself cancelled AND the synchronous
         fallback hits a locked file, the ``OSError`` must be swallowed so the
         cancellation — not a ``PermissionError`` — reaches the awaiter."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1815,7 +1815,7 @@ class TestTranscribeAwsTempOwnership:
         monkeypatch.setattr(tr, "_unlink_if_exists", locked_unlink)
         monkeypatch.setattr(asyncio, "to_thread", cancelled_unlink_hop)
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch("asyncio.create_subprocess_exec", return_value=remux_proc),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -1831,7 +1831,7 @@ class TestTranscribeAwsTempOwnership:
         ``communicate()`` -- not ``wait()`` -- so the PIPE buffers are drained
         and a child blocked writing to a full stderr PIPE cannot hang the
         event loop (#5834)."""
-        from kiro_crew import transcribe as tr
+        from junction import transcribe as tr
 
         cfg = SttConfig(enabled=True, provider="transcribe", timeout_secs=10)
         self._grant_consent(tmp_path, monkeypatch, cfg)
@@ -1849,7 +1849,7 @@ class TestTranscribeAwsTempOwnership:
             tr, "_load_aws_transcribe_components", lambda: (object, object)
         )
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
             patch("asyncio.create_subprocess_exec", return_value=proc),
         ):
             result = await tr._transcribe_aws(str(src), cfg)

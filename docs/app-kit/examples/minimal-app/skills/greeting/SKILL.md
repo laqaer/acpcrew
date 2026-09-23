@@ -5,10 +5,10 @@ always: false
 
 # Greeting Skill
 
-Help new users get oriented with KiroCrew.
+Help new users get oriented with Junction.
 
 ## Key Commands
 
-- `kirocrew app list` — see installed apps
-- `kirocrew cron list` — see scheduled jobs
-- `kirocrew learn list` — see learned preferences
+- `junction app list` — see installed apps
+- `junction cron list` — see scheduled jobs
+- `junction learn list` — see learned preferences

@@ -1,11 +1,11 @@
 # Platform Context (Composed Platform Providers)
 
-The `kiro_crew.platform` package defines the **Composed Platform Providers
+The `junction.platform` package defines the **Composed Platform Providers
 (CPP)** contract: the seam that lets one core serve both the open-source
 edition and an enterprise companion without the core ever importing
 enterprise-specific code.
 
-> Authoring note: KiroCrew is the public edition of this seam. The daily
+> Authoring note: Junction is the public edition of this seam. The daily
 > de-branding content sync from the upstream authoring home strips the
 > enterprise-tinted Defaults (e.g. the internal git host, `.midway` sandbox dirs)
 > down to the public baseline; the enterprise companion re-adds them via overrides.
@@ -16,8 +16,8 @@ enterprise-specific code.
 
 The core defines a set of **extension points** — interfaces where behavior
 differs between editions — and ships a `Default*` adapter for each that
-reproduces today's KiroCrew behavior. An enterprise companion package (module
-separate from `kiro_crew`) depends on the public wheel and supplies enterprise
+reproduces today's Junction behavior. An enterprise companion package (module
+separate from `junction`) depends on the public wheel and supplies enterprise
 adapters for the same interfaces.
 
 The dependency runs one way: **the companion depends on the core; the core never
@@ -26,14 +26,14 @@ interface, the public edition is complete standalone.
 
 ## PlatformContext
 
-`kiro_crew.platform.context.PlatformContext` is a frozen dataclass built once at
+`junction.platform.context.PlatformContext` is a frozen dataclass built once at
 boot holding the chosen adapter for every extension point, plus three carriers:
 
 | Field | Kind | Default adapter | Companion supplies |
 |-------|------|-----------------|--------------------|
 | `contract_version` | carrier (int) | `CONTRACT_VERSION` | must match core |
 | `profile` | carrier (str) | `"standalone"` | `"enterprise"` |
-| `cfg` | carrier (`KiroCrewConfig`) | loaded config | same |
+| `cfg` | carrier (`JunctionConfig`) | loaded config | same |
 | `providers` | adapter | `DefaultProviderRegistry` (Kiro-CLI-ACP only) | re-registers a companion-registered backend |
 | `publish` | adapter | `DefaultPublishRegistry` (registers no provider → publish unavailable) | registers enterprise artifact/publish providers |
 | `agent_runtime` | adapter | `DefaultAgentRuntime` (`run_first_run_setup` wired; `managed_mcp_servers` **RESERVED**) | extra one-time first-run provisioning |
@@ -65,7 +65,7 @@ boot holding the chosen adapter for every extension point, plus three carriers:
 > discovery (skills.sh) and MCP server discovery (the official registry) hardcoded
 > their public provider at registration time, so a managed deployment could not
 > restrict where installable code came from without patching the core. The third is
-> **cloud deployment**: `kiro_crew/deploy/` provisions S3, CloudFront, IAM roles and
+> **cloud deployment**: `junction/deploy/` provisions S3, CloudFront, IAM roles and
 > a reaper Lambda in the operator's own account and carried no capability gate at
 > all — `capabilities.publish`, which bounds publish-provider destinations, does not
 > reach it.
@@ -109,7 +109,7 @@ while unbooted. A caller that must honour a companion's policy has to go through
 ## Boot sequence
 
 ```python
-cfg = KiroCrewConfig.load()
+cfg = JunctionConfig.load()
 ctx = boot_platform(cfg)      # platform/bootstrap.py (idempotent)
 ```
 
@@ -126,14 +126,14 @@ installs the context. `bootstrap_context`:
 ## Profile resolution
 
 `resolve_profile(cfg, *, entry_points)` precedence (first match wins):
-1. `KIROCREW_PROFILE` env (`standalone` | `enterprise`; unknown → standalone).
-2. Non-empty `kirocrew.plugins` entry-point group (companion installed).
+1. `JUNCTION_PROFILE` env (`standalone` | `enterprise`; unknown → standalone).
+2. Non-empty `junction.plugins` entry-point group (companion installed).
 3. Identity signal: a present `~/.midway` directory (a cheap stat, no
-   subprocess) — **only when the opt-in `KIROCREW_MIDWAY_PROFILE_PROBE` env var
+   subprocess) — **only when the opt-in `JUNCTION_MIDWAY_PROFILE_PROBE` env var
    is truthy**. OFF by default so a stray `~/.midway` left by some other tool
    cannot force the public edition into the `enterprise` profile (which has no
    companion to compose and would fail-closed at boot, bricking every command).
-   The companion's managed launcher sets `KIROCREW_MIDWAY_PROFILE_PROBE=1`.
+   The companion's managed launcher sets `JUNCTION_MIDWAY_PROFILE_PROBE=1`.
 4. Otherwise `standalone`.
 
 The profile is a **load trigger, not a security decision**: capability comes
@@ -146,7 +146,7 @@ once loaded.
 ## Fail-closed discovery
 
 `discover_companion_context` (only for non-standalone profiles) looks up the
-`kirocrew.plugins` entry-point group via `importlib.metadata`:
+`junction.plugins` entry-point group via `importlib.metadata`:
 - Empty → **raise** `PlatformCompositionError` (refuse to boot with OSS defaults).
 - More than one → raise (ambiguous).
 - Loads the single entry point (`build_enterprise_context`) and returns its context.
@@ -224,7 +224,7 @@ Defense in depth, evaluated by `evaluate_admission(ep, policy)`:
 2. **Marketplace allowlist** (`approved`) — when present, only listed plugins
    are admitted. Adding a plugin to the list *is* the marketplace review gate.
 3. **Verify-before-run signature** (`require_signature`) — the plugin ships a
-   signed `kirocrew_plugin.json` manifest; admission verifies the signature
+   signed `junction_plugin.json` manifest; admission verifies the signature
    against a trust key the **policy** carries (R-11 / M-12 supply chain). POC
    uses HMAC; production uses an asymmetric publisher key. The signature covers
    a canonical payload (name/publisher/version/capabilities), so tampering with
@@ -235,7 +235,7 @@ Defense in depth, evaluated by `evaluate_admission(ep, policy)`:
    a capability category the fleet doesn't grant at all.
 
 **Trust-root invariant:** the policy loads from a fleet-controlled source
-(`KIROCREW_ADMISSION_POLICY` env path, else `~/.kiro/crew/admission_policy.json`),
+(`JUNCTION_ADMISSION_POLICY` env path, else `~/.kiro/crew/admission_policy.json`),
 **never from the plugin** — a plugin cannot approve, sign, or un-ban itself. The
 manifest is read **import-free** from the plugin's installed distribution files,
 so plugin code never runs before the decision.
@@ -326,13 +326,13 @@ rows**; the full per-SHA verdict record is kept with the upstream sync tooling.
 
 The companion declares (in its `pyproject.toml`):
 ```toml
-[project.entry-points."kirocrew.plugins"]
-enterprise = "kirocrew_enterprise.compose:build_enterprise_context"
+[project.entry-points."junction.plugins"]
+enterprise = "junction_enterprise.compose:build_enterprise_context"
 [project.scripts]
-kirocrew-enterprise = "kirocrew_enterprise.cli:main"
-dependencies = ["kirocrew"]
+junction-enterprise = "junction_enterprise.cli:main"
+dependencies = ["junction"]
 ```
-The `kirocrew-enterprise` binary sets `KIROCREW_PROFILE=enterprise` and delegates to the
+The `junction-enterprise` binary sets `JUNCTION_PROFILE=enterprise` and delegates to the
 core `main` — the explicit composition-root path that a security review reads.
 
 ## Consumption-site wiring
@@ -366,7 +366,7 @@ delegates to that same global. Wired sites:
   the kiro-hooks egress (`dashboard/handlers/hooks.py`) scrubs command/matcher
   through the shared `redact_via_context` shim.
 - Credential redaction — all egress scrubs route through the single
-  `kiro_crew.platform.redact_via_context` shim (the one canonical
+  `junction.platform.redact_via_context` shim (the one canonical
   fail-closed-aware shim; modules import it as `redact`). Covers: `agent.py`
   SEL-audit callers, `mcp_core.py` chat-history/spawn output, `mcp_cron.py`
   deny-reason + script-vet + timezone messages, and `dashboard/handlers/files.py`
@@ -406,7 +406,7 @@ delegates to that same global. Wired sites:
   heuristics, it can never be the reason a credential reaches a log — the
   credential pass (`redact_credentials`) is independent of it and unchanged by a
   missing context. **Deferred-import exception:** `security` reads the set
-  through a FUNCTION-LOCAL import of `kiro_crew.platform.context` (the `sel.py`
+  through a FUNCTION-LOCAL import of `junction.platform.context` (the `sel.py`
   pattern), so the CPP import-direction invariant holds — `platform/defaults.py`
   imports `security` at module load, and `security` never reaches `platform` at
   module-load time (only at call time). v1 method addition to the existing
@@ -456,7 +456,7 @@ delegates to that same global. Wired sites:
   standalone is byte-identical. Phase-1 scope is dashboard + slack only
   (cli_chat/cron/subagent/task_executor sites are deliberately not wired).
 - Preflight checks (`IdentityProvider.preflight_checks()`) —
-  `kiro_crew.preflight.run_preflight_checks()` runs seam-supplied pre-launch
+  `junction.preflight.run_preflight_checks()` runs seam-supplied pre-launch
   checks at exactly two sites: the `gateway` dispatch in `cli.py` (before
   faulthandler/lock/`asyncio.run`) and `_token` in `cli_server.py` (before TTL
   parsing). The method returns **already-resolved callables** — checks are
@@ -538,7 +538,7 @@ delegates to that same global. Wired sites:
   `start_api_server` (the `--slack-only`/headless path) never calls
   `setup_tunnel`, so it needs no hook.
   Import direction: `tunnel/` imports
-  `kiro_crew.platform.context`; `platform/` keeps zero imports of `kiro_crew.tunnel`.
+  `junction.platform.context`; `platform/` keeps zero imports of `junction.tunnel`.
 - `dashboard/server.py` — tunnel enable-gate
   ORs in `current_context().tunnel.enabled()`. **Dashboard contributor (wave 3):**
   in `start_dashboard` only, the `/api/sso-login` route binds
@@ -573,7 +573,7 @@ delegates to that same global. Wired sites:
   (`chat`/`tui`/`run`/`consolidate`/`eval` — the rule is "every command that
   builds a provider factory / runs in-process agent work"; `gateway` is excluded
   so its execv self-update path is never nested in a jail). Order: (0) **re-entry
-  guard** — if the `KIROCREW_JAILED` marker is PRESENT (any non-empty value) we
+  guard** — if the `JUNCTION_JAILED` marker is PRESENT (any non-empty value) we
   are already the jailed child, so return immediately (no re-probe / re-jail).
   The gate sets this marker right before invoking the backend so the re-exec'd
   child inherits it; a `try/finally` restores the prior value on the no-re-exec
@@ -581,7 +581,7 @@ delegates to that same global. Wired sites:
   a fresh environment MUST set the marker to any non-empty value (detection is by
   presence, not truthiness) or the on-mode child would re-probe, get an "already
   jailed" `None`, and deadlock on the fail-closed floor. (1) if `off` this
-  invocation (`--no-jail` OR `KIROCREW_NO_JAIL` truthy — `1`/`true`/`yes`/`on`
+  invocation (`--no-jail` OR `JUNCTION_NO_JAIL` truthy — `1`/`true`/`yes`/`on`
   via the shared `env_flag_enabled`, so a `=0`/`=false` typo does NOT bypass
   isolation), or the re-normalized `agent.jail` mode is `off`, return and run
   in-process (no probe). (2) Probe `current_context().jail.available()`: a clean
@@ -629,7 +629,7 @@ is byte-identical) with no `CONTRACT_VERSION` bump.
   rows name DIFFERENT repositories, **neither** is served, because the index cache
   is keyed by name and the displaced row's cache would otherwise be read under the
   winner's identity. Merged at the
-  consumption sites, never inside `KiroCrewConfig`, so a config save can never
+  consumption sites, never inside `JunctionConfig`, so a config save can never
   persist an edition default into the operator's file. Default `[]`.
 - `DashboardContributor.on_user_message(app, message)` — fired once per user
   message by `dashboard/chat_handlers.py::api_chat` before the turn, inside a
@@ -897,9 +897,9 @@ on its own interface rather than accreting onto the nearest existing one.
 
 **Agent-discovery module rename (this session).** `aim_agents.py` →
 `agent_discovery.py`; the `AimAgent` dataclass → `AgentInfo`. The agent `source`
-classification was generalized: the old `KiroCrewAICapabilities`-specific
+classification was generalized: the old `JunctionAICapabilities`-specific
 hardcode was removed, so a package-installed agent is now classified
-`source="package"` (alongside `"kirocrew"` for `kirocrew.json`/`kirocrew-lite.json`
+`source="package"` (alongside `"junction"` for `junction.json`/`junction-lite.json`
 and `"builtin"` for the rest) rather than the former `"aim"` literal. Importers
 (`subagent`, `mcp_core`, `conductor_skill`, dashboard agents) were updated to the
 new module/class names.
@@ -917,7 +917,7 @@ new module/class names.
   server-side fetch path only; empty = deny-by-default. The agent-driven
   `auto_add_documents` path (renamed from `auto_ingest_doc_links`) is NOT gated
   on it: the agent hands over text it already fetched, Kiro Crew fetches nothing.
-- `KiroCrewConfig._extra_sections` (private) — unknown top-level config.json
+- `JunctionConfig._extra_sections` (private) — unknown top-level config.json
   sections captured at `load()`, re-emitted by `to_dict()`, so an edition
   section is not dropped on `save()`/PATCH. Excluded from the JSON schema
   (`build_json_schema` skips leading-underscore fields). Data-preservation half
@@ -1011,7 +1011,7 @@ Three arms make the inertness impossible to miss:
    of a `Default*` adapter still warns — it can change behavior.
 3. **An anti-rot gate.** `test/test_platform_cpp_seam_coverage.py` drives off
    `dataclasses.fields(PlatformContext)` and discovers real consumption sites by
-   `ast` analysis of `src/kiro_crew` (excluding `platform/` itself and
+   `ast` analysis of `src/junction` (excluding `platform/` itself and
    `_vendor/`). It asserts, in both directions:
    - every field is EITHER consumed by non-`platform` core code OR listed in
      `RESERVED_SLOTS` — so a **new** field with no call site fails the build

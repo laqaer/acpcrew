@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.acp.runtimes import (
+from junction.acp.runtimes import (
     AUTO_PREFERENCE,
     RuntimeNotFoundError,
     builtin_specs,
@@ -16,7 +16,7 @@ from kiro_crew.acp.runtimes import (
     select_runtime,
     session_load_meta,
 )
-from kiro_crew.acp.types import (
+from junction.acp.types import (
     ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_CODEX,
@@ -169,7 +169,7 @@ class TestAcpClientSpawnUsesRegistry:
     """AcpClient._spawn must not require kiro-cli for a spec-family backend."""
 
     def test_is_spec_true_for_cursor(self):
-        from kiro_crew.acp.client import AcpClient
+        from junction.acp.client import AcpClient
 
         client = AcpClient(acp_backend=ACP_BACKEND_CURSOR, work_dir="/tmp")
         assert client._is_spec is True

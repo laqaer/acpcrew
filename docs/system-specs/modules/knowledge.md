@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Knowledge Library is KiroCrew's personal knowledge graph: a local, SQLite-backed corpus that ingests documents (folders, uploads, artifacts, fetched URLs), chunks and entity-extracts them via a bounded LLM worker pool, and serves hybrid retrieval (FTS5 keyword + graph traversal + optional vector) to the LLM through the `local_knowledge_search` MCP tool. All ingestion and search stay on-host; the only external calls are the extraction/URL-fetch worker's ACP LLM turns and the local Ollama embedding endpoint.
+The Knowledge Library is Junction's personal knowledge graph: a local, SQLite-backed corpus that ingests documents (folders, uploads, artifacts, fetched URLs), chunks and entity-extracts them via a bounded LLM worker pool, and serves hybrid retrieval (FTS5 keyword + graph traversal + optional vector) to the LLM through the `local_knowledge_search` MCP tool. All ingestion and search stay on-host; the only external calls are the extraction/URL-fetch worker's ACP LLM turns and the local Ollama embedding endpoint.
 
 ```
 files / uploads / artifacts / URLs
@@ -20,7 +20,7 @@ Knowledge ingestion and URL-content acquisition use separate long-lived worker
 pools. The extraction pool uses `knowledge.extraction_pool_size` and requests
 Knowledge-specific reasoning effort `high`; the URL-fetch pool has one worker and
 sends no explicit effort, so it retains the provider default. Both pools drive the
-same `kirocrew-knowledge` agent and preserve the existing model resolution:
+same `junction-knowledge` agent and preserve the existing model resolution:
 `knowledge.extraction_model` → `agent.model` → provider/`auto`.
 
 The extraction effort is a Knowledge policy, independent of
@@ -86,7 +86,7 @@ The code computes and floors a retrieval **score**, but no Tier-1/Tier-2 metric 
 
 - `HybridRetriever.search` fuses the keyword + graph + vector legs by RRF (`_rrf_fuse`, k=60; vector leg weighted `VECTOR_RRF_WEIGHT = 2.0`), tie-broken by `updated_at` recency — a secondary sort key, **not** a decay weight (`retrieval.py`, §4).
 - Results below `min_score = 0.012` are dropped by the tool caller (`mcp_tools/knowledge.py`), not inside the retriever.
-- `kirocrew eval` ships four scenarios (`smoke_test`, `memory_recall_basic`, `lesson_application`, `context_accumulation`) scored per-assertion (`contains` / `regex` / `judge`) with an optional 1–5 LLM judge (`eval/judge.py`, pass ≥ 3.0). All four are clean single-fact teach→recall or accumulate→summarize flows; none exercises correction / contradiction / retraction / time-bound / reinforcement / hypothetical, and none reports recall@k, MRR, or task-lift.
+- `junction eval` ships four scenarios (`smoke_test`, `memory_recall_basic`, `lesson_application`, `context_accumulation`) scored per-assertion (`contains` / `regex` / `judge`) with an optional 1–5 LLM judge (`eval/judge.py`, pass ≥ 3.0). All four are clean single-fact teach→recall or accumulate→summarize flows; none exercises correction / contradiction / retraction / time-bound / reinforcement / hypothetical, and none reports recall@k, MRR, or task-lift.
 
 The gap is therefore a **KB-scoped golden set over the query classes above, plus an A/B task-lift harness** — the precondition for tuning recency, adding a reranker, or content-typed TTL against evidence rather than intuition.
 
@@ -99,7 +99,7 @@ The gap is therefore a **KB-scoped golden set over the query classes above, plus
 | `knowledge/watcher.py` | `KnowledgeWatcher` — polls registered sources for changes; sig-gated self-heal re-embed (single-flight, off-loop DB access) |
 | `knowledge/llm_pool.py` | `LLMPool` / `Worker` / `AcpWorker` — bounded pool of long-lived, sweep-shielded ACP workers |
 | `knowledge/extractor.py` | `EntityExtractor` — LLM entity/relation extraction over the pool |
-| `knowledge/agent_fetch.py` | `fetch_url_content()` — agent-assisted URL fetch over the pool (tools opt-in via `KIROCREW_KNOWLEDGE_FETCH_TOOLS`) |
+| `knowledge/agent_fetch.py` | `fetch_url_content()` — agent-assisted URL fetch over the pool (tools opt-in via `JUNCTION_KNOWLEDGE_FETCH_TOOLS`) |
 | `knowledge/chunker.py` | `HeadingAwareChunker` — text/markdown/code/slide chunking |
 | `knowledge/embedder.py` | `OllamaEmbedder` — local embedding via Ollama |
 | `knowledge/store.py` | `KnowledgeStore` — SQLite schema, items/entities/graph, FTS5 sync |
@@ -109,7 +109,7 @@ The gap is therefore a **KB-scoped golden set over the query classes above, plus
 | `knowledge/connectors/` | `BaseConnector`, `local_folder` source connectors |
 | `mcp_core.py` | `local_knowledge_search` MCP tool + cached store/embedder |
 | `dashboard/handlers/knowledge.py` | Dashboard Knowledge-tab API (sources, ingest, search, source-scoped list + `/source-counts`) |
-| `agent.py:_install_knowledge_agent` | Installs the `kirocrew-knowledge` kiro-cli agent used by the pool |
+| `agent.py:_install_knowledge_agent` | Installs the `junction-knowledge` kiro-cli agent used by the pool |
 
 ## Constants
 
@@ -119,7 +119,7 @@ The gap is therefore a **KB-scoped golden set over the query classes above, plus
 | `DEFAULT_POOL_SIZE` | `3` | `llm_pool.py` | Worker count in a pool |
 | `DEFAULT_TIMEOUT` | `60.0` | `llm_pool.py` | Per-message worker timeout (extraction) |
 | `FETCH_TIMEOUT` | `120.0` | `llm_pool.py`, `agent_fetch.py` | URL-fetch worker timeout |
-| `AGENT_NAME` | `"kirocrew-knowledge"` | `llm_pool.py` | kiro-cli agent the ACP worker drives |
+| `AGENT_NAME` | `"junction-knowledge"` | `llm_pool.py` | kiro-cli agent the ACP worker drives |
 | `_VALID_SANDBOX_MODES` | `{auto, standard, strict, cc, off}` | `llm_pool.py` | Accepted `agent.sandbox` values |
 | `HARD_SKIP_DIRS` | `{.git, node_modules, __pycache__, .venv, venv, dist, build, out, target, cdk.out}` | `folder_watcher.py` | Directories never walked |
 | `_LARGE_REBUILD_WARN_THRESHOLD` | `1000` | `watcher.py` | Stale-item count at which the self-heal rebuild logs a prominent WARNING (usually an embedder-sig change invalidating the whole corpus) |
@@ -321,8 +321,8 @@ user confirms, and no code path treats it as a bound.
 
 Both entity extraction (`EntityExtractor`) and internal-URL fetch (`agent_fetch.fetch_url_content`) acquire workers from a shared `LLMPool` — a provider-agnostic, bounded pool (`DEFAULT_POOL_SIZE` = 3) of **long-lived** ACP workers. A `Worker` ABC has two concrete paths:
 
-- **Default (kiro-cli)** — `AcpWorker` drives the `kirocrew-knowledge` agent over ACP (`AGENT_NAME`). That agent is installed by `agent.py:_install_knowledge_agent` (model `claude-haiku-4.5`, kirocrew-core tools only — no internal MCP wiring in the OSS fork).
-- **`agent.provider="claude_code"` (legacy seam)** — `CCWorker` drives a long-lived `claude` CLI subprocess over stream-json I/O (haiku model, `bypassPermissions`); URL-fetch tools are opt-in via `KIROCREW_KNOWLEDGE_FETCH_TOOLS`. KiroCrew's provider enum is `["acp"]`, so this branch is dormant in practice.
+- **Default (kiro-cli)** — `AcpWorker` drives the `junction-knowledge` agent over ACP (`AGENT_NAME`). That agent is installed by `agent.py:_install_knowledge_agent` (model `claude-haiku-4.5`, junction-core tools only — no internal MCP wiring in the OSS fork).
+- **`agent.provider="claude_code"` (legacy seam)** — `CCWorker` drives a long-lived `claude` CLI subprocess over stream-json I/O (haiku model, `bypassPermissions`); URL-fetch tools are opt-in via `JUNCTION_KNOWLEDGE_FETCH_TOOLS`. Junction's provider enum is `["acp"]`, so this branch is dormant in practice.
 
 ### Sweep shielding + audit source
 
@@ -356,7 +356,7 @@ Both entity extraction (`EntityExtractor`) and internal-URL fetch (`agent_fetch.
 
 ### `local_knowledge_search` MCP tool (`mcp_core.py`)
 
-The LLM reaches retrieval through the `kirocrew-core` MCP tool `local_knowledge_search`:
+The LLM reaches retrieval through the `junction-core` MCP tool `local_knowledge_search`:
 - DB path: `config_dir()/workspace/knowledge/knowledge.db`; a missing DB returns "Knowledge Library is not configured…" (SEL `not_configured`).
 - `_get_knowledge_search` caches the `(KnowledgeStore, embedder)` pair across calls and rebuilds only when the knowledge DB (or its `-wal`) or `config.json` changes — avoiding the per-call schema DDL / migrate / graph-load and the Ollama availability probe.
 - Default `limit` is 3; results below `min_score = 0.012` are dropped. Output is run through `redact_exfiltration_urls()` + `redact_credentials()` before returning, and every call emits an SEL audit event (`success` / `no_results` / `not_configured` / `unknown_source`). Input is validated against `LOCAL_KNOWLEDGE_SEARCH_SCHEMA` (`validation.py`).

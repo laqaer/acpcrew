@@ -1,11 +1,11 @@
 #!/bin/sh
 # ──────────────────────────────────────────────────────────────────────
-# KiroCrew CLI installer (channel / wheel based).
+# Junction CLI installer (channel / wheel based).
 #
 #   curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
 #   curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel nightly
 #
-# Installs the prebuilt `kirocrew` wheel for a release channel. It resolves the
+# Installs the prebuilt `junction` wheel for a release channel. It resolves the
 # channel feed, verifies its RSA-SHA256 signature against the public key pinned
 # below, downloads the wheel over HTTPS from CloudFront, verifies its SHA-256
 # against the signed digest, then installs it (pipx if available, else a managed
@@ -18,15 +18,15 @@
 # sudo, works on old-glibc distros (CentOS 7).
 #
 # Options / env:
-#   --channel <nightly|insider|stable>   (default: stable; env KIROCREW_CHANNEL)
+#   --channel <nightly|insider|stable>   (default: stable; env JUNCTION_CHANNEL)
 #   --version <X.Y.Z>                    pin an exact version, verified against
 #                                        its immutable signed CLI manifest
-#   --cdn <base-url>                     (default CloudFront; env KIROCREW_CDN_BASE)
+#   --cdn <base-url>                     (default CloudFront; env JUNCTION_CDN_BASE)
 #   --managed-python                     skip the system interpreters and run on
 #                                        a uv-provisioned Python instead (sticky:
 #                                        later runs and updates keep the choice;
 #                                        opt out with --system-python)
-#                                        (env KIROCREW_MANAGED_PYTHON=1)
+#                                        (env JUNCTION_MANAGED_PYTHON=1)
 # ──────────────────────────────────────────────────────────────────────
 set -eu
 
@@ -39,16 +39,16 @@ unset PYTHONPATH PYTHONHOME
 
 # The URL contract splits by class: FEED_BASE serves the mutable pointers
 # (latest-cli.json), ARTIFACT_BASE serves the bytes (wheels, SHA256SUMS).
-# Both are aliases of the same distribution today; --cdn / KIROCREW_CDN_BASE
+# Both are aliases of the same distribution today; --cdn / JUNCTION_CDN_BASE
 # overrides BOTH (test / alternate-CDN escape hatch).
-FEED_BASE="${KIROCREW_CDN_BASE:-https://updates.crew.kiro.dev}"
-ARTIFACT_BASE="${KIROCREW_CDN_BASE:-https://download.crew.kiro.dev}"
-CHANNEL="${KIROCREW_CHANNEL:-stable}"
+FEED_BASE="${JUNCTION_CDN_BASE:-https://updates.crew.kiro.dev}"
+ARTIFACT_BASE="${JUNCTION_CDN_BASE:-https://download.crew.kiro.dev}"
+CHANNEL="${JUNCTION_CHANNEL:-stable}"
 PIN_VERSION=""
 # Three states: "" = undecided (fall back to the persisted python-mode marker,
 # then to system), "1" = managed, "0" = system. An explicit env value or flag
 # always outranks the marker, so an operator can override a sticky choice.
-MANAGED_PYTHON="${KIROCREW_MANAGED_PYTHON:-}"
+MANAGED_PYTHON="${JUNCTION_MANAGED_PYTHON:-}"
 
 # Pinned uv release used to provision a managed Python interpreter when the
 # system has none (or when --managed-python asks for one). uv is only ever
@@ -89,42 +89,42 @@ while [ $# -gt 0 ]; do
     --system-python) MANAGED_PYTHON=0; shift ;;
     -h|--help)
       cat <<'EOF'
-KiroCrew CLI installer (channel / wheel based).
+Junction CLI installer (channel / wheel based).
 
   curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
   curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel nightly
 
-Installs the prebuilt `kirocrew` wheel for a release channel: resolves the
+Installs the prebuilt `junction` wheel for a release channel: resolves the
 channel feed, verifies its signature against the installer-pinned public key,
 downloads the wheel over HTTPS, verifies its SHA-256 against the signed digest,
 then installs it (pipx if available, else a managed venv BESIDE the data home —
-"$KIROCREW_HOME"-venv or ~/.kiro/crew-venv, never inside the data home itself).
+"$JUNCTION_HOME"-venv or ~/.kiro/crew-venv, never inside the data home itself).
 Records the channel in the data home. There is no unsigned fallback.
 
 Options / env:
-  --channel <nightly|insider|stable>   (default: stable; env KIROCREW_CHANNEL)
+  --channel <nightly|insider|stable>   (default: stable; env JUNCTION_CHANNEL)
   --version <X.Y.Z>                    pin an exact version, verified against
                                        its immutable signed CLI manifest
-  --cdn <base-url>                     (default CloudFront; env KIROCREW_CDN_BASE)
+  --cdn <base-url>                     (default CloudFront; env JUNCTION_CDN_BASE)
   --managed-python                     skip the system interpreters and run on a
                                        uv-provisioned Python instead (sticky: later
                                        runs and updates keep the choice)
   --system-python                      opt back out of a recorded managed-python
                                        choice and use the system interpreter
-                                       (env KIROCREW_MANAGED_PYTHON=1)
-  KIROCREW_VENV                        override the managed venv location
-  KIROCREW_PYTHON_DIR                  override where uv-provisioned interpreters
+                                       (env JUNCTION_MANAGED_PYTHON=1)
+  JUNCTION_VENV                        override the managed venv location
+  JUNCTION_PYTHON_DIR                  override where uv-provisioned interpreters
                                        are stored (default: beside the data home,
                                        ~/.kiro/crew-python)
 EOF
       exit 0 ;;
-    *) echo "kirocrew-install: unknown argument '$1'" >&2; exit 2 ;;
+    *) echo "junction-install: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
 FEED_BASE="${FEED_BASE%/}"
 ARTIFACT_BASE="${ARTIFACT_BASE%/}"
 
-err() { echo "kirocrew-install: $*" >&2; exit 1; }
+err() { echo "junction-install: $*" >&2; exit 1; }
 
 # The channel name IS the storage path segment: publish-cli.yml writes
 # feed/<channel>/latest-cli.json and cli/<channel>/<version>/ using the literal
@@ -148,7 +148,7 @@ _canon_dir() {
 
 # True when canonical path $1 IS $2 or is nested beneath it. Used to reject any
 # overlap between the old and new venv trees before removing one of them:
-# equality alone is not enough, because a nested override (KIROCREW_VENV pointing
+# equality alone is not enough, because a nested override (JUNCTION_VENV pointing
 # INSIDE the old venv) leaves the paths unequal while making `rm -rf` on the
 # parent destroy the new installation. The prefix strip is quoted so the
 # comparison stays literal rather than glob-matching a path with metacharacters.
@@ -171,7 +171,7 @@ else err "need sha256sum or shasum to verify the download"; fi
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT INT TERM
 
-# KiroCrew needs Python >=3.10 at runtime (contextlib.aclosing, etc.) even
+# Junction needs Python >=3.10 at runtime (contextlib.aclosing, etc.) even
 # though older published wheels' METADATA claimed >=3.9 -- pip would install
 # fine on 3.9 and then crash on first run. Prefer the newest interpreter the
 # project builds and tests on (3.12 is the CI target); 3.13 is untested and
@@ -255,7 +255,7 @@ _provision_python_via_uv() {
     # GNU tar's -z shells out to gzip, so both must exist before downloading.
     for _uv_tool in tar gzip; do
       if ! command -v "$_uv_tool" >/dev/null 2>&1; then
-        echo "kirocrew-install: $_uv_tool is required to unpack uv" >&2
+        echo "junction-install: $_uv_tool is required to unpack uv" >&2
         return 1
       fi
     done
@@ -265,7 +265,7 @@ _provision_python_via_uv() {
       Darwin/x86_64)             _uv_target="x86_64-apple-darwin";        _uv_sha="$UV_SHA_MACOS_X64" ;;
       Darwin/arm64)              _uv_target="aarch64-apple-darwin";       _uv_sha="$UV_SHA_MACOS_ARM64" ;;
       *)
-        echo "kirocrew-install: no pinned uv build for $(uname -s)/$(uname -m)" >&2
+        echo "junction-install: no pinned uv build for $(uname -s)/$(uname -m)" >&2
         return 1 ;;
     esac
     echo "Downloading uv $UV_VERSION ($_uv_target) ..."
@@ -284,8 +284,8 @@ _provision_python_via_uv() {
   # The interpreter store lives BESIDE the data home, like the managed venv and
   # for the same blast-radius reason: no data-home-wide operation may ever
   # reach the interpreter that the venv's shebangs point at.
-  _uv_data_home="${KIROCREW_HOME:-$HOME/.kiro/crew}"
-  _uv_py_dir="${KIROCREW_PYTHON_DIR:-${_uv_data_home%/}-python}"
+  _uv_data_home="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+  _uv_py_dir="${JUNCTION_PYTHON_DIR:-${_uv_data_home%/}-python}"
   UV_PYTHON_INSTALL_DIR="$_uv_py_dir" "$_uv_bin" python install "$UV_PYTHON_SERIES" \
     || return 1
   # only-managed: resolve the interpreter just installed, never a system one
@@ -305,10 +305,10 @@ PY=""
 # The interpreter choice is STICKY: a completed install records its mode in
 # the data home (next to `channel`), and a later run without an explicit flag
 # or env value reuses it. Without this, every re-run of the one-liner -- most
-# importantly the one `kirocrew update` performs -- would silently flip a
+# importantly the one `junction update` performs -- would silently flip a
 # --managed-python install back onto whatever system interpreter it finds.
-# Opt back out explicitly with --system-python (or KIROCREW_MANAGED_PYTHON=0).
-_DATA_HOME="${KIROCREW_HOME:-$HOME/.kiro/crew}"
+# Opt back out explicitly with --system-python (or JUNCTION_MANAGED_PYTHON=0).
+_DATA_HOME="${JUNCTION_HOME:-$HOME/.kiro/crew}"
 # The marker is agent-writable state, so the READ is guarded like the write:
 # only a plain regular file counts (a planted symlink -- e.g. to /dev/zero --
 # or a FIFO would wedge an unbounded read or spoof the mode), and the read is
@@ -355,10 +355,10 @@ if [ -n "$PIN_VERSION" ]; then
     *[!A-Za-z0-9._+]*) err "invalid pinned version '$PIN_VERSION'" ;;
   esac
   MANIFEST_URL="$ARTIFACT_BASE/cli/$CHANNEL_PATH/$PIN_VERSION/cli-manifest.json"
-  echo "Resolving KiroCrew $PIN_VERSION ($CHANNEL channel, pinned) ..."
+  echo "Resolving Junction $PIN_VERSION ($CHANNEL channel, pinned) ..."
 else
   MANIFEST_URL="$FEED_BASE/feed/$CHANNEL_PATH/latest-cli.json"
-  echo "Resolving KiroCrew ($CHANNEL channel) ..."
+  echo "Resolving Junction ($CHANNEL channel) ..."
 fi
 # Bound unauthenticated metadata before it reaches disk. curl 7.58+ enforces
 # --max-filesize against received bytes even without a Content-Length header.
@@ -399,7 +399,7 @@ try:
         raise ValueError("unexpected fields")
     if not all(isinstance(value, str) and value for value in manifest.values()):
         raise ValueError("invalid field type")
-    if manifest["schema"] != "kirocrew-cli-artifact-manifest-v1":
+    if manifest["schema"] != "junction-cli-artifact-manifest-v1":
         raise ValueError("unsupported schema")
     if manifest["algorithm"] != "RSASSA_PKCS1_V1_5_SHA_256":
         raise ValueError("unsupported algorithm")
@@ -464,7 +464,7 @@ try:
         ord(char) < 0x20 or ord(char) > 0x7E for char in payload["python_requires"]
     ):
         raise ValueError
-    wheel_name = f"kirocrew-{version}-py3-none-any.whl"
+    wheel_name = f"junction-{version}-py3-none-any.whl"
     expected_url = f"{artifact_base}/cli/{expected_channel}/{version}/{wheel_name}"
     if payload["wheel_url"] != expected_url:
         raise ValueError
@@ -482,10 +482,10 @@ read_field() {
 WHEEL_URL="$(read_field wheel_url)"
 SHA="$(read_field sha256)"
 VER="$(read_field version)"
-WHEEL_NAME="kirocrew-${VER}-py3-none-any.whl"
+WHEEL_NAME="junction-${VER}-py3-none-any.whl"
 WHL="$TMP/$WHEEL_NAME"
 
-echo "Downloading kirocrew $VER ..."
+echo "Downloading junction $VER ..."
 curl -fsS --proto '=https' "$WHEEL_URL" -o "$WHL" || err "failed to download wheel from $WHEEL_URL"
 
 GOT="$($SHA_CMD "$WHL" | awk '{print $1}')"
@@ -501,11 +501,11 @@ else
   # interpreter in the data home would put the runtime and the user's data in
   # one blast radius: any home-wide operation (a bulk delete, a backup restore,
   # a relocation) could reach the live interpreter — a non-relocatable venv with
-  # absolute shebangs — and leave a dangling ~/.local/bin/kirocrew and no working
+  # absolute shebangs — and leave a dangling ~/.local/bin/junction and no working
   # CLI. Keeping the venv out of the data home means no home-wide operation can
   # ever reach the interpreter.
-  _DATA_HOME_FOR_VENV="${KIROCREW_HOME:-$HOME/.kiro/crew}"
-  VENV="${KIROCREW_VENV:-${_DATA_HOME_FOR_VENV%/}-venv}"
+  _DATA_HOME_FOR_VENV="${JUNCTION_HOME:-$HOME/.kiro/crew}"
+  VENV="${JUNCTION_VENV:-${_DATA_HOME_FOR_VENV%/}-venv}"
   _OLD_VENV="${_DATA_HOME_FOR_VENV%/}/venv"
   echo "Installing into managed venv at $VENV ..."
   # Debian/Ubuntu ship the base `python3` WITHOUT the venv/ensurepip module (it
@@ -531,7 +531,7 @@ else
   # the user with NO working install where a plain re-run used to keep the
   # old one. The links are the only stale asset, and they are regenerated by
   # the very next command. Guards: pyvenv.cfg proves the target IS a venv (a
-  # mis-pointed KIROCREW_VENV at a plain directory is never touched), and a
+  # mis-pointed JUNCTION_VENV at a plain directory is never touched), and a
   # symlinked venv root (trailing slash stripped so `-L` sees the link
   # itself) is left as-is -- the venv module refuses a symlink root anyway,
   # and removing links inside its target first would break the linked venv
@@ -543,7 +543,7 @@ else
   "$VENV/bin/pip" install --quiet --upgrade pip >/dev/null 2>&1 || true
   "$VENV/bin/pip" install --quiet "$WHL"
   mkdir -p "$HOME/.local/bin"
-  ln -sf "$VENV/bin/kirocrew" "$HOME/.local/bin/kirocrew"
+  ln -sf "$VENV/bin/junction" "$HOME/.local/bin/junction"
   BIN="$HOME/.local/bin"
   # Retire a venv left inside the data home by an earlier version of this
   # script. Three independent conditions must all hold, so this never deletes
@@ -552,29 +552,29 @@ else
   #      venv module always writes it) and not a user directory that merely
   #      happens to be named `venv`, whose contents would otherwise be
   #      recursively deleted by a routine reinstall.
-  #   2. `bin/kirocrew` present — proves it is OUR managed environment rather
+  #   2. `bin/junction` present — proves it is OUR managed environment rather
   #      than some unrelated venv the user parked in the data home.
-  #   3. The new environment imports `kiro_crew` — proves the replacement works
+  #   3. The new environment imports `junction` — proves the replacement works
   #      before the old one goes away.
   # Plus: not a symlink, and no overlap with the new tree.
   #
   # The old/new comparison is on CANONICAL paths and rejects any OVERLAP of the
-  # two trees, not just exact equality: KIROCREW_VENV could name the same
+  # two trees, not just exact equality: JUNCTION_VENV could name the same
   # directory by a different route (a symlink, or a `..` segment such as
-  # $KIROCREW_HOME/../crew/venv), or could point INSIDE the old venv
-  # ($KIROCREW_HOME/venv/new) — in which case the paths differ yet `rm -rf` on
-  # the old tree deletes the new installation and the ~/.local/bin/kirocrew
+  # $JUNCTION_HOME/../crew/venv), or could point INSIDE the old venv
+  # ($JUNCTION_HOME/venv/new) — in which case the paths differ yet `rm -rf` on
+  # the old tree deletes the new installation and the ~/.local/bin/junction
   # symlink target with it. Fails CLOSED: if either path cannot be canonicalized
   # we skip the removal rather than guess.
   if [ -d "$_OLD_VENV" ] && [ ! -L "$_OLD_VENV" ] \
-     && [ -f "$_OLD_VENV/pyvenv.cfg" ] && [ -f "$_OLD_VENV/bin/kirocrew" ]; then
+     && [ -f "$_OLD_VENV/pyvenv.cfg" ] && [ -f "$_OLD_VENV/bin/junction" ]; then
     _OLD_CANON="$(_canon_dir "$_OLD_VENV")"
     _NEW_CANON="$(_canon_dir "$VENV")"
     if [ -z "$_OLD_CANON" ] || [ -z "$_NEW_CANON" ]; then
       echo "WARNING: could not canonicalize $_OLD_VENV or $VENV; leaving $_OLD_VENV in place." >&2
     elif _is_within "$_NEW_CANON" "$_OLD_CANON" || _is_within "$_OLD_CANON" "$_NEW_CANON"; then
       : # overlapping trees — removing either would damage the new installation
-    elif "$VENV/bin/python" -c 'import kiro_crew' >/dev/null 2>&1; then
+    elif "$VENV/bin/python" -c 'import junction' >/dev/null 2>&1; then
       echo "Removing the superseded in-data-home venv at $_OLD_VENV ..."
       rm -rf "$_OLD_VENV"
     else
@@ -583,7 +583,7 @@ else
   fi
 fi
 
-_DATA_HOME="${KIROCREW_HOME:-$HOME/.kiro/crew}"
+_DATA_HOME="${JUNCTION_HOME:-$HOME/.kiro/crew}"
 mkdir -p "$_DATA_HOME"
 # Atomic, symlink-proof marker writes. A plain `>` redirection FOLLOWS a
 # pre-planted symlink at the destination -- the data home is agent-writable,
@@ -607,7 +607,7 @@ _write_marker() {
 }
 _write_marker channel "$CHANNEL"
 # Record the interpreter mode so the next run -- including the re-run that
-# `kirocrew update` performs -- keeps the same choice without the flag.
+# `junction update` performs -- keeps the same choice without the flag.
 if [ "$MANAGED_PYTHON" = "1" ]; then
   _write_marker python-mode managed
 else
@@ -615,7 +615,7 @@ else
 fi
 
 echo ""
-echo "Installed kirocrew $VER (channel: $CHANNEL)."
+echo "Installed junction $VER (channel: $CHANNEL)."
 case ":$PATH:" in
   *":$BIN:"*) : ;;
   *) echo "Add $BIN to your PATH first (e.g. add it in your shell profile)." ;;
@@ -627,10 +627,10 @@ esac
 # one for a quick look.
 echo ""
 echo "Next steps:"
-echo "  kirocrew gateway            # start the dashboard now (http://localhost:5476)"
-echo "  kirocrew service install    # run it 24/7 as a service (survives logout, restarts on crash)"
-echo "  kirocrew --help             # everything else"
+echo "  junction gateway            # start the dashboard now (http://localhost:5476)"
+echo "  junction service install    # run it 24/7 as a service (survives logout, restarts on crash)"
+echo "  junction --help             # everything else"
 echo ""
 echo "Need a non-default port (e.g. 5476 is already taken)? Set it at install time;"
 echo "it is baked into the service unit:"
-echo "  KIROCREW_PORT=5477 kirocrew service install"
+echo "  JUNCTION_PORT=5477 junction service install"

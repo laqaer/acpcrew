@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.apps.bridges — resource registration bridges."""
+"""Tests for junction.apps.bridges — resource registration bridges."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ import pytest
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from kiro_crew import platform_compat
-from kiro_crew.apps.bridges import (
+from junction import platform_compat
+from junction.apps.bridges import (
     RegistrationResult,
     _app_crons_path,
     _deregister_agents,
@@ -35,8 +35,8 @@ from kiro_crew.apps.bridges import (
     register_app,
     register_app_crons_with_service,
 )
-from kiro_crew.apps.manager import APP_MANIFEST_FILENAME, install_app
-from kiro_crew.apps.manifest import AppManifest
+from junction.apps.manager import APP_MANIFEST_FILENAME, install_app
+from junction.apps.manifest import AppManifest
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,16 +83,16 @@ def _make_app_source(tmp_path, name="test-app", **extras):
 
 @pytest.fixture()
 def app_env(tmp_path, monkeypatch):
-    """Set up isolated KIROCREW_HOME and KIRO agents dir."""
-    home = tmp_path / "kirocrew-home"
+    """Set up isolated JUNCTION_HOME and KIRO agents dir."""
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
 
     kiro_agents = tmp_path / "kiro-agents"
     kiro_agents.mkdir()
     # Patch the KIRO_AGENTS_DIR in bridges module
-    import kiro_crew.apps.bridges as bridges_mod
-    import kiro_crew.apps.execution as execution_mod
+    import junction.apps.bridges as bridges_mod
+    import junction.apps.execution as execution_mod
 
     monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
     monkeypatch.setattr(
@@ -179,7 +179,7 @@ class TestAgentRegistration:
         the agent must still register, a dangling ref is degradation, not a
         broken agent.
         """
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         # Deterministic ambient: the check falls back to the user's global
         # mcp.json, and the developer's real one must not decide this test.
@@ -196,7 +196,7 @@ class TestAgentRegistration:
         )
         app_root = app_env["home"] / "apps" / "test-app"
 
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             registered = _register_agents("test-app", manifest, app_root)
 
         assert "test-app/my-agent" in registered  # still registers
@@ -219,7 +219,7 @@ class TestAgentRegistration:
         resolvable at mount time; warning on any of them would train
         operators to ignore the log line that matters.
         """
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         monkeypatch.setattr(bridges_mod, "_global_mcp_specs", lambda: {"ambient-srv": {}})
         src = _make_app_source(
@@ -233,7 +233,7 @@ class TestAgentRegistration:
                     "mcpServers": {"own-srv": {"command": "echo", "args": []}},
                     "tools": [
                         "@own-srv/do_thing",
-                        "@kirocrew-core",
+                        "@junction-core",
                         "@ambient-srv",
                         "@test-app:srv",
                     ],
@@ -249,7 +249,7 @@ class TestAgentRegistration:
         # _own_mcp_servers reads it back from the registered config.
         _register_mcp_servers("test-app", manifest, live_port=None)
 
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             _register_agents("test-app", manifest, app_root)
 
         assert "silently never mount" not in caplog.text
@@ -264,7 +264,7 @@ class TestAgentRegistration:
         satisfy is dropped — treating the ambient entry as resolvable would
         suppress the warning for exactly the specs that set this flag.
         """
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         monkeypatch.setattr(bridges_mod, "_global_mcp_specs", lambda: {"ambient-srv": {}})
         src = _make_app_source(tmp_path)
@@ -284,7 +284,7 @@ class TestAgentRegistration:
         )
         app_root = app_env["home"] / "apps" / "test-app"
 
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             _register_agents("test-app", manifest, app_root)
 
         assert "silently never mount" in caplog.text
@@ -300,7 +300,7 @@ class TestAgentRegistration:
         regular file is now left in place for atomic_write's rename to swap, so a
         failed write leaves the last-good config untouched.
         """
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -349,7 +349,7 @@ class TestAgentRegistration:
         assert not link.exists(), "a spec that was never understood must not be materialized"
 
     def test_a_legacy_symlink_is_still_replaced(self, tmp_path, app_env):
-        """A symlink from an older KiroCrew is dropped and replaced with a real file."""
+        """A symlink from an older Junction is dropped and replaced with a real file."""
         src = _make_app_source(tmp_path)
         install_app(src)
         manifest = AppManifest.from_json_file(
@@ -373,8 +373,8 @@ class TestAgentRegistration:
         """The app mcp.json is read by kiro-cli, so a governed `autoApprove` here
         would auto-approve locally and bypass the gate. It must be stripped before
         the write, exactly like the agent-config writers do."""
-        from kiro_crew.apps import bridges as bridges_mod
-        from kiro_crew.platform import governance as gov
+        from junction.apps import bridges as bridges_mod
+        from junction.platform import governance as gov
 
         monkeypatch.setattr(gov, "may_skip_gate_now", lambda ref: False)  # governed
         src = _make_app_source(
@@ -391,8 +391,8 @@ class TestAgentRegistration:
         assert "autoApprove" not in entry, "a governed grant must not reach the file kiro-cli reads"
 
     def test_register_mcp_keeps_autoapprove_when_ungoverned(self, tmp_path, app_env, monkeypatch):
-        from kiro_crew.apps import bridges as bridges_mod
-        from kiro_crew.platform import governance as gov
+        from junction.apps import bridges as bridges_mod
+        from junction.platform import governance as gov
 
         monkeypatch.setattr(gov, "may_skip_gate_now", lambda ref: True)  # ungoverned
         src = _make_app_source(
@@ -658,7 +658,7 @@ class TestCronRegistration:
         """
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -668,7 +668,7 @@ class TestCronRegistration:
 
         mock_sdk = MagicMock()
         mock_sdk.list_jobs.return_value = []
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", MagicMock()))
 
         assert result == []
@@ -701,7 +701,7 @@ class TestCronRegistration:
         # bounded store-lock spin to a worker thread and then arms the timer
         # IN-SERVICE on the loop. Driving it through a started CronService here
         # exercises that path end-to-end with NO caller-side drain step.
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -731,7 +731,7 @@ class TestCronRegistration:
         # (re)armed by CronService ITSELF (in-service, via the bound loop) — so
         # no caller-side drain (the removed rearm_after_offload) is required.
         # This mirrors on_app_enable / on_gateway_startup.
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -805,7 +805,7 @@ class TestTopLevel:
         # gate register_app does -- scrub any stale agent spec and register nothing
         # -- or a revoked app's agent (and its merged MCP servers) becomes
         # dispatchable again.
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.execution as execution_mod
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -819,7 +819,7 @@ class TestTopLevel:
         assert not any(app_env["kiro_agents"].iterdir())
 
     def test_install_while_execution_denied_registers_nothing(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.execution as execution_mod
 
         src = _make_app_source(
             tmp_path,
@@ -857,7 +857,7 @@ class TestTopLevel:
         bridge wrote a namespaced <app>--<agent>.json with empty mcpServers
         alongside the app's real agent file, and kiro-cli loaded the empty one.
         """
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -871,7 +871,7 @@ class TestTopLevel:
         install_app(src)
 
         # Mark as self-managed (like Mochi does via registerExternal)
-        from kiro_crew.apps.manager import register_external_app
+        from junction.apps.manager import register_external_app
 
         register_external_app("test-app", "1.0.0", "Test App", resources="app")
 
@@ -936,8 +936,8 @@ class TestRegistrationResult:
 
 class TestMCPRegistration:
     def test_register_mcp_servers(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -966,7 +966,7 @@ class TestMCPRegistration:
         naming a PATH fragment must be emitted complete. See env.emit_env."""
         import os
 
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1001,8 +1001,8 @@ class TestMCPRegistration:
         # 9101, …). The manifest's mcpServers url carries an illustrative fixed port.
         # Registration MUST rewrite it to the live allocated port, else agents call the
         # wrong port and every app tool call silently fails.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1031,8 +1031,8 @@ class TestMCPRegistration:
         # makes kiro-cli try to connect on EVERY session → "backend hiccup" → 3 retries →
         # hard error, breaking all requests. The enable/boot flow re-registers with the
         # live port once the backend is up.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1059,8 +1059,8 @@ class TestMCPRegistration:
         # A stale dead-port entry from a prior (now-down) registration must be SCRUBBED
         # when we re-register and the backend still isn't up — so it can't keep poisoning
         # every kiro session across reboots/disable.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1089,8 +1089,8 @@ class TestMCPRegistration:
     def test_stdio_mcp_server_always_registered_no_backend(self, tmp_path, app_env, monkeypatch):
         # A command/stdio MCP server (no url) has no port to be dead — it must always be
         # registered regardless of backend liveness (only HTTP url servers are gated).
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1115,9 +1115,9 @@ class TestMCPRegistration:
     ):
         # reregister_app_mcp_servers (called after the backend starts) overwrites the
         # earlier manifest-default entry with the live-port url.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
-        from kiro_crew.apps.bridges import reregister_app_mcp_servers
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
+        from junction.apps.bridges import reregister_app_mcp_servers
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1154,9 +1154,9 @@ class TestMCPRegistration:
         # backend isn't marked *healthy* yet (get_app_backend_port would return None at
         # that instant). An explicit live_port must still rewrite the url — this is the
         # exact bug that left the registered url at :9100 while the backend was on :9101.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
-        from kiro_crew.apps.bridges import reregister_app_mcp_servers
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
+        from junction.apps.bridges import reregister_app_mcp_servers
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1173,7 +1173,7 @@ class TestMCPRegistration:
         assert data["mcpServers"]["test-app:my-mcp"]["url"] == "http://localhost:9101/mcp"
 
     def test_deregister_mcp_servers(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1206,7 +1206,7 @@ class TestMCPRegistration:
         # synchronously on the gateway event loop, so the scrub must NOT run
         # here or a held lock would stall all chat/heartbeat. Boot reconcile
         # performs it off-loop instead.
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1219,14 +1219,14 @@ class TestMCPRegistration:
         assert called == [], "deregister must not run the blocking legacy scrub on the event loop"
 
     def test_deregister_no_servers(self, tmp_path, monkeypatch):
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
         assert _deregister_mcp_servers("nonexistent") == 0
 
     def test_register_no_mcp_servers(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1235,8 +1235,8 @@ class TestMCPRegistration:
         assert _register_mcp_servers("test", manifest) == []
 
     def test_register_app_includes_mcp(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1290,7 +1290,7 @@ class TestStdioInterpreterResolution:
         ``setup(app_root)`` runs AFTER install (install_app removes a
         pre-existing dest dir, so a venv must be created post-install).
         """
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1445,16 +1445,16 @@ class TestStdioInterpreterResolution:
     def test_a_gateway_module_server_is_pinned_to_the_gateway_interpreter(
         self, tmp_path, app_env, monkeypatch
     ):
-        # A stdio server that runs Kiro Crew's OWN code (`-m kiro_crew...`) must
+        # A stdio server that runs Kiro Crew's OWN code (`-m junction...`) must
         # run under the gateway's interpreter even when the app has a venv: app
-        # venvs are created without --system-site-packages, so kiro_crew is not
+        # venvs are created without --system-site-packages, so junction is not
         # importable there and the venv interpreter dies on import — silently,
         # since the rewritten venv path exists and no warning fires.
         import sys
 
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
-            {"command": "python3", "args": ["-s", "-m", "kiro_crew.apps.builtins.x.server"]},
+            {"command": "python3", "args": ["-s", "-m", "junction.apps.builtins.x.server"]},
             setup=_fake_venv_python,
         )
         assert entry["command"] == sys.executable
@@ -1510,14 +1510,14 @@ class TestStdioInterpreterResolution:
     def test_a_script_argument_named_dash_m_does_not_trigger_the_gateway_pin(
         self, tmp_path, app_env, monkeypatch
     ):
-        # `python3 server.py -m kiro_crew.mode`: the -m belongs to the SCRIPT
+        # `python3 server.py -m junction.mode`: the -m belongs to the SCRIPT
         # (CPython stops parsing its own options at the first operand), so the
         # entry must resolve venv-first — pinning it to sys.executable would
         # strand a venv-dependent server without its dependencies.
         created: list[Path] = []
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
-            {"command": "python3", "args": ["server.py", "-m", "kiro_crew.mode"]},
+            {"command": "python3", "args": ["server.py", "-m", "junction.mode"]},
             setup=lambda root: created.append(_fake_venv_python(root)),
         )
         assert entry["command"] == str(created[0])
@@ -1529,7 +1529,7 @@ class TestStdioInterpreterResolution:
 
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
-            {"command": "python3", "args": ["-s", "-u", "-m", "kiro_crew.apps.x"]},
+            {"command": "python3", "args": ["-s", "-u", "-m", "junction.apps.x"]},
             setup=_fake_venv_python,
         )
         assert entry["command"] == sys.executable
@@ -1545,7 +1545,7 @@ class TestStdioInterpreterResolution:
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
             {"command": "python3",
-             "args": ["-X", "dev", "-W", "ignore", "-m", "kiro_crew.apps.x"]},
+             "args": ["-X", "dev", "-W", "ignore", "-m", "junction.apps.x"]},
             setup=_fake_venv_python,
         )
         assert entry["command"] == sys.executable
@@ -1558,7 +1558,7 @@ class TestStdioInterpreterResolution:
 
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
-            {"command": "python3", "args": ["-mkiro_crew.apps.x"]},
+            {"command": "python3", "args": ["-mjunction.apps.x"]},
             setup=_fake_venv_python,
         )
         assert entry["command"] == sys.executable
@@ -1575,7 +1575,7 @@ class TestStdioInterpreterResolution:
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
             {"command": "python3",
-             "args": ["-cimport server", "-m", "kiro_crew.x"]},
+             "args": ["-cimport server", "-m", "junction.x"]},
             setup=lambda root: created.append(_fake_venv_python(root)),
         )
         assert entry["command"] == str(created[0])
@@ -1602,7 +1602,7 @@ class TestStdioInterpreterResolution:
     ):
         # `D:missing` carries no separator but names a location; it is never
         # rewritten AND it must not silently skip the unresolvable diagnostic.
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             entry = self._register_stdio(
                 tmp_path, app_env, monkeypatch, {"command": "D:missing", "args": []},
             )
@@ -1612,19 +1612,19 @@ class TestStdioInterpreterResolution:
     def test_the_host_cli_pin_still_wins(self, tmp_path, app_env, monkeypatch):
         import sys
 
-        # `kirocrew` is pinned to `sys.executable -m kiro_crew` by
+        # `junction` is pinned to `sys.executable -m junction` by
         # _pin_host_cli_command BEFORE stdio resolution; the venv must not
         # override that (the host CLI is gateway code, not app code).
         entry = self._register_stdio(
             tmp_path, app_env, monkeypatch,
-            {"command": "kirocrew", "args": ["app", "mcp", "test-app"]},
+            {"command": "junction", "args": ["app", "mcp", "test-app"]},
             setup=_fake_venv_python,
         )
         assert entry["command"] == sys.executable
-        assert entry["args"][:3] == ["-s", "-m", "kiro_crew"]
+        assert entry["args"][:3] == ["-s", "-m", "junction"]
 
     def test_an_http_entry_is_unaffected(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.backend as backend_mod
+        import junction.apps.backend as backend_mod
 
         monkeypatch.setattr(backend_mod, "get_app_backend_port", lambda _n: 9000)
         entry = self._register_stdio(
@@ -1658,7 +1658,7 @@ class TestStdioInterpreterResolution:
         # shutil.which from this event-loop-reachable path can block on a
         # network-mounted PATH entry.
         missing = str(tmp_path / "definitely" / "not-a-real-binary-1807")
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             entry = self._register_stdio(
                 tmp_path, app_env, monkeypatch,
                 {"command": missing, "args": []},
@@ -1676,7 +1676,7 @@ class TestStdioInterpreterResolution:
     def test_a_bare_name_is_not_probed_and_logs_no_warning(
         self, tmp_path, app_env, monkeypatch, caplog
     ):
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             entry = self._register_stdio(
                 tmp_path, app_env, monkeypatch,
                 {"command": "definitely-not-a-real-binary-1807", "args": []},
@@ -1692,7 +1692,7 @@ class TestStdioInterpreterResolution:
         # every task until the stall watchdog kills the gateway. With a
         # running loop the probe must go to the maintenance pool; with none
         # (this test's own direct call) it runs inline.
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         dispatched: list[tuple] = []
 
@@ -1723,7 +1723,7 @@ class TestStdioInterpreterResolution:
     def test_a_resolvable_command_logs_no_unresolvable_warning(
         self, tmp_path, app_env, monkeypatch, caplog
     ):
-        with caplog.at_level("WARNING", logger="kiro_crew.apps.bridges"):
+        with caplog.at_level("WARNING", logger="junction.apps.bridges"):
             self._register_stdio(
                 tmp_path, app_env, monkeypatch, {"command": "python3", "args": []},
                 setup=_fake_venv_python,
@@ -1733,7 +1733,7 @@ class TestStdioInterpreterResolution:
     def test_one_bad_server_does_not_block_its_siblings(
         self, tmp_path, app_env, monkeypatch
     ):
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1760,7 +1760,7 @@ class TestBackendSharesTheInterpreterPolicy:
     policy fork."""
 
     def test_venv_present_resolves_to_the_venv_interpreter(self, tmp_path):
-        from kiro_crew.apps.interpreter import resolve_app_python
+        from junction.apps.interpreter import resolve_app_python
 
         venv_py = _fake_venv_python(tmp_path)
         assert resolve_app_python(tmp_path) == str(venv_py)
@@ -1768,14 +1768,14 @@ class TestBackendSharesTheInterpreterPolicy:
     def test_venv_absent_resolves_to_sys_executable(self, tmp_path):
         import sys
 
-        from kiro_crew.apps.interpreter import resolve_app_python
+        from junction.apps.interpreter import resolve_app_python
 
         assert resolve_app_python(tmp_path) == sys.executable
 
     def test_no_app_context_resolves_to_sys_executable(self):
         import sys
 
-        from kiro_crew.apps.interpreter import resolve_app_python
+        from junction.apps.interpreter import resolve_app_python
 
         assert resolve_app_python(None) == sys.executable
 
@@ -1791,7 +1791,7 @@ class TestBackendSharesTheInterpreterPolicy:
         # instead of being returned as a guaranteed-EACCES spawn target.
         import sys
 
-        from kiro_crew.apps.interpreter import resolve_app_python
+        from junction.apps.interpreter import resolve_app_python
 
         def historical(root: Path) -> str:
             venv_python = str(root / ".venv" / "bin" / "python3")
@@ -1813,7 +1813,7 @@ class TestBackendSharesTheInterpreterPolicy:
         # helper. Grepping the source keeps this honest without spawning.
         import inspect
 
-        import kiro_crew.apps.backend as backend_mod
+        import junction.apps.backend as backend_mod
 
         source = inspect.getsource(backend_mod)
         assert source.count("resolve_app_python(") >= 2, (
@@ -1849,8 +1849,8 @@ class TestMCPProperties:
         """**Validates: Requirements 8.1, 8.2**"""
         import uuid
 
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / f"mcp-{uuid.uuid4().hex[:8]}.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1891,8 +1891,8 @@ class TestMCPProperties:
         assume(app_a != app_b)
         import uuid
 
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / f"mcp-iso-{uuid.uuid4().hex[:8]}.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1925,8 +1925,8 @@ class TestBootReconcile:
         # have it scrubbed at gateway boot — else kiro-cli dials the dead port on every
         # session. start_enabled_app_backends() reconciles disabled apps before starting
         # any backend.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -1978,8 +1978,8 @@ class TestBootReconcile:
         # url behind — that's the exact shape that broke every kiro-cli session. The
         # health-gated path calls _gate_mcp_registration(healthy=False) on health failure,
         # which scrubs the entry. (Closes the disabled-only asymmetry the reviewer flagged.)
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -2005,8 +2005,8 @@ class TestBootReconcile:
     def test_enabled_app_healthy_registers_with_live_port(self, tmp_path, app_env, monkeypatch):
         # The complement: once /health passes, _gate_mcp_registration(healthy=True) writes the
         # HTTP MCP url with the confirmed live port (rewriting the manifest's illustrative one).
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -2027,8 +2027,8 @@ class TestBootReconcile:
         # Review scenario: the boot loop must NOT register MCP servers for a freshly
         # spawned (healthy=False) enabled app — registration is deferred to the health-check
         # loop. Registering here is what could leave a dead url for a never-healthy app.
-        import kiro_crew.apps.backend as backend_mod
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.backend as backend_mod
+        import junction.apps.bridges as bmod
 
         mcp_path = tmp_path / "mcp.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
@@ -2074,14 +2074,14 @@ class TestCronServiceBridge:
 
     def _write_app_crons(self, tmp_path, app_name, cron_defs):
         """Write a fake app-crons.json for testing."""
-        app_dir = tmp_path / "kirocrew-home" / "apps" / app_name
+        app_dir = tmp_path / "junction-home" / "apps" / app_name
         app_dir.mkdir(parents=True, exist_ok=True)
         (app_dir / "app-crons.json").write_text(json.dumps(cron_defs, indent=2))
 
     def test_boot_default_off_registers_no_third_party_crons(self, tmp_path, app_env, monkeypatch):
         from unittest.mock import MagicMock, patch
 
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.execution as execution_mod
 
         self._write_app_crons(
             tmp_path,
@@ -2095,7 +2095,7 @@ class TestCronServiceBridge:
         )
         mock_sdk = MagicMock()
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", MagicMock()))
 
         assert result == []
@@ -2104,7 +2104,7 @@ class TestCronServiceBridge:
     def test_boot_explicit_allow_registers_third_party_crons(self, tmp_path, app_env, monkeypatch):
         from unittest.mock import MagicMock, patch
 
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.execution as execution_mod
 
         self._write_app_crons(
             tmp_path,
@@ -2120,7 +2120,7 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="job-id"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", MagicMock()))
 
         assert result == ["test-app/refresh"]
@@ -2132,8 +2132,8 @@ class TestCronServiceBridge:
     ):
         from unittest.mock import MagicMock
 
-        import kiro_crew.apps.bridges as bridges_mod
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.bridges as bridges_mod
+        import junction.apps.execution as execution_mod
 
         app_root = app_env["home"] / "apps" / "test-app"
         app_root.mkdir(parents=True, exist_ok=True)
@@ -2161,8 +2161,8 @@ class TestCronServiceBridge:
     async def test_boot_disarms_orphaned_app_cron_owner(self, app_env, monkeypatch):
         from unittest.mock import MagicMock
 
-        import kiro_crew.apps.bridges as bridges_mod
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.bridges as bridges_mod
+        import junction.apps.execution as execution_mod
 
         events = []
         monkeypatch.setattr(bridges_mod, "list_apps", lambda: [])
@@ -2200,8 +2200,8 @@ class TestCronServiceBridge:
     async def test_boot_keeps_shipped_builtin_app_cron_armed(self, tmp_path, app_env, monkeypatch):
         from unittest.mock import MagicMock
 
-        import kiro_crew.apps.bridges as bridges_mod
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.bridges as bridges_mod
+        import junction.apps.execution as execution_mod
 
         shipped = tmp_path / "shipped-builtins"
         shipped_app = shipped / "builtin-app"
@@ -2213,7 +2213,7 @@ class TestCronServiceBridge:
                     "version": "1.0.0",
                     "displayName": "Builtin App",
                     "description": "A test builtin app",
-                    "author": "kirocrew",
+                    "author": "junction",
                 }
             )
         )
@@ -2243,8 +2243,8 @@ class TestCronServiceBridge:
     ):
         from unittest.mock import MagicMock
 
-        import kiro_crew.apps.bridges as bridges_mod
-        import kiro_crew.apps.execution as execution_mod
+        import junction.apps.bridges as bridges_mod
+        import junction.apps.execution as execution_mod
 
         app_root = app_env["home"] / "apps" / "third-party-app"
         app_root.mkdir(parents=True)
@@ -2269,7 +2269,7 @@ class TestCronServiceBridge:
 
     @pytest.mark.asyncio
     async def test_execution_disarm_audit_failure_is_best_effort(self, monkeypatch):
-        import kiro_crew.apps.bridges as bridges_mod
+        import junction.apps.bridges as bridges_mod
 
         def _audit_failure(**kwargs):
             raise OSError("audit unavailable")
@@ -2291,7 +2291,7 @@ class TestCronServiceBridge:
     def test_registers_cron_with_all_fields(self, tmp_path, app_env, monkeypatch):
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2316,7 +2316,7 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="abc123"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == ["test-app/refresh"]
@@ -2343,7 +2343,7 @@ class TestCronServiceBridge:
         """A def that names no zone keeps today's config-then-UTC fallback."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         self._write_app_crons(
             tmp_path,
@@ -2356,7 +2356,7 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="abc123"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         kwargs = mock_sdk.add_job_if_absent_async.call_args.kwargs
@@ -2367,7 +2367,7 @@ class TestCronServiceBridge:
         """A manifest cron with enabled:false is passed through as enabled=False."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2387,7 +2387,7 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="abc123"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == ["test-app/nightly-run"]
@@ -2397,7 +2397,7 @@ class TestCronServiceBridge:
         """Pre-existing app-crons.json without the enabled key registers active."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2415,7 +2415,7 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="abc123"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert mock_sdk.add_job_if_absent_async.call_args.kwargs["enabled"] is True
@@ -2429,7 +2429,7 @@ class TestCronServiceBridge:
         """
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2453,7 +2453,7 @@ class TestCronServiceBridge:
         mock_sdk = MagicMock()
         mock_sdk.list_jobs.return_value = [existing]
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == []
@@ -2466,7 +2466,7 @@ class TestCronServiceBridge:
         """Apps declaring command-type crons get them registered as command jobs."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2491,7 +2491,7 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="cmd123"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == ["test-app/collect"]
@@ -2516,7 +2516,7 @@ class TestCronServiceBridge:
         """Commands blocked by _vet_shell_command are skipped with SEL audit."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2531,7 +2531,7 @@ class TestCronServiceBridge:
         mock_sdk = MagicMock()
         mock_sdk.list_jobs.return_value = []
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == []
@@ -2541,7 +2541,7 @@ class TestCronServiceBridge:
         """Scripts outside ~/.kirocrew/crons/ are rejected at registration."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {
@@ -2556,7 +2556,7 @@ class TestCronServiceBridge:
         mock_sdk = MagicMock()
         mock_sdk.list_jobs.return_value = []
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == []
@@ -2565,7 +2565,7 @@ class TestCronServiceBridge:
     def test_idempotent_skips_existing(self, tmp_path, app_env, monkeypatch):
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [{"name": "test-app/refresh", "every": 600, "message": "go"}]
         self._write_app_crons(tmp_path, "test-app", cron_defs)
@@ -2576,14 +2576,14 @@ class TestCronServiceBridge:
         mock_sdk = MagicMock()
         mock_sdk.list_jobs.return_value = [existing_job]
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == []
         mock_sdk.add_job_if_absent_async.assert_not_called()
 
     def test_returns_empty_when_no_cron_service(self, tmp_path, app_env):
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         result = _run(register_app_crons_with_service("test-app", None))
         assert result == []
@@ -2591,7 +2591,7 @@ class TestCronServiceBridge:
     def test_returns_empty_when_no_app_crons_file(self, tmp_path, app_env):
         from unittest.mock import MagicMock
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         result = _run(register_app_crons_with_service("nonexistent-app", MagicMock()))
         assert result == []
@@ -2599,7 +2599,7 @@ class TestCronServiceBridge:
     def test_handles_malformed_entry_gracefully(self, tmp_path, app_env, monkeypatch):
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {"name": "", "every": 600, "message": "bad"},  # empty name — skipped
@@ -2612,14 +2612,14 @@ class TestCronServiceBridge:
         mock_sdk.list_jobs.return_value = []
         mock_sdk.add_job_if_absent_async = AsyncMock(return_value=MagicMock(id="x"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         assert result == ["test-app/good"]
 
     def test_register_crons_serializes_all_fields(self, tmp_path, app_env):
         """Verify _register_crons writes all CronEntry fields to app-crons.json."""
-        from kiro_crew.apps.bridges import _register_crons, load_app_cron_defs
+        from junction.apps.bridges import _register_crons, load_app_cron_defs
 
         manifest = AppManifest(
             name="test-app",
@@ -2630,7 +2630,7 @@ class TestCronServiceBridge:
             crons=[],
         )
         # Manually construct a CronEntry with all fields set
-        from kiro_crew.apps.manifest import CronEntry
+        from junction.apps.manifest import CronEntry
 
         entry = CronEntry(
             name="refresh",
@@ -2664,7 +2664,7 @@ class TestCronServiceBridge:
         """Exception from CronSDK.add_job is caught, logged, and execution continues."""
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import register_app_crons_with_service
+        from junction.apps.bridges import register_app_crons_with_service
 
         cron_defs = [
             {"name": "test-app/bad", "every": 600, "message": "x"},
@@ -2678,7 +2678,7 @@ class TestCronServiceBridge:
         # First call raises, second succeeds
         mock_sdk.add_job_if_absent_async = AsyncMock(side_effect=[RuntimeError("boom"), MagicMock(id="ok")])
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(register_app_crons_with_service("test-app", mock_cron_service))
 
         # Failed entry skipped, good entry registered
@@ -2690,20 +2690,20 @@ class TestCronServiceDeregister:
     """Tests for deregister_app_crons_from_service — scheduler cleanup helper."""
 
     def test_returns_zero_when_no_cron_service(self, tmp_path, app_env):
-        from kiro_crew.apps.bridges import deregister_app_crons_from_service
+        from junction.apps.bridges import deregister_app_crons_from_service
 
         assert _run(deregister_app_crons_from_service("test-app", None)) == 0
 
     def test_calls_remove_all_and_returns_count(self, tmp_path, app_env):
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import deregister_app_crons_from_service
+        from junction.apps.bridges import deregister_app_crons_from_service
 
         mock_cron_service = MagicMock()
         mock_sdk = MagicMock()
         mock_sdk.remove_all_async = AsyncMock(return_value=3)
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(deregister_app_crons_from_service("test-app", mock_cron_service))
 
         assert result == 3
@@ -2712,13 +2712,13 @@ class TestCronServiceDeregister:
     def test_returns_zero_on_exception(self, tmp_path, app_env):
         from unittest.mock import MagicMock, patch
 
-        from kiro_crew.apps.bridges import deregister_app_crons_from_service
+        from junction.apps.bridges import deregister_app_crons_from_service
 
         mock_cron_service = MagicMock()
         mock_sdk = MagicMock()
         mock_sdk.remove_all_async = AsyncMock(side_effect=RuntimeError("scheduler unavailable"))
 
-        with patch("kiro_crew.apps.bridges.CronSDK", return_value=mock_sdk):
+        with patch("junction.apps.bridges.CronSDK", return_value=mock_sdk):
             result = _run(deregister_app_crons_from_service("test-app", mock_cron_service))
 
         assert result == 0  # exception swallowed, zero returned
@@ -2737,7 +2737,7 @@ class TestBuiltinAgentNamesAreNamespaced:
 
     def _builtin_dirs(self):
 
-        import kiro_crew.apps.builtins as builtins_pkg
+        import junction.apps.builtins as builtins_pkg
 
         root = Path(builtins_pkg.__file__).parent
         return [p for p in root.iterdir() if (p / "app.json").is_file()]
@@ -2776,7 +2776,7 @@ class TestUserAgentEditsSurviveRefresh:
     """
 
     def test_user_keys_win_and_owned_keys_are_refreshed(self) -> None:
-        from kiro_crew.apps.bridges import _preserve_user_agent_edits
+        from junction.apps.bridges import _preserve_user_agent_edits
 
         prior = {
             "name": "app--agent",
@@ -2801,7 +2801,7 @@ class TestUserAgentEditsSurviveRefresh:
         assert out["prompt"] == "file:///new/path.md"
 
     def test_no_prior_file_is_a_no_op(self) -> None:
-        from kiro_crew.apps.bridges import _preserve_user_agent_edits
+        from junction.apps.bridges import _preserve_user_agent_edits
 
         fresh = {"name": "a", "model": "auto"}
         assert _preserve_user_agent_edits("a.json", None, fresh) == fresh
@@ -2816,7 +2816,7 @@ class TestUserAgentEditsSurviveRefresh:
         provenance here to tell a hand edit from last boot's template copy, so the
         line is drawn by meaning: containment is refreshed, preference is kept.
         """
-        from kiro_crew.apps.bridges import _preserve_user_agent_edits
+        from junction.apps.bridges import _preserve_user_agent_edits
 
         prior = {
             "name": "app--agent",
@@ -2839,7 +2839,7 @@ class TestUserAgentEditsSurviveRefresh:
     def test_a_corrupt_prior_file_does_not_fail_the_refresh(self, tmp_path) -> None:
         """An unreadable file must not block registration — it means "nothing to
         preserve", not "abort"."""
-        from kiro_crew.apps.bridges import _read_agent_config
+        from junction.apps.bridges import _read_agent_config
 
         broken = tmp_path / "a.json"
         broken.write_text("{not json", encoding="utf-8")
@@ -2859,7 +2859,7 @@ class TestUserAgentEditsSurviveRefresh:
         decision; adding one to the template without deciding is the bug this
         guard exists to surface.
         """
-        from kiro_crew.apps.bridges import _FRAMEWORK_OWNED_AGENT_KEYS
+        from junction.apps.bridges import _FRAMEWORK_OWNED_AGENT_KEYS
 
         assert _FRAMEWORK_OWNED_AGENT_KEYS == {
             "name",
@@ -2886,7 +2886,7 @@ class TestUserAgentEditsSurviveRefresh:
         """
         import json
 
-        from kiro_crew.apps.bridges import _FRAMEWORK_OWNED_AGENT_KEYS
+        from junction.apps.bridges import _FRAMEWORK_OWNED_AGENT_KEYS
 
         # Keys a user is MEANT to be able to pin by hand.
         # Keys a user is MEANT to be able to pin by hand. `welcomeMessage` is
@@ -2902,7 +2902,7 @@ class TestUserAgentEditsSurviveRefresh:
         preferences = {
             "description", "model", "toolsSettings", "$schema", "welcomeMessage", "skills",
         }
-        root = _REPO_ROOT / "src/kiro_crew/apps/builtins"
+        root = _REPO_ROOT / "src/junction/apps/builtins"
         templates = sorted(root.glob("*/agents/*.json"))
         if not templates:
             # Same reasoning as the namespacing guard above: nothing ships an
@@ -2940,8 +2940,8 @@ class TestBuiltinDeclaredResourcesActuallyRegister:
         """
         import dataclasses
 
-        from kiro_crew.apps.discovery import _manifest_to_builtin_dict
-        from kiro_crew.apps.manifest import AppManifest
+        from junction.apps.discovery import _manifest_to_builtin_dict
+        from junction.apps.manifest import AppManifest
 
         declared = {f.name for f in dataclasses.fields(AppManifest)}
         # ``extra`` is the catch-all bag, splatted into the dict by key.
@@ -2955,7 +2955,7 @@ class TestBuiltinDeclaredResourcesActuallyRegister:
                 "description": "d",
                 "author": "a",
                 "license": "MIT",
-                "minKiroCrewVersion": "1.0.0",
+                "minJunctionVersion": "1.0.0",
                 "signer": "s",
                 "signature": "sig",
                 "agents": ["agents/a.json"],
@@ -2990,9 +2990,9 @@ class TestBuiltinDeclaredResourcesActuallyRegister:
         """A builtin resolves resource paths against the packaged dir, not $HOME."""
         import json as _json
 
-        from kiro_crew.apps.bridges import _app_resource_root
-        from kiro_crew.apps.discovery import _get_builtins_dir
-        from kiro_crew.apps.manager import get_app, register_builtin_apps
+        from junction.apps.bridges import _app_resource_root
+        from junction.apps.discovery import _get_builtins_dir
+        from junction.apps.manager import get_app, register_builtin_apps
 
         register_builtin_apps()
         packaged = _get_builtins_dir()
@@ -3035,8 +3035,8 @@ class TestAppEventBusIsActuallyWired:
     def test_dashboard_state_exposes_the_broadcast_method_the_gateway_passes(self):
         import inspect
 
-        from kiro_crew.dashboard import server as server_mod
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard import server as server_mod
+        from junction.dashboard.state import DashboardState
 
         src = inspect.getsource(server_mod)
         # Whatever the gateway hands to the hooks system must exist on the state.
@@ -3047,7 +3047,7 @@ class TestAppEventBusIsActuallyWired:
             )
 
     def test_context_has_no_event_bus_without_a_broadcast_fn(self, tmp_path):
-        from kiro_crew.apps.context import build_app_context
+        from junction.apps.context import build_app_context
 
         ctx = build_app_context(
             "probe", tmp_path, permissions={"events": ["probe:thing"]}, broadcast_fn=None
@@ -3055,7 +3055,7 @@ class TestAppEventBusIsActuallyWired:
         assert ctx.events is None
 
     def test_context_gets_an_event_bus_when_a_broadcast_fn_is_supplied(self, tmp_path):
-        from kiro_crew.apps.context import build_app_context
+        from junction.apps.context import build_app_context
 
         sent: list[dict] = []
         ctx = build_app_context(
@@ -3083,7 +3083,7 @@ class TestNeutralizeEntryShape:
     """
 
     def test_neutralize_copies_the_full_spec_from_the_global_file(self, monkeypatch):
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         monkeypatch.setattr(
             bridges,
@@ -3100,7 +3100,7 @@ class TestNeutralizeEntryShape:
         assert "@some-server" not in out["tools"]
 
     def test_server_without_a_global_spec_is_skipped_not_emitted_bare(self, monkeypatch):
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         monkeypatch.setattr(bridges, "_global_mcp_specs", lambda: {})
         agent = {"name": "a", "tools": [], "mcpServers": {}}
@@ -3111,7 +3111,7 @@ class TestNeutralizeEntryShape:
 
     def test_every_emitted_entry_has_a_command(self, monkeypatch):
         """The invariant itself, over a mixed grant+neutralize merge."""
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         monkeypatch.setattr(bridges, "_global_mcp_specs", lambda: {"n1": {"command": "c1"}})
         agent = {
@@ -3146,7 +3146,7 @@ class TestAppPromptPathIsContained:
     """
 
     def _call(self, tmp_path, raw):
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         app_root = tmp_path / "app"
         app_root.mkdir(exist_ok=True)
@@ -3154,7 +3154,7 @@ class TestAppPromptPathIsContained:
         return bridges._apply_agent_prompt({}, "a", policy, "someapp", app_root), app_root
 
     def test_a_path_outside_the_app_is_dropped(self, tmp_path, monkeypatch):
-        from kiro_crew.apps import bridges, manager
+        from junction.apps import bridges, manager
 
         monkeypatch.setattr(manager, "app_data_dir", lambda n: tmp_path / "data")
         monkeypatch.setattr(bridges, "app_data_dir", lambda n: tmp_path / "data")
@@ -3164,7 +3164,7 @@ class TestAppPromptPathIsContained:
         assert "prompt" not in merged  # escaping path refused
 
     def test_a_path_inside_the_app_root_is_kept(self, tmp_path, monkeypatch):
-        from kiro_crew.apps import bridges, manager
+        from junction.apps import bridges, manager
 
         monkeypatch.setattr(manager, "app_data_dir", lambda n: tmp_path / "data")
         monkeypatch.setattr(bridges, "app_data_dir", lambda n: tmp_path / "data")
@@ -3175,7 +3175,7 @@ class TestAppPromptPathIsContained:
         assert merged["prompt"] == f"file://{prompt.resolve()}"
 
     def test_a_symlink_escaping_the_app_is_refused(self, tmp_path, monkeypatch):
-        from kiro_crew.apps import bridges, manager
+        from junction.apps import bridges, manager
 
         monkeypatch.setattr(manager, "app_data_dir", lambda n: tmp_path / "data")
         monkeypatch.setattr(bridges, "app_data_dir", lambda n: tmp_path / "data")
@@ -3206,14 +3206,14 @@ class TestRebuildPreservesTheLiveMcpSpec:
     """
 
     def test_live_registered_spec_wins_over_the_manifest(self, monkeypatch):
-        from kiro_crew import agent
+        from junction import agent
 
         class _M:
             mcpServers = {"srv": {"url": "http://127.0.0.1:9100/mcp"}}  # illustrative
 
         monkeypatch.setattr(agent, "_ceiling_filtered_spec", lambda ref, spec: spec)
-        import kiro_crew.apps.bridges as bridges
-        import kiro_crew.apps.manager as manager
+        import junction.apps.bridges as bridges
+        import junction.apps.manager as manager
 
         monkeypatch.setattr(manager, "list_apps", lambda: [{"name": "someapp"}])
         monkeypatch.setattr(manager, "is_app_enabled", lambda n: True)
@@ -3227,14 +3227,14 @@ class TestRebuildPreservesTheLiveMcpSpec:
         assert out["someapp:srv"]["url"] == "http://127.0.0.1:54321/mcp"
 
     def test_http_server_with_no_live_entry_is_skipped(self, monkeypatch):
-        from kiro_crew import agent
+        from junction import agent
 
         class _M:
             mcpServers = {"srv": {"url": "http://127.0.0.1:9100/mcp"}}
 
         monkeypatch.setattr(agent, "_ceiling_filtered_spec", lambda ref, spec: spec)
-        import kiro_crew.apps.bridges as bridges
-        import kiro_crew.apps.manager as manager
+        import junction.apps.bridges as bridges
+        import junction.apps.manager as manager
 
         monkeypatch.setattr(manager, "list_apps", lambda: [{"name": "someapp"}])
         monkeypatch.setattr(manager, "is_app_enabled", lambda n: True)
@@ -3244,14 +3244,14 @@ class TestRebuildPreservesTheLiveMcpSpec:
         assert "someapp:srv" not in out  # dead-port URL never written
 
     def test_stdio_server_falls_back_to_the_manifest(self, monkeypatch):
-        from kiro_crew import agent
+        from junction import agent
 
         class _M:
             mcpServers = {"srv": {"command": "run", "args": ["x"]}}
 
         monkeypatch.setattr(agent, "_ceiling_filtered_spec", lambda ref, spec: spec)
-        import kiro_crew.apps.bridges as bridges
-        import kiro_crew.apps.manager as manager
+        import junction.apps.bridges as bridges
+        import junction.apps.manager as manager
 
         monkeypatch.setattr(manager, "list_apps", lambda: [{"name": "someapp"}])
         monkeypatch.setattr(manager, "is_app_enabled", lambda n: True)
@@ -3271,7 +3271,7 @@ class TestLegacyScrubIsLocked:
     def test_scrub_holds_the_legacy_file_lock(self) -> None:
         import inspect
 
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         src = inspect.getsource(bridges_mod._scrub_legacy_shared_mcp)
         assert "with _mcp_lock(target=_LEGACY_SHARED_MCP_PATH):" in src
@@ -3279,7 +3279,7 @@ class TestLegacyScrubIsLocked:
     def test_scrub_removes_only_the_apps_entries(self, tmp_path, monkeypatch) -> None:
         import json
 
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         legacy = tmp_path / "mcp.json"
         legacy.write_text(
@@ -3302,7 +3302,7 @@ class TestReregisterRefreshesAgents:
     """
 
     def test_reregister_refreshes_agents_after_registering(self, monkeypatch) -> None:
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         calls: list[str] = []
         monkeypatch.setattr(bridges_mod, "_registration_source", lambda n: (object(), "/app/root"))
@@ -3333,7 +3333,7 @@ class TestMcpEnableHandlersOffloadTheSync:
     def test_handlers_offload_sync_to_agent(self) -> None:
         import re
 
-        src = (_REPO_ROOT / "src/kiro_crew/dashboard/handlers/mcp.py").read_text(encoding="utf-8")
+        src = (_REPO_ROOT / "src/junction/dashboard/handlers/mcp.py").read_text(encoding="utf-8")
         # No bare synchronous call to a PUBLIC sync-to-agent function inside an
         # async handler: every such invocation is wrapped in asyncio.to_thread.
         # The `_unlocked` variants are the sync locking-wrapper's own delegation
@@ -3360,7 +3360,7 @@ class TestRegisterPrunesUpgradedAwayResources:
     def test_stale_app_agent_and_server_are_pruned(self, tmp_path, app_env) -> None:
         import json as _json
 
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         src = _make_app_source(tmp_path)  # declares my-agent, no mcpServers
         install_app(src)
@@ -3383,7 +3383,7 @@ class TestRegisterPrunesUpgradedAwayResources:
 
         # The off-loop boot reconcile is the one path that prunes. Ensure the app
         # is enabled so reconcile processes it (it skips disabled apps).
-        from kiro_crew.apps.manager import enable_app
+        from junction.apps.manager import enable_app
 
         enable_app("test-app")
         bridges_mod.reconcile_enabled_app_resources()
@@ -3404,7 +3404,7 @@ class TestRegisterNeverDeletesBeforeReplacement:
     """
 
     def test_a_legacy_symlink_survives_a_failed_rewrite(self, tmp_path, app_env, monkeypatch):
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -3438,7 +3438,7 @@ class TestPruneAbortsOnUnreadableAgent:
     """
 
     def test_unreadable_agent_aborts_the_agent_prune(self, tmp_path, app_env, monkeypatch):
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -3465,7 +3465,7 @@ class TestPruneAbortsOnUnreadableAgent:
         cannot-read != removed situation: the agent must be RETAINED (treated
         as present), never pruned out of its last-good materialized config.
         """
-        from kiro_crew.apps import bridges as bridges_mod
+        from junction.apps import bridges as bridges_mod
 
         src = _make_app_source(tmp_path)
         install_app(src)
@@ -3484,14 +3484,14 @@ class TestPruneAbortsOnUnreadableAgent:
 
 
 class TestMalformedConfigIsNotClobbered:
-    """A read-modify-write of an EXISTING-but-unreadable kirocrew.json must
+    """A read-modify-write of an EXISTING-but-unreadable junction.json must
     ABORT, not treat it as empty and overwrite it — that would drop the agent's
     whole configuration."""
 
     def test_strict_read_raises_on_malformed_existing(self, tmp_path, monkeypatch):
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
-        mcp_path = tmp_path / "kirocrew.json"
+        mcp_path = tmp_path / "junction.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
         # Missing file -> empty map, both modes.
         assert bmod._read_mcp_json_unlocked() == {}
@@ -3503,9 +3503,9 @@ class TestMalformedConfigIsNotClobbered:
             bmod._read_mcp_json_unlocked(strict=True)
 
     def test_register_does_not_overwrite_a_malformed_config(self, tmp_path, app_env, monkeypatch):
-        import kiro_crew.apps.bridges as bmod
+        import junction.apps.bridges as bmod
 
-        mcp_path = tmp_path / "kirocrew.json"
+        mcp_path = tmp_path / "junction.json"
         monkeypatch.setattr(bmod, "_mcp_json_path", lambda: mcp_path)
         original = "{ this is not json and must survive"
         mcp_path.write_text(original, encoding="utf-8")
@@ -3535,7 +3535,7 @@ class TestShippedAgentTemplatesAreRenderedByTheGateway:
     """
 
     def test_placeholders_resolve_to_gateway_computed_values(self, tmp_path, app_env):
-        from kiro_crew.apps.bridges import _placeholder_values
+        from junction.apps.bridges import _placeholder_values
 
         values = _placeholder_values("pptx-maker")
         assert set(values) == {
@@ -3555,12 +3555,12 @@ class TestShippedAgentTemplatesAreRenderedByTheGateway:
     def test_an_unknown_app_resolves_nothing(self, tmp_path, app_env):
         """Fail-closed: adding a placeholder to a new app's config is inert until its
         values are named, rather than silently registering an unrendered config."""
-        from kiro_crew.apps.bridges import _placeholder_values
+        from junction.apps.bridges import _placeholder_values
 
         assert _placeholder_values("some-other-app") == {}
 
     def test_a_template_is_rendered_into_the_data_home(self, tmp_path, app_env):
-        from kiro_crew.apps.bridges import _render_shipped_agent
+        from junction.apps.bridges import _render_shipped_agent
 
         shipped = tmp_path / "package" / "pptx-maker" / "agents"
         shipped.mkdir(parents=True)
@@ -3583,7 +3583,7 @@ class TestShippedAgentTemplatesAreRenderedByTheGateway:
     def test_the_install_dir_copy_is_never_read(self, tmp_path, app_env):
         """The whole point of the redesign: an attacker-written copy in the install dir
         has no influence, because it is not consulted."""
-        from kiro_crew.apps.bridges import _render_shipped_agent
+        from junction.apps.bridges import _render_shipped_agent
 
         shipped = tmp_path / "package" / "pptx-maker" / "agents"
         shipped.mkdir(parents=True)
@@ -3602,7 +3602,7 @@ class TestShippedAgentTemplatesAreRenderedByTheGateway:
         assert rendered["command"] != "/tmp/attacker-binary"
 
     def test_a_config_with_no_placeholder_is_returned_untouched(self, tmp_path, app_env):
-        from kiro_crew.apps.bridges import _render_shipped_agent
+        from junction.apps.bridges import _render_shipped_agent
 
         shipped = tmp_path / "package" / "pptx-maker" / "agents"
         shipped.mkdir(parents=True)
@@ -3613,7 +3613,7 @@ class TestShippedAgentTemplatesAreRenderedByTheGateway:
 
     def test_an_unresolvable_placeholder_registers_nothing(self, tmp_path, app_env):
         """Better to register no agent than one naming a literal `{ENGINE_ROOT}`."""
-        from kiro_crew.apps.bridges import _render_shipped_agent
+        from junction.apps.bridges import _render_shipped_agent
 
         shipped = tmp_path / "package" / "unknown-app" / "agents"
         shipped.mkdir(parents=True)
@@ -3627,7 +3627,7 @@ class TestShippedAgentTemplatesAreRenderedByTheGateway:
         must be escaped or the render is invalid JSON (or a mangled separator)."""
         from unittest import mock
 
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         shipped = tmp_path / "package" / "pptx-maker" / "agents"
         shipped.mkdir(parents=True)
@@ -3652,7 +3652,7 @@ class TestRegisterAgentsSnapshotUpkeep:
         # Removing an app's agent files must drop them from the resolver's
         # snapshot. Otherwise a disabled app's agent stays dispatchable in memory
         # and a slot still bound to it hands kiro-cli a name whose config is gone.
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -3668,7 +3668,7 @@ class TestRegisterAgentsSnapshotUpkeep:
         assert calls == ["refresh"]
 
     def test_deregister_without_removals_does_not_refresh(self, monkeypatch, tmp_path):
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -3686,7 +3686,7 @@ class TestRegisterAgentsSnapshotUpkeep:
         # follows a prune) writes nothing. Skipping the rescan there would leave
         # the removed name dispatchable in memory, and kiro-cli would silently
         # fall back to its own default for a name it cannot load.
-        from kiro_crew.apps import bridges
+        from junction.apps import bridges
 
         calls: list[str] = []
         monkeypatch.setattr(

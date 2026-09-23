@@ -572,7 +572,7 @@ export default function SessionsTab({ planeStateRef }: Props) {
           "0" beside either of those makes the card tell two different stories. */}
       {!isPending && data && (
       <div className="flex items-center flex-wrap px-3.5 py-2 border-t border-border bg-bg-elevated">
-        <FooterStat label={i18nT('pages.sessionsTab.footer_kirocrew_gb')} value={fmtGb(usedMb)} />
+        <FooterStat label={i18nT('pages.sessionsTab.footer_junction_gb')} value={fmtGb(usedMb)} />
         <FooterStat label={i18nT('pages.sessionsTab.footer_share_of_machine')} value={totals?.host_pct != null ? fmtPercent(totals.host_pct / 100, { maximumFractionDigits: 2 }) : '—'} />
         <FooterStat label={i18nT('pages.sessionsTab.footer_largest_session_gb')} value={fmtGb(largestMb)} />
         <FooterStat label={i18nT('pages.sessionsTab.footer_sessions')} value={fmtNumber(sessions.length)} />

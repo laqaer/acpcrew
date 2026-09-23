@@ -11,8 +11,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from conftest import requires_git
-from kiro_crew.task_models import PROGRESS_FILE
-from kiro_crew.taskrunner import (
+from junction.task_models import PROGRESS_FILE
+from junction.taskrunner import (
     _STALL_CANCEL_TIMEOUT,
     _STALL_TIMEOUT,
     MAX_TOTAL_TASKS,
@@ -52,7 +52,7 @@ def _make_mock_sessions() -> MagicMock:
 
 def _make_mock_provider(text: str = "done") -> MagicMock:
     """Create a mock provider that yields a text chunk + complete event."""
-    from kiro_crew.providers.base import LLMEvent
+    from junction.providers.base import LLMEvent
 
     provider = MagicMock()
 
@@ -254,7 +254,7 @@ class TestParseSteps:
         runner = TaskRunner(sessions=sessions, auto_test=False)
         secret = "ghp_" + "a" * 36
         text = "totally not json " + secret + " " + "x" * 5000
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.task_planner"):
+        with caplog.at_level(logging.ERROR, logger="junction.task_planner"):
             assert runner._parse_tasks(text) == []
         record = next(r for r in caplog.records if "Failed to parse tasks JSON" in r.getMessage())
         message = record.getMessage()
@@ -391,7 +391,7 @@ class TestRun:
 
         # First call = decompose (returns JSON), subsequent = step execution
         def _make_stream(text: str):
-            from kiro_crew.providers.base import LLMEvent
+            from junction.providers.base import LLMEvent
 
             async def _stream(message: str):
                 yield LLMEvent(kind="text_chunk", text=text)
@@ -458,7 +458,7 @@ class TestRun:
 
         step_json = json.dumps([{"title": "Broken step", "description": "Will fail"}])
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         decompose_provider = MagicMock()
 
@@ -1015,7 +1015,7 @@ class TestCheckpointResume:
             ]
         )
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         decompose_provider = MagicMock()
 
@@ -1057,7 +1057,7 @@ class TestCheckpointResume:
             sessions=sessions, auto_test=False, on_notify=_on_notify, work_dir=tmp_path
         )
 
-        with patch("kiro_crew.task_executor.self_review", return_value=True):
+        with patch("junction.task_executor.self_review", return_value=True):
             result = await runner.run(spec)
 
         assert result.status == "completed"
@@ -1086,7 +1086,7 @@ class TestCheckpointResume:
         sessions = _make_mock_sessions()
         step_json = json.dumps([{"title": "Create file", "description": "Create foo.py"}])
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         decompose_provider = MagicMock()
 
@@ -1121,7 +1121,7 @@ class TestCheckpointResume:
 
         runner = TaskRunner(sessions=sessions, auto_test=False, work_dir=tmp_path, fresh=True)
 
-        with patch("kiro_crew.task_executor.self_review", return_value=True):
+        with patch("junction.task_executor.self_review", return_value=True):
             result = await runner.run(spec)
 
         assert result.status == "completed"
@@ -1149,8 +1149,8 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_process_died_recovers(self, tmp_path: Path) -> None:
         """AcpProcessDied → recovers and completes step."""
-        from kiro_crew.acp.client import AcpProcessDied
-        from kiro_crew.providers.base import LLMEvent
+        from junction.acp.client import AcpProcessDied
+        from junction.providers.base import LLMEvent
 
         sessions = _make_mock_sessions()
         call_count = 0
@@ -1195,7 +1195,7 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_process_death_does_not_consume_logic_retry(self, tmp_path: Path) -> None:
         """Process dies once then logic fails — should still get full 3 logic attempts."""
-        from kiro_crew.acp.client import AcpProcessDied
+        from junction.acp.client import AcpProcessDied
 
         sessions = _make_mock_sessions()
         call_count = 0
@@ -1233,7 +1233,7 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_process_died_exceeds_budget(self, tmp_path: Path) -> None:
         """AcpProcessDied > _MAX_RECOVERIES → step fails."""
-        from kiro_crew.acp.client import AcpProcessDied
+        from junction.acp.client import AcpProcessDied
 
         sessions = _make_mock_sessions()
 
@@ -1276,7 +1276,7 @@ class TestSessionRecovery:
             yield LLMEvent(kind="text_chunk", text="ok")
             yield LLMEvent(kind="complete")
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         provider.stream = _fail_twice_then_succeed
         provider.approve_tool = AsyncMock()
@@ -1299,7 +1299,7 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_mid_stream_context_overflow_compacts(self, tmp_path: Path) -> None:
         """Context ≥90% during tool call → compact and retry without burning attempt."""
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         sessions = _make_mock_sessions()
         call_count = 0
@@ -1347,8 +1347,8 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_mid_stream_context_overflow_exceeds_max_recoveries(self, tmp_path: Path) -> None:
         """Compaction exceeds MAX_RECOVERIES → task fails."""
-        from kiro_crew.providers.base import LLMEvent
-        from kiro_crew.task_executor import MAX_RECOVERIES
+        from junction.providers.base import LLMEvent
+        from junction.task_executor import MAX_RECOVERIES
 
         sessions = _make_mock_sessions()
 
@@ -1387,7 +1387,7 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_mid_stream_compaction_failure_falls_back_to_reset(self, tmp_path: Path) -> None:
         """Compaction raises → falls back to session reset, then retries."""
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         sessions = _make_mock_sessions()
         call_count = 0
@@ -1431,7 +1431,7 @@ class TestSessionRecovery:
     @pytest.mark.asyncio
     async def test_task_result_redacts_credentials(self, tmp_path: Path) -> None:
         """Final task.result must have credentials redacted."""
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         sessions = _make_mock_sessions()
         provider = MagicMock()
@@ -1465,7 +1465,7 @@ class TestExtractLesson:
     @pytest.mark.asyncio
     async def test_extract_lesson_saves(self, tmp_path: Path) -> None:
         """Failed step → lesson extracted and saved."""
-        from kiro_crew.learn import LessonStore
+        from junction.learn import LessonStore
 
         store = LessonStore(base_dir=tmp_path)
         sessions = _make_mock_sessions()
@@ -1509,7 +1509,7 @@ class TestExtractLesson:
     @pytest.mark.asyncio
     async def test_extract_lesson_invalid_response(self, tmp_path: Path) -> None:
         """Invalid Bedrock response → no lesson saved."""
-        from kiro_crew.learn import LessonStore
+        from junction.learn import LessonStore
 
         store = LessonStore(base_dir=tmp_path)
         sessions = _make_mock_sessions()
@@ -1525,7 +1525,7 @@ class TestExtractLesson:
     @pytest.mark.asyncio
     async def test_extract_lesson_missing_rule_key(self, tmp_path: Path) -> None:
         """LLM returns dict without 'rule' → no lesson saved."""
-        from kiro_crew.learn import LessonStore
+        from junction.learn import LessonStore
 
         store = LessonStore(base_dir=tmp_path)
         sessions = _make_mock_sessions()
@@ -1545,7 +1545,7 @@ class TestExtractLesson:
 class TestHistoryIntegration:
     def test_log_task(self, tmp_path: Path) -> None:
         """Completed step → entries in ConversationLog."""
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path)
         conv_log.init()
@@ -1589,7 +1589,7 @@ class TestHistoryIntegration:
 
         step_json = json.dumps([{"title": "One step", "description": "d"}])
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         decompose_provider = MagicMock()
 
@@ -1654,7 +1654,7 @@ class TestWatchdog:
         TestGitCoord)."""
         import os as _os
 
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         monkeypatch.setattr(
             git_coord,
@@ -1681,7 +1681,7 @@ class TestWatchdog:
         run.last_task_time = time.time() - _STALL_TIMEOUT - 60
 
         # Run watchdog for one tick then stop
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = [None, asyncio.CancelledError()]
             try:
                 await runner._watchdog_loop(run)
@@ -1716,7 +1716,7 @@ class TestWatchdog:
         run.started_at = time.time()
         run.last_task_time = time.time()  # just now
 
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = [None, asyncio.CancelledError()]
             try:
                 await runner._watchdog_loop(run)
@@ -1738,7 +1738,7 @@ class TestWatchdog:
         run.started_at = time.time()
         run.last_task_time = time.time() - _STALL_CANCEL_TIMEOUT - 60
 
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = [None, asyncio.CancelledError()]
             try:
                 await runner._watchdog_loop(run)
@@ -1766,7 +1766,7 @@ class TestWatchdog:
         # Set decoy on runner (the old bug) — watchdog must ignore this
         runner._last_task_time = 0.0  # type: ignore[attr-defined]
 
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = [None, asyncio.CancelledError()]
             try:
                 await runner._watchdog_loop(run)
@@ -1843,7 +1843,7 @@ class TestPlanRevision:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         original_steps = json.dumps([{"title": "Broken step", "description": "Will fail"}])
         replan_steps = json.dumps([{"title": "Fixed step", "description": "Will work"}])
@@ -1909,7 +1909,7 @@ class TestPlanRevision:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         step_json = json.dumps([{"title": "Always fails", "description": "d"}])
 
@@ -1954,7 +1954,7 @@ class TestPlanRevision:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         original_steps = json.dumps([{"title": "Broken", "description": "d"}])
         replan_steps = json.dumps(
@@ -2021,7 +2021,7 @@ class TestPlanRevision:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         original = json.dumps([{"title": "Task ", "description": "d"}])
         replan1 = json.dumps([{"title": "Replan1 step", "description": "d"}])
@@ -2085,7 +2085,7 @@ class TestSelfReview:
         sessions = _make_mock_sessions()
         provider = MagicMock()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         async def _stream(msg: str):
             yield LLMEvent(kind="text_chunk", text='{"ok": true}')
@@ -2100,7 +2100,7 @@ class TestSelfReview:
         step = Step(index=1, title="Test", description="d", status=StepStatus.PASSED)
         run.tasks = [step]
 
-        with patch("kiro_crew.task_executor.stream_and_collect_json", return_value={"ok": True}):
+        with patch("junction.task_executor.stream_and_collect_json", return_value={"ok": True}):
             result = await runner.self_review(run, step)
 
         assert result is True
@@ -2119,7 +2119,7 @@ class TestSelfReview:
         run.tasks = [step]
 
         with patch(
-            "kiro_crew.task_executor.stream_and_collect_json",
+            "junction.task_executor.stream_and_collect_json",
             return_value={"ok": False, "issue": "wrong file modified"},
         ):
             result = await runner.self_review(run, step)
@@ -2228,7 +2228,7 @@ class TestActiveStallRecovery:
         run.started_at = time.time()
         run.last_task_time = time.time() - _STALL_CANCEL_TIMEOUT - 60
 
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = [None, asyncio.CancelledError()]
             try:
                 await runner._watchdog_loop(run)
@@ -2269,7 +2269,7 @@ class TestActiveStallRecovery:
             if tick >= 3:
                 raise asyncio.CancelledError()
 
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = _tick_sleep
             try:
                 await runner._watchdog_loop(run)
@@ -2305,7 +2305,7 @@ class TestActiveStallRecovery:
             if tick >= 3:
                 raise asyncio.CancelledError()  # stop after task2's first check
 
-        with patch("kiro_crew.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+        with patch("junction.taskrunner.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
             mock_sleep.side_effect = _tick_sleep
             try:
                 await runner._watchdog_loop(run)
@@ -2328,7 +2328,7 @@ class TestTokenBudget:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         step_json = json.dumps(
             [
@@ -2515,7 +2515,7 @@ class TestEdgeCases:
                 return False
             return True
 
-        with patch("kiro_crew.task_executor.self_review", side_effect=_review_once):
+        with patch("junction.task_executor.self_review", side_effect=_review_once):
             success = await runner._execute_single_task(run, step, "key")
 
         assert success is True
@@ -2552,7 +2552,7 @@ class TestEdgeCases:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         step_json = json.dumps(
             [
@@ -2716,7 +2716,7 @@ class TestParallelGroups:
 
         sessions = _make_mock_sessions()
 
-        from kiro_crew.providers.base import LLMEvent
+        from junction.providers.base import LLMEvent
 
         # 3 independent steps (no deps → single parallel group)
         step_json = json.dumps(
@@ -2795,7 +2795,7 @@ class TestGitCoord:
         sandbox availability, so run the command unwrapped in-test."""
         import os as _os
 
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         monkeypatch.setattr(
             git_coord,
@@ -2806,7 +2806,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_init_workspace_no_repo(self, tmp_path: Path) -> None:
         """init_workspace in a non-git dir → run in place, no git init."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         work_dir = tmp_path / "work"
         work_dir.mkdir()
@@ -2832,7 +2832,7 @@ class TestGitCoord:
         Locks the git-optional guarantee independently of whether the test host
         actually has git installed, by simulating the missing binary.
         """
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         async def _no_git(*_a, **_k):
             raise FileNotFoundError(2, "No such file or directory", "git")
@@ -2857,7 +2857,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_init_workspace_existing_repo(self, tmp_path: Path) -> None:
         """init_workspace in existing git repo → worktree created."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         # Set up a real git repo
         work_dir = tmp_path / "repo"
@@ -2873,7 +2873,7 @@ class TestGitCoord:
 
         await git_coord.init_workspace(run)
 
-        assert run.branch_name == "kirocrew/task/wt_test"
+        assert run.branch_name == "junction/task/wt_test"
         assert run.worktree_path != ""
         assert Path(run.worktree_path).exists()
         # work_dir should have been updated to the worktree
@@ -2885,7 +2885,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_commit_and_revert(self, tmp_path: Path) -> None:
         """commit_step creates commit, revert_step undoes it."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         work_dir = tmp_path / "repo"
         work_dir.mkdir()
@@ -2917,7 +2917,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_commit_no_changes(self, tmp_path: Path) -> None:
         """commit_step with no changes → empty string."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         work_dir = tmp_path / "repo"
         work_dir.mkdir()
@@ -2941,7 +2941,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_non_git_workspace_git_ops_are_noops(self, tmp_path: Path) -> None:
         """A non-git workspace runs in place; all git helpers are safe no-ops."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         work_dir = tmp_path / "plain"
         work_dir.mkdir()
@@ -2968,7 +2968,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_get_state_summary(self, tmp_path: Path) -> None:
         """get_state_summary returns git log + diff stat."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         work_dir = tmp_path / "repo"
         work_dir.mkdir()
@@ -2996,7 +2996,7 @@ class TestGitCoord:
     @pytest.mark.asyncio
     async def test_revert_no_commits(self, tmp_path: Path) -> None:
         """revert_step with no commits → no-op."""
-        from kiro_crew import git_coord
+        from junction import git_coord
 
         run = TaskRun(spec_path="/t.md", spec_content="s")
         run.work_dir = str(tmp_path)
@@ -3128,14 +3128,14 @@ class TestWorkspaceDirValidation:
             TaskRunner(sessions=_make_mock_sessions(), workspace_dir=str(link))
 
     def test_resolve_helper_blank_and_normal(self, tmp_path):
-        from kiro_crew.taskrunner import _resolve_workspace_dir
+        from junction.taskrunner import _resolve_workspace_dir
 
         assert _resolve_workspace_dir("") == ""
         assert _resolve_workspace_dir("   ") == ""
         assert _resolve_workspace_dir(str(tmp_path)) == str(Path(tmp_path).resolve())
 
     def test_resolve_helper_rejects_sensitive(self):
-        from kiro_crew.taskrunner import _resolve_workspace_dir
+        from junction.taskrunner import _resolve_workspace_dir
 
         with pytest.raises(ValueError, match="sensitive"):
             _resolve_workspace_dir("~/.aws")
@@ -3167,7 +3167,7 @@ class TestMaxParallelStepsClamp:
     def _cap(self, value):
         sessions = _make_mock_sessions()
         # Pin the computed host-safe ceiling to a known value (9).
-        with patch("kiro_crew.taskrunner.compute_max_subagents", return_value=9):
+        with patch("junction.taskrunner.compute_max_subagents", return_value=9):
             runner = TaskRunner(sessions=sessions, auto_test=False, max_parallel_steps=value)
         return runner._max_parallel_steps
 
@@ -3187,7 +3187,7 @@ class TestMaxParallelStepsClamp:
 
     def test_compute_failure_falls_back_to_legacy_default(self):
         sessions = _make_mock_sessions()
-        with patch("kiro_crew.taskrunner.compute_max_subagents", side_effect=RuntimeError("boom")):
+        with patch("junction.taskrunner.compute_max_subagents", side_effect=RuntimeError("boom")):
             runner = TaskRunner(sessions=sessions, auto_test=False, max_parallel_steps=0)
         # Falls back to _MAX_PARALLEL_TASKS (3) when the ceiling can't be computed.
         assert runner._max_parallel_steps == 3
@@ -3246,7 +3246,7 @@ class TestSemaphoreParallelScheduling:
         assertion would then hold even if the knob were ignored entirely, so
         without this the test proves nothing.
         """
-        monkeypatch.setattr("kiro_crew.taskrunner.compute_max_subagents", lambda _cfg: 64)
+        monkeypatch.setattr("junction.taskrunner.compute_max_subagents", lambda _cfg: 64)
         sessions = _make_mock_sessions()
         runner = TaskRunner(
             sessions=sessions, auto_test=False, work_dir=tmp_path, max_parallel_steps=3
@@ -3270,7 +3270,7 @@ class TestSemaphoreParallelScheduling:
         to isolate the knob. This one pins it BELOW the knob to prove the OOM
         guard still wins — the property those tests deliberately stop covering.
         """
-        monkeypatch.setattr("kiro_crew.taskrunner.compute_max_subagents", lambda _cfg: 2)
+        monkeypatch.setattr("junction.taskrunner.compute_max_subagents", lambda _cfg: 2)
         runner = TaskRunner(
             sessions=_make_mock_sessions(),
             auto_test=False,
@@ -3292,7 +3292,7 @@ class TestSemaphoreParallelScheduling:
         ceiling's own authority is covered by
         ``test_host_ceiling_still_caps_the_knob``.
         """
-        monkeypatch.setattr("kiro_crew.taskrunner.compute_max_subagents", lambda _cfg: 64)
+        monkeypatch.setattr("junction.taskrunner.compute_max_subagents", lambda _cfg: 64)
         sessions = _make_mock_sessions()
         runner = TaskRunner(
             sessions=sessions, auto_test=False, work_dir=tmp_path, max_parallel_steps=6
@@ -3414,10 +3414,10 @@ class TestNotifySessionKey:
         async def _sink(title: str, body: str, task_id: str = "", *, session_key: str = "") -> None:
             seen.append((title, session_key))
 
-        runner, run = await self._start(tmp_path, _sink, "telegram:kirocrew:direct:U9")
+        runner, run = await self._start(tmp_path, _sink, "telegram:junction:direct:U9")
         await runner._notify("Task 1 requires approval", "run the deploy?", run=run)
 
-        assert seen == [("[spec] Task 1 requires approval", "telegram:kirocrew:direct:U9")]
+        assert seen == [("[spec] Task 1 requires approval", "telegram:junction:direct:U9")]
 
     @pytest.mark.asyncio
     async def test_omitted_session_key_leaves_the_call_shape_untouched(
@@ -3456,7 +3456,7 @@ class TestNotifySessionKey:
         async def _legacy(title: str, body: str, task_id: str = "") -> None:
             seen.append(title)
 
-        runner, run = await self._start(tmp_path, _legacy, "telegram:kirocrew:direct:U9")
+        runner, run = await self._start(tmp_path, _legacy, "telegram:junction:direct:U9")
         await runner._notify("Task 1 requires approval", "run the deploy?", run=run)
 
         assert seen == ["[spec] Task 1 requires approval"]
@@ -3465,7 +3465,7 @@ class TestNotifySessionKey:
     async def test_delete_forgets_the_originating_key(self, tmp_path: Path) -> None:
         """The mapping is per-run bookkeeping, so deleting a run releases it."""
         runner, run = await self._start(
-            tmp_path, AsyncMock(), "telegram:kirocrew:direct:U9"
+            tmp_path, AsyncMock(), "telegram:junction:direct:U9"
         )
         assert runner._run_session_keys.get(run.task_id)
 

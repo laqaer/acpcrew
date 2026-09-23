@@ -1,12 +1,12 @@
-"""Tests for the Composed Platform Providers contract (kiro_crew.platform)."""
+"""Tests for the Composed Platform Providers contract (junction.platform)."""
 
 from __future__ import annotations
 
 import pytest
 
-from kiro_crew import security
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.platform import (
+from junction import security
+from junction.config.loader import JunctionConfig
+from junction.platform import (
     BASELINE_DENY,
     CONTRACT_VERSION,
     PROFILE_ENTERPRISE,
@@ -18,29 +18,29 @@ from kiro_crew.platform import (
     build_default_context,
     resolve_profile,
 )
-from kiro_crew.platform.context import PlatformContext
+from junction.platform.context import PlatformContext
 
 
 @pytest.fixture
-def cfg() -> KiroCrewConfig:
-    return KiroCrewConfig()
+def cfg() -> JunctionConfig:
+    return JunctionConfig()
 
 
 class TestDefaultContext:
     """The standalone edition composes an all-defaults context unchanged."""
 
-    def test_build_default_context_is_standalone(self, cfg: KiroCrewConfig) -> None:
+    def test_build_default_context_is_standalone(self, cfg: JunctionConfig) -> None:
         ctx = build_default_context(cfg)
         assert isinstance(ctx, PlatformContext)
         assert ctx.profile == PROFILE_STANDALONE
         assert ctx.contract_version == CONTRACT_VERSION
         assert ctx.cfg is cfg
 
-    def test_default_adapters_match_legacy_behavior(self, cfg: KiroCrewConfig) -> None:
+    def test_default_adapters_match_legacy_behavior(self, cfg: JunctionConfig) -> None:
         ctx = build_default_context(cfg)
         # Each Default* adapter reproduces today's module-level value.
-        from kiro_crew import agent, embeddings, sandbox
-        from kiro_crew.apps import registry
+        from junction import agent, embeddings, sandbox
+        from junction.apps import registry
 
         assert ctx.embeddings.registry_model() == embeddings._MODEL_ID
         assert ctx.sandbox.strict_dirs() == list(sandbox._STRICT_DIRS)
@@ -52,12 +52,12 @@ class TestDefaultContext:
         assert ctx.telemetry.frontend_rum_config() is None
         assert ctx.feature_apps == ()
 
-    def test_default_security_is_baseline_only(self, cfg: KiroCrewConfig) -> None:
+    def test_default_security_is_baseline_only(self, cfg: JunctionConfig) -> None:
         ctx = build_default_context(cfg)
         assert isinstance(ctx.security, PolicyAuthority)
         assert set(ctx.security.effective_patterns()) == set(BASELINE_DENY)
 
-    def test_default_credential_redaction_delegates(self, cfg: KiroCrewConfig) -> None:
+    def test_default_credential_redaction_delegates(self, cfg: JunctionConfig) -> None:
         ctx = build_default_context(cfg)
         text = "key AKIAIOSFODNN7EXAMPLE here"
         assert ctx.credentials.redact(text) == security.redact(text)
@@ -130,73 +130,73 @@ class TestPolicyAuthorityAddOnly:
 
 
 class TestProfileResolution:
-    def test_env_override_standalone(self, cfg: KiroCrewConfig, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_PROFILE", "standalone")
+    def test_env_override_standalone(self, cfg: JunctionConfig, monkeypatch) -> None:
+        monkeypatch.setenv("JUNCTION_PROFILE", "standalone")
         assert resolve_profile(cfg, entry_points=[object()]) == PROFILE_STANDALONE
 
-    def test_env_override_enterprise(self, cfg: KiroCrewConfig, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_PROFILE", "enterprise")
+    def test_env_override_enterprise(self, cfg: JunctionConfig, monkeypatch) -> None:
+        monkeypatch.setenv("JUNCTION_PROFILE", "enterprise")
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_ENTERPRISE
 
-    def test_env_override_legacy_alias(self, cfg: KiroCrewConfig, monkeypatch) -> None:
+    def test_env_override_legacy_alias(self, cfg: JunctionConfig, monkeypatch) -> None:
         # A legacy edition value still resolves to the enterprise profile
         # (back-compat alias) rather than falling back to standalone.
-        monkeypatch.setenv("KIROCREW_PROFILE", "amazon")
+        monkeypatch.setenv("JUNCTION_PROFILE", "amazon")
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_ENTERPRISE
 
-    def test_unknown_env_falls_back_to_standalone(self, cfg: KiroCrewConfig, monkeypatch) -> None:
-        # An unknown KIROCREW_PROFILE value returns standalone immediately,
+    def test_unknown_env_falls_back_to_standalone(self, cfg: JunctionConfig, monkeypatch) -> None:
+        # An unknown JUNCTION_PROFILE value returns standalone immediately,
         # before any identity/entry-point signal is consulted.
-        monkeypatch.setenv("KIROCREW_PROFILE", "bogus")
+        monkeypatch.setenv("JUNCTION_PROFILE", "bogus")
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_STANDALONE
 
     def test_entry_points_take_precedence_over_marker(
-        self, cfg: KiroCrewConfig, monkeypatch
+        self, cfg: JunctionConfig, monkeypatch
     ) -> None:
         # A present companion (entry points) is the authoritative signal and is
         # checked BEFORE the SSO-marker stat — no subprocess is spawned.
-        monkeypatch.delenv("KIROCREW_PROFILE", raising=False)
+        monkeypatch.delenv("JUNCTION_PROFILE", raising=False)
         assert resolve_profile(cfg, entry_points=[object()]) == PROFILE_ENTERPRISE
 
     def test_marker_stat_ignored_without_probe_optin(
-        self, cfg: KiroCrewConfig, monkeypatch
+        self, cfg: JunctionConfig, monkeypatch
     ) -> None:
         # A stray SSO marker must NOT force the enterprise profile by default:
         # the public edition has no companion to compose, so forcing enterprise
         # would brick every command at boot. The heuristic is opt-in only.
-        monkeypatch.delenv("KIROCREW_PROFILE", raising=False)
-        monkeypatch.delenv("KIROCREW_SSO_PROFILE_PROBE", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.profile.Path.home", lambda: _FakeHome(True))
+        monkeypatch.delenv("JUNCTION_PROFILE", raising=False)
+        monkeypatch.delenv("JUNCTION_SSO_PROFILE_PROBE", raising=False)
+        monkeypatch.setattr("junction.platform.profile.Path.home", lambda: _FakeHome(True))
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_STANDALONE
 
     def test_marker_stat_triggers_enterprise_when_probe_opted_in(
-        self, cfg: KiroCrewConfig, monkeypatch
+        self, cfg: JunctionConfig, monkeypatch
     ) -> None:
         # With the opt-in set (a companion's managed launcher), a marker-present
         # host with no companion resolves enterprise so discovery fails closed
         # (rather than running open defaults).
-        monkeypatch.delenv("KIROCREW_PROFILE", raising=False)
-        monkeypatch.setenv("KIROCREW_SSO_PROFILE_PROBE", "1")
-        monkeypatch.setattr("kiro_crew.platform.profile.Path.home", lambda: _FakeHome(True))
+        monkeypatch.delenv("JUNCTION_PROFILE", raising=False)
+        monkeypatch.setenv("JUNCTION_SSO_PROFILE_PROBE", "1")
+        monkeypatch.setattr("junction.platform.profile.Path.home", lambda: _FakeHome(True))
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_ENTERPRISE
 
     def test_legacy_probe_env_still_triggers_enterprise(
-        self, cfg: KiroCrewConfig, monkeypatch
+        self, cfg: JunctionConfig, monkeypatch
     ) -> None:
         # An already-deployed managed launcher still sets the LEGACY probe env
         # var. It must keep triggering the fail-closed marker check — dropping it
         # would let a marker-present enterprise host with a missing/broken
         # companion resolve standalone and boot WITHOUT the security overlay.
-        monkeypatch.delenv("KIROCREW_PROFILE", raising=False)
-        monkeypatch.delenv("KIROCREW_SSO_PROFILE_PROBE", raising=False)
-        monkeypatch.setenv("KIROCREW_MIDWAY_PROFILE_PROBE", "1")
-        monkeypatch.setattr("kiro_crew.platform.profile.Path.home", lambda: _FakeHome(True))
+        monkeypatch.delenv("JUNCTION_PROFILE", raising=False)
+        monkeypatch.delenv("JUNCTION_SSO_PROFILE_PROBE", raising=False)
+        monkeypatch.setenv("JUNCTION_MIDWAY_PROFILE_PROBE", "1")
+        monkeypatch.setattr("junction.platform.profile.Path.home", lambda: _FakeHome(True))
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_ENTERPRISE
 
-    def test_no_signals_is_standalone(self, cfg: KiroCrewConfig, monkeypatch) -> None:
-        monkeypatch.delenv("KIROCREW_PROFILE", raising=False)
-        monkeypatch.setenv("KIROCREW_SSO_PROFILE_PROBE", "1")
-        monkeypatch.setattr("kiro_crew.platform.profile.Path.home", lambda: _FakeHome(False))
+    def test_no_signals_is_standalone(self, cfg: JunctionConfig, monkeypatch) -> None:
+        monkeypatch.delenv("JUNCTION_PROFILE", raising=False)
+        monkeypatch.setenv("JUNCTION_SSO_PROFILE_PROBE", "1")
+        monkeypatch.setattr("junction.platform.profile.Path.home", lambda: _FakeHome(False))
         assert resolve_profile(cfg, entry_points=[]) == PROFILE_STANDALONE
 
 
@@ -217,49 +217,49 @@ class _FakeHome:
 
 
 class TestBootstrapAndDiscovery:
-    def test_bootstrap_standalone(self, cfg: KiroCrewConfig, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_PROFILE", "standalone")
+    def test_bootstrap_standalone(self, cfg: JunctionConfig, monkeypatch) -> None:
+        monkeypatch.setenv("JUNCTION_PROFILE", "standalone")
         ctx = bootstrap_context(cfg)
         assert ctx.profile == PROFILE_STANDALONE
         # current_context() now returns this context.
-        from kiro_crew.platform import current_context
+        from junction.platform import current_context
 
         assert current_context() is ctx
 
     def test_bootstrap_enterprise_without_companion_fails_closed(
-        self, cfg: KiroCrewConfig, monkeypatch
+        self, cfg: JunctionConfig, monkeypatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_PROFILE", "enterprise")
+        monkeypatch.setenv("JUNCTION_PROFILE", "enterprise")
         # No companion entry point installed → must raise (fail-closed).
-        monkeypatch.setattr("kiro_crew.platform.bootstrap.plugin_entry_points", lambda: [])
-        monkeypatch.setattr("kiro_crew.platform.discovery.plugin_entry_points", lambda: [])
+        monkeypatch.setattr("junction.platform.bootstrap.plugin_entry_points", lambda: [])
+        monkeypatch.setattr("junction.platform.discovery.plugin_entry_points", lambda: [])
         with pytest.raises(PlatformCompositionError):
             bootstrap_context(cfg)
 
-    def test_contract_version_mismatch_rejected(self, cfg: KiroCrewConfig, monkeypatch) -> None:
+    def test_contract_version_mismatch_rejected(self, cfg: JunctionConfig, monkeypatch) -> None:
         import dataclasses
 
-        from kiro_crew.platform import bootstrap as bootstrap_mod
+        from junction.platform import bootstrap as bootstrap_mod
 
         bad = dataclasses.replace(
             build_default_context(cfg, profile=PROFILE_ENTERPRISE),
             contract_version=CONTRACT_VERSION + 99,
         )
-        monkeypatch.setenv("KIROCREW_PROFILE", "enterprise")
+        monkeypatch.setenv("JUNCTION_PROFILE", "enterprise")
         monkeypatch.setattr(bootstrap_mod, "plugin_entry_points", lambda: [object()])
         monkeypatch.setattr(bootstrap_mod, "discover_companion_context", lambda profile, cfg: bad)
         with pytest.raises(PlatformCompositionError):
             bootstrap_context(cfg)
 
     def test_none_companion_on_enterprise_fails_closed(
-        self, cfg: KiroCrewConfig, monkeypatch
+        self, cfg: JunctionConfig, monkeypatch
     ) -> None:
         # Defense in depth: if discovery ever returns None for a non-standalone
         # profile, bootstrap must STILL refuse to boot rather than install an
         # enterprise-labeled context with open defaults.
-        from kiro_crew.platform import bootstrap as bootstrap_mod
+        from junction.platform import bootstrap as bootstrap_mod
 
-        monkeypatch.setenv("KIROCREW_PROFILE", "enterprise")
+        monkeypatch.setenv("JUNCTION_PROFILE", "enterprise")
         monkeypatch.setattr(bootstrap_mod, "plugin_entry_points", lambda: [object()])
         monkeypatch.setattr(bootstrap_mod, "discover_companion_context", lambda profile, cfg: None)
         with pytest.raises(PlatformCompositionError):

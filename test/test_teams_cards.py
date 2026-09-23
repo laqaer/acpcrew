@@ -15,10 +15,10 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.messaging.renderer import new_approval_nonce
-from kiro_crew.safety_override import safety_override
-from kiro_crew.teams.approvals import TeamsApprovalDecider
-from kiro_crew.teams.cards import (
+from junction.messaging.renderer import new_approval_nonce
+from junction.safety_override import safety_override
+from junction.teams.approvals import TeamsApprovalDecider
+from junction.teams.cards import (
     DECISION_APPROVE,
     DECISION_DENY,
     DECISION_TRUST,
@@ -29,8 +29,8 @@ from kiro_crew.teams.cards import (
     parse_submit,
     resolved_card,
 )
-from kiro_crew.teams.client import TeamsInbound
-from kiro_crew.teams.transport_dispatch import TeamsDispatcher
+from junction.teams.client import TeamsInbound
+from junction.teams.transport_dispatch import TeamsDispatcher
 
 _SVC = "https://smba.trafficmanager.net/teams"
 _EMAIL = "me@example.com"
@@ -156,7 +156,7 @@ class TestDeciderFailsClosed:
 
     @pytest.mark.asyncio
     async def test_a_timeout_denies(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
+        monkeypatch.setattr("junction.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
         decider = TeamsApprovalDecider(session_key="teams:s1")
         decider.arm("7", "n1")
 
@@ -190,7 +190,7 @@ class TestDeciderFailsClosed:
     @pytest.mark.asyncio
     async def test_an_expired_prompt_notifies_so_its_card_can_be_settled(self, monkeypatch) -> None:
         """Otherwise the buttons keep looking live in the chat forever."""
-        monkeypatch.setattr("kiro_crew.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
+        monkeypatch.setattr("junction.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
         settled: list[str] = []
 
         async def _on_expired(rid: str) -> None:
@@ -205,7 +205,7 @@ class TestDeciderFailsClosed:
 
     @pytest.mark.asyncio
     async def test_a_failing_settle_hook_does_not_break_the_decision(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
+        monkeypatch.setattr("junction.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
 
         async def _boom(rid: str) -> None:
             raise RuntimeError("edit failed")
@@ -237,7 +237,7 @@ class TestDeciderFailsClosed:
     @pytest.mark.asyncio
     async def test_the_nonce_is_retired_with_the_prompt(self, monkeypatch) -> None:
         """A closed window must not reopen if the request id is reused."""
-        monkeypatch.setattr("kiro_crew.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
+        monkeypatch.setattr("junction.teams.approvals.APPROVAL_TIMEOUT_SECS", 0.01)
         decider = TeamsApprovalDecider(session_key="teams:s1")
         decider.arm("7", "n1")
         await decider(SimpleNamespace(request_id="7"))
@@ -283,7 +283,7 @@ class TestNoChannelLocalGrantStore:
     """
 
     def test_the_module_exposes_no_trust_store(self) -> None:
-        from kiro_crew.teams import approvals
+        from junction.teams import approvals
 
         gone = [
             name
@@ -430,7 +430,7 @@ def _dispatcher(client) -> TeamsDispatcher:
             messaging=SimpleNamespace(
                 queue_mode="steer", dm_scope="per_user", idle_reset_minutes=0, daily_reset_hour=-1
             ),
-            agent=SimpleNamespace(default_agent="kirocrew", approval_mode="interactive"),
+            agent=SimpleNamespace(default_agent="junction", approval_mode="interactive"),
             teams=SimpleNamespace(soft_threshold_pct=80, hard_threshold_pct=95),
         ),
     )
@@ -494,8 +494,8 @@ class TestCardActionRouting:
         task = asyncio.ensure_future(decider(SimpleNamespace(request_id="7")))
         await asyncio.sleep(0)
         # Register a renderer so the answered card can be replaced.
-        from kiro_crew.teams.renderer import TeamsRenderer
-        from kiro_crew.teams.transport import TEAMS_CAPABILITIES
+        from junction.teams.renderer import TeamsRenderer
+        from junction.teams.transport import TEAMS_CAPABILITIES
 
         renderer = TeamsRenderer(
             client, "CONV", _SVC, TEAMS_CAPABILITIES, session_key=session_key, decider=decider
@@ -542,7 +542,7 @@ class TestCardActionRouting:
         prompting for the rest of the turn while the settled card already said
         auto-approve was armed.
         """
-        from kiro_crew.messaging import dispatch as D
+        from junction.messaging import dispatch as D
 
         captured: list[Any] = []
 
@@ -603,8 +603,8 @@ class TestCardActionRouting:
         is the same tap away from process-wide auto-approve. A chip is turn content,
         exactly like a drained queue payload.
         """
-        from kiro_crew.teams.renderer import TeamsRenderer
-        from kiro_crew.teams.transport import TEAMS_CAPABILITIES
+        from junction.teams.renderer import TeamsRenderer
+        from junction.teams.transport import TEAMS_CAPABILITIES
 
         client = _Client()
         d = _dispatcher(client)
@@ -639,8 +639,8 @@ class TestCardActionRouting:
     @pytest.mark.asyncio
     async def test_an_option_label_comes_from_this_process_not_the_payload(self) -> None:
         """A forged label must not be injected as if the user had typed it."""
-        from kiro_crew.teams.renderer import TeamsRenderer
-        from kiro_crew.teams.transport import TEAMS_CAPABILITIES
+        from junction.teams.renderer import TeamsRenderer
+        from junction.teams.transport import TEAMS_CAPABILITIES
 
         client = _Client()
         renderer = TeamsRenderer(client, "CONV", _SVC, TEAMS_CAPABILITIES)
@@ -670,8 +670,8 @@ class TestTheProductionEntrypoint:
         async def _no_turn(turn, **kw):
             raise AssertionError("a card click must never start a turn")
 
-        monkeypatch.setattr("kiro_crew.teams.transport_dispatch.inbound_permitted", _permitted)
-        monkeypatch.setattr("kiro_crew.teams.transport_dispatch.drive_turn", _no_turn)
+        monkeypatch.setattr("junction.teams.transport_dispatch.inbound_permitted", _permitted)
+        monkeypatch.setattr("junction.teams.transport_dispatch.drive_turn", _no_turn)
 
         client = _Client()
         d = _dispatcher(client)
@@ -695,7 +695,7 @@ class TestTheProductionEntrypoint:
         async def _denied(_channel_type):
             return False
 
-        monkeypatch.setattr("kiro_crew.teams.transport_dispatch.inbound_permitted", _denied)
+        monkeypatch.setattr("junction.teams.transport_dispatch.inbound_permitted", _denied)
 
         client = _Client()
         d = _dispatcher(client)

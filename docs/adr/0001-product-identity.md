@@ -58,7 +58,7 @@ Hearth was the runner-up (home/memory) and lost because it is silent on routing.
 
 - User-facing overlay this cut: README, `site/`, CLI, dashboard
   `DEFAULT_PRODUCT_NAME` / `bot_name`, brand gate.
-- Brand gate still forbids concatenated `KiroCrew` in newly added prose.
+- Brand gate still forbids concatenated `Junction` in newly added prose.
   Junction is accepted. Do not require a whole-tree rename of identifiers.
 - Hardcoded catalog descriptions stay a follow-up issue.
 - Chartroom remains an internal nod only, not a public name.

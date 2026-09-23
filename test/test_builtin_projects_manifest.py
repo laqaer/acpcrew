@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-import kiro_crew.apps.manager as mgr
-from kiro_crew.apps.discovery import _get_builtins_dir, discover_builtin_apps
-from kiro_crew.apps.manager import _validate_builtin_app
+import junction.apps.manager as mgr
+from junction.apps.discovery import _get_builtins_dir, discover_builtin_apps
+from junction.apps.manager import _validate_builtin_app
 
 APP_NAME = "projects"
 
@@ -67,7 +67,7 @@ def test_keeps_its_identity_and_sidebar_entry(discovered: dict) -> None:
     """
     assert discovered["displayName"] == "Task Runner"
     assert discovered["version"] == "1.0.0"
-    assert discovered["author"] == "kirocrew"
+    assert discovered["author"] == "junction"
     assert discovered["ui"]["pages"] == [
         {"route": "/projects", "label": "Task Runner", "icon": "ClipboardCheck"}
     ]

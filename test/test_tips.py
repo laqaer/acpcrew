@@ -1,4 +1,4 @@
-"""Unit tests for kiro_crew.tips module."""
+"""Unit tests for junction.tips module."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from kiro_crew.tips import (
+from junction.tips import (
     CatalogEntry,
     TipsState,
     _fallback_tips,
@@ -27,7 +27,7 @@ from kiro_crew.tips import (
     _select_tip,
     _validate_tip_fields,
 )
-from kiro_crew.tips_text import SUMMARY_MAX_CHARS, truncate_summary
+from junction.tips_text import SUMMARY_MAX_CHARS, truncate_summary
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -292,7 +292,7 @@ class TestShownDocsSurvivesRegeneration:
         assert "id-0" not in st.shown_docs
 
     def test_shown_docs_roundtrips_and_sanitizes(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState(shown_docs={"a": "x.md"})
             _save_state(st)
             loaded = _load_state()
@@ -321,7 +321,7 @@ class TestSnoozedDocsSurvivesIdDrift:
         assert _is_eligible(fresh, st, now=time.time(), snooze_hours=48.0)
 
     def test_snoozed_docs_roundtrips_and_sanitizes(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState(snoozed_docs={"a.md": 123.0})
             _save_state(st)
             loaded = _load_state()
@@ -555,7 +555,7 @@ class TestSelection:
 
 class TestState:
     def test_save_and_load_roundtrip(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState(
                 shown={"t1": 3, "t2": 1},
                 dismissed=["t3"],
@@ -579,14 +579,14 @@ class TestState:
             assert loaded.offered["id"] == "t1"
 
     def test_save_and_load_offered_none(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState()
             _save_state(st)
             loaded = _load_state()
             assert loaded.offered is None
 
     def test_load_missing_file_returns_defaults(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = _load_state()
             assert st.shown == {}
             assert st.dismissed == []
@@ -598,7 +598,7 @@ class TestState:
             assert st.offered is None
 
     def test_load_corrupted_file_returns_defaults(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             state_file = tmp_path / "tips_state.json"
             state_file.write_text("not valid json!!!")
             st = _load_state()
@@ -610,7 +610,7 @@ class TestOfferedPersistence:
     """Finding 5: offered tip re-served across repeated GETs, cleared on feedback."""
 
     def test_offered_persists_across_save_load(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             offered_tip = {
                 "id": "x",
                 "feature": "F",
@@ -628,7 +628,7 @@ class TestOfferedPersistence:
 
     def test_feedback_ack_clears_offered(self, tmp_path: Path) -> None:
         """Simulates what the feedback handler does on ack."""
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState(
                 offered={"id": "x", "feature": "F", "title": "T", "body": "B", "why": "", "doc": "", "cta_prompt": ""},
             )
@@ -661,7 +661,7 @@ class TestShownAction:
     def test_shown_is_valid_action(self) -> None:
         import inspect
 
-        from kiro_crew import tips as tips_mod
+        from junction import tips as tips_mod
 
         src = inspect.getsource(tips_mod.api_tips_feedback)
         assert '"shown"' in src  # accepted by the handler's valid_actions
@@ -670,7 +670,7 @@ class TestShownAction:
         self, tmp_path: Path
     ) -> None:
         """Simulates the handler's shown branch."""
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState(
                 offered={"id": "x", "feature": "F", "title": "T", "body": "B", "why": "", "doc": "", "cta_prompt": ""},
             )
@@ -705,33 +705,33 @@ class TestCatalogAllowlist:
     }
 
     def test_bundled_catalog_only_contains_allowlisted_docs(self) -> None:
-        from kiro_crew.tips import _BUNDLED_CATALOG_FILE
-        from kiro_crew.tips_allowlist import TIP_DOC_ALLOWLIST
+        from junction.tips import _BUNDLED_CATALOG_FILE
+        from junction.tips_allowlist import TIP_DOC_ALLOWLIST
 
         data = json.loads(_BUNDLED_CATALOG_FILE.read_text(encoding="utf-8"))
         docs = {e["doc"] for e in data["entries"]}
         assert docs <= TIP_DOC_ALLOWLIST, f"non-allowlisted docs in catalog: {docs - TIP_DOC_ALLOWLIST}"
 
     def test_internal_docs_not_in_allowlist(self) -> None:
-        from kiro_crew.tips_allowlist import TIP_DOC_ALLOWLIST
+        from junction.tips_allowlist import TIP_DOC_ALLOWLIST
 
         assert not (self._INTERNAL_DOCS & TIP_DOC_ALLOWLIST)
 
     def test_allowlisted_docs_exist(self) -> None:
         """Catch allowlist drift: every listed doc must exist in the docs dir."""
-        from kiro_crew.tips_allowlist import TIP_DOC_ALLOWLIST
+        from junction.tips_allowlist import TIP_DOC_ALLOWLIST
 
-        docs_dir = _REPO_ROOT / "src/kiro_crew/docs"
+        docs_dir = _REPO_ROOT / "src/junction/docs"
         if not docs_dir.is_dir():  # running from an installed package
-            import kiro_crew
+            import junction
 
-            docs_dir = Path(kiro_crew.__file__).parent / "docs"
+            docs_dir = Path(junction.__file__).parent / "docs"
         missing = {d for d in TIP_DOC_ALLOWLIST if not (docs_dir / d).is_file()}
         assert not missing, f"allowlisted docs missing on disk: {missing}"
 
     def test_runtime_scan_respects_allowlist(self) -> None:
-        from kiro_crew.tips import _scan_docs_catalog
-        from kiro_crew.tips_allowlist import TIP_DOC_ALLOWLIST
+        from junction.tips import _scan_docs_catalog
+        from junction.tips_allowlist import TIP_DOC_ALLOWLIST
 
         entries = _scan_docs_catalog()
         assert entries, "runtime scan returned nothing"
@@ -742,14 +742,14 @@ class TestStateFilePermissions:
     """Codex round-11 (HIGH): personalized tips state must be owner-only."""
 
     def test_state_file_written_mode_600(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             _save_state(TipsState(tips=[{"id": "x", "why": "references user projects"}]))
             st_file = tmp_path / "tips_state.json"
             assert st_file.is_file()
             assert (st_file.stat().st_mode & 0o777) == 0o600
 
     def test_existing_world_readable_file_corrected_on_rewrite(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st_file = tmp_path / "tips_state.json"
             st_file.write_text("{}")
             st_file.chmod(0o644)
@@ -767,7 +767,7 @@ class TestStateFilePermissions:
         time — zero means no payload byte existed yet. A post-write stat passes
         on the buggy ordering too, so it would not be a regression test.
         """
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         sizes: list[int] = []
         real_restrict = platform_compat.restrict_to_owner
@@ -777,7 +777,7 @@ class TestStateFilePermissions:
             return real_restrict(target)
 
         monkeypatch.setattr(platform_compat, "restrict_to_owner", _measuring_restrict)
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             _save_state(TipsState(tips=[{"id": "x", "why": "references user projects"}]))
 
         assert sizes, "premise: the lockdown ran at all"
@@ -789,13 +789,13 @@ class TestStateFilePermissions:
         """``restrict_on_error="warn"`` keeps this site's established policy: a
         lockdown failure must not break tips persistence, but it must be
         visible (the helper logs it)."""
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         def _refuse(_target):
             raise OSError("read-only ACL store")
 
         monkeypatch.setattr(platform_compat, "restrict_to_owner", _refuse)
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             _save_state(TipsState(dismissed_docs=["a.md"]))
             st_file = tmp_path / "tips_state.json"
             assert st_file.is_file(), "warn policy must keep the write"
@@ -810,7 +810,7 @@ class TestTipFieldAllowlist:
     """
 
     def test_extra_fields_stripped_at_parse(self) -> None:
-        from kiro_crew.tips import _TIP_ALLOWED_FIELDS, _parse_tips
+        from junction.tips import _TIP_ALLOWED_FIELDS, _parse_tips
 
         raw = json.dumps([
             {
@@ -827,7 +827,7 @@ class TestTipFieldAllowlist:
         assert "AKIA" not in json.dumps(tips[0])
 
     def test_all_values_in_parsed_tip_are_strings(self) -> None:
-        from kiro_crew.tips import _parse_tips
+        from junction.tips import _parse_tips
 
         raw = json.dumps([
             {"id": "t1", "feature": "F", "title": "T", "body": "B",
@@ -841,13 +841,13 @@ class TestStateStructuralValidation:
     """Codex round-12: malformed-but-valid-JSON state must degrade to defaults."""
 
     def test_non_dict_root_returns_defaults(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text("[]")
             st = _load_state()
             assert st.shown == {} and st.opted_out is False
 
     def test_mistyped_fields_fall_back_per_field(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(json.dumps({
                 "shown": "not-a-dict",
                 "dismissed": {"not": "a-list"},
@@ -870,12 +870,12 @@ class TestStateStructuralValidation:
         """Codex round-18: persisted tips/offered must pass the SAME field
         validation as generated tips — {"id": []} in the state file would
         otherwise crash _is_eligible with a 500 on every request."""
-        from kiro_crew.tips import _TIP_ALLOWED_FIELDS
+        from junction.tips import _TIP_ALLOWED_FIELDS
         valid = {"id": "t1", "feature": "F", "title": "T", "body": "B",
                  "why": "W", "doc": "d.md", "cta_prompt": "C"}
         bad_id = {**valid, "id": []}
         extra_field = {**valid, "id": "t2", "metadata": {"x": 1}}
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(json.dumps({
                 "tips": [valid, bad_id, extra_field],
                 "offered": bad_id,
@@ -891,7 +891,7 @@ class TestStateStructuralValidation:
         persisted state file must never crash cache init (500 on every
         endpoint until manually repaired)."""
         huge = str(10 ** 400)
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(
                 '{"snoozed": {"x": ' + huge + '}, "last_generated": ' + huge
                 + ', "last_shown_ts": ' + huge + "}"
@@ -905,7 +905,7 @@ class TestStateStructuralValidation:
         """Codex round-15: container-type checks aren't enough — a string
         snooze timestamp or bool shown count must be dropped, not crash later
         arithmetic with a persistent 500."""
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(json.dumps({
                 "shown": {"good": 3, "bad": "many", "weird": True},
                 "snoozed": {"good": 1000.5, "bad": "yesterday", "inf": 1e999},
@@ -938,7 +938,7 @@ class TestDocLevelDismissal:
         assert _is_eligible(docless, st, now=time.time(), snooze_hours=48.0)
 
     def test_dismissed_docs_roundtrips_through_persistence(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             _save_state(TipsState(dismissed_docs=["a.md", "b.md"]))
             assert _load_state().dismissed_docs == ["a.md", "b.md"]
 
@@ -946,7 +946,7 @@ class TestDocLevelDismissal:
         """Codex round-17: 'shown' clears offered; a catalog-fallback tip is
         also absent from st.tips — the doc must still be resolvable via the
         catalog-derived id reverse-mapping used by the feedback handler."""
-        from kiro_crew.tips import CatalogEntry
+        from junction.tips import CatalogEntry
 
         catalog = [CatalogEntry("Cron", "S", "cron-and-scheduling.md", mtime=1.0)]
         tip_id = "cron-and-scheduling-tip"  # catalog-derived fallback id
@@ -986,7 +986,7 @@ class TestSingleOfferConcurrency:
 
         from aiohttp.test_utils import make_mocked_request
 
-        from kiro_crew.tips import TipsCache, api_tips_next
+        from junction.tips import TipsCache, api_tips_next
 
         def mk_tip(i: int) -> dict:  # type: ignore[type-arg]
             return {
@@ -994,7 +994,7 @@ class TestSingleOfferConcurrency:
                 "body": "B", "why": "W", "doc": "", "cta_prompt": "",
             }
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             cache = TipsCache()
             cache.state = TipsState(tips=[mk_tip(i) for i in range(5)])
             state = types.SimpleNamespace(_tips_cache=cache)
@@ -1009,8 +1009,8 @@ class TestSingleOfferConcurrency:
             async def noop_refresh(*a: object, **k: object) -> None:
                 return None
 
-            with mpatch("kiro_crew.tips.KiroCrewConfig") as mock_cfg_cls, \
-                    mpatch("kiro_crew.tips.maybe_refresh", noop_refresh):
+            with mpatch("junction.tips.JunctionConfig") as mock_cfg_cls, \
+                    mpatch("junction.tips.maybe_refresh", noop_refresh):
                 mock_cfg_cls.load.return_value = cfg
 
                 async def one_request() -> str:
@@ -1133,7 +1133,7 @@ class TestBundledCatalog:
 
     def test_load_bundled_catalog_exists(self) -> None:
         """The bundled catalog JSON should be loadable at test time."""
-        from kiro_crew.tips import _load_bundled_catalog
+        from junction.tips import _load_bundled_catalog
         result = _load_bundled_catalog()
         assert result is not None
         assert len(result) > 0
@@ -1144,8 +1144,8 @@ class TestBundledCatalog:
 
     def test_load_bundled_catalog_missing_file(self, tmp_path: Path) -> None:
         """When file doesn't exist, returns None (triggers fallback)."""
-        import kiro_crew.tips as tips_mod
-        from kiro_crew.tips import _load_bundled_catalog
+        import junction.tips as tips_mod
+        from junction.tips import _load_bundled_catalog
 
         original = tips_mod._BUNDLED_CATALOG_FILE
         try:
@@ -1157,8 +1157,8 @@ class TestBundledCatalog:
 
     def test_load_bundled_catalog_corrupt_json(self, tmp_path: Path) -> None:
         """When file is corrupt JSON, returns None (triggers fallback)."""
-        import kiro_crew.tips as tips_mod
-        from kiro_crew.tips import _load_bundled_catalog
+        import junction.tips as tips_mod
+        from junction.tips import _load_bundled_catalog
 
         corrupt_file = tmp_path / "tips_catalog.json"
         corrupt_file.write_text("not valid json!!!")
@@ -1173,8 +1173,8 @@ class TestBundledCatalog:
     def test_load_bundled_catalog_malformed_structures(self, tmp_path: Path) -> None:
         """Codex round-19: list root / non-numeric / huge mtime must degrade
         gracefully (fallback or mtime=0.0), never crash cache init."""
-        import kiro_crew.tips as tips_mod
-        from kiro_crew.tips import _load_bundled_catalog
+        import junction.tips as tips_mod
+        from junction.tips import _load_bundled_catalog
 
         original = tips_mod._BUNDLED_CATALOG_FILE
         cases = [
@@ -1198,8 +1198,8 @@ class TestBundledCatalog:
 
     def test_load_bundled_catalog_empty_entries(self, tmp_path: Path) -> None:
         """When entries array is empty, returns None."""
-        import kiro_crew.tips as tips_mod
-        from kiro_crew.tips import _load_bundled_catalog
+        import junction.tips as tips_mod
+        from junction.tips import _load_bundled_catalog
 
         empty_file = tmp_path / "tips_catalog.json"
         empty_file.write_text(json.dumps({"generated_at": "2026-01-01", "entries": []}))
@@ -1213,8 +1213,8 @@ class TestBundledCatalog:
 
     def test_load_bundled_catalog_with_mtime(self, tmp_path: Path) -> None:
         """Bundled entry with mtime field -> CatalogEntry.mtime populated."""
-        import kiro_crew.tips as tips_mod
-        from kiro_crew.tips import _load_bundled_catalog
+        import junction.tips as tips_mod
+        from junction.tips import _load_bundled_catalog
 
         catalog_file = tmp_path / "tips_catalog.json"
         catalog_file.write_text(json.dumps({
@@ -1237,8 +1237,8 @@ class TestBundledCatalog:
 
     def test_load_bundled_catalog_missing_mtime_defaults_zero(self, tmp_path: Path) -> None:
         """Bundled entry without mtime field -> CatalogEntry.mtime defaults to 0.0."""
-        import kiro_crew.tips as tips_mod
-        from kiro_crew.tips import _load_bundled_catalog
+        import junction.tips as tips_mod
+        from junction.tips import _load_bundled_catalog
 
         catalog_file = tmp_path / "tips_catalog.json"
         catalog_file.write_text(json.dumps({
@@ -1259,7 +1259,7 @@ class TestBundledCatalog:
 
     def test_bundled_catalog_json_contains_mtime(self) -> None:
         """The actual bundled tips_catalog.json in the repo has mtime values."""
-        from kiro_crew.tips import _BUNDLED_CATALOG_FILE
+        from junction.tips import _BUNDLED_CATALOG_FILE
 
         assert _BUNDLED_CATALOG_FILE.is_file()
         data = json.loads(_BUNDLED_CATALOG_FILE.read_text(encoding="utf-8"))
@@ -1282,7 +1282,7 @@ class TestExploreBlend:
         ]
         st = TipsState()
         # Generate catalog-based fallback tips
-        from kiro_crew.tips import _fallback_tips, _is_eligible
+        from junction.tips import _fallback_tips, _is_eligible
         all_catalog = [t for t in _fallback_tips(catalog, st) if _is_eligible(t, st, 999999.0, 48.0)]
         assert len(all_catalog) == 2
 
@@ -1309,43 +1309,43 @@ class TestConfigClamping:
     """Tests for tips_model and tips_explore_ratio config field handling."""
 
     def test_tips_model_default(self) -> None:
-        from kiro_crew.config.loader import DashboardConfig
+        from junction.config.loader import DashboardConfig
         cfg = DashboardConfig()
         assert cfg.tips_model == "auto"
 
     def test_tips_explore_ratio_default(self) -> None:
-        from kiro_crew.config.loader import DashboardConfig
+        from junction.config.loader import DashboardConfig
         cfg = DashboardConfig()
         assert cfg.tips_explore_ratio == 0.2
 
     def test_tips_explore_ratio_clamped_below(self) -> None:
-        from kiro_crew.config.loader import _safe_float
+        from junction.config.loader import _safe_float
 
         # Below 0 gets clamped to 0
         result = _safe_float(-0.5, 0.2, lo=0.0, hi=1.0)
         assert result == 0.0
 
     def test_tips_explore_ratio_clamped_above(self) -> None:
-        from kiro_crew.config.loader import _safe_float
+        from junction.config.loader import _safe_float
 
         # Above 1 gets clamped to 1
         result = _safe_float(1.5, 0.2, lo=0.0, hi=1.0)
         assert result == 1.0
 
     def test_tips_explore_ratio_invalid_uses_default(self) -> None:
-        from kiro_crew.config.loader import _safe_float
+        from junction.config.loader import _safe_float
         result = _safe_float("not a number", 0.2, lo=0.0, hi=1.0)
         assert result == 0.2
 
     def test_safe_float_nan_uses_default(self) -> None:
         """Codex round-5: NaN converts fine but bypasses clamping (NaN compares
         false against any bound) — must fall back to default."""
-        from kiro_crew.config.loader import _safe_float
+        from junction.config.loader import _safe_float
         assert _safe_float("NaN", 0.2, lo=0.0, hi=1.0) == 0.2
         assert _safe_float(float("nan"), 6.0, lo=0.0) == 6.0
 
     def test_safe_float_infinity_uses_default(self) -> None:
-        from kiro_crew.config.loader import _safe_float
+        from junction.config.loader import _safe_float
         assert _safe_float("Infinity", 0.2, lo=0.0, hi=1.0) == 0.2
         assert _safe_float("-Infinity", 0.6, lo=0.0, hi=1.0) == 0.6
         assert _safe_float(float("inf"), 48.0, lo=0.0) == 48.0
@@ -1353,16 +1353,16 @@ class TestConfigClamping:
     def test_safe_float_huge_int_uses_default(self) -> None:
         """Codex round-14 (HIGH): float(10**400) raises OverflowError — a
         config file with a huge JSON integer must not crash config load."""
-        from kiro_crew.config.loader import _safe_float
+        from junction.config.loader import _safe_float
         assert _safe_float(10 ** 400, 6.0, lo=0.0) == 6.0
         assert _safe_float(-(10 ** 400), 0.2, lo=0.0, hi=1.0) == 0.2
 
     def test_tips_model_from_config_data(self) -> None:
         """tips_model read as string from dashboard data."""
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         # Default config inherits the account's governed model via "auto"
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert isinstance(cfg.dashboard.tips_model, str)
         assert cfg.dashboard.tips_model == "auto"
 
@@ -1371,7 +1371,7 @@ class TestOptOutState:
     """UI opt-out: optout/optin actions persist opted_out; status payload shape."""
 
     def test_optout_persists_and_optin_reverses(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = _load_state()
             assert st.opted_out is False
             # Simulate the feedback handler's optout branch
@@ -1386,7 +1386,7 @@ class TestOptOutState:
             assert _load_state().opted_out is False
 
     def test_optout_clears_offered_tip(self, tmp_path: Path) -> None:
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = TipsState(
                 offered={"id": "x", "feature": "F", "title": "T", "body": "B", "why": "", "doc": "", "cta_prompt": ""},
             )
@@ -1400,7 +1400,7 @@ class TestOptOutState:
 
     def test_status_payload_shape(self, tmp_path: Path) -> None:
         """The status endpoint reports both flags as booleans."""
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = _load_state()
             payload = {"enabled_config": bool(True), "opted_out": bool(st.opted_out)}
             assert payload == {"enabled_config": True, "opted_out": False}
@@ -1420,7 +1420,7 @@ class TestOptOutState:
 
 
 class TestTruncateSummary:
-    """Sentence-safe truncation (kiro_crew.tips_text.truncate_summary)."""
+    """Sentence-safe truncation (junction.tips_text.truncate_summary)."""
 
     def test_short_text_unchanged(self) -> None:
         assert truncate_summary("A short summary.") == "A short summary."
@@ -1500,12 +1500,12 @@ class TestCuratedTips:
     """Curated, action-first tips are the primary user-facing pool."""
 
     def test_curated_tips_ship_and_validate(self) -> None:
-        from kiro_crew.tips import _TIP_ALLOWED_FIELDS, _load_curated_tips
+        from junction.tips import _TIP_ALLOWED_FIELDS, _load_curated_tips
         tips = _load_curated_tips()
         assert len(tips) >= 8
         ids = [t["id"] for t in tips]
         assert len(ids) == len(set(ids)), "curated tip ids must be unique"
-        # A few known KiroCrew-native features must be present.
+        # A few known Junction-native features must be present.
         for expected in ("split-view", "command-palette", "warm-pool"):
             assert expected in ids
         for t in tips:
@@ -1517,7 +1517,7 @@ class TestCuratedTips:
     def test_curated_tips_missing_file_returns_empty(self, tmp_path: Path) -> None:
         from unittest.mock import patch as mpatch
 
-        from kiro_crew import tips as tips_mod
+        from junction import tips as tips_mod
         missing = tmp_path / "nope.json"
         with mpatch.object(tips_mod, "_CURATED_FILE", missing):
             assert tips_mod._load_curated_tips() == []
@@ -1525,7 +1525,7 @@ class TestCuratedTips:
     def test_curated_tips_malformed_returns_empty(self, tmp_path: Path) -> None:
         from unittest.mock import patch as mpatch
 
-        from kiro_crew import tips as tips_mod
+        from junction import tips as tips_mod
         bad = tmp_path / "bad.json"
         bad.write_text("{ not json", encoding="utf-8")
         with mpatch.object(tips_mod, "_CURATED_FILE", bad):
@@ -1538,7 +1538,7 @@ class TestCuratedTips:
     def test_curated_tips_skip_invalid_entries(self, tmp_path: Path) -> None:
         from unittest.mock import patch as mpatch
 
-        from kiro_crew import tips as tips_mod
+        from junction import tips as tips_mod
         f = tmp_path / "c.json"
         good = {
             "id": "ok", "feature": "F", "title": "T", "body": "Do the thing.",
@@ -1559,7 +1559,7 @@ class TestCuratedTips:
 
         from aiohttp.test_utils import make_mocked_request
 
-        from kiro_crew.tips import TipsCache, api_tips_next
+        from junction.tips import TipsCache, api_tips_next
 
         curated = {
             "id": "split-view", "feature": "Split View",
@@ -1567,7 +1567,7 @@ class TestCuratedTips:
             "body": "Turn on Settings > Chat > Split View, then press Cmd+D.",
             "why": "", "doc": "", "cta_prompt": "",
         }
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             cache = TipsCache()
             cache.curated = [curated]
             cache.state = TipsState(tips=[])
@@ -1582,8 +1582,8 @@ class TestCuratedTips:
             async def noop_refresh(*a: object, **k: object) -> None:
                 return None
 
-            with mpatch("kiro_crew.tips.KiroCrewConfig") as mock_cfg_cls, \
-                    mpatch("kiro_crew.tips.maybe_refresh", noop_refresh):
+            with mpatch("junction.tips.JunctionConfig") as mock_cfg_cls, \
+                    mpatch("junction.tips.maybe_refresh", noop_refresh):
                 mock_cfg_cls.load.return_value = cfg
                 req = make_mocked_request("GET", "/api/tips/next")
                 req.app["state"] = state
@@ -1601,13 +1601,13 @@ class TestCuratedTips:
 
         from aiohttp.test_utils import make_mocked_request
 
-        from kiro_crew.tips import TipsCache, api_tips_next
+        from junction.tips import TipsCache, api_tips_next
 
         gen = {
             "id": "gen-1", "feature": "F", "title": "T", "body": "B",
             "why": "W", "doc": "", "cta_prompt": "",
         }
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             cache = TipsCache()  # curated defaults to []
             cache.state = TipsState(tips=[gen])
             state = types.SimpleNamespace(_tips_cache=cache)
@@ -1621,8 +1621,8 @@ class TestCuratedTips:
             async def noop_refresh(*a: object, **k: object) -> None:
                 return None
 
-            with mpatch("kiro_crew.tips.KiroCrewConfig") as mock_cfg_cls, \
-                    mpatch("kiro_crew.tips.maybe_refresh", noop_refresh):
+            with mpatch("junction.tips.JunctionConfig") as mock_cfg_cls, \
+                    mpatch("junction.tips.maybe_refresh", noop_refresh):
                 mock_cfg_cls.load.return_value = cfg
                 req = make_mocked_request("GET", "/api/tips/next")
                 req.app["state"] = state
@@ -1633,7 +1633,7 @@ class TestCuratedTips:
                 assert body["tip"]["id"] == "gen-1"
 
     def test_sanitize_tip_action_valid_and_invalid(self) -> None:
-        from kiro_crew.tips import _sanitize_tip_action
+        from junction.tips import _sanitize_tip_action
 
         # Valid internal route (with query + highlight) is projected as-is.
         ok = _sanitize_tip_action(
@@ -1660,7 +1660,7 @@ class TestCuratedTips:
         assert _sanitize_tip_action({"kind": "route", "label": "L", "route": 5}) is None
 
     def test_persisted_tip_attaches_valid_action_drops_invalid(self) -> None:
-        from kiro_crew.tips import _sanitize_persisted_tip
+        from junction.tips import _sanitize_persisted_tip
         base = {
             "id": "x", "feature": "F", "title": "T", "body": "B",
             "why": "", "doc": "", "cta_prompt": "",
@@ -1683,7 +1683,7 @@ class TestCuratedTips:
         assert "action" not in none
 
     def test_shipped_curated_actions_match_capable_features(self) -> None:
-        from kiro_crew.tips import _load_curated_tips, _sanitize_tip_action
+        from junction.tips import _load_curated_tips, _sanitize_tip_action
         tips = {t["id"]: t for t in _load_curated_tips()}
         # Features with a navigable destination carry a valid, internal route action.
         for tid in (
@@ -1710,8 +1710,8 @@ class TestCuratedTips:
         LLM-generated tips whose ids churn between regenerations; a curated tip
         has a hand-authored, permanent id and does not need it.
         """
-        from kiro_crew.tips import _load_curated_tips
-        from kiro_crew.tips_allowlist import TIP_DOC_ALLOWLIST
+        from junction.tips import _load_curated_tips
+        from junction.tips_allowlist import TIP_DOC_ALLOWLIST
 
         collisions = {
             t["id"]: t["doc"] for t in _load_curated_tips()
@@ -1737,7 +1737,7 @@ class TestCuratedTips:
         deleted control silently turns the button into a navigation that
         highlights nothing. Pin the two together.
         """
-        from kiro_crew.tips import _load_curated_tips
+        from junction.tips import _load_curated_tips
 
         registry_file = (
             Path(__file__).resolve().parents[1]
@@ -1794,7 +1794,7 @@ class TestCuratedTips:
 
         from aiohttp.test_utils import make_mocked_request
 
-        from kiro_crew.tips import TipsCache, api_tips_next
+        from junction.tips import TipsCache, api_tips_next
 
         curated = {
             "id": "split-view", "feature": "Split View", "title": "Two sessions",
@@ -1804,7 +1804,7 @@ class TestCuratedTips:
                 "route": "/settings?tab=chat&highlight=chat.split-view-session-grid",
             },
         }
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             cache = TipsCache()
             cache.curated = [curated]
             cache.state = TipsState(tips=[])
@@ -1819,8 +1819,8 @@ class TestCuratedTips:
             async def noop_refresh(*a: object, **k: object) -> None:
                 return None
 
-            with mpatch("kiro_crew.tips.KiroCrewConfig") as mock_cfg_cls, \
-                    mpatch("kiro_crew.tips.maybe_refresh", noop_refresh):
+            with mpatch("junction.tips.JunctionConfig") as mock_cfg_cls, \
+                    mpatch("junction.tips.maybe_refresh", noop_refresh):
                 mock_cfg_cls.load.return_value = cfg
                 req = make_mocked_request("GET", "/api/tips/next")
                 req.app["state"] = state
@@ -1854,11 +1854,11 @@ class TestDocLinkSplit:
         from aiohttp import streams
         from aiohttp.test_utils import make_mocked_request
 
-        from kiro_crew.tips import TipsCache, api_tips_feedback
+        from junction.tips import TipsCache, api_tips_feedback
 
         curated = {"id": "curated-a", "feature": "F", "title": "T", "body": "B",
                    "why": "", "doc": "", "doc_link": "skills.md", "cta_prompt": ""}
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             cache = TipsCache()
             cache.curated = [curated]
             cache.state = TipsState(offered=dict(curated))
@@ -1900,7 +1900,7 @@ class TestDocLinkSplit:
     def test_restored_curated_tips_carry_doc_link(self) -> None:
         """The tips whose learn-more link was lost when their colliding `doc`
         was split off get it back through doc_link."""
-        from kiro_crew.tips import _load_curated_tips
+        from junction.tips import _load_curated_tips
 
         tips = {t["id"]: t for t in _load_curated_tips()}
         expected = {
@@ -1941,7 +1941,7 @@ class TestDocLinkSplit:
         sanitizer defaults the missing field to ""."""
         legacy = {"id": "t1", "feature": "F", "title": "T", "body": "B",
                   "why": "W", "doc": "d.md", "cta_prompt": "C"}
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(
                 json.dumps({"tips": [legacy], "offered": legacy})
             )
@@ -1968,7 +1968,7 @@ class TestRelinkedStateMigration:
     _DOC = "dynamic-subagent-sizing.md"
 
     def _load(self, tmp_path: Path, data: dict) -> TipsState:  # type: ignore[type-arg]
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(json.dumps(data))
             return _load_state()
 
@@ -2002,7 +2002,7 @@ class TestRelinkedStateMigration:
         it must start with relink_migrated=True — otherwise its first
         curated+generated dismissal pair sharing a doc would be lifted on the
         next load, silently reverting a brand-new user's dismissal."""
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             st = _load_state()  # no file on disk
             assert st.relink_migrated is True
             # Simulate the user dismissing the curated tip AND a generated tip
@@ -2030,7 +2030,7 @@ class TestRelinkedStateMigration:
         through _save_state so the next load skips the repair entirely."""
         old_shape = {"id": self._TID, "feature": "F", "title": "T", "body": "B",
                      "why": "", "doc": self._DOC, "cta_prompt": ""}
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             (tmp_path / "tips_state.json").write_text(json.dumps({
                 "tips": [old_shape],
             }))

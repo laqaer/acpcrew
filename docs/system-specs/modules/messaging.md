@@ -2,9 +2,9 @@
 
 ## Overview
 
-`kiro_crew.messaging` is the channel-neutral transport abstraction used by the shipped Slack, Discord, Telegram, Webex, WeCom, Microsoft Teams, Weixin, iMessage, WhatsApp, and Feishu integrations; its conservative contract also leaves room for a further channel. It avoids re-implementing streaming, tool approval, session identity, or rendering for each integration. It holds the channel-neutral core of the Slack turn loop (`slack/handler.py::handle_message`) so a new channel implements only two small interfaces (a `MessagingTransport` + a `Renderer`) and inherits everything else.
+`junction.messaging` is the channel-neutral transport abstraction used by the shipped Slack, Discord, Telegram, Webex, WeCom, Microsoft Teams, Weixin, iMessage, WhatsApp, and Feishu integrations; its conservative contract also leaves room for a further channel. It avoids re-implementing streaming, tool approval, session identity, or rendering for each integration. It holds the channel-neutral core of the Slack turn loop (`slack/handler.py::handle_message`) so a new channel implements only two small interfaces (a `MessagingTransport` + a `Renderer`) and inherits everything else.
 
-**Dependency direction is one-way:** `slack` / `dashboard` → `messaging`, never the reverse. The `kiro_crew.messaging` package imports nothing from `kiro_crew.slack` or `kiro_crew.dashboard`; its only first-party dependencies are the shared lower-level helpers — `acp.types` event constants, the `security` redactors (`redact_credentials` / `redact_exfiltration_urls`), and `sel` for audit.
+**Dependency direction is one-way:** `slack` / `dashboard` → `messaging`, never the reverse. The `junction.messaging` package imports nothing from `junction.slack` or `junction.dashboard`; its only first-party dependencies are the shared lower-level helpers — `acp.types` event constants, the `security` redactors (`redact_credentials` / `redact_exfiltration_urls`), and `sel` for audit.
 
 Slack's transport path is gated behind the `messaging.use_transport` config flag (default `true` in Kiro Crew, so the abstraction is the canonical path); when off, Slack's native `handle_message` path runs instead.
 
@@ -31,7 +31,7 @@ Slack's transport path is gated behind the `messaging.use_transport` config flag
 
 > **No channel-local approval grant, and no command-redirect seam.** Slack carries
 > both — a named `is_yolo_mode` / `set_yolo_mode` wrapper, and a `_BANG_TO_SLASH`
-> map from `!cmd` to `/kirocrew cmd` — and neither is replicated on another channel.
+> map from `!cmd` to `/junction cmd` — and neither is replicated on another channel.
 > The grant underneath the wrapper is the shared `safety_override`, so a second name
 > only creates the opportunity for a second source of truth; a grant is global by
 > nature and an operator turning auto-approve off expects it off everywhere. The
@@ -53,7 +53,7 @@ Slack's transport path is gated behind the `messaging.use_transport` config flag
 | `messaging/markup.py` | `strip_thinking_tags` / `flatten_pipe_tables` / `flatten_mermaid_body`: Markdown reductions for a surface that renders none of the source form (a `<thinking>` block, a pipe table needing a monospace grid, a `mermaid` fence needing an image). Emits Markdown, never a channel dialect, so each channel's own inline converter finishes the job. Stdlib-only leaf |
 | `messaging/split.py` | `split_markdown_safe` — the shared fence-safe markdown splitter (stdlib-only, pure). Prefix-stable so streaming callers can send sealed chunks and keep only the last as a live buffer. `split_markdown_bytes` wraps it for a byte-capped platform, measuring the produced chunks and shrinking the character budget until they fit, with the `chunk_utf8_bytes` primitive as the floor. Also exports `iter_fence_spans`, the same fence machine viewed as character spans over a whole message |
 | `messaging/outbound_files.py` | `extract_local_refs` (+ `extract_local_refs_off_loop`) — pulls local markdown image references out of an outbound reply into `OutboundFile` payloads carrying the validated bytes, with `Rejection` reasons for everything refused. Also `iter_local_refs` / `hide_local_refs`, the text-only scan a streaming channel uses to keep the markup off live frames. Channel-neutral; the upload stays per-transport |
-| `messaging/raster.py` | `sniff_raster_mime` — what counts as a raster, decided by leading bytes. Dependency-free (no `kiro_crew` imports) so both the inbound sniff and the outbound extractor can share it |
+| `messaging/raster.py` | `sniff_raster_mime` — what counts as a raster, decided by leading bytes. Dependency-free (no `junction` imports) so both the inbound sniff and the outbound extractor can share it |
 | `messaging/tables.py` | `render_tables` + the `off`/`cards`/`grid`/`native`/`auto` policy contract and `display_width` — outbound Markdown-table rendering for a target that shows a pipe table as literal pipes (stdlib-only, pure) |
 | `messaging/status_reactions.py` | `PhaseReactionLadder` plus the turn-status line (`format_turn_status`): debounced phase-to-emoji swapping over an injected `ReactionSink`, a stall watchdog, tool-to-phase classification, and `merge_phase_emojis` for a user's overrides. Owns no channel API and no emoji vocabulary |
 | `messaging/commands.py` | The channel-neutral half of the shared chat commands — `/stop`'s cancel + lock ordering (`stop_running_turn`), `/yolo`'s grant ladder (`run_yolo_command`), and the dashboard-link TTL vocabulary (`parse_dashboard_ttl` / `format_ttl`). Returns reply TEXT, never sends; takes no address of any kind. Also the path-independent keyword commands as one copy of their reply text — `spawn`/`bg`, `cron list|remove|pause|resume`, `task run|status|cancel`, each `(text, service) -> reply | None` where `None` means "not this command, keep routing". NOT the runtime stats line: both channels call `Stats().summary()` directly, because a one-liner with no parsing and no service to duck-type gains nothing from a shared copy. `spawn_task_reply` / `cron_remove_all_reply` are the already-parsed forms a channel whose own grammar carries the prefix calls. The services are duck-typed under `TYPE_CHECKING` because `subagent` and `taskrunner` both reach `slack` transitively |
@@ -397,8 +397,8 @@ ladder needs is "add or remove ONE emoji on ONE message", and it arrives as a
 `ReactionSink` bound to one message (`CallableReactionSink` wraps two coroutine
 functions, so a channel binds its client, channel and message into closures at the
 call site rather than writing a sink class). That is what keeps the pinned one-way
-dependency direction intact: `kiro_crew.messaging` imports nothing from
-`kiro_crew.slack` / `kiro_crew.discord` / `kiro_crew.dashboard`, and a ladder that
+dependency direction intact: `junction.messaging` imports nothing from
+`junction.slack` / `junction.discord` / `junction.dashboard`, and a ladder that
 reached for a channel's REST client would reintroduce exactly the cycle this
 package exists to remove. The ladder therefore never handles a channel id, a
 message id, or an emoji vocabulary. Either sink call may fail, and a failure is
@@ -963,8 +963,8 @@ Four constraints shape those signatures:
   already-extracted ARGUMENT, never the message, because indexing into the split
   text would read one channel's grammar on another's behalf.
 - **`parse_duration` is injected, not imported.** It lives in
-  `dashboard/token_auth.py`, and `kiro_crew.messaging` imports nothing from
-  `kiro_crew.dashboard` at any nesting depth (`test_messaging_commands.py`
+  `dashboard/token_auth.py`, and `junction.messaging` imports nothing from
+  `junction.dashboard` at any nesting depth (`test_messaging_commands.py`
   scans for it, deferred in-function imports included).
 
 Two things deliberately stay duplicated. `_handle_busy` and `_drain_queue`
@@ -1177,7 +1177,7 @@ Wraps `SlackClientOps` in the Layer-1 contract; declares Slack's real (rich-end)
 
 ### `handle_message_transport` (`slack/transport_dispatch.py`)
 
-Full new-path dispatch: fires the ack reaction + working status immediately (constructing the `SlackRenderer` before the potentially slow session acquisition), acquires/creates the session, builds the message with context, then drives `TurnDriver.run()`. Agent resolution: thread override (`!agent`) → per-channel `agent_override` → configured default → the canonical `_DEFAULT_KIROCREW_AGENT = "kirocrew"` fallback (so the session loads kirocrew-core / `spawn_run` rather than kiro-cli's bare built-in default). It injects `auto_approve_tool=lambda title: _should_auto_approve_spawn(context_builder, title)` and `auto_approve_session=lambda: is_slack_session_trusted(session_key)`. Post-turn bookkeeping (context-usage accounting, conversation logging, the fire-and-forget [auto-title](#auto-titling-auto_titlepy), success SEL audit) is each isolated in its own `try/except` so a bookkeeping failure never re-records a successful turn as a failure; `sessions.release()` runs in `finally`. The auto-title requires a non-empty reply and an unrestricted session, and claims through the shared tracker so the native path cannot title the same conversation twice.
+Full new-path dispatch: fires the ack reaction + working status immediately (constructing the `SlackRenderer` before the potentially slow session acquisition), acquires/creates the session, builds the message with context, then drives `TurnDriver.run()`. Agent resolution: thread override (`!agent`) → per-channel `agent_override` → configured default → the canonical `_DEFAULT_JUNCTION_AGENT = "junction"` fallback (so the session loads junction-core / `spawn_run` rather than kiro-cli's bare built-in default). It injects `auto_approve_tool=lambda title: _should_auto_approve_spawn(context_builder, title)` and `auto_approve_session=lambda: is_slack_session_trusted(session_key)`. Post-turn bookkeeping (context-usage accounting, conversation logging, the fire-and-forget [auto-title](#auto-titling-auto_titlepy), success SEL audit) is each isolated in its own `try/except` so a bookkeeping failure never re-records a successful turn as a failure; `sessions.release()` runs in `finally`. The auto-title requires a non-empty reply and an unrestricted session, and claims through the shared tracker so the native path cannot title the same conversation twice.
 
 ### Two Slack features are deliberately NOT the reference
 
@@ -1300,7 +1300,7 @@ answer is not permission: a raised evaluation and a `Decision` without
 
 ## Invariants
 
-- **One-way dependency**: `kiro_crew.messaging` never imports `kiro_crew.slack` / `kiro_crew.dashboard`; violations reintroduce the cycle the abstraction removed. This holds at **any nesting depth** — a deferred in-function import is still an edge, so a shared helper that needs something from a surface takes it as a parameter (`parse_dashboard_ttl`'s `parse_duration`). `test_messaging_commands.py::TestLayering` scans the package's ASTs for it. There is exactly ONE recorded exception, and it is recorded as a `(file, module)` pair with a reason rather than as a hole in the scan: `dispatch.py`'s `build_directive_consumer` reaches `dashboard.session_directive_apply`, the SHARED applier the dashboard's own consumer uses, so the dashboard-only denial and the monitor-trio authorization chokepoint live in one place. Injecting that applier as a parameter — the pattern the TTL helper uses — would put a security boundary behind a caller-supplied callable, which is the worse trade. A companion test deletes the entry the moment the edge goes away, so the list cannot rot into a standing pre-authorization.
+- **One-way dependency**: `junction.messaging` never imports `junction.slack` / `junction.dashboard`; violations reintroduce the cycle the abstraction removed. This holds at **any nesting depth** — a deferred in-function import is still an edge, so a shared helper that needs something from a surface takes it as a parameter (`parse_dashboard_ttl`'s `parse_duration`). `test_messaging_commands.py::TestLayering` scans the package's ASTs for it. There is exactly ONE recorded exception, and it is recorded as a `(file, module)` pair with a reason rather than as a hole in the scan: `dispatch.py`'s `build_directive_consumer` reaches `dashboard.session_directive_apply`, the SHARED applier the dashboard's own consumer uses, so the dashboard-only denial and the monitor-trio authorization chokepoint live in one place. Injecting that applier as a parameter — the pattern the TTL helper uses — would put a security boundary behind a caller-supplied callable, which is the worse trade. A companion test deletes the entry the moment the edge goes away, so the list cannot rot into a standing pre-authorization.
 - **A hoisted command carries its AUDIT with it.** `cron_command_reply` emits the
   `cron.remove` and `cron.batch_delete` SEL events that used to live in Slack's own
   copy of the command, so hoisting neither dropped Slack's trail nor left the other
@@ -1448,7 +1448,7 @@ dashboard token auth.
   `allowed_enterprise_ids`); `reactions_enabled`/`show_thinking` apply live.
   An empty `command` resets the slash command to the default.
 - `GET /api/slack/manifest` — public manifest template rendered with
-  `?alias=` (default `kirocrew`, never `$USER`) plus Slack's one-click
+  `?alias=` (default `junction`, never `$USER`) plus Slack's one-click
   create deep link.
 
 `allowed_users` / `open_channels` are intentionally not exposed while the
@@ -1456,7 +1456,7 @@ runtime enforces owner-only access.
 
 ## Discord channel
 
-**Transport (`kiro_crew/discord/`).** A concrete `MessagingTransport` over a
+**Transport (`junction/discord/`).** A concrete `MessagingTransport` over a
 pure-aiohttp Discord Gateway WebSocket client (`client.py`): identify with
 `DIRECT_MESSAGES` for DM-only installs; when `allowed_thread_ids` is non-empty,
 also request `GUILD_MESSAGES` and privileged `MESSAGE_CONTENT`. Heartbeat uses
@@ -1614,7 +1614,7 @@ correct direction for a fail-closed gate.
 
 `status` is a single-reply command whose handler takes a `ReplyFn` sink, so the
 text and slash surfaces share one body and differ only in where the reply goes.
-It reports `Stats().summary()`, the same source Slack's `/kirocrew status` uses,
+It reports `Stats().summary()`, the same source Slack's `/junction status` uses,
 so the two channels cannot report different numbers for one gateway.
 
 **Discord deliberately offers NO operator-authority command**, so there is no
@@ -1639,7 +1639,7 @@ model from a stale advertisement.
 
 An inbound resume binding lives on the bound session's `session_map.json` row. A recycle, restart prune, or dashboard unlink can destroy that row and the only evidence the channel was attached, so the resolver silently falls back to its DM session; the expectation record makes that loss reportable.
 
-**Store.** `$KIROCREW_HOME/trust/discord_resume_expectations.json` holds channel-id → `{key, title, version, retired}` rows under agent-blocked `trust/`, with an owner-only directory and `restrict_to_owner` file write because modes do not protect files on Windows. `retired` defaults false when loading an older row. Every filesystem step, including `config_dir()`, runs in a worker; an `asyncio.Lock` serializes read-modify-write without spanning Discord I/O.
+**Store.** `$JUNCTION_HOME/trust/discord_resume_expectations.json` holds channel-id → `{key, title, version, retired}` rows under agent-blocked `trust/`, with an owner-only directory and `restrict_to_owner` file write because modes do not protect files on Windows. `retired` defaults false when loading an older row. Every filesystem step, including `config_dir()`, runs in a worker; an `asyncio.Lock` serializes read-modify-write without spanning Discord I/O.
 
 **Refuse before route.** `DiscordSessionResume.route` returns one `RoutingDecision` containing either the session key or a refusal. Plain turns and session-targeting commands use that decision once; drained turns keep their enqueue-time native decision. `!new`/`!unlink` release every exact-channel binding, `!sessions`/`!help` remain reachable for recovery, and tool approval dispatches no turn while retaining its nonce-keyed visible failure path. Four states run: no owner/no record; no owner/retired record; one owner/no record (bootstrap); one matching owner/active record. Four refuse: active record without owner (lost link, retire after notice), any owner different from the active record or present beside a retired record (announce and adopt after delivery), multiple owners, or a resolution that keeps changing.
 
@@ -1798,7 +1798,7 @@ Calling `getUpdates(offset=N)` is ALSO the acknowledgement for everything below
 `N`, so an in-memory-only cursor means a restart re-requests from 0 and Telegram
 redelivers every update the previous process never confirmed — the user's last
 messages arrive a second time as fresh turns. The cursor is persisted to
-`$KIROCREW_HOME/routing/telegram_offset.json` (atomic write, off-loop, written only
+`$JUNCTION_HOME/routing/telegram_offset.json` (atomic write, off-loop, written only
 when it moved), on the same reasoning as the iMessage watch cursor.
 
 **Under `routing/`, which is a keystone leaf, and that is not incidental.** The same
@@ -1889,7 +1889,7 @@ Slack settings API they are registered in the dashboard route block (NOT
 
 ## Webex channel
 
-**Transport (`kiro_crew/webex/`).** A concrete `MessagingTransport` over a
+**Transport (`junction/webex/`).** A concrete `MessagingTransport` over a
 pure-aiohttp Webex client (`client.py`): inbound rides a device-registration
 WebSocket — the client registers a device with the Webex Device Management
 service (WDM) to obtain a per-device WebSocket URL, connects, authorizes with
@@ -1947,12 +1947,12 @@ the bot identity). `WEBEX_BOT_TOKEN` is on the sandbox agent env denylist.
 
 **The allow-list IS the operator tier, and that is the cross-channel design.** No
 shipped channel carries a second, narrower "owner" check: Telegram's `/yolo` and
-`/kirocrew dashboard`, Teams' `/yolo` and Slack's `!yolo` are all reachable by any
+`/junction dashboard`, Teams' `/yolo` and Slack's `!yolo` are all reachable by any
 authorized sender, and Webex matches them rather than inventing a tier one channel
 has. So an operator adding a second address grants that address the process-global
 `safety_override` grant (`/yolo` — the same one the dashboard toggle and the CLI
 drive) and dashboard-link minting. What bounds it is attribution plus audience:
-both commands SEL-audit the sender's email, and `/kirocrew dashboard` refuses
+both commands SEL-audit the sender's email, and `/junction dashboard` refuses
 outside a direct room so a presigned link is never posted where a space can read
 it. A narrower tier here would also silently break the ordinary case of one person
 with two addresses; if per-sender capability limits are wanted, they belong in the
@@ -1988,7 +1988,7 @@ history into the room, make a mid-turn DM steer into the space turn, and let
 In a space Webex only delivers messages that @mention the bot and does NOT strip
 the mention, so `commands.strip_bot_mention` removes a LEADING mention of the
 bot's own name (matched on a word boundary, so `Kiro` does not eat the `Kiro` in
-`KiroCrew`). A mention later in the sentence is content and is left alone.
+`Junction`). A mention later in the sentence is content and is left alone.
 
 **Files.** `files_inbound` and `files_outbound` are both live. Inbound: a message
 arrives on the `share` verb (not `post`), so the accepted-verb set is what makes
@@ -2043,7 +2043,7 @@ default it.
 **Dispatch + rendering.** Turns ride the shared `drive_turn` / `TurnDriver`
 pipeline. `transport_dispatch.py` intercepts the command surface (`/new`,
 `/compact`, `/help`, `/stop` + `/cancel`, `/link`, `/unlink`, `/yolo`,
-`/kirocrew dashboard`, `/model`, `/sessions`, plus the `/queue` and `/steer`
+`/junction dashboard`, `/model`, `/sessions`, plus the `/queue` and `/steer`
 per-message overrides),
 queues or steers mid-turn messages, drains the queue after the turn, runs
 `/compact` under atomic `try_acquire`, and posts soft/hard context-threshold
@@ -2141,7 +2141,7 @@ neither interrupts a chunked reply.
 
 ## WeCom channel
 
-**Transport (`kiro_crew/wecom/`).** A concrete `MessagingTransport` over WeCom's
+**Transport (`junction/wecom/`).** A concrete `MessagingTransport` over WeCom's
 AI-bot **long connection** (`client.py`): one outbound WebSocket to
 `wss://openws.work.weixin.qq.com`, authorized with a bot id + secret via an
 `aibot_subscribe` frame. Inbound user messages arrive as `aibot_msg_callback`
@@ -2319,7 +2319,7 @@ skipped.
 There is deliberately **no `/yolo` command here**, which is why the surface stays a
 predicate rather than a handler. One switch with one answer beats a per-channel copy:
 a channel-local command would need its own owner rule, and the single global
-`KIROCREW_OWNER_ID` is compared against each channel's own id space, so on a host
+`JUNCTION_OWNER_ID` is compared against each channel's own id space, so on a host
 running several channels the configured value belongs to at most one of them. The
 operator arms the grant from the dashboard (or Slack) where that ambiguity does not
 arise.
@@ -2612,9 +2612,9 @@ single-delivery window, so answering one is a feature with its own design.
 
 ## Microsoft Teams channel
 
-**Transport (`kiro_crew/teams/`).** A concrete `MessagingTransport` over a
+**Transport (`junction/teams/`).** A concrete `MessagingTransport` over a
 pure-`aiohttp` Bot Framework client (`client.py`) plus `PyJWT` for inbound token
-validation — no Bot Framework SDK dependency (the optional `kirocrew[teams]`
+validation — no Bot Framework SDK dependency (the optional `junction[teams]`
 extra). Teams is the **only** channel whose inbound is a public HTTPS endpoint:
 every other channel opens an outbound connection, but "Teams sends a JSON object
 to your agent's messaging endpoint, and it allows only one endpoint for
@@ -2709,7 +2709,7 @@ destination on restart, so a cron result or dashboard mirror leg had nowhere to
 send until the user spoke again. `ServiceUrlStore` persists
 `conversation_id -> serviceUrl` (plus the allow-listed identity that owns each
 conversation, recorded only AFTER authorization) to
-`$KIROCREW_HOME/routing/teams_service_urls.json`. Loading is lazy and off-loop —
+`$JUNCTION_HOME/routing/teams_service_urls.json`. Loading is lazy and off-loop —
 never on the gateway boot path — every failure degrades to the in-memory map because
 a lost routing hint must not stop delivery, a non-Connector row does not survive a
 reload, and the map is bounded by count with least-recently-seen eviction.
@@ -3140,7 +3140,7 @@ vetting, the read ceiling, the seal, and the inbound gate ordering).
 
 ## iMessage channel
 
-**Transport (`kiro_crew/imessage/`).** A concrete `MessagingTransport` over the
+**Transport (`junction/imessage/`).** A concrete `MessagingTransport` over the
 external `imsg` CLI (MIT, macOS 14+) in its long-lived `rpc` mode: the gateway
 spawns it as a child and speaks newline-framed JSON-RPC 2.0 over the child's
 stdin/stdout, the same shape as a language server. No daemon, no port, no
@@ -3167,7 +3167,7 @@ path of the one channel whose entire value is that the transport is the user's
 own device and their own account.
 
 **Inbound.** `watch.subscribe` on the all-chat stream with a `since_rowid`
-cursor persisted to `$KIROCREW_HOME/imessage_cursor.json`, so a gateway restart
+cursor persisted to `$JUNCTION_HOME/imessage_cursor.json`, so a gateway restart
 replays what it missed instead of losing it. The cursor advances on every
 observed row, including ones the channel drops — a cursor that tracked only
 delivered messages would replay every skipped row on the next start. Two
@@ -3317,7 +3317,7 @@ actual Messages.app and reply to real people.
 ## WhatsApp channel
 
 A QR-linked **personal** account, paired as a linked device over the WhatsApp Web
-protocol (`neonize`, an optional extra installed with `kirocrew[whatsapp]`). There
+protocol (`neonize`, an optional extra installed with `junction[whatsapp]`). There
 is no bot identity and no Business account, so the agent sends **as the
 operator**, which is what makes the two invariants below load-bearing rather
 than tidy.
@@ -3741,7 +3741,7 @@ setting their phone carries, so it is a product decision and not a parity gap.
 
 ## Feishu channel
 
-**Transport (`kiro_crew/feishu/`).** A concrete `MessagingTransport` over
+**Transport (`junction/feishu/`).** A concrete `MessagingTransport` over
 `lark-oapi` (`client.py`): inbound rides the lark-oapi WebSocket long
 connection (a daemon thread pushing normalized `LarkInbound` frames into the
 async event loop via `run_coroutine_threadsafe`); outbound is REST reply

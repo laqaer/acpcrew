@@ -20,7 +20,7 @@
 const SESSION_PREFIXES = [
   'vc_heights_',
   'vc_anchor_',
-  'kirocrew:touched-files:',
+  'junction:touched-files:',
   'mc-panel-tabs:',
   'mc-activity-open:',
   'mc-webpreview-url:',

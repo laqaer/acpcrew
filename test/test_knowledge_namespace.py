@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.dashboard.handlers.knowledge import add_source
+from junction.dashboard.handlers.knowledge import add_source
 
 
 def _make_request(body: dict, app_extras: dict | None = None) -> MagicMock:
@@ -46,7 +46,7 @@ async def test_add_source_folds_namespace_into_properties():
 
     with (
         patch(
-            "kiro_crew.dashboard.handlers.knowledge.is_sensitive_path",
+            "junction.dashboard.handlers.knowledge.is_sensitive_path",
             return_value=False,
         ),
         patch.object(Path, "resolve", return_value=Path("/tmp/test_folder")),
@@ -56,7 +56,7 @@ async def test_add_source_folds_namespace_into_properties():
         store_mock.get_source_by_uri.return_value = None
         store_mock.add_source.return_value = "sid-123"
         with patch(
-            "kiro_crew.dashboard.handlers.knowledge._store",
+            "junction.dashboard.handlers.knowledge._store",
             return_value=store_mock,
         ):
             resp = await add_source(req)
@@ -82,7 +82,7 @@ async def test_add_source_namespace_from_properties_directly():
 
     with (
         patch(
-            "kiro_crew.dashboard.handlers.knowledge.is_sensitive_path",
+            "junction.dashboard.handlers.knowledge.is_sensitive_path",
             return_value=False,
         ),
         patch.object(Path, "resolve", return_value=Path("/tmp/test_folder")),
@@ -92,7 +92,7 @@ async def test_add_source_namespace_from_properties_directly():
         store_mock.get_source_by_uri.return_value = None
         store_mock.add_source.return_value = "sid-456"
         with patch(
-            "kiro_crew.dashboard.handlers.knowledge._store",
+            "junction.dashboard.handlers.knowledge._store",
             return_value=store_mock,
         ):
             resp = await add_source(req)
@@ -116,7 +116,7 @@ async def test_add_source_rejects_non_string_namespace():
     req = _make_request(body)
 
     with patch(
-        "kiro_crew.dashboard.handlers.knowledge._store",
+        "junction.dashboard.handlers.knowledge._store",
         return_value=MagicMock(),
     ):
         resp = await add_source(req)
@@ -139,7 +139,7 @@ async def test_add_source_rejects_non_dict_properties():
     req = _make_request(body)
 
     with patch(
-        "kiro_crew.dashboard.handlers.knowledge._store",
+        "junction.dashboard.handlers.knowledge._store",
         return_value=MagicMock(),
     ):
         resp = await add_source(req)

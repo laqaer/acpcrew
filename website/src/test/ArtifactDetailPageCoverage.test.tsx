@@ -44,7 +44,7 @@ vi.mock('../api/client')
 // to mount without ChatPage's full hook graph.
 vi.mock('../pages/ChatPage', () => ({
   default: () => <div data-testid="chat-page" />,
-  PREFILL_STORAGE_KEY: 'kirocrew_prefill',
+  PREFILL_STORAGE_KEY: 'junction_prefill',
 }))
 
 // The publish panel is a separate surface with its own provider queries; the
@@ -775,7 +775,7 @@ describe('ArtifactDetailPage — mutation paths', () => {
     await waitFor(() => expect(vi.mocked(api).createChatSlot).toHaveBeenCalledTimes(1))
     // The prompt is STAGED, never auto-sent — the embedded composer picks it up.
     await waitFor(() =>
-      expect(sessionStorage.getItem('kirocrew_prefill')).toMatch(/open comment/),
+      expect(sessionStorage.getItem('junction_prefill')).toMatch(/open comment/),
     )
   })
 
@@ -948,7 +948,7 @@ describe('ArtifactDetailPage — upstream sync banner', () => {
     visibility: 'SHARED' as const,
     shared_with: [],
     auto_sync: false,
-    last_synced_kirocrew_version: 1,
+    last_synced_junction_version: 1,
     version_map: {},
     published_at: '2026-07-01T00:00:00Z',
     published_by: 'joe',

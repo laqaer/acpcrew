@@ -9,17 +9,17 @@ false`): all metric call sites are cheap no-ops and nothing is written or
 exported, byte-identical to no telemetry (mirrors the `mcp_gateway.enabled` /
 `skills.lazy_load` opt-in convention).
 
-Source: `src/kiro_crew/metrics/` — `schema.py`, `recorder.py`, `provider.py`,
+Source: `src/junction/metrics/` — `schema.py`, `recorder.py`, `provider.py`,
 `local_exporter.py`, `http_metrics.py`. Tests: `test/metrics/`.
 
 ## Components
 
 | File | Purpose |
 |------|---------|
-| `schema.py` | Namespace constants (`NS_CORE = "kirocrew."`, `NS_GENAI = "gen_ai."`, `NS_APP_PREFIX = "app."`) + `validate_name` / `validate_attrs` / `redact` guardrails. Documents the low-cardinality contract. |
+| `schema.py` | Namespace constants (`NS_CORE = "junction."`, `NS_GENAI = "gen_ai."`, `NS_APP_PREFIX = "app."`) + `validate_name` / `validate_attrs` / `redact` guardrails. Documents the low-cardinality contract. |
 | `recorder.py` | `MetricsRecorder` — facade over the OTEL `Meter`. Every metric passes namespace + privacy guardrails BEFORE reaching an instrument. Instrument-cache creation is lock-guarded (atomic check-then-create). Best-effort: a telemetry failure never propagates to the caller. `meter=None` = no-op recorder. |
 | `provider.py` | Consent gate + process-global recorder (`get_recorder()`) + graceful `shutdown()` / `reset_for_testing()`. `get_recorder()` serves a memoized recorder and re-resolves the `telemetry.enabled` consent value every `_CONSENT_RECHECK_SECS` (30s), rebuilding when it moved — see "Recorder lifecycle & threading" below. Public consent surface: `env_pin()` / `TELEMETRY_ENV_VAR`. When enabled, wires a `PeriodicExportingMetricReader` to the local JSONL exporter. Installs **one `View` per instrument** from `_HISTOGRAM_BUCKETS_MS`, each with its own `ExplicitBucketHistogramAggregation` boundaries (see below) — deliberately NOT a catch-all `instrument_type=Histogram` View. |
-| `local_exporter.py` | `JsonlMetricExporter` — appends one JSON line per export cycle to `<dir>/metrics-YYYY-MM-DD-<pid>.jsonl` (default dir `~/.kiro/crew/metrics`). Per-PID single-writer shards keep append + rotation lock-free, so concurrent exporters do not lose DELTA cycles. A private `.metrics.lock` serializes only retention sweeps; pruning skips canonical shards owned by live PIDs or modified within the safety window. **Bounded retention (rec #14):** shards rotate before an append exceeds `max_total_mb`; closed/expired shards are pruned directly by age and oldest-first size. Pruning is throttled to at most once per 300s and fully best-effort. Dir mode is 0o700, file mode 0o600, and nothing egresses the host. Declares DELTA `preferred_temporality` for Counter/UpDownCounter/Histogram so daily aggregation is an element-wise sum across cycles/PIDs. Observable counters are deliberately NOT mapped and export CUMULATIVE: the delta baseline lives in the provider, which is rebuilt in-process on a telemetry consent change, so DELTA would re-emit the process-lifetime total once per rebuild; the aggregator instead reduces cumulative streams window-relative (deterministic identity boundary + time-ordered legacy reset detection + first-in-window baseline), which is rebuild-idempotent. **Process identity:** each record is stamped once at resource level with `kirocrew.process.start_time` (`schema.RESOURCE_ATTR_PROCESS_START_TIME`) — the writing process's OS start-time token from `platform_compat.own_process_start_time()`, module-cached so provider rebuilds inside one process stamp the SAME value, and reboot-unique (Linux start ticks + boot UUID; macOS microsecond `proc_pidinfo` instant; Windows creation FILETIME). A read that cannot honor one-token-one-process (unreadable boot UUID, no `libproc`, 1s-only sources) emits NO token rather than an aliasable coarse one — a degraded token would merge lifetimes AND mute the reset heuristic that catches merges. The shard-filename PID plus this token identify a process beyond PID reuse, making the aggregator's cumulative reset detection deterministic. The stamp lands on the serialized JSONL line, never on the SDK `Resource` — that `Resource` also feeds the opt-in OTLP reader, and this host-local token must not egress. Fail-soft: when the platform read is unavailable the field is absent and the aggregator's legacy value heuristic applies. Resource level, not a metric attribute, so it never multiplies series cardinality. |
+| `local_exporter.py` | `JsonlMetricExporter` — appends one JSON line per export cycle to `<dir>/metrics-YYYY-MM-DD-<pid>.jsonl` (default dir `~/.kiro/crew/metrics`). Per-PID single-writer shards keep append + rotation lock-free, so concurrent exporters do not lose DELTA cycles. A private `.metrics.lock` serializes only retention sweeps; pruning skips canonical shards owned by live PIDs or modified within the safety window. **Bounded retention (rec #14):** shards rotate before an append exceeds `max_total_mb`; closed/expired shards are pruned directly by age and oldest-first size. Pruning is throttled to at most once per 300s and fully best-effort. Dir mode is 0o700, file mode 0o600, and nothing egresses the host. Declares DELTA `preferred_temporality` for Counter/UpDownCounter/Histogram so daily aggregation is an element-wise sum across cycles/PIDs. Observable counters are deliberately NOT mapped and export CUMULATIVE: the delta baseline lives in the provider, which is rebuilt in-process on a telemetry consent change, so DELTA would re-emit the process-lifetime total once per rebuild; the aggregator instead reduces cumulative streams window-relative (deterministic identity boundary + time-ordered legacy reset detection + first-in-window baseline), which is rebuild-idempotent. **Process identity:** each record is stamped once at resource level with `junction.process.start_time` (`schema.RESOURCE_ATTR_PROCESS_START_TIME`) — the writing process's OS start-time token from `platform_compat.own_process_start_time()`, module-cached so provider rebuilds inside one process stamp the SAME value, and reboot-unique (Linux start ticks + boot UUID; macOS microsecond `proc_pidinfo` instant; Windows creation FILETIME). A read that cannot honor one-token-one-process (unreadable boot UUID, no `libproc`, 1s-only sources) emits NO token rather than an aliasable coarse one — a degraded token would merge lifetimes AND mute the reset heuristic that catches merges. The shard-filename PID plus this token identify a process beyond PID reuse, making the aggregator's cumulative reset detection deterministic. The stamp lands on the serialized JSONL line, never on the SDK `Resource` — that `Resource` also feeds the opt-in OTLP reader, and this host-local token must not egress. Fail-soft: when the platform read is unavailable the field is absent and the aggregator's legacy value heuristic applies. Resource level, not a metric attribute, so it never multiplies series cardinality. |
 | `http_metrics.py` | Gateway HTTP observability (rec #1): `record_boot_to_ready()` (boot-to-ready histogram) + `make_route_latency_middleware()` (per-route latency, wired as the outermost middleware on both `start_dashboard`/`start_api_server`). Bounds `route_template` cardinality via `collect_route_templates()` (build-time snapshot) + `route_template()` (`__unknown__` fallback); clamps `method` to a fixed allowlist and `status_class` to `1xx`..`5xx`/`other`. Upgraded WebSocket connections and `text/event-stream` SSE responses are excluded because their handler elapsed time is connection/turn lifetime, not HTTP request latency. Best-effort — a telemetry failure never alters a response. |
 
 ## Recorder lifecycle & threading
@@ -29,7 +29,7 @@ monotonic clock (`_consent_recheck_due`): once a recorder exists it is handed ba
 directly until the recheck window elapses. Every `_CONSENT_RECHECK_SECS` (30s) the
 call hands a consent check to a worker (`_schedule_consent_check_locked` ->
 `_consent_worker`), which re-reads `telemetry.enabled` and rebuilds when it moved.
-That is what makes `kirocrew config set telemetry.enabled true` — a write from a
+That is what makes `junction config set telemetry.enabled true` — a write from a
 SEPARATE process — take effect without a gateway restart. A caller that changed the
 setting itself calls `shutdown()` to skip the wait. A config that cannot be READ
 yields "no change" rather than `False`, so a transient read error never tears down a
@@ -38,7 +38,7 @@ config cannot turn every metric call into a fresh file read.
 
 **`get_recorder()` itself never reads config and never builds anything**, apart
 from the very first build of the process, which has nothing to serve in the
-meantime. `KiroCrewConfig.load()` is a fingerprint-cache hit in the steady state
+meantime. `JunctionConfig.load()` is a fingerprint-cache hit in the steady state
 (~0.3ms) but a full read plus schema validation when the file actually changed
 (~14ms), and the rebuild costs ~57ms of SDK import — neither belongs on the event
 loop, which the route-latency middleware drives on every HTTP request. The
@@ -49,7 +49,7 @@ from spawning one worker per request, and is cleared in the worker's `finally` s
 crash costs one window rather than stranding the check.
 
 Consent resolution is env-first: `env_pin()` reads `TELEMETRY_ENV_VAR`
-(`KIROCREW_TELEMETRY`) and, when set, decides the effective state regardless of the
+(`JUNCTION_TELEMETRY`) and, when set, decides the effective state regardless of the
 config flag; `_consent_enabled()` falls back to `telemetry.enabled`.
 
 **`_lock` is never held across a provider or reader shutdown.**
@@ -103,7 +103,7 @@ worst case is one dropped export cycle rather than a corrupt shard.
 
 ## Guardrails (contract C4)
 
-- **Namespace**: core callers must use `kirocrew.*` or `gen_ai.*`; app callers
+- **Namespace**: core callers must use `junction.*` or `gen_ai.*`; app callers
   must use `app.<app_id>.*` and cannot spoof the core/gen_ai namespaces
   (`validate_name` raises `ValueError`, the recorder swallows it, nothing is
   recorded).
@@ -111,7 +111,7 @@ worst case is one dropped export cycle rather than a corrupt shard.
   `SecretAccessKey=`, private-key headers, 40+ char hex, JWT shapes,
   `password=`/`token=` patterns, base64-encoded credential variants, and a
   Shannon-entropy heuristic all yield `"[REDACTED]"`. The first-party
-  `kiro_crew.security` scrubbers (`redact_credentials`,
+  `junction.security` scrubbers (`redact_credentials`,
   `redact_exfiltration_urls` — both return `(cleaned, warnings)` tuples) are
   also consulted. Long non-suspicious strings are truncated to
   `MAX_ATTR_VALUE_LEN` (128).
@@ -126,12 +126,12 @@ worst case is one dropped export cycle rather than a corrupt shard.
 
 | Field | Default | Meaning |
 |-------|---------|---------|
-| `enabled` | `false` | Main switch. Off = no-op recorder, nothing written. Editable from the dashboard (Settings → Privacy) as well as the config file, `kirocrew config set`, and the env var; re-resolved live, so a change takes effect without a restart. |
+| `enabled` | `false` | Main switch. Off = no-op recorder, nothing written. Editable from the dashboard (Settings → Privacy) as well as the config file, `junction config set`, and the env var; re-resolved live, so a change takes effect without a restart. |
 | `local_dir` | `""` | JSONL shard dir; empty = `~/.kiro/crew/metrics`. `~` expansion supported. |
 | `export_interval_seconds` | `60` | Flush interval (floored to 1). |
 | `retention_days` | `0` | Age pruning is disabled by default to preserve pre-existing history on upgrade. Set a positive day window to opt in (rec #14). |
 | `max_total_mb` | `0` | Size pruning is disabled by default to preserve pre-existing history on upgrade. Set a positive opportunistic directory budget to opt in; protected active writers can temporarily exceed it (rec #14). |
-| `otlp_endpoint` | `""` | Opt-in OTLP/HTTP metrics endpoint (e.g. `http://localhost:4318/v1/metrics`). **Empty = no network egress (default).** When set, aggregated metrics are ALSO pushed to this collector in addition to the local JSONL sink; requires `pip install "kirocrew[otlp]"` (rec #1). |
+| `otlp_endpoint` | `""` | Opt-in OTLP/HTTP metrics endpoint (e.g. `http://localhost:4318/v1/metrics`). **Empty = no network egress (default).** When set, aggregated metrics are ALSO pushed to this collector in addition to the local JSONL sink; requires `pip install "junction[otlp]"` (rec #1). |
 
 Field validation (`TelemetryConfig.__post_init__`): `export_interval_seconds`
 below 1 is floored to 1; negative `retention_days` / `max_total_mb` are clamped
@@ -147,9 +147,9 @@ explicitly sets an OTLP endpoint.**
 
 **Easy opt-in (four equivalent ways):**
 - **Config flag:** set `"telemetry": {"enabled": true}` in `~/.kiro/crew/config.json`.
-- **CLI:** `kirocrew config set telemetry.enabled true`.
+- **CLI:** `junction config set telemetry.enabled true`.
 - **Dashboard:** the recording switch in Settings → Privacy, which writes the same
-  key through `PATCH /api/config/kirocrew` (`telemetry.enabled` is in
+  key through `PATCH /api/config/junction` (`telemetry.enabled` is in
   `_EDITABLE_CONFIG`). That route refuses `true` with **HTTP 409** when
   `telemetry.otlp_endpoint` is set: `_build_recorder` attaches an OTLP reader
   whenever an endpoint is configured, so enabling from a switch offered as
@@ -159,7 +159,7 @@ explicitly sets an OTLP endpoint.**
   fails closed with a 409. On a successful write the route calls
   `provider.shutdown()` via `asyncio.to_thread`, so the value applies on the very
   next metric rather than at the next recheck.
-- **Env var:** export `KIROCREW_TELEMETRY=1` (also accepts `true`/`yes`/`on`;
+- **Env var:** export `JUNCTION_TELEMETRY=1` (also accepts `true`/`yes`/`on`;
   `0`/`false`/`no`/`off` force-disables). The env var overrides the config flag
   and is handy for CI / containers / one-off debugging. It gates **local
   collection only** — it never enables network egress. Resolved by the public
@@ -168,13 +168,13 @@ explicitly sets an OTLP endpoint.**
 None of these requires a gateway restart: `get_recorder()` re-resolves consent
 every `_CONSENT_RECHECK_SECS` (30s) and rebuilds when it moved (see "Recorder
 lifecycle & threading"). The gateway process is where the session/turn/HTTP
-metrics are recorded; other kirocrew processes pick the value up on their own
+metrics are recorded; other junction processes pick the value up on their own
 recheck or at their next start.
 
 **External OTLP egress (opt-in, off by default):** setting `otlp_endpoint` adds a
 second `PeriodicExportingMetricReader` alongside the local JSONL sink
 (`provider._build_otlp_reader`). Install support with
-`pip install "kirocrew[otlp]"`. If the endpoint is set but the package extra is
+`pip install "junction[otlp]"`. If the endpoint is set but the package extra is
 not installed, telemetry
 degrades to local-only with a warning instead of crashing. The OTLP exporter
 sees the same data points as the local sink: the `MetricsRecorder` facade
@@ -250,27 +250,27 @@ presence without the endpoint string),
 
 | Metric | Type | Attrs | Site |
 |--------|------|-------|------|
-| `kirocrew.session.startup.duration` | histogram (ms) | `outcome` (`ready` / `auth_required` / `error`), `spawned` (bool), `backend` (`kiro`) + `phase` (`total` / `spawn_init` / `session_new` / `session_load` / `set_model`), `channel` (conversation source), `resumed` (bool) on the kiro path | Two sites. **claude**: `acp/client.py::AcpClient.ensure_ready()` — times cold-start (spawn + session init) and emits in a `finally` so every exit path is measured, with no `phase` attr. **kiro** (default): `providers/acp.py::_emit_kiro_startup_metric` — one `phase=total` point PLUS one point per internal phase; `spawned` is unconditionally `True` because `_start_kiro_runtime_impl` always spawns a fresh runtime (the warm fast-path returns before reaching either site and is NOT measured). `outcome` defaults to `"error"` so an unexpected exception is never mislabeled `"ready"`. Consumers MUST treat only the end-to-end point (`phase` absent or `total`) as a startup — the phase points are components of one startup. `channel` comes from `messaging.link::telemetry_channel_of`, a closed label set (an unrecognised key classifies as `other`, never the key itself) answering WHICH surface paid the cost; `resumed` separates the `session/load` path from `session/new`. `session_load` is recorded only when a resume was attempted, and `session_new` only when `create_session` actually ran, so a resumed startup never reports a near-zero `session_new`. |
-| `kirocrew.session.pool.decision` | counter | `outcome` (`hit` / `miss_empty` / `bypass_resume` / `bypass_stateless` / `bypass_cwd` / `bypass_env` / `disabled` / `other`), `channel` | `session.py::SessionManager._record_pool_decision`, one point per `get_or_create` warm-pool decision. Exactly one reason is reported per decision — the disqualifiers form a disjunction, so branch order picks the reported reason, not the outcome. Deliberately a counter rather than an attribute on the startup histogram: "was the pool used" and "how long did startup take" are separate questions, and crossing them would multiply every phase series. `bypass_resume` quantifies how often a `resume_sid` disqualifies a session from the pool. Values are pinned by `session.POOL_DECISIONS`. |
-| `kirocrew.session.resume.outcome` | counter | `outcome` (`loaded` / `fallback_replay` / `no_session_file`), `channel` | `providers/acp.py::_emit_kiro_startup_metric`, emitted only when a resume was attempted. Distinguishes a lossless native resume from the degraded fallback (fresh `session/new` plus history replay on the Kiro Crew side, taken when `session/load` exhausts `_RESUME_MAX_ATTEMPTS` against a stale lock) and from a resume skipped because the session file was gone. |
-| `kirocrew.turn.duration` | histogram (ms) | `outcome` (`ok` / `timeout` / `tool_stall` / `stale_recover` / `stall_exhausted` / `error`), `session_source` (via `validation.infer_use_case`) | `dashboard/chat_runner.py::_emit_turn_metric`, called at EVENT_COMPLETE after `persist_token_record_async`. `_turn_outcome` maps stop_reason (`""`/`end_turn`/`stop`/`completed` → ok; the two watchdog stop reasons map to their own outcomes — checked BEFORE the `timeout` substring — so a recovered stall is never counted as a generic fault and the stall population stays visible; a stall arriving with its 3-attempt recovery budget already spent, or on a NESTED turn (`_prompt_depth > 0`, which the recovery branches never re-queue — it dies with "please retry"), labels `stall_exhausted` instead — the emit site reads the slot budgets and the depth — which IS a terminal fault to the aggregator, so the recovered-stall exclusion cannot hide a session that dies needing user action). One histogram powers turn latency p50/p90 AND fault rate. The value is `duration_ms or elapsed_ms`: the acp provider always reports `TurnUsage.duration_ms == 0` (only claude_code fills it), so the caller must pass the locally measured wall clock as `elapsed_ms` or nothing is ever emitted. A still-zero value skips the emit deliberately — absence renders as "no data", whereas a recorded 0 would render as a plausible 0ms p50. **What it measures:** the wall clock starts at turn start, so a turn parked on an interactive tool-approval prompt counts operator thinking time. No finer-grained source exists on the acp path, so this is "turn wall-clock", not pure model latency — a high p90 can mean slow approvals rather than a slow model. |
-| `kirocrew.watchdog.action` | counter | `action` (`deferral` / `probe` / `cancel`), `verdict` (`working` / `dead` / `unknown` / `stuck_input`), `evidence_class` (`established_flat` / `mcp_flat` / `shell` / `shell_absent` / `wait` / `degraded`), `window` (`narrowed` / `extended` / `standard`), `agent_override` (bool) | `acp/session_handle.py::AcpSessionHandle._emit_watchdog_metric`, one point per watchdog DECISION in `_dispatch_events`: `deferral` from `_log_working_deferral` (rides its 10-min rate limit, so an hours-long WORKING build contributes a bounded handful of points, not one per tick), `probe` at the stale-probe send, `cancel` before `_end_stalled_tool`. `evidence_class` is `_watchdog_evidence_class` — a prefix/shape bucket of the free-form oracle evidence (pids/deltas/commands never emitted). `window` encodes the effective window selection: `narrowed` = a tool-branch evidence TAG reduced the suspect window below the build-scale default (1h) — `established_flat` to the model-silent budget (minutes), `shell_absent` to the ordinary silence budget (`stale_window_secs`, 300s) because the shell command has no process to its name; `extended` = model-wait-branch `established_flat` extended the stale window from 300s (`stale_window_secs`) to 900s (`model_silent_probe_secs`) for a non-streamed server-side think; `standard` = ordinary window in all other cases. `agent_override` is the per-agent watchdog-override BOOLEAN from the `WatchdogSettings` snapshot — deliberately NOT the agent name (free-form ⇒ cardinality bomb; per-agent joins happen via the row store's `agent` + `stop_reason` fields below). Guardrail query: `action=cancel, evidence_class=mcp_flat, window=standard` must not increase — the narrowed window may only affect `established_flat` and `shell_absent`. |
-| `kirocrew.watchdog.idle.duration` | histogram (ms) | `action`, `evidence_class` | Same emit helper, same decision points; value = the branch's idle clock (`_tool_idle` / `_stale_idle`) at decision time, converted to ms at the emit site because the dashboard's generic aggregation reports every histogram under `*_ms` keys (a seconds instrument would render 1000x off). Answers whether 900s is right for LLM-shaped stalls (idle-at-action distribution per evidence class). Own bucket family `_WATCHDOG_IDLE_BUCKETS_MS` (1s–4h, densest at the 300/900/3600-second window boundaries). |
-| `kirocrew.watchdog.recovery.outcome` | counter | `mechanism` (`stale_recover` / `tool_stall`), `outcome` (`recovered` / `exhausted`), `attempt_bucket` (1–3) | `dashboard/chat_runner.py::_emit_recovery_outcome`, derived from the per-slot retry budgets the stop-reason branches maintain (`slot._stale_recovery_retries` / `slot._tool_stall_retries`). `exhausted` emits in the stall branches when a budget hits its cap ("start a new chat"); `recovered` emits at the budget-reset block when a turn completes with outcome `ok` while a stall budget is armed — the stall branches return early, so an armed budget reaching that reset is by construction a completed recovery cycle (gated on `ok` so a user cancel of the recovery turn never counts as a recovery). `attempt_bucket` clamps to the 3-attempt cap (closed enum, mirrors the CLI's `attempt_number_bucket`). Every `recovered` point is one prevented hang. Fault accounting for the exhausted case lives on the turn histogram, not here: the final turn of an exhausted cycle labels `stall_exhausted` (see `kirocrew.turn.duration`), so a dead session counts toward `fault_rate` while this counter stays pure mechanism telemetry. |
-| `kirocrew.context.section.duration` | histogram (ms) | `section` (one fixed label per assembled block: `preamble` / `profile` / `workspace` / `docs` / `steering` / `thread_history` / `stop_notes` / `memory` / `skills` / `lessons` / `provenance` / `finalize`, plus `episodic` from the `build_message` site), `custom` (bool) | Two sites, both first-turn only. `context.py::ContextBuilder.build_session_context` emits one point per section from monotonic checkpoints taken as each block is appended; `context.py::ContextBuilder.build_message` emits `section=episodic` for the query-dependent episodic retrieval that runs as that method's sibling rather than one of its sections. **Why per-section:** the block is assembled AFTER the user's message arrives and the caller awaits it before dispatching the prompt, so every section lands directly on time-to-first-token; as one opaque interval the cost is unattributable and diagnosis degrades to guess-and-rebuild. The spread within a single build is the widest of any instrument here — string appends under a millisecond alongside a query-embedding section reaching seconds — which is why it takes `_FAST_BUCKETS_MS` (0.5ms..60s) rather than a startup ladder. `custom` is a bool rather than the agent name deliberately: a populated install has dozens of agents, and one series per agent per section would multiply series count for no diagnostic gain. Sections under 1ms are still recorded as points but omitted from the companion INFO line to keep it readable. |
-| `kirocrew.mcp.backend.acquire.duration` | histogram (ms) | `warm` (bool — `not was_spawned`) | `mcp_gateway/gatewayd.py::_emit_backend_acquire_metric` — ensure_backend pre-flight + lazy-spawn paths; acquire-only duration captured before attach_stub/create_task overhead. |
-| `kirocrew.mcp.lazy_load.count` / `.duration` | counter + histogram (ms) | `transport` (`stdio`) | `mcp_gateway/gatewayd.py::_emit_lazy_load_metrics` — legacy lazy-spawn path (also emits backend.acquire). |
-| `kirocrew.mcp.warm_pool.acquire` | counter | `result` (`hit` / `miss`) | `mcp_gateway/prewarm.py::HotKeyStore.record_outcome` (emitted outside the lock). |
-| `kirocrew.skill.lazy_load.count` / `.duration` | counter + histogram (ms) | `hit` (bool) | `skills.py::SkillsLoader.load_skill` via `_emit_lazy_load_metric` (best-effort; never breaks skill loading). |
-| `kirocrew.gateway.boot.duration` | histogram (ms) | `server` (`dashboard` / `api`), `outcome` (`ready`) | `dashboard/server.py::start_dashboard` / `start_api_server` — boot-to-ready: wall-clock from the server's `start_time` until full init completes and it is about to accept traffic. Emitted via `metrics/http_metrics.py::record_boot_to_ready`. Best-effort; never blocks startup. |
-| `kirocrew.gateway.request.duration` | histogram (ms) | `method` (fixed HTTP-verb allowlist, else `OTHER`), `route_template` (matched aiohttp canonical TEMPLATE, e.g. `/api/artifacts/{slug}`, else `__unknown__`), `status_class` (`1xx`..`5xx` / `other`) | `metrics/http_metrics.py::make_route_latency_middleware` — outermost gateway middleware on BOTH `start_dashboard` and `start_api_server`. Times full in-gateway HTTP handling; upgraded WebSocket connections and `text/event-stream` SSE responses are excluded so connection/turn lifetime cannot pollute request latency. **Bounded cardinality** (see below). |
+| `junction.session.startup.duration` | histogram (ms) | `outcome` (`ready` / `auth_required` / `error`), `spawned` (bool), `backend` (`kiro`) + `phase` (`total` / `spawn_init` / `session_new` / `session_load` / `set_model`), `channel` (conversation source), `resumed` (bool) on the kiro path | Two sites. **claude**: `acp/client.py::AcpClient.ensure_ready()` — times cold-start (spawn + session init) and emits in a `finally` so every exit path is measured, with no `phase` attr. **kiro** (default): `providers/acp.py::_emit_kiro_startup_metric` — one `phase=total` point PLUS one point per internal phase; `spawned` is unconditionally `True` because `_start_kiro_runtime_impl` always spawns a fresh runtime (the warm fast-path returns before reaching either site and is NOT measured). `outcome` defaults to `"error"` so an unexpected exception is never mislabeled `"ready"`. Consumers MUST treat only the end-to-end point (`phase` absent or `total`) as a startup — the phase points are components of one startup. `channel` comes from `messaging.link::telemetry_channel_of`, a closed label set (an unrecognised key classifies as `other`, never the key itself) answering WHICH surface paid the cost; `resumed` separates the `session/load` path from `session/new`. `session_load` is recorded only when a resume was attempted, and `session_new` only when `create_session` actually ran, so a resumed startup never reports a near-zero `session_new`. |
+| `junction.session.pool.decision` | counter | `outcome` (`hit` / `miss_empty` / `bypass_resume` / `bypass_stateless` / `bypass_cwd` / `bypass_env` / `disabled` / `other`), `channel` | `session.py::SessionManager._record_pool_decision`, one point per `get_or_create` warm-pool decision. Exactly one reason is reported per decision — the disqualifiers form a disjunction, so branch order picks the reported reason, not the outcome. Deliberately a counter rather than an attribute on the startup histogram: "was the pool used" and "how long did startup take" are separate questions, and crossing them would multiply every phase series. `bypass_resume` quantifies how often a `resume_sid` disqualifies a session from the pool. Values are pinned by `session.POOL_DECISIONS`. |
+| `junction.session.resume.outcome` | counter | `outcome` (`loaded` / `fallback_replay` / `no_session_file`), `channel` | `providers/acp.py::_emit_kiro_startup_metric`, emitted only when a resume was attempted. Distinguishes a lossless native resume from the degraded fallback (fresh `session/new` plus history replay on the Kiro Crew side, taken when `session/load` exhausts `_RESUME_MAX_ATTEMPTS` against a stale lock) and from a resume skipped because the session file was gone. |
+| `junction.turn.duration` | histogram (ms) | `outcome` (`ok` / `timeout` / `tool_stall` / `stale_recover` / `stall_exhausted` / `error`), `session_source` (via `validation.infer_use_case`) | `dashboard/chat_runner.py::_emit_turn_metric`, called at EVENT_COMPLETE after `persist_token_record_async`. `_turn_outcome` maps stop_reason (`""`/`end_turn`/`stop`/`completed` → ok; the two watchdog stop reasons map to their own outcomes — checked BEFORE the `timeout` substring — so a recovered stall is never counted as a generic fault and the stall population stays visible; a stall arriving with its 3-attempt recovery budget already spent, or on a NESTED turn (`_prompt_depth > 0`, which the recovery branches never re-queue — it dies with "please retry"), labels `stall_exhausted` instead — the emit site reads the slot budgets and the depth — which IS a terminal fault to the aggregator, so the recovered-stall exclusion cannot hide a session that dies needing user action). One histogram powers turn latency p50/p90 AND fault rate. The value is `duration_ms or elapsed_ms`: the acp provider always reports `TurnUsage.duration_ms == 0` (only claude_code fills it), so the caller must pass the locally measured wall clock as `elapsed_ms` or nothing is ever emitted. A still-zero value skips the emit deliberately — absence renders as "no data", whereas a recorded 0 would render as a plausible 0ms p50. **What it measures:** the wall clock starts at turn start, so a turn parked on an interactive tool-approval prompt counts operator thinking time. No finer-grained source exists on the acp path, so this is "turn wall-clock", not pure model latency — a high p90 can mean slow approvals rather than a slow model. |
+| `junction.watchdog.action` | counter | `action` (`deferral` / `probe` / `cancel`), `verdict` (`working` / `dead` / `unknown` / `stuck_input`), `evidence_class` (`established_flat` / `mcp_flat` / `shell` / `shell_absent` / `wait` / `degraded`), `window` (`narrowed` / `extended` / `standard`), `agent_override` (bool) | `acp/session_handle.py::AcpSessionHandle._emit_watchdog_metric`, one point per watchdog DECISION in `_dispatch_events`: `deferral` from `_log_working_deferral` (rides its 10-min rate limit, so an hours-long WORKING build contributes a bounded handful of points, not one per tick), `probe` at the stale-probe send, `cancel` before `_end_stalled_tool`. `evidence_class` is `_watchdog_evidence_class` — a prefix/shape bucket of the free-form oracle evidence (pids/deltas/commands never emitted). `window` encodes the effective window selection: `narrowed` = a tool-branch evidence TAG reduced the suspect window below the build-scale default (1h) — `established_flat` to the model-silent budget (minutes), `shell_absent` to the ordinary silence budget (`stale_window_secs`, 300s) because the shell command has no process to its name; `extended` = model-wait-branch `established_flat` extended the stale window from 300s (`stale_window_secs`) to 900s (`model_silent_probe_secs`) for a non-streamed server-side think; `standard` = ordinary window in all other cases. `agent_override` is the per-agent watchdog-override BOOLEAN from the `WatchdogSettings` snapshot — deliberately NOT the agent name (free-form ⇒ cardinality bomb; per-agent joins happen via the row store's `agent` + `stop_reason` fields below). Guardrail query: `action=cancel, evidence_class=mcp_flat, window=standard` must not increase — the narrowed window may only affect `established_flat` and `shell_absent`. |
+| `junction.watchdog.idle.duration` | histogram (ms) | `action`, `evidence_class` | Same emit helper, same decision points; value = the branch's idle clock (`_tool_idle` / `_stale_idle`) at decision time, converted to ms at the emit site because the dashboard's generic aggregation reports every histogram under `*_ms` keys (a seconds instrument would render 1000x off). Answers whether 900s is right for LLM-shaped stalls (idle-at-action distribution per evidence class). Own bucket family `_WATCHDOG_IDLE_BUCKETS_MS` (1s–4h, densest at the 300/900/3600-second window boundaries). |
+| `junction.watchdog.recovery.outcome` | counter | `mechanism` (`stale_recover` / `tool_stall`), `outcome` (`recovered` / `exhausted`), `attempt_bucket` (1–3) | `dashboard/chat_runner.py::_emit_recovery_outcome`, derived from the per-slot retry budgets the stop-reason branches maintain (`slot._stale_recovery_retries` / `slot._tool_stall_retries`). `exhausted` emits in the stall branches when a budget hits its cap ("start a new chat"); `recovered` emits at the budget-reset block when a turn completes with outcome `ok` while a stall budget is armed — the stall branches return early, so an armed budget reaching that reset is by construction a completed recovery cycle (gated on `ok` so a user cancel of the recovery turn never counts as a recovery). `attempt_bucket` clamps to the 3-attempt cap (closed enum, mirrors the CLI's `attempt_number_bucket`). Every `recovered` point is one prevented hang. Fault accounting for the exhausted case lives on the turn histogram, not here: the final turn of an exhausted cycle labels `stall_exhausted` (see `junction.turn.duration`), so a dead session counts toward `fault_rate` while this counter stays pure mechanism telemetry. |
+| `junction.context.section.duration` | histogram (ms) | `section` (one fixed label per assembled block: `preamble` / `profile` / `workspace` / `docs` / `steering` / `thread_history` / `stop_notes` / `memory` / `skills` / `lessons` / `provenance` / `finalize`, plus `episodic` from the `build_message` site), `custom` (bool) | Two sites, both first-turn only. `context.py::ContextBuilder.build_session_context` emits one point per section from monotonic checkpoints taken as each block is appended; `context.py::ContextBuilder.build_message` emits `section=episodic` for the query-dependent episodic retrieval that runs as that method's sibling rather than one of its sections. **Why per-section:** the block is assembled AFTER the user's message arrives and the caller awaits it before dispatching the prompt, so every section lands directly on time-to-first-token; as one opaque interval the cost is unattributable and diagnosis degrades to guess-and-rebuild. The spread within a single build is the widest of any instrument here — string appends under a millisecond alongside a query-embedding section reaching seconds — which is why it takes `_FAST_BUCKETS_MS` (0.5ms..60s) rather than a startup ladder. `custom` is a bool rather than the agent name deliberately: a populated install has dozens of agents, and one series per agent per section would multiply series count for no diagnostic gain. Sections under 1ms are still recorded as points but omitted from the companion INFO line to keep it readable. |
+| `junction.mcp.backend.acquire.duration` | histogram (ms) | `warm` (bool — `not was_spawned`) | `mcp_gateway/gatewayd.py::_emit_backend_acquire_metric` — ensure_backend pre-flight + lazy-spawn paths; acquire-only duration captured before attach_stub/create_task overhead. |
+| `junction.mcp.lazy_load.count` / `.duration` | counter + histogram (ms) | `transport` (`stdio`) | `mcp_gateway/gatewayd.py::_emit_lazy_load_metrics` — legacy lazy-spawn path (also emits backend.acquire). |
+| `junction.mcp.warm_pool.acquire` | counter | `result` (`hit` / `miss`) | `mcp_gateway/prewarm.py::HotKeyStore.record_outcome` (emitted outside the lock). |
+| `junction.skill.lazy_load.count` / `.duration` | counter + histogram (ms) | `hit` (bool) | `skills.py::SkillsLoader.load_skill` via `_emit_lazy_load_metric` (best-effort; never breaks skill loading). |
+| `junction.gateway.boot.duration` | histogram (ms) | `server` (`dashboard` / `api`), `outcome` (`ready`) | `dashboard/server.py::start_dashboard` / `start_api_server` — boot-to-ready: wall-clock from the server's `start_time` until full init completes and it is about to accept traffic. Emitted via `metrics/http_metrics.py::record_boot_to_ready`. Best-effort; never blocks startup. |
+| `junction.gateway.request.duration` | histogram (ms) | `method` (fixed HTTP-verb allowlist, else `OTHER`), `route_template` (matched aiohttp canonical TEMPLATE, e.g. `/api/artifacts/{slug}`, else `__unknown__`), `status_class` (`1xx`..`5xx` / `other`) | `metrics/http_metrics.py::make_route_latency_middleware` — outermost gateway middleware on BOTH `start_dashboard` and `start_api_server`. Times full in-gateway HTTP handling; upgraded WebSocket connections and `text/event-stream` SSE responses are excluded so connection/turn lifetime cannot pollute request latency. **Bounded cardinality** (see below). |
 
-| `kirocrew.process.threads.python` | gauge | — | `metrics/process_gauges.py::register_process_gauges`, callbacks run only at reader collection (no polling threads). `threading.active_count()`. |
-| `kirocrew.process.threads.os` | gauge | — | Same module; `platform_compat.process_thread_count(os.getpid())` — OS-level count that catches native pools (ggml, grpc) invisible to `threading`. Linux-only; None elsewhere (gap, not zero). |
-| `kirocrew.process.open_fds` | gauge | — | Same module; delegates to `platform_compat.count_open_fds` (shared with gatewayd's zombie-diagnostic `fd_count`): `/proc/self/fd` or `/dev/fd` entry count minus the enumeration fd; Windows reports the kernel handle count (platform-dependent semantics). |
-| `kirocrew.process.memory.rss_bytes` / `.peak_rss_bytes` | gauge (By) | — | Same module; delegate to `platform_compat.proc_rss_bytes` (current) / `proc_peak_rss_bytes` (high-water mark), both cross-platform. A 0 return maps to None: gap, never a fake zero sample. |
-| `kirocrew.process.cpu.seconds` | counter (s) | — | Same module; `platform_compat.proc_cpu_seconds` cumulative user+system CPU, exported CUMULATIVE (rebuild-idempotent; see exporter row). |
-| `kirocrew.process.gc.collections` / `.collected` / `.uncollectable` | counter | `generation` (`0`/`1`/`2`) | Same module; `gc.get_stats()` per generation. Rules GC in/out of a leak diagnosis (rising uncollectable = reference cycles; flat collected with rising RSS = native leak). |
+| `junction.process.threads.python` | gauge | — | `metrics/process_gauges.py::register_process_gauges`, callbacks run only at reader collection (no polling threads). `threading.active_count()`. |
+| `junction.process.threads.os` | gauge | — | Same module; `platform_compat.process_thread_count(os.getpid())` — OS-level count that catches native pools (ggml, grpc) invisible to `threading`. Linux-only; None elsewhere (gap, not zero). |
+| `junction.process.open_fds` | gauge | — | Same module; delegates to `platform_compat.count_open_fds` (shared with gatewayd's zombie-diagnostic `fd_count`): `/proc/self/fd` or `/dev/fd` entry count minus the enumeration fd; Windows reports the kernel handle count (platform-dependent semantics). |
+| `junction.process.memory.rss_bytes` / `.peak_rss_bytes` | gauge (By) | — | Same module; delegate to `platform_compat.proc_rss_bytes` (current) / `proc_peak_rss_bytes` (high-water mark), both cross-platform. A 0 return maps to None: gap, never a fake zero sample. |
+| `junction.process.cpu.seconds` | counter (s) | — | Same module; `platform_compat.proc_cpu_seconds` cumulative user+system CPU, exported CUMULATIVE (rebuild-idempotent; see exporter row). |
+| `junction.process.gc.collections` / `.collected` / `.uncollectable` | counter | `generation` (`0`/`1`/`2`) | Same module; `gc.get_stats()` per generation. Rules GC in/out of a leak diagnosis (rising uncollectable = reference cycles; flat collected with rising RSS = native leak). |
 
 All nine registrations are wired in `provider.py::_build_recorder` (live path only)
 and wrapped so a gauge failure can never disable telemetry as a whole; each
@@ -291,7 +291,7 @@ Three families, each sized to its instrument's measured range:
 
 **Why not one shared array.** A single 1ms–60s array previously served every
 histogram through a catch-all `View(instrument_type=Histogram)`. Its ceiling was
-sized for session startup, so the first `kirocrew.turn.duration` sample ever
+sized for session startup, so the first `junction.turn.duration` sample ever
 recorded (227589ms — an agent turn is a whole agent loop including tool
 round-trips and any wait on an interactive approval) landed in the `+Inf`
 overflow bucket. Since `_pct_from_buckets` can only report an overflow bucket's
@@ -358,13 +358,13 @@ mean over one population and percentiles over another.
 **Completeness is therefore load-bearing.** With no catch-all, a histogram
 missing from the map silently falls back to OTEL's default 10s-ceiling
 boundaries — reintroducing the same class of bug. `test/metrics/
-test_provider_bucket_views.py` scans the source for `kirocrew.*.duration` metric
+test_provider_bucket_views.py` scans the source for `junction.*.duration` metric
 names and fails when one has no map entry (and when a map entry has no emitting
 call site). It also pins the no-duplicate-streams property and asserts the
 227589ms regression sample no longer overflows. **When adding a duration
 histogram, add it to `_HISTOGRAM_BUCKETS_MS`.**
 
-### Bounded cardinality of `kirocrew.gateway.request.duration` (rec #1)
+### Bounded cardinality of `junction.gateway.request.duration` (rec #1)
 
 The per-route latency label `route_template` is **never** the concrete request
 path, query, id, or body — it is the aiohttp route TEMPLATE
@@ -397,14 +397,14 @@ shards (14-day window, shard-fingerprint + 30s-TTL cache, aggregation offloaded
 via `asyncio.to_thread`), aggregates the startup histogram into p50/p90 split by
 cold/warm (`spawned` attr) + outcome + daily series, the turn histogram into a
 `turn` block (stats + outcome counts + `fault_rate`), and generically surfaces
-every other `kirocrew.*` metric (`other` list) so new emit call-sites appear
+every other `junction.*` metric (`other` list) so new emit call-sites appear
 without a handler change. Scalar (non-histogram) metrics in `other` are
 classified by the SDK's own JSON markers — a Sum's `data` block carries
 `aggregation_temporality`/`is_monotonic`, a Gauge's carries neither. DELTA sums
 keep summing across cycles/PIDs; CUMULATIVE sums (observable counters) buffer
 samples per (PID, process-identity, attrs) stream and reduce them time-ordered
 after the scan (shard iteration order is not chronological). The identity half
-of the key is the resource-level `kirocrew.process.start_time` token the
+of the key is the resource-level `junction.process.start_time` token the
 exporter stamps: a changed token for the same PID is a deterministic process
 boundary, so a reused PID starts a fresh stream even when the new process's
 first snapshot already exceeds the old maximum — the one shape value-based
@@ -471,7 +471,7 @@ rejected because `gateway.request.duration` carries method+route, which would
 grow one sub-histogram per endpoint and force an arbitrary truncation cap on the
 payload; a named boolean keeps the split two entries wide with no cap.
 
-Note that `kirocrew.mcp.lazy_load.*` is NOT the cold-spawn signal even though its
+Note that `junction.mcp.lazy_load.*` is NOT the cold-spawn signal even though its
 name suggests it. It is emitted only from the legacy pre-`ensure_backend` spawn
 path, which modern stubs never take, so it records nothing on a current
 deployment (0 data points across 47 shards / 12 days observed) while real cold
@@ -876,10 +876,10 @@ There are now **four independent** telemetry paths. Keep them straight:
 |------|---------|------|--------|--------|
 | OTEL metrics (`metrics/`) | Ops observability | DELTA histograms / counters | **Never** (local JSONL; OTLP only if the operator sets an endpoint) | `telemetry.enabled` (**off**) |
 | Token row store (`usage/tokens/`) | Cost + context analytics | One row per model-spending turn | **Never** | always on |
-| **Beacon (`beacon.py`)** | **Product analytics** | One anonymous ping per install per day | **Yes — to the KiroCrew endpoint** | `telemetry.beacon_enabled` (**on**) |
+| **Beacon (`beacon.py`)** | **Product analytics** | One anonymous ping per install per day | **Yes — to the Junction endpoint** | `telemetry.beacon_enabled` (**on**) |
 | **Install receipt (`apps/install_receipt.py`)** | **Official app adoption** | One anonymous receipt after a successful official-catalog install/update | **Yes — to the same endpoint** | `telemetry.beacon_enabled` (**on**) |
 
-`src/kiro_crew/beacon.py`, tests `test/test_beacon.py`. Fired from
+`src/junction/beacon.py`, tests `test/test_beacon.py`. Fired from
 `slack/gateway.py::run_gateway` on a **detached daemon thread** (never awaited —
 a 5s blocking `urllib` call must not delay boot or pin interpreter exit), and
 skipped entirely under `--test-mode` so the offline E2E gate cannot egress.
@@ -895,7 +895,7 @@ Four independently disqualifying reasons — do **not** "consolidate" them later
    low-cardinality enum-like values and the instrument cache never evicts, so a
    per-machine id is precisely the "cardinality bomb" that contract prevents.
 2. **OTLP egress is an extra.** `opentelemetry-exporter-otlp-proto-http` ships
-   in `kirocrew[otlp]`, not the default dependency set, so a beacon riding it
+   in `junction[otlp]`, not the default dependency set, so a beacon riding it
    would measure only users who installed an optional extra.
 3. **`telemetry.enabled` is a published no-egress promise** (config help, this
    spec, the dashboard panel all say "nothing leaves this machine"). Hanging an
@@ -923,8 +923,8 @@ The metric is **`DailyActiveInstances`** — deliberately not "DAU" and not
   is no account system — only a random per-data-home id — so one operator on
   three machines counts as **3**, and three people sharing one machine count as
   **1**. Calling it DAU would invite the reader to treat "14" as 14 people.
-- The over-count is **larger here than for a typical CLI**: KiroCrew supports
-  pods, worktree previews, and `KIROCREW_HOME` overrides, so one person on one
+- The over-count is **larger here than for a typical CLI**: Junction supports
+  pods, worktree previews, and `JUNCTION_HOME` overrides, so one person on one
   machine easily has several data homes. Dev homes and CI are suppressed, but a
   user's own pods are not.
 
@@ -990,7 +990,7 @@ the **artifact**, not the environment the artifact happens to run in.
 
 Resolution order is **baked module → env var → `"source"`**:
 
-1. `kiro_crew/_build_info.py`, generated by `scripts/stamp-distribution.sh` and
+1. `junction/_build_info.py`, generated by `scripts/stamp-distribution.sh` and
    written by each packaging path. Authoritative because it ships inside the
    artifact and a running install cannot change it. Imported once at module
    import into `beacon._BAKED_DISTRIBUTION` (an optional-dependency
@@ -998,7 +998,7 @@ Resolution order is **baked module → env var → `"source"`**:
    artifact); that binding is also the seam tests patch, because writing a real
    file into the installed package is process-wide shared state that races under
    the default `-n auto`.
-2. `KIROCREW_DISTRIBUTION`, kept as a build/test override.
+2. `JUNCTION_DISTRIBUTION`, kept as a build/test override.
 3. `DEFAULT_DISTRIBUTION` (`"source"`), the correct answer for a git checkout,
    where the module is absent (and gitignored, so it is never committed).
 
@@ -1125,9 +1125,9 @@ retries later rather than silently losing the day.
 
 `telemetry.beacon_enabled` defaults **true** and gates the repo's only default-on
 egress family: the heartbeat and official-app install receipts.
-`telemetry_permitted()` suppresses both when `KIROCREW_TELEMETRY_DISABLED` is
+`telemetry_permitted()` suppresses both when `JUNCTION_TELEMETRY_DISABLED` is
 truthy, an enterprise **governance ceiling** pins `capabilities.telemetry` off,
-the config toggle is false, the process looks like **CI**, `KIROCREW_HOME` is
+the config toggle is false, the process looks like **CI**, `JUNCTION_HOME` is
 **non-default** (dev home / pod / worktree preview), or this install has never sent
 and `dashboard.privacy_acked` is still false (the first-egress gate below).
 `beacon.should_send()` adds the heartbeat-only daily throttle; receipts are
@@ -1162,9 +1162,9 @@ Enforced at **four** chokepoints — one send gate plus **every** write path to
 | Chokepoint | Behavior when pinned |
 |---|---|
 | `beacon.should_send()` | Refuses the send, reason `disabled by governance policy (capabilities.telemetry)` — ranked **above** the config flag so a managed host reports the policy, not the local value |
-| `PATCH /api/config/kirocrew` | **403** on `telemetry.beacon_enabled=true`; writing `false` is always allowed (tightest-wins — a narrower local choice composes with the ceiling) |
-| `kirocrew telemetry enable` | Exits **1** without writing config.json; `disable` still works |
-| `kirocrew config set [--local] telemetry.beacon_enabled true` | Exits **1** without writing. Easy to miss: the *generic* setter reaches the same key, and `--local` writes `config.local.json`, which takes **precedence** over the base file — so leaving it ungated would make it the one remaining way to store `true` on a pinned host |
+| `PATCH /api/config/junction` | **403** on `telemetry.beacon_enabled=true`; writing `false` is always allowed (tightest-wins — a narrower local choice composes with the ceiling) |
+| `junction telemetry enable` | Exits **1** without writing config.json; `disable` still works |
+| `junction config set [--local] telemetry.beacon_enabled true` | Exits **1** without writing. Easy to miss: the *generic* setter reaches the same key, and `--local` writes `config.local.json`, which takes **precedence** over the base file — so leaving it ungated would make it the one remaining way to store `true` on a pinned host |
 
 **Adding a fifth write path means adding a fifth gate.** The rule is that no path
 may leave a pinned host storing `true`; `test_beacon.py::TestGenericConfigSetterIsGated`
@@ -1213,13 +1213,13 @@ because it backs `GET /api/telemetry/beacon`, which the Privacy panel refetches 
 auditing an inspection would flood the trail.
 
 `is_default_home()` compares against `~/.kiro/crew` **directly, never against
-`config_dir()`** — `config_dir()` *honors* `KIROCREW_HOME`, so comparing the two
+`config_dir()`** — `config_dir()` *honors* `JUNCTION_HOME`, so comparing the two
 always matches and the suppression would never fire (a real bug caught by
 `TestDefaultHomeDetection`).
 
-`kirocrew telemetry status | disable | enable` — `status` prints the exact
+`junction telemetry status | disable | enable` — `status` prints the exact
 payload and never materializes an id (`install_id(create=False)`). Its numbered,
-choose-one opt-out list leads with `kirocrew telemetry disable` because that choice
+choose-one opt-out list leads with `junction telemetry disable` because that choice
 persists to `config.json` and survives a new shell. Each method is a separate visual
 block: the environment override groups separately labelled macOS/Linux, PowerShell,
 and Command Prompt syntax, followed by the equivalent config key.
@@ -1231,8 +1231,8 @@ would be accepted and then have no effect).
 
 ### In-product opt-out (Settings → Privacy toggle)
 
-The GUI twin of `kirocrew telemetry disable`. It writes the **same** key —
-`telemetry.beacon_enabled` via `PATCH /api/config/kirocrew` — so the two controls
+The GUI twin of `junction telemetry disable`. It writes the **same** key —
+`telemetry.beacon_enabled` via `PATCH /api/config/junction` — so the two controls
 cannot disagree and the choice survives restarts and upgrades.
 
 - Only the **boolean** is dashboard-editable. `telemetry.beacon_endpoint` is
@@ -1245,18 +1245,18 @@ cannot disagree and the choice survives restarts and upgrades.
   independently of the flag. A privacy control that reads "on" while something
   else silences the beacon — or "off" while it still sends — is a false promise,
   so the panel states which one is in force.
-- `env_override` reports specifically whether `KIROCREW_TELEMETRY_DISABLED` pins
+- `env_override` reports specifically whether `JUNCTION_TELEMETRY_DISABLED` pins
   the state; when it does, the toggle is **disabled** rather than offering a
   write that cannot take effect.
 - `overlay_override` does the same for a `config.local.json` entry.
   `config.local.json` deep-merges **over** `config.json` — the file the toggle
   writes — so an entry there would let the switch snap back to the overlay's
   value after a successful save. The endpoint reports it and the panel disables
-  the toggle and names the file (the same case `kirocrew telemetry disable`
+  the toggle and names the file (the same case `junction telemetry disable`
   detects and reports; see `cli_commands._telemetry`). The probe is best-effort:
   a missing, unreadable, or malformed overlay reports "not pinned", since
   `enabled` already carries the authoritative effective value.
-- The handler routes `KiroCrewConfig.load()` and the overlay probe through
+- The handler routes `JunctionConfig.load()` and the overlay probe through
   `asyncio.to_thread` — both stat/read files, and this runs on the aiohttp event
   loop, where a synchronous read stalls every other request behind it.
 - The endpoint is read-only, never materializes an install id
@@ -1295,7 +1295,7 @@ consent flow:
   gateway starts the beacon thread at boot, before the dashboard has rendered, so
   an ungated fresh install would ping before the user could decline: an opt-out
   offered only after the fact. Continue persists `dashboard.privacy_acked` (and
-  `kirocrew telemetry enable|disable` sets it too, for headless hosts), which
+  `junction telemetry enable|disable` sets it too, for headless hosts), which
   `beacon.telemetry_permitted` reads. The gate is **first-egress only**
   (`beacon.is_first_send()`): an install that has already sent is past the
   disclosure, and keying every heartbeat on the flag would silence it permanently
@@ -1333,7 +1333,7 @@ installs and self-registration never call the sender. This provenance gate keeps
 private/corporate app names on the host.
 
 The sender mirrors the beacon's posture: the same endpoint, the factored shared
-consent ladder (`telemetry.beacon_enabled`, `KIROCREW_TELEMETRY_DISABLED`, the
+consent ladder (`telemetry.beacon_enabled`, `JUNCTION_TELEMETRY_DISABLED`, the
 `capabilities.telemetry` ceiling, CI/test suppression, and non-default-home
 suppression), a detached daemon thread, a 5-second timeout, and silent failure.
 It intentionally does **not** share the beacon's daily throttle because each
@@ -1350,7 +1350,7 @@ The exact GET route is:
 | `<app-slug>` | Public official-catalog identifier in the path. No custom-source or local app slug is eligible. |
 | `t` | First 32 hex characters of `HMAC-SHA256(key=receipt_secret, msg=b"app-install:" + app_slug)`, where `receipt_secret` is a 64-hex random secret generated on first use, stored owner-only as `app_receipt_secret` under the data home, and **never transmitted anywhere** — deliberately independent of the beacon install id, which the collector already holds from every heartbeat and could otherwise use to recompute tokens for public slugs and link one installation's receipts across apps. Deterministic for one installation and app, different across apps, and joinable neither into an installed-app profile nor to any heartbeat row. If the secret cannot be read or created, no receipt is sent. |
 | `k` | Exactly `fresh` or `update`, derived from whether the app was installed before the successful call. Updates must not inflate adoption rank. |
-| `v` | KiroCrew release normalized by `beacon.release()`; build stamps are removed. |
+| `v` | Junction release normalized by `beacon.release()`; build stamps are removed. |
 
 `test/test_install_receipt.py` mocks the network and pins every suppression,
 token, URL, provenance, success-only, and fresh/update property. Beacon tests
@@ -1412,7 +1412,7 @@ three guards:
    enormous if a log is rotated onto the name.
 3. **Lenient decode** (`errors="replace"`). A strict decode raises
    `UnicodeDecodeError`, which is a `ValueError` and **not** an `OSError`, so it
-   escaped the callers' handlers and killed `kirocrew telemetry status`.
+   escaped the callers' handlers and killed `junction telemetry status`.
 
 Anything unreadable returns `""`, which every caller already treats as
 absent/corrupt — so the id regenerates rather than merely not crashing. The
@@ -1427,13 +1427,13 @@ Zero application code — the access log **is** the data product:
 client ─GET /b/1/<id>?v&py&dist&first_seen─> CloudFront E1YM983XX3ASBM
                                      │ CloudFront Function returns 204 at the edge
                                      ▼
-        standard logging v2 → s3://kirocrew-beacon-logs (PERMANENT, tiered)
+        standard logging v2 → s3://junction-beacon-logs (PERMANENT, tiered)
                                      ▼
-              Athena kirocrew_analytics.beacon_logs (partition projection)
+              Athena junction_analytics.beacon_logs (partition projection)
                                      ▼
-        kirocrew-beacon-aggregator Lambda (daily 00:20 UTC) writes BOTH:
-                    ├── CloudWatch KiroCrew/Product  → dashboard (~15-month view)
-                    └── kirocrew_analytics.beacon_daily → PERMANENT record
+        junction-beacon-aggregator Lambda (daily 00:20 UTC) writes BOTH:
+                    ├── CloudWatch Junction/Product  → dashboard (~15-month view)
+                    └── junction_analytics.beacon_daily → PERMANENT record
 ```
 
 **Metrics published.** `DailyActiveInstances`, `BeaconPings`, `NewInstallations`,
@@ -1462,14 +1462,14 @@ is inherently a ~15-month window, by AWS design rather than by our choice.
 
 The permanent record is therefore two things in S3:
 
-- **Raw logs** — `s3://kirocrew-beacon-logs`. The lifecycle policy has **no
+- **Raw logs** — `s3://junction-beacon-logs`. The lifecycle policy has **no
   `Expiration` on any rule**; objects only *transition* (Standard → Standard-IA
   at 90d → Glacier Instant Retrieval at 365d) to cut cost. Glacier **Flexible
   Retrieval / Deep Archive are deliberately avoided** — they require an async
   restore before a read, which would silently break the long-range Athena
   queries this design exists to support. Versioning is on; only *noncurrent*
   versions are pruned (365d).
-- **Daily rollup** — `kirocrew_analytics.beacon_daily` (Parquet, stays in
+- **Daily rollup** — `junction_analytics.beacon_daily` (Parquet, stays in
   Standard forever). One small row per `(day, metric, dimension, value)`. This
   is what makes "permanent" *useful*: raw logs grow linearly forever, so a
   multi-year dashboard query would scan every line ever written, while the
@@ -1505,7 +1505,7 @@ operator mistake, a schema error, or a future deletion obligation. The goal is
 "retained indefinitely by policy", not "physically impossible to delete".
 
 **The aggregator cannot delete the permanent record.** Its IAM policy grants
-`s3:PutObject`/`s3:DeleteObject` on `kirocrew-beacon-logs/rollup/*` **only** —
+`s3:PutObject`/`s3:DeleteObject` on `junction-beacon-logs/rollup/*` **only** —
 raw-log access is read-only, so the component that consumes the history has no
 permission to destroy it.
 
@@ -1526,7 +1526,7 @@ needed because a same-day backfill's 23:59 is in the future and
 `PutMetricData` rejects >2h ahead. Both failure modes were hit in development.
 
 **Model CDN.** `embeddings.py::_DEFAULT_MODEL_URL` points at
-`kirocrew-models` (distribution E2UX23B48LKM6V, OAC-only bucket access). The
+`junction-models` (distribution E2UX23B48LKM6V, OAC-only bucket access). The
 `_GGUF_SHA256` pin remains the sole integrity gate, so a tampered CDN object can
 only fail verification. Because `_ensure_downloaded()` returns early when
 `model_ready()`, a CDN request is a **first-install** signal, not a DAU signal —

@@ -14,7 +14,7 @@ const defaultProps = {
   onChange: vi.fn(),
   onSend: vi.fn(),
   onProjectClick: vi.fn(),
-  project: '/home/u/work/KiroCrew',
+  project: '/home/u/work/Junction',
 }
 
 beforeEach(() => {
@@ -28,17 +28,17 @@ const branchBtn = () => screen.getByRole('button', { name: /Cop(y|ied) (branch n
 describe('ChatInput project chip branch label', () => {
   it('renders the branch beside the folder name', () => {
     renderWithProviders(<ChatInput {...defaultProps} projectBranch="feat/example" />)
-    expect(chip()).toHaveTextContent('KiroCrew')
+    expect(chip()).toHaveTextContent('Junction')
     expect(branchBtn()).toHaveTextContent('feat/example')
     expect(chip().getAttribute('title')).toContain('Branch: feat/example')
-    expect(chip().getAttribute('title')).toContain('/home/u/work/KiroCrew')
+    expect(chip().getAttribute('title')).toContain('/home/u/work/Junction')
   })
 
   it('shows only the folder name when no branch is known', () => {
     renderWithProviders(<ChatInput {...defaultProps} />)
     const btn = chip()
-    expect(btn).toHaveTextContent('KiroCrew')
-    expect(btn.getAttribute('title')).toBe('Project: /home/u/work/KiroCrew')
+    expect(btn).toHaveTextContent('Junction')
+    expect(btn.getAttribute('title')).toBe('Project: /home/u/work/Junction')
     expect(screen.queryByRole('button', { name: /Copy branch name/ })).not.toBeInTheDocument()
     // No separator glyph without a branch to separate.
     expect(btn.textContent).not.toContain('·')

@@ -14,31 +14,31 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.discord.renderer import DiscordRenderer, _transform_buries_refs
-from kiro_crew.discord.transport import DISCORD_CAPABILITIES
-from kiro_crew.messaging.driver import APPROVAL_AUTO, TurnDriver
-from kiro_crew.messaging.split import iter_fence_spans
-from kiro_crew.messaging.tables import (
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
+from junction.discord.renderer import DiscordRenderer, _transform_buries_refs
+from junction.discord.transport import DISCORD_CAPABILITIES
+from junction.messaging.driver import APPROVAL_AUTO, TurnDriver
+from junction.messaging.split import iter_fence_spans
+from junction.messaging.tables import (
     TABLE_POLICY_AUTO,
     TABLE_POLICY_NATIVE,
     TABLE_POLICY_OFF,
     display_width,
     resolve_table_policy,
 )
-from kiro_crew.messaging.transport import TransportCapabilities
-from kiro_crew.slack.transport import SLACK_CAPABILITIES
-from kiro_crew.teams.renderer import TeamsRenderer
-from kiro_crew.teams.transport import TEAMS_CAPABILITIES
-from kiro_crew.telegram.renderer import TelegramRenderer
-from kiro_crew.telegram.transport import TELEGRAM_CAPABILITIES
-from kiro_crew.webex.client import WEBEX_MAX_TEXT
-from kiro_crew.webex.renderer import WebexRenderer
-from kiro_crew.webex.transport import WEBEX_CAPABILITIES
-from kiro_crew.wecom.renderer import WeComRenderer
-from kiro_crew.wecom.transport import WECOM_CAPABILITIES
-from kiro_crew.weixin.transport import WEIXIN_CAPABILITIES
-from kiro_crew.weixin.turn_renderer import WeixinRenderer
+from junction.messaging.transport import TransportCapabilities
+from junction.slack.transport import SLACK_CAPABILITIES
+from junction.teams.renderer import TeamsRenderer
+from junction.teams.transport import TEAMS_CAPABILITIES
+from junction.telegram.renderer import TelegramRenderer
+from junction.telegram.transport import TELEGRAM_CAPABILITIES
+from junction.webex.client import WEBEX_MAX_TEXT
+from junction.webex.renderer import WebexRenderer
+from junction.webex.transport import WEBEX_CAPABILITIES
+from junction.wecom.renderer import WeComRenderer
+from junction.wecom.transport import WECOM_CAPABILITIES
+from junction.weixin.transport import WEIXIN_CAPABILITIES
+from junction.weixin.turn_renderer import WeixinRenderer
 
 #: A table wide enough (60 display columns) that ``auto`` must choose cards.
 WIDE_TABLE = (
@@ -345,8 +345,8 @@ class TestCapabilityDeclarations:
 
 class TestOutboundTableSafety:
     def test_cards_rescan_a_joined_authorization_header_and_bearer_value(self) -> None:
-        from kiro_crew.messaging.tables import TABLE_POLICY_CARDS
-        from kiro_crew.security import redact_credentials, redact_exfiltration_urls
+        from junction.messaging.tables import TABLE_POLICY_CARDS
+        from junction.security import redact_credentials, redact_exfiltration_urls
 
         token = "opaque-token-value"
         table = (
@@ -382,7 +382,7 @@ class TestOutboundTableSafety:
         assert "—" in rendered
 
     def test_converted_output_is_rescanned_for_exfiltration_urls(self) -> None:
-        from kiro_crew.messaging.tables import TABLE_POLICY_CARDS
+        from junction.messaging.tables import TABLE_POLICY_CARDS
 
         url = "https://attacker.example/c?x=" + "q" * 300
         table = (
@@ -439,7 +439,7 @@ class TestPerTargetPolicies:
         )
 
     def test_slack_flattening_is_byte_unchanged(self) -> None:
-        from kiro_crew.slack.format import to_slack_mrkdwn
+        from junction.slack.format import to_slack_mrkdwn
 
         assert to_slack_mrkdwn(WIDE_TABLE) == (
             "• *Provider:* GitHub | *Auth:* OAuth app | *Status:* Gated "

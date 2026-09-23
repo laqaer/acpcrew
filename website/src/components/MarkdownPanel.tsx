@@ -260,7 +260,7 @@ function CommentHint({ onDismiss }: { onDismiss: () => void }) {
   )
 }
 
-const HINT_KEY = 'kirocrew:comment-hint-dismissed'
+const HINT_KEY = 'junction:comment-hint-dismissed'
 
 async function downloadFile(filePath: string) {
   try {

@@ -27,13 +27,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.knowledge import ingestion as ingestion_mod
-from kiro_crew.knowledge.chunker import HeadingAwareChunker
-from kiro_crew.knowledge.folder_watcher import FolderWatcher
-from kiro_crew.knowledge.ingestion import FileTooLargeError, IngestionPipeline
-from kiro_crew.knowledge.readers import FileReader
-from kiro_crew.knowledge.store import KnowledgeStore
-from kiro_crew.knowledge.watcher import KnowledgeWatcher
+from junction.knowledge import ingestion as ingestion_mod
+from junction.knowledge.chunker import HeadingAwareChunker
+from junction.knowledge.folder_watcher import FolderWatcher
+from junction.knowledge.ingestion import FileTooLargeError, IngestionPipeline
+from junction.knowledge.readers import FileReader
+from junction.knowledge.store import KnowledgeStore
+from junction.knowledge.watcher import KnowledgeWatcher
 
 
 @pytest.fixture()
@@ -72,7 +72,7 @@ class TestSizeGuard:
         sel_spy = MagicMock()
         monkeypatch.setattr(ingestion_mod, "sel", lambda: sel_spy)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.knowledge.ingestion"):
+        with caplog.at_level(logging.WARNING, logger="junction.knowledge.ingestion"):
             with pytest.raises(FileTooLargeError) as exc_info:
                 await pipeline.ingest_file(str(big))
 
@@ -124,9 +124,9 @@ class TestSizeGuard:
         assert job_id is not None
 
     def test_config_load_failure_falls_back_to_default(self, monkeypatch):
-        import kiro_crew.config.loader as loader_mod
+        import junction.config.loader as loader_mod
         monkeypatch.setattr(
-            loader_mod.KiroCrewConfig, "load",
+            loader_mod.JunctionConfig, "load",
             classmethod(MagicMock(side_effect=RuntimeError("boom"))))
         assert ingestion_mod._max_ingest_file_mb() == ingestion_mod.DEFAULT_MAX_INGEST_FILE_MB
 
@@ -366,7 +366,7 @@ class TestChunkPropsCoercion:
             "SELECT status FROM ingestion_jobs WHERE id = ?", (job_id,)).fetchone()
         assert row["status"] == "completed"
         assert built, "per-source chunker was not built"
-        from kiro_crew.knowledge.chunker import CHUNK_OVERLAP, CHUNK_TOKEN_SIZE
+        from junction.knowledge.chunker import CHUNK_OVERLAP, CHUNK_TOKEN_SIZE
         assert built[-1].target_size == CHUNK_TOKEN_SIZE
         assert built[-1].overlap == CHUNK_OVERLAP
 
@@ -427,8 +427,8 @@ def test_persistent_source_outranks_a_transient_holder(tmp_path):
     so arrival order cannot leave the only searchable copy inside a transient
     upload whose deletion would take the content with it.
     """
-    from kiro_crew.knowledge.ingestion import IngestionPipeline
-    from kiro_crew.knowledge.store import KnowledgeStore
+    from junction.knowledge.ingestion import IngestionPipeline
+    from junction.knowledge.store import KnowledgeStore
 
     store = KnowledgeStore(str(tmp_path / "k.db"))
     try:
@@ -468,9 +468,9 @@ def test_oversized_file_message_redacts_the_caller_supplied_name(tmp_path, monke
     import asyncio
     import logging
 
-    from kiro_crew.knowledge.ingestion import FileTooLargeError, IngestionPipeline
-    from kiro_crew.knowledge.readers import FileReader
-    from kiro_crew.knowledge.store import KnowledgeStore
+    from junction.knowledge.ingestion import FileTooLargeError, IngestionPipeline
+    from junction.knowledge.readers import FileReader
+    from junction.knowledge.store import KnowledgeStore
 
     store = KnowledgeStore(str(tmp_path / "k.db"))
     try:
@@ -502,8 +502,8 @@ def test_the_duplicate_gate_records_the_refusing_source_as_a_holder(tmp_path):
     invisible to the reference count: deleting the holder destroys the only items
     while this source's file is still on disk, and nothing brings the content back.
     """
-    from kiro_crew.knowledge.ingestion import IngestionPipeline
-    from kiro_crew.knowledge.store import KnowledgeStore
+    from junction.knowledge.ingestion import IngestionPipeline
+    from junction.knowledge.store import KnowledgeStore
 
     store = KnowledgeStore(str(tmp_path / "k.db"))
     try:

@@ -21,10 +21,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST, EVENT_TEXT_CHUNK
-from kiro_crew.messaging import auto_title
+from junction.acp.types import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST, EVENT_TEXT_CHUNK
+from junction.messaging import auto_title
 
-_KEY = "telegram:kirocrew:direct:4242"
+_KEY = "telegram:junction:direct:4242"
 
 
 def _ev(kind: str, **kw):
@@ -244,7 +244,7 @@ class TestManualTitleWins:
     async def test_a_deterministic_fallback_record_is_titled(self, audits):
         """The other side of the same guard: no title on the record means the
         surface is still showing its deterministic fallback, so name it."""
-        log = _Log({"agent": "kirocrew"})
+        log = _Log({"agent": "junction"})
         renamed: list[str] = []
         title = await auto_title.maybe_auto_title(
             _Sessions(_title_provider()),

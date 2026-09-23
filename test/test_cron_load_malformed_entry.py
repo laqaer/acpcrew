@@ -22,8 +22,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import cron as cron_mod
-from kiro_crew.cron import CronService, _job_from_record
+from junction import cron as cron_mod
+from junction.cron import CronService, _job_from_record
 
 
 def _write_store(path: Path, jobs: list) -> None:
@@ -46,7 +46,7 @@ def test_malformed_entry_is_skipped_and_good_jobs_survive(tmp_path, caplog) -> N
     bad = {"id": "bad", "message": "m", "schedule": {"kind": "every"}}  # no "name"
     _write_store(mgr._path, [_good("a"), bad, _good("b")])
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.cron"):
+    with caplog.at_level(logging.WARNING, logger="junction.cron"):
         mgr._load()
 
     assert [j.id for j in mgr._jobs] == ["a", "b"]
@@ -80,7 +80,7 @@ def test_unparseable_file_still_resets_whole_store(tmp_path, caplog) -> None:
     mgr._path.parent.mkdir(parents=True, exist_ok=True)
     mgr._path.write_text("{not json", encoding="utf-8")
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.cron"):
+    with caplog.at_level(logging.WARNING, logger="junction.cron"):
         mgr._load()
 
     assert mgr._jobs == []
@@ -141,7 +141,7 @@ def test_top_level_non_object_resets_store_and_counts_zero(tmp_path, caplog) -> 
     for payload in ("[]", '{"jobs": null}', '{"jobs": 3}'):
         mgr._path.write_text(payload, encoding="utf-8")
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.cron"):
+        with caplog.at_level(logging.WARNING, logger="junction.cron"):
             mgr._load()
 
         assert mgr._jobs == [], payload

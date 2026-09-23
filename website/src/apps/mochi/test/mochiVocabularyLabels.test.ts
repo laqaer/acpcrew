@@ -28,7 +28,7 @@ import {
 
 const BACKEND = path.resolve(
   __dirname,
-  '../../../../../src/kiro_crew/apps/builtins/mochi',
+  '../../../../../src/junction/apps/builtins/mochi',
 )
 
 /** Kinds the backend passes to `log_activity` / `_log_activity`. */

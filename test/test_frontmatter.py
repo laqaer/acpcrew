@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import history
-from kiro_crew.frontmatter import (
+from junction import history
+from junction.frontmatter import (
     ONBOARDING_IMPORT,
     SKILL_LOADER,
     SKILL_UPDATE,
@@ -28,8 +28,8 @@ from kiro_crew.frontmatter import (
     parse_frontmatter,
     split_frontmatter,
 )
-from kiro_crew.onboarding_import import _column0_activation_declared, _frontmatter
-from kiro_crew.skills import SkillsLoader
+from junction.onboarding_import import _column0_activation_declared, _frontmatter
+from junction.skills import SkillsLoader
 
 # Inputs chosen to hit every axis the four grammars disagree on: opener
 # strictness, closer form, indent policy, quote stripping, duplicate-key

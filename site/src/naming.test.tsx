@@ -81,7 +81,7 @@ describe('Junction naming', () => {
     const { container } = render(<App />);
     const text = pageText(container);
     expect(text).not.toMatch(/Kiro Crew/);
-    expect(text).not.toMatch(/kirocrew/i);
+    expect(text).not.toMatch(/junction/i);
     // Clone URLs use the GitHub slug. They are not a second product name.
     const leftover = text
       .replace(/laqaer\/junction(?:\.git)?/gi, '')

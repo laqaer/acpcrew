@@ -22,7 +22,7 @@ Everything is patched at the workflow-service, artifact-store, knowledge-store
 and autonudge boundary, so no network, no subprocess and no real gateway is
 involved. ``DB_PATH`` / ``RESEARCH_DIR`` are pinned into ``tmp_path`` (the same
 fixture shape ``test_auto_research.py`` uses) on top of the per-test
-``KIROCREW_HOME`` that ``conftest.py`` already pins, so nothing is written
+``JUNCTION_HOME`` that ``conftest.py`` already pins, so nothing is written
 outside the temp tree. Handlers are invoked through aiohttp's own
 ``make_mocked_request`` rather than a live ``TestServer``, so no socket is bound
 and no gateway task is started.
@@ -43,7 +43,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.apps.builtins.auto_research import handlers as h
+from junction.apps.builtins.auto_research import handlers as h
 
 BASE = "/api/apps/auto-research"
 
@@ -2012,7 +2012,7 @@ class TestEmergentExploration:
 
     @staticmethod
     def _seed_pending(cid: str, texts: list[str]) -> None:
-        from kiro_crew.apps.builtins.auto_research import subquestion_queue as sq
+        from junction.apps.builtins.auto_research import subquestion_queue as sq
 
         d = h._campaign_dir(cid)
         queue = sq.load_queue(d)

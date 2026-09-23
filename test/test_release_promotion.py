@@ -22,23 +22,23 @@ SOURCE_VERSION = "1.2.3-insider.4"
 SOURCE_TAG = f"v{SOURCE_VERSION}"
 BASE_VERSION = "1.2.3"
 RUN_ID = 12345
-IMAGE = "ghcr.io/kirodotdev/kirocrew"
+IMAGE = "ghcr.io/kirodotdev/junction"
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
 
 
 def _bundle(path: Path, extra: dict[str, bytes] | None = None) -> Path:
     path.mkdir()
     files = {
-        "kirocrew-1.2.3rc4-py3-none-any.whl": b"wheel",
-        "kirocrew-1.2.3rc4.tar.gz": b"sdist",
-        "KiroCrew-x86_64.AppImage": b"appimage",
-        "KiroCrew-aarch64.AppImage": b"appimage-arm64",
-        "KiroCrew-x86_64.deb": b"deb",
-        "KiroCrew-aarch64.deb": b"deb-arm64",
-        "KiroCrew-x86_64.rpm": b"rpm",
-        "KiroCrew-aarch64.rpm": b"rpm-arm64",
+        "junction-1.2.3rc4-py3-none-any.whl": b"wheel",
+        "junction-1.2.3rc4.tar.gz": b"sdist",
+        "Junction-x86_64.AppImage": b"appimage",
+        "Junction-aarch64.AppImage": b"appimage-arm64",
+        "Junction-x86_64.deb": b"deb",
+        "Junction-aarch64.deb": b"deb-arm64",
+        "Junction-x86_64.rpm": b"rpm",
+        "Junction-aarch64.rpm": b"rpm-arm64",
         "notarized.zip": b"mac-zip",
-        "KiroCrew.dmg": b"dmg",
+        "Junction.dmg": b"dmg",
     }
     files.update(extra or {})
     for name, body in files.items():
@@ -95,10 +95,10 @@ def test_manifest_rejects_distribution_filename_from_other_wheel_version(
     cases = (
         (
             "wheel",
-            "kirocrew-1.2.3rc4-py3-none-any.whl",
-            "kirocrew-9.9.9-py3-none-any.whl",
+            "junction-1.2.3rc4-py3-none-any.whl",
+            "junction-9.9.9-py3-none-any.whl",
         ),
-        ("sdist", "kirocrew-1.2.3rc4.tar.gz", "kirocrew-9.9.9.tar.gz"),
+        ("sdist", "junction-1.2.3rc4.tar.gz", "junction-9.9.9.tar.gz"),
     )
     for logical_name, original_name, mismatched_name in cases:
         bundle = _bundle(tmp_path / logical_name)
@@ -118,12 +118,12 @@ def test_manifest_rejects_distribution_filename_from_other_wheel_version(
 def test_wheel_filename_binding_requires_exact_match() -> None:
     """A prefix check would accept longer versions or build-tag spellings."""
     promotion._require_wheel_version_filename(
-        "wheel", "kirocrew-1.2.3rc4-py3-none-any.whl", "1.2.3rc4"
+        "wheel", "junction-1.2.3rc4-py3-none-any.whl", "1.2.3rc4"
     )
     for bad in (
-        "kirocrew-1.2.3rc40-py3-none-any.whl",
-        "kirocrew-1.2.3rc4.post1-py3-none-any.whl",
-        "kirocrew-1.2.3rc4-1-py3-none-any.whl",
+        "junction-1.2.3rc40-py3-none-any.whl",
+        "junction-1.2.3rc4.post1-py3-none-any.whl",
+        "junction-1.2.3rc4-1-py3-none-any.whl",
     ):
         with pytest.raises(
             promotion.PromotionError, match="does not match wheel_version"
@@ -133,7 +133,7 @@ def test_wheel_filename_binding_requires_exact_match() -> None:
 
 def test_tampered_candidate_file_fails_closed(tmp_path: Path) -> None:
     bundle = _bundle(tmp_path / "bundle")
-    (bundle / "KiroCrew.dmg").write_bytes(b"different bytes")
+    (bundle / "Junction.dmg").write_bytes(b"different bytes")
 
     with pytest.raises(promotion.PromotionError, match="does not match manifest"):
         promotion.verify_bundle(bundle)
@@ -327,8 +327,8 @@ def test_archive_path_traversal_is_rejected(tmp_path: Path) -> None:
 
 
 WINDOWS_ROLES = {
-    "KiroCrew-Setup.exe": b"nsis-installer",
-    "KiroCrew-Setup.exe.blockmap": b"blockmap",
+    "Junction-Setup.exe": b"nsis-installer",
+    "Junction-Setup.exe.blockmap": b"blockmap",
 }
 
 
@@ -351,10 +351,10 @@ def test_a_candidate_with_windows_promotes_the_installer_and_its_blockmap(
         "windows_installer",
         "windows_blockmap",
     }
-    assert manifest["artifacts"]["windows_installer"]["filename"] == "KiroCrew-Setup.exe"
+    assert manifest["artifacts"]["windows_installer"]["filename"] == "Junction-Setup.exe"
     assert (
         manifest["artifacts"]["windows_blockmap"]["filename"]
-        == "KiroCrew-Setup.exe.blockmap"
+        == "Junction-Setup.exe.blockmap"
     )
 
 
@@ -374,7 +374,7 @@ def test_optionality_does_not_let_an_unlisted_file_ride_along(tmp_path: Path) ->
     # exactly what its manifest claims: adding a file after the manifest is
     # recorded fails, whether or not optional roles are in play.
     bundle = _bundle(tmp_path / "bundle", WINDOWS_ROLES)
-    (bundle / "KiroCrew-Setup.exe.sig").write_bytes(b"extra")
+    (bundle / "Junction-Setup.exe.sig").write_bytes(b"extra")
 
     with pytest.raises(promotion.PromotionError, match="file set differs from manifest"):
         promotion.verify_bundle(bundle, expected_source_sha=SOURCE_SHA)
@@ -382,7 +382,7 @@ def test_optionality_does_not_let_an_unlisted_file_ride_along(tmp_path: Path) ->
 
 def test_a_tampered_windows_installer_fails_closed(tmp_path: Path) -> None:
     bundle = _bundle(tmp_path / "bundle", WINDOWS_ROLES)
-    (bundle / "KiroCrew-Setup.exe").write_bytes(b"nsis-installeR")
+    (bundle / "Junction-Setup.exe").write_bytes(b"nsis-installeR")
 
     with pytest.raises(promotion.PromotionError, match="windows_installer sha256"):
         promotion.verify_bundle(bundle, expected_source_sha=SOURCE_SHA)

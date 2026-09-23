@@ -248,13 +248,13 @@ describe('PierreEditorImpl surface selection', () => {
   })
 
   it('drives Pierre with the dashboard theme rather than the OS preference', () => {
-    document.documentElement.setAttribute('data-theme', 'kirocrew-dark')
+    document.documentElement.setAttribute('data-theme', 'junction-dark')
     mount()
     expect(surfaceOptions().themeType).toBe('dark')
 
     cleanup()
     pierre.surfaces.length = 0
-    document.documentElement.setAttribute('data-theme', 'kirocrew-light')
+    document.documentElement.setAttribute('data-theme', 'junction-light')
     mount()
     expect(surfaceOptions().themeType).toBe('light')
   })

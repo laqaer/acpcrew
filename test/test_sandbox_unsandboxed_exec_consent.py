@@ -1,4 +1,4 @@
-"""The ``kirocrew setup`` consent step that offers the unsandboxed-exec opt-in
+"""The ``junction setup`` consent step that offers the unsandboxed-exec opt-in
 on a host with no sandbox backend.
 
 Fail-closed is the shipped default (pinned in
@@ -37,7 +37,7 @@ def _run_consent(
     collects the kwargs of every SEL event the step emits. ``parse=False`` skips
     reading the result back, for a seed that is not valid JSON.
     """
-    from kiro_crew import cli_setup
+    from junction import cli_setup
 
     cfg_file = tmp_path / "config.json"
     local_file = tmp_path / "config.local.json"
@@ -307,7 +307,7 @@ class TestSetupSandboxConsentOnlyActsOnNoBackend:
     def test_non_interactive_stdio_does_not_prompt(
         self, tmp_path, monkeypatch, capsys
     ) -> None:
-        """`kirocrew update` captures output; an unseen prompt would hang it."""
+        """`junction update` captures output; an unseen prompt would hang it."""
         result = _run_consent(
             tmp_path, monkeypatch, kind="no_backend", answer="y", tty=False
         )

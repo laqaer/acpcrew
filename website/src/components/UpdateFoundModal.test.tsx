@@ -15,7 +15,7 @@ vi.mock('../api/client', () => {
   return {
     ApiError: MockApiError,
     api: {
-      kirocrewConfig: vi.fn(),
+      junctionConfig: vi.fn(),
       patchConfig: vi.fn(),
       checkUpdate: vi.fn(),
       applyUpdate: vi.fn(),
@@ -28,7 +28,7 @@ const mockedApi = vi.mocked(api)
 const found: UpdateState = { state: 'found', version: '9.9.9', notes: 'zzq release notes' }
 
 function withNudgeConfig(record: Record<string, unknown> | undefined) {
-  mockedApi.kirocrewConfig.mockResolvedValue({ dashboard: { update_nudge: record } } as never)
+  mockedApi.junctionConfig.mockResolvedValue({ dashboard: { update_nudge: record } } as never)
 }
 
 async function mount(initial?: UpdateState, store = createTestStore()) {
@@ -59,7 +59,7 @@ function gatewayStore(status: Partial<StatusData>) {
 const downloadBridge = vi.fn<() => Promise<unknown>>()
 
 beforeEach(() => {
-  mockedApi.kirocrewConfig.mockReset()
+  mockedApi.junctionConfig.mockReset()
   mockedApi.patchConfig.mockReset()
   mockedApi.checkUpdate.mockReset()
   mockedApi.applyUpdate.mockReset()
@@ -80,7 +80,7 @@ describe('UpdateFoundModal — desktop source', () => {
   it('renders nothing without an update state', async () => {
     const { container } = await mount()
     expect(container.firstChild).toBeNull()
-    expect(mockedApi.kirocrewConfig).not.toHaveBeenCalled()
+    expect(mockedApi.junctionConfig).not.toHaveBeenCalled()
   })
 
   it('opens on a live found payload with version and notes', async () => {
@@ -97,18 +97,18 @@ describe('UpdateFoundModal — desktop source', () => {
     // The deterministic detector: a replayed payload is not a candidate, so
     // the nudge record must never even be consulted — a paint-timing race
     // cannot fake this the way an empty container can.
-    expect(mockedApi.kirocrewConfig).not.toHaveBeenCalled()
+    expect(mockedApi.junctionConfig).not.toHaveBeenCalled()
   })
 
   it('never opens once the state moves past found/available', async () => {
     const { container } = await mount({ state: 'downloading', version: '9.9.9', percent: 10 })
     expect(container.firstChild).toBeNull()
-    expect(mockedApi.kirocrewConfig).not.toHaveBeenCalled()
+    expect(mockedApi.junctionConfig).not.toHaveBeenCalled()
   })
 
   it('stays closed until the persisted record has loaded', async () => {
     let resolve!: (v: unknown) => void
-    mockedApi.kirocrewConfig.mockReturnValue(new Promise(r => { resolve = r }) as never)
+    mockedApi.junctionConfig.mockReturnValue(new Promise(r => { resolve = r }) as never)
     await mount(found)
     expect(dialog()).not.toBeInTheDocument()
     await act(async () => { resolve({ dashboard: { update_nudge: {} } }) })
@@ -143,7 +143,7 @@ describe('UpdateFoundModal — desktop source', () => {
     ;(window as unknown as { updateAPI?: object }).updateAPI = {}
     const { container } = await mount(found)
     expect(container.firstChild).toBeNull()
-    expect(mockedApi.kirocrewConfig).not.toHaveBeenCalled()
+    expect(mockedApi.junctionConfig).not.toHaveBeenCalled()
   })
 
   it('never interrupts a user who enabled background auto-download', async () => {
@@ -156,7 +156,7 @@ describe('UpdateFoundModal — desktop source', () => {
     // here would claim "nothing downloads until you choose" while the main
     // process is already downloading.
     expect(container.firstChild).toBeNull()
-    expect(mockedApi.kirocrewConfig).not.toHaveBeenCalled()
+    expect(mockedApi.junctionConfig).not.toHaveBeenCalled()
   })
 
   it('a save failure for one version does not bypass persistence for the next', async () => {

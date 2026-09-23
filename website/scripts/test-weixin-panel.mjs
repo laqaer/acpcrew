@@ -132,7 +132,7 @@ await page.route('**/api/**', async route => {
       tracking_channels: [], open_channels: [], trusted_bot_ids: [],
       reactions: {}, reactions_enabled: true, allow_forum: false,
       soft_threshold_pct: 80, hard_threshold_pct: 95,
-      command: 'kirocrew', allow_all_users: false, ws_url: '',
+      command: 'junction', allow_all_users: false, ws_url: '',
     })
   }
 
@@ -149,12 +149,12 @@ await page.route('**/api/**', async route => {
   if (p.startsWith('/api/instances')) return json(route, { instances: [], active: '' })
   if (p === '/api/models') return json(route, { models: [], default: 'auto' })
   if (p === '/api/chat/slots') return json(route, [])
-  if (p === '/api/kirocrew-config' || p === '/api/config/kirocrew') return json(route, {
-    agents: { kirocrew: { provider: 'kiroacp', model: 'auto', approval_mode: 'reads' } },
-    default_agent: 'kirocrew',
+  if (p === '/api/junction-config' || p === '/api/config/junction') return json(route, {
+    agents: { junction: { provider: 'kiroacp', model: 'auto', approval_mode: 'reads' } },
+    default_agent: 'junction',
     workspaces: { default: { dir: '~/.kiro/crew/workspace' } },
     default_workspace: 'default',
-    agent: { default_agent: 'kirocrew', provider: 'kiroacp', model: 'auto' },
+    agent: { default_agent: 'junction', provider: 'kiroacp', model: 'auto' },
     session: { timeout_secs: 900 },
     memory: { embedding_provider: 'local' },
     auto_update: true,

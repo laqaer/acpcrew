@@ -152,7 +152,7 @@ jobs:
                 git diff ${{ github.event.pull_request.base.sha }}...HEAD
             and read the PR title/description for the stated problem and intent.
 
-            REPO CONTEXT: KiroCrew is an open-source AI agent platform (Python
+            REPO CONTEXT: Junction is an open-source AI agent platform (Python
             backend + React/TS dashboard), a de-Amazoned public fork. Do NOT flag
             the absence of Brazil/AUTOSDE build tooling or internal-only infra.
 

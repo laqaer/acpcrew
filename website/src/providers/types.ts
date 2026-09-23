@@ -1,4 +1,4 @@
-// KiroCrew is KiroACP-only — kiro-cli over ACP is the sole provider. This is a
+// Junction is KiroACP-only — kiro-cli over ACP is the sole provider. This is a
 // single-member union so the adapter interface below still type-checks for its
 // many consumers.
 export type ProviderId = 'acp'
@@ -138,8 +138,8 @@ export interface ProviderAdapter {
   readonly labels: ProviderLabels
 
   resolveAgentTemplate(agent: AgentBinding): string
-  /** The model a NEW session on this KiroCrew agent would run on ('' = the
-   *  backend picks). Takes a KiroCrew agent name, not a kiro agent template:
+  /** The model a NEW session on this Junction agent would run on ('' = the
+   *  backend picks). Takes a Junction agent name, not a kiro agent template:
    *  the per-agent default is stored per agent, and several agents can share
    *  one template. */
   resolveModel(agentName: string): Promise<string>

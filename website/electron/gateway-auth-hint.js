@@ -6,7 +6,7 @@
 // owns the page load and the port probe.
 //
 // PROBLEM: when the app cannot mint a dashboard token it shows a "Token
-// Required" page telling the user to run `kirocrew token` "on your dev
+// Required" page telling the user to run `junction token` "on your dev
 // desktop". That instruction is CORRECT for the case it was written for — an
 // `ssh -L <port>:localhost:<port>` forward, where the gateway lives on another
 // machine, so the CLI must run THERE (it authenticates with that host's own
@@ -39,7 +39,7 @@
  * purely-local user looking for another machine.
  *
  * @param {object} [facts]
- * @param {"kirocrew"|"foreign"|"none"|"unknown"} [facts.localOwner="unknown"]
+ * @param {"junction"|"foreign"|"none"|"unknown"} [facts.localOwner="unknown"]
  *        who owns the port's LISTEN socket locally
  * @param {string} [facts.remoteHost=""] a remote host configured for this port
  * @returns {"local"|"foreign"|"unknown"}
@@ -53,7 +53,7 @@ function classifyAuthBlock({ localOwner = "unknown", remoteHost = "" } = {}) {
   // An explicitly configured remote host is the least ambiguous signal there
   // is: the user already told us the gateway lives elsewhere.
   if (typeof remoteHost === "string" && remoteHost !== "") return "foreign";
-  if (localOwner === "kirocrew") return "local";
+  if (localOwner === "junction") return "local";
   if (localOwner === "foreign") return "foreign";
   // "none" (nothing listening locally, yet something answered) and "unknown"
   // (the probe could not run) both mean unconfirmed. Do not guess.

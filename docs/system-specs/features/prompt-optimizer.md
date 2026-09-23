@@ -20,7 +20,7 @@ that matches the original case-insensitively as `changed: false`.
 /api/optimizer/optimize` (registered in `dashboard/server.py`). Request body is
 `{prompt, context, pastes}`; response is `{optimized, changed}`.
 
-- **Dedicated `_optimizer` session on the `kirocrew-lite` agent.** Not
+- **Dedicated `_optimizer` session on the `junction-lite` agent.** Not
   `BACKGROUND_KEY` (`_bg`). Every `_bg` caller shares one session serialized by a
   single `Semaphore(1)`, and chat-title generation (`dashboard/chat_title.py`)
   plus folder-icon generation (`dashboard/chat_folders.py`) both run there on
@@ -109,9 +109,9 @@ None. The feature is always available and has no config keys.
 
 ## Key files
 
-- `src/kiro_crew/dashboard/handlers/optimizer.py`: endpoint, system prompt,
+- `src/junction/dashboard/handlers/optimizer.py`: endpoint, system prompt,
   paste-block assembly, placeholder guard.
-- `src/kiro_crew/dashboard/server.py`: route registration.
+- `src/junction/dashboard/server.py`: route registration.
 - `website/src/components/ChatInput.tsx`: shortcut, sparkle button, mutation,
   slot routing.
 - `website/src/utils/pasteTokens.ts`: placeholder format and the `PasteBlock`

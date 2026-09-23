@@ -21,7 +21,7 @@ import { i18nT } from '../../i18n/t'
 /** Brand name — do-not-translate, so it lives here rather than in the catalog. */
 const CHANNEL_NAME = "WhatsApp"
 const SETUP_GUIDE =
-  'https://github.com/laqaer/junction/blob/main/src/kiro_crew/docs/whatsapp-integration.md'
+  'https://github.com/laqaer/junction/blob/main/src/junction/docs/whatsapp-integration.md'
 
 /** How often we poll the QR scan status while a login session is open. */
 const POLL_MS = 1500

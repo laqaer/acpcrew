@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.slack.enterprise — workspace validation.
+"""Tests for junction.slack.enterprise — workspace validation.
 
 Focus: the default-open behaviour AND the fail-closed security property
 when auth.test cannot verify the workspace identity but an allowlist is
@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.slack import enterprise
+from junction.slack import enterprise
 
 
 @pytest.fixture(autouse=True)
@@ -23,10 +23,10 @@ def _reset_module_state(tmp_path, monkeypatch):
 
     ``_load_allowed_team_ids`` now inspects ``config.json`` on disk to tell a
     corrupt config apart from a genuinely unconfigured allowlist, so every test
-    runs against an isolated, initially-empty ``KIROCREW_HOME`` to avoid coupling
+    runs against an isolated, initially-empty ``JUNCTION_HOME`` to avoid coupling
     to the developer's / CI runner's ambient config file.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     enterprise._validated_team_id = ""
     enterprise._validated_enterprise_id = ""
     enterprise._allowed_team_ids = set()
@@ -258,7 +258,7 @@ def test_symlink_to_empty_config_stays_default_open(tmp_path):
 def test_degraded_read_does_not_admit_caller_supplied_ids(tmp_path):
     """A degraded read must not be widened by caller-supplied ``extra_ids``.
 
-    The caller passes ``extra_ids`` from its OWN ``KiroCrewConfig.load()``-derived
+    The caller passes ``extra_ids`` from its OWN ``JunctionConfig.load()``-derived
     config object, and `load()` degrades a torn ``config.local.json`` overlay by
     DROPPING it -- so the caller's value is the pre-overlay BASE list. If the
     union happened anyway, an origin the operator removed in the overlay would
@@ -298,7 +298,7 @@ def test_degraded_read_does_not_admit_caller_supplied_ids(tmp_path):
 def test_clean_read_does_not_admit_caller_supplied_ids(tmp_path):
     """A SUCCESSFUL read is authoritative; a stale snapshot must not widen it.
 
-    ``extra_ids`` is the caller's earlier ``KiroCrewConfig.load()`` snapshot of
+    ``extra_ids`` is the caller's earlier ``JunctionConfig.load()`` snapshot of
     the same ``slack.allowed_enterprise_ids`` key this module reads, so the read
     here is never older. An id the caller still holds but the read did not
     return is therefore an id REMOVED from the file since the snapshot -- and
@@ -493,10 +493,10 @@ def _install_governance_posture(allowed_enterprise_ids: list[str]):
     """Install a PlatformContext carrying a channels.posture slack allowlist."""
     import dataclasses
 
-    from kiro_crew.config.loader import KiroCrewConfig
-    from kiro_crew.platform import context as ctx_mod
-    from kiro_crew.platform.bootstrap import build_default_context
-    from kiro_crew.platform.governance import parse_policy
+    from junction.config.loader import JunctionConfig
+    from junction.platform import context as ctx_mod
+    from junction.platform.bootstrap import build_default_context
+    from junction.platform.governance import parse_policy
 
     policy = parse_policy(
         {
@@ -515,7 +515,7 @@ def _install_governance_posture(allowed_enterprise_ids: list[str]):
             },
         }
     )
-    base = build_default_context(KiroCrewConfig.load())
+    base = build_default_context(JunctionConfig.load())
     ctx_mod.set_context(dataclasses.replace(base, governance=policy))
 
 
@@ -523,7 +523,7 @@ def test_governance_posture_blocks_workspace_outside_policy(tmp_path):
     # config.json has NO allowlist (default-open), but the governance posture
     # pins enterprise E_GOOD. A workspace E_EVIL must be REJECTED by the policy
     # ceiling even though the operator config would have accepted it.
-    from kiro_crew.platform import context as ctx_mod
+    from junction.platform import context as ctx_mod
 
     resp = {"enterprise_id": "E_EVIL", "team_id": "T1", "team": "Evil", "url": "https://x"}
     try:
@@ -536,7 +536,7 @@ def test_governance_posture_blocks_workspace_outside_policy(tmp_path):
 
 
 def test_governance_posture_allows_pinned_workspace(tmp_path):
-    from kiro_crew.platform import context as ctx_mod
+    from junction.platform import context as ctx_mod
 
     resp = {"enterprise_id": "E_GOOD", "team_id": "T1", "team": "Good", "url": "https://x"}
     try:
@@ -561,7 +561,7 @@ def test_governance_posture_blocks_empty_enterprise_id_when_pinned(tmp_path):
     # common case). An empty id cannot satisfy an explicitly-pinned
     # allowed_enterprise_ids ceiling, so it must FAIL CLOSED — not silently pass
     # via the old `if not value: continue`. (security-review blocking.)
-    from kiro_crew.platform import context as ctx_mod
+    from junction.platform import context as ctx_mod
 
     resp = {"enterprise_id": "", "team_id": "T1", "team": "NonGrid", "url": "https://x"}
     try:
@@ -581,10 +581,10 @@ def test_governance_posture_empty_enterprise_id_ok_when_not_pinned(tmp_path):
     # team-pinned policy is accepted iff its team matches.
     import dataclasses
 
-    from kiro_crew.config.loader import KiroCrewConfig
-    from kiro_crew.platform import context as ctx_mod
-    from kiro_crew.platform.bootstrap import build_default_context
-    from kiro_crew.platform.governance import parse_policy
+    from junction.config.loader import JunctionConfig
+    from junction.platform import context as ctx_mod
+    from junction.platform.bootstrap import build_default_context
+    from junction.platform.governance import parse_policy
 
     policy = parse_policy(
         {
@@ -598,7 +598,7 @@ def test_governance_posture_empty_enterprise_id_ok_when_not_pinned(tmp_path):
     )
     resp = {"enterprise_id": "", "team_id": "T_OK", "team": "NonGrid", "url": "https://x"}
     try:
-        base = build_default_context(KiroCrewConfig.load())
+        base = build_default_context(JunctionConfig.load())
         ctx_mod.set_context(dataclasses.replace(base, governance=policy))
         _write_allowlist(tmp_path, [])
         with _install_fake_slack_sdk(resp):
@@ -611,7 +611,7 @@ def test_governance_posture_empty_enterprise_id_ok_when_not_pinned(tmp_path):
 # --------------------------------------------------------------------------
 # Fail-closed: a corrupt config.json silently reopens the allowlist (#3945).
 #
-# KiroCrewConfig.load() degrades a torn/corrupt config to a *defaults* object
+# JunctionConfig.load() degrades a torn/corrupt config to a *defaults* object
 # instead of raising, so allowed_enterprise_ids comes back empty -- which the
 # old code could not tell apart from "operator configured no allowlist" and so
 # fell back to default-open. These tests exercise the REAL loader against a
@@ -778,7 +778,7 @@ def test_allowlist_mixed_validity_keeps_the_usable_ids(tmp_path):
 
 
 def test_reader_entry_filter_does_not_drift_from_the_loader(tmp_path):
-    """Pin `_read_allowlist`'s entry filter to `KiroCrewConfig.load()`'s.
+    """Pin `_read_allowlist`'s entry filter to `JunctionConfig.load()`'s.
 
     The reader necessarily re-states which entries are usable (the loader keeps
     only ids starting with E or T). That is a standing sync obligation, and
@@ -800,9 +800,9 @@ def test_reader_entry_filter_does_not_drift_from_the_loader(tmp_path):
         encoding="utf-8",
     )
 
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
-    via_loader = set(KiroCrewConfig.load().slack.allowed_enterprise_ids)
+    via_loader = set(JunctionConfig.load().slack.allowed_enterprise_ids)
     via_reader, refusal = enterprise._read_allowlist()
 
     assert refusal == "", f"reader unexpectedly refused a usable config: {refusal}"

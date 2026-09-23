@@ -22,12 +22,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.dashboard.chat_auto_tag import maybe_auto_tag
+from junction.dashboard.chat_auto_tag import maybe_auto_tag
 
 
 def _make_state(tags=None):
     """Build a minimal mock DashboardState for testing."""
-    from kiro_crew.dashboard.state import DashboardState
+    from junction.dashboard.state import DashboardState
 
     state = MagicMock()
     state._tags = list(tags or [])
@@ -62,15 +62,15 @@ def patch_save_slot(tmp_path):
     # import), so the patch target must be chat_auto_tag's binding — patching
     # chat_persistence would be a silent no-op.
     with patch(
-        "kiro_crew.dashboard.chat_auto_tag.save_slot_off_loop",
+        "junction.dashboard.chat_auto_tag.save_slot_off_loop",
         mock,
     ):
 
         async def _sync_to_thread(fn, *args, **kwargs):
             return fn(*args, **kwargs)
 
-        with patch("kiro_crew.dashboard.chat_tags.asyncio.to_thread", side_effect=_sync_to_thread):
-            with patch("kiro_crew.dashboard.state.config_dir", return_value=tmp_path):
+        with patch("junction.dashboard.chat_tags.asyncio.to_thread", side_effect=_sync_to_thread):
+            with patch("junction.dashboard.state.config_dir", return_value=tmp_path):
                 yield mock
 
 
@@ -137,7 +137,7 @@ class TestAutoTagDerivation:
         assert len(state._tags) == 1
         assert state._tags[0]["name"] == "DisapereBackend"
 
-    @pytest.mark.parametrize("name", ["workspace", "workspaces", "workplace", "kirocrew-workspace", "default"])
+    @pytest.mark.parametrize("name", ["workspace", "workspaces", "workplace", "junction-workspace", "default"])
     async def test_trivial_workspace_basenames_are_noop(self, patch_save_slot, name):
         """Default/generic workspace dir names carry no signal — suppress them."""
         state = _make_state()
@@ -305,13 +305,13 @@ class TestAutoTagFlagSetBeforeSave:
         async def _recording_save(state_arg, slot_arg, **kwargs):
             flag_at_save.append(bool(getattr(slot_arg, "_auto_tagged", False)))
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_auto_tag.save_slot_off_loop", _recording_save)
+        monkeypatch.setattr("junction.dashboard.chat_auto_tag.save_slot_off_loop", _recording_save)
 
         async def _sync_to_thread(fn, *args, **kwargs):
             return fn(*args, **kwargs)
 
-        with patch("kiro_crew.dashboard.chat_tags.asyncio.to_thread", side_effect=_sync_to_thread):
-            with patch("kiro_crew.dashboard.state.config_dir", return_value=tmp_path):
+        with patch("junction.dashboard.chat_tags.asyncio.to_thread", side_effect=_sync_to_thread):
+            with patch("junction.dashboard.state.config_dir", return_value=tmp_path):
                 await maybe_auto_tag(state, slot)
 
         assert flag_at_save == [True]
@@ -352,9 +352,9 @@ class TestAutoTagDeleteRace:
     """Concurrent auto_tag + tag delete must not leave dangling references."""
 
     async def test_no_dangling_reference(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_tags import api_chat_tag_delete
+        from junction.dashboard.chat_tags import api_chat_tag_delete
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
 
         async def _sync_to_thread(fn, *args, **kwargs):
             return fn(*args, **kwargs)
@@ -380,13 +380,13 @@ class TestAutoTagDeleteRace:
             state._slots["test-slot"] = slot
 
             with patch(
-                "kiro_crew.dashboard.chat_tags.asyncio.to_thread", side_effect=_sync_to_thread
+                "junction.dashboard.chat_tags.asyncio.to_thread", side_effect=_sync_to_thread
             ):
                 with patch(
-                    "kiro_crew.dashboard.chat_tags.save_slot_off_loop", new_callable=AsyncMock
+                    "junction.dashboard.chat_tags.save_slot_off_loop", new_callable=AsyncMock
                 ):
                     with patch(
-                        "kiro_crew.dashboard.chat_persistence.save_slot_off_loop",
+                        "junction.dashboard.chat_persistence.save_slot_off_loop",
                         new_callable=AsyncMock,
                     ):
 
@@ -418,7 +418,7 @@ class TestAutoTagTrigger:
 
     async def test_import_succeeds(self):
         """chat_handlers can import maybe_auto_tag without cycle."""
-        from kiro_crew.dashboard.chat_handlers import maybe_auto_tag as imported
+        from junction.dashboard.chat_handlers import maybe_auto_tag as imported
 
         assert callable(imported)
 
@@ -441,7 +441,7 @@ class TestAutoTagPersistFailureRollback:
             raise IOError("disk full")
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_auto_tag.persist_tags_snapshot_unlocked",
+            "junction.dashboard.chat_auto_tag.persist_tags_snapshot_unlocked",
             _failing_persist,
         )
         await maybe_auto_tag(state, slot)
@@ -462,7 +462,7 @@ class TestAutoTagTruncationBeforeMatch:
     the cut would create duplicate definitions with identical names."""
 
     async def test_long_basenames_reuse_one_definition(self, patch_save_slot):
-        from kiro_crew.dashboard.chat_auto_tag import _NAME_MAX
+        from junction.dashboard.chat_auto_tag import _NAME_MAX
 
         state = _make_state()
         base = "x" * _NAME_MAX

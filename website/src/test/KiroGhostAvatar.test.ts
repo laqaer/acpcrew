@@ -156,11 +156,11 @@ describe('kiroGhost style', () => {
   })
 
   it('renders a local data URI with no remix claim in its metadata', () => {
-    const svg = createAvatar(kiroGhost, { seed: 'kirocrew' }).toString()
+    const svg = createAvatar(kiroGhost, { seed: 'junction' }).toString()
     // The art is first-party, so DiceBear's "Remix of" rights line must not appear.
     expect(svg).not.toContain('Remix of')
     expect(svg).toContain('Design by')
-    expect(createAvatar(kiroGhost, { seed: 'kirocrew' }).toDataUri()).toMatch(
+    expect(createAvatar(kiroGhost, { seed: 'junction' }).toDataUri()).toMatch(
       /^data:image\/svg\+xml/,
     )
   })
@@ -168,7 +168,7 @@ describe('kiroGhost style', () => {
   it('is deterministic and distinct across seeds', () => {
     const a = createAvatar(kiroGhost, { seed: 'oncall' }).toString()
     expect(createAvatar(kiroGhost, { seed: 'oncall' }).toString()).toBe(a)
-    expect(createAvatar(kiroGhost, { seed: 'kirocrew' }).toString()).not.toBe(a)
+    expect(createAvatar(kiroGhost, { seed: 'junction' }).toString()).not.toBe(a)
   })
 
   it('pins the draw order', () => {
@@ -192,7 +192,7 @@ describe('kiroGhost style', () => {
       flip: false,
       tile: '#ee7e4f',
     })
-    expect(traits('kirocrew')).toEqual({
+    expect(traits('junction')).toEqual({
       eyes: 'wide',
       brows: 'angry',
       mouth: 'cat',

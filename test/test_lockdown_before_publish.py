@@ -11,7 +11,7 @@ before the first content byte and before the rename.
 Nothing prevented a NEW writer from reintroducing the shape. Two layers here:
 
 * ``scripts/check_lockdown_before_publish.py`` is an AST rule over
-  ``src/kiro_crew``, exercised below against fixtures for every shape it must
+  ``src/junction``, exercised below against fixtures for every shape it must
   catch and every correct shape it must not. Validated against real history:
   run against the tree before #5329 it flags 6/6 of #5307's sites; against
   ``main`` after it, 0/6.
@@ -562,7 +562,7 @@ class TestTheRealTree:
     """The gate the CI job runs."""
 
     def test_src_has_no_unclassified_violation(self) -> None:
-        exit_code = checker.main(["check", str(REPO_ROOT / "src" / "kiro_crew")])
+        exit_code = checker.main(["check", str(REPO_ROOT / "src" / "junction")])
         assert exit_code == 0, (
             "a lockdown-before-publish violation is unclassified. Convert it to "
             "atomic_write(..., restrict_to_owner=True), or annotate a genuine "
@@ -576,7 +576,7 @@ class TestTheRealTree:
         future regression at one of those very sites would land unnoticed
         because its entry was already there.
         """
-        src = REPO_ROOT / "src" / "kiro_crew"
+        src = REPO_ROOT / "src" / "junction"
         live: set[str] = set()
         for py in sorted(src.rglob("*.py")):
             for rel, _line, fn, _expr in checker.scan_path(py, REPO_ROOT):
@@ -763,13 +763,13 @@ class TestTheRealTree:
 
 @pytest.fixture()
 def _home(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     return tmp_path
 
 
 def _record_final_path_presence(final_path_of):
     """Patch restrict_to_owner, returning the list it records into."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     seen: list[bool] = []
     real = platform_compat.restrict_to_owner
@@ -795,10 +795,10 @@ class TestTheLiveTargetPointerIsLockedDownBeforePublication:
     """
 
     def test_write_target_never_publishes_an_unprotected_pointer(self, _home) -> None:
-        from kiro_crew.service import live_target
+        from junction.service import live_target
 
         seen, recording = _record_final_path_presence(live_target.pointer_path)
-        with patch("kiro_crew.platform_compat.restrict_to_owner", side_effect=recording):
+        with patch("junction.platform_compat.restrict_to_owner", side_effect=recording):
             live_target.write_target(_make_valid_checkout(_home))
 
         assert seen, "the pointer was written with no owner-only lockdown at all"
@@ -808,14 +808,14 @@ class TestTheLiveTargetPointerIsLockedDownBeforePublication:
         )
 
     def test_restore_never_publishes_an_unprotected_pointer(self, _home) -> None:
-        from kiro_crew.service import live_target
+        from junction.service import live_target
 
         live_target.write_target(_make_valid_checkout(_home))
         prior = live_target.pointer_path().read_text(encoding="utf-8")
         live_target.pointer_path().unlink()
 
         seen, recording = _record_final_path_presence(live_target.pointer_path)
-        with patch("kiro_crew.platform_compat.restrict_to_owner", side_effect=recording):
+        with patch("junction.platform_compat.restrict_to_owner", side_effect=recording):
             live_target.restore(prior)
 
         assert seen, "restore rewrote the pointer with no lockdown at all"

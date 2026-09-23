@@ -31,7 +31,7 @@ import type { CrewSettings } from '../apps/issue-radar/api'
 import { repoScopeKey } from '../apps/issue-radar/lib/links'
 
 // brand-ok: the repository name
-const PAGE_REPO = { owner: 'kirodotdev', repo: 'KiroCrew' } // brand-ok: the repository name
+const PAGE_REPO = { owner: 'kirodotdev', repo: 'Junction' } // brand-ok: the repository name
 
 const api = {
   getCrewSettings: vi.fn(),

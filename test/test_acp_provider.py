@@ -13,15 +13,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.client import AcpAuthRequired
-from kiro_crew.acp.session_handle import AcpSessionHandle
-from kiro_crew.acp.session_provider import AcpSessionProvider
-from kiro_crew.acp.types import ACP_BACKEND_CLAUDE, AcpEvent, TurnUsage
-from kiro_crew.providers.acp import AcpProvider
+from junction.acp.client import AcpAuthRequired
+from junction.acp.session_handle import AcpSessionHandle
+from junction.acp.session_provider import AcpSessionProvider
+from junction.acp.types import ACP_BACKEND_CLAUDE, AcpEvent, TurnUsage
+from junction.providers.acp import AcpProvider
 
 
 def _build_provider(backend: str) -> AcpProvider:
-    with patch("kiro_crew.providers.acp.AcpClient"):
+    with patch("junction.providers.acp.AcpClient"):
         provider = AcpProvider(acp_backend=backend)
     provider._client = MagicMock()
     provider._client.backend = backend
@@ -452,7 +452,7 @@ class TestEffortControl:
     @pytest.mark.asyncio
     async def test_kiro_change_effort_pushes_slash_command_and_overlay(self):
         provider = self._effort_provider(backend="", model="claude-opus-4.7")
-        with patch("kiro_crew.providers.acp._write_cli_overlay") as wco:
+        with patch("junction.providers.acp._write_cli_overlay") as wco:
             ok = await provider.change_effort("xhigh")
         assert ok is True
         provider._client.send_command.assert_awaited_once_with("/effort", args={"level": "xhigh"})
@@ -477,7 +477,7 @@ class TestEffortControl:
         # Adapter rejects "max" for a model whose ceiling is "xhigh"; the push
         # must fall back down the ladder and land "xhigh" rather than failing
         # the whole change (which would reset the session and lose state).
-        from kiro_crew.acp.client import AcpError
+        from junction.acp.client import AcpError
 
         provider = self._effort_provider(backend=ACP_BACKEND_CLAUDE, model="claude-opus-4.7")
 
@@ -499,7 +499,7 @@ class TestEffortControl:
     async def test_claude_change_effort_propagates_non_value_errors(self):
         # A transport/timeout error is NOT a value rejection — it must NOT be
         # swallowed by the ladder; it propagates so the caller rolls back.
-        from kiro_crew.acp.client import AcpError
+        from junction.acp.client import AcpError
 
         provider = self._effort_provider(backend=ACP_BACKEND_CLAUDE, model="claude-opus-4.7")
         provider._client.set_config_option = AsyncMock(side_effect=AcpError("transport died"))
@@ -572,7 +572,7 @@ class TestEffortControl:
         # Defense in depth: even if the capability guard is bypassed (e.g. the
         # option is advertised lazily), an 'Unknown config option' rejection
         # from the adapter must be skipped, not re-raised (which resets).
-        from kiro_crew.acp.client import AcpError
+        from junction.acp.client import AcpError
 
         provider = self._effort_provider(backend=ACP_BACKEND_CLAUDE, model="claude-opus-4.7")
         # Force the guard open so the ladder runs and hits the adapter error.
@@ -594,7 +594,7 @@ class TestEffortControl:
         # would leave the running session stuck at the old effort.
         provider = self._effort_provider(backend="", model="claude-opus-4.7")
         provider._effort_per_model = {"claude-opus-4.7": "high"}
-        with patch("kiro_crew.providers.acp._clear_cli_overlay_effort") as cco:
+        with patch("junction.providers.acp._clear_cli_overlay_effort") as cco:
             ok = await provider.clear_effort()
         assert ok is False
         assert "claude-opus-4.7" not in provider._effort_per_model
@@ -629,7 +629,7 @@ class TestEffortControl:
         # same /effort slash command, but the spawn overlay must use the GPT
         # `reasoning` key (verified against kiro 2.13) — not `output_config`.
         provider = self._effort_provider(backend="", model="gpt-5.6-luna")
-        with patch("kiro_crew.providers.acp._write_cli_overlay") as wco:
+        with patch("junction.providers.acp._write_cli_overlay") as wco:
             ok = await provider.change_effort("max")
         assert ok is True
         provider._client.send_command.assert_awaited_once_with("/effort", args={"level": "max"})
@@ -660,7 +660,7 @@ class TestStartKiroRuntimeResume:
     def _kiro_provider(self, model="auto"):
         provider = _build_provider(backend="")  # kiro backend
         provider._client._work_dir = "/tmp/ws"
-        provider._client._agent = "kirocrew"
+        provider._client._agent = "junction"
         provider._client._sandbox_mode = "auto"
         provider._client._extra_env = {}
         provider._client._mcp_gateway_overlay = None
@@ -687,9 +687,9 @@ class TestStartKiroRuntimeResume:
         provider._client._resume_session_id = resume_sid
 
         with (
-            patch("kiro_crew.providers.acp.AcpRuntime", return_value=mock_runtime),
+            patch("junction.providers.acp.AcpRuntime", return_value=mock_runtime),
             patch(
-                "kiro_crew.providers.acp.AcpSessionProvider",
+                "junction.providers.acp.AcpSessionProvider",
                 side_effect=lambda handle, runtime, **kw: MagicMock(
                     _handle=handle, _runtime=runtime, resumed=False
                 ),
@@ -774,8 +774,8 @@ class TestStartKiroRuntimeResume:
         mock_runtime.create_session = AsyncMock(side_effect=boom)
 
         with (
-            patch("kiro_crew.providers.acp.AcpRuntime", return_value=mock_runtime),
-            patch("kiro_crew.providers.acp.AcpSessionProvider"),
+            patch("junction.providers.acp.AcpRuntime", return_value=mock_runtime),
+            patch("junction.providers.acp.AcpSessionProvider"),
         ):
             with pytest.raises(RuntimeError, match="session limit reached"):
                 await provider._start_kiro_runtime()
@@ -805,7 +805,7 @@ class _CapturingRecorder:
 
 class TestKiroStartupMetric:
     """The kiro cold-start (the DEFAULT backend) must emit
-    ``kirocrew.session.startup.duration`` tagged ``backend=kiro`` with a phase
+    ``junction.session.startup.duration`` tagged ``backend=kiro`` with a phase
     split (total + spawn_init + session_new [+ set_model]) so the dominant
     session/new MCP-toolset load is measurable. AcpClient.ensure_ready already
     covers the claude path; this covers the kiro path."""
@@ -813,7 +813,7 @@ class TestKiroStartupMetric:
     def _kiro_provider(self, model="auto"):
         provider = _build_provider(backend="")  # kiro backend
         provider._client._work_dir = "/tmp/ws"
-        provider._client._agent = "kirocrew"
+        provider._client._agent = "junction"
         provider._client._sandbox_mode = "auto"
         provider._client._extra_env = {}
         provider._client._mcp_gateway_overlay = None
@@ -835,12 +835,12 @@ class TestKiroStartupMetric:
         mock_runtime.create_session = AsyncMock(return_value=mock_handle)
         rec = _CapturingRecorder()
         with (
-            patch("kiro_crew.providers.acp.AcpRuntime", return_value=mock_runtime),
+            patch("junction.providers.acp.AcpRuntime", return_value=mock_runtime),
             patch(
-                "kiro_crew.providers.acp.AcpSessionProvider",
+                "junction.providers.acp.AcpSessionProvider",
                 side_effect=lambda handle, runtime, **kw: MagicMock(resumed=False),
             ),
-            patch("kiro_crew.metrics.provider.get_recorder", return_value=rec),
+            patch("junction.metrics.provider.get_recorder", return_value=rec),
         ):
             await provider._start_kiro_runtime()
         return rec
@@ -848,7 +848,7 @@ class TestKiroStartupMetric:
     def _phases(self, rec):
         assert rec.calls, "kiro startup histogram must be emitted"
         for name, _ in rec.calls:
-            assert name == "kirocrew.session.startup.duration"
+            assert name == "junction.session.startup.duration"
         return {a["phase"]: a for _, a in rec.calls}
 
     @pytest.mark.asyncio
@@ -871,7 +871,7 @@ class TestKiroStartupMetric:
 
     @pytest.mark.asyncio
     async def test_auth_required_outcome(self):
-        from kiro_crew.acp.runtime import AcpRuntimeError
+        from junction.acp.runtime import AcpRuntimeError
 
         provider = self._kiro_provider()
         mock_runtime = MagicMock()
@@ -880,8 +880,8 @@ class TestKiroStartupMetric:
         mock_runtime.kill = AsyncMock()
         rec = _CapturingRecorder()
         with (
-            patch("kiro_crew.providers.acp.AcpRuntime", return_value=mock_runtime),
-            patch("kiro_crew.metrics.provider.get_recorder", return_value=rec),
+            patch("junction.providers.acp.AcpRuntime", return_value=mock_runtime),
+            patch("junction.metrics.provider.get_recorder", return_value=rec),
         ):
             with pytest.raises(AcpAuthRequired):
                 await provider._start_kiro_runtime()
@@ -899,7 +899,7 @@ class TestFixBDeadRuntimeRespawn:
     def _kiro_provider(self):
         provider = _build_provider(backend="")  # kiro backend
         provider._client._work_dir = "/tmp/ws"
-        provider._client._agent = "kirocrew"
+        provider._client._agent = "junction"
         provider._client._sandbox_mode = "auto"
         provider._client._extra_env = {}
         provider._client._mcp_gateway_overlay = None
@@ -941,11 +941,11 @@ class TestFixBDeadRuntimeRespawn:
 
         with (
             patch(
-                "kiro_crew.providers.acp.AcpRuntime",
+                "junction.providers.acp.AcpRuntime",
                 side_effect=lambda **kw: next(runtime_calls),
             ),
             patch(
-                "kiro_crew.providers.acp.AcpSessionProvider",
+                "junction.providers.acp.AcpSessionProvider",
                 side_effect=lambda handle, runtime, **kw: MagicMock(
                     _handle=handle, _runtime=runtime, resumed=False
                 ),
@@ -981,7 +981,7 @@ class TestLoadSessionWithRetry:
         provider = _build_provider(backend="")
         handle = object()
         rt = self._runtime(AsyncMock(return_value=handle))
-        with patch("kiro_crew.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+        with patch("junction.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
             got = await provider._load_session_with_retry(rt, "/s.json", "sid", None, None)
         assert got is handle
         assert rt.load_session.await_count == 1
@@ -1000,7 +1000,7 @@ class TestLoadSessionWithRetry:
                 ]
             )
         )
-        with patch("kiro_crew.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+        with patch("junction.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
             got = await provider._load_session_with_retry(rt, "/s.json", "sid", None, None)
         assert got is handle
         assert rt.load_session.await_count == 3
@@ -1008,13 +1008,13 @@ class TestLoadSessionWithRetry:
 
     @pytest.mark.asyncio
     async def test_persistent_lock_exhausts_and_falls_back(self):
-        from kiro_crew.providers.acp import _RESUME_MAX_ATTEMPTS
+        from junction.providers.acp import _RESUME_MAX_ATTEMPTS
 
         provider = _build_provider(backend="")
         rt = self._runtime(
             AsyncMock(side_effect=RuntimeError("session is active in another process"))
         )
-        with patch("kiro_crew.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+        with patch("junction.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
             got = await provider._load_session_with_retry(rt, "/s.json", "sid", None, None)
         assert got is None
         assert rt.load_session.await_count == _RESUME_MAX_ATTEMPTS
@@ -1024,7 +1024,7 @@ class TestLoadSessionWithRetry:
     async def test_non_lock_error_does_not_retry(self):
         provider = _build_provider(backend="")
         rt = self._runtime(AsyncMock(side_effect=RuntimeError("session/load parse error")))
-        with patch("kiro_crew.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+        with patch("junction.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
             got = await provider._load_session_with_retry(rt, "/s.json", "sid", None, None)
         assert got is None
         assert rt.load_session.await_count == 1  # a genuine failure is not retried
@@ -1037,7 +1037,7 @@ class TestLoadSessionWithRetry:
             AsyncMock(side_effect=RuntimeError("active in another process")),
             alive=False,
         )
-        with patch("kiro_crew.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
+        with patch("junction.providers.acp.asyncio.sleep", new=AsyncMock()) as sleep_mock:
             got = await provider._load_session_with_retry(rt, "/s.json", "sid", None, None)
         assert got is None
         assert rt.load_session.await_count == 1  # bail as soon as the runtime is dead
@@ -1056,7 +1056,7 @@ class TestStartKiroRuntimeModelEntitlement:
     def _kiro_provider(self, model):
         provider = _build_provider(backend="")  # kiro backend
         provider._client._work_dir = "/tmp/ws"
-        provider._client._agent = "kirocrew"
+        provider._client._agent = "junction"
         provider._client._sandbox_mode = "auto"
         provider._client._extra_env = {}
         provider._client._mcp_gateway_overlay = None
@@ -1079,9 +1079,9 @@ class TestStartKiroRuntimeModelEntitlement:
         runtime.create_session = AsyncMock(return_value=handle)
 
         with (
-            patch("kiro_crew.providers.acp.AcpRuntime", return_value=runtime),
+            patch("junction.providers.acp.AcpRuntime", return_value=runtime),
             patch(
-                "kiro_crew.providers.acp.AcpSessionProvider",
+                "junction.providers.acp.AcpSessionProvider",
                 side_effect=lambda h, r, **kw: MagicMock(_handle=h, _runtime=r, resumed=False),
             ),
             patch("pathlib.Path.exists", return_value=False),
@@ -1136,8 +1136,8 @@ def test_to_llm_event_preserves_provenance_flags():
     provenance fields would zero them to False and flip child_low_fidelity to
     True for EVERY child permission event on this surface, making the
     full-fidelity half of the feature (mode-parity auto-approval) inert."""
-    from kiro_crew.acp.types import EVENT_PERMISSION_REQUEST, AcpEvent
-    from kiro_crew.providers.acp import AcpProvider
+    from junction.acp.types import EVENT_PERMISSION_REQUEST, AcpEvent
+    from junction.providers.acp import AcpProvider
 
     src = AcpEvent(
         kind=EVENT_PERMISSION_REQUEST,

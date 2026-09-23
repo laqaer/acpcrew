@@ -16,10 +16,10 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers.knowledge import list_sources
-from kiro_crew.knowledge.folder_watcher import DEFAULT_MAX_FILES
-from kiro_crew.knowledge.spend import source_spend
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction.dashboard.handlers.knowledge import list_sources
+from junction.knowledge.folder_watcher import DEFAULT_MAX_FILES
+from junction.knowledge.spend import source_spend
+from junction.knowledge.store import KnowledgeStore
 
 
 @pytest.fixture()

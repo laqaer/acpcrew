@@ -23,9 +23,9 @@ from dataclasses import fields
 
 import pytest
 
-from kiro_crew.acp import client as acp_client
-from kiro_crew.acp import runtime as acp_runtime
-from kiro_crew.acp.types import (
+from junction.acp import client as acp_client
+from junction.acp import runtime as acp_runtime
+from junction.acp.types import (
     ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KAS,
@@ -44,8 +44,8 @@ from kiro_crew.acp.types import (
     PROVIDER_LABEL_DEFAULT,
     PROVIDER_LABEL_KAS,
 )
-from kiro_crew.config.loader import AgentConfig, _normalize_acp_backend
-from kiro_crew.providers import acp as providers_acp
+from junction.config.loader import AgentConfig, _normalize_acp_backend
+from junction.providers import acp as providers_acp
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _GATE_PATH = os.path.join(_REPO_ROOT, "scripts", "check_harness_parity.py")
@@ -164,9 +164,9 @@ def test_steer_capability_declares_its_stamp() -> None:
     the guarantee has to live here instead: a defensive read cannot tell "this
     backend does not steer" from "this backend forgot the stamp".
     """
-    from kiro_crew.acp.session_provider import AcpSessionProvider  # noqa: F401
-    from kiro_crew.providers.acp import AcpProvider  # noqa: F401
-    from kiro_crew.providers.base import LLMProvider
+    from junction.acp.session_provider import AcpSessionProvider  # noqa: F401
+    from junction.providers.acp import AcpProvider  # noqa: F401
+    from junction.providers.base import LLMProvider
 
     def _walk(cls):
         for sub in cls.__subclasses__():

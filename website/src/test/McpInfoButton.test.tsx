@@ -9,7 +9,7 @@ vi.mock('../api/client', () => ({
       { name: 'builder-mcp', enabled: true },
       { name: 'slack-mcp', enabled: false },
     ]),
-    kirocrewConfig: vi.fn().mockResolvedValue({ agent: { tool_search: true } }),
+    junctionConfig: vi.fn().mockResolvedValue({ agent: { tool_search: true } }),
   },
 }))
 
@@ -47,7 +47,7 @@ describe('McpInfoButton', () => {
   })
 
   it('shows the "Deferred" Tool Search status when tool_search is on', async () => {
-    vi.mocked(api.kirocrewConfig).mockResolvedValue({ agent: { tool_search: true } })
+    vi.mocked(api.junctionConfig).mockResolvedValue({ agent: { tool_search: true } })
     render(<McpInfoButton />)
     fireEvent.click(screen.getByTitle('Session MCP servers'))
     await waitFor(() => expect(screen.getByText('Tool Search · Deferred')).toBeInTheDocument())
@@ -55,7 +55,7 @@ describe('McpInfoButton', () => {
   })
 
   it('shows the "Fully loaded" Tool Search status when tool_search is off', async () => {
-    vi.mocked(api.kirocrewConfig).mockResolvedValue({ agent: { tool_search: false } })
+    vi.mocked(api.junctionConfig).mockResolvedValue({ agent: { tool_search: false } })
     render(<McpInfoButton />)
     fireEvent.click(screen.getByTitle('Session MCP servers'))
     await waitFor(() => expect(screen.getByText('Tool Search · Fully loaded')).toBeInTheDocument())

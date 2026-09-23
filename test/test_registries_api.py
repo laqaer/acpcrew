@@ -11,8 +11,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps import routes
-from kiro_crew.apps.routes import (
+from junction.apps import routes
+from junction.apps.routes import (
     _blob_cache_key,
     _is_safe_repo_identifier,
     register_app_routes,
@@ -42,26 +42,26 @@ class TestBlobCacheKey:
 
 
 def _setup_env(tmp_path, monkeypatch):
-    home = tmp_path / "kirocrew-home"
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     # Create empty config
     cfg = home / "config.json"
     cfg.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(
-        "kiro_crew.apps.routes.config_path",
+        "junction.apps.routes.config_path",
         lambda: str(cfg),
     )
     # Mock SEL
     mock_sel = MagicMock()
-    monkeypatch.setattr("kiro_crew.apps.routes.sel", lambda: mock_sel)
+    monkeypatch.setattr("junction.apps.routes.sel", lambda: mock_sel)
     # Mock bridges/backend to avoid side effects
-    import kiro_crew.apps.bridges as bridges_mod
+    import junction.apps.bridges as bridges_mod
 
     kiro_agents = tmp_path / "kiro-agents"
     kiro_agents.mkdir()
     monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
-    import kiro_crew.apps.backend as bmod
+    import junction.apps.backend as bmod
 
     bmod._processes.clear()
     bmod._allocated_ports.clear()
@@ -147,7 +147,7 @@ class TestPutRegistries:
         # registries.update — so incident response can reconstruct when/how a
         # host entered the trust set.
         _setup_env(tmp_path, monkeypatch)
-        from kiro_crew.apps import routes as routes_mod
+        from junction.apps import routes as routes_mod
 
         mock_sel = routes_mod.sel()
         async with TestClient(TestServer(_make_app())) as client:
@@ -187,7 +187,7 @@ class TestPutRegistries:
             ),
             encoding="utf-8",
         )
-        from kiro_crew.apps import routes as routes_mod
+        from junction.apps import routes as routes_mod
 
         mock_sel = routes_mod.sel()
         async with TestClient(TestServer(_make_app())) as client:
@@ -412,7 +412,7 @@ class TestPutRegistriesValidation:
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.put(
                 "/api/apps/registries",
-                json={"registries": [{"repo": "KiroCrew"}]},
+                json={"registries": [{"repo": "Junction"}]},
             )
             assert resp.status == 400
             data = await resp.json()
@@ -612,7 +612,7 @@ class TestPutRegistriesUrls:
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.put(
                 "/api/apps/registries",
-                json={"registries": [{"repo": "KiroCrew"}]},
+                json={"registries": [{"repo": "Junction"}]},
             )
             assert resp.status == 400
             assert "core registry" in (await resp.json())["error"]
@@ -699,7 +699,7 @@ class TestRefreshRegistries:
         from unittest.mock import AsyncMock
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "a"}, {"name": "b"}]),
         )
         async with TestClient(TestServer(_make_app())) as client:
@@ -717,7 +717,7 @@ class TestRefreshRegistries:
         from unittest.mock import AsyncMock
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[]),
         )
         async with TestClient(TestServer(_make_app())) as client:
@@ -746,11 +746,11 @@ class TestRefreshRegistries:
         from unittest.mock import AsyncMock
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(return_value=[{"name": "x", "repo": "R"}]),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "x"}]),
         )
         async with TestClient(TestServer(_make_app())) as client:
@@ -909,7 +909,7 @@ class TestSshUrlParity:
         # event because the host enters the loosened-sandbox / SSH-clone trust
         # set exactly as with a user@ variant.
         _setup_env(tmp_path, monkeypatch)
-        from kiro_crew.apps import routes as routes_mod
+        from junction.apps import routes as routes_mod
 
         mock_sel = routes_mod.sel()
         async with TestClient(TestServer(_make_app())) as client:
@@ -955,11 +955,11 @@ class TestSshUrlParity:
         from unittest.mock import AsyncMock
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(return_value=[{"name": "x", "repo": "R"}]),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "x"}]),
         )
         async with TestClient(TestServer(_make_app())) as client:

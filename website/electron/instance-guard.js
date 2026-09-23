@@ -1,15 +1,15 @@
 /**
  * instance-guard.js — cross-app gateway ownership guard.
  *
- * The nightly app ("KiroCrew Nightly.app") and the production app
- * ("KiroCrew.app", stable ⇄ insider via the update channel) are separate
+ * The nightly app ("Junction Nightly.app") and the production app
+ * ("Junction.app", stable ⇄ insider via the update channel) are separate
  * INSTALLS sharing ONE bundle identifier (com.amazon.kiro.crew — Finder
  * separates installs by filename; Squirrel validates updates against the
  * host's designated requirement, which pins the id), ONE data home
  * (~/.kiro/crew), and ONE gateway port (5476). That makes the port a mutex:
- * only one KiroCrew-family gateway may run at a time. Electron's
+ * only one Junction-family gateway may run at a time. Electron's
  * requestSingleInstanceLock is keyed on userData (per productName), so it
- * cannot stop "KiroCrew Nightly" launching while "KiroCrew" runs — this
+ * cannot stop "Junction Nightly" launching while "Junction" runs — this
  * module covers that cross-app seam.
  *
  * Decision inputs: our own stamped version (identity family derives from it,
@@ -18,7 +18,7 @@
  * LISTEN socket. Legacy gateways (health without identity fields) and
  * source-run dev gateways keep today's reuse behavior — the guard only
  * interposes when BOTH sides are positively identified, their families differ,
- * AND the port is held by a local KiroCrew process. That last input is what
+ * AND the port is held by a local Junction process. That last input is what
  * separates a local rival from a REMOTE gateway forwarded in over `ssh -L`,
  * which the health payload alone cannot distinguish.
  *
@@ -81,8 +81,8 @@ function classifyGatewayReadiness(statusCode, payload) {
 const FAMILY_META = {
   // appName is the technical Finder/AppleScript target. displayName is the
   // product spelling shown in dialogs and status text.
-  prod: { appName: "KiroCrew", displayName: "Junction" }, // brand-ok: Electron productName identifier
-  nightly: { appName: "KiroCrew Nightly", displayName: "Junction Nightly" }, // brand-ok: nightly channel identifier
+  prod: { appName: "Junction", displayName: "Junction" }, // brand-ok: Electron productName identifier
+  nightly: { appName: "Junction Nightly", displayName: "Junction Nightly" }, // brand-ok: nightly channel identifier
 };
 
 /**
@@ -104,7 +104,7 @@ function identityFamily(version) {
  * @param {{ok?:boolean, app?:string, version?:string}|null} remoteHealth
  *        parsed /api/health JSON, or null when unreachable/unparseable
  * @param {object} [opts]
- * @param {"kirocrew"|"foreign"|"none"|"unknown"} [opts.localOwner="unknown"]
+ * @param {"junction"|"foreign"|"none"|"unknown"} [opts.localOwner="unknown"]
  *        who LOCALLY owns the port's LISTEN socket (classifyPortOwner in
  *        gateway-stop.js). Defaults to "unknown" so a caller that forgets to
  *        pass it fails SAFE (reuse) rather than inheriting the old
@@ -126,18 +126,18 @@ function decideGatewayAction(ownVersion, remoteHealth, { localOwner = "unknown" 
   if (remote === null || remote === own) {
     return { action: "reuse", reason: remote === own ? "same-family" : "dev-gateway" };
   }
-  // Cross-family: the payload says "a rival KiroCrew owns the port". That is
+  // Cross-family: the payload says "a rival Junction owns the port". That is
   // necessary but NOT sufficient to evict, because the payload is identical
   // whether the responder is a local install or a REMOTE gateway forwarded
   // here by `ssh -L <port>:localhost:<port>`. Only a positively identified
-  // local KiroCrew LISTEN owner authorises the eviction; a tunnel ("foreign",
+  // local Junction LISTEN owner authorises the eviction; a tunnel ("foreign",
   // owner is `ssh`), an unseen socket ("none"), or a failed probe ("unknown")
   // all reuse instead. Evicting a tunnel is doubly wrong: the AppleScript quit
   // targets a local app that is not running, and killing the port would tear
   // down the user's forward. This mirrors chooseRecoveryStrategy in
   // gateway-recovery.js, which already refuses to kill a gateway we did not
   // spawn — the boot path simply never got the same rule.
-  if (localOwner !== "kirocrew") {
+  if (localOwner !== "junction") {
     return { action: "reuse", reason: `non-local-holder:${localOwner}` };
   }
   return { action: "takeover-prompt", otherFamily: remote, otherVersion: remoteHealth.version };

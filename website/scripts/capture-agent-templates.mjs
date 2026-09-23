@@ -24,22 +24,22 @@ mkdirSync(OUT, { recursive: true })
 
 const INSTALLED = [
   {
-    name: 'kirocrew',
+    name: 'junction',
     description: 'Full crew agent — memory, crons, subagents, browser and the whole skill catalog.',
-    source: 'kirocrew',
+    source: 'junction',
     model: 'claude-opus-5',
     skills: ['prepare-pr', 'babysit', 'llm-council'],
-    mcp_servers: ['kirocrew-core', 'playwright'],
-    filename: 'kirocrew.json',
+    mcp_servers: ['junction-core', 'playwright'],
+    filename: 'junction.json',
   },
   {
-    name: 'kirocrew-lite',
+    name: 'junction-lite',
     description: 'Cheap, fast variant for cron jobs and one-shot checks.',
-    source: 'kirocrew',
+    source: 'junction',
     model: '',
     skills: ['babysit'],
     mcp_servers: [],
-    filename: 'kirocrew-lite.json',
+    filename: 'junction-lite.json',
   },
   {
     name: 'reviewer',
@@ -72,11 +72,11 @@ const INSTALLED = [
 ]
 
 const DETAIL = {
-  kirocrew: {
-    prompt: 'file://~/.kiro/crew/prompts/kirocrew.md',
+  junction: {
+    prompt: 'file://~/.kiro/crew/prompts/junction.md',
     tools: ['fs_read', 'fs_write', 'execute_bash', 'use_aws', 'report_issue'],
     allowedTools: ['fs_read', 'use_aws'],
-    mcpServers: { 'kirocrew-core': {}, playwright: { args: ['--include-tools', 'browser_navigate,browser_click'] } },
+    mcpServers: { 'junction-core': {}, playwright: { args: ['--include-tools', 'browser_navigate,browser_click'] } },
     toolsSettings: {
       execute_bash: {
         deniedCommands: [
@@ -101,8 +101,8 @@ const DETAIL = {
 }
 
 const CREWS = [
-  { name: 'default', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default', description: '', source: 'user' },
-  { name: 'oncall', kiro_agent: 'kirocrew', workspace: 'oncall', memory_store: 'oncall', description: '', source: 'user' },
+  { name: 'default', kiro_agent: 'junction', workspace: 'default', memory_store: 'default', description: '', source: 'user' },
+  { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall', description: '', source: 'user' },
   { name: 'research', kiro_agent: 'reviewer', workspace: 'research', memory_store: 'research', description: '', source: 'user' },
 ]
 
@@ -117,13 +117,13 @@ function templatesApi(installed) {
     }
     if (path.startsWith('/api/agent-metadata/')) {
       const name = decodeURIComponent(path.slice('/api/agent-metadata/'.length))
-      const content = name === 'kirocrew'
+      const content = name === 'junction'
         ? 'Use for long multi-step engineering work: repo changes, PR loops, release ops.'
         : ''
       return json(route, { content }), true
     }
     if (path === '/api/agents') return json(route, { agents: CREWS, default_agent: 'default' }), true
-    if (path === '/api/config/default-agent') return json(route, { default_agent: 'kirocrew' }), true
+    if (path === '/api/config/default-agent') return json(route, { default_agent: 'junction' }), true
     if (path === '/api/sessions/context') return json(route, { sessions: [] }), true
     if (path === '/api/sessions/usage') return json(route, { usage: null }), true
     if (path === '/api/spawn') return json(route, { agents: [] }), true

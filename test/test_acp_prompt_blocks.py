@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import hooks
-from kiro_crew.acp import prompt_blocks
-from kiro_crew.acp.prompt_blocks import (
+from junction import hooks
+from junction.acp import prompt_blocks
+from junction.acp.prompt_blocks import (
     _POSIX_PATH_RE,
     IMAGE_MEDIA_TYPES,
     MAX_IMAGE_BYTES,
@@ -268,7 +268,7 @@ class TestUncProbeGate:
 
     def test_attacker_host_is_refused(self, monkeypatch, tmp_path):
         monkeypatch.setattr(
-            "kiro_crew.config.paths.data_home", lambda: tmp_path / "home"
+            "junction.config.paths.data_home", lambda: tmp_path / "home"
         )
         assert hooks.unc_probe_allowed(r"\\evil\share\x.png") is False
         assert hooks.unc_probe_allowed("//evil/share/x.png") is False
@@ -276,7 +276,7 @@ class TestUncProbeGate:
     def test_unc_under_a_unc_data_home_is_allowed(self, monkeypatch):
         """Roaming profile: the data home ITSELF is a UNC share."""
         monkeypatch.setattr(
-            "kiro_crew.config.paths.data_home",
+            "junction.config.paths.data_home",
             lambda: Path(r"\\fileserver\home\me\.kiro\crew"),
         )
         allowed = hooks.unc_probe_allowed(
@@ -294,7 +294,7 @@ class TestUncProbeGate:
 
     def test_sibling_share_on_same_server_is_refused(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.config.paths.data_home",
+            "junction.config.paths.data_home",
             lambda: Path(r"\\fileserver\home\me\.kiro\crew"),
         )
         if os.name == "nt":
@@ -537,7 +537,7 @@ class TestImageEncodedBudget:
         assert prompt_blocks.MAX_IMAGE_B64_BYTES == 5 * 1024 * 1024
 
     def test_b64_len_matches_real_encoding(self):
-        from kiro_crew.imaging import _b64_len
+        from junction.imaging import _b64_len
 
         for n in (0, 1, 2, 3, 4, 100, 1023, 4096):
             assert _b64_len(n) == len(base64.b64encode(b"x" * n))

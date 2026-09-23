@@ -16,8 +16,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.cloud import launch_job as lj
-from kiro_crew.dashboard import handlers_cloud as hc
+from junction.cloud import launch_job as lj
+from junction.dashboard import handlers_cloud as hc
 
 pytestmark = pytest.mark.asyncio
 
@@ -186,7 +186,7 @@ class TestPluginInstallCommand:
     wrong for every Linux host — and Linux is the common case for a remote crew."""
 
     def _cmd(self, monkeypatch, system, arch, present):
-        from kiro_crew.cloud import ssm
+        from junction.cloud import ssm
 
         monkeypatch.setattr(ssm.platform, "system", lambda: system)
         monkeypatch.setattr(ssm, "_normalized_arch", lambda: arch)
@@ -605,7 +605,7 @@ class TestInstanceMutations:
     ):
         """ec2.* validates tag/profile/region and raises ValidationError, which is
         NOT an AWSError — without its own arm a malformed tag becomes a 500."""
-        from kiro_crew.validation import ValidationError
+        from junction.validation import ValidationError
 
         def _boom(tag, p, r, **kw):
             raise ValidationError("tag", "required")
@@ -681,7 +681,7 @@ class TestInstanceMutations:
         state.cloud_launch_store.save(job)
 
         def _gone(*a, **k):
-            raise hc.AWSError("Stack with id kirocrew-kc-3f9a does not exist")
+            raise hc.AWSError("Stack with id junction-kc-3f9a does not exist")
 
         monkeypatch.setattr(hc.ec2, "describe", _gone)
         monkeypatch.setattr(hc.ec2, "destroy", lambda tag, p, r, **kw: {"destroyed": True})
@@ -700,7 +700,7 @@ class TestInstanceMutations:
         assert calls["unregistered"] == "i-fromjob"
 
     async def test_destroy_denied_maps_403(self, tmp_path, monkeypatch):
-        from kiro_crew.cloud.aws import CloudActionDenied
+        from junction.cloud.aws import CloudActionDenied
 
         def _boom(tag, p, r, **kw):
             raise CloudActionDenied("nope")

@@ -8,7 +8,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers.cron import api_cron_to_chat
+from junction.dashboard.handlers.cron import api_cron_to_chat
 
 
 def _make_app(state):
@@ -86,7 +86,7 @@ class TestApiCronToChat:
         job = _make_job()
         state = _make_state(jobs=[job])
         with patch(
-            "kiro_crew.dashboard.handlers.cron.inject_cron_result_to_dashboard"
+            "junction.dashboard.handlers.cron.inject_cron_result_to_dashboard"
         ) as mock_inject:
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.post("/api/crons/abc123/to-chat")

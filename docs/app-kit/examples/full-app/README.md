@@ -1,14 +1,14 @@
 # Oncall Watchtower — Full-Featured Example
 
-Demonstrates all KiroCrew app capabilities: UI page, agent, skill, cron job,
+Demonstrates all Junction app capabilities: UI page, agent, skill, cron job,
 real-time events, and nav badge.
 
 ## Install
 
 ```bash
 cd full-app/ui && npm install && npm run build
-kirocrew app install ./full-app
-kirocrew app enable oncall-watchtower
+junction app install ./full-app
+junction app enable oncall-watchtower
 ```
 
 ## Features

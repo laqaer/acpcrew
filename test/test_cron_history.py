@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.cron_history import CronHistoryStore, CronRunRecord
+from junction.cron_history import CronHistoryStore, CronRunRecord
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -290,7 +290,7 @@ def test_record_from_dict_ignores_extra_keys() -> None:
 
 @pytest.mark.asyncio
 async def test_run_job_returns_false_when_already_executing() -> None:
-    from kiro_crew.cron import CronJob, CronService
+    from junction.cron import CronJob, CronService
 
     svc = CronService.__new__(CronService)
     svc._jobs = [CronJob(id="j1", name="test", schedule="* * * * *", message="hi")]
@@ -307,7 +307,7 @@ async def test_run_job_returns_false_when_already_executing() -> None:
 
 @pytest.mark.asyncio
 async def test_run_job_stores_manual_trigger_meta() -> None:
-    from kiro_crew.cron import CronJob, CronService
+    from junction.cron import CronJob, CronService
 
     svc = CronService.__new__(CronService)
     svc._jobs = [CronJob(id="j1", name="test", schedule="* * * * *", message="hi")]
@@ -349,7 +349,7 @@ def _read_history_rows(tmp_path: Path, job_id: str) -> list[dict]:
 
 
 def _freshness_job(**kw):
-    from kiro_crew.cron import CronJob, CronSchedule
+    from junction.cron import CronJob, CronSchedule
 
     return CronJob(
         id=kw.pop("id", "j1"),
@@ -365,7 +365,7 @@ class TestRunResultFreshness:
         """A timed-out run must record its own error, not the prior run's summary."""
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _hang(*args, **kwargs):
             await asyncio.sleep(9999)
@@ -375,7 +375,7 @@ class TestRunResultFreshness:
         svc._jobs = [job]
         svc._save()
         with patch.object(svc, "_execute", side_effect=_hang), patch(
-            "kiro_crew.cron._JOB_TIMEOUT_SECS", 0.05
+            "junction.cron._JOB_TIMEOUT_SECS", 0.05
         ):
             asyncio.run(svc._run_job_isolated(job))
 
@@ -393,7 +393,7 @@ class TestRunResultFreshness:
         """None snapshot branch: first-ever run timing out records its error."""
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _hang(*args, **kwargs):
             await asyncio.sleep(9999)
@@ -404,7 +404,7 @@ class TestRunResultFreshness:
         svc._jobs = [job]
         svc._save()
         with patch.object(svc, "_execute", side_effect=_hang), patch(
-            "kiro_crew.cron._JOB_TIMEOUT_SECS", 0.05
+            "junction.cron._JOB_TIMEOUT_SECS", 0.05
         ):
             asyncio.run(svc._run_job_isolated(job))
 
@@ -417,7 +417,7 @@ class TestRunResultFreshness:
         """A run that produces a new result records it as summary and trace."""
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _produce(job):
             job.set_run_result("new run output")
@@ -447,7 +447,7 @@ class TestRunResultFreshness:
         """
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _script_ok(job):
             job.set_run_result("ok")  # interned literal, same object every run
@@ -475,7 +475,7 @@ class TestRunResultFreshness:
         """
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _one_char(job):
             job.set_run_result("y")
@@ -501,7 +501,7 @@ class TestRunResultFreshness:
         with empty output) must not surface the previous run's result."""
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _no_output(job):
             job.last_status = "ok"
@@ -526,7 +526,7 @@ class TestRunResultFreshness:
         object must not leak run 1's freshness marker into run 2's history."""
         import asyncio
 
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         async def _produce(job):
             job.set_run_result("run one output")

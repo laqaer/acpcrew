@@ -23,14 +23,14 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from conftest import MockSlackClient
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.messaging.link import ChannelLink
-from kiro_crew.session import SessionManager
+from junction.config import JunctionConfig
+from junction.messaging.link import ChannelLink
+from junction.session import SessionManager
 
 
 @pytest.fixture
 def cfg():
-    c = KiroCrewConfig()
+    c = JunctionConfig()
     c.session.timeout_secs = 2
     return c
 
@@ -70,7 +70,7 @@ class TestCompactFailurePreservesChannelIdentity:
         with it, so the next reply mints a brand-new ``slack:<ts>`` session with
         none of the conversation's context.
         """
-        from kiro_crew.slack import handler as h
+        from junction.slack import handler as h
 
         mgr = SessionManager(cfg, provider_factory=_compact_raising_factory())
         key = await _live_session(mgr, "dashboard:chat-7")
@@ -91,7 +91,7 @@ class TestCompactFailurePreservesChannelIdentity:
     @pytest.mark.asyncio
     async def test_discord_compact_failure_keeps_the_mirror_binding(self, cfg):
         """A Discord conversation must still be mirrored after the teardown."""
-        from kiro_crew.discord.transport_dispatch import DiscordDispatcher
+        from junction.discord.transport_dispatch import DiscordDispatcher
 
         mgr = SessionManager(cfg, provider_factory=_compact_raising_factory())
         dispatcher = DiscordDispatcher(
@@ -121,7 +121,7 @@ class TestCompactFailurePreservesChannelIdentity:
     @pytest.mark.asyncio
     async def test_telegram_compact_failure_keeps_the_mirror_binding(self, cfg):
         """A Telegram conversation must still be mirrored after the teardown."""
-        from kiro_crew.telegram.transport_dispatch import TelegramDispatcher
+        from junction.telegram.transport_dispatch import TelegramDispatcher
 
         mgr = SessionManager(cfg, provider_factory=_compact_raising_factory())
         dispatcher = TelegramDispatcher(

@@ -11,8 +11,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.config.loader import KiroCrewConfig, SttConfig
+from junction import platform_compat as pc
+from junction.config.loader import JunctionConfig, SttConfig
 
 # Upper bound for _wait_for_operation. Generous because it only ever elapses on
 # a genuine regression (the audit never fires); the happy path returns as soon
@@ -55,31 +55,31 @@ async def _wait_for_operation(calls: list[dict], operation: str) -> None:
 
 
 def _make_app() -> web.Application:
-    from kiro_crew.dashboard import stt_stream
+    from junction.dashboard import stt_stream
 
     app = web.Application()
     app.router.add_get("/api/ws/stt", stt_stream.api_ws_stt)
     return app
 
 
-def _cfg(**kwargs) -> KiroCrewConfig:
+def _cfg(**kwargs) -> JunctionConfig:
     stt = SttConfig(
         enabled=kwargs.pop("enabled", True),
         provider=kwargs.pop("provider", "transcribe"),
         streaming=kwargs.pop("streaming", True),
         **kwargs,
     )
-    return KiroCrewConfig(stt=stt)
+    return JunctionConfig(stt=stt)
 
 
 class TestGuards:
     @pytest.mark.asyncio
     async def test_rejects_when_streaming_disabled(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg(streaming=False)),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 503
@@ -87,10 +87,10 @@ class TestGuards:
     @pytest.mark.asyncio
     async def test_rejects_when_provider_is_whisper(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg(provider="whisper")),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 503
@@ -98,10 +98,10 @@ class TestGuards:
     @pytest.mark.asyncio
     async def test_rejects_when_stt_disabled(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg(enabled=False)),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 503
@@ -109,10 +109,10 @@ class TestGuards:
     @pytest.mark.asyncio
     async def test_rejects_bad_origin(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: False)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: False)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 403
@@ -125,12 +125,12 @@ class TestGuards:
         trace in the audit trail.
         """
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: False)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: False)
         fake_sel = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 403
@@ -145,12 +145,12 @@ class TestGuards:
     async def test_disabled_streaming_emits_sel_rejection_audit(self, monkeypatch):
         """503 (streaming not enabled) must emit ``stt_stream_rejected`` SEL event."""
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg(streaming=False)),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
         fake_sel = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 503
@@ -170,12 +170,12 @@ class TestGuards:
         the account concurrent-stream quota.
         """
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream._MAX_CONCURRENT_SESSIONS", 1)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream._active_sessions", 1)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream._MAX_CONCURRENT_SESSIONS", 1)
+        monkeypatch.setattr("junction.dashboard.stt_stream._active_sessions", 1)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             assert resp.status == 503
@@ -192,10 +192,10 @@ class TestAppleStreamingSession:
     def _install(self, monkeypatch, *, session=None, start_error="", feed_ok=True):
         """Point the endpoint at the apple provider with a stubbed helper session."""
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg(provider="apple")),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
 
         events: asyncio.Queue = asyncio.Queue()
         fed: list[bytes] = []
@@ -229,13 +229,13 @@ class TestAppleStreamingSession:
             StreamingSession=session or FakeSession,
             STREAM_SAMPLE_RATE_HZ=16000,
         )
-        # BOTH, deliberately. `_run_apple_session` does `from kiro_crew import
+        # BOTH, deliberately. `_run_apple_session` does `from junction import
         # apple_speech`, which resolves the ATTRIBUTE on the already-imported
-        # `kiro_crew` package rather than consulting sys.modules — so patching
+        # `junction` package rather than consulting sys.modules — so patching
         # sys.modules alone works when this file runs alone and is silently
         # bypassed once any other test module has imported the real one.
-        monkeypatch.setitem(sys.modules, "kiro_crew.apple_speech", fake_module)
-        monkeypatch.setattr("kiro_crew.apple_speech", fake_module, raising=False)
+        monkeypatch.setitem(sys.modules, "junction.apple_speech", fake_module)
+        monkeypatch.setattr("junction.apple_speech", fake_module, raising=False)
         return events, fed
 
     @pytest.mark.asyncio
@@ -248,7 +248,7 @@ class TestAppleStreamingSession:
         speech session, and one of `_MAX_CONCURRENT_SESSIONS` slots indefinitely.
         """
         self._install(monkeypatch)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream._MAX_STREAM_DURATION_SECS", 0.05)
+        monkeypatch.setattr("junction.dashboard.stt_stream._MAX_STREAM_DURATION_SECS", 0.05)
         async with TestClient(TestServer(_make_app())) as client:
             ws = await client.ws_connect("/api/ws/stt")
             assert (await ws.receive_json()) == {"type": "ready"}
@@ -266,10 +266,10 @@ class TestAppleStreamingSession:
         for the same event.
         """
         self._install(monkeypatch)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream._MAX_STREAM_DURATION_SECS", 0.05)
+        monkeypatch.setattr("junction.dashboard.stt_stream._MAX_STREAM_DURATION_SECS", 0.05)
         outcomes: list[str] = []
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream._emit_end_audit",
+            "junction.dashboard.stt_stream._emit_end_audit",
             lambda caller, *, outcome: outcomes.append(outcome),
         )
         async with TestClient(TestServer(_make_app())) as client:
@@ -289,7 +289,7 @@ class TestAppleStreamingSession:
         self._install(monkeypatch)
         outcomes: list[str] = []
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream._emit_end_audit",
+            "junction.dashboard.stt_stream._emit_end_audit",
             lambda caller, *, outcome: outcomes.append(outcome),
         )
         async with TestClient(TestServer(_make_app())) as client:
@@ -395,10 +395,10 @@ class TestAppleStreamingSession:
 
         self._install(monkeypatch, session=HangingSession)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream._emit_end_audit",
+            "junction.dashboard.stt_stream._emit_end_audit",
             lambda caller, *, outcome: outcomes.append(outcome),
         )
-        from kiro_crew.dashboard import stt_stream
+        from junction.dashboard import stt_stream
 
         task = asyncio.create_task(
             stt_stream._run_apple_session(
@@ -426,9 +426,9 @@ def transcribe_consented(tmp_path_factory, monkeypatch):
     these cases are about the stream, not the identity probe.
     """
     home = tmp_path_factory.mktemp("stt-consent-home")
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
-    from kiro_crew import aws_consent
-    from kiro_crew.config.loader import config_dir
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
+    from junction import aws_consent
+    from junction.config.loader import config_dir
 
     config_dir().mkdir(parents=True, exist_ok=True)
     cfg = _cfg()
@@ -462,10 +462,10 @@ class TestStreamLifecycle:
         from amazon_transcribe.handlers import TranscriptResultStreamHandler
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
 
         # Stub Transcribe client.
         input_stream = MagicMock()
@@ -481,7 +481,7 @@ class TestStreamLifecycle:
         else:
             client.start_stream_transcription = AsyncMock(return_value=stream)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.TranscribeStreamingClient",
+            "junction.dashboard.stt_stream.TranscribeStreamingClient",
             lambda **kw: client,
         )
 
@@ -532,7 +532,7 @@ class TestStreamLifecycle:
         calls: list[dict] = []
         fake_sel = MagicMock()
         fake_sel.log_api_access = lambda **kw: calls.append(kw)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
         async with TestClient(TestServer(_make_app())) as client:
             ws = await client.ws_connect("/api/ws/stt")
             await ws.receive_json()
@@ -553,15 +553,15 @@ class TestStreamLifecycle:
         Covers the partial-install / stale-env recovery path.
         """
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.TranscribeStreamingClient", None)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.TranscribeStreamingClient", None)
         calls: list[dict] = []
         fake_sel = MagicMock()
         fake_sel.log_api_access = lambda **kw: calls.append(kw)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
         async with TestClient(TestServer(_make_app())) as client:
             ws = await client.ws_connect("/api/ws/stt")
             msg = await ws.receive_json()
@@ -578,7 +578,7 @@ class TestStreamLifecycle:
     @pytest.mark.asyncio
     async def test_final_transcript_is_redacted(self, monkeypatch):
         """The real _make_handler must redact credentials before emitting final."""
-        from kiro_crew.dashboard import stt_stream
+        from junction.dashboard import stt_stream
 
         captured: list[dict] = []
 
@@ -604,7 +604,7 @@ class TestStreamLifecycle:
     @pytest.mark.asyncio
     async def test_partial_transcript_is_redacted(self, monkeypatch):
         """Partials are now redacted too (security-controls guideline)."""
-        from kiro_crew.dashboard import stt_stream
+        from junction.dashboard import stt_stream
 
         captured: list[dict] = []
 
@@ -677,7 +677,7 @@ class TestStreamLifecycle:
         only) must still be torn down after the cap.
         """
         _, input_stream = self._install_stubs(monkeypatch)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream._MAX_STREAM_DURATION_SECS", 0.05)
+        monkeypatch.setattr("junction.dashboard.stt_stream._MAX_STREAM_DURATION_SECS", 0.05)
         async with TestClient(TestServer(_make_app())) as client:
             ws = await client.ws_connect("/api/ws/stt")
             assert (await ws.receive_json()) == {"type": "ready"}
@@ -714,11 +714,11 @@ class TestConfigPutRoundTrip:
 
     @pytest.mark.asyncio
     async def test_put_persists_streaming(self, tmp_path, monkeypatch):
-        # KIROCREW_HOME redirects both config_dir() and config_path() in a
+        # JUNCTION_HOME redirects both config_dir() and config_path() in a
         # way that survives the `from ... import config_path` idiom used by
         # the handler, unlike monkeypatching a module-level name.
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.dashboard import handlers
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.dashboard import handlers
 
         app = web.Application()
         app.router.add_get("/api/config/stt", handlers.api_stt_config)
@@ -739,9 +739,9 @@ class TestConfigPutRoundTrip:
 
             on_disk = _json.loads(cfg_file.read_text(encoding="utf-8"))
             assert on_disk["stt"]["streaming"] is True
-            # Assert KiroCrewConfig.load() correctly deserializes — guards
+            # Assert JunctionConfig.load() correctly deserializes — guards
             # against field-name mismatches that would silently break at runtime.
-            reloaded = KiroCrewConfig.load()
+            reloaded = JunctionConfig.load()
             assert reloaded.stt.streaming is True
 
     @pytest.mark.asyncio
@@ -752,8 +752,8 @@ class TestConfigPutRoundTrip:
         when the client sent a string. The handler now checks
         ``isinstance(body["streaming"], bool)`` and drops anything else.
         """
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.dashboard import handlers
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.dashboard import handlers
 
         app = web.Application()
         app.router.add_put("/api/config/stt", handlers.api_stt_config)
@@ -790,8 +790,8 @@ class TestConfigPutRoundTrip:
         language_code, and language_codes so the Chat Settings STT section
         can render the current values and a language dropdown.
         """
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.dashboard import handlers
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.dashboard import handlers
 
         app = web.Application()
         app.router.add_get("/api/config/stt", handlers.api_stt_config)
@@ -838,7 +838,7 @@ class TestSttLanguageCodes:
         Regression: `ko-KR` was absent while ja-JP and zh-CN were present, so
         Korean speakers could not choose their language from the dashboard.
         """
-        from kiro_crew.dashboard.handlers.core import _STT_LANGUAGE_CODES
+        from junction.dashboard.handlers.core import _STT_LANGUAGE_CODES
 
         assert "ko-KR" in _STT_LANGUAGE_CODES
 
@@ -848,7 +848,7 @@ class TestSttLanguageCodes:
         A duplicate renders twice in the dropdown, and a malformed tag is
         rejected by Transcribe at stream-start rather than at selection time.
         """
-        from kiro_crew.dashboard.handlers.core import _STT_LANGUAGE_CODES
+        from junction.dashboard.handlers.core import _STT_LANGUAGE_CODES
 
         assert len(set(_STT_LANGUAGE_CODES)) == len(_STT_LANGUAGE_CODES)
         for code in _STT_LANGUAGE_CODES:
@@ -859,8 +859,8 @@ class TestSttLanguageCodes:
     @pytest.mark.asyncio
     async def test_korean_round_trips_through_the_config_api(self, tmp_path, monkeypatch):
         """Selecting Korean persists and is served back to the UI."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.dashboard import handlers
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.dashboard import handlers
 
         app = web.Application()
         app.router.add_get("/api/config/stt", handlers.api_stt_config)
@@ -896,16 +896,16 @@ class TestDefensiveGuards:
         the intended HTTPForbidden/HTTPServiceUnavailable.
         """
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: False)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: False)
         # sel() itself raises — worst case. _emit_guard_audit must swallow.
 
         def _raising_sel():
             raise RuntimeError("SEL not initialized")
 
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", _raising_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", _raising_sel)
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/ws/stt")
             # Must be 403 (from HTTPForbidden), not 500.
@@ -921,23 +921,23 @@ class TestDefensiveGuards:
         """
         pytest.importorskip("amazon_transcribe")
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
         # Force TranscribeStreamingClient constructor to raise.
 
         def _raising_client(**kw):
             raise RuntimeError("bad region")
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.TranscribeStreamingClient",
+            "junction.dashboard.stt_stream.TranscribeStreamingClient",
             _raising_client,
         )
         calls: list[dict] = []
         fake_sel = MagicMock()
         fake_sel.log_api_access = lambda **kw: calls.append(kw)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
         async with TestClient(TestServer(_make_app())) as client:
             ws = await client.ws_connect("/api/ws/stt")
             msg = await ws.receive_json()
@@ -962,10 +962,10 @@ class TestDefensiveGuards:
         upgrade, leaking the WebSocket and leaving an unmatched start event.
         """
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
         calls: list[dict] = []
         # sel() itself returns an object whose log_api_access raises only for
         # the start operation — guard rejections are unreachable (origin ok,
@@ -978,7 +978,7 @@ class TestDefensiveGuards:
                 raise RuntimeError("SEL unavailable")
 
         fake_sel.log_api_access = _log
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
         async with TestClient(TestServer(_make_app())) as client:
             ws = await client.ws_connect("/api/ws/stt")
             msg = await ws.receive_json()
@@ -1006,10 +1006,10 @@ class TestDefensiveGuards:
         from amazon_transcribe.handlers import TranscriptResultStreamHandler
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.KiroCrewConfig.load",
+            "junction.dashboard.stt_stream.JunctionConfig.load",
             classmethod(lambda cls: _cfg()),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.check_origin", lambda r, require: True)
+        monkeypatch.setattr("junction.dashboard.stt_stream.check_origin", lambda r, require: True)
 
         # Stub Transcribe happy-path client.
         input_stream = MagicMock()
@@ -1019,7 +1019,7 @@ class TestDefensiveGuards:
         client = MagicMock()
         client.start_stream_transcription = AsyncMock(return_value=stream)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.stt_stream.TranscribeStreamingClient",
+            "junction.dashboard.stt_stream.TranscribeStreamingClient",
             lambda **kw: client,
         )
         monkeypatch.setattr(
@@ -1046,7 +1046,7 @@ class TestDefensiveGuards:
         calls: list[dict] = []
         fake_sel = MagicMock()
         fake_sel.log_api_access = lambda **kw: calls.append(kw)
-        monkeypatch.setattr("kiro_crew.dashboard.stt_stream.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.dashboard.stt_stream.sel", lambda: fake_sel)
 
         async with TestClient(TestServer(_make_app())) as http_client:
             ws = await http_client.ws_connect("/api/ws/stt")
@@ -1064,17 +1064,17 @@ class TestDefensiveGuards:
 
 class TestSttProviderGating:
     """`mlx` is only offered on Apple Silicon, and the check must see through
-    Rosetta 2 (KiroCrew's bundled Python reports ``x86_64`` even on arm64)."""
+    Rosetta 2 (Junction's bundled Python reports ``x86_64`` even on arm64)."""
 
     def test_is_apple_silicon_false_off_darwin(self, monkeypatch):
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr("platform.system", lambda: "Linux")
         monkeypatch.setattr("platform.machine", lambda: "x86_64")
         assert core._is_apple_silicon() is False
 
     def test_is_apple_silicon_true_native_arm64(self, monkeypatch):
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr("platform.system", lambda: "Darwin")
         monkeypatch.setattr("platform.machine", lambda: "arm64")
@@ -1082,7 +1082,7 @@ class TestSttProviderGating:
 
     def test_is_apple_silicon_true_under_rosetta(self, monkeypatch):
         """Darwin + ``x86_64`` interpreter, but ``hw.optional.arm64`` == 1."""
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr("platform.system", lambda: "Darwin")
         monkeypatch.setattr("platform.machine", lambda: "x86_64")
@@ -1095,7 +1095,7 @@ class TestSttProviderGating:
 
     def test_is_apple_silicon_false_on_intel_mac(self, monkeypatch):
         """Darwin + ``x86_64``; sysctl key absent/0 on a true Intel Mac."""
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr("platform.system", lambda: "Darwin")
         monkeypatch.setattr("platform.machine", lambda: "x86_64")
@@ -1111,8 +1111,8 @@ class TestSttProviderGating:
     # ``_VALID_STT_PROVIDERS`` in the config loader — adding a provider there
     # deliberately fails these until the expectation is updated too.
     def test_providers_include_mlx_on_apple_silicon(self, monkeypatch):
-        from kiro_crew import apple_speech
-        from kiro_crew.dashboard.handlers import core
+        from junction import apple_speech
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: True)
         # `apple` has its own gate (macOS 26 + Swift toolchain); pin it off here so
@@ -1139,8 +1139,8 @@ class TestSttProviderGating:
         `_stt_providers()` runs on the dashboard's event loop (GET/PUT
         /api/config/stt) -- a second call would double that blocking cost on
         every request."""
-        from kiro_crew import apple_speech
-        from kiro_crew.dashboard.handlers import core
+        from junction import apple_speech
+        from junction.dashboard.handlers import core
 
         calls = []
 
@@ -1156,8 +1156,8 @@ class TestSttProviderGating:
         assert len(calls) == 1
 
     def test_providers_exclude_mlx_off_apple_silicon(self, monkeypatch):
-        from kiro_crew import apple_speech
-        from kiro_crew.dashboard.handlers import core
+        from junction import apple_speech
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: False)
         monkeypatch.setattr(
@@ -1169,8 +1169,8 @@ class TestSttProviderGating:
 
     def test_providers_include_apple_when_supported(self, monkeypatch):
         """`apple` is advertised only where SpeechAnalyzer can actually run."""
-        from kiro_crew import apple_speech
-        from kiro_crew.dashboard.handlers import core
+        from junction import apple_speech
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: True)
         monkeypatch.setattr(apple_speech, "availability", lambda: apple_speech.Availability(True))
@@ -1188,8 +1188,8 @@ class TestSttProviderGating:
     def test_providers_exclude_apple_when_toolchain_missing(self, monkeypatch):
         """A host that could run the framework but has no Swift toolchain must not be
         offered the option — picking it would fail at transcription time."""
-        from kiro_crew import apple_speech
-        from kiro_crew.dashboard.handlers import core
+        from junction import apple_speech
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: True)
         monkeypatch.setattr(
@@ -1202,7 +1202,7 @@ class TestSttProviderGating:
     def test_mlx_prereqs_empty_when_brew_present(self, monkeypatch):
         """The Install button installs pipx/mlx-whisper, so with brew present
         and ffmpeg on PATH there are no manual prereqs to surface."""
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: True)
         monkeypatch.setattr(core, "ensure_ffmpeg_in_path", lambda: None)
@@ -1219,7 +1219,7 @@ class TestSttProviderGating:
         ``find_brew``, which probes the install prefixes directly — otherwise the
         UI tells a Homebrew user to install Homebrew.
         """
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: True)
         monkeypatch.setattr(core, "ensure_ffmpeg_in_path", lambda: None)
@@ -1233,7 +1233,7 @@ class TestSttProviderGating:
 
     def test_mlx_prereqs_only_homebrew_when_brew_absent(self, monkeypatch):
         """Homebrew is the one thing the Install button can't bootstrap."""
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: True)
         monkeypatch.setattr(core, "ensure_ffmpeg_in_path", lambda: None)
@@ -1245,7 +1245,7 @@ class TestSttProviderGating:
         assert not any("pipx install mlx-whisper" in c for c in cmds)
 
     def test_mlx_prereqs_empty_off_apple_silicon(self, monkeypatch):
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         monkeypatch.setattr(core, "_is_apple_silicon", lambda: False)
         monkeypatch.setattr(core, "ensure_ffmpeg_in_path", lambda: None)
@@ -1274,7 +1274,7 @@ class TestSttInstallScriptPath:
 
     @pytest.mark.parametrize("provider", ["mlx", "whisper"])
     def test_script_prepends_brew_prefixes(self, provider):
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         script = core._build_stt_install_script(provider)
         assert "/opt/homebrew/bin" in script  # Apple Silicon prefix
@@ -1288,7 +1288,7 @@ class TestSttInstallScriptPath:
         """Guard the f-string-composed prelude against a syntax regression."""
         import subprocess
 
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         p = tmp_path / "install.sh"
         p.write_text(core._build_stt_install_script(provider), encoding="utf-8")
@@ -1299,7 +1299,7 @@ class TestSttInstallScriptPath:
         """End-to-end: the prelude alone recovers brew from a stripped PATH."""
         import subprocess
 
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         fake_prefix = tmp_path / "opt" / "homebrew" / "bin"
         fake_prefix.mkdir(parents=True)
@@ -1337,7 +1337,7 @@ class TestSttInstallScriptWheels:
         ``openai-whisper``, so a whole-script index() would measure the wrong
         occurrence and the ordering assertions would silently pass.
         """
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         script = core._build_stt_install_script("whisper")
         marker = "# Fallback: pip install"

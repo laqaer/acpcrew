@@ -8,7 +8,7 @@ they need a marker the model and the frontend can both recognise.
 **The user may not be present.** Process the envelope and act; do not answer it as
 though someone is waiting for a conversational reply.
 
-Every prefix is defined once, in `src/kiro_crew/dashboard/state.py`, so the
+Every prefix is defined once, in `src/junction/dashboard/state.py`, so the
 frontend has one list to mirror and no second copy can drift. Classification is by
 `str.startswith` on the resolved prefix, never by a loose regex.
 

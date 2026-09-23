@@ -25,7 +25,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/transfer-peer-too-old'
 const SLOT = 'chat-peerold'
-const PROJECT = '/home/user/workspace/KiroCrew'
+const PROJECT = '/home/user/workspace/Junction'
 const INSTANCE = 'devdesk-2'
 
 /** The gateway's 502 body for a peer with no importer route. */
@@ -42,7 +42,7 @@ const slots = [{
   running: false,
   last_message: '',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: Math.floor(Date.now() / 1000),

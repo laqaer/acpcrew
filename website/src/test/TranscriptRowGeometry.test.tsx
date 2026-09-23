@@ -50,7 +50,7 @@ const WF_COMPLETION = [
 
 const SA_COMPLETION = [
   '[Subagent completion event]',
-  'Agent `53e3e5eb` (kirocrew) completed ✅',
+  'Agent `53e3e5eb` (junction) completed ✅',
   'Task: Audit the transcript cards',
   '',
   'Reported per-component props.',

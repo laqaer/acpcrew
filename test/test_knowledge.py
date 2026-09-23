@@ -14,13 +14,13 @@ from uuid import uuid4
 
 import pytest
 
-from kiro_crew.knowledge import readers
-from kiro_crew.knowledge.chunker import HeadingAwareChunker
-from kiro_crew.knowledge.extractor import EntityExtractor
-from kiro_crew.knowledge.readers import FileReader
-from kiro_crew.knowledge.retrieval import HybridRetriever, _bytes_to_floats
-from kiro_crew.knowledge.store import KnowledgeBundleError, KnowledgeStore, SimpleDiGraph
-from kiro_crew.knowledge.sync import SyncScheduler
+from junction.knowledge import readers
+from junction.knowledge.chunker import HeadingAwareChunker
+from junction.knowledge.extractor import EntityExtractor
+from junction.knowledge.readers import FileReader
+from junction.knowledge.retrieval import HybridRetriever, _bytes_to_floats
+from junction.knowledge.store import KnowledgeBundleError, KnowledgeStore, SimpleDiGraph
+from junction.knowledge.sync import SyncScheduler
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -327,7 +327,7 @@ class TestFileReader:
             assert meta['extension'] == ext
         # Scripts and modules chunk at function boundaries like their .sh/.rb
         # peers; the .psd1 manifest is data, so it stays on the generic path.
-        from kiro_crew.knowledge.ingestion import CODE_EXTS
+        from junction.knowledge.ingestion import CODE_EXTS
         assert '.ps1' in CODE_EXTS
         assert '.psm1' in CODE_EXTS
         assert '.psd1' not in CODE_EXTS
@@ -927,7 +927,7 @@ class TestKnowledgeStoreExtended:
                     conn.close()
             return parsed
 
-        with patch("kiro_crew.knowledge.store.json.loads", failure_lands_mid_scan):
+        with patch("junction.knowledge.store.json.loads", failure_lands_mid_scan):
             reopened = KnowledgeStore(db_path)
         try:
             assert fired, "the mid-scan write never landed; the test proves nothing"
@@ -1415,9 +1415,9 @@ class TestPysqlite3Fallback:
     """Verify modules fall back to stdlib sqlite3 when pysqlite3 is unavailable."""
 
     _MODULES = (
-        "kiro_crew.knowledge.store",
-        "kiro_crew.knowledge.retrieval",
-        "kiro_crew.snapshot",
+        "junction.knowledge.store",
+        "junction.knowledge.retrieval",
+        "junction.snapshot",
     )
 
     def _reload_without_pysqlite3(self, module_name: str):
@@ -1439,13 +1439,13 @@ class TestPysqlite3Fallback:
                 sys.modules["pysqlite3"] = saved
 
     def test_store_falls_back_to_stdlib_sqlite3(self):
-        self._reload_without_pysqlite3("kiro_crew.knowledge.store")
+        self._reload_without_pysqlite3("junction.knowledge.store")
 
     def test_retrieval_falls_back_to_stdlib_sqlite3(self):
-        self._reload_without_pysqlite3("kiro_crew.knowledge.retrieval")
+        self._reload_without_pysqlite3("junction.knowledge.retrieval")
 
     def test_snapshot_falls_back_to_stdlib_sqlite3(self):
-        self._reload_without_pysqlite3("kiro_crew.snapshot")
+        self._reload_without_pysqlite3("junction.snapshot")
 
 
 # ---------------------------------------------------------------------------
@@ -1602,11 +1602,11 @@ class _FakeEmbedder:
 @pytest.mark.asyncio
 class TestRebuildEmbeddingsJob:
     async def _run(self, store, embedder, n_items):
-        from kiro_crew.dashboard.handlers.knowledge import _rebuild_embeddings_job
+        from junction.dashboard.handlers.knowledge import _rebuild_embeddings_job
 
         # Seed active items, each with a stale (single-element) embedding so we can
         # prove the rebuild overwrites in place rather than only filling NULLs.
-        from kiro_crew.knowledge.embedder import floats_to_bytes
+        from junction.knowledge.embedder import floats_to_bytes
         for i in range(n_items):
             store.add_item(f"Item {i:03d}", f"body {i}", "document",
                            embedding=floats_to_bytes([9.9]))
@@ -1621,8 +1621,8 @@ class TestRebuildEmbeddingsJob:
 
     async def test_rebuild_reembeds_all_items_across_batches(self, store):
         # More than one _REBUILD_BATCH_SIZE page to exercise the id-cursor loop.
-        from kiro_crew.knowledge.embedder import embed_signature, floats_to_bytes
-        from kiro_crew.knowledge.ingestion import _REBUILD_BATCH_SIZE
+        from junction.knowledge.embedder import embed_signature, floats_to_bytes
+        from junction.knowledge.ingestion import _REBUILD_BATCH_SIZE
         n = _REBUILD_BATCH_SIZE + 5
         embedder = _FakeEmbedder()
         job_id = await self._run(store, embedder, n)
@@ -1653,7 +1653,7 @@ class TestRebuildEmbeddingsJob:
         assert len(embedder.embedded_titles) == 3
 
         # A second rebuild on an unchanged setup finds nothing stale -> no-op.
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.ingestion import rebuild_embeddings
         second = _FakeEmbedder()
         processed = await rebuild_embeddings(store, second)
         assert processed == 0
@@ -1661,8 +1661,8 @@ class TestRebuildEmbeddingsJob:
 
     async def test_rebuild_partial_retry_resumes_only_stale(self, store):
         # One item already carries the current sig; the rest are stale (NULL sig).
-        from kiro_crew.knowledge.embedder import embed_signature, floats_to_bytes
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.embedder import embed_signature, floats_to_bytes
+        from junction.knowledge.ingestion import rebuild_embeddings
         embedder = _FakeEmbedder()
         sig = embed_signature(embedder.model)
         done = store.add_item("done", "body", "document",
@@ -1682,7 +1682,7 @@ class TestRebuildEmbeddingsJob:
         embedder = _FakeEmbedder()
         await self._run(store, embedder, 3)
 
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.ingestion import rebuild_embeddings
         forced = _FakeEmbedder()
         processed = await rebuild_embeddings(store, forced, force=True)
         assert processed == 3
@@ -1704,7 +1704,7 @@ class TestRebuildEmbeddingsJob:
         abandoned mid-batch: updated_at is committed AFTER EACH item, so it
         advances within a batch rather than only at end-of-batch. Regression for
         the concurrent-rebuild duplication the per-batch-only heartbeat allowed."""
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.ingestion import rebuild_embeddings
 
         # Capture the job row's COMMITTED updated_at as each item is embedded (the
         # embedder runs between the prior item's heartbeat commit and this one).
@@ -1740,7 +1740,7 @@ class TestRebuildEmbeddingsJob:
 @pytest.mark.asyncio
 class TestWatcherSelfHeal:
     def _watcher(self, store, embedder):
-        from kiro_crew.knowledge.watcher import KnowledgeWatcher
+        from junction.knowledge.watcher import KnowledgeWatcher
 
         class _Pipe:
             pass
@@ -1750,7 +1750,7 @@ class TestWatcherSelfHeal:
 
     async def test_stale_items_trigger_rebuild_job(self, store):
         # Items with NULL sig are stale -> watcher fires a tracked rebuild job.
-        from kiro_crew.knowledge.embedder import embed_signature
+        from junction.knowledge.embedder import embed_signature
         embedder = _FakeEmbedder()
         for i in range(3):
             store.add_item(f"Item {i}", "body", "document")
@@ -1774,7 +1774,7 @@ class TestWatcherSelfHeal:
 
     async def test_no_stale_items_is_noop(self, store):
         # Everything already current -> no job created.
-        from kiro_crew.knowledge.embedder import embed_signature, floats_to_bytes
+        from junction.knowledge.embedder import embed_signature, floats_to_bytes
         embedder = _FakeEmbedder()
         sig = embed_signature(embedder.model)
         item_id = store.add_item("current", "body", "document",
@@ -1807,7 +1807,7 @@ class TestWatcherSelfHeal:
         # A 'processing' row whose updated_at is older than the staleness window is
         # from a crash that bypassed cleanup -> the guard ignores it and the watcher
         # starts a fresh rebuild rather than being permanently blocked.
-        from kiro_crew.knowledge.ingestion import _REBUILD_STALE_AFTER
+        from junction.knowledge.ingestion import _REBUILD_STALE_AFTER
         embedder = _FakeEmbedder()
         store.add_item("stale", "body", "document")
         old = (datetime.now() - _REBUILD_STALE_AFTER - timedelta(minutes=1)).isoformat()
@@ -1838,7 +1838,7 @@ class TestWatcherSelfHeal:
         async def _boom(*a, **k):
             raise asyncio.CancelledError()
 
-        with patch("kiro_crew.knowledge.watcher.rebuild_embeddings", _boom):
+        with patch("junction.knowledge.watcher.rebuild_embeddings", _boom):
             with pytest.raises(asyncio.CancelledError):
                 await watcher._run_reembed_job(embedder, "cancel000001")
 
@@ -1853,26 +1853,26 @@ class TestEmbedSignature:
         # sig hashes f"{model}|inprocess|{budget}" — no base_url input. Same
         # model = stable signature; changing the model changes the signature,
         # triggering the sig-gated rebuild.
-        from kiro_crew.knowledge.embedder import embed_signature
+        from junction.knowledge.embedder import embed_signature
 
         a = embed_signature("m")
         b = embed_signature("m")
         assert a == b
 
     def test_model_changes_signature(self):
-        from kiro_crew.knowledge.embedder import embed_signature
+        from junction.knowledge.embedder import embed_signature
 
         assert embed_signature("m1") != embed_signature("m2")
 
     def test_content_budget_changes_signature(self):
         # Changing the budget must change the embed signature, else items
         # truncated under the old budget would never be re-embedded.
-        from kiro_crew.knowledge.embedder import embed_signature
+        from junction.knowledge.embedder import embed_signature
 
         assert embed_signature("m") != embed_signature("m", content_budget=42)
 
     def test_embedder_signature_matches_model_signature(self):
-        from kiro_crew.knowledge.embedder import (
+        from junction.knowledge.embedder import (
             _EMBED_CONTENT_BUDGET,
             embed_signature,
             embedder_signature,
@@ -1904,7 +1904,7 @@ class TestRebuildFailureAccounting:
     async def test_none_vec_not_counted_as_processed(self, store):
         # When embed returns None, the item is NOT counted as processed, its sig
         # stays stale (so it retries), but items_failed reflects the miss.
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.ingestion import rebuild_embeddings
 
         ok = store.add_item("ok", "body", "document")
         bad = store.add_item("bad", "body", "document")
@@ -1923,7 +1923,7 @@ class TestRebuildFailureAccounting:
         assert ok_row["embedding_sig"] is not None
 
     async def test_job_row_tracks_items_failed(self, store):
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.ingestion import rebuild_embeddings
 
         for t in ("a", "b", "c"):
             store.add_item(t, "body", "document")
@@ -1948,8 +1948,8 @@ class TestRebuildFailureAccounting:
         # A perpetually-failing item keeps a stale sig; once it has a recent
         # embedded_at attempt stamp, the watcher's stale count excludes it so it
         # doesn't re-trigger a rebuild every scan (post-merge retrigger-loop fix).
-        from kiro_crew.knowledge.embedder import embedder_signature
-        from kiro_crew.knowledge.ingestion import count_stale_items
+        from junction.knowledge.embedder import embedder_signature
+        from junction.knowledge.ingestion import count_stale_items
 
         embedder = _FakeEmbedder()
         sig = embedder_signature(embedder)
@@ -1975,7 +1975,7 @@ class TestRebuildLostUpdateRace:
         # stamped "current". The guarded UPDATE drops on the contended row.
         import sqlite3
 
-        from kiro_crew.knowledge.ingestion import rebuild_embeddings
+        from junction.knowledge.ingestion import rebuild_embeddings
 
         item = store.add_item("racey", "old body", "document")
         store.db.commit()
@@ -2016,7 +2016,7 @@ class TestStartRebuildJobSingleFlight:
     async def test_concurrent_claims_create_one_job(self, store):
         # The atomic claim must let only ONE of two racing callers (watcher tick vs
         # dashboard click) create a job -- the other gets None.
-        from kiro_crew.knowledge.ingestion import start_rebuild_job
+        from junction.knowledge.ingestion import start_rebuild_job
 
         first = start_rebuild_job(store)
         second = start_rebuild_job(store)
@@ -2031,7 +2031,7 @@ class TestStartRebuildJobSingleFlight:
     async def test_stale_processing_rows_swept_to_abandoned(self, store):
         # Crashed leftovers (stale 'processing' rows) are finalized to 'abandoned'
         # when a new rebuild claims the slot, so they don't accumulate forever.
-        from kiro_crew.knowledge.ingestion import _REBUILD_STALE_AFTER, start_rebuild_job
+        from junction.knowledge.ingestion import _REBUILD_STALE_AFTER, start_rebuild_job
 
         old = (datetime.now() - _REBUILD_STALE_AFTER - timedelta(minutes=1)).isoformat()
         for i in range(3):
@@ -2059,7 +2059,7 @@ class TestStartRebuildJobSingleFlight:
 class TestDashboardRebuildCancel:
     async def test_dashboard_job_cancel_finalizes_row(self, store):
         # Same cancel-finalization contract as the watcher, in the dashboard wrapper.
-        from kiro_crew.dashboard.handlers.knowledge import _rebuild_embeddings_job
+        from junction.dashboard.handlers.knowledge import _rebuild_embeddings_job
 
         embedder = _FakeEmbedder()
         store.add_item("item", "body", "document")
@@ -2074,7 +2074,7 @@ class TestDashboardRebuildCancel:
         async def _boom(*a, **k):
             raise asyncio.CancelledError()
 
-        with patch("kiro_crew.dashboard.handlers.knowledge.rebuild_embeddings", _boom):
+        with patch("junction.dashboard.handlers.knowledge.rebuild_embeddings", _boom):
             with pytest.raises(asyncio.CancelledError):
                 await _rebuild_embeddings_job(None, store, embedder, "dashcancel01")
 
@@ -2089,7 +2089,7 @@ class TestWatcherLargeRebuildWarning:
     """A stale count at/over _LARGE_REBUILD_WARN_THRESHOLD logs a prominent WARNING."""
 
     def _watcher(self, store):
-        from kiro_crew.knowledge.watcher import KnowledgeWatcher
+        from junction.knowledge.watcher import KnowledgeWatcher
 
         class _Pipe:
             pass
@@ -2098,13 +2098,13 @@ class TestWatcherLargeRebuildWarning:
         return KnowledgeWatcher(store, pipe)
 
     async def test_large_stale_count_logs_warning(self, store, monkeypatch, caplog):
-        import kiro_crew.knowledge.watcher as watcher_mod
+        import junction.knowledge.watcher as watcher_mod
         monkeypatch.setattr(watcher_mod, "_LARGE_REBUILD_WARN_THRESHOLD", 3)
         for i in range(3):
             store.add_item(f"Item {i}", "body", "document")
         watcher = self._watcher(store)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.knowledge.watcher"):
+        with caplog.at_level(logging.WARNING, logger="junction.knowledge.watcher"):
             await watcher._maybe_reembed_stale()
         assert watcher._reembed_task is not None
         await watcher._reembed_task
@@ -2115,12 +2115,12 @@ class TestWatcherLargeRebuildWarning:
         assert "3 items" in warnings[0].getMessage()
 
     async def test_small_stale_count_no_warning(self, store, monkeypatch, caplog):
-        import kiro_crew.knowledge.watcher as watcher_mod
+        import junction.knowledge.watcher as watcher_mod
         monkeypatch.setattr(watcher_mod, "_LARGE_REBUILD_WARN_THRESHOLD", 100)
         store.add_item("Only item", "body", "document")
         watcher = self._watcher(store)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.knowledge.watcher"):
+        with caplog.at_level(logging.WARNING, logger="junction.knowledge.watcher"):
             await watcher._maybe_reembed_stale()
         assert watcher._reembed_task is not None
         await watcher._reembed_task

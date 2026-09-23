@@ -21,18 +21,18 @@ Output lands in **`website/electron/dist/`**:
 
 | Command | Platform | Artifact |
 |---------|----------|----------|
-| `make desktop` | macOS | `KiroCrew-<version>-universal.dmg` |
-| `UNIVERSAL=0 make desktop` | macOS | `KiroCrew-<version>-arm64.dmg` (Apple Silicon host) or `KiroCrew-<version>.dmg` (Intel host) |
-| `make desktop` | Linux | `KiroCrew-*.AppImage`, `*.deb`, `*.rpm` (host arch) |
+| `make desktop` | macOS | `Junction-<version>-universal.dmg` |
+| `UNIVERSAL=0 make desktop` | macOS | `Junction-<version>-arm64.dmg` (Apple Silicon host) or `Junction-<version>.dmg` (Intel host) |
+| `make desktop` | Linux | `Junction-*.AppImage`, `*.deb`, `*.rpm` (host arch) |
 
 The electron-builder configuration lives in
 [`website/electron/package.json`](../../website/electron/package.json):
 
-- **appId:** `dev.kirocrew.desktop`
-- **productName:** `KiroCrew`
+- **appId:** `dev.junction.desktop`
+- **productName:** `Junction`
 - macOS display name: `Kiro Crew` via `CFBundleDisplayName`; `CFBundleName`
   remains aligned with `productName` because Electron uses it to locate the
-  `KiroCrew Helper` app bundles during startup
+  `Junction Helper` app bundles during startup
 - mac target: `dmg` (category `public.app-category.developer-tools`). The DMG
   uses a 660×420 logical-size branded drag-to-Applications background, packaged
   as a multi-resolution TIFF with 660×420 (1×) and 1320×840 (2×) representations
@@ -70,7 +70,7 @@ The electron-builder configuration lives in
 
 ### macOS default — one universal DMG for both arches
 
-On macOS, `make desktop` produces a single `KiroCrew-<version>-universal.dmg`
+On macOS, `make desktop` produces a single `Junction-<version>-universal.dmg`
 running **natively** on both Apple Silicon and Intel Macs. It needs only
 **one Apple-Silicon machine** — no Intel host, no second build. (It requires
 an Apple-Silicon host with Rosetta 2; the script fails fast with instructions
@@ -97,8 +97,8 @@ an Intel Mac where the universal build cannot run. Per-arch targets:
 `ubuntu-22.04` and `ubuntu-22.04-arm`, and `publish-linux.yml` runs once per
 arch — each writing its own immutable S3 key, its own electron-updater channel
 file (`latest-linux.yml` for x64, `latest-linux-arm64.yml` for arm64) and its own
-`latest` alias. Published basenames are `KiroCrew-<arch>.<ext>` for each of the
-six (arch, format) pairs -- `KiroCrew-x86_64.deb`, `KiroCrew-aarch64.rpm`, and so
+`latest` alias. Published basenames are `Junction-<arch>.<ext>` for each of the
+six (arch, format) pairs -- `Junction-x86_64.deb`, `Junction-aarch64.rpm`, and so
 on. A package format also gets its own feed DIRECTORY
 (`feed/<channel>/deb/latest-linux.yml`), because electron-updater derives the
 channel FILE name from platform and arch with no hook to change it, so two
@@ -108,7 +108,7 @@ Two properties are load-bearing and worth knowing before you touch that lane:
 
 - **Linux is built natively per arch, never cross-compiled.** `build-desktop.sh`
   provisions a python-build-standalone interpreter and then *runs* it (pip
-  install, plus the `python -m kiro_crew --version` self-containment gate), so a
+  install, plus the `python -m junction --version` self-containment gate), so a
   host that cannot execute the target architecture cannot build it. macOS gets
   away with one host only because Rosetta 2 executes the x86_64 slice.
 - **The runner's glibc is the ceiling on what the artifacts may require.** The
@@ -126,7 +126,7 @@ Two properties are load-bearing and worth knowing before you touch that lane:
 **Building your own package locally.** `make desktop` needs no arch flags: it
 detects the host and emits an AppImage for it, so running it on an ARM box
 produces the aarch64 build with no CI involved. Filenames are arch-qualified
-(`KiroCrew-<version>-<arch>.AppImage`) so several arches can sit in one directory
+(`Junction-<version>-<arch>.AppImage`) so several arches can sit in one directory
 without overwriting each other. To validate a packaging change against every
 platform *without* publishing anything, dispatch `build-desktop.yml` manually —
 it builds the full matrix and uploads artifacts, with no publish lane attached.
@@ -149,17 +149,17 @@ How it works — **universal shell + dual embedded backends**:
   ships **two complete backend trees** and picks one at launch:
 
 ```
-KiroCrew.app/Contents/
+Junction.app/Contents/
 ├── MacOS/ + Frameworks/…                 ← fat binaries (arm64 + x86_64)
 └── Resources/backend-dist/
-    ├── kirocrew-backend-arm64/           ← full PBS bundle, arm64
-    └── kirocrew-backend-x64/             ← full PBS bundle, x86_64
+    ├── junction-backend-arm64/           ← full PBS bundle, arm64
+    └── junction-backend-x64/             ← full PBS bundle, x86_64
 ```
 
 The build runs the normal backend steps twice: natively for
-`kirocrew-backend-arm64/`, then again with an x86_64 PBS interpreter
+`junction-backend-arm64/`, then again with an x86_64 PBS interpreter
 (`uv python install cpython-3.12-macos-x86_64-none`, executed under Rosetta)
-for `kirocrew-backend-x64/`. The frontend is built once (arch-independent).
+for `junction-backend-x64/`. The frontend is built once (arch-independent).
 Each backend passes the same self-containment gate as a per-arch build — the
 x64 gate doubles as proof the bundle runs under Rosetta. In
 `website/electron/package.json`, `build.mac.x64ArchFiles` allowlists
@@ -185,20 +185,20 @@ Verify a universal build:
 
 ```bash
 V=<version>
-hdiutil attach -nobrowse -readonly "website/electron/dist/KiroCrew-$V-universal.dmg"
-APP="/Volumes/KiroCrew $V-universal/KiroCrew.app"
+hdiutil attach -nobrowse -readonly "website/electron/dist/Junction-$V-universal.dmg"
+APP="/Volumes/Junction $V-universal/Junction.app"
 
 # 1. The shell binary is fat:
-lipo -archs "$APP/Contents/MacOS/KiroCrew"
+lipo -archs "$APP/Contents/MacOS/Junction"
 #   → x86_64 arm64
 
 # 2. EACH backend carries the matching interpreter:
-file "$APP/Contents/Resources/backend-dist/kirocrew-backend-arm64/bin/python3.12"
+file "$APP/Contents/Resources/backend-dist/junction-backend-arm64/bin/python3.12"
 #   → …executable arm64
-file "$APP/Contents/Resources/backend-dist/kirocrew-backend-x64/bin/python3.12"
+file "$APP/Contents/Resources/backend-dist/junction-backend-x64/bin/python3.12"
 #   → …executable x86_64
 
-hdiutil detach "/Volumes/KiroCrew $V-universal"
+hdiutil detach "/Volumes/Junction $V-universal"
 ```
 
 (The build script performs these `lipo -archs` / `file` checks itself as
@@ -226,13 +226,13 @@ instead — two single-arch trees, selected at launch by `process.arch`.
 ### Refreshing / cleaning the DMGs
 
 The `dist/` directory is **not** cleaned between builds, so old artifacts pile up
-(e.g. a `KiroCrew-1.0.0.dmg` from before a version bump, or a stale `mac/`
+(e.g. a `Junction-1.0.0.dmg` from before a version bump, or a stale `mac/`
 app-staging dir). After a version change or a re-build, remove the stale ones so
 only the current set remains:
 
 ```bash
 cd website/electron/dist
-rm -f KiroCrew-<old-version>*.dmg            # stale DMGs from a prior version
+rm -f Junction-<old-version>*.dmg            # stale DMGs from a prior version
 rm -rf mac mac-arm64 mac-universal*           # app-staging dirs (regenerated each build)
 rm -f builder-debug.yml
 ```
@@ -259,34 +259,34 @@ pipeline end-to-end:
 ```
 1. Build the React dashboard (npm)                    → website/dist
 2. Provision a python-build-standalone interpreter    → via uv python install
-3. pip-install kiro_crew + deps into the bundled interpreter
+3. pip-install junction + deps into the bundled interpreter
 4. Stage the dashboard into the package's static dir
 5. Prune caches/tests/unused stdlib to shrink bundle
 6. Package with electron-builder                      → website/electron/dist/ (DMG / AppImage / NSIS)
 ```
 
 On macOS (universal by default) the pipeline repeats steps 2–5 once per
-architecture — natively into `kirocrew-backend-arm64/`, then with an x86_64
-PBS interpreter under Rosetta into `kirocrew-backend-x64/` — and step 6
+architecture — natively into `junction-backend-arm64/`, then with an x86_64
+PBS interpreter under Rosetta into `junction-backend-x64/` — and step 6
 packages with `electron-builder --mac --universal`. With `UNIVERSAL=0` (and
 always on Linux) steps 2–5 run once for the host arch into the unsuffixed
-`kirocrew-backend/`.
+`junction-backend/`.
 
 Step by step:
 
 1. **Frontend** — in `website/`, runs `npm ci` (or `npm install`) + `npm run
-   build`, then copies `website/dist` into `src/kiro_crew/static/dist`. The
+   build`, then copies `website/dist` into `src/junction/static/dist`. The
    script aborts if `website/dist/index.html` is missing.
 2. **PBS interpreter** — uses `uv python install cpython-3.12` to provision a
    self-contained python-build-standalone interpreter. PBS interpreters use
    `@executable_path`-relative dylib references, making the bundle portable
    across machines without needing the same system Python.
 3. **Install into bundle** — copies the PBS interpreter into
-   `website/electron/backend-dist/kirocrew-backend/`, removes the
+   `website/electron/backend-dist/junction-backend/`, removes the
    `EXTERNALLY-MANAGED` marker, then runs `pip install` with
    `PYTHONNOUSERSITE=1` to force the full closure into the bundle.
 4. **Stage dashboard** — copies the built SPA into the bundled
-   `kiro_crew/static/dist` inside site-packages.
+   `junction/static/dist` inside site-packages.
 5. **Prune** — removes `__pycache__`, test dirs, and unused stdlib modules
    (tkinter, idlelib, etc.) to shrink the bundle.
 6. **Package** — in `website/electron/`, runs electron-builder to produce the
@@ -311,25 +311,25 @@ The script honors these environment flags:
 ## The bundled backend (python-build-standalone)
 
 The build produces a self-contained Python interpreter with all dependencies
-installed, located at `website/electron/backend-dist/kirocrew-backend/`
-(per-arch mode) or `…/backend-dist/kirocrew-backend-arm64/` +
-`…/kirocrew-backend-x64/` (universal mode — electron-builder ships the whole
+installed, located at `website/electron/backend-dist/junction-backend/`
+(per-arch mode) or `…/backend-dist/junction-backend-arm64/` +
+`…/junction-backend-x64/` (universal mode — electron-builder ships the whole
 `backend-dist/` directory as `extraResources`, so both layouts package the
 same way). Key details:
 
 - **Interpreter** is a python-build-standalone CPython 3.12 with `@executable_path`-
   relative dylib references (genuinely portable, no system Python dependency).
-- **Entry point** is `bin/kirocrew` — a shell script that execs
-  `bin/python3.12 -s -m kiro_crew "$@"`.
+- **Entry point** is `bin/junction` — a shell script that execs
+  `bin/python3.12 -s -m junction "$@"`.
 - **Stdlib probes verified** — `stdlib_probe_gate` fails the build if any package
   the launcher's readiness check probes is missing from the pruned tree, so a
   drifted probe list breaks the build instead of every user's launch (see
   [How the app finds and launches the backend](#how-the-app-finds-and-launches-the-backend)).
 - **Self-containment verified** — the build script runs
-  `PYTHONNOUSERSITE=1 bin/python3.12 -m kiro_crew --version` to catch any
+  `PYTHONNOUSERSITE=1 bin/python3.12 -m junction --version` to catch any
   missing dependency before packaging.
 - **Dashboard bundled** — the SPA is staged into
-  `lib/python3.12/site-packages/kiro_crew/static/dist/` inside the bundle.
+  `lib/python3.12/site-packages/junction/static/dist/` inside the bundle.
 - **Pruned** — `__pycache__`, test dirs, and unused stdlib (tkinter, idlelib,
   turtledemo, ensurepip, lib2to3) are removed to shrink the bundle.
 
@@ -339,7 +339,7 @@ When the app starts, [`main.js`](../../website/electron/main.js) first checks
 whether a gateway is already running. An existing gateway—including a local SSH
 forward to a remote gateway—is reused. Otherwise the shell locates the backend
 binary via [`find-bin.js`](../../website/electron/find-bin.js), spawns it as
-`kirocrew gateway --no-open`, polls `/api/status`, and loads the dashboard once
+`junction gateway --no-open`, polls `/api/status`, and loads the dashboard once
 it is healthy.
 
 Before spawning a **bundled** backend the shell checks that the bundle's Python
@@ -382,7 +382,7 @@ half-written package does not report the obvious one:
 Three conditions keep it from excusing anything else. Judgement is by the
 **top-level package name**, which must be in the stdlib set, so a missing
 third-party or first-party module (a genuine packaging defect) is never relabelled.
-Only a **bundled** backend qualifies — a user's own install or a `PATH` `kirocrew`
+Only a **bundled** backend qualifies — a user's own install or a `PATH` `junction`
 failing on a stdlib import is a broken environment, and "wait for the installer"
 would be misleading advice there. And only the **current launch attempt** is read:
 the log is append-only across launches, so the text is sliced from the last spawn
@@ -516,27 +516,27 @@ Radix (`website/electron/package.json`, `@radix-ui/*` in `website/package.json`)
 
 ### `find-bin.js` — locating the binary
 
-`findKirocrewBin()` checks well-known paths in order and returns the first
-executable it finds, falling back to bare `kirocrew` on `PATH`. The running
+`findJunctionBin()` checks well-known paths in order and returns the first
+executable it finds, falling back to bare `junction` on `PATH`. The running
 process's CPU architecture (`process.arch`, injected as a parameter) selects
 the matching backend in a universal app:
 
-1. `<resourcesPath>/backend-dist/kirocrew-backend-<arch>/bin/kirocrew`, then
+1. `<resourcesPath>/backend-dist/junction-backend-<arch>/bin/junction`, then
    `<__dirname>/…` — the arch-suffixed PBS backend inside a **universal**
    packaged `.app` (or unpackaged in development), where `<arch>` is `arm64`
    or `x64` per `process.arch` (a fat Electron shell runs as exactly one
    slice, so `process.arch` is the native arch of the Mac — Apple Silicon
-   loads `kirocrew-backend-arm64/`, Intel loads `kirocrew-backend-x64/`).
+   loads `junction-backend-arm64/`, Intel loads `junction-backend-x64/`).
    Ranked above the unsuffixed layout so a universal bundle never falls back
    to a wrong-arch tree; per-arch bundles don't ship these dirs, so the
    probes miss and fall through.
-2. `<resourcesPath>/backend-dist/kirocrew-backend/bin/kirocrew`, then
+2. `<resourcesPath>/backend-dist/junction-backend/bin/junction`, then
    `<__dirname>/…` — the unsuffixed fallback: the bundled PBS backend inside
    a **per-arch** packaged `.app` (or unpackaged in development).
-3. `<__dirname>/../bin/kirocrew`
-4. Well-known install paths under `$HOME` (e.g. `~/.local/bin/kirocrew`,
-   `~/.kirocrew-app/.venv/bin/kirocrew`).
-5. Bare `"kirocrew"` (resolved via `PATH`).
+3. `<__dirname>/../bin/junction`
+4. Well-known install paths under `$HOME` (e.g. `~/.local/bin/junction`,
+   `~/.kirocrew-app/.venv/bin/junction`).
+5. Bare `"junction"` (resolved via `PATH`).
 
 The function is pure — `fs`, `os`, `path`, `process.resourcesPath`,
 `__dirname`, and the arch are injected — so both arch branches are
@@ -544,15 +544,15 @@ unit-testable without mocking globals.
 
 ### `main.js` — spawning the gateway
 
-- Ensures `KIROCREW_HOME` (default `~/.kiro/crew`, overridable via the
-  `KIROCREW_HOME` env var) exists, then spawns the backend with
+- Ensures `JUNCTION_HOME` (default `~/.kiro/crew`, overridable via the
+  `JUNCTION_HOME` env var) exists, then spawns the backend with
   `["gateway", "--no-open"]`. If a real pre-move `~/.kirocrew` directory exists,
   the shell reads its startup config first while the backend performs the
   one-time migration; token lookup then falls through to the canonical home.
   A clean install never creates the legacy directory.
-- Honors the **`KIROCREW_PORT`** env var for the dashboard port (default `5476`,
+- Honors the **`JUNCTION_PORT`** env var for the dashboard port (default `5476`,
   validated to `1–65535`). `BACKEND_URL` / health checks target that port.
-- Sets `KIROCREW_PROJECT_DIR` to the Electron app's parent directory so the
+- Sets `JUNCTION_PROJECT_DIR` to the Electron app's parent directory so the
   bundled `agents/` and `skills/` are discovered.
 - On every desktop platform, pins `PYTHONUTF8=1` and
   `PYTHONIOENCODING=utf-8:backslashreplace` at the Electron-to-Gateway spawn
@@ -577,7 +577,7 @@ damaged and can't be opened"** when downloaded on another Mac. To distribute a
 DMG that opens cleanly you must sign it with a **Developer ID Application**
 certificate and **notarize** it with Apple. (Local builds without credentials
 still work — they produce an ad-hoc–signed DMG you can open on the build machine
-after right-click → Open or `xattr -dr com.apple.quarantine KiroCrew.app`.)
+after right-click → Open or `xattr -dr com.apple.quarantine Junction.app`.)
 
 The build is already wired for this — `website/electron/package.json` enables
 `hardenedRuntime` with `build/entitlements.mac.plist`, and the
@@ -612,7 +612,7 @@ export APPLE_TEAM_ID=XXXXXXXXXX
 make desktop
 ```
 
-Verify the result: `spctl -a -vv "KiroCrew.app"` should report
+Verify the result: `spctl -a -vv "Junction.app"` should report
 `source=Notarized Developer ID` and `codesign -dv` should show your Team ID
 (not `Signature=adhoc`).
 
@@ -772,13 +772,13 @@ signing lane.
 Apple exempts several launch contexts from local-network privacy: daemons started
 by `launchd`, anything running as root, and **command-line tools run from Terminal
 or over SSH, including every child process they spawn**. So a gateway started with
-`kirocrew gateway` from a terminal reaches the LAN normally, while the same agent
+`junction gateway` from a terminal reaches the LAN normally, while the same agent
 command run under the desktop app is gated by the app bundle's TCC record. That
 asymmetry is a useful triage question ("how did you start the gateway?") and a
 usable workaround, not evidence that the app is fine.
 
 One caveat worth knowing before concluding the usage string alone fixed it: agent
-shell commands are wrapped by `sandbox_exec_argv` in `src/kiro_crew/sandbox.py`,
+shell commands are wrapped by `sandbox_exec_argv` in `src/junction/sandbox.py`,
 which `exec`s the target through `/usr/bin/sandbox-exec` and replaces the process
 image. The Seatbelt profile itself is `(allow default)` plus filesystem denies and
 carries **no** network rules, so the sandbox does not block sockets — but whether
@@ -813,7 +813,7 @@ About panel:
 message; `updateCommand` renders as a copyable command. An empty or
 unparsable body still counts as managed — an operator who dropped the file
 gets the safe behavior even when the metadata is wrong. For local testing,
-the `KIROCREW_EXTERNALLY_MANAGED` env var points at a marker file (any other
+the `JUNCTION_EXTERNALLY_MANAGED` env var points at a marker file (any other
 non-empty value marks the install managed with no metadata).
 
 The gateway has the matching seam for its own surfaces: an operator's
@@ -827,7 +827,7 @@ the manual Check button — so it must be side-effect-free and idempotent.
 
 The desktop app can also connect to a gateway running on a **remote** host (e.g.
 an always-on server) over an SSH tunnel, fetching a fresh token via
-`ssh <host> kirocrew token` on each launch instead of starting a local backend.
+`ssh <host> junction token` on each launch instead of starting a local backend.
 See [`website/electron/README.md`](../../website/electron/README.md) and
 [remote-desktop-setup.md](../guides/remote-and-mobile.md) for setup.
 

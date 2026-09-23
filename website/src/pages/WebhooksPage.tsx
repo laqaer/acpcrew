@@ -34,7 +34,7 @@ import type {
   WebhookFreshness, WebhookOutcome, WebhookRunRecord,
   WebhookTestResult, WebhookTokenCreated, WebhookTokenEntry, WebhooksView,
 } from '../api/client'
-import AgentSelector, { type KiroCrewAgent } from '../components/AgentSelector'
+import AgentSelector, { type JunctionAgent } from '../components/AgentSelector'
 import UnderlineTabs, { type UnderlineTab } from '../components/UnderlineTabs'
 import { Badge, Btn, Checkbox, IconButton, Input, PageHeader, SearchInput, Skeleton } from '../components/ui'
 import { useColumnResize, type CollapseConfig } from '../hooks/useColumnResize'
@@ -428,11 +428,11 @@ export default function WebhooksPage() {
     const firstSource = view.tokens[0]
     if (firstSource) setSelection({ kind: 'token', id: firstSource.id })
   }, [isLoading, view.tokens])
-  const { data: agents = [] } = useQuery<KiroCrewAgent[]>({
+  const { data: agents = [] } = useQuery<JunctionAgent[]>({
     queryKey: ['agents-installed'],
     queryFn: async () => {
       const response = await Promise.resolve(api.agentsInstalled?.())
-      return Array.isArray(response) ? response as KiroCrewAgent[] : []
+      return Array.isArray(response) ? response as JunctionAgent[] : []
     },
     retry: false,
   })
@@ -849,7 +849,7 @@ export default function WebhooksPage() {
         </div>
       </div>
 
-      <Section title={i18nT('pages.kiroCrewAgentsPage.routing')}>
+      <Section title={i18nT('pages.junctionAgentsPage.routing')}>
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-[13px] font-medium text-text-strong">{i18nT('pages.channelPage.agent')}</div>
@@ -1152,7 +1152,7 @@ export default function WebhooksPage() {
               disabled={sendTest.isPending || !live || !selectedToken.enabled}
               aria-label={i18nT('pages.webhooksPage.send_test_request')}
               title={i18nT('pages.webhooksPage.send_test_request')}
-              onClick={() => sendTest.mutate(selectedToken.agent || 'kirocrew')}
+              onClick={() => sendTest.mutate(selectedToken.agent || 'junction')}
             >
               <Play size={14} />{' '}
               <span className="hidden sm:inline">

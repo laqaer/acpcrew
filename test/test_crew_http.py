@@ -20,8 +20,8 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
-import kiro_crew.crew_chat as crew_mod
-from kiro_crew.crew_chat import CrewOrchestrator
+import junction.crew_chat as crew_mod
+from junction.crew_chat import CrewOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -68,7 +68,7 @@ async def _until(cond, timeout: float = 5.0) -> None:  # type: ignore[no-untyped
 def _mode_app(state):  # type: ignore[no-untyped-def]
     """`_make_app` is a trimmed test app that omits the mode route (the real one
     is registered at server.py:2538). Add just that route."""
-    from kiro_crew.dashboard.chat_folders import api_chat_slot_mode
+    from junction.dashboard.chat_folders import api_chat_slot_mode
     app = _make_app(state)
     app.router.add_patch("/api/chat/slots/{slot}/mode", api_chat_slot_mode)
     return app
@@ -157,13 +157,13 @@ class TestCrewHttpFlow:
         ingest = AsyncMock()
         with patch.object(state.crew, "ingest", ingest):
             async with TestClient(TestServer(_make_app(state))) as client:
-                with patch("kiro_crew.dashboard.chat_runner._run_chat", new=AsyncMock()):
+                with patch("junction.dashboard.chat_runner._run_chat", new=AsyncMock()):
                     await client.post("/api/chat", json={"slot": "plain", "message": "hi"})
         ingest.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_create_endpoint_rejects_bad_mode(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        from kiro_crew.dashboard.chat_handlers import api_chat_slot_create
+        from junction.dashboard.chat_handlers import api_chat_slot_create
 
         state = _crew_state(tmp_path)
         app = _make_app(state)
@@ -180,7 +180,7 @@ class TestCrewHttpFlow:
         slots with mode="design-critique" (kept out of the chat sidebar by the
         frontend's surface filter). The create allowlist never included the
         mode, so every open of the app failed with 400 code=invalid_mode."""
-        from kiro_crew.dashboard.chat_handlers import api_chat_slot_create
+        from junction.dashboard.chat_handlers import api_chat_slot_create
 
         state = _crew_state(tmp_path)
         app = _make_app(state)
@@ -232,7 +232,7 @@ class TestCrewHttpFlow:
         as a request KEY set by upstream middleware, and faking that through a
         TestServer says more about middleware wiring than about this branch.
         """
-        from kiro_crew.dashboard.chat_folders import api_chat_slot_mode
+        from junction.dashboard.chat_folders import api_chat_slot_mode
 
         state = _crew_state(tmp_path)
         slot = state.get_or_create_slot("victim")
@@ -260,7 +260,7 @@ class TestCrewHttpFlow:
         # manager whose `has_pending_work_for` is truthy, which reads as "work in
         # flight" and would 409 for the wrong reason.
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
-        with patch("kiro_crew.dashboard.chat_folders.save_slot_off_loop",
+        with patch("junction.dashboard.chat_folders.save_slot_off_loop",
                    new=AsyncMock()):
             ok = await api_chat_slot_mode(_Req(""))  # type: ignore[arg-type]
         assert ok.status == 200
@@ -271,7 +271,7 @@ class TestCrewHttpFlow:
         """A slot whose key folds to nothing but dots has no crew store, so
         `CrewStore` raises — on the first MESSAGE, as an unhandled 500, and again
         on every message after it. Both doors into crew mode answer instead."""
-        from kiro_crew.dashboard.chat_handlers import api_chat_slot_create
+        from junction.dashboard.chat_handlers import api_chat_slot_create
 
         state = _crew_state(tmp_path)
         app = _mode_app(state)

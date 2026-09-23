@@ -19,10 +19,10 @@ import re
 
 import pytest
 
-import kiro_crew.validation as validation
-from kiro_crew import security, security_posture
-from kiro_crew import sel as _sel_mod
-from kiro_crew.security_posture import (
+import junction.validation as validation
+from junction import security, security_posture
+from junction import sel as _sel_mod
+from junction.security_posture import (
     _CONTROLS,
     PostureItem,
     build_posture_snapshot,
@@ -178,7 +178,7 @@ class TestDerivation:
         registries from ``validation`` instead means a NEW one fails here until it is
         added to ``security_posture._SCHEMA_REGISTRY_NAMES``.
         """
-        from kiro_crew import security_posture
+        from junction import security_posture
 
         discovered = set(_mcp_schema_registry_names())
         assert discovered, "no MCP_*_SCHEMAS registries found in validation"
@@ -214,7 +214,7 @@ class TestDerivation:
         assert str(security.exfil_query_min_len()) in labels
 
     def test_token_auth_ttls_come_from_the_enforcing_module(self, snapshot):
-        from kiro_crew.dashboard.token_auth import LINK_WINDOW_SECS, MAX_SESSION_TTL_SECS
+        from junction.dashboard.token_auth import LINK_WINDOW_SECS, MAX_SESSION_TTL_SECS
 
         control = self._control(snapshot, "token_auth")
         details = " ".join(i["detail"] for i in control["items"])
@@ -374,7 +374,7 @@ class TestEndpoint:
         import json
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.handlers.core import api_security_posture
+        from junction.dashboard.handlers.core import api_security_posture
 
         resp = await api_security_posture(MagicMock())
         assert resp.status == 200
@@ -395,13 +395,13 @@ class TestEndpoint:
         import importlib
         import inspect
 
-        from kiro_crew.dashboard import handlers
-        from kiro_crew.dashboard import routes as routes_pkg
-        from kiro_crew.dashboard import server
+        from junction.dashboard import handlers
+        from junction.dashboard import routes as routes_pkg
+        from junction.dashboard import server
 
         assert hasattr(handlers, "api_security_posture")
         src = inspect.getsource(server) + "".join(
-            inspect.getsource(importlib.import_module(f"kiro_crew.dashboard.routes.{name}"))
+            inspect.getsource(importlib.import_module(f"junction.dashboard.routes.{name}"))
             for name in routes_pkg.REGISTRAR_NAMES
         )
         assert '"/api/security/posture"' in src
@@ -413,7 +413,7 @@ class TestEndpoint:
         # survived while the real number reached 16).
         import inspect
 
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         src = inspect.getsource(core.api_security_stats)
         assert "posture_counts_async" in src
@@ -428,7 +428,7 @@ class TestEndpoint:
         ``/api/security/stats`` and ``/api/security/posture`` could disagree, which
         is the drift this whole change removes.
         """
-        from kiro_crew.security_posture import posture_counts, posture_counts_async
+        from junction.security_posture import posture_counts, posture_counts_async
 
         assert posture_counts() == build_posture_snapshot()["counts"]
         assert await posture_counts_async() == posture_counts()
@@ -575,7 +575,7 @@ class TestOmissionDetection:
 
         Guards the drift the previous hand-typed 8-tuple had already suffered.
         """
-        from kiro_crew import sel as sel_mod
+        from junction import sel as sel_mod
 
         # Every source _infer_source can return must be in the published tuple...
         probes = {
@@ -647,7 +647,7 @@ class TestOmissionDetection:
         """Each advertised auth control must have its enforcement present."""
         import inspect
 
-        from kiro_crew.dashboard import token_auth
+        from junction.dashboard import token_auth
 
         src = inspect.getsource(token_auth)
         for marker in (

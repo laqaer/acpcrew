@@ -14,7 +14,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const KIROCREW_EXE_NAMES = new Set(["kirocrew", "kirocrew-backend"]);
+const JUNCTION_EXE_NAMES = new Set(["junction", "junction-backend"]);
 const PYTHON_EXE_RE = /^(?:python(?:\d+(?:\.\d+)*)?w?|py)$/i;
 
 function commandLineTokens(commandLine) {
@@ -63,7 +63,7 @@ function executableSelector(tokens) {
   let candidate = first;
   for (let index = 1; ; index++) {
     const name = executableName(candidate);
-    if (KIROCREW_EXE_NAMES.has(name) || PYTHON_EXE_RE.test(name)) return { name, next: index };
+    if (JUNCTION_EXE_NAMES.has(name) || PYTHON_EXE_RE.test(name)) return { name, next: index };
     const token = tokens[index];
     if (token === undefined || token.startsWith("-") || token.startsWith("/")) return fallback;
     candidate += ` ${token}`;
@@ -72,12 +72,12 @@ function executableSelector(tokens) {
 
 /**
  * Match only a Kiro Crew executable, or a Python process whose first execution
- * selector invokes the `kiro_crew` module or a Kiro Crew script. Later process
+ * selector invokes the `junction` module or a Kiro Crew script. Later process
  * arguments never establish ownership, so SSH aliases and unrelated script
  * arguments cannot authorize a kill. Absolute Windows executables must also
  * match the exact path selected by the launch resolver.
  */
-function isKirocrewCommand(commandLine, { trustedExecutablePaths = [] } = {}) {
+function isJunctionCommand(commandLine, { trustedExecutablePaths = [] } = {}) {
   const tokens = commandLineTokens(commandLine);
   if (!tokens.length) return false;
 
@@ -94,7 +94,7 @@ function isKirocrewCommand(commandLine, { trustedExecutablePaths = [] } = {}) {
   const selector = windowsExecutablePath
     ? { name: executableName(tokens[0]), next: 1 }
     : executableSelector(tokens);
-  if (KIROCREW_EXE_NAMES.has(selector.name)) return true;
+  if (JUNCTION_EXE_NAMES.has(selector.name)) return true;
   if (!PYTHON_EXE_RE.test(selector.name)) return false;
 
   let index = selector.next;
@@ -106,7 +106,7 @@ function isKirocrewCommand(commandLine, { trustedExecutablePaths = [] } = {}) {
 
   while (index < tokens.length) {
     const token = tokens[index];
-    if (token === "-m") return tokens[index + 1] === "kiro_crew";
+    if (token === "-m") return tokens[index + 1] === "junction";
     if (token === "-c" || token === "-") return false;
     if (token === "--") {
       index += 1;
@@ -121,7 +121,7 @@ function isKirocrewCommand(commandLine, { trustedExecutablePaths = [] } = {}) {
   }
 
   const script = tokens[index];
-  return /[\\/]/.test(script || "") && KIROCREW_EXE_NAMES.has(executableName(script));
+  return /[\\/]/.test(script || "") && JUNCTION_EXE_NAMES.has(executableName(script));
 }
 
 // A gateway whose parent is init (PID 1) is owned by the OS service manager —
@@ -145,7 +145,7 @@ const INIT_PPID = 1;
  */
 function postShutdown({
   backendUrl,
-  kirocrewHome,
+  junctionHome,
   secrets,
   httpMod = http,
   fsMod = fs,
@@ -160,7 +160,7 @@ function postShutdown({
   let secretList = Array.isArray(secrets) ? secrets : [];
   if (!secretList.length) {
     try {
-      const s = fsMod.readFileSync(pathMod.join(kirocrewHome, ".local_secret"), "utf8");
+      const s = fsMod.readFileSync(pathMod.join(junctionHome, ".local_secret"), "utf8");
       secretList = [s];
     } catch { /* none readable */ }
   }
@@ -234,7 +234,7 @@ async function stopGatewayGracefully(
   proc,
   {
     backendUrl,
-    kirocrewHome,
+    junctionHome,
     secrets,
     timeoutMs = 15000,
     postShutdownFn = postShutdown,
@@ -294,7 +294,7 @@ async function stopGatewayGracefully(
     const hardTimer = setTimeout(done, timeoutMs + 3000);
     proc.once("exit", () => { clearTimeout(killTimer); clearTimeout(hardTimer); });
     // Prefer the clean endpoint; kill only if it didn't take.
-    postShutdownFn({ backendUrl, kirocrewHome, secrets, httpMod, fsMod, pathMod }).then((ok) => {
+    postShutdownFn({ backendUrl, junctionHome, secrets, httpMod, fsMod, pathMod }).then((ok) => {
       if (ok || proc.exitCode !== null) return;
       killWith("SIGTERM");
     });
@@ -321,7 +321,7 @@ async function stopGatewayGracefully(
 }
 
 /**
- * Force-stop whatever KiroCrew process is LISTENing on `port`, then VERIFY the
+ * Force-stop whatever Junction process is LISTENing on `port`, then VERIFY the
  * port actually freed before reporting success.
  *
  * The old inline version SIGKILLed the owner and resolved after a fixed 800ms
@@ -333,8 +333,8 @@ async function stopGatewayGracefully(
  *
  * This version polls the listener set after killing and returns `freed` based on
  * whether the port is ACTUALLY free afterwards (not merely whether our targets
- * died), plus `survivors` (the KiroCrew PIDs we tried to kill that are still
- * holding the port) and `foreignHolder` (a non-KiroCrew process still owns it).
+ * died), plus `survivors` (the Junction PIDs we tried to kill that are still
+ * holding the port) and `foreignHolder` (a non-Junction process still owns it).
  * `freed === false` means a respawn would just fail to bind — the caller MUST
  * NOT respawn; it should tell the user a restart is required (`survivors`, an
  * unkillable wedge) or that another app holds the port (`foreignHolder`).
@@ -359,7 +359,7 @@ async function forceStopPort(
     kill,
     sleep,
     getPpid = null,
-    isKirocrew = isKirocrewCommand,
+    isJunction = isJunctionCommand,
     verifyTimeoutMs = 4000,
     pollIntervalMs = 250,
     failClosedOnProbeError = false,
@@ -382,20 +382,20 @@ async function forceStopPort(
     return { killed: 0, freed: true, survivors: [], foreignHolder: false, serviceHolder: false };
   }
 
-  // Only signal PIDs we can positively identify as KiroCrew — never SIGKILL an
+  // Only signal PIDs we can positively identify as Junction — never SIGKILL an
   // unrelated app that happens to share the port.
   const targets = [];
   let serviceHolder = false;
   for (const pid of owners) {
     const cmd = (await getCommand(pid)).trim();
-    const ours = isKirocrew(cmd);
+    const ours = isJunction(cmd);
     if (ours) {
       // A service-managed gateway is respawned by launchd/systemd the moment we
       // kill it, so evicting it cannot free the port — it only makes the retry
       // race the respawn. Leave it alone and tell the caller why.
       if (await isServiceManaged(pid, getPpid)) {
         serviceHolder = true;
-        log(`force-stop: SKIP pid=${pid} — service-managed KiroCrew gateway (${cmd.slice(0, 80)})`);
+        log(`force-stop: SKIP pid=${pid} — service-managed Junction gateway (${cmd.slice(0, 80)})`);
         continue;
       }
       try {
@@ -406,7 +406,7 @@ async function forceStopPort(
         log(`force-stop: kill pid=${pid} failed: ${e && e.message}`);
       }
     } else {
-      log(`force-stop: SKIP pid=${pid} — not a KiroCrew process (${cmd.slice(0, 80)})`);
+      log(`force-stop: SKIP pid=${pid} — not a Junction process (${cmd.slice(0, 80)})`);
     }
   }
 
@@ -459,7 +459,7 @@ async function forceStopPort(
     log(`force-stop: port :${port} STILL held after ${waited}ms by pid ${survivors.join(", ")} `
       + `— process is unkillable (likely uninterruptible sleep); a system restart is required`);
   } else if (foreignHolder) {
-    log(`force-stop: port :${port} held by a non-KiroCrew process we won't kill — respawn would fail to bind`);
+    log(`force-stop: port :${port} held by a non-Junction process we won't kill — respawn would fail to bind`);
   }
   if (serviceHolder && !freed) {
     log(`force-stop: port :${port} is held by a service-managed gateway — the OS respawns it, so the app must reuse it instead of retrying a spawn`);
@@ -479,8 +479,8 @@ async function forceStopPort(
  * owner is the ground truth the payload lacks — on a tunnel it is `ssh`.
  *
  * Deliberately fail-safe: every outcome except a positively identified local
- * KiroCrew process is a reason NOT to evict.
- *   "kirocrew" — a local LISTEN owner matching isKirocrewCommand. Only this
+ * Junction process is a reason NOT to evict.
+ *   "junction" — a local LISTEN owner matching isJunctionCommand. Only this
  *                value may authorise a takeover.
  *   "foreign"  — a local LISTEN owner exists but is not ours (e.g. `ssh`).
  *   "none"     — nothing is listening locally, yet something answered. A race,
@@ -495,11 +495,11 @@ async function forceStopPort(
  * @param {object} deps
  * @param {(port:number)=>Promise<number[]>} deps.getListenPids  lsof -t
  * @param {(pid:number)=>Promise<string>}    deps.getCommand     ps -o command=
- * @returns {Promise<"kirocrew"|"foreign"|"none"|"unknown">}
+ * @returns {Promise<"junction"|"foreign"|"none"|"unknown">}
  */
 async function classifyPortOwner(
   port,
-  { getListenPids, getCommand, getPpid = null, isKirocrew = isKirocrewCommand, log = () => {} }
+  { getListenPids, getCommand, getPpid = null, isJunction = isJunctionCommand, log = () => {} }
 ) {
   let pids;
   try {
@@ -514,16 +514,16 @@ async function classifyPortOwner(
   }
   for (const pid of pids) {
     const cmd = (await getCommand(pid)).trim();
-    const ours = isKirocrew(cmd);
+    const ours = isJunction(cmd);
     if (ours) {
       if (await isServiceManaged(pid, getPpid)) {
-        log(`port-owner: :${port} held by SERVICE-MANAGED KiroCrew pid=${pid} (${cmd.slice(0, 80)}) — reuse, never evict`);
+        log(`port-owner: :${port} held by SERVICE-MANAGED Junction pid=${pid} (${cmd.slice(0, 80)}) — reuse, never evict`);
         return "service";
       }
-      log(`port-owner: :${port} held by local KiroCrew pid=${pid} (${cmd.slice(0, 80)})`);
-      return "kirocrew";
+      log(`port-owner: :${port} held by local Junction pid=${pid} (${cmd.slice(0, 80)})`);
+      return "junction";
     }
-    log(`port-owner: :${port} held by NON-KiroCrew pid=${pid} (${cmd.slice(0, 80)})`);
+    log(`port-owner: :${port} held by NON-Junction pid=${pid} (${cmd.slice(0, 80)})`);
   }
   return "foreign";
 }
@@ -553,6 +553,6 @@ module.exports = {
   forceStopPort,
   classifyPortOwner,
   isServiceManaged,
-  isKirocrewCommand,
+  isJunctionCommand,
   INIT_PPID,
 };

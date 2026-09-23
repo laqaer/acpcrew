@@ -17,13 +17,13 @@ Evidence is ranked, and the ranking is the load-bearing property. Strongest firs
 | `no_objection` | absence of any of the above | Nothing disqualifying was found — the weakest useful verdict. |
 | `unknown` | nothing observed | Not enough evidence to say anything. |
 
-`measured` exists because `kirocrew.caller-identity` is an extension this project invented and the MCP base protocol has no equivalent, so no third-party server will ever reach `declared`. With `declared` as the only tier a pre-flight could reach, measuring was a one-sided cost: it could REFUTE a server but never record anything in its favour, and every real server rested at `no_objection` for ever.
+`measured` exists because `junction.caller-identity` is an extension this project invented and the MCP base protocol has no equivalent, so no third-party server will ever reach `declared`. With `declared` as the only tier a pre-flight could reach, measuring was a one-sided cost: it could REFUTE a server but never record anything in its favour, and every real server rested at `no_objection` for ever.
 
 **`measured` does NOT recommend sharing.** The pre-flight compares the HANDSHAKE — capability shapes, `protocolVersion`, `serverInfo`, the read-only listings — and never makes a tool call. A server whose state is process-global (one browser context, one database connection, one working directory) replays that handshake identically for two callers and still cannot serve two sessions: on a shared backend one caller reads state another caller wrote. A declaration is a claim about ISOLATION, a measurement is a fact about DETERMINISM, and only the first is grounds for co-tenancy. Nor can the ledger backstop the difference: its codes describe frames the gateway could not route, not state handed to the wrong session, so a wrong `recommend_share` here would never be refuted. What `measured` does carry is `recommend_stub` plus a verdict an operator can read, which is what separates "provoked and cleared" from "nobody looked".
 
 **An OBSERVATION outranks everything; an inference outranks nothing.** That
 ordering was once "a measurement always outranks a declaration", which had a server
-advertising `kirocrew.caller-identity` come out `disqualified` because the
+advertising `junction.caller-identity` come out `disqualified` because the
 pre-flight caught it answering `initialize` differently per caller. The two halves
 of that sentence contradicted each other: consuming the per-call caller block is
 precisely what the capability declares, so a per-caller `initialize` result is the
@@ -43,7 +43,7 @@ The bulk stub action consults whichever of the two the global sharing switch mak
 
 ## Session-bound by construction, which is not the same as "ours"
 
-The `disqualified` reason `first_party_session_scoped` names a server that resolves the calling session from its own PROCESS — an env var, a pid walk — so one backend can only ever serve one session correctly. It is decided by which servers actually consume the injected caller block, not by matching a name against Kiro Crew's managed set: keying it on authorship once disqualified `kirocrew-core` — which advertised the extension and consumed the block from the start — for a property only its unadopted siblings had. All four managed servers now advertise and consume the block (`kirocrew-core` from the start, `kirocrew-cron` since #4622's fix, `kirocrew-computer` and `kirocrew-dashboard` since #4659). Advertising is necessary but not sufficient for the shareable classification: `kirocrew-computer` stays session-bound deliberately, because a caller the gateway cannot name proceeds under `unresolved:<pid>` and unnamed co-tenants on a pooled backend would share that one snapshot namespace (#5322) — see `_MANAGED_SERVERS_ADVERTISING_BUT_WITHHELD` in `mcp_discovery.py`. The classification stays per-server because the next managed server starts unadopted, exactly as these did.
+The `disqualified` reason `first_party_session_scoped` names a server that resolves the calling session from its own PROCESS — an env var, a pid walk — so one backend can only ever serve one session correctly. It is decided by which servers actually consume the injected caller block, not by matching a name against Kiro Crew's managed set: keying it on authorship once disqualified `junction-core` — which advertised the extension and consumed the block from the start — for a property only its unadopted siblings had. All four managed servers now advertise and consume the block (`junction-core` from the start, `junction-cron` since #4622's fix, `junction-computer` and `junction-dashboard` since #4659). Advertising is necessary but not sufficient for the shareable classification: `junction-computer` stays session-bound deliberately, because a caller the gateway cannot name proceeds under `unresolved:<pid>` and unnamed co-tenants on a pooled backend would share that one snapshot namespace (#5322) — see `_MANAGED_SERVERS_ADVERTISING_BUT_WITHHELD` in `mcp_discovery.py`. The classification stays per-server because the next managed server starts unadopted, exactly as these did.
 
 `mcp_discovery.managed_server_is_session_bound` answers from a module-level set, `_MANAGED_SERVERS_CALLER_AWARE`, and deliberately imports nothing: the assessment must answer WITHOUT a handshake (the probe cannot spawn on every host — Windows, macOS >= 26 — and has not run at all before the first probe cycle), and it is consulted on every render, so importing a server module to read its `ADVERTISE_CALLER_IDENTITY` would execute package code from an editable checkout on a path the sandbox never confines. `test/test_mcp_managed_caller_identity.py::test_the_classification_reads_no_module_at_import_time` pins that refusal.
 
@@ -69,7 +69,7 @@ helper (`rewriter.records_dir`) that BOTH the writer (gatewayd) and the reader
 
 - a configured `mcp_gateway.socket_path` wins, so gatewayd's ledger lands beside
   its real socket and the page reads the same place;
-- otherwise `$KIROCREW_HOME/mcp-gateway` — the directory the socket itself
+- otherwise `$JUNCTION_HOME/mcp-gateway` — the directory the socket itself
   defaults into.
 
 The fallback is load-bearing, not tidiness. `socket_path` is empty until a broker
@@ -184,7 +184,7 @@ That split is also the export contract. The telemetry layer requires low-cardina
 | `observed_hazard` | refuted | Ledger entry; detail is the hazard code. **One of only two durable grounds for refusing to share, because it happened rather than being inferred.** |
 | `not_stdio` | disqualified | No stdio pipe — out of scope, not unsafe. **The other durable ground, and the only remaining `disqualified` code.** |
 | `handshake_not_reproducible` | note | Pre-flight saw a divergent replayed surface (capabilities, protocol version, `serverInfo` shape, or the tool list). Reported and gates nothing: see below. |
-| `session_bound_by_construction` | disqualified | A managed server that resolves its caller from its own process rather than the injected caller block -- or that consumes the block yet is deliberately withheld from the shareable classification. Kept gating because `mcp_cron._check_cron_job_ownership` treats a falsy session key as *allow*, so a pooled backend reading EMPTY skips the ownership check rather than merely losing a feature -- and no routing-shaped hazard code would ever record it. Current producer: `kirocrew-computer` (advertises, but unnamed co-tenants share one `unresolved:<pid>` snapshot namespace, #5322). |
+| `session_bound_by_construction` | disqualified | A managed server that resolves its caller from its own process rather than the injected caller block -- or that consumes the block yet is deliberately withheld from the shareable classification. Kept gating because `mcp_cron._check_cron_job_ownership` treats a falsy session key as *allow*, so a pooled backend reading EMPTY skips the ownership check rather than merely losing a feature -- and no routing-shaped hazard code would ever record it. Current producer: `junction-computer` (advertises, but unnamed co-tenants share one `unresolved:<pid>` snapshot namespace, #5322). |
 | `rotating_secret_env` | note | Declares an env name excluded from the pool key. Detail is the name. Not emitted for a name in `mcp_gateway.pool_identity_env`, which IS in the pool key. |
 | `degrades_when_shared` | note | `logging`; detail is `logging_level`. |
 | `not_probed` | unknown | No handshake was observed. |
@@ -242,7 +242,7 @@ failure, and it is the one case the retreat cannot backstop: both hazard codes
 describe frames that could not be routed, so serving the wrong session's data
 produces no record. The producers have narrowed as managed servers adopted the
 caller block (#4622, #4659); today the code has one deliberate producer --
-`kirocrew-computer`, which advertises and consumes the block but whose UNNAMED
+`junction-computer`, which advertises and consumes the block but whose UNNAMED
 co-tenants would share one `unresolved:<pid>` snapshot namespace on a pooled
 backend (#5322) -- and it remains the conservative default for the next managed
 server, which starts unadopted exactly as the others did.

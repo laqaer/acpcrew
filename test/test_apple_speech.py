@@ -1,4 +1,4 @@
-"""Tests for the ``apple`` STT provider (kiro_crew.apple_speech).
+"""Tests for the ``apple`` STT provider (junction.apple_speech).
 
 The provider is macOS-only and its real work happens in a compiled Swift helper, so
 the tests split three ways: platform-gating logic (runs everywhere, with the platform
@@ -20,8 +20,8 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from kiro_crew import apple_speech, platform_compat
-from kiro_crew.config.loader import SttConfig, _validated_stt_provider
+from junction import apple_speech, platform_compat
+from junction.config.loader import SttConfig, _validated_stt_provider
 
 _IS_MACOS = platform.system() == "Darwin"
 
@@ -100,7 +100,7 @@ class TestHelperBuild:
         entry points surfaces the message (which carries the remedy) in its own
         result shape.
         """
-        from kiro_crew import sandbox as sb
+        from junction import sandbox as sb
 
         def boom(*a, **kw):
             raise sb.SandboxUnavailableError(
@@ -345,7 +345,7 @@ class TestHelperBuild:
         agent-writable — otherwise "the agent can write a file" becomes "the agent
         can run code as the gateway". `run` is on `_CREW_SECRET_LEAVES`; `cache` is
         not, which is what made the original location a privilege escalation."""
-        from kiro_crew.security import is_sensitive_path
+        from junction.security import is_sensitive_path
 
         cache = apple_speech._cache_dir()
         assert is_sensitive_path(str(cache)), cache
@@ -426,8 +426,8 @@ class TestTranscribePlumbing:
         ffmpeg we still hand the original path over so the caller surfaces the
         framework's own error rather than a silent unavailability."""
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value=None),
-            patch("kiro_crew.transcribe.ensure_ffmpeg_in_path"),
+            patch("junction.transcribe._find_ffmpeg", return_value=None),
+            patch("junction.transcribe.ensure_ffmpeg_in_path"),
         ):
             path, is_temp = await apple_speech._to_native_audio("/tmp/voice.webm")
         assert (path, is_temp) == ("/tmp/voice.webm", False)
@@ -521,8 +521,8 @@ class TestTranscodeTempOwnership:
         src = tmp_path / "voice.webm"
         src.write_bytes(b"data")
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
-            patch("kiro_crew.transcribe.ensure_ffmpeg_in_path"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe.ensure_ffmpeg_in_path"),
             patch("asyncio.create_subprocess_exec", side_effect=OSError("spawn failed")),
         ):
             with pytest.raises(OSError):
@@ -566,8 +566,8 @@ class TestTranscodeTempOwnership:
 
         monkeypatch.setattr(apple_speech.os, "unlink", tracked_unlink)
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
-            patch("kiro_crew.transcribe.ensure_ffmpeg_in_path"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe.ensure_ffmpeg_in_path"),
             patch("asyncio.create_subprocess_exec", return_value=_Proc()),
         ):
             with pytest.raises(asyncio.CancelledError):
@@ -589,8 +589,8 @@ class TestTranscodeTempOwnership:
         proc.communicate = AsyncMock(return_value=(b"", b""))
         proc.returncode = 0
         with (
-            patch("kiro_crew.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
-            patch("kiro_crew.transcribe.ensure_ffmpeg_in_path"),
+            patch("junction.transcribe._find_ffmpeg", return_value="/fake/ffmpeg"),
+            patch("junction.transcribe.ensure_ffmpeg_in_path"),
             patch("asyncio.create_subprocess_exec", return_value=proc),
         ):
             path, is_temp = await apple_speech._to_native_audio(str(src))
@@ -602,7 +602,7 @@ class TestTranscodeTempOwnership:
     async def test_sandbox_rejection_removes_the_owned_native_temp(self, tmp_path, monkeypatch):
         """The fail-closed sandbox refusal returns after `transcribe` received an
         owned temp but used to exit before the cleanup `finally` was armed."""
-        from kiro_crew import sandbox as sb
+        from junction import sandbox as sb
 
         owned = tmp_path / "native.wav"
         owned.write_bytes(b"x")
@@ -628,7 +628,7 @@ class TestTranscodeTempOwnership:
     async def test_sandbox_rejection_never_removes_an_original_input(self, tmp_path, monkeypatch):
         """A non-temp native path is the caller's own file; the widened cleanup
         must stay keyed on the ownership flag, not on reaching the exit."""
-        from kiro_crew import sandbox as sb
+        from junction import sandbox as sb
 
         original = tmp_path / "voice.wav"
         original.write_bytes(b"x")
@@ -1090,7 +1090,7 @@ class TestStreamingEndpointGate:
     def test_apple_is_an_accepted_streaming_provider(self):
         """The WS endpoint gates on this tuple; `apple` must be in it or the live path
         is unreachable no matter what the provider implements."""
-        from kiro_crew.dashboard import stt_stream
+        from junction.dashboard import stt_stream
 
         assert "apple" in stt_stream._STREAMING_PROVIDERS
         assert "transcribe" in stt_stream._STREAMING_PROVIDERS
@@ -1098,7 +1098,7 @@ class TestStreamingEndpointGate:
     def test_batch_only_providers_stay_out(self):
         """whisper/mlx are whole-file CLIs with no partial-result channel — offering
         them on the streaming endpoint would hang the client until end of audio."""
-        from kiro_crew.dashboard import stt_stream
+        from junction.dashboard import stt_stream
 
         assert "whisper" not in stt_stream._STREAMING_PROVIDERS
         assert "mlx" not in stt_stream._STREAMING_PROVIDERS
@@ -1134,7 +1134,7 @@ class TestNoBlockingCallOnEventLoop:
             patch("subprocess.run", boom),
             patch("subprocess.Popen", boom),
             patch("subprocess.check_output", boom),
-            patch("kiro_crew.apple_speech._swiftc", boom),
+            patch("junction.apple_speech._swiftc", boom),
             patch("platform.system", lambda: "Darwin"),
             patch("platform.mac_ver", lambda: ("27.0", ("", "", ""), "arm64")),
             patch.object(apple_speech, "_swiftc_fast", lambda: "/usr/bin/swiftc"),
@@ -1155,7 +1155,7 @@ class TestNoBlockingCallOnEventLoop:
             assert apple_speech.is_available() is True
 
     def test_transcribe_is_available_spawns_nothing(self):
-        from kiro_crew.transcribe import is_available
+        from junction.transcribe import is_available
 
         with ExitStack() as stack:
             for cm in self._no_spawn():
@@ -1164,7 +1164,7 @@ class TestNoBlockingCallOnEventLoop:
 
     def test_provider_list_spawns_nothing(self):
         """`_stt_providers` is called from the config GET handler on the loop."""
-        from kiro_crew.dashboard.handlers import core
+        from junction.dashboard.handlers import core
 
         with ExitStack() as stack:
             for cm in self._no_spawn():

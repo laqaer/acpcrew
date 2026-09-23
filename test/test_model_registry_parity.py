@@ -12,7 +12,7 @@ from pathlib import Path
 
 def test_frontend_registry_matches_python_source():
     root = Path(__file__).resolve().parent.parent
-    py = root / "src" / "kiro_crew" / "model_registry.json"
+    py = root / "src" / "junction" / "model_registry.json"
     # The public fork keeps the React SPA under website/ (not a separate package).
     fe = root / "website" / "src" / "model_registry.json"
     if not fe.is_file():
@@ -21,6 +21,6 @@ def test_frontend_registry_matches_python_source():
 
         pytest.skip(f"frontend registry copy not found at {fe}")
     assert json.loads(py.read_text(encoding="utf-8")) == json.loads(fe.read_text(encoding="utf-8")), (
-        "model_registry.json drift: src/kiro_crew and website/src copies differ. "
+        "model_registry.json drift: src/junction and website/src copies differ. "
         "Re-copy the Python source to the frontend."
     )
