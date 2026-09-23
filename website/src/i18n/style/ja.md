@@ -33,7 +33,7 @@ Authorities cited:
   Japanese characters is the clearest signal a string was machine translated and
   never read.
 - **Half-width is kept inside code**: commands, paths, filenames and extensions
-  (`~/.kiro/crew`, `.ics`), identifiers and config keys (`pref.backend.framework`),
+  (`~/.junction`, `.ics`), identifiers and config keys (`pref.backend.framework`),
   version numbers (`v1.2.3`), numeric ranges, URLs, emails and token prefixes
   (`xoxb-`). A `?` opening a URL query and a `!` inside a shell snippet are code,
   not punctuation.

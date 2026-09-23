@@ -45,7 +45,7 @@ half-width `.` `,` `?` `!` even between Hangul characters. Full-width
 - **Enumerated nouns are joined with `·`** (가운뎃점), not `、` and not `/`.
 - **No ideographic space (`U+3000`).** Layout is the stylesheet's job.
 - **Half-width stays inside code**: commands, paths, filenames and extensions
-  (`~/.kiro/crew`, `.ics`), identifiers and config keys
+  (`~/.junction`, `.ics`), identifiers and config keys
   (`pref.backend.framework`), version numbers (`v1.2.3`), numeric ranges, URLs,
   emails and token prefixes (`xoxb-`).
 

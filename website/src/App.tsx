@@ -3273,7 +3273,7 @@ export default function App() {
                       below never accounts for. Spacing is explicit per child instead. */}
                   <span className="flex items-center shrink-0 text-muted"><GithubIcon size={15} /></span>
                   <div className="rail-community-links flex items-center gap-[5px] flex-1 min-w-0 ml-1.5 text-[12px]">
-                    <a href="https://github.com/laqaer/junction" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_junction_on_github')} aria-label={i18nT('app.star_junction_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
+                    <a href="https://github.com/myrmitis/junction" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_junction_on_github')} aria-label={i18nT('app.star_junction_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
                     <span aria-hidden="true" className="shrink-0 opacity-40">·</span>
                     {/* "Report issue" opens the SAME diagnostics flow as Settings ›
                         About › Support rather than linking to the bare issue list.

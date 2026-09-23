@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  Run Cursor, Claude, Codex, Grok from one local dashboard — and route their
-  inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron.
-  Two planes: an ACP harness registry already on this tree, and an optional
-  model sidecar.
+  Run Cursor, Claude, Codex, Grok from one local dashboard — and keep a
+  model catalog for Kimi, DeepSeek, Copilot, and the rest — with memory and
+  cron. Two planes: an ACP harness registry, and a model catalog that
+  starts with `junction up`.
 </p>
 
 <p align="center">
@@ -47,7 +47,7 @@ A vendor agent CLI is optional. The gateway docks whichever ACP runtime is
 installed (`agent.acp_backend` defaults to `auto`).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/scripts/get-junction.sh | sh
+curl -fsSL https://raw.githubusercontent.com/myrmitis/junction/main/scripts/get-junction.sh | sh
 junction setup
 junction up
 ```
@@ -60,16 +60,17 @@ and anyone working in a checkout, follows the source steps below.
 After a source install the dashboard is on loopback.
 
 ```bash
-git clone https://github.com/laqaer/junction.git
+git clone https://github.com/myrmitis/junction.git
 cd junction
 bash minimal_install.sh
 junction setup
 junction up
 ```
 
-Optional model plane: run a sidecar on loopback, then `junction planes` for
-both rails and the role DAG, or `junction router catalog` and
-`junction router plan` for the detail views.
+`junction up` starts the built-in model catalog on loopback, then serves
+the dashboard. `junction planes` shows both rails and the role DAG.
+`junction router catalog` and `junction router plan` are the detail views.
+Provider translation is not bundled. Never paste provider keys into chat.
 
 Desktop packages are a later cut.
 
@@ -82,7 +83,7 @@ through a native source install; follow the
 
 ```bash
 # 1. Clone and build Junction
-git clone https://github.com/laqaer/junction.git
+git clone https://github.com/myrmitis/junction.git
 cd junction
 make build
 source .venv/bin/activate
@@ -101,8 +102,8 @@ a role DAG so orchestration stays cheap and planning stays capable.
 
 **Two planes.** The harness plane docks Cursor, Claude, Codex, Grok, and the
 rest from one registry (`agent.acp_backend` defaults to `auto`). The model
-plane is an optional sidecar — if it is down, the gateway still runs. Never
-paste provider keys into chat.
+plane is a catalog Junction starts itself — if it is down, the gateway still
+runs. Never paste provider keys into chat.
 
 **Spend on purpose.** Orchestration, planning, and execution each pick a cost
 class. Pins in `agent.role_models` still win.
@@ -115,7 +116,7 @@ channel.
 
 | Capability | What it gives you |
 |---|---|
-| **Two planes** | Dock ACP agents on the harness plane. Route inference on the optional model plane. `junction up` composes both, then serves the dashboard on loopback. |
+| **Two planes** | Dock ACP agents on the harness plane. `junction up` starts the model catalog, then serves the dashboard on loopback. |
 | **Role routing** | Orchestration, planning, and execution each pick a cost class so cheap models coordinate and capable models plan. Pins in `agent.role_models` still win. Never paste provider keys into chat. |
 | **Persistent sessions** | Concurrent conversations, resume after restarts, search prior threads, and carry context into new work. |
 | **Lessons and skills** | Corrections become durable lessons. Repeated patterns become reusable skills you can inspect or drop. |
@@ -139,17 +140,17 @@ The complete inventory is in [Features](src/junction/docs/index.md) and
 flowchart LR
     U["CLI · dashboard · channels"] --> C["junction up"]
     C --> H["Harness plane<br/>ACP registry · auto"]
-    C --> M["Model plane<br/>sidecar optional"]
+    C --> M["Model plane<br/>built-in catalog"]
     H --> S["Sessions · memory · cron"]
     M --> R["Role DAG<br/>orchestration → planning → execution"]
 ```
 
-`junction up` composes both planes, then binds the dashboard to loopback.
-The harness plane docks whichever ACP runtime is installed (`agent.acp_backend`
-defaults to `auto`; a vendor agent CLI is optional). The model plane is an optional
-sidecar — if it is down, the gateway still runs. Role routing spends cheap
-tokens on orchestration and capable tokens on planning. Pins in
-`agent.role_models` still win. Never paste provider keys into chat.
+`junction up` starts the model catalog, composes both planes, then binds
+the dashboard to loopback. The harness plane docks whichever ACP runtime is
+installed (`agent.acp_backend` defaults to `auto`; a vendor agent CLI is
+optional). If the catalog listener is down, the gateway still runs. Role
+routing spends cheap tokens on orchestration and capable tokens on planning.
+Pins in `agent.role_models` still win. Never paste provider keys into chat.
 
 Everything runs on a host you control: your Mac, a container on this machine,
 or a remote Linux box. Conversation history, memory, and knowledge indexes stay
@@ -474,14 +475,14 @@ npm run check
 npm run build
 ```
 
-Use [GitHub Issues](https://github.com/laqaer/junction/issues) for bugs and
+Use [GitHub Issues](https://github.com/myrmitis/junction/issues) for bugs and
 feature requests. Do not file security vulnerabilities publicly.
 
 
 ## Contributors
 
 Junction credits authors of pull requests merged in this repository. The
-[contributors graph](https://github.com/laqaer/junction/graphs/contributors)
+[contributors graph](https://github.com/myrmitis/junction/graphs/contributors)
 is the live list as the project grows.
 
 <a href="https://github.com/laqaer" title="laqaer"><img src="https://github.com/laqaer.png?size=64" width="64" height="64" alt="laqaer" /></a>

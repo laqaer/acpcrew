@@ -7238,7 +7238,7 @@
       "copied": "Copié !",
       "copyFailed": "Échec de la copie",
       "copyCommand": "Copier la commande",
-      "orEditConfigJson": "Alternativement, modifiez directement ~/.kiro/crew/config.json.",
+      "orEditConfigJson": "Alternativement, modifiez directement ~/.junction/config.json.",
       "openSettingsAriaLabel": "Ouvrir {{key}} dans Paramètres → {{tab}}",
       "fileSettingAriaLabel": "Paramètre fichier uniquement {{key}}"
     },
@@ -9461,7 +9461,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "Bascule préparée : ce worktree deviendra actif au prochain démarrage de la passerelle. Exécutez `{{cmd}}` pour la terminer, ou utilisez le menu de cette ligne → Annuler la bascule préparée pour revenir en arrière. D'ici là, la passerelle exécute toujours le checkout précédent.",
       "keeps_the_live_checkout_the_live_target_and_disc": "Conserve le checkout actif comme cible active et abandonne la bascule préparée vers {{staged}} (rien ne redémarre)",
       "restarting_completes_the_pending_cutover_boots": "Redémarrer termine la bascule en attente : la passerelle reviendra sur «{{staged}}», pas sur le checkout actuel. Le tableau de bord se déconnectera brièvement puis se reconnectera automatiquement. Pour revenir en arrière, utilisez plutôt Annuler la bascule préparée.",
-      "no_checkout_found_action": "Définissez la variable d'environnement ci-dessous, ou ajoutez dev_fleet.repo_path au config.json de votre répertoire de données {{productName}} (~/.kiro/crew par défaut) pour la rendre permanente, puis redémarrez la passerelle."
+      "no_checkout_found_action": "Définissez la variable d'environnement ci-dessous, ou ajoutez dev_fleet.repo_path au config.json de votre répertoire de données {{productName}} (~/.junction par défaut) pour la rendre permanente, puis redémarrez la passerelle."
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9636,7 +9636,7 @@
       "save_changes": "Enregistrer les modifications",
       "select_an_agent_template": "Sélectionner un modèle d'agent…",
       "shared_lower": "en commun",
-      "subdirectory_inside_junction_where_this_workspa": "Sous-répertoire dans ~/.kiro/crew où cet espace de travail stocke ses données (historique des chats, leçons, projets). Chaque espace de travail dispose de son propre répertoire isolé.",
+      "subdirectory_inside_junction_where_this_workspa": "Sous-répertoire dans ~/.junction où cet espace de travail stocke ses données (historique des chats, leçons, projets). Chaque espace de travail dispose de son propre répertoire isolé.",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "La configuration de départ de ce crew — ses outils, ses connexions et ses instructions.",
       "triggers": "Triggers",
       "triggers_hint": "When to route to this crew — free-text guidance the orchestrator reads to pick it. Leave empty to exclude this crew from automatic selection.",
@@ -10100,7 +10100,7 @@
       "displayTab": {
         "auto": "Auto",
         "change_the_dashboard_font_family_persists_across": "Change la police du tableau de bord. Conservée d’une session à l’autre.",
-        "choose_a_color_palette_each_theme_supports_dark": "Choisis une palette de couleurs. Chaque thème prend en charge les modes sombre et clair. Les thèmes personnalisés sont stockés dans ~/.kiro/crew/themes/.",
+        "choose_a_color_palette_each_theme_supports_dark": "Choisis une palette de couleurs. Chaque thème prend en charge les modes sombre et clair. Les thèmes personnalisés sont stockés dans ~/.junction/themes/.",
         "color_theme": "Thème de couleurs",
         "creating": "Création…",
         "dark": "Sombre",
@@ -10230,7 +10230,7 @@
         "applied_change_one": "{{count}} modification appliquée",
         "applied_change_other": "{{count}} modifications appliquées",
         "apply": "Appliquer",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— Appliquer écrit les modifications dans ~/.kiro/crew/mcp.json + les globaux du fournisseur selon les options activées.",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— Appliquer écrit les modifications dans ~/.junction/mcp.json + les globaux du fournisseur selon les options activées.",
         "applying": "Application…",
         "clear_search": "Effacer la recherche",
         "click_to_disable_pending_until_apply": "Cliquer pour désactiver (en attente jusqu’à Appliquer)",
@@ -11991,7 +11991,7 @@
         "i_understand_this_weakens_junction_s_protection": "Je comprends que cela affaiblit la protection de {{productName}}.",
         "interactive": "Interactif",
         "invalid_regular_expression": "Expression régulière invalide",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}} met en œuvre 6 couches de sécurité. Chaque couche fonctionne indépendamment — un attaquant doit contourner toutes les couches simultanément pour réussir.",
         "layer_auth": "Authentification",
         "layer_n": "Couche {{n}}",

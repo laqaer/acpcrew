@@ -13,6 +13,7 @@ under debate. For large contested upstream designs see
 | [0004 — Security unchanged](0004-security-unchanged.md) | Keystone, governance, `CONTRACT_VERSION` 1, computer use in-band, positive harness identity. |
 | [0005 — Preview not production](0005-preview-not-production.md) | PR and `site/` preview only; no merge, Pages-on-main, DNS, spend, or PyPI. |
 | [0006 — Agent OS, no auto-merge](0006-agent-os-no-automerge.md) | Scout files, implementer PRs, reviewer labels; a human merges. |
+| [0007 — Built-in model catalog](0007-builtin-model-catalog.md) | `junction up` serves loopback health and catalog. No provider forwarding, no vendored tree. |
 
 Frozen envelope: [`../../WORKING_BRIEF.md`](../../WORKING_BRIEF.md).
 Architecture thesis: [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md).

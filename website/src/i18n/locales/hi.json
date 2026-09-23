@@ -7135,7 +7135,7 @@
       "copied": "कॉपी हो गया!",
       "copyFailed": "कॉपी विफल",
       "copyCommand": "कमांड कॉपी करें",
-      "orEditConfigJson": "वैकल्पिक रूप से, सीधे ~/.kiro/crew/config.json को संपादित करें।",
+      "orEditConfigJson": "वैकल्पिक रूप से, सीधे ~/.junction/config.json को संपादित करें।",
       "openSettingsAriaLabel": "सेटिंग्स → {{tab}} में {{key}} खोलें",
       "fileSettingAriaLabel": "केवल फ़ाइल सेटिंग {{key}}"
     },
@@ -9319,7 +9319,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "कटओवर स्टेज किया गया: गेटवे के अगली बार शुरू होने पर यह वर्कट्री लाइव हो जाएगी। इसे पूरा करने के लिए `{{cmd}}` चलाएँ, या वापस लेने के लिए इस पंक्ति के मेनू → स्टेज किया गया कटओवर रद्द करें का उपयोग करें। तब तक गेटवे पिछले चेकआउट पर ही चलता रहेगा।",
       "keeps_the_live_checkout_the_live_target_and_disc": "लाइव चेकआउट लाइव लक्ष्य बना रहता है और {{staged}} पर स्टेज किया गया स्विच हटा दिया जाता है (कुछ भी पुनरारंभ नहीं होता)",
       "restarting_completes_the_pending_cutover_boots": "पुनरारंभ करने से लंबित कटओवर पूरा हो जाता है: गेटवे \"{{staged}}\" पर वापस आएगा, वर्तमान चेकआउट पर नहीं। डैशबोर्ड कुछ देर के लिए डिस्कनेक्ट होकर अपने आप फिर से जुड़ जाएगा। वापस लेने के लिए इसके बजाय स्टेज किया गया कटओवर रद्द करें का उपयोग करें।",
-      "no_checkout_found_action": "नीचे दिया एनवायरनमेंट वेरिएबल सेट करो, या इसे स्थायी बनाने के लिए {{productName}} डेटा डायरेक्टरी (डिफ़ॉल्ट रूप से ~/.kiro/crew) की config.json में dev_fleet.repo_path जोड़ो, फिर गेटवे को पुनः आरंभ करो।"
+      "no_checkout_found_action": "नीचे दिया एनवायरनमेंट वेरिएबल सेट करो, या इसे स्थायी बनाने के लिए {{productName}} डेटा डायरेक्टरी (डिफ़ॉल्ट रूप से ~/.junction) की config.json में dev_fleet.repo_path जोड़ो, फिर गेटवे को पुनः आरंभ करो।"
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9494,7 +9494,7 @@
       "save_changes": "बदलाव सहेजें",
       "select_an_agent_template": "एजेंट टेम्पलेट चुनें…",
       "shared_lower": "साझा",
-      "subdirectory_inside_junction_where_this_workspa": "~/.kiro/crew के अंदर वह उपडायरेक्टरी जहाँ यह वर्कस्पेस अपना डेटा (चैट इतिहास, सीख, प्रोजेक्ट) रखता है। हर वर्कस्पेस को अपनी अलग डायरेक्टरी मिलती है।",
+      "subdirectory_inside_junction_where_this_workspa": "~/.junction के अंदर वह उपडायरेक्टरी जहाँ यह वर्कस्पेस अपना डेटा (चैट इतिहास, सीख, प्रोजेक्ट) रखता है। हर वर्कस्पेस को अपनी अलग डायरेक्टरी मिलती है।",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "यह Crew जिस शुरुआती सेटअप से चलता है — इसके टूल, कनेक्शन और हिदायतें।",
       "triggers": "Triggers",
       "triggers_hint": "When to route to this crew — free-text guidance the orchestrator reads to pick it. Leave empty to exclude this crew from automatic selection.",
@@ -9954,7 +9954,7 @@
       "displayTab": {
         "auto": "स्वतः",
         "change_the_dashboard_font_family_persists_across": "डैशबोर्ड का फ़ॉन्ट फ़ैमिली बदलें। सेशनों के बीच बना रहता है।",
-        "choose_a_color_palette_each_theme_supports_dark": "रंग पैलेट चुनें। हर थीम डार्क और लाइट, दोनों मोड में काम करती है। कस्टम थीम ~/.kiro/crew/themes/ में रखी जाती हैं।",
+        "choose_a_color_palette_each_theme_supports_dark": "रंग पैलेट चुनें। हर थीम डार्क और लाइट, दोनों मोड में काम करती है। कस्टम थीम ~/.junction/themes/ में रखी जाती हैं।",
         "color_theme": "रंग थीम",
         "creating": "बनाया जा रहा है…",
         "dark": "डार्क",
@@ -10083,7 +10083,7 @@
         "applied_change_one": "{{count}} बदलाव लागू किया गया",
         "applied_change_other": "{{count}} बदलाव लागू किए गए",
         "apply": "लागू करें",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— 'लागू करें' बदलावों को ~/.kiro/crew/mcp.json + प्रोवाइडर ग्लोबल्स में सहेजता है, जैसा ऑप्ट-इन किया गया हो।",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— 'लागू करें' बदलावों को ~/.junction/mcp.json + प्रोवाइडर ग्लोबल्स में सहेजता है, जैसा ऑप्ट-इन किया गया हो।",
         "applying": "लागू हो रहा है…",
         "clear_search": "खोज साफ़ करें",
         "click_to_disable_pending_until_apply": "बंद करने के लिए क्लिक करें (लागू करने तक लंबित)",
@@ -11832,7 +11832,7 @@
         "i_understand_this_weakens_junction_s_protection": "मैं समझता हूँ कि इससे {{productName}} की सुरक्षा कमज़ोर होती है।",
         "interactive": "इंटरैक्टिव",
         "invalid_regular_expression": "अमान्य रेगुलर एक्सप्रेशन",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}} 6 सुरक्षा परतें लागू करता है। प्रत्येक परत स्वतंत्र रूप से काम करती है — सफल होने के लिए हमलावर को सभी परतों को एक साथ बायपास करना होगा।",
         "layer_auth": "प्रमाणन",
         "layer_n": "लेयर {{n}}",

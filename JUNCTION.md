@@ -40,7 +40,7 @@ Site: https://getjunction.dev
 ## Implementation identifiers (until a dedicated rename)
 
 `junction`, `JUNCTION_HOME`, `~/.kiro/crew`, Electron `productName`.
-GitHub slug is `laqaer/junction`. The brand gate still forbids concatenated `Junction`
+GitHub slug is `myrmitis/junction`. The brand gate still forbids concatenated `Junction`
 in **new prose**. Junction is allowed. Do not retarget the data home.
 
 ## Security and harness (do not weaken)

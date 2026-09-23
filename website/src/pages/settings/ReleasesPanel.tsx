@@ -12,7 +12,7 @@
  *
  * ## Why the list is short
  *
- * Rows come from {@link https://github.com/laqaer/junction | CHANGELOG.md}'s
+ * Rows come from {@link https://github.com/myrmitis/junction | CHANGELOG.md}'s
  * sections plus the release the running build belongs to — nothing else. A
  * version that shipped without a section is deliberately absent, because a row
  * that cannot say anything is indistinguishable from a broken one. The running
@@ -51,7 +51,7 @@ interface ReleasesPayload {
   stale: boolean
 }
 
-const REPO = 'https://github.com/laqaer/junction'
+const REPO = 'https://github.com/myrmitis/junction'
 
 /** Small-print state note for a row, or `''` when the row needs none.
  *

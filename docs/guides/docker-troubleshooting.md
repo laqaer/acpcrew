@@ -25,7 +25,7 @@ compose. Re-create the container with the correct mapping:
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v junction-home:/home/junction \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 ### Check JUNCTION_BIND
@@ -51,7 +51,7 @@ docker run -d --name junction \
   -p 127.0.0.1:8080:8080 \
   -e JUNCTION_PORT=8080 \
   -v junction-home:/home/junction \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 ### Firewall / Docker Desktop
@@ -137,7 +137,7 @@ sudo chown -R 1000:1000 /path/to/host/dir
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v /path/to/host/dir:/home/junction \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 ### Read-only filesystem
@@ -332,13 +332,13 @@ layer and vanishes on removal:
 
 ```bash
 # WRONG — no volume:
-docker run -d --name junction -p 5476:5476 ghcr.io/laqaer/junction:stable
+docker run -d --name junction -p 5476:5476 ghcr.io/myrmitis/junction:stable
 
 # CORRECT — named volume:
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
   -v junction-home:/home/junction \
-  ghcr.io/laqaer/junction:stable
+  ghcr.io/myrmitis/junction:stable
 ```
 
 ### `docker compose down -v` removes volumes
@@ -390,7 +390,7 @@ they are not available by default.
 1. **Build a custom image** extending the official one — the reliable route:
 
    ```dockerfile
-   FROM ghcr.io/laqaer/junction:stable
+   FROM ghcr.io/myrmitis/junction:stable
    USER root
    RUN apt-get update && apt-get install -y git nodejs npm && rm -rf /var/lib/apt/lists/*
    USER junction
@@ -532,7 +532,7 @@ docker stats junction --no-stream
 
 - Check the full startup log: `docker logs junction`
 - Review [docker.md](docker.md) for the complete configuration reference.
-- Open an [issue](https://github.com/laqaer/junction/issues) with your
+- Open an [issue](https://github.com/myrmitis/junction/issues) with your
   Docker version (`docker version`), OS, and the relevant log output.
 
 **Redact before you post.** A container log is not guaranteed to be free of

@@ -1188,15 +1188,14 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="sensitive-file-read-cat-kirocrew-env",
-        # Match both the LIVE ~/.kiro/crew/.env and the legacy ~/.kirocrew/.env,
-        # since a box that still has a legacy home holds live secrets at the
-        # legacy path.
-        pattern=".*cat.*/(?:\\.kiro/crew|\\.kirocrew)/\\.env.*",
+        # Current home, the previous nested home, and the older top-level home.
+        # A machine that still has an older directory holds live secrets there.
+        pattern=".*cat.*/(?:\\.junction|\\.kiro/crew|\\.kirocrew)/\\.env.*",
         category="sensitive-file-read",
         description=(
-            "Blocks using cat to read Kiro Crew's own credential file (~/.kiro/crew/.env, "
-            "or the pre-move ~/.kirocrew/.env), which holds Kiro Crew's own secrets and "
-            "environment credentials."
+            "Blocks using cat to read Junction's credential file (~/.junction/.env, "
+            "the previous ~/.kiro/crew/.env, or the older ~/.kirocrew/.env), which holds "
+            "Junction's secrets and environment credentials."
         ),
     ),
     DeniedCommandRule(
@@ -4041,7 +4040,10 @@ def _python_reads_stdin(later_tokens: list[str]) -> bool:
 # Matched WITHOUT re.IGNORECASE on purpose: the floor's own contract is that
 # callers pass already-lowercased text (`is_denied` lowercases once), and the
 # predicates' regexes are lowercase-only too.
-_SELF_FLOOR_NAME_HINT_RE = re.compile(r"kiro[-._]?crew|\bjunction\b|\bacpcrew\b")
+# ``-mjunction`` has no word boundary before the package name (``m`` and ``j``
+# are both word characters), so a ``\b`` in front of ``junction`` would skip
+# the attached ``python -m`` spelling and the floor would never run.
+_SELF_FLOOR_NAME_HINT_RE = re.compile(r"kiro[-._]?crew|-mjunction\b|\bjunction\b|\bacpcrew\b")
 _SELF_FLOOR_MACHINERY_RE = re.compile(r"[?*\[\]{}$`~]|\\x[0-9a-f]|\\0?[0-7]{1,3}")
 _SELF_FLOOR_QUOTE_JUNK_RE = re.compile(r"[\"'\\\\]")
 
@@ -4901,11 +4903,11 @@ _SENSITIVE_HOME_DIRS: list[str] = [
 # sel.py, apps/admission.py, governance.py, cli_commands.py, mcp_core.py, …)
 # opens these directly (NOT via this gate), so real functionality is unaffected.
 #
-# Each leaf is expanded under EVERY known crew data-home prefix so the secret is
-# gated identically whether it lives in the current home (``~/.kiro/crew``) or a
-# pre-move legacy home (``~/.kirocrew``) that a user still has on disk. Keeping
-# one leaf list means a new secret is added once and covered in both locations.
-_CREW_HOME_PREFIXES: tuple[str, ...] = (".kiro/crew", ".kirocrew")
+# Each leaf is expanded under EVERY known data-home prefix so the secret is
+# gated identically in the current home (``~/.junction``), the previous
+# ``~/.kiro/crew``, and an older ``~/.kirocrew`` directory still on disk.
+# One leaf list means a new secret is added once and covered in each location.
+_CREW_HOME_PREFIXES: tuple[str, ...] = (".junction", ".kiro/crew", ".kirocrew")
 _CREW_SECRET_LEAVES: list[str] = [
     ".env",
     # The Notes builtin stores a GitHub Personal Access Token here so it can

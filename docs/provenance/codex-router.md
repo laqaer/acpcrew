@@ -48,7 +48,7 @@ reimplement LiteLLM. ADR: [0003](../adr/0003-sidecar-not-vendor.md).
 
 ## This cut
 
-Python health, catalog, and role routing in `src/junction/model_router/`.
-Observe and compose. Catalog JSON copies slugs and labels only (MIT
-registry metadata, no credentials, no endpoints). Operator-install of the
-sidecar is M2.
+`junction up` serves loopback health and the shipped catalog from
+`src/junction/model_router/`. Catalog JSON copies slugs and labels only
+(MIT registry metadata, no credentials, no endpoints). Provider
+translation is not bundled. Junction does not vendor the Node tree.

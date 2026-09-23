@@ -7341,7 +7341,7 @@
       "copied": "Скопировано!",
       "copyFailed": "Ошибка копирования",
       "copyCommand": "Скопировать команду",
-      "orEditConfigJson": "Либо отредактируйте ~/.kiro/crew/config.json напрямую.",
+      "orEditConfigJson": "Либо отредактируйте ~/.junction/config.json напрямую.",
       "openSettingsAriaLabel": "Открыть {{key}} в разделе Настройки → {{tab}}",
       "fileSettingAriaLabel": "Настройка только через файл {{key}}"
     },
@@ -9603,7 +9603,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "Переключение подготовлено: это рабочее дерево станет активным при следующем запуске шлюза. Выполните `{{cmd}}`, чтобы завершить его, или используйте меню этой строки → Отменить подготовленное переключение, чтобы отказаться. До этого шлюз продолжает работать на прежнем чекауте.",
       "keeps_the_live_checkout_the_live_target_and_disc": "Активный чекаут остаётся активной целью, а подготовленное переключение на {{staged}} отменяется (ничего не перезапускается)",
       "restarting_completes_the_pending_cutover_boots": "Перезапуск завершит ожидающее переключение: шлюз запустится на «{{staged}}», а не на текущем чекауте. Панель ненадолго отключится и автоматически переподключится. Чтобы отказаться, используйте «Отменить подготовленное переключение».",
-      "no_checkout_found_action": "Задайте переменную окружения ниже или добавьте dev_fleet.repo_path в config.json в каталоге данных {{productName}} (по умолчанию ~/.kiro/crew), чтобы сохранить настройку, затем перезапустите шлюз."
+      "no_checkout_found_action": "Задайте переменную окружения ниже или добавьте dev_fleet.repo_path в config.json в каталоге данных {{productName}} (по умолчанию ~/.junction), чтобы сохранить настройку, затем перезапустите шлюз."
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9778,7 +9778,7 @@
       "save_changes": "Сохранить изменения",
       "select_an_agent_template": "Выберите шаблон агента…",
       "shared_lower": "общий доступ",
-      "subdirectory_inside_junction_where_this_workspa": "Подкаталог внутри ~/.kiro/crew, где эта рабочая область хранит свои данные (историю чатов, уроки, проекты). У каждой рабочей области свой изолированный каталог.",
+      "subdirectory_inside_junction_where_this_workspa": "Подкаталог внутри ~/.junction, где эта рабочая область хранит свои данные (историю чатов, уроки, проекты). У каждой рабочей области свой изолированный каталог.",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "Начальная настройка, с которой работает эта crew — её инструменты, подключения и инструкции.",
       "triggers": "Triggers",
       "triggers_hint": "When to route to this crew — free-text guidance the orchestrator reads to pick it. Leave empty to exclude this crew from automatic selection.",
@@ -10246,7 +10246,7 @@
       "displayTab": {
         "auto": "Авто",
         "change_the_dashboard_font_family_persists_across": "Смени шрифт панели. Сохраняется между сессиями.",
-        "choose_a_color_palette_each_theme_supports_dark": "Выбери цветовую палитру. Каждая тема поддерживает тёмный и светлый режимы. Свои темы хранятся в ~/.kiro/crew/themes/.",
+        "choose_a_color_palette_each_theme_supports_dark": "Выбери цветовую палитру. Каждая тема поддерживает тёмный и светлый режимы. Свои темы хранятся в ~/.junction/themes/.",
         "color_theme": "Цветовая тема",
         "creating": "Создание…",
         "dark": "Тёмная",
@@ -10377,7 +10377,7 @@
         "applied_change_one": "Применено {{count}} изменение",
         "applied_change_other": "Применено {{count}} изменения",
         "apply": "Применить",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— «Применить» записывает изменения в ~/.kiro/crew/mcp.json и глобальные настройки провайдера согласно включённым опциям.",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— «Применить» записывает изменения в ~/.junction/mcp.json и глобальные настройки провайдера согласно включённым опциям.",
         "applying": "Применение…",
         "clear_search": "Очистить поиск",
         "click_to_disable_pending_until_apply": "Нажми, чтобы отключить (вступит в силу после «Применить»)",
@@ -12150,7 +12150,7 @@
         "i_understand_this_weakens_junction_s_protection": "Я понимаю, что это ослабляет защиту {{productName}}.",
         "interactive": "Интерактивный",
         "invalid_regular_expression": "Некорректное регулярное выражение",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}} реализует 6 уровней защиты. Каждый уровень работает независимо — злоумышленнику нужно обойти все уровни одновременно.",
         "layer_auth": "Аутентификация",
         "layer_n": "Уровень {{n}}",

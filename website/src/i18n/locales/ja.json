@@ -7032,7 +7032,7 @@
       "copied": "コピーしました！",
       "copyFailed": "コピーに失敗しました",
       "copyCommand": "コマンドをコピー",
-      "orEditConfigJson": "または、~/.kiro/crew/config.json を直接編集してください。",
+      "orEditConfigJson": "または、~/.junction/config.json を直接編集してください。",
       "openSettingsAriaLabel": "設定 → {{tab}} で {{key}} を開く",
       "fileSettingAriaLabel": "ファイル専用設定 {{key}}"
     },
@@ -9177,7 +9177,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "切り替え準備完了：ゲートウェイの次回起動時にこのワークツリーがライブになります。完了するには `{{cmd}}` を実行するか、この行のメニュー → 準備済みの切り替えをキャンセル で取り消せます。それまでゲートウェイは以前のチェックアウトで動作し続けます。",
       "keeps_the_live_checkout_the_live_target_and_disc": "ライブ中のチェックアウトがライブ対象のままとなり、{{staged}} への準備済みの切り替えは破棄されます（何も再起動されません）",
       "restarting_completes_the_pending_cutover_boots": "再起動すると保留中の切り替えが完了します：ゲートウェイは現在のチェックアウトではなく「{{staged}}」で起動します。ダッシュボードは一時的に切断され、自動的に再接続されます。取り消す場合は、準備済みの切り替えをキャンセル を使用してください。",
-      "no_checkout_found_action": "下記の環境変数を設定するか、設定を永続化するには {{productName}} データディレクトリ（既定では ~/.kiro/crew）の config.json に dev_fleet.repo_path を追加し、ゲートウェイを再起動してください。"
+      "no_checkout_found_action": "下記の環境変数を設定するか、設定を永続化するには {{productName}} データディレクトリ（既定では ~/.junction）の config.json に dev_fleet.repo_path を追加し、ゲートウェイを再起動してください。"
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9352,7 +9352,7 @@
       "save_changes": "変更を保存",
       "select_an_agent_template": "エージェントテンプレートを選択…",
       "shared_lower": "共有",
-      "subdirectory_inside_junction_where_this_workspa": "~/.kiro/crew内のサブディレクトリで、このワークスペースがそのデータ（チャット履歴、レッスン、プロジェクト）を保存します。各ワークスペースには独自の分離されたディレクトリがあります。",
+      "subdirectory_inside_junction_where_this_workspa": "~/.junction内のサブディレクトリで、このワークスペースがそのデータ（チャット履歴、レッスン、プロジェクト）を保存します。各ワークスペースには独自の分離されたディレクトリがあります。",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "このクルーが使用する開始設定 — ツール、接続、指示。",
       "triggers": "トリガー",
       "triggers_hint": "このクルーにルーティングするとき — オーケストレーターが読み取る自由形式のガイダンス。このクルーを自動選択から除外するために空のままにします。",
@@ -9808,7 +9808,7 @@
       "displayTab": {
         "auto": "自動",
         "change_the_dashboard_font_family_persists_across": "ダッシュボードフォントファミリを変更します。セッション間で保存されます。",
-        "choose_a_color_palette_each_theme_supports_dark": "カラーパレットを選択します。各テーマはダークモードとライトモードに対応しています。カスタムテーマは ~/.kiro/crew/themes/ に保存されます。",
+        "choose_a_color_palette_each_theme_supports_dark": "カラーパレットを選択します。各テーマはダークモードとライトモードに対応しています。カスタムテーマは ~/.junction/themes/ に保存されます。",
         "color_theme": "カラーテーマ",
         "creating": "作成中…",
         "dark": "ダーク",
@@ -9936,7 +9936,7 @@
         "add_server": "サーバーを追加",
         "applied_change_other": "{{count}} 件の変更を適用しました",
         "apply": "適用",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— ~/.kiro/crew/mcp.json とプロバイダーグローバルへのコミットを適用（オプトイン済みの場合）。",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— ~/.junction/mcp.json とプロバイダーグローバルへのコミットを適用（オプトイン済みの場合）。",
         "applying": "適用中…",
         "clear_search": "検索をクリア",
         "click_to_disable_pending_until_apply": "クリックして無効化（適用まで保留中）",
@@ -11672,7 +11672,7 @@
         "i_understand_this_weakens_junction_s_protection": "これは {{productName}}の保護を弱めることを理解しています。",
         "interactive": "インタラクティブ",
         "invalid_regular_expression": "無効な正規表現",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}}は6つのセキュリティレイヤーを実装します。各レイヤーは独立して動作します — 攻撃者がすべてのレイヤーを同時にバイパスする必要があります。",
         "layer_auth": "認証",
         "layer_n": "レイヤー{{n}}",

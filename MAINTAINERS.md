@@ -26,7 +26,7 @@ None yet.
 ## Reaching maintainers
 
 For anything about the project itself, open a
-[GitHub issue](https://github.com/laqaer/junction/issues) rather than contacting
+[GitHub issue](https://github.com/myrmitis/junction/issues) rather than contacting
 a maintainer directly. Public questions get answered where the next person with
 the same question can find them.
 

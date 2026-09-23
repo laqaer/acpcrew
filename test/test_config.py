@@ -136,7 +136,7 @@ class TestConfigDir:
         monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr("pathlib.Path.home", classmethod(lambda cls: tmp_path))
         d = config_dir()
-        assert d == tmp_path / ".kiro" / "crew"
+        assert d == tmp_path / ".junction"
 
 
 class TestTrustedBotIds:

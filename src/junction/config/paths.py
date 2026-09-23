@@ -2,7 +2,7 @@
 
 This is a **leaf module**: it depends only on the standard library
 (``os``, ``sys``, ``pathlib``, ``logging``) and imports nothing from
-``junction``. Modules that only need to locate ``~/.kirocrew/`` should import
+``junction``. Modules that only need to locate the data home should import
 from here directly::
 
     from junction.config.paths import config_dir
@@ -33,32 +33,27 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Junction's data root nests UNDER kiro-cli's own home ``~/.kiro/`` (Labs product
-# decision: all Kiro-family apps share the ``~/.kiro/`` base so a user has a
-# single place to secure). ``config_dir()`` therefore resolves to
-# ``~/.kiro/crew`` by default. ``CONFIG_DIR_NAME`` is the segment(s) appended to
-# ``~/`` — kept as a POSIX-style relative literal so downstream string checks
-# (e.g. the security keystone) can match it uniformly.
+# Default data home for a new install: ``~/.junction``. One path segment under
+# the user home so it does not sit inside another product's directory.
+# ``CONFIG_DIR_NAME`` is the segment appended to ``~/`` — a POSIX-style relative
+# literal so downstream string checks (the security keystone) can match it.
+CONFIG_DIR_NAME = ".junction"
+
+# Previous default, still recognized when ``~/.junction`` is absent, and still
+# on the security floor. ``KIRO_BASE_DIR_NAME`` is also kiro-cli's own home
+# (``~/.kiro``), which is a different directory from Junction's data home.
 KIRO_BASE_DIR_NAME = ".kiro"
 CONFIG_DIR_LEAF = "crew"
-CONFIG_DIR_NAME = f"{KIRO_BASE_DIR_NAME}/{CONFIG_DIR_LEAF}"  # ".kiro/crew"
+PRIOR_CONFIG_DIR_NAME = f"{KIRO_BASE_DIR_NAME}/{CONFIG_DIR_LEAF}"  # ".kiro/crew"
 
-# The pre-move top-level home (``~/.kirocrew``). Retained as a constant (not an
-# inline literal) so the security keystone, autonudge, seed and the other
-# legacy-path consumers reference the same source of truth.
+# The older top-level home (``~/.kirocrew``). Retained as a constant (not an
+# inline literal) so the security keystone and other legacy-path consumers
+# reference the same source of truth.
 LEGACY_CONFIG_DIR_NAME = ".kirocrew"
 
-# Recovery-pointer breadcrumb written at the TOP-LEVEL home (``~/.kirocrew.breadcrumb``),
-# deliberately OUTSIDE ``~/.kiro/``. The data home now nests under kiro-cli's
-# ``~/.kiro/`` base, so a hypothetical Kiro-family uninstaller that wipes
-# ``~/.kiro/`` would take Kiro Crew's data with it. This tiny, non-secret
-# pointer survives such a wipe (it lives beside ``~/.kiro``, not inside it) and
-# records where the data
-# home is, so a user/support script can find any surviving data or understand
-# what was lost. It is NOT a backup — just a durable signpost. Only written on
-# the default (non-override) path; a ``JUNCTION_HOME`` override is the user's own chosen
-# location and carries no ``~/.kiro/`` wipe risk.
-RECOVERY_BREADCRUMB_NAME = ".kirocrew.breadcrumb"
+# Non-secret pointer at ``~/.junction.breadcrumb``. Only written on the default
+# (non-override) path. A ``JUNCTION_HOME`` override is the user's own location.
+RECOVERY_BREADCRUMB_NAME = ".junction.breadcrumb"
 
 OUTBOX_DIR_NAME = "outbox"
 
@@ -89,13 +84,47 @@ _config_dir_memo: tuple[str | None, Path | None, Path] | None = None
 
 
 def _default_home() -> Path:
-    """Resolve the default (non-override) data root: ``~/.kiro/crew``."""
+    """Resolve the default (non-override) data root: ``~/.junction``."""
+    return Path.home() / CONFIG_DIR_NAME
+
+
+def _prior_home() -> Path:
+    """Resolve the previous default data root: ``~/.kiro/crew``."""
     return Path.home() / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF
 
 
 def _legacy_home() -> Path:
-    """Resolve the pre-move top-level home: ``~/.kirocrew``."""
+    """Resolve the older top-level home: ``~/.kirocrew``."""
     return Path.home() / LEGACY_CONFIG_DIR_NAME
+
+
+def default_home_paths() -> tuple[Path, ...]:
+    """Homes that count as the operator's real data directory, not an override.
+
+    Order is current, previous, then the older top-level spelling. Callers
+    that compare an explicit ``JUNCTION_HOME`` against "the default" use this
+    so a spelled-out ``~/.junction`` is still the real home.
+    """
+    return (_default_home(), _prior_home(), _legacy_home())
+
+
+def _select_default_home() -> Path:
+    """Pick a default data root without creating it.
+
+    A new install uses ``~/.junction``. When that directory is absent and a
+    previous data directory already exists, that directory is kept so the
+    machine does not start empty. The caller creates the chosen path.
+    """
+    current = _default_home()
+    if current.is_dir():
+        return current
+    prior = _prior_home()
+    if prior.is_dir():
+        return prior
+    legacy = _legacy_home()
+    if legacy.is_dir():
+        return legacy
+    return current
 
 
 def legacy_home() -> Path:
@@ -110,7 +139,7 @@ def legacy_home() -> Path:
 
 
 def _resolve_default_home() -> Path:
-    """Resolve the default data root (``~/.kiro/crew``), caching it for the process.
+    """Resolve the default data root (``~/.junction``), caching it for the process.
 
     The resolved home is memoized in :data:`_resolved_home` so every later
     ``config_dir()`` / ``data_home()`` call returns the same directory without
@@ -119,15 +148,14 @@ def _resolve_default_home() -> Path:
     """
     global _resolved_home
     if _resolved_home is None:
-        _resolved_home = _default_home()
+        _resolved_home = _select_default_home()
     return _resolved_home
 
 
 def _write_recovery_breadcrumb(data_home: Path) -> None:
-    """Drop a recovery-pointer breadcrumb at ``~/.kirocrew.breadcrumb`` (best effort).
+    """Drop a recovery-pointer breadcrumb at ``~/.junction.breadcrumb`` (best effort).
 
-    Lives OUTSIDE ``~/.kiro/`` so it survives a ``~/.kiro/``-wide uninstaller wipe
-    and records where the data home is (see ``RECOVERY_BREADCRUMB_NAME``). Written
+    Records where the data home is (see ``RECOVERY_BREADCRUMB_NAME``). Written
     once (skipped if already present and already points at *data_home*), never
     raises, never blocks startup, and contains NO secrets — only the path. Only
     called on the default (non-override) resolution path.
@@ -140,9 +168,8 @@ def _write_recovery_breadcrumb(data_home: Path) -> None:
             "Junction stores its data (config, credentials, history, DBs) at:\n"
             f"    {data_home}\n"
             "\n"
-            "This pointer lives outside ~/.kiro/ on purpose: if a Kiro-family\n"
-            "uninstaller ever removes ~/.kiro/, this file survives so you can find\n"
-            "any surviving data or know where it had been. It is NOT a backup.\n"
+            "This file only records that path. It is not a backup and it holds\n"
+            "no secrets.\n"
         )
         # Idempotent: only (re)write when absent or the recorded path changed, so
         # we don't churn the file on every process start.
@@ -279,8 +306,7 @@ def config_dir() -> Path:
         )
     d = _resolve_default_home()
     d.mkdir(parents=True, exist_ok=True)
-    # Drop the recovery-pointer breadcrumb outside ~/.kiro/ (default path only).
-    # Best-effort + idempotent; guarded so a breadcrumb failure never blocks the
+    # Best-effort + idempotent; a breadcrumb failure never blocks the
     # data-home resolution the whole app depends on.
     _write_recovery_breadcrumb(d)
     _config_dir_memo = (override_raw, _resolved_home, d)
@@ -356,27 +382,27 @@ def config_package_dir() -> Path:
 def _in_ephemeral_tree(path: Path, env: Mapping[str, str] | None = None) -> bool:
     """Whether *path* lives inside an AppImage's ephemeral runtime mount.
 
-    An AppImage runs from a squashfs the runtime mounts under a randomized
-    ``/tmp/.mount_<name>XXXXXX`` directory and unmounts on exit, so anything
-    resolved there is valid ONLY for the life of that process. A machine-wide
-    launcher aimed into it dangles the moment the app quits — the same hazard as
-    :func:`_in_linked_git_worktree`, from a different direction.
+        An AppImage runs from a squashfs the runtime mounts under a randomized
+        ``/tmp/.mount_<name>XXXXXX`` directory and unmounts on exit, so anything
+        resolved there is valid ONLY for the life of that process. A machine-wide
+        launcher aimed into it dangles the moment the app quits — the same hazard as
+        :func:`_in_linked_git_worktree`, from a different direction.
 
-``$APPDIR`` (the mount point) is exported by the AppImage runtime and is the
-    authoritative signal; ``$APPIMAGE`` names the outer image file rather than the
-    mount, so it cannot answer an ancestry test. The ``.mount_`` path component is
-    the fallback for a child process that inherited no environment, matched on the
-    RESOLVED path so a symlink into the mount cannot slip past.
+    ``$APPDIR`` (the mount point) is exported by the AppImage runtime and is the
+        authoritative signal; ``$APPIMAGE`` names the outer image file rather than the
+        mount, so it cannot answer an ancestry test. The ``.mount_`` path component is
+        the fallback for a child process that inherited no environment, matched on the
+        RESOLVED path so a symlink into the mount cannot slip past.
 
-    Deliberately NOT "anything under the temp directory". A scratch tree in
-    ``/tmp`` is every bit as ephemeral, but a blanket temp-dir rule cannot tell a
-    reaped work directory from a legitimate install a developer or test placed
-    there, and the launcher those produce is caught precisely by
-    :func:`_bin_is_usable` instead — by the interpreter being gone, which is the
-    property that actually breaks the command.
+        Deliberately NOT "anything under the temp directory". A scratch tree in
+        ``/tmp`` is every bit as ephemeral, but a blanket temp-dir rule cannot tell a
+        reaped work directory from a legitimate install a developer or test placed
+        there, and the launcher those produce is caught precisely by
+        :func:`_bin_is_usable` instead — by the interpreter being gone, which is the
+        property that actually breaks the command.
 
-    Stdlib-only and subprocess-free for the same reason as the worktree guard:
-    this runs on the gateway start path.
+        Stdlib-only and subprocess-free for the same reason as the worktree guard:
+        this runs on the gateway start path.
     """
     env = os.environ if env is None else env
     appdir = (env.get("APPDIR") or "").strip()

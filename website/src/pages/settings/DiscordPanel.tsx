@@ -5,7 +5,7 @@ import { api } from '../../api/client'
 import { i18nT } from '../../i18n/t'
 import { BotChannelPanel, type BotChannelSpec } from './BotChannelPanel'
 
-const SETUP_GUIDE = 'https://github.com/laqaer/junction/blob/main/src/junction/docs/discord-integration.md'
+const SETUP_GUIDE = 'https://github.com/myrmitis/junction/blob/main/src/junction/docs/discord-integration.md'
 
 /**
  * The Discord spec, built PER RENDER rather than held in a module-level constant.

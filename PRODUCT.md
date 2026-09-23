@@ -30,12 +30,11 @@ Two planes, one product. See [`ARCHITECTURE.md`](ARCHITECTURE.md).
    is `auto`: the first installed of Cursor, Claude, Codex, Kimi, DeepSeek
    Harness, Goose, Grok, Pi, Droid. Pin a concrete id when you want one
    agent. A vendor agent CLI remains selectable and last in that preference list.
-2. **Model plane** — an optional Codex Router sidecar on loopback. Junction
-   observes it (`src/junction/model_router/`). The shipped catalog lists
-   every namespaced model choice the sidecar advertises. Role routing
+2. **Model plane** — a loopback catalog Junction starts with `junction up`.
+   The shipped catalog lists namespaced model choices. Role routing
    (orchestration → planning → execution) spends cheaper models on
-   coordination and capable models on planning. If the sidecar is down, the
-   ACP gateway still runs.
+   coordination and capable models on planning. Provider translation is
+   not bundled. If the catalog listener is down, the ACP gateway still runs.
 
 Memory, cron, skills, and the dashboard come from the gateway that already
 lives in this tree.
@@ -45,8 +44,8 @@ lives in this tree.
 - **Not another chatbot.** There is no hosted conversation product and no
   account system of Junction's own.
 - **Not a Codex clone.** Codex is one dockable ACP agent, not the product.
-- **Not Codex Router.** Codex Router is the MIT model-plane sidecar Junction
-  observes. It is a separate project; this checkout does not vendor it.
+- **Not a hosted model proxy.** The catalog is local. Junction does not
+  forward provider traffic and does not take provider keys in chat.
 
 Rejected names (Hearth, Relay, Rudder, and the rest) live in
 [`docs/adr/0001-product-identity.md`](docs/adr/0001-product-identity.md).
@@ -74,13 +73,9 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 
 ## Implementation identifiers
 
-Python import path, data-home env, and default data directory keep the
-spellings the runtime already uses (`junction`, `JUNCTION_HOME`,
-`~/.kiro/crew`) until a dedicated, human-gated rename. They are not the
-product name. GitHub slug: `laqaer/junction`. Site: https://getjunction.dev
-
-The brand gate still forbids concatenated `Junction` in **new prose**.
-Junction is the product.
+Python package `junction`. Data-home env `JUNCTION_HOME`. A new install
+stores data in `~/.junction`. GitHub slug: `myrmitis/junction`. Site:
+https://getjunction.dev
 
 ## Authority
 

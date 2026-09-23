@@ -15,7 +15,7 @@ import { i18nT } from '../../i18n/t'
 const CHANNEL_NAME = "Teams"
 const AZURE_BOT_URL = 'https://portal.azure.com/#create/Microsoft.AzureBot'
 const SETUP_GUIDE =
-  'https://github.com/laqaer/junction/blob/main/src/junction/docs/teams-integration.md'
+  'https://github.com/myrmitis/junction/blob/main/src/junction/docs/teams-integration.md'
 const WEBHOOK_PATH = '/api/messaging/teams'
 /** In-chat commands the soft-threshold nudge names. Protocol tokens the channel
  *  matches by value, so they stay code constants rather than catalog values. */

@@ -31,7 +31,7 @@ Authorities cited:
   between Chinese characters is the clearest signal a string was machine
   translated and never read.
 - **Half-width is kept inside code**: commands, paths, filenames and extensions
-  (`~/.kiro/crew`, `.yaml`), identifiers and config keys
+  (`~/.junction`, `.yaml`), identifiers and config keys
   (`pref.backend.framework`), version numbers (`v1.2.3`), numeric ranges,
   URLs, emails and token prefixes (`xoxb-`).
 - **Wrapper follows the sentence, content keeps its script**:

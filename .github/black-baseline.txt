@@ -169,7 +169,6 @@ src/junction/apps/teardown.py
 src/junction/artifact_source.py
 src/junction/artifacts.py
 src/junction/atomic_write.py
-src/junction/beacon.py
 src/junction/builtin_skills/browser-recording/scripts/record_browser.py
 src/junction/builtin_skills/ios-simulator-preview/scripts/sim_mirror.py
 src/junction/builtin_skills/junction-dev/prepare-pr/scripts/local_review.py
@@ -186,7 +185,6 @@ src/junction/cloud/connect.py
 src/junction/cloud/ec2.py
 src/junction/cloud/launch_engine.py
 src/junction/cloud/launch_job.py
-src/junction/config/paths.py
 src/junction/config/schema.py
 src/junction/config/validation.py
 src/junction/connections/alias_record.py
@@ -1058,7 +1056,6 @@ test/test_sandbox_unsandboxed_exec_consent.py
 test/test_scenarios_v2.py
 test/test_scenarios_v2_logic.py
 test/test_search_sessions_cost.py
-test/test_security.py
 test/test_seed.py
 test/test_sel.py
 test/test_sel_dashboard_offload.py

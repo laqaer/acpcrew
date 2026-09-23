@@ -29,4 +29,4 @@ A human merges.
   suffix) off the agreed base.
 - Labels `agent-os/triage`, `agent-os/ready`, and `agent-os/approved`
   must exist on the repo. Create them once; the handoff workflow only
-  comments. See [#29](https://github.com/laqaer/junction/issues/29).
+  comments. See [#29](https://github.com/myrmitis/junction/issues/29).

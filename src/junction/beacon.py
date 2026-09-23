@@ -99,7 +99,7 @@ from typing import NamedTuple
 
 from junction import platform_compat
 from junction.atomic_write import atomic_write
-from junction.config.paths import CONFIG_DIR_LEAF, KIRO_BASE_DIR_NAME, config_dir
+from junction.config.paths import config_dir, default_home_paths
 from junction.platform.governance_profiles import (
     GOVERNANCE_ERROR_REASON,
     governance_permits,
@@ -165,9 +165,7 @@ _CI_ENV_VARS = (
 # "source" is the git-clone path and the correct answer for an unstamped tree,
 # so it is the default rather than an "unknown" bucket.
 DIST_ENV = "JUNCTION_DISTRIBUTION"
-KNOWN_DISTRIBUTIONS = frozenset(
-    {"dmg", "appimage", "deb", "rpm", "wheel", "source", "docker"}
-)
+KNOWN_DISTRIBUTIONS = frozenset({"dmg", "appimage", "deb", "rpm", "wheel", "source", "docker"})
 DEFAULT_DISTRIBUTION = "source"
 
 # Optional dependency: ``_build_info`` exists only in a packaged artifact, so
@@ -219,7 +217,7 @@ def is_default_home() -> bool:
     or a worktree preview — one operator's own extra instances, so counting them
     would inflate DAU.
 
-    Compared against ``~/.kiro/crew`` directly rather than against
+    Compared against the known default homes directly rather than against
     ``config_dir()``: ``config_dir()`` *honors* ``JUNCTION_HOME``, so comparing
     the two would always match and this suppression would never fire. Resolved
     on both sides so a symlinked or trailing-slash spelling of the real home
@@ -229,8 +227,8 @@ def is_default_home() -> bool:
     if not raw:
         return True
     try:
-        default = Path.home() / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF
-        return Path(raw).expanduser().resolve() == default.resolve()
+        resolved = Path(raw).expanduser().resolve()
+        return any(resolved == candidate.resolve() for candidate in default_home_paths())
     except (OSError, RuntimeError):
         # RuntimeError as well as OSError: Path.home() raises RuntimeError (not
         # OSError) when the UID has no passwd entry, which is normal in a
@@ -627,9 +625,7 @@ REASONS = (
 )
 
 
-def telemetry_permitted(
-    *, enabled: bool, acked: bool, audit_tool: str = ""
-) -> Verdict:
+def telemetry_permitted(*, enabled: bool, acked: bool, audit_tool: str = "") -> Verdict:
     """Return the send verdict for ANY outbound telemetry from this install.
 
     The consent gate, factored out of :func:`should_send` so a SECOND outbound
@@ -713,9 +709,7 @@ def should_send(*, enabled: bool, acked: bool, audit: bool = True) -> Verdict:
     if not verdict.ok:
         return verdict
     if already_sent_today():
-        return Verdict(
-            False, f"already sent today ({_today()})", "already_sent_today"
-        )
+        return Verdict(False, f"already sent today ({_today()})", "already_sent_today")
     return Verdict(True, "ready", "ready")
 
 
@@ -791,9 +785,7 @@ def send(endpoint: str, app_version: str, *, enabled: bool, acked: bool) -> bool
         return False
 
 
-def status(
-    endpoint: str, *, enabled: bool, app_version: str, acked: bool
-) -> dict[str, object]:
+def status(endpoint: str, *, enabled: bool, app_version: str, acked: bool) -> dict[str, object]:
     """Return the exact state for ``junction telemetry status``.
 
     Uses ``create=False`` so inspecting status never materializes an id.

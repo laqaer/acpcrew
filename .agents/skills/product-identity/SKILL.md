@@ -24,5 +24,5 @@ Read first: [`../../../JUNCTION.md`](../../../JUNCTION.md),
   A process still copies a previous `KIROCREW_*` value when the new name is
   unset, so an existing data home keeps loading. The security deny list still
   matches the previous command spelling and `~/.kirocrew`.
-  GitHub slug is `laqaer/junction`.
+  GitHub slug is `myrmitis/junction`.
 - Do not edit `CHANGELOG.md` on a feature PR.

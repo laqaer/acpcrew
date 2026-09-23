@@ -2460,6 +2460,9 @@ The dashboard port is set with the JUNCTION_PORT env var, not a config key.
         # The asyncio loop handler is installed later inside run().
         _install_crash_guard()
         gw_kwargs = _resolve_gateway_args(args)
+        from junction.model_router.embedded import ensure_embedded_router
+
+        ensure_embedded_router()
         if not gw_kwargs.get("json_ready"):
             from junction.planes import print_compose_banner
 

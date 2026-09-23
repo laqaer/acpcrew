@@ -84,7 +84,7 @@ describe('Junction naming', () => {
     expect(text).not.toMatch(/junction/i);
     // Clone URLs use the GitHub slug. They are not a second product name.
     const leftover = text
-      .replace(/laqaer\/junction(?:\.git)?/gi, '')
+      .replace(/(?:myrmitis|laqaer)\/junction(?:\.git)?/gi, '')
       .replace(/\bcd junction\b/gi, '');
     expect(leftover).not.toMatch(/acpcrew/i);
     expect(text).toMatch(/vendor agent CLI is optional/i);

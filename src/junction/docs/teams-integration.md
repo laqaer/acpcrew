@@ -53,13 +53,13 @@ Framework **pushes** activities to a messaging endpoint you host. Junction:
  > Use PIP's **Direct URL requirement syntax** (`package[extra] @ git+https://...`) to install the package along with extras:
  >
  > ```bash
- > pip install "junction[teams] @ git+https://github.com/laqaer/junction.git"
+ > pip install "junction[teams] @ git+https://github.com/myrmitis/junction.git"
  > ```
  > ### Alternative Solutions
  >
  > #### Option 1: Install Subdirectory / Local Clone (Editable Mode)
  >
- > If you have cloned the [Junction GitHub repository](https://github.com/laqaer/junction) locally, navigate to the repo root and run:
+ > If you have cloned the [Junction GitHub repository](https://github.com/myrmitis/junction) locally, navigate to the repo root and run:
  >
  > ```bash
  > pip install -e ".[teams]"
@@ -70,7 +70,7 @@ Framework **pushes** activities to a messaging endpoint you host. Junction:
  > If you run into issues with Git dependency syntax, you can install the repository root first and then install the required `teams` dependencies directly (such as `pyjwt` and `cryptography` required for Azure Bot Framework JWT validation):
  >
  > ```bash
- > pip install "git+https://github.com/laqaer/junction.git"
+ > pip install "git+https://github.com/myrmitis/junction.git"
  > pip install pyjwt cryptography
  > ```
 

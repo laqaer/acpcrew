@@ -22,7 +22,7 @@ from junction.config import paths
 
 
 class TestConfigDir:
-    """``config_dir()`` resolves ~/.kiro/crew, honoring JUNCTION_HOME."""
+    """``config_dir()`` resolves ~/.junction, honoring JUNCTION_HOME."""
 
     @pytest.fixture(autouse=True)
     def _reset_resolved_home(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -37,7 +37,7 @@ class TestConfigDir:
         monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
         result = paths.config_dir()
-        assert result == tmp_path / ".kiro" / "crew"
+        assert result == tmp_path / ".junction"
         assert result.is_dir()  # created on access
 
     def test_junction_home_override(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -50,11 +50,32 @@ class TestConfigDir:
     def test_junction_home_system_dir_is_ignored(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        # A system directory must be refused and fall back to ~/.kiro/crew.
+        # A system directory must be refused and fall back to ~/.junction.
         monkeypatch.setenv("JUNCTION_HOME", "/usr")
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
         result = paths.config_dir()
-        assert result == tmp_path / ".kiro" / "crew"
+        assert result == tmp_path / ".junction"
+
+    def test_previous_home_is_kept_until_the_new_one_exists(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        prior = tmp_path / ".kiro" / "crew"
+        prior.mkdir(parents=True)
+        result = paths.config_dir()
+        assert result == prior.resolve()
+        assert not (tmp_path / ".junction").exists()
+
+    def test_new_home_wins_when_both_exist(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
+        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
+        current = tmp_path / ".junction"
+        current.mkdir()
+        (tmp_path / ".kiro" / "crew").mkdir(parents=True)
+        assert paths.config_dir() == current.resolve()
 
 
 class TestConfigPackageDir:

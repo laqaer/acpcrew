@@ -7034,7 +7034,7 @@
       "fileOnlyDescription": "아래 CLI 명령으로 이 값을 설정하세요.",
       "fileSettingAriaLabel": "파일 전용 설정 {{key}}",
       "openSettingsAriaLabel": "{{key}}을(를) 설정 → {{tab}}에서 열기",
-      "orEditConfigJson": "또는 ~/.kiro/crew/config.json 파일을 직접 편집하세요."
+      "orEditConfigJson": "또는 ~/.junction/config.json 파일을 직접 편집하세요."
     },
     "pttTestStrip": {
       "focus_lost": "창이 포커스를 잃어 키에서 손을 뗀 것을 감지하지 못했습니다. 실제 대화에서는 안전 타이머가 녹음을 중지합니다.",
@@ -9177,7 +9177,7 @@
       "cutover_staged_run_cmd_to_finish_or_cancel": "전환 준비 완료: 게이트웨이가 다음에 시작될 때 이 워크트리가 라이브로 전환됩니다. 마무리하려면 `{{cmd}}`을(를) 실행하고, 되돌리려면 이 행의 메뉴 → 준비된 전환 취소를 사용하세요. 그전까지 게이트웨이는 이전 체크아웃으로 계속 실행됩니다.",
       "keeps_the_live_checkout_the_live_target_and_disc": "라이브 체크아웃이 라이브 대상으로 유지되고 {{staged}}(으)로 준비된 전환은 취소됩니다(아무것도 재시작되지 않음)",
       "restarting_completes_the_pending_cutover_boots": "재시작하면 대기 중인 전환이 완료됩니다: 게이트웨이는 현재 체크아웃이 아닌 '{{staged}}'(으)로 다시 시작됩니다. 대시보드가 잠시 연결이 끊겼다가 자동으로 다시 연결됩니다. 되돌리려면 준비된 전환 취소를 사용하세요.",
-      "no_checkout_found_action": "아래 환경 변수를 설정하거나, 설정을 유지하려면 {{productName}} 데이터 디렉터리(기본값 ~/.kiro/crew)의 config.json에 dev_fleet.repo_path를 추가한 후 게이트웨이를 다시 시작하세요."
+      "no_checkout_found_action": "아래 환경 변수를 설정하거나, 설정을 유지하려면 {{productName}} 데이터 디렉터리(기본값 ~/.junction)의 config.json에 dev_fleet.repo_path를 추가한 후 게이트웨이를 다시 시작하세요."
     },
     "developer": {
       "featurePreviewsTab": {
@@ -9352,7 +9352,7 @@
       "save_changes": "변경 사항 저장",
       "select_an_agent_template": "에이전트 템플릿 선택…",
       "shared_lower": "공유",
-      "subdirectory_inside_junction_where_this_workspa": "이 워크스페이스가 데이터(채팅 기록, 레슨, 프로젝트)를 저장하는 ~/.kiro/crew 내부 하위 디렉터리입니다. 각 워크스페이스는 격리된 자체 디렉터리를 갖습니다.",
+      "subdirectory_inside_junction_where_this_workspa": "이 워크스페이스가 데이터(채팅 기록, 레슨, 프로젝트)를 저장하는 ~/.junction 내부 하위 디렉터리입니다. 각 워크스페이스는 격리된 자체 디렉터리를 갖습니다.",
       "the_agent_definition_it_boots_from_tools_mcp_ser": "이 크루가 사용하는 시작 설정 — 도구, 연결, 지침입니다.",
       "triggers": "트리거",
       "triggers_hint": "이 크루로 라우팅할 시점 — 오케스트레이터가 읽는 자유 형식 안내입니다. 자동 선택에서 제외하려면 비워 두세요.",
@@ -9808,7 +9808,7 @@
       "displayTab": {
         "auto": "자동",
         "change_the_dashboard_font_family_persists_across": "대시보드 글꼴을 변경합니다. 세션 간에 유지됩니다.",
-        "choose_a_color_palette_each_theme_supports_dark": "색상 팔레트를 선택합니다. 각 테마는 다크 모드와 라이트 모드를 지원합니다. 사용자 지정 테마는 ~/.kiro/crew/themes/에 저장됩니다.",
+        "choose_a_color_palette_each_theme_supports_dark": "색상 팔레트를 선택합니다. 각 테마는 다크 모드와 라이트 모드를 지원합니다. 사용자 지정 테마는 ~/.junction/themes/에 저장됩니다.",
         "color_theme": "색상 테마",
         "creating": "생성 중…",
         "dark": "다크",
@@ -9936,7 +9936,7 @@
         "add_server": "서버 추가",
         "applied_change_other": "변경 사항 {{count}}개 적용됨",
         "apply": "적용",
-        "apply_commits_to_junction_mcp_json_provider_glob": "— 적용하면 ~/.kiro/crew/mcp.json과 옵트인한 제공자 전역 설정에 반영됩니다.",
+        "apply_commits_to_junction_mcp_json_provider_glob": "— 적용하면 ~/.junction/mcp.json과 옵트인한 제공자 전역 설정에 반영됩니다.",
         "applying": "적용 중…",
         "clear_search": "검색 지우기",
         "click_to_disable_pending_until_apply": "클릭하여 비활성화 (적용 전까지 대기 중)",
@@ -11672,7 +11672,7 @@
         "i_understand_this_weakens_junction_s_protection": "이 설정이 {{productName}}의 보호를 약화시킨다는 점을 이해합니다.",
         "interactive": "대화형",
         "invalid_regular_expression": "잘못된 정규식",
-        "junction_security_policy_json": "~/.kiro/crew/security_policy.json",
+        "junction_security_policy_json": "~/.junction/security_policy.json",
         "junction_implements_6_security_layers_each_layer": "{{productName}}은(는) 6개의 보안 레이어를 구현합니다. 각 레이어는 독립적으로 동작합니다 — 공격자가 성공하려면 모든 레이어를 동시에 우회해야 합니다.",
         "layer_auth": "인증",
         "layer_n": "레이어 {{n}}",
