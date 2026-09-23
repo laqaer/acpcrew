@@ -709,7 +709,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     // launching through a path that no longer appears anywhere in the form.
     // (An SSM crew's profile/region are frozen instead — see the cloud-identity
     // test — because those ADDRESS the machine rather than describe it.)
-    const withBin = { ...MANUAL_INSTANCE, remote_bin: '/opt/old/bin/kirocrew' }
+    const withBin = { ...MANUAL_INSTANCE, remote_bin: '/opt/old/bin/junction' }
     vi.mocked(api.listInstances).mockResolvedValue(list([withBin]))
     vi.mocked(api.updateInstance).mockResolvedValue({ ...withBin, remote_bin: '' })
     const u = setup()
@@ -718,7 +718,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
     const form = within(await screen.findByRole('group', { name: /Edit dev-box-1/i }))
-    await u.clear(form.getByRole('textbox', { name: /Remote kirocrew path/i }))
+    await u.clear(form.getByRole('textbox', { name: /Remote junction path/i }))
     await u.click(form.getByRole('button', { name: /Save changes/i }))
 
     await waitFor(() =>

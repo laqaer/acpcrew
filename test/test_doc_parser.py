@@ -9,7 +9,7 @@ import zipfile
 
 import pytest
 
-from kiro_crew.doc_parser import (
+from junction.doc_parser import (
     extract_text,
     is_parseable_document,
 )
@@ -250,7 +250,7 @@ class TestDecompressionGuards:
         """A ZIP entry whose actual decompressed content exceeds the limit is skipped."""
         from unittest.mock import patch
 
-        import kiro_crew.doc_parser as dp
+        import junction.doc_parser as dp
 
         path = _make_docx(["Normal text"])
         try:
@@ -267,7 +267,7 @@ class TestDecompressionGuards:
         """_safe_decompress raises on output exceeding max_size."""
         import zlib as _zlib
 
-        from kiro_crew.doc_parser import _safe_decompress
+        from junction.doc_parser import _safe_decompress
 
         # Compress 1 MB of zeros
         big = _zlib.compress(b"\x00" * (1024 * 1024))
@@ -348,12 +348,12 @@ class TestXxeGuards:
 
 def test_missing_defusedxml_degrades_without_stdlib_fallback(monkeypatch, caplog):
     """No hardened parser -> empty string + warning; NEVER stdlib xml (XXE)."""
-    import kiro_crew.doc_parser as doc_parser
+    import junction.doc_parser as doc_parser
 
     monkeypatch.setattr(doc_parser, "_xml_fromstring", None)
     path = _make_docx(["hello"])
     try:
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.doc_parser"):
+        with caplog.at_level(logging.WARNING, logger="junction.doc_parser"):
             assert extract_text(path, filename="a.docx") == ""
     finally:
         os.unlink(path)
@@ -362,7 +362,7 @@ def test_missing_defusedxml_degrades_without_stdlib_fallback(monkeypatch, caplog
 
 def test_missing_defusedxml_leaves_pdf_parsing_alone(monkeypatch, caplog):
     """PDF extraction has no XML dependency and must keep working."""
-    import kiro_crew.doc_parser as doc_parser
+    import junction.doc_parser as doc_parser
 
     monkeypatch.setattr(doc_parser, "_xml_fromstring", None)
     fd, path = tempfile.mkstemp(suffix=".pdf")
@@ -370,7 +370,7 @@ def test_missing_defusedxml_leaves_pdf_parsing_alone(monkeypatch, caplog):
     try:
         # The point is the dispatch path: a .pdf must reach the PDF parser,
         # not be short-circuited by the missing-XML-parser gate.
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.doc_parser"):
+        with caplog.at_level(logging.WARNING, logger="junction.doc_parser"):
             extract_text(path, filename="a.pdf")
     finally:
         os.unlink(path)

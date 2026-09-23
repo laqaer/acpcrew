@@ -1129,7 +1129,7 @@ export const opsApi = {
    *
    * `log_path` is where that file lives on disk, because handing a colleague an artifact
    * usually means handing over a FILE and not a clipboard. It is empty whenever no file
-   * exists, and the UI must never synthesize it: `KIROCREW_HOME` moves the data directory,
+   * exists, and the UI must never synthesize it: `JUNCTION_HOME` moves the data directory,
    * so a guessed path would be this app asserting a file the backend does not have.
    */
   incident: (id: string) =>

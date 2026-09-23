@@ -15,10 +15,10 @@ from unittest.mock import MagicMock
 import pytest
 from aiohttp import web
 
-from kiro_crew import artifacts as art_mod
-from kiro_crew.artifacts import ArtifactStore
-from kiro_crew.dashboard.handlers import webapp_preview as wp
-from kiro_crew.deploy.webapp_types import webapp_metadata_from_dict
+from junction import artifacts as art_mod
+from junction.artifacts import ArtifactStore
+from junction.dashboard.handlers import webapp_preview as wp
+from junction.deploy.webapp_types import webapp_metadata_from_dict
 
 
 @pytest.fixture
@@ -308,7 +308,7 @@ class TestRound3Fixes:
 
     def test_write_time_app_dir_validation(self) -> None:
         """Round-3 F1: validation.py rejects control chars and relative paths."""
-        from kiro_crew.validation import ValidationError, _validate_webapp_metadata_shape
+        from junction.validation import ValidationError, _validate_webapp_metadata_shape
         _validate_webapp_metadata_shape({"app_dir": "/abs/path"})
         _validate_webapp_metadata_shape({"app_dir": "~/workspace/app"})
         _validate_webapp_metadata_shape({"app_dir": ""})
@@ -425,7 +425,7 @@ class TestRound6Fixes:
         """Round-6 F2: native Windows absolute paths pass write-time
         validation (preview later degrades via the platform gate);
         relative paths still fail."""
-        from kiro_crew.validation import (
+        from junction.validation import (
             ValidationError,
             _validate_webapp_metadata_shape,
         )

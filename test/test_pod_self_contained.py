@@ -2,7 +2,7 @@
 against the pod rather than the machine-wide install.
 
 The bug these guard: ``cfg.gateway_path`` begins with ``~/.local/bin``, so a bare
-``kirocrew`` inside a pod used to resolve the GLOBAL launcher shim — meaning a pod
+``junction`` inside a pod used to resolve the GLOBAL launcher shim — meaning a pod
 exercised the global install instead of the checkout under test, and its boot path
 depended on a symlink it does not own.
 """
@@ -15,9 +15,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.pod import provision as prov
-from kiro_crew.pod import runtime as rt
-from kiro_crew.pod.config import PodConfig
+from junction.pod import provision as prov
+from junction.pod import runtime as rt
+from junction.pod.config import PodConfig
 
 
 def _pod_cfg(tmp_path: Path) -> PodConfig:
@@ -29,7 +29,7 @@ def _pod_cfg(tmp_path: Path) -> PodConfig:
         artifacts_dir=tmp_path / "artifacts",
         base_port=7810,
         live_port=5476,
-        unit_prefix="kirocrew-pod@",
+        unit_prefix="junction-pod@",
         gateway_path=os.pathsep.join([str(tmp_path / ".local" / "bin"), "/usr/bin", "/bin"]),
         repo_hint=None,
         worktrees_root=None,
@@ -65,22 +65,22 @@ def test_pod_env_puts_the_checkout_venv_ahead_of_the_global_shim_dir(tmp_path):
 
 
 def test_pod_env_scrubs_the_live_gateways_bound_port(tmp_path, monkeypatch):
-    """KIROCREW_BOUND_PORT must never cross the pod boundary.
+    """JUNCTION_BOUND_PORT must never cross the pod boundary.
 
     A gateway-descended caller (an agent bash turn) inherits the LIVE
     gateway's bound-port export. Inside a pod env it names the wrong plane —
-    the pod's own KIROCREW_PORT is the target — and resolve_client_port reads
+    the pod's own JUNCTION_PORT is the target — and resolve_client_port reads
     it as a fallback, so leaving it in would let pod client commands aim at
     the live gateway if precedence ever changed. Scrubbed unconditionally.
     """
-    monkeypatch.setenv("KIROCREW_BOUND_PORT", "5476")
+    monkeypatch.setenv("JUNCTION_BOUND_PORT", "5476")
     cfg = _pod_cfg(tmp_path)
     checkout = _provisioned_checkout(tmp_path)
 
     env = rt.build_pod_env(cfg, tmp_path / "home", 7900, checkout)
 
-    assert "KIROCREW_BOUND_PORT" not in env
-    assert env["KIROCREW_PORT"] == "7900"
+    assert "JUNCTION_BOUND_PORT" not in env
+    assert env["JUNCTION_PORT"] == "7900"
 
 
 def test_pod_env_still_isolates_home_and_port(tmp_path):
@@ -91,9 +91,9 @@ def test_pod_env_still_isolates_home_and_port(tmp_path):
 
     env = rt.build_pod_env(cfg, home, 7900, checkout)
 
-    assert env["KIROCREW_HOME"] == str(home)
-    assert env["KIROCREW_PORT"] == "7900"
-    assert env["KIROCREW_PROJECT_DIR"] == str(checkout)
+    assert env["JUNCTION_HOME"] == str(home)
+    assert env["JUNCTION_PORT"] == "7900"
+    assert env["JUNCTION_PROJECT_DIR"] == str(checkout)
 
 
 def test_pod_env_scrubs_messaging_credentials(tmp_path, monkeypatch):
@@ -125,7 +125,7 @@ def test_pod_context_resolves_the_pods_own_binary_and_env(tmp_path, monkeypatch)
     bin_path, env = rt.pod_context(cfg, "wt-feature")
 
     assert bin_path == prov.venv_bin(checkout)
-    assert env["KIROCREW_HOME"] == str(cfg.home_dir("wt-feature"))
+    assert env["JUNCTION_HOME"] == str(cfg.home_dir("wt-feature"))
     assert env["PATH"].split(os.pathsep)[0] == str(prov.venv_bin_dir(checkout))
 
 
@@ -167,7 +167,7 @@ def test_exec_in_pod_execs_the_pods_binary_with_the_pod_env(tmp_path, monkeypatc
     expected = str(prov.venv_bin(checkout))
     assert seen["path"] == expected
     assert seen["argv"] == [expected, "cron", "list"]
-    assert seen["env"]["KIROCREW_HOME"] == str(cfg.home_dir("wt-feature"))  # type: ignore[index]
+    assert seen["env"]["JUNCTION_HOME"] == str(cfg.home_dir("wt-feature"))  # type: ignore[index]
 
 
 # --------------------------------------------------------------------------- #
@@ -208,7 +208,7 @@ def test_app_is_refused_because_it_rewrites_the_host_agent_registry(unpinned_age
     """`apps/bridges.py` symlinks app agents into `Path.home()/.kiro/agents` and
     edits `~/.kiro/settings/mcp.json` — the HOST registry. A pod install/uninstall
     would replace or delete symlinks the live gateway depends on."""
-    from kiro_crew.apps import bridges
+    from junction.apps import bridges
 
     # Resolved through the accessor, not the module constant: since #874 the
     # constant is an opt-in override that is ``None`` by default, so reading it
@@ -250,7 +250,7 @@ def test_a_leading_flag_or_empty_argv_is_refused(argv):
 def test_the_refusal_names_a_pod_native_equivalent_where_one_exists():
     with pytest.raises(rt.PodError) as exc:
         rt.require_pod_safe_verb(["restart"], "wt-feature")
-    assert "kirocrew pod down wt-feature" in str(exc.value)
+    assert "junction pod down wt-feature" in str(exc.value)
     assert "pod up wt-feature" in str(exc.value)
 
 
@@ -292,7 +292,7 @@ def test_no_allowed_verb_is_host_scoped():
 # what happened — worse than no entry, because it is trusted.
 # --------------------------------------------------------------------------- #
 def test_a_refused_exec_is_audited_as_denied_not_allowed(tmp_path, monkeypatch):
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     cfg = _pod_cfg(tmp_path)
     seen: list[tuple[str, str]] = []
@@ -310,7 +310,7 @@ def test_a_refused_exec_is_audited_as_denied_not_allowed(tmp_path, monkeypatch):
 
 
 def test_an_allowed_exec_is_audited_as_allowed(tmp_path, monkeypatch):
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     cfg = _pod_cfg(tmp_path)
     checkout = _provisioned_checkout(tmp_path)
@@ -346,17 +346,17 @@ def test_logs_is_refused_and_points_at_the_pod_journal():
     pod it would confidently show the LIVE gateway's journal."""
     with pytest.raises(rt.PodError) as exc:
         rt.require_pod_safe_verb(["logs"], "wt-feature")
-    assert "kirocrew pod logs wt-feature" in str(exc.value)
+    assert "junction pod logs wt-feature" in str(exc.value)
 
 
 def test_snapshot_is_refused_because_its_destination_is_configurable():
     """`snapshot_dir` is a config field and `--keep N` DELETES older archives, so a
     pod seeded from the live config could prune the user's real backups —
     `sanitized_seed_config` only forces the tunnel and the channel enables off."""
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
-    assert hasattr(KiroCrewConfig, "__dataclass_fields__")
-    assert "snapshot_dir" in KiroCrewConfig.__dataclass_fields__
+    assert hasattr(JunctionConfig, "__dataclass_fields__")
+    assert "snapshot_dir" in JunctionConfig.__dataclass_fields__
     with pytest.raises(rt.PodError, match="refusing `snapshot`"):
         rt.require_pod_safe_verb(["snapshot", "--keep", "1"], "wt-feature")
 
@@ -365,7 +365,7 @@ def test_snapshot_is_refused_because_its_destination_is_configurable():
 # The pod must not inherit the LIVE workspace.
 #
 # workspace_root() falls through to a platform default under the real HOME when
-# neither KIROCREW_WORKSPACE nor config_dir()/workspace_dir is present — which a
+# neither JUNCTION_WORKSPACE nor config_dir()/workspace_dir is present — which a
 # fresh pod home has neither of. Every agent turn would then edit live files.
 # --------------------------------------------------------------------------- #
 def test_pod_env_scopes_the_workspace_into_the_pod_home(tmp_path):
@@ -375,38 +375,38 @@ def test_pod_env_scopes_the_workspace_into_the_pod_home(tmp_path):
 
     env = rt.build_pod_env(cfg, home, 7900, checkout)
 
-    assert env["KIROCREW_WORKSPACE"] == str(home / "workspace")
+    assert env["JUNCTION_WORKSPACE"] == str(home / "workspace")
     # Inside the pod HOME, so zero-residue teardown removes it.
-    assert Path(env["KIROCREW_WORKSPACE"]).is_relative_to(home)
+    assert Path(env["JUNCTION_WORKSPACE"]).is_relative_to(home)
 
 
 def test_the_pod_workspace_is_not_the_live_workspace(tmp_path, monkeypatch):
     """The concrete regression: with no override, resolution reaches a default
     under the real HOME. The pod's value must not be that."""
-    from kiro_crew.config import loader
+    from junction.config import loader
 
     cfg = _pod_cfg(tmp_path)
     checkout = _provisioned_checkout(tmp_path)
     env = rt.build_pod_env(cfg, cfg.home_dir("wt-feature"), 7900, checkout)
 
-    monkeypatch.delenv("KIROCREW_WORKSPACE", raising=False)
+    monkeypatch.delenv("JUNCTION_WORKSPACE", raising=False)
     live = loader.workspace_root()
 
-    assert Path(env["KIROCREW_WORKSPACE"]).resolve() != live.resolve()
+    assert Path(env["JUNCTION_WORKSPACE"]).resolve() != live.resolve()
 
 
 def test_the_override_actually_drives_workspace_root(tmp_path, monkeypatch):
-    """Pin that KIROCREW_WORKSPACE is the mechanism workspace_root() honours, so
+    """Pin that JUNCTION_WORKSPACE is the mechanism workspace_root() honours, so
     the fix cannot silently stop working if resolution is reordered."""
-    from kiro_crew.config import loader
+    from junction.config import loader
 
     cfg = _pod_cfg(tmp_path)
     checkout = _provisioned_checkout(tmp_path)
     env = rt.build_pod_env(cfg, cfg.home_dir("wt-feature"), 7900, checkout)
 
-    monkeypatch.setenv("KIROCREW_WORKSPACE", env["KIROCREW_WORKSPACE"])
+    monkeypatch.setenv("JUNCTION_WORKSPACE", env["JUNCTION_WORKSPACE"])
 
-    assert loader.workspace_root().resolve() == Path(env["KIROCREW_WORKSPACE"]).resolve()
+    assert loader.workspace_root().resolve() == Path(env["JUNCTION_WORKSPACE"]).resolve()
 
 
 def test_exec_in_pod_runs_inside_the_pod_workspace(tmp_path, monkeypatch):
@@ -430,7 +430,7 @@ def test_run_is_refused_because_it_writes_beside_the_spec():
     implicit write derived from an INPUT path, which the inclusion test excludes."""
     import inspect
 
-    from kiro_crew import task_reporter
+    from junction import task_reporter
 
     src = inspect.getsource(task_reporter.save_progress)
     assert "spec_path" in src and "parent" in src, "premise: progress goes beside the spec"
@@ -440,11 +440,11 @@ def test_run_is_refused_because_it_writes_beside_the_spec():
 
 def test_chat_is_refused_because_chat_tui_reaches_the_live_port():
     """`cli_chat._tui` resolves the CONFIG dashboard port with a literal 5476
-    fallback and never reads KIROCREW_PORT, and `chat --tui` branches into it — so
+    fallback and never reads JUNCTION_PORT, and `chat --tui` branches into it — so
     excluding only `tui` left the hole open."""
     import inspect
 
-    from kiro_crew import cli_chat
+    from junction import cli_chat
 
     src = inspect.getsource(cli_chat)
     assert "5476" in src, "premise: _tui carries a hardcoded live-port fallback"

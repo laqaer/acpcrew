@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.dashboard import chat_folder_suggest as fs
-from kiro_crew.history import INCOGNITO_MEMORY_MODES
+from junction.dashboard import chat_folder_suggest as fs
+from junction.history import INCOGNITO_MEMORY_MODES
 
 # ── _parse_choice ───────────────────────────────────────────────────────────
 
@@ -317,7 +317,7 @@ def _run(state, slot, *, reply="1", enabled=True):
         return reply
 
     with (
-        patch.object(fs.KiroCrewConfig, "load", staticmethod(lambda: cfg)),
+        patch.object(fs.JunctionConfig, "load", staticmethod(lambda: cfg)),
         patch.object(fs, "run_bg_oneliner", fake_oneliner),
     ):
         asyncio.run(fs.maybe_suggest_folder(state, slot))
@@ -401,7 +401,7 @@ def test_manual_filing_during_the_model_call_wins() -> None:
         return "1"
 
     with (
-        patch.object(fs.KiroCrewConfig, "load", staticmethod(lambda: cfg)),
+        patch.object(fs.JunctionConfig, "load", staticmethod(lambda: cfg)),
         patch.object(fs, "run_bg_oneliner", racing_oneliner),
     ):
         asyncio.run(fs.maybe_suggest_folder(state, slot))
@@ -435,7 +435,7 @@ def test_model_failure_is_silent_and_not_retried() -> None:
         raise RuntimeError("model unavailable")
 
     with (
-        patch.object(fs.KiroCrewConfig, "load", staticmethod(lambda: cfg)),
+        patch.object(fs.JunctionConfig, "load", staticmethod(lambda: cfg)),
         patch.object(fs, "run_bg_oneliner", boom),
     ):
         asyncio.run(fs.maybe_suggest_folder(state, slot))

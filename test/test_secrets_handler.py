@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.dashboard.handlers.secrets."""
+"""Tests for junction.dashboard.handlers.secrets."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from unittest.mock import patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers.secrets import setup_secrets_routes
-from kiro_crew.secrets import SecretVault
+from junction.dashboard.handlers.secrets import setup_secrets_routes
+from junction.secrets import SecretVault
 
 
 class _FakeState:
@@ -66,7 +66,7 @@ class TestApiSecretsList:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.get("/api/secrets")
                 assert resp.status == 200
@@ -80,7 +80,7 @@ class TestApiSecretsList:
         from aiohttp.test_utils import TestClient, TestServer
 
         with patch(
-            "kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(empty_vault_dir)
+            "junction.dashboard.handlers.secrets.config_dir", return_value=str(empty_vault_dir)
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.get("/api/secrets")
@@ -98,7 +98,7 @@ class TestApiSecretsSet:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/secrets",
@@ -118,7 +118,7 @@ class TestApiSecretsSet:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/secrets", json={"value": "x"})
                 assert resp.status == 400
@@ -129,7 +129,7 @@ class TestApiSecretsSet:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/secrets", json={"name": "X"})
                 assert resp.status == 400
@@ -144,7 +144,7 @@ class TestApiSecretsDelete:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.delete("/api/secrets/TEST_KEY")
                 assert resp.status == 200
@@ -160,7 +160,7 @@ class TestApiSecretsDelete:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.delete("/api/secrets/MISSING")
                 assert resp.status == 200  # delete is idempotent
@@ -193,7 +193,7 @@ class TestApiSecretsOwnerAuthorization:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
                 # X-Test-App non-empty => an app-scoped (non-owner) caller.
                 headers = {"X-Test-App": "some-app", "X-Test-User": "some-app-subject"}
@@ -211,7 +211,7 @@ class TestApiSecretsOwnerAuthorization:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
                 headers = {"X-Test-User": "U_SOMEONE_ELSE"}
                 resp = await client.post(
@@ -235,8 +235,8 @@ class TestApiSecretsOwnerAuthorization:
 
         sel = MagicMock()
         with (
-            patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)),
-            patch("kiro_crew.dashboard.handlers.secrets._sel", return_value=sel),
+            patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)),
+            patch("junction.dashboard.handlers.secrets._sel", return_value=sel),
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -258,7 +258,7 @@ class TestApiSecretsOwnerAuthorization:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.get("/api/secrets", headers={"X-Test-User": "U_OWNER"})
                 assert resp.status == 200
@@ -282,9 +282,9 @@ class TestApiSecretsLogInjection:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(tmp_path)):
             async with TestClient(TestServer(app)) as client:
-                with caplog.at_level(logging.INFO, logger="kiro_crew.dashboard.handlers.secrets"):
+                with caplog.at_level(logging.INFO, logger="junction.dashboard.handlers.secrets"):
                     resp = await client.post("/api/secrets", json={"name": payload, "value": "v"})
                     assert resp.status == 200
 
@@ -305,9 +305,9 @@ class TestApiSecretsLogInjection:
 
         # A percent-encoded CR/LF in the path segment decodes to real control
         # characters in request.match_info["name"].
-        with patch("kiro_crew.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
+        with patch("junction.dashboard.handlers.secrets.config_dir", return_value=str(vault_dir)):
             async with TestClient(TestServer(app)) as client:
-                with caplog.at_level(logging.INFO, logger="kiro_crew.dashboard.handlers.secrets"):
+                with caplog.at_level(logging.INFO, logger="junction.dashboard.handlers.secrets"):
                     resp = await client.delete("/api/secrets/x%0d%0aWARNING-forged")
                     assert resp.status == 200
 
@@ -350,7 +350,7 @@ class TestApiSecretsSetInputValidation:
         from aiohttp.test_utils import TestClient, TestServer
 
         with patch(
-            "kiro_crew.dashboard.handlers.secrets.config_dir",
+            "junction.dashboard.handlers.secrets.config_dir",
             return_value=str(empty_vault_dir),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -369,7 +369,7 @@ class TestApiSecretsSetInputValidation:
         from aiohttp.test_utils import TestClient, TestServer
 
         with patch(
-            "kiro_crew.dashboard.handlers.secrets.config_dir",
+            "junction.dashboard.handlers.secrets.config_dir",
             return_value=str(empty_vault_dir),
         ):
             async with TestClient(TestServer(app)) as client:

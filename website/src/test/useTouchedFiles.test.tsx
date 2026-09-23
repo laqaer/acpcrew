@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useTouchedFiles } from '../hooks/useTouchedFiles'
 
-const KEY = 'kirocrew:touched-files:'
+const KEY = 'junction:touched-files:'
 const WM = ':toolClearedAt'
 
 describe('useTouchedFiles', () => {

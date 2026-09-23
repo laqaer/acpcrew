@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import image_artifacts
-from kiro_crew.messaging.outbound_files import (
+from junction import image_artifacts
+from junction.messaging.outbound_files import (
     REASON_MISSING,
     REASON_NOT_ABSOLUTE,
     REASON_NOT_RASTER,
@@ -40,7 +40,7 @@ from kiro_crew.messaging.outbound_files import (
     strip_url_syntax,
     unescape_md,
 )
-from kiro_crew.messaging.split import iter_fence_spans
+from junction.messaging.split import iter_fence_spans
 
 _PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 _JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 32
@@ -148,7 +148,7 @@ class TestExtraction:
     def test_backslash_parity_controls_image_markers(
         self, tmp_path: Path, slashes: int, escaped: bool
     ) -> None:
-        from kiro_crew.messaging.outbound_files import open_ref_start
+        from junction.messaging.outbound_files import open_ref_start
 
         path = _png(tmp_path)
         prefix = "\\" * slashes
@@ -210,7 +210,7 @@ class TestOutboundSecurity:
     def test_untrusted_windows_unc_is_rejected_before_path_construction(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.messaging import outbound_files as module
+        from junction.messaging import outbound_files as module
 
         monkeypatch.setattr(module, "os", type("OS", (), {"name": "nt"})(), raising=False)
         monkeypatch.setattr(
@@ -235,7 +235,7 @@ class TestOutboundSecurity:
     def test_a_payload_scanner_failure_rejects_the_file(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, scanner: str
     ) -> None:
-        from kiro_crew.messaging import outbound_files as module
+        from junction.messaging import outbound_files as module
 
         p = _png(tmp_path)
         text = f"![x]({p})"

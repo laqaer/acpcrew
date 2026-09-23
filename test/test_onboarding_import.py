@@ -15,13 +15,13 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.cron import CronService
-from kiro_crew.platform.bootstrap import build_default_context
-from kiro_crew.platform.context import reset_context, set_context
-from kiro_crew.platform.interfaces import ImportSource
-from kiro_crew.platform_compat import IS_WINDOWS
-from kiro_crew.vector_memory import VectorMemoryStore
+from junction.config.loader import JunctionConfig
+from junction.cron import CronService
+from junction.platform.bootstrap import build_default_context
+from junction.platform.context import reset_context, set_context
+from junction.platform.interfaces import ImportSource
+from junction.platform_compat import IS_WINDOWS
+from junction.vector_memory import VectorMemoryStore
 
 
 def _install(*sources: ImportSource) -> None:
@@ -31,7 +31,7 @@ def _install(*sources: ImportSource) -> None:
         def import_sources(self) -> list[ImportSource]:
             return list(sources)
 
-    base = build_default_context(KiroCrewConfig())
+    base = build_default_context(JunctionConfig())
     set_context(dataclasses.replace(base, import_sources=_Provider()))
 
 
@@ -56,9 +56,9 @@ def _register_predecessor_source():
 
 def _api() -> ModuleType:
     try:
-        return importlib.import_module("kiro_crew.onboarding_import")
+        return importlib.import_module("junction.onboarding_import")
     except ModuleNotFoundError:
-        pytest.fail("kiro_crew.onboarding_import is not implemented")
+        pytest.fail("junction.onboarding_import is not implemented")
 
 
 def _source(result: dict, source_id: str) -> dict:
@@ -1142,7 +1142,7 @@ class TestPreview:
     def test_openclaw_explicit_sensitive_config_path_is_rejected(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import security
+        from junction import security
 
         home = tmp_path / "home"
         state = home / ".openclaw"
@@ -2801,7 +2801,7 @@ class TestApply:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         api = _api()
-        mcp_handlers = importlib.import_module("kiro_crew.dashboard.handlers.mcp")
+        mcp_handlers = importlib.import_module("junction.dashboard.handlers.mcp")
         entered: list[bool] = []
 
         class Lock:
@@ -2860,8 +2860,8 @@ class TestApply:
             encoding="utf-8",
         )
         global_path = home / ".kiro" / "settings" / "mcp.json"
-        installed_path = home / ".kiro" / "agents" / "kirocrew.json"
-        mcp_handlers = importlib.import_module("kiro_crew.dashboard.handlers.mcp")
+        installed_path = home / ".kiro" / "agents" / "junction.json"
+        mcp_handlers = importlib.import_module("junction.dashboard.handlers.mcp")
         monkeypatch.setattr(mcp_handlers, "_GLOBAL_MCP_JSON", global_path)
         monkeypatch.setattr(mcp_handlers, "_MCP_LOCK_PATH", global_path.with_suffix(".lock"))
         effective_path = global_path if effective_source == "global" else installed_path
@@ -2907,7 +2907,7 @@ class TestApply:
         monkeypatch: pytest.MonkeyPatch,
         scope_location: str,
     ) -> None:
-        from kiro_crew.platform.interfaces import McpScope
+        from junction.platform.interfaces import McpScope
 
         home = tmp_path / "home"
         predecessor_root = home / ".predecessor"
@@ -2940,14 +2940,14 @@ class TestApply:
             ),
             encoding="utf-8",
         )
-        mcp_discovery = importlib.import_module("kiro_crew.mcp_discovery")
+        mcp_discovery = importlib.import_module("junction.mcp_discovery")
         monkeypatch.setattr(
             mcp_discovery,
             "_extra_scopes",
             lambda: [McpScope("provider", scope_global, scope_agent)],
         )
         global_path = home / ".kiro" / "settings" / "mcp.json"
-        mcp_handlers = importlib.import_module("kiro_crew.dashboard.handlers.mcp")
+        mcp_handlers = importlib.import_module("junction.dashboard.handlers.mcp")
         monkeypatch.setattr(mcp_handlers, "_GLOBAL_MCP_JSON", global_path)
         monkeypatch.setattr(mcp_handlers, "_MCP_LOCK_PATH", global_path.with_suffix(".lock"))
         data_home = tmp_path / "destination"
@@ -2998,10 +2998,10 @@ class TestApply:
             mcp_tooling = McpTooling()
             import_sources = _Provider()
 
-        platform_context = importlib.import_module("kiro_crew.platform.context")
+        platform_context = importlib.import_module("junction.platform.context")
         monkeypatch.setattr(platform_context, "current_context", lambda: Context())
         global_path = home / ".kiro" / "settings" / "mcp.json"
-        mcp_handlers = importlib.import_module("kiro_crew.dashboard.handlers.mcp")
+        mcp_handlers = importlib.import_module("junction.dashboard.handlers.mcp")
         monkeypatch.setattr(mcp_handlers, "_GLOBAL_MCP_JSON", global_path)
         monkeypatch.setattr(mcp_handlers, "_MCP_LOCK_PATH", global_path.with_suffix(".lock"))
         data_home = tmp_path / "destination"
@@ -3042,11 +3042,11 @@ class TestApply:
             json.dumps({"mcpServers": {"new-server": {"command": "safe-command"}}}),
             encoding="utf-8",
         )
-        installed_path = home / ".kiro" / "agents" / "kirocrew.json"
+        installed_path = home / ".kiro" / "agents" / "junction.json"
         installed_path.parent.mkdir(parents=True)
         installed_path.write_text(json.dumps(installed_config), encoding="utf-8")
         global_path = home / ".kiro" / "settings" / "mcp.json"
-        mcp_handlers = importlib.import_module("kiro_crew.dashboard.handlers.mcp")
+        mcp_handlers = importlib.import_module("junction.dashboard.handlers.mcp")
         monkeypatch.setattr(mcp_handlers, "_GLOBAL_MCP_JSON", global_path)
         monkeypatch.setattr(mcp_handlers, "_MCP_LOCK_PATH", global_path.with_suffix(".lock"))
         data_home = tmp_path / "destination"
@@ -3092,7 +3092,7 @@ class TestApply:
                             "command": "credential-mcp",
                             "credentials": {"token": secret},
                         },
-                        "kirocrew-core": {"command": "foreign-managed"},
+                        "junction-core": {"command": "foreign-managed"},
                     }
                 }
             ),
@@ -3120,7 +3120,7 @@ class TestApply:
         assert "env-local" not in written["mcpServers"]
         assert "header-remote" not in written["mcpServers"]
         assert "credential-local" not in written["mcpServers"]
-        assert "kirocrew-core" not in written["mcpServers"]
+        assert "junction-core" not in written["mcpServers"]
         assert "env" not in serialized
         assert "headers" not in serialized
         assert "credentials" not in serialized
@@ -3993,7 +3993,7 @@ class TestApply:
             _api().preview_import(home=home, env={}),
             ("claude_code", "skills"),
         )
-        atomic_write_module = importlib.import_module("kiro_crew.atomic_write")
+        atomic_write_module = importlib.import_module("junction.atomic_write")
         real_fdopen = atomic_write_module.os.fdopen
 
         def windows_fdopen(fd: int, *args: Any, **kwargs: Any):
@@ -4138,7 +4138,7 @@ class TestApply:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         api = _api()
-        vector_memory = importlib.import_module("kiro_crew.vector_memory")
+        vector_memory = importlib.import_module("junction.vector_memory")
         if not vector_memory._HAS_NUMPY:
 
             class QueryVector:
@@ -4802,7 +4802,7 @@ class TestConflictStrategies:
                 "resolvable": True,
             }
         ]
-        # KiroCrew's copy is untouched.
+        # Junction's copy is untouched.
         assert self._installed(destination) == {"codex/review": "# Original\n"}
 
     def test_rename_installs_alongside_and_reports_the_new_name(self, tmp_path: Path) -> None:
@@ -4998,7 +4998,7 @@ class TestReviewFindings:
         delete one, so the writer refuses past the store's REMAINING capacity.
         """
         api = _api()
-        from kiro_crew.learn import _MAX_LESSONS_TOTAL, Lesson, LessonStore
+        from junction.learn import _MAX_LESSONS_TOTAL, Lesson, LessonStore
 
         home = tmp_path / "home"
         codex = home / ".codex"
@@ -5376,7 +5376,7 @@ class TestReviewFindings:
         and never falls back when it is non-empty).
         """
         api = _api()
-        from kiro_crew.vector_memory import VectorMemoryStore
+        from junction.vector_memory import VectorMemoryStore
 
         home = tmp_path / "home"
         codex = home / ".codex"
@@ -5412,7 +5412,7 @@ class TestReviewFindings:
         directive delete a correction the USER taught the agent.
         """
         api = _api()
-        from kiro_crew.vector_memory import VectorMemoryStore
+        from junction.vector_memory import VectorMemoryStore
 
         home = tmp_path / "home"
         codex = home / ".codex"
@@ -5548,7 +5548,7 @@ class TestReviewFindings:
                     assert category["count"] <= api._MAX_IMPORTED_LESSONS
         destination = tmp_path / "destination"
         result = api.apply_import(plan, data_home=destination)
-        from kiro_crew.learn import _MAX_LESSONS_TOTAL, LessonStore
+        from junction.learn import _MAX_LESSONS_TOTAL, LessonStore
 
         assert len(LessonStore(base_dir=destination).load_all()) <= _MAX_LESSONS_TOTAL
         assert result["imported"]["instructions"] <= total
@@ -5602,7 +5602,7 @@ class TestReviewFindings:
         ledger preventing a re-import.
         """
         api = _api()
-        from kiro_crew.vector_memory import VectorMemoryStore
+        from junction.vector_memory import VectorMemoryStore
 
         home = tmp_path / "home"
         codex = home / ".codex"

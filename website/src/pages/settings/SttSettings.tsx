@@ -523,7 +523,7 @@ export default function SttSettings({ cardIndex }: {
                     Transcribe it gets no trailer at all, because the Install
                     button the default trailer points at is hidden. */}
                 {isTranscribe ? (
-                  stt.prereqs.some(c => c.includes('kirocrew[voice]')) && (
+                  stt.prereqs.some(c => c.includes('junction[voice]')) && (
                     <p className="text-muted text-[13px] mt-2">{i18nT('pages.settings.sttSettings.then_restart_the_gateway_so_it_can_import_the_ne')}</p>
                   )
                 ) : (

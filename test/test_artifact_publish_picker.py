@@ -14,7 +14,7 @@ import pytest
 
 
 def _fake_provider(name: str, *, available: bool, installable: bool):
-    from kiro_crew.publish_provider import (
+    from junction.publish_provider import (
         Capability,
         DiscoveryModel,
         KindSupport,
@@ -42,7 +42,7 @@ class TestPickerIncludesInstallable:
 
         from aiohttp.test_utils import make_mocked_request
 
-        from kiro_crew.dashboard.handlers import artifacts as handlers
+        from junction.dashboard.handlers import artifacts as handlers
 
         ready = _fake_provider("ready", available=True, installable=False)
         heals = _fake_provider("heals", available=False, installable=True)

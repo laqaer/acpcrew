@@ -23,24 +23,24 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_state
 
-from kiro_crew import _process_group_supervisor as supervisor
-from kiro_crew import kiro_prerequisite as prerequisite_module
-from kiro_crew import platform_compat
-from kiro_crew.agent_files import AGENT_FILENAME
-from kiro_crew.dashboard.chat_handlers import api_chat_slot_create
-from kiro_crew.dashboard.chat_regenerate import (
+from junction import _process_group_supervisor as supervisor
+from junction import kiro_prerequisite as prerequisite_module
+from junction import platform_compat
+from junction.agent_files import AGENT_FILENAME
+from junction.dashboard.chat_handlers import api_chat_slot_create
+from junction.dashboard.chat_regenerate import (
     api_chat_slot_edit_resend,
     api_chat_slot_regenerate,
 )
-from kiro_crew.dashboard.chat_rewind import api_chat_slot_rewind
-from kiro_crew.dashboard.chat_runner import _run_chat
-from kiro_crew.dashboard.handlers.kiro_prerequisite import (
+from junction.dashboard.chat_rewind import api_chat_slot_rewind
+from junction.dashboard.chat_runner import _run_chat
+from junction.dashboard.handlers.kiro_prerequisite import (
     api_kiro_prerequisite_repair_specs,
     api_kiro_prerequisite_status,
 )
-from kiro_crew.dashboard.kiro_readiness import kiro_session_ready
-from kiro_crew.kiro_cli import resolve_kiro_cli
-from kiro_crew.kiro_prerequisite import (
+from junction.dashboard.kiro_readiness import kiro_session_ready
+from junction.kiro_cli import resolve_kiro_cli
+from junction.kiro_prerequisite import (
     KIRO_CLI_LOGIN_COMMAND,
     KIRO_CLI_SSO_LOGIN_COMMAND,
     OFFICIAL_INSTALL_DOCS_URL,
@@ -58,7 +58,7 @@ def _isolate_agent_specs(tmp_path_factory, monkeypatch):
 
     Readiness folds agent-spec presence into ``ready``: a missing spec means
     kiro-cli cannot resolve the agent, so the install is not ready. Those specs
-    live in a MACHINE-WIDE directory that no ``KIROCREW_HOME`` override isolates,
+    live in a MACHINE-WIDE directory that no ``JUNCTION_HOME`` override isolates,
     so an unpinned probe test reads the developer's real ``~/.kiro/agents`` and its
     verdict follows host state rather than the code under test. This pin removes
     that confound.
@@ -66,8 +66,8 @@ def _isolate_agent_specs(tmp_path_factory, monkeypatch):
     Tests that exercise the missing-spec behaviour re-patch the same hook inside
     the test body, which runs after this fixture and therefore wins.
     """
-    from kiro_crew import agent as agent_module
-    from kiro_crew.agent_files import REQUIRED_KIRO_AGENT_FILES
+    from junction import agent as agent_module
+    from junction.agent_files import REQUIRED_KIRO_AGENT_FILES
 
     agents = tmp_path_factory.mktemp("kiro-agents")
     for name in REQUIRED_KIRO_AGENT_FILES:
@@ -122,7 +122,7 @@ def _agents_dir_never_the_real_home(
     assertions depend on the machine they run on.
     """
     monkeypatch.setenv("KIRO_HOME", str(tmp_path_factory.mktemp("kiro-home")))
-    import kiro_crew.kiro_prerequisite as kiro_prerequisite_module
+    import junction.kiro_prerequisite as kiro_prerequisite_module
 
     monkeypatch.setattr(kiro_prerequisite_module, "_default_spec_lister", lambda: [], raising=True)
 
@@ -154,7 +154,7 @@ class TestKiroPrerequisiteHelpers:
             sizes.append(os.stat(target).st_size)
             return real_restrict(target)
 
-        monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", _measuring)
+        monkeypatch.setattr("junction.platform_compat.restrict_to_owner", _measuring)
         target = tmp_path / "staged" / "kiro-token.json"
         prerequisite_module._atomic_write_secret_bytes(target, b"identity-bytes")
 
@@ -380,7 +380,7 @@ class TestKiroPrerequisiteHelpers:
         # bypass any more: it is a runnable packaged entry point, so the
         # ordinary in-place path launches it. The test-mode marker grants no
         # launch privilege, so the result must not depend on it.
-        import kiro_crew.testing as kc_testing
+        import junction.testing as kc_testing
 
         fake = Path(kc_testing.__file__).with_name("fake_acp_backend.py")
         assert fake.is_file(), "packaged fake ACP backend is missing"
@@ -396,7 +396,7 @@ class TestKiroPrerequisiteHelpers:
             data_home=tmp_path,
             platform_name="darwin",
             environ={
-                "KIROCREW_KIRO_BIN": str(fake),
+                "JUNCTION_KIRO_BIN": str(fake),
                 prerequisite_module.FAKE_ACP_TEST_MODE_ENV: "1",
             },
         )
@@ -411,7 +411,7 @@ class TestKiroPrerequisiteHelpers:
         platform_name: str,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        # An operator KIROCREW_KIRO_BIN=./kiro-cli resolves against the GATEWAY's
+        # An operator JUNCTION_KIRO_BIN=./kiro-cli resolves against the GATEWAY's
         # cwd, but ACP spawns with cwd=<session work_dir> — so a relative launch
         # path dies with ENOENT there. Anchor it, without resolving symlinks.
         executable = tmp_path / "kiro-cli"
@@ -744,7 +744,7 @@ class TestKiroPrerequisiteWorkflow:
         without a verified readiness latch.
         """
 
-        from kiro_crew.dashboard.kiro_readiness import reject_if_kiro_unverified
+        from junction.dashboard.kiro_readiness import reject_if_kiro_unverified
 
         app = web.Application()
         app["state"] = SimpleNamespace()
@@ -2243,7 +2243,7 @@ class TestKiroPrerequisiteWorkflow:
                 "HOME": str(tmp_path),
                 "PATH": "",
                 "ProgramFiles": str(tmp_path / "Program Files"),
-                "KIROCREW_KIRO_BIN": str(planted),
+                "JUNCTION_KIRO_BIN": str(planted),
             },
             home=tmp_path,
             process_runner=run,
@@ -2283,7 +2283,7 @@ class TestKiroPrerequisiteWorkflow:
                 "HOME": str(tmp_path),
                 "PATH": "",
                 "ProgramFiles": str(tmp_path / "Program Files"),
-                "KIROCREW_KIRO_BIN": str(planted),
+                "JUNCTION_KIRO_BIN": str(planted),
             },
             home=tmp_path,
             process_runner=run,
@@ -2318,7 +2318,7 @@ class TestKiroPrerequisiteWorkflow:
                 "HOME": str(tmp_path),
                 "PATH": "",
                 "ProgramFiles": str(tmp_path / "Program Files"),
-                "KIROCREW_KIRO_BIN": str(missing),
+                "JUNCTION_KIRO_BIN": str(missing),
             },
             home=tmp_path,
             process_runner=run,
@@ -2438,7 +2438,7 @@ class TestKiroPrerequisiteWorkflow:
             return _Process()
 
         monkeypatch.setattr(
-            "kiro_crew.kiro_prerequisite.sandboxed_spawn_argv",
+            "junction.kiro_prerequisite.sandboxed_spawn_argv",
             sandbox,
         )
         monkeypatch.setattr(asyncio, "create_subprocess_exec", spawn)
@@ -2908,11 +2908,11 @@ class TestKiroPrerequisiteWorkflow:
         # and every spawn is sandboxed now — so stub the builder rather than let
         # host sandbox availability decide the outcome.
         monkeypatch.setattr(
-            "kiro_crew.kiro_prerequisite._prepare_sandboxed_spawn",
+            "junction.kiro_prerequisite._prepare_sandboxed_spawn",
             passthrough_sandbox,
         )
         monkeypatch.setattr(
-            "kiro_crew.kiro_prerequisite._TERMINATION_GRACE_SECS",
+            "junction.kiro_prerequisite._TERMINATION_GRACE_SECS",
             0.001,
         )
 
@@ -3014,7 +3014,7 @@ class TestKiroPrerequisiteWorkflow:
         monkeypatch.setattr(platform_compat, "IS_POSIX", False)
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
         monkeypatch.setattr(
-            "kiro_crew.kiro_prerequisite._TERMINATION_GRACE_SECS",
+            "junction.kiro_prerequisite._TERMINATION_GRACE_SECS",
             0.01,
         )
 
@@ -3568,7 +3568,7 @@ class TestKiroPrerequisiteHandlers:
         Slack is not left without a response when the CLI is signed out.
         """
 
-        from kiro_crew.acp.client import AcpAuthRequired
+        from junction.acp.client import AcpAuthRequired
 
         service = KiroPrerequisiteService(
             platform_name="linux",
@@ -3711,7 +3711,7 @@ class TestKiroPrerequisiteHandlers:
         stay visible and individually cancellable).
         """
 
-        from kiro_crew.acp.client import AcpAuthRequired
+        from junction.acp.client import AcpAuthRequired
 
         service = KiroPrerequisiteService(
             platform_name="linux",
@@ -3775,7 +3775,7 @@ class TestKiroPrerequisiteHandlers:
         attempt reports the real auth state.
         """
 
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
 
         service = KiroPrerequisiteService(
             platform_name="linux",
@@ -3839,8 +3839,8 @@ class TestKiroPrerequisiteHandlers:
     ) -> None:
         """Post-fan-out synthesis runs rather than waiting on latched readiness."""
 
-        from kiro_crew.dashboard.state import SUBAGENT_SYNTHESIS_PROMPT
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
+        from junction.dashboard.state import SUBAGENT_SYNTHESIS_PROMPT
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
 
         service = KiroPrerequisiteService(
             platform_name="linux",
@@ -4364,7 +4364,7 @@ class TestTimedOutProbeIsNotAMissingBinary:
         _make_executable(tmp_path / ".local" / "bin" / "kiro-cli")
         service = self._service(tmp_path, self._timed_out)
 
-        with caplog.at_level("DEBUG", logger="kiro_crew.kiro_prerequisite"):
+        with caplog.at_level("DEBUG", logger="junction.kiro_prerequisite"):
             for _ in range(6):
                 status = await service.snapshot(force=True)
 
@@ -4402,7 +4402,7 @@ class TestTimedOutProbeIsNotAMissingBinary:
 
         service = self._service(tmp_path, flapping)
 
-        with caplog.at_level("DEBUG", logger="kiro_crew.kiro_prerequisite"):
+        with caplog.at_level("DEBUG", logger="junction.kiro_prerequisite"):
             await service.snapshot(force=True)  # outage 1 -> WARNING
             await service.snapshot(force=True)  # same outage -> DEBUG
             healthy_calls["n"] = 2
@@ -4433,7 +4433,7 @@ class TestTimedOutProbeIsNotAMissingBinary:
         assert status["installed"] is False
 
 
-class TestKiroCrewNeverSetsUpKiroCli:
+class TestJunctionNeverSetsUpKiroCli:
     """Kiro Crew DETECTS Kiro CLI. It never installs it and never signs in.
 
     These are contract tests, not behavior tests: they pin the ABSENCE of both
@@ -4762,7 +4762,7 @@ class TestSandboxUnavailableErrorIsTyped:
     """The sandbox refusal must be catchable structurally, not by prose match."""
 
     def test_error_carries_kind_and_detail_and_is_a_runtime_error(self) -> None:
-        from kiro_crew.sandbox import SandboxUnavailableError
+        from junction.sandbox import SandboxUnavailableError
 
         exc = SandboxUnavailableError("refused", kind="no_backend", detail="EPERM at NEWNS")
 
@@ -4775,7 +4775,7 @@ class TestSandboxUnavailableErrorIsTyped:
 class TestAgentSpecsNarrowReadiness:
     """A viable binary + a good ``whoami`` are NOT sufficient for readiness.
 
-    Kiro Crew's own agent specs (``~/.kiro/agents/kirocrew*.json``) were not an
+    Kiro Crew's own agent specs (``~/.kiro/agents/junction*.json``) were not an
     input to ``ready`` at all, so an install whose spec write failed reported
     ready while kiro-cli answered every ``session/set_mode`` with
     ``Mode '<name>' not found`` — the gate affirmatively told the user setup was
@@ -4809,8 +4809,8 @@ class TestAgentSpecsNarrowReadiness:
     @staticmethod
     def _agents_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, specs: bool) -> Path:
         """Point the agents dir at a tmp path, optionally fully populated."""
-        from kiro_crew import agent as agent_module
-        from kiro_crew.agent_files import REQUIRED_KIRO_AGENT_FILES
+        from junction import agent as agent_module
+        from junction.agent_files import REQUIRED_KIRO_AGENT_FILES
 
         agents = tmp_path / "agents"
         agents.mkdir(parents=True, exist_ok=True)
@@ -4826,7 +4826,7 @@ class TestAgentSpecsNarrowReadiness:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        from kiro_crew.agent_files import REQUIRED_KIRO_AGENT_FILES
+        from junction.agent_files import REQUIRED_KIRO_AGENT_FILES
 
         self._agents_dir(tmp_path, monkeypatch, specs=False)
 
@@ -4881,7 +4881,7 @@ class TestAgentSpecsNarrowReadiness:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """A failed CHECK is not evidence of a missing spec."""
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         def _boom() -> list[str]:
             raise OSError("permission denied")
@@ -4909,7 +4909,7 @@ class TestAgentSpecsNarrowReadiness:
         "chat is broken" into "the product is unreachable" for exactly the
         instances an operator uses to diagnose.
         """
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         self._agents_dir(tmp_path, monkeypatch, specs=False)
         monkeypatch.setattr(
@@ -4936,7 +4936,7 @@ class TestAgentSpecsNarrowReadiness:
         is not one, and emitting a record every 30 seconds per client would bury
         the real decisions.
         """
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         events: list[str] = []
 
@@ -5000,7 +5000,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
 
     ``missing_agent_specs`` answers presence by statting the file, which cannot
     see this: kiro-cli drops a spec it rejects from its agent table, so
-    ``--agent kirocrew`` resolves to the default agent with none of Kiro Crew's
+    ``--agent junction`` resolves to the default agent with none of Kiro Crew's
     MCP servers and only a line on stderr. That is the shape of the customer
     report behind issue #3116 — "my migrated agents stopped working" with a
     perfectly present file on disk.
@@ -5049,7 +5049,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
         agents = tmp_path / ".kiro" / "agents"
 
         def _lister() -> list[tuple[str, Path]]:
-            from kiro_crew.agent_files import REQUIRED_KIRO_AGENT_FILES
+            from junction.agent_files import REQUIRED_KIRO_AGENT_FILES
 
             # Mirrors present_required_agent_specs (required-and-present only) over
             # this test's dir, so the probe's spawn count is stated here rather than
@@ -5075,9 +5075,9 @@ class TestRejectedAgentSpecsNarrowReadiness:
         tmp_path: Path,
     ) -> None:
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text("{}", encoding="utf-8")
+        (agents / "junction.json").write_text("{}", encoding="utf-8")
         reason = (
-            f"Error: Json supplied at {agents / 'kirocrew.json'} is invalid: "
+            f"Error: Json supplied at {agents / 'junction.json'} is invalid: "
             "data did not match any variant of untagged enum Repr"
         )
 
@@ -5089,7 +5089,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
 
         status = await self._service(tmp_path, run).snapshot(force=True)
 
-        assert status["rejected_agent_specs"] == ["kirocrew.json"]
+        assert status["rejected_agent_specs"] == ["junction.json"]
         assert status["ready"] is False
         assert status["repair_required"] is True
         assert "is invalid" in status["agent_spec_rejection_detail"]
@@ -5100,7 +5100,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
         tmp_path: Path,
     ) -> None:
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text("{}", encoding="utf-8")
+        (agents / "junction.json").write_text("{}", encoding="utf-8")
 
         async def run(_command: str, args: list[str], **_kwargs: Any) -> ProcessResult:
             if args[:2] == ["agent", "validate"]:
@@ -5127,7 +5127,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
         rewrite a file that was never malformed.
         """
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text("{}", encoding="utf-8")
+        (agents / "junction.json").write_text("{}", encoding="utf-8")
 
         async def run(_command: str, args: list[str], **_kwargs: Any) -> ProcessResult:
             if args[:2] == ["agent", "validate"]:
@@ -5176,7 +5176,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
         stack a rejection card on top of the sign-in card. Pins the gate so a later
         refactor cannot quietly reintroduce those spawns.
         """
-        spec = self._spec_dir(tmp_path) / "kirocrew.json"
+        spec = self._spec_dir(tmp_path) / "junction.json"
         spec.write_text("{}", encoding="utf-8")
         calls: list[list[str]] = []
 
@@ -5206,8 +5206,8 @@ class TestRejectedAgentSpecsNarrowReadiness:
         tools the spec declares. Structural, so it must cost no subprocess.
         """
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text(
-            json.dumps({"name": "kirocrew", "mcpServers": {"broken": {"args": ["x"]}}}),
+        (agents / "junction.json").write_text(
+            json.dumps({"name": "junction", "mcpServers": {"broken": {"args": ["x"]}}}),
             encoding="utf-8",
         )
         calls: list[list[str]] = []
@@ -5219,7 +5219,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
 
         status = await self._service(tmp_path, run).snapshot(force=True)
 
-        assert status["rejected_agent_specs"] == ["kirocrew.json"]
+        assert status["rejected_agent_specs"] == ["junction.json"]
         assert "broken" in status["agent_spec_rejection_detail"]
         assert "neither a command" in status["agent_spec_rejection_detail"]
         assert not any(a[:2] == ["agent", "validate"] for a in calls)
@@ -5240,7 +5240,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
         agents = self._spec_dir(tmp_path)
         real = tmp_path / "elsewhere.json"
         real.write_text(json.dumps({"mcpServers": {"broken": {"args": []}}}), encoding="utf-8")
-        (agents / "kirocrew.json").symlink_to(real)
+        (agents / "junction.json").symlink_to(real)
         calls: list[list[str]] = []
 
         async def run(_command: str, args: list[str], **_kwargs: Any) -> ProcessResult:
@@ -5265,10 +5265,10 @@ class TestRejectedAgentSpecsNarrowReadiness:
         or a name carrying a credential reaches the readiness payload verbatim.
         """
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text(
+        (agents / "junction.json").write_text(
             json.dumps(
                 {
-                    "name": "kirocrew",
+                    "name": "junction",
                     "mcpServers": {
                         "svc?token=AKIAIOSFODNN7EXAMPLE": {"args": []},
                     },
@@ -5283,7 +5283,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
 
         status = await self._service(tmp_path, run).snapshot(force=True)
 
-        assert status["rejected_agent_specs"] == ["kirocrew.json"]
+        assert status["rejected_agent_specs"] == ["junction.json"]
         assert "AKIAIOSFODNN7EXAMPLE" not in status["agent_spec_rejection_detail"]
 
     @pytest.mark.asyncio
@@ -5300,10 +5300,10 @@ class TestRejectedAgentSpecsNarrowReadiness:
         selections — worse than the silent gap this check closes.
         """
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text(
+        (agents / "junction.json").write_text(
             json.dumps(
                 {
-                    "name": "kirocrew",
+                    "name": "junction",
                     "mcpServers": {"remote": {"url": "https://mcp.example.com/sse"}},
                 }
             ),
@@ -5331,8 +5331,8 @@ class TestRejectedAgentSpecsNarrowReadiness:
         spec that passes the structural read must still be validated.
         """
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text(
-            json.dumps({"name": "kirocrew", "mcpServers": {"ok": {"command": "uvx", "args": []}}}),
+        (agents / "junction.json").write_text(
+            json.dumps({"name": "junction", "mcpServers": {"ok": {"command": "uvx", "args": []}}}),
             encoding="utf-8",
         )
         calls: list[list[str]] = []
@@ -5362,7 +5362,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
         button still does something only the binary can answer.
         """
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text("{}", encoding="utf-8")
+        (agents / "junction.json").write_text("{}", encoding="utf-8")
         rebuilt: list[str] = []
         calls: list[list[str]] = []
 
@@ -5374,7 +5374,7 @@ class TestRejectedAgentSpecsNarrowReadiness:
 
         service = self._service(tmp_path, run)
         await service.snapshot(force=True)
-        assert service._status.rejected_agent_specs == ["kirocrew.json"]
+        assert service._status.rejected_agent_specs == ["junction.json"]
 
         async def _fake_repair() -> str:
             rebuilt.append("called")
@@ -5403,8 +5403,8 @@ class TestRejectedAgentSpecsNarrowReadiness:
     ) -> None:
         """The widened guard must not turn every Check again into a write."""
         agents = self._spec_dir(tmp_path)
-        (agents / "kirocrew.json").write_text("{}", encoding="utf-8")
-        (agents / "kirocrew-lite.json").write_text("{}", encoding="utf-8")
+        (agents / "junction.json").write_text("{}", encoding="utf-8")
+        (agents / "junction-lite.json").write_text("{}", encoding="utf-8")
         rebuilt: list[str] = []
 
         async def run(_command: str, args: list[str], **_kwargs: Any) -> ProcessResult:
@@ -5461,7 +5461,7 @@ class TestAgentSpecRepairIsAPostNotAGet:
 
     @staticmethod
     def _agents_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         agents = tmp_path / "agents"
         agents.mkdir(exist_ok=True)
@@ -5475,7 +5475,7 @@ class TestAgentSpecRepairIsAPostNotAGet:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Even ``?refresh=1`` is a pure read — this is the regression guard."""
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         self._agents_dir(tmp_path, monkeypatch)
         calls: list[int] = []
@@ -5495,7 +5495,7 @@ class TestAgentSpecRepairIsAPostNotAGet:
         any reflow. What matters is the method the router will accept: GET is the
         one method csrf_middleware and sel_audit_middleware both skip.
         """
-        from kiro_crew.dashboard.handlers.kiro_prerequisite import (
+        from junction.dashboard.handlers.kiro_prerequisite import (
             api_kiro_prerequisite_repair_specs,
         )
 
@@ -5525,8 +5525,8 @@ class TestAgentSpecRepair:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        from kiro_crew import agent as agent_module
-        from kiro_crew.agent_files import REQUIRED_KIRO_AGENT_FILES
+        from junction import agent as agent_module
+        from junction.agent_files import REQUIRED_KIRO_AGENT_FILES
 
         agents = self._agents_dir(tmp_path, monkeypatch)
         calls: list[int] = []
@@ -5560,7 +5560,7 @@ class TestAgentSpecRepair:
         graph merges ``mcpServers[*].env``, so raw exception text can carry a
         credential.
         """
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         self._agents_dir(tmp_path, monkeypatch)
 
@@ -5580,7 +5580,7 @@ class TestAgentSpecRepair:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         self._agents_dir(tmp_path, monkeypatch)
         # Assembled at runtime so the literal never sits in the file for scrub-lint.
@@ -5607,7 +5607,7 @@ class TestAgentSpecRepair:
         would rewrite a shared agent home. Reporting that as success would leave
         the gate showing no error and a button that changes nothing on every press.
         """
-        from kiro_crew import agent as agent_module
+        from junction import agent as agent_module
 
         self._agents_dir(tmp_path, monkeypatch)
         monkeypatch.setattr(agent_module, "rebuild_agent_config", lambda: None)
@@ -5624,7 +5624,7 @@ class TestAgentSpecRepair:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """A present kirocrew.json is never regenerated by this route.
+        """A present junction.json is never regenerated by this route.
 
         ``rebuild_agent_config`` rewrites the whole file. It re-merges
         ``mcpServers`` under ``bridges._mcp_lock``, but NOT the
@@ -5633,11 +5633,11 @@ class TestAgentSpecRepair:
         edit and resurrect a server the user just disabled. Gating on the MAIN
         spec's ABSENCE removes that window: with no file there is no edit to lose.
         """
-        from kiro_crew import agent as agent_module
-        from kiro_crew.agent_files import LITE_AGENT_FILENAME
+        from junction import agent as agent_module
+        from junction.agent_files import LITE_AGENT_FILENAME
 
         agents = self._agents_dir(tmp_path, monkeypatch)
-        (agents / AGENT_FILENAME).write_text('{"name": "kirocrew"}', encoding="utf-8")
+        (agents / AGENT_FILENAME).write_text('{"name": "junction"}', encoding="utf-8")
         calls: list[int] = []
         monkeypatch.setattr(agent_module, "rebuild_agent_config", lambda: calls.append(1))
 
@@ -5668,8 +5668,8 @@ class TestAgentSpecRepair:
         inside the rebuild until the second caller has had its chance to reach its
         own check, which is the only ordering that distinguishes the two versions.
         """
-        from kiro_crew import agent as agent_module
-        from kiro_crew.agent_files import REQUIRED_KIRO_AGENT_FILES
+        from junction import agent as agent_module
+        from junction.agent_files import REQUIRED_KIRO_AGENT_FILES
 
         agents = self._agents_dir(tmp_path, monkeypatch)
         calls: list[int] = []

@@ -11,8 +11,8 @@ Read [`JUNCTION.md`](JUNCTION.md) and
 [`WORKING_BRIEF.md`](WORKING_BRIEF.md) before any product, brand, CLI, or
 model-router change. Product / architecture / roadmap overlays:
 [`PRODUCT.md`](PRODUCT.md), [`ARCHITECTURE.md`](ARCHITECTURE.md),
-[`ROADMAP.md`](ROADMAP.md). Package identifiers (`kiro_crew`,
-`KIROCREW_HOME`) stay as implementation spellings, not the product name.
+[`ROADMAP.md`](ROADMAP.md). Package identifiers (`junction`,
+`JUNCTION_HOME`) stay as implementation spellings, not the product name.
 
 ## What this is
 
@@ -22,11 +22,11 @@ run multi-step tasks unattended; schedule cron jobs; keep memory across
 sessions. It drives an LLM through an ACP adapter plus MCP tools. `kiro-cli`
 is optional.
 
-- **Backend:** Python package `kiro_crew` in `src/kiro_crew/` (import path,
+- **Backend:** Python package `junction` in `src/junction/` (import path,
   not the product name).
 - **Frontend:** React + TS + Vite SPA in `website/`; the built `dist/` is staged
-  into `src/kiro_crew/static/dist/` and served by the backend.
-- **Data home:** `~/.kiro/crew`, overridden with `KIROCREW_HOME`. The legacy
+  into `src/junction/static/dist/` and served by the backend.
+- **Data home:** `~/.kiro/crew`, overridden with `JUNCTION_HOME`. The legacy
   `~/.kirocrew` is fully deprecated and no longer auto-migrates; it survives only
   in sensitive-path deny lists, which must keep covering it.
 - **Distribution:** public GitHub, plain setuptools, public PyPI / public npm.
@@ -63,7 +63,7 @@ in the **same commit** when you change what it documents.
 | themes | [themes](docs/system-specs/modules/themes.md) + [theming-contract](website/docs/theming-contract.md) |
 | anything under `website/` | [`website/AGENTS.md`](website/AGENTS.md) |
 | user-facing strings, dates, numbers, sort order | [i18n-catalog](website/docs/i18n-catalog.md) (authoring) + [i18n-gates](docs/ci/i18n-gates.md) (CI) |
-| tests: flakes, speed, fixtures, sharding, side effects, conftest isolation | [testing-conventions](docs/system-specs/common/testing-conventions.md) + the [writing-tests](src/kiro_crew/builtin_skills/kirocrew-dev/writing-tests/SKILL.md) skill |
+| tests: flakes, speed, fixtures, sharding, side effects, conftest isolation | [testing-conventions](docs/system-specs/common/testing-conventions.md) + the [writing-tests](src/junction/builtin_skills/junction-dev/writing-tests/SKILL.md) skill |
 | browser E2E | [e2e-gate](docs/ci/e2e-gate.md) |
 | CI, PR flow, review gates | [ci-and-reviews](docs/ci/ci-and-reviews.md) + [CONTRIBUTING.md](CONTRIBUTING.md) |
 | constants, magic numbers, where a limit lives | [code-style](docs/system-specs/common/code-style.md) |
@@ -74,8 +74,8 @@ in the **same commit** when you change what it documents.
 | errors, retries, user-facing failure text | [error-handling](docs/system-specs/common/error-handling.md) |
 
 The whole doc tree is indexed from [`docs/README.md`](docs/README.md). User-facing
-docs that ship in the package live in `src/kiro_crew/docs/` and are indexed by
-[its README](src/kiro_crew/docs/README.md).
+docs that ship in the package live in `src/junction/docs/` and are indexed by
+[its README](src/junction/docs/README.md).
 
 ## Never re-introduce (scrubbed internals)
 
@@ -206,7 +206,7 @@ that harness pays for it.
   (`H7`) in code comments and review findings.
 
 `scripts/check_harness_parity.py` fails on a newly added negative identity test
-under `src/kiro_crew/` (run it locally with
+under `src/junction/` (run it locally with
 `HARNESS_BASE_REF=origin/main python3 scripts/check_harness_parity.py`); the
 judgment half is the `harness-parity` rule in `AUTOSDE.yaml`.
 
@@ -256,7 +256,7 @@ judgment a reviewer has to make (is this a commit dump? should this PR be touchi
 the file at all?), and `scripts/check_changelog_history.py` enforces what needs no
 reading — every section the base documents as shipped survives byte-identical, and
 the file contains **only** shipped sections. The parser that renders it is
-`src/kiro_crew/changelog.py`.
+`src/junction/changelog.py`.
 
 - **Your feature PR does not touch `CHANGELOG.md`.** The release PR writes the
   section covering everything that shipped. A per-PR changelog line is how the
@@ -339,8 +339,8 @@ Format, which the `[0.2.0]` section is the reference for:
 ## The gate before you commit
 
 ```bash
-python3 scripts/check_black_formatting.py && python3 scripts/check_subprocess_encoding.py && isort src/kiro_crew test
-flake8 src/kiro_crew test && mypy src/kiro_crew
+python3 scripts/check_black_formatting.py && python3 scripts/check_subprocess_encoding.py && isort src/junction test
+flake8 src/junction test && mypy src/junction
 python -m pytest
 ```
 
@@ -348,9 +348,9 @@ python -m pytest
 typeshed guards `os.listxattr` / `getxattr` / `setxattr` behind
 `sys.platform == "linux"` even though macOS has them — so a local run reports 4
 errors in files you did not touch, and it MISSES Linux-only errors CI fails on.
-`mypy --platform linux src/kiro_crew` is the parity invocation.
+`mypy --platform linux src/junction` is the parity invocation.
 
-**Do not run bare `black src/kiro_crew test`.** 1,420 files are not black-clean
+**Do not run bare `black src/junction test`.** 1,420 files are not black-clean
 yet, so it reformats ~95,800 lines on top of whatever you changed and buries your
 diff. The gate above enforces black on every file *outside*
 [`.github/black-baseline.txt`](.github/black-baseline.txt) instead, so format only
@@ -387,15 +387,15 @@ enables coverage on 3.12 only), and tight timed ratios false-red on shared runne
 
 **A test must not touch the operator's machine, and the floor you stand on is not the
 same in every testpath.** `testpaths` collects two trees, and only `test/` gets
-`test/conftest.py`; the ~108 test modules under `src/kiro_crew/apps/builtins/*/tests/`
+`test/conftest.py`; the ~108 test modules under `src/junction/apps/builtins/*/tests/`
 see the **rootdir** `conftest.py`, plus that app's own `tests/conftest.py` where one
 exists (three of the eight apps ship one). So the rootdir conftest carries the
-host floor: `KIROCREW_HOME` pinned per test, the import-time `~/.kiro` bindings pinned
+host floor: `JUNCTION_HOME` pinned per test, the import-time `~/.kiro` bindings pinned
 (that directory is kiro-cli's own home, shared with the real installed agent, and a
 separate isolation axis from the data home), the SEL default dir pinned session-wide,
 `tempfile`'s base redirected with residue reported, and the checkout failed on residue.
 Before adding isolation, decide which floor it belongs to; before writing a test, read
-the [writing-tests skill](src/kiro_crew/builtin_skills/kirocrew-dev/writing-tests/SKILL.md).
+the [writing-tests skill](src/junction/builtin_skills/junction-dev/writing-tests/SKILL.md).
 Two traps are worth naming here because neither is visible when reading the test:
 
 - **A child process inherits pytest's CWD, the repo root**, so a spawn that may create a
@@ -425,7 +425,7 @@ Two traps are worth naming here because neither is visible when reading the test
 | Constants | No hardcoded strings or values in business logic; every limit has an owning module. Index: [code-style](docs/system-specs/common/code-style.md) |
 | Comments | Explain **behavior and rationale (the why)**: invariants, edge cases, units, non-obvious constraints. NOT a task log: no PR/CR numbers, review-round markers, incident dates, milestone tags, or commit SHAs. No "previously/used to/we now" narration, state current behavior in present tense. Don't restate what the code plainly does. `_vendor/` and pragmas are exempt. |
 | Icons | **Never use emojis in the UI.** Use `lucide-react` with `className="lucide-inline"`. |
-| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`kiro_crew`, `KIROCREW_*`, Electron `productName`, slug `laqaer/junction`). CI-gates concatenated upstream brand tokens on added lines; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
+| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`junction`, `JUNCTION_*`, Electron `productName`, slug `laqaer/junction`). CI-gates concatenated upstream brand tokens on added lines; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
 | User-facing strings | The dashboard is translated into 12 languages. **Never hardcode a user-facing English string, and never format a date, number, or sort order without naming a locale.** Both are CI-gated. Backend-owned strings have no catalog path yet, so a new non-2xx JSON body MUST carry a machine-readable `code` field. |
 
 ## Cross-platform: route POSIX calls through `platform_compat`
@@ -469,7 +469,7 @@ Windows specifics: [windows-install](docs/guides/windows-install.md).
 - **MCP-first.** A new LLM-facing CLI command MUST also ship as an MCP tool
   (`mcp_cron.py` / `mcp_core.py`): kiro-cli calls MCP tools reliably and may refuse
   to run a CLI command via bash. There is exactly one deliberate exception,
-  `kirocrew computer call`, a human debug harness rather than a capability; do not
+  `junction computer call`, a human debug harness rather than a capability; do not
   add another without reading [mcp](docs/architecture/mcp.md). Do NOT add regex to
   match natural-language variants, the LLM interprets NL.
 - **MCP tools MUST be stateless.** One server process serves many sessions and
@@ -480,7 +480,7 @@ Windows specifics: [windows-install](docs/guides/windows-install.md).
   endpoint keyed by session. Why, plus the `ask_question` reference
   implementation: [mcp](docs/architecture/mcp.md).
 - **A skill that any shipped feature, tool, or doc references MUST live in
-  `src/kiro_crew/builtin_skills/`.** That is the only path bundled into the
+  `src/junction/builtin_skills/`.** That is the only path bundled into the
   package and copied into a user's `~/.kiro/crew/skills/`. Top-level `skills/` is
   repo-checkout-only and reaches no installed user.
 
@@ -493,6 +493,6 @@ formats: [injected-messages](docs/system-specs/common/injected-messages.md).
 
 ## Harness safety
 
-`kirocrew gateway --approval yolo` auto-approves ALL tools and refuses to start
-unless `KIROCREW_HOME` is explicitly set to a non-default path. Never point it at
+`junction gateway --approval yolo` auto-approves ALL tools and refuses to start
+unless `JUNCTION_HOME` is explicitly set to a non-default path. Never point it at
 `~/.kiro/crew`. All harness flags: [cli](docs/system-specs/modules/cli.md).

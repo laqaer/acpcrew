@@ -818,7 +818,7 @@ describe('the Board renders the artifact a colleague gets handed', () => {
   })
 
   it('never synthesizes the on-disk path', () => {
-    // KIROCREW_HOME moves the data directory, so a path assembled in the UI would assert a
+    // JUNCTION_HOME moves the data directory, so a path assembled in the UI would assert a
     // file the backend does not have. It is rendered only when the backend supplies one.
     expect(page).toMatch(/log_path/)
     expect(page).toMatch(/logPath \?/)
@@ -852,7 +852,7 @@ describe('the api layer declares the postmortem without overstating it', () => {
   })
 
   it('forbids guessing the path in the UI', () => {
-    expect(api).toMatch(/KIROCREW_HOME/)
+    expect(api).toMatch(/JUNCTION_HOME/)
   })
 
   it('names the closed-history section as the incidents route caller', () => {

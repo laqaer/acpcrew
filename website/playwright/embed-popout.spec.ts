@@ -1,6 +1,6 @@
 import { test, expect, type APIRequestContext } from '@playwright/test'
 
-const HARNESS_GATEWAY = !!process.env.KIROCREW_E2E_EPHEMERAL
+const HARNESS_GATEWAY = !!process.env.JUNCTION_E2E_EPHEMERAL
 
 // ─── Seed helpers ──────────────────────────────────────────────────────────
 

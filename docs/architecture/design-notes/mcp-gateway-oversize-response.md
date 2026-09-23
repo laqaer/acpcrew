@@ -16,7 +16,7 @@ Responses exceeding this trigger per-request fast-fail with a descriptive
 JSON-RPC -32000 error.
 
 - **Default:** 67108864 (64 MiB)
-- **Env override:** `KIROCREW_MCP_READ_LIMIT`
+- **Env override:** `JUNCTION_MCP_READ_LIMIT`
 - **Minimum:** 1024
 
 ### `mcp_gateway.response_spill_threshold_bytes`
@@ -26,7 +26,7 @@ content written to a sidecar file and truncated inline to 16 KiB + a file path
 marker. This prevents large responses from bloating the LLM's context window.
 
 - **Default:** 262144 (256 KiB)
-- **Env override:** `KIROCREW_MCP_SPILL_THRESHOLD`
+- **Env override:** `JUNCTION_MCP_SPILL_THRESHOLD`
 - **Set to 0:** Disables spilling (all under-limit responses pass through)
 
 ## Behavior
@@ -60,7 +60,7 @@ For responses that fit within the read limit but exceed the spill threshold:
 2. Check if it's a `tools/call` result (has `result.content` list with `text` items).
 3. Write the **full original response** to `~/.kiro/crew/mcp_spill/<server>-<request_id>-<timestamp>.json`.
 4. Truncate each text item to the first 16 KiB.
-5. Append a marker: `[KiroCrew: response truncated -- full <N> bytes at <path>. Read with bash: head/grep/jq.]`
+5. Append a marker: `[Junction: response truncated -- full <N> bytes at <path>. Read with bash: head/grep/jq.]`
 6. Forward the rewritten (smaller) response.
 
 Non-tool-result frames, errors, and small responses are **never** spilled.
@@ -76,7 +76,7 @@ writing at least one of the letters as a JSON `\u` escape (the only escape
 that yields a letter), so the filter matches on either the literal or the
 escape marker and lines that skip the parse provably cannot carry an image
 block. Every image block in a `tools/call` result is held to the same
-per-image budget the prompt path enforces (`kiro_crew/imaging.py`:
+per-image budget the prompt path enforces (`junction/imaging.py`:
 `MAX_IMAGE_EDGE_PX` = 2000 px longest edge, `MAX_IMAGE_B64_BYTES` = 5 MiB
 base64):
 
@@ -147,7 +147,7 @@ no brokered path renders resource blobs to the model today.
 ### Inline marker format
 
 ```
-[KiroCrew: response truncated -- full 1482937 bytes at /home/user/.kiro/crew/mcp_spill/example-mcp-gw-12345-7-1721200000.json. Read with bash: head/grep/jq.]
+[Junction: response truncated -- full 1482937 bytes at /home/user/.kiro/crew/mcp_spill/example-mcp-gw-12345-7-1721200000.json. Read with bash: head/grep/jq.]
 ```
 
 ## Troubleshooting
@@ -155,7 +155,7 @@ no brokered path renders resource blobs to the model today.
 If you see `-32000 "MCP response too large"` errors:
 
 1. **Narrow the query** — ask the tool for less data (e.g. specific sections vs full page).
-2. **Raise the limit** — set `KIROCREW_MCP_READ_LIMIT=134217728` (128 MiB) in your env, or add to `~/.kiro/crew/config.json`:
+2. **Raise the limit** — set `JUNCTION_MCP_READ_LIMIT=134217728` (128 MiB) in your env, or add to `~/.kiro/crew/config.json`:
    ```json
    {
      "mcp_gateway": {
@@ -163,10 +163,10 @@ If you see `-32000 "MCP response too large"` errors:
      }
    }
    ```
-3. **Restart the gateway** — `kirocrew restart`
+3. **Restart the gateway** — `junction restart`
 
 If responses are being truncated and you need full content:
 
 1. The spill file path is in the truncation marker — read it directly.
 2. To disable spilling entirely: `"response_spill_threshold_bytes": 0`
-3. To raise the threshold: `KIROCREW_MCP_SPILL_THRESHOLD=1048576` (1 MiB)
+3. To raise the threshold: `JUNCTION_MCP_SPILL_THRESHOLD=1048576` (1 MiB)

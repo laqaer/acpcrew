@@ -27,8 +27,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.history import (
+from junction import platform_compat
+from junction.history import (
     _SESSION_KEEP_LINES,
     _SESSION_MAX_BYTES,
     ConversationLog,
@@ -79,7 +79,7 @@ class TestCrossProcessLock:
         """
         if not platform_compat.IS_POSIX:
             pytest.skip("advisory flock semantics are POSIX-specific")
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
         monkeypatch.setattr(history_mod, "_FLOCK_ACQUIRE_TIMEOUT_S", 0.2)
         monkeypatch.setattr(history_mod, "_FLOCK_POLL_INTERVAL_S", 0.02)
@@ -122,7 +122,7 @@ class TestCrossProcessLock:
             pytest.skip("advisory flock semantics are POSIX-specific")
         import asyncio as _asyncio
 
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
         # A long off-loop budget proves the loop path does NOT fall back to it,
         # and any _time.sleep on the loop path is a hard failure.
@@ -386,7 +386,7 @@ class TestMessageCacheRewriteSerialization:
     ) -> None:
         """A wedged holder must not hang the reader: the off-loop acquire is
         capped at the writer's own ceiling and then fills unlocked."""
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
         monkeypatch.setattr(history_mod, "_FLOCK_ACQUIRE_TIMEOUT_S", 0.1)
         log = ConversationLog(base_dir=tmp_path)
@@ -423,15 +423,15 @@ class TestOnLoopPersistDiscipline:
     def test_raw_on_loop_mutator_raises_in_strict_mode(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """With strict enforcement on (``KIROCREW_STRICT_ON_LOOP_PERSIST=1``) a
+        """With strict enforcement on (``JUNCTION_STRICT_ON_LOOP_PERSIST=1``) a
         raw mutator call ON the event loop must raise ``OnLoopPersistError`` —
         the un-offloaded call-site fails the test instead of losing data in
         production."""
         import asyncio
 
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         log = ConversationLog(base_dir=tmp_path)
 
         async def _run() -> None:
@@ -453,9 +453,9 @@ class TestOnLoopPersistDiscipline:
         e.g. ``update_metadata`` / ``set_title`` / ``delete_session``."""
         import asyncio
 
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         log = ConversationLog(base_dir=tmp_path)
         log.append("k", "user", "seed")  # off-loop seed: allowed
 
@@ -468,23 +468,23 @@ class TestOnLoopPersistDiscipline:
     def test_dev_mode_also_enables_strict(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """``KIROCREW_DEV_MODE`` (developer gateway) also turns the guard strict,
-        and an explicit falsy ``KIROCREW_STRICT_ON_LOOP_PERSIST`` overrides it so
+        """``JUNCTION_DEV_MODE`` (developer gateway) also turns the guard strict,
+        and an explicit falsy ``JUNCTION_STRICT_ON_LOOP_PERSIST`` overrides it so
         the production-fallback path stays testable even under dev-mode."""
         import asyncio
 
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
-        monkeypatch.delenv("KIROCREW_STRICT_ON_LOOP_PERSIST", raising=False)
-        monkeypatch.setenv("KIROCREW_DEV_MODE", "1")
+        monkeypatch.delenv("JUNCTION_STRICT_ON_LOOP_PERSIST", raising=False)
+        monkeypatch.setenv("JUNCTION_DEV_MODE", "1")
         assert history_mod._on_loop_persist_strict() is True
         # Explicit falsy override wins over dev-mode.
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "0")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "0")
         assert history_mod._on_loop_persist_strict() is False
 
         log = ConversationLog(base_dir=tmp_path)
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "")
-        monkeypatch.setenv("KIROCREW_DEV_MODE", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "")
+        monkeypatch.setenv("JUNCTION_DEV_MODE", "1")
 
         async def _run() -> None:
             with pytest.raises(history_mod.OnLoopPersistError):
@@ -500,9 +500,9 @@ class TestOnLoopPersistDiscipline:
         mutator inside it does NOT raise (it proceeds to the real acquire)."""
         import asyncio
 
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         log = ConversationLog(base_dir=tmp_path)
 
         async def _run() -> None:
@@ -525,9 +525,9 @@ class TestOnLoopPersistDiscipline:
         even under strict enforcement."""
         import asyncio
 
-        from kiro_crew.history import append_off_loop
+        from junction.history import append_off_loop
 
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         log = ConversationLog(base_dir=tmp_path)
 
         async def _run() -> None:
@@ -548,7 +548,7 @@ class TestOnLoopPersistDiscipline:
     ) -> None:
         """A plain synchronous (off-loop) mutator — CLI / cron / subagent /
         worker thread — must never be flagged, even under strict enforcement."""
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         log = ConversationLog(base_dir=tmp_path)
         log.append("k", "user", "off-loop-fine")  # no running loop
         assert "off-loop-fine" in [
@@ -565,11 +565,11 @@ class TestOnLoopPersistDiscipline:
         import asyncio
         import logging
 
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
         # Force strict off (simulate a production gateway) and reset the warning
         # throttle so the diagnostic is observable.
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "0")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "0")
         monkeypatch.setattr(history_mod, "_on_loop_warn_last", 0.0)
         log = ConversationLog(base_dir=tmp_path)
 
@@ -608,7 +608,7 @@ class TestOnLoopPersistDiscipline:
         legitimately drives mutators on the loop as a convenience). To catch a
         genuinely-new un-offloaded PRODUCTION call-site at PR time, the e2e gate
         — which spawns a REAL gateway subprocess and drives real chat turns —
-        boots that gateway with ``KIROCREW_STRICT_ON_LOOP_PERSIST=1``, so any
+        boots that gateway with ``JUNCTION_STRICT_ON_LOOP_PERSIST=1``, so any
         raw on-loop ``_locked`` entry raises ``OnLoopPersistError`` and fails CI
         instead of silently losing transcript data under production contention.
 
@@ -626,7 +626,7 @@ class TestOnLoopPersistDiscipline:
         tree = ast.parse(setup_src)
 
         # Find E2eTestCommand.run and confirm it assigns
-        # env["KIROCREW_STRICT_ON_LOOP_PERSIST"] = "1" (a truthy string).
+        # env["JUNCTION_STRICT_ON_LOOP_PERSIST"] = "1" (a truthy string).
         found = False
         for node in ast.walk(tree):
             if not (isinstance(node, ast.Assign)):
@@ -637,13 +637,13 @@ class TestOnLoopPersistDiscipline:
                     and isinstance(tgt.value, ast.Name)
                     and tgt.value.id == "env"
                     and isinstance(tgt.slice, ast.Constant)
-                    and tgt.slice.value == "KIROCREW_STRICT_ON_LOOP_PERSIST"
+                    and tgt.slice.value == "JUNCTION_STRICT_ON_LOOP_PERSIST"
                     and isinstance(node.value, ast.Constant)
                     and str(node.value.value).strip().lower() in {"1", "true", "yes", "on"}
                 ):
                     found = True
         assert found, (
-            "setup.py test_e2e must export KIROCREW_STRICT_ON_LOOP_PERSIST=1 into "
+            "setup.py test_e2e must export JUNCTION_STRICT_ON_LOOP_PERSIST=1 into "
             "the e2e gateway env — the on-loop persistence discipline is a "
             "CI-enforced invariant, not a dev-only convention (arbiter item 1). "
             "Do not remove this wiring without an equivalent CI enforcement."
@@ -999,7 +999,7 @@ class TestDeleteSessionMissingOk:
         """
         log = ConversationLog(base_dir=tmp_path)
         # Force the existence check to report True even though no file exists.
-        monkeypatch.setattr("kiro_crew.history.Path.exists", lambda self: True)
+        monkeypatch.setattr("junction.history.Path.exists", lambda self: True)
         # Must not raise.
         log.delete_session("ghost")
 
@@ -1036,7 +1036,7 @@ class TestDeleteSessionMissingOk:
         log.append("k", "user", "m")
         # Shrink the acquire budget so the test doesn't wait the full deadline.
         monkeypatch_budget = 0.2
-        import kiro_crew.history as history_mod
+        import junction.history as history_mod
 
         orig = history_mod._FLOCK_ACQUIRE_TIMEOUT_S
         history_mod._FLOCK_ACQUIRE_TIMEOUT_S = monkeypatch_budget
@@ -1056,7 +1056,7 @@ class TestDeleteSessionMissingOk:
 class TestAppendOffLoop:
     def test_inline_append_when_no_running_loop(self, tmp_path: Path) -> None:
         """Off the event loop, ``append_off_loop`` persists synchronously."""
-        from kiro_crew.history import append_off_loop
+        from junction.history import append_off_loop
 
         log = ConversationLog(base_dir=tmp_path)
         append_off_loop(log, "k", "assistant", "hello", agent="bot")
@@ -1071,7 +1071,7 @@ class TestAppendOffLoop:
         import asyncio
         import threading
 
-        from kiro_crew.history import append_off_loop
+        from junction.history import append_off_loop
 
         log = ConversationLog(base_dir=tmp_path)
         loop_thread = threading.get_ident()
@@ -1109,7 +1109,7 @@ class TestUpdateMetadataOffLoop:
 
     def test_inline_update_when_no_running_loop(self, tmp_path: Path) -> None:
         """Off the event loop the update persists synchronously."""
-        from kiro_crew.history import update_metadata_off_loop
+        from junction.history import update_metadata_off_loop
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("k", "user", "seed")
@@ -1125,7 +1125,7 @@ class TestUpdateMetadataOffLoop:
         import asyncio
         import threading
 
-        from kiro_crew.history import update_metadata_off_loop
+        from junction.history import update_metadata_off_loop
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("k", "user", "seed")
@@ -1172,7 +1172,7 @@ class TestOnLoopCallersOffload:
         import threading
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("dashboard:t", "user", "seed")
@@ -1218,7 +1218,7 @@ class TestOnLoopCallersOffload:
         import threading
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.dashboard.handlers import sessions as sessions_mod
+        from junction.dashboard.handlers import sessions as sessions_mod
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("gone", "user", "seed")
@@ -1351,7 +1351,7 @@ class TestDashboardSaveHoldsLock:
     def _make_state(self, tmp_path: Path):
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.state import DashboardState
 
         sessions = MagicMock(count=0)
         sessions.get_pid = MagicMock(return_value=None)
@@ -1369,11 +1369,11 @@ class TestDashboardSaveHoldsLock:
     def test_concurrent_append_off_loop_survives_save(self, tmp_path, monkeypatch):
         import threading
 
-        from kiro_crew.dashboard import chat_persistence
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
-        from kiro_crew.dashboard.chat_utils import _history_key_for
+        from junction.dashboard import chat_persistence
+        from junction.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_utils import _history_key_for
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot("locktest")
         slot.append("user", "m1")
@@ -1439,9 +1439,9 @@ class TestDashboardSaveHoldsLock:
         to the file first, then the slot (whose in-memory window never saw it) is
         saved. The save must merge the on-disk append rather than clobber it.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
-        from kiro_crew.dashboard.chat_utils import _history_key_for
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_utils import _history_key_for
 
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot("staleoverwrite")
@@ -1488,9 +1488,9 @@ class TestDashboardSaveHoldsLock:
         with NO writer between the saves, so saves 2..4 all hit the fast path,
         and asserts the foreign line survives every one exactly once.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
-        from kiro_crew.dashboard.chat_utils import _history_key_for
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_utils import _history_key_for
 
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot("fastpathloss")
@@ -1537,9 +1537,9 @@ class TestDashboardSaveHoldsLock:
         concurrent consolidation apply a stale offset and mark never-consolidated
         retained messages as done (undoing the rotation-generation fix).
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
-        from kiro_crew.dashboard.chat_utils import _history_key_for
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_utils import _history_key_for
 
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot("rotgen")
@@ -1592,12 +1592,12 @@ class TestDashboardSaveHoldsLock:
         import json
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.state.config_dir", lambda: tmp_path
+            "junction.dashboard.state.config_dir", lambda: tmp_path
         )
-        from kiro_crew.dashboard.chat_persistence import (
+        from junction.dashboard.chat_persistence import (
             _frozen_prefix_and_foreign_appends,
         )
-        from kiro_crew.dashboard.chat_utils import _history_key_for
+        from junction.dashboard.chat_utils import _history_key_for
 
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot("dedupsem")
@@ -1683,7 +1683,7 @@ class TestForeignFoldMidIdentity:
     def _make_state(self, tmp_path: Path):
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.state import DashboardState
 
         sessions = MagicMock(count=0)
         sessions.get_pid = MagicMock(return_value=None)
@@ -1702,11 +1702,11 @@ class TestForeignFoldMidIdentity:
         """Write *disk_entries* (after a metadata line) and run the fold."""
         import json
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat_persistence import (
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat_persistence import (
             _frozen_prefix_and_foreign_appends,
         )
-        from kiro_crew.dashboard.chat_utils import _history_key_for
+        from junction.dashboard.chat_utils import _history_key_for
 
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot(slot_name)
@@ -2021,7 +2021,7 @@ class TestBestEffortSaveMarksDirty:
     def _make_state(self, tmp_path: Path):
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.state import DashboardState
 
         sessions = MagicMock(count=0)
         sessions.get_pid = MagicMock(return_value=None)
@@ -2039,9 +2039,9 @@ class TestBestEffortSaveMarksDirty:
     def test_offloaded_best_effort_failure_marks_dirty(self, tmp_path, monkeypatch):
         import asyncio
 
-        from kiro_crew.dashboard import chat_persistence
+        from junction.dashboard import chat_persistence
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._make_state(tmp_path)
         slot = state.get_or_create_slot("beffail")
         slot.append("user", "m1")
@@ -2124,7 +2124,7 @@ class TestOnLoopFdCleanupDeferred:
                 # must be dispatched to the default executor, not run inline.
                 # This deliberately exercises the low-level on-loop primitive, so
                 # it bypasses the strict off-loop discipline guard.
-                from kiro_crew.history import allow_on_loop_persist
+                from junction.history import allow_on_loop_persist
                 with allow_on_loop_persist():
                     log.append("k", "assistant", "on-loop-append")
                 for _ in range(50):
@@ -2236,7 +2236,7 @@ class TestAppendIfAbsent:
         import asyncio
         import threading
 
-        from kiro_crew.history import append_if_absent_off_loop
+        from junction.history import append_if_absent_off_loop
 
         log = ConversationLog(base_dir=tmp_path)
         loop_thread = threading.get_ident()

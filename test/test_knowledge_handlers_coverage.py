@@ -21,11 +21,11 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew._sqlite_compat import sqlite3
-from kiro_crew.dashboard.handlers import knowledge as kh
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction._sqlite_compat import sqlite3
+from junction.dashboard.handlers import knowledge as kh
+from junction.knowledge.store import KnowledgeStore
 
-MODULE = "kiro_crew.dashboard.handlers.knowledge"
+MODULE = "junction.dashboard.handlers.knowledge"
 
 
 @pytest.fixture()
@@ -904,7 +904,7 @@ class TestImportBundle:
         # platform's json C-scanner raises (vs parses) varies, so force the
         # error instead of gambling on real nesting.  The old guard caught only
         # ValueError, leaking RecursionError as an unhandled 500.
-        from kiro_crew.dashboard.handlers import knowledge as knowledge_mod
+        from junction.dashboard.handlers import knowledge as knowledge_mod
         real_loads = knowledge_mod.json.loads
 
         def exploding_loads(s, *args, **kwargs):
@@ -1328,7 +1328,7 @@ def _cfg(auto_add=True, auto_ingest=False, kinds=()):
 class TestAddAgentDocumentRoute:
     @pytest.mark.asyncio
     async def test_disabled_toggle_is_403(self, store, monkeypatch):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load",
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load",
                             staticmethod(lambda: _cfg(auto_add=False)))
         async with _client(_make_app(store, pipeline=MagicMock())) as client:
             resp = await client.post("/api/knowledge/agent-document", json={})
@@ -1337,7 +1337,7 @@ class TestAddAgentDocumentRoute:
 
     @pytest.mark.asyncio
     async def test_missing_pipeline_is_503(self, store, monkeypatch):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load", staticmethod(_cfg))
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load", staticmethod(_cfg))
         async with _client(_make_app(store)) as client:
             resp = await client.post("/api/knowledge/agent-document", json={})
             assert resp.status == 503
@@ -1345,7 +1345,7 @@ class TestAddAgentDocumentRoute:
 
     @pytest.mark.asyncio
     async def test_invalid_json_is_400(self, store, monkeypatch):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load", staticmethod(_cfg))
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load", staticmethod(_cfg))
         async with _client(_make_app(store, pipeline=MagicMock())) as client:
             resp = await client.post("/api/knowledge/agent-document", data="{",
                                      headers={"Content-Type": "application/json"})
@@ -1354,7 +1354,7 @@ class TestAddAgentDocumentRoute:
 
     @pytest.mark.asyncio
     async def test_rejected_document_is_400(self, store, monkeypatch):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load", staticmethod(_cfg))
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load", staticmethod(_cfg))
         monkeypatch.setattr(f"{MODULE}.add_agent_document", AsyncMock(
             return_value={"status": "error", "error": "too short"}))
         async with _client(_make_app(store, pipeline=MagicMock())) as client:
@@ -1367,7 +1367,7 @@ class TestAddAgentDocumentRoute:
     @pytest.mark.asyncio
     async def test_accepted_document_returns_result_and_coerces_fields(
             self, store, monkeypatch):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load", staticmethod(_cfg))
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load", staticmethod(_cfg))
         fake_add = AsyncMock(return_value={"status": "added", "title": "T",
                                            "item_ids": ["i1"]})
         monkeypatch.setattr(f"{MODULE}.add_agent_document", fake_add)
@@ -1700,7 +1700,7 @@ class TestStartWatcherAsync:
 class TestStartArtifactIngestAsync:
     @pytest.mark.asyncio
     async def test_disabled_toggle_is_a_no_op(self, store, monkeypatch):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load",
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load",
                             staticmethod(lambda: _cfg(auto_ingest=False)))
         app = _make_app(store, pipeline=MagicMock())
         await kh._start_artifact_ingest_async(app)
@@ -1710,7 +1710,7 @@ class TestStartArtifactIngestAsync:
     async def test_enabled_registers_change_listener_and_starts(self, store,
                                                                 monkeypatch):
         monkeypatch.setattr(
-            f"{MODULE}.KiroCrewConfig.load",
+            f"{MODULE}.JunctionConfig.load",
             staticmethod(lambda: _cfg(auto_ingest=True, kinds=("webapp",))))
         art_store = MagicMock()
         monkeypatch.setattr(f"{MODULE}.get_default_store", lambda: art_store)
@@ -1893,7 +1893,7 @@ class TestJsonObjectBodyGuard:
     @pytest.mark.parametrize("payload", _NON_OBJECT_BODIES)
     async def test_agent_document_non_object_body_is_400(
             self, store, monkeypatch, payload):
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load", staticmethod(_cfg))
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load", staticmethod(_cfg))
         async with _client(_guard_app(store, pipeline=MagicMock())) as client:
             resp = await client.post("/api/knowledge/agent-document", json=payload)
             assert resp.status == 400
@@ -1928,7 +1928,7 @@ class TestJsonObjectBodyGuard:
     async def test_invalid_json_yields_code_at_every_site(self, store, monkeypatch):
         # At the previously-guarded sites the parse-failure path's entire
         # change is the machine-readable ``code`` field -- pin it everywhere.
-        monkeypatch.setattr(f"{MODULE}.KiroCrewConfig.load", staticmethod(_cfg))
+        monkeypatch.setattr(f"{MODULE}.JunctionConfig.load", staticmethod(_cfg))
         item_id = store.add_item("a", "body", "note")
         sid = store.add_source("s", "web", "https://example.com")
         app = _guard_app(store, pipeline=MagicMock(), embedder=_FakeEmbedder())

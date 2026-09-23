@@ -15,14 +15,14 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.model_registry import acp_id_correction
+from junction.model_registry import acp_id_correction
 
 
 @pytest.fixture(autouse=True)
 def _owner_caller(monkeypatch):
     """Exercise the agent handlers past their independent owner-auth boundary."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
@@ -56,7 +56,7 @@ class TestAcpIdCorrection:
         Pins the rule rather than the three instances above, so a registry entry
         added later cannot reintroduce the bypass silently.
         """
-        from kiro_crew.model_registry import available_models
+        from junction.model_registry import available_models
 
         served = set(available_models("acp"))
         for pid in available_models("claude_code"):
@@ -89,7 +89,7 @@ class TestDoctorFlagsSpecPins:
         )
 
     def test_reports_an_unusable_pin_with_the_right_id(self, tmp_path):
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         agents_dir = tmp_path / "agents"
         self._spec(agents_dir, "code-reviewer", "claude-opus-4-8")
@@ -99,7 +99,7 @@ class TestDoctorFlagsSpecPins:
         assert ("code-reviewer", "claude-opus-4-8", "claude-opus-4.5") in problems
 
     def test_silent_when_every_pin_is_usable(self, tmp_path):
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         agents_dir = tmp_path / "agents"
         self._spec(agents_dir, "fine", "claude-opus-4.8")
@@ -113,7 +113,7 @@ class TestDoctorFlagsSpecPins:
         Auditing only the global scope reports a clean bill of health for the
         very spec a session in that project actually runs.
         """
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         global_dir = tmp_path / "agents"
         self._spec(global_dir, "fine", "claude-opus-4.8")
@@ -129,7 +129,7 @@ class TestDoctorFlagsSpecPins:
 
     def test_unreadable_specs_report_unchecked_not_clean(self, tmp_path):
         """A diagnostic must not print green for a check it never performed."""
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
@@ -140,7 +140,7 @@ class TestDoctorFlagsSpecPins:
         assert result is None, "an unrunnable check must be distinguishable from a clean one"
 
     def test_claude_code_provider_does_not_audit_its_valid_wire_id(self, tmp_path):
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         agents_dir = tmp_path / "agents"
         self._spec(
@@ -155,7 +155,7 @@ class TestDoctorFlagsSpecPins:
         )
 
     def test_appledouble_sidecar_is_not_an_unreadable_spec(self, tmp_path):
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
@@ -164,8 +164,8 @@ class TestDoctorFlagsSpecPins:
         assert cli_doctor._agent_spec_model_problems(agents_dir=agents_dir) == []
 
     def test_unreadable_project_enumeration_reports_unchecked(self, tmp_path, monkeypatch):
-        from kiro_crew import cli_doctor
-        from kiro_crew.config.paths import project_agents_dir
+        from junction import cli_doctor
+        from junction.config.paths import project_agents_dir
 
         project = tmp_path / "project"
         target = project_agents_dir(project)
@@ -191,7 +191,7 @@ class TestDoctorFlagsSpecPins:
         A planted or packaged spec whose name carries cursor moves, a screen
         clear or an OSC sequence could otherwise rewrite or hide this report.
         """
-        from kiro_crew.cli_doctor import _format_model_pin_problem
+        from junction.cli_doctor import _format_model_pin_problem
 
         hostile = "\x1b[2J\x1b[1Aevil\x1b]52;c;cGFzcw==\x07"
         lines = _format_model_pin_problem(hostile, "claude-opus-4-8", "claude-opus-4.5")
@@ -204,7 +204,7 @@ class TestDoctorFlagsSpecPins:
 
     def test_a_hostile_pin_and_correction_are_escaped_too(self):
         """All three fields come from spec contents, so none may pass through raw."""
-        from kiro_crew.cli_doctor import _format_model_pin_problem
+        from junction.cli_doctor import _format_model_pin_problem
 
         rendered = "\n".join(_format_model_pin_problem("ok", "\x1b[2Jpin", "\x1b[2Jfix"))
 
@@ -214,27 +214,27 @@ class TestDoctorFlagsSpecPins:
 class TestNoRedundantConfigLoad:
     """The validation path must not re-read config to learn what it was told.
 
-    ``KiroCrewConfig.load()`` deep-copies the validated dict even on a cache hit
+    ``JunctionConfig.load()`` deep-copies the validated dict even on a cache hit
     and reads/validates files on a miss. The agent handlers run it inside
     ``_get_config_lock()`` on the event loop, so an extra load there stalls the
     loop while the lock is held.
     """
 
     def _counting_load(self, monkeypatch):
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        original = KiroCrewConfig.load
+        original = JunctionConfig.load
         calls: list[int] = []
 
         def counting(*args, **kwargs):
             calls.append(1)
             return original(*args, **kwargs)
 
-        monkeypatch.setattr(KiroCrewConfig, "load", staticmethod(counting))
+        monkeypatch.setattr(JunctionConfig, "load", staticmethod(counting))
         return calls
 
     def test_supplied_provider_skips_the_load(self, monkeypatch):
-        from kiro_crew.dashboard.chat_handlers import _model_rejected_reason
+        from junction.dashboard.chat_handlers import _model_rejected_reason
 
         calls = self._counting_load(monkeypatch)
         _model_rejected_reason("claude-opus-4-8", provider="acp")
@@ -242,14 +242,14 @@ class TestNoRedundantConfigLoad:
 
     def test_omitted_provider_still_resolves_it(self, monkeypatch):
         """The default must preserve the original behaviour for existing callers."""
-        from kiro_crew.dashboard.chat_handlers import _model_rejected_reason
+        from junction.dashboard.chat_handlers import _model_rejected_reason
 
         calls = self._counting_load(monkeypatch)
         _model_rejected_reason("claude-opus-4-8")
         assert len(calls) == 1
 
     def test_validator_forwards_the_provider(self, monkeypatch):
-        from kiro_crew.dashboard.handlers.core import _validate_role_model
+        from junction.dashboard.handlers.core import _validate_role_model
 
         calls = self._counting_load(monkeypatch)
         request = SimpleNamespace(app={})
@@ -258,7 +258,7 @@ class TestNoRedundantConfigLoad:
 
     def test_live_entitlements_preserve_the_registry_correction(self, monkeypatch):
         """A live advertised set must not replace the actionable spelling hint."""
-        from kiro_crew.dashboard.handlers import agents, core
+        from junction.dashboard.handlers import agents, core
 
         monkeypatch.setattr(core, "_active_advertised_ids", lambda request: ["claude-opus-4.8"])
 
@@ -270,7 +270,7 @@ class TestNoRedundantConfigLoad:
         assert "registry maps that spelling to 'claude-opus-4.5'" in reason
 
     def test_claude_code_provider_keeps_its_wire_id(self, monkeypatch):
-        from kiro_crew.dashboard.handlers import agents, core
+        from junction.dashboard.handlers import agents, core
 
         monkeypatch.setattr(core, "_active_advertised_ids", lambda request: ["claude-opus-4-8"])
 
@@ -284,14 +284,14 @@ class TestNoRedundantConfigLoad:
 
 
 def _crud_app() -> web.Application:
-    from kiro_crew.dashboard.handlers import (
-        api_kirocrew_agent_update,
-        api_kirocrew_agents_create,
+    from junction.dashboard.handlers import (
+        api_junction_agent_update,
+        api_junction_agents_create,
     )
 
     app = web.Application()
-    app.router.add_post("/api/agents", api_kirocrew_agents_create)
-    app.router.add_put("/api/agents/{name}", api_kirocrew_agent_update)
+    app.router.add_post("/api/agents", api_junction_agents_create)
+    app.router.add_put("/api/agents/{name}", api_junction_agent_update)
     return app
 
 
@@ -302,11 +302,11 @@ def seeded_agent():
     The config home is already redirected per test by the rootdir conftest, so
     this touches no real install.
     """
-    from kiro_crew.config.loader import KiroCrewAgentConfig, KiroCrewConfig
+    from junction.config.loader import JunctionAgentConfig, JunctionConfig
 
-    cfg = KiroCrewConfig.load()
-    cfg.agents["existing"] = KiroCrewAgentConfig(
-        kiro_agent="kirocrew", workspace="default", memory_store="default"
+    cfg = JunctionConfig.load()
+    cfg.agents["existing"] = JunctionAgentConfig(
+        kiro_agent="junction", workspace="default", memory_store="default"
     )
     cfg.save()
     return "existing"
@@ -315,14 +315,14 @@ def seeded_agent():
 class TestSavePathRefusesAnUnusablePin:
     @pytest.mark.asyncio
     async def test_create_refuses_and_carries_an_error_code(self, seeded_agent):
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         async with TestClient(TestServer(_crud_app())) as client:
             resp = await client.post(
                 "/api/agents",
                 json={
                     "name": "reviewer",
-                    "kiro_agent": "kirocrew",
+                    "kiro_agent": "junction",
                     "model": "claude-opus-4-8",
                 },
             )
@@ -335,11 +335,11 @@ class TestSavePathRefusesAnUnusablePin:
             assert "confirm that is the model you want" in body["error"]
             assert "claude-opus-4.8" in body["error"]
 
-        assert "reviewer" not in KiroCrewConfig.load().agents
+        assert "reviewer" not in JunctionConfig.load().agents
 
     @pytest.mark.asyncio
     async def test_update_refuses_and_leaves_the_stored_value_alone(self, seeded_agent):
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         async with TestClient(TestServer(_crud_app())) as client:
             resp = await client.put(
@@ -348,7 +348,7 @@ class TestSavePathRefusesAnUnusablePin:
             assert resp.status == 400
             assert (await resp.json())["code"] == "invalid_model"
 
-        assert KiroCrewConfig.load().agents[seeded_agent].model != "claude-opus-4-8"
+        assert JunctionConfig.load().agents[seeded_agent].model != "claude-opus-4-8"
 
     @pytest.mark.asyncio
     async def test_a_usable_pin_is_accepted(self, seeded_agent):
@@ -357,7 +357,7 @@ class TestSavePathRefusesAnUnusablePin:
                 "/api/agents",
                 json={
                     "name": "good",
-                    "kiro_agent": "kirocrew",
+                    "kiro_agent": "junction",
                     "model": "claude-opus-4.8",
                 },
             )
@@ -368,6 +368,6 @@ class TestSavePathRefusesAnUnusablePin:
         async with TestClient(TestServer(_crud_app())) as client:
             resp = await client.post(
                 "/api/agents",
-                json={"name": "inherits", "kiro_agent": "kirocrew", "model": "auto"},
+                json={"name": "inherits", "kiro_agent": "junction", "model": "auto"},
             )
             assert resp.status == 200

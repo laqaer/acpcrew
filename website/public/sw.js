@@ -11,7 +11,7 @@
 // name keeps the literal placeholder — still a valid, stable cache name,
 // just without per-deploy busting.
 const CACHE_VERSION = '%%SW_BUILD_HASH%%'
-const CACHE = 'kirocrew-shell-' + CACHE_VERSION
+const CACHE = 'junction-shell-' + CACHE_VERSION
 const SHELL = ['/', '/index.html']
 
 self.addEventListener('install', e => {

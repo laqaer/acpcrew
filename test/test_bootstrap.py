@@ -1,7 +1,7 @@
-"""Tests for the ``kiro_crew._bootstrap`` console-entry self-heal.
+"""Tests for the ``junction._bootstrap`` console-entry self-heal.
 
 The bootstrap closes the git-pull gap for editable installs: a commit that
-adds a runtime dependency must not leave ``kirocrew`` dying on a raw
+adds a runtime dependency must not leave ``junction`` dying on a raw
 ``ModuleNotFoundError`` when one ``pip install -e .`` fixes it. These tests
 stub the import and the pip spawn — no real installs, no network.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import _bootstrap
+from junction import _bootstrap
 
 # ── Helpers ──
 
@@ -30,7 +30,7 @@ def _venv_maps(monkeypatch):
     would pass for the wrong reason. The guard itself is covered in
     test/test_dep_sync.py.
     """
-    from kiro_crew import dep_sync
+    from junction import dep_sync
 
     monkeypatch.setattr(dep_sync, "installed_package_origin", lambda target: "<stub>")
     monkeypatch.setattr(dep_sync, "venv_not_mapped_to", lambda origin, repo: None)
@@ -121,17 +121,17 @@ def test_self_heal_runs_on_windows_through_the_dependency_only_path(monkeypatch,
     """Windows heals now. It used to be the one platform that never did.
 
     The blanket skip was there because pip cannot replace the running
-    ``kirocrew.exe`` — but a dependency install never touches that wrapper, and a
+    ``junction.exe`` — but a dependency install never touches that wrapper, and a
     missing dependency is the only thing that brings us here. Skipping left the
     platform whose users hit this most with nothing but a printed one-liner.
     """
-    from kiro_crew import dep_sync
+    from junction import dep_sync
 
     monkeypatch.setattr(_bootstrap.sys, "platform", "win32")
     monkeypatch.setattr(_bootstrap, "_source_checkout_root", lambda: tmp_path)
     _venv_maps(monkeypatch)
     monkeypatch.setattr(
-        dep_sync, "locked_console_scripts", lambda target: [r"C:\v\Scripts\kirocrew.exe"]
+        dep_sync, "locked_console_scripts", lambda target: [r"C:\v\Scripts\junction.exe"]
     )
     monkeypatch.setattr(
         subprocess, "run", lambda *a, **k: pytest.fail("the reinstall must not run")
@@ -175,7 +175,7 @@ def test_retry_invalidates_import_caches(monkeypatch):
 
 def test_self_heal_runs_fixed_pip_argv(monkeypatch, tmp_path):
     """Where pip CAN rewrite the script, the heal is still the full reinstall."""
-    from kiro_crew import dep_sync
+    from junction import dep_sync
 
     monkeypatch.setattr(_bootstrap.sys, "platform", "linux")  # POSIX heal path
     monkeypatch.setattr(_bootstrap, "_source_checkout_root", lambda: tmp_path)
@@ -201,7 +201,7 @@ def test_self_heal_runs_fixed_pip_argv(monkeypatch, tmp_path):
 
 
 def test_self_heal_reports_pip_failure(monkeypatch, tmp_path):
-    from kiro_crew import dep_sync
+    from junction import dep_sync
 
     monkeypatch.setattr(_bootstrap.sys, "platform", "linux")  # POSIX heal path
     monkeypatch.setattr(_bootstrap, "_source_checkout_root", lambda: tmp_path)
@@ -221,7 +221,7 @@ def test_self_heal_output_stays_ascii(monkeypatch, tmp_path, capsys):
     The heal now relays pip's output and filesystem paths, neither of which is
     ASCII by nature, and it prints before ensure_utf8_console() has run.
     """
-    from kiro_crew import dep_sync
+    from junction import dep_sync
 
     monkeypatch.setattr(_bootstrap.sys, "platform", "linux")
     monkeypatch.setattr(_bootstrap, "_source_checkout_root", lambda: tmp_path)

@@ -14,8 +14,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.channel import CHANNEL_AGENT_BLOCKED_TOOLS, _stream_task
-from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST
+from junction.channel import CHANNEL_AGENT_BLOCKED_TOOLS, _stream_task
+from junction.providers.base import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST
 
 
 def _make_agent():
@@ -57,11 +57,11 @@ def test_blocked_tools_cover_both_messaging_tools():
 @pytest.mark.parametrize("tool", ["send_message", "send_notification"])
 async def test_blocked_tool_rejected_even_on_trusted_channel(monkeypatch, tool):
     sel_mock = MagicMock()
-    monkeypatch.setattr("kiro_crew.sel.sel", lambda: sel_mock)
+    monkeypatch.setattr("junction.sel.sel", lambda: sel_mock)
     events = [
         SimpleNamespace(
             kind=EVENT_PERMISSION_REQUEST,
-            text=f"{tool} (kirocrew-core)",
+            text=f"{tool} (junction-core)",
             title="",
             request_id=7,
             tool_input="{}",
@@ -85,9 +85,9 @@ async def test_blocked_tool_rejected_even_on_trusted_channel(monkeypatch, tool):
     [
         # Positive: the tool itself, in every rendered form kiro-cli emits.
         ("send_message", True),
-        ("send_notification (kirocrew-core)", True),
-        ("kirocrew-core___send_message", True),
-        ("mcp__kirocrew-core__send_message", True),  # canonical MCP prefix (round 20)
+        ("send_notification (junction-core)", True),
+        ("junction-core___send_message", True),
+        ("mcp__junction-core__send_message", True),  # canonical MCP prefix (round 20)
         ('Tool: "send_notification"', True),
         # Negative (GPT 5.6 round 19): filenames/paths/identifiers that merely
         # CONTAIN a blocked tool name must not trip the containment guard.
@@ -98,7 +98,7 @@ async def test_blocked_tool_rejected_even_on_trusted_channel(monkeypatch, tool):
     ],
 )
 def test_blocked_tool_matcher_precision(rendered, expected):
-    from kiro_crew.channel import _blocked_tool_named
+    from junction.channel import _blocked_tool_named
 
     assert _blocked_tool_named(rendered) is expected
 
@@ -115,7 +115,7 @@ def test_every_session_control_tool_is_contained():
     nothing into an existing conversation, but it puts a persistent,
     sidebar-visible session outside the containment this list holds.
     """
-    from kiro_crew.mcp_dashboard import SESSION_CONTROL_TOOLS
+    from junction.mcp_dashboard import SESSION_CONTROL_TOOLS
 
     missing = sorted(set(SESSION_CONTROL_TOOLS) - set(CHANNEL_AGENT_BLOCKED_TOOLS))
     assert not missing, f"session-control tools reachable from a channel agent: {missing}"

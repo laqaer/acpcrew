@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.messaging.transport import InboundMessage, MessagingTransport
-from kiro_crew.slack.format import SLACK_MSG_LIMIT
-from kiro_crew.slack.transport import SlackTransport
+from junction.messaging.transport import InboundMessage, MessagingTransport
+from junction.slack.format import SLACK_MSG_LIMIT
+from junction.slack.transport import SlackTransport
 
 
 class FakeClient:
@@ -78,7 +78,7 @@ class TestAuthorize:
         # including empty/missing user_id (caller falls back to "unknown").
         from unittest.mock import MagicMock
 
-        import kiro_crew.slack.transport as transport_mod
+        import junction.slack.transport as transport_mod
 
         rec = MagicMock()
         monkeypatch.setattr(transport_mod, "sel", lambda: rec)

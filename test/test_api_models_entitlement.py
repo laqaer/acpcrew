@@ -20,9 +20,9 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from kiro_crew.acp.client import model_is_unusable
-from kiro_crew.dashboard.handlers import agents
-from kiro_crew.kiro_prerequisite import KiroPrerequisiteService
+from junction.acp.client import model_is_unusable
+from junction.dashboard.handlers import agents
+from junction.kiro_prerequisite import KiroPrerequisiteService
 
 CATALOG = [
     {"model_name": "auto", "description": "Models chosen by task"},
@@ -244,19 +244,19 @@ def test_api_models_returns_only_entitled_rows(tmp_path):
         tmp_path, _provider([{"modelId": "auto"}, {"modelId": "claude-sonnet-5"}])
     )
     with patch.object(
-        agents.KiroCrewConfig, "load", return_value=SimpleNamespace(agent=SimpleNamespace(provider="kiro"))
+        agents.JunctionConfig, "load", return_value=SimpleNamespace(agent=SimpleNamespace(provider="kiro"))
     ), patch(
-        "kiro_crew.acp.client._resolve_kiro_bin_for_spawn", return_value="/usr/bin/kiro-cli"
+        "junction.acp.client._resolve_kiro_bin_for_spawn", return_value="/usr/bin/kiro-cli"
     ), patch(
-        "kiro_crew.acp.client._resolve_ssh_auth_sock", lambda env: None
+        "junction.acp.client._resolve_ssh_auth_sock", lambda env: None
     ), patch(
-        "kiro_crew.env.augmented_path", lambda p: p
+        "junction.env.augmented_path", lambda p: p
     ), patch(
-        "kiro_crew.dashboard.handlers.agents.wrap_argv", _stub_wrap_argv
+        "junction.dashboard.handlers.agents.wrap_argv", _stub_wrap_argv
     ), patch(
-        "kiro_crew.dashboard.handlers.agents.cgroup_scope_argv", lambda argv: argv
+        "junction.dashboard.handlers.agents.cgroup_scope_argv", lambda argv: argv
     ), patch(
-        "kiro_crew.sandbox.resource_limit_preexec", lambda: None
+        "junction.sandbox.resource_limit_preexec", lambda: None
     ), patch.object(
         agents.asyncio, "create_subprocess_exec", return_value=_FakeProc(stdout=payload)
     ):

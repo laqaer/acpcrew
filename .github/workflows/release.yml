@@ -160,7 +160,7 @@ jobs:
       - name: Attach verified bundle to this run
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: KiroCrew-notarized-stable-${{ needs.version.outputs.version }}
+          name: Junction-notarized-stable-${{ needs.version.outputs.version }}
           path: ${{ runner.temp }}/stable-promotion/*
           if-no-files-found: error
           retention-days: 14
@@ -364,7 +364,7 @@ jobs:
     with:
       channel: ${{ needs.version.outputs.channel }}
       version: ${{ needs.version.outputs.version }}
-      wheel_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'cli-wheel' }}
+      wheel_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'cli-wheel' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets: inherit
@@ -409,7 +409,7 @@ jobs:
       arch: x64
       format: appimage
       publish: true
-      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-x64' }}
+      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-x64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -433,7 +433,7 @@ jobs:
       arch: arm64
       format: appimage
       publish: true
-      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-arm64' }}
+      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-arm64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -457,7 +457,7 @@ jobs:
       arch: x64
       format: deb
       publish: true
-      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-x64' }}
+      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-x64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -481,7 +481,7 @@ jobs:
       arch: arm64
       format: deb
       publish: true
-      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-arm64' }}
+      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-arm64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -505,7 +505,7 @@ jobs:
       arch: x64
       format: rpm
       publish: true
-      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-x64' }}
+      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-x64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -529,7 +529,7 @@ jobs:
       arch: arm64
       format: rpm
       publish: true
-      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-arm64' }}
+      build_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-linux-arm64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -586,7 +586,7 @@ jobs:
       # does not carry. Mirrors publish-linux.yml's caller exactly.
       version: ${{ needs.version.outputs.channel == 'stable' && needs.resolve-promotion.outputs.source_version || needs.version.outputs.version }}
       publish: true
-      installer_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'build-windows-x64' }}
+      installer_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'build-windows-x64' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
     secrets:
@@ -619,7 +619,7 @@ jobs:
       # anonymously, so a release that lands behind a private package is a
       # broken release. Fail the lane rather than advertise an unpullable tag.
       require_public_access: true
-      wheel_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || 'cli-wheel' }}
+      wheel_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || 'cli-wheel' }}
       promote: ${{ needs.version.outputs.channel == 'stable' }}
       promote_digest: ${{ needs.version.outputs.channel == 'stable' && needs.resolve-promotion.outputs.docker_digest || '' }}
     # No `secrets: inherit`: the lane authenticates with GITHUB_TOKEN only
@@ -650,7 +650,7 @@ jobs:
       version: ${{ needs.version.outputs.channel == 'stable' && needs.resolve-promotion.outputs.source_version || needs.version.outputs.version }}
       write_feed: true
       promote: ${{ needs.version.outputs.channel == 'stable' }}
-      promotion_artifact: ${{ needs.version.outputs.channel == 'stable' && format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version) || '' }}
+      promotion_artifact: ${{ needs.version.outputs.channel == 'stable' && format('Junction-notarized-stable-{0}', needs.version.outputs.version) || '' }}
       promotion_base_version: ${{ needs.version.outputs.base_version }}
 
   # `needs` alone is not enough here. With no `if:`, the default condition is
@@ -686,7 +686,7 @@ jobs:
         if: needs.version.outputs.channel == 'stable'
         run: |
           python3 scripts/release_promotion.py verify \
-            --bundle-dir "artifacts/KiroCrew-notarized-stable-${{ needs.version.outputs.version }}" \
+            --bundle-dir "artifacts/Junction-notarized-stable-${{ needs.version.outputs.version }}" \
             --expected-source-sha "${GITHUB_SHA}" \
             --expected-base-version "${{ needs.version.outputs.base_version }}"
 
@@ -700,9 +700,9 @@ jobs:
           mkdir -p release
           find artifacts -type f \( -name "*.whl" -o -name "*.tar.gz" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" \) -exec cp {} release/ \;
 
-          NOTARIZED_DIR="artifacts/KiroCrew-notarized-${{ needs.version.outputs.channel }}-${{ needs.version.outputs.version }}"
+          NOTARIZED_DIR="artifacts/Junction-notarized-${{ needs.version.outputs.channel }}-${{ needs.version.outputs.version }}"
           NOTARIZED_ZIP="${NOTARIZED_DIR}/notarized.zip"
-          NOTARIZED_DMG="${NOTARIZED_DIR}/KiroCrew.dmg"
+          NOTARIZED_DMG="${NOTARIZED_DIR}/Junction.dmg"
           [ -s "$NOTARIZED_ZIP" ] || {
             echo "::error::Required gated macOS ZIP is missing or empty: ${NOTARIZED_ZIP}"
             exit 1
@@ -758,8 +758,8 @@ jobs:
               raise SystemExit(f"::error::{dmg_path} is not a valid UDIF DMG: {exc}")
           PY_VALIDATE
 
-          cp "$NOTARIZED_ZIP" "release/KiroCrew-${{ needs.version.outputs.version }}-universal-mac.zip"
-          cp "$NOTARIZED_DMG" "release/KiroCrew-${{ needs.version.outputs.version }}-universal.dmg"
+          cp "$NOTARIZED_ZIP" "release/Junction-${{ needs.version.outputs.version }}-universal-mac.zip"
+          cp "$NOTARIZED_DMG" "release/Junction-${{ needs.version.outputs.version }}-universal.dmg"
           ls -la release/
 
       - name: Create GitHub Release
@@ -850,19 +850,19 @@ jobs:
           DEB_ARM64=$(one deb-arm64 -path '*build-linux-arm64*' -name '*.deb')
           RPM=$(one rpm -path '*build-linux-x64*' -name '*.rpm')
           RPM_ARM64=$(one rpm-arm64 -path '*build-linux-arm64*' -name '*.rpm')
-          MAC_ZIP=$(one notarized.zip -path '*KiroCrew-notarized-*' -name 'notarized.zip')
-          DMG=$(one notarized-DMG -path '*KiroCrew-notarized-*' -name 'KiroCrew.dmg')
+          MAC_ZIP=$(one notarized.zip -path '*Junction-notarized-*' -name 'notarized.zip')
+          DMG=$(one notarized-DMG -path '*Junction-notarized-*' -name 'Junction.dmg')
           INSTALLER=$(at_most_one installer -path '*build-windows-x64*' -name '*.exe')
           cp "$WHEEL" "promotion-bundle/$(basename "$WHEEL")"
           cp "$SDIST" "promotion-bundle/$(basename "$SDIST")"
-          cp "$APPIMAGE" promotion-bundle/KiroCrew-x86_64.AppImage
-          cp "$APPIMAGE_ARM64" promotion-bundle/KiroCrew-aarch64.AppImage
-          cp "$DEB" promotion-bundle/KiroCrew-x86_64.deb
-          cp "$DEB_ARM64" promotion-bundle/KiroCrew-aarch64.deb
-          cp "$RPM" promotion-bundle/KiroCrew-x86_64.rpm
-          cp "$RPM_ARM64" promotion-bundle/KiroCrew-aarch64.rpm
+          cp "$APPIMAGE" promotion-bundle/Junction-x86_64.AppImage
+          cp "$APPIMAGE_ARM64" promotion-bundle/Junction-aarch64.AppImage
+          cp "$DEB" promotion-bundle/Junction-x86_64.deb
+          cp "$DEB_ARM64" promotion-bundle/Junction-aarch64.deb
+          cp "$RPM" promotion-bundle/Junction-x86_64.rpm
+          cp "$RPM_ARM64" promotion-bundle/Junction-aarch64.rpm
           cp "$MAC_ZIP" promotion-bundle/notarized.zip
-          cp "$DMG" promotion-bundle/KiroCrew.dmg
+          cp "$DMG" promotion-bundle/Junction.dmg
           # The blockmap travels with the installer or not at all: promoting the
           # installer alone still updates, but silently turns every stable
           # Windows update into a full download instead of a differential one.
@@ -880,8 +880,8 @@ jobs:
             INSTALLER=""
           fi
           if [ -n "$INSTALLER" ]; then
-            cp "$INSTALLER" promotion-bundle/KiroCrew-Setup.exe
-            cp "${INSTALLER}.blockmap" promotion-bundle/KiroCrew-Setup.exe.blockmap
+            cp "$INSTALLER" promotion-bundle/Junction-Setup.exe
+            cp "${INSTALLER}.blockmap" promotion-bundle/Junction-Setup.exe.blockmap
           else
             echo "::notice::no Windows installer in this run; recording a candidate without the optional Windows role."
           fi
@@ -894,7 +894,7 @@ jobs:
             --base-version "${{ needs.version.outputs.base_version }}" \
             --wheel-version "${{ needs.version.outputs.wheel_version }}" \
             --source-run-id "${GITHUB_RUN_ID}" \
-            --docker-image "ghcr.io/${OWNER}/kirocrew" \
+            --docker-image "ghcr.io/${OWNER}/junction" \
             --docker-digest "${DOCKER_DIGEST}"
 
       - name: Upload immutable promotion record

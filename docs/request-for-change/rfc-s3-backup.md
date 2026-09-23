@@ -163,8 +163,8 @@ selected versus 30 GB unselected.
 no destination from its caller.**
 
 ```
-kirocrew backup setup                                  # once
-kirocrew snapshot --components memory --to-s3           # every run
+junction backup setup                                  # once
+junction snapshot --components memory --to-s3           # every run
 ```
 
 `setup` **creates** the bucket via `engine.run_aws`, `create_private_bucket` and
@@ -204,7 +204,7 @@ and re-created by a third party under the same name — fails the write. Keys ar
 namespaced `backups/<hostid>/`, so several hosts share one bucket without
 interleaving.
 
-**D6 — `kirocrew restore s3://…/<object>`** downloads, then hands off to the
+**D6 — `junction restore s3://…/<object>`** downloads, then hands off to the
 existing `restore_main` merge/replace. Bootstrap needs only the CLI, a profile, and
 network. A downloaded object is untrusted input even from one's own bucket and gets
 the same validation the import path already applies.
@@ -229,10 +229,10 @@ a registration, not code.
 self-contained `memory` component, the S3 destination, and restore from it.
 
 *Exit criteria*
-* `kirocrew backup setup` creates a bucket that reports itself private, encrypted
-  and versioned when read back, and `kirocrew snapshot --components memory --to-s3`
+* `junction backup setup` creates a bucket that reports itself private, encrypted
+  and versioned when read back, and `junction snapshot --components memory --to-s3`
   produces an object listable with `aws s3 ls`.
-* On a host with only the CLI and a profile, `kirocrew restore s3://…/<object>`
+* On a host with only the CLI and a profile, `junction restore s3://…/<object>`
   reproduces every semantic key, episodic row, lesson, and the markdown memory
   files, asserted by test and by count — without requiring the `workspace`
   component.

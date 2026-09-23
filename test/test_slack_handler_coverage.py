@@ -1,4 +1,4 @@
-"""Coverage tests for :mod:`kiro_crew.slack.handler`.
+"""Coverage tests for :mod:`junction.slack.handler`.
 
 Focus is the command surface that ``test_slack_handler.py`` leaves untouched:
 ``!bang`` slash-command dispatch (every branch of ``_handle_slash_command``),
@@ -22,15 +22,15 @@ from unittest.mock import ANY, AsyncMock, MagicMock
 import pytest
 
 from conftest import MockSlackClient
-from kiro_crew.cron import CronJob, CronSchedule, CronStoreBusy
-from kiro_crew.messaging import auto_title as auto_title_mod
-from kiro_crew.messaging import commands as mc
-from kiro_crew.messaging import privacy_mode
-from kiro_crew.providers.base import LLMEvent
-from kiro_crew.safety_override import NO_EXPIRY_TEXT, fmt_grant_duration
-from kiro_crew.slack import handler as h
-from kiro_crew.task_models import Project, Task, TaskStatus
-from kiro_crew.task_reporter import build_status
+from junction.cron import CronJob, CronSchedule, CronStoreBusy
+from junction.messaging import auto_title as auto_title_mod
+from junction.messaging import commands as mc
+from junction.messaging import privacy_mode
+from junction.providers.base import LLMEvent
+from junction.safety_override import NO_EXPIRY_TEXT, fmt_grant_duration
+from junction.slack import handler as h
+from junction.task_models import Project, Task, TaskStatus
+from junction.task_reporter import build_status
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ def _running_status(*, completed: int = 2, total: int = 5, current: int = 3) -> 
             for i, s in enumerate(statuses)
         ],
     )
-    return build_status({"live": run}, {"live": _LiveTask()}, "kirocrew")
+    return build_status({"live": run}, {"live": _LiveTask()}, "junction")
 
 
 async def _slash(cmd, slack_client, sessions_double, *, user="U1", log=None, session="t1"):
@@ -281,7 +281,7 @@ class TestVoiceCommand:
 
     @pytest.mark.asyncio
     async def test_valid_engine_accepted(self, slack, sessions, owner):
-        from kiro_crew.voice_reply import VALID_ENGINES
+        from junction.voice_reply import VALID_ENGINES
 
         engine = sorted(VALID_ENGINES)[0]
         await _slash(f"!voice engine {engine}", slack, sessions)
@@ -452,7 +452,7 @@ class TestMiscSlashCommands:
 
     @pytest.mark.asyncio
     async def test_dashboard_link_sent(self, slack, sessions, owner, monkeypatch):
-        import kiro_crew.slack.allowlist as al
+        import junction.slack.allowlist as al
 
         monkeypatch.setattr(al, "send_dashboard_link", AsyncMock(return_value="https://x/y"))
         await _slash("!dashboard 2h", slack, sessions)
@@ -460,7 +460,7 @@ class TestMiscSlashCommands:
 
     @pytest.mark.asyncio
     async def test_dashboard_link_failure(self, slack, sessions, owner, monkeypatch):
-        import kiro_crew.slack.allowlist as al
+        import junction.slack.allowlist as al
 
         monkeypatch.setattr(al, "send_dashboard_link", AsyncMock(return_value=""))
         await _slash("!dashboard", slack, sessions)
@@ -488,7 +488,7 @@ class TestMiscSlashCommands:
     @pytest.mark.asyncio
     async def test_link_to_dashboard_empty_thread(self, slack, sessions, owner, monkeypatch):
         monkeypatch.setattr(h, "_dashboard_state", MagicMock(get_or_create_slot=MagicMock()))
-        import kiro_crew.slack.interactions as inter
+        import junction.slack.interactions as inter
 
         monkeypatch.setattr(inter, "_import_thread_to_slot", AsyncMock(return_value=None))
         await _slash("!link-to-dashboard", slack, sessions)
@@ -497,7 +497,7 @@ class TestMiscSlashCommands:
     @pytest.mark.asyncio
     async def test_link_to_dashboard_imports_thread(self, slack, sessions, owner, monkeypatch):
         monkeypatch.setattr(h, "_dashboard_state", MagicMock(get_or_create_slot=MagicMock()))
-        import kiro_crew.slack.interactions as inter
+        import junction.slack.interactions as inter
 
         slot = MagicMock(key="slot-3", messages=["a", "b", "c"])
         monkeypatch.setattr(inter, "_import_thread_to_slot", AsyncMock(return_value=slot))
@@ -553,13 +553,13 @@ class TestChannelCommand:
 
     @pytest.mark.asyncio
     async def test_valid_mode_persists(self, slack, sessions, owner):
-        from kiro_crew.config.loader import KiroCrewConfig, config_path
+        from junction.config.loader import JunctionConfig, config_path
 
         await _slash("!channel observe", slack, sessions)
         assert "activation set to *observe*" in _texts(slack)
         saved = json.loads(config_path().read_text(encoding="utf-8"))
         assert saved["slack"]["channels"]["C1"]["activation"] == "observe"
-        assert KiroCrewConfig.load().channel_config("C1").activation == "observe"
+        assert JunctionConfig.load().channel_config("C1").activation == "observe"
 
     @pytest.mark.asyncio
     async def test_agent_subcommand_needs_argument(self, slack, sessions, owner):
@@ -573,7 +573,7 @@ class TestChannelCommand:
 
     @pytest.mark.asyncio
     async def test_agent_subcommand_sets_and_clears(self, slack, sessions, owner, agents_dir):
-        from kiro_crew.config.loader import config_path
+        from junction.config.loader import config_path
 
         await _slash("!channel agent demo", slack, sessions)
         assert (
@@ -602,7 +602,7 @@ class TestKeywordCommands:
     @pytest.mark.asyncio
     async def test_sessions_keyword_allowed(self, slack, sessions, owner, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.slack.sessions_view._collect_recent_sessions",
+            "junction.slack.sessions_view._collect_recent_sessions",
             lambda s, limit=0, kind=None: [],
         )
         handled = await h.maybe_handle_keyword_command(
@@ -730,7 +730,7 @@ class TestKeywordCommands:
 
     @pytest.mark.asyncio
     async def test_cron_keyword(self, slack, sessions, owner, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         svc._jobs = []
@@ -948,14 +948,14 @@ class TestSessionsHelper:
         def _boom(_sessions, limit=0, kind=None):
             raise OSError("history unreadable")
 
-        monkeypatch.setattr("kiro_crew.slack.sessions_view._collect_recent_sessions", _boom)
+        monkeypatch.setattr("junction.slack.sessions_view._collect_recent_sessions", _boom)
         await h._handle_sessions_command("sessions", slack, "C1", "t1", "msg1", "t1", None)
         assert "_Sessions unavailable._" in _texts(slack)
 
     @pytest.mark.asyncio
     async def test_rows_render_blocks(self, slack, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.slack.sessions_view._collect_recent_sessions",
+            "junction.slack.sessions_view._collect_recent_sessions",
             lambda s, limit=0, kind=None: [{"key": "s1"}],
         )
         monkeypatch.setattr(h, "_build_sessions_blocks", lambda rows: [{"type": "divider"}])
@@ -1029,11 +1029,11 @@ class TestAgentResolution:
         d = tmp_path / "agents"
         d.mkdir()
         (d / "demo.json").write_text("{}", encoding="utf-8")
-        (d / "kirocrew-lite.json").write_text("{}", encoding="utf-8")
+        (d / "junction-lite.json").write_text("{}", encoding="utf-8")
         monkeypatch.setattr(h, "kiro_agents_dir", lambda: d)
         monkeypatch.setattr(h, "_iter_cc_agent_names", lambda cc_plugins_dir=None: iter(["extra"]))
         out = h._list_all_agent_names()
-        assert "demo" in out and "extra" in out and "kirocrew-lite" not in out
+        assert "demo" in out and "extra" in out and "junction-lite" not in out
 
     def test_list_all_agent_names_when_empty(self, tmp_path, monkeypatch):
         monkeypatch.setattr(h, "kiro_agents_dir", lambda: tmp_path / "missing")
@@ -1055,7 +1055,7 @@ class TestAgentResolution:
             h._persist_channel_config("C1", activation="always")
 
     def test_persist_channel_config_merges(self):
-        from kiro_crew.config.loader import config_path
+        from junction.config.loader import config_path
 
         h._persist_channel_config("C1", activation="always")
         h._persist_channel_config("C1", agent="demo")
@@ -1134,7 +1134,7 @@ class TestSharedPrivacyDelegation:
         ``session_key.startswith("slack:") and privacy_mode.is_restricted(...)`` —
         red here while every Slack test stays green.
         """
-        key = "telegram:kirocrew:direct:4242"
+        key = "telegram:junction:direct:4242"
         privacy_mode.mark_incognito(key)
         assert h._is_slack_restricted(key) is True
 
@@ -1206,9 +1206,9 @@ class TestPrivacyModifiers:
     async def test_flags_are_persisted_on_the_session_map(
         self, slack, sessions, owner, tmp_path, monkeypatch
     ):
-        monkeypatch.setattr("kiro_crew.session_map.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.session_map._KIRO_SESSIONS_DIR", tmp_path / "kiro")
-        from kiro_crew.session_map import SessionMap
+        monkeypatch.setattr("junction.session_map.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.session_map._KIRO_SESSIONS_DIR", tmp_path / "kiro")
+        from junction.session_map import SessionMap
 
         sessions._session_map = SessionMap()
         await h._apply_temporary_modifier("t1", "U1", "C1", slack, sessions, "t1")
@@ -1239,9 +1239,9 @@ class TestPrivacyModifiers:
         assert not h.is_thread_incognito("t1")
 
     def test_hydrate_conv_flags_restores_both(self, sessions, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.session_map.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.session_map._KIRO_SESSIONS_DIR", tmp_path / "kiro")
-        from kiro_crew.session_map import SessionMap
+        monkeypatch.setattr("junction.session_map.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.session_map._KIRO_SESSIONS_DIR", tmp_path / "kiro")
+        from junction.session_map import SessionMap
 
         sm = SessionMap()
         sm.set_flag("t1", "temporary", True)
@@ -1348,7 +1348,7 @@ class TestHandleInteractionGuards:
         slack.fetch_thread_replies = AsyncMock(return_value=[{"user": "U1"}])
         fake_map = MagicMock()
         fake_map.get_session_for_thread.return_value = ""
-        monkeypatch.setattr("kiro_crew.session.SessionMap", lambda: fake_map)
+        monkeypatch.setattr("junction.session.SessionMap", lambda: fake_map)
         out = await h.handle_interaction(
             "C1", "m1", h._ACTION_TRUST, "U1", "t1", slack=slack, sessions=sessions
         )
@@ -1363,7 +1363,7 @@ class TestHandleInteractionGuards:
         def _boom():
             raise RuntimeError("no map")
 
-        monkeypatch.setattr("kiro_crew.session.SessionMap", _boom)
+        monkeypatch.setattr("junction.session.SessionMap", _boom)
         out = await h.handle_interaction("C1", "m1", h._ACTION_TRUST, "U1", "t1", slack=slack)
         assert out is None
         assert not h.is_slack_session_trusted("t1")
@@ -1923,9 +1923,9 @@ class TestPureHelpers:
         assert h.get_orch_cfg() is None
 
     def test_reload_orch_cfg_refreshes_channel_state(self):
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         h.set_orch_cfg(cfg)
         h._persist_channel_config("C1", activation="observe")
         h._reload_orch_cfg()
@@ -1955,7 +1955,7 @@ class TestPureHelpers:
 class TestSafeUpdates:
     @pytest.mark.asyncio
     async def test_update_truncates_over_limit(self, slack):
-        from kiro_crew.slack.format import SLACK_MSG_LIMIT
+        from junction.slack.format import SLACK_MSG_LIMIT
 
         await h._safe_update(slack, "C1", "m1", "x" * (SLACK_MSG_LIMIT + 50))
         text = slack.actions[0][1]["text"]
@@ -1970,7 +1970,7 @@ class TestSafeUpdates:
 
     @pytest.mark.asyncio
     async def test_final_update_splits_long_text(self, slack):
-        from kiro_crew.slack.format import SLACK_MSG_LIMIT
+        from junction.slack.format import SLACK_MSG_LIMIT
 
         await h._safe_final_update(slack, "C1", "m1", "y " * SLACK_MSG_LIMIT, "t1")
         assert [a for a in slack.actions if a[0] == "update"]

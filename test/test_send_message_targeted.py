@@ -11,17 +11,17 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-# Ensure kiro_crew.slack.handler is importable for patching even when
+# Ensure junction.slack.handler is importable for patching even when
 # heavy transitive deps (cron_descriptor, etc.) aren't installed.
-if "kiro_crew.slack.handler" not in sys.modules:
-    _stub = types.ModuleType("kiro_crew.slack.handler")
+if "junction.slack.handler" not in sys.modules:
+    _stub = types.ModuleType("junction.slack.handler")
     _stub.is_allowed_user = lambda uid: False  # type: ignore[attr-defined]
     _stub.is_tracked_channel = lambda cid: False  # type: ignore[attr-defined]
-    sys.modules["kiro_crew.slack.handler"] = _stub
+    sys.modules["junction.slack.handler"] = _stub
 
-from kiro_crew.dashboard.handlers import api_send_message, api_slack_profile  # noqa: E402
-from kiro_crew.messaging.link import ChannelLink  # noqa: E402
-from kiro_crew.telegram.client import TELEGRAM_MAX_TEXT  # noqa: E402
+from junction.dashboard.handlers import api_send_message, api_slack_profile  # noqa: E402
+from junction.messaging.link import ChannelLink  # noqa: E402
+from junction.telegram.client import TELEGRAM_MAX_TEXT  # noqa: E402
 
 
 def _make_app(state) -> web.Application:
@@ -41,7 +41,7 @@ def _mock_state(slack_client=None, owner_id=""):
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.sel.sel") as m:
+    with patch("junction.sel.sel") as m:
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -59,7 +59,7 @@ class TestTargetedChannel:
         state = _mock_state(slack_client=slack, owner_id="U_OWNER")
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_tracked_channel", return_value=True):
+        with patch("junction.slack.handler.is_tracked_channel", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -90,7 +90,7 @@ class TestTargetedChannel:
         state = _mock_state(slack_client=MagicMock(), owner_id="U_OWNER")
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_tracked_channel", return_value=False):
+        with patch("junction.slack.handler.is_tracked_channel", return_value=False):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -112,7 +112,7 @@ class TestTargetedUser:
         state = _mock_state(slack_client=slack, owner_id="U_OWNER")
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=True):
+        with patch("junction.slack.handler.is_allowed_user", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -144,7 +144,7 @@ class TestTargetedUser:
         state = _mock_state(slack_client=slack, owner_id="U_OWNER")
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=False):
+        with patch("junction.slack.handler.is_allowed_user", return_value=False):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -364,7 +364,7 @@ class TestSlackProfile:
         state = _mock_state(slack_client=slack)
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=True):
+        with patch("junction.slack.handler.is_allowed_user", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/slack-profile", json={"user": "U0123ABC456"})
                 assert resp.status == 200
@@ -409,7 +409,7 @@ class TestSlackProfile:
         state = _mock_state(slack_client=slack)
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=True):
+        with patch("junction.slack.handler.is_allowed_user", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/slack-profile", json={"user": "U0123ABC456"})
                 assert resp.status == 502
@@ -427,7 +427,7 @@ class TestSlackProfile:
         state = _mock_state(slack_client=None)
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=True):
+        with patch("junction.slack.handler.is_allowed_user", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/slack-profile", json={"user": "U0123ABC456"})
                 assert resp.status == 503
@@ -438,7 +438,7 @@ class TestSlackProfile:
         state = _mock_state(slack_client=MagicMock())
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=False):
+        with patch("junction.slack.handler.is_allowed_user", return_value=False):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/slack-profile", json={"user": "U0123ABC456"})
                 assert resp.status == 403
@@ -463,7 +463,7 @@ class TestSlackProfile:
         state._profile_lookup_times = [time.monotonic()] * 5
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=True):
+        with patch("junction.slack.handler.is_allowed_user", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/slack-profile", json={"user": "U0123ABC456"})
                 assert resp.status == 429
@@ -491,7 +491,7 @@ class TestSlackProfile:
         state = _mock_state(slack_client=slack)
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_allowed_user", return_value=True):
+        with patch("junction.slack.handler.is_allowed_user", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/slack-profile", json={"user": "U0123ABC456"})
                 assert resp.status == 200
@@ -607,7 +607,7 @@ class TestThreadTsAndBroadcast:
         state = _mock_state(slack_client=slack, owner_id="U_OWNER")
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_tracked_channel", return_value=True):
+        with patch("junction.slack.handler.is_tracked_channel", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -840,7 +840,7 @@ class TestProactiveBodyMeetsTheDisplayFloor:
         state = _mock_state(slack_client=slack, owner_id="U_OWNER")
         app = _make_app(state)
 
-        with patch("kiro_crew.slack.handler.is_tracked_channel", return_value=True):
+        with patch("junction.slack.handler.is_tracked_channel", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -862,7 +862,7 @@ class TestProactiveBodyMeetsTheDisplayFloor:
         app = _make_app(state)
         body = "Deploy **finished** in `2m` — see [the run](https://example.com/r/1)."
 
-        with patch("kiro_crew.slack.handler.is_tracked_channel", return_value=True):
+        with patch("junction.slack.handler.is_tracked_channel", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -882,7 +882,7 @@ class TestProactiveBodyMeetsTheDisplayFloor:
 # reached must be a FAILURE, never a notification-only success, and never a
 # fall-through to Slack.
 
-_TG_KEY = "telegram:kirocrew:dm:99887766"
+_TG_KEY = "telegram:junction:dm:99887766"
 _TG_LINK = ChannelLink(channel_type="telegram", channel_id="99887766", thread_id="17")
 
 
@@ -918,7 +918,7 @@ def _channel_state(*, link=_TG_LINK, transport=None, slack_client=None, jobs=Non
 
 def _governance(permitted: bool = True):
     return patch(
-        "kiro_crew.platform.governance_profiles.vet_and_audit",
+        "junction.platform.governance_profiles.vet_and_audit",
         return_value=_permitted(permitted),
     )
 
@@ -1420,7 +1420,7 @@ class TestChannelTextIsNotTheNotificationText:
         with (
             _governance(True),
             patch(
-                "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history",
+                "junction.dashboard.handlers.messaging._rehydrate_slot_from_history",
                 return_value=None,
             ),
         ):
@@ -1485,7 +1485,7 @@ def _tool_mcp_core(*, strict=_TG_KEY, lenient="", post=None):
     rebind here intercepts them (see the module docstring in mcp_tools/messaging).
     Yields the mocks so assertions run while the patches are still live.
     """
-    from kiro_crew import mcp_core
+    from junction import mcp_core
 
     with contextlib.ExitStack() as stack:
         yield {
@@ -1517,7 +1517,7 @@ def _tool_mcp_core(*, strict=_TG_KEY, lenient="", post=None):
 
 
 def _call_tool(args):
-    from kiro_crew.mcp_tools.messaging import send_message
+    from junction.mcp_tools.messaging import send_message
 
     return send_message("send_message", args)
 

@@ -14,7 +14,7 @@ general setup and configuration, see [docker.md](docker.md).
 
 ```bash
 # Verify the port mapping
-docker port kirocrew
+docker port junction
 # Expected: 5476/tcp -> 0.0.0.0:5476 (or 127.0.0.1:5476)
 ```
 
@@ -24,34 +24,34 @@ compose. Re-create the container with the correct mapping:
 ```bash
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
-  -v kirocrew-home:/home/kirocrew \
-  ghcr.io/laqaer/kirocrew:stable
+  -v junction-home:/home/junction \
+  ghcr.io/laqaer/junction:stable
 ```
 
-### Check KIROCREW_BIND
+### Check JUNCTION_BIND
 
-The image defaults to `KIROCREW_BIND=0.0.0.0` so published ports work. If
+The image defaults to `JUNCTION_BIND=0.0.0.0` so published ports work. If
 you overrode this to `127.0.0.1`, the gateway only listens on the
 container's internal loopback — unreachable from the host.
 
 ```bash
-docker exec junction printenv KIROCREW_BIND
+docker exec junction printenv JUNCTION_BIND
 ```
 
-Remove any override or explicitly set `-e KIROCREW_BIND=0.0.0.0`.
+Remove any override or explicitly set `-e JUNCTION_BIND=0.0.0.0`.
 
-### Check KIROCREW_PORT mismatch
+### Check JUNCTION_PORT mismatch
 
-If you changed `KIROCREW_PORT` inside the container but did not update the
+If you changed `JUNCTION_PORT` inside the container but did not update the
 `-p` mapping, the host forwards to the wrong port:
 
 ```bash
-# If KIROCREW_PORT=8080 inside the container:
+# If JUNCTION_PORT=8080 inside the container:
 docker run -d --name junction \
   -p 127.0.0.1:8080:8080 \
-  -e KIROCREW_PORT=8080 \
-  -v kirocrew-home:/home/kirocrew \
-  ghcr.io/laqaer/kirocrew:stable
+  -e JUNCTION_PORT=8080 \
+  -v junction-home:/home/junction \
+  ghcr.io/laqaer/junction:stable
 ```
 
 ### Firewall / Docker Desktop
@@ -115,7 +115,7 @@ dashboard cannot save settings / write files.
 
 ### Volume ownership (uid mismatch)
 
-The container runs as `kirocrew` (uid 1000). If the volume was previously
+The container runs as `junction` (uid 1000). If the volume was previously
 owned by another uid, or you bind-mount a host directory owned by a
 different user, writes fail.
 
@@ -124,7 +124,7 @@ different user, writes fail.
 ```bash
 # Named volumes inherit ownership from the image — usually fine.
 # If corrupted, reset ownership:
-docker exec -u 0 kirocrew chown -R kirocrew:kirocrew /home/kirocrew
+docker exec -u 0 junction chown -R junction:junction /home/junction
 ```
 
 **Fix for bind mounts:**
@@ -136,8 +136,8 @@ sudo chown -R 1000:1000 /path/to/host/dir
 # Then mount:
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
-  -v /path/to/host/dir:/home/kirocrew \
-  ghcr.io/laqaer/kirocrew:stable
+  -v /path/to/host/dir:/home/junction \
+  ghcr.io/laqaer/junction:stable
 ```
 
 ### Read-only filesystem
@@ -147,10 +147,10 @@ If you accidentally added `:ro` to the volume mount, remove it:
 ```yaml
 # Wrong:
 volumes:
-  - kirocrew-home:/home/kirocrew:ro
+  - junction-home:/home/junction:ro
 # Correct:
 volumes:
-  - kirocrew-home:/home/kirocrew
+  - junction-home:/home/junction
 ```
 
 ### SELinux (Fedora / RHEL)
@@ -158,7 +158,7 @@ volumes:
 On SELinux-enforcing hosts, bind mounts need the `:z` or `:Z` suffix:
 
 ```bash
--v /path/to/host/dir:/home/kirocrew:Z
+-v /path/to/host/dir:/home/junction:Z
 ```
 
 ---
@@ -172,7 +172,7 @@ available on this host"; the startup log says agent command execution is
 ### Check the startup log
 
 ```bash
-docker logs kirocrew | grep '\[entrypoint\]'
+docker logs junction | grep '\[entrypoint\]'
 ```
 
 The fail-closed posture announces itself on the run that chose it. The
@@ -180,11 +180,11 @@ entrypoint emits this as one long line — wrapped here to read:
 
 ```
 [entrypoint] First run: NO inner sandbox backend under this runtime's seccomp
-policy. Seeded /home/kirocrew/.kiro/crew/config.json with sandbox=auto: agent
+policy. Seeded /home/junction/.kiro/crew/config.json with sandbox=auto: agent
 command execution is DISABLED (fail-closed) until you choose one of: (a) permit
 user namespaces (--security-opt seccomp=<profile permitting unshare/clone>) and
 restart to get the inner sandbox, or (b) restart with -e
-KIROCREW_ALLOW_UNSANDBOXED=1 to explicitly accept unsandboxed agent execution
+JUNCTION_ALLOW_UNSANDBOXED=1 to explicitly accept unsandboxed agent execution
 (the container is then the only isolation boundary).
 ```
 
@@ -194,9 +194,9 @@ or grep the phrase that a later start does print:
 
 ```bash
 # On a first run: which posture was chosen.
-docker logs kirocrew | grep 'inner sandbox backend'
+docker logs junction | grep 'inner sandbox backend'
 # On every later start with an unset opt-out: the standing reminder.
-docker logs kirocrew | grep 'sandbox_allow_unsandboxed_exec is not set'
+docker logs junction | grep 'sandbox_allow_unsandboxed_exec is not set'
 ```
 
 ### Pick a posture
@@ -216,7 +216,7 @@ fall back to [Option B](docker.md#option-b--explicit-unsandboxed-consent)
 only where you cannot set seccomp at all (managed Kubernetes, some Docker
 Desktop setups).
 
-### `KIROCREW_ALLOW_UNSANDBOXED=1` had no effect
+### `JUNCTION_ALLOW_UNSANDBOXED=1` had no effect
 
 That variable is read on **first run only** — the entrypoint probes and
 seeds `config.json` when the volume has none, and an existing `config.json`
@@ -272,12 +272,12 @@ livenessProbe:
 
 ### Port mismatch
 
-If you set `KIROCREW_PORT` to a non-default value but did not update the
+If you set `JUNCTION_PORT` to a non-default value but did not update the
 health check, the probe hits the wrong port:
 
 ```bash
 # Check what port the gateway is actually listening on:
-docker exec junction printenv KIROCREW_PORT
+docker exec junction printenv JUNCTION_PORT
 ```
 
 For custom Kubernetes probes, match the port. The built-in Docker
@@ -289,7 +289,7 @@ only affects external probes that hardcode `5476`.
 If health fails because the process is crashing, check logs:
 
 ```bash
-docker logs --tail 50 kirocrew
+docker logs --tail 50 junction
 ```
 
 Common causes: a corrupted `config.json`, or missing credentials for a
@@ -305,13 +305,13 @@ bad edit:
 # Keep the original under a name no later recovery can clobber, then let the
 # gateway seed defaults on restart:
 docker exec junction sh -c \
-  'mv /home/kirocrew/.kiro/crew/config.json \
-      "/home/kirocrew/.kiro/crew/config.json.broken.$(date +%Y%m%d-%H%M%S)"'
+  'mv /home/junction/.kiro/crew/config.json \
+      "/home/junction/.kiro/crew/config.json.broken.$(date +%Y%m%d-%H%M%S)"'
 docker restart junction
 
 # Read the saved copies on the host to recover your settings:
-docker exec junction ls /home/kirocrew/.kiro/crew/config.json.broken.*
-docker cp junction:/home/kirocrew/.kiro/crew/config.json.broken.<stamp> .
+docker exec junction ls /home/junction/.kiro/crew/config.json.broken.*
+docker cp junction:/home/junction/.kiro/crew/config.json.broken.<stamp> .
 ```
 
 A plain `.broken` suffix would be overwritten the second time you did this,
@@ -332,13 +332,13 @@ layer and vanishes on removal:
 
 ```bash
 # WRONG — no volume:
-docker run -d --name junction -p 5476:5476 ghcr.io/laqaer/kirocrew:stable
+docker run -d --name junction -p 5476:5476 ghcr.io/laqaer/junction:stable
 
 # CORRECT — named volume:
 docker run -d --name junction \
   -p 127.0.0.1:5476:5476 \
-  -v kirocrew-home:/home/kirocrew \
-  ghcr.io/laqaer/kirocrew:stable
+  -v junction-home:/home/junction \
+  ghcr.io/laqaer/junction:stable
 ```
 
 ### `docker compose down -v` removes volumes
@@ -361,7 +361,7 @@ If you use a bind mount, ensure the path is correct and consistent:
 
 ```yaml
 volumes:
-  - ./data/kirocrew:/home/kirocrew   # relative path — ensure compose always runs from the same dir
+  - ./data/junction:/home/junction   # relative path — ensure compose always runs from the same dir
 ```
 
 Prefer absolute paths or named volumes for production.
@@ -376,7 +376,7 @@ agent subprocess cannot be safely isolated."
 
 ### Sandbox consent required
 
-If the sandbox probe failed and `KIROCREW_ALLOW_UNSANDBOXED` is not set,
+If the sandbox probe failed and `JUNCTION_ALLOW_UNSANDBOXED` is not set,
 agent execution is disabled by design. See [section 4](#4-sandbox-related-errors).
 
 ### Missing tools in the container
@@ -390,10 +390,10 @@ they are not available by default.
 1. **Build a custom image** extending the official one — the reliable route:
 
    ```dockerfile
-   FROM ghcr.io/laqaer/kirocrew:stable
+   FROM ghcr.io/laqaer/junction:stable
    USER root
    RUN apt-get update && apt-get install -y git nodejs npm && rm -rf /var/lib/apt/lists/*
-   USER kirocrew
+   USER junction
    ```
 
 2. **Mount a tools volume read-only.** Only worth trying for a statically
@@ -417,14 +417,14 @@ Skills are files, not packages: the built-in set is synced from the wheel to
 List what the container actually has:
 
 ```bash
-docker exec junction ls /home/kirocrew/.kiro/crew/skills
+docker exec junction ls /home/junction/.kiro/crew/skills
 ```
 
 To add your own, write it into that directory and restart:
 
 ```bash
-docker cp ./my-skill kirocrew:/home/kirocrew/.kiro/crew/skills/my-skill
-docker exec -u 0 kirocrew chown -R kirocrew:kirocrew /home/kirocrew/.kiro/crew/skills/my-skill
+docker cp ./my-skill junction:/home/junction/.kiro/crew/skills/my-skill
+docker exec -u 0 junction chown -R junction:junction /home/junction/.kiro/crew/skills/my-skill
 docker restart junction
 ```
 
@@ -444,7 +444,7 @@ many sessions are running at once. There is no setting that caps that count
 ```yaml
 # compose.yaml
 services:
-  kirocrew:
+  junction:
     # ...
     deploy:
       resources:
@@ -456,7 +456,7 @@ With a hard limit, the kernel OOM-kills the container rather than swapping
 the entire host. Monitor usage:
 
 ```bash
-docker stats kirocrew --no-stream
+docker stats junction --no-stream
 ```
 
 ### Model downloads
@@ -469,10 +469,10 @@ retry does not accumulate files — only a hard kill mid-download (OOM,
 `docker kill`) can strand one. Check before clearing anything:
 
 ```bash
-docker exec junction ls -la /home/kirocrew/.kiro/crew/models
+docker exec junction ls -la /home/junction/.kiro/crew/models
 # Strays are dot-prefixed and end in .tmp; the real model files are not.
 # -mmin +60 is what makes this safe: it skips a download still in flight.
-docker exec junction find /home/kirocrew/.kiro/crew/models \
+docker exec junction find /home/junction/.kiro/crew/models \
   -maxdepth 1 -name '.*.tmp' -mmin +60 -delete
 ```
 
@@ -505,32 +505,32 @@ not a provider swap.
 
 ```bash
 # 1. Container running?
-docker ps -f name=kirocrew
+docker ps -f name=junction
 
 # 2. Logs (last 30 lines)
-docker logs --tail 30 kirocrew
+docker logs --tail 30 junction
 
 # 3. Health status
-docker inspect --format='{{.State.Health.Status}}' kirocrew
+docker inspect --format='{{.State.Health.Status}}' junction
 
 # 4. Port mapping
-docker port kirocrew
+docker port junction
 
 # 5. Volume mounted?
-docker inspect --format='{{range .Mounts}}{{.Destination}} → {{.Source}}{{"\n"}}{{end}}' kirocrew
+docker inspect --format='{{range .Mounts}}{{.Destination}} → {{.Source}}{{"\n"}}{{end}}' junction
 
 # 6. Sandbox posture
-docker logs kirocrew | grep '\[entrypoint\]'
+docker logs junction | grep '\[entrypoint\]'
 
 # 7. Memory usage
-docker stats kirocrew --no-stream
+docker stats junction --no-stream
 ```
 
 ---
 
 ## Still stuck?
 
-- Check the full startup log: `docker logs kirocrew`
+- Check the full startup log: `docker logs junction`
 - Review [docker.md](docker.md) for the complete configuration reference.
 - Open an [issue](https://github.com/laqaer/junction/issues) with your
   Docker version (`docker version`), OS, and the relevant log output.

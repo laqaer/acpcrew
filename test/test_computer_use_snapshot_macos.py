@@ -54,8 +54,8 @@ from test_computer_use_ffi import (  # noqa: F401  # type: ignore[import-not-fou
     _in_dll,
 )
 
-from kiro_crew import platform_compat
-from kiro_crew.computer_use import (
+from junction import platform_compat
+from junction.computer_use import (
     macos_driver,
     macos_ffi,
     permissions,
@@ -63,7 +63,7 @@ from kiro_crew.computer_use import (
     render,
     snapshot_macos,
 )
-from kiro_crew.computer_use.types import (
+from junction.computer_use.types import (
     CLICK_METHOD_ACCESSIBILITY,
     CLICK_METHOD_APP_POST,
     CLICK_METHOD_GLOBAL,
@@ -79,7 +79,7 @@ from kiro_crew.computer_use.types import (
     SnapshotRequest,
 )
 
-_APP = AppRef(name="Fixture", pid=4242, bundle_id="dev.kirocrew.fixture", window_id=77)
+_APP = AppRef(name="Fixture", pid=4242, bundle_id="dev.junction.fixture", window_id=77)
 
 
 @pytest.fixture
@@ -400,7 +400,7 @@ class TestWindowSelection:
         app = AppRef(
             name="Fixture",
             pid=4242,
-            bundle_id="dev.kirocrew.fixture",
+            bundle_id="dev.junction.fixture",
             window_id=77,
             window_title="Quarterly Report",
         )
@@ -673,7 +673,7 @@ class TestMacOSPointerPaths:
         warp-before-post, which post symbol is reached — so ownership is granted
         here; the refusal itself is pinned in ``TestReviewerFoundRegressions``.
         """
-        from kiro_crew.computer_use import apps_macos
+        from junction.computer_use import apps_macos
 
         monkeypatch.setattr(apps_macos, "pid_owns_point", lambda pid, x, y: True)
 
@@ -995,7 +995,7 @@ class TestChildCapMarksTheWalkTruncated:
         because ``capture_snapshot_image`` reads it as "a secure field may exist
         beyond what was scanned".
         """
-        from kiro_crew.computer_use import capture_macos
+        from junction.computer_use import capture_macos
 
         self._wide_window(fakes, snapshot_macos.MAX_CHILDREN_PER_NODE + 5)
         snap = snapshot_macos.build_snapshot(_APP, _req(max_nodes=100_000))
@@ -1086,12 +1086,12 @@ class TestDenylistCaseFolding:
     """Case-insensitive matching, now over the ONE retained entry.
 
     The terminal / credential-manager / system-settings / auth-prompt entries are
-    gone, so this exercises ``kirocrew_self`` — the rule that keeps the keystone
+    gone, so this exercises ``junction_self`` — the rule that keeps the keystone
     (and therefore the primary enable) out of the agent's reach.
     """
 
     def test_matching_is_case_insensitive_on_both_sides(self):
-        from kiro_crew.computer_use.types import AppRef
+        from junction.computer_use.types import AppRef
 
         for name, bundle in (
             ("KIRO CREW", "DEV.KIRO.CREW"),
@@ -1101,7 +1101,7 @@ class TestDenylistCaseFolding:
             assert policy.denied_rule_for(AppRef(name=name, pid=1, bundle_id=bundle)) is not None
 
     def test_an_unrelated_app_is_not_matched(self):
-        from kiro_crew.computer_use.types import AppRef
+        from junction.computer_use.types import AppRef
 
         assert (
             policy.denied_rule_for(AppRef(name="Preview", pid=1, bundle_id="com.apple.Preview"))
@@ -1147,8 +1147,8 @@ class TestReviewerFoundRegressions:
         Naming an allowed app while passing coordinates over a denied one would
         otherwise pass the policy check on app A and click app B.
         """
-        from kiro_crew.computer_use import apps_macos, macos_driver
-        from kiro_crew.computer_use.types import ClickRequest
+        from junction.computer_use import apps_macos, macos_driver
+        from junction.computer_use.types import ClickRequest
 
         monkeypatch.setattr(apps_macos, "pid_owns_point", lambda pid, x, y: False)
         result = macos_driver.MacOSBackend().click(
@@ -1162,7 +1162,7 @@ class TestReviewerFoundRegressions:
 
     def test_point_ownership_takes_the_TOPMOST_window(self, fakes: _Fakes, monkeypatch):
         """ "Any window of mine contains it" would permit a click on an overlapper."""
-        from kiro_crew.computer_use import apps_macos
+        from junction.computer_use import apps_macos
 
         mine, theirs = 4242, 9999
         front = macos_ffi.WindowInfo(
@@ -1190,7 +1190,7 @@ class TestReviewerFoundRegressions:
     def test_point_ownership_fails_closed_when_bounds_are_unreadable(
         self, fakes: _Fakes, monkeypatch
     ):
-        from kiro_crew.computer_use import apps_macos
+        from junction.computer_use import apps_macos
 
         unreadable = macos_ffi.WindowInfo(
             window_id=1,
@@ -1217,7 +1217,7 @@ class TestOverlayWindowsBlockPointerClicks:
     """
 
     def test_a_notification_over_the_app_refuses(self, fakes: _Fakes, monkeypatch):
-        from kiro_crew.computer_use import apps_macos
+        from junction.computer_use import apps_macos
 
         banner = macos_ffi.WindowInfo(
             window_id=1,
@@ -1240,7 +1240,7 @@ class TestOverlayWindowsBlockPointerClicks:
 
     def test_the_same_app_still_owns_an_uncovered_point(self, fakes: _Fakes, monkeypatch):
         """The inverse, so the rule cannot refuse everything."""
-        from kiro_crew.computer_use import apps_macos
+        from junction.computer_use import apps_macos
 
         banner = macos_ffi.WindowInfo(
             window_id=1,
@@ -1266,7 +1266,7 @@ class TestOverlayWindowsBlockPointerClicks:
         self, fakes: _Fakes, monkeypatch
     ):
         """A window with no readable bounds could be covering the point."""
-        from kiro_crew.computer_use import apps_macos
+        from junction.computer_use import apps_macos
 
         unknown = macos_ffi.WindowInfo(
             window_id=1,

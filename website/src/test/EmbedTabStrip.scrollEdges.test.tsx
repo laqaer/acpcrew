@@ -45,8 +45,8 @@ const SLOTS = [
 
 /** Tab state the host plugin injects onto `window`. */
 interface EmbedTabsWindow extends Window {
-  __kirocrewTabs?: string[]
-  __kirocrewActiveTabIndex?: number
+  __junctionTabs?: string[]
+  __junctionActiveTabIndex?: number
 }
 const tabsWindow = window as EmbedTabsWindow
 
@@ -73,8 +73,8 @@ const scrollerOf = (container: HTMLElement) =>
 describe('EmbedTabStrip scroll-edge cues', () => {
   beforeEach(() => {
     sessionStorage.clear()
-    tabsWindow.__kirocrewTabs = ['chat-1', 'chat-2']
-    tabsWindow.__kirocrewActiveTabIndex = 0
+    tabsWindow.__junctionTabs = ['chat-1', 'chat-2']
+    tabsWindow.__junctionActiveTabIndex = 0
     if (!window.ResizeObserver) {
       window.ResizeObserver = class {
         observe() {}
@@ -86,8 +86,8 @@ describe('EmbedTabStrip scroll-edge cues', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     cleanup()
-    delete tabsWindow.__kirocrewTabs
-    delete tabsWindow.__kirocrewActiveTabIndex
+    delete tabsWindow.__junctionTabs
+    delete tabsWindow.__junctionActiveTabIndex
     sessionStorage.clear()
   })
 

@@ -1,4 +1,4 @@
-"""Coverage for ``kiro_crew.autonudge_authz`` guard clauses and audit fallbacks.
+"""Coverage for ``junction.autonudge_authz`` guard clauses and audit fallbacks.
 
 ``test/test_workflows_nudge_wiring.py`` already pins the happy path and the
 headline Discord/dashboard denials. This file targets the remaining rejection
@@ -17,8 +17,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew import autonudge_authz
-from kiro_crew.autonudge_authz import (
+from junction import autonudge_authz
+from junction.autonudge_authz import (
     MAX_RUNTIME_SECS_CEILING,
     authorize_and_add_nudge,
     authorize_and_update_nudge,
@@ -224,7 +224,7 @@ async def test_add_denies_discord_when_the_transport_is_not_running(audits: list
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={}),
-        slot_key="discord:kirocrew:direct:42",
+        slot_key="discord:junction:direct:42",
         message="watch",
         source="dashboard",
     )
@@ -239,7 +239,7 @@ async def test_add_denies_webex_when_the_transport_is_not_running(audits: list[d
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={}),
-        slot_key="webex:kirocrew:direct:user@example.com",
+        slot_key="webex:junction:direct:user@example.com",
         message="watch",
         source="dashboard",
     )
@@ -257,7 +257,7 @@ async def test_add_denies_a_non_dm_webex_session(audits: list[dict]) -> None:
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={"webex": transport}),
-        slot_key="webex:kirocrew:forum:space:ROOM1",
+        slot_key="webex:junction:forum:space:ROOM1",
         message="watch",
         source="dashboard",
     )
@@ -274,7 +274,7 @@ async def test_add_denies_a_webex_user_off_the_allowlist(audits: list[dict]) -> 
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={"webex": transport}),
-        slot_key="webex:kirocrew:direct:intruder@example.com",
+        slot_key="webex:junction:direct:intruder@example.com",
         message="watch",
         source="dashboard",
     )
@@ -289,14 +289,14 @@ async def test_add_denies_a_webex_key_that_is_not_the_users_current_session(
     svc = RecordingSvc()
     transport = SimpleNamespace(
         dispatcher=SimpleNamespace(
-            current_session_key=lambda _e: "webex:kirocrew:direct:user@example.com:gen3"
+            current_session_key=lambda _e: "webex:junction:direct:user@example.com:gen3"
         ),
         is_authorized=lambda _e: True,
     )
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={"webex": transport}),
-        slot_key="webex:kirocrew:direct:user@example.com",
+        slot_key="webex:junction:direct:user@example.com",
         message="watch",
         source="dashboard",
     )
@@ -309,7 +309,7 @@ async def test_add_webex_rechecks_session_ownership_at_commit_time(
 ) -> None:
     """An allow-listed Webex session removed during cleanup must not be
     recreated by an arm request that passed the initial authorization check."""
-    slot_key = "webex:kirocrew:direct:user@example.com"
+    slot_key = "webex:junction:direct:user@example.com"
     dispatcher = SimpleNamespace(current_session_key=lambda _email: slot_key)
     transport = SimpleNamespace(
         dispatcher=dispatcher,
@@ -344,12 +344,12 @@ async def test_add_denies_a_non_dm_discord_session(audits: list[dict]) -> None:
     svc = RecordingSvc()
     dispatcher = SimpleNamespace(
         is_authorized=lambda uid: True,
-        current_session_key=lambda uid: "discord:kirocrew:guild:42",
+        current_session_key=lambda uid: "discord:junction:guild:42",
     )
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={"discord": SimpleNamespace(dispatcher=dispatcher)}),
-        slot_key="discord:kirocrew:guild:42",
+        slot_key="discord:junction:guild:42",
         message="watch",
         source="dashboard",
     )
@@ -371,7 +371,7 @@ async def test_add_denies_discord_when_the_current_session_lookup_raises(
     loop, error, status = await authorize_and_add_nudge(
         svc=svc,
         state=_state(transports={"discord": SimpleNamespace(dispatcher=dispatcher)}),
-        slot_key="discord:kirocrew:direct:42",
+        slot_key="discord:junction:direct:42",
         message="watch",
         source="dashboard",
     )
@@ -383,11 +383,11 @@ async def test_add_denies_discord_when_the_current_session_lookup_raises(
     "slot_key",
     [
         "telegram:9001",
-        "whatsapp:kirocrew:direct:15550100",
-        "unified:kirocrew",
-        "teams:kirocrew:direct:29:1abcdef",
-        "weixin:kirocrew:direct:oUserOpenId",
-        "imessage:kirocrew:direct:+15550100",
+        "whatsapp:junction:direct:15550100",
+        "unified:junction",
+        "teams:junction:direct:29:1abcdef",
+        "weixin:junction:direct:oUserOpenId",
+        "imessage:junction:direct:+15550100",
     ],
 )
 async def test_add_rejects_a_channel_transport_it_cannot_authorize(

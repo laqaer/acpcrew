@@ -104,7 +104,7 @@ jobs:
       # The published basename is a PUBLIC CONTRACT: the `latest/` alias URL is
       # what manualDownloadUrl() hands a user whose in-app update failed, so it
       # can carry neither the version nor electron-builder's spaces.
-      PUBLISHED_BASENAME: KiroCrew-Setup
+      PUBLISHED_BASENAME: Junction-Setup
       # The leaf certificate the signing profile issues. Pinned as the expected
       # publisher so a misconfigured signing profile is caught here rather than
       # by every client's fail-closed update check.
@@ -126,7 +126,7 @@ jobs:
       # second Windows arch therefore adds an entry to THIS file rather than a
       # feed of its own, and must also deal with Provider.findFile()
       # disambiguating entries by matching process.arch against the url path --
-      # which `KiroCrew-Setup.exe` does not contain. That is a change to this
+      # which `Junction-Setup.exe` does not contain. That is a change to this
       # workflow either way, which is why no input anticipates it.
       - name: Resolve published names
         run: |
@@ -209,7 +209,7 @@ jobs:
             --expected-base-version "${PROMOTION_BASE_VERSION}"
 
       # electron-builder names the installer after the product and version
-      # ("KiroCrew Nightly Setup <version>.exe"), which differs per channel, so
+      # ("Junction Nightly Setup <version>.exe"), which differs per channel, so
       # it is located by glob and copied to the pinned public basename. The
       # blockmap must travel with it: without a blockmap beside the installer,
       # electron-updater falls back to a full download for every update.

@@ -30,7 +30,7 @@ const slots = [{
   running: true, // the tip trigger only arms on a running slot
   last_message: 'Fanning the file survey out now.',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: '/home/user/workspace/notes',
   folder_id: '',
@@ -54,13 +54,13 @@ const detail = {
 // The restored curated tips: doc="" (dismissal identity stays empty, so
 // dismissing them cannot suppress the catalog tip for the same doc) while
 // doc_link carries the learn-more target — exactly the shape shipped in
-// src/kiro_crew/data/tips_curated.json.
+// src/junction/data/tips_curated.json.
 const TIPS = {
   'subagent-parallelism': {
     id: 'subagent-parallelism',
     feature: 'Subagent Parallelism',
     title: 'Tune how many subagents run at once',
-    body: '`agent.max_subagents` caps concurrent subagents. **0 = auto-size** to your machine\'s memory and CPU; pin a number with `kirocrew config set agent.max_subagents 4`.',
+    body: '`agent.max_subagents` caps concurrent subagents. **0 = auto-size** to your machine\'s memory and CPU; pin a number with `junction config set agent.max_subagents 4`.',
     why: '',
     doc: '',
     doc_link: 'dynamic-subagent-sizing.md',
@@ -108,7 +108,7 @@ async function main() {
     await stubDashboardApi(page, { folders: [], slots, theme, extra })
     await page.addInitScript(slot => {
       localStorage.setItem('mc-active-slot', slot)
-      localStorage.removeItem('kirocrew.tips.lastShownAt')
+      localStorage.removeItem('junction.tips.lastShownAt')
     }, SLOT)
     await page.goto(base + '/', { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2500)

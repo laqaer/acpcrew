@@ -41,10 +41,10 @@ const URL_KEY_PREFIX = 'mc-webpreview-url:'
  *  preview" click — surfaced as a card, never auto-navigated (click-to-load). */
 const PENDING_KEY_PREFIX = 'mc-webpreview-pending:'
 /** Window event that feeds a URL into a mounted panel from outside (ChatPage). */
-const PREVIEW_URL_EVENT = 'kirocrew-web-preview-url'
+const PREVIEW_URL_EVENT = 'junction-web-preview-url'
 /** Window event feeding a PENDING url (shown as a Load-preview card, NOT
  *  navigated) — the click-to-load counterpart of PREVIEW_URL_EVENT. */
-const PREVIEW_PENDING_EVENT = 'kirocrew-web-preview-pending'
+const PREVIEW_PENDING_EVENT = 'junction-web-preview-pending'
 /**
  * Window event: enter/leave the preview expand mode. App collapses the
  * left nav and ChatPage hides the session list + maximizes the side panel, so
@@ -52,7 +52,7 @@ const PREVIEW_PENDING_EVENT = 'kirocrew-web-preview-pending'
  * plain window event (not prop-drilling) keeps this leaf panel decoupled from
  * the two ancestors that own that layout.
  */
-export const PREVIEW_EXPAND_EVENT = 'kirocrew-preview-expand'
+export const PREVIEW_EXPAND_EVENT = 'junction-preview-expand'
 /**
  * Window event: request an area screenshot into the chat input. ChatPage owns
  * the capture pipeline (getDisplayMedia in the browser / the same path routed
@@ -60,7 +60,7 @@ export const PREVIEW_EXPAND_EVENT = 'kirocrew-preview-expand'
  * SnipOverlay crop surface → attach the PNG to the composer), so the preview's
  * crop button just asks for it via this event rather than duplicating capture.
  */
-export const PREVIEW_SNIP_EVENT = 'kirocrew-web-preview-snip'
+export const PREVIEW_SNIP_EVENT = 'junction-web-preview-snip'
 /** Common local dev-server ports offered as one-click starting points. */
 const COMMON_PORTS = [3000, 5173, 8080, 4321, 8000]
 /** iframe sandbox — permissive enough for real apps + HMR, but still a sandbox. */
@@ -180,7 +180,7 @@ const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]', ':
 
 /** True for any host that resolves to the local machine and can therefore share
  *  host-scoped cookies with a same-host dashboard — the loopback IPs/names plus
- *  the `*.localhost` reserved TLD (e.g. `kirocrew.localhost`, which the desktop
+ *  the `*.localhost` reserved TLD (e.g. `junction.localhost`, which the desktop
  *  app and tunnels use). */
 function isLoopbackHost(h: string): boolean {
   return LOOPBACK_HOSTS.has(h) || h === 'localhost' || h.endsWith('.localhost')
@@ -250,7 +250,7 @@ export function isDashboardOrigin(url: string, dashboardOrigin?: string): boolea
  * 2. **Cookie isolation.** Cookies are scoped by host but NOT by port, so an
  *    iframe pointed at `http://localhost:5173` while the dashboard is served from
  *    the same host (`localhost`, `127.0.0.1`, or a `*.localhost` alias like
- *    `kirocrew.localhost`) would send the dashboard's host-scoped auth cookie to
+ *    `junction.localhost`) would send the dashboard's host-scoped auth cookie to
  *    the previewed dev server (which could read/replay it). When the preview host
  *    matches the dashboard host and both are loopback, swap it to a
  *    guaranteed-distinct loopback host (`127.0.0.1`, or `localhost` when the
@@ -298,7 +298,7 @@ function isolateFrameTarget(url: string): string {
 
 /**
  * Feed a URL into a session's Web Preview tab from OUTSIDE the panel — e.g.
- * ChatPage auto-detecting a dev-server URL (or the agent's `kirocrew:preview`
+ * ChatPage auto-detecting a dev-server URL (or the agent's `junction:preview`
  * marker) in chat. Persists it as the session's preview target (so the panel
  * picks it up on mount if the tab isn't open yet) AND — when ``open`` is true —
  * notifies an already-mounted panel to load it live. Pass ``open=false`` to
@@ -319,7 +319,7 @@ export function setSessionPreviewUrl(sessionKey: string, rawUrl: string, open = 
 }
 
 /**
- * Feed a PENDING preview URL for a session — the agent's `kirocrew:preview`
+ * Feed a PENDING preview URL for a session — the agent's `junction:preview`
  * marker or a heuristic localhost URL detected in chat. Unlike
  * `setSessionPreviewUrl`, this NEVER loads the iframe: it persists the URL under
  * the pending key and notifies a mounted panel to show a **"Load preview"** card.

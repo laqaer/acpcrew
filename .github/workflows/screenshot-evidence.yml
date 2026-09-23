@@ -157,7 +157,7 @@ jobs:
             echo "**How to attach it** (see the \`web-verify\` and \`frontend-design-workflow\` skills)"
             echo "1. Capture the surface yourself from a running dev server or pod."
             echo "2. Commit the images under \`temp-screenshots/<feature>/\` -- never under"
-            echo "   \`docs/\` or \`src/kiro_crew/**\`, which ship in the wheel and the DMG."
+            echo "   \`docs/\` or \`src/junction/**\`, which ship in the wheel and the DMG."
             echo "3. Embed with a commit-SHA-pinned URL so it survives branch deletion:"
             echo "   \`![alt](https://github.com/$REPO/raw/<sha>/temp-screenshots/<feature>/<name>.png)\`"
             echo

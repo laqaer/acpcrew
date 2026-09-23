@@ -12,10 +12,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-import kiro_crew.dashboard.chat_runner as chat_runner
+import junction.dashboard.chat_runner as chat_runner
 
 
-def _make_slot(key: str = "slot-1", agent: str = "kirocrew") -> MagicMock:
+def _make_slot(key: str = "slot-1", agent: str = "junction") -> MagicMock:
     slot = MagicMock()
     slot.key = key
     slot.agent = agent
@@ -95,7 +95,7 @@ async def test_arm_default_budget(
     audit = _install(monkeypatch, svc)
     monkeypatch.setattr(chat_runner.Path, "home", classmethod(lambda cls: tmp_path))
     # The goal-stop sentinel now derives from data_home() (data home moved to
-    # ~/.kiro/crew). data_home() reads KIROCREW_HOME (pinned elsewhere by
+    # ~/.kiro/crew). data_home() reads JUNCTION_HOME (pinned elsewhere by
     # conftest), so redirect it to track the patched home and keep the
     # ~/.kirocrew/goal-stop layout this test builds authoritative.
     monkeypatch.setattr(chat_runner, "data_home", lambda: tmp_path / ".kirocrew")

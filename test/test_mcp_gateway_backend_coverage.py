@@ -1,9 +1,9 @@
-"""Behavioural coverage for :mod:`kiro_crew.mcp_gateway.backend`.
+"""Behavioural coverage for :mod:`junction.mcp_gateway.backend`.
 
 Complements the existing focused suites (``test_mcp_gateway_wedge_ping_gate``
 for heartbeat classification, ``test_mcp_gateway_apps_spool`` for the MCP Apps
 interception seam, ``test_mcp_gateway_oversize`` for the spill helpers) by
-driving the parts of :class:`~kiro_crew.mcp_gateway.backend.Backend` that had no
+driving the parts of :class:`~junction.mcp_gateway.backend.Backend` that had no
 direct test:
 
 * ``forward_from_stub`` — id rewriting, caller-identity strip/inject, the
@@ -38,9 +38,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.mcp_caller import CALLER_META_KEY, CallerContext
-from kiro_crew.mcp_gateway import backend as backend_mod
-from kiro_crew.mcp_gateway.backend import (
+from junction.mcp_caller import CALLER_META_KEY, CallerContext
+from junction.mcp_gateway import backend as backend_mod
+from junction.mcp_gateway.backend import (
     HEARTBEAT_PING_ID,
     MCP_APPS_ENV_FLAG,
     MCP_APPS_EXTENSION_KEY,
@@ -58,7 +58,7 @@ from kiro_crew.mcp_gateway.backend import (
     send_initialize,
     spawn_backend,
 )
-from kiro_crew.mcp_gateway.pool import PoolKey
+from junction.mcp_gateway.pool import PoolKey
 
 
 @pytest.fixture(autouse=True)
@@ -83,7 +83,7 @@ def _no_real_metrics_file(monkeypatch: pytest.MonkeyPatch) -> None:
 def _pool_key(server: str = "example-mcp") -> PoolKey:
     return PoolKey(
         server_name=server,
-        agent_name="kirocrew",
+        agent_name="junction",
         command_args_hash="cah",
         effective_env_hash="eeh",
         work_dir="/nonexistent-work-dir",
@@ -557,7 +557,7 @@ class TestUpstreamInitializeResolution:
         inbox2 = await backend.attach_stub("s2")
         backend._init_pending = [("s1", 1), ("s2", 2)]
         result: dict[str, Any] = {
-            "capabilities": {"experimental": {"kirocrew.caller-identity": {}}}}
+            "capabilities": {"experimental": {"junction.caller-identity": {}}}}
         await backend._on_upstream_initialize({"jsonrpc": "2.0", "id": "gw-1",
                                                "result": result})
         assert backend._init_state == "ready"
@@ -2374,7 +2374,7 @@ class TestSubscriptionResponseHardening:
         await backend.attach_stub("s1")
         secret_uri = "https://bucket/object?sig=TOPSECRET"
         backend._orphaned_leases.add(secret_uri)
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.mcp_gateway.backend"):
+        with caplog.at_level(logging.DEBUG, logger="junction.mcp_gateway.backend"):
             await backend._route_backend_line(_line({
                 "method": "notifications/resources/updated",
                 "params": {"uri": secret_uri},
@@ -2396,7 +2396,7 @@ class TestSubscriptionResponseHardening:
             backend_mod, "_write_json_line",
             AsyncMock(side_effect=RuntimeError("pipe gone")),
         )
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.mcp_gateway.backend"):
+        with caplog.at_level(logging.DEBUG, logger="junction.mcp_gateway.backend"):
             with pytest.raises(backend_mod.BackendGone):
                 await backend.replay_resource_subscriptions("s1", [secret_uri])
             await backend._release_upstream_subscriptions([secret_uri])
@@ -4207,7 +4207,7 @@ class TestSpawnBackend:
         assert fake_spawn["args"] == ["--stdio"]
         env = fake_spawn["kwargs"]["env"]
         assert env["PATH"] == "/usr/bin"
-        assert env[backend_mod.KIROCREW_SPAWNED_ENV] == backend_mod.KIROCREW_SPAWNED_VALUE
+        assert env[backend_mod.JUNCTION_SPAWNED_ENV] == backend_mod.JUNCTION_SPAWNED_VALUE
         assert fake_spawn["kwargs"]["start_new_session"] is True
         assert backend.pid == 5150
         assert backend._last_ping_response_mono > 0
@@ -4238,7 +4238,7 @@ class TestSendInitialize:
     async def test_success_seeds_cache_and_detects_capability(self) -> None:
         backend = _make_backend()
         result: dict[str, Any] = {
-            "capabilities": {"experimental": {"kirocrew.caller-identity": {}}}}
+            "capabilities": {"experimental": {"junction.caller-identity": {}}}}
         backend.stdout = cast(Any, _reader(
             b"backend boot noise, not json\n",
             _line([1, 2, 3]),
@@ -4252,7 +4252,7 @@ class TestSendInitialize:
         assert backend._init_result == result
         request = _frames(backend)[0]
         assert request["method"] == "initialize"
-        assert request["params"]["clientInfo"]["name"] == "kirocrew-gateway"
+        assert request["params"]["clientInfo"]["name"] == "junction-gateway"
 
     @pytest.mark.asyncio
     async def test_custom_client_info_is_forwarded(self) -> None:
@@ -4340,13 +4340,13 @@ class TestPumpStderr:
     @pytest.mark.asyncio
     async def test_drains_until_eof(self) -> None:
         reader = _reader(b"line one\nline two\n")
-        await _pump_stderr(reader, "kirocrew:example-mcp")
+        await _pump_stderr(reader, "junction:example-mcp")
         assert reader.at_eof()
 
     @pytest.mark.asyncio
     async def test_oversize_line_skipped_without_wedging(self) -> None:
         reader = _reader(b"x" * 400 + b"\n" + b"short\n", limit=32)
-        await _pump_stderr(reader, "kirocrew:example-mcp")
+        await _pump_stderr(reader, "junction:example-mcp")
         assert reader.at_eof()
 
     @pytest.mark.asyncio
@@ -4416,7 +4416,7 @@ class TestBackendTmpContainment:
     ) -> None:
         from pathlib import Path
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -4443,7 +4443,7 @@ class TestBackendTmpContainment:
         # chosen storage; containment must not trade litter for ENOSPC.
         # Declaration is the CALLER's signal (declared_temp_keys), carried
         # from the gatewayd closure that knows the declared-env set.
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -4473,7 +4473,7 @@ class TestBackendTmpContainment:
         # in place would silently defeat the declaration (macOS always
         # exports one). Yield = declared keys kept, undeclared canonical
         # keys pruned.
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -4506,7 +4506,7 @@ class TestBackendTmpContainment:
         # Ambient keys must be OVERRIDDEN by the managed triple.
         from pathlib import Path
 
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -4533,7 +4533,7 @@ class TestBackendTmpContainment:
         # allocate step raises when the dir or its owner record cannot be
         # written (ENOSPC / inode exhaustion) -- the spawn proceeds with
         # inherited temp and nothing is left on disk to reclaim.
-        from kiro_crew.mcp_gateway import backend as backend_mod
+        from junction.mcp_gateway import backend as backend_mod
 
         def _boom(_digest: str):
             raise OSError("no space left on device")
@@ -4552,7 +4552,7 @@ class TestBackendTmpContainment:
         # Unowned-by-a-live-process dirs are never deleted by the sweeps, so
         # the spawn-failure path is the ONLY reclamation point for a dir
         # whose process never existed.
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()
@@ -4579,7 +4579,7 @@ class TestBackendTmpContainment:
         # proof its process TREE is gone (a wrapper exits while its server
         # child lives on). The sweep's dual condition (owner dead AND idle)
         # is the single deletion authority.
-        from kiro_crew.mcp_gateway import backend_tmp as bt
+        from junction.mcp_gateway import backend_tmp as bt
 
         home = tmp_path / "home"
         home.mkdir()

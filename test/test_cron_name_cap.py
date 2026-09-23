@@ -29,9 +29,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.cron import CronService
-from kiro_crew.dashboard.handlers import api_cron_update, api_crons_create
-from kiro_crew.validation import MAX_SHORT_STRING
+from junction.cron import CronService
+from junction.dashboard.handlers import api_cron_update, api_crons_create
+from junction.validation import MAX_SHORT_STRING
 
 OVERSIZE_NAME = "x" * (MAX_SHORT_STRING + 1)
 EXACT_NAME = "x" * MAX_SHORT_STRING
@@ -39,7 +39,7 @@ EXACT_NAME = "x" * MAX_SHORT_STRING
 
 @pytest.fixture(autouse=True)
 def _isolate_cron_store(monkeypatch, tmp_path):
-    monkeypatch.setattr("kiro_crew.cron._DEFAULT_DIR", tmp_path)
+    monkeypatch.setattr("junction.cron._DEFAULT_DIR", tmp_path)
     yield
 
 

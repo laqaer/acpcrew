@@ -1,6 +1,6 @@
 # Model router — observe and compose the sidecar
 
-**This is the change-control contract for `src/kiro_crew/model_router/`.**
+**This is the change-control contract for `src/junction/model_router/`.**
 Read it before changing that package. Update it in the same commit when
 behavior documented here changes.
 
@@ -26,7 +26,7 @@ plane is a second process family:
 | Codex Router | `127.0.0.1:4202` | Responses / OpenAI-compatible entry |
 | LiteLLM | `127.0.0.1:4200` | Protocol translation to providers |
 
-Ports and host are constants owned by `src/kiro_crew/model_router/` when
+Ports and host are constants owned by `src/junction/model_router/` when
 that package lands. Call sites import them; they are not restated as
 literals in CLI chrome or dashboard copy.
 
@@ -120,7 +120,7 @@ typing it.
 - Never log provider keys, caller keys, capability URLs, or cookie
   headers.
 - Never paste keys into chat, prompts, issues, or health payloads.
-- Never copy Codex Router credentials into `KIROCREW_HOME` to “make
+- Never copy Codex Router credentials into `JUNCTION_HOME` to “make
   status work.”
 - Status JSON carries machine-readable `code` values on non-success;
   it does not echo secret material.
@@ -133,7 +133,7 @@ on the **agent** side. Junction does not mint that URL in chat.
 - Not a LiteLLM rewrite.
 - Not a vendor of tray, widget, Electron, public Cursor HTTPS tunnel, or
   Codex Router's experimental ACP agent bridges (those overlap
-  `src/kiro_crew/acp/runtimes.py` — do not copy).
+  `src/junction/acp/runtimes.py` — do not copy).
 - Not a governance scope (`computer_use.*` stays off limits; the model
   plane is not computer use).
 - Not a second `agent.provider`. Harness selection stays

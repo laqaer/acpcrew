@@ -1,7 +1,7 @@
 """Tests for api_hook_test (POST /api/hooks/{hook_id}/test) Stop-event payload.
 
 A Stop hook reads the full final assistant segment from the stdin
-``assistant_text`` key (the KIROCREW_HOOK_CONTEXT env var is capped at 500).
+``assistant_text`` key (the JUNCTION_HOOK_CONTEXT env var is capped at 500).
 The test endpoint must build the same payload so a tail-reading Stop hook is
 actually testable through the dashboard, not silently starved of its context.
 """
@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.dashboard.handlers.hooks import api_hook_test
-from kiro_crew.hooks import HOOK_EVENT_STOP, HOOK_EVENT_USER_PROMPT_SUBMIT, ScriptHookStore
+from junction.dashboard.handlers.hooks import api_hook_test
+from junction.hooks import HOOK_EVENT_STOP, HOOK_EVENT_USER_PROMPT_SUBMIT, ScriptHookStore
 
 
 def _req_with_store(store: ScriptHookStore, hook_id: str, context: str) -> make_mocked_request:
@@ -38,8 +38,8 @@ async def test_stop_hook_test_supplies_full_assistant_text(tmp_path):
 
     fake_result = type("R", (), {"exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1, "error": "", "hook_name": "stop-hook"})()
     with (
-        patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock, return_value=fake_result) as mock_run,
-        patch("kiro_crew.dashboard.handlers.hooks._sel", return_value=MagicMock()),
+        patch("junction.hooks.run_script_hook", new_callable=AsyncMock, return_value=fake_result) as mock_run,
+        patch("junction.dashboard.handlers.hooks._sel", return_value=MagicMock()),
     ):
         resp = await api_hook_test(_req_with_store(store, hook.id, full))
 
@@ -60,8 +60,8 @@ async def test_non_stop_hook_test_uses_default_payload(tmp_path):
 
     fake_result = type("R", (), {"exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1, "error": "", "hook_name": "ups-hook"})()
     with (
-        patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock, return_value=fake_result) as mock_run,
-        patch("kiro_crew.dashboard.handlers.hooks._sel", return_value=MagicMock()),
+        patch("junction.hooks.run_script_hook", new_callable=AsyncMock, return_value=fake_result) as mock_run,
+        patch("junction.dashboard.handlers.hooks._sel", return_value=MagicMock()),
     ):
         resp = await api_hook_test(_req_with_store(store, hook.id, "hello"))
 

@@ -21,8 +21,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.mcp_gateway.backend import Backend
-from kiro_crew.mcp_gateway.pool import BackendPool, PoolKey
+from junction.mcp_gateway.backend import Backend
+from junction.mcp_gateway.pool import BackendPool, PoolKey
 
 pytestmark = pytest.mark.xdist_group("mcp_gateway")
 
@@ -415,8 +415,8 @@ class _RecordingPool:
 
 
 async def _drive_handler(monkeypatch: pytest.MonkeyPatch, *, poolable: bool) -> _RecordingPool:
-    from kiro_crew.mcp_gateway import gatewayd as gw
-    from kiro_crew.mcp_gateway import socketsec
+    from junction.mcp_gateway import gatewayd as gw
+    from junction.mcp_gateway import socketsec
 
     monkeypatch.setattr(socketsec, "PEER_IDENTITY_SUPPORTED", True)
     monkeypatch.setattr(

@@ -3,9 +3,9 @@
 The dispatch branch in ``_call_tool_inner`` no longer resolves session
 identity, no longer refuses non-dashboard sessions, and no longer POSTs to the
 gateway. It VALIDATES its items and returns a session DIRECTIVE (see
-``kiro_crew.session_directive``). The session-aware consumer renders the card
+``junction.session_directive``). The session-aware consumer renders the card
 against ITS OWN slot via
-``kiro_crew.dashboard.session_directive_apply.apply_session_directive`` — that
+``junction.dashboard.session_directive_apply.apply_session_directive`` — that
 applier is exercised directly here against a fake state whose
 ``deliver_ws_owners`` returns a delivered-client count.
 """
@@ -16,8 +16,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew import mcp_core, session_directive
-from kiro_crew.dashboard.session_directive_apply import apply_session_directive
+from junction import mcp_core, session_directive
+from junction.dashboard.session_directive_apply import apply_session_directive
 
 
 def _item(**over: object) -> dict:
@@ -43,7 +43,7 @@ class TestSuggestFollowupDispatch:
     def test_schema_violation_is_refused_at_the_dispatch_layer(self):
         """The tool re-validates before producing a directive — a bad branch is
         rejected with ``ValidationError`` and no directive is returned."""
-        from kiro_crew.validation import ValidationError
+        from junction.validation import ValidationError
 
         with pytest.raises(ValidationError):
             mcp_core._call_tool_inner("suggest_followup", {"items": [_item(branch="-rf")]})

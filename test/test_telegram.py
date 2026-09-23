@@ -17,26 +17,26 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-from kiro_crew.acp.client import AcpError
-from kiro_crew.acp.types import EVENT_COMPACTION_STATUS, EVENT_COMPLETE, EVENT_TEXT_CHUNK
-from kiro_crew.dashboard.token_auth import parse_duration
-from kiro_crew.messaging.commands import parse_dashboard_ttl
-from kiro_crew.messaging.link import (
+from junction.acp.client import AcpError
+from junction.acp.types import EVENT_COMPACTION_STATUS, EVENT_COMPLETE, EVENT_TEXT_CHUNK
+from junction.dashboard.token_auth import parse_duration
+from junction.messaging.commands import parse_dashboard_ttl
+from junction.messaging.link import (
     UNBIND_REASON_UNSPECIFIED,
     ChannelLink,
     legacy_dashboard_mirror_key,
 )
-from kiro_crew.messaging.renderer import (
+from junction.messaging.renderer import (
     DONE,
     STEER_CONSUMED,
     TEXT_CHUNK,
     TOOL_CALL,
     OutputEvent,
 )
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.session import BACKGROUND_KEY, _opt_out_key
-from kiro_crew.session_map import ConversationOwnershipConflict
-from kiro_crew.telegram.client import (
+from junction.messaging.transport import InboundMessage
+from junction.session import BACKGROUND_KEY, _opt_out_key
+from junction.session_map import ConversationOwnershipConflict
+from junction.telegram.client import (
     TELEGRAM_CHUNK_LIMIT,
     TELEGRAM_MAX_TEXT,
     TelegramClient,
@@ -45,7 +45,7 @@ from kiro_crew.telegram.client import (
     _record_api_duration,
     truncate_html_safe,
 )
-from kiro_crew.telegram.commands import (
+from junction.telegram.commands import (
     COMMAND_SPEC,
     ConversationState,
     bot_command_payload,
@@ -56,7 +56,7 @@ from kiro_crew.telegram.commands import (
     parse_dashboard_argument,
     parse_mid_turn_override,
 )
-from kiro_crew.telegram.renderer import (
+from junction.telegram.renderer import (
     TelegramApprovalDecider,
     TelegramRenderer,
     _extract_options,
@@ -73,13 +73,13 @@ from kiro_crew.telegram.renderer import (
     _strip_steering,
     build_inline_keyboard,
 )
-from kiro_crew.telegram.transport import (
+from junction.telegram.transport import (
     TELEGRAM_CAPABILITIES,
     TelegramInboundMessage,
     TelegramTransport,
     forum_gate_outcome,
 )
-from kiro_crew.telegram.transport_dispatch import (
+from junction.telegram.transport_dispatch import (
     _MODEL_PICKER_TTL_SECS,
     _STEER_ACK_EMOJI,
     TelegramDispatcher,
@@ -577,22 +577,22 @@ class TestParseCommand:
         assert is_bare_mid_turn_override("hello") is False
 
     def test_dashboard_command(self) -> None:
-        """Dashboard command requires both /kirocrew and the 'dashboard' subcommand."""
-        assert parse_command("/kirocrew dashboard") == "dashboard"
-        assert parse_command("/kirocrew dashboard 2h") == "dashboard"
-        assert parse_command("/KIROCREW DASHBOARD") == "dashboard"
-        assert parse_command("  /kirocrew   dashboard  ") == "dashboard"
+        """Dashboard command requires both /junction and the 'dashboard' subcommand."""
+        assert parse_command("/junction dashboard") == "dashboard"
+        assert parse_command("/junction dashboard 2h") == "dashboard"
+        assert parse_command("/JUNCTION DASHBOARD") == "dashboard"
+        assert parse_command("  /junction   dashboard  ") == "dashboard"
 
     def test_dashboard_command_requires_subcommand(self) -> None:
-        """Bare /kirocrew without 'dashboard' is not a command."""
-        assert parse_command("/kirocrew") is None
-        assert parse_command("/kirocrew help") is None
-        assert parse_command("/kirocrew other") is None
+        """Bare /junction without 'dashboard' is not a command."""
+        assert parse_command("/junction") is None
+        assert parse_command("/junction help") is None
+        assert parse_command("/junction other") is None
 
 
 class TestBotMentionSuffix:
     """Telegram's own clients append @BotUsername to a slash command in any
-    chat with more than one participant/bot -- e.g. /new@KiroCrewBot instead
+    chat with more than one participant/bot -- e.g. /new@JunctionBot instead
     of /new. This is standard Bot API client behavior (triggered by
     registering a command menu via set_my_commands, done at gateway startup),
     not something this codebase's UI controls, and it fires in exactly the
@@ -607,45 +607,45 @@ class TestBotMentionSuffix:
     would let e.g. /yolo@OtherBot execute here instead of being ignored."""
 
     def test_parse_command_strips_bot_mention(self) -> None:
-        assert parse_command("/new@KiroCrewBot", "KiroCrewBot") == "new"
-        assert parse_command("/compact@KiroCrewBot", "KiroCrewBot") == "compact"
-        assert parse_command("/model@KiroCrewBot", "KiroCrewBot") == "model"
-        assert parse_command("/yolo@KiroCrewBot", "KiroCrewBot") == "yolo"
-        assert parse_command("/link@KiroCrewBot", "KiroCrewBot") == "link"
-        assert parse_command("/unlink@KiroCrewBot", "KiroCrewBot") == "unlink"
-        assert parse_command("/stop@KiroCrewBot", "KiroCrewBot") == "stop"
-        assert parse_command("/help@KiroCrewBot", "KiroCrewBot") == "help"
+        assert parse_command("/new@JunctionBot", "JunctionBot") == "new"
+        assert parse_command("/compact@JunctionBot", "JunctionBot") == "compact"
+        assert parse_command("/model@JunctionBot", "JunctionBot") == "model"
+        assert parse_command("/yolo@JunctionBot", "JunctionBot") == "yolo"
+        assert parse_command("/link@JunctionBot", "JunctionBot") == "link"
+        assert parse_command("/unlink@JunctionBot", "JunctionBot") == "unlink"
+        assert parse_command("/stop@JunctionBot", "JunctionBot") == "stop"
+        assert parse_command("/help@JunctionBot", "JunctionBot") == "help"
 
     def test_parse_command_with_mention_and_trailing_args(self) -> None:
-        assert parse_command("/yolo@KiroCrewBot on", "KiroCrewBot") == "yolo"
+        assert parse_command("/yolo@JunctionBot on", "JunctionBot") == "yolo"
 
     def test_parse_command_mention_is_case_insensitive(self) -> None:
-        assert parse_command("/NEW@KiroCrewBot", "kirocrewbot") == "new"
-        assert parse_command("/NEW@KIROCREWBOT", "KiroCrewBot") == "new"
+        assert parse_command("/NEW@JunctionBot", "junctionbot") == "new"
+        assert parse_command("/NEW@JUNCTIONBOT", "JunctionBot") == "new"
 
     def test_unknown_command_with_mention_is_still_unknown(self) -> None:
         # The mention strip must not accidentally widen matching -- a
         # nonexistent command stays unrecognised, mention or not.
-        assert parse_command("/frobnicate@KiroCrewBot", "KiroCrewBot") is None
+        assert parse_command("/frobnicate@JunctionBot", "JunctionBot") is None
 
     def test_mid_turn_override_strips_bot_mention(self) -> None:
-        assert parse_mid_turn_override("/steer@KiroCrewBot do this instead", "KiroCrewBot") == (
+        assert parse_mid_turn_override("/steer@JunctionBot do this instead", "JunctionBot") == (
             "steer",
             "do this instead",
         )
-        assert parse_mid_turn_override("/queue@KiroCrewBot later", "KiroCrewBot") == (
+        assert parse_mid_turn_override("/queue@JunctionBot later", "JunctionBot") == (
             "queue",
             "later",
         )
 
     def test_bare_mid_turn_override_strips_bot_mention(self) -> None:
-        assert is_bare_mid_turn_override("/queue@KiroCrewBot", "KiroCrewBot") is True
-        assert is_bare_mid_turn_override("/steer@KiroCrewBot", "KiroCrewBot") is True
+        assert is_bare_mid_turn_override("/queue@JunctionBot", "JunctionBot") is True
+        assert is_bare_mid_turn_override("/steer@JunctionBot", "JunctionBot") is True
 
     def test_mention_pattern_requires_a_leading_at_sign(self) -> None:
         # A bare word after the command must not be mistaken for a mention
         # suffix and stripped -- only a real @-prefixed suffix is a mention.
-        assert parse_command("/newsomething", "KiroCrewBot") is None
+        assert parse_command("/newsomething", "JunctionBot") is None
 
     def test_a_command_mentioning_a_different_bot_is_not_executed(self) -> None:
         """Security regression: Telegram fans a command addressed to another
@@ -653,30 +653,30 @@ class TestBotMentionSuffix:
         regardless of whose it is would let it match our own alias and
         execute -- e.g. silently turning on YOLO auto-approval because
         someone else's bot was told to. It must instead stay unrecognised."""
-        assert parse_command("/yolo@OtherBot", "KiroCrewBot") is None
-        assert parse_command("/yolo@OtherBot on", "KiroCrewBot") is None
-        assert parse_command("/stop@OtherBot", "KiroCrewBot") is None
-        assert parse_mid_turn_override("/steer@OtherBot do this", "KiroCrewBot") == (
+        assert parse_command("/yolo@OtherBot", "JunctionBot") is None
+        assert parse_command("/yolo@OtherBot on", "JunctionBot") is None
+        assert parse_command("/stop@OtherBot", "JunctionBot") is None
+        assert parse_mid_turn_override("/steer@OtherBot do this", "JunctionBot") == (
             None,
             "/steer@OtherBot do this",
         )
-        assert is_bare_mid_turn_override("/queue@OtherBot", "KiroCrewBot") is False
+        assert is_bare_mid_turn_override("/queue@OtherBot", "JunctionBot") is False
 
     def test_a_mention_is_never_stripped_before_our_username_is_known(self) -> None:
         """Before getMe() resolves at startup, bot_username is "" -- the
         default every caller uses. No mention can be verified as ours yet, so
         none should be treated as ours (fail closed, not open)."""
-        assert parse_command("/new@KiroCrewBot") is None
-        assert parse_command("/yolo@KiroCrewBot") is None
+        assert parse_command("/new@JunctionBot") is None
+        assert parse_command("/yolo@JunctionBot") is None
 
     def test_dashboard_command_strips_bot_mention(self) -> None:
-        assert parse_command("/kirocrew@KiroCrewBot dashboard", "KiroCrewBot") == "dashboard"
+        assert parse_command("/junction@JunctionBot dashboard", "JunctionBot") == "dashboard"
         # A mention naming a different bot is not ours -- fail closed.
-        assert parse_command("/kirocrew@OtherBot dashboard", "KiroCrewBot") is None
+        assert parse_command("/junction@OtherBot dashboard", "JunctionBot") is None
 
 
 class TestParseDashboardTtl:
-    """Telegram's half of ``/kirocrew dashboard [<ttl>]`` is the WORD COUNT.
+    """Telegram's half of ``/junction dashboard [<ttl>]`` is the WORD COUNT.
 
     The TTL vocabulary, the default and the formatter are channel-neutral and live
     in ``messaging/commands.py`` (pinned in ``test_messaging_commands.py``); what
@@ -690,30 +690,30 @@ class TestParseDashboardTtl:
 
     def test_default_ttl(self) -> None:
         """Default is 1 hour when no TTL specified."""
-        assert self._ttl("/kirocrew dashboard") == 3600
+        assert self._ttl("/junction dashboard") == 3600
 
     def test_hours(self) -> None:
-        assert self._ttl("/kirocrew dashboard 2h") == 7200
-        assert self._ttl("/kirocrew dashboard 5H") == 18000
+        assert self._ttl("/junction dashboard 2h") == 7200
+        assert self._ttl("/junction dashboard 5H") == 18000
 
     def test_minutes(self) -> None:
-        assert self._ttl("/kirocrew dashboard 30m") == 1800
-        assert self._ttl("/kirocrew dashboard 90M") == 5400
+        assert self._ttl("/junction dashboard 30m") == 1800
+        assert self._ttl("/junction dashboard 90M") == 5400
 
     def test_invalid_ttl_uses_default(self) -> None:
         """Invalid TTL format falls back to 1 hour."""
-        assert self._ttl("/kirocrew dashboard xyz") == 3600
-        assert self._ttl("/kirocrew dashboard") == 3600
+        assert self._ttl("/junction dashboard xyz") == 3600
+        assert self._ttl("/junction dashboard") == 3600
 
     def test_the_argument_starts_after_both_command_tokens(self) -> None:
         # A channel whose dashboard command is ONE token must not inherit this
         # offset, which is why the shared parser takes the argument, not the text.
-        assert parse_dashboard_argument("/kirocrew dashboard 2h") == "2h"
+        assert parse_dashboard_argument("/junction dashboard 2h") == "2h"
         # Telegram's clients append @BotUsername to a slash command in any chat
         # with more than one participant, which must not shift the argument.
-        assert parse_dashboard_argument("/kirocrew@KiroCrewBot dashboard 2h") == "2h"
-        assert parse_dashboard_argument("/kirocrew dashboard") == ""
-        assert parse_dashboard_argument("/kirocrew") == ""
+        assert parse_dashboard_argument("/junction@JunctionBot dashboard 2h") == "2h"
+        assert parse_dashboard_argument("/junction dashboard") == ""
+        assert parse_dashboard_argument("/junction") == ""
 
 
 class TestCommandCatalogue:
@@ -752,7 +752,7 @@ class TestCommandCatalogue:
     def test_malformed_row_is_dropped_not_sent(self, monkeypatch: Any) -> None:
         # Telegram rejects the WHOLE array on one bad row, so a malformed entry
         # must be skipped rather than cost the user the entire menu.
-        from kiro_crew.telegram import commands as tg_commands
+        from junction.telegram import commands as tg_commands
 
         monkeypatch.setattr(
             tg_commands,
@@ -979,7 +979,7 @@ class TestApiDurationMetric:
 
         # Patch the name in the CLIENT's namespace: get_recorder is imported at
         # module scope there, so patching metrics.provider would not be seen.
-        monkeypatch.setattr("kiro_crew.telegram.client.get_recorder", lambda: _Rec(), raising=True)
+        monkeypatch.setattr("junction.telegram.client.get_recorder", lambda: _Rec(), raising=True)
         return seen
 
     def test_long_poll_is_not_recorded(self, monkeypatch: Any) -> None:
@@ -2523,7 +2523,7 @@ def _deny_channel_profile(monkeypatch, tmp_path, allow=("slack",)):
     store so the next resolve sees the profile."""
     import json
 
-    from kiro_crew.platform import governance_profiles as gp
+    from junction.platform import governance_profiles as gp
 
     pdir = tmp_path / "profiles"
     pdir.mkdir(exist_ok=True)
@@ -2545,7 +2545,7 @@ class TestDispatcher:
         # HIGH (GPT round-4 #2): a channels DENY must stop handle_message from
         # driving a turn. Regression-locks the Telegram inbound chokepoint —
         # removing the gate makes this test fail (a turn would run).
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         _deny_channel_profile(monkeypatch, tmp_path)
         d, cli, sess = _dispatcher({7})
@@ -2565,7 +2565,7 @@ class TestDispatcher:
     def test_channels_deny_drops_callback_approval(self, tmp_path, monkeypatch) -> None:
         # HIGH (GPT round-4 #2): a callback press must not resolve a pending tool
         # approval on a denied channel. Regression-locks the on_callback gate.
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         _deny_channel_profile(monkeypatch, tmp_path)
         d, cli, _ = _dispatcher({7})
@@ -2603,7 +2603,7 @@ class TestDispatcher:
         # must STILL resolve the pending approval as refused (False) — a reject is a
         # denial, and dropping it would strand the pending future until timeout.
         # Only APPROVE is gated out.
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         _deny_channel_profile(monkeypatch, tmp_path)
         d, cli, _ = _dispatcher({7})
@@ -2648,12 +2648,12 @@ class TestDispatcher:
 
         asyncio.run(_go())
         assert cli.final_text() == "Answer: hello world"
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
-        assert sess.released == ["telegram:kirocrew:direct:7"]
+        assert sess.successes == ["telegram:junction:direct:7"]
+        assert sess.released == ["telegram:junction:direct:7"]
 
-    def test_agent_resolves_to_kirocrew_when_unset(self) -> None:
-        # agent=None + empty default_agent must fall back to "kirocrew" so the
-        # session loads kirocrew-core (spawn_run), not kiro-cli's bare default.
+    def test_agent_resolves_to_junction_when_unset(self) -> None:
+        # agent=None + empty default_agent must fall back to "junction" so the
+        # session loads junction-core (spawn_run), not kiro-cli's bare default.
         d, cli, sess = _dispatcher({7})
 
         async def _go() -> None:
@@ -2662,7 +2662,7 @@ class TestDispatcher:
             )
 
         asyncio.run(_go())
-        assert sess.last_agent == "kirocrew"
+        assert sess.last_agent == "junction"
 
     def test_cold_start_failure_finalizes_and_skips_release(self) -> None:
         # If get_or_create raises (cold-start), the turn must still be finalized
@@ -2815,8 +2815,8 @@ class TestDispatcher:
             )
 
         asyncio.run(_go())
-        assert sess.acquired == ["telegram:kirocrew:direct:7"]  # acquired the turn semaphore
-        assert sess.released == ["telegram:kirocrew:direct:7"]  # and released it in finally
+        assert sess.acquired == ["telegram:junction:direct:7"]  # acquired the turn semaphore
+        assert sess.released == ["telegram:junction:direct:7"]  # and released it in finally
         assert any("Compact" in s[0] for s in cli.sent) or any("Compact" in e[1] for e in cli.edits)
 
     def test_compact_summary_body_is_not_sent(self) -> None:
@@ -2979,7 +2979,7 @@ class TestClientSession:
         # Concurrent _api callers (polling loop + handler tasks) must share ONE
         # ClientSession — the double-checked lock in _ensure_session prevents a
         # leaked duplicate.
-        import kiro_crew.telegram.client as client_mod
+        import junction.telegram.client as client_mod
 
         created = {"n": 0}
 
@@ -3004,7 +3004,7 @@ class TestTelegramTokenRedaction:
     """#1 — a Telegram bot token echoed in output must be scrubbed."""
 
     def test_bot_token_is_redacted(self) -> None:
-        from kiro_crew.security import redact_credentials
+        from junction.security import redact_credentials
 
         token = "8412345678:AAExampleSecretTokenValue_1234567890abcd"
         cleaned, warnings = redact_credentials(f"my token is {token} ok")
@@ -3013,7 +3013,7 @@ class TestTelegramTokenRedaction:
         assert warnings  # at least one redaction warning recorded
 
     def test_benign_short_colon_pairs_not_redacted(self) -> None:
-        from kiro_crew.security import redact_credentials
+        from junction.security import redact_credentials
 
         # Too few digits (<6) and too-short suffix (<30) to match the token
         # shape — must not be over-redacted.
@@ -3026,7 +3026,7 @@ class TestConfigMasking:
     """#5 — sensitive config fields are masked in the API response only."""
 
     def test_bot_token_masked_in_response(self) -> None:
-        from kiro_crew.dashboard.handlers.core import _SENSITIVE_MASK, _masked_config_dict
+        from junction.dashboard.handlers.core import _SENSITIVE_MASK, _masked_config_dict
 
         class _Cfg:
             def to_dict(self) -> dict:
@@ -3044,7 +3044,7 @@ class TestConfigMasking:
         assert out["telegram"]["allowed_user_ids"] == [7]
 
     def test_empty_token_not_masked(self) -> None:
-        from kiro_crew.dashboard.handlers.core import _SENSITIVE_MASK, _masked_config_dict
+        from junction.dashboard.handlers.core import _SENSITIVE_MASK, _masked_config_dict
 
         class _Cfg:
             def to_dict(self) -> dict:
@@ -3068,7 +3068,7 @@ class TestTelegramMidTurn:
         second turn -- deferring without looping just strands it until the user
         happens to send something else.
         """
-        from kiro_crew.messaging.attachments import IngestLimits
+        from junction.messaging.attachments import IngestLimits
 
         cap = IngestLimits().max_attachments
         d, cli, sess = _dispatcher({7})
@@ -3378,7 +3378,7 @@ class TestTelegramMidTurn:
             )
 
         asyncio.run(_go())
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
+        assert sess.successes == ["telegram:junction:direct:7"]
         assert sess._gp.steered == []
 
     def test_drain_collapses_queued_into_one_turn(self) -> None:
@@ -3386,12 +3386,12 @@ class TestTelegramMidTurn:
         sess.queued = [("t1", "first", {}), ("t2", "second", {})]
 
         async def _go() -> None:
-            await d._drain_queue("telegram:kirocrew:direct:7", 7, 7)
+            await d._drain_queue("telegram:junction:direct:7", 7, 7)
 
         asyncio.run(_go())
         # All queued messages collapse into ONE combined turn (drain=False ->
         # no recursion), and the queue is emptied.
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
+        assert sess.successes == ["telegram:junction:direct:7"]
         assert sess.queued == []
 
     def test_queue_receipt_collapses_into_single_bubble(self) -> None:
@@ -3445,7 +3445,7 @@ class TestTelegramMidTurn:
         # profile load: otherwise whichever checks arrive while the first load is
         # in progress are denied before they ever reach the receipt queue.
         monkeypatch.setattr(
-            "kiro_crew.telegram.transport_dispatch.channel_inbound_permitted",
+            "junction.telegram.transport_dispatch.channel_inbound_permitted",
             AsyncMock(return_value=True),
         )
 
@@ -3490,7 +3490,7 @@ class TestTelegramMidTurn:
         async def _go() -> None:
             d.handle_message = _spy  # type: ignore[assignment]
             try:
-                await d._drain_queue("telegram:kirocrew:direct:7", 7, 7)
+                await d._drain_queue("telegram:junction:direct:7", 7, 7)
             finally:
                 d.handle_message = original  # type: ignore[assignment]
 
@@ -3505,7 +3505,7 @@ class TestTelegramMidTurn:
 
     def test_flip_count_reflects_answered_not_full_queue(self) -> None:
         d, cli, sess = _dispatcher({7})
-        key = "telegram:kirocrew:direct:7"
+        key = "telegram:junction:direct:7"
         sess._busy = True
         d.cfg.messaging.queue_mode = "queue"
 
@@ -3528,7 +3528,7 @@ class TestTelegramMidTurn:
         sess._busy = False  # turn ended before the mid-turn message could queue
 
         async def _go() -> bool:
-            return await d._enqueue_with_receipt("telegram:kirocrew:direct:7", 7, "late message")
+            return await d._enqueue_with_receipt("telegram:junction:direct:7", 7, "late message")
 
         queued = asyncio.run(_go())
         # enqueue is a no-op once the semaphore is free -> not queued, and no
@@ -3543,12 +3543,12 @@ class TestLinkCommand:
         # Compat-only spelling: bindings written before session identity was
         # unified live on dashboard:<channel key with non-word chars folded>.
         assert (
-            legacy_dashboard_mirror_key("telegram:kirocrew:direct:8743158320:gen3")
-            == "dashboard:telegram_kirocrew_direct_8743158320_gen3"
+            legacy_dashboard_mirror_key("telegram:junction:direct:8743158320:gen3")
+            == "dashboard:telegram_junction_direct_8743158320_gen3"
         )
         assert (
-            legacy_dashboard_mirror_key("telegram:kirocrew:direct:7")
-            == "dashboard:telegram_kirocrew_direct_7"
+            legacy_dashboard_mirror_key("telegram:junction:direct:7")
+            == "dashboard:telegram_junction_direct_7"
         )
 
     def test_parse_link_unlink(self) -> None:
@@ -3814,7 +3814,7 @@ class TestAutomaticOriginMirror:
         sess.set_mirror_link = _refuse  # type: ignore[method-assign]
         self._turn(d, text="hello world")
         assert cli.final_text() == "Answer: hello world"
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
+        assert sess.successes == ["telegram:junction:direct:7"]
 
     def test_the_binding_write_stays_on_the_loop_thread(self) -> None:
         # The write is BOUNDED — one whole-map rewrite, on a conversation's first
@@ -3867,8 +3867,8 @@ class TestAutomaticOriginMirror:
 def test_receipt_text_caps_displayed_items() -> None:
     # A large mid-turn burst must not grow the rendered receipt unbounded: only
     # the first _RECEIPT_MAX_ITEMS are listed verbatim; the count stays true.
-    from kiro_crew.messaging.queue_receipt import RECEIPT_MAX_ITEMS as _RECEIPT_MAX_ITEMS
-    from kiro_crew.messaging.queue_receipt import receipt_text as _receipt_text
+    from junction.messaging.queue_receipt import RECEIPT_MAX_ITEMS as _RECEIPT_MAX_ITEMS
+    from junction.messaging.queue_receipt import receipt_text as _receipt_text
 
     texts = [f"msg number {i}" for i in range(_RECEIPT_MAX_ITEMS + 3)]
     out = _receipt_text(texts)
@@ -4115,7 +4115,7 @@ class TestForumDispatchRouting:
     def test_forum_topic_session_key(self) -> None:
         d, cli, sess = _dispatcher({7})
         asyncio.run(d.handle_message(self._forum_msg("5")))
-        assert sess.successes == ["telegram:kirocrew:forum:-1001234567890:5"]
+        assert sess.successes == ["telegram:junction:forum:-1001234567890:5"]
 
     # NB: there is deliberately NO "General session key" routing test — a
     # threadless supergroup (General) message is denied at the forum gate
@@ -4131,7 +4131,7 @@ class TestForumDispatchRouting:
                 InboundMessage(channel_type="telegram", user_id="7", conversation_id="7", text="hi")
             )
         )
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
+        assert sess.successes == ["telegram:junction:direct:7"]
 
     def test_new_in_topic_isolates_generation(self) -> None:
         d, cli, sess = _dispatcher({7})
@@ -4151,7 +4151,7 @@ class TestForumDispatchRouting:
             cli,
             -1001234567890,
             TELEGRAM_CAPABILITIES,  # type: ignore[arg-type]
-            session_key="telegram:kirocrew:forum:-1001234567890:5",
+            session_key="telegram:junction:forum:-1001234567890:5",
             message_thread_id=5,
         )
 
@@ -4169,21 +4169,21 @@ class TestForumDispatchRouting:
 class TestForumConfig:
     @staticmethod
     def _load(data: dict) -> Any:
-        """Load a KiroCrewConfig from an in-memory dict via a temp config file
+        """Load a JunctionConfig from an in-memory dict via a temp config file
         (mirrors the canonical loader entrypoint used across the config tests)."""
         import json
         import tempfile
         import unittest.mock
         from pathlib import Path
 
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
             tmp = Path(f.name)
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
-                return KiroCrewConfig.load()
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
+                return JunctionConfig.load()
         finally:
             tmp.unlink(missing_ok=True)
 
@@ -4261,7 +4261,7 @@ class TestForumQueueDrain:
 
     def test_queued_forum_message_drains_under_forum_key(self) -> None:
         d, cli, sess = _dispatcher({7})
-        forum_key = "telegram:kirocrew:forum:-1001234567890:5"
+        forum_key = "telegram:junction:forum:-1001234567890:5"
         # Simulate one message queued mid-turn for this Topic.
         sess.queued.append(("t0", "queued in the topic", {}))
         asyncio.run(
@@ -4276,14 +4276,14 @@ class TestForumQueueDrain:
         # The drained turn resolved to the FORUM key (carried via chat_type +
         # thread on the synthetic message), NOT the DM key.
         assert sess.successes == [forum_key]
-        assert "telegram:kirocrew:direct:7" not in sess.successes
+        assert "telegram:junction:direct:7" not in sess.successes
 
     def test_dm_queue_drains_under_dm_key_regression(self) -> None:
         # HARD INVARIANT: a DM drain still resolves to the DM key (param defaults).
         d, cli, sess = _dispatcher({7})
         sess.queued.append(("t0", "queued dm", {}))
-        asyncio.run(d._drain_queue("telegram:kirocrew:direct:7", 7, 7))
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
+        asyncio.run(d._drain_queue("telegram:junction:direct:7", 7, 7))
+        assert sess.successes == ["telegram:junction:direct:7"]
 
 
 class TestForumCallbackGate:
@@ -4310,7 +4310,7 @@ class TestForumCallbackGate:
         asyncio.run(d.on_callback(self._opt_cb()))  # type: ignore[arg-type]
         # Acked, and the [OPTIONS:] choice re-dispatched under the FORUM key.
         assert cli.answered == ["qf"]
-        assert sess.successes == ["telegram:kirocrew:forum:-1001234567890:5"]
+        assert sess.successes == ["telegram:junction:forum:-1001234567890:5"]
         # Every callback-originated send threaded back into the Topic.
         assert cli.send_threads and all(t == 5 for t in cli.send_threads)
 
@@ -4407,7 +4407,7 @@ class TestRichMessageAvailabilityLatch:
     """sendRichMessage learns whether the server implements the method."""
 
     def _client(self):
-        from kiro_crew.telegram.client import TelegramClient
+        from junction.telegram.client import TelegramClient
 
         return TelegramClient(token="12345:testtoken")
 
@@ -4454,7 +4454,7 @@ class TestRichMessageAvailabilityLatch:
         # 400 is ambiguous: a wrong payload shape fails EVERY call, while one
         # oversized table fails only itself. Latch on the streak so a single bad
         # message cannot disable rich rendering for the whole process.
-        from kiro_crew.telegram.client import _RICH_400_LATCH
+        from junction.telegram.client import _RICH_400_LATCH
 
         c = self._client()
         self._stub(c, monkeypatch, [400] * _RICH_400_LATCH)
@@ -4467,7 +4467,7 @@ class TestRichMessageAvailabilityLatch:
     def test_a_successful_send_clears_the_400_streak(self, monkeypatch) -> None:
         # Two unrelated bad tables spread over a session must not accumulate
         # into a latch when good tables send in between.
-        from kiro_crew.telegram.client import _RICH_400_LATCH
+        from junction.telegram.client import _RICH_400_LATCH
 
         c = self._client()
         self._stub(c, monkeypatch, [400, None] * _RICH_400_LATCH)
@@ -4481,7 +4481,7 @@ class TestClientHealth:
     """get_me auth gate + on_status polling-health callback."""
 
     def _client(self):
-        from kiro_crew.telegram.client import TelegramClient
+        from junction.telegram.client import TelegramClient
 
         return TelegramClient(token="12345:testtoken")
 
@@ -4490,14 +4490,14 @@ class TestClientHealth:
 
         async def _call_raw(method, params, timeout=15):
             assert method == "getMe"
-            return {"ok": True, "result": {"id": 42, "username": "kirocrew_bot"}}
+            return {"ok": True, "result": {"id": 42, "username": "junction_bot"}}
 
         monkeypatch.setattr(client, "_call_raw", _call_raw)
         result = asyncio.run(client.get_me())
-        assert result["username"] == "kirocrew_bot"
+        assert result["username"] == "junction_bot"
 
     def test_get_me_raises_auth_error_on_rejection(self, monkeypatch) -> None:
-        from kiro_crew.telegram.client import TelegramAuthError
+        from junction.telegram.client import TelegramAuthError
 
         client = self._client()
 
@@ -4600,7 +4600,7 @@ class TestTelegramSessionPidPublish:
         sess._pid = 4242  # SessionManager.get_pid -> kiro-cli host PID
 
         async def _go() -> None:
-            with patch("kiro_crew.telegram.transport_dispatch.publish_turn_identity") as pub:
+            with patch("junction.telegram.transport_dispatch.publish_turn_identity") as pub:
                 await d.handle_message(
                     InboundMessage(
                         channel_type="telegram",
@@ -4609,7 +4609,7 @@ class TestTelegramSessionPidPublish:
                         text="hi",
                     )
                 )
-                pub.assert_awaited_once_with(sess, "telegram:kirocrew:direct:7")
+                pub.assert_awaited_once_with(sess, "telegram:junction:direct:7")
 
         asyncio.run(_go())
 
@@ -4671,7 +4671,7 @@ class TestYoloCommand:
     """/yolo drives the SAME process-wide grant as the dashboard and Slack."""
 
     def _reset(self) -> Any:
-        from kiro_crew.safety_override import safety_override
+        from junction.safety_override import safety_override
 
         so = safety_override()
         if so.is_active():
@@ -4758,7 +4758,7 @@ class TestYoloCommand:
                 return "ok"
 
         try:
-            with patch("kiro_crew.telegram.transport_dispatch.TurnDriver", _Recorder):
+            with patch("junction.telegram.transport_dispatch.TurnDriver", _Recorder):
                 asyncio.run(d.handle_message(_dm("hi")))
             predicate = captured[0]
             assert predicate is not None
@@ -4926,7 +4926,7 @@ class TestBareMidTurnDirective:
     def test_queue_with_a_body_still_runs_as_content(self) -> None:
         d, _cli, sess = _dispatcher({7})
         asyncio.run(d.handle_message(_dm("/queue do the thing")))
-        assert sess.successes == ["telegram:kirocrew:direct:7"]
+        assert sess.successes == ["telegram:junction:direct:7"]
 
 
 class TestSetMyCommands:

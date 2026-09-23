@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.agent_discovery import (
+from junction.agent_discovery import (
     _extract_skills,
     agent_skill_globs,
     clear_list_agents_cache,
@@ -29,8 +29,8 @@ from kiro_crew.agent_discovery import (
     list_agents,
     skill_resource_uris,
 )
-from kiro_crew.context import ContextBuilder
-from kiro_crew.dashboard.handlers._shared import (
+from junction.context import ContextBuilder
+from junction.dashboard.handlers._shared import (
     agent_skill_keys,
     agent_unmanaged_skill_uris,
     apply_skill_mapping,
@@ -38,9 +38,9 @@ from kiro_crew.dashboard.handlers._shared import (
     skill_key_for_uri,
     skill_uri_for_key,
 )
-from kiro_crew.learn import LessonStore
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.learn import LessonStore
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +50,7 @@ def _owner_caller(monkeypatch):
     its own enumerate-the-invariant coverage in
     test_agents_endpoints_owner_auth.py."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
@@ -70,7 +70,7 @@ def fake_home(tmp_path, monkeypatch):
     # Path.home patch alone does not redirect the default-argument lookups that
     # agent_skill_globs / list_agents use.
     monkeypatch.setattr(
-        "kiro_crew.agent_discovery._KIRO_AGENTS_DIR", tmp_path / ".kiro" / "agents"
+        "junction.agent_discovery._KIRO_AGENTS_DIR", tmp_path / ".kiro" / "agents"
     )
     return tmp_path
 
@@ -306,7 +306,7 @@ class TestEnumerateSkillCatalog:
         creds = fake_home / ".aws"
         _make_skill(creds, "looks-legit")
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers._shared._skill_key_roots",
+            "junction.dashboard.handlers._shared._skill_key_roots",
             lambda state, session_key="": [("kiro-user/", creds)],
         )
         assert enumerate_skill_catalog(_State()) == {}
@@ -422,8 +422,8 @@ class TestPatchRejectionLeavesStateIntact:
     def test_unknown_skill_does_not_freeze_the_model(self, fake_home, monkeypatch):
         import asyncio
 
-        from kiro_crew import agent_state
-        from kiro_crew.dashboard.handlers import agents as agents_handlers
+        from junction import agent_state
+        from junction.dashboard.handlers import agents as agents_handlers
 
         _make_skill(fake_home / ".kiro" / "skills", "one")
         d = _agents_dir(fake_home)
@@ -431,7 +431,7 @@ class TestPatchRejectionLeavesStateIntact:
         (d / "victim.json").write_text(json.dumps(spec), encoding="utf-8")
 
         monkeypatch.setattr(agents_handlers, "KIRO_AGENTS_DIR", d, raising=False)
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", d, raising=False)
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", d, raising=False)
 
         managed_calls: list[tuple[str, bool]] = []
         monkeypatch.setattr(
@@ -460,11 +460,11 @@ class TestPatchRejectionLeavesStateIntact:
         follows raised TypeError, surfacing as HTTP 500."""
         import asyncio
 
-        from kiro_crew.dashboard.handlers import agents as agents_handlers
+        from junction.dashboard.handlers import agents as agents_handlers
 
         d = _agents_dir(fake_home)
         (d / "victim.json").write_text(json.dumps({"name": "victim"}), encoding="utf-8")
-        monkeypatch.setattr("kiro_crew.agent.KIRO_AGENTS_DIR", d, raising=False)
+        monkeypatch.setattr("junction.agent.KIRO_AGENTS_DIR", d, raising=False)
 
         for body in (["skills"], "skills", 42):
             request = _FakeRequest("PATCH", {"name": "victim"}, body, _State())
@@ -477,14 +477,14 @@ class TestExtraSkillPathsAreAbsolute:
         """A relative ``skills.extra_paths`` entry would key the catalog by a
         relative root, so the persisted ``skill://`` URI would resolve against
         whatever cwd the next session starts in."""
-        from kiro_crew.dashboard.handlers._shared import _skill_key_roots
+        from junction.dashboard.handlers._shared import _skill_key_roots
 
         class _Cfg:
             class skills:
                 extra_paths = ["relative/skills"]
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers._shared.KiroCrewConfig",
+            "junction.dashboard.handlers._shared.JunctionConfig",
             type("C", (), {"load": staticmethod(lambda: _Cfg)}),
         )
         roots = [root for _, root in _skill_key_roots(_State())]
@@ -617,17 +617,17 @@ class TestSessionContextGate:
         )
         assert "[Skills:]" not in ctx
 
-    def test_mapped_kirocrew_is_scoped_not_full_catalog(self, fake_home):
-        """The mapping bounds the kirocrew agent too: before this feature it
+    def test_mapped_junction_is_scoped_not_full_catalog(self, fake_home):
+        """The mapping bounds the junction agent too: before this feature it
         always received the entire catalog."""
         skills_root = fake_home / "skills"
         _make_skill(skills_root, "alpha")
         _make_skill(skills_root, "beta")
         d = _agents_dir(fake_home)
-        (d / "kirocrew.json").write_text(
+        (d / "junction.json").write_text(
             json.dumps(
                 {
-                    "name": "kirocrew",
+                    "name": "junction",
                     "resources": [f"skill://{(skills_root / 'alpha' / 'SKILL.md').as_posix()}"],
                 }
             ),
@@ -635,22 +635,22 @@ class TestSessionContextGate:
         )
 
         ctx = self._builder(fake_home, skills_root).build_session_context(
-            agent="kirocrew", provider_type="claude_code"
+            agent="junction", provider_type="claude_code"
         )
         assert "alpha" in ctx
         assert "beta" not in ctx
 
-    def test_mapped_kirocrew_on_kiro_defers_to_native_load(self, fake_home):
+    def test_mapped_junction_on_kiro_defers_to_native_load(self, fake_home):
         """On the kiro backend the mapped SKILL.md files are loaded by kiro-cli
-        from ``resources``, so KiroCrew must not inject them a second time."""
+        from ``resources``, so Junction must not inject them a second time."""
         skills_root = fake_home / "skills"
         _make_skill(skills_root, "alpha")
         _make_skill(skills_root, "beta")
         d = _agents_dir(fake_home)
-        (d / "kirocrew.json").write_text(
+        (d / "junction.json").write_text(
             json.dumps(
                 {
-                    "name": "kirocrew",
+                    "name": "junction",
                     "resources": [f"skill://{(skills_root / 'alpha' / 'SKILL.md').as_posix()}"],
                 }
             ),
@@ -658,17 +658,17 @@ class TestSessionContextGate:
         )
 
         ctx = self._builder(fake_home, skills_root).build_session_context(
-            agent="kirocrew", provider_type="acp"
+            agent="junction", provider_type="acp"
         )
         assert "[Skills:]" not in ctx
 
-    def test_unmapped_kirocrew_still_gets_everything(self, fake_home):
+    def test_unmapped_junction_still_gets_everything(self, fake_home):
         skills_root = fake_home / "skills"
         _make_skill(skills_root, "alpha")
         _make_skill(skills_root, "beta")
         _agents_dir(fake_home)
 
         ctx = self._builder(fake_home, skills_root).build_session_context(
-            agent="kirocrew", provider_type="claude_code"
+            agent="junction", provider_type="claude_code"
         )
         assert "alpha" in ctx and "beta" in ctx

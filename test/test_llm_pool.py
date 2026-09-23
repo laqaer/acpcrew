@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.knowledge.llm_pool import (
+from junction.knowledge.llm_pool import (
     DEFAULT_IDLE_TTL_SECS,
     WORKER_RECYCLE_CALLS,
     WORKER_RECYCLE_PCT,
@@ -32,15 +32,15 @@ def _config_dir_tracks_patched_home(monkeypatch):
     and ``_read_config`` now reads ``config_dir()/config.json`` rather than
     ``Path.home()/".kirocrew"/"config.json"``. These tests patch
     ``llm_pool.Path.home`` per-test and write ``config.json`` under
-    ``<home>/.kirocrew`` — but ``config_dir()`` reads ``KIROCREW_HOME`` (pinned to
-    a *different* tmp dir by the conftest ``_isolate_kirocrew_home`` fixture), so
+    ``<home>/.kirocrew`` — but ``config_dir()`` reads ``JUNCTION_HOME`` (pinned to
+    a *different* tmp dir by the conftest ``_isolate_junction_home`` fixture), so
     without this redirect the config would never be found. Redirect
     ``config_dir`` to ``Path.home()/".kirocrew"`` (evaluated lazily, so it tracks
     whatever ``Path.home()`` each test patches), preserving the existing
     ``.kirocrew/config.json`` layout the tests build.
     """
     monkeypatch.setattr(
-        "kiro_crew.knowledge.llm_pool.config_dir", lambda: Path.home() / ".kirocrew"
+        "junction.knowledge.llm_pool.config_dir", lambda: Path.home() / ".kirocrew"
     )
 
 # ---------------------------------------------------------------------------
@@ -492,7 +492,7 @@ class TestReadConfig:
         mock_client = AsyncMock()
         mock_client.is_ready = True
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=mock_client) as mk:
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=mock_client) as mk:
             worker = AcpWorker()
             await worker.start()
         assert mk.call_args.kwargs["sandbox_mode"] == "off"
@@ -505,7 +505,7 @@ class TestReadConfig:
         mock_client = AsyncMock()
         mock_client.is_ready = True
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=mock_client) as mk:
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=mock_client) as mk:
             worker = AcpWorker()
             await worker.start()
         assert mk.call_args.kwargs["sandbox_mode"] == "auto"
@@ -649,7 +649,7 @@ class TestAcpWorker:
         fresh = AsyncMock()
         fresh.is_ready = True
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=fresh):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=fresh):
             worker = AcpWorker()
             worker._client = stale
             await worker.start()
@@ -664,7 +664,7 @@ class TestAcpWorker:
         fresh = AsyncMock()
         fresh.is_ready = True
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=fresh):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=fresh):
             worker = AcpWorker()
             worker._client = stale
             await worker.start()
@@ -682,10 +682,10 @@ class TestAcpWorker:
         registered: list[int] = []
         unregistered: list[int] = []
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=fresh), \
-             patch("kiro_crew.knowledge.llm_pool.register_protected_pid",
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=fresh), \
+             patch("junction.knowledge.llm_pool.register_protected_pid",
                    side_effect=registered.append), \
-             patch("kiro_crew.knowledge.llm_pool.unregister_protected_pid",
+             patch("junction.knowledge.llm_pool.unregister_protected_pid",
                    side_effect=unregistered.append):
             worker = AcpWorker()
             await worker.start()
@@ -706,10 +706,10 @@ class TestAcpWorker:
         registered: list[int] = []
         unregistered: list[int] = []
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", side_effect=[first, second]), \
-             patch("kiro_crew.knowledge.llm_pool.register_protected_pid",
+             patch("junction.knowledge.llm_pool.AcpClient", side_effect=[first, second]), \
+             patch("junction.knowledge.llm_pool.register_protected_pid",
                    side_effect=registered.append), \
-             patch("kiro_crew.knowledge.llm_pool.unregister_protected_pid",
+             patch("junction.knowledge.llm_pool.unregister_protected_pid",
                    side_effect=unregistered.append):
             worker = AcpWorker()
             await worker.start()     # register 100
@@ -741,7 +741,7 @@ class TestAcpWorkerEffort:
         client.ensure_ready.side_effect = lambda: events.append("ready")
         client.send_command.side_effect = lambda *_args, **_kwargs: events.append("set")
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=client):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=client):
             worker = AcpWorker(effort="high")
             await worker.start()
 
@@ -754,7 +754,7 @@ class TestAcpWorkerEffort:
     async def test_applies_claude_effort_via_config_option(self, tmp_path):
         client = _mock_effort_client(["low", "medium", "high"], claude=True)
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=client):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=client):
             worker = AcpWorker(effort="high")
             await worker.start()
 
@@ -767,7 +767,7 @@ class TestAcpWorkerEffort:
         first = _mock_effort_client(["low", "medium", "high"])
         second = _mock_effort_client(["low", "medium", "high"])
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", side_effect=[first, second]):
+             patch("junction.knowledge.llm_pool.AcpClient", side_effect=[first, second]):
             worker = AcpWorker(effort="high")
             await worker.start()
             await worker.start()
@@ -779,7 +779,7 @@ class TestAcpWorkerEffort:
     async def test_downgrades_to_highest_supported_lower_level(self, tmp_path, caplog):
         client = _mock_effort_client(["low", "medium"])
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=client):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=client):
             worker = AcpWorker(effort="high")
             await worker.start()
 
@@ -793,7 +793,7 @@ class TestAcpWorkerEffort:
     ):
         client = _mock_effort_client([], supports=False, claude=True)
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=client):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=client):
             worker = AcpWorker(effort="high")
             await worker.start()
 
@@ -809,7 +809,7 @@ class TestAcpWorkerEffort:
         client = _mock_effort_client(["low", "medium", "high"])
         client.send_command.side_effect = RuntimeError("effort command rejected")
         with patch("pathlib.Path.home", return_value=tmp_path), \
-             patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=client):
+             patch("junction.knowledge.llm_pool.AcpClient", return_value=client):
             worker = AcpWorker(effort="high")
             await worker.start()
 
@@ -825,7 +825,7 @@ class TestLLMPoolEffort:
         pool._provider_type = "acp"
         pool._sandbox_mode = "auto"
         fake_worker = AsyncMock()
-        with patch("kiro_crew.knowledge.llm_pool.AcpWorker", return_value=fake_worker) as worker_type:
+        with patch("junction.knowledge.llm_pool.AcpWorker", return_value=fake_worker) as worker_type:
             result = await pool._create_worker()
 
         worker_type.assert_called_once_with(sandbox_mode="auto", effort="high")
@@ -837,7 +837,7 @@ class TestLLMPoolEffort:
         pool._provider_type = "acp"
         pool._sandbox_mode = "auto"
         fake_worker = AsyncMock()
-        with patch("kiro_crew.knowledge.llm_pool.AcpWorker", return_value=fake_worker) as worker_type:
+        with patch("junction.knowledge.llm_pool.AcpWorker", return_value=fake_worker) as worker_type:
             await pool._create_worker()
 
         worker_type.assert_called_once_with(sandbox_mode="auto", effort=None)
@@ -854,7 +854,7 @@ class TestLLMPoolEffort:
 
         pool._create_worker = _mock_create  # type: ignore[assignment]
         with patch(
-            "kiro_crew.knowledge.llm_pool._read_config",
+            "junction.knowledge.llm_pool._read_config",
             return_value={"knowledge": {"extraction_pool_size": 3}},
         ):
             await pool.start()
@@ -881,7 +881,7 @@ class TestCCWorker:
 
     @pytest.mark.asyncio
     async def test_start_raises_without_claude(self):
-        with patch("kiro_crew.knowledge.llm_pool.shutil.which", return_value=None):
+        with patch("junction.knowledge.llm_pool.shutil.which", return_value=None):
             worker = CCWorker()
             with pytest.raises(RuntimeError, match="claude CLI not found"):
                 await worker.start()
@@ -895,7 +895,7 @@ class TestCCWorker:
 class TestFetchUrlContent:
     @pytest.mark.asyncio
     async def test_fetch_returns_stripped_content(self):
-        from kiro_crew.knowledge.agent_fetch import fetch_url_content
+        from junction.knowledge.agent_fetch import fetch_url_content
 
         pool = _make_pool_with_fake_workers(pool_size=1, responses=["  This is a document with enough content to pass the minimum length validation check.  "])
         result = await fetch_url_content("https://example.com/doc", pool)
@@ -903,7 +903,7 @@ class TestFetchUrlContent:
 
     @pytest.mark.asyncio
     async def test_fetch_raises_on_empty(self):
-        from kiro_crew.knowledge.agent_fetch import fetch_url_content
+        from junction.knowledge.agent_fetch import fetch_url_content
 
         pool = _make_pool_with_fake_workers(pool_size=1, responses=[""])
         with pytest.raises(RuntimeError, match="empty content"):
@@ -911,7 +911,7 @@ class TestFetchUrlContent:
 
     @pytest.mark.asyncio
     async def test_fetch_raises_on_whitespace_only(self):
-        from kiro_crew.knowledge.agent_fetch import fetch_url_content
+        from junction.knowledge.agent_fetch import fetch_url_content
 
         pool = _make_pool_with_fake_workers(pool_size=1, responses=["   \n  "])
         with pytest.raises(RuntimeError, match="empty content"):
@@ -1274,9 +1274,9 @@ class TestWorkerConversationRecycle:
         # process-global registry, and a real registration leaked from a test
         # makes _collect_active_pids report a non-empty protected set to whatever
         # else shares this worker.
-        with patch("kiro_crew.knowledge.llm_pool.AcpClient", return_value=new_client), \
-             patch("kiro_crew.knowledge.llm_pool.register_protected_pid"), \
-             patch("kiro_crew.knowledge.llm_pool.unregister_protected_pid"):
+        with patch("junction.knowledge.llm_pool.AcpClient", return_value=new_client), \
+             patch("junction.knowledge.llm_pool.register_protected_pid"), \
+             patch("junction.knowledge.llm_pool.unregister_protected_pid"):
             await worker.reset_conversation()
 
         old_client.shutdown.assert_awaited_once()

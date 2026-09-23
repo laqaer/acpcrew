@@ -1,10 +1,10 @@
-// Demo KiroCrew App — proves the federated loading pipeline works end-to-end.
+// Demo Junction App — proves the federated loading pipeline works end-to-end.
 // This file is loaded dynamically by AppHost via import('/apps/demo-app/ui/index.mjs').
-// It uses the import map to resolve 'react' and '@kirocrew/app-sdk' from the host.
+// It uses the import map to resolve 'react' and '@junction/app-sdk' from the host.
 
-const React = window.__kirocrew_modules.react
-const { useAppApi, useAppEvents } = window.__kirocrew_modules['@kirocrew/app-sdk']
-const { Sparkles, Bot, Zap, RefreshCw } = window.__kirocrew_modules['lucide-react']
+const React = window.__junction_modules.react
+const { useAppApi, useAppEvents } = window.__junction_modules['@junction/app-sdk']
+const { Sparkles, Bot, Zap, RefreshCw } = window.__junction_modules['lucide-react']
 
 const { useState, useEffect, createElement: h } = React
 

@@ -17,8 +17,8 @@ from pathlib import Path
 
 import pytest
 
-import kiro_crew.eval.bench.safepath as sp
-from kiro_crew.eval.bench.safepath import UnsafePathError
+import junction.eval.bench.safepath as sp
+from junction.eval.bench.safepath import UnsafePathError
 
 
 @pytest.fixture

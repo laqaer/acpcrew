@@ -162,12 +162,12 @@ describe('ActivityViewer', () => {
           <ActivityViewer
             {...baseProps}
             // The Changes tab surfaces this PR, so it should NOT also appear in Resources.
-            sources={[{ url: prUrl, provider: 'github', number: 42, repo: 'KiroCrew' }]}
+            sources={[{ url: prUrl, provider: 'github', number: 42, repo: 'Junction' }]}
             navLinks={[
               { url: prUrl, type: 'cr', label: 'PR #42', msgIdx: 0 },
               // Not in `sources` (a code-review host Changes can't render) — must stay reachable.
               { url: 'https://git.example.com/reviews/CR-1', type: 'cr', label: 'CR-1', msgIdx: 0 },
-              { url: 'https://git.example.com/packages/KiroCrew', type: 'other', label: 'KiroCrew repo', msgIdx: 0 },
+              { url: 'https://git.example.com/packages/Junction', type: 'other', label: 'Junction repo', msgIdx: 0 },
             ]}
           />
         </QueryClientProvider>
@@ -175,7 +175,7 @@ describe('ActivityViewer', () => {
     )
     expect(screen.getByText('Resources')).toBeInTheDocument()
     // Non-Changes links stay in Resources.
-    expect(screen.getByText('KiroCrew repo')).toBeInTheDocument()
+    expect(screen.getByText('Junction repo')).toBeInTheDocument()
     expect(screen.getByText('CR-1')).toBeInTheDocument()
     // The link already shown in the Changes tab is hidden from Resources.
     expect(screen.queryByText('PR #42')).not.toBeInTheDocument()
@@ -639,7 +639,7 @@ describe('ActivityViewer — Artifacts tab', () => {
             slot="test-slot"
             subagents={{
               s1: {
-                id: 's1', task: 'READ-ONLY RESEARCH', agent: 'kirocrew', status: 'tool',
+                id: 's1', task: 'READ-ONLY RESEARCH', agent: 'junction', status: 'tool',
                 streaming: '', lastTool: 'read', startedAt: Date.now() - 239_000, elapsed: 0,
               },
             }}
@@ -658,7 +658,7 @@ describe('ActivityViewer — Artifacts tab', () => {
     // Agent chip: yields BEFORE the status label (weighted shrink) and capped,
     // so a long agent name can neither wrap nor starve the label, the clock and
     // the Cancel button.
-    const chip = screen.getByText('kirocrew')
+    const chip = screen.getByText('junction')
     expect(chip.className).toContain('shrink-[3]')
     expect(chip.className).toContain('truncate')
     expect(chip.className).toContain('min-w-0')

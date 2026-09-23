@@ -21,7 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.subagent import SubagentInfo, SubagentManager
+from junction.subagent import SubagentInfo, SubagentManager
 
 # ``SubagentManager.spawn`` refuses -- registering no task -- while the host
 # looks short of memory, which is the runner's state, not this test's input.
@@ -83,7 +83,7 @@ def _manager(sessions: MagicMock | None = None) -> SubagentManager:
 
 class TestSessionManagerContinuable:
     def _sessions(self):  # type: ignore[no-untyped-def]
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         with patch.object(SessionManager, "__init__", lambda self: None):
             mgr = SessionManager()  # type: ignore[call-arg]
@@ -106,7 +106,7 @@ class TestSessionManagerContinuable:
         session.provider.session_id = "sid-1"
         mgr._sessions["subagent:abc"] = session
         mgr.mark_continuable("subagent:abc")
-        with patch("kiro_crew.session.asyncio.ensure_future") as ensure:
+        with patch("junction.session.asyncio.ensure_future") as ensure:
             mgr.release("subagent:abc", cleanup=True)
         ensure.assert_not_called()
         session.semaphore.release.assert_called_once()
@@ -117,7 +117,7 @@ class TestSessionManagerContinuable:
         session.provider.session_id = "sid-1"
         mgr._sessions["subagent:abc"] = session
         with patch(
-            "kiro_crew.session.asyncio.ensure_future",
+            "junction.session.asyncio.ensure_future",
             side_effect=lambda coro: coro.close(),
         ) as ensure:
             mgr.release("subagent:abc", cleanup=True)
@@ -141,7 +141,7 @@ class TestKeepThreading:
     async def test_keep_marks_continuable_and_skips_sharing(self) -> None:
         sessions = _mock_sessions()
         manager = _manager(sessions)
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.spawn("task", keep=True)
             assert info is not None and not info.error
             assert info.keep is True
@@ -157,7 +157,7 @@ class TestKeepThreading:
         """Retain-by-default: even non-keep runs keep session files."""
         sessions = _mock_sessions()
         manager = _manager(sessions)
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.spawn("task")
             assert info is not None and not info.error
             await manager._tasks[info.id]
@@ -168,7 +168,7 @@ class TestKeepThreading:
     async def test_conversation_key_overrides_session_key(self) -> None:
         sessions = _mock_sessions(resumed=True)
         manager = _manager(sessions)
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.spawn(
                 "follow-up", keep=True, conversation_key="subagent:origrun1"
             )
@@ -187,7 +187,7 @@ class TestContinueConversation:
         manager = _manager()
         live = SubagentInfo(id="orig1234", task="t")
         manager._agents["orig1234"] = live  # not done → busy
-        with patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.sel"):
             info = manager.continue_conversation("orig1234", "more work")
         assert info is not None and info.done
         assert info.error.startswith("conversation_busy")
@@ -196,8 +196,8 @@ class TestContinueConversation:
         sessions = _mock_sessions()
         sessions.resumable_sid = MagicMock(return_value=None)
         manager = _manager(sessions)
-        with patch("kiro_crew.subagent.sel"), \
-                patch("kiro_crew.subagent.read_state", return_value=None):
+        with patch("junction.subagent.sel"), \
+                patch("junction.subagent.read_state", return_value=None):
             info = manager.continue_conversation("deadbeef", "more work")
         assert info is not None and info.done
         assert info.error.startswith("conversation_gone")
@@ -210,9 +210,9 @@ class TestContinueConversation:
         sessions.resumable_sid = MagicMock(side_effect=[None, "sid-from-state"])
         manager = _manager(sessions)
         state = {"session_id": "sid-from-state", "provider": "acp", "cwd": "/tmp/x"}
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"), \
-                patch("kiro_crew.subagent.read_state", return_value=state), \
-                patch("kiro_crew.subagent.update_state") as upd:
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"), \
+                patch("junction.subagent.read_state", return_value=state), \
+                patch("junction.subagent.update_state") as upd:
             info = manager.continue_conversation("origrun2", "follow-up")
             assert info is not None and not info.error, info.error
             await manager._tasks[info.id]
@@ -228,8 +228,8 @@ class TestContinueConversation:
         sessions.resumable_sid = MagicMock(return_value=None)  # both checks fail
         manager = _manager(sessions)
         state = {"session_id": "sid-stale", "provider": "acp", "cwd": ""}
-        with patch("kiro_crew.subagent.sel"), \
-                patch("kiro_crew.subagent.read_state", return_value=state):
+        with patch("junction.subagent.sel"), \
+                patch("junction.subagent.read_state", return_value=state):
             info = manager.continue_conversation("stalerun", "follow-up")
         assert info is not None and info.done
         assert info.error.startswith("conversation_gone")
@@ -238,7 +238,7 @@ class TestContinueConversation:
     async def test_continue_dispatches_new_run_on_same_key(self) -> None:
         sessions = _mock_sessions(resumed=True)
         manager = _manager(sessions)
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.continue_conversation("origrun1", "follow-up work")
             assert info is not None and not info.error, info.error
             assert info.id != "origrun1"  # new run id
@@ -254,7 +254,7 @@ class TestContinueConversation:
         follow-up context-free — the run fails with a typed resume_failed."""
         sessions = _mock_sessions(resumed=False)
         manager = _manager(sessions)
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.continue_conversation("origrun9", "follow-up work")
             assert info is not None and not info.error, info.error
             await manager._tasks[info.id]
@@ -290,7 +290,7 @@ class TestSteerRun:
         sessions.get_provider = MagicMock(return_value=provider)
         manager = _manager(sessions)
         manager._agents["a1"] = SubagentInfo(id="a1", task="t")
-        with patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.sel"):
             ok, detail = await manager.steer_run("a1", "course correct")
         assert ok and detail == "ok"
         provider.steer.assert_awaited_once_with("course correct")
@@ -304,7 +304,7 @@ class TestSteerRun:
         info._session_sharing = True
         info._shared_provider = shared
         manager._agents["a1"] = info
-        with patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.sel"):
             ok, _ = await manager.steer_run("a1", "adjust")
         assert ok
         shared.steer.assert_awaited_once_with("adjust")
@@ -314,7 +314,7 @@ class TestSteerRun:
         """A live run with no reachable session now gets the #1113 startup
         grace, then the typed ``session_starting`` refusal (retryable) —
         not the old terminal bare ``no_session``."""
-        import kiro_crew.subagent as subagent_mod
+        import junction.subagent as subagent_mod
 
         sessions = _mock_sessions()
         sessions.get_provider = MagicMock(return_value=None)
@@ -353,7 +353,7 @@ class TestReleaseAndSweep:
         )
         ok, detail = manager.release_conversation("qc1")
         assert not ok and detail.startswith("conversation_busy")
-        with patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.sel"):
             info = manager.continue_conversation("qc1", "another follow-up")
         assert info is not None and info.done
         assert info.error.startswith("conversation_busy")
@@ -373,7 +373,7 @@ class TestReleaseAndSweep:
         manager = _manager(sessions)
         manager._conversations["subagent:c1"] = time.time()
         with patch(
-            "kiro_crew.subagent._cleanup_session_files_sync"
+            "junction.subagent._cleanup_session_files_sync"
         ) as cleanup:
             ok, detail = manager.release_conversation("c1")
         assert ok and detail == "released"
@@ -395,7 +395,7 @@ class TestReleaseAndSweep:
         manager._conversations["subagent:old1"] = now - 7 * 3600  # expired
         manager._conversations["subagent:new1"] = now - 60  # fresh
         with patch(
-            "kiro_crew.subagent._cleanup_session_files_sync"
+            "junction.subagent._cleanup_session_files_sync"
         ):
             manager._sweep_conversations(now)
         assert "subagent:old1" not in manager._conversations
@@ -419,7 +419,7 @@ class TestKeepTranscript:
     """AcpSessionHandle.destroy() honors keep_transcript (shared arm)."""
 
     def _handle(self):  # type: ignore[no-untyped-def]
-        from kiro_crew.acp.session_handle import AcpSessionHandle
+        from junction.acp.session_handle import AcpSessionHandle
 
         with patch.object(AcpSessionHandle, "__init__", lambda self: None):
             h = AcpSessionHandle()  # type: ignore[call-arg]
@@ -476,7 +476,7 @@ class TestKeepTranscript:
     # rather than asserting on a mock, so they measure the file, not the call.
 
     def _handle_with_transcript(self, tmp_path, sid="sid-cancel"):  # type: ignore[no-untyped-def]
-        from kiro_crew.acp.session_handle import AcpSessionHandle
+        from junction.acp.session_handle import AcpSessionHandle
 
         with patch.object(AcpSessionHandle, "__init__", lambda self: None):
             h = AcpSessionHandle()  # type: ignore[call-arg]
@@ -499,7 +499,7 @@ class TestKeepTranscript:
         h._runtime.terminate_session = AsyncMock(side_effect=asyncio.CancelledError())
 
         with patch(
-            "kiro_crew.acp.session_handle.kiro_sessions_dir", lambda: sessions
+            "junction.acp.session_handle.kiro_sessions_dir", lambda: sessions
         ):
             with pytest.raises(asyncio.CancelledError):
                 await h.destroy()
@@ -518,7 +518,7 @@ class TestKeepTranscript:
         h._runtime.terminate_session = AsyncMock(side_effect=RuntimeError("boom"))
 
         with patch(
-            "kiro_crew.acp.session_handle.kiro_sessions_dir", lambda: sessions
+            "junction.acp.session_handle.kiro_sessions_dir", lambda: sessions
         ):
             with pytest.raises(RuntimeError):
                 await h.destroy()
@@ -535,7 +535,7 @@ class TestKeepTranscript:
         h._runtime.terminate_session = AsyncMock(side_effect=asyncio.CancelledError())
 
         with patch(
-            "kiro_crew.acp.session_handle.kiro_sessions_dir", lambda: sessions
+            "junction.acp.session_handle.kiro_sessions_dir", lambda: sessions
         ):
             with pytest.raises(asyncio.CancelledError):
                 await h.destroy()
@@ -550,7 +550,7 @@ class TestPersistenceGuards:
     def test_tombstone_prune_keeps_files_for_keep_runs(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         import json
 
-        import kiro_crew.subagent_persistence as sp
+        import junction.subagent_persistence as sp
 
         agent_id = "keeprun1"
         sp.create_agent_folder(agent_id, task="t")
@@ -572,7 +572,7 @@ class TestPersistenceGuards:
     def test_tombstone_prune_cleans_files_for_plain_runs(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         import json
 
-        import kiro_crew.subagent_persistence as sp
+        import junction.subagent_persistence as sp
 
         agent_id = "plainrun"
         sp.create_agent_folder(agent_id, task="t")

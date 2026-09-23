@@ -18,9 +18,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.teams.client import TeamsInbound
-from kiro_crew.teams.transport_dispatch import TeamsDispatcher
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
+from junction.teams.client import TeamsInbound
+from junction.teams.transport_dispatch import TeamsDispatcher
 
 _EMAIL = "quinn@example.com"
 _SVC = "https://smba.trafficmanager.net/"
@@ -434,6 +434,6 @@ class TestHelpAndAgentResolution:
     def test_explicit_agent_wins_over_the_config_default(self) -> None:
         sessions = _Sessions(_Provider())
         d = _dispatcher(sessions, _Client())
-        assert d._resolve_agent() == "kirocrew"
+        assert d._resolve_agent() == "junction"
         d.agent = "custom-agent"
         assert d._resolve_agent() == "custom-agent"

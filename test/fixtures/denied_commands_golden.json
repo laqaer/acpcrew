@@ -45,7 +45,7 @@
     "id": "credential-exfil-kirocrew-token",
     "pattern": "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*(?:kiro[-.]?crew|junction|acpcrew)\\b[^|;&#>/*]*\\btoken\\b",
     "category": "credential-exfil",
-    "description": "Blocks the `junction token` / `kirocrew token` CLI, which mints a signed dashboard access token an attacker could use to authenticate to the gateway. Matches the CLI name (including public aliases `junction` and `acpcrew`) and the token verb within one command segment. The argv floor additionally covers `python -m kiro_crew ... token`."
+    "description": "Blocks the `junction token` / `kirocrew token` CLI, which mints a signed dashboard access token an attacker could use to authenticate to the gateway. Matches the CLI name (including public aliases `junction` and `acpcrew`) and the token verb within one command segment. The argv floor additionally covers `python -m junction ... token`."
   },
   {
     "id": "credential-exfil-kirocrew-token-argv",

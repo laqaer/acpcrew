@@ -27,14 +27,14 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.mcp_apps_render import find_marker, load_spool
-from kiro_crew.mcp_caller import CallerContext
-from kiro_crew.mcp_gateway import apps
-from kiro_crew.mcp_gateway.backend import (
+from junction.mcp_apps_render import find_marker, load_spool
+from junction.mcp_caller import CallerContext
+from junction.mcp_gateway import apps
+from junction.mcp_gateway.backend import (
     MCP_APPS_ENV_FLAG,
     Backend,
 )
-from kiro_crew.mcp_gateway.pool import PoolKey
+from junction.mcp_gateway.pool import PoolKey
 
 SERVER_PATH = Path(__file__).parent / "fake_mcp_app_server.py"
 

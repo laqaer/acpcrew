@@ -44,8 +44,8 @@ const CREW_MESSAGES = [
 ]
 
 const SLOTS = [
-  { key: 'crew-demo', title: 'Multi-topic afternoon', agent: 'kirocrew', mode: 'crew', surface: 'crew', running: false, unread: 0, pinned: false, memory_mode: 'persistent', messages: 15, last_ts: new Date().toISOString(), created: new Date(Date.now() - 3600e3).toISOString() },
-  { key: 'plain-1', title: 'Fix stable feed', agent: 'kirocrew', mode: '', surface: '', running: false, unread: 0, pinned: false, memory_mode: 'persistent', messages: 0, last_ts: new Date(Date.now() - 600e3).toISOString(), created: new Date(Date.now() - 7200e3).toISOString() },
+  { key: 'crew-demo', title: 'Multi-topic afternoon', agent: 'junction', mode: 'crew', surface: 'crew', running: false, unread: 0, pinned: false, memory_mode: 'persistent', messages: 15, last_ts: new Date().toISOString(), created: new Date(Date.now() - 3600e3).toISOString() },
+  { key: 'plain-1', title: 'Fix stable feed', agent: 'junction', mode: '', surface: '', running: false, unread: 0, pinned: false, memory_mode: 'persistent', messages: 0, last_ts: new Date(Date.now() - 600e3).toISOString(), created: new Date(Date.now() - 7200e3).toISOString() },
 ]
 
 const extra = async (path, route) => {

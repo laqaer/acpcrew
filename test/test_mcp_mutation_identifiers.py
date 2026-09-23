@@ -20,7 +20,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.dashboard.handlers import mcp as h
+from junction.dashboard.handlers import mcp as h
 
 
 def _req(body: object) -> web.Request:

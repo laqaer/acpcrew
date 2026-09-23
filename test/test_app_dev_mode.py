@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.apps.dev_mode — app dev-mode live reload."""
+"""Tests for junction.apps.dev_mode — app dev-mode live reload."""
 from __future__ import annotations
 
 import json
@@ -9,7 +9,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from conftest import make_dir_link
-from kiro_crew.apps.dev_mode import (
+from junction.apps.dev_mode import (
     _read_dev_sentinel,
     _reconcile_sentinel_from_installed,
     _scan_installed_dev_apps,
@@ -18,13 +18,13 @@ from kiro_crew.apps.dev_mode import (
     is_dev_mode_cached,
     set_dev_mode,
 )
-from kiro_crew.apps.manager import (
+from junction.apps.manager import (
     APP_MANIFEST_FILENAME,
     _read_installed,
     install_app,
     update_app,
 )
-from kiro_crew.apps.routes import register_app_routes
+from junction.apps.routes import register_app_routes
 
 
 @pytest.fixture(autouse=True)
@@ -35,7 +35,7 @@ def _reset_dev_cache():
     reset a dev app enabled in one test would leak into the next and flip an
     unrelated Cache-Control assertion.
     """
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
     dev_mode._set_dev_cache(set())
     yield
     dev_mode._set_dev_cache(set())
@@ -58,12 +58,12 @@ def _make_app_source(tmp_path, name="dev-mode-app"):
 
 
 def _setup_env(tmp_path, monkeypatch):
-    home = tmp_path / "kirocrew-home"
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     kiro_agents = tmp_path / "kiro-agents"
     kiro_agents.mkdir()
-    import kiro_crew.apps.bridges as bridges_mod
+    import junction.apps.bridges as bridges_mod
     monkeypatch.setattr(bridges_mod, "KIRO_AGENTS_DIR", kiro_agents)
     return home
 
@@ -135,7 +135,7 @@ def test_set_dev_mode_rejects_builtin(tmp_path, monkeypatch):
     install_app(str(_make_app_source(tmp_path)))
     meta = _read_installed("dev-mode-app")
     meta.origin = "builtin"
-    from kiro_crew.apps.manager import _write_installed
+    from junction.apps.manager import _write_installed
     _write_installed("dev-mode-app", meta)
     result = set_dev_mode("dev-mode-app", True)
     assert "builtin" in result["error"]
@@ -191,8 +191,8 @@ def test_set_dev_mode_writes_metadata_under_lock(tmp_path, monkeypatch):
     """
     from contextlib import contextmanager
 
-    import kiro_crew.apps.dev_mode as dev_mode
-    from kiro_crew.apps.manager import _write_installed
+    import junction.apps.dev_mode as dev_mode
+    from junction.apps.manager import _write_installed
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))
@@ -225,7 +225,7 @@ def test_uninstall_clears_dev_sentinel(tmp_path, monkeypatch):
     Regression guard for the MEDIUM finding: a stale sentinel entry would make a
     different app reinstalled under the same name inherit dev-mode serving.
     """
-    from kiro_crew.apps.manager import uninstall_app
+    from junction.apps.manager import uninstall_app
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))
@@ -246,7 +246,7 @@ def test_load_dev_apps_filters_stale_entries(tmp_path, monkeypatch):
     the sentinel (e.g. crash mid-uninstall), a reinstall under that name with
     dev:false must not be treated as a dev app.
     """
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))
@@ -415,7 +415,7 @@ async def test_watch_loop_broadcasts_reload_on_edit(tmp_path, monkeypatch):
     """
     import asyncio
 
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))
@@ -488,7 +488,7 @@ async def test_stop_dev_mode_watcher_awaits_cancellation(tmp_path, monkeypatch):
     it fully unwound, and clear the module global so a fresh init can start
     cleanly.
     """
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
 
     _setup_env(tmp_path, monkeypatch)
     monkeypatch.setattr(dev_mode, "POLL_INTERVAL_SECS", 0.02)
@@ -520,7 +520,7 @@ async def test_watch_loop_no_ui_walk_when_no_dev_apps(tmp_path, monkeypatch):
     """
     import asyncio
 
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))  # installed but NOT in dev mode
@@ -551,12 +551,12 @@ async def test_watch_loop_no_ui_walk_when_no_dev_apps(tmp_path, monkeypatch):
 async def test_watch_loop_picks_up_out_of_process_toggle(tmp_path, monkeypatch):
     """Enabling dev mode mid-run (sentinel change) starts watching that app.
 
-    Simulates the out-of-process `kirocrew app dev` CLI: the sentinel changes,
+    Simulates the out-of-process `junction app dev` CLI: the sentinel changes,
     the watcher re-reads it off the event loop, seeds state, then fires on edit.
     """
     import asyncio
 
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))
@@ -623,7 +623,7 @@ def test_update_app_preserves_dev_flag(tmp_path, monkeypatch):
     # this asserts the dataclasses.replace guard matches the real scope of the
     # fix (all persisted metadata), not merely the ``dev`` flag that surfaced
     # it — so a future field added to InstalledApp can't silently regress.
-    from kiro_crew.apps.manager import _write_installed
+    from junction.apps.manager import _write_installed
     meta0 = _read_installed("dev-mode-app")
     meta0.enabled = False
     meta0.installedAt = "2020-01-01T00:00:00Z"
@@ -689,7 +689,7 @@ def test_reconcile_sentinel_adds_missing_entry(tmp_path, monkeypatch):
     # touching the sentinel (as a snapshot restore or hand-edit would).
     meta = _read_installed("dev-mode-app")
     meta.dev = True
-    from kiro_crew.apps.manager import _write_installed
+    from junction.apps.manager import _write_installed
     _write_installed("dev-mode-app", meta)
     assert _read_dev_sentinel() == set(), "sentinel is stale/missing the entry"
 
@@ -701,7 +701,7 @@ def test_reconcile_sentinel_adds_missing_entry(tmp_path, monkeypatch):
 
 def test_reconcile_sentinel_drops_stale_entry(tmp_path, monkeypatch):
     """Reconcile also removes a sentinel entry not backed by a dev-mode install."""
-    import kiro_crew.apps.dev_mode as dev_mode
+    import junction.apps.dev_mode as dev_mode
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))
@@ -734,8 +734,8 @@ def test_reconcile_scans_inside_lock_preserves_racing_toggle(tmp_path, monkeypat
     """
     from contextlib import contextmanager
 
-    import kiro_crew.apps.dev_mode as dev_mode
-    from kiro_crew.apps.manager import _write_installed
+    import junction.apps.dev_mode as dev_mode
+    from junction.apps.manager import _write_installed
 
     _setup_env(tmp_path, monkeypatch)
     install_app(str(_make_app_source(tmp_path)))

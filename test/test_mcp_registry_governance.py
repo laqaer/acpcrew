@@ -16,19 +16,19 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import agent as agent_mod
-from kiro_crew import cli_doctor
-from kiro_crew import kiro_cli as kiro_cli_mod
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.kiro_cli import (
+from junction import agent as agent_mod
+from junction import cli_doctor
+from junction import kiro_cli as kiro_cli_mod
+from junction.config import JunctionConfig
+from junction.kiro_cli import (
     kiro_cli_state_dbs,
     mcp_governance_may_apply,
     signed_in_via_idc,
 )
 
-MANAGED = ("kirocrew-core", "kirocrew-cron", "kirocrew-computer")
+MANAGED = ("junction-core", "junction-cron", "junction-computer")
 
-# ``kirocrew-computer`` carries a ``spec_gate`` and is therefore absent from an
+# ``junction-computer`` carries a ``spec_gate`` and is therefore absent from an
 # emitted spec on any non-macOS host (and on macOS with the keystone off) -- see
 # ``agent._computer_use_spec_gate``. These tests are about the REGISTRY MARKER, not
 # about that gate, so they pin it OPEN with an empty snapshot: the marker rule must
@@ -49,14 +49,14 @@ def _point_config_at(tmp_path: Path, monkeypatch) -> None:
     """Make both config readers resolve to tmp_path.
 
     ``_mcp_registry_mode`` reads the EFFECTIVE config (base + local overlay) via
-    the loader, which resolves from ``KIROCREW_HOME``; the fallback path reads the
+    the loader, which resolves from ``JUNCTION_HOME``; the fallback path reads the
     base file directly. Point both, and drop the load cache so a per-test config
     is actually seen.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     monkeypatch.setattr(agent_mod, "_mc_config_path", lambda: tmp_path / "config.json")
-    if hasattr(KiroCrewConfig.load, "cache_clear"):
-        KiroCrewConfig.load.cache_clear()
+    if hasattr(JunctionConfig.load, "cache_clear"):
+        JunctionConfig.load.cache_clear()
 
 
 class TestRegistryModeDeclaration:
@@ -89,13 +89,13 @@ class TestRegistryModeDeclaration:
 
     def test_config_loader_round_trips_the_field(self, tmp_path, monkeypatch):
         _write_config(tmp_path, registry_mode=True)
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        KiroCrewConfig.load.cache_clear() if hasattr(KiroCrewConfig.load, "cache_clear") else None
-        cfg = KiroCrewConfig.load()
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        JunctionConfig.load.cache_clear() if hasattr(JunctionConfig.load, "cache_clear") else None
+        cfg = JunctionConfig.load()
         assert cfg.agent.mcp_registry_mode is True
 
     def test_local_overlay_declaration_is_honoured(self, tmp_path, monkeypatch):
-        """`kirocrew config set --local` writes config.local.json, which deep-merges
+        """`junction config set --local` writes config.local.json, which deep-merges
         OVER config.json. Reading only the base file would ignore a declaration made
         the way the CLI advertises as upgrade-durable, emit no marker, and reproduce
         the silent drop this change exists to prevent."""
@@ -103,10 +103,10 @@ class TestRegistryModeDeclaration:
         (tmp_path / "config.local.json").write_text(
             json.dumps({"agent": {"mcp_registry_mode": True}}), encoding="utf-8"
         )
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         monkeypatch.setattr(agent_mod, "_mc_config_path", lambda: tmp_path / "config.json")
-        if hasattr(KiroCrewConfig.load, "cache_clear"):
-            KiroCrewConfig.load.cache_clear()
+        if hasattr(JunctionConfig.load, "cache_clear"):
+            JunctionConfig.load.cache_clear()
         assert agent_mod._mcp_registry_mode() is True
 
     def test_local_overlay_can_turn_the_declaration_off(self, tmp_path, monkeypatch):
@@ -116,10 +116,10 @@ class TestRegistryModeDeclaration:
         (tmp_path / "config.local.json").write_text(
             json.dumps({"agent": {"mcp_registry_mode": False}}), encoding="utf-8"
         )
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         monkeypatch.setattr(agent_mod, "_mc_config_path", lambda: tmp_path / "config.json")
-        if hasattr(KiroCrewConfig.load, "cache_clear"):
-            KiroCrewConfig.load.cache_clear()
+        if hasattr(JunctionConfig.load, "cache_clear"):
+            JunctionConfig.load.cache_clear()
         assert agent_mod._mcp_registry_mode() is False
 
 
@@ -132,7 +132,7 @@ class TestIdentityProbeIsAudited:
     """
 
     def test_read_id_is_registered(self):
-        from kiro_crew import hooks
+        from junction import hooks
 
         assert kiro_cli_mod._IDC_PROBE_READ_ID in hooks._AUDIT_ONLY_READ_IDS
 
@@ -145,7 +145,7 @@ class TestIdentityProbeIsAudited:
             seen.append((read_id, outcome))
             return True
 
-        monkeypatch.setattr("kiro_crew.hooks.emit_internal_read_audit", _spy)
+        monkeypatch.setattr("junction.hooks.emit_internal_read_audit", _spy)
         assert signed_in_via_idc("linux", tmp_path, {}) is True
         assert seen and seen[0][0] == kiro_cli_mod._IDC_PROBE_READ_ID
 
@@ -154,7 +154,7 @@ class TestIdentityProbeIsAudited:
         merely log — otherwise the audit requirement is advisory."""
         db = kiro_cli_state_dbs("linux", tmp_path, {})[0]
         TestIdcDetection._make_db(db, ("auth.idc.start-url",))
-        monkeypatch.setattr("kiro_crew.hooks.emit_internal_read_audit", lambda *_: False)
+        monkeypatch.setattr("junction.hooks.emit_internal_read_audit", lambda *_: False)
         assert signed_in_via_idc("linux", tmp_path, {}) is False
 
 
@@ -175,7 +175,7 @@ class TestFreshInstallMarker:
         """command/args stay so doctor's handshake probe, the CC sidecar sync and
         a later ungoverned refresh still describe a runnable server."""
         monkeypatch.setattr(agent_mod, "_mcp_registry_mode", lambda: True)
-        entry = agent_mod.build_agent_config(gated_off=NO_GATES)["mcpServers"]["kirocrew-core"]
+        entry = agent_mod.build_agent_config(gated_off=NO_GATES)["mcpServers"]["junction-core"]
         assert entry["command"]
         assert entry["args"] == ["mcp-core"] or "mcp-core" in entry["args"]
 
@@ -205,9 +205,9 @@ class TestRefreshMarker:
         """Only the registry marker is ours. A transport hint the user wrote is
         theirs, and kiro-cli tolerates it."""
         monkeypatch.setattr(agent_mod, "_mcp_registry_mode", lambda: False)
-        config = {"mcpServers": {"kirocrew-core": {"command": "x", "args": [], "type": "stdio"}}}
+        config = {"mcpServers": {"junction-core": {"command": "x", "args": [], "type": "stdio"}}}
         agent_mod._refresh_dynamic_fields(config, gated_off=NO_GATES)
-        assert config["mcpServers"]["kirocrew-core"]["type"] == "stdio"
+        assert config["mcpServers"]["junction-core"]["type"] == "stdio"
 
 
 class TestIdcDetection:
@@ -307,10 +307,10 @@ class TestGovernanceCapableIdentity:
 
 class TestDoctorGovernanceSection:
     def _spec(self, tmp_path: Path, *, marked: bool) -> Path:
-        entry: dict[str, object] = {"command": "kirocrew", "args": ["mcp-core"]}
+        entry: dict[str, object] = {"command": "junction", "args": ["mcp-core"]}
         if marked:
             entry["type"] = "registry"
-        path = tmp_path / "kirocrew.json"
+        path = tmp_path / "junction.json"
         path.write_text(
             json.dumps({"mcpServers": {name: dict(entry) for name in MANAGED}}), encoding="utf-8"
         )
@@ -320,7 +320,7 @@ class TestDoctorGovernanceSection:
         """A governance warning in front of every personal install is noise."""
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: False)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(self._spec(tmp_path, marked=False), issues)
@@ -333,7 +333,7 @@ class TestDoctorGovernanceSection:
         it is reachable by copying the guide onto a personal account."""
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: False)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(self._spec(tmp_path, marked=True), issues)
@@ -348,7 +348,7 @@ class TestDoctorGovernanceSection:
         account, refreshed by an older build). Same silent drop, so same warning."""
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: False)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(self._spec(tmp_path, marked=True), issues)
@@ -360,7 +360,7 @@ class TestDoctorGovernanceSection:
     ):
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: True)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
         )
         cli_doctor._doctor_mcp_governance(self._spec(tmp_path, marked=False), [])
         out = capsys.readouterr().out
@@ -374,7 +374,7 @@ class TestDoctorGovernanceSection:
         silently drops every managed server, so it must not read as healthy."""
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: True)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(self._spec(tmp_path, marked=False), issues)
@@ -386,7 +386,7 @@ class TestDoctorGovernanceSection:
     ):
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: True)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(self._spec(tmp_path, marked=True), issues)
@@ -412,14 +412,14 @@ class TestDoctorSurvivesAMalformedSpec:
     """
 
     @pytest.mark.parametrize(
-        "servers", ["not-a-dict", ["kirocrew-core"], 7, True, "", [], {}]
+        "servers", ["not-a-dict", ["junction-core"], 7, True, "", [], {}]
     )
     def test_non_dict_mcp_servers_does_not_crash(self, tmp_path, monkeypatch, capsys, servers):
-        path = tmp_path / "kirocrew.json"
+        path = tmp_path / "junction.json"
         path.write_text(json.dumps({"mcpServers": servers}), encoding="utf-8")
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: True)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=True))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(path, issues)
@@ -431,11 +431,11 @@ class TestDoctorSurvivesAMalformedSpec:
 
     @pytest.mark.parametrize("body", ["[]", "null", '"a string"', "not json at all", ""])
     def test_malformed_spec_file_does_not_crash(self, tmp_path, monkeypatch, capsys, body):
-        path = tmp_path / "kirocrew.json"
+        path = tmp_path / "junction.json"
         path.write_text(body, encoding="utf-8")
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: True)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
         )
         issues: list[str] = []
         cli_doctor._doctor_mcp_governance(path, issues)
@@ -444,7 +444,7 @@ class TestDoctorSurvivesAMalformedSpec:
     def test_missing_spec_file_does_not_crash(self, tmp_path, monkeypatch, capsys):
         monkeypatch.setattr(cli_doctor, "mcp_governance_may_apply", lambda: True)
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
+            cli_doctor.JunctionConfig, "load", staticmethod(lambda: _cfg(registry_mode=False))
         )
         cli_doctor._doctor_mcp_governance(tmp_path / "absent.json", [])
         assert "registry mode: off" in capsys.readouterr().out

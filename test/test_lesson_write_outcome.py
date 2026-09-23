@@ -18,7 +18,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.vector_memory import (
+from junction.vector_memory import (
     LessonWriteOutcome,
     LessonWriteResult,
     VectorMemoryStore,
@@ -198,7 +198,7 @@ class TestWriteLessonTruthValueIsTheOldBool:
 
 
 class TestCliLearnAddReportsTheOutcome:
-    """``kirocrew learn add`` no longer writes a second record on a decline.
+    """``junction learn add`` no longer writes a second record on a decline.
 
     It read every falsy return as "the vector store did not take it" and wrote into
     ``lessons.jsonl``. For a no-op that duplicated a lesson already stored correctly;
@@ -210,7 +210,7 @@ class TestCliLearnAddReportsTheOutcome:
     def _run(self, tmp_path, negative=None, rule="prefer ruff over flake8", pre=None):
         import argparse
 
-        from kiro_crew import cli_commands
+        from junction import cli_commands
 
         store = _store(tmp_path)
         if pre is not None:
@@ -220,7 +220,7 @@ class TestCliLearnAddReportsTheOutcome:
         with (
             patch.object(cli_commands, "VectorMemoryStore", return_value=store),
             patch.object(cli_commands, "LessonStore", return_value=jsonl),
-            patch.object(cli_commands.KiroCrewConfig, "load", return_value=MagicMock()),
+            patch.object(cli_commands.JunctionConfig, "load", return_value=MagicMock()),
         ):
             try:
                 cli_commands._learn(args)
@@ -358,7 +358,7 @@ class TestLessonsRouteReportsTheOutcome:
         return request, state
 
     async def _post(self, result):
-        from kiro_crew.dashboard.handlers import cron
+        from junction.dashboard.handlers import cron
 
         request, state = self._request()
         vs = MagicMock()
@@ -426,7 +426,7 @@ class TestLessonsRouteReportsTheOutcome:
 
     async def test_jsonl_branch_reports_that_store_own_outcome(self):
         """The JSONL store's three words reach the body unchanged."""
-        from kiro_crew.dashboard.handlers import cron
+        from junction.dashboard.handlers import cron
 
         request, state = self._request()
         state.lessons.save_or_enrich.return_value = "unchanged"
@@ -447,7 +447,7 @@ class TestLearnAddToolReportsTheOutcome:
     """The MCP tool told the model "Saved lesson" for a refused write."""
 
     def _call(self, response):
-        from kiro_crew.mcp_tools import learn
+        from junction.mcp_tools import learn
 
         with (
             patch.object(learn.mcp_core, "_post", return_value=response),

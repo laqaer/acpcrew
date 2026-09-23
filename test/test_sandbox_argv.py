@@ -1,4 +1,4 @@
-"""Additional tests for kiro_crew.sandbox — wrap_argv, profiles, env scrubbing."""
+"""Additional tests for junction.sandbox — wrap_argv, profiles, env scrubbing."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import kiro_crew.sandbox as sandbox_mod
-from kiro_crew.sandbox import (
+import junction.sandbox as sandbox_mod
+from junction.sandbox import (
     _CC_FILES,
     _SENSITIVE_ENV_PREFIXES,
     _STRICT_DIRS,
@@ -54,20 +54,20 @@ def clean_backend(monkeypatch):
     dev box where ``~/.kiro/settings/amazon-internal.json`` has
     ``{"sandbox": true}``, the darwin kiro-delegation branch in ``wrap_argv``
     preempts the mocked ``detect_backend`` and these unit tests — which exercise
-    KiroCrew's OWN backend selection / fail-closed path — never reach the code
+    Junction's OWN backend selection / fail-closed path — never reach the code
     they assert on. Point the settings path at a non-existent file so delegation
     is off by default; the dedicated delegation tests set
     ``_KIRO_INTERNAL_SETTINGS_PATH`` explicitly and are unaffected.
 
-    Clears ``KIROCREW_SANDBOX_ACTIVE`` to prevent the "already inside sandbox"
+    Clears ``JUNCTION_SANDBOX_ACTIVE`` to prevent the "already inside sandbox"
     passthrough from short-circuiting tests on hosts (like Cloud Desktops) where
     the gateway process itself runs sandboxed. Tests that exercise the
     passthrough set the env var explicitly.
     """
-    monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
+    monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
     monkeypatch.setattr(
-        "kiro_crew.sandbox._KIRO_INTERNAL_SETTINGS_PATH",
-        "/nonexistent/kirocrew-test/amazon-internal.json",
+        "junction.sandbox._KIRO_INTERNAL_SETTINGS_PATH",
+        "/nonexistent/junction-test/amazon-internal.json",
     )
     # Reset one-shot warning flags
     if hasattr(sandbox_mod.wrap_argv, "_warned"):
@@ -86,31 +86,31 @@ class TestDetectBackend:
         result = detect_backend(config_mode="off")
         assert result == "none"
 
-    @patch("kiro_crew.sandbox._probe_unshare", return_value=False)
-    @patch("kiro_crew.sandbox._probe_sandbox_exec", return_value=False)
+    @patch("junction.sandbox._probe_unshare", return_value=False)
+    @patch("junction.sandbox._probe_sandbox_exec", return_value=False)
     def test_no_backend_available(self, mock_sb, mock_ns):
         result = detect_backend(config_mode="auto")
         assert result == "none"
 
-    @patch("kiro_crew.sandbox._probe_unshare", return_value=True)
+    @patch("junction.sandbox._probe_unshare", return_value=True)
     def test_linux_namespace(self, mock_ns):
         result = detect_backend(config_mode="auto")
         assert result == "namespace"
 
-    @patch("kiro_crew.sandbox._probe_unshare", return_value=False)
-    @patch("kiro_crew.sandbox._probe_sandbox_exec", return_value=True)
+    @patch("junction.sandbox._probe_unshare", return_value=False)
+    @patch("junction.sandbox._probe_sandbox_exec", return_value=True)
     def test_macos_sandbox_exec(self, mock_sb, mock_ns):
         result = detect_backend(config_mode="auto")
         assert result == "sandbox-exec"
 
-    @patch("kiro_crew.sandbox._probe_unshare", return_value=True)
+    @patch("junction.sandbox._probe_unshare", return_value=True)
     def test_caches_result(self, mock_ns):
         detect_backend(config_mode="auto")
         detect_backend(config_mode="auto")
         # Only probed once due to caching
         assert mock_ns.call_count == 1
 
-    @patch("kiro_crew.sandbox._probe_unshare", return_value=True)
+    @patch("junction.sandbox._probe_unshare", return_value=True)
     def test_invalidates_on_mode_change(self, mock_ns):
         detect_backend(config_mode="auto")
         detect_backend(config_mode="off")
@@ -119,8 +119,8 @@ class TestDetectBackend:
 
 
 class TestWrapArgv:
-    @patch("kiro_crew.sandbox._allow_unsandboxed_exec", return_value=True)
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox._allow_unsandboxed_exec", return_value=True)
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_no_sandbox_returns_original(self, mock_detect, mock_allow):
         argv = ["kiro-cli", "acp"]
         result, cleanup = wrap_argv(argv, mode="auto")
@@ -133,34 +133,34 @@ class TestWrapArgv:
         assert result == argv
         assert cleanup is None
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="namespace")
-    @patch("kiro_crew.sandbox.namespace_argv")
+    @patch("junction.sandbox.detect_backend", return_value="namespace")
+    @patch("junction.sandbox.namespace_argv")
     def test_namespace_backend(self, mock_ns_argv, mock_detect):
         mock_ns_argv.return_value = [sys.executable, "/tmp/launcher.py", "kiro-cli"]
         result, cleanup = wrap_argv(["kiro-cli"], mode="strict")
         mock_ns_argv.assert_called_once_with(["kiro-cli"], "strict", strip_python_env=False)
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="sandbox-exec")
-    @patch("kiro_crew.sandbox.sandbox_exec_argv")
+    @patch("junction.sandbox.detect_backend", return_value="sandbox-exec")
+    @patch("junction.sandbox.sandbox_exec_argv")
     def test_sandbox_exec_backend(self, mock_sb_argv, mock_detect):
         mock_sb_argv.return_value = (["sandbox-exec", "-f", "/tmp/p.sb", "kiro-cli"], "/tmp/p.sb")
         result, cleanup = wrap_argv(["kiro-cli"], mode="strict")
         mock_sb_argv.assert_called_once_with(["kiro-cli"], "strict", strip_python_env=False)
 
-    @patch("kiro_crew.sandbox.detect_backend")
+    @patch("junction.sandbox.detect_backend")
     def test_inside_sandbox_passes_through(self, mock_detect, monkeypatch):
-        # Inside an existing KiroCrew sandbox, nested unshare is seccomp-denied,
+        # Inside an existing Junction sandbox, nested unshare is seccomp-denied,
         # so wrap_argv must pass the argv through unchanged without consulting a
         # backend (rather than fail closed and brick script-cron MCP spawns).
         # Deny-by-default: the passthrough is gated SOLELY on the explicit
-        # KIROCREW_SANDBOX_ACTIVE marker (not the dual-purpose KIROCREW_HOST_PID).
-        monkeypatch.setenv("KIROCREW_SANDBOX_ACTIVE", "1")
+        # JUNCTION_SANDBOX_ACTIVE marker (not the dual-purpose JUNCTION_HOST_PID).
+        monkeypatch.setenv("JUNCTION_SANDBOX_ACTIVE", "1")
         # Fix the macOS kernel cross-check explicitly: "unanswerable" (None) is the
         # platform-neutral input, so this assertion holds on a sandboxed dev
         # machine and an unsandboxed CI runner alike.
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: None)
         argv = ["kiro-cli", "acp"]
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        with patch("junction.sel.sel") as mock_sel:
             result, cleanup = wrap_argv(argv, mode="strict")
         assert result == argv
         assert cleanup is None
@@ -173,40 +173,40 @@ class TestWrapArgv:
         assert kwargs["outcome"] == "allowed"
         assert kwargs["critical"] is True
 
-    @patch("kiro_crew.sandbox.detect_backend")
+    @patch("junction.sandbox.detect_backend")
     def test_inside_sandbox_passthrough_survives_sel_failure(self, mock_detect, monkeypatch):
         # A SEL write failure must NOT brick the passthrough: seccomp denies the
         # re-wrap by design, so denying here reintroduces a prior in-sandbox
         # spawn outage (every in-sandbox MCP spawn bricked). The spawn is
         # confined by the outer namespace regardless, so we log and proceed.
-        monkeypatch.setenv("KIROCREW_SANDBOX_ACTIVE", "1")
+        monkeypatch.setenv("JUNCTION_SANDBOX_ACTIVE", "1")
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: None)
         argv = ["kiro-cli", "acp"]
-        with patch("kiro_crew.sel.sel", side_effect=OSError("SEL transport down")):
+        with patch("junction.sel.sel", side_effect=OSError("SEL transport down")):
             result, cleanup = wrap_argv(argv, mode="strict")
         assert result == argv
         assert cleanup is None
         mock_detect.assert_not_called()
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_host_pid_alone_does_not_pass_through(self, mock_detect, monkeypatch):
-        # Deny-by-default: KIROCREW_HOST_PID is dual-purpose session-identity
+        # Deny-by-default: JUNCTION_HOST_PID is dual-purpose session-identity
         # plumbing, so it must NOT by itself open the nested-sandbox passthrough.
-        # Only the explicit KIROCREW_SANDBOX_ACTIVE marker does.
-        monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
-        monkeypatch.setenv("KIROCREW_HOST_PID", "12345")
-        with patch("kiro_crew.sandbox._allow_unsandboxed_exec", return_value=True):
+        # Only the explicit JUNCTION_SANDBOX_ACTIVE marker does.
+        monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
+        monkeypatch.setenv("JUNCTION_HOST_PID", "12345")
+        with patch("junction.sandbox._allow_unsandboxed_exec", return_value=True):
             result, cleanup = wrap_argv(["kiro-cli"], mode="strict")
         # Falls through to normal backend detection rather than passing through.
         mock_detect.assert_called_once()
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_outside_sandbox_does_not_pass_through(self, mock_detect, monkeypatch):
         # No marker set → normal wrap path (here: no backend), proving the
         # passthrough is gated strictly on the in-sandbox marker.
-        monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
-        monkeypatch.delenv("KIROCREW_HOST_PID", raising=False)
-        with patch("kiro_crew.sandbox._allow_unsandboxed_exec", return_value=True):
+        monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
+        monkeypatch.delenv("JUNCTION_HOST_PID", raising=False)
+        with patch("junction.sandbox._allow_unsandboxed_exec", return_value=True):
             result, cleanup = wrap_argv(["kiro-cli"], mode="strict")
         mock_detect.assert_called_once()
 
@@ -394,7 +394,7 @@ class TestBuildLauncherScript:
         import ast
         import inspect
 
-        from kiro_crew import sandbox
+        from junction import sandbox
 
         tree = ast.parse(inspect.getsource(sandbox._build_launcher_script))
         probes = [
@@ -418,7 +418,7 @@ class TestBuildLauncherScript:
         """
         import os
 
-        from kiro_crew import security
+        from junction import security
 
         home = os.path.expanduser("~")
         extra = tuple(os.path.join(home, rel) for rel in security.sensitive_home_dirs())
@@ -457,9 +457,9 @@ class TestBuildLauncherScript:
         assert script.index("import sys") < script.index("sys.path[:]")
 
     @_POSIX_ONLY
-    def test_launcher_has_no_unimportable_kiro_crew_refs(self):
+    def test_launcher_has_no_unimportable_junction_refs(self):
         """The launcher runs as a standalone ~/.kirocrew/run script with the
-        launcher dir scrubbed from sys.path, so it CANNOT import kiro_crew.
+        launcher dir scrubbed from sys.path, so it CANNOT import junction.
         Referencing a module-level helper like ``platform_compat`` NameErrors at
         runtime and crashed every command cron. Guard: chmod is inlined, the
         script stays syntactically valid, and there is no module-qualified
@@ -478,14 +478,14 @@ class TestBuildLauncherScript:
             assert "os.chmod(dest, 0o444)" in script, f"{level}: inline chmod missing"
             compile(script, "<launcher>", "exec")
             # AST-based so mentions in comments/strings (e.g. the fork's own
-            # explanatory comment naming platform_compat/kiro_crew) don't
+            # explanatory comment naming platform_compat/junction) don't
             # false-positive — only module-qualified attribute access counts.
             used_modules = {
                 node.value.id
                 for node in ast.walk(ast.parse(script))
                 if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)
             }
-            forbidden = used_modules & {"platform_compat", "kiro_crew", "logger", "logging"}
+            forbidden = used_modules & {"platform_compat", "junction", "logger", "logging"}
             assert (
                 not forbidden
             ), f"{level}: launcher references un-importable module(s) {forbidden}"
@@ -702,7 +702,7 @@ class TestLauncherStdlibShadowing:
 
 
 class TestSignalBroadcastGuard:
-    """seccomp kill(-1) broadcast denial + KIROCREW_HOST_PID export.
+    """seccomp kill(-1) broadcast denial + JUNCTION_HOST_PID export.
 
     Redo of the reverted PID-namespace isolation (24c320f6 → 14fb9442): the
     broadcast accident is contained by a static seccomp arg filter instead of
@@ -727,24 +727,24 @@ class TestSignalBroadcastGuard:
 
     @_POSIX_ONLY
     def test_launcher_script_exports_host_pid(self):
-        """Static: launcher exports KIROCREW_HOST_PID before fork so the
+        """Static: launcher exports JUNCTION_HOST_PID before fork so the
         whole subtree can resolve session_pid files by the recorded pid."""
         script = _build_launcher_script("standard")
-        assert 'os.environ["KIROCREW_HOST_PID"] = str(os.getpid())' in script
+        assert 'os.environ["JUNCTION_HOST_PID"] = str(os.getpid())' in script
         # Must appear in main() BEFORE the fork so the child inherits it.
-        assert script.index("KIROCREW_HOST_PID") < script.index("os.fork()")
+        assert script.index("JUNCTION_HOST_PID") < script.index("os.fork()")
 
     def test_kill_broadcast_denied_targeted_allowed_e2e(self, tmp_path):
         """Live e2e through the real launcher: inside the sandbox,
         ``os.kill(-1, 0)`` must fail with EPERM (seccomp) while a targeted
-        ``os.kill(own_pid, 0)`` succeeds and KIROCREW_HOST_PID is present.
+        ``os.kill(own_pid, 0)`` succeeds and JUNCTION_HOST_PID is present.
 
         Safe by construction: signal 0 is a pure permission/existence probe —
         no signal is ever delivered, even if the filter were absent.
         """
         if sys.platform != "linux":
             pytest.skip("sandbox launcher is Linux-only")
-        import kiro_crew.sandbox as _sb
+        import junction.sandbox as _sb
 
         if not _sb._probe_unshare():
             # Probes CLONE_NEWUSER|CLONE_NEWNS — fails closed on CI hosts
@@ -762,7 +762,7 @@ class TestSignalBroadcastGuard:
             "    print(f'BROADCAST_OSERROR_{e.errno}')\n"
             "os.kill(os.getpid(), 0)\n"
             "print('TARGETED_OK')\n"
-            "print('HOSTPID_' + ('SET' if os.environ.get('KIROCREW_HOST_PID', '').isdigit() else 'MISSING'))\n"
+            "print('HOSTPID_' + ('SET' if os.environ.get('JUNCTION_HOST_PID', '').isdigit() else 'MISSING'))\n"
         )
         launcher = tmp_path / "launcher.py"
         launcher.write_text(_build_launcher_script("standard"))
@@ -787,7 +787,7 @@ class TestSandboxExecArgv:
         """The seatbelt wrap must mark the tree, mirroring the Linux launcher.
 
         Without this marker an in-sandbox ``wrap_argv`` call cannot tell that
-        KiroCrew's own sandbox already confines it, tries to nest, and gets EPERM
+        Junction's own sandbox already confines it, tries to nest, and gets EPERM
         — which then fail-closes every app-backend and MCP spawn. The marker must
         land AFTER the ``-u`` flags (an assignment, not something ``-u`` can drop)
         and BEFORE ``sandbox-exec``.
@@ -818,11 +818,11 @@ class TestSandboxExecArgv:
             if profile_path:
                 os.unlink(profile_path)
 
-    @patch.dict(os.environ, {"PYTHONPATH": "/opt/kirocrew/site-packages", "PYTHONHOME": "/opt/py"})
+    @patch.dict(os.environ, {"PYTHONPATH": "/opt/junction/site-packages", "PYTHONHOME": "/opt/py"})
     def test_strips_python_env_when_requested(self):
         # A foreign Python subprocess (kiro-cli's MCP servers, e.g. ord-mcp) must
-        # NOT inherit KiroCrew's PYTHONPATH/PYTHONHOME, or it prepends KiroCrew's
-        # site-packages to sys.path and imports KiroCrew's fastmcp/cryptography
+        # NOT inherit Junction's PYTHONPATH/PYTHONHOME, or it prepends Junction's
+        # site-packages to sys.path and imports Junction's fastmcp/cryptography
         # instead of its own. strip_python_env=True unsets them.
         argv, profile_path = sandbox_exec_argv(["kiro-cli", "acp"], "strict", strip_python_env=True)
         try:
@@ -832,10 +832,10 @@ class TestSandboxExecArgv:
             if profile_path:
                 os.unlink(profile_path)
 
-    @patch.dict(os.environ, {"PYTHONPATH": "/opt/kirocrew/site-packages", "PYTHONHOME": "/opt/py"})
+    @patch.dict(os.environ, {"PYTHONPATH": "/opt/junction/site-packages", "PYTHONHOME": "/opt/py"})
     def test_preserves_python_env_by_default(self):
-        # KiroCrew's OWN sandboxed Python subprocesses (cron scripts, app
-        # backends, code-review workers) import kiro_crew via PYTHONPATH, so it
+        # Junction's OWN sandboxed Python subprocesses (cron scripts, app
+        # backends, code-review workers) import junction via PYTHONPATH, so it
         # must be preserved when strip_python_env is not set (regression guard).
         argv, profile_path = sandbox_exec_argv(["python3", "worker.py"], "standard")
         try:
@@ -858,7 +858,7 @@ class TestSandboxExecArgv:
 
 @_POSIX_ONLY
 class TestNamespaceArgv:
-    @patch("kiro_crew.sandbox._resolve_agent_executable", return_value="/usr/local/bin/kiro-cli")
+    @patch("junction.sandbox._resolve_agent_executable", return_value="/usr/local/bin/kiro-cli")
     def test_wraps_with_python_launcher(self, mock_resolve):
         result = namespace_argv(["kiro-cli", "acp"], "strict")
         assert result[0] == sys.executable
@@ -868,7 +868,7 @@ class TestNamespaceArgv:
         # Cleanup temp file
         os.unlink(result[1])
 
-    @patch("kiro_crew.sandbox._resolve_agent_executable", return_value="/usr/local/bin/kiro-cli")
+    @patch("junction.sandbox._resolve_agent_executable", return_value="/usr/local/bin/kiro-cli")
     def test_launcher_script_is_executable(self, mock_resolve):
         result = namespace_argv(["kiro-cli"], "strict")
         launcher_path = result[1]
@@ -908,7 +908,7 @@ class TestAgentExecutableResolver:
         resolver.resolve_executable.return_value = "/opt/agent/bin/kiro-cli"
         context = MagicMock()
         context.agent_executable = resolver
-        with patch("kiro_crew.sandbox.current_context", return_value=context):
+        with patch("junction.sandbox.current_context", return_value=context):
             result = _resolve_agent_executable("/usr/local/bin/kiro-cli")
         assert result == "/opt/agent/bin/kiro-cli"
         resolver.resolve_executable.assert_called_once_with("/usr/local/bin/kiro-cli")
@@ -918,19 +918,19 @@ class TestAgentExecutableResolver:
         resolver.resolve_executable.side_effect = RuntimeError("resolver unavailable")
         context = MagicMock()
         context.agent_executable = resolver
-        with patch("kiro_crew.sandbox.current_context", return_value=context):
+        with patch("junction.sandbox.current_context", return_value=context):
             result = _resolve_agent_executable("/usr/local/bin/kiro-cli")
         assert result == "/usr/local/bin/kiro-cli"
 
     def test_composition_failure_propagates(self):
-        from kiro_crew.platform.context import PlatformCompositionError
+        from junction.platform.context import PlatformCompositionError
 
         resolver = MagicMock()
         resolver.resolve_executable.side_effect = PlatformCompositionError("companion unavailable")
         context = MagicMock()
         context.agent_executable = resolver
         with (
-            patch("kiro_crew.sandbox.current_context", return_value=context),
+            patch("junction.sandbox.current_context", return_value=context),
             pytest.raises(PlatformCompositionError),
         ):
             _resolve_agent_executable("/usr/local/bin/kiro-cli")
@@ -945,9 +945,9 @@ class TestSandboxNoWarningWhenExpected:
     this preserves the upstream project's "don't spam on expected states" intent.
     """
 
-    @patch("kiro_crew.sandbox._allow_unsandboxed_exec", return_value=True)
-    @patch("kiro_crew.sandbox._allow_no_isolation", return_value=True)
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox._allow_unsandboxed_exec", return_value=True)
+    @patch("junction.sandbox._allow_no_isolation", return_value=True)
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_no_sandbox_opted_in_logs_info_not_warning(
         self, mock_detect, mock_optin, mock_allow, caplog
     ):
@@ -955,7 +955,7 @@ class TestSandboxNoWarningWhenExpected:
 
         if hasattr(wrap_argv, "_warned"):
             del wrap_argv._warned  # type: ignore[attr-defined]
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.sandbox"):
+        with caplog.at_level(logging.DEBUG, logger="junction.sandbox"):
             wrap_argv(["kiro-cli", "acp"], mode="auto")
         warning_msgs = [r for r in caplog.records if r.levelno == logging.WARNING]
         info_msgs = [
@@ -972,15 +972,15 @@ class TestCleanupStaleSandboxProfiles:
 
     def test_removes_dead_pid_profile(self, tmp_path):
         """Profile file whose PID is dead gets removed."""
-        from kiro_crew.sandbox import cleanup_stale_sandbox_profiles
+        from junction.sandbox import cleanup_stale_sandbox_profiles
 
         run_dir = tmp_path / ".kirocrew" / "run"
         run_dir.mkdir(parents=True)
-        stale_file = run_dir / "kirocrew_sandbox_99999_abc123.sb"
+        stale_file = run_dir / "junction_sandbox_99999_abc123.sb"
         stale_file.write_text("(version 1)")
 
-        with patch("kiro_crew.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
-            with patch("kiro_crew.sandbox.platform_compat.pid_exists", return_value=False):
+        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
+            with patch("junction.sandbox.platform_compat.pid_exists", return_value=False):
                 removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
         assert not stale_file.exists()
@@ -989,53 +989,53 @@ class TestCleanupStaleSandboxProfiles:
     def test_reclaims_retired_acp_snapshot_tree(self, tmp_path):
         """Orphaned pre-in-place-launch kiro-cli copies are reclaimed.
 
-        KiroCrew used to copy the whole ~100 MB kiro-cli binary per ACP spawn
+        Junction used to copy the whole ~100 MB kiro-cli binary per ACP spawn
         generation into run/kiro-cli-snapshots and exec the copy. Nothing writes
         that tree now, and nothing else can reclaim it (the file sweep only
-        matches kirocrew_sandbox_* files; the tree is on the agent's
+        matches junction_sandbox_* files; the tree is on the agent's
         sensitive-path floor), so an upgraded install would leak it forever.
         """
-        from kiro_crew.sandbox import cleanup_stale_sandbox_profiles
+        from junction.sandbox import cleanup_stale_sandbox_profiles
 
         home = tmp_path / ".kirocrew"
         holder = home / "run" / "kiro-cli-snapshots" / "kiro-cli-acp-abc123"
         holder.mkdir(parents=True)
         (holder / "kiro-cli").write_bytes(b"orphaned copy")
 
-        with patch("kiro_crew.sandbox.config_dir", return_value=home):
+        with patch("junction.sandbox.config_dir", return_value=home):
             removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
         assert not (home / "run" / "kiro-cli-snapshots").exists()
         assert removed == 1
         # The rest of run/ is untouched, and a second pass is a no-op.
-        with patch("kiro_crew.sandbox.config_dir", return_value=home):
+        with patch("junction.sandbox.config_dir", return_value=home):
             assert cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent")) == 0
 
     def test_preserves_live_pid_profile(self, tmp_path):
         """Profile file whose PID is alive (current process) is preserved."""
-        from kiro_crew.sandbox import cleanup_stale_sandbox_profiles
+        from junction.sandbox import cleanup_stale_sandbox_profiles
 
         run_dir = tmp_path / ".kirocrew" / "run"
         run_dir.mkdir(parents=True)
-        live_file = run_dir / f"kirocrew_sandbox_{os.getpid()}_xyz789.sb"
+        live_file = run_dir / f"junction_sandbox_{os.getpid()}_xyz789.sb"
         live_file.write_text("(version 1)")
 
-        with patch("kiro_crew.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
+        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
             removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
         assert live_file.exists()
         assert removed == 0
 
     def test_ignores_non_sandbox_files(self, tmp_path):
-        """Files not matching kirocrew_sandbox_*.sb pattern are left alone."""
-        from kiro_crew.sandbox import cleanup_stale_sandbox_profiles
+        """Files not matching junction_sandbox_*.sb pattern are left alone."""
+        from junction.sandbox import cleanup_stale_sandbox_profiles
 
         run_dir = tmp_path / ".kirocrew" / "run"
         run_dir.mkdir(parents=True)
         other_file = run_dir / "something_else.txt"
         other_file.write_text("keep me")
 
-        with patch("kiro_crew.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
+        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
             removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
         assert other_file.exists()
@@ -1048,13 +1048,13 @@ class TestResourceLimitPreexec:
     (security-review bdf0d7e5)."""
 
     def _reset_cache(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._RESOURCE_PREEXEC = sb._UNSET
 
     @_POSIX_ONLY
     def test_returns_callable_and_caches(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_cache()
         try:
@@ -1069,11 +1069,11 @@ class TestResourceLimitPreexec:
     def test_config_read_failure_falls_back_to_defaults(self):
         """If config load raises, the preexec still builds from safe defaults
         (no crash, protection still applied)."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_cache()
         try:
-            with patch("kiro_crew.config.loader._raw_config", side_effect=RuntimeError("boom")):
+            with patch("junction.config.loader._raw_config", side_effect=RuntimeError("boom")):
                 fn = sb.resource_limit_preexec()
             assert callable(fn)
         finally:
@@ -1083,11 +1083,11 @@ class TestResourceLimitPreexec:
         """On non-POSIX (os.name != 'posix'), returns None — create_subprocess_exec
         rejects any non-None preexec_fn on Windows with ValueError, so the
         contract must be None there (review-bot)."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_cache()
         try:
-            with patch("kiro_crew.sandbox.os.name", "nt"):
+            with patch("junction.sandbox.os.name", "nt"):
                 assert sb.resource_limit_preexec() is None
         finally:
             self._reset_cache()
@@ -1099,13 +1099,13 @@ class TestSessionHostPreexec:
     managing many MCP server subprocesses."""
 
     def _reset_cache(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._SESSION_HOST_PREEXEC = sb._UNSET
 
     @_POSIX_ONLY
     def test_returns_callable_and_caches(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_cache()
         try:
@@ -1121,7 +1121,7 @@ class TestSessionHostPreexec:
         """The preexec callable raises NOFILE soft to the hard limit."""
         import resource
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_cache()
         try:
@@ -1147,11 +1147,11 @@ class TestSessionHostPreexec:
             self._reset_cache()
 
     def test_non_posix_returns_none(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_cache()
         try:
-            with patch("kiro_crew.sandbox.os.name", "nt"):
+            with patch("junction.sandbox.os.name", "nt"):
                 assert sb.session_host_preexec() is None
         finally:
             self._reset_cache()
@@ -1163,23 +1163,23 @@ class TestCgroupScopeArgv:
     ceiling the finding's headline threats require (security-review bdf0d7e5)."""
 
     def _reset_probe(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._CGROUP_SCOPE_PROBE = None
         sb._CGROUP_WARNED = False
 
     def test_available_prepends_systemd_scope_with_limits(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 8192, 50, 0),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=True),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=True),
             ):
                 out = sb.cgroup_scope_argv(["kiro-cli", "chat"])
             assert out[0] == "systemd-run"
@@ -1201,7 +1201,7 @@ class TestCgroupScopeArgv:
         keep pids/memory enforcement)."""
         from unittest.mock import mock_open
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         try:
             sb._CPU_DELEGATED = None
@@ -1220,17 +1220,17 @@ class TestCgroupScopeArgv:
             sb._CPU_DELEGATED = None
 
     def test_cpu_quota_emitted_when_configured(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 8192, 75, 200),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=True),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=True),
             ):
                 out = sb.cgroup_scope_argv(["kiro-cli", "chat"])
             assert "CPUWeight=75" in out
@@ -1241,17 +1241,17 @@ class TestCgroupScopeArgv:
     def test_no_cpu_properties_without_cpu_delegation(self):
         """pids/memory enforcement must not be lost when only cpu delegation
         is missing — the scope is still created, minus the CPU properties."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 8192, 50, 200),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=False),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=False),
             ):
                 out = sb.cgroup_scope_argv(["kiro-cli", "chat"])
             assert out[0] == "systemd-run"
@@ -1264,12 +1264,12 @@ class TestCgroupScopeArgv:
     def test_unavailable_is_passthrough_and_warns_once(self, caplog):
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with patch(
-                "kiro_crew.sandbox._probe_cgroup_scope",
+                "junction.sandbox._probe_cgroup_scope",
                 return_value=(False, "not Linux"),
             ):
                 with caplog.at_level(logging.WARNING):
@@ -1284,12 +1284,12 @@ class TestCgroupScopeArgv:
             self._reset_probe()
 
     def test_config_overrides_cgroup_limits(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with patch(
-                "kiro_crew.config.loader._raw_config",
+                "junction.config.loader._raw_config",
                 return_value={
                     "resource_limits": {
                         "max_processes": 200,
@@ -1308,20 +1308,20 @@ class TestCgroupScopeArgv:
             self._reset_probe()
 
     def test_config_defaults_when_absent_or_zero(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             # Missing block -> module defaults (never leave the cgroup ceiling
             # unset). Memory default is host-proportional (65% of RAM).
-            with patch("kiro_crew.config.loader._raw_config", return_value={}):
+            with patch("junction.config.loader._raw_config", return_value={}):
                 procs, mem, weight, quota = sb._cgroup_limits_from_config()
             assert procs == sb._CGROUP_DEFAULT_MAX_PROCESSES
             assert mem == sb._default_max_memory_mb()
             assert weight == sb._CGROUP_DEFAULT_CPU_WEIGHT
             assert quota == 0  # opt-in: no CPUQuota by default
             with patch(
-                "kiro_crew.config.loader._raw_config",
+                "junction.config.loader._raw_config",
                 return_value={
                     "resource_limits": {
                         "max_processes": 0,
@@ -1339,7 +1339,7 @@ class TestCgroupScopeArgv:
             # Fractions must not truncate into invalid TasksMax=0 /
             # MemoryMax=0M properties.
             with patch(
-                "kiro_crew.config.loader._raw_config",
+                "junction.config.loader._raw_config",
                 return_value={
                     "resource_limits": {
                         "max_processes": 0.5,
@@ -1357,7 +1357,7 @@ class TestCgroupScopeArgv:
             # block (e.g. a legitimate max_memory_mb after a bogus
             # max_processes).
             with patch(
-                "kiro_crew.config.loader._raw_config",
+                "junction.config.loader._raw_config",
                 return_value={
                     "resource_limits": {
                         "max_processes": float("nan"),
@@ -1369,7 +1369,7 @@ class TestCgroupScopeArgv:
             assert procs == sb._CGROUP_DEFAULT_MAX_PROCESSES
             assert mem == 512  # must not be discarded by the NaN above it
             with patch(
-                "kiro_crew.config.loader._raw_config",
+                "junction.config.loader._raw_config",
                 return_value={
                     "resource_limits": {
                         "max_processes": 64,
@@ -1386,7 +1386,7 @@ class TestCgroupScopeArgv:
     @_POSIX_ONLY
     def test_default_max_memory_is_host_proportional(self):
         """The memory default scales with physical RAM (65%), not a flat cap."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         # A known 16 GiB box -> 65% -> ~10649 MB.
         sixteen_g = 16 * 1024**3
@@ -1404,7 +1404,7 @@ class TestCgroupScopeArgv:
         only ``sysconf`` would no longer make RAM unknown and this would assert
         against a derived value instead of the fallback.
         """
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         with patch("os.sysconf", side_effect=OSError("no sysconf")), patch.object(
             sb.platform_compat, "system_memory", return_value=None
@@ -1421,7 +1421,7 @@ class TestCgroupScopeArgv:
         """If this host actually has cgroup delegation, the scope must ENFORCE
         pids.max — a child under a tiny TasksMax cannot fork past it. Skips
         cleanly where delegation is unavailable (the probe returns False)."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
@@ -1429,7 +1429,7 @@ class TestCgroupScopeArgv:
             if not available:
                 pytest.skip("no cgroup v2 delegation on this host")
             with patch(
-                "kiro_crew.sandbox._cgroup_limits_from_config", return_value=(20, 8192, 50, 0)
+                "junction.sandbox._cgroup_limits_from_config", return_value=(20, 8192, 50, 0)
             ):
                 argv = sb.cgroup_scope_argv(
                     [
@@ -1456,12 +1456,12 @@ class TestCgroupScopeArgv:
 
 class TestAgentsSliceLimits:
     """ensure_agents_slice_limits() puts an AGGREGATE MemoryMax/TasksMax on
-    kirocrew-agents.slice — the parent of every per-spawn scope — so N
+    junction-agents.slice — the parent of every per-spawn scope — so N
     concurrent scopes cannot collectively request N x 65% of host RAM while
     each stays inside its own per-scope ceiling."""
 
     def _reset(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._CGROUP_SCOPE_PROBE = None
         sb._CGROUP_WARNED = False
@@ -1473,19 +1473,19 @@ class TestAgentsSliceLimits:
         is a no-op returning True (idempotent across restarts of the caller).
         argv[0] must be the TRUSTED absolute path, never a bare name PATH
         could resolve to an agent-planted shim."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             run_mock = MagicMock(return_value=MagicMock(returncode=0, stderr=""))
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
-                patch("kiro_crew.sandbox._slice_limits_from_config", return_value=(10000, 32768)),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._slice_limits_from_config", return_value=(10000, 32768)),
                 patch(
-                    "kiro_crew.platform_compat.trusted_system_bin",
+                    "junction.platform_compat.trusted_system_bin",
                     return_value="/usr/bin/systemctl",
                 ),
-                patch("kiro_crew.sandbox.subprocess.run", run_mock),
+                patch("junction.sandbox.subprocess.run", run_mock),
             ):
                 assert sb.ensure_agents_slice_limits() is True
                 assert sb.ensure_agents_slice_limits() is True
@@ -1496,7 +1496,7 @@ class TestAgentsSliceLimits:
                 "--user",
                 "set-property",
                 "--runtime",
-                "kirocrew-agents.slice",
+                "junction-agents.slice",
                 "MemoryMax=10000M",
                 "MemorySwapMax=0",
                 "TasksMax=32768",
@@ -1507,15 +1507,15 @@ class TestAgentsSliceLimits:
     def test_no_trusted_systemctl_means_no_apply(self):
         """PATH is never consulted: when no trusted systemctl exists, the
         ceiling is skipped (returns False), not resolved through PATH."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             run_mock = MagicMock()
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
-                patch("kiro_crew.platform_compat.trusted_system_bin", return_value=None),
-                patch("kiro_crew.sandbox.subprocess.run", run_mock),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.platform_compat.trusted_system_bin", return_value=None),
+                patch("junction.sandbox.subprocess.run", run_mock),
             ):
                 assert sb.ensure_agents_slice_limits() is False
             run_mock.assert_not_called()
@@ -1527,15 +1527,15 @@ class TestAgentsSliceLimits:
         per-spawn site together emit exactly ONE SECURITY warning."""
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             run_mock = MagicMock()
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(False, "not Linux")),
-                patch("kiro_crew.sandbox.subprocess.run", run_mock),
-                caplog.at_level(logging.WARNING, logger="kiro_crew.sandbox"),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(False, "not Linux")),
+                patch("junction.sandbox.subprocess.run", run_mock),
+                caplog.at_level(logging.WARNING, logger="junction.sandbox"),
             ):
                 assert sb.ensure_agents_slice_limits() is False
                 out = sb.cgroup_scope_argv(["git", "status"])
@@ -1549,19 +1549,19 @@ class TestAgentsSliceLimits:
     def test_failed_apply_is_retried_next_call(self):
         """A nonzero rc leaves the ceiling unapplied — the next call retries
         rather than caching the failure as success."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             run_mock = MagicMock(return_value=MagicMock(returncode=1, stderr="boom"))
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
-                patch("kiro_crew.sandbox._slice_limits_from_config", return_value=(10000, 32768)),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._slice_limits_from_config", return_value=(10000, 32768)),
                 patch(
-                    "kiro_crew.platform_compat.trusted_system_bin",
+                    "junction.platform_compat.trusted_system_bin",
                     return_value="/usr/bin/systemctl",
                 ),
-                patch("kiro_crew.sandbox.subprocess.run", run_mock),
+                patch("junction.sandbox.subprocess.run", run_mock),
             ):
                 assert sb.ensure_agents_slice_limits() is False
                 assert sb.ensure_agents_slice_limits() is False
@@ -1570,10 +1570,10 @@ class TestAgentsSliceLimits:
             self._reset()
 
     def test_config_overrides_slice_limits(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         with patch(
-            "kiro_crew.config.loader._raw_config",
+            "junction.config.loader._raw_config",
             return_value={
                 "resource_limits": {
                     "max_total_memory_mb": 4096,
@@ -1588,14 +1588,14 @@ class TestAgentsSliceLimits:
     def test_config_defaults_when_absent_or_junk(self):
         """Zero/junk falls back to the default rather than leaving the
         aggregate unset — same rule as the per-scope ceiling."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
-        with patch("kiro_crew.config.loader._raw_config", return_value={}):
+        with patch("junction.config.loader._raw_config", return_value={}):
             mem, tasks = sb._slice_limits_from_config()
         assert mem == sb._default_max_total_memory_mb()
         assert tasks == sb._CGROUP_DEFAULT_MAX_TOTAL_TASKS
         with patch(
-            "kiro_crew.config.loader._raw_config",
+            "junction.config.loader._raw_config",
             return_value={
                 "resource_limits": {
                     "max_total_memory_mb": 0,
@@ -1609,7 +1609,7 @@ class TestAgentsSliceLimits:
         # Fractional values pass a naive `> 0` check but truncate to 0, which
         # would emit MemoryMax=0M and kill every agent scope — must fall back.
         with patch(
-            "kiro_crew.config.loader._raw_config",
+            "junction.config.loader._raw_config",
             return_value={
                 "resource_limits": {
                     "max_total_memory_mb": 0.5,
@@ -1626,7 +1626,7 @@ class TestAgentsSliceLimits:
         """80% of RAM by default; flat fallback when RAM is unreadable. Both
         must sit ABOVE their per-scope counterparts, or the slice would clamp
         a single spawn tighter than its own documented ceiling."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sixteen_g = 16 * 1024**3
         with patch("os.sysconf", side_effect=lambda n: sixteen_g // 4096 if "PHYS" in n else 4096):
@@ -1641,17 +1641,17 @@ class TestAgentsSliceLimits:
         """RATCHET: the two-level model needs BOTH layers. The per-spawn scope
         must keep emitting its own MemoryMax under the slice — a future change
         must not silently replace per-tree bounding with aggregate-only."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 4096, 50, 0),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=False),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=False),
             ):
                 out = sb.cgroup_scope_argv(["kiro-cli", "chat"])
             assert f"--slice={sb._CGROUP_AGENTS_SLICE}" in out
@@ -1661,7 +1661,7 @@ class TestAgentsSliceLimits:
             self._reset()
 
     def _fake_slice(self, tmp_path, *, oom_kill=0, local_max=0, current=100, mem_max="1000"):
-        d = tmp_path / "kirocrew-agents.slice"
+        d = tmp_path / "junction-agents.slice"
         d.mkdir(exist_ok=True)
         (d / "memory.events").write_text(f"low 0\nhigh 0\nmax 0\noom 0\noom_kill {oom_kill}\n")
         (d / "memory.events.local").write_text(
@@ -1675,12 +1675,12 @@ class TestAgentsSliceLimits:
         """First read seeds the counters (no spurious boot warning); a later
         oom_kill increase is reported with the victim scope and whether the
         slice-level ceiling engaged."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             d = self._fake_slice(tmp_path, oom_kill=2)
-            with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=d):
+            with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=d):
                 assert sb.check_agents_slice_pressure() is None  # seed only
                 # A scope takes a kill and the slice's own limit engaged.
                 self._fake_slice(tmp_path, oom_kill=3, local_max=1)
@@ -1701,12 +1701,12 @@ class TestAgentsSliceLimits:
 
     def test_slice_pressure_scope_local_breach_is_distinguished(self, tmp_path):
         """A kill without a slice-level max event reads as a per-scope breach."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             d = self._fake_slice(tmp_path)
-            with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=d):
+            with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=d):
                 assert sb.check_agents_slice_pressure() is None
                 self._fake_slice(tmp_path, oom_kill=1, local_max=0)
                 msg = sb.check_agents_slice_pressure()
@@ -1716,11 +1716,11 @@ class TestAgentsSliceLimits:
             self._reset()
 
     def test_slice_pressure_none_when_slice_absent(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
-            with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=None):
+            with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=None):
                 assert sb.check_agents_slice_pressure() is None
         finally:
             self._reset()
@@ -1729,15 +1729,15 @@ class TestAgentsSliceLimits:
         """A user-manager restart drops the --runtime property. The sampler
         detects memory.max reading 'max' and re-applies — but only when WE
         applied the ceiling before."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             d = self._fake_slice(tmp_path, mem_max="max")
             ensure_mock = MagicMock(return_value=True)
             with (
-                patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=d),
-                patch("kiro_crew.sandbox.ensure_agents_slice_limits", ensure_mock),
+                patch("junction.sandbox._agents_slice_cgroup_dir", return_value=d),
+                patch("junction.sandbox.ensure_agents_slice_limits", ensure_mock),
             ):
                 sb._SLICE_LIMITS_APPLIED = True
                 sb.check_agents_slice_pressure()
@@ -1749,15 +1749,15 @@ class TestAgentsSliceLimits:
     def test_slice_pressure_no_heal_when_never_applied(self, tmp_path):
         """A host that never passed the delegation gate must not start
         shelling out from the sampler."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             d = self._fake_slice(tmp_path, mem_max="max")
             ensure_mock = MagicMock(return_value=True)
             with (
-                patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=d),
-                patch("kiro_crew.sandbox.ensure_agents_slice_limits", ensure_mock),
+                patch("junction.sandbox._agents_slice_cgroup_dir", return_value=d),
+                patch("junction.sandbox.ensure_agents_slice_limits", ensure_mock),
             ):
                 sb._SLICE_LIMITS_APPLIED = False
                 sb.check_agents_slice_pressure()
@@ -1768,14 +1768,14 @@ class TestAgentsSliceLimits:
     @pytest.mark.skipif(sys.platform != "linux", reason="cgroup v2 scope enforcement is Linux-only")
     def test_real_scope_nests_under_agents_slice(self):
         """On a delegation-capable host, a real scope's cgroup path runs
-        through kirocrew-agents.slice — the structural premise of the
+        through junction-agents.slice — the structural premise of the
         aggregate boundary: whatever limit the slice carries, the kernel
         min-composes it over every scope. When the live slice carries a
         MemoryMax (a running gateway applied one), assert the scope's own
         limit is not the only bound in the ancestry. Skips cleanly where
         delegation is unavailable. No host state is mutated: the test only
         spawns a scope (as every spawn does) and reads cgroup files."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._CGROUP_SCOPE_PROBE = None
         try:
@@ -1783,7 +1783,7 @@ class TestAgentsSliceLimits:
             if not available:
                 pytest.skip("no cgroup v2 delegation on this host")
             with patch(
-                "kiro_crew.sandbox._cgroup_limits_from_config", return_value=(50, 512, 50, 0)
+                "junction.sandbox._cgroup_limits_from_config", return_value=(50, 512, 50, 0)
             ):
                 argv = sb.cgroup_scope_argv(
                     [
@@ -1797,7 +1797,7 @@ class TestAgentsSliceLimits:
             out = subprocess.run(argv, capture_output=True, text=True, timeout=30)
             assert out.returncode == 0, out.stderr
             cg_path, scope_max = out.stdout.strip().splitlines()
-            assert "/kirocrew-agents.slice/" in cg_path
+            assert "/junction-agents.slice/" in cg_path
             assert scope_max == str(512 * 1024 * 1024)
         finally:
             sb._CGROUP_SCOPE_PROBE = None
@@ -1815,18 +1815,18 @@ class TestCgroupScopeBusEnv:
     forward is paired with an `env -u` shim inside the scope."""
 
     def _reset_probe(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._CGROUP_SCOPE_PROBE = None
         sb._CGROUP_WARNED = False
 
     def test_forwards_bus_locators_into_allowlist_env(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch.dict(
                     os.environ,
                     {
@@ -1849,13 +1849,13 @@ class TestCgroupScopeBusEnv:
             self._reset_probe()
 
     def test_caller_value_wins_and_missing_keys_stay_absent(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             env = {"XDG_RUNTIME_DIR": "/caller/runtime"}
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch.dict(os.environ, {"XDG_RUNTIME_DIR": "/run/user/4242"}, clear=False),
             ):
                 os.environ.pop("DBUS_SESSION_BUS_ADDRESS", None)
@@ -1873,13 +1873,13 @@ class TestCgroupScopeBusEnv:
     def test_passthrough_when_scope_unavailable(self):
         """No systemd-run prefix -> the caller's environment is handed through
         exactly as given, bus locators included or not."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
                 patch(
-                    "kiro_crew.sandbox._probe_cgroup_scope",
+                    "junction.sandbox._probe_cgroup_scope",
                     return_value=(False, "not Linux"),
                 ),
                 patch.dict(
@@ -1895,7 +1895,7 @@ class TestCgroupScopeBusEnv:
     def test_unset_env_argv_prefix_and_absence(self):
         """The shim is built from an absolute path (never PATH-resolved), and
         reports None when no env binary exists so callers can fail closed."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         argv = sb._unset_env_argv(("XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS"))
         if argv is not None:
@@ -1907,27 +1907,27 @@ class TestCgroupScopeBusEnv:
                 "-u",
                 "DBUS_SESSION_BUS_ADDRESS",
             ]
-        with patch("kiro_crew.sandbox.os.path.isfile", return_value=False):
+        with patch("junction.sandbox.os.path.isfile", return_value=False):
             assert sb._unset_env_argv(("XDG_RUNTIME_DIR",)) is None
 
     def test_sandboxed_spawn_argv_forwards_bus_but_child_cannot_keep_it(self):
         """End-to-end at the chokepoint: the spawn env carries the locators (so
         systemd-run can reach the bus) AND the argv drops them again inside the
         scope (so the sandboxed child cannot use the bus)."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
-                patch("kiro_crew.sandbox.wrap_argv", return_value=(["gh", "pr", "view"], None)),
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox.wrap_argv", return_value=(["gh", "pr", "view"], None)),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 8192, 50, 0),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=False),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=False),
                 patch(
-                    "kiro_crew.sandbox._unset_env_argv",
+                    "junction.sandbox._unset_env_argv",
                     return_value=["/usr/bin/env", "-u", "XDG_RUNTIME_DIR", "-u", "DBUS_SESSION_BUS_ADDRESS"],
                 ),
                 patch.dict(
@@ -1967,19 +1967,19 @@ class TestCgroupScopeBusEnv:
         all: systemd-run fails loudly rather than the child getting a live bus."""
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset_probe()
         try:
             with (
-                patch("kiro_crew.sandbox.wrap_argv", return_value=(["gh"], None)),
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox.wrap_argv", return_value=(["gh"], None)),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 8192, 50, 0),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=False),
-                patch("kiro_crew.sandbox._unset_env_argv", return_value=None),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=False),
+                patch("junction.sandbox._unset_env_argv", return_value=None),
                 patch.dict(
                     os.environ, {"XDG_RUNTIME_DIR": "/run/user/4242"}, clear=False
                 ),
@@ -2003,37 +2003,37 @@ class TestKiroInternalSandboxExclusion:
         p = tmp_path / "amazon-internal.json"
         if content is not None:
             p.write_text(content)
-        monkeypatch.setattr("kiro_crew.sandbox._KIRO_INTERNAL_SETTINGS_PATH", str(p))
+        monkeypatch.setattr("junction.sandbox._KIRO_INTERNAL_SETTINGS_PATH", str(p))
         return p
 
     # --- kiro_internal_sandbox_enabled() helper ---
 
     def test_absent_file_is_disabled(self, tmp_path, monkeypatch):
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         self._write_settings(tmp_path, monkeypatch, None)
         assert kiro_internal_sandbox_enabled() is False
 
     def test_malformed_json_is_disabled(self, tmp_path, monkeypatch):
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         self._write_settings(tmp_path, monkeypatch, "{not json")
         assert kiro_internal_sandbox_enabled() is False
 
     def test_missing_key_is_disabled(self, tmp_path, monkeypatch):
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         self._write_settings(tmp_path, monkeypatch, '{"other": true}')
         assert kiro_internal_sandbox_enabled() is False
 
     def test_true_is_enabled(self, tmp_path, monkeypatch):
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
         assert kiro_internal_sandbox_enabled() is True
 
     def test_false_is_disabled(self, tmp_path, monkeypatch):
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": false}')
         assert kiro_internal_sandbox_enabled() is False
@@ -2043,8 +2043,8 @@ class TestKiroInternalSandboxExclusion:
     def test_darwin_kiro_spawn_delegates(self, tmp_path, monkeypatch):
         """kiro sandbox ON + darwin + kiro-cli argv -> no seatbelt wrap."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
-        with patch("kiro_crew.sandbox.detect_backend") as mock_detect:
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
+        with patch("junction.sandbox.detect_backend") as mock_detect:
             argv, cleanup = wrap_argv(["/usr/local/bin/kiro-cli", "acp"], mode="auto")
         assert "sandbox-exec" not in argv
         assert argv[-2:] == ["/usr/local/bin/kiro-cli", "acp"]
@@ -2059,9 +2059,9 @@ class TestKiroInternalSandboxExclusion:
     ):
         """Launch-path shape must not erase Kiro's internal-sandbox identity."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
         launch = "/Applications/Kiro CLI.app/Contents/MacOS/kiro"
-        with patch("kiro_crew.sandbox.detect_backend") as mock_detect:
+        with patch("junction.sandbox.detect_backend") as mock_detect:
             argv, cleanup = wrap_argv(
                 [launch, "acp"],
                 mode="auto",
@@ -2074,7 +2074,7 @@ class TestKiroInternalSandboxExclusion:
     def test_darwin_kiro_spawn_delegation_scrubs_env(self, tmp_path, monkeypatch):
         """The delegated spawn keeps the seatbelt path's env scrub."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
         monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "sentinel")
         argv, _ = wrap_argv(["kiro-cli", "acp"], mode="auto")
         assert argv[0] == "env"
@@ -2084,11 +2084,11 @@ class TestKiroInternalSandboxExclusion:
     def test_darwin_non_kiro_spawn_stays_wrapped(self, tmp_path, monkeypatch):
         """Non-kiro spawns have no internal sandbox — seatbelt stays on."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
         with (
-            patch("kiro_crew.sandbox.detect_backend", return_value="sandbox-exec"),
+            patch("junction.sandbox.detect_backend", return_value="sandbox-exec"),
             patch(
-                "kiro_crew.sandbox.sandbox_exec_argv",
+                "junction.sandbox.sandbox_exec_argv",
                 return_value=(["sandbox-exec", "python3"], "/tmp/p.sb"),
             ) as mock_sb,
         ):
@@ -2096,13 +2096,13 @@ class TestKiroInternalSandboxExclusion:
         mock_sb.assert_called_once()
 
     def test_darwin_kiro_disabled_stays_wrapped(self, tmp_path, monkeypatch):
-        """kiro sandbox OFF -> KiroCrew's seatbelt ON (the inverse rule)."""
+        """kiro sandbox OFF -> Junction's seatbelt ON (the inverse rule)."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": false}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
         with (
-            patch("kiro_crew.sandbox.detect_backend", return_value="sandbox-exec"),
+            patch("junction.sandbox.detect_backend", return_value="sandbox-exec"),
             patch(
-                "kiro_crew.sandbox.sandbox_exec_argv",
+                "junction.sandbox.sandbox_exec_argv",
                 return_value=(["sandbox-exec", "kiro-cli"], "/tmp/p.sb"),
             ) as mock_sb,
         ):
@@ -2112,11 +2112,11 @@ class TestKiroInternalSandboxExclusion:
     def test_linux_unaffected(self, tmp_path, monkeypatch):
         """Mutual exclusion is macOS-only — Linux namespace path unchanged."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "linux")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "linux")
         with (
-            patch("kiro_crew.sandbox.detect_backend", return_value="namespace"),
+            patch("junction.sandbox.detect_backend", return_value="namespace"),
             patch(
-                "kiro_crew.sandbox.namespace_argv",
+                "junction.sandbox.namespace_argv",
                 return_value=["/bin/sh", "/tmp/launcher.sh", "kiro-cli"],
             ) as mock_ns,
         ):
@@ -2125,13 +2125,13 @@ class TestKiroInternalSandboxExclusion:
 
     def test_windows_explicit_kiro_backend_delegates_before_backend_probe(self, monkeypatch):
         """Fresh Windows installs use the positively identified Kiro sandbox."""
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "win32")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "win32")
         launch = r"C:\Program Files\Kiro\kiro-cli.exe"
         with (
-            patch("kiro_crew.sel.sel", return_value=MagicMock()),
-            patch("kiro_crew.sandbox.detect_backend") as mock_detect,
+            patch("junction.sel.sel", return_value=MagicMock()),
+            patch("junction.sandbox.detect_backend") as mock_detect,
             patch(
-                "kiro_crew.sandbox.kiro_internal_sandbox_enabled",
+                "junction.sandbox.kiro_internal_sandbox_enabled",
                 side_effect=AssertionError("Windows delegation must not depend on macOS settings"),
             ),
         ):
@@ -2148,11 +2148,11 @@ class TestKiroInternalSandboxExclusion:
     @pytest.mark.parametrize("classification", [None, False])
     def test_windows_nonclassified_spawn_still_fails_closed(self, monkeypatch, classification):
         """A Kiro-looking basename cannot grant the Windows delegation."""
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "win32")
-        monkeypatch.setattr("kiro_crew.sandbox._allow_unsandboxed_exec", lambda: False)
+        monkeypatch.setattr("junction.sandbox.sys.platform", "win32")
+        monkeypatch.setattr("junction.sandbox._allow_unsandboxed_exec", lambda: False)
         with (
-            patch("kiro_crew.sandbox.detect_backend", return_value="none"),
-            patch("kiro_crew.sel.sel", return_value=MagicMock()),
+            patch("junction.sandbox.detect_backend", return_value="none"),
+            patch("junction.sel.sel", return_value=MagicMock()),
             pytest.raises(sandbox_mod.SandboxUnavailableError),
         ):
             wrap_argv(
@@ -2163,11 +2163,11 @@ class TestKiroInternalSandboxExclusion:
 
     def test_windows_kiro_with_extra_path_policy_fails_closed(self, monkeypatch):
         """Delegation cannot silently discard Crew-specific path restrictions."""
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "win32")
-        monkeypatch.setattr("kiro_crew.sandbox._allow_unsandboxed_exec", lambda: False)
+        monkeypatch.setattr("junction.sandbox.sys.platform", "win32")
+        monkeypatch.setattr("junction.sandbox._allow_unsandboxed_exec", lambda: False)
         with (
-            patch("kiro_crew.sandbox.detect_backend", return_value="none"),
-            patch("kiro_crew.sel.sel", return_value=MagicMock()),
+            patch("junction.sandbox.detect_backend", return_value="none"),
+            patch("junction.sel.sel", return_value=MagicMock()),
             pytest.raises(sandbox_mod.SandboxUnavailableError),
         ):
             wrap_argv(
@@ -2179,11 +2179,11 @@ class TestKiroInternalSandboxExclusion:
 
     def test_windows_sel_failure_refuses_delegation(self, monkeypatch):
         """An unaudited Windows delegation falls through to fail-closed policy."""
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "win32")
-        monkeypatch.setattr("kiro_crew.sandbox._allow_unsandboxed_exec", lambda: False)
+        monkeypatch.setattr("junction.sandbox.sys.platform", "win32")
+        monkeypatch.setattr("junction.sandbox._allow_unsandboxed_exec", lambda: False)
         with (
-            patch("kiro_crew.sel.sel", side_effect=RuntimeError("audit down")),
-            patch("kiro_crew.sandbox.detect_backend", return_value="none") as mock_detect,
+            patch("junction.sel.sel", side_effect=RuntimeError("audit down")),
+            patch("junction.sandbox.detect_backend", return_value="none") as mock_detect,
             pytest.raises(sandbox_mod.SandboxUnavailableError),
         ):
             wrap_argv(
@@ -2195,13 +2195,13 @@ class TestKiroInternalSandboxExclusion:
 
     def test_sel_failure_refuses_delegation_falls_back_to_seatbelt(self, tmp_path, monkeypatch):
         """Audit-or-deny: if the SEL audit cannot be written, the delegation
-        is refused and the spawn falls back to KiroCrew's own seatbelt."""
+        is refused and the spawn falls back to Junction's own seatbelt."""
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
         with (
-            patch("kiro_crew.sel.sel", side_effect=RuntimeError("audit down")),
+            patch("junction.sel.sel", side_effect=RuntimeError("audit down")),
             patch(
-                "kiro_crew.sandbox.sandbox_exec_argv",
+                "junction.sandbox.sandbox_exec_argv",
                 return_value=(["sandbox-exec", "-f", "/tmp/p.sb", "kiro-cli", "acp"], "/tmp/p.sb"),
             ) as mock_sb,
         ):
@@ -2212,7 +2212,7 @@ class TestKiroInternalSandboxExclusion:
 
     def test_non_dict_json_is_disabled(self, tmp_path, monkeypatch):
         """Valid-but-non-object JSON must resolve to disabled, not raise."""
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         for content in ("[]", '"hello"', "null", "123"):
             self._write_settings(tmp_path, monkeypatch, content)
@@ -2224,7 +2224,7 @@ class TestKiroInternalSandboxExclusion:
 
         HOME is relocated to tmp_path because is_sensitive_path anchors its
         deny list at the user's home directory."""
-        from kiro_crew.sandbox import kiro_internal_sandbox_enabled
+        from junction.sandbox import kiro_internal_sandbox_enabled
 
         monkeypatch.setenv("HOME", str(tmp_path))
         sensitive = tmp_path / ".aws" / "credentials"
@@ -2237,7 +2237,7 @@ class TestKiroInternalSandboxExclusion:
             if sys.platform == "win32" and getattr(exc, "winerror", None) == 1314:
                 pytest.skip("Windows host has not granted symlink creation privilege")
             raise
-        monkeypatch.setattr("kiro_crew.sandbox._KIRO_INTERNAL_SETTINGS_PATH", str(link))
+        monkeypatch.setattr("junction.sandbox._KIRO_INTERNAL_SETTINGS_PATH", str(link))
         assert kiro_internal_sandbox_enabled() is False
 
     def test_sel_failure_does_not_burn_warn_once_flag(self, tmp_path, monkeypatch, caplog):
@@ -2246,25 +2246,25 @@ class TestKiroInternalSandboxExclusion:
         import logging
 
         self._write_settings(tmp_path, monkeypatch, '{"sandbox": true}')
-        monkeypatch.setattr("kiro_crew.sandbox.sys.platform", "darwin")
-        monkeypatch.setattr("kiro_crew.sandbox._kiro_delegation_warned", False)
+        monkeypatch.setattr("junction.sandbox.sys.platform", "darwin")
+        monkeypatch.setattr("junction.sandbox._kiro_delegation_warned", False)
 
         # First call: SEL down -> seatbelt fallback, no delegation warning.
         with (
-            patch("kiro_crew.sel.sel", side_effect=RuntimeError("audit down")),
+            patch("junction.sel.sel", side_effect=RuntimeError("audit down")),
             patch(
-                "kiro_crew.sandbox.sandbox_exec_argv",
+                "junction.sandbox.sandbox_exec_argv",
                 return_value=(["sandbox-exec", "-f", "/tmp/p.sb", "kiro-cli"], "/tmp/p.sb"),
             ),
         ):
             wrap_argv(["kiro-cli", "acp"], mode="auto")
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         assert sb._kiro_delegation_warned is False
 
         # Second call: SEL healthy -> delegation proceeds AND warns once.
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.sandbox"):
-            with patch("kiro_crew.sel.sel", return_value=MagicMock()):
+        with caplog.at_level(logging.WARNING, logger="junction.sandbox"):
+            with patch("junction.sel.sel", return_value=MagicMock()):
                 argv, cleanup = wrap_argv(["kiro-cli", "acp"], mode="auto")
         assert "sandbox-exec" not in argv
         assert cleanup is None
@@ -2279,19 +2279,19 @@ class TestMacOsNestingDetection:
     Files' ``git status`` / search) and ~40 gateway-boot MCP probes failing with
     "sandbox unavailable ... no OS-level sandbox backend is available on this
     host" on a macOS host whose ``sandbox-exec`` works perfectly when NOT nested
-    — because KiroCrew's own seatbelt had already confined the process tree.
+    — because Junction's own seatbelt had already confined the process tree.
 
     Every test fixes both gate inputs explicitly rather than inheriting whatever
     the test host happens to be: these assertions must not flip between a
     sandboxed dev machine and an unsandboxed CI runner.
     """
 
-    @patch("kiro_crew.sandbox.detect_backend")
+    @patch("junction.sandbox.detect_backend")
     def test_marker_plus_kernel_confirmation_passes_through(self, mock_detect, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SANDBOX_ACTIVE", "1")
+        monkeypatch.setenv("JUNCTION_SANDBOX_ACTIVE", "1")
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: True)
         argv = ["git", "worktree", "list", "--porcelain"]
-        with patch("kiro_crew.sel.sel"):
+        with patch("junction.sel.sel"):
             result, cleanup = wrap_argv(argv, mode="standard")
         assert result == argv
         assert cleanup is None
@@ -2299,14 +2299,14 @@ class TestMacOsNestingDetection:
         # EPERMs, and reading that as a host verdict is the bug this fixes.
         mock_detect.assert_not_called()
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_forged_marker_without_kernel_confirmation_is_refused(
         self, mock_detect, monkeypatch
     ):
         # The kernel is authoritative: a marker on a process the kernel says is
         # NOT sandboxed can only have been forged or inherited into an unconfined
         # process, so it must not open the passthrough.
-        monkeypatch.setenv("KIROCREW_SANDBOX_ACTIVE", "1")
+        monkeypatch.setenv("JUNCTION_SANDBOX_ACTIVE", "1")
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: False)
         monkeypatch.setattr(sandbox_mod, "kiro_internal_sandbox_enabled", lambda: False)
         monkeypatch.setattr(sandbox_mod, "_allow_unsandboxed_exec", lambda: False)
@@ -2315,29 +2315,29 @@ class TestMacOsNestingDetection:
             wrap_argv(["kiro-cli", "acp"], mode="strict")
         mock_detect.assert_called_once()
 
-    @patch("kiro_crew.sandbox.detect_backend")
+    @patch("junction.sandbox.detect_backend")
     def test_unanswerable_kernel_probe_still_honours_marker(self, mock_detect, monkeypatch):
         # "Cannot answer" is not "not sandboxed". A missing symbol / ABI change
         # must not retroactively invalidate a marker the Linux path honours
         # unconditionally — that would brick in-sandbox spawns wherever the probe
         # is unavailable.
-        monkeypatch.setenv("KIROCREW_SANDBOX_ACTIVE", "1")
+        monkeypatch.setenv("JUNCTION_SANDBOX_ACTIVE", "1")
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: None)
-        with patch("kiro_crew.sel.sel"):
+        with patch("junction.sel.sel"):
             result, _ = wrap_argv(["kiro-cli", "acp"], mode="strict")
         assert result == ["kiro-cli", "acp"]
         mock_detect.assert_not_called()
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_foreign_outer_sandbox_fails_closed_with_actionable_guidance(
         self, mock_detect, monkeypatch
     ):
-        # Nested under a sandbox KiroCrew did NOT create (no marker): its profile
+        # Nested under a sandbox Junction did NOT create (no marker): its profile
         # is unidentifiable and its environment was never scrubbed by us, so
         # passthrough is refused. The error must still name the REAL cause and a
         # remedy that keeps isolation, not repeat the false "this host has no
         # sandbox backend" claim.
-        monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
+        monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: True)
         monkeypatch.setattr(sandbox_mod, "kiro_internal_sandbox_enabled", lambda: False)
         monkeypatch.setattr(sandbox_mod, "_allow_unsandboxed_exec", lambda: False)
@@ -2351,11 +2351,11 @@ class TestMacOsNestingDetection:
         # even where no sandbox exists at all.
         assert "sandbox_allow_unsandboxed_exec=true" not in msg
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="none")
+    @patch("junction.sandbox.detect_backend", return_value="none")
     def test_not_nested_still_fails_closed(self, mock_detect, monkeypatch):
         # The passthrough must not weaken the fail-closed guarantee on a host that
         # genuinely has no backend.
-        monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
+        monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: False)
         monkeypatch.setattr(sandbox_mod, "kiro_internal_sandbox_enabled", lambda: False)
         monkeypatch.setattr(sandbox_mod, "_allow_unsandboxed_exec", lambda: False)
@@ -2363,14 +2363,14 @@ class TestMacOsNestingDetection:
         with pytest.raises(RuntimeError, match="Sandbox backend unavailable"):
             wrap_argv(["kiro-cli", "acp"], mode="standard")
 
-    @patch("kiro_crew.sandbox.detect_backend", return_value="sandbox-exec")
+    @patch("junction.sandbox.detect_backend", return_value="sandbox-exec")
     def test_available_backend_still_wraps(self, mock_detect, monkeypatch):
         # With no marker, a working backend must still wrap — the passthrough is
         # not a bypass. Uses a NON-kiro argv so the kiro-delegation path does not
         # intercept.
-        monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
+        monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
         monkeypatch.setattr(sandbox_mod, "_macos_sandbox_state", lambda: True)
-        with patch("kiro_crew.sandbox.sandbox_exec_argv") as mock_sb:
+        with patch("junction.sandbox.sandbox_exec_argv") as mock_sb:
             mock_sb.return_value = (["sandbox-exec", "-f", "/tmp/p.sb", "git"], "/tmp/p.sb")
             wrap_argv(["git", "status"], mode="standard")
         mock_sb.assert_called_once()
@@ -2402,7 +2402,7 @@ class TestMacOsNestingDetection:
 
 class TestAgentSliceMemoryHigh:
     """_ensure_agent_slice_memory_high() reconciles the AGGREGATE MemoryHigh
-    ceiling on kirocrew-agents.slice — bounding the SUM of all concurrent agent
+    ceiling on junction-agents.slice — bounding the SUM of all concurrent agent
     scopes, which the per-scope MemoryMax cannot (N scopes each under their own
     65% cap can still livelock a swapless host together)."""
 
@@ -2410,7 +2410,7 @@ class TestAgentSliceMemoryHigh:
         # cgroup_scope_argv runs on the gateway event loop, so the
         # reconciliation (config read + systemctl subprocess) must happen in
         # a worker thread, never inline on the caller's thread.
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         calling_thread: list = []
@@ -2422,7 +2422,7 @@ class TestAgentSliceMemoryHigh:
 
         try:
             with patch(
-                "kiro_crew.sandbox._ensure_agent_slice_memory_high",
+                "junction.sandbox._ensure_agent_slice_memory_high",
                 side_effect=record_thread,
             ):
                 sb._reconcile_slice_memory_high_off_thread()
@@ -2432,7 +2432,7 @@ class TestAgentSliceMemoryHigh:
             self._restore()
 
     def test_schedule_during_reconciliation_queues_and_applies(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         first_started = threading.Event()
@@ -2447,7 +2447,7 @@ class TestAgentSliceMemoryHigh:
 
         try:
             with patch(
-                "kiro_crew.sandbox._ensure_agent_slice_memory_high",
+                "junction.sandbox._ensure_agent_slice_memory_high",
                 side_effect=slow_reconcile,
             ):
                 sb._reconcile_slice_memory_high_off_thread()
@@ -2468,12 +2468,12 @@ class TestAgentSliceMemoryHigh:
     def test_thread_start_failure_disarms_without_aborting_the_spawn(self) -> None:
         # Thread exhaustion on the spawn path must not raise (aborting the
         # agent spawn) nor retain the in-flight slot forever.
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             with patch(
-                "kiro_crew.sandbox.threading.Thread",
+                "junction.sandbox.threading.Thread",
                 side_effect=RuntimeError("can't start new thread"),
             ):
                 sb._reconcile_slice_memory_high_off_thread()  # must not raise
@@ -2485,7 +2485,7 @@ class TestAgentSliceMemoryHigh:
             self._restore()
 
     def _reset(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._SLICE_MEMHIGH_APPLIED = None
         sb._SLICE_MEMHIGH_DISABLED = False
@@ -2495,7 +2495,7 @@ class TestAgentSliceMemoryHigh:
     def _restore(self):
         # Leave the module disarmed, matching the autouse conftest fixture's
         # in-test state (it restores its own snapshot afterwards).
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._SLICE_MEMHIGH_APPLIED = None
         sb._SLICE_MEMHIGH_DISABLED = True
@@ -2506,14 +2506,14 @@ class TestAgentSliceMemoryHigh:
         # The slice is UID-global (shared by live/dev/pod gateways), so the
         # ceiling is deliberately NOT config-driven: always the host-derived
         # default, so no single instance can lift the others' protection.
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             with (
-                patch("kiro_crew.sandbox._default_slice_memory_high_mb", return_value=2048),
-                patch("kiro_crew.sandbox.platform_compat.trusted_system_bin", return_value="/usr/bin/systemctl"),
-                patch("kiro_crew.sandbox.subprocess.run") as run,
+                patch("junction.sandbox._default_slice_memory_high_mb", return_value=2048),
+                patch("junction.sandbox.platform_compat.trusted_system_bin", return_value="/usr/bin/systemctl"),
+                patch("junction.sandbox.subprocess.run") as run,
             ):
                 run.return_value = MagicMock(returncode=0, stderr="", stdout="")
                 sb._ensure_agent_slice_memory_high()
@@ -2524,7 +2524,7 @@ class TestAgentSliceMemoryHigh:
                 "--user",
                 "set-property",
                 "--runtime",
-                "kirocrew-agents.slice",
+                "junction-agents.slice",
                 "MemoryHigh=2048M",
             ]
             assert sb._SLICE_MEMHIGH_APPLIED == "2048M"
@@ -2532,17 +2532,17 @@ class TestAgentSliceMemoryHigh:
             self._restore()
 
     def test_steady_state_is_a_noop(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             with (
                 patch(
-                    "kiro_crew.sandbox._default_slice_memory_high_mb",
+                    "junction.sandbox._default_slice_memory_high_mb",
                     return_value=2048,
                 ),
-                patch("kiro_crew.sandbox.platform_compat.trusted_system_bin", return_value="/usr/bin/systemctl"),
-                patch("kiro_crew.sandbox.subprocess.run") as run,
+                patch("junction.sandbox.platform_compat.trusted_system_bin", return_value="/usr/bin/systemctl"),
+                patch("junction.sandbox.subprocess.run") as run,
             ):
                 run.return_value = MagicMock(returncode=0, stderr="", stdout="")
                 sb._ensure_agent_slice_memory_high()
@@ -2555,14 +2555,14 @@ class TestAgentSliceMemoryHigh:
     def test_failure_warns_once_and_disarms(self, caplog):
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             with (
-                patch("kiro_crew.sandbox._default_slice_memory_high_mb", return_value=2048),
-                patch("kiro_crew.sandbox.platform_compat.trusted_system_bin", return_value="/usr/bin/systemctl"),
-                patch("kiro_crew.sandbox.subprocess.run") as run,
+                patch("junction.sandbox._default_slice_memory_high_mb", return_value=2048),
+                patch("junction.sandbox.platform_compat.trusted_system_bin", return_value="/usr/bin/systemctl"),
+                patch("junction.sandbox.subprocess.run") as run,
             ):
                 run.return_value = MagicMock(returncode=1, stderr="Failed to set", stdout="")
                 with caplog.at_level(logging.WARNING):
@@ -2580,13 +2580,13 @@ class TestAgentSliceMemoryHigh:
     def test_missing_systemctl_warns_and_disarms_without_raising(self, caplog):
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             with (
-                patch("kiro_crew.sandbox._default_slice_memory_high_mb", return_value=2048),
-                patch("kiro_crew.sandbox.platform_compat.trusted_system_bin", return_value=None),
+                patch("junction.sandbox._default_slice_memory_high_mb", return_value=2048),
+                patch("junction.sandbox.platform_compat.trusted_system_bin", return_value=None),
             ):
                 with caplog.at_level(logging.WARNING):
                     sb._ensure_agent_slice_memory_high()
@@ -2596,41 +2596,41 @@ class TestAgentSliceMemoryHigh:
             self._restore()
 
     def test_cgroup_scope_argv_reconciles_when_available(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._CGROUP_SCOPE_PROBE = None
         try:
             with (
-                patch("kiro_crew.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
+                patch("junction.sandbox._probe_cgroup_scope", return_value=(True, "ok")),
                 patch(
-                    "kiro_crew.sandbox._cgroup_limits_from_config",
+                    "junction.sandbox._cgroup_limits_from_config",
                     return_value=(8192, 8192, 50, 0),
                 ),
-                patch("kiro_crew.sandbox._cpu_controller_delegated", return_value=False),
+                patch("junction.sandbox._cpu_controller_delegated", return_value=False),
                 patch(
-                    "kiro_crew.sandbox._reconcile_slice_memory_high_off_thread"
+                    "junction.sandbox._reconcile_slice_memory_high_off_thread"
                 ) as ensure,
             ):
                 out = sb.cgroup_scope_argv(["kiro-cli", "chat"])
             ensure.assert_called_once_with()
-            assert "--slice=kirocrew-agents.slice" in out
+            assert "--slice=junction-agents.slice" in out
         finally:
             sb._CGROUP_SCOPE_PROBE = None
 
     def test_cgroup_scope_argv_skips_reconcile_when_unavailable(self):
         """No delegation -> passthrough argv AND no systemctl side effect (the
         non-Linux / no-delegation degradation path)."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sb._CGROUP_SCOPE_PROBE = None
         sb._CGROUP_WARNED = False
         try:
             with (
                 patch(
-                    "kiro_crew.sandbox._probe_cgroup_scope",
+                    "junction.sandbox._probe_cgroup_scope",
                     return_value=(False, "not Linux"),
                 ),
-                patch("kiro_crew.sandbox._ensure_agent_slice_memory_high") as ensure,
+                patch("junction.sandbox._ensure_agent_slice_memory_high") as ensure,
             ):
                 out = sb.cgroup_scope_argv(["git", "status"])
             ensure.assert_not_called()
@@ -2641,7 +2641,7 @@ class TestAgentSliceMemoryHigh:
 
     @_POSIX_ONLY
     def test_default_is_host_proportional_with_fallback(self):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         sixteen_g = 16 * 1024**3
         with patch("os.sysconf", side_effect=lambda n: sixteen_g // 4096 if "PHYS" in n else 4096):
@@ -2656,15 +2656,15 @@ class TestAgentSliceMemoryHigh:
         # Throttle visibility rides the reconcile worker: every scheduled
         # reconcile also reads memory.events, including the steady state
         # where the MemoryHigh apply itself is a no-op string compare.
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         done = threading.Event()
         try:
             with (
-                patch("kiro_crew.sandbox._ensure_agent_slice_memory_high") as ensure,
+                patch("junction.sandbox._ensure_agent_slice_memory_high") as ensure,
                 patch(
-                    "kiro_crew.sandbox._check_slice_memory_pressure",
+                    "junction.sandbox._check_slice_memory_pressure",
                     side_effect=lambda: done.set(),
                 ) as check,
             ):
@@ -2681,13 +2681,13 @@ class TestAgentSliceMemoryHigh:
         # re-arms only after an observation finds the counter stable.
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
             readings = iter([0, 3, 5, 5, 7])
             with patch(
-                "kiro_crew.sandbox._slice_memory_events_high",
+                "junction.sandbox._slice_memory_events_high",
                 side_effect=lambda: next(readings),
             ):
                 with caplog.at_level(logging.WARNING):
@@ -2708,11 +2708,11 @@ class TestAgentSliceMemoryHigh:
         # nonzero FIRST read may predate this process — never warn on it.
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         try:
-            with patch("kiro_crew.sandbox._slice_memory_events_high", return_value=42):
+            with patch("junction.sandbox._slice_memory_events_high", return_value=42):
                 with caplog.at_level(logging.WARNING):
                     sb._check_slice_memory_pressure()
             assert not [r for r in caplog.records if "memory.events" in r.getMessage()]
@@ -2726,18 +2726,18 @@ class TestAgentSliceMemoryHigh:
         # open episode, and warn again only on a genuine later increase.
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         sb._SLICE_MEMHIGH_EVENTS_SEEN = 5
         sb._SLICE_MEMHIGH_CLIMB_WARNED = True
         try:
             with caplog.at_level(logging.WARNING):
-                with patch("kiro_crew.sandbox._slice_memory_events_high", return_value=2):
+                with patch("junction.sandbox._slice_memory_events_high", return_value=2):
                     sb._check_slice_memory_pressure()
                 assert sb._SLICE_MEMHIGH_EVENTS_SEEN == 2
                 assert sb._SLICE_MEMHIGH_CLIMB_WARNED is False
-                with patch("kiro_crew.sandbox._slice_memory_events_high", return_value=4):
+                with patch("junction.sandbox._slice_memory_events_high", return_value=4):
                     sb._check_slice_memory_pressure()
             warns = [r for r in caplog.records if "memory.events" in r.getMessage()]
             assert len(warns) == 1
@@ -2750,12 +2750,12 @@ class TestAgentSliceMemoryHigh:
         # macOS/Windows) must neither warn nor clobber the baseline.
         import logging
 
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         self._reset()
         sb._SLICE_MEMHIGH_EVENTS_SEEN = 5
         try:
-            with patch("kiro_crew.sandbox._slice_memory_events_high", return_value=None):
+            with patch("junction.sandbox._slice_memory_events_high", return_value=None):
                 with caplog.at_level(logging.WARNING):
                     sb._check_slice_memory_pressure()
             assert not [r for r in caplog.records if "memory.events" in r.getMessage()]
@@ -2764,32 +2764,32 @@ class TestAgentSliceMemoryHigh:
             self._restore()
 
     def test_slice_memory_events_high_reads_counter(self, tmp_path):
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
         evt = tmp_path / "memory.events"
         evt.write_text("low 0\nhigh 42\nmax 1\noom 0\noom_kill 0\n", encoding="utf-8")
-        with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=tmp_path):
+        with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=tmp_path):
             assert sb._slice_memory_events_high() == 42
-        with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=None):
+        with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=None):
             assert sb._slice_memory_events_high() is None
         empty = tmp_path / "no-events"
         empty.mkdir()
-        with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=empty):
+        with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=empty):
             assert sb._slice_memory_events_high() is None
         evt.write_text("low 0\nhigh notanumber\n", encoding="utf-8")
-        with patch("kiro_crew.sandbox._agents_slice_cgroup_dir", return_value=tmp_path):
+        with patch("junction.sandbox._agents_slice_cgroup_dir", return_value=tmp_path):
             assert sb._slice_memory_events_high() is None
 
     @pytest.mark.skipif(sys.platform != "linux", reason="the resolver is Linux-only")
     def test_slice_memory_events_high_resolves_dash_hierarchy(self, tmp_path):
         """Regression: on the standard systemd layout the agents slice nests
-        under kirocrew.slice (dash-hierarchy), NOT directly under
+        under junction.slice (dash-hierarchy), NOT directly under
         user@<uid>.service. The reader must find memory.events through the
         real resolver on that layout — a hardcoded flat path used to miss it,
         silently disabling the throttle warning."""
-        import kiro_crew.sandbox as sb
+        import junction.sandbox as sb
 
-        nested = tmp_path / "kirocrew.slice" / sb._CGROUP_AGENTS_SLICE
+        nested = tmp_path / "junction.slice" / sb._CGROUP_AGENTS_SLICE
         nested.mkdir(parents=True)
         (nested / "memory.events").write_text(
             "low 0\nhigh 7\nmax 0\noom 0\noom_kill 0\n", encoding="utf-8"

@@ -14,7 +14,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard import handlers
+from junction.dashboard import handlers
 
 
 class _AuditLog:
@@ -26,7 +26,7 @@ class _AuditLog:
 
 
 def _handler_module():
-    return importlib.import_module("kiro_crew.dashboard.handlers.onboarding_import")
+    return importlib.import_module("junction.dashboard.handlers.onboarding_import")
 
 
 def _make_app(module, state: object | None = None) -> web.Application:
@@ -536,7 +536,7 @@ async def test_state_persists_import_onboarded(monkeypatch, tmp_path) -> None:
             saved.write_text(str(self.dashboard.import_onboarded), encoding="utf-8")
 
     config = Config()
-    monkeypatch.setattr(module.KiroCrewConfig, "load", lambda: config)
+    monkeypatch.setattr(module.JunctionConfig, "load", lambda: config)
     monkeypatch.setattr(module, "_sel", lambda: audit)
 
     async with TestClient(TestServer(_make_app(module))) as client:
@@ -615,7 +615,7 @@ async def test_state_failure_is_generic_and_credential_free(monkeypatch) -> None
     def fail_load():
         raise OSError(private_detail)
 
-    monkeypatch.setattr(module.KiroCrewConfig, "load", fail_load)
+    monkeypatch.setattr(module.JunctionConfig, "load", fail_load)
     monkeypatch.setattr(module, "_sel", lambda: audit)
 
     async with TestClient(TestServer(_make_app(module))) as client:
@@ -806,7 +806,7 @@ async def test_apply_omitting_the_strategy_means_skip(monkeypatch) -> None:
 async def test_scan_never_writes(monkeypatch, tmp_path) -> None:
     """The dry run is hard: previewing must not open a destination for writing."""
     module = _handler_module()
-    import kiro_crew.onboarding_import as backend
+    import junction.onboarding_import as backend
 
     monkeypatch.setattr(module, "_backend", lambda: backend)
     monkeypatch.setattr(module, "_sel", lambda: _AuditLog())
@@ -958,7 +958,7 @@ async def test_apply_skips_backfill_when_nothing_was_deferred(monkeypatch) -> No
 def test_backfill_embeddings_waits_for_the_model_before_sweeping(monkeypatch) -> None:
     """A still-warming model embeds zero rows, and nothing would re-schedule."""
     module = _handler_module()
-    embeddings = importlib.import_module("kiro_crew.embeddings")
+    embeddings = importlib.import_module("junction.embeddings")
     swept: list[bool] = []
 
     monkeypatch.setattr(embeddings, "model_file_present", lambda: True)
@@ -975,7 +975,7 @@ def test_backfill_embeddings_waits_for_the_model_before_sweeping(monkeypatch) ->
 
 def test_backfill_embeddings_skips_while_the_model_is_downloading(monkeypatch) -> None:
     module = _handler_module()
-    embeddings = importlib.import_module("kiro_crew.embeddings")
+    embeddings = importlib.import_module("junction.embeddings")
     swept: list[bool] = []
 
     monkeypatch.setattr(embeddings, "model_file_present", lambda: False)
@@ -988,7 +988,7 @@ def test_backfill_embeddings_skips_while_the_model_is_downloading(monkeypatch) -
 def test_backfill_embeddings_never_raises_into_the_apply_response(monkeypatch) -> None:
     """The memories ARE imported; a failed sweep must not fail the request."""
     module = _handler_module()
-    embeddings = importlib.import_module("kiro_crew.embeddings")
+    embeddings = importlib.import_module("junction.embeddings")
 
     monkeypatch.setattr(embeddings, "model_file_present", lambda: True)
     monkeypatch.setattr(
@@ -1005,7 +1005,7 @@ def test_backfill_embeddings_never_raises_into_the_apply_response(monkeypatch) -
 
 def test_backfill_embeddings_sweeps_a_ready_model(monkeypatch) -> None:
     module = _handler_module()
-    embeddings = importlib.import_module("kiro_crew.embeddings")
+    embeddings = importlib.import_module("junction.embeddings")
 
     monkeypatch.setattr(embeddings, "model_file_present", lambda: True)
     monkeypatch.setattr(
@@ -1029,7 +1029,7 @@ def test_the_two_source_id_patterns_cannot_drift() -> None:
     rather than trusted to stay in step.
     """
     module = _handler_module()
-    backend = importlib.import_module("kiro_crew.onboarding_import")
+    backend = importlib.import_module("junction.onboarding_import")
 
     assert module._SOURCE_ID_SHAPE_RE.pattern == backend._SOURCE_ID_RE.pattern
 
@@ -1048,7 +1048,7 @@ def test_handler_category_tables_match_the_backend() -> None:
     which is what makes an edition-registered source reachable at all.
     """
     module = _handler_module()
-    backend = importlib.import_module("kiro_crew.onboarding_import")
+    backend = importlib.import_module("junction.onboarding_import")
 
     assert module._CATEGORY_IDS == frozenset(backend.CATEGORY_IDS)
     assert set(module._CATEGORY_NAMES) >= frozenset(backend.CATEGORY_IDS) - {"instructions"}

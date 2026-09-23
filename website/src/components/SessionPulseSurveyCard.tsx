@@ -11,7 +11,7 @@ import { safeGetItem, safeSetItem } from '../utils/safeStorage'
 // own arbitrary origin, which Aperture's browser-CORS allowlist model (a
 // finite, known set of domains) cannot accommodate. These calls go to the
 // Kiro Crew backend's own same-origin routes instead
-// (src/kiro_crew/dashboard/handlers/feedback.py), which forward to Aperture
+// (src/junction/dashboard/handlers/feedback.py), which forward to Aperture
 // server-to-server, where CORS does not apply.
 const FEEDBACK_SUBMIT_URL = '/api/feedback/submit'
 const FEEDBACK_ELIGIBLE_URL = '/api/feedback/eligible'
@@ -50,7 +50,7 @@ const CONFIRMATION_DISPLAY_MS = 3000
 // Aperture first (so it still gets accurate per-user, cross-device dedup
 // data), then additionally require our own 30-day gate before showing —
 // whichever check is stricter wins.
-const COOLDOWN_KEY = 'kirocrew_survey_last_shown'
+const COOLDOWN_KEY = 'junction_survey_last_shown'
 const COOLDOWN_DAYS = 30
 // Minimum live (post-baseline) completed back-and-forth turns before the survey
 // is eligible. A "turn" here is one user message answered by an assistant reply
@@ -97,7 +97,7 @@ async function checkSurveyEligible(): Promise<boolean> {
 
 interface SessionPulseSurveyCardProps {
   sessionId: string
-  kiroCrewVersion: string
+  junctionVersion: string
   turnCount: number
   /** The active slot's provenance (`ChatSlot.origin`). The survey only shows
    * when this is "user"; see `isOrdinaryChatSession`. Optional because a slot
@@ -118,7 +118,7 @@ interface SessionPulseSurveyCardProps {
 
 export default function SessionPulseSurveyCard({
   sessionId,
-  kiroCrewVersion,
+  junctionVersion,
   turnCount,
   slotOrigin,
   onLayoutChange,
@@ -233,7 +233,7 @@ export default function SessionPulseSurveyCard({
           feedback: feedback.trim(),
           email: email.trim(),
           sessionId,
-          kiroCrewVersion,
+          junctionVersion,
         }),
       })
       if (!res.ok) {

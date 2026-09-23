@@ -27,9 +27,9 @@ is last in that list and optional. Set a concrete id to pin.
 ```
 
 CLI: `junction`. State still lives under `~/.kiro/crew` until a later,
-human-gated rename. Package import path stays `kiro_crew` /
-`KIROCREW_HOME` as implementation identifiers, not as the product name.
+human-gated rename. Package import path stays `junction` /
+`JUNCTION_HOME` as implementation identifiers, not as the product name.
 
-Registry: `src/kiro_crew/acp/runtimes.py`. Two-plane thesis:
+Registry: `src/junction/acp/runtimes.py`. Two-plane thesis:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). Model catalog and role DAG:
 [`docs/system-specs/modules/model-router.md`](docs/system-specs/modules/model-router.md).

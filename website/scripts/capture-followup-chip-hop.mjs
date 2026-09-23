@@ -36,7 +36,7 @@ const slots = [{
   running: true,
   last_message: 'Staggered the follow-up chips.',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: Math.floor(Date.now() / 1000),

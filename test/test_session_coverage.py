@@ -1,4 +1,4 @@
-"""Coverage for ``kiro_crew.session`` edges the behavioural suites skip.
+"""Coverage for ``junction.session`` edges the behavioural suites skip.
 
 Three groups, and the seam between them is what this file is for:
 
@@ -30,10 +30,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.config.loader import KiroCrewAgentConfig
-from kiro_crew.messaging.link import ChannelLink
-from kiro_crew.session import (
+from junction.config import JunctionConfig
+from junction.config.loader import JunctionAgentConfig
+from junction.messaging.link import ChannelLink
+from junction.session import (
     _MAX_ORIGIN_LINKS,
     _STUCK_TURN_REPORT_SECS,
     BACKGROUND_KEY,
@@ -53,7 +53,7 @@ from kiro_crew.session import (
 
 @pytest.fixture
 def cfg():
-    c = KiroCrewConfig()
+    c = JunctionConfig()
     c.session.timeout_secs = 60
     return c
 
@@ -179,13 +179,13 @@ class TestSessionModel:
         """The factory never sees the crew name, so its pin must be returned
         as-is rather than left for a lower tier to rediscover."""
         cfg.agent.model = "sonnet"
-        cfg.agents["research"] = KiroCrewAgentConfig(model="opus")
+        cfg.agents["research"] = JunctionAgentConfig(model="opus")
         assert _session_model(cfg, "research") == "opus"
 
     def test_crew_inherit_spelling_is_not_a_pin(self, cfg) -> None:
         """``auto`` on the crew tier means inherit, not "pin the default"."""
         cfg.agent.model = "sonnet"
-        cfg.agents["research"] = KiroCrewAgentConfig(model="auto")
+        cfg.agents["research"] = JunctionAgentConfig(model="auto")
         assert _session_model(cfg, "research") == "sonnet"
 
     def test_crew_that_defers_continues_on_its_bound_template(self, cfg, monkeypatch) -> None:
@@ -196,14 +196,14 @@ class TestSessionModel:
             return "haiku-from-template"
 
         cfg.agent.model = "sonnet"
-        cfg.agents["research"] = KiroCrewAgentConfig(model="", kiro_agent="tmpl")
+        cfg.agents["research"] = JunctionAgentConfig(model="", kiro_agent="tmpl")
         monkeypatch.setattr(cfg, "_resolve_named_agent_model", _resolve)
         # A template pin returns None: the factory resolves the JSON itself.
         assert _session_model(cfg, "research") is None
         assert seen == ["tmpl"], "the crew's bound template, not the crew name"
 
     def test_base_agent_name_skips_the_per_agent_lookup(self, cfg, monkeypatch) -> None:
-        """``kirocrew`` is the built-in template; globbing the agents dir for it
+        """``junction`` is the built-in template; globbing the agents dir for it
         would be a disk read with a known-empty answer."""
         calls: list[str] = []
         cfg.agent.model = "sonnet"
@@ -212,7 +212,7 @@ class TestSessionModel:
             "_resolve_named_agent_model",
             lambda agent: calls.append(agent) or "",
         )
-        assert _session_model(cfg, "kirocrew") == "sonnet"
+        assert _session_model(cfg, "junction") == "sonnet"
         assert calls == []
 
 
@@ -236,7 +236,7 @@ class TestDetectProviderSwitch:
         assert detect_provider_switch(_map_stub("claude_code", None), "k", "acp") is False
 
     def test_different_provider_with_a_stored_sid_is_a_switch(self) -> None:
-        with patch("kiro_crew.session.sel") as sel_mock:
+        with patch("junction.session.sel") as sel_mock:
             assert detect_provider_switch(_map_stub("claude_code", "sid-1"), "k", "acp") is True
         call = sel_mock.return_value.log_tool_invocation.call_args.kwargs
         assert call["tool_name"] == "provider_switch_detected"
@@ -842,7 +842,7 @@ class TestStuckTurnCheck:
             awaiting_permission=False,
         )
         await _busy(mgr, "d1", provider)
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session"):
+        with caplog.at_level(logging.ERROR, logger="junction.session"):
             await mgr._stuck_turn_check()
         assert any("_stuck_turn_check crashed" in r.message for r in caplog.records)
 
@@ -854,7 +854,7 @@ class TestSendAbortForSession:
     @pytest.mark.asyncio
     async def test_runtime_info_drives_the_abort(self, mgr) -> None:
         sess = _Session(provider=_stub_provider(runtime_info=lambda: (4242, "/tmp/gw.sock")))
-        with patch("kiro_crew.session.schedule_abort") as abort:
+        with patch("junction.session.schedule_abort") as abort:
             await mgr._send_abort_for_session("d1", sess)
         abort.assert_called_once()
         assert abort.call_args.args[0] == "/tmp/gw.sock"
@@ -865,7 +865,7 @@ class TestSendAbortForSession:
         """For providers that never overrode runtime_info()."""
         provider = _stub_provider(runtime_info=lambda: (None, None))
         provider._client = SimpleNamespace(_pid=99, _mcp_gateway_socket="/tmp/b.sock")
-        with patch("kiro_crew.session.schedule_abort") as abort:
+        with patch("junction.session.schedule_abort") as abort:
             await mgr._send_abort_for_session("d1", _Session(provider=provider))
         assert abort.call_args.args[1] == [99]
 
@@ -876,8 +876,8 @@ class TestSendAbortForSession:
         """Visible by default: if provider internals get renamed the abort push
         stops firing, and a silent skip would hide the regression."""
         provider = _stub_provider(runtime_info=lambda: (None, None))
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
-            with patch("kiro_crew.session.schedule_abort") as abort:
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
+            with patch("junction.session.schedule_abort") as abort:
                 await mgr._send_abort_for_session("d1", _Session(provider=provider))
         abort.assert_not_called()
         assert any("abort-push skipped" in r.message for r in caplog.records)
@@ -886,7 +886,7 @@ class TestSendAbortForSession:
     async def test_a_reaped_pid_is_not_aborted(self, mgr) -> None:
         """pid<=1 would target init, not a kiro-cli process."""
         sess = _Session(provider=_stub_provider(runtime_info=lambda: (1, "/tmp/gw.sock")))
-        with patch("kiro_crew.session.schedule_abort") as abort:
+        with patch("junction.session.schedule_abort") as abort:
             await mgr._send_abort_for_session("d1", sess)
         abort.assert_not_called()
 
@@ -901,8 +901,8 @@ class TestSendAbortForSession:
     @pytest.mark.asyncio
     async def test_a_failing_audit_does_not_block_the_abort(self, mgr) -> None:
         sess = _Session(provider=_stub_provider(runtime_info=lambda: (7, "/tmp/gw.sock")))
-        with patch("kiro_crew.session.sel", side_effect=RuntimeError("sel down")):
-            with patch("kiro_crew.session.schedule_abort") as abort:
+        with patch("junction.session.sel", side_effect=RuntimeError("sel down")):
+            with patch("junction.session.schedule_abort") as abort:
                 await mgr._send_abort_for_session("d1", sess)
         abort.assert_called_once()
 
@@ -913,22 +913,22 @@ class TestSendAbortForSession:
 class TestOrphanMcpHook:
     @pytest.mark.asyncio
     async def test_a_sweep_result_is_logged(self, mgr, caplog) -> None:
-        with patch("kiro_crew.session._cleanup_orphaned_mcp_servers", return_value=3):
-            with caplog.at_level(logging.INFO, logger="kiro_crew.session"):
+        with patch("junction.session._cleanup_orphaned_mcp_servers", return_value=3):
+            with caplog.at_level(logging.INFO, logger="junction.session"):
                 await mgr._orphan_mcp_hook()
         assert any("cleaned 3 orphaned MCP servers" in r.message for r in caplog.records)
 
     @pytest.mark.asyncio
     async def test_a_clean_sweep_logs_nothing(self, mgr, caplog) -> None:
-        with patch("kiro_crew.session._cleanup_orphaned_mcp_servers", return_value=0):
-            with caplog.at_level(logging.INFO, logger="kiro_crew.session"):
+        with patch("junction.session._cleanup_orphaned_mcp_servers", return_value=0):
+            with caplog.at_level(logging.INFO, logger="junction.session"):
                 await mgr._orphan_mcp_hook()
         assert not any("orphaned MCP servers" in r.message for r in caplog.records)
 
     @pytest.mark.asyncio
     async def test_a_sweep_failure_is_swallowed(self, mgr) -> None:
         with patch(
-            "kiro_crew.session._cleanup_orphaned_mcp_servers",
+            "junction.session._cleanup_orphaned_mcp_servers",
             side_effect=OSError("procfs unreadable"),
         ):
             await mgr._orphan_mcp_hook()  # preserves the silent-swallow contract

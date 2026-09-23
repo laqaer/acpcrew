@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 
-from kiro_crew.acp.types import (
+from junction.acp.types import (
     EVENT_COMPACTION_STATUS,
     EVENT_COMPLETE,
     EVENT_PERMISSION_REQUEST,
@@ -19,13 +19,13 @@ from kiro_crew.acp.types import (
     EVENT_TOOL_CALL,
     AcpEvent,
 )
-from kiro_crew.messaging import (
+from junction.messaging import (
     APPROVAL_AUTO,
     APPROVAL_INTERACTIVE,
     TransportCapabilities,
     TurnDriver,
 )
-from kiro_crew.messaging.renderer import Renderer
+from junction.messaging.renderer import Renderer
 
 
 class _RecordingRenderer(Renderer):

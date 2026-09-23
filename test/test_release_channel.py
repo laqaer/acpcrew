@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew import release_channel
+from junction import release_channel
 
 
 @pytest.mark.parametrize(
@@ -77,6 +77,6 @@ def test_labels_share_one_prefix() -> None:
 
 
 def test_channel_defaults_to_this_build(monkeypatch) -> None:
-    monkeypatch.setattr("kiro_crew.release_channel.__version__", "9.9.9-insider.7")
+    monkeypatch.setattr("junction.release_channel.__version__", "9.9.9-insider.7")
     assert release_channel.channel() == "insider"
     assert release_channel.is_prerelease() is True

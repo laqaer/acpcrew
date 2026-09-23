@@ -3,7 +3,7 @@
 Both carry ``X-Internal-Secret`` to ``http://localhost:<port>``, and urllib has
 no implicit loopback exemption, so with ``HTTP_PROXY`` set the secret goes to
 the proxy in cleartext. The port probe is the worse of the two: ``_gateway_base``
-calls ``_probe`` once per candidate port (``KIROCREW_PORT``, the configured port,
+calls ``_probe`` once per candidate port (``JUNCTION_PORT``, the configured port,
 then six literals), so one cold resolve that misses can send the secret up to
 seven times.
 
@@ -23,7 +23,7 @@ from unittest import mock
 
 import pytest
 
-from kiro_crew.apps.builtins.code_review_sage.sage_lib import review_driver
+from junction.apps.builtins.code_review_sage.sage_lib import review_driver
 
 CANARY = "canary-not-a-real-secret"
 SECRET_HEADER = "X-Internal-Secret"
@@ -127,7 +127,7 @@ class TestReviewDriverLoopbackCallsIgnoreTheProxy:
         """The standalone path must not degrade to a bare, proxy-honouring urlopen.
 
         Runs the module's real import guard from disk with
-        ``kiro_crew.loopback_http`` poisoned to ImportError, so the ``except``
+        ``junction.loopback_http`` poisoned to ImportError, so the ``except``
         branch defines the fallback and a weakened fallback fails here. The
         source is sliced at the ``_APP_ROOT`` assignment because everything below
         it is the ``sage_lib`` import block, which is irrelevant to the guard and
@@ -137,7 +137,7 @@ class TestReviewDriverLoopbackCallsIgnoreTheProxy:
         head, sep, _ = src.partition("_APP_ROOT = ")
         assert sep, "the _APP_ROOT anchor moved; re-slice this test"
         ns: dict = {"__name__": "review_driver_guard_probe"}
-        with mock.patch.dict(sys.modules, {"kiro_crew.loopback_http": None}):
+        with mock.patch.dict(sys.modules, {"junction.loopback_http": None}):
             # Compiles a slice of THIS repo's own source, read from
             # review_driver.__file__; no external input reaches it. Running the real
             # guard is the point -- asserting on the source text instead would pass

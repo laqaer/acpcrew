@@ -23,7 +23,7 @@ uncovered by the whole suite before this file:
 
 Everything is driven through mocked collaborators: the sandbox runners, the
 governance gate, SEL and the cron service are all patched, so no subprocess, no
-socket and no write outside the per-test ``KIROCREW_HOME`` (pinned by
+socket and no write outside the per-test ``JUNCTION_HOME`` (pinned by
 ``test/conftest.py``) happens. Style and patch seams mirror
 ``test_slack_gateway.py`` / ``test_cron_gateway_integration.py``.
 """
@@ -42,9 +42,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.cron import CronJob, CronStoreBusy
-from kiro_crew.slack import gateway as gw
+from junction.config.loader import JunctionConfig
+from junction.cron import CronJob, CronStoreBusy
+from junction.slack import gateway as gw
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -55,8 +55,8 @@ def _make_orchestrator(**kwargs: Any) -> Any:
     Returned as ``Any`` on purpose: every test below swaps real collaborators
     for mocks, which do not satisfy the declared attribute types.
     """
-    cfg = KiroCrewConfig()
-    creds = {"KIROCREW_OWNER_ID": "U_OWNER"}
+    cfg = JunctionConfig()
+    creds = {"JUNCTION_OWNER_ID": "U_OWNER"}
     with patch.object(cfg, "load_credentials", return_value=creds):
         return gw.GatewayOrchestrator(
             cfg,
@@ -195,7 +195,7 @@ async def _cron_cb(
             patch.object(
                 gw, "build_cron_session_context", lambda job: (f"cron:{job.id}", job.message)
             ),
-            patch("kiro_crew.apps.bridges.reconcile_app_crons_for_execution", AsyncMock()),
+            patch("junction.apps.bridges.reconcile_app_crons_for_execution", AsyncMock()),
         ):
             stack.enter_context(patcher)
         if queue_hook is not None:
@@ -244,7 +244,7 @@ class TestModuleHelpers:
                 "_hb",
                 provider="anthropic",
                 surface="heartbeat",
-                agent_fallback=lambda: "kirocrew",
+                agent_fallback=lambda: "junction",
                 t0=0.0,
             )
 
@@ -875,8 +875,8 @@ class TestTheVetIsAnAccountedBudgetTerm:
     @staticmethod
     def _budgets(job: Any) -> tuple[float, float]:
         """(vet bound, pre-fix inner backstop) from the live functions."""
-        from kiro_crew.cron import effective_wake_budget
-        from kiro_crew.executors import cron_gate_budget
+        from junction.cron import effective_wake_budget
+        from junction.executors import cron_gate_budget
 
         return cron_gate_budget(effective_wake_budget(job)), float((job.timeout or 300) + 5)
 
@@ -1046,7 +1046,7 @@ class TestTheVetIsAnAccountedBudgetTerm:
         exactly that drift.  Parsed with ``ast`` so the assertion survives the
         expression being wrapped across lines.
         """
-        from kiro_crew import cron as cron_mod
+        from junction import cron as cron_mod
 
         tree = ast.parse(Path(cron_mod.__file__).read_text(encoding="utf-8"))
         owed = {"_pool_queue_allowance", "_gate_budget_allowance", "_vet_allowance"}
@@ -1252,13 +1252,13 @@ class TestChannelReplyLink:
     def test_no_session_manager_returns_none(self):
         orch = _make_orchestrator()
         orch.sessions = None
-        assert orch._channel_reply_link("discord:kirocrew:direct:U9") is None
+        assert orch._channel_reply_link("discord:junction:direct:U9") is None
 
     def test_link_getter_failure_falls_through_to_stored_channel(self):
         """A raising link getter degrades to the next rung, it does not propagate."""
         orch = _make_orchestrator()
         orch.sessions = _channel_sessions(origin_raises=True, stored="discord:U9")
-        resolved = orch._channel_reply_link("discord:kirocrew:direct:U9")
+        resolved = orch._channel_reply_link("discord:junction:direct:U9")
         assert resolved is not None
         link, needs_dm = resolved
         assert (link.channel_type, link.channel_id, needs_dm) == ("discord", "U9", True)
@@ -1266,12 +1266,12 @@ class TestChannelReplyLink:
     def test_stored_channel_lookup_failure_returns_none(self):
         orch = _make_orchestrator()
         orch.sessions = _channel_sessions(stored_raises=True)
-        assert orch._channel_reply_link("discord:kirocrew:direct:U9") is None
+        assert orch._channel_reply_link("discord:junction:direct:U9") is None
 
     def test_no_stored_channel_returns_none(self):
         orch = _make_orchestrator()
         orch.sessions = _channel_sessions(stored="")
-        assert orch._channel_reply_link("discord:kirocrew:direct:U9") is None
+        assert orch._channel_reply_link("discord:junction:direct:U9") is None
 
     @pytest.mark.parametrize(
         "stored",
@@ -1281,7 +1281,7 @@ class TestChannelReplyLink:
     def test_unusable_stored_value_returns_none(self, stored):
         orch = _make_orchestrator()
         orch.sessions = _channel_sessions(stored=stored)
-        assert orch._channel_reply_link("discord:kirocrew:direct:U9") is None
+        assert orch._channel_reply_link("discord:junction:direct:U9") is None
 
     @pytest.mark.parametrize(
         "stored",
@@ -1292,19 +1292,19 @@ class TestChannelReplyLink:
         """A unified DM bucket only accepts a registered non-unified namespace."""
         orch = _make_orchestrator()
         orch.sessions = _channel_sessions(stored=stored)
-        assert orch._channel_reply_link("unified:kirocrew:direct:U9") is None
+        assert orch._channel_reply_link("unified:junction:direct:U9") is None
 
     def test_group_session_never_takes_the_stored_rung(self):
         """A group key's stored value is the sender, so it must not become a DM."""
         orch = _make_orchestrator()
         orch.sessions = _channel_sessions(stored="discord:U9")
-        assert orch._channel_reply_link("discord:kirocrew:group:C1") is None
+        assert orch._channel_reply_link("discord:junction:group:C1") is None
 
     def test_origin_link_wins_and_needs_no_dm_resolution(self):
         orch = _make_orchestrator()
         origin = gw.ChannelLink("discord", channel_id="C77", thread_id="T1")
         orch.sessions = _channel_sessions(origin=origin, stored="discord:U9")
-        assert orch._channel_reply_link("discord:kirocrew:direct:U9") == (origin, False)
+        assert orch._channel_reply_link("discord:junction:direct:U9") == (origin, False)
 
 
 class TestDeliverChannelReply:
@@ -1314,20 +1314,20 @@ class TestDeliverChannelReply:
     async def test_blank_text_is_not_delivered(self):
         orch = _make_orchestrator()
         orch.dashboard_state = _mock_dashboard_state()
-        assert await orch._deliver_channel_reply("discord:kirocrew:direct:U9", "   ") is False
+        assert await orch._deliver_channel_reply("discord:junction:direct:U9", "   ") is False
 
     @pytest.mark.asyncio
     async def test_no_dashboard_state_is_not_delivered(self):
         orch = _make_orchestrator()
         orch.dashboard_state = None
-        assert await orch._deliver_channel_reply("discord:kirocrew:direct:U9", "hi") is False
+        assert await orch._deliver_channel_reply("discord:junction:direct:U9", "hi") is False
 
     @pytest.mark.asyncio
     async def test_unresolvable_key_is_not_delivered(self):
         orch = _make_orchestrator()
         orch.dashboard_state = _mock_dashboard_state()
         orch.sessions = _channel_sessions(stored="")
-        assert await orch._deliver_channel_reply("discord:kirocrew:direct:U9", "hi") is False
+        assert await orch._deliver_channel_reply("discord:junction:direct:U9", "hi") is False
 
     @pytest.mark.asyncio
     async def test_target_resolution_failure_degrades_to_false(self):
@@ -1341,7 +1341,7 @@ class TestDeliverChannelReply:
 
         with patch.object(gw, "_resolve_channel_target", _boom):
             delivered = await orch._deliver_channel_reply(
-                "discord:kirocrew:direct:U9", "hi", resolved_link=(link, False)
+                "discord:junction:direct:U9", "hi", resolved_link=(link, False)
             )
         assert delivered is False
 
@@ -1352,7 +1352,7 @@ class TestDeliverChannelReply:
         link = gw.ChannelLink("discord", channel_id="C77")
         with patch.object(gw, "_resolve_channel_target", MagicMock(return_value=None)):
             delivered = await orch._deliver_channel_reply(
-                "discord:kirocrew:direct:U9", "hi", resolved_link=(link, False)
+                "discord:junction:direct:U9", "hi", resolved_link=(link, False)
             )
         assert delivered is False
 
@@ -1378,7 +1378,7 @@ class TestDeliverChannelReply:
         line in it then takes the prose branch of the dialect converter and the
         markup INSIDE the code is rewritten.
         """
-        from kiro_crew.messaging.split import FENCE_OUTSIDE, iter_fence_lines
+        from junction.messaging.split import FENCE_OUTSIDE, iter_fence_lines
 
         orch = _make_orchestrator()
         orch.dashboard_state = _mock_dashboard_state()
@@ -1392,7 +1392,7 @@ class TestDeliverChannelReply:
             gw, "_resolve_channel_target", MagicMock(return_value=(resolved, transport))
         ):
             delivered = await orch._deliver_channel_reply(
-                "discord:kirocrew:direct:U9", self._FENCED, resolved_link=(link, False)
+                "discord:junction:direct:U9", self._FENCED, resolved_link=(link, False)
             )
 
         assert delivered is True
@@ -1417,7 +1417,7 @@ class TestDeliverChannelReply:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-_TG_KEY = "telegram:kirocrew:direct:U9"
+_TG_KEY = "telegram:junction:direct:U9"
 
 
 def _message_arm_sessions() -> MagicMock:

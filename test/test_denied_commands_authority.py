@@ -12,9 +12,9 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew import security
-from kiro_crew.platform import PlatformCompositionError
-from kiro_crew.platform.security_authority import (
+from junction import security
+from junction.platform import PlatformCompositionError
+from junction.platform.security_authority import (
     BASELINE_DENY,
     PolicyAuthority,
     assert_security_floor,
@@ -41,7 +41,7 @@ class TestBaselineDenyRedefinition:
         )
 
     def test_no_git_publish_probe_symbol(self) -> None:
-        import kiro_crew.platform.security_authority as mod
+        import junction.platform.security_authority as mod
 
         assert not hasattr(mod, "_GIT_PUBLISH_PROBE")
 

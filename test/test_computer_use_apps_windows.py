@@ -21,9 +21,9 @@ from contextlib import contextmanager
 
 import pytest
 
-from kiro_crew.computer_use import apps_windows, policy
-from kiro_crew.computer_use import windows_ffi as ffi
-from kiro_crew.computer_use.types import AppRef, ComputerUseError, PolicyConfig
+from junction.computer_use import apps_windows, policy
+from junction.computer_use import windows_ffi as ffi
+from junction.computer_use.types import AppRef, ComputerUseError, PolicyConfig
 
 
 def _info(
@@ -222,7 +222,7 @@ class TestListApps:
         assert [a.window_id for a in apps] == [1, 2]
         assert len({a.window_id for a in apps}) == 2
 
-    def test_kirocrews_own_window_is_refused_at_the_ENFORCEMENT_layer(self, monkeypatch) -> None:
+    def test_junctions_own_window_is_refused_at_the_ENFORCEMENT_layer(self, monkeypatch) -> None:
         """The one built-in target refusal: the agent must not drive its own UI.
 
         Asserted through ``policy.check_app`` rather than through the shape of
@@ -237,7 +237,7 @@ class TestListApps:
             ffi,
             "window_list",
             lambda: (
-                _info(hwnd=1, title="Kiro Crew", exe="KiroCrew Nightly.exe"),
+                _info(hwnd=1, title="Kiro Crew", exe="Junction Nightly.exe"),
                 _info(hwnd=2, title="Notepad", exe="notepad.exe"),
             ),
         )

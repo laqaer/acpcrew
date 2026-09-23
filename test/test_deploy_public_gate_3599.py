@@ -24,7 +24,7 @@ import json
 
 import pytest
 
-from kiro_crew.deploy import handlers
+from junction.deploy import handlers
 
 
 def _run(coro):
@@ -141,7 +141,7 @@ def test_the_gate_never_runs_on_the_event_loop():
             f"{fn.__name__} calls publish_denied_reason on the event loop"
         )
 
-    from kiro_crew.apps import routes
+    from junction.apps import routes
 
     registry_src = inspect.getsource(routes.handle_publish_providers)
     assert "asyncio.to_thread(" in registry_src
@@ -173,7 +173,7 @@ def test_pending_confirm_denied_without_consuming_the_entry(monkeypatch):
     monkeypatch.setattr(
         handlers, "publish_denied_reason", lambda _req, _pid: "closed by policy"
     )
-    from kiro_crew.deploy import pending as pending_mod
+    from junction.deploy import pending as pending_mod
 
     def _must_not_claim(_entry_id):  # pragma: no cover - reached only on regression
         raise AssertionError("claim_pending ran despite a denied destination")
@@ -187,7 +187,7 @@ def test_pending_confirm_denied_without_consuming_the_entry(monkeypatch):
 # ── GET /api/publish-providers ──────────────────────────────────────────────
 
 def test_provider_registry_omits_closed_destination(monkeypatch):
-    from kiro_crew.apps import routes
+    from junction.apps import routes
 
     monkeypatch.setattr(routes, "list_apps", lambda: [])
     monkeypatch.setattr(
@@ -199,7 +199,7 @@ def test_provider_registry_omits_closed_destination(monkeypatch):
 
 
 def test_provider_registry_lists_open_destination(monkeypatch):
-    from kiro_crew.apps import routes
+    from junction.apps import routes
 
     monkeypatch.setattr(routes, "list_apps", lambda: [])
     monkeypatch.setattr(routes, "publish_denied_reason", lambda _req, _pid: None)
@@ -239,7 +239,7 @@ def test_an_app_cannot_squat_the_core_destination_id_when_denied(monkeypatch):
     and the Publish panel posts to the app's own endpoint, which this chokepoint
     does not cover.
     """
-    from kiro_crew.apps import routes
+    from junction.apps import routes
 
     monkeypatch.setattr(routes, "list_apps", _squatter_app)
     monkeypatch.setattr(routes, "_provider_is_configured", lambda _n, _pp: True)
@@ -260,8 +260,8 @@ def test_an_app_cannot_squat_the_core_destination_id_when_cloud_is_withheld(monk
     its OWN endpoint, which this chokepoint does not cover. Both closures share one
     closed path, and this pins that they do.
     """
-    from kiro_crew.apps import routes
-    from kiro_crew.dashboard.handlers import _shared
+    from junction.apps import routes
+    from junction.dashboard.handlers import _shared
 
     monkeypatch.setattr(routes, "list_apps", _squatter_app)
     monkeypatch.setattr(routes, "_provider_is_configured", lambda _n, _pp: True)
@@ -285,7 +285,7 @@ def test_the_permitted_path_leaves_a_shadowing_app_row_alone(monkeypatch):
     not something to fold into closing the denial hole, so this pins the scope of
     the fix rather than the shape someone might assume it has.
     """
-    from kiro_crew.apps import routes
+    from junction.apps import routes
 
     monkeypatch.setattr(routes, "list_apps", _squatter_app)
     monkeypatch.setattr(routes, "_provider_is_configured", lambda _n, _pp: True)
@@ -300,7 +300,7 @@ def test_the_permitted_path_leaves_a_shadowing_app_row_alone(monkeypatch):
 
 def test_an_app_declaring_a_different_id_is_untouched(monkeypatch):
     """The filter is scoped to the reserved id, not to app providers generally."""
-    from kiro_crew.apps import routes
+    from junction.apps import routes
 
     monkeypatch.setattr(routes, "list_apps", lambda: [{
         "name": "notes",
@@ -325,12 +325,12 @@ def narrowed_allowlist(tmp_path, monkeypatch):
     """Operator config permits only the internal registry — deploy is excluded.
 
     Written as real bytes to a real config.json rather than by mocking
-    ``KiroCrewConfig.load()``. The gate now reads the FILE, and a mock here would
+    ``JunctionConfig.load()``. The gate now reads the FILE, and a mock here would
     make the test agree with the reader instead of with what an operator typed —
     which is exactly how a malformed section that reopens the allowlist went
     unnoticed (#4057).
     """
-    import kiro_crew.config.loader as loader
+    import junction.config.loader as loader
 
     cfg_file = tmp_path / "config.json"
     cfg_file.write_text(json.dumps({"publish": {"allowed_destinations": ["internal-registry"]}}))
@@ -358,11 +358,11 @@ def test_config_allowlist_reaches_the_deploy_endpoint(narrowed_allowlist, monkey
 
 
 def test_deploy_permitted_when_allowlist_names_it(monkeypatch):
-    from kiro_crew.config.loader import KiroCrewConfig, PublishConfig
+    from junction.config.loader import JunctionConfig, PublishConfig
 
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     cfg.publish = PublishConfig(allowed_destinations=["deploy-web-aws"])
-    monkeypatch.setattr(KiroCrewConfig, "load", staticmethod(lambda: cfg))
+    monkeypatch.setattr(JunctionConfig, "load", staticmethod(lambda: cfg))
     monkeypatch.setattr(handlers, "_do_deploy", lambda _p: _permitted())
     resp = _run(handlers._handle_deploy(_Req({"site_id": "x"})))
     assert resp.status == 200
@@ -377,8 +377,8 @@ def test_artifact_publish_and_deploy_share_one_decision():
     ``publish_governance`` was that a policy change lands on every publish surface
     at once.
     """
-    from kiro_crew.dashboard.handlers import artifacts as art
-    from kiro_crew.publish_governance import publish_denied_reason
+    from junction.dashboard.handlers import artifacts as art
+    from junction.publish_governance import publish_denied_reason
 
     assert art.publish_denied_reason is publish_denied_reason
     # The alias forwards rather than reimplementing: its body is a single call.
@@ -399,7 +399,7 @@ def test_the_config_allowlist_denial_is_audited(narrowed_allowlist, monkeypatch)
     the record. The ceiling deny was always audited; this pins the config deny,
     which returned its reason silently and left the trail half-written.
     """
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     events: list[dict] = []
 
@@ -429,12 +429,12 @@ def test_a_permitted_publish_is_not_audited(monkeypatch):
     every panel open. Auditing allows would turn an authorization log into a
     page-view log, so the publish itself is audited where the bytes leave instead.
     """
-    import kiro_crew.publish_governance as pg
-    from kiro_crew.config.loader import KiroCrewConfig, PublishConfig
+    import junction.publish_governance as pg
+    from junction.config.loader import JunctionConfig, PublishConfig
 
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     cfg.publish = PublishConfig(allowed_destinations=[])
-    monkeypatch.setattr(KiroCrewConfig, "load", staticmethod(lambda: cfg))
+    monkeypatch.setattr(JunctionConfig, "load", staticmethod(lambda: cfg))
 
     events: list[dict] = []
 
@@ -450,7 +450,7 @@ def test_a_permitted_publish_is_not_audited(monkeypatch):
 
 def test_a_broken_audit_sink_still_denies(narrowed_allowlist, monkeypatch):
     """The allowlist denial survives an SEL that raises — audit is not the gate."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     class _Sel:
         def log_governance_decision(self, **kw):
@@ -470,7 +470,7 @@ def test_a_broken_audit_sink_still_denies(narrowed_allowlist, monkeypatch):
 @pytest.fixture()
 def _quiet_sel(monkeypatch):
     """Swallow SEL writes so these tests assert on the decision, not the log."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     events: list[dict] = []
 
@@ -487,15 +487,15 @@ def test_a_malformed_config_denies_instead_of_reopening_the_path(
 ):
     """A corrupt ``config.json`` must not present as an empty (allow-all) allowlist.
 
-    ``KiroCrewConfig.load()`` catches ``JSONDecodeError``/``OSError``, warns, and
+    ``JunctionConfig.load()`` catches ``JSONDecodeError``/``OSError``, warns, and
     returns DEFAULTS — so it never raises, a ``try/except`` around it never fires,
     and an operator who narrowed ``allowed_destinations`` to close the public-web
     path would have that narrowing silently replaced by the empty default the
     moment the file was corrupted. This module documents fail-CLOSED, so it checks
     parseability itself.
     """
-    import kiro_crew.config.loader as loader
-    import kiro_crew.publish_governance as pg
+    import junction.config.loader as loader
+    import junction.publish_governance as pg
     bad = tmp_path / "config.json"
     bad.write_text('{"publish": {"allowed_destinations": ["internal-registry"]')  # truncated
     monkeypatch.setattr(loader, "config_path", lambda: bad)
@@ -514,8 +514,8 @@ def test_a_malformed_overlay_denies_too(tmp_path, monkeypatch, _quiet_sel):
     A corrupt overlay hides an allowlist exactly as effectively as a corrupt base,
     so checking only the base would leave half the hole open.
     """
-    import kiro_crew.config.loader as loader
-    import kiro_crew.publish_governance as pg
+    import junction.config.loader as loader
+    import junction.publish_governance as pg
     good = tmp_path / "config.json"
     good.write_text("{}")
     bad_overlay = tmp_path / "config.local.json"
@@ -531,8 +531,8 @@ def test_a_malformed_overlay_denies_too(tmp_path, monkeypatch, _quiet_sel):
 
 def test_a_non_object_config_denies(tmp_path, monkeypatch, _quiet_sel):
     """Valid JSON that is not an object also degrades to defaults in the loader."""
-    import kiro_crew.config.loader as loader
-    import kiro_crew.publish_governance as pg
+    import junction.config.loader as loader
+    import junction.publish_governance as pg
     weird = tmp_path / "config.json"
     weird.write_text('["not", "an", "object"]')
     monkeypatch.setattr(loader, "config_path", lambda: weird)
@@ -549,8 +549,8 @@ def test_a_config_read_failure_is_audited_too(tmp_path, monkeypatch, _quiet_sel)
     the audit log is indistinguishable, to them, from the publish never having
     been attempted.
     """
-    import kiro_crew.config.loader as loader
-    import kiro_crew.publish_governance as pg
+    import junction.config.loader as loader
+    import junction.publish_governance as pg
 
     good = tmp_path / "config.json"
     good.write_text("{}")
@@ -566,7 +566,7 @@ def test_a_config_read_failure_is_audited_too(tmp_path, monkeypatch, _quiet_sel)
         def load():
             raise RuntimeError("schema rejected publish.allowed_destinations")
 
-    monkeypatch.setattr(pg, "KiroCrewConfig", _Raising)
+    monkeypatch.setattr(pg, "JunctionConfig", _Raising)
 
     reason = pg.publish_denied_reason(_Req(), pg.DEPLOY_WEB_PROVIDER_ID)
 
@@ -584,8 +584,8 @@ def test_an_absent_config_still_permits(tmp_path, monkeypatch, _quiet_sel):
     merely MISSING would break every ordinary install, where an unnamed publish is
     ungoverned and permitted.
     """
-    import kiro_crew.config.loader as loader
-    import kiro_crew.publish_governance as pg
+    import junction.config.loader as loader
+    import junction.publish_governance as pg
     monkeypatch.setattr(loader, "config_path", lambda: tmp_path / "absent.json")
     monkeypatch.setattr(loader, "config_local_path", lambda: tmp_path / "absent.local.json")
 
@@ -602,13 +602,13 @@ def test_an_absent_config_still_permits(tmp_path, monkeypatch, _quiet_sel):
 # which is indistinguishable from "no restriction configured". A malformed
 # section removed the restriction instead of denying.
 #
-# Written as real bytes to a real config.json. Mocking KiroCrewConfig.load()
+# Written as real bytes to a real config.json. Mocking JunctionConfig.load()
 # makes the test agree with the reader instead of with the file, which is what
 # let this class of widening ship unnoticed.
 
 
 def _config_on_disk(tmp_path, monkeypatch, base: str, overlay: str | None = None):
-    import kiro_crew.config.loader as loader
+    import junction.config.loader as loader
 
     base_file = tmp_path / "config.json"
     base_file.write_text(base)
@@ -629,7 +629,7 @@ def _config_on_disk(tmp_path, monkeypatch, base: str, overlay: str | None = None
     ],
 )
 def test_a_non_object_publish_section_denies(tmp_path, monkeypatch, _quiet_sel, body):
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(tmp_path, monkeypatch, body)
 
@@ -643,7 +643,7 @@ def test_a_non_object_publish_section_denies(tmp_path, monkeypatch, _quiet_sel, 
 def test_a_malformed_publish_section_in_the_OVERLAY_denies(tmp_path, monkeypatch, _quiet_sel):
     """config.local.json is deep-merged over the base and is the file the
     torn-read window actually describes, so it must be checked too."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(
         tmp_path, monkeypatch,
@@ -664,7 +664,7 @@ def test_a_non_list_allowed_destinations_denies(tmp_path, monkeypatch, _quiet_se
     refused by different layers (a string reaches this module's own check, a
     scalar trips the governance evaluation first), and which layer speaks is not
     the property worth pinning. That every one of them denies is."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(tmp_path, monkeypatch, '{"publish": {"allowed_destinations": %s}}' % dests)
 
@@ -677,7 +677,7 @@ def test_non_string_entries_do_not_reopen_the_allowlist(tmp_path, monkeypatch, _
     The loader now records the drop as a degradation, so the gate denies.
     (This test previously pinned the permit as the anchor for a follow-up;
     the loader-side treatment the PR prescribed landed here instead.)"""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(tmp_path, monkeypatch, '{"publish": {"allowed_destinations": [1, 2]}}')
 
@@ -689,7 +689,7 @@ def test_a_partially_invalid_allowlist_fails_closed(tmp_path, monkeypatch, _quie
     narrowing: the operator's intent is unknowable, so the whole section
     degrades and everything denies — including the destination they DID name
     correctly, until the file is fixed."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(
         tmp_path, monkeypatch,
@@ -703,11 +703,11 @@ def test_a_scalar_allowed_destinations_never_crashes_load(tmp_path, monkeypatch,
     """A config typo must not abort gateway startup: load() is called on the
     boot path (and everywhere else) without a TypeError net. A non-list value
     parses as a recorded degradation — denied, not detonated."""
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
     _config_on_disk(tmp_path, monkeypatch, '{"publish": {"allowed_destinations": 5}}')
 
-    cfg = KiroCrewConfig.load()  # must not raise
+    cfg = JunctionConfig.load()  # must not raise
     assert cfg.publish.allowed_destinations == []
     assert "publish" in cfg.degraded_sections
 
@@ -723,11 +723,11 @@ def test_the_malformed_bytes_survive_the_writeback_migration(tmp_path, monkeypat
     has no agents key, so the default-agent migration fires on first load."""
     import json
 
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
     _config_on_disk(tmp_path, monkeypatch, '{"publish": []}')
 
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     assert "publish" in cfg.degraded_sections
 
     on_disk = json.loads((tmp_path / "config.json").read_text())
@@ -741,7 +741,7 @@ def test_a_well_formed_narrowing_still_denies_the_excluded_destination(
     tmp_path, monkeypatch, _quiet_sel
 ):
     """Control: the happy path this gate exists for still works from a file."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(
         tmp_path, monkeypatch,
@@ -756,7 +756,7 @@ def test_a_well_formed_allowlist_naming_the_destination_permits(
 ):
     """Control the other way: a valid narrowing that INCLUDES the destination
     must not be refused by the new validation."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(
         tmp_path, monkeypatch,
@@ -768,7 +768,7 @@ def test_a_well_formed_allowlist_naming_the_destination_permits(
 
 def test_an_absent_publish_section_stays_default_open(tmp_path, monkeypatch, _quiet_sel):
     """Genuinely unconfigured is not degraded: a standalone host is unaffected."""
-    import kiro_crew.publish_governance as pg
+    import junction.publish_governance as pg
 
     _config_on_disk(tmp_path, monkeypatch, '{"dashboard": {}}')
 

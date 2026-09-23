@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from kiro_crew.dashboard import terminal_commands as tc
+from junction.dashboard import terminal_commands as tc
 
 
 @pytest.fixture(autouse=True)
@@ -437,7 +437,7 @@ class TestSanitizedPath:
         # over the genuine tool.
         proj = tmp_path / "repo"
         (proj / "bin").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         monkeypatch.setattr(tc, "_is_trusted_dir", lambda _d: True)
         monkeypatch.setenv("PATH", os.pathsep.join([str(proj / "bin"), "/usr/bin"]))
         assert tc._sanitized_path() == "/usr/bin"
@@ -459,7 +459,7 @@ class TestSanitizedPath:
         sysbin = tmp_path / "sysbin"
         sysbin.mkdir()
         (sysbin / "gh").symlink_to(planted)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         monkeypatch.setattr(tc.os, "stat", _stat_chain(os.geteuid()))
         monkeypatch.setenv("PATH", str(sysbin))
         assert tc._resolve("gh") is None
@@ -493,7 +493,7 @@ class TestSanitizedPath:
     ):
         # The lookup is imported lazily inside the function, so patch the module it
         # comes from. Raising must produce the None sentinel, not ().
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         def boom():
             raise OSError("workspace unreadable")
@@ -502,7 +502,7 @@ class TestSanitizedPath:
         assert tc._agent_writable_roots() is None
 
     def test_an_uncanonicalizable_root_yields_no_roots(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path / "proj"))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path / "proj"))
         monkeypatch.setattr(
             tc.os.path, "realpath", lambda *_a, **_k: (_ for _ in ()).throw(OSError()),
         )
@@ -1141,12 +1141,12 @@ class TestRunProbe:
         assert out is not None
         assert "leaked-" not in out
         # And the allowlist really is minimal. The extras are not ours: the sandbox
-        # launcher injects its own markers (`KIROCREW_*`, `GIT_SSH_COMMAND`) and the
+        # launcher injects its own markers (`JUNCTION_*`, `GIT_SSH_COMMAND`) and the
         # shell adds `PWD`/`SHLVL`/`_`, so they are named rather than blanket-allowed
         # — a NEW name appearing here should fail this and be looked at.
         ours = {"TERM", "NO_COLOR", "PAGER", "GIT_PAGER", "PATH", "LANG", "LC_ALL", "LC_CTYPE"}
-        sandbox_injected = {"KIROCREW_HOST_PID", "KIROCREW_SANDBOX_ACTIVE",
-                            "KIROCREW_SANDBOX_LEVEL", "KIROCREW_SPAWNED", "GIT_SSH_COMMAND"}
+        sandbox_injected = {"JUNCTION_HOST_PID", "JUNCTION_SANDBOX_ACTIVE",
+                            "JUNCTION_SANDBOX_LEVEL", "JUNCTION_SPAWNED", "GIT_SSH_COMMAND"}
         shell_added = {"PWD", "SHLVL", "_"}
         # macOS injects __CF_USER_TEXT_ENCODING into every spawned process
         # unconditionally (CoreFoundation per-user encoding preference). This is

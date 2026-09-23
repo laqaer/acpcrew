@@ -111,7 +111,7 @@ function call(n = 0) {
 
 describe('client transport', () => {
   it('exposes the backend search threshold as a shared constant', () => {
-    // Must match kiro_crew.history.SEARCH_MIN_CHARS — the pages gate typing on it.
+    // Must match junction.history.SEARCH_MIN_CHARS — the pages gate typing on it.
     expect(SEARCH_MIN_CHARS).toBe(2)
   })
 
@@ -465,7 +465,7 @@ describe('session-expired banner', () => {
       return window.location.href
     }
 
-    it('extracts the token out of a pasted `kirocrew token` URL', async () => {
+    it('extracts the token out of a pasted `junction token` URL', async () => {
       expect(await pasteAndEnter('http://127.0.0.1:6776/?token=abc123&x=1'))
         .toBe('https://desk.example:6776?token=abc123')
     })
@@ -663,8 +663,8 @@ describe('query-string builders', () => {
     expect(call(1).url).toBe('/api/effort-levels?slot=chat-1')
     await api.mcpActive()
     expect(call(2).url).toBe('/api/mcp/active')
-    await api.mcpActive('kirocrew')
-    expect(call(3).url).toBe('/api/mcp/active?agent=kirocrew')
+    await api.mcpActive('junction')
+    expect(call(3).url).toBe('/api/mcp/active?agent=junction')
   })
 
   it('browse/project helpers encode the path they were handed', async () => {
@@ -682,8 +682,8 @@ describe('query-string builders', () => {
 
   it('fileSearch scopes to a project and forwards the abort signal', async () => {
     const ctl = new AbortController()
-    await api.fileSearch('cli', 'kirocrew', ctl.signal)
-    expect(call().url).toBe('/api/file-search?q=cli&project=kirocrew')
+    await api.fileSearch('cli', 'junction', ctl.signal)
+    expect(call().url).toBe('/api/file-search?q=cli&project=junction')
     expect(call().init?.signal).toBe(ctl.signal)
     await api.fileSearch('cli')
     expect(call(1).url).toBe('/api/file-search?q=cli')
@@ -872,9 +872,9 @@ describe('request bodies with conditionally-omitted keys', () => {
   it('createChatFolder folds the modal settings into the create body', async () => {
     await api.createChatFolder('Work')
     expect(call().body).toEqual({ name: 'Work', parent_id: '' })
-    await api.createChatFolder('Work', 'p1', { project_dir: '/r', default_agent: 'kirocrew', color: 'blue' })
+    await api.createChatFolder('Work', 'p1', { project_dir: '/r', default_agent: 'junction', color: 'blue' })
     expect(call(1).body).toEqual({
-      name: 'Work', parent_id: 'p1', project_dir: '/r', default_agent: 'kirocrew', color: 'blue',
+      name: 'Work', parent_id: 'p1', project_dir: '/r', default_agent: 'junction', color: 'blue',
     })
   })
 

@@ -12,16 +12,16 @@ Slide composition and `.pptx` writing are NOT implemented here. They are done by
 [spec-driven-presentation-maker](https://github.com/aws-samples/sample-spec-driven-presentation-maker)
 (AWS Samples, MIT-0), a public open-source engine that is **fetched as a
 sha256-pinned tarball into the app's data dir on first use and never modified**.
-This app supplies the KiroCrew integration: the agents that drive the engine over
+This app supplies the Junction integration: the agents that drive the engine over
 MCP, the studio page, and the deck / style / template API.
 
-**Nothing has to be installed by hand.** `pip install kirocrew` is the only
+**Nothing has to be installed by hand.** `pip install junction` is the only
 prerequisite: `uv` is a declared Python dependency resolved through the installed
 package, and the engine arrives over plain HTTPS, so `git` is not required. See
 Provisioning.
 
 Attribution: the app was originally written by **sktok** as a standalone app and
-ported here. See `src/kiro_crew/apps/builtins/pptx_maker/ATTRIBUTION.md`.
+ported here. See `src/junction/apps/builtins/pptx_maker/ATTRIBUTION.md`.
 
 Platform: `macos` + `linux` (the engine's toolchain assumes a POSIX venv layout).
 The Python imports cleanly on Windows — the manifest gate is what withholds it.
@@ -231,7 +231,7 @@ disagree about state.
   preview/page<N>-*.png, output.pptx
 ```
 
-`deck_root()` resolves on every call — env override (`KIROCREW_PPTX_DECK_ROOT`,
+`deck_root()` resolves on every call — env override (`JUNCTION_PPTX_DECK_ROOT`,
 dev/test only), then the engine config's `output_dir`, then the engine default.
 Not cached, because the user can change it from Settings and a cached value would
 keep serving the old tree until a gateway restart.
@@ -293,7 +293,7 @@ does not stage a BUILTIN app's non-manifest files into `~/.kiro/crew/apps/<name>
 user-triggered (it downloads a third-party tree and builds a venv) and idempotent.
 
 The **skill** is not part of provisioning: it lives in
-`src/kiro_crew/builtin_skills/pptx-maker/SKILL.md` (bundled, NOT the repo-only
+`src/junction/builtin_skills/pptx-maker/SKILL.md` (bundled, NOT the repo-only
 top-level `skills/`), which the gateway copies into the user's skills dir on
 every start. So it reaches every `pip`/DMG install whether or not the engine has
 been provisioned, per the skill-bundling rule in `AGENTS.md`. The manifest
@@ -303,7 +303,7 @@ as `papyrus`.
 ### Resolving `uv` — never by name
 
 `uv` is a declared Python dependency (`setup.cfg` `install_requires`), so a stock
-`pip install kirocrew` always HAS the binary — but not necessarily on `PATH`: a
+`pip install junction` always HAS the binary — but not necessarily on `PATH`: a
 wheel install puts it in the venv's scripts dir, and the gateway may run with a
 minimal `PATH` (an installed launchd/systemd service). `provision.resolve_uv()`
 therefore resolves it through the installed package and hands the two `uv` call
@@ -341,7 +341,7 @@ verified the commit id the SERVER reported for the tree it had just handed over.
 
 **`git` is a system prerequisite.** There is no `git` on PyPI, and it is far less
 universal than it looks — a slim Docker image, a fresh Windows box or a
-locked-down host may have none. Requiring it contradicts "`pip install kirocrew`
+locked-down host may have none. Requiring it contradicts "`pip install junction`
 and nothing else".
 
 So `engine_source.py` downloads
@@ -369,7 +369,7 @@ half-removed one:
   untouched. The new tree is only swapped into place after a verified extraction,
   so `engine_root` is never partially replaced.
 
-`ENGINE_URL_ENV` (`KIROCREW_PPTX_ENGINE_URL`) allows a mirrored/air-gapped
+`ENGINE_URL_ENV` (`JUNCTION_PPTX_ENGINE_URL`) allows a mirrored/air-gapped
 source. It must be `https://` (so an operator value cannot read local files or
 fetch plaintext) and the digest still gates it, so an override changes only WHERE
 the bytes come from, never WHICH bytes are accepted. `SKIP_DOWNLOAD_ENV` makes a
@@ -433,7 +433,7 @@ agent `resource`. The upstream app patched the vendored engine prompt in place o
 every install, which meant an engine upgrade silently reverted the customization.
 Keeping it in a separate file is what lets the engine stay an unmodified,
 replaceable dependency. The file covers: reply in the user's language, how to open
-a session, KiroCrew's `[OPTIONS: …]` question affordance in place of the engine's
+a session, Junction's `[OPTIONS: …]` question affordance in place of the engine's
 web-only `hearing` tool, and writing each deliverable incrementally so the studio
 can show it.
 
@@ -849,7 +849,7 @@ state immediately.
 
 Backend, in the repo-level `test/` tree as `test_pptx_maker_*.py` (457 tests —
 `setup.cfg` sets `testpaths = test transfer`, so a test under
-`src/kiro_crew/apps/builtins/...` would never be collected by CI):
+`src/junction/apps/builtins/...` would never be collected by CI):
 `..._paths.py` (segment grammar, traversal, symlink escape, deck-root
 resolution), `..._decks.py` (in-progress decks listed, newest compose epoch wins,
 outline-driven slide order, relative URLs only), `..._library.py` (validation

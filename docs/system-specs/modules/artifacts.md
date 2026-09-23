@@ -49,10 +49,10 @@ The dashboard provides a `/artifacts` library page for browse/search and a
 
 ## Public API
 
-### Python (`kiro_crew.artifacts`)
+### Python (`junction.artifacts`)
 
 ```python
-from kiro_crew.artifacts import ArtifactStore, get_default_store
+from junction.artifacts import ArtifactStore, get_default_store
 
 store = get_default_store()
 art = store.create(name="CR Queue", content="<table>…</table>", tags=["ops"])
@@ -74,7 +74,7 @@ for isolated test instances.
 ### Kind inference
 
 `store.create()` (and every path that funnels through it — the HTTP create
-route, the `artifact_save` MCP tool, the `kirocrew artifact save` CLI) infers
+route, the `artifact_save` MCP tool, the `junction artifact save` CLI) infers
 `kind` when the caller omits it (`kind=None`), via `_infer_kind(content,
 source_path, explicit)`:
 
@@ -93,7 +93,7 @@ kinds need the extension signal. This is the safety prerequisite that lets
 agents save markdown deliverables without the mis-save footgun (a markdown
 doc stored as `widget` renders as raw inner HTML).
 
-### MCP tools (`@kirocrew-core/*`)
+### MCP tools (`@junction-core/*`)
 
 | Tool | Purpose |
 |---|---|
@@ -119,18 +119,18 @@ Schemas live in `validation.py` (`ARTIFACT_*_SCHEMA`) and are registered in
 SEL audit, restricted-session enforcement, and any future authorization
 middleware live in one place.
 
-### CLI (`kirocrew artifact`)
+### CLI (`junction artifact`)
 
 ```
-kirocrew artifact list [--tag T] [--kind K] [--q SUBSTR]
-kirocrew artifact show <slug> [--version N] [--meta]
-kirocrew artifact save --name N [--kind K] [--content C | --content-file F] [--tags A,B] [--description D]
-kirocrew artifact update <slug> [--content C | --content-file F] [--name N] [--description D] [--tags A,B]
-kirocrew artifact versions <slug>
-kirocrew artifact delete <slug>
+junction artifact list [--tag T] [--kind K] [--q SUBSTR]
+junction artifact show <slug> [--version N] [--meta]
+junction artifact save --name N [--kind K] [--content C | --content-file F] [--tags A,B] [--description D]
+junction artifact update <slug> [--content C | --content-file F] [--name N] [--description D] [--tags A,B]
+junction artifact versions <slug>
+junction artifact delete <slug>
 ```
 
-The CLI proxies through the gateway HTTP API (matches `kirocrew learn`).
+The CLI proxies through the gateway HTTP API (matches `junction learn`).
 
 ### HTTP
 
@@ -301,7 +301,7 @@ never written to disk, so the file-backed session-docs scan cannot see it).
 **Identity — a two-language contract.** The slug is derived from
 `(message_ts, widget_index)`:
 
-- `src/kiro_crew/widget_slug.py` → `derive_widget_slug`
+- `src/junction/widget_slug.py` → `derive_widget_slug`
 - `website/src/lib/widgetSlug.ts` → `deriveWidgetSlug`
 
 Both MUST produce identical output (two FNV-1a passes, 32-bit prime, 16 hex
@@ -601,7 +601,7 @@ a remote widget round-trips back to `kind="widget"` on clone) and `svg` is
 excluded (the file reader has no `.svg` support).
 
 The feature plugs into the existing Knowledge **source framework** rather than
-adding a parallel watcher (see `kiro_crew.knowledge.artifact_ingest`):
+adding a parallel watcher (see `junction.knowledge.artifact_ingest`):
 
 - **One aggregate "Artifacts" source.** A single `sources` row of
   `source_type="artifact"` (uri `artifact://`) appears in the dashboard Sources
@@ -993,7 +993,7 @@ JSON never carries base64.
   `MAX_CONTENT_BYTES` and a synchronous read would stall every other gateway
   task, the liveness heartbeat included.
 
-### Auto-registration from chat (`kiro_crew.image_artifacts`)
+### Auto-registration from chat (`junction.image_artifacts`)
 
 Finalized assistant messages are scanned for **local** markdown image references
 and each one is registered, copying the bytes immediately so temp-file cleanup

@@ -2,7 +2,7 @@
 
 `pr_findings.py` prints UNTRUSTED CI-log and review-comment text, so it redacts
 credentials first. It carries its OWN stdlib-only copy of the patterns because
-the script is documented as portable and cannot import `kiro_crew.security`.
+the script is documented as portable and cannot import `junction.security`.
 That copy required THREE `.`-separated segments, so the two-segment dashboard
 link token (`base64url(payload).base64url(hmac_sig)`) never matched it.
 
@@ -22,7 +22,7 @@ from skill_script_helpers import load_skill_script
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (
-    ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr" / "scripts" / "pr_findings.py"
+    ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr" / "scripts" / "pr_findings.py"
 )
 
 # Same token shape the backend tests pin (`test_security.py`), so all three
@@ -57,7 +57,7 @@ class TestCredentialRedaction:
         This mints one and fails if the copied pattern stops covering it.
         """
         module = _load_script()
-        from kiro_crew.dashboard.token_auth import generate_token
+        from junction.dashboard.token_auth import generate_token
 
         token = generate_token("local-app", 300, register_nonce=False)
 

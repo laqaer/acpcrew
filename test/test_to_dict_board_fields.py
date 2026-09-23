@@ -3,7 +3,7 @@ import asyncio
 import json
 from types import SimpleNamespace
 
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard.state import _ChatSlot
 
 
 def _slot(*messages: dict) -> _ChatSlot:

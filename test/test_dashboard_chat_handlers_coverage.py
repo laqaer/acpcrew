@@ -23,14 +23,14 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer, make_mocked_request
 
-from kiro_crew.acp.client import AcpModelUnavailable
-from kiro_crew.dashboard import chat_handlers as ch
-from kiro_crew.dashboard.chat_persistence import get_reasoning_effort_values
-from kiro_crew.dashboard.state import _MAX_PENDING_CONTEXT, DashboardState, _ChatSlot
-from kiro_crew.providers.acp import AcpProvider
-from kiro_crew.providers.base import LLMProvider
+from junction.acp.client import AcpModelUnavailable
+from junction.dashboard import chat_handlers as ch
+from junction.dashboard.chat_persistence import get_reasoning_effort_values
+from junction.dashboard.state import _MAX_PENDING_CONTEXT, DashboardState, _ChatSlot
+from junction.providers.acp import AcpProvider
+from junction.providers.base import LLMProvider
 
-MOD = "kiro_crew.dashboard.chat_handlers"
+MOD = "junction.dashboard.chat_handlers"
 
 
 # ── shared fixtures / builders ───────────────────────────────────────────────
@@ -440,7 +440,7 @@ class TestDenyNonDashboardCaller:
         request["internal_auth"] = True
         # No owner predicate should even be consulted on this path.
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request"
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request"
         ) as owner:
             assert ch.deny_non_dashboard_caller(request, "op") is None
             owner.assert_not_called()
@@ -448,7 +448,7 @@ class TestDenyNonDashboardCaller:
     def test_owner_request_is_allowed(self, _sel):
         request = make_mocked_request("POST", "/x")
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=True,
         ):
             assert ch.deny_non_dashboard_caller(request, "op") is None
@@ -457,7 +457,7 @@ class TestDenyNonDashboardCaller:
         request = make_mocked_request("POST", "/x")
         request["user"] = "someone-else"
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=False,
         ):
             resp = ch.deny_non_dashboard_caller(request, "chat_slot_followup")
@@ -470,7 +470,7 @@ class TestDenyNonDashboardCaller:
         _sel.log_api_access.side_effect = RuntimeError("sel down")
         request = make_mocked_request("POST", "/x")
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=False,
         ):
             resp = ch.deny_non_dashboard_caller(request, "op")
@@ -1234,7 +1234,7 @@ class TestSlotFollowup:
     @pytest.mark.asyncio
     async def test_non_owner_is_refused_before_the_slot_lookup(self, _sel):
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=False,
         ):
             status, body = await self._post(

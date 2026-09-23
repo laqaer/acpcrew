@@ -14,7 +14,7 @@ entry, review). The complete field reference is
 Scaffold a skeleton, then edit it:
 
 ```bash
-kirocrew app init my-app --ui --backend --cron
+junction app init my-app --ui --backend --cron
 ```
 
 `app.json` at the app root is the single source of truth for identity,
@@ -162,7 +162,7 @@ Execution model:
   response's `warnings` and logged. A misbehaving app must always be
   disableable; orphaned processes beyond what the backend stop handles are the
   app's own responsibility.
-- Installing from a **local path** (`POST /api/apps/install`, `kirocrew app
+- Installing from a **local path** (`POST /api/apps/install`, `junction app
   install <dir>`) copies and registers the app but does not run `onInstall`. Do
   any build step yourself while iterating locally.
 - `setup.onUpdate` parses and round-trips through the manifest, but no code path
@@ -225,7 +225,7 @@ named entries.
     "os": ["macos"],
     "installMode": "client",
     "clientInstall": {
-      "shell": "git clone https://github.com/you/MyApp.git ~/MyApp && cd ~/MyApp && KIROCREW_HOST={{gateway_host}} bash setup.sh",
+      "shell": "git clone https://github.com/you/MyApp.git ~/MyApp && cd ~/MyApp && JUNCTION_HOST={{gateway_host}} bash setup.sh",
       "postInstall": "open ~/Applications/MyApp.app"
     },
     "requiresDesktopApp": false
@@ -271,7 +271,7 @@ The dashboard's Sources menu on the Apps page can install from a local path too.
 
 Verify:
 
-1. Open the dashboard (`kirocrew token`, then the printed URL).
+1. Open the dashboard (`junction token`, then the printed URL).
 2. Library tab: the app is listed with the right badges.
 3. If it ships UI, open its sidebar entry and confirm the page loads.
 4. If it ships agents, ask one to do something from chat.
@@ -294,7 +294,7 @@ cd ui && npm run build && cd ..
 curl -X POST http://localhost:5476/api/apps/my-app/update
 ```
 
-For a tighter loop, turn on dev mode (`kirocrew app dev my-app`, or `POST
+For a tighter loop, turn on dev mode (`junction app dev my-app`, or `POST
 /api/apps/my-app/dev`): UI files are then served with `Cache-Control: no-store`
 and a gateway-side watcher broadcasts a reload event when anything under `ui/`
 changes. Agent and skill edits take effect on the next agent invocation with no
@@ -363,7 +363,7 @@ the pinned commit exactly and read update availability from the published
 entry's `version` field, so publishing a new revision of the catalog is also how
 an update reaches users.
 
-**The bundled seed** (`src/kiro_crew/apps/app-registry.json` in the Kiro Crew
+**The bundled seed** (`src/junction/apps/app-registry.json` in the Kiro Crew
 repo) is the catalog's offline snapshot, not the listing surface: it is what a
 client falls back to when the catalog host is unreachable. Entries here ride the
 Kiro Crew release train. A catalog row for the same repository supersedes the
@@ -471,7 +471,7 @@ The store's Install button (`POST /api/apps/registry/install`, or the SSE varian
    policy, so a banned, non-allowlisted, or unsigned app is never cloned.
 2. Check `platform`, and answer with client-install instructions instead if the
    gateway's OS cannot run it.
-3. Check `minKiroCrewVersion`.
+3. Check `minJunctionVersion`.
 4. Clone into `~/.kiro/crew/app-sources/{name}/` (persistent, one workspace per
    app; 60s timeout) and run a detected build: `npm install` plus `npm run build`
    when `package.json` declares a build script, or `pip install .` /
@@ -530,7 +530,7 @@ installed one.
 
 - Patch for fixes, minor for features, major for breaking changes (agent config
   schema, MCP tool interface).
-- `minKiroCrewVersion` is checked on install and update; too-old gateways get a
+- `minJunctionVersion` is checked on install and update; too-old gateways get a
   clear error telling the user to update Kiro Crew first.
 - Users update from the store or via `POST /api/apps/{name}/update`. For a
   registry-sourced app this re-clones, rebuilds, re-runs `onInstall`, and swaps
@@ -564,11 +564,11 @@ useful to Kiro Crew users.
 
 | Stage | Command or action |
 |-------|-------------------|
-| Scaffold | `kirocrew app init my-app` |
+| Scaffold | `junction app init my-app` |
 | Build UI | `cd ui && npm run build` |
-| Install locally | `POST /api/apps/install`, or `kirocrew app install <dir>` |
-| Enable | `POST /api/apps/{name}/enable`, or `kirocrew app enable <name>` |
-| Live reload | `kirocrew app dev <name>` |
+| Install locally | `POST /api/apps/install`, or `junction app install <dir>` |
+| Enable | `POST /api/apps/{name}/enable`, or `junction app enable <name>` |
+| Live reload | `junction app dev <name>` |
 | Update local copy | `POST /api/apps/{name}/update` |
 | List a registry app | Add an entry to `app-registry.json`, open a pull request |
 | User install | Apps page, Discover, Install |

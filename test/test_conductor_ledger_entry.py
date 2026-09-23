@@ -22,12 +22,12 @@ from pathlib import Path
 
 from skill_script_helpers import load_skill_script
 
-from kiro_crew import session_ledger
+from junction import session_ledger
 
 SCRIPT = (
     Path(__file__).resolve().parents[1]
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "builtin_skills"
     / "goal-conductor"
     / "scripts"
@@ -440,7 +440,7 @@ class TestLedgerAcceptsWhatTheCodecEmits:
     ``session_ledger.record`` write and reads back byte-identical."""
 
     def test_encoded_entry_round_trips_through_the_ledger(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
         mod = _mod()
         value = mod.mode_encode(_fields())["value"]
         session_ledger.record("slot-a", artifacts={"item-1": value})

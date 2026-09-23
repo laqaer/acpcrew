@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 Every ``git`` invocation is mocked at the ``_git`` chokepoint, so no repository is
 created and no network is touched.
@@ -34,8 +34,8 @@ from unittest import mock
 import pytest
 
 from conftest import make_dir_link, requires_symlinks
-from kiro_crew import sandbox
-from kiro_crew.apps.builtins.papyrus.backend import gitops
+from junction import sandbox
+from junction.apps.builtins.papyrus.backend import gitops
 
 
 @pytest.fixture()
@@ -587,7 +587,7 @@ class TestGitOutputIsBounded:
         """One implementation, so a fix to the drain logic cannot land in one caller
         and miss the other — which is exactly how this bug survived in `gitops` after
         being fixed in `latex`."""
-        from kiro_crew.apps.builtins.papyrus.backend import latex, procio
+        from junction.apps.builtins.papyrus.backend import latex, procio
 
         assert gitops.procio.read_capped is procio.read_capped
         assert latex.MAX_CAPTURED_OUTPUT_BYTES == procio.MAX_CAPTURED_OUTPUT_BYTES

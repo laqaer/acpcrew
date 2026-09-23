@@ -33,15 +33,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew import artifacts as art_mod
-from kiro_crew.artifacts import (
+from junction import artifacts as art_mod
+from junction.artifacts import (
     ArtifactComment,
     ArtifactError,
     ArtifactPublication,
     ArtifactStore,
 )
-from kiro_crew.dashboard.handlers import artifacts as h
-from kiro_crew.publish_provider import Capability, RemoteComment
+from junction.dashboard.handlers import artifacts as h
+from junction.publish_provider import Capability, RemoteComment
 
 # ── Harness ──────────────────────────────────────────────────────────────────
 
@@ -62,10 +62,10 @@ def _write(path: Path, text: str) -> None:
 def store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ArtifactStore:
     """Real ArtifactStore under tmp_path, wired as the process default.
 
-    ``KIROCREW_HOME`` is redirected too: ``allowed_source_roots`` loads the
+    ``JUNCTION_HOME`` is redirected too: ``allowed_source_roots`` loads the
     config, and no test may read or write the operator's real data home.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     s = ArtifactStore(root=tmp_path / "artifacts")
     monkeypatch.setattr(art_mod, "_default_store", s)
     return s

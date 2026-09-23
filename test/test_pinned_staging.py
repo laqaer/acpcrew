@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import pinned_fs, snapshot
+from junction import pinned_fs, snapshot
 
 pinned_only = pytest.mark.skipif(
     not pinned_fs.supports_pinned_tree_walk(),
@@ -382,7 +382,7 @@ def test_the_snapshot_cli_reports_a_refusal_instead_of_a_traceback(
     mc = tmp_path / "home"
     (mc / "workspace").mkdir(parents=True)
     (mc / "workspace" / "note.md").write_text("hi\n", encoding="utf-8")
-    monkeypatch.setenv("KIROCREW_HOME", str(mc))
+    monkeypatch.setenv("JUNCTION_HOME", str(mc))
     monkeypatch.setattr(pinned_fs, "supports_pinned_tree_walk", lambda: False)
 
     rc = snapshot.snapshot_main([str(tmp_path / "out")])
@@ -514,10 +514,10 @@ def test_the_shipped_cli_accepts_the_opt_in_flag(monkeypatch: pytest.MonkeyPatch
     Asserted against the real `cli.main` with a control, because a test that only
     checked the flag parses could pass on a parser nobody runs.
     """
-    from kiro_crew import cli
+    from junction import cli
 
     def _run(argv: list[str]) -> object:
-        monkeypatch.setattr("sys.argv", ["kirocrew"] + argv)
+        monkeypatch.setattr("sys.argv", ["junction"] + argv)
         try:
             cli.main()
             return "accepted"
@@ -550,11 +550,11 @@ def test_the_import_path_records_unpinned_staging_instead_of_removing_the_featur
     """
     import zipfile
 
-    from kiro_crew import portability
+    from junction import portability
 
     mc = tmp_path / "home"
     mc.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(mc))
+    monkeypatch.setenv("JUNCTION_HOME", str(mc))
     monkeypatch.setattr(pinned_fs, "supports_pinned_tree_walk", lambda: False)
 
     payload = tmp_path / "import.zip"
@@ -562,8 +562,8 @@ def test_the_import_path_records_unpinned_staging_instead_of_removing_the_featur
         # One top-level directory is the format's requirement -- a flat zip is rejected
         # before staging is reached, which made an earlier version of this test fail for a
         # reason that had nothing to do with what it was asserting.
-        zf.writestr("kirocrew-export/crons.json", "[]\n")
-        zf.writestr("kirocrew-export/workspace/note.md", "hi\n")
+        zf.writestr("junction-export/crons.json", "[]\n")
+        zf.writestr("junction-export/workspace/note.md", "hi\n")
 
     summary = portability.apply_import_zip(payload, mode="merge")
 
@@ -588,18 +588,18 @@ def test_a_pinnable_import_records_that_it_was_pinned(
     """
     import zipfile
 
-    from kiro_crew import portability
+    from junction import portability
 
     if not pinned_fs.supports_pinned_tree_walk():
         pytest.skip("host cannot pin, so there is no pinned case to assert")
 
     mc = tmp_path / "home"
     mc.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(mc))
+    monkeypatch.setenv("JUNCTION_HOME", str(mc))
 
     payload = tmp_path / "import.zip"
     with zipfile.ZipFile(payload, "w") as zf:
-        zf.writestr("kirocrew-export/crons.json", "[]\n")
+        zf.writestr("junction-export/crons.json", "[]\n")
 
     summary = portability.apply_import_zip(payload, mode="merge")
     assert summary["staging"] == "mixed", (
@@ -622,7 +622,7 @@ def test_the_import_path_passes_its_staging_decision_to_both_branches() -> None:
     """
     import inspect
 
-    from kiro_crew import portability
+    from junction import portability
 
     source = inspect.getsource(portability.apply_import_zip)
     assert (
@@ -1372,7 +1372,7 @@ def test_no_name_based_filesystem_question_where_a_descriptor_is_held() -> None:
     }
     offenders: list[str] = []
 
-    for module in ("src/kiro_crew/pinned_fs.py",):
+    for module in ("src/junction/pinned_fs.py",):
         path = repo_root / module
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for func in ast.walk(tree):
@@ -1841,7 +1841,7 @@ def test_the_import_audit_line_records_the_staging_mode() -> None:
     """
     import inspect
 
-    from kiro_crew.dashboard.handlers import portability as handler
+    from junction.dashboard.handlers import portability as handler
 
     source = inspect.getsource(handler)
     assert "staging={summary.get('staging'" in source, (

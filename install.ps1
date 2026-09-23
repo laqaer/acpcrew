@@ -1,18 +1,18 @@
 # ======================================================================
-#  KiroCrew — Windows setup (cloud mode)
+#  Junction — Windows setup (cloud mode)
 # ======================================================================
 #  This is the CLOUD path: Kiro Crew runs on an EC2 Linux instance in YOUR OWN
 #  AWS account and this machine is the thin client. Use it when you want the
 #  gateway always-on and off your laptop.
 #
 #  It is NOT the only Windows option. Kiro Crew also builds and runs natively
-#  on Windows from source (`.\make.ps1 build`, then `kirocrew gateway`) — see
+#  on Windows from source (`.\make.ps1 build`, then `junction gateway`) — see
 #  docs/guides/windows-install.md, which is the supported default and covers
 #  the per-feature limits.
 #
 #  This script only ensures the client prerequisites — Python, the AWS CLI,
 #  and the SSM Session Manager plugin — then hands off to the Python launcher
-#  wizard (`kirocrew cloud launch`).
+#  wizard (`junction cloud launch`).
 #
 #  It NEVER stores AWS credentials: the aws CLI resolves them from your
 #  configured profile/SSO.
@@ -52,8 +52,8 @@ function Ensure-WingetOrChoco {
 }
 
 Write-Host ""
-Write-Host "  KiroCrew — Windows setup (cloud mode)" -ForegroundColor Magenta
-Write-Host "  Runs KiroCrew on your own AWS EC2; this PC is the client." -ForegroundColor DarkGray
+Write-Host "  Junction — Windows setup (cloud mode)" -ForegroundColor Magenta
+Write-Host "  Runs Junction on your own AWS EC2; this PC is the client." -ForegroundColor DarkGray
 Write-Host "  For a native local install instead: .\make.ps1 build" -ForegroundColor DarkGray
 $arch = Get-RealArch
 Write-Info "Detected architecture: $arch"
@@ -102,14 +102,14 @@ if (Have "session-manager-plugin") {
     Write-Ok "session-manager-plugin installed (restart the shell if not yet on PATH)"
 }
 
-# --- 4. KiroCrew client + launch ------------------------------------------
-Write-Step 4 4 "KiroCrew client"
+# --- 4. Junction client + launch ------------------------------------------
+Write-Step 4 4 "Junction client"
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Push-Location $repoRoot
 try {
-    Write-Info "Installing the KiroCrew client (pip)..."
+    Write-Info "Installing the Junction client (pip)..."
     python -m pip install --upgrade pip *> $null
-    $env:KIROCREW_SKIP_FRONTEND = "1"
+    $env:JUNCTION_SKIP_FRONTEND = "1"
     python -m pip install -e . 2>&1 | Select-Object -Last 5
     # PowerShell has no `set -e`: a failed pip install would otherwise fall
     # through to a misleading "installed" + a launch that dies opaquely. Check
@@ -119,19 +119,19 @@ try {
         Write-Warn "pip install failed (exit $LASTEXITCODE) - fix the error above, then re-run this installer."
         exit 1
     }
-    Write-Ok "KiroCrew client installed"
+    Write-Ok "Junction client installed"
 } finally {
     Pop-Location
 }
 
 if (-not (Have "aws")) {
-    Write-Warn "Restart your terminal so aws / session-manager-plugin are on PATH, then run: kirocrew cloud launch"
+    Write-Warn "Restart your terminal so aws / session-manager-plugin are on PATH, then run: junction cloud launch"
     exit 0
 }
 if (-not (Have "session-manager-plugin")) {
     # Freshly installed above, but not yet on this shell's PATH — launching now
     # would get through provisioning and then fail at the tunnel step.
-    Write-Warn "session-manager-plugin is not on PATH yet. Restart your terminal, then run: kirocrew cloud launch"
+    Write-Warn "session-manager-plugin is not on PATH yet. Restart your terminal, then run: junction cloud launch"
     exit 0
 }
 
@@ -143,20 +143,20 @@ if (-not $identity) {
     Write-Info "Run one of:"
     Write-Info "   aws configure sso        (recommended)"
     Write-Info "   aws configure            (access keys)"
-    Write-Info "Then run:  kirocrew cloud launch"
+    Write-Info "Then run:  junction cloud launch"
     exit 0
 }
 Write-Ok "AWS credentials resolve."
 
 if ($NonInteractive) {
-    Write-Info "Prerequisites ready. Launch when you're set:  kirocrew cloud launch"
+    Write-Info "Prerequisites ready. Launch when you're set:  junction cloud launch"
     exit 0
 }
 
 Write-Host ""
-Write-Host "  Launching KiroCrew on AWS..." -ForegroundColor Cyan
+Write-Host "  Launching Junction on AWS..." -ForegroundColor Cyan
 if ($Size -ne "") {
-    python -m kiro_crew cloud launch --size $Size
+    python -m junction cloud launch --size $Size
 } else {
-    python -m kiro_crew cloud launch
+    python -m junction cloud launch
 }

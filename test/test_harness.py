@@ -1,9 +1,9 @@
-"""Tests for ``kiro_crew.testing.harness`` — gateway-spawning context manager.
+"""Tests for ``junction.testing.harness`` — gateway-spawning context manager.
 
 Most tests exercise the harness's internal helpers in isolation with a
 stand-in for ``subprocess.Popen``. Spawning a real gateway takes 5–15s
 and pulls in the full MCP probe / config init / dashboard bind path, so
-the end-to-end test is gated behind ``KIROCREW_HARNESS_INTEGRATION``.
+the end-to-end test is gated behind ``JUNCTION_HARNESS_INTEGRATION``.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.testing.harness import (
+from junction.testing.harness import (
     DEFAULT_READY_TIMEOUT,
     READY_PREFIX,
     GatewayHandle,
@@ -127,7 +127,7 @@ def test_ready_line_raises_on_timeout_with_stderr() -> None:
 
     assert "did not emit" in str(exc.value)
     assert "WARNING something" in str(exc.value)
-    assert "KIROCREW_HARNESS_READY_TIMEOUT" in str(exc.value)
+    assert "JUNCTION_HARNESS_READY_TIMEOUT" in str(exc.value)
 
 
 def test_ready_line_timeout_fires_when_subprocess_silent_but_alive() -> None:
@@ -269,7 +269,7 @@ def test_terminate_falls_back_to_sigkill() -> None:
         ready_line = proc.stdout.readline()
         assert ready_line == b"READY\n", f"child did not signal ready: {ready_line!r}"
 
-        with patch("kiro_crew.testing.harness.TERMINATE_GRACE_SECONDS", 0.5):
+        with patch("junction.testing.harness.TERMINATE_GRACE_SECONDS", 0.5):
             _terminate_process_group(proc)
         assert proc.poll() is not None
         # On POSIX, SIGKILL is signal 9; returncode is -9 when killed.
@@ -392,7 +392,7 @@ def test_terminate_pgid_grace_default_resolved_at_call_time() -> None:
         assert proc.stdout is not None
         assert proc.stdout.readline() == b"READY\n"
         start = time.monotonic()
-        with patch("kiro_crew.testing.harness.TERMINATE_GRACE_SECONDS", 0.5):
+        with patch("junction.testing.harness.TERMINATE_GRACE_SECONDS", 0.5):
             terminate_pgid(proc.pid)  # default grace — must pick up the patch
         elapsed = time.monotonic() - start
         assert elapsed < 3.0, f"patched grace ignored, took {elapsed:.2f}s"
@@ -442,7 +442,7 @@ def test_terminate_pgid_wait_hook_used_for_exit_detection() -> None:
 def test_resolve_workspace_src_finds_package() -> None:
     """When run from inside the package, returns ``<pkg>/src``."""
     src = _resolve_workspace_src()
-    assert (src / "kiro_crew" / "__init__.py").exists()
+    assert (src / "junction" / "__init__.py").exists()
 
 
 def test_gateway_handle_is_frozen() -> None:
@@ -508,9 +508,9 @@ def test_spawn_feature_gateway_happy_path() -> None:
         return fake_proc
 
     with (
-        patch("kiro_crew.testing.harness.subprocess.Popen", side_effect=fake_popen),
+        patch("junction.testing.harness.subprocess.Popen", side_effect=fake_popen),
         patch(
-            "kiro_crew.testing.harness._terminate_process_group",
+            "junction.testing.harness._terminate_process_group",
             side_effect=fake_terminate,
         ),
     ):
@@ -525,7 +525,7 @@ def test_spawn_feature_gateway_happy_path() -> None:
     # Tmp home is cleaned up on context exit.
     assert not captured_home.exists()
 
-    # Spawn invokes ``kirocrew gateway --test-mode --seed <fixture>`` —
+    # Spawn invokes ``junction gateway --test-mode --seed <fixture>`` —
     # seeding is atomic with gateway startup (no separate seed pass).
     assert captured_cmd, "Popen was not called"
     cmd_str = " ".join(captured_cmd[0])
@@ -533,7 +533,7 @@ def test_spawn_feature_gateway_happy_path() -> None:
     assert "--test-mode" in cmd_str
     assert "--seed empty" in cmd_str
     assert "--approval reads" in cmd_str
-    assert captured_env["KIROCREW_FAKE_ACP_TEST_MODE"] == "1"
+    assert captured_env["JUNCTION_FAKE_ACP_TEST_MODE"] == "1"
     # ``crons`` defaults to False so the safe ``--no-crons`` flag is
     # included — a stray cron firing during an unrelated test is the
     # exact flake the default guards against.
@@ -545,7 +545,7 @@ def test_spawn_feature_gateway_isolates_the_agent_spec_home() -> None:
 
     Regression guard for issue #4912. The gateway boot runs ``rebuild_agent_config``,
     which writes the managed MCP specs into ``kiro_agents_dir()``. With only
-    ``KIROCREW_HOME`` isolated (the data home) and ``KIRO_HOME`` left at the default,
+    ``JUNCTION_HOME`` isolated (the data home) and ``KIRO_HOME`` left at the default,
     that resolver names the operator's real machine-wide ``~/.kiro/agents`` -- and the
     spawned gateway is an ordinary (non-worktree) install, so ``agent.py``'s write
     guard takes the "writing its own shared home" branch and does NOT decline. It would
@@ -557,7 +557,7 @@ def test_spawn_feature_gateway_isolates_the_agent_spec_home() -> None:
     private-target exemption already lets an isolated instance own -- and the whole tree
     is removed with ``home`` on teardown.
     """
-    from kiro_crew.config.paths import isolated_agents_dir
+    from junction.config.paths import isolated_agents_dir
 
     fake_proc = _make_fake_proc_with_ready(
         '{"port": 51234, "token": "t-abc", "pid": 9876, "home": "/tmp/x"}'
@@ -571,8 +571,8 @@ def test_spawn_feature_gateway_isolates_the_agent_spec_home() -> None:
         return fake_proc
 
     with (
-        patch("kiro_crew.testing.harness.subprocess.Popen", side_effect=fake_popen),
-        patch("kiro_crew.testing.harness._terminate_process_group"),
+        patch("junction.testing.harness.subprocess.Popen", side_effect=fake_popen),
+        patch("junction.testing.harness._terminate_process_group"),
     ):
         with spawn_feature_gateway(fixture="empty") as handle:
             data_home = handle.home
@@ -592,7 +592,7 @@ def test_spawn_feature_gateway_isolates_the_agent_spec_home() -> None:
             assert kiro_home / "agents" == isolated_agents_dir(data_home)
 
             # And the data home stays isolated too (unchanged by this fix).
-            assert captured_env["KIROCREW_HOME"] == str(data_home)
+            assert captured_env["JUNCTION_HOME"] == str(data_home)
 
 
 def test_spawn_feature_gateway_crons_opt_in() -> None:
@@ -613,8 +613,8 @@ def test_spawn_feature_gateway_crons_opt_in() -> None:
         return fake_proc
 
     with (
-        patch("kiro_crew.testing.harness.subprocess.Popen", side_effect=fake_popen),
-        patch("kiro_crew.testing.harness._terminate_process_group"),
+        patch("junction.testing.harness.subprocess.Popen", side_effect=fake_popen),
+        patch("junction.testing.harness._terminate_process_group"),
     ):
         with spawn_feature_gateway(fixture="empty", crons=True):
             pass
@@ -630,7 +630,7 @@ def test_parallel_spawns_get_distinct_homes_and_ports() -> None:
     """Two concurrent spawns must each get their own tmp home + port.
 
     Pins the PRD acceptance "parallel invocations don't share
-    KIROCREW_HOME or port". Mocks Popen so each call returns a fake
+    JUNCTION_HOME or port". Mocks Popen so each call returns a fake
     process emitting a different READY payload; the harness must
     propagate the distinct ports and create separate tmp dirs.
     """
@@ -647,10 +647,10 @@ def test_parallel_spawns_get_distinct_homes_and_ports() -> None:
 
     with (
         patch(
-            "kiro_crew.testing.harness.subprocess.Popen",
+            "junction.testing.harness.subprocess.Popen",
             side_effect=lambda *a, **kw: next(procs),
         ),
-        patch("kiro_crew.testing.harness._terminate_process_group"),
+        patch("junction.testing.harness._terminate_process_group"),
     ):
         with spawn_feature_gateway(fixture="empty") as outer:
             with spawn_feature_gateway(fixture="empty") as inner:
@@ -671,9 +671,9 @@ def test_default_timeout_constant() -> None:
 
 
 @pytest.mark.skipif(
-    not os.environ.get("KIROCREW_HARNESS_INTEGRATION"),
+    not os.environ.get("JUNCTION_HARNESS_INTEGRATION"),
     reason=(
-        "Real-gateway integration test. Set KIROCREW_HARNESS_INTEGRATION=1 to run. "
+        "Real-gateway integration test. Set JUNCTION_HARNESS_INTEGRATION=1 to run. "
         "Requires the composable-gateway CLI flags (--test-mode + --seed) to be "
         "present on the local feature branch."
     ),

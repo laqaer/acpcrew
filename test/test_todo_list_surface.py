@@ -8,9 +8,9 @@ whole list on every command.
 
 from typing import Any
 
-from kiro_crew.acp._dispatch import parse_session_update, parse_todo_snapshot
-from kiro_crew.acp.types import EVENT_TODO_UPDATE, TODO_TASKS_MAX, TODO_TEXT_MAX
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.acp._dispatch import parse_session_update, parse_todo_snapshot
+from junction.acp.types import EVENT_TODO_UPDATE, TODO_TASKS_MAX, TODO_TEXT_MAX
+from junction.dashboard.state import _ChatSlot
 
 
 def _update(tasks: list[dict[str, Any]], description: str = "Config workflow") -> dict[str, Any]:

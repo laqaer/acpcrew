@@ -8,10 +8,10 @@ snapshots the live ``_slots`` keys to ``<config_dir>/open_slots.json`` on
 every flush + shutdown, and ``restore_open_slots`` reads it back on startup
 before the legacy mtime restore runs.
 
-Path resolution goes through ``kiro_crew.config.loader.config_dir`` (the
+Path resolution goes through ``junction.config.loader.config_dir`` (the
 canonical helper used by every other dashboard persistence path -- session
 metadata, vector memory, agent metadata, secretary, etc.) so the snapshot
-honors ``KIROCREW_HOME``. These tests set ``KIROCREW_HOME`` to ``tmp_path``
+honors ``JUNCTION_HOME``. These tests set ``JUNCTION_HOME`` to ``tmp_path``
 directly to exercise that resolution end-to-end (rather than monkeypatching
 ``Path.home`` and bypassing the env-var branch).
 
@@ -33,13 +33,13 @@ import pytest
 from chat_test_helpers import _make_state
 from windows_sim import builtin_open_sharing_violation
 
-from kiro_crew.dashboard.chat_persistence import (
+from junction.dashboard.chat_persistence import (
     _rehydrate_slot_from_history,
     restore_open_slots,
     restore_open_slots_async,
 )
-from kiro_crew.dashboard.chat_utils import _history_key_for
-from kiro_crew.dashboard.state import DashboardState
+from junction.dashboard.chat_utils import _history_key_for
+from junction.dashboard.state import DashboardState
 
 
 def _seed_session(state, slot_key: str, *, closed: bool = False) -> None:
@@ -57,7 +57,7 @@ def _seed_session(state, slot_key: str, *, closed: bool = False) -> None:
 
 def test_persist_writes_open_slots_json(tmp_path, monkeypatch):
     """_persist_open_slots writes the live slot keys to <config_dir>/open_slots.json."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-1-foo")
     state.get_or_create_slot("chat-2-bar")
@@ -82,7 +82,7 @@ def test_persist_overwrites_atomically(tmp_path, monkeypatch):
     is gone; on failure the except branch unlinks it. Either way no .tmp
     artifacts should accumulate.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-1-foo")
     state._persist_open_slots()
@@ -99,10 +99,10 @@ def test_persist_overwrites_atomically(tmp_path, monkeypatch):
     assert set(payload["keys"]) == {"chat-1-foo", "chat-2-bar"}
 
 
-def test_persist_honors_kirocrew_home_env(tmp_path, monkeypatch):
-    """Snapshot lands in KIROCREW_HOME, not ~/.kirocrew -- proves the env-var path."""
-    custom_home = tmp_path / "custom-kirocrew-home"
-    monkeypatch.setenv("KIROCREW_HOME", str(custom_home))
+def test_persist_honors_junction_home_env(tmp_path, monkeypatch):
+    """Snapshot lands in JUNCTION_HOME, not ~/.kirocrew -- proves the env-var path."""
+    custom_home = tmp_path / "custom-junction-home"
+    monkeypatch.setenv("JUNCTION_HOME", str(custom_home))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-1-foo")
     state._persist_open_slots()
@@ -111,7 +111,7 @@ def test_persist_honors_kirocrew_home_env(tmp_path, monkeypatch):
 
 def test_restore_open_slots_rehydrates_listed_keys(tmp_path, monkeypatch):
     """restore_open_slots rehydrates each listed key from history."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     # Seed two sessions on disk
     _seed_session(state, "chat-1-alpha")
@@ -133,7 +133,7 @@ def test_restore_open_slots_rehydrates_listed_keys(tmp_path, monkeypatch):
 
 def test_restore_open_slots_skips_closed_sessions(tmp_path, monkeypatch):
     """A session marked closed=True in metadata must not be restored."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-open")
     _seed_session(state, "chat-2-closed", closed=True)
@@ -149,14 +149,14 @@ def test_restore_open_slots_skips_closed_sessions(tmp_path, monkeypatch):
 
 def test_restore_open_slots_missing_file_is_noop(tmp_path, monkeypatch):
     """No snapshot file -> 0 restored, no exception."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     assert restore_open_slots(state) == 0
 
 
 def test_restore_open_slots_malformed_file_is_noop(tmp_path, monkeypatch):
     """Garbage in the snapshot file -> 0 restored, gateway still boots."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     snapshot_path = tmp_path / "open_slots.json"
     snapshot_path.write_text("{not valid json")
@@ -165,7 +165,7 @@ def test_restore_open_slots_malformed_file_is_noop(tmp_path, monkeypatch):
 
 def test_restore_open_slots_skips_already_loaded(tmp_path, monkeypatch):
     """If a key is already in _slots (e.g. created via another path) skip it."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-foo")
     snapshot_path = tmp_path / "open_slots.json"
@@ -186,10 +186,10 @@ def test_persist_open_slots_handles_write_failure_gracefully(tmp_path, monkeypat
     here. A read-only filesystem or restricted container is the realistic
     failure mode -- snapshot must still no-op cleanly without raising.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-1-foo")
-    with patch("kiro_crew.atomic_write.os.fchmod", side_effect=OSError("read-only filesystem")):
+    with patch("junction.atomic_write.os.fchmod", side_effect=OSError("read-only filesystem")):
         # Should not raise
         state._persist_open_slots()
 
@@ -211,7 +211,7 @@ def test_restore_open_slots_rejects_path_separator_keys(tmp_path, monkeypatch):
       3. Legitimate keys in the same file ARE restored (one bad apple does not
          poison the whole snapshot).
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-legit")
     snapshot_path = tmp_path / "open_slots.json"
@@ -256,7 +256,7 @@ def test_restore_open_slots_rolls_back_partial_slot_on_rehydrate_failure(tmp_pat
     ``restore_open_slots`` must remove the partial slot from ``state._slots`` so
     a downstream restore path can fill it in cleanly.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-good")
     snapshot_path = tmp_path / "open_slots.json"
@@ -267,7 +267,7 @@ def test_restore_open_slots_rolls_back_partial_slot_on_rehydrate_failure(tmp_pat
     # Patch _rehydrate_slot_from_history so that it leaks a partial slot
     # (mirroring the real partial-state path) and then raises. Without the
     # rollback in restore_open_slots, the partial slot would persist.
-    from kiro_crew.dashboard import chat_persistence as cp_mod
+    from junction.dashboard import chat_persistence as cp_mod
 
     def _failing_rehydrate(state_arg, slot_name):
         # Mimic the real failure mode: register an empty slot via
@@ -306,7 +306,7 @@ def test_rehydrate_slot_restores_persisted_tab_id_for_fork_chaining(tmp_path, mo
       2. If meta has no tab_id (legacy session), one is generated AND written
          back to meta so subsequent reads find it.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-with-tab-id")
     # Inject a known tab_id into the persisted metadata to simulate an
@@ -360,7 +360,7 @@ def test_rehydrate_slot_uses_chained_read_with_500_message_window(tmp_path, monk
       2. The in-memory window cap is 500, not 200 (matches
          ``restore_recent_sessions``).
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-long")
 
@@ -414,7 +414,7 @@ def test_rehydrate_slot_loads_full_500_message_window(tmp_path, monkeypatch):
     Pre-fix (200 cap), this test would see only the last 200 of 250
     messages restored. With the 500 cap, all 250 land.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     history_key = _history_key_for("chat-1-bigwindow")
     log = state.conversation_log
@@ -458,7 +458,7 @@ def test_persist_open_slots_excludes_incognito_and_temporary(tmp_path, monkeypat
     This test pins: only ``memory_mode == "persistent"`` slots are written
     to ``open_slots.json``.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-persistent-1")
     state.get_or_create_slot("chat-incognito-1", memory_mode="incognito")
@@ -491,14 +491,14 @@ def test_restore_open_slots_rollback_also_discards_restricted_keys(tmp_path, mon
 
     This test pins: rollback removes the slot AND the _restricted_keys entry.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-incognito")
     snapshot_path = tmp_path / "open_slots.json"
     snapshot_path.write_text(json.dumps({"keys": ["chat-1-incognito"], "ts": 0.0}))
 
     state2 = _make_state(tmp_path / "sessions")
-    from kiro_crew.dashboard import chat_persistence as cp_mod
+    from junction.dashboard import chat_persistence as cp_mod
 
     def _failing_rehydrate(state_arg, slot_name):
         # Mimic the real failure mode for an INCOGNITO session: register the
@@ -540,7 +540,7 @@ FOLDED_KEY = "Artifact__2026_Example_Benchmark_Report_-_alice_vs_Bob_Smith_Org"
 
 def test_restore_open_slots_folds_legacy_raw_keys(tmp_path, monkeypatch):
     """A pre-fix snapshot key restores under the canonical folded key."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, FOLDED_KEY)  # on-disk file is always the folded form
     (tmp_path / "open_slots.json").write_text(json.dumps({"keys": [RAW_KEY], "ts": 0.0}))
@@ -555,7 +555,7 @@ def test_restore_open_slots_folds_legacy_raw_keys(tmp_path, monkeypatch):
 
 def test_restore_open_slots_dedupes_raw_and_folded_snapshot_twins(tmp_path, monkeypatch):
     """A polluted snapshot carrying BOTH key forms restores exactly one slot."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, FOLDED_KEY)
     (tmp_path / "open_slots.json").write_text(
@@ -576,9 +576,9 @@ def test_restart_restore_paths_converge_on_one_slot(tmp_path, monkeypatch):
     open_slots.json plus the mtime-based restore_recent_sessions walk used to
     produce two identical sidebar sessions after a gateway restart.
     """
-    from kiro_crew.dashboard.chat_persistence import restore_recent_sessions
+    from junction.dashboard.chat_persistence import restore_recent_sessions
 
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, FOLDED_KEY)
     (tmp_path / "open_slots.json").write_text(json.dumps({"keys": [RAW_KEY], "ts": 0.0}))
@@ -609,7 +609,7 @@ def test_restart_restore_paths_converge_on_one_slot(tmp_path, monkeypatch):
 
 def test_reseed_advances_past_highest_restored_index(tmp_path, monkeypatch):
     """reseed_slot_counter seeds the counter to the max restored slot index."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     # Counter starts at 0 on a fresh (restarted) gateway.
     assert state._slot_counter == 0
@@ -624,7 +624,7 @@ def test_reseed_advances_past_highest_restored_index(tmp_path, monkeypatch):
 
 def test_reseed_ignores_non_indexed_keys(tmp_path, monkeypatch):
     """Custom keys (Slack sessions, sanitized names) are skipped, not crashed on."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-3-1783712000")
     # Keys without a digit in the second-to-last segment must be ignored.
@@ -641,7 +641,7 @@ def test_reseed_ignores_non_indexed_keys(tmp_path, monkeypatch):
 
 def test_reseed_is_monotonic(tmp_path, monkeypatch):
     """reseed never lowers the counter below its current value."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state._slot_counter = 12
     state.get_or_create_slot("chat-3-1783712000")
@@ -653,7 +653,7 @@ def test_reseed_is_monotonic(tmp_path, monkeypatch):
 
 def test_reseed_noop_when_no_slots(tmp_path, monkeypatch):
     """No slots -> counter unchanged, no exception."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.reseed_slot_counter()
     assert state._slot_counter == 0
@@ -667,7 +667,7 @@ def test_new_slot_does_not_collide_with_restored_tab(tmp_path, monkeypatch):
     restored chat-1 tab. After reseed, the new slot must get a strictly higher,
     unused index.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-6-restored")
     _seed_session(state, "chat-7-restored")
@@ -701,7 +701,7 @@ def test_reseed_skips_unicode_digit_key_without_crashing(tmp_path, monkeypatch):
     letting the exception abort start_dashboard. (Not reachable for minted keys,
     which interpolate real ints — this pins the belt-and-suspenders guard.)
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     state.get_or_create_slot("chat-4-1783712000")
     # Inject a pathological key directly (get_or_create_slot would ascii-sanitize it).
@@ -727,7 +727,7 @@ def test_restore_open_slots_async_yields_between_tabs(tmp_path, monkeypatch):
     restore must observe a partially restored slot set. If restore ever blocks
     through every tab and yields only after the work is done, this fails.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     tab_count = 6
     for i in range(tab_count):
@@ -789,7 +789,7 @@ def test_restore_reads_transcript_before_backfilling_tab_id(tmp_path, monkeypatc
     are exercised by test_history's sharing-violation tests); this pins the
     ordering that keeps the file quiescent for the read in the first place.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     n = 4
     for i in range(n):
@@ -799,7 +799,7 @@ def test_restore_reads_transcript_before_backfilling_tab_id(tmp_path, monkeypatc
         json.dumps({"keys": [f"chat-{i}-race" for i in range(n)], "ts": 0.0})
     )
 
-    import kiro_crew.dashboard.chat_persistence as chat_persistence
+    import junction.dashboard.chat_persistence as chat_persistence
 
     state2 = _make_state(tmp_path / "sessions")
     log = state2.conversation_log
@@ -839,7 +839,7 @@ def test_restore_open_slots_async_matches_sync_result(tmp_path, monkeypatch):
 
     They share one generator, so this guards the two thin wrappers from drifting.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-same")
     _seed_session(state, "chat-2-same")
@@ -864,7 +864,7 @@ def test_rehydrate_does_not_scan_the_whole_session_dir(tmp_path, monkeypatch):
     canonical ``dashboard:x``), making restore O(tabs x all sessions). That was ~13s
     of the stall on a real 77-tab home.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-noscan")
     state.conversation_log.update_metadata(
@@ -892,7 +892,7 @@ def test_bulk_restore_emits_one_slots_broadcast(tmp_path, monkeypatch):
     tabs serialized 1+2+...+N slots — quadratic redaction work for intermediate
     states no client ever renders.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     for i in range(5):
         _seed_session(state, f"chat-{i}-bcast")
@@ -917,7 +917,7 @@ def test_suspend_slots_push_unwinds_and_flushes_on_exception(tmp_path, monkeypat
     Otherwise one failed restore would leave the gateway permanently unable to
     broadcast slot updates.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     seen: list[str] = []
     state._broadcast = lambda note: seen.append(note.get("_type"))  # type: ignore[method-assign]
@@ -933,7 +933,7 @@ def test_suspend_slots_push_unwinds_and_flushes_on_exception(tmp_path, monkeypat
 
 def test_suspend_slots_push_nested_does_not_flush_early(tmp_path, monkeypatch):
     """Only the OUTERMOST suspend block flushes — nested users must not push early."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     seen: list[str] = []
     state._broadcast = lambda note: seen.append(note.get("_type"))  # type: ignore[method-assign]
@@ -947,7 +947,7 @@ def test_suspend_slots_push_nested_does_not_flush_early(tmp_path, monkeypatch):
 
 def test_suspend_slots_push_no_push_means_no_broadcast(tmp_path, monkeypatch):
     """An empty suspend block must not synthesize a broadcast nobody asked for."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     seen: list[str] = []
     state._broadcast = lambda note: seen.append(note.get("_type"))  # type: ignore[method-assign]
@@ -970,7 +970,7 @@ def test_suspend_slots_push_no_push_means_no_broadcast(tmp_path, monkeypatch):
 
 def test_flush_during_async_restore_does_not_truncate_snapshot(tmp_path, monkeypatch):
     """A flush landing mid-restore must not shrink open_slots.json."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     keys = [f"chat-{i}-flush" for i in range(8)]
     for k in keys:
@@ -994,7 +994,7 @@ def test_flush_during_async_restore_does_not_truncate_snapshot(tmp_path, monkeyp
         return await real_sleep(delay, *a, **kw)
 
     with patch(
-        "kiro_crew.dashboard.chat_persistence.asyncio.sleep", side_effect=flushing_sleep
+        "junction.dashboard.chat_persistence.asyncio.sleep", side_effect=flushing_sleep
     ):
         restored = asyncio.run(restore_open_slots_async(state2))
 
@@ -1011,7 +1011,7 @@ def test_flush_during_async_restore_does_not_truncate_snapshot(tmp_path, monkeyp
 
 def test_restoring_flag_clears_and_reenables_persistence(tmp_path, monkeypatch):
     """The guard must be released after the restore so snapshots resume."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-flag")
     (tmp_path / "open_slots.json").write_text(
@@ -1034,7 +1034,7 @@ def test_restoring_flag_clears_and_reenables_persistence(tmp_path, monkeypatch):
 
 def test_restoring_flag_cleared_even_if_restore_raises(tmp_path, monkeypatch):
     """A crash mid-restore must not leave open-tab persistence disabled forever."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-boom")
     (tmp_path / "open_slots.json").write_text(
@@ -1043,7 +1043,7 @@ def test_restoring_flag_cleared_even_if_restore_raises(tmp_path, monkeypatch):
 
     state2 = _make_state(tmp_path / "sessions")
     with patch(
-        "kiro_crew.dashboard.chat_persistence._build_kiro_model_map",
+        "junction.dashboard.chat_persistence._build_kiro_model_map",
         side_effect=RuntimeError("boom"),
     ):
         with pytest.raises(RuntimeError):
@@ -1108,7 +1108,7 @@ def test_a_transient_metadata_read_failure_does_not_drop_a_tab(tmp_path, monkeyp
     Faults the FIRST read of exactly one session's transcript, which is what a
     scanner holding one file looks like, and requires the full set back.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     keys = [f"chat-{i}-transient" for i in range(6)]
     for k in keys:
@@ -1147,7 +1147,7 @@ def test_read_messages_retries_transient_sharing_violation(tmp_path, monkeypatch
     body read we want to exercise, faults it once, and requires the messages
     back intact.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-body")
     log = state.conversation_log
@@ -1180,9 +1180,9 @@ def test_read_messages_reraises_after_exhausting_retries(tmp_path, monkeypatch):
     on exhaustion so rehydrate rolls back and the fallback restore can retry.
     Transient failures are still absorbed (see the companion test above).
     """
-    from kiro_crew.history import _METADATA_READ_ATTEMPTS
+    from junction.history import _METADATA_READ_ATTEMPTS
 
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-persist")
     log = state.conversation_log
@@ -1210,7 +1210,7 @@ def test_read_messages_missing_file_mid_read_returns_empty(tmp_path, monkeypatch
     caught separately and return ``[]`` (matching the ``exists()``-miss branch),
     without spending the retry budget on a file that is gone.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-race")
     log = state.conversation_log
@@ -1246,7 +1246,7 @@ def test_persistent_body_read_failure_drops_tab_not_registers_empty(tmp_path, mo
     recover it) rather than being registered as a history-less slot that the
     dedup guard would then skip.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     keys = [f"chat-{i}-persist" for i in range(3)]
     for k in keys:
@@ -1290,7 +1290,7 @@ def test_persistent_metadata_failure_keeps_key_in_reopen_seed(tmp_path, monkeypa
     Asserts the seed, not the slot: dropping the tab for this boot is the
     intended behaviour, losing the ability to ever restore it is not.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     keys = [f"chat-{i}-seed" for i in range(4)]
     for k in keys:
@@ -1326,7 +1326,7 @@ def test_absent_session_is_dropped_from_reopen_seed(tmp_path, monkeypatch):
     has no transcript is a real answer, and keeping its key would resurrect a
     dead tab on every restart forever.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-real")
     (tmp_path / "open_slots.json").write_text(
@@ -1350,7 +1350,7 @@ def test_metadata_failure_is_reported_above_debug(tmp_path, monkeypatch, caplog)
     TAB was affected -- ``restored`` was simply one lower, which is unactionable
     when the user reports "a tab disappeared".
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     _seed_session(state, "chat-1-logged")
     (tmp_path / "open_slots.json").write_text(
@@ -1359,7 +1359,7 @@ def test_metadata_failure_is_reported_above_debug(tmp_path, monkeypatch, caplog)
 
     state2 = _make_state(tmp_path / "sessions")
     victim = state2.conversation_log._path(_history_key_for("chat-1-logged")).name
-    with caplog.at_level("WARNING", logger="kiro_crew.dashboard.chat_persistence"):
+    with caplog.at_level("WARNING", logger="junction.dashboard.chat_persistence"):
         with builtin_open_sharing_violation(match=victim, times=3):
             restore_open_slots(state2)
 
@@ -1371,7 +1371,7 @@ def test_metadata_failure_is_reported_above_debug(tmp_path, monkeypatch, caplog)
 
 def test_get_metadata_status_separates_unreadable_from_absent(tmp_path, monkeypatch):
     """The new signal must not report absence as a read failure, or vice versa."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     log = state.conversation_log
     assert log is not None
@@ -1415,7 +1415,7 @@ def test_non_object_metadata_line_does_not_abort_the_whole_restore(
        it would retry a permanently-broken transcript on every boot forever,
        and would disagree with the ``{not json`` case for no reason.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     state = _make_state(tmp_path / "sessions")
     keys = ["chat-0-ok", "chat-1-corrupt", "chat-2-ok"]
     for k in keys:

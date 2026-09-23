@@ -15,8 +15,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.chat_handlers import api_chat_slot_source_links
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard.chat_handlers import api_chat_slot_source_links
+from junction.dashboard.state import _ChatSlot
 
 PRS = [f"https://github.com/acme/widgets/pull/{n}" for n in (11, 12, 13, 14)]
 ISSUES = [f"https://github.com/acme/widgets/issues/{n}" for n in (21, 22, 23, 24)]
@@ -65,7 +65,7 @@ class TestSourceLinksPayload:
     def test_check_status_is_withheld_unless_the_caller_asked(self):
         slot = _slot()
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.get_cached_check_status",
+            "junction.dashboard.handlers.source_providers.get_cached_check_status",
             return_value={"ci": "passed", "state": "OPEN"},
         ):
             plain = slot.source_links_payload()
@@ -83,7 +83,7 @@ class TestSourceLinksPayload:
         truthful to colour -- a borrowed glyph would assert state never fetched."""
         slot = _slot()
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.get_cached_check_status",
+            "junction.dashboard.handlers.source_providers.get_cached_check_status",
             return_value={"ci": "failed", "state": "OPEN"},
         ):
             owner = slot.source_links_payload(include_check_status=True)
@@ -106,12 +106,12 @@ def _request(slot_key: str, slots: dict, *, app: str = ""):
 
 async def _get(slot_key: str, slots: dict, *, owner: bool = True, app: str = "") -> web.Response:
     with patch(
-        "kiro_crew.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
+        "junction.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
         return_value=None,
     ), patch(
-        "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+        "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
         return_value=owner,
-    ), patch("kiro_crew.dashboard.chat_handlers.sel"):
+    ), patch("junction.dashboard.chat_handlers.sel"):
         return await api_chat_slot_source_links(_request(slot_key, slots, app=app))
 
 
@@ -135,7 +135,7 @@ class TestSourceLinksEndpoint:
     @pytest.mark.asyncio
     async def test_check_status_follows_the_owner_gate(self):
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.get_cached_check_status",
+            "junction.dashboard.handlers.source_providers.get_cached_check_status",
             return_value={"ci": "passed", "state": "OPEN"},
         ):
             non_owner = json.loads((await _get("s1", {"s1": _slot()}, owner=False)).text)
@@ -149,10 +149,10 @@ class TestSourceLinksEndpoint:
         """The warm-up is best-effort: a self-hosted MR may be missing for one
         round, but the expand must not fail outright over it."""
         with patch(
-            "kiro_crew.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
+            "junction.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
             side_effect=RuntimeError("cold"),
         ), patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=False,
         ):
             resp = await api_chat_slot_source_links(_request("s1", {"s1": _slot()}))
@@ -198,11 +198,11 @@ class TestAppTokenIsolation:
         actually read a slot's links -- the ALLOW is a permission decision."""
         slot = _slot()
         slot._app = "design_critique"
-        with patch("kiro_crew.dashboard.chat_handlers.sel") as sel, patch(
-            "kiro_crew.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
+        with patch("junction.dashboard.chat_handlers.sel") as sel, patch(
+            "junction.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
             return_value=None,
         ), patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=False,
         ):
             resp = await api_chat_slot_source_links(
@@ -225,11 +225,11 @@ class TestAppTokenIsolation:
         events the trail exists for."""
         slot = _slot()
         slot._app = ""
-        with patch("kiro_crew.dashboard.chat_handlers.sel") as sel, patch(
-            "kiro_crew.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
+        with patch("junction.dashboard.chat_handlers.sel") as sel, patch(
+            "junction.dashboard.handlers.source_providers.ensure_gitlab_hosts_loaded",
             return_value=None,
         ), patch(
-            "kiro_crew.dashboard.handlers.source_providers.is_owner_dashboard_request",
+            "junction.dashboard.handlers.source_providers.is_owner_dashboard_request",
             return_value=True,
         ):
             resp = await api_chat_slot_source_links(_request("s1", {"s1": slot}, app=""))

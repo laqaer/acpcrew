@@ -25,7 +25,7 @@ import inspect
 
 import pytest
 
-from kiro_crew.dashboard.handlers import (
+from junction.dashboard.handlers import (
     diagnostics,
     mcp,
     memory,

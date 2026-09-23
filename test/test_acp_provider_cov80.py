@@ -19,19 +19,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.client import AcpError
-from kiro_crew.acp.types import (
+from junction.acp.client import AcpError
+from junction.acp.types import (
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KIRO,
     STOP_REASON_CANCELLED,
     STOP_REASON_END_TURN,
 )
-from kiro_crew.providers import acp as acp_mod
-from kiro_crew.providers.acp import AcpProvider
+from junction.providers import acp as acp_mod
+from junction.providers.acp import AcpProvider
 
 
 def _provider(backend: str = ACP_BACKEND_KIRO) -> AcpProvider:
-    with patch("kiro_crew.providers.acp.AcpClient"):
+    with patch("junction.providers.acp.AcpClient"):
         provider = AcpProvider(acp_backend=backend)
     provider._client = MagicMock()
     provider._client.backend = backend

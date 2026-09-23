@@ -48,8 +48,8 @@ from unittest.mock import AsyncMock
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew import mcp_core
-from kiro_crew.apps.builtins.issue_radar.backend import (
+from junction import mcp_core
+from junction.apps.builtins.issue_radar.backend import (
     crew_routes,
     crew_runtime,
     crew_store,
@@ -59,7 +59,7 @@ from kiro_crew.apps.builtins.issue_radar.backend import (
 )
 
 BASE = "/api/apps/issue-radar"
-OWNER, REPO = "kirodotdev", "KiroCrew"  # brand-ok: the repository name
+OWNER, REPO = "kirodotdev", "Junction"  # brand-ok: the repository name
 
 #: The contract, as a table. Also the inventory the registrar is checked against.
 CREW_ROUTES: tuple[tuple[str, str], ...] = (

@@ -1,15 +1,15 @@
-"""Coverage tests for :mod:`kiro_crew.cli_commands` subcommand dispatch.
+"""Coverage tests for :mod:`junction.cli_commands` subcommand dispatch.
 
 Each handler in ``cli_commands`` is a plain ``argparse.Namespace`` consumer, so
 these tests call the handlers DIRECTLY (never through a subprocess) and assert
 on the routed side effects: which collaborator was called, what was printed, and
 which exit code was raised. Everything that would touch the network, the real
 data home, or a live gateway is mocked -- the module's HTTP paths are exercised
-by patching ``kiro_crew.cli_commands.loopback_urlopen``, and every filesystem write lands in
+by patching ``junction.cli_commands.loopback_urlopen``, and every filesystem write lands in
 ``tmp_path``.
 
 Follows the style already established by ``test_cli.py`` (``argparse.Namespace``
-+ ``patch("kiro_crew.cli_commands.<name>")``) and ``test_workspace_crud_cli.py``
++ ``patch("junction.cli_commands.<name>")``) and ``test_workspace_crud_cli.py``
 (config fixtures written into ``tmp_path``).
 """
 
@@ -27,12 +27,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import cli_commands as cc
-from kiro_crew import sel as sel_mod
-from kiro_crew.config.loader import KiroCrewAgentConfig, KiroCrewConfig, WorkspaceConfig
-from kiro_crew.cron import CronSchedule
-from kiro_crew.eval.scenario import AssertionType
-from kiro_crew.vector_memory import LessonWriteOutcome, LessonWriteResult
+from junction import cli_commands as cc
+from junction import sel as sel_mod
+from junction.config.loader import JunctionAgentConfig, JunctionConfig, WorkspaceConfig
+from junction.cron import CronSchedule
+from junction.eval.scenario import AssertionType
+from junction.vector_memory import LessonWriteOutcome, LessonWriteResult
 
 # ── helpers ──
 
@@ -77,13 +77,13 @@ def _registration(**kw: Any) -> Any:
 
 def _cfg_with(
     *,
-    agents: dict[str, KiroCrewAgentConfig] | None = None,
+    agents: dict[str, JunctionAgentConfig] | None = None,
     workspaces: dict[str, WorkspaceConfig] | None = None,
     default_agent: str = "default",
     default_workspace: str = "default",
-) -> KiroCrewConfig:
+) -> JunctionConfig:
     """An in-memory config whose ``save()`` is a no-op recorder."""
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.agents = agents if agents is not None else {}
     cfg.workspaces = workspaces if workspaces is not None else {}
     cfg.default_agent = default_agent
@@ -98,13 +98,13 @@ def _cfg_with(
 class TestSmallHelpers:
     def test_internal_secret_reads_file(self, tmp_path: Path) -> None:
         (tmp_path / ".local_secret").write_text("  s3cr3t\n", encoding="utf-8")
-        with patch("kiro_crew.cli_commands.read_local_secret", return_value="s3cr3t") as read:
+        with patch("junction.cli_commands.read_local_secret", return_value="s3cr3t") as read:
             assert cc._internal_secret(6123) == "s3cr3t"
         read.assert_called_once_with(6123)
 
     def test_internal_secret_missing_file_is_empty(self, tmp_path: Path) -> None:
         """A missing secret must yield "" so the server answers 403, not a crash."""
-        with patch("kiro_crew.cli_commands.read_local_secret", return_value=""):
+        with patch("junction.cli_commands.read_local_secret", return_value=""):
             assert cc._internal_secret(6123) == ""
 
     def test_format_schedule_non_schedule_falls_back_to_str(self) -> None:
@@ -117,7 +117,7 @@ class TestSmallHelpers:
 
     def test_format_schedule_delegates_for_every(self) -> None:
         sched = CronSchedule(kind="every", every_secs=300)
-        with patch("kiro_crew.cli_commands.format_schedule", return_value="every 5m") as fmt:
+        with patch("junction.cli_commands.format_schedule", return_value="every 5m") as fmt:
             assert cc._format_schedule(sched) == "every 5m"
         fmt.assert_called_once_with(sched)
 
@@ -126,31 +126,31 @@ class TestWorkspaceDirGuard:
     """``_ws_dir_resolves_inside_home`` must fail CLOSED, never raise."""
 
     def test_relative_name_inside_home_is_accepted(self, tmp_path: Path) -> None:
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             assert cc._ws_dir_resolves_inside_home("workspace-demo") is True
 
     def test_home_root_itself_is_refused(self, tmp_path: Path) -> None:
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             assert cc._ws_dir_resolves_inside_home(".") is False
 
     def test_escaping_path_is_refused(self, tmp_path: Path) -> None:
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             assert cc._ws_dir_resolves_inside_home("../elsewhere") is False
 
     def test_unknown_user_tilde_fails_closed(self, tmp_path: Path) -> None:
         """``expanduser`` raises RuntimeError here -- it must not escape."""
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             assert cc._ws_dir_resolves_inside_home("~nosuchuser1234/x") is False
 
     def test_sensitive_target_is_refused(self, tmp_path: Path) -> None:
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.is_sensitive_path", return_value=True),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.is_sensitive_path", return_value=True),
         ):
             assert cc._ws_dir_resolves_inside_home("profiles") is False
 
     def test_error_message_names_boundary_and_value(self, tmp_path: Path) -> None:
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             msg = cc._ws_dir_error("/etc")
             assert "data home" in msg and "/etc" in msg and "relative directory name" in msg
 
@@ -166,8 +166,8 @@ class TestSpawnCli:
             "agents": [{"id": "a1", "task": "do x", "done": True}, {"id": "a2", "task": "y"}]
         }
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value="s"),
-            patch("kiro_crew.cli_commands.loopback_urlopen", return_value=_FakeResponse(payload)),
+            patch("junction.cli_commands._internal_secret", return_value="s"),
+            patch("junction.cli_commands.loopback_urlopen", return_value=_FakeResponse(payload)),
         ):
             cc._spawn(_ns(spawn_action="list", port=1234))
         out = capsys.readouterr().out
@@ -175,9 +175,9 @@ class TestSpawnCli:
 
     def test_list_empty_says_so(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch(
-                "kiro_crew.cli_commands.loopback_urlopen",
+                "junction.cli_commands.loopback_urlopen",
                 return_value=_FakeResponse({"agents": []}),
             ),
         ):
@@ -189,8 +189,8 @@ class TestSpawnCli:
     ) -> None:
         err = _http_error(400, json.dumps({"error": "bad spawn"}).encode())
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
-            patch("kiro_crew.cli_commands.loopback_urlopen", side_effect=err),
+            patch("junction.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands.loopback_urlopen", side_effect=err),
             pytest.raises(SystemExit) as exc,
         ):
             cc._spawn(_ns(spawn_action="list", port=1234))
@@ -201,9 +201,9 @@ class TestSpawnCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch(
-                "kiro_crew.cli_commands.loopback_urlopen", side_effect=_http_error(503, b"<html>")
+                "junction.cli_commands.loopback_urlopen", side_effect=_http_error(503, b"<html>")
             ),
             pytest.raises(SystemExit),
         ):
@@ -214,9 +214,9 @@ class TestSpawnCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch(
-                "kiro_crew.cli_commands.loopback_urlopen",
+                "junction.cli_commands.loopback_urlopen",
                 side_effect=urllib.error.URLError("refused"),
             ),
             pytest.raises(SystemExit) as exc,
@@ -233,9 +233,9 @@ class TestSpawnCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch(
-                "kiro_crew.cli_commands.loopback_urlopen",
+                "junction.cli_commands.loopback_urlopen",
                 return_value=_FakeResponse({"id": "ag1", "task": "t"}),
             ) as uo,
         ):
@@ -252,9 +252,9 @@ class TestSpawnCli:
             _FakeResponse({"done": True, "result": "final answer"}),
         ]
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch.object(cc._time, "sleep") as slept,
-            patch("kiro_crew.cli_commands.loopback_urlopen", side_effect=responses),
+            patch("junction.cli_commands.loopback_urlopen", side_effect=responses),
         ):
             cc._spawn(_ns(spawn_action="run", port=1, task="t", fire_and_forget=False))
         assert "final answer" in capsys.readouterr().out
@@ -268,9 +268,9 @@ class TestSpawnCli:
             _FakeResponse({"done": True, "error": "agent blew up"}),
         ]
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch.object(cc._time, "sleep"),
-            patch("kiro_crew.cli_commands.loopback_urlopen", side_effect=responses),
+            patch("junction.cli_commands.loopback_urlopen", side_effect=responses),
             pytest.raises(SystemExit) as exc,
         ):
             cc._spawn(_ns(spawn_action="run", port=1, task="t", fire_and_forget=False))
@@ -281,10 +281,10 @@ class TestSpawnCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands._internal_secret", return_value=""),
             patch.object(cc._time, "sleep"),
             patch(
-                "kiro_crew.cli_commands.loopback_urlopen",
+                "junction.cli_commands.loopback_urlopen",
                 side_effect=[_FakeResponse({"id": "ag4", "task": "t"}), OSError("gone")],
             ),
             pytest.raises(SystemExit),
@@ -295,8 +295,8 @@ class TestSpawnCli:
     def test_run_create_http_error_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         err = _http_error(422, json.dumps({"error": "task too long"}).encode())
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
-            patch("kiro_crew.cli_commands.loopback_urlopen", side_effect=err),
+            patch("junction.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands.loopback_urlopen", side_effect=err),
             pytest.raises(SystemExit),
         ):
             cc._spawn(_ns(spawn_action="run", port=1, task="t", fire_and_forget=True))
@@ -304,8 +304,8 @@ class TestSpawnCli:
 
     def test_run_unreachable_gateway_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch("kiro_crew.cli_commands._internal_secret", return_value=""),
-            patch("kiro_crew.cli_commands.loopback_urlopen", side_effect=OSError("no route")),
+            patch("junction.cli_commands._internal_secret", return_value=""),
+            patch("junction.cli_commands.loopback_urlopen", side_effect=OSError("no route")),
             pytest.raises(SystemExit),
         ):
             cc._spawn(_ns(spawn_action="run", port=9, task="t", fire_and_forget=True))
@@ -320,9 +320,9 @@ class TestAppCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands.install_app", return_value=_result(True, name="demo")),
+            patch("junction.cli_commands.install_app", return_value=_result(True, name="demo")),
             patch(
-                "kiro_crew.cli_commands.register_app",
+                "junction.cli_commands.register_app",
                 return_value=_registration(
                     agents=["a"], skills=["s"], crons=["c"], errors=["partial"]
                 ),
@@ -331,12 +331,12 @@ class TestAppCli:
             cc._handle_app(_ns(app_action="install", source="/pkg"))
         out = capsys.readouterr().out
         assert "Agents: a" in out and "Skills: s" in out and "Crons:  c" in out
-        assert "partial" in out and "kirocrew app enable demo" in out
+        assert "partial" in out and "junction app enable demo" in out
 
     def test_install_failure_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
             patch(
-                "kiro_crew.cli_commands.install_app",
+                "junction.cli_commands.install_app",
                 return_value=_result(False, error="not an app"),
             ),
             pytest.raises(SystemExit) as exc,
@@ -346,7 +346,7 @@ class TestAppCli:
         assert "not an app" in capsys.readouterr().err
 
     def test_list_empty(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.cli_commands.list_apps", return_value=[]):
+        with patch("junction.cli_commands.list_apps", return_value=[]):
             cc._handle_app(_ns(app_action="list"))
         assert "No apps installed." in capsys.readouterr().out
 
@@ -357,16 +357,16 @@ class TestAppCli:
             {"name": "one", "version": "1.0", "enabled": True, "displayName": "One"},
             {"name": "two", "enabled": False},
         ]
-        with patch("kiro_crew.cli_commands.list_apps", return_value=apps):
+        with patch("junction.cli_commands.list_apps", return_value=apps):
             cc._handle_app(_ns(app_action="list"))
         out = capsys.readouterr().out
         assert "one" in out and "enabled" in out and "two" in out and "disabled" in out
 
     def test_enable_success_counts_registrations(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch("kiro_crew.cli_commands.enable_app", return_value=_result(True, message="on")),
+            patch("junction.cli_commands.enable_app", return_value=_result(True, message="on")),
             patch(
-                "kiro_crew.cli_commands.register_app",
+                "junction.cli_commands.register_app",
                 return_value=_registration(agents=["a", "b"], skills=["s"]),
             ),
         ):
@@ -376,7 +376,7 @@ class TestAppCli:
 
     def test_enable_failure_exits_1(self) -> None:
         with (
-            patch("kiro_crew.cli_commands.enable_app", return_value=_result(False)),
+            patch("junction.cli_commands.enable_app", return_value=_result(False)),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_app(_ns(app_action="enable", name="demo"))
@@ -386,9 +386,9 @@ class TestAppCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands._cleanup_app_crons_from_scheduler") as cleanup,
-            patch("kiro_crew.cli_commands.deregister_app") as dereg,
-            patch("kiro_crew.cli_commands.disable_app", return_value=_result(True, message="off")),
+            patch("junction.cli_commands._cleanup_app_crons_from_scheduler") as cleanup,
+            patch("junction.cli_commands.deregister_app") as dereg,
+            patch("junction.cli_commands.disable_app", return_value=_result(True, message="off")),
         ):
             cc._handle_app(_ns(app_action="disable", name="demo"))
         cleanup.assert_called_once_with("demo")
@@ -397,9 +397,9 @@ class TestAppCli:
 
     def test_disable_failure_exits_1(self) -> None:
         with (
-            patch("kiro_crew.cli_commands._cleanup_app_crons_from_scheduler"),
-            patch("kiro_crew.cli_commands.deregister_app"),
-            patch("kiro_crew.cli_commands.disable_app", return_value=_result(False)),
+            patch("junction.cli_commands._cleanup_app_crons_from_scheduler"),
+            patch("junction.cli_commands.deregister_app"),
+            patch("junction.cli_commands.disable_app", return_value=_result(False)),
             pytest.raises(SystemExit),
         ):
             cc._handle_app(_ns(app_action="disable", name="demo"))
@@ -412,37 +412,37 @@ class TestAppCli:
         self, purge: bool, expect_keep_data: bool
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands._cleanup_app_crons_from_scheduler"),
-            patch("kiro_crew.cli_commands.deregister_app"),
-            patch("kiro_crew.cli_commands.uninstall_app", return_value=_result(True)) as uninstall,
+            patch("junction.cli_commands._cleanup_app_crons_from_scheduler"),
+            patch("junction.cli_commands.deregister_app"),
+            patch("junction.cli_commands.uninstall_app", return_value=_result(True)) as uninstall,
         ):
             cc._handle_app(_ns(app_action="uninstall", name="demo", purge_data=purge))
         uninstall.assert_called_once_with("demo", keep_data=expect_keep_data)
 
     def test_uninstall_failure_exits_1(self) -> None:
         with (
-            patch("kiro_crew.cli_commands._cleanup_app_crons_from_scheduler"),
-            patch("kiro_crew.cli_commands.deregister_app"),
-            patch("kiro_crew.cli_commands.uninstall_app", return_value=_result(False)),
+            patch("junction.cli_commands._cleanup_app_crons_from_scheduler"),
+            patch("junction.cli_commands.deregister_app"),
+            patch("junction.cli_commands.uninstall_app", return_value=_result(False)),
             pytest.raises(SystemExit),
         ):
             cc._handle_app(_ns(app_action="uninstall", name="demo", purge_data=False))
 
     def test_dev_on_prints_live_reload_hint(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.apps.dev_mode.set_dev_mode", return_value={"ok": True}):
+        with patch("junction.apps.dev_mode.set_dev_mode", return_value={"ok": True}):
             cc._handle_app(_ns(app_action="dev", name="demo", off=False))
         out = capsys.readouterr().out
         assert "dev mode" in out and "--off" in out
 
     def test_dev_off_restores_caching(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.apps.dev_mode.set_dev_mode", return_value={"ok": True}) as setter:
+        with patch("junction.apps.dev_mode.set_dev_mode", return_value={"ok": True}) as setter:
             cc._handle_app(_ns(app_action="dev", name="demo", off=True))
         setter.assert_called_once_with("demo", False)
         assert "dev mode off" in capsys.readouterr().out
 
     def test_dev_error_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch("kiro_crew.apps.dev_mode.set_dev_mode", return_value={"error": "no such app"}),
+            patch("junction.apps.dev_mode.set_dev_mode", return_value={"error": "no such app"}),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_app(_ns(app_action="dev", name="demo", off=False))
@@ -450,13 +450,13 @@ class TestAppCli:
         assert "no such app" in capsys.readouterr().err
 
     def test_info_prints_json(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.cli_commands.get_app", return_value={"name": "demo", "v": 1}):
+        with patch("junction.cli_commands.get_app", return_value={"name": "demo", "v": 1}):
             cc._handle_app(_ns(app_action="info", name="demo"))
         assert json.loads(capsys.readouterr().out) == {"name": "demo", "v": 1}
 
     def test_info_missing_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch("kiro_crew.cli_commands.get_app", return_value=None),
+            patch("junction.cli_commands.get_app", return_value=None),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_app(_ns(app_action="info", name="ghost"))
@@ -467,7 +467,7 @@ class TestAppCli:
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         target = tmp_path / "my-app"
-        with patch("kiro_crew.cli_commands.scaffold_app", return_value=target) as scaffold:
+        with patch("junction.cli_commands.scaffold_app", return_value=target) as scaffold:
             cc._handle_app(
                 _ns(
                     app_action="init",
@@ -491,14 +491,14 @@ class TestAppCli:
     def test_init_without_ui_skips_npm_hint(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        with patch("kiro_crew.cli_commands.scaffold_app", return_value=tmp_path / "a"):
+        with patch("junction.cli_commands.scaffold_app", return_value=tmp_path / "a"):
             cc._handle_app(
                 _ns(app_action="init", name="a", dir=str(tmp_path), backend=False, ui=False)
             )
         assert "npm install" not in capsys.readouterr().out
 
     def test_mcp_action_delegates_to_server_runner(self) -> None:
-        with patch("kiro_crew.cli_commands._run_app_mcp_server") as runner:
+        with patch("junction.cli_commands._run_app_mcp_server") as runner:
             cc._handle_app(_ns(app_action="mcp", name="demo"))
         runner.assert_called_once_with("demo")
 
@@ -510,7 +510,7 @@ class TestAppCli:
 class TestRunAppMcpServer:
     def test_missing_module_exits_1_on_stderr(self, capsys: pytest.CaptureFixture[str]) -> None:
         """stdout is the JSON-RPC channel -- diagnostics must go to stderr."""
-        target = "kiro_crew.apps.builtins.my_app.mcp_server"
+        target = "junction.apps.builtins.my_app.mcp_server"
         with (
             patch(
                 "importlib.import_module",
@@ -527,7 +527,7 @@ class TestRunAppMcpServer:
     def test_missing_parent_package_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         """A ModuleNotFoundError naming a PARENT package of the target is the
         target being unimportable -- same clean refusal."""
-        parent = "kiro_crew.apps.builtins.my_app"
+        parent = "junction.apps.builtins.my_app"
         with (
             patch(
                 "importlib.import_module",
@@ -592,10 +592,10 @@ class TestCleanupAppCrons:
             return 2
 
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.CronService"),
-            patch("kiro_crew.cli_commands.deregister_app_crons_from_service", new=_two),
-            patch("kiro_crew.cli_commands.sel") as sel,
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.CronService"),
+            patch("junction.cli_commands.deregister_app_crons_from_service", new=_two),
+            patch("junction.cli_commands.sel") as sel,
         ):
             assert cc._cleanup_app_crons_from_scheduler("demo") == 2
         assert "removed 2 cron job(s)" in capsys.readouterr().out
@@ -605,10 +605,10 @@ class TestCleanupAppCrons:
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.CronService"),
-            patch("kiro_crew.cli_commands.deregister_app_crons_from_service", new=self._zero),
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.CronService"),
+            patch("junction.cli_commands.deregister_app_crons_from_service", new=self._zero),
+            patch("junction.cli_commands.sel"),
         ):
             assert cc._cleanup_app_crons_from_scheduler("demo") == 0
         assert capsys.readouterr().out == ""
@@ -618,10 +618,10 @@ class TestCleanupAppCrons:
             raise RuntimeError("scheduler down")
 
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.CronService"),
-            patch("kiro_crew.cli_commands.deregister_app_crons_from_service", new=_boom),
-            patch("kiro_crew.cli_commands.sel") as sel,
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.CronService"),
+            patch("junction.cli_commands.deregister_app_crons_from_service", new=_boom),
+            patch("junction.cli_commands.sel") as sel,
             pytest.raises(RuntimeError, match="scheduler down"),
         ):
             cc._cleanup_app_crons_from_scheduler("demo")
@@ -635,18 +635,18 @@ class TestAgentCli:
     def test_list_marks_default(self, capsys: pytest.CaptureFixture[str]) -> None:
         cfg = _cfg_with(
             agents={
-                "default": KiroCrewAgentConfig(kiro_agent="kirocrew"),
-                "other": KiroCrewAgentConfig(kiro_agent="alt"),
+                "default": JunctionAgentConfig(kiro_agent="junction"),
+                "other": JunctionAgentConfig(kiro_agent="alt"),
             }
         )
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             cc._handle_agent(_ns(agent_action="list"))
         out = capsys.readouterr().out
         assert "default *" in out and "other" in out and "alt" in out
 
     def test_create_persists_new_agent(self, capsys: pytest.CaptureFixture[str]) -> None:
         cfg = _cfg_with(agents={})
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             cc._handle_agent(
                 _ns(
                     agent_action="create",
@@ -664,9 +664,9 @@ class TestAgentCli:
     def test_create_duplicate_exits_1_without_saving(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        cfg = _cfg_with(agents={"dup": KiroCrewAgentConfig()})
+        cfg = _cfg_with(agents={"dup": JunctionAgentConfig()})
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_agent(
@@ -684,9 +684,9 @@ class TestAgentCli:
 
     def test_update_applies_only_provided_fields(self) -> None:
         cfg = _cfg_with(
-            agents={"a": KiroCrewAgentConfig(kiro_agent="old", workspace="ws0", memory_store="m0")}
+            agents={"a": JunctionAgentConfig(kiro_agent="old", workspace="ws0", memory_store="m0")}
         )
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             cc._handle_agent(
                 _ns(
                     agent_action="update",
@@ -701,8 +701,8 @@ class TestAgentCli:
         assert cfg.agents["a"].memory_store == "m0"
 
     def test_update_all_fields(self) -> None:
-        cfg = _cfg_with(agents={"a": KiroCrewAgentConfig()})
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        cfg = _cfg_with(agents={"a": JunctionAgentConfig()})
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             cc._handle_agent(
                 _ns(
                     agent_action="update",
@@ -718,7 +718,7 @@ class TestAgentCli:
     def test_update_missing_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         cfg = _cfg_with(agents={})
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_agent(
@@ -735,17 +735,17 @@ class TestAgentCli:
 
     def test_delete_removes_non_default(self, capsys: pytest.CaptureFixture[str]) -> None:
         cfg = _cfg_with(
-            agents={"default": KiroCrewAgentConfig(), "spare": KiroCrewAgentConfig()},
+            agents={"default": JunctionAgentConfig(), "spare": JunctionAgentConfig()},
         )
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             cc._handle_agent(_ns(agent_action="delete", name="spare"))
         assert "spare" not in cfg.agents
         assert "Deleted agent: spare" in capsys.readouterr().out
 
     def test_delete_default_is_refused(self, capsys: pytest.CaptureFixture[str]) -> None:
-        cfg = _cfg_with(agents={"default": KiroCrewAgentConfig()})
+        cfg = _cfg_with(agents={"default": JunctionAgentConfig()})
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_agent(_ns(agent_action="delete", name="default"))
@@ -756,13 +756,13 @@ class TestAgentCli:
     def test_delete_missing_exits_1(self) -> None:
         cfg = _cfg_with(agents={})
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             pytest.raises(SystemExit),
         ):
             cc._handle_agent(_ns(agent_action="delete", name="ghost"))
 
     def test_unknown_action_prints_usage(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch.object(KiroCrewConfig, "load", return_value=_cfg_with()):
+        with patch.object(JunctionConfig, "load", return_value=_cfg_with()):
             cc._handle_agent(_ns(agent_action=None))
         assert "Usage: junction agent" in capsys.readouterr().out
 
@@ -771,7 +771,7 @@ class TestAgentCli:
 
 
 class TestWorkspaceCopyFrom:
-    def _base(self) -> KiroCrewConfig:
+    def _base(self) -> JunctionConfig:
         return _cfg_with(
             workspaces={
                 "default": WorkspaceConfig(dir="workspace"),
@@ -781,9 +781,9 @@ class TestWorkspaceCopyFrom:
 
     def test_copy_from_unknown_source_exits_1(self, tmp_path: Path) -> None:
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch.object(KiroCrewConfig, "load", return_value=self._base()),
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch.object(JunctionConfig, "load", return_value=self._base()),
+            patch("junction.cli_commands.sel"),
             pytest.raises(SystemExit) as exc,
         ):
             cc._handle_workspace(
@@ -799,9 +799,9 @@ class TestWorkspaceCopyFrom:
         (src / "memory" / "notes.md").write_text("hi", encoding="utf-8")
         cfg = self._base()
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch.object(JunctionConfig, "load", return_value=cfg),
+            patch("junction.cli_commands.sel"),
         ):
             cc._handle_workspace(
                 _ns(workspace_action="create", name="copy1", dir=None, copy_from="src")
@@ -820,10 +820,10 @@ class TestWorkspaceCopyFrom:
             return p.endswith("secret.env")
 
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch.object(KiroCrewConfig, "load", return_value=self._base()),
-            patch("kiro_crew.cli_commands.is_sensitive_path", side_effect=_sensitive),
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch.object(JunctionConfig, "load", return_value=self._base()),
+            patch("junction.cli_commands.is_sensitive_path", side_effect=_sensitive),
+            patch("junction.cli_commands.sel"),
         ):
             cc._handle_workspace(
                 _ns(workspace_action="create", name="copy2", dir=None, copy_from="src")
@@ -834,9 +834,9 @@ class TestWorkspaceCopyFrom:
 
     def test_copy_from_escaping_dir_is_refused(self, tmp_path: Path) -> None:
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch.object(KiroCrewConfig, "load", return_value=self._base()),
-            patch("kiro_crew.cli_commands.sel") as sel,
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch.object(JunctionConfig, "load", return_value=self._base()),
+            patch("junction.cli_commands.sel") as sel,
             pytest.raises(SystemExit),
         ):
             cc._handle_workspace(
@@ -848,9 +848,9 @@ class TestWorkspaceCopyFrom:
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch.object(KiroCrewConfig, "load", return_value=self._base()),
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch.object(JunctionConfig, "load", return_value=self._base()),
+            patch("junction.cli_commands.sel"),
             pytest.raises(SystemExit),
         ):
             cc._handle_workspace(
@@ -867,9 +867,9 @@ class TestWorkspaceCopyFrom:
         """A source workspace with no directory on disk is a config-only copy."""
         cfg = self._base()
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch.object(JunctionConfig, "load", return_value=cfg),
+            patch("junction.cli_commands.sel"),
         ):
             cc._handle_workspace(
                 _ns(workspace_action="create", name="copy3", dir=None, copy_from="src")
@@ -888,7 +888,7 @@ class TestSecurityCli:
         (tmp_path / "config.json").write_text(
             json.dumps({"hooks": {"auto_deny_tools": ["my-custom-pattern"]}}), encoding="utf-8"
         )
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             cc._security(_ns(sec_action="deny-list"))
         out = capsys.readouterr().out
         assert "Built-in deny patterns" in out
@@ -897,7 +897,7 @@ class TestSecurityCli:
     def test_deny_list_without_config_file(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        with patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path):
+        with patch("junction.cli_commands.config_dir", return_value=tmp_path):
             cc._security(_ns(sec_action="deny-list"))
         out = capsys.readouterr().out
         assert "Built-in deny patterns" in out
@@ -910,9 +910,9 @@ class TestSecurityCli:
         deliberately suppressed (the ``elif not findings: pass`` branch), so a fully
         clean audit says nothing about vector memory."""
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.scan_history", return_value=[]),
-            patch("kiro_crew.cli_commands.scan_memory", return_value=[]),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.scan_history", return_value=[]),
+            patch("junction.cli_commands.scan_memory", return_value=[]),
         ):
             cc._security(_ns(sec_action="audit"))
         out = capsys.readouterr().out
@@ -925,9 +925,9 @@ class TestSecurityCli:
         history = [{"file": "s.jsonl", "warning": "exfil", "snippet": "curl evil"}]
         memory = [{"type": "semantic", "key": "k", "warning": "odd", "value": "v"}]
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.scan_history", return_value=history),
-            patch("kiro_crew.cli_commands.scan_memory", return_value=memory),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.scan_history", return_value=history),
+            patch("junction.cli_commands.scan_memory", return_value=memory),
         ):
             cc._security(_ns(sec_action="audit"))
         out = capsys.readouterr().out
@@ -939,22 +939,22 @@ class TestSecurityCli:
     ) -> None:
         history = [{"file": "s.jsonl", "warning": "w", "snippet": "x"}]
         with (
-            patch("kiro_crew.cli_commands.config_dir", return_value=tmp_path),
-            patch("kiro_crew.cli_commands.scan_history", return_value=history),
-            patch("kiro_crew.cli_commands.scan_memory", return_value=[]),
+            patch("junction.cli_commands.config_dir", return_value=tmp_path),
+            patch("junction.cli_commands.scan_history", return_value=history),
+            patch("junction.cli_commands.scan_memory", return_value=[]),
         ):
             cc._security(_ns(sec_action="audit"))
         assert "No suspicious content in vector memory." in capsys.readouterr().out
 
     def test_events_empty(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             sel.return_value.recent.return_value = []
             cc._security(_ns(sec_action="events", limit=5))
         assert "No security events recorded." in capsys.readouterr().out
 
     def test_events_passes_the_time_window_through(self) -> None:
         """``-n`` alone cannot express "the last two hours" (issue #4843)."""
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             sel.return_value.recent.return_value = []
             cc._security(
                 _ns(sec_action="events", limit=5, since="2026-08-21T00:00:00Z", until="2h")
@@ -965,7 +965,7 @@ class TestSecurityCli:
 
     def test_events_rejects_an_unreadable_time(self, capsys: pytest.CaptureFixture[str]) -> None:
         """A typo must not read as "no events in that window"."""
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             with pytest.raises(SystemExit) as exc:
                 cc._security(_ns(sec_action="events", limit=5, since="yesterdayish"))
         assert exc.value.code == 2
@@ -973,7 +973,7 @@ class TestSecurityCli:
         sel.return_value.recent.assert_not_called()
 
     def test_events_rejects_an_inverted_window(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             with pytest.raises(SystemExit) as exc:
                 cc._security(
                     _ns(
@@ -988,7 +988,7 @@ class TestSecurityCli:
         sel.return_value.recent.assert_not_called()
 
     def test_events_names_the_window_when_empty(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             sel.return_value.recent.return_value = []
             cc._security(_ns(sec_action="events", limit=5, since="2026-08-21T00:00:00Z"))
         out = capsys.readouterr().out
@@ -1007,7 +1007,7 @@ class TestSecurityCli:
                 "downstream_service": "slack",
             }
         ]
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             sel.return_value.recent.return_value = events
             cc._security(_ns(sec_action="events", limit=20))
         out = capsys.readouterr().out
@@ -1048,7 +1048,7 @@ class TestSecurityCli:
             history_verifiable=verifiable,
             reason="" if verifiable else "segment directory refused to pin (planted link?)",
         )
-        with patch("kiro_crew.cli_commands.sel") as sel:
+        with patch("junction.cli_commands.sel") as sel:
             sel.return_value.verify_integrity.return_value = outcome
             cc._security(_ns(sec_action="verify"))
         assert expected in capsys.readouterr().out
@@ -1125,7 +1125,7 @@ class TestParseTimeSelector:
 class TestPolicyCli:
     def test_show_without_policy(self, capsys: pytest.CaptureFixture[str]) -> None:
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=None),
         ):
             cc._policy(_ns(policy_action="show"))
@@ -1135,7 +1135,7 @@ class TestPolicyCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=_fake_ceiling()),
         ):
             cc._policy(_ns(policy_action="show"))
@@ -1154,7 +1154,7 @@ class TestPolicyCli:
         (non-enterprise) install, which is the common case the early-return
         branch serves."""
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=None),
         ):
             cc._policy(_ns(policy_action="show"))
@@ -1168,7 +1168,7 @@ class TestPolicyCli:
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=_fake_ceiling()),
         ):
             cc._policy(_ns(policy_action="show"))
@@ -1180,7 +1180,7 @@ class TestPolicyCli:
         # on this subparser would collide via argparse's parent/subparser
         # default-override gotcha.
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=None),
         ):
             cc._policy(_ns(policy_action="show", ids=True))
@@ -1192,7 +1192,7 @@ class TestPolicyCli:
         ceiling = _fake_ceiling()
         ceiling.controls = {}
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=ceiling),
         ):
             cc._policy(_ns(policy_action="show"))
@@ -1203,11 +1203,11 @@ class TestPolicyCli:
     ) -> None:
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=None),
             ),
             patch(
-                "kiro_crew.platform.governance_profiles._profiles_dir",
+                "junction.platform.governance_profiles._profiles_dir",
                 return_value=tmp_path / "absent",
             ),
         ):
@@ -1228,11 +1228,11 @@ class TestPolicyCli:
 
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=_fake_ceiling()),
             ),
-            patch("kiro_crew.platform.governance_profiles._profiles_dir", return_value=pdir),
-            patch("kiro_crew.platform.governance_profiles.get_store_profile", side_effect=_get),
+            patch("junction.platform.governance_profiles._profiles_dir", return_value=pdir),
+            patch("junction.platform.governance_profiles.get_store_profile", side_effect=_get),
         ):
             cc._policy(_ns(policy_action="validate"))
         out = capsys.readouterr().out
@@ -1243,11 +1243,11 @@ class TestPolicyCli:
     def test_explain_unknown_scope_lists_catalog(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=None),
             ),
             patch(
-                "kiro_crew.platform.governance.SCOPE_CATALOG",
+                "junction.platform.governance.SCOPE_CATALOG",
                 {"capabilities.telemetry": object()},
             ),
         ):
@@ -1271,19 +1271,19 @@ class TestPolicyCli:
         gate = SimpleNamespace(permitted=True, reason="title allowed")
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=_fake_ceiling()),
             ),
             patch(
-                "kiro_crew.platform.governance.SCOPE_CATALOG",
+                "junction.platform.governance.SCOPE_CATALOG",
                 {"capabilities.telemetry": object()},
             ),
             patch(
-                "kiro_crew.platform.governance_profiles.resolve_active_scope",
+                "junction.platform.governance_profiles.resolve_active_scope",
                 return_value=SimpleNamespace(name="prof"),
             ),
-            patch("kiro_crew.platform.governance.resolve", return_value=decision),
-            patch("kiro_crew.platform.governance.gate_decision", return_value=gate),
+            patch("junction.platform.governance.resolve", return_value=decision),
+            patch("junction.platform.governance.gate_decision", return_value=gate),
         ):
             cc._policy(
                 _ns(
@@ -1304,22 +1304,22 @@ class TestPolicyCli:
     def test_explain_without_active_profile(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=None),
             ),
-            patch("kiro_crew.platform.governance.SCOPE_CATALOG", {"s": object()}),
+            patch("junction.platform.governance.SCOPE_CATALOG", {"s": object()}),
             patch(
-                "kiro_crew.platform.governance_profiles.resolve_active_scope",
+                "junction.platform.governance_profiles.resolve_active_scope",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.platform.governance.resolve",
+                "junction.platform.governance.resolve",
                 return_value=SimpleNamespace(
                     permitted=True, rule="allow", layer=None, reason="default"
                 ),
             ),
             patch(
-                "kiro_crew.platform.governance.gate_decision",
+                "junction.platform.governance.gate_decision",
                 return_value=SimpleNamespace(permitted=True, reason="ok"),
             ),
         ):
@@ -1339,10 +1339,10 @@ class TestPolicyCli:
     def test_profile_missing(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=None),
             ),
-            patch("kiro_crew.platform.governance_profiles.get_store_profile", return_value=None),
+            patch("junction.platform.governance_profiles.get_store_profile", return_value=None),
         ):
             cc._policy(_ns(policy_action="profile", name="ghost"))
         assert "No profile named 'ghost'" in capsys.readouterr().out
@@ -1350,30 +1350,30 @@ class TestPolicyCli:
     def test_profile_prints_bind_and_scopes(self, capsys: pytest.CaptureFixture[str]) -> None:
         prof = SimpleNamespace(
             name="team",
-            bind=SimpleNamespace(type="agent", id="kirocrew"),
+            bind=SimpleNamespace(type="agent", id="junction"),
             extends="base",
             controls={"capabilities.telemetry": "off"},
         )
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=None),
             ),
-            patch("kiro_crew.platform.governance_profiles.get_store_profile", return_value=prof),
+            patch("junction.platform.governance_profiles.get_store_profile", return_value=prof),
         ):
             cc._policy(_ns(policy_action="profile", name="team"))
         out = capsys.readouterr().out
-        assert "bind=agent:kirocrew" in out and "extends=base" in out
+        assert "bind=agent:junction" in out and "extends=base" in out
         assert "capabilities.telemetry: off" in out
 
     def test_profile_unbound_with_no_controls(self, capsys: pytest.CaptureFixture[str]) -> None:
         prof = SimpleNamespace(name="empty", bind=None, extends=None, controls={})
         with (
             patch(
-                "kiro_crew.platform.context.current_context",
+                "junction.platform.context.current_context",
                 return_value=SimpleNamespace(governance=None),
             ),
-            patch("kiro_crew.platform.governance_profiles.get_store_profile", return_value=prof),
+            patch("junction.platform.governance_profiles.get_store_profile", return_value=prof),
         ):
             cc._policy(_ns(policy_action="profile", name="empty"))
         out = capsys.readouterr().out
@@ -1381,7 +1381,7 @@ class TestPolicyCli:
 
     def test_unknown_action_prints_usage(self, capsys: pytest.CaptureFixture[str]) -> None:
         with patch(
-            "kiro_crew.platform.context.current_context",
+            "junction.platform.context.current_context",
             return_value=SimpleNamespace(governance=None),
         ):
             cc._policy(_ns(policy_action=None))
@@ -1398,9 +1398,9 @@ class _LearnHarness:
         self.vs = MagicMock()
         self.jsonl = MagicMock()
         self._patches = [
-            patch("kiro_crew.cli_commands.VectorMemoryStore", return_value=self.vs),
-            patch("kiro_crew.cli_commands.LessonStore", return_value=self.jsonl),
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
+            patch("junction.cli_commands.VectorMemoryStore", return_value=self.vs),
+            patch("junction.cli_commands.LessonStore", return_value=self.jsonl),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
         ]
 
     def __enter__(self) -> _LearnHarness:
@@ -1539,8 +1539,8 @@ class _MemHarness:
     def __init__(self) -> None:
         self.store = MagicMock()
         self._patches = [
-            patch("kiro_crew.cli_commands.VectorMemoryStore", return_value=self.store),
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
+            patch("junction.cli_commands.VectorMemoryStore", return_value=self.store),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
         ]
 
     def __enter__(self) -> _MemHarness:
@@ -1627,12 +1627,12 @@ class TestMemoryCli:
         assert "0 vectors" not in out
 
     def test_audit_with_and_without_findings(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with _MemHarness(), patch("kiro_crew.cli_commands.scan_memory", return_value=[]):
+        with _MemHarness(), patch("junction.cli_commands.scan_memory", return_value=[]):
             cc._memory_cmd(_ns(mem_action="audit"))
         assert "No suspicious content in memory." in capsys.readouterr().out
 
         findings = [{"type": "semantic", "key": "k", "warning": "w", "value": "v"}]
-        with _MemHarness(), patch("kiro_crew.cli_commands.scan_memory", return_value=findings):
+        with _MemHarness(), patch("junction.cli_commands.scan_memory", return_value=findings):
             cc._memory_cmd(_ns(mem_action="audit"))
         assert "1 suspicious entries" in capsys.readouterr().out
 
@@ -1708,10 +1708,10 @@ class _ArtifactHarness:
 
     def __enter__(self) -> _ArtifactHarness:
         self._patches = [
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.parse_dashboard_url", return_value=("localhost", 5476)),
-            patch("kiro_crew.cli_commands._internal_secret", return_value="s"),
-            patch("kiro_crew.cli_commands.loopback_urlopen", side_effect=self._responses),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.parse_dashboard_url", return_value=("localhost", 5476)),
+            patch("junction.cli_commands._internal_secret", return_value="s"),
+            patch("junction.cli_commands.loopback_urlopen", side_effect=self._responses),
         ]
         started = [p.start() for p in self._patches]
         self.urlopen = started[-1]
@@ -1812,7 +1812,7 @@ class TestArtifactCli:
         f.write_text("secret", encoding="utf-8")
         with (
             _ArtifactHarness([]),
-            patch("kiro_crew.cli_commands.is_sensitive_path", return_value=True),
+            patch("junction.cli_commands.is_sensitive_path", return_value=True),
             pytest.raises(SystemExit) as exc,
         ):
             cc._artifact(
@@ -1951,7 +1951,7 @@ class TestArtifactCli:
 class TestPodDispatch:
     def test_pod_delegates_to_verb_layer(self) -> None:
         args = _ns(pod_action="ls")
-        with patch("kiro_crew.pod.cli.dispatch") as dispatch:
+        with patch("junction.pod.cli.dispatch") as dispatch:
             cc._pod(args)
         dispatch.assert_called_once_with(args)
 
@@ -1962,8 +1962,8 @@ class TestPodDispatch:
 class TestTelemetryCli:
     def test_status_is_read_only(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.beacon") as beacon,
         ):
             beacon.format_status.return_value = "beacon: OFF"
             cc._telemetry(_ns(telemetry_action="status"))
@@ -1971,8 +1971,8 @@ class TestTelemetryCli:
 
     def test_missing_action_defaults_to_status(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.beacon") as beacon,
         ):
             beacon.format_status.return_value = "default-status"
             cc._telemetry(_ns(telemetry_action=None))
@@ -1980,7 +1980,7 @@ class TestTelemetryCli:
 
     def test_unknown_action_exits_1(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
             pytest.raises(SystemExit) as exc,
         ):
             cc._telemetry(_ns(telemetry_action="frobnicate"))
@@ -1992,14 +1992,14 @@ class TestTelemetryCli:
     ) -> None:
         path = tmp_path / "config.json"
         path.write_text(json.dumps({"agent": {"model": "auto"}}), encoding="utf-8")
-        effective = KiroCrewConfig()
+        effective = JunctionConfig()
         effective.telemetry.beacon_enabled = False
         with (
-            patch.object(KiroCrewConfig, "load", return_value=effective),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch.object(JunctionConfig, "load", return_value=effective),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon") as beacon,
         ):
-            beacon.DISABLE_ENV = "KIROCREW_NO_BEACON"
+            beacon.DISABLE_ENV = "JUNCTION_NO_BEACON"
             beacon.INSTALL_ID_FILE = "install_id"
             cc._telemetry(_ns(telemetry_action="disable"))
         data = json.loads(path.read_text())
@@ -2011,12 +2011,12 @@ class TestTelemetryCli:
 
     def test_enable_creates_config_when_absent(self, tmp_path: Path) -> None:
         path = tmp_path / "nested" / "config.json"
-        effective = KiroCrewConfig()
+        effective = JunctionConfig()
         effective.telemetry.beacon_enabled = True
         with (
-            patch.object(KiroCrewConfig, "load", return_value=effective),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch.object(JunctionConfig, "load", return_value=effective),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon") as beacon,
         ):
             beacon.is_governance_pinned_off.return_value = False
             cc._telemetry(_ns(telemetry_action="enable"))
@@ -2027,9 +2027,9 @@ class TestTelemetryCli:
     ) -> None:
         path = tmp_path / "config.json"
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon") as beacon,
             pytest.raises(SystemExit) as exc,
         ):
             beacon.is_governance_pinned_off.return_value = True
@@ -2044,9 +2044,9 @@ class TestTelemetryCli:
         path = tmp_path / "config.json"
         path.write_text("{not json", encoding="utf-8")
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon"),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon"),
             pytest.raises(SystemExit) as exc,
         ):
             cc._telemetry(_ns(telemetry_action="disable"))
@@ -2059,9 +2059,9 @@ class TestTelemetryCli:
         path = tmp_path / "config.json"
         path.write_text("[1, 2, 3]", encoding="utf-8")
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon"),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon"),
             pytest.raises(SystemExit),
         ):
             cc._telemetry(_ns(telemetry_action="disable"))
@@ -2075,9 +2075,9 @@ class TestTelemetryCli:
         original = json.dumps({"telemetry": "yes-please"})
         path.write_text(original, encoding="utf-8")
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon"),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon"),
             pytest.raises(SystemExit),
         ):
             cc._telemetry(_ns(telemetry_action="disable"))
@@ -2090,15 +2090,15 @@ class TestTelemetryCli:
         """A false promise on a privacy control is worse than an error."""
         path = tmp_path / "config.json"
         path.write_text("{}", encoding="utf-8")
-        still_on = KiroCrewConfig()
+        still_on = JunctionConfig()
         still_on.telemetry.beacon_enabled = True
         with (
-            patch.object(KiroCrewConfig, "load", return_value=still_on),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch.object(JunctionConfig, "load", return_value=still_on),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon") as beacon,
             pytest.raises(SystemExit) as exc,
         ):
-            beacon.DISABLE_ENV = "KIROCREW_NO_BEACON"
+            beacon.DISABLE_ENV = "JUNCTION_NO_BEACON"
             cc._telemetry(_ns(telemetry_action="disable"))
         assert exc.value.code == 1
         err = capsys.readouterr().err
@@ -2110,10 +2110,10 @@ class TestTelemetryCli:
         path = tmp_path / "config.json"
         path.write_text("{}", encoding="utf-8")
         with (
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon"),
-            patch("kiro_crew.config.loader.atomic_write", side_effect=OSError("disk full")),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon"),
+            patch("junction.config.loader.atomic_write", side_effect=OSError("disk full")),
             pytest.raises(SystemExit) as exc,
         ):
             cc._telemetry(_ns(telemetry_action="disable"))
@@ -2128,19 +2128,19 @@ class TestTelemetryCli:
         path.write_text("{}", encoding="utf-8")
         with (
             patch.object(
-                KiroCrewConfig,
+                JunctionConfig,
                 "load",
-                side_effect=[KiroCrewConfig(), RuntimeError("bad config")],
+                side_effect=[JunctionConfig(), RuntimeError("bad config")],
             ),
-            patch("kiro_crew.cli_commands.config_path", return_value=path),
-            patch("kiro_crew.cli_commands.beacon") as beacon,
+            patch("junction.cli_commands.config_path", return_value=path),
+            patch("junction.cli_commands.beacon") as beacon,
         ):
             beacon.INSTALL_ID_FILE = "install_id"
             cc._telemetry(_ns(telemetry_action="disable"))
         assert "DISABLED" in capsys.readouterr().out
 
 
-# ── eval runner (`kirocrew eval`) ──
+# ── eval runner (`junction eval`) ──
 
 
 def _scenario(name: str = "smoke", *, turns: int = 2, judge_criteria: str = "") -> Any:
@@ -2181,12 +2181,12 @@ class _EvalHarness:
 
     def __enter__(self) -> _EvalHarness:
         self._patches = [
-            patch.object(KiroCrewConfig, "load", return_value=KiroCrewConfig()),
-            patch("kiro_crew.cli_commands.build_provider_factory", return_value=MagicMock()),
-            patch("kiro_crew.cli_commands.EvalRunner", return_value=self.runner),
-            patch("kiro_crew.cli_commands.LLMJudge", return_value=self.judge),
-            patch("kiro_crew.cli_commands.format_results", return_value="## Report"),
-            patch("kiro_crew.cli_commands.score_by_dimension", return_value={}),
+            patch.object(JunctionConfig, "load", return_value=JunctionConfig()),
+            patch("junction.cli_commands.build_provider_factory", return_value=MagicMock()),
+            patch("junction.cli_commands.EvalRunner", return_value=self.runner),
+            patch("junction.cli_commands.LLMJudge", return_value=self.judge),
+            patch("junction.cli_commands.format_results", return_value="## Report"),
+            patch("junction.cli_commands.score_by_dimension", return_value={}),
         ]
         for p in self._patches:
             p.start()
@@ -2208,7 +2208,7 @@ class TestRunEval:
         monkeypatch.chdir(tmp_path)
         with (
             _EvalHarness([_scenario_result(True)]),
-            patch("kiro_crew.cli_commands.load_scenario", return_value=_scenario()) as loader,
+            patch("junction.cli_commands.load_scenario", return_value=_scenario()) as loader,
         ):
             await cc._run_eval(_ns(all_scenarios=False, scenarios=None, judge=False))
         assert loader.call_args[0][0].name == "smoke_test.json"
@@ -2230,7 +2230,7 @@ class TestRunEval:
         scenarios = [_scenario("a"), _scenario("b")]
         with (
             _EvalHarness([_scenario_result(True), _scenario_result(False)]) as h,
-            patch("kiro_crew.cli_commands.load_scenarios", return_value=scenarios) as loader,
+            patch("junction.cli_commands.load_scenarios", return_value=scenarios) as loader,
         ):
             await cc._run_eval(_ns(all_scenarios=True, scenarios=None, judge=False))
         assert loader.call_args[0][0].name == "scenarios"
@@ -2243,7 +2243,7 @@ class TestRunEval:
         monkeypatch.chdir(tmp_path)
         with (
             _EvalHarness([_scenario_result(True)]),
-            patch("kiro_crew.cli_commands.load_scenario", return_value=_scenario("named")) as ld,
+            patch("junction.cli_commands.load_scenario", return_value=_scenario("named")) as ld,
         ):
             await cc._run_eval(
                 _ns(all_scenarios=False, scenarios=["memory_recall_basic"], judge=False)
@@ -2274,8 +2274,8 @@ class TestRunEval:
         }
         with (
             _EvalHarness([_scenario_result(True)]),
-            patch("kiro_crew.cli_commands.load_scenario", return_value=_scenario()),
-            patch("kiro_crew.cli_commands.score_by_dimension", return_value=dims),
+            patch("junction.cli_commands.load_scenario", return_value=_scenario()),
+            patch("junction.cli_commands.score_by_dimension", return_value=dims),
         ):
             await cc._run_eval(_ns(all_scenarios=False, scenarios=None, judge=False))
         out = capsys.readouterr().out
@@ -2295,7 +2295,7 @@ class TestRunEval:
         )
         with (
             _EvalHarness([_scenario_result(True, turn=turn)]) as h,
-            patch("kiro_crew.cli_commands.load_scenario", return_value=_scenario()),
+            patch("junction.cli_commands.load_scenario", return_value=_scenario()),
         ):
             await cc._run_eval(_ns(all_scenarios=False, scenarios=None, judge=True))
         h.judge.start.assert_awaited_once()
@@ -2318,7 +2318,7 @@ class TestRunEval:
         with (
             _EvalHarness([_scenario_result(True, turn=turn)]) as h,
             patch(
-                "kiro_crew.cli_commands.load_scenario",
+                "junction.cli_commands.load_scenario",
                 return_value=_scenario(judge_criteria="be terse"),
             ),
         ):
@@ -2341,7 +2341,7 @@ class TestRunEval:
         )
         with (
             _EvalHarness([_scenario_result(True, turn=turn)]) as h,
-            patch("kiro_crew.cli_commands.load_scenario", return_value=_scenario()),
+            patch("junction.cli_commands.load_scenario", return_value=_scenario()),
         ):
             await cc._run_eval(_ns(all_scenarios=False, scenarios=None, judge=True))
         h.judge.judge_turn.assert_not_awaited()

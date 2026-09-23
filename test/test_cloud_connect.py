@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.cloud import aws, connect, ssm
+from junction import platform_compat as pc
+from junction.cloud import aws, connect, ssm
 
 
 class TestMintToken:
@@ -164,7 +164,7 @@ class TestConnect:
         assert opened["n"] == 0  # never opened the token URL
 
     def test_connect_tears_down_tunnel_when_mint_fails(self, monkeypatch):
-        # Tunnel comes up ready but mint_token returns "" (e.g. `kirocrew token`
+        # Tunnel comes up ready but mint_token returns "" (e.g. `junction token`
         # failed on the box). A ready tunnel with no URL is useless and would
         # leak the SSM child; connect() must tear it down and report ready=False.
         monkeypatch.setattr(ssm, "require_session_manager_plugin", lambda: None)
@@ -304,7 +304,7 @@ class TestKillProcessTree:
         ``kill_port_forward`` exists to prevent. Exercised on any platform by
         forcing ``os.name``.
         """
-        from kiro_crew.cloud import ssm as ssm_mod
+        from junction.cloud import ssm as ssm_mod
 
         calls: list[list[str]] = []
 
@@ -355,7 +355,7 @@ class TestKillProcessTree:
         directly, so the same caller worked on Linux and raised AttributeError on
         Windows.
         """
-        from kiro_crew.cloud import ssm as ssm_mod
+        from junction.cloud import ssm as ssm_mod
 
         class NoPid:
             terminated = False
@@ -398,13 +398,13 @@ def _pid_alive(pid: int) -> bool:
 
 class TestRegistryIntegration:
     def test_register_instance(self, monkeypatch, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
         monkeypatch.setattr(connect, "InstancesRegistry", InstancesRegistry, raising=False)
         # Patch the lazy import target: connect imports InstancesRegistry inside
         # the function, so patch the class used there via the module.
-        import kiro_crew.instances.registry as regmod
+        import junction.instances.registry as regmod
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 
@@ -421,10 +421,10 @@ class TestRegistryIntegration:
         assert inst.ssh_host == ""
 
     def test_register_instance_is_idempotent_on_relaunch(self, monkeypatch, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
-        import kiro_crew.instances.registry as regmod
+        import junction.instances.registry as regmod
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 
@@ -445,10 +445,10 @@ class TestRegistryIntegration:
         assert rec.was_connected is True
 
     def test_unregister_instance_empty_arg_is_noop(self, monkeypatch, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
-        import kiro_crew.instances.registry as regmod
+        import junction.instances.registry as regmod
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
         # An SSM record (ssh_host="") and an SSH record (ssm_target="") coexist.
@@ -460,10 +460,10 @@ class TestRegistryIntegration:
         assert len(reg.list()) == 2
 
     def test_unregister_instance_ssm(self, monkeypatch, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
-        import kiro_crew.instances.registry as regmod
+        import junction.instances.registry as regmod
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 
@@ -473,12 +473,12 @@ class TestRegistryIntegration:
         assert not any(i.ssm_target == "i-0abc1234" for i in reg.list())
 
     def test_unregister_instance_legacy_ssh_host(self, monkeypatch, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
         # A box registered the old way (ssh_host = instance id) still unregisters.
         reg.add(name="Kiro Crew Cloud", ssh_host="i-0abc")
-        import kiro_crew.instances.registry as regmod
+        import junction.instances.registry as regmod
 
         monkeypatch.setattr(regmod, "InstancesRegistry", lambda *a, **k: reg)
 

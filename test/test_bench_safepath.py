@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.eval.bench import datasets
-from kiro_crew.eval.bench.corpus import (
+from junction.eval.bench import datasets
+from junction.eval.bench.corpus import (
     CAT_SINGLE_HOP,
     BenchInstance,
     BenchQuery,
@@ -27,16 +27,16 @@ from kiro_crew.eval.bench.corpus import (
     BenchTurn,
     Corpus,
 )
-from kiro_crew.eval.bench.ingest import IngestConfig
-from kiro_crew.eval.bench.retrieval import RetrievalConfig
-from kiro_crew.eval.bench.run import RunResult, run_retrieval, write_report
-from kiro_crew.eval.bench.safepath import (
+from junction.eval.bench.ingest import IngestConfig
+from junction.eval.bench.retrieval import RetrievalConfig
+from junction.eval.bench.run import RunResult, run_retrieval, write_report
+from junction.eval.bench.safepath import (
     UnsafePathError,
     guard_output_dir,
     guard_read_path,
     guard_write_path,
 )
-from kiro_crew.eval.bench.toy_embedder import TOY_EMBEDDER_ID, toy_embed_fn
+from junction.eval.bench.toy_embedder import TOY_EMBEDDER_ID, toy_embed_fn
 
 
 @pytest.fixture()
@@ -115,7 +115,7 @@ def _result() -> RunResult:
         backend="sqlite_cosine",
         embedder=TOY_EMBEDDER_ID,
         metrics=__import__(
-            "kiro_crew.eval.bench.retrieval", fromlist=["RetrievalAggregate"]
+            "junction.eval.bench.retrieval", fromlist=["RetrievalAggregate"]
         ).RetrievalAggregate(),
     )
 
@@ -160,13 +160,13 @@ def test_write_report_still_works_for_an_ordinary_directory(tmp_path: Path) -> N
 def test_the_corpus_cache_root_is_gated_too(
     fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """KIROCREW_BENCH_CACHE can point anywhere, so it needs the same gate as argv.
+    """JUNCTION_BENCH_CACHE can point anywhere, so it needs the same gate as argv.
 
     Not reported by any reviewer — found by enumerating the entry points after the
     write gate was reported. A cache root inside the trust root would drop corpus
     files and `.sha256` sidecars there.
     """
-    monkeypatch.setenv("KIROCREW_BENCH_CACHE", str(fake_home / ".aws"))
+    monkeypatch.setenv("JUNCTION_BENCH_CACHE", str(fake_home / ".aws"))
     with pytest.raises(UnsafePathError):
         datasets.ensure("locomo10", allow_download=False)
 
@@ -175,7 +175,7 @@ def test_the_corpus_cache_root_is_gated_too(
 
 
 def test_the_file_adapters_gate_their_caller_supplied_path(fake_home: Path) -> None:
-    from kiro_crew.eval.bench.adapters import load_locomo_file, load_longmemeval_file
+    from junction.eval.bench.adapters import load_locomo_file, load_longmemeval_file
 
     victim = fake_home / ".aws" / "credentials"
     victim.write_text("[default]\n")
@@ -219,13 +219,13 @@ def test_a_non_resident_embedder_prints_a_refusal_not_a_traceback(
     It existed to print a good message and was not caught, so the normal state of
     such a host produced a traceback from the CLI.
     """
-    from kiro_crew import cli_bench
-    from kiro_crew.eval.bench.ingest import IngestError
+    from junction import cli_bench
+    from junction.eval.bench.ingest import IngestError
 
     def _boom(*_a: object, **_k: object) -> None:
         raise IngestError("the embedding model is not resident")
 
-    monkeypatch.setattr("kiro_crew.eval.bench.run.prepare_embedder", _boom)
+    monkeypatch.setattr("junction.eval.bench.run.prepare_embedder", _boom)
     monkeypatch.setattr(
         cli_bench, "_load_corpus", lambda key: _tiny_corpus()  # noqa: ARG005
     )
@@ -244,7 +244,7 @@ def test_a_refused_report_write_does_not_discard_the_measurement(
 
     Reported as such rather than as a failed run — the numbers are on stdout.
     """
-    from kiro_crew import cli_bench
+    from junction import cli_bench
 
     monkeypatch.setattr(
         cli_bench, "_load_corpus", lambda key: _tiny_corpus()  # noqa: ARG005

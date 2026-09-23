@@ -21,7 +21,7 @@ const mockApi = vi.hoisted(() => ({
   agentDetail: vi.fn(),
   agentMetadata: vi.fn(),
   agentMetadataSave: vi.fn(),
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   skills: vi.fn(),
   agentPatch: vi.fn(),
   agentDelete: vi.fn(),
@@ -45,13 +45,13 @@ vi.mock('../providers', () => ({
 import AgentsPage from '../pages/AgentsPage'
 
 const BUILTIN = {
-  name: 'kirocrew',
+  name: 'junction',
   description: 'Full crew agent',
-  source: 'kirocrew',
+  source: 'junction',
   model: 'claude-opus-4.8',
   skills: ['prepare-pr'],
-  mcp_servers: ['kirocrew-core'],
-  filename: 'kirocrew.json',
+  mcp_servers: ['junction-core'],
+  filename: 'junction.json',
 }
 const USER_TEMPLATE = {
   name: 'reviewer',
@@ -84,10 +84,10 @@ const PACKAGE_TEMPLATE = {
 
 const BUILTIN_DETAIL = {
   ...BUILTIN,
-  prompt: 'file://~/.kiro/crew/prompts/kirocrew.md',
+  prompt: 'file://~/.kiro/crew/prompts/junction.md',
   tools: ['fs_read', 'fs_write'],
   allowedTools: ['fs_read'],
-  mcpServers: { 'kirocrew-core': {} },
+  mcpServers: { 'junction-core': {} },
   toolsSettings: { execute_bash: { deniedCommands: ['rm -rf /', 'DROP TABLE'] } },
   skills: ['kiro-user/prepare-pr'],
   unmanaged_skills: [],
@@ -121,20 +121,20 @@ beforeEach(() => {
   mockApi.sessionsUsage.mockResolvedValue({ usage: null })
   mockApi.agentsInstalled.mockResolvedValue([BUILTIN, USER_TEMPLATE, PACKAGE_TEMPLATE, SCRATCH_TEMPLATE])
   mockApi.mcpProbeCache.mockResolvedValue([])
-  mockApi.defaultAgent.mockResolvedValue({ default_agent: 'kirocrew' })
+  mockApi.defaultAgent.mockResolvedValue({ default_agent: 'junction' })
   mockApi.agentMetadata.mockResolvedValue({ content: '' })
   mockApi.skills.mockResolvedValue([])
   mockApi.agentDelete.mockResolvedValue({ ok: true })
-  mockApi.kirocrewAgents.mockResolvedValue({
+  mockApi.junctionAgents.mockResolvedValue({
     agents: [
-      { name: 'default', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default', description: '', source: 'user' },
-      { name: 'oncall', kiro_agent: 'kirocrew', workspace: 'oncall', memory_store: 'oncall', description: '', source: 'user' },
+      { name: 'default', kiro_agent: 'junction', workspace: 'default', memory_store: 'default', description: '', source: 'user' },
+      { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall', description: '', source: 'user' },
       { name: 'research', kiro_agent: 'reviewer', workspace: 'research', memory_store: 'research', description: '', source: 'user' },
     ],
     default_agent: 'default',
   })
   mockApi.agentDetail.mockImplementation((name: string) => {
-    if (name === 'kirocrew') return Promise.resolve(BUILTIN_DETAIL)
+    if (name === 'junction') return Promise.resolve(BUILTIN_DETAIL)
     if (name === 'reviewer') return Promise.resolve({ ...USER_TEMPLATE, tools: ['fs_read'], unmanaged_skills: [] })
     if (name === 'scratch') return Promise.resolve({ ...SCRATCH_TEMPLATE, tools: ['fs_read'], unmanaged_skills: [] })
     return Promise.resolve({ ...PACKAGE_TEMPLATE, unmanaged_skills: [] })
@@ -144,14 +144,14 @@ beforeEach(() => {
 describe('agent templates inspector — tabs', () => {
   it('gives the prompt and the guardrails a pane each instead of one scroll box', async () => {
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     // Overview is what a newly-selected template opens on.
     expect(await screen.findByText('Where it comes from')).toBeInTheDocument()
     expect(screen.queryByText('rm -rf /')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: /system prompt/i }))
-    expect(await screen.findByText(/prompts\/kirocrew\.md/)).toBeInTheDocument()
+    expect(await screen.findByText(/prompts\/junction\.md/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('tab', { name: /guardrails/i }))
     expect(await screen.findByText('rm -rf /')).toBeInTheDocument()
@@ -161,7 +161,7 @@ describe('agent templates inspector — tabs', () => {
 
   it('sends an At a glance count to the tab that owns the detail', async () => {
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     fireEvent.click(await screen.findByRole('button', { name: /2 tools/i }))
 
@@ -170,7 +170,7 @@ describe('agent templates inspector — tabs', () => {
 
   it('reopens on Overview when the selection moves, not on the previous tab', async () => {
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     fireEvent.click(screen.getByRole('tab', { name: /guardrails/i }))
     expect(await screen.findByText('rm -rf /')).toBeInTheDocument()
@@ -183,7 +183,7 @@ describe('agent templates inspector — tabs', () => {
 describe('agent templates inspector — overview', () => {
   it('says which model the pin resolves to, in words', async () => {
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     expect(await screen.findByText(/a crew set to inherit uses this model/i)).toBeInTheDocument()
 
@@ -193,7 +193,7 @@ describe('agent templates inspector — overview', () => {
 
   it('names the crews an edit would change', async () => {
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     expect(await screen.findByText('Used By')).toBeInTheDocument()
     expect(screen.getByText('default')).toBeInTheDocument()
@@ -203,9 +203,9 @@ describe('agent templates inspector — overview', () => {
   })
 
   it('says so plainly when no crew is bound to the template', async () => {
-    mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+    mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     expect(await screen.findByText('No crews use this template yet')).toBeInTheDocument()
   })
@@ -229,7 +229,7 @@ describe('agent templates inspector — roster filter', () => {
 })
 
 describe('agent templates inspector — shared crews cache', () => {
-  /* The Crews tab owns ['kirocrew-agents', <trigger>] and stores the whole
+  /* The Crews tab owns ['junction-agents', <trigger>] and stores the whole
      response object. One QueryClient keeps ONE value per key, so if this page
      stored the unwrapped array instead, whichever tab mounted first would hand
      the other the wrong shape: `crews.filter` on an object throws during
@@ -237,17 +237,17 @@ describe('agent templates inspector — shared crews cache', () => {
      Crews roster. Both directions are asserted. */
   it('reads and leaves the cache in the shape the Crews tab stores', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    qc.setQueryData(['kirocrew-agents'], {
-      agents: [{ name: 'default', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default', description: '', source: 'user' }],
+    qc.setQueryData(['junction-agents'], {
+      agents: [{ name: 'default', kiro_agent: 'junction', workspace: 'default', memory_store: 'default', description: '', source: 'user' }],
       default_agent: 'default',
     })
 
     renderPage(qc)
-    await open('kirocrew')
+    await open('junction')
 
     expect(await screen.findByText('Used By')).toBeInTheDocument()
     expect(screen.getByText('default')).toBeInTheDocument()
-    const cached = qc.getQueryData(['kirocrew-agents'])
+    const cached = qc.getQueryData(['junction-agents'])
     expect(Array.isArray(cached)).toBe(false)
     expect(cached).toMatchObject({ default_agent: 'default' })
   })
@@ -262,12 +262,12 @@ describe('agent templates inspector — stale detail responses', () => {
           landReviewer = () => resolve({ ...USER_TEMPLATE, tools: ['fs_read'], unmanaged_skills: [] })
         })
       }
-      if (name === 'kirocrew') return Promise.resolve(BUILTIN_DETAIL)
+      if (name === 'junction') return Promise.resolve(BUILTIN_DETAIL)
       return Promise.resolve({ ...PACKAGE_TEMPLATE, unmanaged_skills: [] })
     })
 
     renderPage()
-    await open('kirocrew')
+    await open('junction')
 
     // reviewer's fetch hangs; the user gives up and picks the package template.
     const roster = await screen.findByRole('listbox', { name: 'Installed Agents' })
@@ -347,7 +347,7 @@ describe('agent templates inspector — delete', () => {
 
   it('offers no delete for a built-in or a package template', async () => {
     renderPage()
-    await open('kirocrew')
+    await open('junction')
     expect(screen.queryByTestId('delete-template')).not.toBeInTheDocument()
 
     await open('oncall-triage')
@@ -360,7 +360,7 @@ describe('agent templates inspector — delete', () => {
      kiro-cli as an agent id. Both guards say what to do first, because a button
      that silently disappears teaches nothing. */
   it('refuses to delete a template a crew is still bound to, and says which', async () => {
-    mockApi.kirocrewAgents.mockResolvedValue({
+    mockApi.junctionAgents.mockResolvedValue({
       agents: [{ name: 'research', kiro_agent: 'reviewer', workspace: 'r', memory_store: 'r', description: '', source: 'user' }],
       default_agent: 'default',
     })
@@ -373,7 +373,7 @@ describe('agent templates inspector — delete', () => {
 
   it('refuses to delete the fallback template', async () => {
     mockApi.defaultAgent.mockResolvedValue({ default_agent: 'scratch' })
-    mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+    mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
     await open('scratch')
 
@@ -385,7 +385,7 @@ describe('agent templates inspector — delete', () => {
     // An unresolved query makes `usedBy` empty, which must not read as
     // "nothing uses it" — that is exactly how a bound template gets deleted.
     let landCrews: (v: unknown) => void = () => {}
-    mockApi.kirocrewAgents.mockImplementation(() => new Promise(resolve => { landCrews = resolve }))
+    mockApi.junctionAgents.mockImplementation(() => new Promise(resolve => { landCrews = resolve }))
     renderPage()
     await open('reviewer')
 
@@ -428,7 +428,7 @@ describe('agent templates inspector — delete', () => {
 
     expect(await screen.findByText(/still used by researcher/)).toBeInTheDocument()
     // Re-synced, so the next render derives blockedBy from fresh data.
-    await waitFor(() => expect(mockApi.kirocrewAgents.mock.calls.length).toBeGreaterThan(1))
+    await waitFor(() => expect(mockApi.junctionAgents.mock.calls.length).toBeGreaterThan(1))
     // And the armed confirm is dropped — no second identical attempt on one click.
     expect(screen.queryByTestId('confirm-delete-template')).not.toBeInTheDocument()
   })
@@ -438,14 +438,14 @@ describe('agent templates inspector — delete', () => {
     // settles and `crewsData` stays defined — an undefined-check alone would
     // keep comparing against a roster the server may no longer agree with.
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    qc.setQueryData(['kirocrew-agents'], { agents: [], default_agent: '' })
+    qc.setQueryData(['junction-agents'], { agents: [], default_agent: '' })
 
     renderPage(qc)
     await open('scratch')
     expect(await screen.findByTestId('delete-template')).toBeInTheDocument()
 
-    mockApi.kirocrewAgents.mockRejectedValue(new Error('network'))
-    await qc.refetchQueries({ queryKey: ['kirocrew-agents'] })
+    mockApi.junctionAgents.mockRejectedValue(new Error('network'))
+    await qc.refetchQueries({ queryKey: ['junction-agents'] })
 
     await waitFor(() => expect(screen.queryByTestId('delete-template')).not.toBeInTheDocument())
   })

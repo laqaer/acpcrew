@@ -23,7 +23,7 @@ keys/aliases to acp ids and matches `"auto"` case-insensitively:
   as before the feature existed (regression-pinned; this is the rollback
   story).
 
-Editable via `kirocrew config set agent.fallback_model <id|auto|''>`, the
+Editable via `junction config set agent.fallback_model <id|auto|''>`, the
 config PATCH API (str type, model-id grammar, `_validate_role_model` — the same
 entitlement validation as the role-model pins, so `""`/`"auto"` always allow),
 and Settings → Chat → Rate-limit fallback (single-select dropdown fed by the

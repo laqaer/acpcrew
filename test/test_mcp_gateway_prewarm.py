@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.mcp_gateway.prewarm import HotKeyStore
+from junction import platform_compat as pc
+from junction.mcp_gateway.prewarm import HotKeyStore
 
 pytestmark = pytest.mark.xdist_group("mcp_gateway")
 

@@ -22,7 +22,7 @@ fresh session whose entitlement is not yet known, and an explicit unusable pick.
 
 from __future__ import annotations
 
-from kiro_crew.acp.client import (
+from junction.acp.client import (
     AcpModelUnavailable,
     _rejected_model_from_error,
     advertised_model_ids,

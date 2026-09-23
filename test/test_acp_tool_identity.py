@@ -28,9 +28,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew import session_directive
-from kiro_crew.acp._dispatch import _build_tool_call_event, _kiro_mcp_server_name
-from kiro_crew.acp.types import (
+from junction import session_directive
+from junction.acp._dispatch import _build_tool_call_event, _kiro_mcp_server_name
+from junction.acp.types import (
     EVENT_COMPLETE,
     EVENT_SUBAGENT_ACTIVITY,
     EVENT_SUBAGENT_LIST,
@@ -48,8 +48,8 @@ class TestKiroMcpServerName:
     from ``_meta.kiro.mcpServerName``, failing closed to ``""``."""
 
     def test_returns_name_when_present(self) -> None:
-        update = {"_meta": {"kiro": {"mcpServerName": "kirocrew-core"}}}
-        assert _kiro_mcp_server_name(update) == "kirocrew-core"
+        update = {"_meta": {"kiro": {"mcpServerName": "junction-core"}}}
+        assert _kiro_mcp_server_name(update) == "junction-core"
 
     def test_absent_meta_yields_empty(self) -> None:
         assert _kiro_mcp_server_name({"toolCallId": "tc1"}) == ""
@@ -80,14 +80,14 @@ class TestBuildToolCallEventIdentity:
             "kind": "other",
             "title": "Arming a monitor loop",
             "rawInput": {"message": "check PR", "idle_secs": 300},
-            "_meta": {"kiro": {"toolName": "monitor_start", "mcpServerName": "kirocrew-core"}},
+            "_meta": {"kiro": {"toolName": "monitor_start", "mcpServerName": "junction-core"}},
         }
 
     def test_sets_tool_name_and_server_from_meta(self) -> None:
         event = _build_tool_call_event(self._mcp_update(), None)
         assert event.kind == EVENT_TOOL_CALL
         assert event.tool_name == "monitor_start"
-        assert event.mcp_server_name == "kirocrew-core"
+        assert event.mcp_server_name == "junction-core"
 
     def test_identity_is_meta_not_title(self) -> None:
         """The title is LLM prose; a shell tool could title itself "monitor_start"
@@ -147,7 +147,7 @@ async def _drive(
     directive_user_origin: bool = True,
 ):
     """Stream *events* through _run_chat; return the apply_session_directive spy."""
-    from kiro_crew.dashboard import chat_runner
+    from junction.dashboard import chat_runner
 
     async def _stream(_msg):
         for ev in events:
@@ -194,32 +194,32 @@ class TestProviderConversionPreservesIdentity:
     AcpEvents straight into the runner still passes. This is that guard."""
 
     def test_to_llm_event_preserves_canonical_tool_identity(self) -> None:
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         src = AcpEvent(
             kind=EVENT_TOOL_CALL,
             tool_call_id="tc-1",
             title="Arming monitor",
             tool_name="monitor_start",
-            mcp_server_name="kirocrew-core",
+            mcp_server_name="junction-core",
         )
         out = AcpProvider._to_llm_event(src)
         assert out.tool_name == "monitor_start"
-        assert out.mcp_server_name == "kirocrew-core"
+        assert out.mcp_server_name == "junction-core"
 
     def test_to_llm_event_round_trips_every_dataclass_field(self) -> None:
         """Catch the NEXT dropped field too: every dataclass field must survive
         the conversion (compared on a fully-populated event)."""
         import dataclasses
 
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         src = AcpEvent(
             kind=EVENT_TOOL_CALL,
             tool_call_id="tc-2",
             title="t",
             tool_name="monitor_start",
-            mcp_server_name="kirocrew-core",
+            mcp_server_name="junction-core",
             is_shell=True,
         )
         out = AcpProvider._to_llm_event(src)
@@ -252,7 +252,7 @@ class TestChatRunnerDirectiveSeam:
                 tool_call_id="tc-ok",
                 title="Arming monitor",
                 tool_name="monitor_start",
-                mcp_server_name="kirocrew-core",
+                mcp_server_name="junction-core",
             ),
             AcpEvent(
                 kind=EVENT_TOOL_RESULT,
@@ -287,7 +287,7 @@ class TestChatRunnerDirectiveSeam:
                 tool_call_id="tc-automation",
                 title="Switching project",
                 tool_name="set_project",
-                mcp_server_name="kirocrew-core",
+                mcp_server_name="junction-core",
             ),
             AcpEvent(
                 kind=EVENT_TOOL_RESULT,
@@ -315,7 +315,7 @@ class TestChatRunnerDirectiveSeam:
     ):
         """A busy app-owned request cannot become user-origin when its queue
         entry is drained after the destination slot becomes idle."""
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         state = _stub_state(tmp_path)
         slot = state.get_or_create_slot("app-slot")
@@ -381,7 +381,7 @@ class TestChatRunnerDirectiveSeam:
                 tool_call_id="tc-dup",
                 title="Arming monitor",
                 tool_name="monitor_start",
-                mcp_server_name="kirocrew-core",
+                mcp_server_name="junction-core",
             ),
             # Same tool_call_id delivered twice — the duplicate frame.
             AcpEvent(
@@ -411,7 +411,7 @@ class TestChatRunnerDirectiveSeam:
     async def test_non_core_mcp_server_directive_is_not_applied(self, tmp_path, monkeypatch):
         """A tool named like a directive but served by a DIFFERENT (e.g.
         third-party) MCP server must NOT drive a session directive — the gate
-        pins mcp_server_name to KiroCrew's own core server."""
+        pins mcp_server_name to Junction's own core server."""
         state = _stub_state(tmp_path)
         slot = state.get_or_create_slot("evilsrv")
         slot._titled = True
@@ -474,7 +474,7 @@ class TestChatRunnerDirectiveSeam:
                 tool_call_id="tc-nat",
                 title="Arming monitor",
                 tool_name="monitor_start",
-                mcp_server_name="kirocrew-core",
+                mcp_server_name="junction-core",
             ),
             # 4. The tool result carries a valid marker.
             AcpEvent(
@@ -501,7 +501,7 @@ class TestChatRunnerDirectiveSeam:
         `_redact_tool_field` before it reaches broadcast_ws / the persisted
         transcript (backend-security-controls). Pattern-independent: we spy the
         redactor and assert the applier's return value flows through it."""
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         seen: list[str] = []
         _orig_redact = chat_runner._redact_tool_field
@@ -521,7 +521,7 @@ class TestChatRunnerDirectiveSeam:
                 tool_call_id="tc-r",
                 title="Stopping",
                 tool_name="autonudge_stop",
-                mcp_server_name="kirocrew-core",
+                mcp_server_name="junction-core",
             ),
             AcpEvent(
                 kind=EVENT_TOOL_RESULT,

@@ -47,7 +47,7 @@ client._process = mock_process
 Use `monkeypatch` to override config paths:
 ```python
 def test_load_from_file(self, tmp_path, monkeypatch):
-    monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
+    monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
 ```
 
 ### Filesystem tests
@@ -80,7 +80,7 @@ say), and then still pair it with a Windows counterpart.
 
 `monkeypatch.setattr`/`patch` rebind a NAME in one module namespace. Code
 reads its globals from its **defining** module, so patching a package
-re-export (e.g. `kiro_crew.dashboard.handlers.X`, imported there from
+re-export (e.g. `junction.dashboard.handlers.X`, imported there from
 `handlers/sessions.py`) is a **silent no-op** — the test still passes but
 exercises the production value. Symptom: a test that "shortens" a timeout yet
 still takes the full production duration.
@@ -88,10 +88,10 @@ still takes the full production duration.
 ```python
 # WRONG — handlers/__init__.py only re-exports the constant; sessions.py
 # still reads its own module global (test silently waits the real 10s):
-monkeypatch.setattr("kiro_crew.dashboard.handlers._SHUTDOWN_TIMEOUT_SECS", 0.05)
+monkeypatch.setattr("junction.dashboard.handlers._SHUTDOWN_TIMEOUT_SECS", 0.05)
 
 # RIGHT — patch where the constant is defined and read:
-monkeypatch.setattr("kiro_crew.dashboard.handlers.sessions._SHUTDOWN_TIMEOUT_SECS", 0.05)
+monkeypatch.setattr("junction.dashboard.handlers.sessions._SHUTDOWN_TIMEOUT_SECS", 0.05)
 ```
 
 ### Loop-wiring tests stub every dispatched operation
@@ -107,18 +107,18 @@ test). The sweep's own behavior belongs in its own module's tests.
 ## Which conftest you are standing on
 
 There are **two** testpaths (`setup.cfg`'s `testpaths = test
-src/kiro_crew/apps/builtins`) and they do **not** get the same fixtures. Know which
+src/junction/apps/builtins`) and they do **not** get the same fixtures. Know which
 floor is under your file before you decide what to isolate yourself:
 
 | Your test lives in | It inherits |
 |---|---|
 | `test/` | the rootdir `conftest.py` **and** `test/conftest.py` |
-| `src/kiro_crew/apps/builtins/*/tests/` | the rootdir `conftest.py`, plus that app's own `tests/conftest.py` where one exists (`auto_improvement`, `code_review_sage`, `spec_builder` have one; the other five apps do not) |
+| `src/junction/apps/builtins/*/tests/` | the rootdir `conftest.py`, plus that app's own `tests/conftest.py` where one exists (`auto_improvement`, `code_review_sage`, `spec_builder` have one; the other five apps do not) |
 
 The **rootdir `conftest.py` is the host-mutation floor**: everything in it protects the
 developer's machine rather than the correctness of one suite, so it holds for all
 testpaths. It pins `$XDG_CONFIG_HOME` and the launchd paths, traps the spawn
-funnels against service mutation, pins `KIROCREW_HOME` and the import-time `~/.kiro`
+funnels against service mutation, pins `JUNCTION_HOME` and the import-time `~/.kiro`
 bindings, redirects `tempfile`'s base, and fails the run on residue in the checkout.
 
 It also pins the other real host paths a test must not reach: the subagent registry (a
@@ -152,11 +152,11 @@ one scope down:
   `log_redaction.uninstall_log_redaction()` exists for a test that wants to assert on
   the uninstalled state itself.
 * `_restore_logger_levels` puts every logger's level and `disabled` flag back. A level is
-  process-global AND hierarchical, so an explicit one left on `kiro_crew` decides what
-  every `kiro_crew.*` logger in the worker may emit and it outranks the root level
+  process-global AND hierarchical, so an explicit one left on `junction` decides what
+  every `junction.*` logger in the worker may emit and it outranks the root level
   `caplog.at_level()` sets — the victim's `caplog.text` comes back **empty**, not wrong,
   which reads as "the code stopped logging" rather than as pollution.
-  `cli._setup_cli_logging` pins `kiro_crew` at WARNING, and test modules across the suite
+  `cli._setup_cli_logging` pins `junction` at WARNING, and test modules across the suite
   run it for real by driving `cli.main()` in process. Restored rather than blamed, for the
   same reason the CWD restore is. **Handlers are deliberately not restored**: one is
   routinely paired with a module-global recording it as installed
@@ -204,7 +204,7 @@ which testpath asked for the workers.
 
 - Tests MUST NOT spawn real kiro-cli processes
 - Tests MUST NOT depend on `~/.kiro/crew/` existing
-- Tests MUST NOT write into the operator's real data dir. `KIROCREW_HOME` is pinned
+- Tests MUST NOT write into the operator's real data dir. `JUNCTION_HOME` is pinned
   per test by the rootdir conftest, which is what makes `config_dir()` safe — and it
   needs to be, because resolving it is **not a read**: it creates the home and its
   marker on first use, and can run the one-time `~/.kirocrew` → `~/.kiro/crew`
@@ -217,7 +217,7 @@ which testpath asked for the workers.
      first import. The env var is read *after* the module captured the path, so
      `conftest.py` pins each such global with a dedicated autouse fixture
      (`_isolate_subagents_dir`, …). Paths that instead call `config_dir()` lazily on
-     each use (e.g. `agent_state`) already honor `KIROCREW_HOME`. A test that spawns
+     each use (e.g. `agent_state`) already honor `JUNCTION_HOME`. A test that spawns
      subagents without isolating the import-time global leaks stub folders into
      `~/.kiro/crew/subagents/`, which a running gateway then sweeps as orphans on its
      next restart.
@@ -227,7 +227,7 @@ which testpath asked for the workers.
      live agent's MCP server list. The rootdir conftest's `_isolate_shared_kiro_paths`
      redirects these from a table, and
      `test/test_host_isolation_floor.py::TestTheSharedKiroPathRatchet` fails when
-     `src/kiro_crew` grows a module-level `Path.home()` binding that is neither in the
+     `src/junction` grows a module-level `Path.home()` binding that is neither in the
      table nor explicitly excluded with a reason. The guarantee is exactly that:
      **import-time bindings**.
 
@@ -340,9 +340,9 @@ which testpath asked for the workers.
 - Tests MUST NOT reconfigure or restart a real host service. This is enforced,
   not just asked for: the **rootdir** `conftest.py` (distinct from
   `test/conftest.py`, which only applies to `test/` — `testpaths` also collects
-  `transfer` and `src/kiro_crew/apps/builtins`) pins `$XDG_CONFIG_HOME` to a tmp
+  `transfer` and `src/junction/apps/builtins`) pins `$XDG_CONFIG_HOME` to a tmp
   dir so `dev_fleet._dropin_path()` cannot name the operator's real
-  `~/.config/systemd/user/kirocrew-gateway.service.d/`, and traps every stdlib
+  `~/.config/systemd/user/junction-gateway.service.d/`, and traps every stdlib
   spawn funnel (`subprocess.Popen.__init__`,
   `BaseEventLoop.subprocess_exec`/`subprocess_shell`, `os.execve`) to
   refuse a `systemctl`/`launchctl` invocation carrying a **mutating verb**
@@ -410,7 +410,7 @@ which testpath asked for the workers.
   of them written by production code a test merely reached — one inode each, not the
   `mkdtemp` directories the rule is about. Failing the suite on that set today would
   block every unrelated change while it is attributed, and a guard that blocks unrelated
-  work is a guard somebody deletes. Set `KIROCREW_TMP_RESIDUE_STRICT=1` to make it fatal,
+  work is a guard somebody deletes. Set `JUNCTION_TMP_RESIDUE_STRICT=1` to make it fatal,
   which is how the remaining set gets burned down and how the line gets held afterwards —
   the same shape as `windows-expected-failures.txt`.
 
@@ -424,11 +424,11 @@ which testpath asked for the workers.
 
   **Finding the culprit.** The residue report runs in a session-fixture teardown, so it
   is attributed to the last test the worker ran, which is almost never the guilty one.
-  Re-run the suspect subset with `KIROCREW_TMP_PER_TEST=1` and each residue name
+  Re-run the suspect subset with `JUNCTION_TMP_PER_TEST=1` and each residue name
   becomes the id of the test that leaked it:
 
   ```bash
-  KIROCREW_TMP_PER_TEST=1 pytest src/kiro_crew/apps/builtins/<app>/tests -n0 -q
+  JUNCTION_TMP_PER_TEST=1 pytest src/junction/apps/builtins/<app>/tests -n0 -q
   # AssertionError: 1 temporary entry outlived this run under /tmp/kc-pytest-you-951504:
   #     test_provider_listing_never_contains_a_token/tmpw2kvty2z
   ```
@@ -514,10 +514,10 @@ to re-measure it — 66 seconds instead of a five-minute `-n 32` run):
 
 - **~77 MiB is spent before collection starts** — interpreter, pytest, its
   auto-loaded plugins, and the two conftests. The rootdir conftest alone is ~35 MiB;
-  `test/conftest.py` adds the rest, mostly `hypothesis` and `kiro_crew.slack`.
+  `test/conftest.py` adds the rest, mostly `hypothesis` and `junction.slack`.
 - **~320 MiB imports the ~1,540 test modules** and, through them, most of
-  `kiro_crew`. The package's ~960 modules cost ~145 MiB to import on their own, so
-  the product is a sixth of the floor, not a rounding error — `import kiro_crew`
+  `junction`. The package's ~960 modules cost ~145 MiB to import on their own, so
+  the product is a sixth of the floor, not a rounding error — `import junction`
   alone is 2 MiB and is the wrong number to plan around.
 - **~350 MiB is pytest's item tree**, ~6 KiB per item. Roughly half of that is the
   fixture closure, and the autouse guards in the two conftests are what fill it: they
@@ -556,7 +556,7 @@ not treated as zero memory — a platform we cannot read keeps its parallelism i
 of silently dropping to one worker.
 
 Concurrent runs coordinate through advisory locks under
-`~/.cache/kirocrew/test-slots/<hostname>`, one file per worker a run intends to
+`~/.cache/junction/test-slots/<hostname>`, one file per worker a run intends to
 spawn, held for the process's lifetime. The kernel releases them when the process
 exits, so an orphaned or killed run frees its share with no cleanup logic. A run
 arriving at a fully-locked machine drops to one worker: slow, never stalled.
@@ -567,9 +567,9 @@ The knobs, tightest-wins:
 |---|---|
 | `-n <N>` on the command line | Bypasses the budget entirely. xdist only calls it for `auto`/`logical`. |
 | `--maxprocesses=<N>` | Clamps *after* the budget, so it can only tighten. |
-| `KIROCREW_MAX_TEST_WORKERS` | Per-run ceiling, default 32. |
+| `JUNCTION_MAX_TEST_WORKERS` | Per-run ceiling, default 32. |
 | `PYTEST_XDIST_AUTO_NUM_WORKERS` | xdist's own ceiling. Honoured here, because this hook replaces xdist's default implementation. Kiro Crew seeds it with a memory-aware cap at every agent spawn boundary. |
-| `KIROCREW_TEST_SLOT_DIR` | Where the slot locks live. Point it at a throwaway dir to measure without contending with another run. |
+| `JUNCTION_TEST_SLOT_DIR` | Where the slot locks live. Point it at a throwaway dir to measure without contending with another run. |
 
 If the suite is slow on your machine, the answer is usually not a bigger `-n`: run
 the slice you are working on. A full-suite checkpoint is what CI is for.
@@ -915,7 +915,7 @@ throwaway git worktree, so your tree is never mutated and nothing needs restorin
 and it refuses to run while a file under proof carries uncommitted edits.
 
 ```bash
-python3 src/kiro_crew/builtin_skills/kirocrew-dev/prepare-pr/scripts/prove.py
+python3 src/junction/builtin_skills/junction-dev/prepare-pr/scripts/prove.py
 # 0 PROVEN · 20 NOT_PROVEN · 21 INCONCLUSIVE · 10 nothing to prove · 30 baseline red
 # add --per-hunk to name the hunks no test catches
 ```
@@ -934,7 +934,7 @@ pytest exits 0, i.e. only in the case where the mutation did *not* do its job, l
 correctly-failing mutation in your tree.
 
 ```bash
-f=src/kiro_crew/foo.py
+f=src/junction/foo.py
 cp "$f" "$f.premutation"                 # back up whatever is there now
 # ...edit $f to invert the branch the test covers...
 pytest test/test_foo.py -n0 -q           # expect RED; if it passes, the test is weak
@@ -1005,7 +1005,7 @@ import asyncio, json, time
 
 async def main():
     kiro = await asyncio.create_subprocess_exec(
-        "kiro-cli", "acp", "--agent", "kirocrew",
+        "kiro-cli", "acp", "--agent", "junction",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
@@ -1042,7 +1042,7 @@ async def main():
     t0 = time.time()
     await wait_response(await send("initialize", {
         "protocolVersion": "2024-11-05",
-        "clientInfo": {"name": "kirocrew", "version": "0.1.0"},
+        "clientInfo": {"name": "junction", "version": "0.1.0"},
     }))
     await wait_response(await send("session/new", {"cwd": "/tmp", "mcpServers": []}))
 

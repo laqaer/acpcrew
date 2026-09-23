@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from kiro_crew.cron import _AUTO_PAUSE_THRESHOLD, CronJob, CronSchedule, CronService
+from junction.cron import _AUTO_PAUSE_THRESHOLD, CronJob, CronSchedule, CronService
 
 
 class TestRecordFailureSuccess:
@@ -51,7 +51,7 @@ class TestRecordFailureSuccess:
         # The pause/unpause is a permission decision (revokes/restores execute
         # ability), so it must emit a SEL audit event exactly once per transition.
         job = CronJob(id="j", name="n", message="m", schedule=CronSchedule(kind="every", every_secs=60), script="x.py:run")
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        with patch("junction.sel.sel") as mock_sel:
             for _ in range(_AUTO_PAUSE_THRESHOLD):
                 job.record_failure()
             # Extra failures past the threshold must NOT re-audit (already paused).

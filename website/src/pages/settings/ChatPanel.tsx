@@ -209,8 +209,8 @@ export function ChatPanel() {
     }
     dashboard?: { user_role?: string; user_role_other?: string; user_technical_level?: string; prevent_sleep?: boolean }
   }>({
-    queryKey: ['kirocrewConfig'],
-    queryFn: () => api.kirocrewConfig(),
+    queryKey: ['junctionConfig'],
+    queryFn: () => api.junctionConfig(),
   })
   const mcCfg = mcQ.data
 
@@ -224,7 +224,7 @@ export function ChatPanel() {
   const profileMut = useMutation({
     mutationFn: ({ path, value }: { path: string; value: string }) =>
       api.patchConfig(path, value),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_profile')),
   })
 
@@ -232,7 +232,7 @@ export function ChatPanel() {
   const preventSleep = mcCfg?.dashboard?.prevent_sleep ?? false
   const preventSleepMut = useMutation({
     mutationFn: (v: boolean) => api.patchConfig('dashboard.prevent_sleep', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_dashboard_config')),
   })
 
@@ -240,7 +240,7 @@ export function ChatPanel() {
   const summaryEnabled = mcCfg?.session_summary?.enabled ?? false
   const summaryMut = useMutation({
     mutationFn: (v: boolean) => api.patchConfig('session_summary.enabled', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_session_summaries')),
   })
 
@@ -275,7 +275,7 @@ export function ChatPanel() {
 
   const budgetMut = useMutation({
     mutationFn: (n: number) => api.patchConfig('agent.soft_stop_budget_secs', n),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => {
       setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_soft_stop_budget'))
       // Revert the input to the last-known server value so the user isn't
@@ -293,7 +293,7 @@ export function ChatPanel() {
   const fallbackModel = mcCfg?.agent?.fallback_model ?? 'auto'
   const fallbackMut = useMutation({
     mutationFn: (v: string) => api.patchConfig('agent.fallback_model', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: (err: unknown) => {
       // Surface the backend's actual deny reason (e.g. an unentitled id)
       // next to the generic failure line.
@@ -326,7 +326,7 @@ export function ChatPanel() {
 
   const keepCharsMut = useMutation({
     mutationFn: (n: number) => api.patchConfig('agent.completion_keep_chars', n),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => {
       setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_completion_keep_characters'))
       setLocalKeepChars(
@@ -337,7 +337,7 @@ export function ChatPanel() {
 
   const keepModeMut = useMutation({
     mutationFn: (v: CompletionKeepMode) => api.patchConfig('agent.completion_keep', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_completion_keep_mode')),
   })
 
@@ -362,7 +362,7 @@ export function ChatPanel() {
 
   const defaultModelMut = useMutation({
     mutationFn: (v: string) => api.patchConfig('agent.model', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_default_model')),
   })
 
@@ -373,7 +373,7 @@ export function ChatPanel() {
   const effortSupported = modelSupportsEffort(defaultModel)
   const defaultEffortMut = useMutation({
     mutationFn: (v: string) => api.patchConfig('agent.reasoning_effort', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_default_reasoning_effort')),
   })
 
@@ -407,12 +407,12 @@ export function ChatPanel() {
     })
   const roleModelMut = useMutation({
     mutationFn: ({ path, value }: { path: string; value: string }) => api.patchConfig(path, value),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_model')),
   })
   const roleEffortMut = useMutation({
     mutationFn: ({ path, value }: { path: string; value: string }) => api.patchConfig(path, value),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_role_effort')),
   })
 
@@ -783,7 +783,7 @@ export function ChatPanel() {
             optionLabels={COMPACT_LABELS}
             onChange={v =>
               api.patchConfig('session.autocompact_pct', Number(v))
-                .then(() => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }))
+                .then(() => qc.invalidateQueries({ queryKey: ['junctionConfig'] }))
                 .catch(() => setSaveError(i18nT('pages.settings.chatPanel.failed_to_save_auto_compact_threshold')))
             }
             disabled={!mcQ.isSuccess}

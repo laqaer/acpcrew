@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 Covers the request contract every frontend call depends on, plus the input
 validation and redaction the AUTOSDE ``backend-security-controls`` rule requires.
@@ -30,10 +30,10 @@ from meetings_helpers import (  # noqa: F401
     root_fixture,
 )
 
-from kiro_crew.apps.builtins.meetings.backend import constants as k
-from kiro_crew.apps.builtins.meetings.backend import store
-from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
-from kiro_crew.apps.builtins.meetings.backend.routes import _common
+from junction.apps.builtins.meetings.backend import constants as k
+from junction.apps.builtins.meetings.backend import store
+from junction.apps.builtins.meetings.backend.domain import session as sess
+from junction.apps.builtins.meetings.backend.routes import _common
 
 BASE = k.API_BASE
 
@@ -460,7 +460,7 @@ class TestMeetingLifecycleRoutes:
     async def test_delete_waits_for_in_flight_initialization(
         self, app, root: Path, monkeypatch
     ):
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle
 
         class ObservedLock:
             def __init__(self):
@@ -508,7 +508,7 @@ class TestMeetingLifecycleRoutes:
     async def test_delete_waits_for_in_flight_agent_toggle(
         self, app, root: Path, monkeypatch
     ):
-        from kiro_crew.apps.builtins.meetings.backend.routes import agents, meeting_lifecycle
+        from junction.apps.builtins.meetings.backend.routes import agents, meeting_lifecycle
 
         class ObservedLock:
             def __init__(self):
@@ -562,7 +562,7 @@ class TestMeetingLifecycleRoutes:
     async def test_task_mutation_cannot_resurrect_a_deleted_meeting(
         self, app, root: Path, monkeypatch
     ):
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         async with client_for(app) as client:
             await client.post(f"{BASE}/meetings/standup/init", json={"title": "Standup"})
@@ -705,7 +705,7 @@ class TestMeetingLifecycleRoutes:
         became `["u","r","g","e","n","t"]` — six junk labels instead of one. A
         truthiness check catches neither; the type check catches both.
         """
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         out = task_routes._normalize_task({"description": "d", "labels": labels})
         assert out is not None
@@ -1065,7 +1065,7 @@ class TestAgentRoutes:
     async def test_stop_waits_for_an_in_flight_transcript_append(
         self, app, root: Path, fake_sessions, monkeypatch: pytest.MonkeyPatch
     ):
-        from kiro_crew.apps.builtins.meetings.backend.routes import (
+        from junction.apps.builtins.meetings.backend.routes import (
             agents,
             meeting_lifecycle,
         )
@@ -1121,7 +1121,7 @@ class TestAgentRoutes:
     async def test_review_status_waits_for_an_in_flight_transcript_append(
         self, app, fake_sessions, monkeypatch: pytest.MonkeyPatch
     ):
-        from kiro_crew.apps.builtins.meetings.backend.routes import (
+        from junction.apps.builtins.meetings.backend.routes import (
             agents,
             meeting_lifecycle,
         )
@@ -1548,7 +1548,7 @@ class TestTaskRoutes:
 
     @pytest.mark.asyncio
     async def test_file_task_provider_failure_is_502(self, app, root: Path, monkeypatch):
-        from kiro_crew.apps.builtins.meetings.backend.providers import tasks as taskprov
+        from junction.apps.builtins.meetings.backend.providers import tasks as taskprov
 
         class Failing(taskprov.TaskProvider):
             @property
@@ -1563,7 +1563,7 @@ class TestTaskRoutes:
                 raise RuntimeError("tracker down")
 
         monkeypatch.setattr(
-            "kiro_crew.apps.builtins.meetings.backend.routes.tasks."
+            "junction.apps.builtins.meetings.backend.routes.tasks."
             "taskprov.get_task_provider",
             lambda *_a, **_kw: Failing(),
         )
@@ -1709,7 +1709,7 @@ class TestBodyLimits:
 class TestStartupHook:
     @pytest.mark.asyncio
     async def test_startup_seeds_the_data_dir_and_loads_the_dictionary(self, tmp_path: Path):
-        from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
+        from junction.apps.builtins.meetings.backend.domain import session as sess
 
         fresh = tmp_path / "unseeded"
         app = make_app(fresh)
@@ -1727,7 +1727,7 @@ class TestStartupHook:
 
 class TestActiveMeetingHolder:
     def test_set_cancels_the_previous_session(self, root: Path):
-        from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
+        from junction.apps.builtins.meetings.backend.domain import session as sess
 
         first = sess.MeetingSession(meeting_id="a", config=store.read_config(root))
         second = sess.MeetingSession(meeting_id="b", config=store.read_config(root))
@@ -1738,7 +1738,7 @@ class TestActiveMeetingHolder:
         assert _common.ACTIVE.get("b") is second
 
     def test_clear_returns_the_previous(self, root: Path):
-        from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
+        from junction.apps.builtins.meetings.backend.domain import session as sess
 
         session = sess.MeetingSession(meeting_id="a", config=store.read_config(root))
         _common.ACTIVE.set(session)
@@ -1757,7 +1757,7 @@ class TestFiledRefIsSanitized:
     """
 
     def test_a_javascript_url_is_dropped_but_the_id_survives(self) -> None:
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         ref = task_routes._normalize_filed_ref(
             {"id": "KC-1", "url": "javascript:alert(document.cookie)"}
@@ -1778,7 +1778,7 @@ class TestFiledRefIsSanitized:
         ],
     )
     def test_every_non_http_scheme_is_refused(self, url: str) -> None:
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         ref = task_routes._normalize_filed_ref({"id": "KC-2", "url": url})
         assert ref is not None
@@ -1786,19 +1786,19 @@ class TestFiledRefIsSanitized:
 
     @pytest.mark.parametrize("url", ["https://tracker.example/t/1", "http://tracker.example/t/1"])
     def test_absolute_http_urls_are_kept(self, url: str) -> None:
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         ref = task_routes._normalize_filed_ref({"id": "KC-3", "url": url})
         assert ref == {"id": "KC-3", "url": url}
 
     def test_a_non_dict_ref_is_dropped(self) -> None:
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         assert task_routes._normalize_filed_ref("KC-4") is None
         assert task_routes._normalize_filed_ref(None) is None
 
     def test_normalize_task_routes_filed_ref_through_the_gate(self) -> None:
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         task = task_routes._normalize_task(
             {"description": "do the thing", "filed_ref": {"id": "X", "url": "javascript:1"}}
@@ -1819,7 +1819,7 @@ class TestAgentAndPresetSanitizers:
 
     @staticmethod
     def _mod():
-        from kiro_crew.apps.builtins.meetings.backend.routes import settings as mod
+        from junction.apps.builtins.meetings.backend.routes import settings as mod
 
         return mod
 
@@ -1959,7 +1959,7 @@ class TestOutputsPollIsRedactedAndOffLoop:
         """A blocking read on the loop is the defect; pin the offload."""
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
 
         src = inspect.getsource(ml.handle_get_outputs)
         assert "asyncio.to_thread" in src, "the poll must not read on the event loop"
@@ -1969,7 +1969,7 @@ class TestOutputsPollIsRedactedAndOffLoop:
     def test_the_collector_redacts_both_halves(self):
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
 
         src = inspect.getsource(ml._collect_outputs)
         assert "redact(" in src, "agent outputs must be redacted"
@@ -2023,7 +2023,7 @@ class TestNoStoreCallRunsOnTheEventLoop:
     )
 
     def _route_modules(self) -> list:
-        from kiro_crew.apps.builtins.meetings.backend.routes import (
+        from junction.apps.builtins.meetings.backend.routes import (
             agents,
             calendar,
             meeting_lifecycle,
@@ -2084,7 +2084,7 @@ class TestNoStoreCallRunsOnTheEventLoop:
         """The exact call site the CI reviewer flagged."""
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
 
         src = inspect.getsource(ml.handle_list_meetings)
         assert "asyncio.to_thread(store.list_meetings" in src
@@ -2100,10 +2100,10 @@ class TestNoStoreCallRunsOnTheEventLoop:
         """
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import agents as ag
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
-        from kiro_crew.apps.builtins.meetings.backend.routes import settings as st
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as tk
+        from junction.apps.builtins.meetings.backend.routes import agents as ag
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
+        from junction.apps.builtins.meetings.backend.routes import settings as st
+        from junction.apps.builtins.meetings.backend.routes import tasks as tk
 
         for handler in (
             ml.handle_meeting_init,
@@ -2128,11 +2128,11 @@ class TestNoStoreCallRunsOnTheEventLoop:
         """The helpers a worker thread runs say so, per the repo convention."""
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import agents as ag
-        from kiro_crew.apps.builtins.meetings.backend.routes import calendar as cl
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
-        from kiro_crew.apps.builtins.meetings.backend.routes import settings as st
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as tk
+        from junction.apps.builtins.meetings.backend.routes import agents as ag
+        from junction.apps.builtins.meetings.backend.routes import calendar as cl
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle as ml
+        from junction.apps.builtins.meetings.backend.routes import settings as st
+        from junction.apps.builtins.meetings.backend.routes import tasks as tk
 
         for helper in (
             ml._init_meeting,
@@ -2169,7 +2169,7 @@ class TestTaskWritesAreSerialized:
         import threading
         from concurrent import futures
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         meeting_id = "m1"
         count = 16
@@ -2197,7 +2197,7 @@ class TestTaskWritesAreSerialized:
         import threading
         from concurrent import futures
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         meeting_id = "m2"
         count = 16
@@ -2224,8 +2224,8 @@ class TestTaskWritesAreSerialized:
         recorded the ref against one arbitrarily. The user sees two rows and can
         address neither reliably.
         """
-        from kiro_crew.apps.builtins.meetings.backend import store as meetings_store
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend import store as meetings_store
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         meeting_id = "m-dupe"
         meetings_store.write_tasks(
@@ -2249,8 +2249,8 @@ class TestTaskWritesAreSerialized:
 
     def test_deleting_one_of_two_duplicate_ids_keeps_the_other(self, root: Path) -> None:
         """The consequence the rename prevents, asserted end to end."""
-        from kiro_crew.apps.builtins.meetings.backend import store as meetings_store
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend import store as meetings_store
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         meeting_id = "m-dupe-delete"
         meetings_store.write_tasks(
@@ -2282,7 +2282,7 @@ class TestTaskWritesAreSerialized:
         import ast
         from pathlib import Path as _Path
 
-        import kiro_crew.apps.builtins.meetings.backend as backend_pkg
+        import junction.apps.builtins.meetings.backend as backend_pkg
 
         backend = _Path(backend_pkg.__file__).resolve().parent
         offenders: list[str] = []
@@ -2338,9 +2338,9 @@ class TestTaskWritesAreSerialized:
         import threading
         from concurrent import futures
 
-        from kiro_crew.apps.builtins.meetings.backend import store as meetings_store
-        from kiro_crew.apps.builtins.meetings.backend.routes import agents as agent_routes
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle as lifecycle
+        from junction.apps.builtins.meetings.backend import store as meetings_store
+        from junction.apps.builtins.meetings.backend.routes import agents as agent_routes
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle as lifecycle
 
         meeting_id = "m-concurrent"
         meetings_store.write_meeting_meta(
@@ -2385,8 +2385,8 @@ class TestTaskWritesAreSerialized:
         import threading
         from concurrent import futures
 
-        from kiro_crew.apps.builtins.meetings.backend import store as meetings_store
-        from kiro_crew.apps.builtins.meetings.backend.routes import agents as agent_routes
+        from junction.apps.builtins.meetings.backend import store as meetings_store
+        from junction.apps.builtins.meetings.backend.routes import agents as agent_routes
 
         meeting_id = "m-toggles"
         meetings_store.write_meeting_meta(
@@ -2421,7 +2421,7 @@ class TestTaskWritesAreSerialized:
         import threading
         from concurrent import futures
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import settings as settings_routes
+        from junction.apps.builtins.meetings.backend.routes import settings as settings_routes
 
         count = 12
         barrier = threading.Barrier(count)
@@ -2445,8 +2445,8 @@ class TestTaskWritesAreSerialized:
         result. Writing that pre-await snapshot would roll back anything changed in
         between — e.g. the task extractor agent adding a task.
         """
-        from kiro_crew.apps.builtins.meetings.backend.providers import tasks as taskprov
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.providers import tasks as taskprov
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         meeting_id = "m3"
         store.write_tasks(meeting_id, [{"id": "t1", "description": "file me"}], root)
@@ -2481,7 +2481,7 @@ class TestTeardownDrainsBeforeClearing:
 
     @pytest.mark.asyncio
     async def test_drain_and_clear_flushes_first(self, root: Path) -> None:
-        from kiro_crew.apps.builtins.meetings.backend.routes import _common
+        from junction.apps.builtins.meetings.backend.routes import _common
 
         flushed: list[str] = []
 
@@ -2507,7 +2507,7 @@ class TestTeardownDrainsBeforeClearing:
     @pytest.mark.asyncio
     async def test_a_failed_flush_still_tears_down(self, root: Path) -> None:
         """A stuck agent must not wedge shutdown — the session goes away regardless."""
-        from kiro_crew.apps.builtins.meetings.backend.routes import _common
+        from junction.apps.builtins.meetings.backend.routes import _common
 
         class _BrokenSession:
             meeting_id = "m2"
@@ -2533,7 +2533,7 @@ class TestTeardownDrainsBeforeClearing:
         import ast
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle
 
         tree = ast.parse(inspect.getsource(meeting_lifecycle))
         for fn in [n for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef)]:
@@ -2551,8 +2551,8 @@ class TestTeardownDrainsBeforeClearing:
         it is logged with the count rather than vanishing."""
         import logging
 
-        from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
-        from kiro_crew.apps.builtins.meetings.backend.routes import _common
+        from junction.apps.builtins.meetings.backend.domain import session as sess
+        from junction.apps.builtins.meetings.backend.routes import _common
 
         class _Session:
             meeting_id = "stale"
@@ -2567,7 +2567,7 @@ class TestTeardownDrainsBeforeClearing:
 
         active = _common._ActiveMeeting()
         active.set(_Session())  # type: ignore[arg-type]
-        with caplog.at_level(logging.WARNING, logger="kirocrew.app.meetings"):
+        with caplog.at_level(logging.WARNING, logger="junction.app.meetings"):
             active.set(None)
         assert "1 queued line(s)" in caplog.text
         assert "drain_and_clear" in caplog.text
@@ -2580,7 +2580,7 @@ class TestTeardownDrainsBeforeClearing:
         import importlib
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import (
+        from junction.apps.builtins.meetings.backend.routes import (
             agents,
             meeting_lifecycle,
         )
@@ -2588,7 +2588,7 @@ class TestTeardownDrainsBeforeClearing:
         # `from ... import __init__` binds the dunder attribute, not the package —
         # import the package itself so `inspect.getsource` gets a module.
         routes_init = importlib.import_module(
-            "kiro_crew.apps.builtins.meetings.backend.routes"
+            "junction.apps.builtins.meetings.backend.routes"
         )
 
         offenders: list[str] = []
@@ -2626,7 +2626,7 @@ class TestConcurrentStartsAreSerialized:
         import ast
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle
 
         tree = ast.parse(inspect.getsource(meeting_lifecycle))
         starts = [
@@ -2673,7 +2673,7 @@ class TestTeardownLeavesNoMeetingFalselyActive:
     async def test_gateway_shutdown_marks_the_live_meeting_ended(
         self, app: web.Application, root: Path
     ) -> None:
-        from kiro_crew.apps.builtins.meetings.backend import routes as routes_pkg
+        from junction.apps.builtins.meetings.backend import routes as routes_pkg
 
         async with client_for(app) as client:
             await _start(client, "shutdown-me")
@@ -2696,7 +2696,7 @@ class TestTeardownLeavesNoMeetingFalselyActive:
         paused meeting from an earlier run must keep its status, or a restart would
         silently end everything in the user's history.
         """
-        from kiro_crew.apps.builtins.meetings.backend import routes as routes_pkg
+        from junction.apps.builtins.meetings.backend import routes as routes_pkg
 
         async with client_for(app) as client:
             await client.post(f"{BASE}/meetings/never-started/init", json={"title": "Later"})
@@ -2709,7 +2709,7 @@ class TestTeardownLeavesNoMeetingFalselyActive:
     ) -> None:
         """Order matters: the flush is what saves the queued transcript, and it can
         only run while the session still exists."""
-        from kiro_crew.apps.builtins.meetings.backend import routes as routes_pkg
+        from junction.apps.builtins.meetings.backend import routes as routes_pkg
 
         order: list[str] = []
 
@@ -2777,12 +2777,12 @@ class TestTeardownLeavesNoMeetingFalselyActive:
         import importlib
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import agents as agents_routes
-        from kiro_crew.apps.builtins.meetings.backend.routes import (
+        from junction.apps.builtins.meetings.backend.routes import agents as agents_routes
+        from junction.apps.builtins.meetings.backend.routes import (
             meeting_lifecycle,
         )
 
-        routes_init = importlib.import_module("kiro_crew.apps.builtins.meetings.backend.routes")
+        routes_init = importlib.import_module("junction.apps.builtins.meetings.backend.routes")
 
         offenders: list[str] = []
         for module in (routes_init, agents_routes, meeting_lifecycle):
@@ -2850,7 +2850,7 @@ class TestTeardownLeavesNoMeetingFalselyActive:
         Startup is a sound place to repair it: `ACTIVE` is empty by construction in a
         fresh process, so any non-terminal status on disk is provably orphaned.
         """
-        from kiro_crew.apps.builtins.meetings.backend import routes as routes_pkg
+        from junction.apps.builtins.meetings.backend import routes as routes_pkg
 
         # Three meetings a killed process could have left behind, one per
         # non-terminal status, written directly to stand in for "no cleanup ran".
@@ -2876,7 +2876,7 @@ class TestTeardownLeavesNoMeetingFalselyActive:
         """`idle` is not orphaned — a meeting can sit initialized-but-never-started
         across any number of restarts, and ending those would mark every meeting the
         user ever opened as finished. Same for one already `ended`."""
-        from kiro_crew.apps.builtins.meetings.backend import routes as routes_pkg
+        from junction.apps.builtins.meetings.backend import routes as routes_pkg
 
         store.write_meeting_meta("fresh", store.new_meeting_meta("fresh", "Fresh"), root)
         ended = store.new_meeting_meta("done", "Done")
@@ -2959,7 +2959,7 @@ class TestStartAndStopAreSerialized:
         import ast
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle
 
         tree = ast.parse(inspect.getsource(meeting_lifecycle))
         start = next(
@@ -2984,7 +2984,7 @@ class TestStartAndStopAreSerialized:
         import ast
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import meeting_lifecycle
+        from junction.apps.builtins.meetings.backend.routes import meeting_lifecycle
 
         tree = ast.parse(inspect.getsource(meeting_lifecycle))
         stop = next(
@@ -3047,7 +3047,7 @@ class TestATaskIsNeverFiledTwice:
         import asyncio
         from unittest import mock
 
-        from kiro_crew.apps.builtins.meetings.backend.providers import tasks as taskprov
+        from junction.apps.builtins.meetings.backend.providers import tasks as taskprov
 
         created: list[str] = []
         real_create = taskprov.LocalTaskProvider.create
@@ -3086,7 +3086,7 @@ class TestATaskIsNeverFiledTwice:
         double-click slow enough not to overlap. Same answer, no second item."""
         from unittest import mock
 
-        from kiro_crew.apps.builtins.meetings.backend.providers import tasks as taskprov
+        from junction.apps.builtins.meetings.backend.providers import tasks as taskprov
 
         created: list[str] = []
         real_create = taskprov.LocalTaskProvider.create
@@ -3125,7 +3125,7 @@ class TestATaskIsNeverFiledTwice:
         import ast
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         tree = ast.parse(inspect.getsource(task_routes))
         handler = next(
@@ -3159,7 +3159,7 @@ class TestATaskIsNeverFiledTwice:
         import ast
         import inspect
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         tree = ast.parse(inspect.getsource(task_routes))
         handler = next(
@@ -3188,10 +3188,10 @@ class TestATaskIsNeverFiledTwice:
         It must refuse instead, and must not rewrite the list a concurrent deleter just
         wrote.
         """
-        from kiro_crew.apps.builtins.meetings.backend import store
-        from kiro_crew.apps.builtins.meetings.backend.providers import tasks as taskprov
-        from kiro_crew.apps.builtins.meetings.backend.routes import _common
-        from kiro_crew.apps.builtins.meetings.backend.routes import tasks as task_routes
+        from junction.apps.builtins.meetings.backend import store
+        from junction.apps.builtins.meetings.backend.providers import tasks as taskprov
+        from junction.apps.builtins.meetings.backend.routes import _common
+        from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         root = tmp_path
         store.write_tasks("m1", [{"id": "survivor", "description": "kept"}], root)
@@ -3224,7 +3224,7 @@ class TestATeardownNeverClearsAReplacement:
     async def test_a_session_installed_during_the_flush_survives(self, root: Path) -> None:
         import asyncio
 
-        from kiro_crew.apps.builtins.meetings.backend.routes import _common
+        from junction.apps.builtins.meetings.backend.routes import _common
 
         active = _common._ActiveMeeting()
         release = asyncio.Event()
@@ -3263,7 +3263,7 @@ class TestATeardownNeverClearsAReplacement:
     @pytest.mark.asyncio
     async def test_the_ordinary_teardown_still_clears(self, root: Path) -> None:
         """With no replacement, the session is dropped exactly as before."""
-        from kiro_crew.apps.builtins.meetings.backend.routes import _common
+        from junction.apps.builtins.meetings.backend.routes import _common
 
         class _Session:
             meeting_id = "solo"

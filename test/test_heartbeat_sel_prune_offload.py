@@ -25,10 +25,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import kiro_crew.heartbeat as hb_mod
-from kiro_crew.heartbeat import HeartbeatService
+import junction.heartbeat as hb_mod
+from junction.heartbeat import HeartbeatService
 
-_PRUNE_COUNTER = "kirocrew.sel.prune_failed.count"
+_PRUNE_COUNTER = "junction.sel.prune_failed.count"
 
 
 def _service(
@@ -51,7 +51,7 @@ def _service(
     svc._tick = 0  # 0 % _PRUNE_TICKS == 0 -> prune branch runs
 
     monkeypatch.setattr(
-        hb_mod.KiroCrewConfig, "load", classmethod(lambda cls: MagicMock())
+        hb_mod.JunctionConfig, "load", classmethod(lambda cls: MagicMock())
     )
     ran_on: list[str] = []
 
@@ -107,7 +107,7 @@ class TestSelPruneFailureIsLoud:
         svc, _, _ran = _service(monkeypatch, prune_error=OSError("no space left on device"))
         monkeypatch.setattr(hb_mod, "get_recorder", lambda: MagicMock())
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.heartbeat"):
+        with caplog.at_level(logging.WARNING, logger="junction.heartbeat"):
             await svc._beat()
 
         assert any(
@@ -125,7 +125,7 @@ class TestSelPruneFailureIsLoud:
 
         await svc._beat()
 
-        # Core metric names must live under the kirocrew.* namespace -- an
+        # Core metric names must live under the junction.* namespace -- an
         # off-namespace name is rejected inside counter(), which swallows the
         # error, so the counter would never fire and nothing would say so.
         recorder.counter.assert_called_once_with(_PRUNE_COUNTER)

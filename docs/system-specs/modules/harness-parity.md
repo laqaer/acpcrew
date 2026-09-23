@@ -40,7 +40,7 @@ invariants and names what pins each one.
 - **Guarantees** is the property that goes RED when broken, not the
   implementation that happens to satisfy it today.
 - **Pinned by** names the test module and function. Test modules live at `test/`
-  in the repo root; sources live at `src/kiro_crew/`. A row marked
+  in the repo root; sources live at `src/junction/`. A row marked
   *review-only* has no deterministic test — it is enforced by the
   `harness-parity` rule in `AUTOSDE.yaml`, which every AI review lane reads.
 - An invariant is *closed* by its test, not by this document. If a row

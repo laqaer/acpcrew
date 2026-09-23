@@ -58,7 +58,7 @@ mkdirSync(OUT, { recursive: true })
  */
 const SLOTS = [{
   key: 'chat-a', title: 'Draft the release notes', running: false, messages: 4,
-  agent: 'kirocrew', modified: Math.floor(Date.now() / 1000),
+  agent: 'junction', modified: Math.floor(Date.now() / 1000),
   last_ts: '2026-08-19T00:10:00Z', folder_id: '', last_message: 'Grouped the entries by area.',
 }]
 

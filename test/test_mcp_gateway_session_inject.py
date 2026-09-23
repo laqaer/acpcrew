@@ -23,8 +23,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.mcp_gateway.rewriter import _WRAPPER_MARKER
-from kiro_crew.mcp_gateway.session_servers import (
+from junction.mcp_gateway.rewriter import _WRAPPER_MARKER
+from junction.mcp_gateway.session_servers import (
     _acp_env,
     _acp_server_entry,
     pooled_session_servers,
@@ -56,36 +56,36 @@ def _write_overlay(tmp_path: Path, agent: str, servers: dict) -> Path:
 
 
 def test_injects_only_wrapped_stub_entries(tmp_path):
-    overlay = _write_overlay(tmp_path, "kirocrew", {
+    overlay = _write_overlay(tmp_path, "junction", {
         "pooled": _stub(),
         "unpooled": {"command": "npx", "args": ["-y", "srv"], "env": {"TOKEN": "s3cr3t"}},
     })
-    out = pooled_session_servers(overlay, "kirocrew")
+    out = pooled_session_servers(overlay, "junction")
     assert [e["name"] for e in out] == ["pooled"]
 
 
 def test_unpooled_server_env_is_never_transmitted(tmp_path):
     """A non-poolable server's credentials must stay in the spec file."""
-    overlay = _write_overlay(tmp_path, "kirocrew", {
+    overlay = _write_overlay(tmp_path, "junction", {
         "secretive": {"command": "npx", "env": {"API_KEY": "s3cr3t"}},
     })
-    assert pooled_session_servers(overlay, "kirocrew") == []
-    assert "s3cr3t" not in json.dumps(pooled_session_servers(overlay, "kirocrew"))
+    assert pooled_session_servers(overlay, "junction") == []
+    assert "s3cr3t" not in json.dumps(pooled_session_servers(overlay, "junction"))
 
 
 def test_stub_name_is_preserved_so_it_shadows_the_spec_entry(tmp_path):
     """The injected name must equal the original server name — that identity is
     what suppresses the agent spec's own copy (and keeps tool ids stable)."""
-    overlay = _write_overlay(tmp_path, "kirocrew", {"builder-mcp": _stub()})
-    (entry,) = pooled_session_servers(overlay, "kirocrew")
+    overlay = _write_overlay(tmp_path, "junction", {"builder-mcp": _stub()})
+    (entry,) = pooled_session_servers(overlay, "junction")
     assert entry["name"] == "builder-mcp"
 
 
 def test_entries_are_name_sorted_for_deterministic_params(tmp_path):
-    overlay = _write_overlay(tmp_path, "kirocrew", {
+    overlay = _write_overlay(tmp_path, "junction", {
         "zeta": _stub(), "alpha": _stub(), "mid": _stub(),
     })
-    assert [e["name"] for e in pooled_session_servers(overlay, "kirocrew")] == [
+    assert [e["name"] for e in pooled_session_servers(overlay, "junction")] == [
         "alpha", "mid", "zeta",
     ]
 
@@ -95,17 +95,17 @@ def test_entries_are_name_sorted_for_deterministic_params(tmp_path):
 
 def test_marker_is_stripped_from_the_injected_element(tmp_path):
     """kiro-cli tolerates unknown keys today; a future strict parser would not."""
-    overlay = _write_overlay(tmp_path, "kirocrew", {"pooled": _stub()})
-    (entry,) = pooled_session_servers(overlay, "kirocrew")
+    overlay = _write_overlay(tmp_path, "junction", {"pooled": _stub()})
+    (entry,) = pooled_session_servers(overlay, "junction")
     assert _WRAPPER_MARKER not in entry
 
 
 def test_operator_passthrough_keys_survive(tmp_path):
     """Dropping autoApprove would re-prompt for already-approved tools."""
-    overlay = _write_overlay(tmp_path, "kirocrew", {
+    overlay = _write_overlay(tmp_path, "junction", {
         "pooled": _stub(timeout=9000, type="stdio", disabledTools=["x"]),
     })
-    (entry,) = pooled_session_servers(overlay, "kirocrew")
+    (entry,) = pooled_session_servers(overlay, "junction")
     assert entry["autoApprove"] == ["fetch___fetch"]
     assert entry["timeout"] == 9000
     assert entry["type"] == "stdio"
@@ -122,14 +122,14 @@ def test_env_is_emitted_in_acp_array_form():
 
 def test_stub_entries_carry_no_env(tmp_path):
     """gatewayd spawns the pooled backend, so kiro-cli needs no env at all."""
-    overlay = _write_overlay(tmp_path, "kirocrew", {"pooled": _stub()})
-    (entry,) = pooled_session_servers(overlay, "kirocrew")
+    overlay = _write_overlay(tmp_path, "junction", {"pooled": _stub()})
+    (entry,) = pooled_session_servers(overlay, "junction")
     assert entry["env"] == []
 
 
 def test_non_string_args_are_coerced(tmp_path):
-    overlay = _write_overlay(tmp_path, "kirocrew", {"pooled": _stub(args=["ok", 7])})
-    (entry,) = pooled_session_servers(overlay, "kirocrew")
+    overlay = _write_overlay(tmp_path, "junction", {"pooled": _stub(args=["ok", 7])})
+    (entry,) = pooled_session_servers(overlay, "junction")
     assert entry["args"] == ["ok", "7"]
 
 
@@ -141,17 +141,17 @@ def test_entry_without_command_is_skipped():
 
 
 def test_commandless_stub_does_not_suppress_others(tmp_path):
-    overlay = _write_overlay(tmp_path, "kirocrew", {
+    overlay = _write_overlay(tmp_path, "junction", {
         "broken": _stub(command=""), "fine": _stub(),
     })
-    assert [e["name"] for e in pooled_session_servers(overlay, "kirocrew")] == ["fine"]
+    assert [e["name"] for e in pooled_session_servers(overlay, "junction")] == ["fine"]
 
 
 # ── the off switch and fail-soft behaviour ──────────────────────────────────
 
 
 def test_disabled_gateway_injects_nothing():
-    assert pooled_session_servers(None, "kirocrew") == []
+    assert pooled_session_servers(None, "junction") == []
 
 
 def test_missing_agent_name_injects_nothing(tmp_path):
@@ -159,14 +159,14 @@ def test_missing_agent_name_injects_nothing(tmp_path):
 
 
 def test_absent_overlay_spec_is_not_an_error(tmp_path):
-    assert pooled_session_servers(tmp_path / "nope", "kirocrew") == []
+    assert pooled_session_servers(tmp_path / "nope", "junction") == []
 
 
 def test_corrupt_overlay_degrades_to_unpooled(tmp_path):
     overlay = tmp_path / "agents"
     overlay.mkdir()
-    (overlay / "kirocrew.json").write_text("{not json", encoding="utf-8")
-    assert pooled_session_servers(overlay, "kirocrew") == []
+    (overlay / "junction.json").write_text("{not json", encoding="utf-8")
+    assert pooled_session_servers(overlay, "junction") == []
 
 
 @pytest.mark.parametrize("body", ["[]", '"str"', "null", '{"mcpServers": []}',
@@ -174,13 +174,13 @@ def test_corrupt_overlay_degrades_to_unpooled(tmp_path):
 def test_malformed_spec_shapes_degrade_to_unpooled(tmp_path, body):
     overlay = tmp_path / "agents"
     overlay.mkdir(exist_ok=True)
-    (overlay / "kirocrew.json").write_text(body, encoding="utf-8")
-    assert pooled_session_servers(overlay, "kirocrew") == []
+    (overlay / "junction.json").write_text(body, encoding="utf-8")
+    assert pooled_session_servers(overlay, "junction") == []
 
 
 def test_non_dict_server_entry_is_skipped(tmp_path):
-    overlay = _write_overlay(tmp_path, "kirocrew", {"bad": "x", "good": _stub()})
-    assert [e["name"] for e in pooled_session_servers(overlay, "kirocrew")] == ["good"]
+    overlay = _write_overlay(tmp_path, "junction", {"bad": "x", "good": _stub()})
+    assert [e["name"] for e in pooled_session_servers(overlay, "junction")] == ["good"]
 
 
 # ── the mechanism itself, pinned against the shipped binary ─────────────────
@@ -210,7 +210,7 @@ for line in sys.stdin:
         result = {
             "protocolVersion": params.get("protocolVersion", "2024-11-05"),
             "capabilities": {},
-            "serverInfo": {"name": "kirocrew-precedence-probe", "version": "1"},
+            "serverInfo": {"name": "junction-precedence-probe", "version": "1"},
         }
     elif request.get("method") == "tools/list":
         result = {"tools": []}
@@ -221,7 +221,7 @@ for line in sys.stdin:
 
 _DRIVER = r"""
 import json, os, subprocess, sys, threading, time
-from kiro_crew import platform_compat
+from junction import platform_compat
 
 w = sys.argv[1]
 p = subprocess.Popen(["kiro-cli", "acp", "--agent", "pooltest"], cwd=w + "/proj",
@@ -358,7 +358,7 @@ def test_injection_writes_nothing_to_the_work_dir(tmp_path):
     """The whole point of this channel: no file lands in the user's project."""
     work = tmp_path / "project"
     (work / ".kiro").mkdir(parents=True)
-    overlay = _write_overlay(tmp_path, "kirocrew", {"pooled": _stub()})
+    overlay = _write_overlay(tmp_path, "junction", {"pooled": _stub()})
     before = {p for p in work.rglob("*")}
-    assert pooled_session_servers(overlay, "kirocrew")
+    assert pooled_session_servers(overlay, "junction")
     assert {p for p in work.rglob("*")} == before

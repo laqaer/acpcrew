@@ -12,7 +12,7 @@ import { i18nT } from '../../i18n/t'
 
 /** GET /api/telemetry/collection */
 interface CollectionStatus {
-  /** EFFECTIVE state — `KIROCREW_TELEMETRY` can override the stored flag. */
+  /** EFFECTIVE state — `JUNCTION_TELEMETRY` can override the stored flag. */
   enabled: boolean
   env_pinned?: boolean
   env_var?: string
@@ -88,7 +88,7 @@ function MetricRecordingToggle() {
     // effective verdict, and only it knows whether an overlay shadowed the write.
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ['telemetryCollection'] })
-      qc.invalidateQueries({ queryKey: ['kirocrewConfig'] })
+      qc.invalidateQueries({ queryKey: ['junctionConfig'] })
     },
   })
 
@@ -136,7 +136,7 @@ function MetricRecordingToggle() {
         <p id={PIN_NOTE_ID} className="text-[12px] text-muted mt-1">
           {envPinned
             ? i18nT('pages.settings.privacyPanel.recordMetricsEnvPinned', {
-                envVar: statusQ.data?.env_var ?? 'KIROCREW_TELEMETRY',
+                envVar: statusQ.data?.env_var ?? 'JUNCTION_TELEMETRY',
               })
             : i18nT('pages.settings.privacyPanel.recordMetricsOverlayPinned')}
         </p>

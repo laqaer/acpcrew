@@ -17,17 +17,17 @@ tray, tunnel, and agent-bridge surfaces this gateway already covers.
 Junction is two planes composed behind one CLI and dashboard:
 
 1. **Harness plane** — ACP runtime registry
-   (`src/kiro_crew/acp/runtimes.py`). Default `agent.acp_backend` is
+   (`src/junction/acp/runtimes.py`). Default `agent.acp_backend` is
    `auto`. `kiro-cli` is optional.
 2. **Model plane** — optional Codex Router sidecar on loopback (typically
    `:4202` + LiteLLM `:4200`), observed from
-   `src/kiro_crew/model_router/`.
+   `src/junction/model_router/`.
 
 Memory, cron, and skills stay on the Python gateway. If the sidecar is
 absent, the gateway still runs as an ACP control plane (degraded,
 documented).
 
-Do not dump Codex Router into `kiro_crew`. Do not re-land multi-ACP; it is
+Do not dump Codex Router into `junction`. Do not re-land multi-ACP; it is
 already on `main`.
 
 ## Consequences

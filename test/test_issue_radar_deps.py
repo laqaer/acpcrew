@@ -32,10 +32,10 @@ from unittest import mock
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.apps.builtins.issue_radar.backend import crew_runtime as cr
-from kiro_crew.apps.builtins.issue_radar.backend import crew_store as cs
-from kiro_crew.apps.builtins.issue_radar.backend import github_client as gh
-from kiro_crew.apps.builtins.issue_radar.backend import provider, routes, store
+from junction.apps.builtins.issue_radar.backend import crew_runtime as cr
+from junction.apps.builtins.issue_radar.backend import crew_store as cs
+from junction.apps.builtins.issue_radar.backend import github_client as gh
+from junction.apps.builtins.issue_radar.backend import provider, routes, store
 
 OWNER, REPO = "o", "r"
 

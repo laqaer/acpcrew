@@ -21,7 +21,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_folder_app, _make_state
 
-from kiro_crew.config.paths import config_dir
+from junction.config.paths import config_dir
 
 
 @pytest.fixture
@@ -244,7 +244,7 @@ class TestPlacementRacesTheStore:
         delete committing in that window used to leave the slot pointing at a
         folder that no longer exists — persisted, with a 200 response.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("myslot")
         slot.append("user", "hello")
@@ -279,7 +279,7 @@ class TestPlacementRacesTheStore:
         Restoring unconditionally both discards that move and files the slot back
         into the very folder the failed request was deleting.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("myslot")
         slot.append("user", "hello")
@@ -314,8 +314,8 @@ class TestGuardedMetadataMerge:
     def test_merge_is_skipped_when_the_guard_no_longer_holds(
         self, tmp_path: Any
     ) -> None:
-        from kiro_crew.dashboard.channel_slots import needs_default_filing
-        from kiro_crew.history import ConversationLog
+        from junction.dashboard.channel_slots import needs_default_filing
+        from junction.history import ConversationLog
 
         log = ConversationLog(tmp_path)
         log.update_metadata("k", {"title": "t"})
@@ -334,8 +334,8 @@ class TestGuardedMetadataMerge:
     def test_merge_applies_when_the_record_is_still_unplaced(
         self, tmp_path: Any
     ) -> None:
-        from kiro_crew.dashboard.channel_slots import needs_default_filing
-        from kiro_crew.history import ConversationLog
+        from junction.dashboard.channel_slots import needs_default_filing
+        from junction.history import ConversationLog
 
         log = ConversationLog(tmp_path)
         log.update_metadata("k", {"title": "t"})
@@ -354,7 +354,7 @@ class TestGuardedMetadataMerge:
         A write issued by another holder while this call waited on the lock is
         exactly the case the guard exists for, so it has to be visible to it.
         """
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(tmp_path)
         log.update_metadata("k", {"title": "t"})
@@ -380,7 +380,7 @@ class TestGuardFailsClosed:
         (on Windows, an AV scanner holding a freshly written file) authorise a
         write over a placement the user had made.
         """
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(tmp_path)
         log.update_metadata("k", {"folder_id": "user-picked"})
@@ -402,7 +402,7 @@ class TestGuardFailsClosed:
         A session with no file on disk is genuinely empty, not unreadable, so the
         guard still gets to decide.
         """
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(tmp_path)
         assert log.update_metadata_if("fresh", {"folder_id": "x"}, lambda m: True)
@@ -422,8 +422,8 @@ class TestSlotCreateFolderAssignment:
         unfiled a conversation sitting in a different, perfectly valid folder — a
         move that failed took the old placement with it.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard import chat_handlers
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard import chat_handlers
 
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("myslot")

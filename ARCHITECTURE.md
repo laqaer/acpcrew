@@ -22,10 +22,10 @@ flowchart TB
   Ui["junction CLI / dashboard"]
   Gw[Python gateway]
   subgraph Harness["Harness plane"]
-    Reg["ACP runtime registry<br/>src/kiro_crew/acp/runtimes.py"]
+    Reg["ACP runtime registry<br/>src/junction/acp/runtimes.py"]
   end
   subgraph Model["Model plane (optional)"]
-    MR["observe + compose<br/>src/kiro_crew/model_router/"]
+    MR["observe + compose<br/>src/junction/model_router/"]
     CR["Codex Router sidecar :4202"]
     LL["LiteLLM :4200"]
   end
@@ -47,7 +47,7 @@ skills.
 ## Harness plane
 
 Already on `main`. `agent.acp_backend` defaults to `auto` via
-`src/kiro_crew/acp/runtimes.py`. Resolution preference is Cursor, Claude,
+`src/junction/acp/runtimes.py`. Resolution preference is Cursor, Claude,
 Codex, Kimi, DeepSeek Harness, Goose, Grok, Pi, Droid, then `kiro-cli`.
 Unknown values degrade to `auto`, not to `kiro-cli`.
 
@@ -63,7 +63,7 @@ rather than implying a hidden install.
 ## Model plane
 
 This cut **observes and composes**. Python health, the namespaced model-choice
-catalog, and the role DAG live in `src/kiro_crew/model_router/`. The sidecar
+catalog, and the role DAG live in `src/junction/model_router/`. The sidecar
 is the published Codex Router (or a later, separately decided subset).
 Junction does not vendor the Node tree, copy tray / widget / Electron /
 public Cursor HTTPS tunnel / ACP agent bridges, or reimplement LiteLLM.
@@ -88,7 +88,7 @@ never treats a capability URL as display copy.
 
 Unchanged in role: the gateway already owns cross-session memory, cron,
 and skills. The two-plane join does not relocate that state. Data home
-identifiers stay `KIROCREW_HOME` / `~/.kiro/crew` until a dedicated rename.
+identifiers stay `JUNCTION_HOME` / `~/.kiro/crew` until a dedicated rename.
 
 ## Degradation
 

@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.dashboard.openai_compat import _flatten_messages, _make_id, api_completions
-from kiro_crew.kiro_prerequisite import KiroPrerequisiteService
+from junction.dashboard.openai_compat import _flatten_messages, _make_id, api_completions
+from junction.kiro_prerequisite import KiroPrerequisiteService
 
 
 class _ReadyKiroPrerequisiteService(KiroPrerequisiteService):
@@ -192,7 +192,7 @@ class TestApiCompletionsBlocking:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             resp = await api_completions(request)
 
         data = json.loads(resp.body)
@@ -241,7 +241,7 @@ class TestSlotTargeting:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             await api_completions(request)
 
         # Should have called get_or_create_slot with the id value
@@ -265,7 +265,7 @@ class TestSlotTargeting:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             await api_completions(request)
 
         # Ephemeral slot name starts with oai-
@@ -291,7 +291,7 @@ class TestAgentMapping:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             await api_completions(request)
 
         assert slot.agent == "oncall-triage"
@@ -335,8 +335,8 @@ class TestStreamingResponse:
             slot.event.set()
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
         ):
             await api_completions(request)
 
@@ -373,8 +373,8 @@ class TestStreamingResponse:
             slot.event.set()
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
         ):
             await api_completions(request)
 
@@ -405,8 +405,8 @@ class TestStreamingResponse:
             slot.event.set()
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
         ):
             await api_completions(request)
 
@@ -437,8 +437,8 @@ class TestStreamingResponse:
             slot.event.set()
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
         ):
             await api_completions(request)
 
@@ -467,8 +467,8 @@ class TestStreamingResponse:
             slot.event.set()
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
         ):
             await api_completions(request)
 
@@ -515,7 +515,7 @@ class TestBlockingEdgeCases:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             resp = await api_completions(request)
 
         data = json.loads(resp.body)
@@ -542,7 +542,7 @@ class TestRemainingCoverage:
         }
         request = _make_request(body, state)
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", new=AsyncMock()):
+        with patch("junction.dashboard.openai_compat._run_chat", new=AsyncMock()):
             resp = await api_completions(request)
 
         assert resp.status == 400
@@ -595,10 +595,10 @@ class TestRemainingCoverage:
                 return await original_wait_for(coro, timeout=1)
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
             patch(
-                "kiro_crew.dashboard.openai_compat.asyncio.wait_for", side_effect=patched_wait_for
+                "junction.dashboard.openai_compat.asyncio.wait_for", side_effect=patched_wait_for
             ),
         ):
             await api_completions(request)
@@ -635,9 +635,9 @@ class TestRemainingCoverage:
                 return await original_wait_for(coro, timeout=1)
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
             patch(
-                "kiro_crew.dashboard.openai_compat.asyncio.wait_for", side_effect=patched_wait_for
+                "junction.dashboard.openai_compat.asyncio.wait_for", side_effect=patched_wait_for
             ),
         ):
             resp = await api_completions(request)
@@ -669,8 +669,8 @@ class TestRemainingCoverage:
             slot.event.set()
 
         with (
-            patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
-            patch("kiro_crew.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
+            patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat),
+            patch("junction.dashboard.openai_compat.web.StreamResponse", return_value=mock_resp),
         ):
             await api_completions(request)
 
@@ -739,7 +739,7 @@ class TestAppKitOwnership:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             resp = await api_completions(request)
 
         assert resp.status == 200
@@ -763,7 +763,7 @@ class TestAppKitOwnership:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             resp = await api_completions(request)
 
         assert resp.status == 200
@@ -858,7 +858,7 @@ class TestUnsupportedRoles:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             resp = await api_completions(request)
 
         assert resp.status == 200
@@ -889,7 +889,7 @@ class TestAgentMismatchFix:
             slot._pending.append({"cls": "done"})
             slot.event.set()
 
-        with patch("kiro_crew.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
+        with patch("junction.dashboard.openai_compat._run_chat", side_effect=fake_run_chat):
             resp = await api_completions(request)
 
         assert resp.status == 200
@@ -902,7 +902,7 @@ class TestAgentMismatchFix:
 
         body = {
             "id": "test-slot",
-            "model": "kirocrew",
+            "model": "junction",
             "messages": [{"role": "user", "content": "hi"}],
             "stream": False,
         }

@@ -37,8 +37,8 @@ import sqlite3
 
 import pytest
 
-from kiro_crew.knowledge.folder_watcher import FolderWatcher
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction.knowledge.folder_watcher import FolderWatcher
+from junction.knowledge.store import KnowledgeStore
 
 # A nested def / lambda is a separate execution frame -- a sync helper or a thread
 # target -- so a call inside one is not running on the loop.
@@ -47,7 +47,7 @@ _NESTED_SCOPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 _WATCHER_SRC = (
     pathlib.Path(__file__).resolve().parents[1]
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "knowledge"
     / "folder_watcher.py"
 )
@@ -321,7 +321,7 @@ async def test_ingest_file_still_reports_a_refused_duplicate_as_deduped(tmp_path
     rollback. The duplicate check must therefore keep winning, or a legitimately
     refused file would be recorded ``failed`` and retried on every scan.
     """
-    from kiro_crew.knowledge.ingestion import DUPLICATE_JOB_STATUS
+    from junction.knowledge.ingestion import DUPLICATE_JOB_STATUS
 
     store = KnowledgeStore(str(tmp_path / "knowledge.db"))
     try:
@@ -578,7 +578,7 @@ async def test_scan_records_the_committed_group_on_the_state_row(tmp_path):
     """
     from unittest.mock import AsyncMock, MagicMock
 
-    from kiro_crew.knowledge.ingestion import IngestionPipeline
+    from junction.knowledge.ingestion import IngestionPipeline
 
     store = KnowledgeStore(str(tmp_path / "knowledge.db"))
     try:

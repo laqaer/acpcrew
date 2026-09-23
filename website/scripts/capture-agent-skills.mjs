@@ -47,35 +47,35 @@ function serveDist() {
 }
 
 const SKILLS = [
-  { key: 'babysit', name: 'babysit', description: 'Same-session monitoring loop for PRs and CI runs', path: '/home/user/.kiro/crew/skills/babysit/SKILL.md', source: 'kirocrew' },
-  { key: 'prepare-pr', name: 'prepare-pr', description: 'Drive working-tree changes to a review-ready pull request', path: '/home/user/.kiro/crew/skills/prepare-pr/SKILL.md', source: 'kirocrew' },
-  { key: 'rubber-duck', name: 'rubber-duck', description: 'Adversarial review that turns explaining out loud into a hallucination check', path: '/home/user/.kiro/crew/skills/rubber-duck/SKILL.md', source: 'kirocrew' },
-  { key: 'widgets', name: 'widgets', description: 'Render rich HTML inline via mcwidget tags', path: '/home/user/.kiro/crew/skills/widgets/SKILL.md', source: 'kirocrew' },
+  { key: 'babysit', name: 'babysit', description: 'Same-session monitoring loop for PRs and CI runs', path: '/home/user/.kiro/crew/skills/babysit/SKILL.md', source: 'junction' },
+  { key: 'prepare-pr', name: 'prepare-pr', description: 'Drive working-tree changes to a review-ready pull request', path: '/home/user/.kiro/crew/skills/prepare-pr/SKILL.md', source: 'junction' },
+  { key: 'rubber-duck', name: 'rubber-duck', description: 'Adversarial review that turns explaining out loud into a hallucination check', path: '/home/user/.kiro/crew/skills/rubber-duck/SKILL.md', source: 'junction' },
+  { key: 'widgets', name: 'widgets', description: 'Render rich HTML inline via mcwidget tags', path: '/home/user/.kiro/crew/skills/widgets/SKILL.md', source: 'junction' },
   { key: 'kiro-user/pod-e2e', name: 'pod-e2e', description: 'Run end-to-end tests against an isolated throwaway pod', path: '/home/user/.kiro/skills/pod-e2e/SKILL.md', source: 'kiro-user' },
   { key: 'kiro-user/llm-council', name: 'llm-council', description: 'Convene a cross-vendor LLM council for hard decisions', path: '/home/user/.kiro/skills/llm-council/SKILL.md', source: 'kiro-user' },
 ]
 
 /** Mutated by the stubbed PATCH so the after-shot renders real state. */
 const mapping = {
-  kirocrew: [],
+  junction: [],
   'code-reviewer': ['prepare-pr', 'rubber-duck'],
   'release-captain': [],
 }
 const UNMANAGED = { 'release-captain': ['skill://~/.kiro/skills/*/SKILL.md'] }
 
 const AGENTS = [
-  { name: 'kirocrew', description: 'Autonomous personal AI agent', source: 'kirocrew', model: 'claude-opus-4.8', mcp_servers: ['kirocrew-core', 'kirocrew-cron'], filename: 'kirocrew.json' },
+  { name: 'junction', description: 'Autonomous personal AI agent', source: 'junction', model: 'claude-opus-4.8', mcp_servers: ['junction-core', 'junction-cron'], filename: 'junction.json' },
   { name: 'code-reviewer', description: 'Reviews code changes against the repo conventions', source: 'builtin', model: 'claude-sonnet-4.5', mcp_servers: [], filename: 'code-reviewer.json' },
   { name: 'release-captain', description: 'Cuts releases and babysits the pipeline', source: 'builtin', model: 'auto', mcp_servers: [], filename: 'release-captain.json' },
 ]
 
 const DETAIL = {
-  kirocrew: {
-    name: 'kirocrew',
+  junction: {
+    name: 'junction',
     description: 'Autonomous personal AI agent',
     model: 'claude-opus-4.8',
     tools: ['execute_bash', 'fs_read', 'fs_write', 'code', 'grep', 'glob'],
-    mcpServers: { 'kirocrew-core': {}, 'kirocrew-cron': {} },
+    mcpServers: { 'junction-core': {}, 'junction-cron': {} },
   },
   'code-reviewer': {
     name: 'code-reviewer',
@@ -136,7 +136,7 @@ await page.route('**/api/**', async route => {
   }
   if (path === '/api/agents/installed') return json(route, installed())
   if (path === '/api/skills') return json(route, SKILLS)
-  if (path === '/api/config/default-agent') return json(route, { default_agent: 'kirocrew' })
+  if (path === '/api/config/default-agent') return json(route, { default_agent: 'junction' })
   if (path.startsWith('/api/agent-metadata/')) return json(route, { content: '' })
   if (path === '/api/mcp/probe') return json(route, [])
   if (path === '/api/spawn') return json(route, { agents: [] })
@@ -218,7 +218,7 @@ async function selectAgent(name) {
 await load()
 
 // 1. An agent with no mapping: the honest empty state, not a silent blank.
-await selectAgent('kirocrew')
+await selectAgent('junction')
 await shot('01-agent-templates-no-mapping')
 await card('02-no-mapping-card')
 

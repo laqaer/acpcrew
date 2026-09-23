@@ -16,7 +16,7 @@ system is built, see [../architecture/](../architecture/README.md).
 | [slack-setup.md](slack-setup.md) | Creating and configuring the Slack app. |
 | [enterprise-mcp-governance.md](enterprise-mcp-governance.md) | Running Junction on an enterprise Kiro account (IAM Identity Center / API key) whose administrator allow-lists MCP servers through a registry: why features go silently missing, and the two-sided fix. |
 | [secrets-env.md](secrets-env.md) | Passing secrets (API keys, tokens) to MCP servers via systemd environment directives or a shell wrapper — interim workarounds pending the encrypted vault. |
-| — | Other chat channels (Discord, Telegram, Teams, Webex, WeCom, WeChat) are documented in [../../src/kiro_crew/docs/](../../src/kiro_crew/docs/README.md); the channel-neutral transport contract is [messaging.md](../system-specs/modules/messaging.md). |
+| — | Other chat channels (Discord, Telegram, Teams, Webex, WeCom, WeChat) are documented in [../../src/junction/docs/](../../src/junction/docs/README.md); the channel-neutral transport contract is [messaging.md](../system-specs/modules/messaging.md). |
 
 `assets/` holds the copy-pasteable service unit, launchd plist, and setup script
 that [remote-and-mobile.md](remote-and-mobile.md) refers to, plus an example
@@ -24,4 +24,4 @@ that [remote-and-mobile.md](remote-and-mobile.md) refers to, plus an example
 [governance.md](../system-specs/modules/governance.md) refers to.
 
 End-user feature documentation is not here: it ships in the package under
-[`../../src/kiro_crew/docs/`](../../src/kiro_crew/docs/README.md).
+[`../../src/junction/docs/`](../../src/junction/docs/README.md).

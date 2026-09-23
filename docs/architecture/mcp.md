@@ -13,22 +13,22 @@ own gate model is [computer-use](../system-specs/modules/computer-use.md).
 > **Design invariant: Kiro Crew does NOT write to provider globals.**
 > `~/.kiro/settings/mcp.json` is user-owned. Kiro Crew reads it and never mutates
 > it. Kiro Crew's own additions go into the per-agent file it fully owns,
-> `~/.kiro/agents/kirocrew.json`. That keeps tools scoped to Kiro Crew out of every
+> `~/.kiro/agents/junction.json`. That keeps tools scoped to Kiro Crew out of every
 > interactive kiro-cli and Kiro IDE session the user runs outside Kiro Crew. If
-> `kirocrew-core` / `kirocrew-cron` ever appear in a provider global, that is
+> `junction-core` / `junction-cron` ever appear in a provider global, that is
 > leftover state from an older install: clean it from the dashboard MCP panel,
-> or run `kirocrew cli-setup`, which calls the narrowly-scoped
+> or run `junction cli-setup`, which calls the narrowly-scoped
 > `mcp_cleanup.clean_stale_managed_mcp()` helper.
 
 ## Config file hierarchy
 
 | File | Owner | Purpose | Read by |
 |------|-------|---------|---------|
-| `~/.kiro/agents/kirocrew.json` | Kiro Crew gateway (`agent.rebuild_agent_config`) | The rendered Kiro agent: model + tools + merged `mcpServers` | kiro-cli, when spawned as the `kirocrew` agent |
+| `~/.kiro/agents/junction.json` | Kiro Crew gateway (`agent.rebuild_agent_config`) | The rendered Kiro agent: model + tools + merged `mcpServers` | kiro-cli, when spawned as the `junction` agent |
 | `~/.kiro/settings/mcp.json` | User | Kiro global MCP servers | kiro-cli for all agents; merged into Kiro Crew's agent file at render time |
 | `~/.kiro/crew/mcp.json` | User, via the dashboard MCP panel | specific to Kiro Crew additions and per-server tool disables | Kiro Crew gateway only |
 
-`rebuild_agent_config()` writes exactly **one** file, `~/.kiro/agents/kirocrew.json`.
+`rebuild_agent_config()` writes exactly **one** file, `~/.kiro/agents/junction.json`.
 There is no second rendered agent file and no agent-file renderer for any other
 provider: Kiro Crew is KiroACP-only.
 
@@ -56,10 +56,10 @@ evidence that the core reads that file.
 
 ### Merge order in `rebuild_agent_config()`
 
-The existing `~/.kiro/agents/kirocrew.json` is the merge **base** when one
+The existing `~/.kiro/agents/junction.json` is the merge **base** when one
 exists and `clean=False`, so any server the user already customized survives
 (`autoApprove` edits, hand-edits, servers added with `kiro-cli mcp add --agent
-kirocrew`). Onto that base:
+junction`). Onto that base:
 
 1. **App-contributed servers** (`_collect_app_mcp_servers()`), keyed
    `{app}:{server}`, are assigned first so an app's namespaced entry outranks a
@@ -82,7 +82,7 @@ overwritten by a stale global entry.
 **Resolution-aware fallback.** The same server can be defined in several sources
 with different commands. If the merged winner's `command` does not resolve (a
 bare command whose binary is not on the rebuild PATH), the rebuild retries the
-same server's spec from the other sources in priority order (kirocrew, then
+same server's spec from the other sources in priority order (junction, then
 kiro-global, then provider-global) before dropping it. When it falls back to a
 different source it adopts that source's `command`, `args` and `env` **as a
 unit**, so one source's command is never paired with another's arguments.
@@ -107,9 +107,9 @@ running interpreter's bin) and is not portable to another machine.
 {
   "includeMcpJson": false,
   "mcpServers": {
-    "kirocrew-core":     { "command": "…", "args": ["mcp-core"] },
-    "kirocrew-cron":     { "command": "…", "args": ["mcp-cron"] },
-    "kirocrew-computer": { "command": "…", "args": ["mcp-computer"] }
+    "junction-core":     { "command": "…", "args": ["mcp-core"] },
+    "junction-cron":     { "command": "…", "args": ["mcp-cron"] },
+    "junction-computer": { "command": "…", "args": ["mcp-computer"] }
   }
 }
 ```
@@ -124,15 +124,15 @@ app agent). Plain kiro-cli agents outside Kiro Crew keep kiro-cli's own default.
 ### Managed servers
 
 `agent._MANAGED_MCP_SERVERS` holds the three servers the gateway owns end to
-end: `kirocrew-cron`, `kirocrew-core`, `kirocrew-computer`. Each is refreshed on
+end: `junction-cron`, `junction-core`, `junction-computer`. Each is refreshed on
 every rebuild by `_refresh_dynamic_fields()`, which rewrites `command`/`args`
-from the live `kirocrew` binary, strips stale remote-transport fields (`url`,
-`headers`) left by older builds, and re-pins `env.KIROCREW_HOME` to the home the
+from the live `junction` binary, strips stale remote-transport fields (`url`,
+`headers`) left by older builds, and re-pins `env.JUNCTION_HOME` to the home the
 gateway is actually running under while preserving the user's own env keys.
 User customizations such as `autoApprove` are preserved.
 
 An entry may also carry a **`spec_gate`** — a predicate consulted at spec
-EMISSION time. `kirocrew-computer` is the one row that has one, and the
+EMISSION time. `junction-computer` is the one row that has one, and the
 distinction it draws is the difference between a capability that advertises no
 tools and one that costs nothing: emitting the entry is what makes kiro-cli spawn
 the backend, so an in-process enable check can only ever refuse work in a process
@@ -195,7 +195,7 @@ consumer of this spec (doctor's handshake probe and the CC sidecar sync both
 launch from it). See
 [../guides/enterprise-mcp-governance.md](../guides/enterprise-mcp-governance.md).
 
-`kirocrew-computer` carries **no `autoApprove` key and none may ever be added.**
+`junction-computer` carries **no `autoApprove` key and none may ever be added.**
 kiro-cli approves an auto-approved MCP tool locally and emits no permission
 request, so `hooks.on_tool_call` (the PreToolUse deny floor, sensitive-path
 check and governance ceiling) is never reached for it. For a tool that can click
@@ -221,7 +221,7 @@ now prompts.
 
 ### Two writers, one lock
 
-`~/.kiro/agents/kirocrew.json` has two independent writers: this whole-file
+`~/.kiro/agents/junction.json` has two independent writers: this whole-file
 regenerator and the app-MCP registration path
 (`apps.bridges._register_mcp_servers`), which does a read-modify-write of the
 same file under `bridges._mcp_lock`. A register landing between the rebuild's
@@ -236,10 +236,10 @@ an enabled app's tools vanish).
 
 Source: `mcp_discovery.py`.
 
-`list_servers()` reads `~/.kiro/agents/kirocrew.json`, then each scope file with
+`list_servers()` reads `~/.kiro/agents/junction.json`, then each scope file with
 provenance, re-resolves stale managed commands, and overlays cached probe
 results. Every returned `McpServerInfo` carries a `presence` dict so the
-dashboard can render per-scope badges. The `kirocrew` badge is the **effective**
+dashboard can render per-scope badges. The `junction` badge is the **effective**
 state after the merge minus explicit `disabled: true` overrides in
 `~/.kiro/crew/mcp.json`; the other badges are raw membership in that scope's
 file.
@@ -389,7 +389,7 @@ Probes run from `POST /api/mcp/probe`:
   remedy paragraph warns once per server name
   (`_warn_probe_sandbox_unavailable_once`) and demotes repeats to DEBUG.
   - **A managed server FALLS BACK to its declared tool list when — and only when —
-    the sandbox refuses.** `kirocrew-core` / `-cron` / `-computer` declare their
+    the sandbox refuses.** `junction-core` / `-cron` / `-computer` declare their
     tools statically in this package (`mcp_core._list_tools()` and friends, the very
     functions the stdio shim answers `tools/list` from), so
     `_managed_tools_in_process` can serve the listing with no subprocess at all.
@@ -398,7 +398,7 @@ Probes run from `POST /api/mcp/probe`:
     - **Fallback, never primary.** When a backend exists the real spawn still runs,
       because it is the only thing that proves the server can **start**.
       `_fix_stale_managed_command` exists precisely because that invocation goes
-      stale ("command not found: kirocrew; the built-in cron/core tools then never
+      stale ("command not found: junction; the built-in cron/core tools then never
       load"), and the probe is the one surface that catches it. Short-circuiting on
       the server *name* would report `ok` for a managed server that cannot run,
       silently changing what `ok` means in the shared `_cache_probe` store.
@@ -436,9 +436,9 @@ Probes run from `POST /api/mcp/probe`:
 is not in the probe cache yet, so a freshly added server transitions from
 "Unknown" on the next page load rather than waiting out the TTL.
 
-`_fix_stale_managed_command()` re-resolves the `kirocrew` binary on every
+`_fix_stale_managed_command()` re-resolves the `junction` binary on every
 `list_servers()` call, because the stored absolute path goes stale after an
-update: first `agent._resolve_kirocrew_bin()`, then `shutil.which("kirocrew")`
+update: first `agent._resolve_junction_bin()`, then `shutil.which("junction")`
 on the augmented PATH.
 
 ## Shareability verdicts
@@ -464,7 +464,7 @@ changes and exposes Apply / Discard. Only Apply performs writes.
 
 1. **Uninstalls first.** `_purge_server_config()` removes the entry from
    `~/.kiro/crew/mcp.json`, the Kiro global, every seam-contributed scope, and
-   directly from `~/.kiro/agents/kirocrew.json`. That last targeted delete is
+   directly from `~/.kiro/agents/junction.json`. That last targeted delete is
    required: the rebuild uses the existing agent file as its merge base, so
    without it the additive merge would resurrect the server. Every step is a
    read-modify-write that no-ops when the entry is already absent, so re-running
@@ -521,8 +521,8 @@ the reference hides that server's tools from the agent but does not avoid the
 process or connection cost. Isolation and feature gates that must avoid that
 cost therefore remove the server entry itself as well as its tool reference.
 
-An app agent that references a host-managed server (`@kirocrew-core`,
-`@kirocrew-cron`) in its `tools` gets the launch spec copied in by
+An app agent that references a host-managed server (`@junction-core`,
+`@junction-cron`) in its `tools` gets the launch spec copied in by
 `_materialize_managed_refs()`. kiro-cli resolves a `@server` ref against the
 agent's own `mcpServers` plus the global `mcp.json`, and managed specs live in
 the host agent's config only, so without that copy the ref dangles and the tool
@@ -570,37 +570,37 @@ need no model round-trip (`cron list`, `spawn list`).
 ### Server and tool inventory
 
 Managed servers, registered by `agent._MANAGED_MCP_SERVERS` and installed into
-`~/.kiro/agents/kirocrew.json`:
+`~/.kiro/agents/junction.json`:
 
 | Server | Process | Tools |
 |--------|---------|-------|
-| `kirocrew-cron` | `kirocrew mcp-cron` (`mcp_cron.py`) | `cron_add`, `cron_list`, `cron_update`, `cron_remove`, `cron_remove_all`, `cron_pause`, `cron_resume`, `cron_trigger` |
-| `kirocrew-core` | `kirocrew mcp-core` (`mcp_core.py` + `mcp_tools/`) | spawn/subagent, learn, task, messaging, artifact, workflow, knowledge and session-directive tools (see below) |
-| `kirocrew-computer` | `kirocrew mcp-computer` (`mcp_computer.py`) | `computer_list_apps`, `computer_launch_app`, `computer_get_state`, `computer_click`, `computer_drag`, `computer_type_text`, `computer_press_key`, `computer_set_value`, `computer_scroll`, `computer_perform_action`, `computer_end_turn` |
-| `kirocrew-dashboard` | `kirocrew mcp-dashboard` (`mcp_dashboard.py`) | `chat_folder_tree`, `chat_folder_create`, `chat_folder_move`, `chat_folder_move_session` |
+| `junction-cron` | `junction mcp-cron` (`mcp_cron.py`) | `cron_add`, `cron_list`, `cron_update`, `cron_remove`, `cron_remove_all`, `cron_pause`, `cron_resume`, `cron_trigger` |
+| `junction-core` | `junction mcp-core` (`mcp_core.py` + `mcp_tools/`) | spawn/subagent, learn, task, messaging, artifact, workflow, knowledge and session-directive tools (see below) |
+| `junction-computer` | `junction mcp-computer` (`mcp_computer.py`) | `computer_list_apps`, `computer_launch_app`, `computer_get_state`, `computer_click`, `computer_drag`, `computer_type_text`, `computer_press_key`, `computer_set_value`, `computer_scroll`, `computer_perform_action`, `computer_end_turn` |
+| `junction-dashboard` | `junction mcp-dashboard` (`mcp_dashboard.py`) | `chat_folder_tree`, `chat_folder_create`, `chat_folder_move`, `chat_folder_move_session` |
 
 CLI commands and their MCP twins:
 
 | CLI command | MCP tool | Server |
 |-------------|----------|--------|
-| `kirocrew cron add` | `cron_add` | `kirocrew-cron` |
-| `kirocrew cron list` | `cron_list` | `kirocrew-cron` |
-| `kirocrew cron update` | `cron_update` | `kirocrew-cron` |
-| `kirocrew cron remove` | `cron_remove` | `kirocrew-cron` |
-| `kirocrew cron remove-all` | `cron_remove_all` | `kirocrew-cron` |
-| `kirocrew cron pause` | `cron_pause` | `kirocrew-cron` |
-| `kirocrew cron resume` | `cron_resume` | `kirocrew-cron` |
-| `kirocrew cron trigger` | `cron_trigger` | `kirocrew-cron` |
-| `kirocrew spawn run` | `spawn_run` | `kirocrew-core` |
-| `kirocrew spawn list` | `spawn_list` | `kirocrew-core` |
-| `kirocrew learn add` | `learn_add` | `kirocrew-core` |
-| `kirocrew learn list` | `learn_list` | `kirocrew-core` |
-| `kirocrew learn remove` | `learn_remove` | `kirocrew-core` |
-| `kirocrew run TASK.md` | `task_run` | `kirocrew-core` |
-| `kirocrew computer apps` | `computer_list_apps` | `kirocrew-computer` |
+| `junction cron add` | `cron_add` | `junction-cron` |
+| `junction cron list` | `cron_list` | `junction-cron` |
+| `junction cron update` | `cron_update` | `junction-cron` |
+| `junction cron remove` | `cron_remove` | `junction-cron` |
+| `junction cron remove-all` | `cron_remove_all` | `junction-cron` |
+| `junction cron pause` | `cron_pause` | `junction-cron` |
+| `junction cron resume` | `cron_resume` | `junction-cron` |
+| `junction cron trigger` | `cron_trigger` | `junction-cron` |
+| `junction spawn run` | `spawn_run` | `junction-core` |
+| `junction spawn list` | `spawn_list` | `junction-core` |
+| `junction learn add` | `learn_add` | `junction-core` |
+| `junction learn list` | `learn_list` | `junction-core` |
+| `junction learn remove` | `learn_remove` | `junction-core` |
+| `junction run TASK.md` | `task_run` | `junction-core` |
+| `junction computer apps` | `computer_list_apps` | `junction-computer` |
 
-`kirocrew-core` tools with no CLI twin, grouped by concern (authoritative list:
-`kiro_crew.mcp_tools.build_tool_list()`, which is what `mcp_core._list_tools`
+`junction-core` tools with no CLI twin, grouped by concern (authoritative list:
+`junction.mcp_tools.build_tool_list()`, which is what `mcp_core._list_tools`
 answers `tools/list` from):
 
 - **Subagents:** `spawn_status`, `spawn_continue`, `spawn_steer`,
@@ -648,10 +648,10 @@ answers `tools/list` from):
   (method, path) allowlist of Ops Mission Control routes; the agent never
   sees a credential (same shape as `issue_radar_record_investigation`)
 
-### A `kirocrew-core` tool has two halves
+### A `junction-core` tool has two halves
 
 Each tool is declared twice in the same per-domain module under
-`kiro_crew/mcp_tools/` (`spawn.py`, `artifacts.py`, `workflows.py`, …), and
+`junction/mcp_tools/` (`spawn.py`, `artifacts.py`, `workflows.py`, …), and
 nothing at runtime notices when only one half lands:
 
 - Its **descriptor** — name, model-facing description, JSON Schema — is returned
@@ -670,7 +670,7 @@ name is claimed twice.
 Handlers reach the server's shared plumbing — `_post`/`_get`, the identity
 resolvers, the governance vets — as **attributes of `mcp_core`**, not as direct
 imports. That is deliberate: an attribute lookup resolves at call time, so a test
-that rebinds one (`patch("kiro_crew.mcp_core._post")`, `setattr(mcp_core, "sel",
+that rebinds one (`patch("junction.mcp_core._post")`, `setattr(mcp_core, "sel",
 …)`) still intercepts the handler. A direct import would bind at import time and
 silently escape every such patch. `mcp_core._HANDLER_SURFACE` names the bindings
 that exist only for this purpose, so an import cleanup cannot quietly delete one.
@@ -696,9 +696,9 @@ running `playwright-cli` commands on its ordinary shell path, so no tool schemas
 are re-sent per request and the accessibility tree stays on disk instead of
 entering the model context. See [browser](../system-specs/modules/browser.md).
 
-## What belongs in `kirocrew-core`, and what does not
+## What belongs in `junction-core`, and what does not
 
-`kirocrew-core` is the surface EVERY session carries. kiro-cli reads `tools/list`
+`junction-core` is the surface EVERY session carries. kiro-cli reads `tools/list`
 once per session, so a tool listed there spends context in every request of every
 session for as long as the session lives — whether or not that session will ever
 use it. With `agent.tool_search` on (the default) Kiro Crew forces kiro's deferral
@@ -710,7 +710,7 @@ That makes the placement question a real one rather than a matter of taste:
 - **Core** is for capabilities a session may need *without being asked* —
   subagents, messaging, memory, artifacts, session-bound directives.
 - **Its own server** is for a capability an agent is granted on purpose. Give it
-  the `kirocrew-dashboard` shape: an **assignable set**, marked `opt_in` in
+  the `junction-dashboard` shape: an **assignable set**, marked `opt_in` in
   `_MANAGED_MCP_SERVERS` so neither spec writer adds it to the default agent.
   kiro-cli loads a server only when `tools` names it, so an unassigned set costs
   a session literally zero — which an always-refusing tool in core cannot
@@ -718,7 +718,7 @@ That makes the placement question a real one rather than a matter of taste:
 
 **Assignment is the mechanism; a config bool is not.** Which agents get a set is
 decided by their own specs: the entry in `mcpServers` plus the matching
-`@<server>` ref in `tools`. Only `kirocrew.json` is rewritten on install, and a
+`@<server>` ref in `tools`. Only `junction.json` is rewritten on install, and a
 refresh keeps an existing grant's command current without ever introducing one,
 so a hand-granted set survives upgrades and an ungranted one does not come back
 behind the user's back. Adding a second boolean in `config.json` on top of that
@@ -854,14 +854,14 @@ without every agent inheriting it.
 
 Adding a managed server is a **parity tax** — the name must appear in
 `agent._MANAGED_MCP_SERVERS`, `mcp_discovery._MANAGED_SERVER_SUBCOMMANDS` and
-`_MANAGED_SERVER_TOOL_MODULES`, `mcp_cleanup.KIROCREW_BIN_MCP_SERVERS`,
+`_MANAGED_SERVER_TOOL_MODULES`, `mcp_cleanup.JUNCTION_BIN_MCP_SERVERS`,
 `onboarding_import._MANAGED_MCP_NAMES`, and the hidden `cli.py` subcommand.
 `test_computer_use_registration.py` asserts those registries are the same set, so
 a half-registered server fails the suite rather than shipping.
 
 ### The one deliberate exception
 
-`kirocrew computer call <tool>` has **no MCP twin, on purpose.** It is not a
+`junction computer call <tool>` has **no MCP twin, on purpose.** It is not a
 capability; it is a human debug and repro harness that runs the eleven existing
 `computer_*` tools through the same gated chokepoint (optionally a JSON array of
 them in one process, so `element_index` values stay resolvable across calls). The
@@ -872,7 +872,7 @@ model launder one per-call gate decision into many, so do NOT add
 
 ## MCP tools MUST be stateless
 
-**A new `kirocrew-core` or `kirocrew-cron` tool MUST NOT keep per-caller or
+**A new `junction-core` or `junction-cron` tool MUST NOT keep per-caller or
 per-session state in the MCP-server process. Resolve the caller's identity on
 every call and keep authoritative state in the gateway.**
 
@@ -885,7 +885,7 @@ slot's process tree and talks to the same MCP server. Anything the process
 remembers is therefore shared by every session and sub-agent that touches it.
 Two failure modes follow.
 
-**1. Identity is not the process, it is the call.** `KIROCREW_SESSION_KEY` and
+**1. Identity is not the process, it is the call.** `JUNCTION_SESSION_KEY` and
 `os.getppid()` identify the *process*, which is wrong by construction in a shared
 backend: the warm pool spawns with an empty key, and a sub-agent inherits its
 parent's tree. `mcp_core.py` offers two resolvers:
@@ -894,8 +894,8 @@ parent's tree. `mcp_core.py` offers two resolvers:
   specific session** (post to a slot, change its state, deliver a callback). It
   accepts only the gateway-injected caller context (`mcp_caller.current_caller()`,
   which gatewayd stamps on every forwarded frame after stripping any
-  client-forged `kirocrew.caller` block), the injected `KIROCREW_SESSION_KEY`, or
-  a `KIROCREW_HOST_PID` lookup whose HMAC sidecar verifies against the
+  client-forged `junction.caller` block), the injected `JUNCTION_SESSION_KEY`, or
+  a `JUNCTION_HOST_PID` lookup whose HMAC sidecar verifies against the
   keystone-protected `sel_hmac.key`. It deliberately **drops** the `/proc`
   ancestor walk and the bare `session_pid_<pid>.txt` fallback: the `.txt` file is
   agent-writable and therefore forgeable, and a sub-agent walking ancestors from
@@ -948,7 +948,7 @@ The directive marker is model-visible, since it comes back as tool-result text,
 so the consumer defends against forgery by honoring a directive only when the
 tool call it arrived under was recorded, from kiro-cli's out-of-band `_meta`
 channel, as an MCP-served call whose canonical name (`_meta.kiro.toolName`, with
-`_meta.kiro.mcpServerName` equal to `kirocrew-core`) is in `DIRECTIVE_TOOLS`. The
+`_meta.kiro.mcpServerName` equal to `junction-core`) is in `DIRECTIVE_TOOLS`. The
 LLM-authored `title` is explicitly not accepted, because a shell command titled
 `monitor_start` whose stdout forges the marker must not be honored. The gate fails
 closed when `_meta` identity is absent, and refuses native-sub-agent tool calls,
@@ -980,9 +980,9 @@ request I saw".
 
 ## Troubleshooting
 
-**MCP tools not working.** Check that `~/.kiro/agents/kirocrew.json` contains
-`kirocrew-core` and `kirocrew-cron`, that `includeMcpJson` is `false`, then run
-`kirocrew doctor` (which checks probe status) and read the live probe results in
+**MCP tools not working.** Check that `~/.kiro/agents/junction.json` contains
+`junction-core` and `junction-cron`, that `includeMcpJson` is `false`, then run
+`junction doctor` (which checks probe status) and read the live probe results in
 the dashboard MCP panel.
 
 **Status stays "Unknown".** The handler auto-triggers a probe for a server it has
@@ -991,10 +991,10 @@ Unknown, the server is failing its handshake: read the dashboard error text or
 the gateway log.
 
 **Tools present in Kiro Crew but absent in interactive kiro-cli.** That is correct.
-`kirocrew-core` / `kirocrew-cron` / `kirocrew-computer` are agent-scoped and must
+`junction-core` / `junction-cron` / `junction-computer` are agent-scoped and must
 not appear in interactive kiro-cli or Kiro IDE sessions. If they do, something
 wrote them into a provider global.
 
 **A newly added server does not appear in sessions.** The warm pool holds
 pre-spawned processes carrying the old config. Use Apply & Restart, or
-`kirocrew config set`, which triggers a restart.
+`junction config set`, which triggers a restart.

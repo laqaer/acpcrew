@@ -42,14 +42,14 @@ export const ENV_SHELLS: readonly EnvShellEntry[] = [
 ] as const
 
 /**
- * Build the `kirocrew config set` CLI command for a file-mode setting.
+ * Build the `junction config set` CLI command for a file-mode setting.
  * Lives here (not in SettingRef.tsx) because this module is the named i18n
  * boundary for CLI syntax: commands and their placeholders are terminal
  * input, never user-visible prose, and are excluded from string extraction
  * in eslint.i18n.config.js with rationale.
  */
 export function configSetCommand(key: string, placeholder: string): string {
-  return `kirocrew config set ${key} ${placeholder}`
+  return `junction config set ${key} ${placeholder}`
 }
 
 /**

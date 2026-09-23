@@ -15,9 +15,9 @@ import pytest
 from windows_sim import replace_sharing_violation
 
 from conftest import requires_symlinks
-from kiro_crew import agent_state
-from kiro_crew import atomic_write as aw
-from kiro_crew.agent import install_agent, migrate_agent_specs
+from junction import agent_state
+from junction import atomic_write as aw
+from junction.agent import install_agent, migrate_agent_specs
 
 
 def _bundled_defaults(tmp_path: Path) -> Path:
@@ -38,8 +38,8 @@ def _bundled_defaults(tmp_path: Path) -> Path:
 
 
 _DEFAULT_MANAGED_MCPS = {
-    "kirocrew-cron": {"command": "/usr/bin/kirocrew", "args": ["mcp-cron"]},
-    "kirocrew-core": {"command": "/usr/bin/kirocrew", "args": ["mcp-core"]},
+    "junction-cron": {"command": "/usr/bin/junction", "args": ["mcp-cron"]},
+    "junction-core": {"command": "/usr/bin/junction", "args": ["mcp-core"]},
 }
 
 
@@ -56,26 +56,26 @@ def _run_install(tmp_path: Path, cfg_dir: Path, managed_mcps: dict | None = None
     if not mc_config.exists():
         mc_config.write_text(json.dumps({"agent": {"kiro_hooks_autoimport": False}}))
 
-    _user_home = tmp_path / "kirocrew_home"
+    _user_home = tmp_path / "junction_home"
     patches = [
         patch.multiple(
-            "kiro_crew.agent",
+            "junction.agent",
             KIRO_AGENTS_DIR=kiro_dir,
             _BUNDLED_CFG_DIR=cfg_dir,
-            _KIROCREW_BIN="/usr/bin/kirocrew",
+            _JUNCTION_BIN="/usr/bin/junction",
             _MANAGED_MCP_SERVERS=(
                 managed_mcps if managed_mcps is not None else _DEFAULT_MANAGED_MCPS
             ),
             _KIRO_MCP_JSON=tmp_path / "fake_kiro_mcp.json",
             _CC_MCP_JSON=tmp_path / "fake_cc_mcp.json",
         ),
-        patch("kiro_crew.agent._user_dir", lambda: _user_home),
-        patch("kiro_crew.agent._prompt_path", return_value=prompt),
-        patch("kiro_crew.agent._shipped_defaults", return_value=cfg_dir / "defaults.json"),
-        patch("kiro_crew.agent._project_dir", return_value=None),
-        patch("kiro_crew.agent._aim_skill_paths", return_value=[]),
-        patch("kiro_crew.agent.shutil.which", side_effect=lambda c, **kw: c),
-        patch("kiro_crew.agent._mc_config_path", return_value=mc_config),
+        patch("junction.agent._user_dir", lambda: _user_home),
+        patch("junction.agent._prompt_path", return_value=prompt),
+        patch("junction.agent._shipped_defaults", return_value=cfg_dir / "defaults.json"),
+        patch("junction.agent._project_dir", return_value=None),
+        patch("junction.agent._aim_skill_paths", return_value=[]),
+        patch("junction.agent.shutil.which", side_effect=lambda c, **kw: c),
+        patch("junction.agent._mc_config_path", return_value=mc_config),
     ]
     with ExitStack() as stack:
         for p in patches:
@@ -85,7 +85,7 @@ def _run_install(tmp_path: Path, cfg_dir: Path, managed_mcps: dict | None = None
 
 class TestInstallAgent:
     def test_fresh_install_generates_from_defaults(self, tmp_path: Path):
-        """No existing kirocrew.json → config built from defaults."""
+        """No existing junction.json → config built from defaults."""
         cfg_dir = _bundled_defaults(tmp_path)
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -93,7 +93,7 @@ class TestInstallAgent:
         assert "ReadFile" in config["tools"]
 
     def test_existing_config_preserves_user_model(self, tmp_path: Path):
-        """Existing kirocrew.json → user's model choice survives restart."""
+        """Existing junction.json → user's model choice survives restart."""
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
@@ -104,7 +104,7 @@ class TestInstallAgent:
             "mcpServers": {},
             "toolsSettings": {"execute_bash": {"deniedCommands": ["old"]}},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -119,7 +119,7 @@ class TestInstallAgent:
         assert config["model"] == "claude-default"
         # kiro spec must stay schema-clean; managed-state lives in the sidecar.
         assert "model_managed" not in config
-        assert agent_state.get_model_managed("kirocrew") is True
+        assert agent_state.get_model_managed("junction") is True
 
     def test_managed_config_tracks_defaults_bump(self, tmp_path: Path):
         """A managed (sidecar) config re-syncs model from defaults.json on a bump."""
@@ -135,13 +135,13 @@ class TestInstallAgent:
             "allowedTools": [],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
         assert config["model"] == "claude-default"
         assert "model_managed" not in config
-        assert agent_state.get_model_managed("kirocrew") is True
+        assert agent_state.get_model_managed("junction") is True
 
     def test_legacy_config_without_marker_frozen(self, tmp_path: Path):
         """A legacy config (no marker) is grandfathered: model untouched."""
@@ -154,13 +154,13 @@ class TestInstallAgent:
             "allowedTools": [],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
         assert config["model"] == "claude-legacy-4.6"
         assert "model_managed" not in config
-        assert agent_state.get_model_managed("kirocrew") is None
+        assert agent_state.get_model_managed("junction") is None
 
     def test_explicitly_frozen_config_not_tracked(self, tmp_path: Path):
         """A frozen pick (model_managed=False) is never re-synced to default."""
@@ -174,19 +174,19 @@ class TestInstallAgent:
             "allowedTools": [],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
         assert config["model"] == "claude-user-pinned"
         assert "model_managed" not in config
-        assert agent_state.get_model_managed("kirocrew") is False
+        assert agent_state.get_model_managed("junction") is False
 
     def test_existing_config_refreshes_security_fields(self, tmp_path: Path):
         """hooks are always overwritten from bundled.
 
         ``deniedCommands`` are NO LONGER injected into the agent spec (command
-        denial moved to KiroCrew's own hooks.py PreToolUse gate). A stale
+        denial moved to Junction's own hooks.py PreToolUse gate). A stale
         ``deniedCommands`` left by an older build is STRIPPED on refresh so
         kiro-cli stops enforcing it ahead of the hook gate — otherwise an
         upgraded install's Settings > Security opt-out would silently stay
@@ -203,7 +203,7 @@ class TestInstallAgent:
             "toolsSettings": {"execute_bash": {"deniedCommands": ["stale"]}},
             "hooks": {"old": "hook"},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -212,7 +212,7 @@ class TestInstallAgent:
         assert config["hooks"] == {"preToolUse": "audit"}
 
     def test_existing_config_refreshes_dynamic_mcp_servers(self, tmp_path: Path):
-        """kirocrew-cron and kirocrew-core commands are always refreshed."""
+        """junction-cron and junction-core commands are always refreshed."""
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
@@ -221,15 +221,15 @@ class TestInstallAgent:
             "tools": [],
             "allowedTools": [],
             "mcpServers": {
-                "kirocrew-cron": {"command": "/old/path/kirocrew", "args": ["mcp-cron"]},
+                "junction-cron": {"command": "/old/path/junction", "args": ["mcp-cron"]},
             },
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
-        assert config["mcpServers"]["kirocrew-cron"]["command"] == "/usr/bin/kirocrew"
-        assert config["mcpServers"]["kirocrew-core"]["command"] == "/usr/bin/kirocrew"
+        assert config["mcpServers"]["junction-cron"]["command"] == "/usr/bin/junction"
+        assert config["mcpServers"]["junction-core"]["command"] == "/usr/bin/junction"
 
     def test_existing_config_preserves_mcp_auto_approve(self, tmp_path: Path):
         """User autoApprove settings on MCP servers survive restart."""
@@ -241,13 +241,13 @@ class TestInstallAgent:
             "tools": [],
             "allowedTools": [],
             "mcpServers": {
-                "kirocrew-cron": {
-                    "command": "/old/path/kirocrew",
+                "junction-cron": {
+                    "command": "/old/path/junction",
                     "args": ["mcp-cron"],
                     "autoApprove": ["cron_list", "cron_add"],
                 },
-                "kirocrew-core": {
-                    "command": "/old/path/kirocrew",
+                "junction-core": {
+                    "command": "/old/path/junction",
                     "args": ["mcp-core"],
                     "autoApprove": ["learn_list"],
                 },
@@ -259,14 +259,14 @@ class TestInstallAgent:
             "toolsSettings": {"execute_bash": {"deniedCommands": []}},
             "hooks": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
-        # kirocrew-cron/core: command refreshed, autoApprove preserved
-        assert config["mcpServers"]["kirocrew-cron"]["command"] == "/usr/bin/kirocrew"
-        assert config["mcpServers"]["kirocrew-cron"]["autoApprove"] == ["cron_list", "cron_add"]
-        assert config["mcpServers"]["kirocrew-core"]["autoApprove"] == ["learn_list"]
+        # junction-cron/core: command refreshed, autoApprove preserved
+        assert config["mcpServers"]["junction-cron"]["command"] == "/usr/bin/junction"
+        assert config["mcpServers"]["junction-cron"]["autoApprove"] == ["cron_list", "cron_add"]
+        assert config["mcpServers"]["junction-core"]["autoApprove"] == ["learn_list"]
         # other MCP servers: untouched
         assert config["mcpServers"]["builder-mcp"]["autoApprove"] == ["ReadInternalWebsites"]
         # hooks are always refreshed from bundled defaults; the retired
@@ -275,8 +275,8 @@ class TestInstallAgent:
         assert "toolsSettings" not in config
         assert config["hooks"] == {"preToolUse": "audit"}
 
-    def test_kirocrew_mcp_json_overrides_kiro_mcp(self, tmp_path: Path):
-        """~/.kirocrew/mcp.json overrides ~/.kiro/settings/mcp.json for kirocrew agent."""
+    def test_junction_mcp_json_overrides_kiro_mcp(self, tmp_path: Path):
+        """~/.kirocrew/mcp.json overrides ~/.kiro/settings/mcp.json for junction agent."""
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
@@ -293,9 +293,9 @@ class TestInstallAgent:
                 },
             },
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
-        # kirocrew mcp.json overrides args (removes --include-tools)
-        mc_home = tmp_path / "kirocrew_home"
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
+        # junction mcp.json overrides args (removes --include-tools)
+        mc_home = tmp_path / "junction_home"
         mc_home.mkdir(exist_ok=True)
         (mc_home / "mcp.json").write_text(
             json.dumps(
@@ -309,12 +309,12 @@ class TestInstallAgent:
         )
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
-        # builder-mcp args overridden by kirocrew mcp.json (no tool-tag injection
+        # builder-mcp args overridden by junction mcp.json (no tool-tag injection
         # on a public install — that Amazon-specific wiring was removed)
         assert config["mcpServers"]["builder-mcp"]["args"] == []
-        # autoApprove preserved (not in kirocrew mcp.json)
+        # autoApprove preserved (not in junction mcp.json)
         assert config["mcpServers"]["builder-mcp"]["autoApprove"] == ["ReadInternalWebsites"]
-        # new server added from kirocrew mcp.json
+        # new server added from junction mcp.json
         assert config["mcpServers"]["new-server"]["command"] == "new-cmd"
 
     def test_new_managed_server_seeds_auto_approve(self, tmp_path: Path):
@@ -337,19 +337,19 @@ class TestInstallAgent:
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
-        # Existing config has kirocrew-cron/core but NOT playwright-mcp
+        # Existing config has junction-cron/core but NOT playwright-mcp
         existing = {
             "model": "claude-user-custom",
             "tools": [],
             "allowedTools": [],
             "mcpServers": {
-                "kirocrew-cron": {"command": "/old/kirocrew", "args": ["mcp-cron"]},
-                "kirocrew-core": {"command": "/old/kirocrew", "args": ["mcp-core"]},
+                "junction-cron": {"command": "/old/junction", "args": ["mcp-cron"]},
+                "junction-core": {"command": "/old/junction", "args": ["mcp-core"]},
             },
             "toolsSettings": {"execute_bash": {"deniedCommands": []}},
             "hooks": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         mcps = {
             **_DEFAULT_MANAGED_MCPS,
@@ -383,7 +383,7 @@ class TestInstallAgent:
             "toolsSettings": {"execute_bash": {"deniedCommands": []}},
             "hooks": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         mcps = {
             **_DEFAULT_MANAGED_MCPS,
@@ -410,7 +410,7 @@ class TestInstallAgent:
             "allowedTools": [],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir, clean=True)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -418,11 +418,11 @@ class TestInstallAgent:
         assert "UserTool" not in config["tools"]
 
     def test_corrupt_existing_falls_back_to_defaults(self, tmp_path: Path):
-        """Corrupt kirocrew.json → falls back to build_agent_config()."""
+        """Corrupt junction.json → falls back to build_agent_config()."""
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
-        (kiro_dir / "kirocrew.json").write_text("not valid json{{{")
+        (kiro_dir / "junction.json").write_text("not valid json{{{")
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -433,7 +433,7 @@ class TestInstallAgent:
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
-        (kiro_dir / "kirocrew.json").write_text("[]")
+        (kiro_dir / "junction.json").write_text("[]")
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -446,7 +446,7 @@ class TestInstallAgent:
         # No defaults.json written — bundled config is absent
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir()
-        (kiro_dir / "kirocrew.json").write_text(json.dumps({"model": "x", "mcpServers": {}}))
+        (kiro_dir / "junction.json").write_text(json.dumps({"model": "x", "mcpServers": {}}))
 
         with pytest.raises(RuntimeError, match="Cannot build agent config"):
             _run_install(tmp_path, cfg_dir)
@@ -456,7 +456,7 @@ class TestAtomicJsonWrite:
     """Test 1.3: _atomic_json_write preserves permissions and handles new files."""
 
     def test_preserves_existing_permissions(self, tmp_path: Path):
-        from kiro_crew.agent import _atomic_json_write
+        from junction.agent import _atomic_json_write
 
         target = tmp_path / "test.json"
         target.write_text("{}")
@@ -470,7 +470,7 @@ class TestAtomicJsonWrite:
         assert json.loads(target.read_text(encoding="utf-8")) == {"key": "value"}
 
     def test_new_file_gets_0o644(self, tmp_path: Path):
-        from kiro_crew.agent import _atomic_json_write
+        from junction.agent import _atomic_json_write
 
         target = tmp_path / "new.json"
         _atomic_json_write(target, {"new": True})
@@ -494,8 +494,8 @@ class TestAtomicJsonWrite:
         It matters here more than most: these are the agent configs kiro-cli
         reads at spawn, so a refused rename surfaces as a failed spawn.
         """
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _atomic_json_write
+        from junction import platform_compat
+        from junction.agent import _atomic_json_write
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
         monkeypatch.setattr(aw, "_REPLACE_BACKOFF_SECONDS", 0)
@@ -512,8 +512,8 @@ class TestAtomicJsonWrite:
         """POSIX permits replacing an open file, so a PermissionError there is a
         real access fault — retrying would only delay an honest failure, and
         the temp file must still be cleaned up."""
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _atomic_json_write
+        from junction import platform_compat
+        from junction.agent import _atomic_json_write
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", False)
         target = tmp_path / "agent.json"
@@ -527,7 +527,7 @@ class TestAtomicJsonWrite:
         assert target.read_text(encoding="utf-8") == "{}", "the target is unchanged"
 
     def test_no_temp_file_left_on_success(self, tmp_path: Path):
-        from kiro_crew.agent import _atomic_json_write
+        from junction.agent import _atomic_json_write
 
         target = tmp_path / "clean.json"
         _atomic_json_write(target, {"a": 1})
@@ -542,7 +542,7 @@ class TestAllSkillPathsLocalSymlinks:
     @requires_symlinks
     def test_resolves_local_symlink_with_skills_parent(self, tmp_path: Path):
         """Symlink target whose parent is named 'skills' is added."""
-        from kiro_crew.agent import _all_skill_paths
+        from junction.agent import _all_skill_paths
 
         aim_skills = tmp_path / ".aim" / "skills"
         local_dir = aim_skills / "local"
@@ -555,8 +555,8 @@ class TestAllSkillPathsLocalSymlinks:
 
         (local_dir / "my-skill").symlink_to(target_skill)
 
-        with patch("kiro_crew.agent.Path.home", return_value=tmp_path):
-            with patch("kiro_crew.agent._project_dir", return_value=None):
+        with patch("junction.agent.Path.home", return_value=tmp_path):
+            with patch("junction.agent._project_dir", return_value=None):
                 paths = _all_skill_paths()
 
         assert str(target_parent) in paths
@@ -564,7 +564,7 @@ class TestAllSkillPathsLocalSymlinks:
     @requires_symlinks
     def test_skips_symlink_with_non_skills_parent(self, tmp_path: Path):
         """Symlink target whose parent is NOT named 'skills' is excluded."""
-        from kiro_crew.agent import _all_skill_paths
+        from junction.agent import _all_skill_paths
 
         aim_skills = tmp_path / ".aim" / "skills"
         local_dir = aim_skills / "local"
@@ -574,8 +574,8 @@ class TestAllSkillPathsLocalSymlinks:
         target_skill.mkdir(parents=True)
         (local_dir / "my-skill").symlink_to(target_skill)
 
-        with patch("kiro_crew.agent.Path.home", return_value=tmp_path):
-            with patch("kiro_crew.agent._project_dir", return_value=None):
+        with patch("junction.agent.Path.home", return_value=tmp_path):
+            with patch("junction.agent._project_dir", return_value=None):
                 paths = _all_skill_paths()
 
         assert str(tmp_path / "project" / "other") not in paths
@@ -583,7 +583,7 @@ class TestAllSkillPathsLocalSymlinks:
     @requires_symlinks
     def test_skips_sensitive_parent_path(self, tmp_path: Path):
         """Symlink resolving into a sensitive directory is excluded."""
-        from kiro_crew.agent import _all_skill_paths
+        from junction.agent import _all_skill_paths
 
         aim_skills = tmp_path / ".aim" / "skills"
         local_dir = aim_skills / "local"
@@ -594,8 +594,8 @@ class TestAllSkillPathsLocalSymlinks:
         target_skill.mkdir(parents=True)
         (local_dir / "bad-skill").symlink_to(target_skill)
 
-        with patch("kiro_crew.agent.Path.home", return_value=tmp_path):
-            with patch("kiro_crew.agent._project_dir", return_value=None):
+        with patch("junction.agent.Path.home", return_value=tmp_path):
+            with patch("junction.agent._project_dir", return_value=None):
                 paths = _all_skill_paths()
 
         assert str(sensitive_skills) not in paths
@@ -603,7 +603,7 @@ class TestAllSkillPathsLocalSymlinks:
     @requires_symlinks
     def test_skips_broken_symlink(self, tmp_path: Path):
         """Broken symlink raises OSError with strict=True and is logged."""
-        from kiro_crew.agent import _all_skill_paths
+        from junction.agent import _all_skill_paths
 
         aim_skills = tmp_path / ".aim" / "skills"
         local_dir = aim_skills / "local"
@@ -611,9 +611,9 @@ class TestAllSkillPathsLocalSymlinks:
 
         (local_dir / "broken").symlink_to(tmp_path / "nonexistent" / "skills" / "gone")
 
-        with patch("kiro_crew.agent.Path.home", return_value=tmp_path):
-            with patch("kiro_crew.agent._project_dir", return_value=None):
-                with patch("kiro_crew.agent.logger") as mock_logger:
+        with patch("junction.agent.Path.home", return_value=tmp_path):
+            with patch("junction.agent._project_dir", return_value=None):
+                with patch("junction.agent.logger") as mock_logger:
                     paths = _all_skill_paths()
 
         assert str(tmp_path / "nonexistent" / "skills") not in paths
@@ -627,15 +627,15 @@ class TestAllSkillPathsLocalSymlinks:
 
     def test_ignores_regular_dir_in_local(self, tmp_path: Path):
         """Regular directories in local/ are not resolved as symlinks."""
-        from kiro_crew.agent import _all_skill_paths
+        from junction.agent import _all_skill_paths
 
         aim_skills = tmp_path / ".aim" / "skills"
         local_dir = aim_skills / "local"
         regular = local_dir / "not-a-symlink" / "skills" / "some-skill"
         regular.mkdir(parents=True)
 
-        with patch("kiro_crew.agent.Path.home", return_value=tmp_path):
-            with patch("kiro_crew.agent._project_dir", return_value=None):
+        with patch("junction.agent.Path.home", return_value=tmp_path):
+            with patch("junction.agent._project_dir", return_value=None):
                 paths = _all_skill_paths()
 
         assert str(local_dir / "not-a-symlink" / "skills") not in paths
@@ -643,7 +643,7 @@ class TestAllSkillPathsLocalSymlinks:
     @requires_symlinks
     def test_ignores_symlink_to_file(self, tmp_path: Path):
         """Symlink pointing to a file (not directory) is skipped."""
-        from kiro_crew.agent import _all_skill_paths
+        from junction.agent import _all_skill_paths
 
         aim_skills = tmp_path / ".aim" / "skills"
         local_dir = aim_skills / "local"
@@ -654,256 +654,256 @@ class TestAllSkillPathsLocalSymlinks:
         target_file.write_text("not a skill dir")
         (local_dir / "file-link").symlink_to(target_file)
 
-        with patch("kiro_crew.agent.Path.home", return_value=tmp_path):
-            with patch("kiro_crew.agent._project_dir", return_value=None):
+        with patch("junction.agent.Path.home", return_value=tmp_path):
+            with patch("junction.agent._project_dir", return_value=None):
                 paths = _all_skill_paths()
 
         assert str(tmp_path / "project" / "skills") not in paths
 
 
-class TestResolveKirocrewBin:
-    """Tests for lazy kirocrew binary resolution."""
+class TestResolveJunctionBin:
+    """Tests for lazy junction binary resolution."""
 
     def test_finds_bin_in_parent_hierarchy(self, tmp_path: Path):
-        """Walks up from package dir to find bin/kirocrew."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        """Walks up from package dir to find bin/junction."""
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
-        # Create structure: venv/lib/python3.x/site-packages/kiro_crew
-        #                   venv/bin/kirocrew
+        # Create structure: venv/lib/python3.x/site-packages/junction
+        #                   venv/bin/junction
         venv = tmp_path / "venv"
-        pkg_dir = venv / "lib" / "python3.11" / "site-packages" / "kiro_crew"
+        pkg_dir = venv / "lib" / "python3.11" / "site-packages" / "junction"
         pkg_dir.mkdir(parents=True)
         (pkg_dir / "__init__.py").write_text("")
 
         bin_dir = venv / "bin"
         bin_dir.mkdir()
-        kirocrew_bin = bin_dir / "kirocrew"
-        kirocrew_bin.write_text("#!/bin/bash\necho kirocrew")
-        kirocrew_bin.chmod(0o755)
+        junction_bin = bin_dir / "junction"
+        junction_bin.write_text("#!/bin/bash\necho junction")
+        junction_bin.chmod(0o755)
 
-        # Mock kiro_crew.__file__ to point to our fake package
+        # Mock junction.__file__ to point to our fake package
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(pkg_dir / "__init__.py")
 
         # Reset global and mock the import
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
-                result = _resolve_kirocrew_bin()
-            assert result == str(kirocrew_bin)
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
+                result = _resolve_junction_bin()
+            assert result == str(junction_bin)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_falls_back_to_shutil_which(self, tmp_path: Path):
         """Falls back to PATH lookup when bin/ not found in hierarchy."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         # Package dir with no bin/ sibling anywhere (use /tmp which has no bin/)
         mock_mc = unittest.mock.MagicMock()
-        mock_mc.__file__ = str(tmp_path / "kiro_crew" / "__init__.py")
-        (tmp_path / "kiro_crew").mkdir()
-        (tmp_path / "kiro_crew" / "__init__.py").write_text("")
+        mock_mc.__file__ = str(tmp_path / "junction" / "__init__.py")
+        (tmp_path / "junction").mkdir()
+        (tmp_path / "junction" / "__init__.py").write_text("")
 
         # Create the fallback binary so _usable() validation passes
-        fallback_bin = tmp_path / "usr_local_bin_kirocrew"
+        fallback_bin = tmp_path / "usr_local_bin_junction"
         fallback_bin.write_text("#!/bin/sh\n")
         fallback_bin.chmod(0o755)
 
         # Selective isfile mock: only the explicit fallback passes validation;
-        # any real /bin/kirocrew the walk might find gets rejected.
+        # any real /bin/junction the walk might find gets rejected.
         _real_isfile = os.path.isfile
 
         def _fake_isfile(p):
             return p == str(fallback_bin) and _real_isfile(p)
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 with patch("os.path.isfile", side_effect=_fake_isfile):
                     # Skip brazil-path branch
                     def _which(cmd: str) -> str | None:
                         if cmd == "brazil-path":
                             return None
-                        if cmd == "kirocrew":
+                        if cmd == "junction":
                             return str(fallback_bin)
                         return None
 
                     with patch("shutil.which", side_effect=_which):
-                        result = _resolve_kirocrew_bin()
+                        result = _resolve_junction_bin()
             assert result == str(fallback_bin)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
-    def test_returns_kirocrew_when_not_found(self, tmp_path: Path):
-        """Returns 'kirocrew' string when not found anywhere."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+    def test_returns_junction_when_not_found(self, tmp_path: Path):
+        """Returns 'junction' string when not found anywhere."""
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         mock_mc = unittest.mock.MagicMock()
-        mock_mc.__file__ = str(tmp_path / "kiro_crew" / "__init__.py")
-        (tmp_path / "kiro_crew").mkdir(exist_ok=True)
-        (tmp_path / "kiro_crew" / "__init__.py").write_text("")
+        mock_mc.__file__ = str(tmp_path / "junction" / "__init__.py")
+        (tmp_path / "junction").mkdir(exist_ok=True)
+        (tmp_path / "junction" / "__init__.py").write_text("")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 # Blanket isfile=False blocks walk, brazil-path, and which fallback
                 with patch("os.path.isfile", return_value=False):
                     with patch("shutil.which", return_value=None):
-                        result = _resolve_kirocrew_bin()
-            assert result == "kirocrew"
+                        result = _resolve_junction_bin()
+            assert result == "junction"
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_skips_stale_shutil_which_result(self, tmp_path: Path):
-        """Falls through to bare 'kirocrew' when shutil.which returns a
+        """Falls through to bare 'junction' when shutil.which returns a
         path that no longer exists (e.g. deleted after Toolbox migration).
         Regression test for scenario where
-        ~/.local/bin/kirocrew was removed but still cached in PATH lookup.
+        ~/.local/bin/junction was removed but still cached in PATH lookup.
         """
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         mock_mc = unittest.mock.MagicMock()
-        mock_mc.__file__ = str(tmp_path / "kiro_crew" / "__init__.py")
-        (tmp_path / "kiro_crew").mkdir(exist_ok=True)
-        (tmp_path / "kiro_crew" / "__init__.py").write_text("")
+        mock_mc.__file__ = str(tmp_path / "junction" / "__init__.py")
+        (tmp_path / "junction").mkdir(exist_ok=True)
+        (tmp_path / "junction" / "__init__.py").write_text("")
 
         # Stub brazil-path so its subprocess call doesn't resolve to a real binary
         def _which(cmd: str) -> str | None:
             if cmd == "brazil-path":
                 return None  # skip brazil-path branch
-            if cmd == "kirocrew":
-                return "/home/user/.local/bin/kirocrew-DELETED"
+            if cmd == "junction":
+                return "/home/user/.local/bin/junction-DELETED"
             return None
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 # Blanket isfile=False — the stale path must not pass validation
                 with patch("os.path.isfile", return_value=False):
                     with patch("shutil.which", side_effect=_which):
-                        result = _resolve_kirocrew_bin()
-            # Must NOT cache the stale path — falls through to bare 'kirocrew'
-            assert result == "kirocrew"
-            assert agent_mod._KIROCREW_BIN is None  # didn't cache fallback
+                        result = _resolve_junction_bin()
+            # Must NOT cache the stale path — falls through to bare 'junction'
+            assert result == "junction"
+            assert agent_mod._JUNCTION_BIN is None  # didn't cache fallback
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_walk_and_path_miss_falls_back_to_bare(self, tmp_path: Path):
-        """When the bin walk and PATH both miss, fall back to bare 'kirocrew'.
+        """When the bin walk and PATH both miss, fall back to bare 'junction'.
 
         The public install has no Brazil ``brazil-path run.runtimefarm`` step,
         so an unresolvable binary surfaces as the bare name instead of caching
         a stale absolute path.
         """
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         # A real executable that lives somewhere NOT on the walk path or PATH.
         runtime_farm = tmp_path / "runtime"
         (runtime_farm / "bin").mkdir(parents=True)
-        kirocrew_bin = runtime_farm / "bin" / "kirocrew"
-        kirocrew_bin.write_text("#!/bin/sh\n")
-        kirocrew_bin.chmod(0o755)
+        junction_bin = runtime_farm / "bin" / "junction"
+        junction_bin.write_text("#!/bin/sh\n")
+        junction_bin.chmod(0o755)
 
         mock_mc = unittest.mock.MagicMock()
-        mock_mc.__file__ = str(tmp_path / "kiro_crew" / "__init__.py")
-        (tmp_path / "kiro_crew").mkdir(exist_ok=True)
-        (tmp_path / "kiro_crew" / "__init__.py").write_text("")
+        mock_mc.__file__ = str(tmp_path / "junction" / "__init__.py")
+        (tmp_path / "junction").mkdir(exist_ok=True)
+        (tmp_path / "junction" / "__init__.py").write_text("")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 # Make the walk find nothing reachable from the package dir.
                 _real_isfile = os.path.isfile
 
                 def _fake_isfile(p):
-                    return p == str(kirocrew_bin) and _real_isfile(p)
+                    return p == str(junction_bin) and _real_isfile(p)
 
                 with patch("os.path.isfile", side_effect=_fake_isfile):
                     with patch("shutil.which", return_value=None):
-                        result = _resolve_kirocrew_bin()
+                        result = _resolve_junction_bin()
             # No brazil-path fallback exists; unresolved -> bare name, not cached.
-            assert result == "kirocrew"
-            assert agent_mod._KIROCREW_BIN is None
+            assert result == "junction"
+            assert agent_mod._JUNCTION_BIN is None
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_brazil_path_failure_falls_through(self, tmp_path: Path):
         """brazil-path raising an exception falls through without crashing."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         mock_mc = unittest.mock.MagicMock()
-        mock_mc.__file__ = str(tmp_path / "kiro_crew" / "__init__.py")
-        (tmp_path / "kiro_crew").mkdir(exist_ok=True)
-        (tmp_path / "kiro_crew" / "__init__.py").write_text("")
+        mock_mc.__file__ = str(tmp_path / "junction" / "__init__.py")
+        (tmp_path / "junction").mkdir(exist_ok=True)
+        (tmp_path / "junction" / "__init__.py").write_text("")
 
         def _which(cmd: str) -> str | None:
             if cmd == "brazil-path":
                 return "/usr/bin/brazil-path"  # exists but subprocess will raise
             return None
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 with patch("os.path.isfile", return_value=False):
                     with patch("shutil.which", side_effect=_which):
                         with patch(
                             "subprocess.run",
                             side_effect=OSError("brazil-path blew up"),
                         ):
-                            result = _resolve_kirocrew_bin()
-            # Falls through to bare 'kirocrew', doesn't crash
-            assert result == "kirocrew"
-            assert agent_mod._KIROCREW_BIN is None
+                            result = _resolve_junction_bin()
+            # Falls through to bare 'junction', doesn't crash
+            assert result == "junction"
+            assert agent_mod._JUNCTION_BIN is None
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_caches_result(self):
-        """Result is cached in global _KIROCREW_BIN."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        """Result is cached in global _JUNCTION_BIN."""
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = "/cached/kirocrew"
-            result = _resolve_kirocrew_bin()
-            assert result == "/cached/kirocrew"
+            agent_mod._JUNCTION_BIN = "/cached/junction"
+            result = _resolve_junction_bin()
+            assert result == "/cached/junction"
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_accepts_any_readable_bin_from_walk(self, tmp_path: Path):
         """The bin walk accepts any readable executable it finds.
 
         On a public install there is no Apollo/Brazil wrapper-rejection: any
-        readable ``bin/kirocrew`` discovered by the walk is used as-is.
+        readable ``bin/junction`` discovered by the walk is used as-is.
         """
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         venv = tmp_path / "venv"
-        pkg_dir = venv / "lib" / "python3.10" / "site-packages" / "kiro_crew"
+        pkg_dir = venv / "lib" / "python3.10" / "site-packages" / "junction"
         pkg_dir.mkdir(parents=True)
         (pkg_dir / "__init__.py").write_text("")
 
         bin_dir = venv / "bin"
         bin_dir.mkdir()
-        kirocrew_bin = bin_dir / "kirocrew"
-        kirocrew_bin.write_text('#!/bin/sh\nexec kirocrew "$@"\n')
-        kirocrew_bin.chmod(0o755)
+        junction_bin = bin_dir / "junction"
+        junction_bin.write_text('#!/bin/sh\nexec junction "$@"\n')
+        junction_bin.chmod(0o755)
 
         # A PATH fallback that should NOT be chosen — the walk finds bin first.
-        fallback_bin = tmp_path / "toolbox" / "bin" / "kirocrew"
+        fallback_bin = tmp_path / "toolbox" / "bin" / "junction"
         fallback_bin.parent.mkdir(parents=True)
         fallback_bin.write_text("#!/bin/bash\n")
         fallback_bin.chmod(0o755)
@@ -911,78 +911,78 @@ class TestResolveKirocrewBin:
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(pkg_dir / "__init__.py")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 with patch("shutil.which") as mock_which:
                     mock_which.side_effect = lambda cmd, **kw: (
-                        str(fallback_bin) if cmd == "kirocrew" else None
+                        str(fallback_bin) if cmd == "junction" else None
                     )
-                    result = _resolve_kirocrew_bin()
-            # The walk finds venv/bin/kirocrew and accepts it directly.
-            assert result == str(kirocrew_bin)
+                    result = _resolve_junction_bin()
+            # The walk finds venv/bin/junction and accepts it directly.
+            assert result == str(junction_bin)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_accepts_apollo_binary_with_envroot(self, tmp_path: Path):
         """Accepts Apollo binary when .envroot exists in a parent directory."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
-        # Create env/runtime/.envroot + env/runtime/bin/kirocrew (Apollo)
+        # Create env/runtime/.envroot + env/runtime/bin/junction (Apollo)
         runtime = tmp_path / "env" / "runtime"
-        (runtime / "lib" / "python3.10" / "site-packages" / "kiro_crew").mkdir(parents=True)
-        (runtime / "lib" / "python3.10" / "site-packages" / "kiro_crew" / "__init__.py").write_text(
+        (runtime / "lib" / "python3.10" / "site-packages" / "junction").mkdir(parents=True)
+        (runtime / "lib" / "python3.10" / "site-packages" / "junction" / "__init__.py").write_text(
             ""
         )
         (runtime / ".envroot").write_text("")
 
         bin_dir = runtime / "bin"
         bin_dir.mkdir()
-        kirocrew_bin = bin_dir / "kirocrew"
-        kirocrew_bin.write_bytes(
+        junction_bin = bin_dir / "junction"
+        junction_bin.write_bytes(
             b"#!/apollo/sbin/envroot $ENVROOT/python3.10/bin/python3.10\nimport sys\n"
         )
-        kirocrew_bin.chmod(0o755)
+        junction_bin.chmod(0o755)
 
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(
-            runtime / "lib" / "python3.10" / "site-packages" / "kiro_crew" / "__init__.py"
+            runtime / "lib" / "python3.10" / "site-packages" / "junction" / "__init__.py"
         )
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
-                result = _resolve_kirocrew_bin()
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
+                result = _resolve_junction_bin()
             # Should accept — .envroot exists in parent of bin/
-            assert result == str(kirocrew_bin)
+            assert result == str(junction_bin)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_accepts_wrapper_bin_from_walk(self, tmp_path: Path):
-        """A shell-wrapper bin/kirocrew found by the walk is accepted as-is.
+        """A shell-wrapper bin/junction found by the walk is accepted as-is.
 
         Public installs no longer reject wrapper scripts (the Brazil-workspace
         check is a no-op), so the walk-discovered bin wins over PATH.
         """
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
         project = tmp_path / "project"
-        pkg_dir = project / "src" / "kiro_crew"
+        pkg_dir = project / "src" / "junction"
         pkg_dir.mkdir(parents=True)
         (pkg_dir / "__init__.py").write_text("")
 
         bin_dir = project / "bin"
         bin_dir.mkdir()
-        wrapper = bin_dir / "kirocrew"
-        wrapper.write_text('#!/bin/sh\nexec kirocrew "$@"\n')
+        wrapper = bin_dir / "junction"
+        wrapper.write_text('#!/bin/sh\nexec junction "$@"\n')
         wrapper.chmod(0o755)
 
         # A PATH fallback that should NOT be chosen.
-        fallback_bin = tmp_path / "local" / "bin" / "kirocrew"
+        fallback_bin = tmp_path / "local" / "bin" / "junction"
         fallback_bin.parent.mkdir(parents=True)
         fallback_bin.write_text("#!/bin/sh\n")
         fallback_bin.chmod(0o755)
@@ -990,23 +990,23 @@ class TestResolveKirocrewBin:
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(pkg_dir / "__init__.py")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
                 with patch("shutil.which") as mock_which:
                     mock_which.side_effect = lambda cmd, **kw: (
-                        str(fallback_bin) if cmd == "kirocrew" else None
+                        str(fallback_bin) if cmd == "junction" else None
                     )
-                    result = _resolve_kirocrew_bin()
-            # The walk finds project/bin/kirocrew and accepts it directly.
+                    result = _resolve_junction_bin()
+            # The walk finds project/bin/junction and accepts it directly.
             assert result == str(wrapper)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_accepts_brazil_wrapper_inside_workspace(self, tmp_path: Path):
-        """Accepts bin/kirocrew with brazil-runtime-exec when packageInfo exists."""
-        from kiro_crew.agent import _bin_is_usable
+        """Accepts bin/junction with brazil-runtime-exec when packageInfo exists."""
+        from junction.agent import _bin_is_usable
 
         # Create structure with packageInfo (real Brazil workspace)
         workspace = tmp_path / "workspace"
@@ -1014,253 +1014,253 @@ class TestResolveKirocrewBin:
         (workspace / "packageInfo").write_text("{}")
         bin_dir = workspace / "bin"
         bin_dir.mkdir()
-        brazil_wrapper = bin_dir / "kirocrew"
-        brazil_wrapper.write_text('#!/bin/sh\nexec brazil-runtime-exec kirocrew "$@"\n')
+        brazil_wrapper = bin_dir / "junction"
+        brazil_wrapper.write_text('#!/bin/sh\nexec brazil-runtime-exec junction "$@"\n')
         brazil_wrapper.chmod(0o755)
 
         assert _bin_is_usable(brazil_wrapper) is True
 
     def test_prefers_venv_bin_over_project_bin(self, tmp_path: Path):
-        """Resolves .venv/bin/kirocrew before bin/kirocrew in the same tree."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        """Resolves .venv/bin/junction before bin/junction in the same tree."""
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
-        # Create structure: project/src/kiro_crew + project/.venv/bin/kirocrew
-        # + project/bin/kirocrew (Brazil wrapper)
+        # Create structure: project/src/junction + project/.venv/bin/junction
+        # + project/bin/junction (Brazil wrapper)
         project = tmp_path / "project"
-        pkg_dir = project / "src" / "kiro_crew"
+        pkg_dir = project / "src" / "junction"
         pkg_dir.mkdir(parents=True)
         (pkg_dir / "__init__.py").write_text("")
 
-        # .venv/bin/kirocrew — the preferred candidate
-        venv_bin = project / ".venv" / "bin" / "kirocrew"
+        # .venv/bin/junction — the preferred candidate
+        venv_bin = project / ".venv" / "bin" / "junction"
         venv_bin.parent.mkdir(parents=True)
-        venv_bin.write_text('#!/bin/sh\nexec python -m kiro_crew "$@"\n')
+        venv_bin.write_text('#!/bin/sh\nexec python -m junction "$@"\n')
         venv_bin.chmod(0o755)
 
-        # bin/kirocrew — Brazil wrapper (should be skipped)
+        # bin/junction — Brazil wrapper (should be skipped)
         bin_dir = project / "bin"
         bin_dir.mkdir()
-        brazil_wrapper = bin_dir / "kirocrew"
-        brazil_wrapper.write_text('#!/bin/sh\nexec brazil-runtime-exec kirocrew "$@"\n')
+        brazil_wrapper = bin_dir / "junction"
+        brazil_wrapper.write_text('#!/bin/sh\nexec brazil-runtime-exec junction "$@"\n')
         brazil_wrapper.chmod(0o755)
 
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(pkg_dir / "__init__.py")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
-                result = _resolve_kirocrew_bin()
-            # Should prefer .venv/bin/kirocrew over bin/kirocrew
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
+                result = _resolve_junction_bin()
+            # Should prefer .venv/bin/junction over bin/junction
             assert result == str(venv_bin)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
     def test_venv_install_falls_through_to_step1(self, tmp_path: Path):
         """When pkg_dir is inside .venv/, pyvenv.cfg breaks step 0."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction.agent import _resolve_junction_bin
 
-        # Simulate pip-into-venv: .venv/lib/python3.x/site-packages/kiro_crew/
+        # Simulate pip-into-venv: .venv/lib/python3.x/site-packages/junction/
         venv_root = tmp_path / ".venv"
-        pkg_dir = venv_root / "lib" / "python3.13" / "site-packages" / "kiro_crew"
+        pkg_dir = venv_root / "lib" / "python3.13" / "site-packages" / "junction"
         pkg_dir.mkdir(parents=True)
         (pkg_dir / "__init__.py").write_text("")
         (venv_root / "pyvenv.cfg").write_text("home = /usr/bin\n")
 
-        # .venv/bin/kirocrew exists (step 1 should find it)
-        venv_bin = venv_root / "bin" / "kirocrew"
+        # .venv/bin/junction exists (step 1 should find it)
+        venv_bin = venv_root / "bin" / "junction"
         venv_bin.parent.mkdir(parents=True)
-        venv_bin.write_text('#!/bin/sh\nexec python -m kiro_crew "$@"\n')
+        venv_bin.write_text('#!/bin/sh\nexec python -m junction "$@"\n')
         venv_bin.chmod(0o755)
 
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(pkg_dir / "__init__.py")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
-                result = _resolve_kirocrew_bin()
-            # Step 0 breaks at pyvenv.cfg; step 1 finds bin/kirocrew
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
+                result = _resolve_junction_bin()
+            # Step 0 breaks at pyvenv.cfg; step 1 finds bin/junction
             assert result == str(venv_bin)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
 
-class TestKirocrewBinSubpath:
+class TestJunctionBinSubpath:
     """Tests for the per-OS console-script subpath (#4439).
 
-    On Windows the resolver must prefer the relocatable ``bin\\kirocrew.cmd``
-    shim over the pip-generated ``Scripts\\kirocrew.exe``: inside the shipped
+    On Windows the resolver must prefer the relocatable ``bin\\junction.cmd``
+    shim over the pip-generated ``Scripts\\junction.exe``: inside the shipped
     desktop bundle the ``.exe`` embeds the ABSOLUTE interpreter path of the
     build agent and can never run on the user's machine, while the ``.cmd``
     resolves its interpreter via ``%~dp0``. Mirrors the ranking in
     ``website/electron/find-bin.js``.
     """
 
-    def test_posix_returns_bin_kirocrew(self, tmp_path: Path, monkeypatch):
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _kirocrew_bin_subpath
+    def test_posix_returns_bin_junction(self, tmp_path: Path, monkeypatch):
+        from junction import platform_compat
+        from junction.agent import _junction_bin_subpath
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", False)
-        # Even with a stray kirocrew.cmd present, POSIX resolution is unchanged.
+        # Even with a stray junction.cmd present, POSIX resolution is unchanged.
         (tmp_path / "bin").mkdir()
-        (tmp_path / "bin" / "kirocrew.cmd").write_text("@echo off\n")
-        assert _kirocrew_bin_subpath(tmp_path) == tmp_path / "bin" / "kirocrew"
+        (tmp_path / "bin" / "junction.cmd").write_text("@echo off\n")
+        assert _junction_bin_subpath(tmp_path) == tmp_path / "bin" / "junction"
 
     def test_windows_prefers_relocatable_cmd_shim(self, tmp_path: Path, monkeypatch):
         """Bundle layout: BOTH launchers exist -> the .cmd shim wins."""
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _kirocrew_bin_subpath
+        from junction import platform_compat
+        from junction.agent import _junction_bin_subpath
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
         (tmp_path / "bin").mkdir()
-        cmd_shim = tmp_path / "bin" / "kirocrew.cmd"
-        cmd_shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m kiro_crew %*\r\n')
+        cmd_shim = tmp_path / "bin" / "junction.cmd"
+        cmd_shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m junction %*\r\n')
         (tmp_path / "Scripts").mkdir()
-        (tmp_path / "Scripts" / "kirocrew.exe").write_bytes(b"MZ")
-        assert _kirocrew_bin_subpath(tmp_path) == cmd_shim
+        (tmp_path / "Scripts" / "junction.exe").write_bytes(b"MZ")
+        assert _junction_bin_subpath(tmp_path) == cmd_shim
 
     def test_windows_falls_back_to_scripts_exe_without_cmd(self, tmp_path: Path, monkeypatch):
-        """Plain pip install: no .cmd shim -> Scripts/kirocrew.exe as before."""
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _kirocrew_bin_subpath
+        """Plain pip install: no .cmd shim -> Scripts/junction.exe as before."""
+        from junction import platform_compat
+        from junction.agent import _junction_bin_subpath
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
         (tmp_path / "Scripts").mkdir()
-        (tmp_path / "Scripts" / "kirocrew.exe").write_bytes(b"MZ")
-        expected = tmp_path / "Scripts" / "kirocrew.exe"
-        assert _kirocrew_bin_subpath(tmp_path) == expected
+        (tmp_path / "Scripts" / "junction.exe").write_bytes(b"MZ")
+        expected = tmp_path / "Scripts" / "junction.exe"
+        assert _junction_bin_subpath(tmp_path) == expected
 
     def test_windows_cmd_must_be_a_file(self, tmp_path: Path, monkeypatch):
-        """A directory named kirocrew.cmd does not shadow the .exe fallback."""
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _kirocrew_bin_subpath
+        """A directory named junction.cmd does not shadow the .exe fallback."""
+        from junction import platform_compat
+        from junction.agent import _junction_bin_subpath
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
-        (tmp_path / "bin" / "kirocrew.cmd").mkdir(parents=True)
-        expected = tmp_path / "Scripts" / "kirocrew.exe"
-        assert _kirocrew_bin_subpath(tmp_path) == expected
+        (tmp_path / "bin" / "junction.cmd").mkdir(parents=True)
+        expected = tmp_path / "Scripts" / "junction.exe"
+        assert _junction_bin_subpath(tmp_path) == expected
 
     def test_bin_is_usable_accepts_cmd_batch_shim(self, tmp_path: Path):
         """A `.cmd` starts with `@`, not `#!` -> no shebang to validate, usable."""
-        from kiro_crew.agent import _bin_is_usable
+        from junction.agent import _bin_is_usable
 
-        shim = tmp_path / "kirocrew.cmd"
-        shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m kiro_crew %*\r\n')
+        shim = tmp_path / "junction.cmd"
+        shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m junction %*\r\n')
         assert _bin_is_usable(shim) is True
 
     def test_resolver_walk_finds_cmd_shim_in_bundle_layout(self, tmp_path: Path, monkeypatch):
         """End-to-end: the parent walk PREFERS the bundle's .cmd on Windows.
 
         Pins the issue's failure mode: the bundle ships BOTH launchers, and
-        resolving the co-present ``Scripts\\kirocrew.exe`` instead of the
+        resolving the co-present ``Scripts\\junction.exe`` instead of the
         ``.cmd`` shim is exactly the #4439 defect.
         """
-        import kiro_crew.agent as agent_mod
-        from kiro_crew import platform_compat
-        from kiro_crew.agent import _resolve_kirocrew_bin
+        import junction.agent as agent_mod
+        from junction import platform_compat
+        from junction.agent import _resolve_junction_bin
 
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
 
         # Bundle layout (packaging/build-desktop.sh build_backend_windows):
-        # <root>/Lib/site-packages/kiro_crew + <root>/bin/kirocrew.cmd
-        # + the pip-dropped <root>/Scripts/kirocrew.exe (non-relocatable).
-        root = tmp_path / "kirocrew-backend"
-        pkg_dir = root / "Lib" / "site-packages" / "kiro_crew"
+        # <root>/Lib/site-packages/junction + <root>/bin/junction.cmd
+        # + the pip-dropped <root>/Scripts/junction.exe (non-relocatable).
+        root = tmp_path / "junction-backend"
+        pkg_dir = root / "Lib" / "site-packages" / "junction"
         pkg_dir.mkdir(parents=True)
         (pkg_dir / "__init__.py").write_text("")
         (root / "bin").mkdir()
-        cmd_shim = root / "bin" / "kirocrew.cmd"
-        cmd_shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m kiro_crew %*\r\n')
+        cmd_shim = root / "bin" / "junction.cmd"
+        cmd_shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m junction %*\r\n')
         # The test host is POSIX, where the resolver's X_OK gate is real.
         cmd_shim.chmod(0o755)
         (root / "Scripts").mkdir()
-        dead_exe = root / "Scripts" / "kirocrew.exe"
+        dead_exe = root / "Scripts" / "junction.exe"
         dead_exe.write_bytes(b"MZ")
         dead_exe.chmod(0o755)
 
         mock_mc = unittest.mock.MagicMock()
         mock_mc.__file__ = str(pkg_dir / "__init__.py")
 
-        old_val = agent_mod._KIROCREW_BIN
+        old_val = agent_mod._JUNCTION_BIN
         try:
-            agent_mod._KIROCREW_BIN = None
-            with patch.dict("sys.modules", {"kiro_crew": mock_mc}):
-                result = _resolve_kirocrew_bin()
+            agent_mod._JUNCTION_BIN = None
+            with patch.dict("sys.modules", {"junction": mock_mc}):
+                result = _resolve_junction_bin()
             assert result == str(cmd_shim)
         finally:
-            agent_mod._KIROCREW_BIN = old_val
+            agent_mod._JUNCTION_BIN = old_val
 
 
-class TestKirocrewMcpInvocation:
+class TestJunctionMcpInvocation:
     """Tests for built-in MCP server invocation resolution.
 
-    Regression: when ``_resolve_kirocrew_bin`` cannot find a usable
+    Regression: when ``_resolve_junction_bin`` cannot find a usable
     standalone binary (e.g. the gateway runs as a systemd user service and
-    ``kirocrew`` is not on the service PATH), the built-in cron/core servers
-    must still get a runnable command instead of the bare ``"kirocrew"``
-    sentinel, which fails validation and drops them from ``kirocrew.json`` on
+    ``junction`` is not on the service PATH), the built-in cron/core servers
+    must still get a runnable command instead of the bare ``"junction"``
+    sentinel, which fails validation and drops them from ``junction.json`` on
     every refresh.
     """
 
     def test_uses_standalone_binary_when_resolved(self):
-        from kiro_crew.agent import _kirocrew_mcp_invocation
+        from junction.agent import _junction_mcp_invocation
 
-        with patch("kiro_crew.agent._resolve_kirocrew_bin", return_value="/opt/bin/kirocrew"):
-            cmd, args = _kirocrew_mcp_invocation("mcp-cron")
-        assert cmd == "/opt/bin/kirocrew"
+        with patch("junction.agent._resolve_junction_bin", return_value="/opt/bin/junction"):
+            cmd, args = _junction_mcp_invocation("mcp-cron")
+        assert cmd == "/opt/bin/junction"
         assert args == ["mcp-cron"]
 
     def test_falls_back_to_interpreter_module_when_unresolved(self):
-        from kiro_crew.agent import _kirocrew_mcp_invocation
+        from junction.agent import _junction_mcp_invocation
 
-        # Bare "kirocrew" is the unresolved sentinel from _resolve_kirocrew_bin.
-        with patch("kiro_crew.agent._resolve_kirocrew_bin", return_value="kirocrew"):
-            cmd, args = _kirocrew_mcp_invocation("mcp-core")
+        # Bare "junction" is the unresolved sentinel from _resolve_junction_bin.
+        with patch("junction.agent._resolve_junction_bin", return_value="junction"):
+            cmd, args = _junction_mcp_invocation("mcp-core")
         assert cmd == sys.executable
-        assert args == ["-m", "kiro_crew", "mcp-core"]
+        assert args == ["-m", "junction", "mcp-core"]
 
     def test_unwraps_cmd_shim_to_sibling_interpreter(self, tmp_path: Path):
-        """A resolved bin/kirocrew.cmd is never emitted verbatim (#4439).
+        """A resolved bin/junction.cmd is never emitted verbatim (#4439).
 
         Mirrors website/electron/main.js: the shim is unwrapped to
-        ``<root>/python.exe -s -m kiro_crew <sub>`` so kiro-cli spawns the
+        ``<root>/python.exe -s -m junction <sub>`` so kiro-cli spawns the
         interpreter, not a batch file.
         """
-        from kiro_crew.agent import _kirocrew_mcp_invocation
+        from junction.agent import _junction_mcp_invocation
 
-        root = tmp_path / "kirocrew-backend"
+        root = tmp_path / "junction-backend"
         (root / "bin").mkdir(parents=True)
-        shim = root / "bin" / "kirocrew.cmd"
-        shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m kiro_crew %*\r\n')
+        shim = root / "bin" / "junction.cmd"
+        shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m junction %*\r\n')
         interpreter = root / "python.exe"
         interpreter.write_bytes(b"MZ")
         interpreter.chmod(0o755)  # X_OK is real on the POSIX test host
 
-        with patch("kiro_crew.agent._resolve_kirocrew_bin", return_value=str(shim)):
-            cmd, args = _kirocrew_mcp_invocation("mcp-cron")
+        with patch("junction.agent._resolve_junction_bin", return_value=str(shim)):
+            cmd, args = _junction_mcp_invocation("mcp-cron")
         assert cmd == str(interpreter)
         # -P keeps the spawn CWD off sys.path (the bundle interpreter is
         # pinned 3.12, so the 3.11+ flag is safe); -s drops user site-packages.
-        assert args == ["-P", "-s", "-m", "kiro_crew", "mcp-cron"]
+        assert args == ["-P", "-s", "-m", "junction", "mcp-cron"]
 
     def test_cmd_shim_without_interpreter_falls_back_to_sys_executable(self, tmp_path: Path):
         """Corrupted bundle: shim present but python.exe missing -> sys.executable."""
-        from kiro_crew.agent import _kirocrew_mcp_invocation
+        from junction.agent import _junction_mcp_invocation
 
-        root = tmp_path / "kirocrew-backend"
+        root = tmp_path / "junction-backend"
         (root / "bin").mkdir(parents=True)
-        shim = root / "bin" / "kirocrew.cmd"
-        shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m kiro_crew %*\r\n')
+        shim = root / "bin" / "junction.cmd"
+        shim.write_text('@echo off\r\n"%~dp0..\\python.exe" -s -m junction %*\r\n')
 
-        with patch("kiro_crew.agent._resolve_kirocrew_bin", return_value=str(shim)):
-            cmd, args = _kirocrew_mcp_invocation("mcp-core")
+        with patch("junction.agent._resolve_junction_bin", return_value=str(shim)):
+            cmd, args = _junction_mcp_invocation("mcp-core")
         assert cmd == sys.executable
-        assert args == ["-m", "kiro_crew", "mcp-core"]
+        assert args == ["-m", "junction", "mcp-core"]
 
 
 class TestKiroHooksMerge:
@@ -1320,25 +1320,25 @@ class TestKiroHooksMerge:
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
         if existing:
-            (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+            (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         prompt = cfg_dir / "prompt.md"
         patches = [
             patch.multiple(
-                "kiro_crew.agent",
+                "junction.agent",
                 KIRO_AGENTS_DIR=kiro_dir,
                 _BUNDLED_CFG_DIR=cfg_dir,
-                _KIROCREW_BIN="/usr/bin/kirocrew",
+                _JUNCTION_BIN="/usr/bin/junction",
                 _MANAGED_MCP_SERVERS=_DEFAULT_MANAGED_MCPS,
                 _KIRO_MCP_JSON=tmp_path / "nonexistent_kiro_mcp.json",
                 _CC_MCP_JSON=tmp_path / "nonexistent_cc_mcp.json",
             ),
-            patch("kiro_crew.agent._prompt_path", return_value=prompt),
-            patch("kiro_crew.agent._shipped_defaults", return_value=cfg_dir / "defaults.json"),
-            patch("kiro_crew.agent._project_dir", return_value=None),
-            patch("kiro_crew.agent._aim_skill_paths", return_value=[]),
-            patch("kiro_crew.agent.shutil.which", side_effect=lambda c, **kw: c),
-            patch("kiro_crew.agent._mc_config_path", return_value=mc_config),
+            patch("junction.agent._prompt_path", return_value=prompt),
+            patch("junction.agent._shipped_defaults", return_value=cfg_dir / "defaults.json"),
+            patch("junction.agent._project_dir", return_value=None),
+            patch("junction.agent._aim_skill_paths", return_value=[]),
+            patch("junction.agent.shutil.which", side_effect=lambda c, **kw: c),
+            patch("junction.agent._mc_config_path", return_value=mc_config),
         ]
         with ExitStack() as stack:
             for p in patches:
@@ -1391,7 +1391,7 @@ class TestKiroHooksMerge:
 
     def test_user_hooks_dedup_against_bundled(self, tmp_path: Path):
         """User hook whose command+matcher matches a bundled hook is not added twice."""
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         hook = self._make_hook(tmp_path, "audit.sh")
         bundled = {"postToolUse": [{"matcher": "execute_bash", "command": hook}]}
@@ -1453,20 +1453,20 @@ class TestKiroHooksMerge:
 
     # -- Direct unit tests for _merge_kiro_hooks defensive branches --
     def test_merge_kiro_hooks_non_dict_user_hooks_returns_original(self):
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         bundled = {"postToolUse": [{"command": "audit.sh"}]}
         assert _merge_kiro_hooks(bundled, ["bad"]) == bundled
 
     def test_merge_kiro_hooks_non_list_event_entries_skipped(self):
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         bundled = {"postToolUse": [{"command": "audit.sh"}]}
         result = _merge_kiro_hooks(bundled, {"postToolUse": "not-a-list"})
         assert result == bundled
 
     def test_merge_kiro_hooks_non_dict_entry_in_list_skipped(self):
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         result = _merge_kiro_hooks({}, {"preToolUse": ["just-a-string"]})
         assert result["preToolUse"] == []
@@ -1474,12 +1474,12 @@ class TestKiroHooksMerge:
     # -- Direct unit tests for _validate_hook_command --
 
     def test_validate_rejects_relative_path(self, tmp_path: Path):
-        from kiro_crew.agent import _validate_hook_command
+        from junction.agent import _validate_hook_command
 
         assert _validate_hook_command("relative/hook.sh", "test") is None
 
     def test_validate_rejects_shell_metacharacters(self, tmp_path: Path):
-        from kiro_crew.agent import _validate_hook_command
+        from junction.agent import _validate_hook_command
 
         hook = self._make_hook(tmp_path)
         assert _validate_hook_command(hook + "; rm -rf /", "test") is None
@@ -1487,19 +1487,19 @@ class TestKiroHooksMerge:
         assert _validate_hook_command(hook + " $(evil)", "test") is None
 
     def test_validate_rejects_nonexistent_file(self):
-        from kiro_crew.agent import _validate_hook_command
+        from junction.agent import _validate_hook_command
 
         assert _validate_hook_command("/nonexistent/hook.sh", "test") is None
 
     def test_validate_accepts_valid_hook(self, tmp_path: Path):
-        from kiro_crew.agent import _validate_hook_command
+        from junction.agent import _validate_hook_command
 
         hook = self._make_hook(tmp_path)
         assert _validate_hook_command(hook, "test") is not None
 
     def test_merge_strips_extra_fields(self, tmp_path: Path):
         """Only command and matcher fields are kept; arbitrary keys are stripped."""
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         hook = self._make_hook(tmp_path)
         user = {"preToolUse": [{"command": hook, "matcher": "*", "shell": True, "env": {"X": "1"}}]}
@@ -1509,7 +1509,7 @@ class TestKiroHooksMerge:
     @requires_symlinks
     def test_validate_rejects_symlink_to_sensitive(self, tmp_path: Path):
         """Symlinks resolving to sensitive paths are rejected."""
-        from kiro_crew.agent import _validate_hook_command
+        from junction.agent import _validate_hook_command
 
         sensitive = tmp_path / ".ssh" / "key"
         sensitive.parent.mkdir(parents=True)
@@ -1518,12 +1518,12 @@ class TestKiroHooksMerge:
         link = tmp_path / "hooks" / "sneaky.sh"
         link.parent.mkdir(parents=True)
         link.symlink_to(sensitive)
-        with patch("kiro_crew.agent.is_sensitive_path", side_effect=lambda p: ".ssh" in p):
+        with patch("junction.agent.is_sensitive_path", side_effect=lambda p: ".ssh" in p):
             assert _validate_hook_command(str(link), "test") is None
 
     def test_merge_rejects_non_string_matcher(self, tmp_path: Path):
         """Non-string matcher values are skipped (prevents TypeError and injection)."""
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         hook = self._make_hook(tmp_path)
         user = {
@@ -1539,7 +1539,7 @@ class TestKiroHooksMerge:
 
     def test_merge_kiro_hooks_max_per_event_limit(self, tmp_path: Path):
         """At most _MAX_USER_HOOKS_PER_EVENT hooks are accepted per event."""
-        from kiro_crew.agent import _MAX_USER_HOOKS_PER_EVENT, _merge_kiro_hooks
+        from junction.agent import _MAX_USER_HOOKS_PER_EVENT, _merge_kiro_hooks
 
         hooks = [
             {"command": self._make_hook(tmp_path, f"hook_{i}.sh")}
@@ -1550,14 +1550,14 @@ class TestKiroHooksMerge:
 
     def test_merge_kiro_hooks_unknown_event_rejected(self):
         """Unknown event types are silently dropped."""
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         result = _merge_kiro_hooks({}, {"onBadEvent": [{"command": "/bin/true"}]})
         assert "onBadEvent" not in result
 
     def test_merge_rejects_matcher_with_shell_metacharacters(self, tmp_path: Path):
         """Matchers with shell metacharacters are rejected."""
-        from kiro_crew.agent import _merge_kiro_hooks
+        from junction.agent import _merge_kiro_hooks
 
         hook = self._make_hook(tmp_path)
         user = {
@@ -1575,7 +1575,7 @@ class TestKiroHooksMerge:
 
     def test_merge_rejects_oversized_matcher(self, tmp_path: Path):
         """Matchers exceeding max length are rejected."""
-        from kiro_crew.agent import _MAX_MATCHER_LEN, _merge_kiro_hooks
+        from junction.agent import _MAX_MATCHER_LEN, _merge_kiro_hooks
 
         hook = self._make_hook(tmp_path)
         user = {
@@ -1590,7 +1590,7 @@ class TestKiroHooksMerge:
 
     def test_merge_global_hooks_limit(self, tmp_path: Path):
         """Total hooks across all events are capped at _MAX_TOTAL_USER_HOOKS."""
-        from kiro_crew.agent import _MAX_TOTAL_USER_HOOKS, _merge_kiro_hooks
+        from junction.agent import _MAX_TOTAL_USER_HOOKS, _merge_kiro_hooks
 
         user = {}
         for event in ("preToolUse", "postToolUse", "userPromptSubmit"):
@@ -1604,14 +1604,14 @@ class TestKiroHooksMerge:
 
 
 class TestKiroHooksFiltering:
-    """Tests that KiroCrew-internal hook keys are stripped from kiro-cli agent config."""
+    """Tests that Junction-internal hook keys are stripped from kiro-cli agent config."""
 
     def test_auto_approve_tools_stripped_from_agent_config(self, tmp_path: Path):
-        """auto_approve_tools must not appear in kirocrew.json (kiro-cli rejects it)."""
-        from kiro_crew.agent import _kiro_hooks_only
+        """auto_approve_tools must not appear in junction.json (kiro-cli rejects it)."""
+        from junction.agent import _kiro_hooks_only
 
         hooks = {
-            "auto_approve_tools": ["kirocrew browse *"],
+            "auto_approve_tools": ["junction browse *"],
             "postToolUse": [{"matcher": "execute_bash", "command": "audit.sh"}],
             "userPromptSubmit": [{"command": "metrics.sh"}],
         }
@@ -1621,8 +1621,8 @@ class TestKiroHooksFiltering:
         assert "userPromptSubmit" in result
 
     def test_auto_deny_tools_stripped_from_agent_config(self):
-        """auto_deny_tools must not appear in kirocrew.json."""
-        from kiro_crew.agent import _kiro_hooks_only
+        """auto_deny_tools must not appear in junction.json."""
+        from junction.agent import _kiro_hooks_only
 
         hooks = {
             "auto_deny_tools": ["Dangerous*"],
@@ -1634,7 +1634,7 @@ class TestKiroHooksFiltering:
 
     def test_only_valid_kiro_events_preserved(self):
         """Only kiro-cli valid hook events survive filtering."""
-        from kiro_crew.agent import _VALID_HOOK_EVENTS, _kiro_hooks_only
+        from junction.agent import _VALID_HOOK_EVENTS, _kiro_hooks_only
 
         hooks = {
             "auto_approve_tools": ["*"],
@@ -1660,7 +1660,7 @@ class TestKiroHooksFiltering:
         runtime). This ratchet forces an explicit choice: adding a bundled hook key
         means updating either this set (a real event) or _INTERNAL_HOOK_KEYS
         (Kiro-Crew-internal), never neither (#3362 fail-loud guard)."""
-        from kiro_crew.agent import _BUNDLED_CFG_DIR, _load_json
+        from junction.agent import _BUNDLED_CFG_DIR, _load_json
 
         bundled = _load_json(_BUNDLED_CFG_DIR / "defaults.json")
         bundled_hook_keys = set((bundled or {}).get("hooks", {}).keys())
@@ -1673,15 +1673,15 @@ class TestKiroHooksFiltering:
 
     def test_sanitize_agent_hooks_repairs_owned_files_subtractively(self, tmp_path: Path):
         """The repair removes only Kiro Crew's legacy key from every owned spec."""
-        from kiro_crew.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
-        from kiro_crew.agent_files import OWNED_KIRO_AGENT_FILES
+        from junction.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
+        from junction.agent_files import OWNED_KIRO_AGENT_FILES
 
         kiro_dir = tmp_path / "agents"
         kiro_dir.mkdir()
         broken_config = {
-            "name": "kirocrew",
+            "name": "junction",
             "hooks": {
-                "auto_approve_tools": ["kirocrew browse *"],
+                "auto_approve_tools": ["junction browse *"],
                 "postToolUse": [{"matcher": "execute_bash", "command": "audit.sh"}],
                 "futureHookEvent": [{"command": "future.sh"}],
             },
@@ -1690,7 +1690,7 @@ class TestKiroHooksFiltering:
             (kiro_dir / filename).write_text(json.dumps(broken_config))
 
         _hooks_sanitized_mtimes.clear()
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", kiro_dir):
             _sanitize_agent_hooks()
 
         for filename in OWNED_KIRO_AGENT_FILES:
@@ -1700,11 +1700,11 @@ class TestKiroHooksFiltering:
             assert "futureHookEvent" in repaired["hooks"]
 
     @pytest.mark.parametrize(
-        "filename", ["other-tool.json", "kirocrew-custom.json", "sample-app--worker.json"]
+        "filename", ["other-tool.json", "junction-custom.json", "sample-app--worker.json"]
     )
     def test_sanitize_agent_hooks_does_not_touch_unowned_files(self, tmp_path: Path, filename: str):
         """Foreign, prefix-lookalike, and app materialized specs stay byte-identical."""
-        from kiro_crew.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
+        from junction.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
 
         kiro_dir = tmp_path / "agents"
         kiro_dir.mkdir()
@@ -1722,31 +1722,31 @@ class TestKiroHooksFiltering:
         path.write_text(original, encoding="utf-8")
 
         _hooks_sanitized_mtimes.clear()
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", kiro_dir):
             _sanitize_agent_hooks()
 
         assert path.read_text(encoding="utf-8") == original
 
     def test_sanitize_agent_hooks_skips_clean_file(self, tmp_path: Path):
         """_sanitize_agent_hooks does not rewrite configs that are already clean."""
-        from kiro_crew.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
+        from junction.agent import _hooks_sanitized_mtimes, _sanitize_agent_hooks
 
         kiro_dir = tmp_path / "agents"
         kiro_dir.mkdir()
         clean_config = {
-            "name": "kirocrew",
+            "name": "junction",
             "hooks": {
                 "postToolUse": [{"matcher": "execute_bash", "command": "audit.sh"}],
             },
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(clean_config))
-        original_mtime = (kiro_dir / "kirocrew.json").stat().st_mtime
+        (kiro_dir / "junction.json").write_text(json.dumps(clean_config))
+        original_mtime = (kiro_dir / "junction.json").stat().st_mtime
 
         _hooks_sanitized_mtimes.clear()
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", kiro_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", kiro_dir):
             _sanitize_agent_hooks()
 
-        assert (kiro_dir / "kirocrew.json").stat().st_mtime == original_mtime
+        assert (kiro_dir / "junction.json").stat().st_mtime == original_mtime
 
 
 class TestToolBloatFixes:
@@ -1763,7 +1763,7 @@ class TestToolBloatFixes:
             "allowedTools": ["fs_read", "use_aws"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -1804,7 +1804,7 @@ class TestToolBloatFixes:
             "allowedTools": ["fs_read", "@builder-mcp"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -1834,7 +1834,7 @@ class TestToolBloatFixes:
             "allowedTools": ["code"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -1853,7 +1853,7 @@ class TestToolBloatFixes:
             "allowedTools": ["code"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -1871,7 +1871,7 @@ class TestToolBloatFixes:
             "allowedTools": ["read"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -1883,10 +1883,10 @@ class TestToolBloatFixes:
         cfg_dir = _bundled_defaults(tmp_path)
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
-        assert "@kirocrew-cron" in config["tools"]
-        assert "@kirocrew-core" in config["tools"]
-        assert "@kirocrew-cron" not in config["allowedTools"]
-        assert "@kirocrew-core" not in config["allowedTools"]
+        assert "@junction-cron" in config["tools"]
+        assert "@junction-core" in config["tools"]
+        assert "@junction-cron" not in config["allowedTools"]
+        assert "@junction-core" not in config["allowedTools"]
 
     def test_dashboard_added_remote_server_reaches_the_tools_allowlist(self, tmp_path: Path):
         """A Connections provider (or any dashboard-added MCP entry) must land in
@@ -1899,7 +1899,7 @@ class TestToolBloatFixes:
         because nothing asserted the registration; that is what this test pins.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(
             json.dumps({"mcpServers": {"notion": {"url": "https://mcp.notion.com/mcp"}}})
@@ -1915,7 +1915,7 @@ class TestToolBloatFixes:
         """Disconnect must be the inverse: a disabled entry loses its ref, so a
         disconnected provider cannot keep exposing tools."""
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(
             json.dumps(
@@ -1924,7 +1924,7 @@ class TestToolBloatFixes:
         )
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
-        (kiro_dir / "kirocrew.json").write_text(
+        (kiro_dir / "junction.json").write_text(
             json.dumps({"tools": ["@notion"], "allowedTools": [], "mcpServers": {}})
         )
 
@@ -1944,7 +1944,7 @@ class TestToolBloatFixes:
         mean removed here or the last-rendered grant stays in the spec forever.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         # Dashboard store: the hints were removed, so the keys are simply gone.
         (user_home / "mcp.json").write_text(
@@ -1953,7 +1953,7 @@ class TestToolBloatFixes:
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
         # Previous render, still carrying the hints it was built with.
-        (kiro_dir / "kirocrew.json").write_text(
+        (kiro_dir / "junction.json").write_text(
             json.dumps(
                 {
                     "tools": [],
@@ -1984,7 +1984,7 @@ class TestToolBloatFixes:
         entry is byte-identical to row 3's -- ownership is the ONLY difference.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(json.dumps({"mcpServers": {}}))
         (tmp_path / "fake_kiro_mcp.json").write_text(
@@ -2011,14 +2011,14 @@ class TestToolBloatFixes:
         """A non-dict store value must not mark a global entry as ours.
 
         Membership is not ownership. The merge skips a malformed
-        ``kirocrew_mcp`` value entirely, so it contributes no hints and cannot be
-        the source of truth for any — yet a bare `name in kirocrew_mcp` test
+        ``junction_mcp`` value entirely, so it contributes no hints and cannot be
+        the source of truth for any — yet a bare `name in junction_mcp` test
         would read the collision as "the store owns this" and delete the global
         entry's hand-authored wire hints on behalf of a store entry that does not
         really exist.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         # Hand-edited garbage under the same name as the global server below.
         (user_home / "mcp.json").write_text(
@@ -2057,7 +2057,7 @@ class TestToolBloatFixes:
         void for every tool on that server.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         # Store entry: no `disabled` key at all.
         (user_home / "mcp.json").write_text(
@@ -2099,7 +2099,7 @@ class TestToolBloatFixes:
         PreToolUse gate.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         # Store entry keyed by the ALIAS form, with no `disabled` key.
         (user_home / "mcp.json").write_text(
@@ -2131,13 +2131,13 @@ class TestToolBloatFixes:
         """The agent config is a merge source, so its own entries are preserved.
 
         A remote server can be defined only in the agent config -- added with
-        ``kiro-cli mcp add --agent kirocrew``, or hand-edited in. No mcp.json scope
+        ``kiro-cli mcp add --agent junction``, or hand-edited in. No mcp.json scope
         declares it and no store entry owns it, so the file is the ONLY copy of its
         OAuth hints. The rebuild merges onto that file, so rewriting the hints here
         would destroy them with nothing to restore from.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(json.dumps({"mcpServers": {}}))
         (tmp_path / "fake_kiro_mcp.json").write_text(json.dumps({"mcpServers": {}}))
@@ -2167,7 +2167,7 @@ class TestToolBloatFixes:
         rebuild rather than being refilled from the previous render.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (tmp_path / "fake_kiro_mcp.json").write_text(json.dumps({"mcpServers": {}}))
         store = user_home / "mcp.json"
@@ -2206,7 +2206,7 @@ class TestToolBloatFixes:
         rebuild neither grows ``mcpServers`` nor accumulates ``tools`` refs.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(json.dumps({"mcpServers": {}}))
         (tmp_path / "fake_kiro_mcp.json").write_text(
@@ -2249,7 +2249,7 @@ class TestToolBloatFixes:
         deduping, minting a fresh sibling on every rebuild.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (tmp_path / "fake_kiro_mcp.json").write_text(json.dumps({"mcpServers": {}}))
         store = user_home / "mcp.json"
@@ -2285,7 +2285,7 @@ class TestToolBloatFixes:
         unmanaged, and the previously-rendered hints survive a clear.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (tmp_path / "fake_kiro_mcp.json").write_text(json.dumps({"mcpServers": {}}))
         store = user_home / "mcp.json"
@@ -2334,7 +2334,7 @@ class TestToolBloatFixes:
         be missed, which is the hole the tightest-wins rule closes.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         user_url = "https://user.example.com/mcp"
         managed_url = "https://managed.example.com/mcp"
@@ -2382,7 +2382,7 @@ class TestToolBloatFixes:
     ):
         """Over-denying is safe; under-denying is the hole tightest-wins closes."""
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(
             json.dumps(
@@ -2408,7 +2408,7 @@ class TestToolBloatFixes:
         entry's grant and inject its own client identity into a file we do not own.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         url = "https://mcp.notion.com/mcp"
         (tmp_path / "fake_kiro_mcp.json").write_text(
@@ -2442,7 +2442,7 @@ class TestToolBloatFixes:
         other's slot. An ambiguous family match must resolve to no owner instead.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (tmp_path / "fake_kiro_mcp.json").write_text(json.dumps({"mcpServers": {}}))
         url = "https://shared.example.com/mcp"
@@ -2481,7 +2481,7 @@ class TestToolBloatFixes:
         exactly the server the store owns.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         user_url = "https://user.example.com/mcp"
         managed_url = "https://managed.example.com/mcp"
@@ -2524,7 +2524,7 @@ class TestToolBloatFixes:
         dedups against the freshly rendered one, each rebuild mints another sibling.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (tmp_path / "fake_kiro_mcp.json").write_text(json.dumps({"mcpServers": {}}))
         store = user_home / "mcp.json"
@@ -2577,7 +2577,7 @@ class TestToolBloatFixes:
         this is the case the slice exists to fix, so it must keep working.
         """
         cfg_dir = _bundled_defaults(tmp_path)
-        user_home = tmp_path / "kirocrew_home"
+        user_home = tmp_path / "junction_home"
         user_home.mkdir(parents=True, exist_ok=True)
         (user_home / "mcp.json").write_text(
             json.dumps({"mcpServers": {"notion": {"url": "https://mcp.notion.com/mcp"}}})
@@ -2603,7 +2603,7 @@ class TestToolBloatFixes:
             "allowedTools": [1, "use_aws", None, "web_fetch"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)  # must not raise
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -2621,7 +2621,7 @@ class TestToolBloatFixes:
             "allowedTools": ["read", "read", "use_aws"],
             "mcpServers": {},
         }
-        (kiro_dir / "kirocrew.json").write_text(json.dumps(existing))
+        (kiro_dir / "junction.json").write_text(json.dumps(existing))
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -2635,13 +2635,13 @@ class TestToolBloatFixes:
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
-        (kiro_dir / "kirocrew.json").write_text('"just a string"')
+        (kiro_dir / "junction.json").write_text('"just a string"')
 
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
         # Should get defaults (fresh install path)
         assert config["model"] == "claude-default"
-        assert "@kirocrew-cron" in config["tools"]
+        assert "@junction-cron" in config["tools"]
 
 
 class TestKiroHooksAutoimport:
@@ -2674,7 +2674,7 @@ class TestKiroHooksAutoimport:
 
     def test_kiro_hooks_autoimport_loads_executable_scripts(self, tmp_path: Path):
         """Two executable scripts both land under preToolUse with their absolute paths."""
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         s1 = self._make_script(hooks_dir, "a.sh")
@@ -2688,7 +2688,7 @@ class TestKiroHooksAutoimport:
 
     def test_kiro_hooks_autoimport_parses_event_header(self, tmp_path: Path):
         """A ``# event: PostToolUse`` header routes the script to postToolUse."""
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         self._make_script(hooks_dir, "audit.sh", body="# event: PostToolUse\nexit 0\n")
@@ -2701,7 +2701,7 @@ class TestKiroHooksAutoimport:
 
     def test_kiro_hooks_autoimport_parses_matcher_header(self, tmp_path: Path):
         """A ``# matcher:`` header is preserved on the resulting entry."""
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         self._make_script(hooks_dir, "guard.sh", body="# matcher: shell\nexit 0\n")
@@ -2714,13 +2714,13 @@ class TestKiroHooksAutoimport:
         """Non-executable ``.sh`` files are skipped; executable siblings still load."""
         import logging
 
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         self._make_script(hooks_dir, "ok.sh")
         self._make_script(hooks_dir, "disabled.sh", executable=False)
 
-        with caplog.at_level(logging.INFO, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.INFO, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert len(result["preToolUse"]) == 1
@@ -2730,7 +2730,7 @@ class TestKiroHooksAutoimport:
     @requires_symlinks
     def test_kiro_hooks_autoimport_skips_sensitive_path(self, tmp_path: Path, monkeypatch):
         """Scripts resolving into a sensitive path (~/.ssh) are rejected."""
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         # Pretend HOME is tmp_path so ~/.ssh is fabricated and isolated.
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
@@ -2750,7 +2750,7 @@ class TestKiroHooksAutoimport:
 
     def test_kiro_hooks_autoimport_dedupes_with_explicit_config(self, tmp_path: Path):
         """A script listed both explicitly and in the autoimport dir yields one entry."""
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         script = self._make_script(hooks_dir, "shared.sh")
@@ -2771,7 +2771,7 @@ class TestKiroHooksAutoimport:
 
     def test_kiro_hooks_autoimport_respects_disable_flag(self, tmp_path: Path):
         """``agent.kiro_hooks_autoimport=False`` skips the scan even when scripts exist."""
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         self._make_script(hooks_dir, "a.sh")
@@ -2790,7 +2790,7 @@ class TestKiroHooksAutoimport:
 
     def test_kiro_hooks_autoimport_honors_custom_dir(self, tmp_path: Path):
         """``agent.kiro_hooks_dir`` overrides the default ~/.kiro/hooks path."""
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         custom = tmp_path / "custom-hooks"
         self._make_script(custom, "only.sh")
@@ -2807,7 +2807,7 @@ class TestKiroHooksAutoimport:
         """More scripts than ``_MAX_TOTAL_USER_HOOKS`` get capped; one WARNING logged."""
         import logging
 
-        from kiro_crew.agent import _MAX_TOTAL_USER_HOOKS, _apply_user_kiro_hooks
+        from junction.agent import _MAX_TOTAL_USER_HOOKS, _apply_user_kiro_hooks
 
         # Spread across events so the per-event cap (10) does not fire first.
         # Filename suffixes are used so the scripts route to different events
@@ -2821,7 +2821,7 @@ class TestKiroHooksAutoimport:
         config: dict = {"hooks": {}}
         mc_cfg = {"agent": {"kiro_hooks_dir": str(hooks_dir)}}
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         merged_total = sum(len(v) for v in config["hooks"].values() if isinstance(v, list))
@@ -2866,7 +2866,7 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew.agent import _MAX_TOTAL_USER_HOOKS, _apply_user_kiro_hooks
+        from junction.agent import _MAX_TOTAL_USER_HOOKS, _apply_user_kiro_hooks
 
         # Build explicit kiro_hooks with _MAX_TOTAL_USER_HOOKS entries,
         # spread across events so the per-event cap (10) is not what
@@ -2913,7 +2913,7 @@ class TestKiroHooksAutoimport:
             }
         }
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         merged_total = sum(len(v) for v in config["hooks"].values() if isinstance(v, list))
@@ -2952,8 +2952,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _MAX_USER_HOOKS_PER_EVENT, _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _MAX_USER_HOOKS_PER_EVENT, _apply_user_kiro_hooks
 
         # Configure more scripts on a single event than the per-event cap.
         # All scripts route to preToolUse so the per-event cap fires before
@@ -2983,7 +2983,7 @@ class TestKiroHooksAutoimport:
             }
         }
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         # Exactly _MAX_USER_HOOKS_PER_EVENT scripts should have been
@@ -3017,8 +3017,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _MAX_TOTAL_USER_HOOKS, _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _MAX_TOTAL_USER_HOOKS, _apply_user_kiro_hooks
 
         # Spread over-cap scripts across events so the per-event cap (10)
         # does not fire first; only the global cap (20) gates.
@@ -3048,7 +3048,7 @@ class TestKiroHooksAutoimport:
             }
         }
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         merged_total = sum(len(v) for v in config["hooks"].values() if isinstance(v, list))
@@ -3079,8 +3079,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _apply_user_kiro_hooks
 
         sel_calls: list[tuple[str, str, str]] = []
 
@@ -3101,7 +3101,7 @@ class TestKiroHooksAutoimport:
             }
         }
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         assert config["hooks"] == {}
@@ -3125,8 +3125,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _apply_user_kiro_hooks
 
         sel_calls: list[tuple[str, str, str]] = []
 
@@ -3147,7 +3147,7 @@ class TestKiroHooksAutoimport:
             }
         }
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         non_list_sel = [c for c in sel_calls if "not a list" in c[2].lower()]
@@ -3162,15 +3162,15 @@ class TestKiroHooksAutoimport:
         """Missing directory returns empty dict with only a DEBUG log (no WARNINGs)."""
         import logging
 
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         missing = tmp_path / "does-not-exist"
 
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.DEBUG, logger="junction.agent"):
             result = _autoimport_kiro_hooks(missing)
 
         assert result == {}
-        # Scope to the kiro_crew.agent logger: under `pytest -n auto`, a leaked
+        # Scope to the junction.agent logger: under `pytest -n auto`, a leaked
         # asyncio task exception from an unrelated test (e.g. "Task exception was
         # never retrieved" on the root `asyncio` logger) can land in caplog during
         # this window and falsely trip a bare records scan. We only care that THIS
@@ -3178,7 +3178,7 @@ class TestKiroHooksAutoimport:
         warnings = [
             r
             for r in caplog.records
-            if r.levelno >= logging.WARNING and r.name == "kiro_crew.agent"
+            if r.levelno >= logging.WARNING and r.name == "junction.agent"
         ]
         assert warnings == []
 
@@ -3201,8 +3201,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         # Matcher with a space is rejected by _SAFE_MATCHER_RE.
@@ -3217,7 +3217,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3266,8 +3266,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         # ``NoSuchEvent`` is not in _HOOK_EVENT_CANONICAL, so _infer_hook_event
@@ -3282,7 +3282,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3320,8 +3320,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         entry = self._make_script(hooks_dir, "broken.sh")
@@ -3346,7 +3346,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3376,8 +3376,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         entry = self._make_script(hooks_dir, "broken.sh")
@@ -3425,7 +3425,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3465,8 +3465,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         entry = self._make_script(hooks_dir, "disabled.sh", executable=False)
@@ -3478,7 +3478,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.INFO, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.INFO, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3523,14 +3523,14 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         # ``_isolate_home`` fixture already sets Path.home() -> tmp_path.
         # Re-route the default fallback so failure does not touch the real
         # ~/.kiro/hooks.  Place an executable script directly at HOME root
         # to prove that home-root scanning would pick it up.
         monkeypatch.setattr(
-            "kiro_crew.agent._DEFAULT_KIRO_HOOKS_DIR",
+            "junction.agent._DEFAULT_KIRO_HOOKS_DIR",
             tmp_path / ".kiro" / "hooks",
         )
         evil = tmp_path / "evil.sh"
@@ -3543,7 +3543,7 @@ class TestKiroHooksAutoimport:
         # this passed validation; under the fix it's rejected.
         mc_cfg = {"agent": {"kiro_hooks_dir": str(tmp_path)}}
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         # Critical invariant: nothing from HOME-root got auto-registered.
@@ -3571,7 +3571,7 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         # Stage a fake HOME so our default hooks dir doesn't exist and so
         # tmp_path's /private/var/folders path is *outside* HOME.
@@ -3581,7 +3581,7 @@ class TestKiroHooksAutoimport:
         # Also re-route the default hooks dir into the fake HOME so fallback
         # does not hit the caller's real ~/.kiro/hooks directory.
         monkeypatch.setattr(
-            "kiro_crew.agent._DEFAULT_KIRO_HOOKS_DIR",
+            "junction.agent._DEFAULT_KIRO_HOOKS_DIR",
             fake_home / ".kiro" / "hooks",
         )
 
@@ -3594,7 +3594,7 @@ class TestKiroHooksAutoimport:
         config: dict = {"hooks": {}}
         mc_cfg = {"agent": {"kiro_hooks_dir": str(outside)}}
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         # Fallback is fake_home/.kiro/hooks (doesn't exist), so nothing gets
@@ -3617,7 +3617,7 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         hooks_dir.mkdir()
@@ -3629,7 +3629,7 @@ class TestKiroHooksAutoimport:
         outside_target.chmod(0o755)
         (hooks_dir / "guard.sh").symlink_to(outside_target)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3662,8 +3662,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         # One legitimate script inside hooks_dir (passes containment).
         hooks_dir = tmp_path / "hooks"
@@ -3693,7 +3693,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3738,8 +3738,8 @@ class TestKiroHooksAutoimport:
         and assert it was invoked with the *resolved* path, not the
         symlinked ``requested`` path.
         """
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _apply_user_kiro_hooks
 
         # Real hooks directory plus a user-facing symlink that points at it.
         real_hooks = tmp_path / "real" / "hooks"
@@ -3801,11 +3801,11 @@ class TestKiroHooksAutoimport:
         ``~/.kiro/hooks``).  Under the pre-fix code, ``ValueError`` would
         escape and the test body would fail with an unhandled exception.
         """
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         # Re-route the default so fallback doesn't touch caller's HOME.
         monkeypatch.setattr(
-            "kiro_crew.agent._DEFAULT_KIRO_HOOKS_DIR",
+            "junction.agent._DEFAULT_KIRO_HOOKS_DIR",
             tmp_path / "nonexistent" / "hooks",
         )
 
@@ -3833,8 +3833,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         hooks_dir.mkdir()
@@ -3853,7 +3853,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -3881,12 +3881,12 @@ class TestKiroHooksAutoimport:
         This test asserts: (a) fallback to default, (b) no SEL call,
         (c) no crash.
         """
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _apply_user_kiro_hooks
 
         # Re-route default so fallback is empty (hooks dir doesn't exist).
         monkeypatch.setattr(
-            "kiro_crew.agent._DEFAULT_KIRO_HOOKS_DIR",
+            "junction.agent._DEFAULT_KIRO_HOOKS_DIR",
             tmp_path / "nonexistent" / "hooks",
         )
 
@@ -3933,7 +3933,7 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction.agent import _apply_user_kiro_hooks
 
         # Construct a real directory and a symlink to it.
         real_home = tmp_path / "real_home"
@@ -3946,7 +3946,7 @@ class TestKiroHooksAutoimport:
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: symlink_home))
         # Re-route default so fallback doesn't touch caller's real HOME.
         monkeypatch.setattr(
-            "kiro_crew.agent._DEFAULT_KIRO_HOOKS_DIR",
+            "junction.agent._DEFAULT_KIRO_HOOKS_DIR",
             symlink_home / ".kiro" / "hooks",
         )
 
@@ -3962,7 +3962,7 @@ class TestKiroHooksAutoimport:
         # resolved == canonical HOME.
         mc_cfg = {"agent": {"kiro_hooks_dir": str(real_home)}}
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             _apply_user_kiro_hooks(config, mc_cfg)
 
         assert config["hooks"] == {}, (
@@ -3995,8 +3995,8 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         hooks_dir.mkdir()
@@ -4018,7 +4018,7 @@ class TestKiroHooksAutoimport:
 
         monkeypatch.setattr(_agent_mod, "_sel_hook_rejected", _record_sel)
 
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.DEBUG, logger="junction.agent"):
             result = _autoimport_kiro_hooks(hooks_dir)
 
         assert result == {}
@@ -4048,8 +4048,8 @@ class TestKiroHooksAutoimport:
         ``ValueError`` and asserts the code rejects cleanly (no crash,
         SEL audited).
         """
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _autoimport_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _autoimport_kiro_hooks
 
         hooks_dir = tmp_path / "hooks"
         entry = self._make_script(hooks_dir, "bad.sh")
@@ -4102,12 +4102,12 @@ class TestKiroHooksAutoimport:
         """
         import logging
 
-        from kiro_crew import agent as _agent_mod
-        from kiro_crew.agent import _apply_user_kiro_hooks
+        from junction import agent as _agent_mod
+        from junction.agent import _apply_user_kiro_hooks
 
         # Re-route default so fallback is inert.
         monkeypatch.setattr(
-            "kiro_crew.agent._DEFAULT_KIRO_HOOKS_DIR",
+            "junction.agent._DEFAULT_KIRO_HOOKS_DIR",
             tmp_path / "nonexistent" / "hooks",
         )
 
@@ -4136,7 +4136,7 @@ class TestKiroHooksAutoimport:
         # A path whose name triggers our resolve-fail shim.
         mc_cfg = {"agent": {"kiro_hooks_dir": str(tmp_path / "too-long")}}
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent"):
             # Must not raise.
             _apply_user_kiro_hooks(config, mc_cfg)
 
@@ -4167,29 +4167,29 @@ class TestRefreshDynamicFieldsStripsStaleUrl:
     removed on refresh so it can't propagate into the CC config."""
 
     def test_stale_url_and_headers_removed_from_managed_entry(self):
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         config = {
             "mcpServers": {
-                "kirocrew-core": {
+                "junction-core": {
                     "url": "http://localhost:5476/api/mcp/core",
                     "headers": {"X-Stale": "1"},
                 },
-                "kirocrew-cron": {"url": "http://localhost:5476/api/mcp/cron"},
+                "junction-cron": {"url": "http://localhost:5476/api/mcp/cron"},
             }
         }
         _refresh_dynamic_fields(config)
-        for name, args in (("kirocrew-core", ["mcp-core"]), ("kirocrew-cron", ["mcp-cron"])):
+        for name, args in (("junction-core", ["mcp-core"]), ("junction-cron", ["mcp-cron"])):
             entry = config["mcpServers"][name]
             assert "url" not in entry, f"{name} still has stale url"
             assert "headers" not in entry, f"{name} still has stale headers"
             assert entry["command"]
             # Windows uses the interpreter-module fallback, which prepends
-            # ``-m kiro_crew.__main__`` before the same managed subcommand.
+            # ``-m junction.__main__`` before the same managed subcommand.
             assert entry["args"][-len(args) :] == args
 
     def test_non_managed_server_url_preserved(self):
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         config = {
             "mcpServers": {
@@ -4202,7 +4202,7 @@ class TestRefreshDynamicFieldsStripsStaleUrl:
 
     def test_non_managed_server_oauth_hints_preserved(self):
         """scopes/clientId are passthrough — the runtime, not Kiro Crew, uses them."""
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         config = {
             "mcpServers": {
@@ -4223,7 +4223,7 @@ class TestRefreshDynamicFieldsStripsStaleUrl:
         # stale toolsSettings.deniedCommands + autoAllowReadonly that kiro-cli
         # would keep enforcing ahead of the hooks gate. The refresh must remove
         # them so upgraded installs behave like a fresh (hooks-gate-only) one.
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         config = {
             "toolsSettings": {
@@ -4240,7 +4240,7 @@ class TestRefreshDynamicFieldsStripsStaleUrl:
 
     def test_refresh_preserves_other_tools_settings(self):
         # Only the retired keys are stripped — a user-authored sibling stays.
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         config = {
             "toolsSettings": {
@@ -4256,7 +4256,7 @@ class TestRefreshDynamicFieldsStripsStaleUrl:
 
 
 class TestMigrateAgentSpecs:
-    """migrate_agent_specs lifts KiroCrew bookkeeping keys into the sidecar."""
+    """migrate_agent_specs lifts Junction bookkeeping keys into the sidecar."""
 
     def test_strips_and_lifts_keys(self, tmp_path: Path):
         kiro = tmp_path / "kiro_agents"
@@ -4266,7 +4266,7 @@ class TestMigrateAgentSpecs:
         )
         (kiro / "b.json").write_text(json.dumps({"name": "beta", "cc_model": "claude-sonnet-4.6"}))
         (kiro / "c.json").write_text(json.dumps({"name": "gamma", "model": "m"}))
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", kiro):
+        with patch("junction.agent.KIRO_AGENTS_DIR", kiro):
             cleaned = migrate_agent_specs()
         assert cleaned == 2
         assert "model_managed" not in json.loads((kiro / "a.json").read_text(encoding="utf-8"))
@@ -4278,7 +4278,7 @@ class TestMigrateAgentSpecs:
         kiro = tmp_path / "kiro_agents"
         kiro.mkdir()
         (kiro / "a.json").write_text(json.dumps({"name": "alpha", "model_managed": True}))
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", kiro):
+        with patch("junction.agent.KIRO_AGENTS_DIR", kiro):
             assert migrate_agent_specs() == 1
             assert migrate_agent_specs() == 0
 
@@ -4287,12 +4287,12 @@ class TestMigrateAgentSpecs:
         kiro = tmp_path / "kiro_agents"
         kiro.mkdir()
         (kiro / "a.json").write_text(json.dumps({"name": "alpha", "model_managed": True}))
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", kiro):
+        with patch("junction.agent.KIRO_AGENTS_DIR", kiro):
             migrate_agent_specs()
         assert agent_state.get_model_managed("alpha") is False
 
     def test_installed_spec_is_schema_clean(self, tmp_path: Path):
-        """After install the written spec carries no KiroCrew bookkeeping keys."""
+        """After install the written spec carries no Junction bookkeeping keys."""
         cfg_dir = _bundled_defaults(tmp_path)
         path = _run_install(tmp_path, cfg_dir)
         config = json.loads(path.read_text(encoding="utf-8"))
@@ -4323,11 +4323,11 @@ def _run_install_mcp_merge(
     *,
     cc_servers: dict,
     kiro_servers: dict,
-    kirocrew_servers: dict | None = None,
+    junction_servers: dict | None = None,
     which_side_effect=lambda c, **kw: c,
 ) -> dict:
     """Run install_agent with CC-global and Kiro-global mcp.json seeded and a
-    customizable shutil.which. Returns the parsed kirocrew.json config."""
+    customizable shutil.which. Returns the parsed junction.json config."""
     kiro_dir = tmp_path / "kiro_agents"
     kiro_dir.mkdir(exist_ok=True)
     prompt = cfg_dir / "prompt.md"
@@ -4338,34 +4338,34 @@ def _run_install_mcp_merge(
     cc_mcp = tmp_path / "fake_cc_mcp.json"
     kiro_mcp.write_text(json.dumps({"mcpServers": kiro_servers}))
     cc_mcp.write_text(json.dumps({"mcpServers": cc_servers}))
-    if kirocrew_servers is not None:
-        kc_home = tmp_path / "kirocrew_home"
+    if junction_servers is not None:
+        kc_home = tmp_path / "junction_home"
         kc_home.mkdir(parents=True, exist_ok=True)
-        (kc_home / "mcp.json").write_text(json.dumps({"mcpServers": kirocrew_servers}))
+        (kc_home / "mcp.json").write_text(json.dumps({"mcpServers": junction_servers}))
 
-    _user_home = tmp_path / "kirocrew_home"
+    _user_home = tmp_path / "junction_home"
     patches = [
         patch.multiple(
-            "kiro_crew.agent",
+            "junction.agent",
             KIRO_AGENTS_DIR=kiro_dir,
             _BUNDLED_CFG_DIR=cfg_dir,
-            _KIROCREW_BIN="/usr/bin/kirocrew",
+            _JUNCTION_BIN="/usr/bin/junction",
             _MANAGED_MCP_SERVERS=_DEFAULT_MANAGED_MCPS,
             _KIRO_MCP_JSON=kiro_mcp,
             _CC_MCP_JSON=cc_mcp,
         ),
-        patch("kiro_crew.agent._user_dir", lambda: _user_home),
-        patch("kiro_crew.agent._prompt_path", return_value=prompt),
-        patch("kiro_crew.agent._shipped_defaults", return_value=cfg_dir / "defaults.json"),
-        patch("kiro_crew.agent._project_dir", return_value=None),
-        patch("kiro_crew.agent._aim_skill_paths", return_value=[]),
-        patch("kiro_crew.agent.shutil.which", side_effect=which_side_effect),
-        patch("kiro_crew.agent._mc_config_path", return_value=mc_config),
+        patch("junction.agent._user_dir", lambda: _user_home),
+        patch("junction.agent._prompt_path", return_value=prompt),
+        patch("junction.agent._shipped_defaults", return_value=cfg_dir / "defaults.json"),
+        patch("junction.agent._project_dir", return_value=None),
+        patch("junction.agent._aim_skill_paths", return_value=[]),
+        patch("junction.agent.shutil.which", side_effect=which_side_effect),
+        patch("junction.agent._mc_config_path", return_value=mc_config),
         # A companion contributes the Claude Code scope via the CPP seam — the
         # core no longer reads ~/.claude.json directly at rebuild time (OSS is
         # Kiro-only). Point the seam at cc_mcp so these merge-priority tests
         # exercise the seam-routed provider-global merge.
-        patch("kiro_crew.agent._extra_mcp_scope_globals", return_value=[cc_mcp]),
+        patch("junction.agent._extra_mcp_scope_globals", return_value=[cc_mcp]),
     ]
     with ExitStack() as stack:
         for p in patches:
@@ -4525,14 +4525,14 @@ class TestSpecEnvPathIsExpandedOnEmit:
 
 
 class TestRebuildReconcileRetainsEnabledAppServers:
-    """The final kirocrew.json reconcile must not delete an ENABLED app's
+    """The final junction.json reconcile must not delete an ENABLED app's
     manifest-derived MCP server just because it is absent from on-disk — a clean
     rebuild (or a missing/empty config) starts with an empty on_disk, and the
     app's tools would vanish. It must drop a server only when its app is
     confirmed no longer enabled (a concurrent deregister).
 
     Pinned by source inspection: the reconcile is an inline block in
-    ``install_agent`` gated on ``is_kirocrew_json`` (the written path equalling
+    ``install_agent`` gated on ``is_junction_json`` (the written path equalling
     ``bridges._mcp_json_path()``), which the merge-priority harness does not
     reproduce — so the guarantee is asserted structurally.
     """
@@ -4540,7 +4540,7 @@ class TestRebuildReconcileRetainsEnabledAppServers:
     def test_reconcile_drops_by_enabled_state_not_ondisk_absence(self) -> None:
         import inspect
 
-        from kiro_crew import agent
+        from junction import agent
 
         src = inspect.getsource(agent.install_agent)
         # The drop must be gated on the app being DISABLED (deregistered), not on
@@ -4563,7 +4563,7 @@ class TestMcpMergePriority:
         the emitted spec for every managed remote, which nothing about recording
         authorship needs to do.
         """
-        from kiro_crew.mcp_provenance import MARKER_KEY, stamp
+        from junction.mcp_provenance import MARKER_KEY, stamp
 
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_cmd = _make_exec(tmp_path, "marked-srv")
@@ -4659,8 +4659,8 @@ class TestMcpMergePriority:
         )
         assert "srv" not in config["mcpServers"]
 
-    def test_kirocrew_override_does_not_corrupt_global_fallback(self, tmp_path: Path):
-        """Regression (review-bot): a kirocrew mcp.json override carrying an
+    def test_junction_override_does_not_corrupt_global_fallback(self, tmp_path: Path):
+        """Regression (review-bot): a junction mcp.json override carrying an
         unresolvable command must not mutate the shared kiro-global source dict
         that is reused as a fallback candidate. The resolvable kiro-global
         command must still be recovered via the fallback (server not dropped)."""
@@ -4671,7 +4671,7 @@ class TestMcpMergePriority:
             cfg_dir,
             cc_servers={},
             kiro_servers={"srv": {"command": kiro_cmd}},
-            kirocrew_servers={"srv": {"command": "bare-unresolvable"}},
+            junction_servers={"srv": {"command": "bare-unresolvable"}},
             which_side_effect=lambda c, **kw: None if c == "bare-unresolvable" else c,
         )
         assert (
@@ -4691,34 +4691,34 @@ class TestRefreshDynamicFieldsSyncsConfigModel:
         return mc
 
     def test_explicit_config_model_overrides_managed_default(self, tmp_path: Path):
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         # model_managed=True would re-sync the agent file from the shipped
         # default; an explicit config.json pick must still win.
-        agent_state.set_model_managed("kirocrew", True)
+        agent_state.set_model_managed("junction", True)
         mc = self._write_mc_config(tmp_path, "claude-opus-4.8")
-        config = {"name": "kirocrew", "model": "stale-from-install"}
-        with patch("kiro_crew.agent._mc_config_path", return_value=mc):
+        config = {"name": "junction", "model": "stale-from-install"}
+        with patch("junction.agent._mc_config_path", return_value=mc):
             _refresh_dynamic_fields(config)
         assert config["model"] == "claude-opus-4.8"
 
     def test_auto_sentinel_does_not_clobber_agent_model(self, tmp_path: Path):
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         # "auto" defers to managed/shipped resolution; it must not overwrite
         # the existing agent-file model with the literal "auto".
         mc = self._write_mc_config(tmp_path, "auto")
-        config = {"name": "kirocrew", "model": "claude-haiku-4.5"}
-        with patch("kiro_crew.agent._mc_config_path", return_value=mc):
+        config = {"name": "junction", "model": "claude-haiku-4.5"}
+        with patch("junction.agent._mc_config_path", return_value=mc):
             _refresh_dynamic_fields(config)
         assert config["model"] == "claude-haiku-4.5"
 
     def test_no_config_model_leaves_agent_model_untouched(self, tmp_path: Path):
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         mc = self._write_mc_config(tmp_path, None)
-        config = {"name": "kirocrew", "model": "claude-sonnet-4.6"}
-        with patch("kiro_crew.agent._mc_config_path", return_value=mc):
+        config = {"name": "junction", "model": "claude-sonnet-4.6"}
+        with patch("junction.agent._mc_config_path", return_value=mc):
             _refresh_dynamic_fields(config)
         assert config["model"] == "claude-sonnet-4.6"
 
@@ -4738,68 +4738,68 @@ class TestResetAgentModel:
         return spec
 
     def test_clear_model_pin_drops_the_pin_and_resumes_tracking(self):
-        from kiro_crew.agent import clear_model_pin
+        from junction.agent import clear_model_pin
 
-        config = {"name": "kirocrew", "model": "claude-opus-4.8"}
-        clear_model_pin(config, "kirocrew")
+        config = {"name": "junction", "model": "claude-opus-4.8"}
+        clear_model_pin(config, "junction")
         assert "model" not in config
-        assert agent_state.get_model_managed("kirocrew") is True
+        assert agent_state.get_model_managed("junction") is True
 
     def test_clear_model_pin_is_idempotent_with_no_pin(self):
-        from kiro_crew.agent import clear_model_pin
+        from junction.agent import clear_model_pin
 
-        config: dict = {"name": "kirocrew"}
-        clear_model_pin(config, "kirocrew")
+        config: dict = {"name": "junction"}
+        clear_model_pin(config, "junction")
         assert "model" not in config
-        assert agent_state.get_model_managed("kirocrew") is True
+        assert agent_state.get_model_managed("junction") is True
 
     def test_reset_writes_the_spec_and_reports_the_previous_model(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
-        self._spec(tmp_path, "kirocrew", {"name": "kirocrew", "model": "claude-opus-4.8"})
+        self._spec(tmp_path, "junction", {"name": "junction", "model": "claude-opus-4.8"})
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
 
-        spec_path, previous = agent_mod.reset_agent_model("kirocrew")
+        spec_path, previous = agent_mod.reset_agent_model("junction")
 
         assert previous == "claude-opus-4.8"
-        assert json.loads(spec_path.read_text(encoding="utf-8")) == {"name": "kirocrew"}
-        assert agent_state.get_model_managed("kirocrew") is True
+        assert json.loads(spec_path.read_text(encoding="utf-8")) == {"name": "junction"}
+        assert agent_state.get_model_managed("junction") is True
 
     def test_reset_overrides_an_explicit_freeze(self, tmp_path: Path, monkeypatch):
         """A frozen editor pick is the user's own answer, and asking for a reset
         is a NEWER answer from the same user -- so it wins."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
-        agent_state.set_model_managed("kirocrew", False)
-        self._spec(tmp_path, "kirocrew", {"name": "kirocrew", "model": "claude-haiku-4.5"})
+        agent_state.set_model_managed("junction", False)
+        self._spec(tmp_path, "junction", {"name": "junction", "model": "claude-haiku-4.5"})
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
 
-        agent_mod.reset_agent_model("kirocrew")
-        assert agent_state.get_model_managed("kirocrew") is True
+        agent_mod.reset_agent_model("junction")
+        assert agent_state.get_model_managed("junction") is True
 
     def test_reset_never_writes_bookkeeping_into_the_spec(self, tmp_path: Path, monkeypatch):
         """kiro-cli validates specs with deny_unknown_fields and drops the whole
         agent on an unknown key, so a stray sidecar key must be lifted out."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         self._spec(
             tmp_path,
-            "kirocrew",
-            {"name": "kirocrew", "model": "claude-opus-4.8", "cc_model": "claude-sonnet-4.6"},
+            "junction",
+            {"name": "junction", "model": "claude-opus-4.8", "cc_model": "claude-sonnet-4.6"},
         )
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
 
-        spec_path, _ = agent_mod.reset_agent_model("kirocrew")
+        spec_path, _ = agent_mod.reset_agent_model("junction")
         written = json.loads(spec_path.read_text(encoding="utf-8"))
         assert "cc_model" not in written and "model_managed" not in written
-        assert agent_state.get_cc_model("kirocrew") == "claude-sonnet-4.6"
+        assert agent_state.get_cc_model("junction") == "claude-sonnet-4.6"
 
     def test_reset_resolves_a_spec_whose_filename_differs_from_its_name(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         self._spec(tmp_path, "some-file", {"name": "custom-agent", "model": "claude-haiku-4.5"})
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
@@ -4809,27 +4809,27 @@ class TestResetAgentModel:
         assert previous == "claude-haiku-4.5"
 
     def test_reset_refuses_an_agent_with_no_spec(self, tmp_path: Path, monkeypatch):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
         with pytest.raises(FileNotFoundError):
-            agent_mod.reset_agent_model("kirocrew")
+            agent_mod.reset_agent_model("junction")
         # Nothing was claimed on a failed reset.
-        assert agent_state.get_model_managed("kirocrew") is None
+        assert agent_state.get_model_managed("junction") is None
 
     def test_refresh_still_leaves_an_unrecorded_spec_alone(self, tmp_path: Path):
         """The counterpart contract: with no sidecar entry the refresh must not
         reclassify a pin on its own. Inferring ownership from the value is what
         makes the explicit reset necessary rather than optional."""
-        from kiro_crew.agent import _refresh_dynamic_fields
+        from junction.agent import _refresh_dynamic_fields
 
         mc = tmp_path / "config.json"
         mc.write_text(json.dumps({"agent": {"model": "auto"}}), encoding="utf-8")
-        config = {"name": "kirocrew", "model": "claude-opus-4.8"}
-        with patch("kiro_crew.agent._mc_config_path", return_value=mc):
+        config = {"name": "junction", "model": "claude-opus-4.8"}
+        with patch("junction.agent._mc_config_path", return_value=mc):
             _refresh_dynamic_fields(config)
         assert config["model"] == "claude-opus-4.8"
-        assert agent_state.get_model_managed("kirocrew") is None
+        assert agent_state.get_model_managed("junction") is None
 
 
 # ── ensure_agent_materialized (self-heal for kiro-cli "Mode not found") ──
@@ -4838,7 +4838,7 @@ class TestResetAgentModel:
 def test_ensure_agent_materialized_noop_for_non_managed_agent(tmp_path, monkeypatch):
     """A non-managed (app/custom) agent can't be regenerated here → returns
     False and never touches rebuild_agent_config."""
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
     rebuild = unittest.mock.MagicMock()
@@ -4850,7 +4850,7 @@ def test_ensure_agent_materialized_noop_for_non_managed_agent(tmp_path, monkeypa
 
 def test_ensure_agent_materialized_present_is_noop(tmp_path, monkeypatch):
     """Managed default already on disk → True, no regeneration."""
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
     (tmp_path / agent_mod.AGENT_FILENAME).write_text("{}", encoding="utf-8")
@@ -4865,7 +4865,7 @@ def test_ensure_agent_materialized_present_is_noop(tmp_path, monkeypatch):
 def test_ensure_agent_materialized_regenerates_when_missing(tmp_path, monkeypatch):
     """Managed default missing → rebuild_agent_config is invoked and the file
     is materialized (the reporter's fresh-checkout case)."""
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
 
@@ -4885,7 +4885,7 @@ def test_ensure_agent_materialized_regenerates_when_missing(tmp_path, monkeypatc
 def test_ensure_agent_materialized_swallows_errors(tmp_path, monkeypatch):
     """Best-effort: a rebuild failure never propagates (it sits on the spawn
     hot path) — returns False instead."""
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: tmp_path)
     rebuild = unittest.mock.MagicMock(side_effect=RuntimeError("boom"))
@@ -4907,7 +4907,7 @@ class TestAgentSpecPathRejectsTraversal:
     def test_traversal_is_refused_and_the_outside_file_is_untouched(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -4926,7 +4926,7 @@ class TestAgentSpecPathRejectsTraversal:
         ["../victim", "a/b", "..", "", "with space", "sub/../../x", "tab\tname"],
     )
     def test_names_outside_the_grammar_are_refused(self, tmp_path: Path, monkeypatch, name):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -4934,7 +4934,7 @@ class TestAgentSpecPathRejectsTraversal:
         assert agent_mod.agent_spec_path(name) is None
 
     def test_a_valid_name_still_resolves(self, tmp_path: Path, monkeypatch):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -4957,26 +4957,26 @@ class TestSpecPathRefusesSymlinks:
     def test_a_symlinked_spec_is_refused_and_the_target_is_not_copied(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
         secret = tmp_path / "protected.json"
         secret.write_text(json.dumps({"model": "leaked", "secret": "s"}), encoding="utf-8")
-        link = agents / "kirocrew.json"
+        link = agents / "junction.json"
         link.symlink_to(secret)
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: agents)
 
-        assert agent_mod.agent_spec_path("kirocrew") is None
+        assert agent_mod.agent_spec_path("junction") is None
         with pytest.raises(FileNotFoundError):
-            agent_mod.reset_agent_model("kirocrew")
+            agent_mod.reset_agent_model("junction")
         # The link is intact and nothing was copied into the agents directory.
         assert link.is_symlink()
         assert json.loads(secret.read_text(encoding="utf-8"))["secret"] == "s"
 
     @requires_symlinks
     def test_the_name_scan_also_skips_a_symlink(self, tmp_path: Path, monkeypatch):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -4988,14 +4988,14 @@ class TestSpecPathRefusesSymlinks:
         assert agent_mod.agent_spec_path("wanted") is None
 
     def test_a_plain_spec_is_still_accepted(self, tmp_path: Path, monkeypatch):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
-        (agents / "kirocrew.json").write_text(json.dumps({"name": "kirocrew"}), encoding="utf-8")
+        (agents / "junction.json").write_text(json.dumps({"name": "junction"}), encoding="utf-8")
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: agents)
 
-        assert agent_mod.agent_spec_path("kirocrew") == agents / "kirocrew.json"
+        assert agent_mod.agent_spec_path("junction") == agents / "junction.json"
 
 
 class TestSpecPathPrefersTheDeclaredName:
@@ -5008,7 +5008,7 @@ class TestSpecPathPrefersTheDeclaredName:
     """
 
     def _dir(self, tmp_path: Path, monkeypatch) -> Path:
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -5021,7 +5021,7 @@ class TestSpecPathPrefersTheDeclaredName:
         """The resolver prefers the declared name. (The WRITE path additionally
         refuses this state outright -- see TestResetRefusesAnAmbiguousName --
         because the runtime's choice between the two files is undefined.)"""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = self._dir(tmp_path, monkeypatch)
         (agents / "foo.json").write_text(
@@ -5039,7 +5039,7 @@ class TestSpecPathPrefersTheDeclaredName:
         """`foo.json` declaring `bar`, with nothing declaring `foo`: the runtime
         matches it by STEM, so it is the live spec for `--agent foo` and refusing
         it would leave a live pin unresettable (#4911 review)."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = self._dir(tmp_path, monkeypatch)
         (agents / "foo.json").write_text(
@@ -5054,7 +5054,7 @@ class TestSpecPathPrefersTheDeclaredName:
     def test_the_filename_is_accepted_when_it_declares_no_name(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = self._dir(tmp_path, monkeypatch)
         (agents / "foo.json").write_text(json.dumps({"model": "m"}), encoding="utf-8")
@@ -5063,7 +5063,7 @@ class TestSpecPathPrefersTheDeclaredName:
     def test_the_filename_is_accepted_when_it_declares_the_same_name(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = self._dir(tmp_path, monkeypatch)
         (agents / "foo.json").write_text(json.dumps({"name": "foo"}), encoding="utf-8")
@@ -5082,7 +5082,7 @@ class TestResetRefusesAnAmbiguousName:
     def test_a_declared_match_plus_a_filename_match_is_refused(
         self, tmp_path: Path, monkeypatch
     ):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -5107,7 +5107,7 @@ class TestResetRefusesAnAmbiguousName:
         assert agent_mod.agent_state.get_model_managed("foo") is None
 
     def test_an_unambiguous_declared_match_still_resets(self, tmp_path: Path, monkeypatch):
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -5123,7 +5123,7 @@ class TestResetRefusesAnAmbiguousName:
     def test_two_specs_declaring_the_same_name_is_refused(self, tmp_path: Path, monkeypatch):
         """Same undefined-liveness argument as the filename collision: the
         runtime iterates unordered, so a writer cannot pick (#4911 review)."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -5158,38 +5158,38 @@ class TestSpecReadsAreSizeCapped:
     """
 
     def test_an_oversized_spec_is_refused_by_resolver_and_reset(self, tmp_path: Path, monkeypatch):
-        import kiro_crew.agent as agent_mod
-        from kiro_crew import hooks
+        import junction.agent as agent_mod
+        from junction import hooks
 
         monkeypatch.setattr(hooks, "MAX_FILE_BYTES", 256)
         agents = tmp_path / "agents"
         agents.mkdir()
-        (agents / "kirocrew.json").write_text(
-            json.dumps({"name": "kirocrew", "model": "m", "pad": "x" * 1024}), encoding="utf-8"
+        (agents / "junction.json").write_text(
+            json.dumps({"name": "junction", "model": "m", "pad": "x" * 1024}), encoding="utf-8"
         )
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: agents)
 
-        assert agent_mod.agent_spec_path("kirocrew") is None
+        assert agent_mod.agent_spec_path("junction") is None
         with pytest.raises(FileNotFoundError):
-            agent_mod.reset_agent_model("kirocrew")
+            agent_mod.reset_agent_model("junction")
 
     def test_a_normal_sized_spec_under_the_same_cap_still_resets(
         self, tmp_path: Path, monkeypatch
     ):
         """The A-side of the cap test: proves the refusal above is the SIZE, not
         the lowered cap breaking every read."""
-        import kiro_crew.agent as agent_mod
-        from kiro_crew import hooks
+        import junction.agent as agent_mod
+        from junction import hooks
 
         monkeypatch.setattr(hooks, "MAX_FILE_BYTES", 256)
         agents = tmp_path / "agents"
         agents.mkdir()
-        (agents / "kirocrew.json").write_text(
-            json.dumps({"name": "kirocrew", "model": "claude-opus-4.8"}), encoding="utf-8"
+        (agents / "junction.json").write_text(
+            json.dumps({"name": "junction", "model": "claude-opus-4.8"}), encoding="utf-8"
         )
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: agents)
 
-        _, previous = agent_mod.reset_agent_model("kirocrew")
+        _, previous = agent_mod.reset_agent_model("junction")
         assert previous == "claude-opus-4.8"
 
 
@@ -5212,7 +5212,7 @@ class TestResetOutputEscapesUntrustedPaths:
     HOSTILE = "/tmp/agents/evil\x1b[2J.json"
 
     def test_the_success_line_escapes_the_path(self, monkeypatch, capsys):
-        import kiro_crew.cli_commands as cli_commands
+        import junction.cli_commands as cli_commands
 
         monkeypatch.setattr(
             cli_commands,
@@ -5220,7 +5220,7 @@ class TestResetOutputEscapesUntrustedPaths:
             lambda name: (Path(self.HOSTILE), "claude-opus-4.8"),
         )
 
-        cli_commands._agent_reset_model(argparse.Namespace(agent="kirocrew"))
+        cli_commands._agent_reset_model(argparse.Namespace(agent="junction"))
 
         out = capsys.readouterr().out
         assert "Cleared" in out
@@ -5228,13 +5228,13 @@ class TestResetOutputEscapesUntrustedPaths:
         assert "\\x1b" in out, "the path is still shown, just escaped"
 
     def test_the_no_pin_line_escapes_the_path(self, monkeypatch, capsys):
-        import kiro_crew.cli_commands as cli_commands
+        import junction.cli_commands as cli_commands
 
         monkeypatch.setattr(
             cli_commands, "reset_agent_model", lambda name: (Path(self.HOSTILE), "")
         )
 
-        cli_commands._agent_reset_model(argparse.Namespace(agent="kirocrew"))
+        cli_commands._agent_reset_model(argparse.Namespace(agent="junction"))
 
         out = capsys.readouterr().out
         assert "had no pinned model" in out
@@ -5243,15 +5243,15 @@ class TestResetOutputEscapesUntrustedPaths:
 
     def test_the_ambiguity_refusal_escapes_both_paths(self, tmp_path: Path, monkeypatch):
         """The refusal message names two paths; both come off disk."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
-        (agents / "kirocrew.json").write_text(
+        (agents / "junction.json").write_text(
             json.dumps({"name": "other"}), encoding="utf-8"
         )
         (agents / "elsewhere.json").write_text(
-            json.dumps({"name": "kirocrew"}), encoding="utf-8"
+            json.dumps({"name": "junction"}), encoding="utf-8"
         )
         monkeypatch.setattr(agent_mod, "kiro_agents_dir_path", lambda: agents)
         # Inject the hostile path as the CONFLICTING file, portably.
@@ -5260,13 +5260,13 @@ class TestResetOutputEscapesUntrustedPaths:
         )
 
         with pytest.raises(ValueError) as exc:
-            agent_mod.reset_agent_model("kirocrew")
+            agent_mod.reset_agent_model("junction")
         assert "\x1b" not in str(exc.value)
         assert "\\x1b" in str(exc.value)
 
     def test_the_duplicate_name_refusal_escapes_paths(self, tmp_path: Path, monkeypatch):
         """The other refusal builds its message from a list of real spec paths."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         agents = tmp_path / "agents"
         agents.mkdir()
@@ -5291,7 +5291,7 @@ class TestSelHookRejectedRedaction:
     """
 
     def _capture_sel(self, monkeypatch) -> list:
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         events: list = []
 
@@ -5303,7 +5303,7 @@ class TestSelHookRejectedRedaction:
         return events
 
     def test_credential_straddling_the_cut_is_not_leaked(self, monkeypatch) -> None:
-        from kiro_crew.agent import _sel_hook_rejected
+        from junction.agent import _sel_hook_rejected
 
         events = self._capture_sel(monkeypatch)
         # fabricated AKIA-shaped literal, inlined (a ``secret``-named binding
@@ -5316,7 +5316,7 @@ class TestSelHookRejectedRedaction:
 
     def test_plain_command_truncation_unchanged(self, monkeypatch) -> None:
         """Ordinary path is result-preserving: no secret ⇒ the same 200-char slice."""
-        from kiro_crew.agent import _sel_hook_rejected
+        from junction.agent import _sel_hook_rejected
 
         events = self._capture_sel(monkeypatch)
         _sel_hook_rejected("preToolUse", "c" * 250, "denied")

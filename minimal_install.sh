@@ -60,7 +60,7 @@ echo "  Node:    $(node --version)"
 echo ""
 
 # ── 1. Frontend build (npm + vite) ──
-# Vite emits to website/dist; setup.py copies src/kiro_crew/static/dist into
+# Vite emits to website/dist; setup.py copies src/junction/static/dist into
 # the package at install time, so we stage the build there first.
 if [ -d "$REPO_DIR/website" ]; then
     echo "→ Building frontend (website/)…"
@@ -75,12 +75,12 @@ if [ -d "$REPO_DIR/website" ]; then
     ) || die "Frontend build failed. Fix the npm/vite error above and re-run."
     # Stage built assets where setup.py expects them.
     _dist_src="$REPO_DIR/website/dist"
-    _dist_dst="$REPO_DIR/src/kiro_crew/static/dist"
+    _dist_dst="$REPO_DIR/src/junction/static/dist"
     if [ -d "$_dist_src" ]; then
         rm -rf "$_dist_dst"
         mkdir -p "$(dirname "$_dist_dst")"
         cp -R "$_dist_src" "$_dist_dst"
-        echo "✓ Frontend built and staged → src/kiro_crew/static/dist"
+        echo "✓ Frontend built and staged → src/junction/static/dist"
     else
         echo "⚠ website/dist not found after build — dashboard assets may be missing"
     fi
@@ -103,10 +103,10 @@ echo "→ Installing Junction (pip)…"
 # Frontend is already built and staged above; tell setup.py not to rebuild it.
 if [ "$WITH_VOICE" -eq 1 ]; then
     echo "  (including voice extras)"
-    KIROCREW_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$REPO_DIR"'[voice]' \
+    JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$REPO_DIR"'[voice]' \
         || die "pip install failed"
 else
-    KIROCREW_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$REPO_DIR" \
+    JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$REPO_DIR" \
         || die "pip install failed"
 fi
 
@@ -125,8 +125,8 @@ BIN_DIR="${JUNCTION_BIN_DIR:-$HOME/.local/bin}"
 mkdir -p "$BIN_DIR"
 ln -sfn "$_venv/bin/junction" "$BIN_DIR/junction"
 # Silent console-script alias. Existing launchers still resolve this name.
-if [ -x "$_venv/bin/kirocrew" ]; then
-    ln -sfn "$_venv/bin/kirocrew" "$BIN_DIR/kirocrew"
+if [ -x "$_venv/bin/junction" ]; then
+    ln -sfn "$_venv/bin/junction" "$BIN_DIR/junction"
 fi
 echo "✓ Linked junction → $BIN_DIR/junction"
 echo ""

@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.portability — export/import zip feature."""
+"""Tests for junction.portability — export/import zip feature."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.portability import (
+from junction.portability import (
     EXPORT_EXCLUDE,
     _is_excluded,
     apply_import_zip,
@@ -23,7 +23,7 @@ from kiro_crew.portability import (
 
 
 @pytest.fixture
-def fake_kirocrew_home(tmp_path):
+def fake_junction_home(tmp_path):
     """Create a realistic ~/.kirocrew directory structure for testing."""
     mc = tmp_path / ".kirocrew"
     mc.mkdir()
@@ -85,7 +85,7 @@ def fake_kirocrew_home(tmp_path):
     mem_dir = mc / "workspace" / "memory"
     mem_dir.mkdir(parents=True)
     (mem_dir / "preferences.md").write_text("# User Preferences\n\n- Prefers dark mode\n- Uses vim\n")
-    (mem_dir / "projects.md").write_text("# Active Projects\n\n## KiroCrew\nWorking on portability feature\n")
+    (mem_dir / "projects.md").write_text("# Active Projects\n\n## Junction\nWorking on portability feature\n")
     hist_dir = mem_dir / "history"
     hist_dir.mkdir()
     (hist_dir / "2026-05-17.md").write_text("# 2026-05-17\n\n#### 09:00 PDT\nDiscussed architecture\n")
@@ -120,11 +120,11 @@ def fake_kirocrew_home(tmp_path):
 
 
 @pytest.fixture
-def patched_config_dir(fake_kirocrew_home):
+def patched_config_dir(fake_junction_home):
     """Patch config_dir() to return our fake directory."""
-    with patch("kiro_crew.portability.config_dir", return_value=fake_kirocrew_home):
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(fake_kirocrew_home)}):
-            yield fake_kirocrew_home
+    with patch("junction.portability.config_dir", return_value=fake_junction_home):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(fake_junction_home)}):
+            yield fake_junction_home
 
 
 # ── Export Tests ──
@@ -251,11 +251,11 @@ class TestExport:
         assert not any("evil_link" in n for n in names)
         zf.close()
 
-    def test_export_empty_kirocrew_dir(self, tmp_path):
+    def test_export_empty_junction_dir(self, tmp_path):
         mc = tmp_path / "empty_mc"
         mc.mkdir()
-        with patch("kiro_crew.portability.config_dir", return_value=mc):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(mc)}):
+        with patch("junction.portability.config_dir", return_value=mc):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(mc)}):
                 zip_bytes, manifest = create_export_zip()
         assert len(zip_bytes) > 0
         assert manifest["contents"].get("workspace_files", 0) == 0
@@ -345,8 +345,8 @@ class TestValidate:
 class TestImportMerge:
     def _make_export(self, source_dir):
         """Export from source_dir and return zip path."""
-        with patch("kiro_crew.portability.config_dir", return_value=source_dir):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(source_dir)}):
+        with patch("junction.portability.config_dir", return_value=source_dir):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(source_dir)}):
                 zip_bytes, _ = create_export_zip()
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
         tmp.write(zip_bytes)
@@ -354,14 +354,14 @@ class TestImportMerge:
         return Path(tmp.name)
 
     def test_import_merge_into_empty(self, patched_config_dir, tmp_path):
-        """Import into a fresh (empty) KiroCrew instance."""
+        """Import into a fresh (empty) Junction instance."""
         zip_path = self._make_export(patched_config_dir)
         try:
             # Target: empty directory
             target = tmp_path / "target_mc"
             target.mkdir()
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     summary = apply_import_zip(zip_path, mode="merge")
             assert len(summary["items"]) > 0
             # memory.db should be copied
@@ -377,8 +377,8 @@ class TestImportMerge:
         try:
             target = tmp_path / "target_mc"
             target.mkdir()
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     apply_import_zip(zip_path, mode="merge")
                     # Import again — should not duplicate
                     apply_import_zip(zip_path, mode="merge")
@@ -405,8 +405,8 @@ class TestImportMerge:
             conn.commit()
             conn.close()
 
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     apply_import_zip(zip_path, mode="merge")
 
             # Both keys should exist
@@ -430,8 +430,8 @@ class TestImportMerge:
             mem_dir.mkdir(parents=True)
             (mem_dir / "preferences.md").write_text("# Existing prefs\n- Keep this\n")
 
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     apply_import_zip(zip_path, mode="merge")
 
             # Pre-existing file should NOT be overwritten
@@ -452,8 +452,8 @@ class TestImportMerge:
                 json.dumps({"ts": "1700000000", "title": "existing"}) + "\n"
             )
 
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     apply_import_zip(zip_path, mode="merge")
 
             # Should still have only 1 entry (same ts)
@@ -472,8 +472,8 @@ class TestImportMerge:
             sk_dir.mkdir(parents=True)
             (sk_dir / "SKILL.md").write_text("# Existing skill content\n")
 
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     apply_import_zip(zip_path, mode="merge")
 
             # Existing skill should NOT be overwritten
@@ -485,8 +485,8 @@ class TestImportMerge:
 
 class TestImportReplace:
     def _make_export(self, source_dir):
-        with patch("kiro_crew.portability.config_dir", return_value=source_dir):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(source_dir)}):
+        with patch("junction.portability.config_dir", return_value=source_dir):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(source_dir)}):
                 zip_bytes, _ = create_export_zip()
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
         tmp.write(zip_bytes)
@@ -502,8 +502,8 @@ class TestImportReplace:
             # Pre-existing config with different content
             (target / "config.json").write_text(json.dumps({"agent": {"provider": "bedrock"}}))
 
-            with patch("kiro_crew.portability.config_dir", return_value=target):
-                with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch("junction.portability.config_dir", return_value=target):
+                with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                     apply_import_zip(zip_path, mode="replace")
 
             # Config should be replaced
@@ -576,13 +576,13 @@ class TestRoundTrip:
         zip_path = tmp_path / "export_a.zip"
         zip_path.write_bytes(zip_bytes_a)
 
-        with patch("kiro_crew.portability.config_dir", return_value=target):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+        with patch("junction.portability.config_dir", return_value=target):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                 apply_import_zip(zip_path, mode="replace")
 
         # Export from B
-        with patch("kiro_crew.portability.config_dir", return_value=target):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+        with patch("junction.portability.config_dir", return_value=target):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                 _, manifest_b = create_export_zip()
 
         # Content counts should match
@@ -598,8 +598,8 @@ class TestRoundTrip:
         zip_path = tmp_path / "export.zip"
         zip_path.write_bytes(zip_bytes)
 
-        with patch("kiro_crew.portability.config_dir", return_value=target):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+        with patch("junction.portability.config_dir", return_value=target):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                 apply_import_zip(zip_path, mode="replace")
 
         # Verify semantic memory
@@ -619,8 +619,8 @@ class TestRoundTrip:
         zip_path = tmp_path / "export.zip"
         zip_path.write_bytes(zip_bytes)
 
-        with patch("kiro_crew.portability.config_dir", return_value=target):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+        with patch("junction.portability.config_dir", return_value=target):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                 apply_import_zip(zip_path, mode="replace")
 
         conn = sqlite3.connect(str(target / "memory.db"))
@@ -641,7 +641,7 @@ def _make_min_import_zip(path, extra_files=1):
 
 def test_import_zip_bomb_member_cap(tmp_path, monkeypatch):
     # SEC-7F44A198: too many entries is rejected before extraction.
-    import kiro_crew.portability as port
+    import junction.portability as port
 
     z = _make_min_import_zip(tmp_path / "imp.zip", extra_files=3)
     monkeypatch.setattr(port, "_MAX_IMPORT_MEMBERS", 1)
@@ -653,7 +653,7 @@ def test_import_zip_bomb_member_cap(tmp_path, monkeypatch):
 
 def test_import_zip_bomb_size_cap(tmp_path, monkeypatch):
     # SEC-7F44A198: excessive declared uncompressed size is rejected (zip bomb).
-    import kiro_crew.portability as port
+    import junction.portability as port
 
     z = _make_min_import_zip(tmp_path / "imp2.zip", extra_files=1)
     monkeypatch.setattr(port, "_MAX_IMPORT_UNCOMPRESSED", 1)
@@ -691,12 +691,12 @@ def _make_cron_import_zip(path, jobs):
 
 def _import_names(zip_path, tmp_path, mode="merge"):
     """Apply an import into a fresh target and return (summary, installed names)."""
-    import kiro_crew.portability as port
+    import junction.portability as port
 
     target = tmp_path / "target_mc"
     target.mkdir()
     with patch.object(port, "config_dir", return_value=target):
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
             summary = port.apply_import_zip(zip_path, mode=mode)
     crons_file = target / "crons.json"
     names = []
@@ -774,7 +774,7 @@ def test_a_malformed_crons_store_is_replaced_not_installed(tmp_path, payload):
     for `[]`/`null`/a scalar, which its `except (JSONDecodeError, KeyError)` does
     not catch. An empty store is the only thing safe to hand the loader.
     """
-    import kiro_crew.portability as port
+    import junction.portability as port
 
     z = tmp_path / "malformed-store.zip"
     with zipfile.ZipFile(str(z), "w") as zf:
@@ -784,7 +784,7 @@ def test_a_malformed_crons_store_is_replaced_not_installed(tmp_path, payload):
     target = tmp_path / "target_nonobj"
     target.mkdir()
     with patch.object(port, "config_dir", return_value=target):
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
             summary = port.apply_import_zip(z, mode="merge")
 
     # The import completed rather than aborting, and it said so.
@@ -794,7 +794,7 @@ def test_a_malformed_crons_store_is_replaced_not_installed(tmp_path, payload):
     installed = json.loads((target / "crons.json").read_text())
     assert installed == {"jobs": []}
 
-    from kiro_crew.cron import CronService
+    from junction.cron import CronService
 
     svc = CronService.__new__(CronService)
     svc._path = target / "crons.json"
@@ -813,7 +813,7 @@ def test_a_dropped_cron_command_is_audited(tmp_path):
     # The dropped command never reaches the ACP permission/hook flow, so this is
     # the only place the denial can be recorded. Silently dropping it would leave
     # no audit trail for a rejected scheduled command.
-    import kiro_crew.mcp_cron as mcp_cron
+    import junction.mcp_cron as mcp_cron
 
     events = []
 
@@ -853,7 +853,7 @@ def test_an_imported_job_that_executes_is_restored_paused(tmp_path):
     ``script`` cannot be vetted at all — the export never carries the ``crons/``
     directory, so the name resolves against whatever the target already has.
     """
-    import kiro_crew.mcp_cron as mcp_cron
+    import junction.mcp_cron as mcp_cron
 
     events = []
 
@@ -871,11 +871,11 @@ def test_an_imported_job_that_executes_is_restored_paused(tmp_path):
     )
     target = tmp_path / "target_paused"
     target.mkdir()
-    import kiro_crew.portability as port
+    import junction.portability as port
 
     with patch.object(mcp_cron, "sel", lambda: _FakeSel()):
         with patch.object(port, "config_dir", return_value=target):
-            with patch.dict(os.environ, {"KIROCREW_HOME": str(target)}):
+            with patch.dict(os.environ, {"JUNCTION_HOME": str(target)}):
                 summary = port.apply_import_zip(z, mode="merge")
 
     jobs = {j["name"]: j for j in json.loads((target / "crons.json").read_text())["jobs"]}
@@ -921,7 +921,7 @@ def test_a_malformed_job_cannot_reach_the_cron_loader(tmp_path):
     assert len(summary.get("rejected_crons", [])) == 7, summary
 
     # The rewritten store loads without raising.
-    from kiro_crew.cron import CronService
+    from junction.cron import CronService
 
     svc = CronService.__new__(CronService)
     svc._path = tmp_path / "target_mc" / "crons.json"

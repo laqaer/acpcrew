@@ -32,8 +32,8 @@ import threading
 import pytest
 from windows_sim import replace_sharing_violation
 
-from kiro_crew import atomic_write as aw
-from kiro_crew import platform_compat
+from junction import atomic_write as aw
+from junction import platform_compat
 
 
 @pytest.fixture(autouse=True)
@@ -49,7 +49,7 @@ def _windows(monkeypatch):
 
 def _store(tmp_path):
     """A CrewStore with only the write machinery, no disk-reading __init__."""
-    from kiro_crew.crew_chat import CrewStore
+    from junction.crew_chat import CrewStore
 
     store = CrewStore.__new__(CrewStore)
     store.dir = tmp_path

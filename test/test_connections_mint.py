@@ -22,9 +22,9 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from conftest import requires_symlinks
-from kiro_crew import hooks, mcp_grant
-from kiro_crew.connections import mint
-from kiro_crew.dashboard.handlers import connections
+from junction import hooks, mcp_grant
+from junction.connections import mint
+from junction.dashboard.handlers import connections
 
 _URL = "https://mcp.example.com/mcp"
 _AUTHORIZE = (
@@ -99,12 +99,12 @@ def _isolated_mint(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
     """Empty mint table, a scratch agents dir and grant cache, no real spawn."""
     agents_dir = tmp_path / "agents"
     agents_dir.mkdir()
-    (agents_dir / "kirocrew.json").write_text(
+    (agents_dir / "junction.json").write_text(
         json.dumps({"mcpServers": {"notion": {"url": _URL}}}), encoding="utf-8"
     )
     cache_dir = tmp_path / "cache"
     cache_dir.mkdir()
-    monkeypatch.setattr("kiro_crew.agent.kiro_agents_dir_path", lambda: agents_dir)
+    monkeypatch.setattr("junction.agent.kiro_agents_dir_path", lambda: agents_dir)
     monkeypatch.setattr(mcp_grant, "kiro_oauth_cache_dir", lambda **kw: cache_dir)
     # The manifest is real gateway state; tests must never write the live one.
     monkeypatch.setattr(mint, "_mint_manifest_path", lambda: tmp_path / "mint-specs.json")
@@ -140,7 +140,7 @@ async def test_a_successful_mint_holds_the_process_and_serves_the_url():
 
 
 def test_the_session_is_promptless_model_free_and_mounts_one_server():
-    body = mint._mint_spec_body("kirocrew-mint-notion", {"notion": {"url": _URL}}, "desc")
+    body = mint._mint_spec_body("junction-mint-notion", {"notion": {"url": _URL}}, "desc")
 
     assert body["prompt"] == ""
     assert body["model"] == "auto"
@@ -155,7 +155,7 @@ async def test_the_mint_runs_on_a_dedicated_single_server_spec():
     await mint.start_oauth_mint("notion", _URL)
 
     agent = _FakeClient.instances[-1].kwargs["agent"]
-    assert agent.startswith(f"kirocrew-mint-notion-{os.getpid()}-")
+    assert agent.startswith(f"junction-mint-notion-{os.getpid()}-")
     await mint._dispose_mint(mint._mints["notion"])
 
 
@@ -557,9 +557,9 @@ def test_cleanup_never_touches_a_file_it_did_not_record(
     # Aged files that LOOK exactly like ours, including the pid-token shape a
     # previous round matched on. None of them is in the manifest.
     lookalikes = [
-        tmp_path / f"kirocrew-mint-notion-{os.getpid()}-abcdef12.json",
-        tmp_path / "kirocrew-mint-notion-1234-deadbeef.json",
-        tmp_path / "kirocrew-mint-notion.json",
+        tmp_path / f"junction-mint-notion-{os.getpid()}-abcdef12.json",
+        tmp_path / "junction-mint-notion-1234-deadbeef.json",
+        tmp_path / "junction-mint-notion.json",
     ]
     for path in lookalikes:
         path.write_text("USER FILE", encoding="utf-8")
@@ -587,7 +587,7 @@ def test_the_self_heal_leaves_rows_still_inside_the_ttl_window(_isolated_mint: P
 def test_releasing_a_spec_drops_its_row(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     manifest = tmp_path / "mint-specs.json"
     monkeypatch.setattr(mint, "_mint_manifest_path", lambda: manifest)
-    mine = tmp_path / f"kirocrew-mint-notion-{os.getpid()}-abcdef12.json"
+    mine = tmp_path / f"junction-mint-notion-{os.getpid()}-abcdef12.json"
     mine.write_text("{}", encoding="utf-8")
     mint._write_mint_manifest({str(mine): time.time()})
 
@@ -621,7 +621,7 @@ def _plant_row(path: Path) -> None:
 
 
 def _mint_shaped(name_dir: Path, alias: str = "notion") -> Path:
-    return name_dir / f"kirocrew-mint-{alias}-{os.getpid()}-abcdef12.json"
+    return name_dir / f"junction-mint-{alias}-{os.getpid()}-abcdef12.json"
 
 
 @pytest.mark.asyncio
@@ -674,7 +674,7 @@ def test_a_failed_release_unlink_keeps_its_manifest_row(monkeypatch):
     # The row is the only thing authorizing a delete of this file, so dropping it
     # on a failed unlink strands a real spec that no later sweep can see.
     agents_dir = mint._agent.kiro_agents_dir_path()
-    spec = agents_dir / "kirocrew-mint-notion-4242-abcdef01.json"
+    spec = agents_dir / "junction-mint-notion-4242-abcdef01.json"
     spec.write_text("{}", encoding="utf-8")
     mint._write_mint_manifest({str(spec): time.time()})
 
@@ -695,7 +695,7 @@ def test_a_failed_release_unlink_keeps_its_manifest_row(monkeypatch):
 
 def test_a_successful_release_drops_its_manifest_row():
     agents_dir = mint._agent.kiro_agents_dir_path()
-    spec = agents_dir / "kirocrew-mint-notion-4243-abcdef02.json"
+    spec = agents_dir / "junction-mint-notion-4243-abcdef02.json"
     spec.write_text("{}", encoding="utf-8")
     mint._write_mint_manifest({str(spec): time.time()})
 
@@ -723,7 +723,7 @@ def test_a_hard_stop_between_the_row_and_the_file_leaves_only_a_harmless_row(mon
     def _die_on_the_spec(path, data, *a, **k):
         # Only the spec publish dies; the manifest write must still land, which is
         # the whole point of doing it first.
-        if Path(path).name.startswith("kirocrew-mint-"):
+        if Path(path).name.startswith("junction-mint-"):
             raise _HardStop()
         return real_write(path, data, *a, **k)
 
@@ -747,7 +747,7 @@ def test_a_row_survives_a_failed_unlink_so_a_later_sweep_retries(monkeypatch):
     # Dropping the row on a failed unlink would abandon a real file that nothing
     # else is authorized to delete -- the row IS the authorization.
     agents_dir = mint._agent.kiro_agents_dir_path()
-    orphan = agents_dir / "kirocrew-mint-notion-4242-abcdef01.json"
+    orphan = agents_dir / "junction-mint-notion-4242-abcdef01.json"
     orphan.write_text("{}", encoding="utf-8")
     aged = time.time() - mint._MINT_SPEC_ORPHAN_SECONDS - 1
     mint._write_mint_manifest({str(orphan): aged})
@@ -792,7 +792,7 @@ def test_a_spec_whose_row_cannot_be_recorded_is_not_left_behind(monkeypatch, tmp
         mint._write_mint_agent_spec("notion")
 
     # Nothing of ours is left in the agents dir.
-    assert not list(agents_dir.glob("kirocrew-mint-*.json"))
+    assert not list(agents_dir.glob("junction-mint-*.json"))
 
 
 @pytest.mark.asyncio
@@ -801,7 +801,7 @@ async def test_a_reconnect_that_short_circuits_still_reaps_aged_orphans(monkeypa
     # future reconnect returns before any spec write, so unless the sweep runs
     # first the row is never looked at again.
     agents_dir = mint._agent.kiro_agents_dir_path()
-    orphan = agents_dir / "kirocrew-mint-notion-4242-abcdef01.json"
+    orphan = agents_dir / "junction-mint-notion-4242-abcdef01.json"
     orphan.write_text("{}", encoding="utf-8")
     aged = time.time() - mint._MINT_SPEC_ORPHAN_SECONDS - 1
     mint._write_mint_manifest({str(orphan): aged})
@@ -872,7 +872,7 @@ def test_a_planted_row_naming_a_real_agent_spec_is_never_unlinked(_isolated_mint
 def test_a_planted_row_naming_one_of_our_managed_specs_is_never_unlinked(
     monkeypatch: pytest.MonkeyPatch, _isolated_mint: Path
 ):
-    from kiro_crew.agent_files import OWNED_KIRO_AGENT_FILES
+    from junction.agent_files import OWNED_KIRO_AGENT_FILES
 
     owned = _isolated_mint / OWNED_KIRO_AGENT_FILES[0]
     owned.write_text("VICTIM", encoding="utf-8")
@@ -920,7 +920,7 @@ def test_an_unrecorded_mint_shaped_file_in_the_agents_dir_is_never_unlinked(
 def test_an_owned_name_symlinked_to_a_mint_shaped_file_is_never_unlinked(
     _isolated_mint: Path,
 ):
-    from kiro_crew.agent_files import OWNED_KIRO_AGENT_FILES
+    from junction.agent_files import OWNED_KIRO_AGENT_FILES
 
     # The check/act attack: every name-based conjunct would pass on the RESOLVED
     # target (in-dir, mint-shaped, not owned) while unlink acts on the owned
@@ -960,12 +960,12 @@ def test_a_spec_name_is_unique_per_flow(tmp_path: Path):
     second = mint._mint_spec_name("notion")
 
     assert first != second
-    assert first.startswith(f"kirocrew-mint-notion-{os.getpid()}-")
+    assert first.startswith(f"junction-mint-notion-{os.getpid()}-")
 
 
 def test_removal_deletes_only_the_exact_path_it_is_given(tmp_path: Path):
-    mine = tmp_path / f"kirocrew-mint-notion-{os.getpid()}-abcdef12.json"
-    sibling = tmp_path / f"kirocrew-mint-notion-{os.getpid() + 1}-beefcafe.json"
+    mine = tmp_path / f"junction-mint-notion-{os.getpid()}-abcdef12.json"
+    sibling = tmp_path / f"junction-mint-notion-{os.getpid() + 1}-beefcafe.json"
     for path in (mine, sibling):
         path.write_text("{}", encoding="utf-8")
 
@@ -976,7 +976,7 @@ def test_removal_deletes_only_the_exact_path_it_is_given(tmp_path: Path):
 
 
 def test_removal_is_a_no_op_without_a_path(tmp_path: Path):
-    handmade = tmp_path / "kirocrew-mint-notion.json"
+    handmade = tmp_path / "junction-mint-notion.json"
     handmade.write_text("{}", encoding="utf-8")
 
     # The main-agent fallback records no path, so there is nothing to delete.
@@ -988,23 +988,23 @@ def test_removal_is_a_no_op_without_a_path(tmp_path: Path):
 def test_a_provider_absent_from_the_main_spec_falls_back_to_the_managed_agent(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    monkeypatch.setattr("kiro_crew.agent.kiro_agents_dir_path", lambda: tmp_path)
-    (tmp_path / "kirocrew.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+    monkeypatch.setattr("junction.agent.kiro_agents_dir_path", lambda: tmp_path)
+    (tmp_path / "junction.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
 
-    assert mint._write_mint_agent_spec("notion") == ("kirocrew", "")
+    assert mint._write_mint_agent_spec("notion") == ("junction", "")
 
 
 def test_writing_a_spec_lands_a_uniquely_named_file(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    monkeypatch.setattr("kiro_crew.agent.kiro_agents_dir_path", lambda: tmp_path)
-    (tmp_path / "kirocrew.json").write_text(
+    monkeypatch.setattr("junction.agent.kiro_agents_dir_path", lambda: tmp_path)
+    (tmp_path / "junction.json").write_text(
         json.dumps({"mcpServers": {"notion": {"url": _URL}}}), encoding="utf-8"
     )
 
     name, path = mint._write_mint_agent_spec("notion")
 
-    assert name.startswith(f"kirocrew-mint-notion-{os.getpid()}-")
+    assert name.startswith(f"junction-mint-notion-{os.getpid()}-")
     assert Path(path) == tmp_path / f"{name}.json"
     body = json.loads(Path(path).read_text(encoding="utf-8"))
     assert list(body["mcpServers"]) == ["notion"]
@@ -1015,17 +1015,17 @@ def test_writing_a_spec_lands_a_uniquely_named_file(
 def test_writing_refuses_to_overwrite_an_existing_path(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ):
-    monkeypatch.setattr("kiro_crew.agent.kiro_agents_dir_path", lambda: tmp_path)
-    (tmp_path / "kirocrew.json").write_text(
+    monkeypatch.setattr("junction.agent.kiro_agents_dir_path", lambda: tmp_path)
+    (tmp_path / "junction.json").write_text(
         json.dumps({"mcpServers": {"notion": {"url": _URL}}}), encoding="utf-8"
     )
-    monkeypatch.setattr(mint, "_mint_spec_name", lambda alias: "kirocrew-mint-fixed-1-aaaaaaaa")
-    (tmp_path / "kirocrew-mint-fixed-1-aaaaaaaa.json").write_text("PRECIOUS", encoding="utf-8")
+    monkeypatch.setattr(mint, "_mint_spec_name", lambda alias: "junction-mint-fixed-1-aaaaaaaa")
+    (tmp_path / "junction-mint-fixed-1-aaaaaaaa.json").write_text("PRECIOUS", encoding="utf-8")
 
     with pytest.raises(FileExistsError):
         mint._write_mint_agent_spec("notion")
 
-    assert (tmp_path / "kirocrew-mint-fixed-1-aaaaaaaa.json").read_text(
+    assert (tmp_path / "junction-mint-fixed-1-aaaaaaaa.json").read_text(
         encoding="utf-8"
     ) == "PRECIOUS"
 
@@ -1306,7 +1306,7 @@ async def test_the_unaudited_warning_names_the_key_not_the_url(
     _audit_calls_recorded(monkeypatch, recorded=False)
     _write_paired_grant_artifacts(secret_url)
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.mcp_grant"):
+    with caplog.at_level(logging.WARNING, logger="junction.mcp_grant"):
         assert await mcp_grant.grant_observed(secret_url) is True
 
     blob = "\n".join(r.getMessage() for r in caplog.records)
@@ -1398,7 +1398,7 @@ async def test_the_agents_dir_read_runs_off_the_loop(
     monkeypatch.setattr(mint, "_acp_client_factory", lambda: _NoChallenge)
     # A concurrent uninstall: the real predicate has to actually find the entry
     # gone, so the recorded verdict is the one the flow acts on.
-    (_isolated_mint / "kirocrew.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
+    (_isolated_mint / "junction.json").write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
     seen: list[int] = []
     monkeypatch.setattr(
         mint, "_agent_spec_entry_missing", _calls_recorded(mint._agent_spec_entry_missing, seen)
@@ -1412,7 +1412,7 @@ async def test_the_agents_dir_read_runs_off_the_loop(
 
 @pytest.mark.asyncio
 async def test_the_data_home_resolution_runs_off_the_loop(monkeypatch: pytest.MonkeyPatch):
-    # Resolving the data home CREATES it under a KIROCREW_HOME override, so it is a
+    # Resolving the data home CREATES it under a JUNCTION_HOME override, so it is a
     # write and not a path join.
     seen: list[int] = []
     monkeypatch.setattr(mint, "data_home", _calls_recorded(mint.data_home, seen))
@@ -1565,8 +1565,8 @@ def test_the_handlers_package_does_not_import_the_mint_engine():
     in-process ``sys.modules`` check would always find it.
     """
     probe = (
-        "import sys; import kiro_crew.dashboard.handlers;"
-        " print('MINT' if 'kiro_crew.connections.mint' in sys.modules else 'CLEAN')"
+        "import sys; import junction.dashboard.handlers;"
+        " print('MINT' if 'junction.connections.mint' in sys.modules else 'CLEAN')"
     )
     out = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, timeout=180)
     assert out.returncode == 0, out.stderr[-2000:]
@@ -1655,7 +1655,7 @@ def test_a_row_whose_parent_is_a_symlink_is_never_unlinked(tmp_path, monkeypatch
     agents_dir = mint._agent.kiro_agents_dir_path()
     link_dir = tmp_path / "agents-link"
     link_dir.symlink_to(agents_dir, target_is_directory=True)
-    victim = agents_dir / "kirocrew-mint-notion-4242-abcdef01.json"
+    victim = agents_dir / "junction-mint-notion-4242-abcdef01.json"
     victim.write_text("{}", encoding="utf-8")
 
     assert mint._is_reapable_spec(str(link_dir / victim.name)) is False
@@ -1666,7 +1666,7 @@ def test_a_row_whose_parent_is_a_symlink_is_never_unlinked(tmp_path, monkeypatch
 def test_a_relative_row_is_never_unlinked():
     # Relative paths resolve against the process cwd, which is not a property the
     # gateway controls; only the absolute form the writer recorded is reapable.
-    assert mint._is_reapable_spec("kirocrew-mint-notion-4242-abcdef01.json") is False
+    assert mint._is_reapable_spec("junction-mint-notion-4242-abcdef01.json") is False
 
 
 @pytest.mark.asyncio
@@ -1812,10 +1812,10 @@ def test_row_tokens_do_not_repeat_across_a_gateway_restart():
     # module state alive, hiding exactly the bug under test.
     probe = (
         # Import in the gateway's own order: the handlers package first, then the
-        # mint engine it defers. A cold `import kiro_crew.connections.mint` trips a
-        # pre-existing cycle in kiro_crew.session_pid that production never hits.
-        "import kiro_crew.dashboard.handlers;"
-        "from kiro_crew.connections.mint import _new_mint_token as t; print(t())"
+        # mint engine it defers. A cold `import junction.connections.mint` trips a
+        # pre-existing cycle in junction.session_pid that production never hits.
+        "import junction.dashboard.handlers;"
+        "from junction.connections.mint import _new_mint_token as t; print(t())"
     )
     first = subprocess.run(
         [sys.executable, "-c", probe], capture_output=True, text=True, check=True

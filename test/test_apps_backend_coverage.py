@@ -1,4 +1,4 @@
-"""Additional unit coverage for :mod:`kiro_crew.apps.backend`.
+"""Additional unit coverage for :mod:`junction.apps.backend`.
 
 Complements ``test_app_backend.py`` (port allocation, spawn survival, dispatch)
 and ``test_app_backend_stale_reap.py`` (pidfile reap safety) by exercising the
@@ -31,8 +31,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import kiro_crew.apps.backend as bmod
-from kiro_crew.apps.backend import AppProcess
+import junction.apps.backend as bmod
+from junction.apps.backend import AppProcess
 
 # ---------------------------------------------------------------------------
 # Shared doubles
@@ -206,9 +206,9 @@ def _stub_listeners(monkeypatch: pytest.MonkeyPatch, listeners: list[Any]) -> No
 def _isolated_module_state(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
     """Give every test a clean process table, pidfile, and audit sink."""
 
-    home = tmp_path / "kirocrew-home"
+    home = tmp_path / "junction-home"
     home.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     monkeypatch.setattr(bmod, "_pidfile_path", lambda: tmp_path / "app_backends.pids.json")
     monkeypatch.setattr(bmod, "sel", lambda: MagicMock())
     with bmod._lock:
@@ -258,7 +258,7 @@ def boot_env(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
     monkeypatch.setattr(bmod, "app_admission_denied", lambda _name, **_kw: None)
     monkeypatch.setattr(bmod, "app_execution_denied", lambda _name, **_kw: None)
     monkeypatch.setattr(bmod, "start_app_backend", _start)
-    monkeypatch.setattr("kiro_crew.apps.manager._app_activation_denied", lambda _name: None)
+    monkeypatch.setattr("junction.apps.manager._app_activation_denied", lambda _name: None)
 
     def _dereg_mcp(name: str) -> int:
         calls["dereg_mcp"].append(name)
@@ -279,11 +279,11 @@ def boot_env(monkeypatch: pytest.MonkeyPatch) -> dict[str, list[Any]]:
     def _reconcile(name: str) -> None:
         calls["reconcile_skills"].append(name)
 
-    monkeypatch.setattr("kiro_crew.apps.bridges._deregister_mcp_servers", _dereg_mcp)
-    monkeypatch.setattr("kiro_crew.apps.bridges._deregister_agents", _dereg_agents)
-    monkeypatch.setattr("kiro_crew.apps.bridges._deregister_skills", _dereg_skills)
-    monkeypatch.setattr("kiro_crew.apps.bridges.register_app", _register)
-    monkeypatch.setattr("kiro_crew.apps.bridges.reconcile_app_skills", _reconcile)
+    monkeypatch.setattr("junction.apps.bridges._deregister_mcp_servers", _dereg_mcp)
+    monkeypatch.setattr("junction.apps.bridges._deregister_agents", _dereg_agents)
+    monkeypatch.setattr("junction.apps.bridges._deregister_skills", _dereg_skills)
+    monkeypatch.setattr("junction.apps.bridges.register_app", _register)
+    monkeypatch.setattr("junction.apps.bridges.reconcile_app_skills", _reconcile)
     return calls
 
 
@@ -875,7 +875,7 @@ class TestDependencyInstall:
         then prefer while it holds none of the app's dependencies."""
         import sys
 
-        from kiro_crew.apps.interpreter import venv_python_path
+        from junction.apps.interpreter import venv_python_path
 
         (spawn_root / "server.py").write_text("x = 1\n")
         (spawn_root / "requirements.txt").write_text("requests\n")
@@ -1029,7 +1029,7 @@ class TestAsgiDispatch:
         # ships Scripts\python.exe (and no python3). The shared resolver honours
         # both and requires the file to be runnable, so a permission-stripped
         # interpreter cannot become a guaranteed-EACCES spawn target.
-        from kiro_crew import platform_compat as _pc
+        from junction import platform_compat as _pc
 
         if _pc.IS_WINDOWS:
             venv_py = spawn_root / ".venv" / "Scripts" / "python.exe"
@@ -1058,20 +1058,20 @@ class TestSpawnEnvironment:
 
         (spawn_root / "server.py").write_text("x = 1\n")
         (spawn_root / ".app_secret").write_text("  s3cr3t  \n")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", "/checkout")
-        monkeypatch.setenv("KIROCREW_EDITION_DIR", "/edition")
-        monkeypatch.setenv("KIROCREW_DEVFLEET_REPO", "/opt/kirocrew")
-        monkeypatch.setenv("KIROCREW_DEVFLEET_BIN_GH", "/opt/bin/gh")
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", "/checkout")
+        monkeypatch.setenv("JUNCTION_EDITION_DIR", "/edition")
+        monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/opt/junction")
+        monkeypatch.setenv("JUNCTION_DEVFLEET_BIN_GH", "/opt/bin/gh")
         seen = _capture_popen(monkeypatch)
         with pytest.raises(_StopSpawn):
             bmod._start_app_backend_body("envapp", _manifest("server.py"))
         env = seen["kwargs"]["env"]
-        assert env["KIROCREW_PROJECT_DIR"] == "/checkout"
-        assert env["KIROCREW_EDITION_DIR"] == "/edition"
-        assert env["KIROCREW_DEVFLEET_REPO"] == "/opt/kirocrew"
-        assert env["KIROCREW_DEVFLEET_BIN_GH"] == "/opt/bin/gh"
-        assert env["KIROCREW_PROXY_SECRET"] == "s3cr3t"
-        assert env["KIROCREW_APP_NAME"] == "envapp"
+        assert env["JUNCTION_PROJECT_DIR"] == "/checkout"
+        assert env["JUNCTION_EDITION_DIR"] == "/edition"
+        assert env["JUNCTION_DEVFLEET_REPO"] == "/opt/junction"
+        assert env["JUNCTION_DEVFLEET_BIN_GH"] == "/opt/bin/gh"
+        assert env["JUNCTION_PROXY_SECRET"] == "s3cr3t"
+        assert env["JUNCTION_APP_NAME"] == "envapp"
 
     def test_a_missing_proxy_secret_is_tolerated(
         self, spawn_root: Any, monkeypatch: pytest.MonkeyPatch
@@ -1080,7 +1080,7 @@ class TestSpawnEnvironment:
         seen = _capture_popen(monkeypatch)
         with pytest.raises(_StopSpawn):
             bmod._start_app_backend_body("nosecret", _manifest("server.py"))
-        assert "KIROCREW_PROXY_SECRET" not in seen["kwargs"]["env"]
+        assert "JUNCTION_PROXY_SECRET" not in seen["kwargs"]["env"]
 
     def test_an_audit_sink_failure_does_not_block_the_spawn(
         self, spawn_root: Any, monkeypatch: pytest.MonkeyPatch
@@ -1537,7 +1537,7 @@ class TestGateMcpRegistration:
     ) -> None:
         seen: list[tuple[str, int]] = []
         monkeypatch.setattr(
-            "kiro_crew.apps.bridges.reregister_app_mcp_servers",
+            "junction.apps.bridges.reregister_app_mcp_servers",
             lambda name, live_port: seen.append((name, live_port)),
         )
         bmod._gate_mcp_registration("app", 9133, healthy=True)
@@ -1548,7 +1548,7 @@ class TestGateMcpRegistration:
     ) -> None:
         """A dead MCP url breaks every kiro-cli session, not just this app."""
 
-        monkeypatch.setattr("kiro_crew.apps.bridges._deregister_mcp_servers", lambda _n: 2)
+        monkeypatch.setattr("junction.apps.bridges._deregister_mcp_servers", lambda _n: 2)
         with caplog.at_level(logging.WARNING):
             bmod._gate_mcp_registration("app", 9133, healthy=False)
         assert any("Scrubbed 2 MCP server(s)" in r.getMessage() for r in caplog.records)
@@ -1559,7 +1559,7 @@ class TestGateMcpRegistration:
         def _boom(*_a: Any, **_k: Any) -> None:
             raise RuntimeError("mcp.json locked")
 
-        monkeypatch.setattr("kiro_crew.apps.bridges.reregister_app_mcp_servers", _boom)
+        monkeypatch.setattr("junction.apps.bridges.reregister_app_mcp_servers", _boom)
         with caplog.at_level(logging.WARNING):
             bmod._gate_mcp_registration("app", 9133, healthy=True)
         assert any("Health-gated MCP registration failed" in r.message for r in caplog.records)
@@ -1666,7 +1666,7 @@ class TestBootMcpReconcile:
         def _boom(_name: str) -> int:
             raise RuntimeError("mcp.json locked")
 
-        monkeypatch.setattr("kiro_crew.apps.bridges._deregister_mcp_servers", _boom)
+        monkeypatch.setattr("junction.apps.bridges._deregister_mcp_servers", _boom)
         monkeypatch.setattr(
             bmod,
             "list_apps",
@@ -1694,7 +1694,7 @@ class TestBootResourceReconcile:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         monkeypatch.setattr(
-            "kiro_crew.apps.bridges.register_app",
+            "junction.apps.bridges.register_app",
             lambda _n: SimpleNamespace(errors=["skill clash"]),
         )
         monkeypatch.setattr(bmod, "list_apps", lambda: [_app("noisy")])
@@ -1711,7 +1711,7 @@ class TestBootResourceReconcile:
         def _boom(_name: str) -> Any:
             raise RuntimeError("registry corrupt")
 
-        monkeypatch.setattr("kiro_crew.apps.bridges.register_app", _boom)
+        monkeypatch.setattr("junction.apps.bridges.register_app", _boom)
         monkeypatch.setattr(bmod, "list_apps", lambda: [_app("broken")])
         with caplog.at_level(logging.WARNING):
             bmod.start_enabled_app_backends()
@@ -1725,7 +1725,7 @@ class TestBootResourceReconcile:
         """A policy tightened after enable must revoke, not merely decline to start."""
 
         monkeypatch.setattr(
-            "kiro_crew.apps.manager._app_activation_denied", lambda _n: "not in allowlist"
+            "junction.apps.manager._app_activation_denied", lambda _n: "not in allowlist"
         )
         monkeypatch.setattr(bmod, "list_apps", lambda: [_app("banned")])
         assert bmod.start_enabled_app_backends() == []
@@ -1744,9 +1744,9 @@ class TestBootResourceReconcile:
         def _boom(_name: str) -> int:
             raise RuntimeError("agents dir read-only")
 
-        monkeypatch.setattr("kiro_crew.apps.bridges._deregister_agents", _boom)
+        monkeypatch.setattr("junction.apps.bridges._deregister_agents", _boom)
         monkeypatch.setattr(
-            "kiro_crew.apps.manager._app_activation_denied", lambda _n: "banned"
+            "junction.apps.manager._app_activation_denied", lambda _n: "banned"
         )
         monkeypatch.setattr(bmod, "list_apps", lambda: [_app("banned")])
         with caplog.at_level(logging.ERROR):
@@ -1775,7 +1775,7 @@ class TestBootResourceReconcile:
     ) -> None:
         """Boot must still start admitted backends when the reconcile cannot load."""
 
-        monkeypatch.setitem(sys.modules, "kiro_crew.apps.bridges", SimpleNamespace())
+        monkeypatch.setitem(sys.modules, "junction.apps.bridges", SimpleNamespace())
         monkeypatch.setattr(bmod, "list_apps", lambda: [_app("a"), _app("b")])
         with caplog.at_level(logging.WARNING):
             bmod.start_enabled_app_backends()
@@ -1788,7 +1788,7 @@ class TestBootSpawnGating:
         self, boot_env: dict[str, list[Any]], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(
-            "kiro_crew.apps.manager._app_activation_denied", lambda _n: "not allowed"
+            "junction.apps.manager._app_activation_denied", lambda _n: "not allowed"
         )
         monkeypatch.setattr(bmod, "list_apps", lambda: [_app("blocked")])
         assert bmod.start_enabled_app_backends() == []

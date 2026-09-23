@@ -6,7 +6,7 @@ import { useIsTouchDevice } from '../hooks/useIsTouchDevice'
  * Thin Radix Select wrapper with the retired StyledSelect's props shape.
  *
  * Shared by SettingsSelect (settings pages) and the standalone dropdowns in
- * PublishHub / ArtifactDeployPage / KiroCrewAgentsPage. Holds the sentinel
+ * PublishHub / ArtifactDeployPage / JunctionAgentsPage. Holds the sentinel
  * plumbing in one place:
  *
  * - Radix reserves value '' for "no selection", but callers legitimately use

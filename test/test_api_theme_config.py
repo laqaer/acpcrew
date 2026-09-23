@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers import core as core_mod
+from junction.dashboard.handlers import core as core_mod
 
 
 def _make_cfg(
@@ -20,7 +20,7 @@ def _make_cfg(
     language: str = "",
     privacy_acked: bool = False,
 ):
-    """Build a mock KiroCrewConfig with dashboard display fields.
+    """Build a mock JunctionConfig with dashboard display fields.
 
     Every field the payload builder reads must be set explicitly: a bare
     ``MagicMock`` attribute serializes as a mock, so a field added to
@@ -41,7 +41,7 @@ def _make_cfg(
 async def test_theme_boot_returns_defaults() -> None:
     """GET /api/theme/boot returns empty defaults when unconfigured."""
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         resp = await core_mod.api_theme_boot(req)
@@ -66,7 +66,7 @@ async def test_theme_boot_returns_configured_values() -> None:
         onboarded=True,
         import_onboarded=True,
     )
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         resp = await core_mod.api_theme_boot(req)
@@ -90,7 +90,7 @@ async def test_theme_config_get() -> None:
         onboarded=True,
         import_onboarded=True,
     )
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "GET"
@@ -110,7 +110,7 @@ async def test_theme_config_get() -> None:
 async def test_theme_config_put_updates_and_saves() -> None:
     """PUT /api/config/theme updates config and calls save."""
     cfg = _make_cfg(theme_mode="", theme_color="", onboarded=False, import_onboarded=False)
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -140,7 +140,7 @@ async def test_theme_config_put_updates_and_saves() -> None:
 async def test_theme_config_put_validates_mode() -> None:
     """PUT /api/config/theme rejects invalid mode."""
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -153,7 +153,7 @@ async def test_theme_config_put_validates_mode() -> None:
 async def test_theme_config_put_validates_import_onboarded_boolean() -> None:
     """PUT /api/config/theme rejects truthy non-booleans for the import gate."""
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -171,7 +171,7 @@ async def test_theme_config_put_persists_privacy_acked() -> None:
     the browser's localStorage copy.
     """
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -186,7 +186,7 @@ async def test_theme_config_put_persists_privacy_acked() -> None:
 async def test_theme_config_put_validates_privacy_acked_boolean() -> None:
     """A truthy string must not silently release the first-heartbeat gate."""
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -204,7 +204,7 @@ async def test_theme_config_put_no_change_no_save() -> None:
         onboarded=True,
         import_onboarded=True,
     )
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -283,7 +283,7 @@ async def test_theme_config_put_serializes_full_load_modify_save_transaction() -
     second.method = "PUT"
     second.json = lambda: body({"import_onboarded": True})
 
-    with patch.object(core_mod.KiroCrewConfig, "load", side_effect=Config):
+    with patch.object(core_mod.JunctionConfig, "load", side_effect=Config):
         await asyncio.gather(
             core_mod.api_theme_config(first),
             core_mod.api_theme_config(second),
@@ -309,7 +309,7 @@ async def test_theme_boot_exposes_language() -> None:
     token flow completes -- this is what prevents an English flash on load.
     """
     cfg = _make_cfg(language="zh-CN")
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         resp = await core_mod.api_theme_boot(req)
@@ -325,7 +325,7 @@ async def test_theme_config_put_accepts_valid_language_tags(tag: str) -> None:
     frontend concern means adding a language never needs a backend change.
     """
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -340,7 +340,7 @@ async def test_theme_config_put_accepts_valid_language_tags(tag: str) -> None:
 async def test_theme_config_put_clears_language_to_auto() -> None:
     """Writing '' clears the stored choice back to browser auto-detect."""
     cfg = _make_cfg(language="zh-CN")
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -368,7 +368,7 @@ async def test_theme_config_put_clears_language_to_auto() -> None:
 async def test_theme_config_put_rejects_malformed_language(bad: str) -> None:
     """A malformed tag is a 400 and never reaches the config file."""
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -382,7 +382,7 @@ async def test_theme_config_put_rejects_malformed_language(bad: str) -> None:
 async def test_theme_config_put_rejects_non_string_language() -> None:
     """A non-string language is a 400, not a coerced value."""
     cfg = _make_cfg()
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"
@@ -400,7 +400,7 @@ async def test_theme_config_put_omitting_language_leaves_it_untouched() -> None:
     clobber the user's language choice.
     """
     cfg = _make_cfg(language="zh-CN")
-    with patch.object(core_mod, "KiroCrewConfig") as mock_cls:
+    with patch.object(core_mod, "JunctionConfig") as mock_cls:
         mock_cls.load.return_value = cfg
         req = MagicMock(spec=web.Request)
         req.method = "PUT"

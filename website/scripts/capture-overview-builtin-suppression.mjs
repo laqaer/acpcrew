@@ -6,8 +6,8 @@
  * the stock OSS build must render as it always did. So a single build cannot
  * show both states, and this harness runs TWO REAL BUILDS of the SPA:
  *
- *   stock    KIROCREW_EDITION_DIR unset  -> `virtual:kirocrew-edition` is inert
- *   edition  KIROCREW_EDITION_DIR=<tmp>  -> a throwaway composition root whose
+ *   stock    JUNCTION_EDITION_DIR unset  -> `virtual:junction-edition` is inert
+ *   edition  JUNCTION_EDITION_DIR=<tmp>  -> a throwaway composition root whose
  *                                           only line calls the new seam
  *
  * The edition fixture is WRITTEN BY THIS SCRIPT into a temp dir rather than
@@ -42,7 +42,7 @@ import { handleBootRoute, json, makeFixedApi } from './lib/boot-api.mjs'
 import { serveDist } from './lib/serve-dist.mjs'
 
 const OUT = process.argv[2] || join(tmpdir(), 'shots')
-const PROJECT = '/home/kirocrew/workspace'
+const PROJECT = '/home/junction/workspace'
 const WEBSITE = fileURLToPath(new URL('..', import.meta.url))
 mkdirSync(OUT, { recursive: true })
 
@@ -70,10 +70,10 @@ function build(label, outDir, env) {
 
 const stockDist = join(work, 'dist-stock')
 const editionDist = join(work, 'dist-edition')
-build('stock', stockDist, { KIROCREW_EDITION_DIR: '', KIROCREW_ALLOW_EDITION: '' })
+build('stock', stockDist, { JUNCTION_EDITION_DIR: '', JUNCTION_ALLOW_EDITION: '' })
 build('edition', editionDist, {
-  KIROCREW_EDITION_DIR: editionDir,
-  KIROCREW_ALLOW_EDITION: '1',
+  JUNCTION_EDITION_DIR: editionDir,
+  JUNCTION_ALLOW_EDITION: '1',
 })
 
 const status = {

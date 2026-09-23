@@ -22,7 +22,7 @@ write time instead of inferred at read time.
 
 Entries Kiro Crew writes into shared files carry one reserved key:
 
-    "x-kirocrew": { "managed": true }
+    "x-junction": { "managed": true }
 
 The `x-` form cannot collide with a kiro-cli field (its config structs derive
 `rename_all = "camelCase"`, which never produces a hyphen), and kiro-cli

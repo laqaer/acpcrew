@@ -87,14 +87,14 @@ describe('useWebSocket activity_event → model list refetch', () => {
 
   it('refetches the model list when a session is created', () => {
     const spy = vi.spyOn(qc, 'invalidateQueries')
-    send({ slot: 's1', kind: 'session', spawned: true, text: 'Session created · kirocrew · auto' })
+    send({ slot: 's1', kind: 'session', spawned: true, text: 'Session created · junction · auto' })
     expect(keysOf(spy)).toContain(JSON.stringify(['available-models']))
   })
 
   it('refetches on a resumed session too', () => {
     // Resume also re-runs session/new, so the advertised set is re-learned.
     const spy = vi.spyOn(qc, 'invalidateQueries')
-    send({ slot: 's1', kind: 'session', spawned: true, text: 'Session resumed · kirocrew · auto' })
+    send({ slot: 's1', kind: 'session', spawned: true, text: 'Session resumed · junction · auto' })
     expect(keysOf(spy)).toContain(JSON.stringify(['available-models']))
   })
 
@@ -104,7 +104,7 @@ describe('useWebSocket activity_event → model list refetch', () => {
     // /api/models spawns `kiro chat --list-models`, so refetching would run a
     // subprocess per prompt.
     const spy = vi.spyOn(qc, 'invalidateQueries')
-    send({ slot: 's1', kind: 'session', spawned: false, text: 'Session created · kirocrew · auto' })
+    send({ slot: 's1', kind: 'session', spawned: false, text: 'Session created · junction · auto' })
     expect(keysOf(spy)).not.toContain(JSON.stringify(['available-models']))
   })
 
@@ -112,7 +112,7 @@ describe('useWebSocket activity_event → model list refetch', () => {
     // Fail closed: an emitter that omits the flag must not reintroduce the
     // per-prompt subprocess.
     const spy = vi.spyOn(qc, 'invalidateQueries')
-    send({ slot: 's1', kind: 'session', text: 'Session created · kirocrew · auto' })
+    send({ slot: 's1', kind: 'session', text: 'Session created · junction · auto' })
     expect(keysOf(spy)).not.toContain(JSON.stringify(['available-models']))
   })
 
@@ -127,7 +127,7 @@ describe('useWebSocket activity_event → model list refetch', () => {
   it('still records the activity item in the store', () => {
     // The refetch is additive — it must not swallow the event's normal routing.
     // A non-active slot lands in slotActivity[slot].toolLog.
-    send({ slot: 's1', kind: 'session', text: 'Session created · kirocrew · auto' })
+    send({ slot: 's1', kind: 'session', text: 'Session created · junction · auto' })
     const state = testStore.getState() as {
       chat: { slotActivity: Record<string, { toolLog: { type: string; text: string }[] }>; toolLog: { type: string; text: string }[] }
     }

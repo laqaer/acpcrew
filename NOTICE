@@ -12,7 +12,7 @@ composed harness and model planes, and the Junction product overlay — are
 original to this project and licensed under the same Apache License 2.0.
 
 This distribution includes Apache-2.0 software originally published as
-KiroCrew by Amazon.com, Inc. and contributors.  # brand-ok: original-publication attribution
+Junction by Amazon.com, Inc. and contributors.  # brand-ok: original-publication attribution
 
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.  # brand-ok: original-publication attribution
 
@@ -29,7 +29,7 @@ directory is the license text, and the same text is reproduced under
 "Bundled Fonts" in THIRD-PARTY-NOTICES.
 
 The macOS computer-use feature's optional background-window click path
-(src/kiro_crew/computer_use/macos_skylight.py) uses undocumented macOS
+(src/junction/computer_use/macos_skylight.py) uses undocumented macOS
 window-server interfaces. The symbol declarations and the event-field
 recipe are derived from prior MIT-licensed open-source projects that
 reverse-engineered that path. No third-party code is copied; the

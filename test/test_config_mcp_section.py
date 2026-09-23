@@ -3,7 +3,7 @@
 Separate from ``mcp_gateway``, which configures the sharing broker: these
 settings govern how MCP servers are FOUND and launched, so they apply with the
 broker off too. Validation of the directories themselves belongs to the
-consumer (``kiro_crew.env.augmented_path``) -- see ``test_env.py`` -- so what is
+consumer (``junction.env.augmented_path``) -- see ``test_env.py`` -- so what is
 pinned here is only that the section parses, survives the save round-trip, and
 degrades instead of raising on a hand-edited value.
 """
@@ -13,21 +13,21 @@ from __future__ import annotations
 import json
 import os
 
-from kiro_crew.config import loader as L
-from kiro_crew.config.loader import KiroCrewConfig, McpConfig
+from junction.config import loader as L
+from junction.config.loader import JunctionConfig, McpConfig
 
 
-def _load_from(tmp_path, monkeypatch, data: dict) -> KiroCrewConfig:
+def _load_from(tmp_path, monkeypatch, data: dict) -> JunctionConfig:
     cfgp = tmp_path / "config.json"
     cfgp.write_text(json.dumps(data), encoding="utf-8")
     monkeypatch.setattr(L, "config_path", lambda: cfgp)
     monkeypatch.setattr(L, "config_dir", lambda: tmp_path)
     monkeypatch.setattr(L, "config_local_path", lambda: tmp_path / "config.local.json")
-    return KiroCrewConfig.load()
+    return JunctionConfig.load()
 
 
 def test_defaults_to_empty_list():
-    assert KiroCrewConfig().mcp.extra_path_dirs == []
+    assert JunctionConfig().mcp.extra_path_dirs == []
 
 
 def test_parses_and_preserves_order(tmp_path, monkeypatch):
@@ -66,9 +66,9 @@ def test_malformed_value_degrades_to_default(tmp_path, monkeypatch):
 
 def test_load_publishes_the_setting_to_the_search_path(tmp_path, monkeypatch):
     """The setting only works because ``load()`` pushes it into
-    ``kiro_crew.env``. Pinned end-to-end: without this call the config field
+    ``junction.env``. Pinned end-to-end: without this call the config field
     parses correctly and changes nothing."""
-    import kiro_crew.env as env_mod
+    import junction.env as env_mod
 
     monkeypatch.setattr(env_mod, "_config_path_dirs", ())
     _load_from(tmp_path, monkeypatch, {"mcp": {"extra_path_dirs": ["/opt/pixi/bin"]}})
@@ -76,7 +76,7 @@ def test_load_publishes_the_setting_to_the_search_path(tmp_path, monkeypatch):
 
 
 def test_load_republishes_so_a_removed_setting_clears(tmp_path, monkeypatch):
-    import kiro_crew.env as env_mod
+    import junction.env as env_mod
 
     monkeypatch.setattr(env_mod, "_config_path_dirs", ())
     _load_from(tmp_path, monkeypatch, {"mcp": {"extra_path_dirs": ["/opt/pixi/bin"]}})
@@ -91,7 +91,7 @@ def test_defaults_path_also_clears_a_stale_snapshot(tmp_path, monkeypatch):
     unreadable leaves the last-published directory resolving MCP commands
     forever, with nothing on disk that explains why.
     """
-    import kiro_crew.env as env_mod
+    import junction.env as env_mod
 
     monkeypatch.setattr(env_mod, "_config_path_dirs", ())
     _load_from(tmp_path, monkeypatch, {"mcp": {"extra_path_dirs": ["/opt/pixi/bin"]}})
@@ -103,14 +103,14 @@ def test_defaults_path_also_clears_a_stale_snapshot(tmp_path, monkeypatch):
     monkeypatch.setattr(L, "config_path", lambda: empty / "config.json")
     monkeypatch.setattr(L, "config_dir", lambda: empty)
     monkeypatch.setattr(L, "config_local_path", lambda: empty / "config.local.json")
-    KiroCrewConfig.load()
+    JunctionConfig.load()
     assert "/opt/pixi/bin" not in env_mod.mcp_search_path("").split(os.pathsep)
 
 
 def test_section_is_in_the_schema_registry():
     """The setting must be reachable from the settings UI / config API, not just
     from a hand-edited file -- that is the whole point of making it a setting."""
-    from kiro_crew.config import schema
+    from junction.config import schema
 
     entry = next(e for e in schema.SCHEMA_REGISTRY if e.path == "mcp.extra_path_dirs")
     assert entry.type == "array"
@@ -127,5 +127,5 @@ def test_mcp_is_not_captured_as_an_unknown_section(tmp_path, monkeypatch):
 def test_distinct_from_mcp_gateway():
     """These settings apply with the broker off, so they must not live on the
     broker's own section."""
-    assert not hasattr(KiroCrewConfig().mcp_gateway, "extra_path_dirs")
-    assert isinstance(KiroCrewConfig().mcp, McpConfig)
+    assert not hasattr(JunctionConfig().mcp_gateway, "extra_path_dirs")
+    assert isinstance(JunctionConfig().mcp, McpConfig)

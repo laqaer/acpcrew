@@ -17,8 +17,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.dashboard.chat_utils import SYNTHETIC_RECOVERY_KIND, is_synthetic_recovery_item
-from kiro_crew.dashboard.state import (
+from junction.dashboard.chat_utils import SYNTHETIC_RECOVERY_KIND, is_synthetic_recovery_item
+from junction.dashboard.state import (
     HOOK_CONTINUATION_RECOVERY_PREFIX,
     HOOK_HALTED_RECOVERY_PREFIX,
     STOP_REASON_CANCELLED,
@@ -26,7 +26,7 @@ from kiro_crew.dashboard.state import (
     parse_hook_continuations,
     should_queue_hook_continuation,
 )
-from kiro_crew.hooks import HOOK_EVENT_STOP, ScriptHookStore
+from junction.hooks import HOOK_EVENT_STOP, ScriptHookStore
 
 
 class TestParseHookContinuations:
@@ -149,8 +149,8 @@ def _harness(tmp_path, hook_stdout: str | None):
     the Stop event: only the Stop handler parses continuations, so a single
     queued entry also proves no other event path queues one.
     """
-    from kiro_crew.dashboard.chat_runner import _run_chat
-    from kiro_crew.providers.base import EVENT_TEXT_CHUNK, LLMEvent
+    from junction.dashboard.chat_runner import _run_chat
+    from junction.providers.base import EVENT_TEXT_CHUNK, LLMEvent
 
     state = _make_state(tmp_path)
     state.sessions.get_or_create = AsyncMock(return_value=(MagicMock(), False, False))
@@ -187,7 +187,7 @@ def _harness(tmp_path, hook_stdout: str | None):
 async def _run_turn(state, slot, run_chat) -> None:
     """Run one turn without letting the dequeue loop dispatch what it queued."""
     with patch(
-        "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+        "junction.dashboard.chat_runner._start_next_queued_turn",
         new_callable=AsyncMock,
         return_value=False,
     ):
@@ -269,7 +269,7 @@ class TestRunnerWiring:
             slot._stop_state = "idle"
 
         with patch(
-            "kiro_crew.dashboard.chat_runner.expire_slack_options",
+            "junction.dashboard.chat_runner.expire_slack_options",
             side_effect=_expire_options_then_stop,
         ):
             await _run_turn(state, slot, run_chat)
@@ -284,7 +284,7 @@ class TestRunnerWiring:
         generation must be captured at turn entry.
         """
         state, slot, run_chat = _harness(tmp_path, '{"decision": "block", "reason": "go on"}')
-        from kiro_crew.providers.base import EVENT_TEXT_CHUNK, LLMEvent
+        from junction.providers.base import EVENT_TEXT_CHUNK, LLMEvent
 
         client = state.sessions.get_or_create.return_value[0]
 
@@ -316,7 +316,7 @@ def _sandbox_backend_available() -> bool:
     parser, not about sandbox enforcement.
     """
     try:
-        from kiro_crew.sandbox import detect_backend
+        from junction.sandbox import detect_backend
 
         return detect_backend() not in ("", "none", None)
     except Exception:
@@ -442,7 +442,7 @@ class TestStopHookContinuationCount:
                 exit_code=0, stdout="", stderr="", hook_name=hook.name, duration_ms=0
             )
 
-        with patch("kiro_crew.hooks.run_script_hook", side_effect=_capture):
+        with patch("junction.hooks.run_script_hook", side_effect=_capture):
             await store.fire(event, "the final assistant segment", **fire_kwargs)
         return seen
 
@@ -466,7 +466,7 @@ class TestStopHookContinuationCount:
     @pytest.mark.asyncio
     async def test_non_stop_events_carry_no_continuation_fields(self, tmp_path) -> None:
         """The fields are meaningful only for Stop; other events must not gain them."""
-        from kiro_crew.hooks import HOOK_EVENT_USER_PROMPT_SUBMIT
+        from junction.hooks import HOOK_EVENT_USER_PROMPT_SUBMIT
 
         seen = await self._fire_capturing_event(tmp_path, HOOK_EVENT_USER_PROMPT_SUBMIT)
 
@@ -489,7 +489,7 @@ class TestStopHookContinuationCount:
         cont = f"{HOOK_CONTINUATION_RECOVERY_PREFIX}\nkeep going"
 
         with patch(
-            "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+            "junction.dashboard.chat_runner._start_next_queued_turn",
             new_callable=AsyncMock,
             return_value=False,
         ):
@@ -506,7 +506,7 @@ class TestStopHookContinuationCount:
         cont = f"{HOOK_CONTINUATION_RECOVERY_PREFIX}\nkeep going"
 
         with patch(
-            "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+            "junction.dashboard.chat_runner._start_next_queued_turn",
             new_callable=AsyncMock,
             return_value=False,
         ):
@@ -526,7 +526,7 @@ class TestStopHookContinuationCount:
         spoof = f"{HOOK_CONTINUATION_RECOVERY_PREFIX}\nI typed this line myself"
 
         with patch(
-            "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+            "junction.dashboard.chat_runner._start_next_queued_turn",
             new_callable=AsyncMock,
             return_value=False,
         ):
@@ -548,16 +548,16 @@ class TestStopHookNudgeCap:
 
     @staticmethod
     def _capped_load(cap: int):
-        """A KiroCrewConfig.load replacement pinning the cap, fresh per call.
+        """A JunctionConfig.load replacement pinning the cap, fresh per call.
 
         ``dataclasses.replace`` returns a new object each time, so no config
         cache is mutated across tests.
         """
         import dataclasses
 
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        base = KiroCrewConfig.load()
+        base = JunctionConfig.load()
 
         def _load():
             return dataclasses.replace(
@@ -572,11 +572,11 @@ class TestStopHookNudgeCap:
         slot._hook_continuation_depth = start_depth
         with (
             patch(
-                "kiro_crew.dashboard.chat_runner.KiroCrewConfig.load",
+                "junction.dashboard.chat_runner.JunctionConfig.load",
                 side_effect=self._capped_load(cap),
             ),
             patch(
-                "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+                "junction.dashboard.chat_runner._start_next_queued_turn",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -608,11 +608,11 @@ class TestStopHookNudgeCap:
 
         with (
             patch(
-                "kiro_crew.dashboard.chat_runner.KiroCrewConfig.load",
+                "junction.dashboard.chat_runner.JunctionConfig.load",
                 side_effect=_load_then_stop,
             ),
             patch(
-                "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+                "junction.dashboard.chat_runner._start_next_queued_turn",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -655,11 +655,11 @@ class TestStopHookNudgeCap:
         slot._hook_continuation_depth = 0  # + CONT increment -> depth 1; cap 2 -> room 1
         with (
             patch(
-                "kiro_crew.dashboard.chat_runner.KiroCrewConfig.load",
+                "junction.dashboard.chat_runner.JunctionConfig.load",
                 side_effect=self._capped_load(2),
             ),
             patch(
-                "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+                "junction.dashboard.chat_runner._start_next_queued_turn",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -676,7 +676,7 @@ class TestStopHookNudgeCap:
         budget. Otherwise each event recomputes room from depth alone (which
         only counts turns that have RUN) and the run overshoots the cap.
         """
-        from kiro_crew.dashboard.chat_utils import SYNTHETIC_RECOVERY_KIND
+        from junction.dashboard.chat_utils import SYNTHETIC_RECOVERY_KIND
 
         state, slot, run_chat = _harness(tmp_path, '{"decision": "block", "reason": "a"}')
         state._hook_store.fire = AsyncMock(
@@ -698,11 +698,11 @@ class TestStopHookNudgeCap:
         slot._hook_continuation_depth = 0  # + CONT increment -> depth 1
         with (
             patch(
-                "kiro_crew.dashboard.chat_runner.KiroCrewConfig.load",
+                "junction.dashboard.chat_runner.JunctionConfig.load",
                 side_effect=self._capped_load(3),
             ),
             patch(
-                "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+                "junction.dashboard.chat_runner._start_next_queued_turn",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -726,11 +726,11 @@ class TestStopHookNudgeCap:
 
         with (
             patch(
-                "kiro_crew.dashboard.chat_runner.KiroCrewConfig.load",
+                "junction.dashboard.chat_runner.JunctionConfig.load",
                 side_effect=self._capped_load(2),
             ),
             patch(
-                "kiro_crew.dashboard.chat_runner._start_next_queued_turn",
+                "junction.dashboard.chat_runner._start_next_queued_turn",
                 new_callable=AsyncMock,
                 return_value=False,
             ),

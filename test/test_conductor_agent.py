@@ -18,12 +18,12 @@ from pathlib import Path
 
 from skill_script_helpers import load_skill_script
 
-from kiro_crew import agent
-from kiro_crew.agent_files import CONDUCTOR_AGENT_FILENAME, OWNED_KIRO_AGENT_FILES
-from kiro_crew.skills import _BUILTIN_SKILLS_DIR
+from junction import agent
+from junction.agent_files import CONDUCTOR_AGENT_FILENAME, OWNED_KIRO_AGENT_FILES
+from junction.skills import _BUILTIN_SKILLS_DIR
 
 SKILL_DIR = (
-    Path(__file__).resolve().parents[1] / "src" / "kiro_crew" / "builtin_skills" / "goal-conductor"
+    Path(__file__).resolve().parents[1] / "src" / "junction" / "builtin_skills" / "goal-conductor"
 )
 SCRIPT = SKILL_DIR / "scripts" / "accept_eval.py"
 
@@ -37,20 +37,20 @@ class TestConductorInstaller:
             agent,
             "build_agent_config",
             lambda: {
-                "name": "kirocrew",
+                "name": "junction",
                 "prompt": "file://x",
                 "mcpServers": {
-                    "kirocrew-core": {"command": "/resolved/kirocrew", "args": ["mcp-core"]},
+                    "junction-core": {"command": "/resolved/junction", "args": ["mcp-core"]},
                     "builder-mcp": {"command": "/x/builder", "args": []},
                 },
-                "tools": ["fs_write", "@kirocrew-core"],
-                "allowedTools": ["@kirocrew-core"],
+                "tools": ["fs_write", "@junction-core"],
+                "allowedTools": ["@junction-core"],
             },
         )
         monkeypatch.setattr(
             agent,
-            "_kirocrew_mcp_invocation",
-            lambda sub: ("/resolved/kirocrew", [sub]),
+            "_junction_mcp_invocation",
+            lambda sub: ("/resolved/junction", [sub]),
         )
         # Pin the ceiling predicate: the default is an ungoverned host (keep every
         # grant), and the governed case gets its own test below.
@@ -60,14 +60,14 @@ class TestConductorInstaller:
 
     def test_identity_and_charter(self, tmp_path, monkeypatch):
         data = self._install(tmp_path, monkeypatch)
-        assert data["name"] == "kirocrew-conductor"
+        assert data["name"] == "junction-conductor"
         assert "work item" in data["prompt"]
 
     def test_no_write_tool_and_shell_not_preapproved(self, tmp_path, monkeypatch):
         """The security properties of the spec, in one place.
 
         No ``fs_write``: the conductor cannot do a work item's work itself.
-        ``@kirocrew-dashboard`` is MOUNTED whole but never granted whole — the
+        ``@junction-dashboard`` is MOUNTED whole but never granted whole — the
         auto-approve list names verbs, so the destructive ones keep prompting.
         ``execute_bash`` is mounted and never granted, because ``allowedTools``
         has no argument matching and trusting the two bundled scripts cannot be
@@ -75,8 +75,8 @@ class TestConductorInstaller:
         """
         data = self._install(tmp_path, monkeypatch)
         assert "fs_write" not in data["tools"]
-        assert "@kirocrew-dashboard" in data["tools"]
-        assert "@kirocrew-dashboard" not in data["allowedTools"]
+        assert "@junction-dashboard" in data["tools"]
+        assert "@junction-dashboard" not in data["allowedTools"]
         assert "execute_bash" in data["tools"]
         assert "execute_bash" not in data["allowedTools"]
 
@@ -105,14 +105,14 @@ class TestConductorInstaller:
             "session_send",
             "session_stop",
         ):
-            assert f"@kirocrew-dashboard/{verb}" not in granted, verb
+            assert f"@junction-dashboard/{verb}" not in granted, verb
         for verb in (
             "chat_folder_tree",
             "chat_folder_create",
             "session_create",
             "session_read_message",
         ):
-            assert f"@kirocrew-dashboard/{verb}" in granted, verb
+            assert f"@junction-dashboard/{verb}" in granted, verb
 
     def test_no_dashboard_verb_is_granted_outside_the_named_set(self, tmp_path, monkeypatch):
         """Nothing reaches ``allowedTools`` that the audit above did not rule on.
@@ -123,16 +123,16 @@ class TestConductorInstaller:
         expected set is spelled out so adding a grant is a deliberate edit here.
         """
         granted = self._install(tmp_path, monkeypatch)["allowedTools"]
-        dashboard = {g for g in granted if g.startswith("@kirocrew-dashboard")}
+        dashboard = {g for g in granted if g.startswith("@junction-dashboard")}
         assert dashboard == {
-            "@kirocrew-dashboard/chat_folder_tree",
-            "@kirocrew-dashboard/chat_folder_create",
-            "@kirocrew-dashboard/session_create",
-            "@kirocrew-dashboard/session_read_message",
+            "@junction-dashboard/chat_folder_tree",
+            "@junction-dashboard/chat_folder_create",
+            "@junction-dashboard/session_create",
+            "@junction-dashboard/session_read_message",
         }
         # The bare server must never appear: it would grant every verb, including
         # the four the test above withholds.
-        assert "@kirocrew-dashboard" not in granted
+        assert "@junction-dashboard" not in granted
 
     def test_mounts_no_tool_the_charter_never_names(self, tmp_path, monkeypatch):
         """An unused grant is surface the charter cannot account for.
@@ -168,8 +168,8 @@ class TestConductorInstaller:
     def test_mcp_surface_is_narrowed_to_core_plus_dashboard(self, tmp_path, monkeypatch):
         """Inherited servers the conductor has no charter for are dropped."""
         data = self._install(tmp_path, monkeypatch)
-        assert set(data["mcpServers"]) == {"kirocrew-core", "kirocrew-dashboard"}
-        assert data["mcpServers"]["kirocrew-dashboard"]["args"] == ["mcp-dashboard"]
+        assert set(data["mcpServers"]) == {"junction-core", "junction-dashboard"}
+        assert data["mcpServers"]["junction-dashboard"]["args"] == ["mcp-dashboard"]
 
     def test_dashboard_entry_omits_managed_metadata_on_a_default_install(
         self, tmp_path, monkeypatch
@@ -177,34 +177,34 @@ class TestConductorInstaller:
         """Neither helper contributes by default, so the emitted entry stays minimal.
 
         Pinned explicitly rather than read off the ambient environment: the
-        repo-root conftest pins ``KIROCREW_HOME`` for every test, so the real
+        repo-root conftest pins ``JUNCTION_HOME`` for every test, so the real
         ``_managed_mcp_env()`` legitimately returns a pin in-suite.
         """
         monkeypatch.setattr(agent, "_mcp_registry_mode", lambda: False)
         monkeypatch.setattr(agent, "_managed_mcp_env", dict)
-        dash = self._install(tmp_path, monkeypatch)["mcpServers"]["kirocrew-dashboard"]
-        assert dash == {"command": "/resolved/kirocrew", "args": ["mcp-dashboard"]}
+        dash = self._install(tmp_path, monkeypatch)["mcpServers"]["junction-dashboard"]
+        assert dash == {"command": "/resolved/junction", "args": ["mcp-dashboard"]}
 
     def test_dashboard_entry_carries_managed_server_metadata(self, tmp_path, monkeypatch):
         """The hand-built dashboard entry is enriched like every managed server.
 
         Without ``"type": "registry"`` a registry-mode client silently drops the
         entry, so the conductor's session-control tools never launch. Without the
-        ``KIROCREW_HOME`` pin the shim reads the default data home while the
+        ``JUNCTION_HOME`` pin the shim reads the default data home while the
         gateway runs under an override, so session control acts on a different
         session store than it reports on.
         """
         monkeypatch.setattr(agent, "_mcp_registry_mode", lambda: True)
-        monkeypatch.setattr(agent, "_managed_mcp_env", lambda: {"KIROCREW_HOME": "/tmp/override"})
+        monkeypatch.setattr(agent, "_managed_mcp_env", lambda: {"JUNCTION_HOME": "/tmp/override"})
         data = self._install(tmp_path, monkeypatch)
-        dash = data["mcpServers"]["kirocrew-dashboard"]
+        dash = data["mcpServers"]["junction-dashboard"]
         assert dash["type"] == "registry"
-        assert dash["env"] == {"KIROCREW_HOME": "/tmp/override"}
+        assert dash["env"] == {"JUNCTION_HOME": "/tmp/override"}
 
     def test_grants_pass_through_the_governance_ceiling(self, tmp_path, monkeypatch):
         """``allowedTools`` never reaches the PreToolUse gate, so it is filtered.
 
-        A ceiling with an opinion about ``@kirocrew-core`` must not be silently
+        A ceiling with an opinion about ``@junction-core`` must not be silently
         bypassed by a static grant list: the ref stays MOUNTED (still in
         ``tools``) but loses its blanket auto-approve, so its calls prompt and
         the gate applies the real per-tool rule.
@@ -212,52 +212,52 @@ class TestConductorInstaller:
         data = self._install(
             tmp_path,
             monkeypatch,
-            may_auto_approve=lambda ref: ref != "@kirocrew-core",
+            may_auto_approve=lambda ref: ref != "@junction-core",
         )
-        assert "@kirocrew-core" in data["tools"]
-        assert "@kirocrew-core" not in data["allowedTools"]
+        assert "@junction-core" in data["tools"]
+        assert "@junction-core" not in data["allowedTools"]
         assert data["allowedTools"] == [
             "session",
             "report",
-            "@kirocrew-dashboard/chat_folder_tree",
-            "@kirocrew-dashboard/chat_folder_create",
-            "@kirocrew-dashboard/session_create",
-            "@kirocrew-dashboard/session_read_message",
+            "@junction-dashboard/chat_folder_tree",
+            "@junction-dashboard/chat_folder_create",
+            "@junction-dashboard/session_create",
+            "@junction-dashboard/session_read_message",
         ]
 
     def test_kas_permissions_are_derived_from_the_filtered_grants(self, tmp_path, monkeypatch):
         """The KAS block is derived, not restated — so the ceiling reaches it too.
 
         Ungoverned: the per-tool dashboard grants project to EXACT ``server/tool``
-        resources rather than a ``kirocrew-dashboard/*`` wildcard, which is what
+        resources rather than a ``junction-dashboard/*`` wildcard, which is what
         makes the narrowing real on the KAS backend as well as on kiro-cli — a
         wildcard here would re-grant the ``session_stop`` / ``session_send`` that
         ``allowedTools`` deliberately withholds. Governed against
-        ``@kirocrew-core``: that pattern is gone while the dashboard ones survive,
+        ``@junction-core``: that pattern is gone while the dashboard ones survive,
         which is the property a rule list restated as a literal would have lost.
         """
         dashboard_resources = [
-            "kirocrew-dashboard/chat_folder_create",
-            "kirocrew-dashboard/chat_folder_tree",
-            "kirocrew-dashboard/session_create",
-            "kirocrew-dashboard/session_read_message",
+            "junction-dashboard/chat_folder_create",
+            "junction-dashboard/chat_folder_tree",
+            "junction-dashboard/session_create",
+            "junction-dashboard/session_read_message",
         ]
         data = self._install(tmp_path, monkeypatch)
         assert data["permissions"] == {
             "rules": [
                 {
                     "capability": "mcp",
-                    "match": ["kirocrew-core/*", *dashboard_resources],
+                    "match": ["junction-core/*", *dashboard_resources],
                     "effect": "allow",
                 }
             ]
         }
-        assert "kirocrew-dashboard/*" not in data["permissions"]["rules"][0]["match"]
+        assert "junction-dashboard/*" not in data["permissions"]["rules"][0]["match"]
 
         governed = self._install(
             tmp_path,
             monkeypatch,
-            may_auto_approve=lambda ref: ref != "@kirocrew-core",
+            may_auto_approve=lambda ref: ref != "@junction-core",
         )
         assert governed["permissions"] == {
             "rules": [{"capability": "mcp", "match": dashboard_resources, "effect": "allow"}]
@@ -267,7 +267,7 @@ class TestConductorInstaller:
         """``{"rules": []}`` when nothing qualifies — the key's PRESENCE loads the spec.
 
         Split from the test above once the dashboard grant meant a ceiling on
-        ``@kirocrew-core`` alone no longer empties the rule list: without this,
+        ``@junction-core`` alone no longer empties the rule list: without this,
         the empty-policy branch would have silently lost its coverage.
         """
         data = self._install(tmp_path, monkeypatch, may_auto_approve=lambda ref: False)
@@ -289,10 +289,10 @@ class TestConductorInstaller:
                 calls.append(kw)
 
         monkeypatch.setattr(agent, "sel", lambda: _Recorder())
-        self._install(tmp_path, monkeypatch, may_auto_approve=lambda ref: ref != "@kirocrew-core")
+        self._install(tmp_path, monkeypatch, may_auto_approve=lambda ref: ref != "@junction-core")
         withheld = [c for c in calls if c.get("operation") == "mcp_auto_approve_withheld"]
         assert len(withheld) == 1
-        assert "@kirocrew-core" in withheld[0]["resources"]
+        assert "@junction-core" in withheld[0]["resources"]
         assert withheld[0]["source"] == "_install_conductor_agent"
 
     def test_no_audit_event_when_nothing_is_withheld(self, tmp_path, monkeypatch):
@@ -316,15 +316,15 @@ class TestConductorInstaller:
 
         monkeypatch.setattr(agent, "sel", lambda: _Broken())
         data = self._install(
-            tmp_path, monkeypatch, may_auto_approve=lambda ref: ref != "@kirocrew-core"
+            tmp_path, monkeypatch, may_auto_approve=lambda ref: ref != "@junction-core"
         )
         assert data["allowedTools"] == [
             "session",
             "report",
-            "@kirocrew-dashboard/chat_folder_tree",
-            "@kirocrew-dashboard/chat_folder_create",
-            "@kirocrew-dashboard/session_create",
-            "@kirocrew-dashboard/session_read_message",
+            "@junction-dashboard/chat_folder_tree",
+            "@junction-dashboard/chat_folder_create",
+            "@junction-dashboard/session_create",
+            "@junction-dashboard/session_read_message",
         ]
 
     def test_skill_gates_the_plan_once_instead_of_interrogating(self):
@@ -402,7 +402,7 @@ class TestConductorInstaller:
         # exactly the value shape the ledger rejects.
         assert "item-1 -> {" not in text
 
-    def test_spec_is_registered_as_kirocrew_owned(self):
+    def test_spec_is_registered_as_junction_owned(self):
         """Every managed spec registers in ``OWNED_KIRO_AGENT_FILES``.
 
         Three consumers key off that tuple (the Playwright convergence sweep,

@@ -17,7 +17,7 @@ import { createHmac } from 'node:crypto'
  *
  * Run against a live gateway:
  *   PLAYWRIGHT_BASE_URL=http://localhost:6777 \
- *   PLAYWRIGHT_TOKEN=$(kirocrew token --port 6777 | sed "s/.*token=//") \
+ *   PLAYWRIGHT_TOKEN=$(junction token --port 6777 | sed "s/.*token=//") \
  *   npx playwright test playwright/ops-mission-control.spec.ts --project=chromium
  */
 

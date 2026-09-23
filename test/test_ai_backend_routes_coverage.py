@@ -36,11 +36,11 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.apps.builtins.auto_improvement.backend import (
+from junction.apps.builtins.auto_improvement.backend import (
     clone_setup,
 )
-from kiro_crew.apps.builtins.auto_improvement.backend import commit as commit_mod
-from kiro_crew.apps.builtins.auto_improvement.backend import (
+from junction.apps.builtins.auto_improvement.backend import commit as commit_mod
+from junction.apps.builtins.auto_improvement.backend import (
     deps,
     ledger_admin,
     pr_checks,
@@ -242,7 +242,7 @@ def data_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     home = tmp_path / "crew-home"
     home.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     monkeypatch.setenv("AUTO_IMPROVEMENT_SCRATCH", str(tmp_path / "scratch"))
     monkeypatch.setattr(store, "data_dir", lambda: root)
     return root

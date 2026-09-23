@@ -558,7 +558,7 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "label": "Owner Slack member ID (Slack)",
     "labelKey": "pages.settings.slackPanel.owner_slack_member_id",
     "labelSuffix": "Slack",
-    "description": "The one member who can always interact with the bot (KIROCREW_OWNER_ID). Starts with U or W.",
+    "description": "The one member who can always interact with the bot (JUNCTION_OWNER_ID). Starts with U or W.",
     "tab": "channels",
     "type": "input",
     "occurrence": 1,

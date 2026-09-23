@@ -12,7 +12,7 @@ action items.
 
 | Path | What it is |
 |---|---|
-| `src/kiro_crew/apps/builtins/meetings/app.json` | manifest (`backend.routes`, `ui.pages`, agents, permissions) |
+| `src/junction/apps/builtins/meetings/app.json` | manifest (`backend.routes`, `ui.pages`, agents, permissions) |
 | `.../backend/constants.py` | every limit, state name, and provider id |
 | `.../backend/store.py` | on-disk layout **and the single path-containment barrier** |
 | `.../backend/domain/dictionary.py` | speech-correction dictionary (TOML) |
@@ -21,7 +21,7 @@ action items.
 | `.../backend/providers/calendar.py` | **calendar-provider seam** + the `.ics` reader |
 | `.../backend/routes/` | `_common` (gate + validation), `meeting_lifecycle`, `agents`, `tasks`, `calendar`, `settings` |
 | `.../agents/*.json` | the three shipped agent specs |
-| `src/kiro_crew/builtin_skills/meetings/SKILL.md` | the bundled skill (data layout, lifecycle, provider config) |
+| `src/junction/builtin_skills/meetings/SKILL.md` | the bundled skill (data layout, lifecycle, provider config) |
 | `website/src/apps/meetings/` | `MeetingsPage` (list) → `MeetingView` → `TaskReviewView`, `SettingsView` |
 | `website/public/app-assets/meetings/` | icon + hero art |
 
@@ -223,7 +223,7 @@ sensitive paths, governance) exactly like any other turn.
 
 ## The two provider seams
 
-Both follow `kiro_crew.embeddings`' `EmbeddingBackend` /
+Both follow `junction.embeddings`' `EmbeddingBackend` /
 `register_embedding_backend` shape: an ABC, a name-keyed factory registry, and a
 resolver that **degrades instead of raising** on an unknown id. Each ships
 exactly one real implementation; the seam exists so an out-of-repo edition can
@@ -353,7 +353,7 @@ default visual rhythm. Empty copy distinguishes an active meeting from review or
 ended states, and the durable list is not an ARIA live region because the compact
 caption already announces recognizer updates.
 
-Cloud transcription is an optional extra (`pip install kirocrew[voice]`). When it
+Cloud transcription is an optional extra (`pip install junction[voice]`). When it
 is absent the endpoint answers a friendly WS error, the hook surfaces it as a
 toast, and the user can still type into the broadcast bar to feed the agents.
 
@@ -416,7 +416,7 @@ toast, and the user can still type into the broadcast bar to feed the agents.
      Remote-URL *fetches* are left to the CSP rather than pattern-matched.
 
   Mermaid still renders, and this is what makes control 3 affordable: it is driven
-  by KiroCrew's own bootstrap from the declarative `div.mermaid` / fenced
+  by Junction's own bootstrap from the declarative `div.mermaid` / fenced
   ```mermaid markup the agent is instructed to emit, so the agent has no
   documented need to ship JS. Both directions are tested in
   `website/src/test/sketchSrcdoc.test.ts` — nothing executable survives, **and** a
@@ -431,7 +431,7 @@ toast, and the user can still type into the broadcast bar to feed the agents.
 See `ATTRIBUTION.md` for the table. In short: the internal task system became
 the task-provider seam, the internal calendar MCP became the calendar-provider
 seam, the second (separately built, internally sourced) speech-to-text daemon was
-deleted in favour of KiroCrew's own, the standalone server became in-gateway
+deleted in favour of Junction's own, the standalone server became in-gateway
 routes, the shell-blob self-heal cron became Python at startup, and the
 internal-git update-check cron was deleted (a builtin versions with the package).
 
@@ -448,7 +448,7 @@ fake session manager; no test spawns a process or opens a socket.
 
 These live in the repo-level `test/` tree, not an in-package `tests/`:
 `setup.cfg` sets `testpaths = test transfer`, so a test under
-`src/kiro_crew/apps/builtins/...` is never collected by CI.
+`src/junction/apps/builtins/...` is never collected by CI.
 
 Frontend: `website/src/test/MeetingsApiClient.test.ts` (fetch-boundary
 translation), `MeetingsSessionLogic.test.ts` (dedup, preset resolution, the

@@ -28,7 +28,7 @@ const mockApi = vi.hoisted(() => ({
   defaultAgent: vi.fn(),
   agentDetail: vi.fn(),
   agentMetadata: vi.fn(),
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   skills: vi.fn(),
   agentPatch: vi.fn(),
   spawnClear: vi.fn(),
@@ -73,12 +73,12 @@ beforeEach(() => {
   mockApi.spawnList.mockResolvedValue({ agents: [] })
   mockApi.sessionsContext.mockResolvedValue({ sessions: [] })
   mockApi.sessionsUsage.mockResolvedValue({ usage: null })
-  mockApi.agentsInstalled.mockResolvedValue([mkAgent('kirocrew')])
+  mockApi.agentsInstalled.mockResolvedValue([mkAgent('junction')])
   mockApi.mcpProbeCache.mockResolvedValue([])
   mockApi.agentMetadata.mockResolvedValue({ content: '' })
-  mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+  mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
   mockApi.skills.mockResolvedValue([])
-  mockApi.agentDetail.mockResolvedValue({ ...mkAgent('kirocrew'), unmanaged_skills: [] })
+  mockApi.agentDetail.mockResolvedValue({ ...mkAgent('junction'), unmanaged_skills: [] })
 })
 
 describe('maskAccountEmail', () => {

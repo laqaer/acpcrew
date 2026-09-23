@@ -21,7 +21,7 @@ from chat_test_helpers import _make_app, _make_state
 def _patch_sel():
     """Patch sel() so the handler doesn't touch a real SecurityEventLog."""
     mock_sel = MagicMock()
-    with patch("kiro_crew.dashboard.chat_handlers.sel", return_value=mock_sel):
+    with patch("junction.dashboard.chat_handlers.sel", return_value=mock_sel):
         yield mock_sel
 
 
@@ -40,7 +40,7 @@ def _running_slot(state, key="test"):
 class TestApiChatSteer:
     @pytest.mark.asyncio
     async def test_steer_injects_into_running_turn(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -69,7 +69,7 @@ class TestApiChatSteer:
     ):
         """An app cannot inject into a live human-origin turn and inherit its
         authority; its text waits as an automation-origin successor turn."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -100,7 +100,7 @@ class TestApiChatSteer:
 
     @pytest.mark.asyncio
     async def test_steer_unavailable_falls_back_to_queue(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -122,7 +122,7 @@ class TestApiChatSteer:
 
     @pytest.mark.asyncio
     async def test_steer_error_falls_back_to_queue(self, tmp_path, monkeypatch, _patch_sel):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -146,7 +146,7 @@ class TestApiChatSteer:
     async def test_steer_cuts_segment_before_user_append(self, tmp_path, monkeypatch, _patch_sel):
         """The segment cut runs BEFORE the steer user message is persisted, so
         the flushed pre-steer assistant text lands ABOVE the steer bubble."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -184,7 +184,7 @@ class TestApiChatSteer:
     async def test_steer_cut_failure_does_not_lose_steer(self, tmp_path, monkeypatch, _patch_sel):
         """A raising cut closure is best-effort: the steer user message is
         still persisted and steer_push still broadcast."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = _running_slot(state)
@@ -215,7 +215,7 @@ class TestFlushSegmentQuietPersist:
     pre-steer text below the steer bubble."""
 
     def _slot_with_chunks(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.broadcast_ws = MagicMock()
         slot = state.get_or_create_slot("test")
@@ -224,7 +224,7 @@ class TestFlushSegmentQuietPersist:
         return state, slot
 
     def test_quiet_persist_suppresses_message_broadcast(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_runner import _flush_segment
+        from junction.dashboard.chat_runner import _flush_segment
 
         state, slot = self._slot_with_chunks(tmp_path, monkeypatch)
         _flush_segment(state, slot, "pre-steer text", broadcast=False, quiet_persist=True)
@@ -237,7 +237,7 @@ class TestFlushSegmentQuietPersist:
         assert "chat_segment" not in events
 
     def test_default_flush_still_broadcasts_message(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat_runner import _flush_segment
+        from junction.dashboard.chat_runner import _flush_segment
 
         state, slot = self._slot_with_chunks(tmp_path, monkeypatch)
         _flush_segment(state, slot, "normal segment", broadcast=False)

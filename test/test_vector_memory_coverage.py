@@ -22,8 +22,8 @@ from typing import Callable
 
 import pytest
 
-from kiro_crew import vector_memory as vm
-from kiro_crew.vector_memory import VectorMemoryStore, _lesson_display_text
+from junction import vector_memory as vm
+from junction.vector_memory import VectorMemoryStore, _lesson_display_text
 
 
 def _lesson_texts(store: VectorMemoryStore) -> list[str]:

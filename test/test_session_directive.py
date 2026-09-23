@@ -12,7 +12,7 @@ that makes subagent isolation structural rather than cryptographic.
 
 import pytest
 
-from kiro_crew import session_directive as sd
+from junction import session_directive as sd
 
 # One representative argument payload per directive kind. ``args`` is opaque to
 # the protocol (it is just round-tripped as JSON), so any dict suffices.
@@ -131,12 +131,12 @@ def test_forgery_gate_malformed_json():
     "raw,expected",
     [
         ("monitor_start", "monitor_start"),
-        ("kirocrew-core___monitor_start", "monitor_start"),
+        ("junction-core___monitor_start", "monitor_start"),
         # Tightened surface (#755 security fix): only exact membership and a
         # single ``___`` server-qualifier split are accepted. Any other
         # separator no longer tail-matches, so a crafted title/path cannot
         # smuggle a directive name in as a namespace tail.
-        ("kirocrew-core::set_project", ""),
+        ("junction-core::set_project", ""),
         ("bash /tmp/set_project", ""),
         ("a.autonudge_stop", ""),
         ("echo x/monitor_start", ""),
@@ -157,14 +157,14 @@ def test_match_tool(raw, expected):
     [
         # Match: core server + a directive tool, bare and server-qualified.
         (sd.CORE_MCP_SERVER, "monitor_start", "monitor_start"),
-        (sd.CORE_MCP_SERVER, "kirocrew-core___set_project", "set_project"),
+        (sd.CORE_MCP_SERVER, "junction-core___set_project", "set_project"),
         # No match: core server but a non-directive tool.
         (sd.CORE_MCP_SERVER, "some_other_tool", ""),
         (sd.CORE_MCP_SERVER, "", ""),
         # Wrong server: a third-party MCP server exposing a same-named tool
         # must never resolve to a directive.
         ("evil-mcp", "monitor_start", ""),
-        ("evil-mcp", "kirocrew-core___monitor_start", ""),
+        ("evil-mcp", "junction-core___monitor_start", ""),
         # Absent identity fails closed: a shell tool has no MCP server name
         # (and its canonical tool_name is e.g. "execute_bash").
         ("", "monitor_start", ""),
@@ -184,13 +184,13 @@ def test_subagent_isolation_intent():
     """The forgery gate is what structurally prevents a subagent's UNRELATED
     tool result from ever being honored as a directive.
 
-    decode() honors a directive only when expected_tool — the name KiroCrew
+    decode() honors a directive only when expected_tool — the name Junction
     itself recorded for the tool CALL — is in DIRECTIVE_TOOLS AND equals the
     encoded kind. A subagent's tool result flows through the subagent's own
     runner and arrives under whatever tool it actually called; if that tool is
     not a directive tool (or is a different directive tool), the gate returns
     None. There is no /proc walk or session key to spoof — isolation follows
-    from the call->name mapping, which is KiroCrew's own record. This test
+    from the call->name mapping, which is Junction's own record. This test
     asserts that no non-directive expected_tool can decode a genuine directive.
     """
     genuine = sd.encode("monitor_start", {"message": "x"}, "armed")

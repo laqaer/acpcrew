@@ -15,7 +15,7 @@ superseded-by: []
 # Version Compliance Framework for Kiro Crew
 
 **Author:** Kiro Crew contributors
-**Status:** draft — **nothing is built at the platform level.** No version authority document, no compliance heartbeat, no startup gate, no `kirocrew admin` command, no `block` mode, no deny-pattern propagation mechanism. `version_authority`, `version_compliance`, `set-min-version`, `recommended_version` all have zero hits repo-wide. The nearest live behavior is a *different* architecture: `update_governance.update_required()` enforces a min-version floor from the **local** trust-root `security_policy.json` and explicitly "never refuses to boot" — the opposite of Layer 2's `block`. `is_toolbox_install()` (`env.py:68`), cited below as existing infrastructure, now has **zero callers**.
+**Status:** draft — **nothing is built at the platform level.** No version authority document, no compliance heartbeat, no startup gate, no `junction admin` command, no `block` mode, no deny-pattern propagation mechanism. `version_authority`, `version_compliance`, `set-min-version`, `recommended_version` all have zero hits repo-wide. The nearest live behavior is a *different* architecture: `update_governance.update_required()` enforces a min-version floor from the **local** trust-root `security_policy.json` and explicitly "never refuses to boot" — the opposite of Layer 2's `block`. `is_toolbox_install()` (`env.py:68`), cited below as existing infrastructure, now has **zero callers**.
 **Framing:** this is a framework/policy recommendation doc, not an RFC — note it has no `RFC:` title prefix and no `rfc-` filename prefix, unlike its ten siblings.
 **Two staleness warnings:** (1) It **predates the public repo** — it arrived at `64e47961`, so the 2026-05-26 date is pre-fork and the anonymized phrasing ("the managed distribution tool") is a scrub artifact. (2) Its §2 premise is stale: Kiro Crew now ships five shapes over three channels with two independent feeds, not one managed tool with a 180-day pause window. `rfc-update-architecture.md` nonetheless cites this doc as "the policy ceiling this RFC must honor". Partially overtaken by PR #999 + the release-feed controls, which cover a subset of Layer 2 for 2 of 5 shapes.
 **Date:** 2026-05-26
@@ -59,7 +59,7 @@ Kiro Crew publishes via a managed distribution tool. It provides:
 
 | Component | Mechanism | Limitation |
 |---|---|---|
-| `kirocrew update` CLI | Delegates to the distribution tool's update command | Manual; user must invoke |
+| `junction update` CLI | Delegates to the distribution tool's update command | Manual; user must invoke |
 | Dashboard `/api/update/check` | Checks for new version via the distribution tool | Informational only |
 | `auto_update` config (default `True`) | 12-hour check intervals on gateway | Advisory — does not block execution |
 | Gateway reconnect | Reloads version, auto-restarts if newer | Only triggers on reconnect events |
@@ -111,7 +111,7 @@ Implement a minimum-version check at gateway startup, modeled on the VS Code ext
 
 ```
 ┌─────────────────┐         ┌──────────────────────────┐
-│  KiroCrew       │  HTTPS  │  Version Authority       │
+│  Junction       │  HTTPS  │  Version Authority       │
 │  Gateway Start  │────────→│  (DynamoDB or S3 JSON)   │
 │                 │         │                          │
 │  Compare:       │←────────│  { "min_version": "X",   │
@@ -149,7 +149,7 @@ Implement a minimum-version check at gateway startup, modeled on the VS Code ext
   "min_version": "2.14.0",
   "recommended_version": "2.15.1",
   "enforcement": "warn | block",
-  "message": "Security patch for CVE-2026-XXXX. Update with: kirocrew update",
+  "message": "Security patch for CVE-2026-XXXX. Update with: junction update",
   "grace_period_end": "2026-06-15T00:00:00Z",
   "channels": {
     "beta": { "min_version": "2.15.0", "enforcement": "warn" },
@@ -172,7 +172,7 @@ Add periodic version telemetry to enable governance visibility.
 {
   "version": "2.15.1",
   "install_method": "toolbox | pip | git",
-  "owner_id_hash": "sha256(KIROCREW_OWNER_ID)[:16]",
+  "owner_id_hash": "sha256(JUNCTION_OWNER_ID)[:16]",
   "uptime_hours": 48,
   "platform": "linux-aarch64",
   "enforcement_status": "compliant | warned | grace_period"
@@ -211,7 +211,7 @@ per-channel enforcement.
 |---|---|
 | **Block non-managed at startup** | Breaks development workflow (`pip install -e .`). Not recommended for default. |
 | **Warn non-managed installs** | Prints advisory; does not block. Still checks version authority. |
-| **Exempt `--dev` flag** | `kirocrew --dev server` skips compliance check. Only works in dev workspaces. |
+| **Exempt `--dev` flag** | `junction --dev server` skips compliance check. Only works in dev workspaces. |
 | **Environment detection** | If running inside development checkout → exempt. Otherwise → enforce. |
 
 **Recommendation:** Warn but do not block non-managed installs. The version authority check
@@ -226,7 +226,7 @@ for development use only, gated behind dev-workspace detection.
 
 1. Add version heartbeat to existing `/api/status` periodic cycle
 2. Central S3 bucket + CloudFront for version authority JSON
-3. Admin CLI: `kirocrew admin set-min-version --version X --enforcement warn`
+3. Admin CLI: `junction admin set-min-version --version X --enforcement warn`
 4. Gateway startup: fetch + cache version authority (60s TTL, fail-open)
 5. Dashboard banner when running below recommended version
 6. SEL event: `version_compliance_check` (outcome: compliant/warned/blocked)
@@ -235,7 +235,7 @@ for development use only, gated behind dev-workspace detection.
 
 1. Add `block` enforcement mode (refuses gateway start)
 2. Staged rollout: beta channel enforced first, stable after 7-day grace
-3. `kirocrew doctor` reports compliance status
+3. `junction doctor` reports compliance status
 4. Integrate with governance dashboard (fleet version histogram, alerts)
 5. Migrate version authority to DynamoDB for atomic updates + per-channel config
 
@@ -293,5 +293,5 @@ for development use only, gated behind dev-workspace detection.
 - an upstream min-version gate
 - the managed distribution mechanism — distribution and recall mechanisms
 - [Kiro Crew Security Deep Dive](../architecture/security-deep-dive.md) — Defense-in-depth architecture
-- [Kiro Crew apps/version.py](../../src/kiro_crew/apps/version.py) — Existing `check_min_version` implementation
+- [Kiro Crew apps/version.py](../../src/junction/apps/version.py) — Existing `check_min_version` implementation
 - YOLO Override Governance (related compliance work)

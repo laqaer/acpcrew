@@ -460,7 +460,7 @@ export default function AgentImportFlow({
     const headings: Record<Stage, { title: string; description: string }> = {
       1: {
         title: i18nT('components.agentImportFlow.choose_sources'),
-        description: i18nT('components.agentImportFlow.kiro_crew_found_agent_setup_on_this_gateway_host'),
+        description: i18nT('components.agentImportFlow.junction_found_agent_setup_on_this_gateway_host'),
       },
       2: {
         title: i18nT('components.agentImportFlow.select_items_to_import'),
@@ -468,11 +468,11 @@ export default function AgentImportFlow({
       },
       3: {
         title: i18nT('components.agentImportFlow.review_import'),
-        description: i18nT('components.agentImportFlow.review_the_merge_before_kiro_crew_changes_local'),
+        description: i18nT('components.agentImportFlow.review_the_merge_before_junction_changes_local'),
       },
       4: {
         title: i18nT('components.agentImportFlow.import_complete'),
-        description: i18nT('components.agentImportFlow.your_selected_setup_is_ready_in_kiro_crew'),
+        description: i18nT('components.agentImportFlow.your_selected_setup_is_ready_in_junction'),
       },
     }
     const { title, description } = headings[stage]
@@ -528,7 +528,7 @@ export default function AgentImportFlow({
         <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
           <AlertTriangle className="lucide-inline text-danger" />
           <h1 ref={headingRef} tabIndex={-1} className="mt-4 text-2xl font-semibold text-text-strong outline-none">
-            {i18nT('components.agentImportFlow.found_setup_kirocrew_could_not_read')}
+            {i18nT('components.agentImportFlow.found_setup_junction_could_not_read')}
           </h1>
           <p className="mt-2 max-w-lg text-sm text-danger" role="alert">
             {i18nT('components.agentImportFlow.found_setup_but_could_not_read_it', {
@@ -571,7 +571,7 @@ export default function AgentImportFlow({
             {i18nT('components.agentImportFlow.no_supported_setup_found')}
           </h1>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted">
-            {i18nT('components.agentImportFlow.kirocrew_did_not_find_supported_setup_to_import')}
+            {i18nT('components.agentImportFlow.junction_did_not_find_supported_setup_to_import')}
           </p>
           <SendBtn
             type="button"
@@ -686,7 +686,7 @@ export default function AgentImportFlow({
             ))}
           </div>
           <p className="mt-5 text-center text-[13px] text-muted">
-            {i18nT('components.agentImportFlow.your_existing_kirocrew_setup_will_not_be_affecte')}
+            {i18nT('components.agentImportFlow.your_existing_junction_setup_will_not_be_affecte')}
           </p>
         </>
       )
@@ -704,7 +704,7 @@ export default function AgentImportFlow({
               <ShieldCheck className="lucide-inline text-ok" /> {i18nT('components.agentImportFlow.merge_only')}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              {i18nT('components.agentImportFlow.existing_kirocrew_setup_is_never_overwritten_mat')}
+              {i18nT('components.agentImportFlow.existing_junction_setup_is_never_overwritten_mat')}
             </p>
           </section>
           <section className="mt-6">

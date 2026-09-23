@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from kiro_crew.mcp_gateway.rewriter import _rewrite_single_spec
+from junction.mcp_gateway.rewriter import _rewrite_single_spec
 
 STUB_MARKER = "mcp_gateway.stub"
 
@@ -37,7 +37,7 @@ def _rewrite(
 
 def _spec() -> dict:
     return {
-        "name": "kirocrew",
+        "name": "junction",
         "mcpServers": {
             "alpha-mcp": {"command": sys.executable, "args": ["--serve"]},
             "beta-mcp": {"command": sys.executable, "args": []},
@@ -118,7 +118,7 @@ def test_a_spec_level_poolable_key_no_longer_opts_a_server_in(tmp_path: Path) ->
     It could not be honoured coherently. The broker's start gate and the
     session's overlay resolution both read ``mcp_gateway.stub_servers``, and
     teaching them to read agent specs instead would put filesystem IO behind
-    every ``KiroCrewConfig.load()``. Wrapping the entry here while those gates
+    every ``JunctionConfig.load()``. Wrapping the entry here while those gates
     stayed blind produced a stub nothing pointed at, plus a dashboard row that
     reported ``stub`` for a server that had none.
 
@@ -127,7 +127,7 @@ def test_a_spec_level_poolable_key_no_longer_opts_a_server_in(tmp_path: Path) ->
     must never reach the overlay.
     """
     spec = {
-        "name": "kirocrew",
+        "name": "junction",
         "mcpServers": {
             "alpha-mcp": {"command": sys.executable, "args": [], "poolable": True},
             "beta-mcp": {"command": sys.executable, "args": []},
@@ -146,7 +146,7 @@ def test_a_spec_level_poolable_key_no_longer_opts_a_server_in(tmp_path: Path) ->
 def test_the_config_list_still_opts_that_same_server_in(tmp_path: Path) -> None:
     """The replacement path: list it, and the spec key is irrelevant either way."""
     spec = {
-        "name": "kirocrew",
+        "name": "junction",
         "mcpServers": {
             "alpha-mcp": {"command": sys.executable, "args": [], "poolable": True},
             "beta-mcp": {"command": sys.executable, "args": []},

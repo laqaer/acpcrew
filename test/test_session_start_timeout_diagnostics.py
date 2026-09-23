@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.acp.runtime import (
+from junction.acp.runtime import (
     _MCP_PROGRESS_NAME_CAP,
     _MCP_PROGRESS_NAME_LEN_CAP,
     AcpRequestTimeout,
@@ -25,7 +25,7 @@ from kiro_crew.acp.runtime import (
     AcpRuntimeError,
     _capped_names,
 )
-from kiro_crew.acp.types import (
+from junction.acp.types import (
     METHOD_MCP_OAUTH_REQUEST,
     METHOD_MCP_SERVER_INIT_FAILURE,
     METHOD_MCP_SERVER_INITIALIZED,
@@ -183,7 +183,7 @@ async def test_session_load_timeout_names_the_servers_that_never_reported(monkey
     rt = _runtime()
     rt._can_load_session = True
     monkeypatch.setattr(
-        "kiro_crew.acp.runtime.pooled_session_servers",
+        "junction.acp.runtime.pooled_session_servers",
         lambda *_a, **_k: _roster("alpha", "beta"),
     )
     _stage(rt, METHOD_MCP_SERVER_INITIALIZED, "alpha")
@@ -234,7 +234,7 @@ def test_capped_names_summarizes_the_tail_instead_of_listing_a_whole_fleet():
 async def test_a_newline_in_a_server_name_cannot_forge_a_log_line():
     """The summary goes into a logger.warning; a name must not add a line to it."""
     rt = _runtime()
-    forged = "beta\n2026-08-18 00:00:00 ERROR kiro_crew: injected"
+    forged = "beta\n2026-08-18 00:00:00 ERROR junction: injected"
     _stage(rt, METHOD_MCP_SERVER_INITIALIZED, "alpha")
     _timeout(rt)
 
@@ -316,7 +316,7 @@ async def test_an_out_of_roster_failure_is_still_named():
 
 @pytest.mark.asyncio
 async def test_a_terminal_escape_in_error_text_is_stripped():
-    """`kirocrew logs` renders the gateway log in a terminal; an ESC in a failed
+    """`junction logs` renders the gateway log in a terminal; an ESC in a failed
     server's error text would let it recolor or forge terminal output. ESC is
     not whitespace, so a whitespace collapse alone would keep it."""
     rt = _runtime()

@@ -70,7 +70,7 @@ Deleting the directory caused no breakage.
   a pure derived artifact with no user-visible tuning need once the leak is
   closed; module-owned constants keep the limit where the code-style index
   can find it. A config surface can be added later without migration cost.
-- **`kirocrew cache prune` CLI.** Unnecessary once GC is automatic; also
+- **`junction cache prune` CLI.** Unnecessary once GC is automatic; also
   avoids the MCP-first obligation a new LLM-facing CLI command carries.
 - **Dropping `PYTHONPYCACHEPREFIX` in Electron.** Rejected — it would
   re-introduce the codesign-seal breakage the variable exists to prevent.

@@ -62,7 +62,7 @@ export interface StatusData {
   version?: string
   /**
    * Which release lane these bytes came from. The gateway resolves it (see
-   * `src/kiro_crew/release_channel.py`) rather than leaving the dashboard to
+   * `src/junction/release_channel.py`) rather than leaving the dashboard to
    * parse `version`: the same release is stamped as SemVer for the desktop app
    * and PEP 440 for wheels, and neither PEP 440 prerelease spelling
    * (`1.2.3rc4`, `1.2.3.dev<stamp>`) contains a `-`, so a mirror of the rule
@@ -369,7 +369,7 @@ export interface Skill {
   dir?: string
   /** Names of installed agents whose ``resources`` glob matches this skill's
    *  SKILL.md path.  Empty list means no agent loads it via kiro-cli's
-   *  native ``skill://`` loader (it may still load via KiroCrew text-injection). */
+   *  native ``skill://`` loader (it may still load via Junction text-injection). */
   loaded_by_agents?: string[]
 }
 
@@ -498,7 +498,7 @@ export interface DiscoveredMcpServer {
   version: string
   /** "" if unknown. */
   repo_url: string
-  /** Cross-referenced against KiroCrew's configured servers. */
+  /** Cross-referenced against Junction's configured servers. */
   installed: boolean
   /** Install methods derivable from the entry (capability: ["capability"]). */
   methods: string[]
@@ -561,7 +561,7 @@ export interface McpCustomSpecResponse {
 }
 
 export interface McpScopePresence {
-  kirocrew: boolean
+  junction: boolean
   kiroGlobal: boolean
   // Provider-specific global scopes contributed by an edition via the
   // extra_mcp_scopes() seam, keyed by `${scopeId}Global` (e.g. "ccGlobal").
@@ -594,14 +594,14 @@ export interface McpServer {
   /** Optional status-enrichment fields supplied by newer runtimes. */
   accountLabel?: string
   connectedSince?: string
-  /** True when the entry lives in KiroCrew's own mcp.json — the scope the
+  /** True when the entry lives in Junction's own mcp.json — the scope the
    *  Edit JSON action reads and writes (consent-disabled rows included). */
-  kirocrewManaged?: boolean
+  junctionManaged?: boolean
 }
 
 export interface McpApplyChange {
   name: string
-  kirocrew?: boolean
+  junction?: boolean
   kiroGlobal?: boolean
   uninstall?: boolean
   toolOverrides?: Record<string, boolean>
@@ -1038,13 +1038,13 @@ export interface ArtifactPublication {
   view_url: string
   /** Publishing provider name (registry key of the destination). */
   provider?: string
-  /** Sync authority: 'mirror' (KiroCrew-authoritative) | 'live' (remote CRDT). */
+  /** Sync authority: 'mirror' (Junction-authoritative) | 'live' (remote CRDT). */
   collab_mode?: 'mirror' | 'live'
   visibility: 'PRIVATE' | 'SHARED' | 'PUBLIC'
   shared_with: string[]
   auto_sync: boolean
-  last_synced_kirocrew_version: number
-  /** Maps KiroCrew version (as string) -> provider version number. */
+  last_synced_junction_version: number
+  /** Maps Junction version (as string) -> provider version number. */
   version_map: Record<string, number>
   published_at: string
   published_by: string

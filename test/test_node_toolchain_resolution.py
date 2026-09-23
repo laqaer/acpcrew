@@ -3,7 +3,7 @@
 Kiro Crew's supported installer (``install.sh --mise`` / ``ensure-node.sh``)
 installs node under ``$HOME``. Callers that build the SPA pin ``PATH`` to system
 bin dirs for credential safety, so before this resolution existed they could not
-see the very node Kiro Crew installed for them: ``kirocrew pod provision`` died
+see the very node Kiro Crew installed for them: ``junction pod provision`` died
 with an unhandled ``FileNotFoundError: 'npm'`` and Dev Fleet's Pull+Build
 reported "no trusted executable for 'npm'".
 """
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import env as env_mod
-from kiro_crew import platform_compat
+from junction import env as env_mod
+from junction import platform_compat
 
 
 def _fake_node_bin(d: Path) -> Path:
@@ -64,7 +64,7 @@ def isolated_home(tmp_path, monkeypatch):
     monkeypatch.setenv("USERPROFILE", str(home))
     monkeypatch.delenv("HOMEDRIVE", raising=False)
     monkeypatch.delenv("HOMEPATH", raising=False)
-    monkeypatch.delenv("KIROCREW_NODE_BIN_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_NODE_BIN_DIR", raising=False)
     monkeypatch.delenv("MISE_DATA_DIR", raising=False)
     monkeypatch.delenv("XDG_DATA_HOME", raising=False)
     # No marker file: point data_home at an empty dir.
@@ -134,12 +134,12 @@ def test_missing_marker_is_not_an_error(tmp_path, monkeypatch):
 # --- operator override ---
 def test_env_override_wins(isolated_home, tmp_path, monkeypatch):
     override = _fake_node_bin(tmp_path / "operator" / "bin")
-    monkeypatch.setenv("KIROCREW_NODE_BIN_DIR", str(override))
+    monkeypatch.setenv("JUNCTION_NODE_BIN_DIR", str(override))
     assert env_mod.node_bin_dirs()[0] == str(override)
 
 
 def test_relative_env_override_is_ignored(isolated_home, monkeypatch):
-    monkeypatch.setenv("KIROCREW_NODE_BIN_DIR", "some/relative/bin")
+    monkeypatch.setenv("JUNCTION_NODE_BIN_DIR", "some/relative/bin")
     assert "some/relative/bin" not in env_mod.node_bin_dirs()
 
 
@@ -149,7 +149,7 @@ def test_env_override_carrying_a_path_separator_is_rejected(isolated_home, monke
     `os.path.isabs("/a:/b")` is True on POSIX, so an absolute-only check would
     let the override contribute two PATH entries where the marker refuses one.
     """
-    monkeypatch.setenv("KIROCREW_NODE_BIN_DIR", f"/opt/a/bin{os.pathsep}/tmp/evil/bin")
+    monkeypatch.setenv("JUNCTION_NODE_BIN_DIR", f"/opt/a/bin{os.pathsep}/tmp/evil/bin")
     assert env_mod.node_bin_dirs() == ()
 
 
@@ -298,7 +298,7 @@ def test_returned_paths_are_os_normalized(isolated_home):
 def test_duplicate_spellings_collapse(isolated_home, monkeypatch):
     """Normalizing before the dedup check is what makes `seen` effective."""
     d = _fake_node_bin(isolated_home / ".volta" / "bin")
-    monkeypatch.setenv("KIROCREW_NODE_BIN_DIR", str(d) + os.sep + ".")
+    monkeypatch.setenv("JUNCTION_NODE_BIN_DIR", str(d) + os.sep + ".")
     dirs = env_mod.node_bin_dirs()
     assert dirs.count(os.path.normpath(str(d))) == 1
 
@@ -357,7 +357,7 @@ def test_ensure_node_glibc217_tree_is_found_without_the_marker(isolated_home):
     """The tree Kiro Crew's own installer unpacks must not depend on the marker.
 
     ``ensure-node.sh`` writes ``<data-home>/node-bin-dir`` after installing, but a
-    tree installed under a different KIROCREW_HOME (or a marker since deleted)
+    tree installed under a different JUNCTION_HOME (or a marker since deleted)
     left the product unable to see the Node it installed itself.
     """
     d = _fake_node_bin(env_mod.data_home() / "node-glibc217" / "bin")

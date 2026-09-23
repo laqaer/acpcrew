@@ -29,7 +29,7 @@ const SINGLE_PREFIX = '[Subagent completion event]'
 const BATCH_PREFIX = '[Subagent batch completion event]'
 
 /** Key under `message.meta` where the gateway stamps the structured header
- *  facts. Mirrors `SUBAGENT_COMPLETION_META_KEY` in src/kiro_crew/constants.py —
+ *  facts. Mirrors `SUBAGENT_COMPLETION_META_KEY` in src/junction/constants.py —
  *  the two names are one wire contract and must stay in lockstep. */
 const META_KEY = 'subagentCompletion'
 
@@ -44,7 +44,7 @@ export function hasSubagentCompletionPrefix(content: string): boolean {
  * Per-agent header. Five shapes reach the transcript, and the glyph is the only
  * element common to all of them:
  *
- *     Agent `53e3e5eb` (kirocrew) completed ✅
+ *     Agent `53e3e5eb` (junction) completed ✅
  *     Agent `53e3e5eb` ❌
  *     Agent `53e3e5eb` ⚠️ orphaned by gateway restart
  *     Agent `53e3e5eb` ❌ lost to gateway restart

@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.cron_script import (
+from junction import platform_compat as pc
+from junction.cron_script import (
     Done,
     Report,
     ScriptContext,
@@ -43,8 +43,8 @@ def _crons_dir_tracks_patched_home(monkeypatch):
     (``config_dir()``), and ``resolve_script_path`` now derives its allowed
     ``crons/`` dir from ``config_dir()`` rather than ``Path.home()/".kirocrew"``.
     These tests patch ``Path.home()`` per-test and write scripts under
-    ``<home>/.kirocrew/crons`` — but ``config_dir()`` reads ``KIROCREW_HOME``
-    (pinned to a *different* tmp dir by the conftest ``_isolate_kirocrew_home``
+    ``<home>/.kirocrew/crons`` — but ``config_dir()`` reads ``JUNCTION_HOME``
+    (pinned to a *different* tmp dir by the conftest ``_isolate_junction_home``
     fixture), so without this redirect the allowed dir would never match.
     Redirect ``config_dir`` to ``Path.home()/".kirocrew"`` (evaluated lazily, so
     it tracks whatever ``Path.home()`` each test patches) — preserving the
@@ -52,7 +52,7 @@ def _crons_dir_tracks_patched_home(monkeypatch):
     ``cron_script.config_dir`` themselves still win (applied later).
     """
     monkeypatch.setattr(
-        "kiro_crew.cron_script.config_dir", lambda: Path.home() / ".kirocrew"
+        "junction.cron_script.config_dir", lambda: Path.home() / ".kirocrew"
     )
 
 
@@ -133,12 +133,12 @@ class TestRunCommandSandboxed:
         plumbing is what is under test.
         """
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
         )
         # Bypass the runtime shell probe (which itself spawns a child): these
         # tests exercise the run_command_sandboxed plumbing, not shell fingerprinting.
         monkeypatch.setattr(
-            "kiro_crew.cron_script._resolve_command_shell", lambda: posix_test_shell
+            "junction.cron_script._resolve_command_shell", lambda: posix_test_shell
         )
 
     def test_basic_echo(self):
@@ -228,7 +228,7 @@ class TestCronSandboxUnavailableIsStructuredNotRaised:
 
     @pytest.fixture
     def _sandbox_refuses(self, monkeypatch):
-        from kiro_crew.sandbox import SandboxUnavailableError
+        from junction.sandbox import SandboxUnavailableError
 
         def _raise(argv, **k):
             raise SandboxUnavailableError(
@@ -239,12 +239,12 @@ class TestCronSandboxUnavailableIsStructuredNotRaised:
                 detail="not Linux",
             )
 
-        monkeypatch.setattr("kiro_crew.cron_script.wrap_argv", _raise)
+        monkeypatch.setattr("junction.cron_script.wrap_argv", _raise)
         # The runtime shell probe itself routes through wrap_argv now, so a
         # sandbox-refusing test would surface the "No POSIX shell" error before
         # ever reaching the wrap_argv call this test is about. Skip the probe
         # to isolate what's under test.
-        monkeypatch.setattr("kiro_crew.cron_script._resolve_command_shell", lambda: "sh")
+        monkeypatch.setattr("junction.cron_script._resolve_command_shell", lambda: "sh")
 
     def test_command_cron_returns_error_with_remedy(self, _sandbox_refuses):
         result = run_command_sandboxed("echo hello")
@@ -259,7 +259,7 @@ class TestCronSandboxUnavailableIsStructuredNotRaised:
         # resolve_script_path enforces an allowed root; point it at tmp_path so
         # this test exercises the wrap_argv failure, not the path guard.
         monkeypatch.setattr(
-            "kiro_crew.cron_script.resolve_script_path",
+            "junction.cron_script.resolve_script_path",
             lambda spec: (str(script), "run"),
         )
         result = run_script_sandboxed(f"{script}:run", "job-id", timeout=10)
@@ -275,7 +275,7 @@ class TestCommandCronShellResolution:
         """A `sh` that refuses brace expansion (dash / ash / POSIX-strict) is
         accepted — the language matches what mcp_cron._vet_shell_command was
         written against."""
-        from kiro_crew import cron_script
+        from junction import cron_script
 
         monkeypatch.setattr(cron_script.platform_compat, "IS_WINDOWS", False)
         # Resolver walks a FIXED trusted-path list (never $PATH). /bin/sh exists
@@ -290,7 +290,7 @@ class TestCommandCronShellResolution:
         `cat ~/.a{w,w}s/credentials` hides from the vet the same way a `bash -c`
         candidate would. No fallback: the caller then fails-closed with a
         legible error, matching the Windows path."""
-        from kiro_crew import cron_script
+        from junction import cron_script
 
         monkeypatch.setattr(cron_script.platform_compat, "IS_WINDOWS", False)
         # Both trusted candidates exist on disk, but neither survives the
@@ -305,7 +305,7 @@ class TestCommandCronShellResolution:
         agent-planted `sh` shim would be probed under `cc` isolation but `cc`
         leaves ~/.ssh reachable, so a probe-passing shim can then read it.
         The resolver MUST NOT touch PATH — regression-locking here."""
-        from kiro_crew import cron_script
+        from junction import cron_script
 
         monkeypatch.setattr(cron_script.platform_compat, "IS_WINDOWS", False)
 
@@ -331,12 +331,12 @@ class TestCommandCronShellResolution:
         `x.a x.a` (bash expanded)."""
         from unittest.mock import MagicMock
 
-        from kiro_crew import cron_script
+        from junction import cron_script
 
         # Bypass the sandbox wrap the probe now routes through (so this test
         # exercises the DECISION LOGIC, not the sandbox backend availability).
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (argv, None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (argv, None)
         )
         # Fresh cache per test (the probe memoizes per shell path).
         cron_script._POSIX_STRICT_CACHE.clear()
@@ -357,7 +357,7 @@ class TestCommandCronShellResolution:
         under bash or Git-sh). Returning ``None`` on Windows makes command crons
         fail-closed with the legible error rather than route a vetted string
         through a shell that widens its language."""
-        from kiro_crew import cron_script
+        from junction import cron_script
 
         monkeypatch.setattr(cron_script.platform_compat, "IS_WINDOWS", True)
         # Even if a `sh.exe` were reachable (Git for Windows ships one), Windows
@@ -366,7 +366,7 @@ class TestCommandCronShellResolution:
         assert cron_script._resolve_command_shell() is None
 
     def test_no_shell_returns_legible_error_not_winerror(self, monkeypatch):
-        from kiro_crew import cron_script
+        from junction import cron_script
 
         monkeypatch.setattr(cron_script.platform_compat, "IS_WINDOWS", True)
         result = cron_script.run_command_sandboxed("echo hi", timeout=10)
@@ -379,12 +379,12 @@ class TestRunScriptSandboxed:
 
     @pytest.fixture(autouse=True)
     def _passthrough_sandbox(self, monkeypatch, posix_test_shell):
-        """Bypass OS-sandbox wrap and ensure subprocess can import kiro_crew.
+        """Bypass OS-sandbox wrap and ensure subprocess can import junction.
 
         wrap_argv fails closed when no sandbox backend is available (e.g. macOS 26
         where sandbox-exec is unsupported). run_script_sandboxed also spawns a fresh
         sys.executable subprocess; on local dev runs outside a packaged install,
-        PYTHONPATH is not set so the subprocess can't import kiro_crew. Inject the
+        PYTHONPATH is not set so the subprocess can't import junction. Inject the
         src/ dir so the subprocess finds the package. See
         TestRunCommandSandboxed._passthrough_sandbox.
         """
@@ -393,12 +393,12 @@ class TestRunScriptSandboxed:
         existing = _os.environ.get("PYTHONPATH", "")
         monkeypatch.setenv("PYTHONPATH", src_dir + (_os.pathsep + existing if existing else ""))
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
         )
         # Bypass the runtime shell probe (which itself spawns a child): these
         # tests exercise the run_command_sandboxed plumbing, not shell fingerprinting.
         monkeypatch.setattr(
-            "kiro_crew.cron_script._resolve_command_shell", lambda: posix_test_shell
+            "junction.cron_script._resolve_command_shell", lambda: posix_test_shell
         )
 
     def _write_script(self, tmp_path, code):
@@ -546,7 +546,7 @@ class TestRunScriptSandboxed:
         script_path = self._write_script(
             tmp_path,
             """
-from kiro_crew.cron_script import Skip, Done
+from junction.cron_script import Skip, Done
 def run(ctx):
     pass  # normal return = ok
 """,
@@ -559,7 +559,7 @@ def run(ctx):
         script_path = self._write_script(
             tmp_path,
             """
-from kiro_crew.cron_script import Skip, Done
+from junction.cron_script import Skip, Done
 def run(ctx):
     raise Skip()
 """,
@@ -572,7 +572,7 @@ def run(ctx):
         script_path = self._write_script(
             tmp_path,
             """
-from kiro_crew.cron_script import Skip, Done
+from junction.cron_script import Skip, Done
 def run(ctx):
     raise Done("task complete")
 """,
@@ -586,7 +586,7 @@ def run(ctx):
         script_path = self._write_script(
             tmp_path,
             """
-from kiro_crew.cron_script import Skip, Done
+from junction.cron_script import Skip, Done
 def run(ctx):
     raise RuntimeError("something broke")
 """,
@@ -613,7 +613,7 @@ def other_func(ctx):
         script_path = self._write_script(
             tmp_path,
             """
-from kiro_crew.cron_script import Skip, Done
+from junction.cron_script import Skip, Done
 def run(ctx):
     if ctx.message != "hello-world":
         raise RuntimeError(f"expected hello-world, got {ctx.message!r}")
@@ -654,7 +654,7 @@ class TestResolveMcpServer:
                 "test-server": {"command": "node", "args": ["server.js", "--port", "3000"]}
             }
         }
-        (agents_dir / "kirocrew.json").write_text(json.dumps(config))
+        (agents_dir / "junction.json").write_text(json.dumps(config))
         with patch("pathlib.Path.home", return_value=tmp_path):
             result = _resolve_mcp_server("test-server")
         assert result == ("node", "server.js", "--port", "3000")
@@ -690,14 +690,14 @@ class TestMcpToolClient:
     """Tests for McpToolClient JSON-RPC communication."""
 
     def test_init_fails_for_unknown_server(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         with patch("pathlib.Path.home", return_value=tmp_path):
             with pytest.raises(RuntimeError, match="not found"):
                 McpToolClient("nonexistent-server")
 
     def test_close_handles_already_terminated(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -710,7 +710,7 @@ class TestMcpToolClient:
 
     def test_rpc_disconnect_includes_rc_and_stderr_tail(self, tmp_path):
         """a handshake EOF must surface exit code + stderr tail."""
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
         stderr_path = tmp_path / "stderr.log"
         stderr_path.write_text("Node version 18 detected, but version 20 or higher is required.\n")
         client = object.__new__(McpToolClient)
@@ -732,7 +732,7 @@ class TestMcpToolClient:
         assert "version 20 or higher is required" in msg
 
     def test_rpc_disconnect_empty_stderr(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
         client = object.__new__(McpToolClient)
         client._server_name = "some-mcp"
         client._req_id = 0
@@ -746,7 +746,7 @@ class TestMcpToolClient:
                 client._rpc("tools/call")
 
     def test_stderr_tail_redacts_credentials(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
         stderr_path = tmp_path / "stderr.log"
         stderr_path.write_text("boom AKIA1234567890123456 failure")
         client = object.__new__(McpToolClient)
@@ -756,7 +756,7 @@ class TestMcpToolClient:
         assert "boom" in tail
 
     def test_stderr_tail_redacts_exfiltration_urls(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
         stderr_path = tmp_path / "stderr.log"
         # Long innocuous query (>= 200 chars) triggers redact_exfiltration_urls'
         # length-based heuristic. We can't use a credential-shaped value (AKIA,
@@ -773,7 +773,7 @@ class TestMcpToolClient:
         assert "boom" in tail
 
     def test_close_removes_stderr_tempfile(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
         stderr_path = tmp_path / "stderr.log"
         stderr_path.write_text("x")
         client = object.__new__(McpToolClient)
@@ -798,7 +798,7 @@ class TestScriptContextNotify:
         mock_response.read.return_value = b'{"ok": true}'
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
-        with patch("kiro_crew.cron_script.loopback_urlopen", return_value=mock_response):
+        with patch("junction.cron_script.loopback_urlopen", return_value=mock_response):
             result = ctx.notify("hello")
         assert result == {"ok": True}
 
@@ -809,7 +809,7 @@ class TestScriptContextNotify:
         mock_response.read.return_value = b'{"error": "forbidden"}'
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
-        with patch("kiro_crew.cron_script.loopback_urlopen", return_value=mock_response):
+        with patch("junction.cron_script.loopback_urlopen", return_value=mock_response):
             with pytest.raises(RuntimeError, match="forbidden"):
                 ctx.notify("hello")
 
@@ -821,7 +821,7 @@ class TestScriptContextNotify:
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
         with patch(
-            "kiro_crew.cron_script.loopback_urlopen", return_value=mock_response
+            "junction.cron_script.loopback_urlopen", return_value=mock_response
         ) as mock_urlopen:
             ctx.notify("secret AKIA1234567890123456 text")
             # Verify the request was made (redaction happens internally)
@@ -847,12 +847,12 @@ class TestRunCommandSandboxedEdgeCases:
         """Bypass the OS-sandbox wrap so these plumbing tests run without a
         sandbox backend (see TestRunCommandSandboxed._passthrough_sandbox)."""
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
         )
         # Bypass the runtime shell probe (which itself spawns a child): these
         # tests exercise the run_command_sandboxed plumbing, not shell fingerprinting.
         monkeypatch.setattr(
-            "kiro_crew.cron_script._resolve_command_shell", lambda: posix_test_shell
+            "junction.cron_script._resolve_command_shell", lambda: posix_test_shell
         )
 
     def test_command_with_env_vars(self):
@@ -884,12 +884,12 @@ class TestRunScriptSandboxedEdgeCases:
         existing = _os.environ.get("PYTHONPATH", "")
         monkeypatch.setenv("PYTHONPATH", src_dir + (_os.pathsep + existing if existing else ""))
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
         )
         # Bypass the runtime shell probe (which itself spawns a child): these
         # tests exercise the run_command_sandboxed plumbing, not shell fingerprinting.
         # Return "sh" so Popen mocks that assert on argv[0] still see it.
-        monkeypatch.setattr("kiro_crew.cron_script._resolve_command_shell", lambda: "sh")
+        monkeypatch.setattr("junction.cron_script._resolve_command_shell", lambda: "sh")
 
     def _write_script(self, tmp_path, code):
         crons_dir = tmp_path / ".kirocrew" / "crons"
@@ -902,7 +902,7 @@ class TestRunScriptSandboxedEdgeCases:
         script_path = self._write_script(
             tmp_path,
             """
-from kiro_crew.cron_script import Report
+from junction.cron_script import Report
 def run(ctx):
     raise Report("progress update")
 """,
@@ -917,7 +917,7 @@ def run(ctx):
             tmp_path,
             """
 import os
-from kiro_crew.cron_script import Done
+from junction.cron_script import Done
 def run(ctx):
     # Verify we can import standard library
     assert os.path.exists("/")
@@ -932,7 +932,7 @@ class TestMcpToolClientProtocol:
     """Tests for McpToolClient JSON-RPC protocol internals."""
 
     def test_send_writes_json_line(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -944,7 +944,7 @@ class TestMcpToolClientProtocol:
         mock_stdin.flush.assert_called_once()
 
     def test_recv_returns_parsed_json(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -954,7 +954,7 @@ class TestMcpToolClientProtocol:
         assert msg == {"jsonrpc": "2.0", "id": 1, "result": {}}
 
     def test_recv_returns_none_on_eof(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -963,7 +963,7 @@ class TestMcpToolClientProtocol:
         assert client._recv() is None
 
     def test_recv_skips_blank_lines(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -973,7 +973,7 @@ class TestMcpToolClientProtocol:
         assert msg == {"id": 1, "result": "ok"}
 
     def test_rpc_sends_and_receives(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -987,7 +987,7 @@ class TestMcpToolClientProtocol:
         assert result == {"jsonrpc": "2.0", "id": 1, "result": {"tools": []}}
 
     def test_rpc_raises_on_eof(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -999,7 +999,7 @@ class TestMcpToolClientProtocol:
             client._rpc("tools/list")
 
     def test_call_tool_success(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1020,7 +1020,7 @@ class TestMcpToolClientProtocol:
         assert result == "hello"
 
     def test_call_tool_error_response(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1037,7 +1037,7 @@ class TestMcpToolClientProtocol:
             client.call_tool("bad_tool", {})
 
     def test_call_tool_is_error_flag(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1061,7 +1061,7 @@ class TestMcpToolClientProtocol:
             client.call_tool("failing_tool", {})
 
     def test_call_tool_is_error_no_content(self):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1076,7 +1076,7 @@ class TestMcpToolClientProtocol:
             client.call_tool("failing_tool", {})
 
     def test_close_with_sandbox_cleanup(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         cleanup_file = tmp_path / "sandbox_cleanup"
         cleanup_file.write_text("temp")
@@ -1092,7 +1092,7 @@ class TestMcpToolClientProtocol:
     def test_close_timeout_kills(self):
         import subprocess
 
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1104,23 +1104,23 @@ class TestMcpToolClientProtocol:
         client._proc.kill.assert_called_once()
 
     def test_init_popen_failure_cleans_sandbox(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         agents_dir = tmp_path / ".kiro" / "agents"
         agents_dir.mkdir(parents=True)
         config = {"mcpServers": {"test": {"command": "nonexistent_binary_xyz", "args": []}}}
-        (agents_dir / "kirocrew.json").write_text(json.dumps(config))
+        (agents_dir / "junction.json").write_text(json.dumps(config))
         with patch("pathlib.Path.home", return_value=tmp_path):
             with pytest.raises(Exception):
                 McpToolClient("test")
 
     def test_init_handshake_failure_closes(self, tmp_path):
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         agents_dir = tmp_path / ".kiro" / "agents"
         agents_dir.mkdir(parents=True)
         config = {"mcpServers": {"test": {"command": "echo", "args": ["bye"]}}}
-        (agents_dir / "kirocrew.json").write_text(json.dumps(config))
+        (agents_dir / "junction.json").write_text(json.dumps(config))
         with patch("pathlib.Path.home", return_value=tmp_path):
             with pytest.raises(Exception):
                 McpToolClient("test")
@@ -1130,11 +1130,11 @@ class TestResolveMcpServerAimFallback:
     """Tests for _resolve_mcp_server AIM agent spec fallback."""
 
     def test_aim_fallback_path(self, tmp_path):
-        # No kirocrew.json, but an AIM agent spec exists
+        # No junction.json, but an AIM agent spec exists
         agents_dir = tmp_path / ".kiro" / "agents"
         agents_dir.mkdir(parents=True)
         config = {"mcpServers": {"builder-mcp": {"command": "npx", "args": ["-y", "builder-mcp"]}}}
-        (agents_dir / "my-kirocrew-agent.json").write_text(json.dumps(config))
+        (agents_dir / "my-junction-agent.json").write_text(json.dumps(config))
         with patch("pathlib.Path.home", return_value=tmp_path):
             result = _resolve_mcp_server("builder-mcp")
         assert result == ("npx", "-y", "builder-mcp")
@@ -1143,7 +1143,7 @@ class TestResolveMcpServerAimFallback:
         agents_dir = tmp_path / ".kiro" / "agents"
         agents_dir.mkdir(parents=True)
         config = {"mcpServers": {"other-server": {"command": "node", "args": []}}}
-        (agents_dir / "kirocrew.json").write_text(json.dumps(config))
+        (agents_dir / "junction.json").write_text(json.dumps(config))
         with patch("pathlib.Path.home", return_value=tmp_path):
             result = _resolve_mcp_server("nonexistent")
         assert result is None
@@ -1157,8 +1157,8 @@ class TestScriptContextCallToolSuccess:
         ctx = ScriptContext(job=job)
         mock_client = MagicMock()
         mock_client.call_tool.return_value = "result text"
-        with patch("kiro_crew.cron_script.McpToolClient", return_value=mock_client), patch(
-            "kiro_crew.cron_script.sel"
+        with patch("junction.cron_script.McpToolClient", return_value=mock_client), patch(
+            "junction.cron_script.sel"
         ) as mock_sel:
             result = ctx.call_tool("server", "tool", {"key": "val"})
         assert result == "result text"
@@ -1170,8 +1170,8 @@ class TestScriptContextCallToolSuccess:
         ctx = ScriptContext(job=job)
         mock_client = MagicMock()
         mock_client.call_tool.side_effect = RuntimeError("connection failed")
-        with patch("kiro_crew.cron_script.McpToolClient", return_value=mock_client), patch(
-            "kiro_crew.cron_script.sel"
+        with patch("junction.cron_script.McpToolClient", return_value=mock_client), patch(
+            "junction.cron_script.sel"
         ):
             with pytest.raises(RuntimeError, match="connection failed"):
                 ctx.call_tool("server", "tool", {})
@@ -1182,8 +1182,8 @@ class TestScriptContextCallToolSuccess:
         ctx = ScriptContext(job=job)
         mock_client = MagicMock()
         mock_client.call_tool.return_value = ""
-        with patch("kiro_crew.cron_script.McpToolClient", return_value=mock_client), patch(
-            "kiro_crew.cron_script.sel"
+        with patch("junction.cron_script.McpToolClient", return_value=mock_client), patch(
+            "junction.cron_script.sel"
         ) as mock_sel:
             mock_sel().log_tool_invocation.side_effect = Exception("SEL down")
             # Should not raise despite SEL failure
@@ -1201,7 +1201,7 @@ class TestScriptContextPost:
         mock_response.read.return_value = b'{"status": "delivered"}'
         mock_response.__enter__ = MagicMock(return_value=mock_response)
         mock_response.__exit__ = MagicMock(return_value=False)
-        with patch("kiro_crew.cron_script.loopback_urlopen", return_value=mock_response):
+        with patch("junction.cron_script.loopback_urlopen", return_value=mock_response):
             result = ctx._post("/api/deliver", {"text": "hello"})
         assert result == {"status": "delivered"}
 
@@ -1209,7 +1209,7 @@ class TestScriptContextPost:
         job = SimpleNamespace(id="j1", message="test")
         ctx = ScriptContext(job=job)
         with patch(
-            "kiro_crew.cron_script.loopback_urlopen", side_effect=Exception("connection refused")
+            "junction.cron_script.loopback_urlopen", side_effect=Exception("connection refused")
         ):
             result = ctx._post("/api/deliver", {"text": "hello"})
         assert "error" in result
@@ -1223,12 +1223,12 @@ class TestRunCommandSandboxedExceptions:
     def _passthrough_sandbox(self, monkeypatch, posix_test_shell):
         """See TestRunCommandSandboxed._passthrough_sandbox."""
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
         )
         # Bypass the runtime shell probe (which itself spawns a child): these
         # tests exercise the run_command_sandboxed plumbing, not shell fingerprinting.
         monkeypatch.setattr(
-            "kiro_crew.cron_script._resolve_command_shell", lambda: posix_test_shell
+            "junction.cron_script._resolve_command_shell", lambda: posix_test_shell
         )
 
     def test_timeout_returns_error(self):
@@ -1249,17 +1249,17 @@ class TestMcpToolClientInitFailures:
 
     def test_popen_exception_cleans_sandbox(self, tmp_path):
         """Lines 172-175: Popen raises, sandbox cleanup file is removed."""
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         agents_dir = tmp_path / ".kiro" / "agents"
         agents_dir.mkdir(parents=True)
         config = {"mcpServers": {"test": {"command": "node", "args": ["nonexistent.js"]}}}
-        (agents_dir / "kirocrew.json").write_text(json.dumps(config))
+        (agents_dir / "junction.json").write_text(json.dumps(config))
         # Mock wrap_argv to return a cleanup file
         cleanup = tmp_path / "cleanup_marker"
         cleanup.write_text("x")
         with patch("pathlib.Path.home", return_value=tmp_path), patch(
-            "kiro_crew.cron_script.wrap_argv", return_value=(["false"], str(cleanup))
+            "junction.cron_script.wrap_argv", return_value=(["false"], str(cleanup))
         ), patch("subprocess.Popen", side_effect=OSError("spawn failed")):
             with pytest.raises(OSError, match="spawn failed"):
                 McpToolClient("test")
@@ -1267,7 +1267,7 @@ class TestMcpToolClientInitFailures:
 
     def test_rpc_no_response_in_1000_messages(self):
         """Line 214: server sends 1000+ messages without matching ID."""
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1281,7 +1281,7 @@ class TestMcpToolClientInitFailures:
 
     def test_close_exception_swallowed(self):
         """Lines 235-236: exception in terminate is swallowed."""
-        from kiro_crew.cron_script import McpToolClient
+        from junction.cron_script import McpToolClient
 
         client = object.__new__(McpToolClient)
         client._proc = MagicMock()
@@ -1300,7 +1300,7 @@ class TestResolveScriptPathSensitive:
         script = crons_dir / "test.py"
         script.write_text("def run(ctx): pass")
         with patch("pathlib.Path.home", return_value=tmp_path), patch(
-            "kiro_crew.cron_script.is_sensitive_path", return_value=True
+            "junction.cron_script.is_sensitive_path", return_value=True
         ):
             with pytest.raises(PermissionError, match="security policy"):
                 resolve_script_path(str(script) + ":run")
@@ -1322,8 +1322,8 @@ class TestRunScriptSandboxedErrorPaths:
         mock_proc.returncode = 1
         mock_proc.communicate.return_value = ("", "segfault")
         with patch(
-            "kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")
-        ), patch("kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)), patch(
+            "junction.cron_script.resolve_script_path", return_value=("/f.py", "run")
+        ), patch("junction.cron_script.wrap_argv", return_value=(["true"], None)), patch(
             "subprocess.Popen", return_value=mock_proc
         ):
             result = run_script_sandboxed("/f.py:run", "j1", "")
@@ -1336,8 +1336,8 @@ class TestRunScriptSandboxedErrorPaths:
         mock_proc.returncode = 0
         mock_proc.communicate.return_value = ("not json at all\n", "")
         with patch(
-            "kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")
-        ), patch("kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)), patch(
+            "junction.cron_script.resolve_script_path", return_value=("/f.py", "run")
+        ), patch("junction.cron_script.wrap_argv", return_value=(["true"], None)), patch(
             "subprocess.Popen", return_value=mock_proc
         ):
             result = run_script_sandboxed("/f.py:run", "j1", "")
@@ -1362,8 +1362,8 @@ class TestRunScriptSandboxedErrorPaths:
         mock_proc.returncode = 0
         mock_proc.communicate.return_value = (stdout_text, "")
         with patch(
-            "kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")
-        ), patch("kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)), patch(
+            "junction.cron_script.resolve_script_path", return_value=("/f.py", "run")
+        ), patch("junction.cron_script.wrap_argv", return_value=(["true"], None)), patch(
             "subprocess.Popen", return_value=mock_proc
         ):
             result = run_script_sandboxed("/f.py:run", "j1", "")
@@ -1382,8 +1382,8 @@ class TestMcpCronHandlerPaths:
 
     def test_cron_list_shows_error(self, tmp_path):
         """Lines 350-351: cron_list shows last_error for errored jobs."""
-        from kiro_crew.cron import CronJob, CronSchedule
-        from kiro_crew.mcp_cron import _call_tool_inner
+        from junction.cron import CronJob, CronSchedule
+        from junction.mcp_cron import _call_tool_inner
 
         job = CronJob(
             id="t1",
@@ -1397,9 +1397,9 @@ class TestMcpCronHandlerPaths:
         job.enabled = True
         # cron_list scopes to the caller's own rows, so the fixture row has to
         # name the session the autouse caller fixture provides.
-        job.session_key = os.environ["KIROCREW_SESSION_KEY"]
-        with patch("kiro_crew.mcp_cron.config_dir", return_value=tmp_path), patch(
-            "kiro_crew.mcp_cron.CronService"
+        job.session_key = os.environ["JUNCTION_SESSION_KEY"]
+        with patch("junction.mcp_cron.config_dir", return_value=tmp_path), patch(
+            "junction.mcp_cron.CronService"
         ) as mock_svc:
             mock_svc.return_value.list_jobs.return_value = [job]
             result = _call_tool_inner("cron_list", {})
@@ -1407,8 +1407,8 @@ class TestMcpCronHandlerPaths:
 
     def test_cron_list_shows_last_result(self, tmp_path):
         """Lines 353-354: cron_list shows last_result for script jobs."""
-        from kiro_crew.cron import CronJob, CronSchedule
-        from kiro_crew.mcp_cron import _call_tool_inner
+        from junction.cron import CronJob, CronSchedule
+        from junction.mcp_cron import _call_tool_inner
 
         job = CronJob(
             id="t2",
@@ -1422,9 +1422,9 @@ class TestMcpCronHandlerPaths:
         job.enabled = True
         # cron_list scopes to the caller's own rows, so the fixture row has to
         # name the session the autouse caller fixture provides.
-        job.session_key = os.environ["KIROCREW_SESSION_KEY"]
-        with patch("kiro_crew.mcp_cron.config_dir", return_value=tmp_path), patch(
-            "kiro_crew.mcp_cron.CronService"
+        job.session_key = os.environ["JUNCTION_SESSION_KEY"]
+        with patch("junction.mcp_cron.config_dir", return_value=tmp_path), patch(
+            "junction.mcp_cron.CronService"
         ) as mock_svc:
             mock_svc.return_value.list_jobs.return_value = [job]
             result = _call_tool_inner("cron_list", {})
@@ -1432,9 +1432,9 @@ class TestMcpCronHandlerPaths:
 
     def test_cron_add_invalid_script_path(self, tmp_path):
         """Lines 364-367: cron_add rejects invalid script path."""
-        from kiro_crew.mcp_cron import _call_tool_inner
+        from junction.mcp_cron import _call_tool_inner
 
-        with patch("kiro_crew.mcp_cron.config_dir", return_value=tmp_path):
+        with patch("junction.mcp_cron.config_dir", return_value=tmp_path):
             result = _call_tool_inner(
                 "cron_add", {"name": "bad", "script": "/nonexistent/path.py:func", "every": 60}
             )
@@ -1442,8 +1442,8 @@ class TestMcpCronHandlerPaths:
 
     def test_cron_add_with_command(self, tmp_path):
         """Lines 429, 431: cron_add sets script and command fields."""
-        from kiro_crew.cron import CronJob, CronSchedule
-        from kiro_crew.mcp_cron import _call_tool_inner
+        from junction.cron import CronJob, CronSchedule
+        from junction.mcp_cron import _call_tool_inner
 
         job = CronJob(
             id="new-id",
@@ -1452,9 +1452,9 @@ class TestMcpCronHandlerPaths:
             schedule=CronSchedule(kind="every", every_secs=60),
             command="echo hi",
         )
-        with patch("kiro_crew.mcp_cron.config_dir", return_value=tmp_path), patch(
-            "kiro_crew.mcp_cron.CronService"
-        ) as mock_svc, patch("kiro_crew.mcp_cron._resolve_session_key", return_value=""):
+        with patch("junction.mcp_cron.config_dir", return_value=tmp_path), patch(
+            "junction.mcp_cron.CronService"
+        ) as mock_svc, patch("junction.mcp_cron._resolve_session_key", return_value=""):
             mock_svc.return_value.add_job.return_value = job
             result = _call_tool_inner(
                 "cron_add", {"name": "cmd-job", "command": "echo hi", "every": 60}
@@ -1463,8 +1463,8 @@ class TestMcpCronHandlerPaths:
 
     def test_cron_add_with_script(self, tmp_path):
         """Line 429: cron_add sets script field."""
-        from kiro_crew.cron import CronJob, CronSchedule
-        from kiro_crew.mcp_cron import _call_tool_inner
+        from junction.cron import CronJob, CronSchedule
+        from junction.mcp_cron import _call_tool_inner
 
         crons_dir = tmp_path / ".kirocrew" / "crons"
         crons_dir.mkdir(parents=True)
@@ -1477,9 +1477,9 @@ class TestMcpCronHandlerPaths:
             schedule=CronSchedule(kind="every", every_secs=60),
             script=script_path,
         )
-        with patch("kiro_crew.mcp_cron.config_dir", return_value=tmp_path), patch(
-            "kiro_crew.mcp_cron.CronService"
-        ) as mock_svc, patch("kiro_crew.mcp_cron._resolve_session_key", return_value=""), patch(
+        with patch("junction.mcp_cron.config_dir", return_value=tmp_path), patch(
+            "junction.mcp_cron.CronService"
+        ) as mock_svc, patch("junction.mcp_cron._resolve_session_key", return_value=""), patch(
             "pathlib.Path.home", return_value=tmp_path
         ):
             mock_svc.return_value.add_job.return_value = job
@@ -1494,7 +1494,7 @@ class TestValidationCustomValidator:
     """Tests for validation.py custom validator (lines 348, 350)."""
 
     def test_requires_message_or_script(self):
-        from kiro_crew.validation import (
+        from junction.validation import (
             ValidationError,
             _validate_cron_add_requires_message_or_script,
         )
@@ -1503,7 +1503,7 @@ class TestValidationCustomValidator:
             _validate_cron_add_requires_message_or_script({})
 
     def test_script_and_command_mutually_exclusive(self):
-        from kiro_crew.validation import (
+        from junction.validation import (
             ValidationError,
             _validate_cron_add_requires_message_or_script,
         )
@@ -1526,8 +1526,8 @@ class TestRunScriptSandboxedTimeout:
         mock_proc.pid = 2**22 + 12345  # > PID_MAX default, never a real pid
         mock_proc.communicate.side_effect = [sp.TimeoutExpired("cmd", 30), ("", "")]
         with patch(
-            "kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")
-        ), patch("kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)), patch(
+            "junction.cron_script.resolve_script_path", return_value=("/f.py", "run")
+        ), patch("junction.cron_script.wrap_argv", return_value=(["true"], None)), patch(
             "subprocess.Popen", return_value=mock_proc
         ), patch(
             # Stub the reap at the shim, NOT via the global subprocess.Popen
@@ -1540,7 +1540,7 @@ class TestRunScriptSandboxedTimeout:
             # not enough values to unpack). The timeout HANDLER is what is under
             # test; the kill mechanism has its own coverage in
             # TestKillBroadcastGuard.
-            "kiro_crew.platform_compat.kill_process_tree",
+            "junction.platform_compat.kill_process_tree",
             return_value=True,
         ) as mock_tree:
             result = run_script_sandboxed("/f.py:run", "j1", "", timeout=30)
@@ -1562,23 +1562,23 @@ class TestKillBroadcastGuard:
     """_resolve_safe_pgid must never let a kill path degenerate into kill(-1)."""
 
     def test_mock_pid_refused(self):
-        from kiro_crew.cron_script import _resolve_safe_pgid
+        from junction.cron_script import _resolve_safe_pgid
         assert _resolve_safe_pgid(MagicMock()) is None  # MagicMock pid -> not int
 
     def test_pid_one_refused(self):
-        from kiro_crew.cron_script import _resolve_safe_pgid
+        from junction.cron_script import _resolve_safe_pgid
         proc = MagicMock()
         proc.pid = 1
         assert _resolve_safe_pgid(proc) is None
 
     def test_negative_pid_refused(self):
-        from kiro_crew.cron_script import _resolve_safe_pgid
+        from junction.cron_script import _resolve_safe_pgid
         proc = MagicMock()
         proc.pid = -1
         assert _resolve_safe_pgid(proc) is None
 
     def test_bool_pid_refused(self):
-        from kiro_crew.cron_script import _resolve_safe_pgid
+        from junction.cron_script import _resolve_safe_pgid
         proc = MagicMock()
         proc.pid = True  # bool is an int subclass; type() check must reject it
         assert _resolve_safe_pgid(proc) is None
@@ -1586,7 +1586,7 @@ class TestKillBroadcastGuard:
     def test_own_pgid_refused(self):
         import os
 
-        from kiro_crew.cron_script import _resolve_safe_pgid
+        from junction.cron_script import _resolve_safe_pgid
         proc = MagicMock()
         proc.pid = os.getpid()  # our own group -> must refuse (self-kill)
         assert _resolve_safe_pgid(proc) is None
@@ -1600,12 +1600,12 @@ class TestKillBroadcastGuard:
         (on Windows ``_resolve_safe_pgid`` returns None so the killpg branch is
         unreachable, and ``kill_process_tree`` takes the taskkill path).
         """
-        from kiro_crew.cron_script import _kill_proc_group
+        from junction.cron_script import _kill_proc_group
         proc = MagicMock()  # bare mock pid — the original footgun
         with patch("os.killpg", create=True) as mock_killpg, patch(
             # Windows: _kill_proc_group reaps via taskkill before the
             # single-process fallback. Stub it so the test never shells out.
-            "kiro_crew.platform_compat.kill_process_tree",
+            "junction.platform_compat.kill_process_tree",
             side_effect=OSError("stubbed"),
         ):
             _kill_proc_group(proc)
@@ -1620,7 +1620,7 @@ class TestKillBroadcastGuard:
         """platform_compat.kill_process_tree: non-int pid must raise, never killpg."""
         import pytest as _pytest
 
-        from kiro_crew import platform_compat
+        from junction import platform_compat
         with patch("os.killpg") as mock_killpg, patch("os.kill") as mock_kill:
             with _pytest.raises(ValueError):
                 platform_compat.kill_process_tree(MagicMock(), platform_compat.SIGKILL)
@@ -1633,7 +1633,7 @@ class TestKillBroadcastGuard:
     )
     def test_shim_kill_process_tree_broadcast_pgid_degrades_to_pid_kill(self):
         """platform_compat.kill_process_tree: pgid<=1 degrades to scoped os.kill."""
-        from kiro_crew import platform_compat
+        from junction import platform_compat
         target = 2**22 + 31337
         with patch("os.getpgid", return_value=1), \
              patch("os.killpg") as mock_killpg, \
@@ -1654,7 +1654,7 @@ class TestKillBroadcastGuard:
         """
         import ntpath
 
-        from kiro_crew import platform_compat
+        from junction import platform_compat
         target = 2**22 + 31337
         completed = MagicMock(returncode=0, stdout=b"", stderr=b"")
         with patch("subprocess.run", return_value=completed) as mock_run:
@@ -1673,7 +1673,7 @@ class TestKillBroadcastGuard:
         Otherwise a later natural completion would be misreported as cancelled
         by _unregister_proc.
         """
-        from kiro_crew.cron_script import (
+        from junction.cron_script import (
             _CANCELLED_PROC_JOBS,
             _RUNNING_PROCS,
             kill_running_process,
@@ -1695,31 +1695,31 @@ class TestResolveInternalSecret:
     """Secret resolution falls back to .local_secret when env is unset."""
 
     def test_uses_env_when_set(self, tmp_path):
-        with patch.dict(os.environ, {"KIROCREW_INTERNAL_SECRET": "fromenv"}), patch(
-            "kiro_crew.config.loader.config_dir", return_value=tmp_path
+        with patch.dict(os.environ, {"JUNCTION_INTERNAL_SECRET": "fromenv"}), patch(
+            "junction.config.loader.config_dir", return_value=tmp_path
         ):
             (tmp_path / ".local_secret").write_text("fromfile")
             assert _resolve_internal_secret(5476) == "fromenv"
 
     def test_falls_back_to_local_secret_file(self, tmp_path):
         (tmp_path / ".local_secret").write_text("filesecret\n")
-        env = {k: v for k, v in os.environ.items() if k != "KIROCREW_INTERNAL_SECRET"}
+        env = {k: v for k, v in os.environ.items() if k != "JUNCTION_INTERNAL_SECRET"}
         with patch.dict(os.environ, env, clear=True), patch(
-            "kiro_crew.config.loader.config_dir", return_value=tmp_path
+            "junction.config.loader.config_dir", return_value=tmp_path
         ):
             assert _resolve_internal_secret(5476) == "filesecret"
 
     def test_empty_when_neither_present(self, tmp_path):
-        env = {k: v for k, v in os.environ.items() if k != "KIROCREW_INTERNAL_SECRET"}
+        env = {k: v for k, v in os.environ.items() if k != "JUNCTION_INTERNAL_SECRET"}
         with patch.dict(os.environ, env, clear=True), patch(
-            "kiro_crew.config.loader.config_dir", return_value=tmp_path
+            "junction.config.loader.config_dir", return_value=tmp_path
         ):
             assert _resolve_internal_secret(5476) == ""
 
     def test_env_empty_string_falls_back_to_file(self, tmp_path):
         (tmp_path / ".local_secret").write_text("filesecret")
-        with patch.dict(os.environ, {"KIROCREW_INTERNAL_SECRET": ""}), patch(
-            "kiro_crew.config.loader.config_dir", return_value=tmp_path
+        with patch.dict(os.environ, {"JUNCTION_INTERNAL_SECRET": ""}), patch(
+            "junction.config.loader.config_dir", return_value=tmp_path
         ):
             assert _resolve_internal_secret(5476) == "filesecret"
 
@@ -1729,18 +1729,18 @@ class TestResolveInternalSecret:
         captured = {}
 
         def fake_popen(argv, **kwargs):
-            sf = kwargs.get("env", {}).get("_KIROCREW_SECRET_FILE")
+            sf = kwargs.get("env", {}).get("_JUNCTION_SECRET_FILE")
             captured["secret"] = open(sf).read() if sf else None
             proc = MagicMock()
             proc.returncode = 0
             proc.communicate.return_value = ('{"status": "ok"}', "")
             return proc
 
-        env = {k: v for k, v in os.environ.items() if k != "KIROCREW_INTERNAL_SECRET"}
+        env = {k: v for k, v in os.environ.items() if k != "JUNCTION_INTERNAL_SECRET"}
         with patch.dict(os.environ, env, clear=True), patch(
-            "kiro_crew.config.loader.config_dir", return_value=tmp_path
-        ), patch("kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")), patch(
-            "kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)
+            "junction.config.loader.config_dir", return_value=tmp_path
+        ), patch("junction.cron_script.resolve_script_path", return_value=("/f.py", "run")), patch(
+            "junction.cron_script.wrap_argv", return_value=(["true"], None)
         ), patch(
             "subprocess.Popen", side_effect=fake_popen
         ):
@@ -1777,13 +1777,13 @@ class TestPostKillDrainTimeoutHardening:
         # BOTH the initial read and the post-kill drain time out.
         mock_proc.communicate.side_effect = sp.TimeoutExpired("cmd", 30)
         with patch(
-            "kiro_crew.cron_script.resolve_script_path", return_value=("/f.py", "run")
-        ), patch("kiro_crew.cron_script.wrap_argv", return_value=(["true"], None)), patch(
+            "junction.cron_script.resolve_script_path", return_value=("/f.py", "run")
+        ), patch("junction.cron_script.wrap_argv", return_value=(["true"], None)), patch(
             "subprocess.Popen", return_value=mock_proc
         ), patch(
             # Stub the reap at the shim, NOT via the subprocess.Popen patch above:
             # same reason as TestRunScriptSandboxedTimeout.
-            "kiro_crew.platform_compat.kill_process_tree",
+            "junction.platform_compat.kill_process_tree",
             return_value=True,
         ):
             result = run_script_sandboxed("/f.py:run", "j1", "", timeout=30)
@@ -1799,14 +1799,14 @@ class TestPostKillDrainTimeoutHardening:
         # See TestRunCommandSandboxed._passthrough_sandbox: bypass the OS-sandbox
         # wrap and the runtime shell probe so this exercises only the kill path.
         monkeypatch.setattr(
-            "kiro_crew.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.cron_script.wrap_argv", lambda argv, **k: (list(argv), None)
         )
-        monkeypatch.setattr("kiro_crew.cron_script._resolve_command_shell", lambda: "sh")
+        monkeypatch.setattr("junction.cron_script._resolve_command_shell", lambda: "sh")
         mock_proc = MagicMock()
         mock_proc.pid = 2**22 + 12345  # > PID_MAX default, never a real pid
         mock_proc.communicate.side_effect = sp.TimeoutExpired("cmd", 30)
         with patch("subprocess.Popen", return_value=mock_proc), patch(
-            "kiro_crew.platform_compat.kill_process_tree", return_value=True
+            "junction.platform_compat.kill_process_tree", return_value=True
         ):
             result = run_command_sandboxed("sleep 30", timeout=30)
         # A timed-out command must report the timeout, not "Command failed".

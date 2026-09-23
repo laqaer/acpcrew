@@ -14,8 +14,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kiro_crew.apps.cron_sdk import CronSDK
-from kiro_crew.cron import CronService
+from junction.apps.cron_sdk import CronSDK
+from junction.cron import CronService
 
 
 def _run(value: Any) -> Any:

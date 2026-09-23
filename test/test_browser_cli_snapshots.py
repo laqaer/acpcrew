@@ -9,7 +9,7 @@ from typing import Protocol
 
 import pytest
 
-from kiro_crew.browser_cli import snapshots as mod
+from junction.browser_cli import snapshots as mod
 
 
 class _Writer(Protocol):
@@ -48,7 +48,7 @@ def test_snapshot_dir_is_under_the_data_home(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     home = tmp_path / "home"
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
 
     assert mod.snapshot_dir() == home / "playwright-snapshots"
 
@@ -61,7 +61,7 @@ def test_snapshot_dir_is_independent_of_cwd(
     An agent turn can run from anywhere, so a cwd-derived directory would leave
     files where the pruner never looks.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     first_cwd = tmp_path / "somewhere"
     second_cwd = tmp_path / "elsewhere"
     first_cwd.mkdir()
@@ -80,7 +80,7 @@ def test_snapshot_dir_is_independent_of_cwd(
 def test_cli_env_overrides_points_the_cli_at_the_service_directory(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     env = mod.cli_env_overrides()
 
@@ -91,7 +91,7 @@ def test_cli_env_override_value_is_absolute(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The CLI resolves a relative value against its own cwd, defeating the point."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     value = mod.cli_env_overrides()[mod.OUTPUT_DIR_ENV]
 
@@ -101,7 +101,7 @@ def test_cli_env_override_value_is_absolute(
 def test_prune_removes_by_count_keeping_the_newest(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     for i in range(5):
         write(d, f"page-2026-02-{i + 1:02d}T00-00-00-000Z.yml", age_s=i)
@@ -120,7 +120,7 @@ def test_prune_removes_by_age_within_the_count_budget(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """Age alone must evict: a count bound would keep these forever on an idle host."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-06-01T00-00-00-000Z.yml", age_s=5)
     write(d, "page-2026-01-01T00-00-00-000Z.yml", age_s=9_000)
@@ -136,7 +136,7 @@ def test_prune_applies_both_bounds_in_one_pass(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """Neither bound alone produces this outcome."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-03-01T00-00-00-000Z.yml", age_s=1)
     write(d, "page-2026-03-02T00-00-00-000Z.yml", age_s=2)
@@ -158,7 +158,7 @@ def test_prune_never_removes_the_newest_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """The current session most likely still refers to it."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-01-12T00-00-00-000Z.yml", age_s=100_000)
     write(d, "page-2026-01-13T00-00-00-000Z.yml", age_s=200_000)
@@ -173,7 +173,7 @@ def test_prune_keeps_newest_even_with_a_zero_budget(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """A setting that could empty the directory would break a live turn."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-01-10T00-00-00-000Z.yml", age_s=100_000)
 
@@ -184,7 +184,7 @@ def test_prune_keeps_newest_even_with_a_zero_budget(
 def test_prune_keeps_everything_within_both_bounds(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-01-05T00-00-00-000Z.yml", age_s=1)
     write(d, "page-2026-01-06T00-00-00-000Z.yml", age_s=2)
@@ -197,7 +197,7 @@ def test_prune_leaves_subdirectories_alone(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """The CLI keeps traces in subdirectories; a recording may be in progress."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-01-09T00-00-00-000Z.yml", age_s=0)
     write(d, "page-2026-01-11T00-00-00-000Z.yml", age_s=100_000)
@@ -213,7 +213,7 @@ def test_prune_leaves_subdirectories_alone(
 def test_prune_returns_zero_when_the_directory_is_absent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
     assert not mod.snapshot_dir().exists()
     assert mod.prune(max_age_s=1, max_files=1) == 0
@@ -223,7 +223,7 @@ def test_prune_never_raises_when_a_delete_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """It runs on a schedule with no caller to receive an exception."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-01-09T00-00-00-000Z.yml", age_s=0)
     write(d, "page-2026-01-07T00-00-00-000Z.yml", age_s=100_000)
@@ -240,7 +240,7 @@ def test_prune_never_raises_when_a_delete_fails(
 def test_prune_never_raises_when_the_directory_is_unreadable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     write(mod.snapshot_dir(), "page-2026-01-05T00-00-00-000Z.yml", age_s=0)
 
     def refuse(self: Path) -> object:
@@ -255,7 +255,7 @@ def test_prune_tolerates_a_file_vanishing_mid_scan(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: _Writer
 ) -> None:
     """The daemon writes concurrently, so an entry can disappear between calls."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     d = mod.snapshot_dir()
     write(d, "page-2026-01-09T00-00-00-000Z.yml", age_s=0)
     write(d, "page-2026-01-08T00-00-00-000Z.yml", age_s=100_000)

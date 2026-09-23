@@ -26,7 +26,7 @@ const ON = {
   reason: 'ready',
   endpoint_configured: true,
   env_override: false,
-  env_var: 'KIROCREW_TELEMETRY_DISABLED',
+  env_var: 'JUNCTION_TELEMETRY_DISABLED',
   overlay_override: false,
 }
 
@@ -65,17 +65,17 @@ const REMOVED_FIELDS = [
 const EXCLUSION_DISCLOSURE = "Prompts, responses, files, credentials, hostnames, usernames, or your operating system. Your IP is not stored."
 
 const CONTROL_COMMANDS = [
-  'kirocrew telemetry status',
-  'kirocrew telemetry disable',
-  'export KIROCREW_TELEMETRY_DISABLED=1',
-  "$env:KIROCREW_TELEMETRY_DISABLED = '1'",
-  'set KIROCREW_TELEMETRY_DISABLED=1',
+  'junction telemetry status',
+  'junction telemetry disable',
+  'export JUNCTION_TELEMETRY_DISABLED=1',
+  "$env:JUNCTION_TELEMETRY_DISABLED = '1'",
+  'set JUNCTION_TELEMETRY_DISABLED=1',
 ] as const
 
 const SHELL_COMMANDS = [
-  ['macOS / Linux', 'export KIROCREW_TELEMETRY_DISABLED=1'],
-  ['Windows PowerShell', "$env:KIROCREW_TELEMETRY_DISABLED = '1'"],
-  ['Windows Command Prompt', 'set KIROCREW_TELEMETRY_DISABLED=1'],
+  ['macOS / Linux', 'export JUNCTION_TELEMETRY_DISABLED=1'],
+  ['Windows PowerShell', "$env:JUNCTION_TELEMETRY_DISABLED = '1'"],
+  ['Windows Command Prompt', 'set JUNCTION_TELEMETRY_DISABLED=1'],
 ] as const
 
 const TOGGLE_LABEL = 'Send anonymous usage heartbeat'
@@ -200,14 +200,14 @@ describe('PrivacyPanel', () => {
       ...ON,
       enabled: false,
       would_send: false,
-      reason: 'opted out via KIROCREW_TELEMETRY_DISABLED',
+      reason: 'opted out via JUNCTION_TELEMETRY_DISABLED',
       env_override: true,
     })
     renderWithProviders(<PrivacyPanel />)
 
     // Text is split across SettingRef element and surrounding i18n strings
     expect(
-      await screen.findByLabelText(/Environment variable KIROCREW_TELEMETRY_DISABLED/),
+      await screen.findByLabelText(/Environment variable JUNCTION_TELEMETRY_DISABLED/),
     ).toBeInTheDocument()
     expect(screen.getByText(/is set in this environment/)).toBeInTheDocument()
 
@@ -281,7 +281,7 @@ describe('PrivacyPanel', () => {
     beaconStatus.mockResolvedValue({
       ...ON,
       would_send: false,
-      reason: 'non-default KIROCREW_HOME (dev home / pod / preview)',
+      reason: 'non-default JUNCTION_HOME (dev home / pod / preview)',
       reason_code: 'non_default_home',
     })
     renderWithProviders(<PrivacyPanel />)

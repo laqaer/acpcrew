@@ -55,9 +55,9 @@ LINUX_WORKFLOW = WORKFLOWS / "publish-linux.yml"
 _SUBS = {
     "VERSION": "1.2.3",
     "CHANNEL": "nightly",
-    "DESKTOP_KEY": "desktop/nightly/1.2.3/KiroCrew.zip",
-    "DMG_KEY": "desktop/nightly/1.2.3/KiroCrew.dmg",
-    "ARTIFACT_KEY": "desktop/nightly/1.2.3/KiroCrew-x86_64.AppImage",
+    "DESKTOP_KEY": "desktop/nightly/1.2.3/Junction.zip",
+    "DMG_KEY": "desktop/nightly/1.2.3/Junction.dmg",
+    "ARTIFACT_KEY": "desktop/nightly/1.2.3/Junction-x86_64.AppImage",
     "ZIP_SHA512": "ZIPSHA512BASE64==",
     "DMG_SHA512": "DMGSHA512BASE64==",
     "ARTIFACT_SHA512": "APPIMAGESHA512BASE64==",
@@ -234,8 +234,8 @@ def test_linux_arch_resolution_matches_electron_updater_channel_file_rule() -> N
     """
     run = _step(_steps(LINUX_WORKFLOW, "publish-linux"), "Resolve arch-dependent names")["run"]
     for arch, basename, feed_file, elf_machine in (
-        ("x64", "KiroCrew-x86_64", "latest-linux.yml", "x86-64"),
-        ("arm64", "KiroCrew-aarch64", "latest-linux-arm64.yml", "aarch64"),
+        ("x64", "Junction-x86_64", "latest-linux.yml", "x86-64"),
+        ("arm64", "Junction-aarch64", "latest-linux-arm64.yml", "aarch64"),
     ):
         assert f"{arch})" in run, f"arch {arch} has no branch in the resolution step"
         assert f"LINUX_BASENAME={basename}" in run

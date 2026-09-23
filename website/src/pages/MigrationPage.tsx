@@ -122,7 +122,7 @@ export default function MigrationPage() {
                 {displayName} {i18nT('pages.migrationPage.has_moved_to_a_standalone_app')}
               </CardTitle>
               <p className="text-[13px] text-muted leading-relaxed mb-4">
-                {i18nT('pages.migrationPage.this_feature_was_previously_built_into_kirocrew')}
+                {i18nT('pages.migrationPage.this_feature_was_previously_built_into_junction')}
               </p>
 
               {/* Data preservation notice */}

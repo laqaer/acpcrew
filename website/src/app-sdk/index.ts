@@ -1,12 +1,12 @@
 /**
- * @kirocrew/app-sdk — lightweight SDK for KiroCrew apps.
+ * @junction/app-sdk — lightweight SDK for Junction apps.
  *
  * Provides React hooks backed by a context that AppHost sets up.
- * Apps import these hooks to access the KiroCrew API, real-time events,
+ * Apps import these hooks to access the Junction API, real-time events,
  * theme, and navigation — all permission-scoped.
  *
- * This module lives inside the KiroCrew frontend for now. When we publish
- * it as a standalone package, apps will `import { useAppApi } from '@kirocrew/app-sdk'`
+ * This module lives inside the Junction frontend for now. When we publish
+ * it as a standalone package, apps will `import { useAppApi } from '@junction/app-sdk'`
  * and the import map will resolve it to the host's vendored copy.
  */
 import {
@@ -84,7 +84,7 @@ export function useAppApi(): AppApi {
 
 /** Subscribe to a real-time WebSocket event. Unsubscribes on unmount. */
 // ---------------------------------------------------------------------------
-// WebSocket event scope map — MIRRORS kiro_crew/dashboard/ws_event_scope.py.
+// WebSocket event scope map — MIRRORS junction/dashboard/ws_event_scope.py.
 // The gateway is authoritative; this table exists only so the SDK can tell an
 // app author accurately whether a subscription will be delivered. Keep the
 // three sets in sync with the Python tables (a completeness test on the Python
@@ -311,7 +311,7 @@ export function useAppInfo(): AppInfo {
   return useCtx().info
 }
 
-/** Navigate to a KiroCrew route (host-controlled). */
+/** Navigate to a Junction route (host-controlled). */
 export function useNavigate(): (path: string) => void {
   return useCtx().navigate
 }

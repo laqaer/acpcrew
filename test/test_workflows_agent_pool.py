@@ -14,7 +14,7 @@ import asyncio
 
 import pytest
 
-from kiro_crew.workflows.agent_pool import build_pooled_agent_fn
+from junction.workflows.agent_pool import build_pooled_agent_fn
 
 
 class _FakeProvider:
@@ -85,11 +85,11 @@ async def _fake_stream(provider, prompt, **kwargs):
 
 @pytest.fixture(autouse=True)
 def _patch_stream(monkeypatch):
-    monkeypatch.setattr("kiro_crew.workflows.agent_pool.stream_and_collect", _fake_stream)
+    monkeypatch.setattr("junction.workflows.agent_pool.stream_and_collect", _fake_stream)
     # redaction is a no-op passthrough for these tests
-    monkeypatch.setattr("kiro_crew.workflows.agent_pool.redact_credentials", lambda t: (t, []))
+    monkeypatch.setattr("junction.workflows.agent_pool.redact_credentials", lambda t: (t, []))
     monkeypatch.setattr(
-        "kiro_crew.workflows.agent_pool.redact_exfiltration_urls", lambda t: (t, [])
+        "junction.workflows.agent_pool.redact_exfiltration_urls", lambda t: (t, [])
     )
 
 
@@ -360,7 +360,7 @@ async def test_pooled_is_faster_than_cold_start_per_call():
     async def _stream(provider, prompt, **kwargs):
         return f"[{provider.tag}] {prompt}"
 
-    import kiro_crew.workflows.agent_pool as ap
+    import junction.workflows.agent_pool as ap
 
     _orig = ap.stream_and_collect
     ap.stream_and_collect = _stream  # type: ignore[assignment]
@@ -402,7 +402,7 @@ _SIX_AGENTS = (
 
 async def _run_service(pool_agents: bool, sessions) -> None:
     """Drive one real WorkflowService run of _SIX_AGENTS to terminal state."""
-    from kiro_crew.workflows.service import WorkflowService
+    from junction.workflows.service import WorkflowService
 
     svc = WorkflowService(sessions=sessions, persist=False, pool_agents=pool_agents)
     out = await svc.start(_SIX_AGENTS, name="six")
@@ -428,8 +428,8 @@ async def test_end_to_end_service_pooled_cold_starts_fewer_sessions(monkeypatch)
 
     # Both the pooled path (agent_pool) and the un-pooled path (agent_exec, used
     # by service when pool_agents=False) call their module-local stream_and_collect.
-    import kiro_crew.workflows.agent_exec as ae
-    import kiro_crew.workflows.agent_pool as ap
+    import junction.workflows.agent_exec as ae
+    import junction.workflows.agent_pool as ap
 
     monkeypatch.setattr(ap, "stream_and_collect", _stream)
     monkeypatch.setattr(ae, "stream_and_collect", _stream)
@@ -466,13 +466,13 @@ async def test_send_message_enforces_timeout(monkeypatch):
         await asyncio.sleep(3600)  # never returns within the test's timeout
         return "unreachable"
 
-    monkeypatch.setattr("kiro_crew.workflows.agent_pool.stream_and_collect", _hang)
+    monkeypatch.setattr("junction.workflows.agent_pool.stream_and_collect", _hang)
 
     sessions = _FakeSessions()
     agent_fn, pool = build_pooled_agent_fn(sessions, run_id="to1", max_workers=2)
     # Drive the worker directly so we control the timeout value (the pool's
     # default is 1800s — too long to wait on in a unit test).
-    from kiro_crew.workflows.agent_pool import _WorkflowSessionWorker
+    from junction.workflows.agent_pool import _WorkflowSessionWorker
 
     worker = _WorkflowSessionWorker(sessions, key="wf-pool:to1:0", agent=None, model=None, cwd=None)
     await worker.start()
@@ -492,11 +492,11 @@ async def test_worker_pool_send_timeout_reaches_worker(monkeypatch):
         await asyncio.sleep(3600)
         return "unreachable"
 
-    monkeypatch.setattr("kiro_crew.workflows.agent_pool.stream_and_collect", _hang)
+    monkeypatch.setattr("junction.workflows.agent_pool.stream_and_collect", _hang)
 
     sessions = _FakeSessions()
-    from kiro_crew.acp.worker_pool import WorkerPool
-    from kiro_crew.workflows.agent_pool import _WorkflowSessionWorker
+    from junction.acp.worker_pool import WorkerPool
+    from junction.workflows.agent_pool import _WorkflowSessionWorker
 
     ids = iter(range(100))
 
@@ -548,6 +548,6 @@ async def test_no_extra_env_pin_stays_none():
 def test_max_turns_constant_is_shared_with_agent_exec():
     """agent_pool must reuse agent_exec._MAX_TURNS_PER_STEP (one source of truth),
     not hand-duplicate it — else the pooled and per-call ceilings can diverge."""
-    from kiro_crew.workflows import agent_exec, agent_pool
+    from junction.workflows import agent_exec, agent_pool
 
     assert agent_pool._MAX_TURNS_PER_STEP is agent_exec._MAX_TURNS_PER_STEP

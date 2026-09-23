@@ -9,8 +9,8 @@ SHAPE against the real endpoint.
 It is opt-in and skipped by default -- it needs real credentials and makes real
 network calls, so it must never run in the normal suite or on a fork PR:
 
-    KIROCREW_WIRE_PROBE=1 \\
-    KIROCREW_WIRE_PROBE_WEIXIN_TOKEN=<bot token> \\
+    JUNCTION_WIRE_PROBE=1 \\
+    JUNCTION_WIRE_PROBE_WEIXIN_TOKEN=<bot token> \\
     pytest test/test_channel_wire_conformance.py -v
 
 On drift the failure names the exact field and both types (see
@@ -31,19 +31,19 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.testing.channel_fixtures import assert_same_shape, load_fixture
+from junction.testing.channel_fixtures import assert_same_shape, load_fixture
 
 # The fixtures root lives in the TEST tree, so the layout coupling lives here
-# too -- kiro_crew.testing.channel_fixtures ships in the wheel and deliberately
+# too -- junction.testing.channel_fixtures ships in the wheel and deliberately
 # has no default root (no test/ tree exists in an installed package).
 CHANNEL_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "channels"
 
-_PROBE_ENABLED = os.environ.get("KIROCREW_WIRE_PROBE") == "1"
+_PROBE_ENABLED = os.environ.get("JUNCTION_WIRE_PROBE") == "1"
 
 pytestmark = pytest.mark.skipif(
     not _PROBE_ENABLED,
     reason=(
-        "live vendor conformance is opt-in: set KIROCREW_WIRE_PROBE=1 plus the "
+        "live vendor conformance is opt-in: set JUNCTION_WIRE_PROBE=1 plus the "
         "per-channel credential env vars (real network calls)"
     ),
 )
@@ -64,9 +64,9 @@ class TestWeixinConformance:
         shipped: if ``qrcode_img_content`` ever stops being a string URL, or the
         response gains/loses fields, the fixture is stale and the diff says so.
         """
-        from kiro_crew.weixin.client import WeixinClient
+        from junction.weixin.client import WeixinClient
 
-        token = _require("KIROCREW_WIRE_PROBE_WEIXIN_TOKEN")
+        token = _require("JUNCTION_WIRE_PROBE_WEIXIN_TOKEN")
         fixture = load_fixture("weixin", "get_bot_qrcode", root=CHANNEL_FIXTURES)
 
         async def _probe() -> dict:

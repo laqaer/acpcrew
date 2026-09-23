@@ -1,4 +1,4 @@
-"""Tests for the CLI ``kirocrew update`` wheel-install dispatch (issue #1871).
+"""Tests for the CLI ``junction update`` wheel-install dispatch (issue #1871).
 
 Covers:
 - Install layout detection (git, wheel, externally managed)
@@ -33,13 +33,13 @@ class TestDetectInstallLayout:
         proj = tmp_path / "project"
         proj.mkdir()
         _init_repo(proj)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "git"
@@ -61,11 +61,11 @@ class TestDetectInstallLayout:
         proj = tmp_path / "project"
         proj.mkdir()
         _init_repo(proj)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "docker")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "docker")
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "docker")
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "docker")
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "docker"
@@ -78,23 +78,23 @@ class TestDetectInstallLayout:
         proj = tmp_path / "project"
         proj.mkdir()
         _init_repo(proj)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "git"
         assert layout.is_git is True
 
     def test_no_project_dir_falls_to_distribution(self, monkeypatch) -> None:
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "wheel")
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "wheel")
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "wheel"
@@ -102,10 +102,10 @@ class TestDetectInstallLayout:
         assert layout.is_externally_managed is False
 
     def test_dmg_is_externally_managed(self, monkeypatch) -> None:
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "dmg")
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "dmg")
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "dmg"
@@ -113,10 +113,10 @@ class TestDetectInstallLayout:
         assert "desktop app" in layout.guidance.lower()
 
     def test_docker_is_externally_managed(self, monkeypatch) -> None:
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "docker")
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "docker")
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "docker"
@@ -125,10 +125,10 @@ class TestDetectInstallLayout:
 
     def test_source_distribution_treated_as_wheel(self, monkeypatch) -> None:
         """Unstamped builds (no _build_info) report 'source' — still feed-checkable."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "source")
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "source")
 
-        from kiro_crew.platform.update_layout import detect_install_layout
+        from junction.platform.update_layout import detect_install_layout
 
         layout = detect_install_layout()
         assert layout.kind == "source"
@@ -149,24 +149,24 @@ class TestReleaseChannel:
 
     def test_reads_channel_file(self, monkeypatch, tmp_path) -> None:
         (tmp_path / "channel").write_text("insider\n")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
 
-        from kiro_crew.platform.update_layout import release_channel
+        from junction.platform.update_layout import release_channel
 
         assert release_channel() == "insider"
 
     def test_defaults_to_stable(self, monkeypatch, tmp_path) -> None:
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
 
-        from kiro_crew.platform.update_layout import release_channel
+        from junction.platform.update_layout import release_channel
 
         assert release_channel() == "stable"
 
     def test_invalid_channel_falls_to_stable(self, monkeypatch, tmp_path) -> None:
         (tmp_path / "channel").write_text("bogus-channel\n")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
 
-        from kiro_crew.platform.update_layout import release_channel
+        from junction.platform.update_layout import release_channel
 
         assert release_channel() == "stable"
 
@@ -176,10 +176,10 @@ class TestWheelUpdateCommand:
 
     def test_includes_channel(self, monkeypatch, tmp_path) -> None:
         (tmp_path / "channel").write_text("nightly\n")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
-        monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
 
-        from kiro_crew.platform.update_layout import wheel_update_command
+        from junction.platform.update_layout import wheel_update_command
 
         cmd = wheel_update_command("nightly")
         assert "--channel nightly" in cmd
@@ -187,10 +187,10 @@ class TestWheelUpdateCommand:
         assert "--proto '=https'" in cmd
 
     def test_cdn_override(self, monkeypatch, tmp_path) -> None:
-        monkeypatch.setenv("KIROCREW_CDN_BASE", "https://custom.cdn.example")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_CDN_BASE", "https://custom.cdn.example")
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
 
-        from kiro_crew.platform.update_layout import wheel_update_command
+        from junction.platform.update_layout import wheel_update_command
 
         cmd = wheel_update_command("stable")
         assert "https://custom.cdn.example/cli.sh" in cmd
@@ -202,7 +202,7 @@ class TestUpdateWheelCli:
     def _make_manifest(self, version: str = "0.2.0", channel: str = "stable") -> bytes:
         return json.dumps(
             {
-                "schema": "kirocrew-cli-artifact-manifest-v1",
+                "schema": "junction-cli-artifact-manifest-v1",
                 "channel": channel,
                 "version": version,
                 "pub_date": "2026-08-06T12:00:00Z",
@@ -211,17 +211,17 @@ class TestUpdateWheelCli:
 
     def test_up_to_date_exits_cleanly(self, monkeypatch, tmp_path, capsys) -> None:
         """When local == remote, prints 'already on latest' and returns."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "wheel")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
-        monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
 
         # Pretend local is 0.2.0 and feed also reports 0.2.0
-        monkeypatch.setattr("kiro_crew.cli_server.__version__", "0.2.0")
-        monkeypatch.setattr("kiro_crew.__version__", "0.2.0")
+        monkeypatch.setattr("junction.cli_server.__version__", "0.2.0")
+        monkeypatch.setattr("junction.__version__", "0.2.0")
 
-        import kiro_crew.cli_server as cs
-        from kiro_crew.platform.update_layout import InstallLayout
+        import junction.cli_server as cs
+        from junction.platform.update_layout import InstallLayout
 
         layout = InstallLayout(
             kind="wheel", proj="", is_git=False, is_externally_managed=False, guidance=""
@@ -249,16 +249,16 @@ class TestUpdateWheelCli:
 
     def test_newer_version_runs_installer(self, monkeypatch, tmp_path, capsys) -> None:
         """When feed has a newer version, runs the shell installer."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "wheel")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
-        monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
 
-        monkeypatch.setattr("kiro_crew.cli_server.__version__", "0.1.3")
-        monkeypatch.setattr("kiro_crew.__version__", "0.1.3")
+        monkeypatch.setattr("junction.cli_server.__version__", "0.1.3")
+        monkeypatch.setattr("junction.__version__", "0.1.3")
 
-        import kiro_crew.cli_server as cs
-        from kiro_crew.platform.update_layout import InstallLayout
+        import junction.cli_server as cs
+        from junction.platform.update_layout import InstallLayout
 
         layout = InstallLayout(
             kind="wheel", proj="", is_git=False, is_externally_managed=False, guidance=""
@@ -301,16 +301,16 @@ class TestUpdateWheelCli:
 
     def test_feed_unreachable_prints_manual_command(self, monkeypatch, tmp_path, capsys) -> None:
         """Network failure prints the manual update command."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "wheel")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
-        monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
         (tmp_path / "channel").write_text("stable\n")
 
         import urllib.error
 
-        import kiro_crew.cli_server as cs
-        from kiro_crew.platform.update_layout import InstallLayout
+        import junction.cli_server as cs
+        from junction.platform.update_layout import InstallLayout
 
         layout = InstallLayout(
             kind="wheel", proj="", is_git=False, is_externally_managed=False, guidance=""
@@ -330,13 +330,13 @@ class TestUpdateWheelCli:
 
     def test_schema_mismatch_exits(self, monkeypatch, tmp_path, capsys) -> None:
         """Feed with wrong schema prints guidance and exits."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_layout.distribution", lambda: "wheel")
-        monkeypatch.setattr("kiro_crew.platform.update_layout.data_home", lambda: tmp_path)
-        monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_layout.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.platform.update_layout.data_home", lambda: tmp_path)
+        monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
 
-        import kiro_crew.cli_server as cs
-        from kiro_crew.platform.update_layout import InstallLayout
+        import junction.cli_server as cs
+        from junction.platform.update_layout import InstallLayout
 
         layout = InstallLayout(
             kind="wheel", proj="", is_git=False, is_externally_managed=False, guidance=""
@@ -366,14 +366,14 @@ class TestUpdateDispatch:
 
     def test_externally_managed_prints_guidance(self, monkeypatch, capsys) -> None:
         """Desktop/Docker installs get guidance, not an error."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
         # Both readers are bound at import, so patching `beacon.distribution`
         # alone would not reach them: the capability module decides the branch and
         # cli_server only names the stamp in the message.
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "dmg")
-        monkeypatch.setattr("kiro_crew.cli_server.distribution", lambda: "dmg")
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "dmg")
+        monkeypatch.setattr("junction.cli_server.distribution", lambda: "dmg")
 
-        import kiro_crew.cli_server as cs
+        import junction.cli_server as cs
 
         cs._update()
         out = capsys.readouterr().out
@@ -389,16 +389,16 @@ class TestUpdateDispatch:
         not the checkout, is what updates a container.
         """
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "docker")
-        monkeypatch.setattr("kiro_crew.cli_server.distribution", lambda: "docker")
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "docker")
+        monkeypatch.setattr("junction.cli_server.distribution", lambda: "docker")
 
         def _no_git(*_a, **_k):  # pragma: no cover - must not be called
             raise AssertionError("the git update path must not run for a container")
 
         monkeypatch.setattr("subprocess.run", _no_git)
 
-        import kiro_crew.cli_server as cs
+        import junction.cli_server as cs
 
         cs._update()
         out = capsys.readouterr().out.lower()
@@ -410,13 +410,13 @@ class TestUpdateDispatch:
         proj = tmp_path / "project"
         proj.mkdir()
         _init_repo(proj)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
-        import kiro_crew.cli_server as cs
+        import junction.cli_server as cs
 
         # Stub out git subprocess calls to verify we reach the git path
         calls: list[list[str]] = []
@@ -433,10 +433,10 @@ class TestUpdateDispatch:
 
         monkeypatch.setattr("subprocess.run", fake_run)
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.resolve_remote_url", lambda *a, **k: ""
+            "junction.platform.update_governance.resolve_remote_url", lambda *a, **k: ""
         )
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.update_blocked_reason", lambda *a: ""
+            "junction.platform.update_governance.update_blocked_reason", lambda *a: ""
         )
 
         # The function will call git rev-parse, then git fetch, then git diff.
@@ -478,19 +478,19 @@ class TestUpdateDivergenceGuard:
         proj = tmp_path / "project"
         proj.mkdir()
         _init_repo(proj)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.resolve_remote_url", lambda *a, **k: ""
+            "junction.platform.update_governance.resolve_remote_url", lambda *a, **k: ""
         )
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.update_blocked_reason", lambda *a: ""
+            "junction.platform.update_governance.update_blocked_reason", lambda *a: ""
         )
 
-        import kiro_crew.cli_server as cs
+        import junction.cli_server as cs
 
         if calls is None:
             calls = []
@@ -529,10 +529,10 @@ class TestUpdateDivergenceGuard:
         monkeypatch.setattr("subprocess.run", fake_run)
         # Short-circuit everything after the reset: the guard under test sits
         # before these steps, and they are not what these tests assert on.
-        monkeypatch.setattr("kiro_crew.cli_server.shutil.which", lambda *_: None)
-        monkeypatch.setattr("kiro_crew.cli._ensure_node", lambda *_: None)
-        monkeypatch.setattr("kiro_crew.cli_server.build_frontend_sync", lambda *_: None)
-        monkeypatch.setattr("kiro_crew.cli_server.dep_sync.sync_or_reinstall", lambda *a, **k: 0)
+        monkeypatch.setattr("junction.cli_server.shutil.which", lambda *_: None)
+        monkeypatch.setattr("junction.cli._ensure_node", lambda *_: None)
+        monkeypatch.setattr("junction.cli_server.build_frontend_sync", lambda *_: None)
+        monkeypatch.setattr("junction.cli_server.dep_sync.sync_or_reinstall", lambda *a, **k: 0)
         monkeypatch.setattr("builtins.input", lambda *_: answer)
 
         cs._update(force=force)
@@ -752,33 +752,33 @@ class TestUpdateDivergenceGuard:
         assert bool(self._reset_calls(calls)) is resets
 
     def test_cli_wires_force_flag(self, monkeypatch) -> None:
-        """``kirocrew update --force`` reaches ``_update(force=True)``."""
+        """``junction update --force`` reaches ``_update(force=True)``."""
         import sys
 
         with (
-            patch.object(sys, "argv", ["kirocrew", "update", "--force"]),
+            patch.object(sys, "argv", ["junction", "update", "--force"]),
             # These tests exercise argparse wiring only. Real logging setup
             # attaches a RotatingFileHandler on gateway.log that outlives the
             # test, and an open fd there blocks the isolated home's cleanup on
             # Windows.
-            patch("kiro_crew.cli._setup_cli_logging"),
-            patch("kiro_crew.cli_server._update") as mock_update,
+            patch("junction.cli._setup_cli_logging"),
+            patch("junction.cli_server._update") as mock_update,
         ):
-            from kiro_crew.cli import main
+            from junction.cli import main
 
             main()
             mock_update.assert_called_once_with(force=True)
 
     def test_cli_defaults_force_off(self, monkeypatch) -> None:
-        """A bare ``kirocrew update`` keeps the guard armed (force=False)."""
+        """A bare ``junction update`` keeps the guard armed (force=False)."""
         import sys
 
         with (
-            patch.object(sys, "argv", ["kirocrew", "update"]),
-            patch("kiro_crew.cli._setup_cli_logging"),
-            patch("kiro_crew.cli_server._update") as mock_update,
+            patch.object(sys, "argv", ["junction", "update"]),
+            patch("junction.cli._setup_cli_logging"),
+            patch("junction.cli_server._update") as mock_update,
         ):
-            from kiro_crew.cli import main
+            from junction.cli import main
 
             main()
             mock_update.assert_called_once_with(force=False)

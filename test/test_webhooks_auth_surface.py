@@ -19,10 +19,10 @@ from __future__ import annotations
 import pytest
 from aiohttp import web
 
-from kiro_crew import webhooks
-from kiro_crew.dashboard import token_auth
-from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS
-from kiro_crew.dashboard.token_auth import token_auth_middleware
+from junction import webhooks
+from junction.dashboard import token_auth
+from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS
+from junction.dashboard.token_auth import token_auth_middleware
 
 HOOK_PATH = "/api/hooks/agent"
 

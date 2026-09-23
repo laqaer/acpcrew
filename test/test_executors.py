@@ -14,7 +14,7 @@ from unittest import mock
 
 import pytest
 
-import kiro_crew.executors as ex
+import junction.executors as ex
 
 
 def teardown_function() -> None:

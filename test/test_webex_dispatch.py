@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.webex.transport_dispatch (WebexDispatcher) + commands."""
+"""Tests for junction.webex.transport_dispatch (WebexDispatcher) + commands."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from unittest import mock
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.messaging.link import ChannelLink
-from kiro_crew.webex import cards
-from kiro_crew.webex import transport_dispatch as webex_dispatch
-from kiro_crew.webex.client import WebexInbound
-from kiro_crew.webex.commands import (
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
+from junction.messaging.link import ChannelLink
+from junction.webex import cards
+from junction.webex import transport_dispatch as webex_dispatch
+from junction.webex.client import WebexInbound
+from junction.webex.commands import (
     COMMAND_SPEC,
     ConversationState,
     build_help_text,
@@ -24,7 +24,7 @@ from kiro_crew.webex.commands import (
     parse_command_argument,
     parse_mid_turn_override,
 )
-from kiro_crew.webex.transport_dispatch import _MAX_COLLAPSE, WebexDispatcher
+from junction.webex.transport_dispatch import _MAX_COLLAPSE, WebexDispatcher
 
 # ------------------------------------------------------------------
 # Fakes
@@ -305,7 +305,7 @@ def _inbound(text: str = "hello", email: str = _EMAIL) -> WebexInbound:
 def _deny_webex_profile(monkeypatch, tmp_path):
     import json
 
-    from kiro_crew.platform import governance_profiles as gp
+    from junction.platform import governance_profiles as gp
 
     pdir = tmp_path / "profiles"
     pdir.mkdir(exist_ok=True)
@@ -327,7 +327,7 @@ class TestTurn:
     async def test_channels_deny_drops_inbound_message(self, tmp_path, monkeypatch) -> None:
         # HIGH (GPT round-4 #2): a channels DENY must stop handle_message from
         # driving a turn. Regression-locks the Webex inbound chokepoint.
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         _deny_webex_profile(monkeypatch, tmp_path)
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
@@ -361,12 +361,12 @@ class TestTurn:
         assert (key, "assistant", "hi there") in conv.appended
 
     @pytest.mark.asyncio
-    async def test_agent_resolves_to_kirocrew_when_unset(self) -> None:
+    async def test_agent_resolves_to_junction_when_unset(self) -> None:
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
         sessions = FakeSessions(provider)
         d = _dispatcher(sessions, FakeCtx(), FakeClient(), cfg=_cfg(default_agent=""))
         await d.handle_message(_inbound("hi"))
-        assert sessions.last_agent == "kirocrew"
+        assert sessions.last_agent == "junction"
 
     @pytest.mark.asyncio
     async def test_cold_start_failure_finalizes_and_skips_release(self) -> None:
@@ -596,7 +596,7 @@ class TestCommandParsing:
             ("/unlink", "unlink"),
             ("/yolo", "yolo"),
             ("/yolo on", "yolo"),
-            ("/kirocrew dashboard", "dashboard"),
+            ("/junction dashboard", "dashboard"),
             ("  /HELP  ", "help"),
             ("hello", None),
             ("", None),
@@ -674,7 +674,7 @@ class TestCommandParsing:
         assert parse_command(text) is None
 
     @pytest.mark.parametrize(
-        "text,arg", [("/yolo on", "on"), ("/yolo", ""), ("/kirocrew dashboard 2h", "dashboard 2h")]
+        "text,arg", [("/yolo on", "on"), ("/yolo", ""), ("/junction dashboard 2h", "dashboard 2h")]
     )
     def test_parse_command_argument(self, text: str, arg: str) -> None:
         assert parse_command_argument(text) == arg
@@ -904,7 +904,7 @@ class TestApprovals:
         async def _capture(turn, *, sessions, ctx_builder):
             captured.append(turn)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_inbound("hello"))
 
         assert captured[0].decider is not None
@@ -927,7 +927,7 @@ class TestApprovals:
         async def _capture(turn, *, sessions, ctx_builder):
             captured.append(turn)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_inbound("hello"))
 
         assert captured[0].decider is None
@@ -947,12 +947,12 @@ class TestApprovals:
         async def _capture(turn, *, sessions, ctx_builder):
             captured.append(turn)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_inbound("hello"))
 
         predicate = captured[0].auto_approve_session
         assert predicate is not None
-        with mock.patch("kiro_crew.webex.transport_dispatch.safety_override") as so:
+        with mock.patch("junction.webex.transport_dispatch.safety_override") as so:
             so.return_value.is_active.return_value = True
             assert predicate() is True
             so.return_value.is_active.return_value = False
@@ -1084,7 +1084,7 @@ class TestApprovals:
         key = d._session_key(_EMAIL)
 
         with mock.patch(
-            "kiro_crew.webex.transport_dispatch.inbound_permitted",
+            "junction.webex.transport_dispatch.inbound_permitted",
             new=mock.AsyncMock(return_value=False),
         ):
             approve_task = asyncio.create_task(
@@ -1193,7 +1193,7 @@ class TestQueueAndDrain:
         async def _capture(turn, *, sessions, ctx_builder):
             prompts.append(turn.user_text)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d._drain_queue(_inbound("x"), d._session_key(_EMAIL))
 
         assert prompts == ["first\n\nsecond"]
@@ -1211,7 +1211,7 @@ class TestQueueAndDrain:
         async def _capture(turn, *, sessions, ctx_builder):
             prompts.append(turn.user_text)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d._drain_queue(_inbound("x"), d._session_key(_EMAIL))
 
         expected_first = "\n\n".join(f"m{i}" for i in range(_MAX_COLLAPSE))
@@ -1241,7 +1241,7 @@ class TestQueueAndDrain:
         async def _capture(turn, *, sessions, ctx_builder):
             turns.append((turn.user_text, turn.conversation_id))
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d._drain_queue(_inbound("x"), d._session_key(_EMAIL))
 
         # A's two collapse together; B's is a separate turn, never merged into A's.
@@ -1271,7 +1271,7 @@ class TestQueueAndDrain:
         async def _capture(turn, *, sessions, ctx_builder):
             turns.append(turn.user_text)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d._drain_queue(_inbound("x"), d._session_key(_EMAIL))
 
         assert turns[0] == "t-a\n\nt-a2"
@@ -1468,7 +1468,7 @@ class TestYolo:
 
 
 # ------------------------------------------------------------------
-# /kirocrew dashboard — presigned login link
+# /junction dashboard — presigned login link
 # ------------------------------------------------------------------
 
 
@@ -1492,10 +1492,10 @@ class TestDashboardLink:
         d.cfg.dashboard = SimpleNamespace(url=origin)
 
         with mock.patch(
-            "kiro_crew.dashboard.token_auth.generate_token", return_value=self.TOKEN
+            "junction.dashboard.token_auth.generate_token", return_value=self.TOKEN
         ) as gen:
             with mock.patch.object(webex_dispatch, "sel") as sel_mock:
-                await d.handle_message(_inbound("/kirocrew dashboard 2h"))
+                await d.handle_message(_inbound("/junction dashboard 2h"))
 
         assert gen.call_args.kwargs["ttl_seconds"] == 7200
         # The WHOLE token, not a prefix: a redacted link would still contain
@@ -1515,19 +1515,19 @@ class TestDashboardLink:
         """
         d = _dispatcher(FakeSessions(FakeProvider([])), FakeCtx(), FakeClient())
         inbound = WebexInbound(
-            person_email=_EMAIL, room_id="ROOM", text="/kirocrew dashboard", room_type="group"
+            person_email=_EMAIL, room_id="ROOM", text="/junction dashboard", room_type="group"
         )
 
-        with mock.patch("kiro_crew.dashboard.token_auth.generate_token") as gen:
+        with mock.patch("junction.dashboard.token_auth.generate_token") as gen:
             await d._handle_dashboard(inbound)
 
         gen.assert_not_called()
         assert "direct message" in d.client.sent[-1][1]
 
     @pytest.mark.asyncio
-    async def test_a_bare_kirocrew_answers_with_usage(self) -> None:
+    async def test_a_bare_junction_answers_with_usage(self) -> None:
         d = _dispatcher(FakeSessions(FakeProvider([])), FakeCtx(), FakeClient())
-        await d.handle_message(_inbound("/kirocrew"))
+        await d.handle_message(_inbound("/junction"))
         assert "Usage:" in d.client.sent[-1][1]
 
     @pytest.mark.asyncio
@@ -1537,10 +1537,10 @@ class TestDashboardLink:
         d.cfg.dashboard = SimpleNamespace(url="http://localhost:8765")
 
         with mock.patch(
-            "kiro_crew.dashboard.token_auth.generate_token",
+            "junction.dashboard.token_auth.generate_token",
             side_effect=RuntimeError("secret=abc"),
         ):
-            await d.handle_message(_inbound("/kirocrew dashboard"))
+            await d.handle_message(_inbound("/junction dashboard"))
 
         reply = d.client.sent[-1][1]
         assert "RuntimeError" in reply and "secret=abc" not in reply
@@ -1555,7 +1555,7 @@ class TestDashboardLink:
         Only the token SPLITTING is local, so a unit added to the shared parser
         reaches this command instead of diverging silently.
         """
-        from kiro_crew.dashboard.token_auth import parse_duration
+        from junction.dashboard.token_auth import parse_duration
 
         assert parse_duration(webex_dispatch._ttl_spec(arg)) == secs
 
@@ -1571,14 +1571,14 @@ class TestDashboardLink:
         d = _dispatcher(FakeSessions(FakeProvider([])), FakeCtx(), FakeClient())
         d.cfg.dashboard = SimpleNamespace(url="http://localhost:8765")
 
-        with mock.patch("kiro_crew.dashboard.token_auth.generate_token", return_value="TOK") as gen:
-            await d.handle_message(_inbound(f"/kirocrew {arg}"))
+        with mock.patch("junction.dashboard.token_auth.generate_token", return_value="TOK") as gen:
+            await d.handle_message(_inbound(f"/junction {arg}"))
 
         assert gen.call_args.kwargs["ttl_seconds"] == 3600
 
     def test_the_ttl_is_clamped_to_the_server_maximum(self) -> None:
         # A user-supplied duration must not be able to widen the login window.
-        from kiro_crew.dashboard.token_auth import MAX_SESSION_TTL_SECS, parse_duration
+        from junction.dashboard.token_auth import MAX_SESSION_TTL_SECS, parse_duration
 
         assert parse_duration(webex_dispatch._ttl_spec("dashboard 9999h")) == MAX_SESSION_TTL_SECS
 
@@ -1615,7 +1615,7 @@ class TestDrainIsFlat:
                 depth["now"] -= 1
 
         with mock.patch.object(d, "_drain_queue", _counting):
-            with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _noop_turn):
+            with mock.patch("junction.webex.transport_dispatch.drive_turn", _noop_turn):
                 await d._drain_queue(_inbound("x"), d._session_key(_EMAIL))
 
         assert depth["max"] == 1, "the drain re-entered itself"
@@ -1697,7 +1697,7 @@ class TestOptionsCardPress:
         async def _capture(turn, *, sessions, ctx_builder):
             turns.append(turn.user_text)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_options_press("0", "N1"))
 
         assert turns == ["Keep going"]
@@ -1726,7 +1726,7 @@ class TestOptionsCardPress:
         async def _capture(turn, *, sessions, ctx_builder):
             turns.append(turn.user_text)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_options_press("0", "N1"))
 
         assert turns == ["/yolo on"]
@@ -1744,7 +1744,7 @@ class TestOptionsCardPress:
         async def _capture(turn, *, sessions, ctx_builder):
             turns.append(turn.user_text)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_options_press("0", "NOPE"))
 
         assert turns == []
@@ -1764,7 +1764,7 @@ class TestOptionsCardPress:
         key = d._session_key("intruder@example.com")
         d._choices.publish(key, "N1", ["Keep going"])
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.sel") as fake_sel:
+        with mock.patch("junction.webex.transport_dispatch.sel") as fake_sel:
             await d.handle_message(_options_press("0", "N1", email="intruder@example.com"))
 
         assert client.sent == []
@@ -1811,7 +1811,7 @@ class TestOutboundRedaction:
         async def _capture(turn, *, sessions, ctx_builder):
             pass
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_options_press("0", "N1"))
 
         echo = client.sent[0][1]
@@ -1961,7 +1961,7 @@ class TestApprovalCardPress:
         task = await self._pending(d, key)
         nonce = webex_dispatch._APPROVALS.reserve(key, "1")
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.sel") as fake_sel:
+        with mock.patch("junction.webex.transport_dispatch.sel") as fake_sel:
             await d.handle_message(_approval_press("deny", "FORGED"))
             await d.handle_message(_approval_press("deny", nonce))
 
@@ -1986,7 +1986,7 @@ class TestApprovalCardPress:
         task = await self._pending(d, key)
         nonce = webex_dispatch._APPROVALS.reserve(key, "1")
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.sel") as fake_sel:
+        with mock.patch("junction.webex.transport_dispatch.sel") as fake_sel:
             await d.handle_message(_approval_press("approve", "FORGED"))
             # Still open: the refused press must not have spent the decision.
             assert webex_dispatch._APPROVALS.has_pending(key)
@@ -2013,7 +2013,7 @@ class TestApprovalCardPress:
         async def _denied(_channel: str) -> bool:
             return False
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.inbound_permitted", _denied):
+        with mock.patch("junction.webex.transport_dispatch.inbound_permitted", _denied):
             await d.handle_message(_approval_press("approve", nonce))
             assert webex_dispatch._APPROVALS.has_pending(key)
             await d.handle_message(_approval_press("deny", nonce))
@@ -2059,7 +2059,7 @@ class TestGroupSpaceRouting:
         async def _capture(turn, *, sessions, ctx_builder):
             keys.append(turn.session_key)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_space("hi"))
             await d.handle_message(_inbound("hi"))
 
@@ -2085,7 +2085,7 @@ class TestGroupSpaceRouting:
         async def _capture(turn, *, sessions, ctx_builder):
             keys.append(turn.session_key)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_space("hi"))
             await d.handle_message(_inbound("hi"))
 
@@ -2148,8 +2148,8 @@ class TestGroupSpaceRouting:
         async def _noop(turn, *, sessions, ctx_builder):
             pass
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.WebexRenderer", _spy):
-            with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _noop):
+        with mock.patch("junction.webex.transport_dispatch.WebexRenderer", _spy):
+            with mock.patch("junction.webex.transport_dispatch.drive_turn", _noop):
                 await d.handle_message(_space("hi"))
                 await d.handle_message(_inbound("hi"))
 
@@ -2171,7 +2171,7 @@ class TestGroupSpaceRouting:
         async def _capture(turn, *, sessions, ctx_builder):
             seen.append(turn.minimal_context)
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_space("hi"))
             await d.handle_message(_inbound("hi"))
 
@@ -2195,7 +2195,7 @@ class FakeListingLog(FakeConvLog):
 class TestSessionsCommand:
     @staticmethod
     def _stem(d: WebexDispatcher, route: str, gen: int = 0) -> str:
-        from kiro_crew.history import transcript_stem
+        from junction.history import transcript_stem
 
         key = d._session_key(route)
         return transcript_stem(f"{key}:gen{gen}" if gen else key)
@@ -2447,7 +2447,7 @@ class TestModelCommand:
             models.append(turn.model)
 
         await d.handle_message(_inbound("/model 2"))
-        with mock.patch("kiro_crew.webex.transport_dispatch.drive_turn", _capture):
+        with mock.patch("junction.webex.transport_dispatch.drive_turn", _capture):
             await d.handle_message(_inbound("hello"))
 
         assert models == ["m-1"]
@@ -2573,7 +2573,7 @@ class TestGovernanceOnPresses:
         async def _denied(_channel: str) -> bool:
             return False
 
-        with mock.patch("kiro_crew.webex.transport_dispatch.inbound_permitted", _denied):
+        with mock.patch("junction.webex.transport_dispatch.inbound_permitted", _denied):
             await d.handle_message(_options_press("0", "N1"))
 
         assert client.sent == []

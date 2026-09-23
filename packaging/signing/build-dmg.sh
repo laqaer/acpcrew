@@ -25,7 +25,7 @@ if [ ! -d "$app_path" ] || [[ "$app_path" != *.app ]]; then
   exit 1
 fi
 
-scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/kirocrew-dmg.XXXXXX")"
+scratch_dir="$(mktemp -d "${TMPDIR:-/tmp}/junction-dmg.XXXXXX")"
 mount_dir="$scratch_dir/mount"
 read_write_image="$scratch_dir/layout-rw.dmg"
 mounted=0

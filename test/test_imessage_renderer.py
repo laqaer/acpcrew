@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.imessage.renderer (IMessageRenderer, Layer 2b)."""
+"""Tests for junction.imessage.renderer (IMessageRenderer, Layer 2b)."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.imessage.renderer import IMessageRenderer
-from kiro_crew.imessage.rpc import RpcError, RpcTransportError
-from kiro_crew.imessage.transport import IMESSAGE_CAPABILITIES
+from junction.imessage.renderer import IMessageRenderer
+from junction.imessage.rpc import RpcError, RpcTransportError
+from junction.imessage.transport import IMESSAGE_CAPABILITIES
 
 HANDLE = "+15551234567"
 SELECTOR = {"chat_guid": "iMessage;-;+15551234567"}

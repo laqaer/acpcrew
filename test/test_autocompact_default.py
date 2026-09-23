@@ -24,16 +24,16 @@ import tempfile
 import unittest.mock
 from pathlib import Path
 
-from kiro_crew.config.loader import (
+from junction.config.loader import (
     CONTEXT_WARN_MARGIN_PCT,
     DEFAULT_AUTOCOMPACT_PCT,
-    KiroCrewConfig,
+    JunctionConfig,
     SessionConfig,
 )
-from kiro_crew.dashboard.handlers.core import _EDITABLE_CONFIG
+from junction.dashboard.handlers.core import _EDITABLE_CONFIG
 
 
-def _load_with_session(session_block: dict) -> KiroCrewConfig:
+def _load_with_session(session_block: dict) -> JunctionConfig:
     """Load config from a temp file holding *session_block*.
 
     Mirrors ``test_config_loader._load_from_dict``: patch ``config_path`` rather
@@ -47,10 +47,10 @@ def _load_with_session(session_block: dict) -> KiroCrewConfig:
 
     try:
         with unittest.mock.patch(
-            "kiro_crew.config.loader.config_path",
+            "junction.config.loader.config_path",
             return_value=tmp,
         ):
-            return KiroCrewConfig.load()
+            return JunctionConfig.load()
     finally:
         tmp.unlink(missing_ok=True)
 
@@ -168,9 +168,9 @@ def test_no_consumer_hardcodes_its_own_warn_threshold() -> None:
     import re
     from pathlib import Path
 
-    import kiro_crew
+    import junction
 
-    root = Path(kiro_crew.__file__).parent
+    root = Path(junction.__file__).parent
     for rel in ("session.py", "cli_chat.py"):
         src = (root / rel).read_text(encoding="utf-8")
         # The warn arm must name the shared margin.

@@ -1,4 +1,4 @@
-"""``kirocrew bench`` CLI behaviour that a reviewer flagged and a test must pin.
+"""``junction bench`` CLI behaviour that a reviewer flagged and a test must pin.
 
 Two of these lock in fixes for GPT-review findings on PR #2123, and the third
 pins the deliberate exception to the ``top-level-imports`` rule so a future
@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.cli_bench import _load_report, bench_cmd
-from kiro_crew.eval.bench.run import compare_reports
+from junction.cli_bench import _load_report, bench_cmd
+from junction.eval.bench.run import compare_reports
 
 
 class _Args:
@@ -31,7 +31,7 @@ class _Args:
 # ── The sensitive-path gate on `bench compare` ───────────────────────────────
 # These paths come from argv, and in this product argv is not always typed by the
 # human who owns the machine: an agent can run any CLI command, so
-# `kirocrew bench compare ~/.aws/credentials x.json` is a reachable invocation.
+# `junction bench compare ~/.aws/credentials x.json` is a reachable invocation.
 # Without the gate this subcommand is a file-read primitive that bypasses the
 # check every other read path in the codebase goes through.
 
@@ -238,10 +238,10 @@ def test_importing_cli_bench_does_not_drag_the_vector_store_into_the_boot_path()
     code = textwrap.dedent(
         """
         import json, sys
-        import kiro_crew.cli_bench  # noqa: F401
+        import junction.cli_bench  # noqa: F401
         print(json.dumps({
-            "vector_memory": "kiro_crew.vector_memory" in sys.modules,
-            "bench": "kiro_crew.eval.bench" in sys.modules,
+            "vector_memory": "junction.vector_memory" in sys.modules,
+            "bench": "junction.eval.bench" in sys.modules,
             "sqlite3": "sqlite3" in sys.modules,
         }))
         """

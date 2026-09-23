@@ -14,8 +14,8 @@ maps to one bullet in the issue's acceptance-coverage list.
 
 from __future__ import annotations
 
-from kiro_crew.acp.types import STOP_REASON_CANCELLED, STOP_REASON_END_TURN, STOP_REASON_REFUSAL
-from kiro_crew.dashboard.chat_utils import (
+from junction.acp.types import STOP_REASON_CANCELLED, STOP_REASON_END_TURN, STOP_REASON_REFUSAL
+from junction.dashboard.chat_utils import (
     CRON_NOTIFICATION_KIND,
     SUBAGENT_COMPLETION_KIND,
     SYNTHETIC_RECOVERY_KIND,
@@ -61,7 +61,7 @@ def test_ordinary_informational_answer_lands():
     for text in (
         "The root cause is a race in the writer; the fix is a lock.",
         "There are three options here, and I'd lean toward the second.",
-        "That file lives under src/kiro_crew/dashboard/.",
+        "That file lives under src/junction/dashboard/.",
     ):
         assert is_promise_only_terminal(text) is False
         assert _recover(final_segment_text=text) is False
@@ -355,8 +355,8 @@ def test_stage_execution_turn_does_not_trigger():
 def test_has_user_queued_followup_excludes_system_injections():
     from types import SimpleNamespace
 
-    from kiro_crew.dashboard.chat_runner import _has_user_queued_followup
-    from kiro_crew.dashboard.state import CRON_NOTIFY_PREFIX
+    from junction.dashboard.chat_runner import _has_user_queued_followup
+    from junction.dashboard.state import CRON_NOTIFY_PREFIX
 
     user = {"id": "u", "content": "don't do that", "kind": "", "payload": ""}
     # REAL cron notification: the scheduler tags it CRON_NOTIFICATION_KIND at

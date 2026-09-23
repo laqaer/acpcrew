@@ -15,18 +15,18 @@ import pytest
 
 
 class TestMcpCoreUserActions:
-    """Simulate the exact JSON-RPC calls kiro-cli sends to kirocrew-core."""
+    """Simulate the exact JSON-RPC calls kiro-cli sends to junction-core."""
 
     def _simulate_tool_call(self, tool_name: str, arguments: dict) -> str:
         """Simulate what kiro-cli does: JSON-RPC tools/call → _call_tool."""
-        from kiro_crew.mcp_core import _call_tool
+        from junction.mcp_core import _call_tool
 
         return _call_tool(tool_name, arguments)
 
     # -- spawn_run: user says "search docs for X in parallel" --
 
     def test_spawn_fire_and_forget(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"id": "abc12345"}
             result = self._simulate_tool_call(
                 "spawn_run",
@@ -36,7 +36,7 @@ class TestMcpCoreUserActions:
         assert "Spawned" in result
 
     def test_spawn_batch_tasks(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.side_effect = [{"id": "a1"}, {"id": "b2"}]
             result = self._simulate_tool_call(
                 "spawn_run",
@@ -48,7 +48,7 @@ class TestMcpCoreUserActions:
 
     def test_spawn_default_returns_immediately(self):
         """spawn_run always returns immediately — fire-and-forget."""
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"id": "ghi789"}
             result = self._simulate_tool_call("spawn_run", {"task": "quick check"})
         assert "Spawned" in result
@@ -57,7 +57,7 @@ class TestMcpCoreUserActions:
     # -- learn_add: user says "remember to always use dark mode" --
 
     def test_learn_preference(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"status": "ok"}
             result = self._simulate_tool_call(
                 "learn_add",
@@ -87,7 +87,7 @@ class TestMcpCoreUserActions:
         ``test_learn_preference`` pins the no-negative shape, so together they
         lock the key in when a clause is supplied and out when it is not.
         """
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"status": "ok"}
             result = self._simulate_tool_call(
                 "learn_add",
@@ -110,7 +110,7 @@ class TestMcpCoreUserActions:
 
     def test_learn_category_defaults_to_knowledge(self):
         """LLM might omit category — should default to 'knowledge'."""
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"status": "ok"}
             result = self._simulate_tool_call(
                 "learn_add",
@@ -125,7 +125,7 @@ class TestMcpCoreUserActions:
     # -- learn_list: user says "what have I taught you?" --
 
     def test_learn_list(self):
-        with patch("kiro_crew.mcp_core._get") as mock_get:
+        with patch("junction.mcp_core._get") as mock_get:
             mock_get.return_value = {
                 "lessons": [
                     {"rule": "use dark mode", "category": "preference"},
@@ -137,7 +137,7 @@ class TestMcpCoreUserActions:
         assert "pytest" in result
 
     def test_learn_list_empty(self):
-        with patch("kiro_crew.mcp_core._get") as mock_get:
+        with patch("junction.mcp_core._get") as mock_get:
             mock_get.return_value = {"lessons": []}
             result = self._simulate_tool_call("learn_list", {})
         assert "No lessons" in result
@@ -145,7 +145,7 @@ class TestMcpCoreUserActions:
     # -- learn_remove: user says "forget the dark mode rule" --
 
     def test_learn_remove(self):
-        with patch("kiro_crew.mcp_core._delete") as mock_del:
+        with patch("junction.mcp_core._delete") as mock_del:
             mock_del.return_value = {"removed": 1}
             result = self._simulate_tool_call(
                 "learn_remove",
@@ -158,7 +158,7 @@ class TestMcpCoreUserActions:
     # -- spawn_list: user says "what's running in the background?" --
 
     def test_spawn_list_empty(self):
-        with patch("kiro_crew.mcp_core._get") as mock_get:
+        with patch("junction.mcp_core._get") as mock_get:
             mock_get.return_value = {"agents": []}
             result = self._simulate_tool_call("spawn_list", {})
         assert "No subagents" in result
@@ -166,14 +166,14 @@ class TestMcpCoreUserActions:
     # -- spawn_status: user says "get the full output from that subagent" --
 
     def test_spawn_status_returns_full_result(self):
-        with patch("kiro_crew.mcp_core._get") as mock_get:
+        with patch("junction.mcp_core._get") as mock_get:
             mock_get.return_value = {"result": "A" * 5000}
             result = self._simulate_tool_call("spawn_status", {"agent_id": "abc123"})
         assert len(result) == 5000
         mock_get.assert_called_with("/api/spawn/abc123")
 
     def test_spawn_status_not_found(self):
-        with patch("kiro_crew.mcp_core._get") as mock_get:
+        with patch("junction.mcp_core._get") as mock_get:
             mock_get.return_value = {"error": "not found"}
             result = self._simulate_tool_call("spawn_status", {"agent_id": "bad"})
         assert "Error" in result
@@ -191,7 +191,7 @@ class TestMcpCoreUserActions:
         assert "invalid" in result.lower()
 
     def test_spawn_status_redacts_credentials(self):
-        with patch("kiro_crew.mcp_core._get") as mock_get:
+        with patch("junction.mcp_core._get") as mock_get:
             mock_get.return_value = {"result": "Found key AKIAIOSFODNN7EXAMPLE in output"}
             result = self._simulate_tool_call("spawn_status", {"agent_id": "abc123"})
         assert "AKIAIOSFODNN7EXAMPLE" not in result
@@ -200,7 +200,7 @@ class TestMcpCoreUserActions:
     # -- task_run: user says "run this task spec" --
 
     def test_task_run_from_file(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"task_id": "my-task_123"}
             result = self._simulate_tool_call(
                 "task_run",
@@ -211,7 +211,7 @@ class TestMcpCoreUserActions:
         assert "Task runner started" in result
 
     def test_task_run_inline(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"task_id": "inline_123"}
             result = self._simulate_tool_call(
                 "task_run",
@@ -232,7 +232,7 @@ class TestMcpCoreUserActions:
 
 
 class TestMcpCronUserActions:
-    """Simulate the exact JSON-RPC calls kiro-cli sends to kirocrew-cron."""
+    """Simulate the exact JSON-RPC calls kiro-cli sends to junction-cron."""
 
     @pytest.fixture(autouse=True)
     def _cron_caller_is_named(self, named_cron_caller: str) -> str:
@@ -260,14 +260,14 @@ class TestMcpCronUserActions:
         return job
 
     def _simulate_tool_call(self, tool_name: str, arguments: dict) -> str:
-        from kiro_crew.mcp_cron import _call_tool
+        from junction.mcp_cron import _call_tool
 
         return _call_tool(tool_name, arguments)
 
     # -- cron_add: user says "check my pipeline every 5 minutes" --
 
     def test_add_every_interval(self, tmp_path):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "abc123"
@@ -293,7 +293,7 @@ class TestMcpCronUserActions:
     # -- cron_add with cron expression: "weekdays at 9am" --
 
     def test_add_cron_expression(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "def456"
@@ -318,7 +318,7 @@ class TestMcpCronUserActions:
     # -- cron_add with agent: "use customer360 agent for this job" --
 
     def test_add_with_agent(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "ghi789"
@@ -347,7 +347,7 @@ class TestMcpCronUserActions:
     # -- cron_add with approval_mode: "auto-approve tools for this cron" --
 
     def test_add_with_approval_mode_auto(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "appr001"
@@ -376,7 +376,7 @@ class TestMcpCronUserActions:
         assert svc.add_job.call_args.kwargs["approval_mode"] == "auto"
 
     def test_add_with_approval_mode_empty(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "appr002"
@@ -404,7 +404,7 @@ class TestMcpCronUserActions:
     # -- cron_add without agent (most common): should work fine --
 
     def test_add_without_agent(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "noagent1"
@@ -431,7 +431,7 @@ class TestMcpCronUserActions:
     # -- cron_list: user says "what cron jobs do I have?" --
 
     def test_list_jobs(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "list1"
@@ -452,7 +452,7 @@ class TestMcpCronUserActions:
         assert "list1" in result
 
     def test_list_empty(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             svc.list_jobs.return_value = []
             result = self._simulate_tool_call("cron_list", {})
@@ -461,7 +461,7 @@ class TestMcpCronUserActions:
     # -- cron_remove/pause/resume --
 
     def test_remove_job(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             self._own(svc)
             svc.remove_job.return_value = True
@@ -469,7 +469,7 @@ class TestMcpCronUserActions:
         assert "Removed" in result
 
     def test_pause_job(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             self._own(svc)
             svc.enable_job.return_value = True
@@ -477,7 +477,7 @@ class TestMcpCronUserActions:
         assert "Paused" in result
 
     def test_resume_job(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc:
+        with patch("junction.mcp_cron.CronService") as mock_svc:
             svc = mock_svc.return_value
             self._own(svc)
             svc.enable_job.return_value = True
@@ -487,10 +487,10 @@ class TestMcpCronUserActions:
     # -- cron_remove_all --
 
     def test_remove_all(self):
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc, patch.dict(
-            "os.environ", {"KIROCREW_CLI": "1"}, clear=False
+        with patch("junction.mcp_cron.CronService") as mock_svc, patch.dict(
+            "os.environ", {"JUNCTION_CLI": "1"}, clear=False
         ) as env:
-            env.pop("KIROCREW_SESSION_KEY", None)
+            env.pop("JUNCTION_SESSION_KEY", None)
             svc = mock_svc.return_value
             job = MagicMock()
             job.id = "x"
@@ -512,7 +512,7 @@ class TestJsonRpcProtocol:
 
     def test_initialize_handshake(self):
         """kiro-cli sends initialize as the first message."""
-        from kiro_crew.validation import validate_jsonrpc_request
+        from junction.validation import validate_jsonrpc_request
 
         method, rid, params = validate_jsonrpc_request(
             {
@@ -530,7 +530,7 @@ class TestJsonRpcProtocol:
 
     def test_tools_call(self):
         """kiro-cli sends tools/call with name and arguments."""
-        from kiro_crew.validation import validate_jsonrpc_request
+        from junction.validation import validate_jsonrpc_request
 
         method, rid, params = validate_jsonrpc_request(
             {
@@ -547,7 +547,7 @@ class TestJsonRpcProtocol:
 
     def test_notification_no_id(self):
         """kiro-cli sends notifications/initialized with no id."""
-        from kiro_crew.validation import validate_jsonrpc_request
+        from junction.validation import validate_jsonrpc_request
 
         method, rid, params = validate_jsonrpc_request(
             {
@@ -566,12 +566,12 @@ class TestBadInputsCaught:
     """Verify that malicious/malformed inputs are rejected cleanly."""
 
     def _core_call(self, name: str, args: dict) -> str:
-        from kiro_crew.mcp_core import _call_tool
+        from junction.mcp_core import _call_tool
 
         return _call_tool(name, args)
 
     def _cron_call(self, name: str, args: dict) -> str:
-        from kiro_crew.mcp_cron import _call_tool
+        from junction.mcp_cron import _call_tool
 
         return _call_tool(name, args)
 
@@ -581,7 +581,7 @@ class TestBadInputsCaught:
 
     def test_spawn_task_with_hidden_unicode(self):
         """Zero-width chars should be stripped, not cause errors."""
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"id": "clean1"}
             result = self._core_call(
                 "spawn_run",
@@ -643,7 +643,7 @@ class TestBadInputsCaught:
     def test_oversized_response_truncated(self):
         """Responses > 100K are truncated at the MCP protocol layer."""
         large_text = "x" * 200_000
-        from kiro_crew.validation import build_tool_response
+        from junction.validation import build_tool_response
 
         response = build_tool_response(large_text)
         assert len(response["content"][0]["text"]) < 150_000
@@ -658,7 +658,7 @@ class TestDashboardApiPatterns:
 
     def test_lesson_create_body(self):
         """POST /api/lessons body validation."""
-        from kiro_crew.validation import (
+        from junction.validation import (
             ALLOWED_LESSON_CATEGORIES,
             validate_api_body,
             validate_string_field,
@@ -672,7 +672,7 @@ class TestDashboardApiPatterns:
 
     def test_cron_create_body(self):
         """POST /api/crons body validation."""
-        from kiro_crew.validation import validate_api_body, validate_string_field
+        from junction.validation import validate_api_body, validate_string_field
 
         body = validate_api_body(
             {
@@ -688,7 +688,7 @@ class TestDashboardApiPatterns:
 
     def test_chat_message_body(self):
         """POST /api/chat body validation."""
-        from kiro_crew.validation import validate_api_body, validate_string_field
+        from junction.validation import validate_api_body, validate_string_field
 
         body = validate_api_body({"message": "what's the status of my pipeline?"})
         msg = validate_string_field(body, "message", required=True, max_len=50_000)
@@ -696,7 +696,7 @@ class TestDashboardApiPatterns:
 
     def test_skill_create_body(self):
         """POST /api/skills body validation."""
-        from kiro_crew.validation import validate_api_body, validate_string_field
+        from junction.validation import validate_api_body, validate_string_field
 
         body = validate_api_body(
             {

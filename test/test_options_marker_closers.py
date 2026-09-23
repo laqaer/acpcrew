@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import time
 
-from kiro_crew.constants import (
+from junction.constants import (
     MARKER_CLOSERS,
     OPTIONS_RE_LINE,
     OPTIONS_RE_TRAILER,

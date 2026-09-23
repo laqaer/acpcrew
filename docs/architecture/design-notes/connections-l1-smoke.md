@@ -94,6 +94,6 @@ authenticated, and the pinned tool still advertised".
 
 ## Running it by hand
 
-`python3 -m kiro_crew.connections.l1_smoke --report /tmp/l1.json` (under a
+`python3 -m junction.connections.l1_smoke --report /tmp/l1.json` (under a
 pipx/venv install, use that environment's interpreter). `--min-exercised 1`
 reproduces the lane's gate; `--concurrency`/`--timeout` are in `--help`.

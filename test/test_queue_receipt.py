@@ -14,8 +14,8 @@ import asyncio
 from pathlib import Path
 from typing import Any
 
-import kiro_crew.messaging.queue_receipt as Q
-from kiro_crew.messaging.queue_receipt import RECEIPT_MAX_ITEMS, ReceiptQueue, receipt_text
+import junction.messaging.queue_receipt as Q
+from junction.messaging.queue_receipt import RECEIPT_MAX_ITEMS, ReceiptQueue, receipt_text
 
 
 class _Surface:

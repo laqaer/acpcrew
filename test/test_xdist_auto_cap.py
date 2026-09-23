@@ -1,7 +1,7 @@
 """Tests for the memory-aware pytest-xdist ``-n auto`` cap.
 
-Covers :func:`kiro_crew.resource_status.compute_xdist_auto_workers` (clamping),
-:func:`kiro_crew.resource_status.inject_xdist_auto_cap` (config modes,
+Covers :func:`junction.resource_status.compute_xdist_auto_workers` (clamping),
+:func:`junction.resource_status.inject_xdist_auto_cap` (config modes,
 respect-existing-env, fail-open on an unreadable probe), and the presence of
 the injection in the environment built by the ACP client spawn path.
 """
@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import resource_status as rs
+from junction import resource_status as rs
 
 # ── compute_xdist_auto_workers ───────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ def test_compute_respects_overrides() -> None:
 
 
 def _with_raw_config(raw: dict):
-    return patch("kiro_crew.config.loader._raw_config", return_value=raw)
+    return patch("junction.config.loader._raw_config", return_value=raw)
 
 
 @pytest.mark.parametrize(
@@ -135,18 +135,18 @@ def test_inject_auto_low_memory_floors_at_one_worker() -> None:
 @pytest.mark.asyncio
 async def test_spawn_env_carries_xdist_cap(tmp_path, monkeypatch) -> None:
     """The env handed to the agent subprocess carries the computed cap."""
-    from kiro_crew.acp.client import AcpClient
+    from junction.acp.client import AcpClient
 
     monkeypatch.delenv(rs.XDIST_AUTO_ENV, raising=False)
     client = AcpClient(work_dir=tmp_path, session_key="k")
     with (
-        patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+        patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
         patch(
-            "kiro_crew.acp.client.wrap_argv", return_value=(["/usr/bin/kiro-cli", "acp"], None)
+            "junction.acp.client.wrap_argv", return_value=(["/usr/bin/kiro-cli", "acp"], None)
         ),
         patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
-        patch("kiro_crew.session._track_pid"),
-        patch("kiro_crew.session._track_session_pid"),
+        patch("junction.session._track_pid"),
+        patch("junction.session._track_session_pid"),
         _with_raw_config({}),
         patch.object(rs, "_read_available_gb", return_value=8.0),
         patch("os.cpu_count", return_value=16),
@@ -167,18 +167,18 @@ async def test_spawn_env_carries_xdist_cap(tmp_path, monkeypatch) -> None:
 @pytest.mark.asyncio
 async def test_spawn_env_leaves_preset_xdist_cap_alone(tmp_path, monkeypatch) -> None:
     """A value inherited from the gateway environment is never overridden."""
-    from kiro_crew.acp.client import AcpClient
+    from junction.acp.client import AcpClient
 
     monkeypatch.setenv(rs.XDIST_AUTO_ENV, "2")
     client = AcpClient(work_dir=tmp_path, session_key="k")
     with (
-        patch("kiro_crew.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
+        patch("junction.acp.client._resolve_kiro_bin", return_value="/usr/bin/kiro-cli"),
         patch(
-            "kiro_crew.acp.client.wrap_argv", return_value=(["/usr/bin/kiro-cli", "acp"], None)
+            "junction.acp.client.wrap_argv", return_value=(["/usr/bin/kiro-cli", "acp"], None)
         ),
         patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
-        patch("kiro_crew.session._track_pid"),
-        patch("kiro_crew.session._track_session_pid"),
+        patch("junction.session._track_pid"),
+        patch("junction.session._track_session_pid"),
         _with_raw_config({"resource_limits": {"xdist_auto_cap": 9}}),
     ):
         mock_proc = MagicMock()

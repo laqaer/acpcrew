@@ -9,14 +9,14 @@ beforeAll(() => {
 })
 
 const agents: AgentItem[] = [
-  { name: 'kirocrew', source: 'kirocrew', description: 'Main agent' },
+  { name: 'junction', source: 'junction', description: 'Main agent' },
   { name: 'builtin', source: 'builtin' },
 ]
 
 describe('AgentDropdownList', () => {
   it('renders all agents', () => {
-    render(<AgentDropdownList agents={agents} activeAgent="kirocrew" defaultAgent="kirocrew" onSelect={() => {}} />)
-    expect(screen.getAllByText('kirocrew').length).toBeGreaterThan(0)
+    render(<AgentDropdownList agents={agents} activeAgent="junction" defaultAgent="junction" onSelect={() => {}} />)
+    expect(screen.getAllByText('junction').length).toBeGreaterThan(0)
     expect(screen.getAllByText('builtin').length).toBeGreaterThan(0)
   })
 
@@ -29,10 +29,10 @@ describe('AgentDropdownList', () => {
     const onSelect = vi.fn()
     render(<AgentDropdownList agents={agents} activeAgent="" defaultAgent="" onSelect={onSelect} />)
     const btn = Array.from(document.querySelectorAll('button')).find(
-      b => b.querySelector('.font-mono')?.textContent === 'kirocrew'
+      b => b.querySelector('.font-mono')?.textContent === 'junction'
     )
     fireEvent.click(btn!)
-    expect(onSelect).toHaveBeenCalledWith('kirocrew')
+    expect(onSelect).toHaveBeenCalledWith('junction')
   })
 
   it('shows description when present', () => {
@@ -43,7 +43,7 @@ describe('AgentDropdownList', () => {
 
 describe('AgentDropdownList default-agent affordance', () => {
   it('labels the default agent with a Default pill instead of its source badge', () => {
-    render(<AgentDropdownList agents={agents} activeAgent="" defaultAgent="kirocrew" onSelect={() => {}} />)
+    render(<AgentDropdownList agents={agents} activeAgent="" defaultAgent="junction" onSelect={() => {}} />)
     expect(screen.getByText('Default')).toBeInTheDocument()
   })
 
@@ -51,14 +51,14 @@ describe('AgentDropdownList default-agent affordance', () => {
     // A row's one job is picking the agent for this session. A nested control had to
     // stopPropagation to keep the two apart, and its scope ("for new sessions") could
     // only live in a tooltip — the footer row states it on screen instead.
-    render(<AgentDropdownList agents={agents} activeAgent="" defaultAgent="kirocrew" onSelect={() => {}} />)
+    render(<AgentDropdownList agents={agents} activeAgent="" defaultAgent="junction" onSelect={() => {}} />)
     for (const option of screen.getAllByRole('option')) {
       expect(option.querySelector('[role="button"]')).toBeNull()
     }
   })
 
   it('explains the two same-row markers rather than relying on colour alone', () => {
-    render(<AgentDropdownList agents={agents} activeAgent="kirocrew" defaultAgent="kirocrew" onSelect={() => {}} />)
+    render(<AgentDropdownList agents={agents} activeAgent="junction" defaultAgent="junction" onSelect={() => {}} />)
     expect(screen.getByTitle('New sessions start with this agent')).toBeInTheDocument()
     expect(screen.getByTitle('Active in this session')).toBeInTheDocument()
   })

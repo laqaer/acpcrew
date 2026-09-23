@@ -12,8 +12,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew import agent_state
-from kiro_crew.dashboard.handlers.agents import api_agent_detail
+from junction import agent_state
+from junction.dashboard.handlers.agents import api_agent_detail
 
 
 @pytest.fixture(autouse=True)
@@ -23,7 +23,7 @@ def _owner_caller(monkeypatch):
     its own enumerate-the-invariant coverage in
     test_agents_endpoints_owner_auth.py."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
@@ -43,11 +43,11 @@ def _patch_request(name: str, body: dict):
 
 @pytest.mark.asyncio
 async def test_patch_explicit_model_freezes(tmp_path):
-    cfg = tmp_path / "kirocrew.json"
-    cfg.write_text(json.dumps({"name": "kirocrew", "model": "claude-old", "model_managed": True}))
-    request = _patch_request("kirocrew", {"model": "claude-new"})
+    cfg = tmp_path / "junction.json"
+    cfg.write_text(json.dumps({"name": "junction", "model": "claude-old", "model_managed": True}))
+    request = _patch_request("junction", {"model": "claude-new"})
 
-    with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path):
+    with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path):
         resp = await api_agent_detail(request)
 
     assert resp.status == 200
@@ -55,25 +55,25 @@ async def test_patch_explicit_model_freezes(tmp_path):
     assert data["model"] == "claude-new"
     # Spec stays schema-clean; managed-state goes to the sidecar.
     assert "model_managed" not in data
-    assert agent_state.get_model_managed("kirocrew") is False
+    assert agent_state.get_model_managed("junction") is False
 
 
 @pytest.mark.asyncio
 async def test_patch_clear_model_resumes_tracking(tmp_path):
-    cfg = tmp_path / "kirocrew.json"
+    cfg = tmp_path / "junction.json"
     cfg.write_text(
-        json.dumps({"name": "kirocrew", "model": "claude-pinned", "model_managed": False})
+        json.dumps({"name": "junction", "model": "claude-pinned", "model_managed": False})
     )
-    request = _patch_request("kirocrew", {"model": ""})
+    request = _patch_request("junction", {"model": ""})
 
-    with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path):
+    with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path):
         resp = await api_agent_detail(request)
 
     assert resp.status == 200
     data = json.loads(cfg.read_text(encoding="utf-8"))
     assert "model" not in data
     assert "model_managed" not in data
-    assert agent_state.get_model_managed("kirocrew") is True
+    assert agent_state.get_model_managed("junction") is True
 
 
 @pytest.mark.asyncio
@@ -86,18 +86,18 @@ async def test_patch_without_model_lifts_stale_bookkeeping_keys(tmp_path):
     other three writers (PUT, migrate_agent_specs, _refresh_dynamic_fields) do.
     Routing through ``agent_state.lift_and_strip_bookkeeping`` closes that gap.
     """
-    cfg = tmp_path / "kirocrew.json"
+    cfg = tmp_path / "junction.json"
     cfg.write_text(
-        json.dumps({"name": "kirocrew", "model_managed": False, "cc_model": "claude-sonnet-4.6"})
+        json.dumps({"name": "junction", "model_managed": False, "cc_model": "claude-sonnet-4.6"})
     )
-    request = _patch_request("kirocrew", {})
+    request = _patch_request("junction", {})
 
-    with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path):
+    with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path):
         resp = await api_agent_detail(request)
 
     assert resp.status == 200
     data = json.loads(cfg.read_text(encoding="utf-8"))
     assert "model_managed" not in data
     assert "cc_model" not in data
-    assert agent_state.get_model_managed("kirocrew") is False
-    assert agent_state.get_cc_model("kirocrew") == "claude-sonnet-4.6"
+    assert agent_state.get_model_managed("junction") is False
+    assert agent_state.get_cc_model("junction") == "claude-sonnet-4.6"

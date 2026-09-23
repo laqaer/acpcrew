@@ -52,7 +52,7 @@ Verified at `c4f253891` on 2026-08-22.
 
 ### 2.1 Strong lifecycle invariants exist, but they are concentrated
 
-`SubagentManager` begins at `src/kiro_crew/subagent.py:1344` and the module is
+`SubagentManager` begins at `src/junction/subagent.py:1344` and the module is
 6,415 lines. Its constructor owns process execution, approval callbacks,
 in-memory run/task registries, the admission queue, batch accounting, terminal
 report tasks, follow-up watchers, conversation retention, and the periodic
@@ -72,7 +72,7 @@ across one very broad class and tested mostly through its private surface.
 ### 2.2 Persistence records evidence, not a canonical execution ledger
 
 Every run currently gets a folder containing `state.json`, `result.txt`, and,
-when terminal, `tombstone.json` (`src/kiro_crew/subagent_persistence.py:1-7`).
+when terminal, `tombstone.json` (`src/junction/subagent_persistence.py:1-7`).
 Folder creation writes a running snapshot (`subagent_persistence.py:88-125`),
 updates rewrite that JSON (`132-147`), output appends to `result.txt`
 (`153-163`), and terminal classification writes a tombstone
@@ -95,12 +95,12 @@ not a transactional command, execution, and delivery ledger.
 ### 2.3 The submission boundary has an uncertainty seam
 
 The `spawn_run` MCP tool submits wave members through separate HTTP requests
-(`src/kiro_crew/mcp_tools/spawn.py:484-598`). A response can fail after the
+(`src/junction/mcp_tools/spawn.py:484-598`). A response can fail after the
 gateway accepted the request, so the caller and gateway maintain extra
 submission accounting and lost-submission reconciliation. The manager exposes
 `record_lost_submission()` and a stuck-wave reaper
 (`subagent.py:4504-4600`), while the dashboard handler reconciles the roster
-against accepted IDs (`src/kiro_crew/dashboard/handlers/messaging.py:90-202`).
+against accepted IDs (`src/junction/dashboard/handlers/messaging.py:90-202`).
 
 The existing preassigned run ID is an important foundation: `spawn()` assigns
 identity before every exit path and preserves it through queueing

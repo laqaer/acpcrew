@@ -11,7 +11,7 @@ import pytest
 
 from conftest import requires_symlinks
 
-SCRIPTS_DIR = Path(__file__).parent.parent / "src" / "kiro_crew" / "deploy" / "skills" / "artifact-deploy" / "scripts"
+SCRIPTS_DIR = Path(__file__).parent.parent / "src" / "junction" / "deploy" / "skills" / "artifact-deploy" / "scripts"
 
 
 def _load_script(name: str):
@@ -60,9 +60,9 @@ class TestAttachBackendTOCTOU:
 
     @requires_symlinks
     def test_safe_read_file_rejects_symlink_atomically(self, tmp_path: Path):
-        """When kiro_crew.hooks.safe_read_file is importable, a symlink is
+        """When junction.hooks.safe_read_file is importable, a symlink is
         rejected atomically (no TOCTOU window)."""
-        from kiro_crew.hooks import safe_read_file
+        from junction.hooks import safe_read_file
 
         real = tmp_path / "target"
         real.write_text("secret_value")

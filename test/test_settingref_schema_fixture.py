@@ -8,7 +8,7 @@ SCHEMA_REGISTRY — catching typos or backend renames that would make a
 SettingRef chip inert at runtime.
 
 ENV-KEY drift guard: ensures every env var name in settingref-env-vars.json
-actually appears as a literal string in the backend source (src/kiro_crew/).
+actually appears as a literal string in the backend source (src/junction/).
 A typo'd call-site var would fail vitest (not in fixture); a stale fixture
 entry would fail this pytest (not in source).
 
@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.config.schema import SCHEMA_REGISTRY
+from junction.config.schema import SCHEMA_REGISTRY
 
 FIXTURE_PATH = (
     Path(__file__).resolve().parent.parent
@@ -54,7 +54,7 @@ SETTINGS_REGISTRY_PATH = (
     / "settingsRegistry.gen.ts"
 )
 
-BACKEND_SRC_ROOT = Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+BACKEND_SRC_ROOT = Path(__file__).resolve().parent.parent / "src" / "junction"
 
 CONFIG_KEY_RE = re.compile(r'"configKey"\s*:\s*"([^"]+)"')
 
@@ -127,7 +127,7 @@ class TestSettingsRegistryGenConfigKeyDrift:
 
 
 def _scan_backend_source_for_literal(name: str) -> bool:
-    """Recursively search src/kiro_crew/**/*.py for the literal env var name."""
+    """Recursively search src/junction/**/*.py for the literal env var name."""
     for dirpath, _dirs, files in os.walk(BACKEND_SRC_ROOT):
         for fname in files:
             if not fname.endswith(".py"):
@@ -161,6 +161,6 @@ class TestSettingRefEnvVarsDrift:
         ]
         assert not missing, (
             f"settingref-env-vars.json lists env vars not found in "
-            f"src/kiro_crew/**/*.py: {missing}. Either the var was removed "
+            f"src/junction/**/*.py: {missing}. Either the var was removed "
             f"from the backend (remove from fixture) or it has a typo."
         )

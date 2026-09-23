@@ -1,4 +1,4 @@
-"""Tests for ``kiro_crew.service.live_target`` — the live-target pointer.
+"""Tests for ``junction.service.live_target`` — the live-target pointer.
 
 Pins the security and correctness properties of the mechanism that decides which
 checkout the gateway executes:
@@ -22,7 +22,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.service.live_target import (
+from junction.service.live_target import (
     _FILENAME,
     EXEC_MARKER,
     InvalidTarget,
@@ -42,7 +42,7 @@ from kiro_crew.service.live_target import (
 def _isolate_pointer(tmp_path, monkeypatch):
     """Route pointer_path() to tmp_path so no test touches the real data home."""
     monkeypatch.setattr(
-        "kiro_crew.config.loader.config_dir", lambda: tmp_path
+        "junction.config.loader.config_dir", lambda: tmp_path
     )
 
 
@@ -50,7 +50,7 @@ def _place_entry_point(checkout: Path, mode: int = 0o755) -> Path:
     """Create the checkout's venv entry point where production looks for it.
 
     Routed through ``target_bin`` so the fixture tracks the platform layout
-    (``.venv/bin/kirocrew`` vs ``.venv/Scripts/kirocrew.exe``) instead of pinning
+    (``.venv/bin/junction`` vs ``.venv/Scripts/junction.exe``) instead of pinning
     one and failing validation everywhere else.
     """
     kcbin = target_bin(checkout)
@@ -64,7 +64,7 @@ def _make_valid_checkout(tmp_path: Path) -> Path:
     """Build a minimal valid checkout tree under tmp_path."""
     checkout = tmp_path / "my-checkout"
     checkout.mkdir()
-    (checkout / "src" / "kiro_crew").mkdir(parents=True)
+    (checkout / "src" / "junction").mkdir(parents=True)
     _place_entry_point(checkout)
     return checkout
 
@@ -108,14 +108,14 @@ class TestValidate:
     def test_rejects_missing_venv_entry_point(self, tmp_path):
         checkout = tmp_path / "co"
         checkout.mkdir()
-        (checkout / "src" / "kiro_crew").mkdir(parents=True)
+        (checkout / "src" / "junction").mkdir(parents=True)
         with pytest.raises(InvalidTarget, match="no .* in its .venv"):
             validate(str(checkout))
 
     def test_rejects_non_executable_entry_point(self, tmp_path):
         checkout = tmp_path / "co"
         checkout.mkdir()
-        (checkout / "src" / "kiro_crew").mkdir(parents=True)
+        (checkout / "src" / "junction").mkdir(parents=True)
         kcbin = _place_entry_point(checkout, mode=0o644)
         if os.access(kcbin, os.X_OK):
             # Windows reports every existing file as executable, so the state
@@ -124,11 +124,11 @@ class TestValidate:
         with pytest.raises(InvalidTarget, match="not executable"):
             validate(str(checkout))
 
-    def test_rejects_directory_lacking_src_kiro_crew(self, tmp_path):
+    def test_rejects_directory_lacking_src_junction(self, tmp_path):
         checkout = tmp_path / "co"
         checkout.mkdir()
         _place_entry_point(checkout)
-        with pytest.raises(InvalidTarget, match="no src/kiro_crew"):
+        with pytest.raises(InvalidTarget, match="no src/junction"):
             validate(str(checkout))
 
     def test_happy_path_resolves_symlink(self, tmp_path):
@@ -302,7 +302,7 @@ class TestWriteTarget:
         zero means no payload byte existed yet. A post-write stat passes on
         the buggy ordering too, so it would not be a regression test.
         """
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         calls: list[tuple[Path, int]] = []
         real_restrict = platform_compat.restrict_to_owner
@@ -311,7 +311,7 @@ class TestWriteTarget:
             calls.append((Path(target), os.stat(target).st_size))
             return real_restrict(target)
 
-        monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", _measuring)
+        monkeypatch.setattr("junction.platform_compat.restrict_to_owner", _measuring)
         checkout = _make_valid_checkout(tmp_path)
         write_target(checkout)
         # Filter to the pointer's directory: the hook is patched process-wide,
@@ -379,7 +379,7 @@ class TestSnapshotRestore:
         input read at every startup, and on a shared data home another local
         account could otherwise redirect it during the write window.
         """
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         calls: list[tuple[Path, int]] = []
         real_restrict = platform_compat.restrict_to_owner
@@ -388,7 +388,7 @@ class TestSnapshotRestore:
             calls.append((Path(target), os.stat(target).st_size))
             return real_restrict(target)
 
-        monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", _measuring)
+        monkeypatch.setattr("junction.platform_compat.restrict_to_owner", _measuring)
         path = pointer_path()
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -405,7 +405,7 @@ class TestSnapshotRestore:
         """Deleting leaves no file, so there is nothing to apply a DACL to."""
         hardened: list = []
         monkeypatch.setattr(
-            "kiro_crew.platform_compat.restrict_to_owner", lambda path: hardened.append(path))
+            "junction.platform_compat.restrict_to_owner", lambda path: hardened.append(path))
         path = pointer_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("anything")
@@ -424,7 +424,7 @@ class TestSnapshotRestore:
         def boom(_path):
             raise OSError(5, "icacls failed")
 
-        monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", boom)
+        monkeypatch.setattr("junction.platform_compat.restrict_to_owner", boom)
         path = pointer_path()
         path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -438,7 +438,7 @@ class TestSnapshotRestore:
         blocker = tmp_path / "not-a-dir"
         blocker.write_text("x")
         monkeypatch.setattr(
-            "kiro_crew.service.live_target.pointer_path",
+            "junction.service.live_target.pointer_path",
             lambda: blocker / "sub" / "file",
         )
         result = restore("some content")
@@ -517,7 +517,7 @@ class TestMaybeReexec:
         resolved = checkout.resolve()
         kcbin = target_bin(resolved)
         # argv[0] must differ from kcbin for the loop guard to pass
-        monkeypatch.setattr(sys, "argv", ["/usr/bin/kirocrew", "gateway", "--port", "5476"])
+        monkeypatch.setattr(sys, "argv", ["/usr/bin/junction", "gateway", "--port", "5476"])
         monkeypatch.delenv(EXEC_MARKER, raising=False)
         monkeypatch.setenv("PATH", "/usr/bin:/bin")
         mock_execve = MagicMock()
@@ -533,7 +533,7 @@ class TestMaybeReexec:
         assert exec_path == str(kcbin)
         assert exec_argv == [str(kcbin), "gateway", "--port", "5476"]
         assert exec_env[EXEC_MARKER] == "1"
-        assert exec_env["KIROCREW_PROJECT_DIR"] == str(resolved)
+        assert exec_env["JUNCTION_PROJECT_DIR"] == str(resolved)
         # Target venv bin is FIRST on PATH
         path_entries = exec_env["PATH"].split(os.pathsep)
         assert path_entries[0] == str(kcbin.parent)
@@ -542,7 +542,7 @@ class TestMaybeReexec:
         """Fail-safe: OSError from execve does not propagate."""
         checkout = _make_valid_checkout(tmp_path)
         write_target(checkout)
-        monkeypatch.setattr(sys, "argv", ["/other/bin/kirocrew", "gateway"])
+        monkeypatch.setattr(sys, "argv", ["/other/bin/junction", "gateway"])
         monkeypatch.delenv(EXEC_MARKER, raising=False)
 
         def raise_oserror(*args, **kwargs):
@@ -559,7 +559,7 @@ class TestMaybeReexec:
         """A cwd we cannot enter is warned, not fatal — the exec still fires."""
         checkout = _make_valid_checkout(tmp_path)
         write_target(checkout)
-        monkeypatch.setattr(sys, "argv", ["/other/bin/kirocrew", "gateway"])
+        monkeypatch.setattr(sys, "argv", ["/other/bin/junction", "gateway"])
         monkeypatch.delenv(EXEC_MARKER, raising=False)
 
         def chdir_fail(path):
@@ -588,11 +588,11 @@ class TestSecurityRatchet:
 
     def test_live_target_json_in_sensitive_home_dirs_both_prefixes(self):
         """live_target.json must be protected under both crew-home prefixes."""
-        from kiro_crew import security
+        from junction import security
 
         dirs = security.sensitive_home_dirs()
         prefixes = security.crew_home_prefixes()
-        # Must be at least .kiro/crew and .kirocrew
+        # Must be at least .kiro/crew and .junction
         assert len(prefixes) >= 2
         for prefix in prefixes:
             expected = f"{prefix}/{_FILENAME}"

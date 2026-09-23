@@ -38,12 +38,12 @@ full invariant catalogue and its CI gate are in
 ## Switching backends
 
 ```
-kirocrew config set agent.acp_backend kas   # then: kirocrew restart
-kirocrew config set agent.acp_backend ""     # back to kiro-cli; restart
+junction config set agent.acp_backend kas   # then: junction restart
+junction config set agent.acp_backend ""     # back to kiro-cli; restart
 ```
 
 A config change affects only new sessions; `restart` reaps the prior runtime
-process. `kirocrew doctor` reports the selected backend's readiness.
+process. `junction doctor` reports the selected backend's readiness.
 
 ## Deferred
 

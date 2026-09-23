@@ -24,7 +24,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.dashboard import chat_persistence as cp
+from junction.dashboard import chat_persistence as cp
 
 
 class _Log:
@@ -87,7 +87,7 @@ async def test_close_during_the_read_abandons_rehydration(monkeypatch) -> None:
     read before the click still says open. Rebuilding from that stale snapshot
     would re-create a dismissed tab and then fire a nudge turn into it.
     """
-    from kiro_crew.dashboard import channel_slots
+    from junction.dashboard import channel_slots
 
     log = _Log({"title": "Babysit PR"}, [{"role": "user", "content": "hi"}])
     state = _state(log)
@@ -118,7 +118,7 @@ async def test_a_close_predating_the_read_does_not_block(monkeypatch) -> None:
     """
     import time as _time
 
-    from kiro_crew.dashboard import channel_slots
+    from junction.dashboard import channel_slots
 
     log = _Log({"title": "Reopened"}, [{"role": "user", "content": "hi"}])
     state = _state(log)

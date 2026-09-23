@@ -11,7 +11,7 @@ that contract directly against the helper.
 
 import pytest
 
-from kiro_crew.dashboard.handlers._shared import _MAX_BODY_BYTES, read_bounded_json
+from junction.dashboard.handlers._shared import _MAX_BODY_BYTES, read_bounded_json
 
 
 class _FakeContent:

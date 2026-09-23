@@ -13,11 +13,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.acp import runtime as runtime_mod
-from kiro_crew.acp.kas_assets import build_kas_argv
-from kiro_crew.acp.kas_auth import KasAuthCallbackError
-from kiro_crew.acp.runtime import AcpRuntime
-from kiro_crew.acp.types import ACP_BACKEND_KAS, ACP_BACKEND_KIRO
+from junction.acp import runtime as runtime_mod
+from junction.acp.kas_assets import build_kas_argv
+from junction.acp.kas_auth import KasAuthCallbackError
+from junction.acp.runtime import AcpRuntime
+from junction.acp.types import ACP_BACKEND_KAS, ACP_BACKEND_KIRO
 
 _FAKE_TOKEN = "aoaAbc123." + "X" * 200
 _RESULT = {"accessToken": _FAKE_TOKEN, "expiresAt": "2026-08-14T00:12:59Z"}

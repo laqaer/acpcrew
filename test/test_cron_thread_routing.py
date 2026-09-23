@@ -11,14 +11,14 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.cron import CronJob, CronSchedule
-from kiro_crew.subagent import SubagentInfo
+from junction.cron import CronJob, CronSchedule
+from junction.subagent import SubagentInfo
 
 # ── Helpers (same pattern as test_cron_slack_delivery.py) ──
 
 
 def _make_gateway():
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     gateway = GatewayOrchestrator.__new__(GatewayOrchestrator)
     gateway.sessions = MagicMock()
@@ -68,8 +68,8 @@ def _run_callback(gateway, job, stream_result="done"):
     async def fake_stream(client, msg, **kwargs):
         return stream_result
 
-    with patch("kiro_crew.slack.gateway.stream_and_collect", fake_stream), patch(
-        "kiro_crew.slack.gateway.CronService"
+    with patch("junction.slack.gateway.stream_and_collect", fake_stream), patch(
+        "junction.slack.gateway.CronService"
     ) as mock_cron_cls:
 
         def capture_cron(on_job=None, **kw):
@@ -93,7 +93,7 @@ def _capture_subagent_done(gateway):
     """Init subagents on the gateway and return the captured _subagent_done."""
     captured_done = None
 
-    with patch("kiro_crew.slack.gateway.SubagentManager") as mock_mgr_cls:
+    with patch("junction.slack.gateway.SubagentManager") as mock_mgr_cls:
 
         def capture_manager(**kw):
             nonlocal captured_done
@@ -154,10 +154,10 @@ class TestSubagentDoneCronRouting:
         info.result = "analysis complete"
         info.done = True
         with (
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
             patch(
-                "kiro_crew.slack.gateway.stream_and_collect",
+                "junction.slack.gateway.stream_and_collect",
                 new_callable=AsyncMock,
                 return_value="injected",
             ),
@@ -179,10 +179,10 @@ class TestSubagentDoneCronRouting:
         info.result = "all good"
         info.done = True
         with (
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
             patch(
-                "kiro_crew.slack.gateway.stream_and_collect",
+                "junction.slack.gateway.stream_and_collect",
                 new_callable=AsyncMock,
                 return_value="done",
             ),
@@ -204,8 +204,8 @@ class TestSubagentDoneCronRouting:
         info.result = "done"
         info.done = True
         with (
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
         ):
             # Should not raise
             await subagent_done(info)
@@ -214,7 +214,7 @@ class TestSubagentDoneCronRouting:
     @pytest.mark.asyncio
     async def test_retries_on_acp_error(self) -> None:
         """stream_and_collect retries on AcpError then succeeds."""
-        from kiro_crew.acp.client import AcpError
+        from junction.acp.client import AcpError
 
         gateway = _make_gateway()
         subagent_done = _capture_subagent_done(gateway)
@@ -232,9 +232,9 @@ class TestSubagentDoneCronRouting:
             return "recovered"
 
         with (
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.stream_and_collect", side_effect=flaky_stream),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.stream_and_collect", side_effect=flaky_stream),
             patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
         ):
             await subagent_done(info)
@@ -253,8 +253,8 @@ class TestSubagentDoneCancelsBeforeRelease:
 
     def _patches(self):
         return (
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
         )
 
     @pytest.mark.asyncio
@@ -269,7 +269,7 @@ class TestSubagentDoneCancelsBeforeRelease:
         info.done = True
         p1, p2 = self._patches()
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", new_callable=AsyncMock, return_value="ok"),
+            patch("junction.slack.gateway.stream_and_collect", new_callable=AsyncMock, return_value="ok"),
             p1, p2,
         ):
             await subagent_done(info)
@@ -289,11 +289,11 @@ class TestSubagentDoneCancelsBeforeRelease:
         info.done = True
         p1, p2 = self._patches()
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", new_callable=AsyncMock, return_value="ok"),
+            patch("junction.slack.gateway.stream_and_collect", new_callable=AsyncMock, return_value="ok"),
             # gateway renders through the shared Slack pipeline now, so this is
             # the one seam to stub -- patching to_slack_mrkdwn/split_message
             # individually no longer intercepts anything.
-            patch("kiro_crew.slack.gateway.render_for_slack", return_value=["ok"]),
+            patch("junction.slack.gateway.render_for_slack", return_value=["ok"]),
             p1, p2,
         ):
             await subagent_done(info)
@@ -310,7 +310,7 @@ class TestSubagentDoneCancelsBeforeRelease:
         info.done = True
         p1, p2 = self._patches()
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", new_callable=AsyncMock, return_value="ok"),
+            patch("junction.slack.gateway.stream_and_collect", new_callable=AsyncMock, return_value="ok"),
             p1, p2,
         ):
             await subagent_done(info)
@@ -325,8 +325,8 @@ class TestDashboardInjectionRoutesRunChat:
 
     def _patches(self):
         return (
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", side_effect=lambda s: (s, False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", side_effect=lambda s: (s, False)),
+            patch("junction.slack.gateway.redact_exfiltration_urls", side_effect=lambda s: (s, False)),
+            patch("junction.slack.gateway.redact_credentials", side_effect=lambda s: (s, False)),
         )
 
     @pytest.mark.asyncio
@@ -345,7 +345,7 @@ class TestDashboardInjectionRoutesRunChat:
         info.done = True
         p1, p2 = self._patches()
         with (
-            patch("kiro_crew.slack.gateway._run_chat", new_callable=AsyncMock),
+            patch("junction.slack.gateway._run_chat", new_callable=AsyncMock),
             p1, p2,
         ):
             await subagent_done(info)
@@ -389,7 +389,7 @@ class TestDashboardInjectionRoutesRunChat:
         p1, p2 = self._patches()
         _mock_run_chat = AsyncMock(return_value=None)
         with (
-            patch("kiro_crew.slack.gateway._run_chat", _mock_run_chat),
+            patch("junction.slack.gateway._run_chat", _mock_run_chat),
             p1, p2,
         ):
             await subagent_done(info)
@@ -416,7 +416,7 @@ class TestDashboardInjectionRoutesRunChat:
         info.done = True
         p1, p2 = self._patches()
         with (
-            patch("kiro_crew.slack.gateway.INJECTION_TIMEOUT", 0.01),
+            patch("junction.slack.gateway.INJECTION_TIMEOUT", 0.01),
             p1, p2,
         ):
             await subagent_done(info)
@@ -442,7 +442,7 @@ class TestDashboardInjectionRoutesRunChat:
         _mock_run_chat = AsyncMock(side_effect=RuntimeError("provider crashed"))
         p1, p2 = self._patches()
         with (
-            patch("kiro_crew.slack.gateway._run_chat", _mock_run_chat),
+            patch("junction.slack.gateway._run_chat", _mock_run_chat),
             p1, p2,
         ):
             await subagent_done(info)
@@ -469,7 +469,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="cron output")
             mock_inject.assert_called_once_with(
@@ -483,7 +483,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=False)
         job = _make_job(persistent_session=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="cron output")
             mock_inject.assert_called_once_with(
@@ -497,7 +497,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=False)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="cron output")
             mock_inject.assert_not_called()
@@ -511,13 +511,13 @@ class TestCronCallbackDashboardChat:
         # Simulate dedup: set last_posted_hash to match result
         job.last_posted_hash = ""  # first run posts normally
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             # First run — normal path
             _run_callback(gateway, job, stream_result="same result")
             first_call_count = mock_inject.call_count
             # Set up dedup state for second run
-            from kiro_crew.slack.gateway import _result_hash
+            from junction.slack.gateway import _result_hash
 
             job.last_posted_hash = _result_hash("same result")
             job.last_posted_at = 9999999999.0  # far future so reminder doesn't trigger
@@ -531,7 +531,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=True, silent=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="silent output")
             mock_inject.assert_called_once_with(
@@ -544,7 +544,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=False)
         job = _make_job(persistent_session=True, silent=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="silent output")
             mock_inject.assert_not_called()
@@ -559,7 +559,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=False)
         job = _make_job(persistent_session=True, hide_in_chat=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="hidden output")
             mock_inject.assert_not_called()
@@ -572,7 +572,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=False)
         job = _make_job(persistent_session=True, hide_in_chat=False)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="shown output")
             mock_inject.assert_called_once_with(
@@ -588,7 +588,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=True, hide_in_chat=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="hidden output")
             mock_inject.assert_not_called()
@@ -600,7 +600,7 @@ class TestCronCallbackDashboardChat:
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=True, silent=True, hide_in_chat=True)
         with patch(
-            "kiro_crew.slack.gateway.inject_cron_result_to_dashboard"
+            "junction.slack.gateway.inject_cron_result_to_dashboard"
         ) as mock_inject:
             _run_callback(gateway, job, stream_result="silent hidden output")
             mock_inject.assert_not_called()
@@ -625,7 +625,7 @@ class TestCronCallbackDashboardChat:
         gateway = _make_gateway()
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=True, hide_in_chat=True)
-        with patch("kiro_crew.slack.gateway.inject_cron_result_to_dashboard"):
+        with patch("junction.slack.gateway.inject_cron_result_to_dashboard"):
             _run_callback(gateway, job, stream_result="hidden output")
         meta = self._result_notify_meta(gateway.dashboard_state.notify)
         assert "slot" not in meta
@@ -636,7 +636,7 @@ class TestCronCallbackDashboardChat:
         gateway = _make_gateway()
         gateway.dashboard_state.has_slot = MagicMock(return_value=True)
         job = _make_job(persistent_session=True, hide_in_chat=False)
-        with patch("kiro_crew.slack.gateway.inject_cron_result_to_dashboard"):
+        with patch("junction.slack.gateway.inject_cron_result_to_dashboard"):
             _run_callback(gateway, job, stream_result="shown output")
         meta = self._result_notify_meta(gateway.dashboard_state.notify)
         assert meta.get("slot") == "cron-j1"

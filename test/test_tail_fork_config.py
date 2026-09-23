@@ -9,31 +9,31 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.config.loader import KiroCrewConfig
+from junction.config.loader import JunctionConfig
 
 
 @pytest.fixture()
 def cfg_file(tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    with patch("kiro_crew.config.loader.config_path", return_value=p):
+    with patch("junction.config.loader.config_path", return_value=p):
         yield p
 
 
 def test_tail_fork_enabled_default_false():
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     assert cfg.dashboard.tail_fork_enabled is False
 
 
 def test_tail_fork_save_load(cfg_file):
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.dashboard.tail_fork_enabled = True
     cfg.save()
 
     raw = json.loads(cfg_file.read_text(encoding="utf-8"))
     assert raw["dashboard"]["tail_fork_enabled"] is True
 
-    cfg2 = KiroCrewConfig.load()
+    cfg2 = JunctionConfig.load()
     assert cfg2.dashboard.tail_fork_enabled is True
 
 
@@ -42,25 +42,25 @@ def test_tail_fork_load_from_existing(cfg_file):
         json.dumps({"dashboard": {"tail_fork_enabled": True}}),
         encoding="utf-8",
     )
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     assert cfg.dashboard.tail_fork_enabled is True
 
 
 @pytest.fixture()
 def mock_sel():
     try:
-        import kiro_crew.dashboard.handlers  # noqa: F401
+        import junction.dashboard.handlers  # noqa: F401
     except ImportError:
         pytest.skip("dashboard handler deps not available locally")
     m = MagicMock()
     m.log_tool_invocation = MagicMock()
-    with patch("kiro_crew.dashboard.handlers.sel", return_value=m):
+    with patch("junction.dashboard.handlers.sel", return_value=m):
         yield m
 
 
 @pytest.fixture()
 def handler_app(cfg_file, mock_sel):
-    from kiro_crew.dashboard.handlers.files import api_dashboard_config
+    from junction.dashboard.handlers.files import api_dashboard_config
     app = web.Application()
     app.router.add_put("/api/dashboard/config", api_dashboard_config)
     app.router.add_get("/api/dashboard/config", api_dashboard_config)
@@ -75,7 +75,7 @@ async def test_handler_put_tail_fork_persists(handler_app, cfg_file):
             json={"tail_fork_enabled": True},
         )
         assert resp.status == 200
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.tail_fork_enabled is True
 
 
@@ -122,6 +122,6 @@ async def test_handler_put_ignores_deprecated_head_handling_key(handler_app, cfg
             json={"tail_fork_enabled": True, "tail_fork_head_handling": "summarize"},
         )
         assert resp.status == 200
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.tail_fork_enabled is True
         assert not hasattr(cfg.dashboard, "tail_fork_head_handling")

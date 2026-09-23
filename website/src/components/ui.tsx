@@ -185,7 +185,7 @@ export function Badge({ variant, children, className, ...rest }: { variant: 'ok'
 export function SourceBadge({ source }: { source: string }) {
   const cls =
     source === 'package' ? 'bg-aim-subtle text-aim border-aim/30'
-    : source === 'kirocrew' ? 'bg-bg-elevated text-muted border-border'
+    : source === 'junction' ? 'bg-bg-elevated text-muted border-border'
     : source === 'project' ? 'text-ok border-ok/30'
     : 'bg-bg-elevated text-muted border-border'
   return <span className={`px-1.5 py-[2px] rounded-full text-[11px] font-bold border shrink-0 ${cls}`}>{source}</span>

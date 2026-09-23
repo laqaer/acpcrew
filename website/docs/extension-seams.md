@@ -47,7 +47,7 @@ than `register*` precisely so a call site cannot be misread as a contribution.
 
 `src/extensions.ts` is **core-owned** and imported first in `main.tsx`, before the
 store, the providers, and `App`, so all registration runs before render. Its whole
-body is one side-effect import of the `virtual:kirocrew-edition` module plus
+body is one side-effect import of the `virtual:junction-edition` module plus
 `export {}`. `extensionSeams.test.tsx` strips comments and asserts exactly that
 body, so a core registration added here fails a test rather than quietly ending
 the stock build's no-op property. Core registrations belong in the seed maps
@@ -55,41 +55,41 @@ the stock build's no-op property. Core registrations belong in the seed maps
 
 `editionExtensionPlugin` in `vite.config.ts` resolves the virtual module to:
 
-- an **inert empty module** in the stock OSS build (`KIROCREW_EDITION_DIR` unset),
+- an **inert empty module** in the stock OSS build (`JUNCTION_EDITION_DIR` unset),
   so the stock build registers nothing and is byte-identical to having no seam;
-- the **edition's own** `$KIROCREW_EDITION_DIR/extensions.tsx` (or `.ts`) when that
+- the **edition's own** `$JUNCTION_EDITION_DIR/extensions.tsx` (or `.ts`) when that
   env var points at an edition repo, so the edition injects its `register*()`
   calls and component imports by build config, compiled through the same
   vite/rollup pass, without shadowing or overlaying any core file. That
   copy-and-shadow erosion is what the seams exist to eliminate.
 
-Resolution is eager, so a misconfigured `KIROCREW_EDITION_DIR` (set but with no
+Resolution is eager, so a misconfigured `JUNCTION_EDITION_DIR` (set but with no
 `extensions.tsx`/`.ts` inside) **fails the build loudly** instead of silently
 degrading to the stock SPA, which would ship an edition build with none of its
 edition behavior.
 
 ## Edition-build safety: fail-closed opt-in
 
-Edition composition needs **two** env vars, not one. `KIROCREW_EDITION_DIR` alone
-throws: the plugin also requires `KIROCREW_ALLOW_EDITION=1`.
+Edition composition needs **two** env vars, not one. `JUNCTION_EDITION_DIR` alone
+throws: the plugin also requires `JUNCTION_ALLOW_EDITION=1`.
 
 Why the opt-in exists in this direction: an edition build compiles that edition's
 proprietary sources into `website/dist`, and that `dist` is staged into the public
 OSS wheel. A published release cannot be unpublished, so contamination is a
 one-way door. With the opt-in as the gate, every pipeline (release, publish, and
 the backend `setup.py` to `build-frontend.sh` path) is protected **by default**: a
-stray or inherited `KIROCREW_EDITION_DIR` fails the build instead of silently
+stray or inherited `JUNCTION_EDITION_DIR` fails the build instead of silently
 compiling edition sources into a public artifact. Only the edition's own build
 script sets the opt-in. Forgetting it fails safe (stock), and there is no guard
 variable a release job must remember to set. Never set
-`KIROCREW_ALLOW_EDITION=1` in a release or publish job.
+`JUNCTION_ALLOW_EDITION=1` in a release or publish job.
 
 An edition-mode build also prints a loud self-identifying warning naming the
 resolved composition root, so the mode is unmissable in local and CI logs.
 
 ## The RUNTIME rebuild threads the seam too
 
-`POST /api/update`, `kirocrew update`, and the gateway's auto-apply all shell
+`POST /api/update`, `junction update`, and the gateway's auto-apply all shell
 `npm run build` and stage the result over the served `static/dist`. Vite reads the
 composition root from the environment, so what those rebuilds pass decides **which
 edition gets built** — and both ways of getting it wrong are silent:
@@ -98,7 +98,7 @@ dropping the vars compiles the **stock** SPA over an edition dashboard — the b
 succeeds, so nothing raises; the dashboard just becomes upstream's.
 
 `frontend._edition_build_env()` forwards the pair, and **reads the opt-in rather
-than synthesizing it**: forcing `KIROCREW_ALLOW_EDITION=1` would defeat the
+than synthesizing it**: forcing `JUNCTION_ALLOW_EDITION=1` would defeat the
 fail-closed gate above precisely when it should fire, quietly turning an
 edition dir left in a gateway's environment into edition-composed *packaged* data.
 So an edition dir without the operator's own opt-in returns `None` and the
@@ -142,7 +142,7 @@ the dev server, which keeps serving the stock `public/` files — the branded
 manifest/icons appear in `dist`), and `branding.json` is read eagerly at config
 load, so the dev server needs a restart after editing it.
 
-Both inputs are inert when absent, and the stock build (no `KIROCREW_EDITION_DIR`)
+Both inputs are inert when absent, and the stock build (no `JUNCTION_EDITION_DIR`)
 is byte-identical to a build without this seam.
 
 **Replacing `icon-512.png` obliges you to replace the served logo too.** The
@@ -234,7 +234,7 @@ will never run it for you:
 
 ```jsonc
 {
-  "extends": "../KiroCrew/website/tsconfig.app.json",
+  "extends": "../Junction/website/tsconfig.app.json",
   "compilerOptions": {
     "noEmit": true,
     // Without vite/client, every `import.meta.env` the edition touches

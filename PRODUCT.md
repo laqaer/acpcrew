@@ -31,7 +31,7 @@ Two planes, one product. See [`ARCHITECTURE.md`](ARCHITECTURE.md).
    Harness, Goose, Grok, Pi, Droid. Pin a concrete id when you want one
    agent. A vendor agent CLI remains selectable and last in that preference list.
 2. **Model plane** — an optional Codex Router sidecar on loopback. Junction
-   observes it (`src/kiro_crew/model_router/`). The shipped catalog lists
+   observes it (`src/junction/model_router/`). The shipped catalog lists
    every namespaced model choice the sidecar advertises. Role routing
    (orchestration → planning → execution) spends cheaper models on
    coordination and capable models on planning. If the sidecar is down, the
@@ -75,11 +75,11 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 ## Implementation identifiers
 
 Python import path, data-home env, and default data directory keep the
-spellings the runtime already uses (`kiro_crew`, `KIROCREW_HOME`,
+spellings the runtime already uses (`junction`, `JUNCTION_HOME`,
 `~/.kiro/crew`) until a dedicated, human-gated rename. They are not the
 product name. GitHub slug: `laqaer/junction`. Site: https://getjunction.dev
 
-The brand gate still forbids concatenated `KiroCrew` in **new prose**.
+The brand gate still forbids concatenated `Junction` in **new prose**.
 Junction is the product.
 
 ## Authority

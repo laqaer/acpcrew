@@ -86,7 +86,7 @@ const LOCAL_BUILTIN = {
   installedAt: '2026-07-01T00:00:00Z', origin: 'builtin', resources: 'gateway', lifecycle: 'locked',
   manifest: {
     name: 'meetings', version: '1.0.0', displayName: 'Meetings',
-    description: 'Local manifest copy.', author: 'kirocrew',
+    description: 'Local manifest copy.', author: 'junction',
     // Local taxonomy and NO artwork: the catalog row below carries different
     // tags and a content-addressed icon, so which source won is observable.
     tags: ['productivity'],

@@ -2,13 +2,13 @@
  * `isWaitToolTitle` — the transport-shaped name match behind the wait countdown.
  *
  * The three title forms asserted first are not hypothetical: the direct MCP path
- * sends `wait`, the pooled gateway namespaces it `kirocrew-core___wait`, and one
+ * sends `wait`, the pooled gateway namespaces it `junction-core___wait`, and one
  * path appends a suffix (`wait (mcp)`). The `toolName === 'wait'` comparison this
  * replaced matched only the bare form, so on the other two transports the
  * countdown silently never appeared — which reads as "the feature is broken on my
  * machine" rather than as a name mismatch.
  *
- * Frontend mirror of `src/kiro_crew/acp/liveness.py::is_wait_tool`. The two have
+ * Frontend mirror of `src/junction/acp/liveness.py::is_wait_tool`. The two have
  * to agree on every form here: the backend uses its copy to decide the session is
  * alive (and to keep minting `wait_state`), and this one decides whether anything
  * renders. A form only one side matches is a countdown that never shows for a
@@ -20,7 +20,7 @@ import { isWaitToolTitle } from '../utils/waitToolTitle'
 describe('isWaitToolTitle', () => {
   it('matches every transport shape of the wait tool title', () => {
     expect(isWaitToolTitle('wait')).toBe(true) // direct MCP
-    expect(isWaitToolTitle('kirocrew-core___wait')).toBe(true) // pooled gateway
+    expect(isWaitToolTitle('junction-core___wait')).toBe(true) // pooled gateway
     expect(isWaitToolTitle('wait (mcp)')).toBe(true) // suffixed
   })
 
@@ -28,7 +28,7 @@ describe('isWaitToolTitle', () => {
     expect(isWaitToolTitle('WAIT')).toBe(true)
     expect(isWaitToolTitle('Wait')).toBe(true)
     expect(isWaitToolTitle(' wait ')).toBe(true)
-    expect(isWaitToolTitle('\tKiroCrew-Core___Wait\n')).toBe(true)
+    expect(isWaitToolTitle('\tJunction-Core___Wait\n')).toBe(true)
   })
 
   it('rejects titles that merely contain the letters', () => {
@@ -68,7 +68,7 @@ describe('isWaitToolTitle', () => {
 
   it('accepts a namespace prefix and an mcp suffix together', () => {
     // The two decorations are independent, so the combination has to hold too.
-    expect(isWaitToolTitle('kirocrew-core___wait (mcp)')).toBe(true)
+    expect(isWaitToolTitle('junction-core___wait (mcp)')).toBe(true)
     expect(isWaitToolTitle('some.server_1___wait')).toBe(true)
   })
 

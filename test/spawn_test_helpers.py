@@ -1,6 +1,6 @@
 """Helpers for tests that assert on a spawn's argv.
 
-Resource limits are applied AFTER ``exec`` by ``kiro_crew._spawn_exec_shim``, so
+Resource limits are applied AFTER ``exec`` by ``junction._spawn_exec_shim``, so
 every spawn routed through ``sandbox.create_subprocess_limited`` carries an argv
 prefix (``<python> -I -S -c <shim source> [options] --``) ahead of the real
 command. Tests that care about the command itself use :func:`strip_spawn_shim`

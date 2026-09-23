@@ -18,7 +18,7 @@ export default function McpInfoButton({ agent }: { agent?: string }) {
       // Tool Search mode: when on, MCP tool specs are deferred (search-and-call)
       // so servers show connected but their tools load only when used. Refetched
       // on every open, so it's always fresh (no stale cache to invalidate).
-      api.kirocrewConfig()
+      api.junctionConfig()
         .then((c: { agent?: { tool_search?: boolean } }) => setToolSearchOn(c?.agent?.tool_search ?? true))
         .catch(() => {})
     }
@@ -71,9 +71,9 @@ export default function McpInfoButton({ agent }: { agent?: string }) {
             </div>
           ))}
           <div className="mt-2 pt-2 border-t border-border text-[11px] text-muted leading-snug">
-            {agent && agent !== 'kirocrew'
+            {agent && agent !== 'junction'
               ? i18nT('pages.chat.mcpInfoButton.agent_loads_only_its_own_mcp_servers', { name: agent })
-              : 'kirocrew loads all configured MCP servers — manage from Overview → MCP tab.'}
+              : 'junction loads all configured MCP servers — manage from Overview → MCP tab.'}
           </div>
         </div>,
         document.body

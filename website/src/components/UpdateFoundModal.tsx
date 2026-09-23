@@ -117,7 +117,7 @@ export default function UpdateFoundModal() {
   const { data: record, isSuccess: recordLoaded } = useQuery<UpdateNudgeRecord>({
     queryKey: ['mc-config-update-nudge'],
     queryFn: async () => {
-      const cfg = await api.kirocrewConfig() as { dashboard?: { update_nudge?: UpdateNudgeRecord } }
+      const cfg = await api.junctionConfig() as { dashboard?: { update_nudge?: UpdateNudgeRecord } }
       return cfg?.dashboard?.update_nudge ?? {}
     },
     enabled: !!candidate,

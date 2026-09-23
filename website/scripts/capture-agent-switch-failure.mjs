@@ -42,10 +42,10 @@ const extra = async (path, route) => {
   if (path === '/api/agents') {
     await json(route, {
       agents: [
-        { name: 'kirocrew', description: 'Default crew agent' },
+        { name: 'junction', description: 'Default crew agent' },
         { name: 'reviewer', description: 'Reviews diffs against the repo conventions' },
       ],
-      default: 'kirocrew',
+      default: 'junction',
     })
     return true
   }
@@ -53,7 +53,7 @@ const extra = async (path, route) => {
 }
 
 await stubDashboardApi(page, {
-  slots: [{ key: SLOT, messages: 0, running: false, agent: 'kirocrew', mode: '' }],
+  slots: [{ key: SLOT, messages: 0, running: false, agent: 'junction', mode: '' }],
   extra,
 })
 // Pin the locale: without it the SPA picks one from the environment and the

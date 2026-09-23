@@ -34,9 +34,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.acp.client import AcpError, AcpPromptBusy
-from kiro_crew.acp.session_handle import AcpSessionHandle
-from kiro_crew.acp.types import JsonRpcMessage
+from junction.acp.client import AcpError, AcpPromptBusy
+from junction.acp.session_handle import AcpSessionHandle
+from junction.acp.types import JsonRpcMessage
 
 # The exact frame from the reported transcript, minus the request id value.
 _MODEL_UNAVAILABLE = {
@@ -231,7 +231,7 @@ class TestNamelessCapacityWording:
         A phrase echo in the JSON-RPC ``message`` alone must not reclassify an
         otherwise-terminal error as transient.
         """
-        from kiro_crew.acp.client import _is_transient_raw_error
+        from junction.acp.client import _is_transient_raw_error
 
         echo_only = {
             "code": -32603,
@@ -242,7 +242,7 @@ class TestNamelessCapacityWording:
 
     def test_typographic_apostrophe_still_matches(self):
         """Providers flip between straight and curly quotes; both must match."""
-        from kiro_crew.acp.client import _is_transient_raw_error
+        from junction.acp.client import _is_transient_raw_error
 
         curly = dict(_MODEL_TEMP_UNAVAILABLE, data="The model you\u2019ve selected is temporarily unavailable.")
         assert _is_transient_raw_error(curly) is True
@@ -253,7 +253,7 @@ class TestNamelessCapacityWording:
         The string-fallback path (``_TRANSIENT_MARKERS``) must recognise it so
         history-restored messages keep their retry verdict.
         """
-        from kiro_crew.llm_helpers import is_transient_backend_error
+        from junction.llm_helpers import is_transient_backend_error
 
         assert is_transient_backend_error(str(_MODEL_TEMP_UNAVAILABLE["data"]))
 
@@ -269,13 +269,13 @@ class TestRunnerPromptBusyIsStructural:
         structural isinstance branch (not the resurrected substring) is what
         keeps the reset-and-requeue path alive.
         """
-        from kiro_crew.acp.client import _format_acp_error
+        from junction.acp.client import _format_acp_error
 
         assert "already in progress" not in _format_acp_error(_PROMPT_BUSY)
 
     def test_runner_gate_matches_typed_exception(self):
         """The runner's own predicate, evaluated on a formatted AcpPromptBusy."""
-        from kiro_crew.acp.client import _format_acp_error
+        from junction.acp.client import _format_acp_error
 
         exc = AcpPromptBusy(_format_acp_error(_PROMPT_BUSY))
         _msg = str(exc)
@@ -317,8 +317,8 @@ class TestTransientMarkerCoupling:
         ],
     )
     def test_formatted_transient_still_classifies(self, error):
-        from kiro_crew.acp.client import _format_acp_error
-        from kiro_crew.llm_helpers import is_transient_backend_error
+        from junction.acp.client import _format_acp_error
+        from junction.llm_helpers import is_transient_backend_error
 
         assert is_transient_backend_error(_format_acp_error(error))
 
@@ -328,8 +328,8 @@ class TestTransientMarkerCoupling:
         A marker that caught the unentitled text would resurrect the pointless
         retry loop #1550 removed, via the string-fallback path.
         """
-        from kiro_crew.acp.client import _format_acp_error
-        from kiro_crew.llm_helpers import is_transient_backend_error
+        from junction.acp.client import _format_acp_error
+        from junction.llm_helpers import is_transient_backend_error
 
         formatted = _format_acp_error(_MODEL_UNAVAILABLE, ["claude-sonnet-4-5"])
         assert "does not have access" in formatted

@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.knowledge.autosource import (
+from junction.knowledge.autosource import (
     DEFAULT_DROP_DIRNAME,
     DROP_SOURCE_NAME,
     auto_source_still_contained,
@@ -20,11 +20,11 @@ from kiro_crew.knowledge.autosource import (
     ensure_drop_source,
     resolve_drop_folder,
 )
-from kiro_crew.knowledge.store import KnowledgeStore
-from kiro_crew.knowledge.watcher import KnowledgeWatcher
+from junction.knowledge.store import KnowledgeStore
+from junction.knowledge.watcher import KnowledgeWatcher
 
-_AUTOSOURCE = "kiro_crew.knowledge.autosource"
-_WATCHER = "kiro_crew.knowledge.watcher"
+_AUTOSOURCE = "junction.knowledge.autosource"
+_WATCHER = "junction.knowledge.watcher"
 
 
 @pytest.fixture()
@@ -383,7 +383,7 @@ class TestWatcherDiscovery:
     @pytest.mark.asyncio
     async def test_flag_off_registers_nothing(self, store, tmp_path):
         (tmp_path / DEFAULT_DROP_DIRNAME).mkdir()
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", return_value=_cfg(enabled=False)), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", return_value=_cfg(enabled=False)), \
                 patch(f"{_WATCHER}.default_project_dir", return_value=str(tmp_path)):
             await _watcher(store)._discover_drop_folder()
         assert _sources(store) == []
@@ -391,7 +391,7 @@ class TestWatcherDiscovery:
     @pytest.mark.asyncio
     async def test_registers_existing_folder(self, store, tmp_path):
         (tmp_path / DEFAULT_DROP_DIRNAME).mkdir()
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", return_value=_cfg()), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", return_value=_cfg()), \
                 patch(f"{_WATCHER}.default_project_dir", return_value=str(tmp_path)):
             await _watcher(store)._discover_drop_folder()
         assert len(_sources(store)) == 1
@@ -400,7 +400,7 @@ class TestWatcherDiscovery:
     async def test_folder_created_later_is_picked_up_on_a_later_sweep(self, store, tmp_path):
         """The point of recurring discovery: no restart needed."""
         w = _watcher(store)
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", return_value=_cfg()), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", return_value=_cfg()), \
                 patch(f"{_WATCHER}.default_project_dir", return_value=str(tmp_path)):
             await w._discover_drop_folder()
             assert _sources(store) == []          # sweep 1: folder absent
@@ -412,7 +412,7 @@ class TestWatcherDiscovery:
     async def test_repeated_sweeps_do_not_duplicate(self, store, tmp_path):
         (tmp_path / DEFAULT_DROP_DIRNAME).mkdir()
         w = _watcher(store)
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", return_value=_cfg()), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", return_value=_cfg()), \
                 patch(f"{_WATCHER}.default_project_dir", return_value=str(tmp_path)):
             for _ in range(4):
                 await w._discover_drop_folder()
@@ -420,7 +420,7 @@ class TestWatcherDiscovery:
 
     @pytest.mark.asyncio
     async def test_no_workspace_dir_is_a_no_op(self, store):
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", return_value=_cfg()), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", return_value=_cfg()), \
                 patch(f"{_WATCHER}.default_project_dir", return_value=""):
             await _watcher(store)._discover_drop_folder()
         assert _sources(store) == []
@@ -428,7 +428,7 @@ class TestWatcherDiscovery:
     @pytest.mark.asyncio
     async def test_blank_dirname_falls_back_to_default(self, store, tmp_path):
         (tmp_path / DEFAULT_DROP_DIRNAME).mkdir()
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", return_value=_cfg(dirname="")), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", return_value=_cfg(dirname="")), \
                 patch(f"{_WATCHER}.default_project_dir", return_value=str(tmp_path)):
             await _watcher(store)._discover_drop_folder()
         assert len(_sources(store)) == 1
@@ -445,7 +445,7 @@ class TestWatcherDiscovery:
         w = _watcher(store)
         w._folder_watcher = MagicMock()
         w._folder_watcher.scan_source = AsyncMock(return_value={})
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", side_effect=RuntimeError("boom")):
+        with patch(f"{_WATCHER}.JunctionConfig.load", side_effect=RuntimeError("boom")):
             await w._scan()
         # Discovery raised, but the pre-existing source was still scanned.
         w._folder_watcher.scan_source.assert_awaited_once()
@@ -453,7 +453,7 @@ class TestWatcherDiscovery:
     @pytest.mark.asyncio
     async def test_repeated_identical_failures_log_once(self, store):
         w = _watcher(store)
-        with patch(f"{_WATCHER}.KiroCrewConfig.load", side_effect=RuntimeError("boom")), \
+        with patch(f"{_WATCHER}.JunctionConfig.load", side_effect=RuntimeError("boom")), \
                 patch(f"{_WATCHER}.logger") as log:
             await w._discover_drop_folder()
             await w._discover_drop_folder()
@@ -647,7 +647,7 @@ class TestConfigContract:
     def test_module_default_matches_config_default(self):
         from dataclasses import fields
 
-        from kiro_crew.config.loader import KnowledgeConfig
+        from junction.config.loader import KnowledgeConfig
 
         field = next(f for f in fields(KnowledgeConfig) if f.name == "auto_discover_dirname")
         assert field.default == DEFAULT_DROP_DIRNAME
@@ -655,7 +655,7 @@ class TestConfigContract:
     def test_discovery_is_off_by_default(self):
         from dataclasses import fields
 
-        from kiro_crew.config.loader import KnowledgeConfig
+        from junction.config.loader import KnowledgeConfig
 
         field = next(f for f in fields(KnowledgeConfig) if f.name == "auto_discover_folder")
         assert field.default is False

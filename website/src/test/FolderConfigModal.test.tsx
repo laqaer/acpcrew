@@ -14,7 +14,7 @@ vi.mock('../api/client', () => ({
 const folder = (id: string, extra: Partial<ChatFolder> = {}): ChatFolder =>
   ({ id, name: id, order: 0, ...extra }) as ChatFolder
 
-const AGENTS = [{ name: 'kirocrew' }, { name: 'kirocrew-dev' }]
+const AGENTS = [{ name: 'junction' }, { name: 'junction-dev' }]
 
 function open(props: Partial<React.ComponentProps<typeof FolderConfigModal>> = {}) {
   const onSubmit = vi.fn().mockResolvedValue(undefined)
@@ -152,7 +152,7 @@ describe('FolderConfigModal', () => {
     // ...and it is a real row in the popup, flagged, so the user can see why it
     // is not running. Ordered right after the inherit/None row, where its
     // <option> used to sit.
-    expect(await openAgents()).toEqual(['None', 'retired-agent (not installed)', 'kirocrew', 'kirocrew-dev'])
+    expect(await openAgents()).toEqual(['None', 'retired-agent (not installed)', 'junction', 'junction-dev'])
     // Escape dismisses the popup alone; the modal beneath must survive it.
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('option')).toBeNull())
@@ -161,13 +161,13 @@ describe('FolderConfigModal', () => {
   })
 
   it('does not flag an installed agent as uninstalled', async () => {
-    const f = folder('f1', { name: 'Payments', default_agent: 'kirocrew-dev' })
+    const f = folder('f1', { name: 'Payments', default_agent: 'junction-dev' })
     open({ mode: 'edit', folder: f, folders: [f] })
-    expect(agentTrigger()).toHaveTextContent('kirocrew-dev')
+    expect(agentTrigger()).toHaveTextContent('junction-dev')
     // Open the popup before the negative assertion: the rows only exist while
     // it is up, so asserting the absence of the flag on a closed picker would
     // pass vacuously.
-    expect(await openAgents()).toEqual(['None', 'kirocrew', 'kirocrew-dev'])
+    expect(await openAgents()).toEqual(['None', 'junction', 'junction-dev'])
     expect(screen.queryByText(/not installed/i)).toBeNull()
   })
 
@@ -176,15 +176,15 @@ describe('FolderConfigModal', () => {
     // '' for "no selection". '' is a real instruction here — it restores the
     // fall-back to the global default — so it has to survive the round trip
     // rather than arriving as the sentinel or as undefined.
-    const f = folder('f1', { name: 'Payments', default_agent: 'kirocrew-dev' })
-    const { onSubmit } = open({ mode: 'edit', folder: f, folders: [f], globalDefaultAgent: 'kirocrew' })
+    const f = folder('f1', { name: 'Payments', default_agent: 'junction-dev' })
+    const { onSubmit } = open({ mode: 'edit', folder: f, folders: [f], globalDefaultAgent: 'junction' })
     // With a global default the top row names it, so the user can see what
     // "inherit" actually resolves to.
-    expect(await openAgents()).toEqual(['Inherit (kirocrew)', 'kirocrew', 'kirocrew-dev'])
+    expect(await openAgents()).toEqual(['Inherit (junction)', 'junction', 'junction-dev'])
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('option')).toBeNull())
-    await pickAgent('Inherit (kirocrew)')
-    expect(agentTrigger()).toHaveTextContent('Inherit (kirocrew)')
+    await pickAgent('Inherit (junction)')
+    expect(agentTrigger()).toHaveTextContent('Inherit (junction)')
     fireEvent.click(screen.getByTestId('folder-config-submit'))
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       defaultAgent: '', touched: ['defaultAgent'],
@@ -408,7 +408,7 @@ describe('FolderConfigModal', () => {
           installedAgents={AGENTS} onClose={vi.fn()} onSubmit={onSubmit} />
       )
       fireEvent.change(screen.getByTestId('folder-config-project-dir'), { target: { value: '/repo/new' } })
-      await pickAgent('kirocrew-dev')
+      await pickAgent('junction-dev')
       fireEvent.click(screen.getByTestId('folder-config-submit'))
       await waitFor(() => expect(onSubmit).toHaveBeenCalled())
       const t = onSubmit.mock.calls[0][0].touched
@@ -479,14 +479,14 @@ describe('FolderConfigModal', () => {
 
   describe('edit mode', () => {
     const existing = folder('f1', {
-      name: 'Payments', project_dir: '/repo/pay', default_agent: 'kirocrew-dev',
+      name: 'Payments', project_dir: '/repo/pay', default_agent: 'junction-dev',
     })
 
     it('prefills every field from the folder', () => {
       open({ mode: 'edit', folder: existing, folders: [existing], parentId: undefined })
       expect((screen.getByTestId('folder-config-name') as HTMLInputElement).value).toBe('Payments')
       expect((screen.getByTestId('folder-config-project-dir') as HTMLInputElement).value).toBe('/repo/pay')
-      expect(agentTrigger()).toHaveTextContent('kirocrew-dev')
+      expect(agentTrigger()).toHaveTextContent('junction-dev')
     })
 
     it('reset clears the color back to default', () => {

@@ -21,10 +21,10 @@ model, no credentials, no network, no cost.
 `E2eTestCommand.run()` builds the child pytest invocation itself, so the
 environment is not something a caller has to remember:
 
-- `KIROCREW_E2E=1` lifts the `skipif` on both files. Neither runs in a bare
+- `JUNCTION_E2E=1` lifts the `skipif` on both files. Neither runs in a bare
   `pytest` invocation, which is deliberate: the browser leg takes minutes per
   interpreter, far too slow for the per-commit gate.
-- `KIROCREW_STRICT_ON_LOOP_PERSIST=1` turns the on-loop session-JSONL persistence
+- `JUNCTION_STRICT_ON_LOOP_PERSIST=1` turns the on-loop session-JSONL persistence
   discipline into an enforced invariant for the duration of the run. The harness
   gateway inherits this env, so any raw on-loop `ConversationLog._locked` entry
   that skipped the `*_off_loop` helpers raises `OnLoopPersistError` and fails the
@@ -53,7 +53,7 @@ order:
    Node >= 18 binary. Node resolution deliberately skips mise shims: a shim is
    cwd-sensitive and the website dir often pins an older Node, so the test scans
    real installs and prepends the winning bin dir to `PATH` for the child.
-2. Points `KIROCREW_KIRO_BIN` at `kiro_crew.testing.fake_acp_backend`. That is
+2. Points `JUNCTION_KIRO_BIN` at `junction.testing.fake_acp_backend`. That is
    the env var `kiro_cli.py` reads to override the agent binary, so the harness
    gateway spawns the fake instead of a real `kiro-cli`. The fake speaks the
    minimal ACP subset the client drives (`initialize`, `session/new`,
@@ -62,17 +62,17 @@ order:
    `[[GATED]]`, `[[SLOW]]`, `[[SLOW_NOACK]]`, `[[ERROR]]`), which is what makes
    agent-driven specs deterministic offline.
 3. Boots a real gateway with `spawn_feature_gateway(fixture="minimal",
-   approval="reads")`, on an isolated temporary `KIROCREW_HOME` seeded
+   approval="reads")`, on an isolated temporary `JUNCTION_HOME` seeded
    atomically with gateway startup.
 4. Exports the harness env into the Playwright child: `PLAYWRIGHT_BASE_URL`
    (the gateway's port), `PLAYWRIGHT_TOKEN`, `PLAYWRIGHT_RUN_AGENT_SPECS=1`,
-   `KIROCREW_E2E_EPHEMERAL=1`, `CI=1`, and `PLAYWRIGHT_JSON_OUTPUT_NAME`.
+   `JUNCTION_E2E_EPHEMERAL=1`, `CI=1`, and `PLAYWRIGHT_JSON_OUTPUT_NAME`.
 5. Runs `playwright test --reporter=html,json` with `cwd=website`. A CLI
    `--reporter` replaces the config value, so both are named: `html` keeps the CI
    artifact the config asks for, `json` supplies the machine-readable counts the
    darkening floor below reads.
 
-`KIROCREW_KIRO_BIN` is restored (or removed) in a `finally` block, so the test
+`JUNCTION_KIRO_BIN` is restored (or removed) in a `finally` block, so the test
 cannot leak a fake backend into a later test in the same interpreter.
 
 ### The gateway must already be running: `webServer` is not configured
@@ -114,7 +114,7 @@ When no token is supplied the setup project still writes an empty storage state,
 because `storageState` must resolve to an existing file or every spec fails with
 ENOENT.
 
-## `KIROCREW_E2E_REQUIRE=1`: why a graceful skip needs a marker
+## `JUNCTION_E2E_REQUIRE=1`: why a graceful skip needs a marker
 
 The environment the browser leg needs (an in-tree `website/`, its installed
 Playwright CLI, a Node >= 18) is not present in a python-only checkout. So
@@ -122,11 +122,11 @@ Playwright CLI, a Node >= 18) is not present in a python-only checkout. So
 
 - **Marker unset** (ad-hoc local or dev run): `pytest.skip`. A contributor
   without the frontend toolchain installed still gets a useful smoke run.
-- **`KIROCREW_E2E_REQUIRE` set** (the CI gate): `pytest.fail`. A skip counts as
+- **`JUNCTION_E2E_REQUIRE` set** (the CI gate): `pytest.fail`. A skip counts as
   a pass, so without this the required gate would go green having run **zero**
   browser specs, which is exactly the dead-suite drift the fold exists to catch.
 
-`.github/workflows/ci.yml`'s `e2e` job sets `KIROCREW_E2E_REQUIRE: "1"`. Set it
+`.github/workflows/ci.yml`'s `e2e` job sets `JUNCTION_E2E_REQUIRE: "1"`. Set it
 on any job you expect to actually exercise the browser.
 
 ## The darkening floor
@@ -157,7 +157,7 @@ silent darkening is no guard.
 
 `ci.yml`'s `e2e` job (`E2E (stub ACP backend, offline)`) installs the backend
 with `--group dev`, runs `npm ci` and `npm run build` in `website/`, stages
-`website/dist` into `src/kiro_crew/static/dist` so the specs render the real
+`website/dist` into `src/junction/static/dist` so the specs render the real
 bundled dashboard rather than a 404, installs Chromium, runs the i18n render-time
 gate (which reuses that Chromium install), and finally runs `python setup.py
 test_e2e`.

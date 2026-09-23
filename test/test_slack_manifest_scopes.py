@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import yaml
 
-from kiro_crew import slack_manifest
+from junction import slack_manifest
 
 
 def _manifest() -> dict:

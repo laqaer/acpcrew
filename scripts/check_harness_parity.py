@@ -37,7 +37,7 @@ count is still printed as a non-failing report so the backlog stays visible.
     python3 scripts/check_harness_parity.py
 
     # scan explicit files, ignoring git entirely
-    python3 scripts/check_harness_parity.py src/kiro_crew/acp/runtime.py
+    python3 scripts/check_harness_parity.py src/junction/acp/runtime.py
 
     # self-test: plant one probe per rule, assert each verdict
     python3 scripts/check_harness_parity.py --test
@@ -62,7 +62,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Only the backend package and its consumers can hold a harness identity test.
 # Widening this to the whole tree buys nothing and costs a scan of 6,000 files.
-SCAN_ROOTS = ("src/kiro_crew/",)
+SCAN_ROOTS = ("src/junction/",)
 SCAN_SUFFIX = ".py"
 
 # This gate and its test spell every forbidden form out literally, and
@@ -75,7 +75,7 @@ SKIP_PATHS = frozenset(
 )
 
 # The one module allowed to DEFINE harness identifiers and membership sets.
-VOCABULARY_PATH = "src/kiro_crew/acp/types.py"
+VOCABULARY_PATH = "src/junction/acp/types.py"
 
 SUPPRESSION = re.compile(r"harness-ok")
 
@@ -348,116 +348,116 @@ def added_lines(frm: str, path: str) -> set[int]:
 PROBES: tuple[tuple[str, str, str, str | None], ...] = (
     (
         "negative-property",
-        "src/kiro_crew/providers/acp.py",
+        "src/junction/providers/acp.py",
         "        return not self.is_claude_backend",
         "negative-identity",
     ),
     (
         "negative-private",
-        "src/kiro_crew/acp/client.py",
+        "src/junction/acp/client.py",
         "        if not self._is_claude:",
         "negative-identity",
     ),
     (
         "negative-module-helper",
-        "src/kiro_crew/session.py",
+        "src/junction/session.py",
         "    if not provider.is_kas_backend:",
         "negative-identity",
     ),
     (
         "negative-constant",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "        if self._acp_backend != ACP_BACKEND_KAS:",
         "negative-constant",
     ),
     (
         "negative-constant-reversed",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "        if ACP_BACKEND_KAS != self._acp_backend:",
         "negative-constant",
     ),
     (
         "bare-literal",
-        "src/kiro_crew/session.py",
+        "src/junction/session.py",
         '    return backend == "claude"',
         "bare-literal",
     ),
     (
         "sandbox-delegation",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "            is_kiro_cli=self._acp_backend != ACP_BACKEND_KAS,",
         "sandbox-delegation",
     ),
     (
         "sandbox-delegation-negation",
-        "src/kiro_crew/acp/client.py",
+        "src/junction/acp/client.py",
         "            is_kiro_cli=not self._is_claude,",
         "negative-identity",
     ),
     (
         "sandbox-delegation-negation-also-flags-the-flag",
-        "src/kiro_crew/acp/client.py",
+        "src/junction/acp/client.py",
         "            is_kiro_cli=not self._is_claude,",
         "sandbox-delegation",
     ),
     (
         "hash-inside-string-does-not-truncate",
-        "src/kiro_crew/acp/client.py",
+        "src/junction/acp/client.py",
         '        if sep == "#" and not self._is_claude:',
         "negative-identity",
     ),
     (
         "vocabulary-elsewhere",
-        "src/kiro_crew/providers/acp.py",
+        "src/junction/providers/acp.py",
         'ACP_BACKEND_BYO = "byo"',
         "vocabulary-home",
     ),
     (
         "membership-set-elsewhere",
-        "src/kiro_crew/subagent.py",
+        "src/junction/subagent.py",
         "ACP_BACKENDS_FAST = frozenset({ACP_BACKEND_KIRO})",
         "vocabulary-home",
     ),
     (
         "non-kiro-default",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "        acp_backend: str = ACP_BACKEND_KAS,",
         "non-kiro-default",
     ),
     (
         "non-kiro-field-default",
-        "src/kiro_crew/config/loader.py",
+        "src/junction/config/loader.py",
         "        default=ACP_BACKEND_CLAUDE,",
         "non-kiro-default",
     ),
     # ── allowed forms: each must produce NO hit ──
     (
         "positive-property",
-        "src/kiro_crew/providers/acp.py",
+        "src/junction/providers/acp.py",
         "        return self.is_kiro_backend",
         None,
     ),
     (
         "positive-membership",
-        "src/kiro_crew/providers/acp.py",
+        "src/junction/providers/acp.py",
         "        return self._client.backend in ACP_BACKENDS_SESSION_SHARING",
         None,
     ),
     (
         "positive-constant",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "        if self._acp_backend == ACP_BACKEND_KAS:",
         None,
     ),
     (
         "sandbox-membership",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "            is_kiro_cli=self._acp_backend in ACP_BACKENDS_INTERNAL_SANDBOX,",
         None,
     ),
     (
         "sandbox-literal",
-        "src/kiro_crew/dashboard/handlers/agents.py",
+        "src/junction/dashboard/handlers/agents.py",
         "    return wrap_argv(argv, mode=configured_sandbox_mode(), is_kiro_cli=True)",
         None,
     ),
@@ -469,37 +469,37 @@ PROBES: tuple[tuple[str, str, str, str | None], ...] = (
     ),
     (
         "kiro-default",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "        acp_backend: str = ACP_BACKEND_KIRO,",
         None,
     ),
     (
         "unrelated-backend-word",
-        "src/kiro_crew/sandbox.py",
+        "src/junction/sandbox.py",
         '    if backend == "namespace":',
         None,
     ),
     (
         "comment-naming-the-form",
-        "src/kiro_crew/acp/client.py",
+        "src/junction/acp/client.py",
         "        # never write `not self._is_claude` here",
         None,
     ),
     (
         "docstring-prose-naming-the-form",
-        "src/kiro_crew/providers/acp.py",
+        "src/junction/providers/acp.py",
         "        inferring it from ``not is_claude_backend`` — an inference that",
         None,
     ),
     (
         "trailing-comment-naming-the-form",
-        "src/kiro_crew/acp/runtime.py",
+        "src/junction/acp/runtime.py",
         "        flag = True  # not self._is_claude, historically",
         None,
     ),
     (
         "suppressed",
-        "src/kiro_crew/acp/client.py",
+        "src/junction/acp/client.py",
         "        x = not self._is_claude  # harness-ok: dormant seam, see H5",
         None,
     ),

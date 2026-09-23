@@ -1,4 +1,4 @@
-"""Tests for ``kiro_crew.loop_lock.LoopBoundLock`` and its CI guard (#4800).
+"""Tests for ``junction.loop_lock.LoopBoundLock`` and its CI guard (#4800).
 
 The defect class: a module-global ``asyncio.Lock`` binds to the event loop it
 is first used on, and acquiring it from a *different* loop raises
@@ -19,7 +19,7 @@ import threading
 
 import pytest
 
-from kiro_crew.loop_lock import LoopBoundLock
+from junction.loop_lock import LoopBoundLock
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUARD = os.path.join(REPO_ROOT, "scripts", "check_loop_bound_locks.py")
@@ -119,7 +119,7 @@ def test_concurrent_loops_emit_one_warning(caplog) -> None:
 
         asyncio.run(_work())
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.loop_lock"):
+    with caplog.at_level(logging.WARNING, logger="junction.loop_lock"):
         threads = [threading.Thread(target=_loop_worker) for _ in range(2)]
         for t in threads:
             t.start()
@@ -137,7 +137,7 @@ def test_sequential_loops_do_not_warn(caplog) -> None:
     import logging
 
     lock = LoopBoundLock()
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.loop_lock"):
+    with caplog.at_level(logging.WARNING, logger="junction.loop_lock"):
         _contended_use(lock)
         _contended_use(lock)
     assert not [r for r in caplog.records if "second live event loop" in r.getMessage()]
@@ -233,8 +233,8 @@ async def test_loop_bound_lock_release_before_acquire_raises() -> None:
 
 def test_converted_module_globals_are_loop_bound() -> None:
     """Spot-check converted declaration sites: the globals are LoopBoundLock."""
-    from kiro_crew import tips
-    from kiro_crew.mcp_gateway import evaluate
+    from junction import tips
+    from junction.mcp_gateway import evaluate
 
     assert isinstance(tips._tips_init_lock, LoopBoundLock)
     assert isinstance(evaluate._PASS_LOCK, LoopBoundLock)
@@ -244,7 +244,7 @@ def test_converted_registries_hand_out_loop_bound_locks() -> None:
     """The registry form (#4800 review finding): dict-cached locks created
     inside coroutines are handed across loops on a repeated key, so the five
     known registries must store LoopBoundLock values."""
-    from kiro_crew.dashboard.handlers import worktree
+    from junction.dashboard.handlers import worktree
 
     async def _get():
         return worktree._repo_lock("probe-root")
@@ -286,7 +286,7 @@ def test_guard_self_test_passes(tmp_path) -> None:
 
 
 def test_guard_tree_is_clean(tmp_path) -> None:
-    """The real run over src/kiro_crew finds nothing — the declaration-form
+    """The real run over src/junction finds nothing — the declaration-form
     conversion is total."""
     proc = subprocess.run(
         [sys.executable, GUARD],
@@ -314,7 +314,7 @@ def test_guard_accepts_the_remedy(tmp_path) -> None:
     guard = _load_guard()
     ok = tmp_path / "ok.py"
     ok.write_text(
-        "from kiro_crew.loop_lock import LoopBoundLock\n_L = LoopBoundLock()\n",
+        "from junction.loop_lock import LoopBoundLock\n_L = LoopBoundLock()\n",
         encoding="utf-8",
     )
     assert guard.scan_file(str(ok)) == []

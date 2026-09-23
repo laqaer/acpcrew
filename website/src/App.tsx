@@ -80,7 +80,7 @@ import RemoteArtifactDetailPage from './pages/RemoteArtifactDetailPage'
 import ArtifactDeployPage from './pages/ArtifactDeployPage'
 import SettingsPage from './pages/SettingsPage'
 import EmbedSettingsPage from './pages/EmbedSettingsPage'
-import KiroCrewNavBridge from './components/KiroCrewNavBridge'
+import JunctionNavBridge from './components/JunctionNavBridge'
 import InstanceTabBar from './components/InstanceTabBar'
 import InstancesViewport from './components/InstancesViewport'
 import EmbeddedHostBridge from './components/EmbeddedHostBridge'
@@ -258,7 +258,7 @@ function readMetricsFrame(raw: SysMetricsFrame) {
 // discarded twice the difference between the two clusters.
 
 // Apps-nav fetch resilience (see refreshAppNav). The dashboard loads
-// `/api/apps` once on mount; right after a `kirocrew update` the gateway is
+// `/api/apps` once on mount; right after a `junction update` the gateway is
 // mid-restart (cold backend, apps-dir scan) and that first request can fail or
 // time out. Retry with bounded backoff so the Apps rail self-heals instead of
 // staying empty until a manual reload or an app enable/disable.
@@ -340,7 +340,7 @@ function UpdateOverlay({ onCancel }: { onCancel: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/80 backdrop-blur-sm animate-rise">
       <div className="bg-card border border-border rounded-xl p-8 max-w-md w-full mx-4 shadow-xl text-center">
         <div className="text-4xl mb-4 animate-pulse">{info?.icon || <RefreshCw className="lucide-inline" />}</div>
-        <div className="text-lg font-bold text-text-strong mb-2">{i18nT('app.updating_kirocrew')}</div>
+        <div className="text-lg font-bold text-text-strong mb-2">{i18nT('app.updating_junction')}</div>
         <div className="text-sm text-muted mb-5">{detail || i18nT('app.starting_update')}</div>
         {/* Step progress */}
         <div className="flex flex-col gap-2 text-left mb-5">
@@ -951,7 +951,7 @@ export default function App() {
   // Track whether the session-expired auth banner is currently injected by
   // api/client.ts. When auth is the real reason the gateway is unreachable,
   // the red top-banner already tells the user what to do (paste a fresh
-  // `kirocrew token` URL) -- showing the loud pulsing "Offline" pill on top
+  // `junction token` URL) -- showing the loud pulsing "Offline" pill on top
   // of that just stacks two banners arguing about the same root cause. So
   // when authRequired is true, we suppress the offline pill in the top bar;
   // auth banner is the single canonical signal. `isAuthBannerShown()` seeds
@@ -1553,7 +1553,7 @@ export default function App() {
       .catch(() => {
         if (gen !== appNavGenRef.current) return
         // A transient failure (e.g. the gateway mid-restart right after a
-        // `kirocrew update`, or the cold apps-dir scan) used to be swallowed
+        // `junction update`, or the cold apps-dir scan) used to be swallowed
         // here, leaving the Apps rail empty until a manual reload or an app
         // enable/disable. Retry with bounded exponential backoff so it
         // self-heals. The reconnect effect below covers the WS-drop case.
@@ -1590,7 +1590,7 @@ export default function App() {
     return () => window.removeEventListener('mc:apps-changed', handler)
   }, [refreshAppNav, queryClient])
   // Refetch the Apps nav when the gateway connection is *re*-established after a
-  // drop — e.g. a `kirocrew update` restart disconnects then reconnects the
+  // drop — e.g. a `junction update` restart disconnects then reconnects the
   // WebSocket. Only fires on a connected→disconnected→connected cycle, NOT the
   // initial connect (the mount fetch already covers that), so a normal load
   // never double-fetches.
@@ -2240,7 +2240,7 @@ export default function App() {
       </Routes>
     ) : isEmbed ? (
       <div className="h-screen supports-[height:100dvh]:h-dvh w-screen overflow-hidden bg-bg flex flex-col">
-        <KiroCrewNavBridge />
+        <JunctionNavBridge />
         <EmbedTabStrip />
         <div className="flex-1 min-h-0">
           <Routes>
@@ -2649,7 +2649,7 @@ export default function App() {
                 <span className={dskValid ? metricColor(dskPct) : 'text-muted'}>{i18nT('app.dsk')} {dskValid ? fmtPercent(dskPct) : '\u2014'}</span>
               </span>)
             }
-            // Usage segment — Kiro credit plan from KiroCrew's own usage
+            // Usage segment — Kiro credit plan from Junction's own usage
             // cache. Spinner while the cache warms, a dash when the fetch
             // failed, hidden when the provider has no credit plan at all.
             if (kiroUsageState !== 'none') {
@@ -3273,7 +3273,7 @@ export default function App() {
                       below never accounts for. Spacing is explicit per child instead. */}
                   <span className="flex items-center shrink-0 text-muted"><GithubIcon size={15} /></span>
                   <div className="rail-community-links flex items-center gap-[5px] flex-1 min-w-0 ml-1.5 text-[12px]">
-                    <a href="https://github.com/laqaer/junction" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_kirocrew_on_github')} aria-label={i18nT('app.star_kirocrew_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
+                    <a href="https://github.com/laqaer/junction" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_junction_on_github')} aria-label={i18nT('app.star_junction_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
                     <span aria-hidden="true" className="shrink-0 opacity-40">·</span>
                     {/* "Report issue" opens the SAME diagnostics flow as Settings ›
                         About › Support rather than linking to the bare issue list.

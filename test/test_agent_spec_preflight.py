@@ -4,7 +4,7 @@ Two invariants for an install whose agent spec never landed on disk: the boot
 install failure is surfaced at ERROR with a remedy and verified against the
 filesystem, and the resulting turn failure names the missing file and the repair
 command instead of dumping a raw
-``{'code': -32603, ..., 'data': "Mode 'kirocrew' not found"}`` frame.
+``{'code': -32603, ..., 'data': "Mode 'junction' not found"}`` frame.
 """
 
 from __future__ import annotations
@@ -18,17 +18,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.runtime import _format_runtime_rpc_error
-from kiro_crew.agent import missing_required_agent_specs
-from kiro_crew.agent_files import (
+from junction.acp.runtime import _format_runtime_rpc_error
+from junction.agent import missing_required_agent_specs
+from junction.agent_files import (
     AGENT_FILENAME,
     KNOWLEDGE_AGENT_FILENAME,
     LITE_AGENT_FILENAME,
     OWNED_KIRO_AGENT_FILES,
     REQUIRED_KIRO_AGENT_FILES,
 )
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.slack.gateway import GatewayOrchestrator
+from junction.config.loader import JunctionConfig
+from junction.slack.gateway import GatewayOrchestrator
 
 
 def _make_orchestrator() -> GatewayOrchestrator:
@@ -37,8 +37,8 @@ def _make_orchestrator() -> GatewayOrchestrator:
     Local rather than imported from test_slack_gateway: ``test/`` is not a
     package, so a cross-module test import is not a supported path here.
     """
-    cfg = KiroCrewConfig()
-    with patch.object(cfg, "load_credentials", return_value={"KIROCREW_OWNER_ID": "U_OWNER"}):
+    cfg = JunctionConfig()
+    with patch.object(cfg, "load_credentials", return_value={"JUNCTION_OWNER_ID": "U_OWNER"}):
         return GatewayOrchestrator(cfg, no_dashboard=True, no_crons=True, no_open=True)
 
 
@@ -73,19 +73,19 @@ class TestMissingRequiredAgentSpecs:
         # first act, so a failure after that leaves a created-but-empty dir.
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", agents_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", agents_dir):
             assert missing_required_agent_specs() == list(REQUIRED_KIRO_AGENT_FILES)
 
     def test_absent_dir_reports_every_required_spec(self, tmp_path):
         # The decline path returns before mkdir, so the dir may not exist at all.
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path / "nope"):
+        with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path / "nope"):
             assert missing_required_agent_specs() == list(REQUIRED_KIRO_AGENT_FILES)
 
     def test_complete_install_reports_nothing(self, tmp_path):
         agents_dir = tmp_path / "agents"
         for name in REQUIRED_KIRO_AGENT_FILES:
             _write_spec(agents_dir, name)
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", agents_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", agents_dir):
             assert missing_required_agent_specs() == []
 
     def test_partial_install_reports_only_the_absent_one(self, tmp_path):
@@ -94,7 +94,7 @@ class TestMissingRequiredAgentSpecs:
         # auto-titles and every other background turn.
         agents_dir = tmp_path / "agents"
         _write_spec(agents_dir, AGENT_FILENAME)
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", agents_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", agents_dir):
             assert missing_required_agent_specs() == [LITE_AGENT_FILENAME]
 
     def test_directory_named_like_a_spec_is_not_a_spec(self, tmp_path):
@@ -102,21 +102,21 @@ class TestMissingRequiredAgentSpecs:
         agents_dir = tmp_path / "agents"
         (agents_dir / AGENT_FILENAME).mkdir(parents=True)
         _write_spec(agents_dir, LITE_AGENT_FILENAME)
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", agents_dir):
+        with patch("junction.agent.KIRO_AGENTS_DIR", agents_dir):
             assert missing_required_agent_specs() == [AGENT_FILENAME]
 
 
 class TestFormatRuntimeRpcError:
     """The awaited-request (handshake) error text users actually read."""
 
-    @pytest.mark.parametrize("agent", ["kirocrew", "kirocrew-lite"])
+    @pytest.mark.parametrize("agent", ["junction", "junction-lite"])
     def test_missing_spec_error_is_actionable(self, agent, tmp_path):
         err = {
             "code": -32603,
             "message": "Internal error",
             "data": f"Mode '{agent}' not found",
         }
-        with patch("kiro_crew.acp.runtime.kiro_agents_dir", return_value=tmp_path):
+        with patch("junction.acp.runtime.kiro_agents_dir", return_value=tmp_path):
             text = _format_runtime_rpc_error(err)
 
         assert f"'{agent}.json'" in text  # names the file that is missing
@@ -165,23 +165,23 @@ class TestGatewayInstallVerification:
     def _run_init_services(orch, *, rebuild):
         """Drive _init_services with every heavy collaborator stubbed out."""
         names = [
-            "kiro_crew.slack.gateway.SkillsLoader",
-            "kiro_crew.slack.gateway.HookManager",
-            "kiro_crew.slack.gateway.LessonStore",
-            "kiro_crew.slack.gateway.ContextBuilder",
-            "kiro_crew.slack.gateway.SessionManager",
-            "kiro_crew.slack.gateway.HistoryConsolidator",
-            "kiro_crew.slack.gateway.ChannelHistory",
+            "junction.slack.gateway.SkillsLoader",
+            "junction.slack.gateway.HookManager",
+            "junction.slack.gateway.LessonStore",
+            "junction.slack.gateway.ContextBuilder",
+            "junction.slack.gateway.SessionManager",
+            "junction.slack.gateway.HistoryConsolidator",
+            "junction.slack.gateway.ChannelHistory",
         ]
         with contextlib.ExitStack() as stack:
             for name in names:
                 stack.enter_context(patch(name))
             for name in ("MemoryStore", "ConversationLog"):
-                mock = stack.enter_context(patch(f"kiro_crew.slack.gateway.{name}"))
+                mock = stack.enter_context(patch(f"junction.slack.gateway.{name}"))
                 mock.return_value = MagicMock()
-            vector = stack.enter_context(patch("kiro_crew.vector_memory.VectorMemoryStore"))
+            vector = stack.enter_context(patch("junction.vector_memory.VectorMemoryStore"))
             vector.return_value = MagicMock()
-            stack.enter_context(patch("kiro_crew.agent.rebuild_agent_config", rebuild))
+            stack.enter_context(patch("junction.agent.rebuild_agent_config", rebuild))
             proc = MagicMock()
             proc.returncode = 0
             proc.communicate = AsyncMock(return_value=(b"kiro-cli 2.16.0", b""))
@@ -193,8 +193,8 @@ class TestGatewayInstallVerification:
     def test_install_exception_logs_error_not_warning(self, tmp_path, caplog, capsys):
         orch = _make_orchestrator()
         boom = MagicMock(side_effect=RuntimeError("no shipped defaults"))
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.slack.gateway"):
-            with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path):
+        with caplog.at_level(logging.ERROR, logger="junction.slack.gateway"):
+            with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path):
                 self._run_init_services(orch, rebuild=boom)
 
         # ERROR, not WARNING: a turn-fatal condition must sit at the threshold
@@ -212,9 +212,9 @@ class TestGatewayInstallVerification:
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         quiet = MagicMock(return_value=agents_dir / AGENT_FILENAME)
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.slack.gateway"):
-            with patch("kiro_crew.agent.KIRO_AGENTS_DIR", agents_dir):
-                with patch("kiro_crew.slack.gateway.kiro_agents_dir", return_value=agents_dir):
+        with caplog.at_level(logging.ERROR, logger="junction.slack.gateway"):
+            with patch("junction.agent.KIRO_AGENTS_DIR", agents_dir):
+                with patch("junction.slack.gateway.kiro_agents_dir", return_value=agents_dir):
                     self._run_init_services(orch, rebuild=quiet)
 
         assert any(
@@ -229,8 +229,8 @@ class TestGatewayInstallVerification:
         for name in REQUIRED_KIRO_AGENT_FILES:
             _write_spec(agents_dir, name)
         ok = MagicMock(return_value=agents_dir / AGENT_FILENAME)
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.slack.gateway"):
-            with patch("kiro_crew.agent.KIRO_AGENTS_DIR", agents_dir):
+        with caplog.at_level(logging.ERROR, logger="junction.slack.gateway"):
+            with patch("junction.agent.KIRO_AGENTS_DIR", agents_dir):
                 self._run_init_services(orch, rebuild=ok)
 
         # Scoped to our own loggers on purpose: the claim is that a healthy
@@ -242,6 +242,6 @@ class TestGatewayInstallVerification:
         assert not [
             r
             for r in caplog.records
-            if r.levelno >= logging.ERROR and r.name.startswith("kiro_crew")
+            if r.levelno >= logging.ERROR and r.name.startswith("junction")
         ]
         assert "ERROR" not in capsys.readouterr().out

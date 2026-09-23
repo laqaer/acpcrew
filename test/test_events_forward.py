@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from kiro_crew.slack.events import (
+from junction.slack.events import (
     _MAX_RECOVERED_TEXT_CHARS,
     _SLACK_BLOCK_FALLBACKS,
     _extract_blocks_text,
@@ -427,7 +427,7 @@ class TestRouteMessageFallbackRecovery:
     async def test_placeholder_text_with_no_recoverable_blocks_drops_message(self):
         """When blocks have no extractable text and text is placeholder, message is dropped
         by the (not text and not files) guard — _route_message returns without dispatching."""
-        from kiro_crew.slack.events import _route_message
+        from junction.slack.events import _route_message
 
         event = {
             "user": "U123",
@@ -446,10 +446,10 @@ class TestRouteMessageFallbackRecovery:
         mock_seen.check = lambda x: False  # SeenCache.check: unseen
         mock_seen.add = lambda x: None  # SeenCache.add: no-op in test
 
-        with patch("kiro_crew.slack.enterprise.check_message_origin", return_value=True), \
-             patch("kiro_crew.slack.events.sel") as mock_sel, \
-             patch("kiro_crew.slack.events.is_allowed_user", return_value=True), \
-             patch("kiro_crew.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
+        with patch("junction.slack.enterprise.check_message_origin", return_value=True), \
+             patch("junction.slack.events.sel") as mock_sel, \
+             patch("junction.slack.events.is_allowed_user", return_value=True), \
+             patch("junction.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
             mock_sel.return_value.log_api_access = lambda **kw: None
             await _route_message(mock_orch, event, mock_seen, is_mention=False)
             # Message should be dropped — handle_message never called
@@ -458,7 +458,7 @@ class TestRouteMessageFallbackRecovery:
     @pytest.mark.asyncio
     async def test_placeholder_text_replaced_by_block_content(self):
         """_route_message passes recovered text (not the placeholder) past the early guard."""
-        from kiro_crew.slack.events import _route_message
+        from junction.slack.events import _route_message
 
         event = {
             "user": "U123",
@@ -498,11 +498,11 @@ class TestRouteMessageFallbackRecovery:
         mock_seen.check = lambda x: False  # SeenCache.check: unseen
         mock_seen.add = lambda x: None  # SeenCache.add: no-op in test
 
-        with patch("kiro_crew.slack.enterprise.check_message_origin", return_value=True), \
-             patch("kiro_crew.slack.events.sel") as mock_sel, \
-             patch("kiro_crew.slack.events.is_allowed_user", return_value=True), \
-             patch("kiro_crew.slack.events.is_owner", return_value=True), \
-             patch("kiro_crew.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
+        with patch("junction.slack.enterprise.check_message_origin", return_value=True), \
+             patch("junction.slack.events.sel") as mock_sel, \
+             patch("junction.slack.events.is_allowed_user", return_value=True), \
+             patch("junction.slack.events.is_owner", return_value=True), \
+             patch("junction.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
             mock_sel.return_value.log_api_access = lambda **kw: None
             await _route_message(mock_orch, event, mock_seen, is_mention=True)
             # handle_message SHOULD be called — text was recovered and is non-empty
@@ -522,10 +522,10 @@ class TestRouteMessageFallbackRecovery:
         import dataclasses
         from unittest.mock import MagicMock
 
-        from kiro_crew.platform import build_default_context
-        from kiro_crew.platform.context import set_context
-        from kiro_crew.platform.interfaces import InterceptDecision
-        from kiro_crew.slack.events import SeenCache, _route_message
+        from junction.platform import build_default_context
+        from junction.platform.context import set_context
+        from junction.platform.interfaces import InterceptDecision
+        from junction.slack.events import SeenCache, _route_message
 
         calls = {"intercept": 0}
 
@@ -566,11 +566,11 @@ class TestRouteMessageFallbackRecovery:
             mock_orch.slack = None
 
             seen = SeenCache()  # REAL cache so the dedup path is exercised
-            with patch("kiro_crew.slack.enterprise.check_message_origin", return_value=True), \
-                 patch("kiro_crew.slack.events.sel") as mock_sel, \
-                 patch("kiro_crew.slack.events.is_allowed_user", return_value=True), \
-                 patch("kiro_crew.slack.events.is_owner", return_value=True), \
-                 patch("kiro_crew.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
+            with patch("junction.slack.enterprise.check_message_origin", return_value=True), \
+                 patch("junction.slack.events.sel") as mock_sel, \
+                 patch("junction.slack.events.is_allowed_user", return_value=True), \
+                 patch("junction.slack.events.is_owner", return_value=True), \
+                 patch("junction.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
                 audits = []
                 mock_sel.return_value.log_api_access = lambda **kw: audits.append(kw)
 
@@ -597,9 +597,9 @@ class TestRouteMessageFallbackRecovery:
         import dataclasses
         from unittest.mock import MagicMock
 
-        from kiro_crew.platform import build_default_context
-        from kiro_crew.platform.context import set_context
-        from kiro_crew.slack.events import SeenCache, _route_message
+        from junction.platform import build_default_context
+        from junction.platform.context import set_context
+        from junction.slack.events import SeenCache, _route_message
 
         class _RaisingGate:
             def validate_enterprise(self, *a, **k):
@@ -636,11 +636,11 @@ class TestRouteMessageFallbackRecovery:
             mock_orch.slack = None
 
             seen = SeenCache()
-            with patch("kiro_crew.slack.enterprise.check_message_origin", return_value=True), \
-                 patch("kiro_crew.slack.events.sel") as mock_sel, \
-                 patch("kiro_crew.slack.events.is_allowed_user", return_value=True), \
-                 patch("kiro_crew.slack.events.is_owner", return_value=True), \
-                 patch("kiro_crew.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
+            with patch("junction.slack.enterprise.check_message_origin", return_value=True), \
+                 patch("junction.slack.events.sel") as mock_sel, \
+                 patch("junction.slack.events.is_allowed_user", return_value=True), \
+                 patch("junction.slack.events.is_owner", return_value=True), \
+                 patch("junction.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
                 audits = []
                 mock_sel.return_value.log_api_access = lambda **kw: audits.append(kw)
 
@@ -664,10 +664,10 @@ class TestRouteMessageFallbackRecovery:
         import dataclasses
         from unittest.mock import MagicMock
 
-        from kiro_crew.platform import build_default_context
-        from kiro_crew.platform.context import set_context
-        from kiro_crew.platform.interfaces import InterceptDecision
-        from kiro_crew.slack.events import SeenCache, _route_message
+        from junction.platform import build_default_context
+        from junction.platform.context import set_context
+        from junction.platform.interfaces import InterceptDecision
+        from junction.slack.events import SeenCache, _route_message
 
         class _DropGate:
             def validate_enterprise(self, *a, **k):
@@ -704,11 +704,11 @@ class TestRouteMessageFallbackRecovery:
             mock_orch.slack = None
 
             seen = SeenCache()
-            with patch("kiro_crew.slack.enterprise.check_message_origin", return_value=True), \
-                 patch("kiro_crew.slack.events.sel") as mock_sel, \
-                 patch("kiro_crew.slack.events.is_allowed_user", return_value=True), \
-                 patch("kiro_crew.slack.events.is_owner", return_value=True), \
-                 patch("kiro_crew.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
+            with patch("junction.slack.enterprise.check_message_origin", return_value=True), \
+                 patch("junction.slack.events.sel") as mock_sel, \
+                 patch("junction.slack.events.is_allowed_user", return_value=True), \
+                 patch("junction.slack.events.is_owner", return_value=True), \
+                 patch("junction.slack.events.handle_message", new_callable=AsyncMock) as mock_handle:
                 audits = []
                 mock_sel.return_value.log_api_access = lambda **kw: audits.append(kw)
 

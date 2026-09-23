@@ -43,8 +43,8 @@ from pathlib import Path
 
 import pytest
 
-import kiro_crew.embeddings as embeddings_mod
-from kiro_crew.embeddings import (
+import junction.embeddings as embeddings_mod
+from junction.embeddings import (
     _LIB_PATH_ENV,
     _LIBS_DIR_NAME,
     _REQUIRED_VENDORED_LIBS,
@@ -53,7 +53,7 @@ from kiro_crew.embeddings import (
 )
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_VENDOR_SRC = _REPO_ROOT / "src" / "kiro_crew" / "_vendor"
+_VENDOR_SRC = _REPO_ROOT / "src" / "junction" / "_vendor"
 _LIBS_SRC = _VENDOR_SRC / _LIBS_DIR_NAME
 
 # `*.so` is the glob that stripped libllama.so. Any required lib matching a
@@ -135,7 +135,7 @@ def test_manifest_reincludes_libs_after_the_excludes() -> None:
         for line in (_REPO_ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]
-    reinclude = f"recursive-include src/kiro_crew/_vendor/{_LIBS_DIR_NAME} *"
+    reinclude = f"recursive-include src/junction/_vendor/{_LIBS_DIR_NAME} *"
     assert reinclude in lines, "MANIFEST.in must re-include the vendored native libs"
 
     last_reinclude = max(i for i, line in enumerate(lines) if line == reinclude)
@@ -216,7 +216,7 @@ def test_manifest_rules_keep_every_required_lib() -> None:
             rules += [(kind, args[0].rstrip("/"), pat) for pat in args[1:]]
 
     for plat, required in _REQUIRED_VENDORED_LIBS.items():
-        directory = f"src/kiro_crew/_vendor/{_LIBS_DIR_NAME}/{plat}"
+        directory = f"src/junction/_vendor/{_LIBS_DIR_NAME}/{plat}"
         for name in required:
             shipped = False
             for kind, rule_dir, pattern in rules:

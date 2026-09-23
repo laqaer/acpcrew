@@ -10,7 +10,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import (
+from junction.dashboard.handlers import (
     _sanitize_blocks,
     api_file_read,
     api_file_write,
@@ -27,7 +27,7 @@ def _make_app() -> web.Application:
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.sel.sel") as m:
+    with patch("junction.sel.sel") as m:
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -488,9 +488,9 @@ class TestSendMessage:
         state.crons.list_jobs = MagicMock(return_value=[mock_job])
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.chat_runner._run_chat", new_callable=AsyncMock
+            "junction.dashboard.chat_runner._run_chat", new_callable=AsyncMock
         ) as mock_run, patch(
-            "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history"
+            "junction.dashboard.handlers.messaging._rehydrate_slot_from_history"
         ) as mock_rehydrate:
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -535,7 +535,7 @@ class TestSendMessage:
         state.crons.list_jobs = MagicMock(return_value=[mock_job])
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history"
+            "junction.dashboard.handlers.messaging._rehydrate_slot_from_history"
         ) as mock_rehydrate:
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -595,9 +595,9 @@ class TestSendMessage:
         state.crons.list_jobs = MagicMock(return_value=[mock_job])
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.chat_runner._run_chat", new_callable=AsyncMock
+            "junction.dashboard.chat_runner._run_chat", new_callable=AsyncMock
         ) as mock_run, patch(
-            "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history",
+            "junction.dashboard.handlers.messaging._rehydrate_slot_from_history",
             return_value=mock_slot,
         ) as mock_rehydrate:
             async with TestClient(TestServer(app)) as client:
@@ -637,7 +637,7 @@ class TestSendMessage:
         state.crons.list_jobs = MagicMock(return_value=[mock_job])
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history", return_value=None
+            "junction.dashboard.handlers.messaging._rehydrate_slot_from_history", return_value=None
         ) as mock_rehydrate:
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -691,8 +691,8 @@ class TestSendMessage:
         state.crons.list_jobs = MagicMock(return_value=[mock_job])
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.chat_runner._run_chat", new_callable=AsyncMock
-        ) as mock_run, patch("kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history"):
+            "junction.dashboard.chat_runner._run_chat", new_callable=AsyncMock
+        ) as mock_run, patch("junction.dashboard.handlers.messaging._rehydrate_slot_from_history"):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/send-message",
@@ -715,7 +715,7 @@ class TestSendMessage:
         state.get_slot = MagicMock()
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history"
+            "junction.dashboard.handlers.messaging._rehydrate_slot_from_history"
         ) as mock_rehydrate:
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -753,7 +753,7 @@ class TestSendMessage:
         state.crons.list_jobs = MagicMock(return_value=[mock_job])
         app = _make_send_app(state)
         with patch(
-            "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history"
+            "junction.dashboard.handlers.messaging._rehydrate_slot_from_history"
         ) as mock_rehydrate:
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(

@@ -1,4 +1,4 @@
-"""Coverage tests for previously-untested ``kiro_crew.mcp_core`` surfaces.
+"""Coverage tests for previously-untested ``junction.mcp_core`` surfaces.
 
 Focus areas, all confirmed uncovered before this file existed:
 
@@ -34,8 +34,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew import mcp_core
-from kiro_crew.mcp_core import (
+from junction import mcp_core
+from junction.mcp_core import (
     _audit_governance_deny,
     _autonudge_binding_key,
     _call_tool_inner,
@@ -53,14 +53,14 @@ from kiro_crew.mcp_core import (
     _vet_memory_writes_governance,
     _vet_messaging_governance,
 )
-from kiro_crew.mcp_shared import ToolCancelled
+from junction.mcp_shared import ToolCancelled
 
-_GOV = "kiro_crew.platform.governance_profiles"
+_GOV = "junction.platform.governance_profiles"
 
 
 def _learn_add_properties() -> dict[str, Any]:
     """The ``learn_add`` tool's advertised input properties."""
-    from kiro_crew.mcp_tools.learn import schemas
+    from junction.mcp_tools.learn import schemas
 
     spec = next(s for s in schemas() if s["name"] == "learn_add")
     props: dict[str, Any] = spec["inputSchema"]["properties"]
@@ -227,19 +227,19 @@ class TestDenyChannelAgentMessaging:
 
     def test_channel_caller_is_denied_and_audited(self) -> None:
         rec = _RecordingSel()
-        with patch("kiro_crew.sel.sel", lambda: rec):
+        with patch("junction.sel.sel", lambda: rec):
             out = _deny_channel_agent_messaging("channel:C123:agent-1", "send_message")
         assert out is not None
         assert "send_message is not available to channel agents" in out
         assert rec.tools[0]["outcome"] == "rejected_blocked_tool"
         assert rec.tools[0]["session_key"] == "channel:C123:agent-1"
-        assert rec.tools[0]["tool_kind"] == "kirocrew-core"
+        assert rec.tools[0]["tool_kind"] == "junction-core"
 
     def test_audit_failure_never_unblocks_the_deny(self) -> None:
         def boom() -> Any:
             raise RuntimeError("SEL file unwritable")
 
-        with patch("kiro_crew.sel.sel", boom):
+        with patch("junction.sel.sel", boom):
             out = _deny_channel_agent_messaging("channel:C1:a", "send_notification")
         assert out is not None and "not available to channel agents" in out
 
@@ -248,7 +248,7 @@ class TestAuditGovernanceDeny:
     def test_records_the_decision_fields(self) -> None:
         rec = _RecordingSel()
         decision = SimpleNamespace(rule="no-messaging", layer="policy", reason="ceiling")
-        with patch("kiro_crew.sel.sel", lambda: rec):
+        with patch("junction.sel.sel", lambda: rec):
             _audit_governance_deny("dashboard:chat-1-9", "send_message", "channels", decision)
         assert rec.governance == [
             {
@@ -266,17 +266,17 @@ class TestAuditGovernanceDeny:
         def boom() -> Any:
             raise RuntimeError("no disk")
 
-        with patch("kiro_crew.sel.sel", boom):
+        with patch("junction.sel.sel", boom):
             assert _audit_governance_deny("s", "t", "scope", object()) is None
 
 
 class TestGovernanceApp:
     def test_reads_the_app_env_var(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_APP_NAME", "ops-mission-control")
+        monkeypatch.setenv("JUNCTION_APP_NAME", "ops-mission-control")
         assert _governance_app() == "ops-mission-control"
 
     def test_absent_outside_an_app_backend(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("KIROCREW_APP_NAME", raising=False)
+        monkeypatch.delenv("JUNCTION_APP_NAME", raising=False)
         assert _governance_app() == ""
 
 
@@ -315,7 +315,7 @@ class TestVetMessagingGovernance:
                 assert _vet_messaging_governance("dashboard:chat-1-9") is None
 
     def test_platform_composition_error_propagates(self) -> None:
-        from kiro_crew.platform.context import PlatformCompositionError
+        from junction.platform.context import PlatformCompositionError
 
         with patch(f"{_GOV}.vet_and_audit", side_effect=PlatformCompositionError("unbooted")):
             with pytest.raises(PlatformCompositionError):
@@ -331,7 +331,7 @@ class TestVetChannelGovernance:
         rec = _RecordingSel()
         decision = SimpleNamespace(permitted=False, rule="channels", layer="policy", reason="off")
         with patch(f"{_GOV}.governance_permits", return_value=decision) as gp:
-            with patch("kiro_crew.sel.sel", lambda: rec):
+            with patch("junction.sel.sel", lambda: rec):
                 out = _vet_channel_governance("dashboard:chat-1-9", "discord")
         assert out == "messaging via transport 'discord' blocked by governance policy"
         # A bare member id queries the ScopedMap ``members`` ruleset.
@@ -352,7 +352,7 @@ class TestVetChannelGovernance:
                 assert _vet_channel_governance("dashboard:chat-1-9", "slack") is None
 
     def test_platform_composition_error_propagates(self) -> None:
-        from kiro_crew.platform.context import PlatformCompositionError
+        from junction.platform.context import PlatformCompositionError
 
         with patch(f"{_GOV}.governance_permits", side_effect=PlatformCompositionError("unbooted")):
             with pytest.raises(PlatformCompositionError):
@@ -370,7 +370,7 @@ class TestVetMemoryWritesGovernance:
             permitted=False, rule="memory_writes", layer="profile", reason="sandboxed app"
         )
         with patch(f"{_GOV}.governance_permits", return_value=decision) as gp:
-            with patch("kiro_crew.sel.sel", lambda: rec):
+            with patch("junction.sel.sel", lambda: rec):
                 out = _vet_memory_writes_governance("dashboard:chat-1-9")
         assert out == "durable memory writes blocked by governance policy"
         assert gp.call_args.args == ("capabilities.memory_writes", "")
@@ -384,7 +384,7 @@ class TestVetMemoryWritesGovernance:
         assert degraded.call_args.kwargs["scope"] == "capabilities.memory_writes"
 
     def test_platform_composition_error_propagates(self) -> None:
-        from kiro_crew.platform.context import PlatformCompositionError
+        from junction.platform.context import PlatformCompositionError
 
         with patch(f"{_GOV}.governance_permits", side_effect=PlatformCompositionError("x")):
             with pytest.raises(PlatformCompositionError):
@@ -549,7 +549,7 @@ class TestWaitTool:
         with patch.object(mcp_core, "time", clock):
             with patch.object(mcp_core, "_resolve_session_key_strict", return_value=strict_key):
                 with patch.object(mcp_core, "_resolve_session_key", return_value="dashboard:c"):
-                    with patch("kiro_crew.mcp_tools.control.is_tool_cancelled", return_value=False):
+                    with patch("junction.mcp_tools.control.is_tool_cancelled", return_value=False):
                         with patch.object(mcp_core, "sel", lambda: rec):
                             with patch.object(mcp_core, "_post", post) as p:
                                 out = _call_tool_inner("wait", dict(args))
@@ -656,7 +656,7 @@ class TestWaitTool:
         rec = _RecordingSel()
         with patch.object(mcp_core, "time", clock):
             with patch.object(mcp_core, "_resolve_session_key_strict", return_value=""):
-                with patch("kiro_crew.mcp_tools.control.is_tool_cancelled", return_value=True):
+                with patch("junction.mcp_tools.control.is_tool_cancelled", return_value=True):
                     with patch.object(mcp_core, "sel", lambda: rec):
                         with patch.object(mcp_core, "_post", lambda *a, **k: {}):
                             with pytest.raises(ToolCancelled) as ei:
@@ -801,10 +801,10 @@ class TestLearnAddTool:
                             "rule": "always X",
                             "category": "preference",
                             "negative": "never Y",
-                            "repo_scope": "src/kiro_crew",
+                            "repo_scope": "src/junction",
                         },
                     )
-        assert out == "Saved lesson (applies only in src/kiro_crew): always X"
+        assert out == "Saved lesson (applies only in src/junction): always X"
         assert p.call_args.args == (
             "/api/lessons",
             {
@@ -812,14 +812,14 @@ class TestLearnAddTool:
                 "category": "preference",
                 "scope": "global",
                 "negative": "never Y",
-                "repo_scope": "src/kiro_crew",
+                "repo_scope": "src/junction",
             },
         )
 
     def test_the_advertised_repo_scope_cap_tracks_the_enforced_one(self) -> None:
         # The hint must be derived from the field the validator enforces, so a
         # future cap change cannot leave the model told an obsolete limit.
-        from kiro_crew.validation import LEARN_ADD_SCHEMA
+        from junction.validation import LEARN_ADD_SCHEMA
 
         enforced = next(f.max_len for f in LEARN_ADD_SCHEMA.fields if f.name == "repo_scope")
         assert _learn_add_properties()["repo_scope"]["maxLength"] == enforced
@@ -986,9 +986,9 @@ class TestResourceStatusTool:
             if cap == "raise"
             else (lambda _c: cap)
         )
-        with patch("kiro_crew.resource_status.probe", return_value=rstatus):
-            with patch("kiro_crew.mcp_tools.spawn.KiroCrewConfig", cfg):
-                with patch("kiro_crew.mcp_tools.spawn.resolve_max_subagents", resolver):
+        with patch("junction.resource_status.probe", return_value=rstatus):
+            with patch("junction.mcp_tools.spawn.JunctionConfig", cfg):
+                with patch("junction.mcp_tools.spawn.resolve_max_subagents", resolver):
                     return _call_tool_inner("resource_status", {})
 
     def test_the_probe_summary_and_cap_are_reported(self) -> None:

@@ -2,11 +2,11 @@
 
 ## Overview
 
-Dev Fleet is a builtin App Store app (`kiro_crew/apps/builtins/dev_fleet/server.py`) for
-managing KiroCrew feature worktrees (git worktrees of the main repo) and their isolated
+Dev Fleet is a builtin App Store app (`junction/apps/builtins/dev_fleet/server.py`) for
+managing Junction feature worktrees (git worktrees of the main repo) and their isolated
 pod test instances. It runs as a managed app backend SUBPROCESS: an aiohttp server on the
 backend-assigned port, reached only through the gateway proxy. Every proxied request
-carries an HMAC signature (`X-KiroCrew-Proxy: <ts>:<hmac>` over
+carries an HMAC signature (`X-Junction-Proxy: <ts>:<hmac>` over
 `<ts>:<METHOD>:<path>[?q]:<sha256(body)>`, +/-60s window) verified fail-closed by the
 backend's middleware; the shared secret lives at `apps_dir()/dev-fleet/.app_secret`.
 Gateway session auth (token/cookie) gates the proxy entrance as with all builtin apps.
@@ -31,15 +31,15 @@ fleet manages. It is resolved in this order, first hit wins:
 
 | Tier | Source | Marker-tested? |
 |------|--------|----------------|
-| 1 | `KIROCREW_DEVFLEET_REPO` env var | no — taken verbatim |
+| 1 | `JUNCTION_DEVFLEET_REPO` env var | no — taken verbatim |
 | 2 | `dev_fleet.repo_path` in `config.json` / `config.local.json` | no — taken verbatim |
-| 3 | `KIROCREW_PROJECT_DIR` | yes |
-| 4 | the checkout this gateway is executing from (`src/kiro_crew` layout walk) | yes |
-| 5 | conventional clone locations under `$HOME` (`kirocrew`, `KiroCrew`, `kiro-crew` directly and under `Repos`, `repos`, `src`, `Projects`, `projects`, `dev`, `git`, `code`, `workplace`) | yes |
+| 3 | `JUNCTION_PROJECT_DIR` | yes |
+| 4 | the checkout this gateway is executing from (`src/junction` layout walk) | yes |
+| 5 | conventional clone locations under `$HOME` (`junction`, `Junction`, `kiro-crew` directly and under `Repos`, `repos`, `src`, `Projects`, `projects`, `dev`, `git`, `code`, `workplace`) | yes |
 
 Tier 5 matches directory names case-insensitively against each parent's own listing rather than joining the guessed spellings, so the resolved path is spelled the way the filesystem spells it. A blind join succeeds against a differently-cased directory on a case-insensitive filesystem (macOS) and yields a path that does not match the ones git reports for the same tree.
 
-The marker test (`_is_kirocrew_checkout`) requires `.git`, `src/kiro_crew/` and
+The marker test (`_is_junction_checkout`) requires `.git`, `src/junction/` and
 `pyproject.toml` together. `.git` alone is insufficient on purpose: an unrelated
 repository adopted as the main checkout would have its worktrees listed and Pull+Build,
 rebase and worktree-removal git commands run inside it. Tiers 1–2 skip the test *during
@@ -219,7 +219,7 @@ it as hung clicks again or reloads mid-scan.
 
 ## Pod Integration
 
-Relies on `kiro_crew.pod` subpackage (optional import — degrades gracefully if unavailable):
+Relies on `junction.pod` subpackage (optional import — degrades gracefully if unavailable):
 
 - `runtime.active_names(cfg)` — systemctl list (blocking, offloaded via `run_in_executor`)
 - `runtime.derive_port(cfg, name)` — cksum-based port derivation (blocking, offloaded)
@@ -232,10 +232,10 @@ All blocking pod operations are offloaded via `asyncio.get_running_loop().run_in
 subprocess_executor(), ...)` to avoid blocking the gateway event loop.
 
 Pod lifecycle verbs (`up`/`down`/`restart`/`provision`) shell the CLI via
-`_find_cli()` = `[sys.executable, "-m", "kiro_crew"]` — the **package** entry
-(`kiro_crew/__main__`, which also runs the required SSL-cert / UTF-8-console
-setup), never `-m kiro_crew.cli`. `kiro_crew/cli.py` has no
-`if __name__ == "__main__"` guard, so `python -m kiro_crew.cli <cmd>` imports the
+`_find_cli()` = `[sys.executable, "-m", "junction"]` — the **package** entry
+(`junction/__main__`, which also runs the required SSL-cert / UTF-8-console
+setup), never `-m junction.cli`. `junction/cli.py` has no
+`if __name__ == "__main__"` guard, so `python -m junction.cli <cmd>` imports the
 module, runs no `main()`, and exits 0 with no output — which turned every pod op
 into a **silent no-op the backend reported as success** (the "Stopped but still
 running" bug, issue #220). As defence-in-depth, `_pod_up` and `_pod_down` both
@@ -245,7 +245,7 @@ is never taken as proof of the state change, in either direction.
 
 ### Pod HOME reclamation on worktree removal
 
-Removing a worktree reclaims the isolated `KIROCREW_HOME` of that worktree's pod
+Removing a worktree reclaims the isolated `JUNCTION_HOME` of that worktree's pod
 whether or not the pod is still running, because a stopped pod still owns its
 HOME and this is the last moment anything can attribute that directory to this
 checkout — afterwards the per-pod env pin naming it is gone and only a bulk
@@ -531,7 +531,7 @@ While the handshake runs, the frontend holds an explicit **"Restarting —
 reconnecting"** full-screen state and disables Restart / Pull+Build / Make Live
 so the slow window cannot be re-fired. The poll is bounded (`RESTART_TIMEOUT_MS`,
 60s); on timeout it surfaces an actionable error ("reload manually / check
-`kirocrew logs`") instead of spinning forever.
+`junction logs`") instead of spinning forever.
 
 **The lockout starts before the overlay does.** The restarting flag only goes
 true once `POST …/make-live` has *returned*, but that request is itself what
@@ -595,15 +595,15 @@ form for "in progress, amount unknown".
 
 The whole FRONTEND half of the sync — `npm ci` and `npm build + stage` — is
 **skipped on an edition checkout** (`frontend.edition_configured()`). The build
-runs under `_build_env()`, whose allowlist drops `KIROCREW_EDITION_DIR` and
-`KIROCREW_ALLOW_EDITION`, so on an edition composition root it can only compile
+runs under `_build_env()`, whose allowlist drops `JUNCTION_EDITION_DIR` and
+`JUNCTION_ALLOW_EDITION`, so on an edition composition root it can only compile
 the STOCK SPA; staging that would silently replace the edition dashboard with
 upstream's. Skipping is what makes it safe, and it costs an edition nothing —
 the only artifact this path could produce for it is a bundle it must never
 serve.
 
 The final **npm build + stage** step builds the frontend and copies `website/dist` into
-`src/kiro_crew/static/dist` under the Dev Fleet backend's OWN interpreter, with
+`src/junction/static/dist` under the Dev Fleet backend's OWN interpreter, with
 the target repo passed as an argument. Resolving the helper from the target
 instead would make the step's very existence contingent on the pulled revision
 already carrying it, so an older target would turn the whole Pull+Build into an
@@ -640,7 +640,7 @@ directory is unaffected.
 `POST /apps/dev-fleet/api/make-live` repoints the live gateway at a different
 worktree by writing a **live-target pointer file** (`live_target.json`). The
 gateway resolves this pointer at startup and `execve`s into the named checkout's
-own `kirocrew` binary — moving the working directory and `PATH` with it. No
+own `junction` binary — moving the working directory and `PATH` with it. No
 service definition is ever mutated.
 
 The mechanism is the version-selector shape used by `rustup` (reads
@@ -694,7 +694,7 @@ The `plan` object describes the cutover mechanism:
 |-----|-------|
 | `mechanism` | `"live-target pointer"` |
 | `pointer_path` | absolute path to the pointer file |
-| `exec` | the target worktree's `kirocrew` binary that the gateway execs into |
+| `exec` | the target worktree's `junction` binary that the gateway execs into |
 | `restart` | `"automatic"` when a drivable service manager is present; `"manual"` otherwise |
 | `manual_restart` | (only when `restart` is `"manual"`) the shell command the operator runs |
 
@@ -707,10 +707,10 @@ The `plan` object describes the cutover mechanism:
 | `pod` | called from inside a pod — a throwaway test instance must never repoint the live gateway |
 | `pod_indeterminate` | pod status could not be resolved (config home unresolvable) — **fail-closed**, never treated as "not a pod" |
 | `already_live` | the target is already the live gateway |
-| `missing_venv` | the worktree has no `.venv/bin/kirocrew` (Provision it first) |
-| `venv_not_executable` | the worktree's `.venv/bin/kirocrew` exists but is **not executable** (`chmod +x` it or re-Provision) — a non-executable binary would stop the live gateway but could not start the replacement, leaving no gateway running |
-| `missing_dist` | the worktree has no built `src/kiro_crew/static/dist/index.html` (Pull+Build first) — a cutover without a built dist serves a broken dashboard |
-| `unsafe_path` | the worktree path cannot be used as a live target (control characters, unresolvable, missing binary, no `src/kiro_crew` dir) |
+| `missing_venv` | the worktree has no `.venv/bin/junction` (Provision it first) |
+| `venv_not_executable` | the worktree's `.venv/bin/junction` exists but is **not executable** (`chmod +x` it or re-Provision) — a non-executable binary would stop the live gateway but could not start the replacement, leaving no gateway running |
+| `missing_dist` | the worktree has no built `src/junction/static/dist/index.html` (Pull+Build first) — a cutover without a built dist serves a broken dashboard |
+| `unsafe_path` | the worktree path cannot be used as a live target (control characters, unresolvable, missing binary, no `src/junction` dir) |
 | `write_failed` | writing the pointer file failed — rolled back to prior state |
 | `restart_failed` | the detached restart failed to launch — the pointer is rolled back before returning (response carries `rolled_back`) |
 | `busy` | another make-live cutover is already in progress — the mutation sequence is single-flighted, so a concurrent request is refused immediately (no queueing) rather than racing the in-flight pointer write/rollback |
@@ -735,16 +735,16 @@ Fleet can also bounce the gateway:
   `no_systemd` / `no_user_unit` / `no_launchd` / `no_agent` — nothing to drive at
   all, e.g. a terminal-launched gateway on a host whose per-user systemd cannot
   be used — `gateway_service.ForegroundBackend` finishes the cutover by
-  establishing a **detached `kirocrew restart --port <port>`** (new session, so
+  establishing a **detached `junction restart --port <port>`** (new session, so
   it survives the gateway it kills), reusing the CLI's whole kill-and-respawn
   path instead of reimplementing it. Selection is strictly
   systemd > launchd > foreground, POSIX-only, and requires: an UNCONFINED
-  backend (no `KIROCREW_SANDBOX_ACTIVE` marker, not inside
-  `kirocrew-agents.slice` — a replacement spawned from inside the sandbox or
+  backend (no `JUNCTION_SANDBOX_ACTIVE` marker, not inside
+  `junction-agents.slice` — a replacement spawned from inside the sandbox or
   cgroup scope would inherit that confinement for the gateway's whole life);
   exactly ONE run-marker whose recorded pid is alive; and the marker's own
-  recorded `kirocrew` launcher (keystone-fenced `run/` dir — there is
-  deliberately NO `PATH` fallback, which an agent-planted `~/.local/bin/kirocrew`
+  recorded `junction` launcher (keystone-fenced `run/` dir — there is
+  deliberately NO `PATH` fallback, which an agent-planted `~/.local/bin/junction`
   could poison). The mis-set-up manager codes (`user_unit_inactive`,
   `agent_not_indirected`, `agent_restart_contract_outdated`,
   `live_program_missing`) keep their named remedies and are never bounced
@@ -755,7 +755,7 @@ Fleet can also bounce the gateway:
   killed and the request degrades to the staged-only outcome below, pointer
   intact.
 - **Staged only** (`can_restart = False`, no usable foreground gateway): no
-  drivable service manager is available (system unit via `kirocrew service
+  drivable service manager is available (system unit via `junction service
   install`, macOS without a launchd agent or with a legacy restart contract, or
   another unsupported manager). The pointer is still
   written and the cutover is reported as a success carrying `staged_only: true`,
@@ -801,8 +801,8 @@ unusable worktree instead of promising a cutover that would then be refused.
 
 Rejects with a distinct message for each: empty/blank value; control characters
 (ord < 0x20 or 0x7F); unresolvable path; path is not a directory; missing
-`target_bin` (`.venv/bin/kirocrew`, or `.venv/Scripts/kirocrew.exe` on Windows);
-`target_bin` not executable; no `src/kiro_crew` directory in the checkout.
+`target_bin` (`.venv/bin/junction`, or `.venv/Scripts/junction.exe` on Windows);
+`target_bin` not executable; no `src/junction` directory in the checkout.
 Returns the resolved checkout path on success.
 
 ### Rollback semantics
@@ -833,7 +833,7 @@ Disk and loaded launchd definitions must both report `KeepAlive=true` and
 `ExitTimeOut=TOTAL_SHUTDOWN_BUDGET_SECS` (20s). The Gateway's cooperative cap is
 `GRACEFUL_SHUTDOWN_SECS` (10s), leaving the remaining budget for cleanup and
 exit before launchd escalates to SIGKILL. An agent with a legacy contract falls
-back to staged-only Make Live and names `kirocrew service install` as the repair.
+back to staged-only Make Live and names `junction service install` as the repair.
 
 ## Output Redaction
 
@@ -869,7 +869,7 @@ things:
 
 | Flag | Meaning | True when |
 |---|---|---|
-| `_POD_IMPORTED` | the `kiro_crew.pod` modules imported, so its platform-neutral helpers are callable | the import succeeded (any platform) |
+| `_POD_IMPORTED` | the `junction.pod` modules imported, so its platform-neutral helpers are callable | the import succeeded (any platform) |
 | `_POD_AVAILABLE` | pods can actually **run** here | Linux **and** `systemctl` on PATH |
 
 Conflating the two used to report every worktree as "not built" off Linux, since
@@ -896,7 +896,7 @@ Per-platform behavior:
   Rebase and Prune all work. The UI shows a notice carrying
   `pods_unavailable_reason` and hides the actions that cannot work: Spin up /
   Restart / Stop pod, Open, QA + video. Make Live and Provision are **not**
-  hidden — `kirocrew pod provision` does not touch systemd, so building a
+  hidden — `junction pod provision` does not touch systemd, so building a
   worktree's venv + dist works anywhere; Make Live stages the pointer on any
   platform and reports `staged_only` when it cannot bounce the gateway itself.
 - **Make Live** — staging (pointer write) works on every platform. Automatic
@@ -968,15 +968,15 @@ which it can install without root.
 Prefer `browser-recording` instead when a short silent clip of a UI interaction
 is all that is wanted: it is a smaller tool and needs no narration script.
 
-`kirocrew-worktree-dev` carries no app-bridged copy: the canonical copy is
-owned by the `kirocrew-dev` development-skills suite under
-`src/kiro_crew/builtin_skills/`, and the app-bridged duplicate was removed
+`junction-worktree-dev` carries no app-bridged copy: the canonical copy is
+owned by the `junction-dev` development-skills suite under
+`src/junction/builtin_skills/`, and the app-bridged duplicate was removed
 because two copies of the same skill drift and get loaded nondeterministically
 against each other (PR #353 arbiter finding). That single-copy rule is what
 matters here; where the one copy lives is a packaging question, and it lives in
 the packaged tree so `_ensure_builtin_skills` reaches every distribution. The
 project-dir mechanism reaches only some: `_project_skills_dir()` reads
-`KIROCREW_PROJECT_DIR`, which a repo checkout provides, but a `pip install` from
+`JUNCTION_PROJECT_DIR`, which a repo checkout provides, but a `pip install` from
 the wheel or sdist does not — and neither does the desktop bundle, whose builder
 stages no top-level `skills/` tree.
 

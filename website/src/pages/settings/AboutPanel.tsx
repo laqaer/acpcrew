@@ -582,7 +582,7 @@ export function AboutPanel() {
   const [applyError, setApplyError] = useState('')
   const [restarting, setRestarting] = useState(false)
   const [autoUpdate, setAutoUpdate] = useState(true)
-  const { data: mcCfg } = useQuery({ queryKey: ['mc-config-autoupdate'], queryFn: () => api.kirocrewConfig() })
+  const { data: mcCfg } = useQuery({ queryKey: ['mc-config-autoupdate'], queryFn: () => api.junctionConfig() })
   useEffect(() => {
     const v = (mcCfg as any)?.auto_update
     if (typeof v === 'boolean') setAutoUpdate(v)

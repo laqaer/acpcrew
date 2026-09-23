@@ -23,18 +23,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.config.loader import (
+from junction.config.loader import (
     _VALID_STT_MODELS,
     _VALID_STT_PROVIDERS,
     SttConfig,
     _validated_stt_model,
 )
-from kiro_crew.dashboard.handlers.core import (
+from junction.dashboard.handlers.core import (
     _STT_MODEL_SIZES,
     _build_stt_install_script,
     _stt_prereq_commands,
 )
-from kiro_crew.transcribe import (
+from junction.transcribe import (
     _WHISPER_FAMILY_PROVIDERS,
     _collapse_repeated_phrases,
     _faster_whisper_model,
@@ -56,7 +56,7 @@ def _library_absent():
     ``sys.modules`` makes the retry raise ImportError everywhere.
     """
     with patch.dict(sys.modules, {"faster_whisper": None}):
-        with patch("kiro_crew.transcribe._FasterWhisperModel", None):
+        with patch("junction.transcribe._FasterWhisperModel", None):
             yield
 
 
@@ -69,7 +69,7 @@ def _clear_fw_model_cache():
     next test's dispatch and every assertion after the first tests the cache,
     not the code.
     """
-    from kiro_crew import transcribe
+    from junction import transcribe
 
     transcribe._FW_MODEL_CACHE.clear()
     yield
@@ -155,7 +155,7 @@ class TestModelEnum:
 class TestIsAvailable:
     def test_available_when_the_library_imports(self):
         cfg = SttConfig(enabled=True, provider="faster")
-        with patch("kiro_crew.transcribe._FasterWhisperModel", MagicMock()):
+        with patch("junction.transcribe._FasterWhisperModel", MagicMock()):
             assert is_available(cfg) is True
 
     def test_unavailable_when_the_library_is_missing(self):
@@ -168,14 +168,14 @@ class TestIsAvailable:
         # system binary is irrelevant. Probing for it would make availability depend
         # on something this provider never calls.
         cfg = SttConfig(enabled=True, provider="faster")
-        with patch("kiro_crew.transcribe._FasterWhisperModel", MagicMock()):
-            with patch("kiro_crew.transcribe.ensure_ffmpeg_in_path") as ensure:
+        with patch("junction.transcribe._FasterWhisperModel", MagicMock()):
+            with patch("junction.transcribe.ensure_ffmpeg_in_path") as ensure:
                 assert is_available(cfg) is True
         ensure.assert_not_called()
 
     def test_disabled_beats_available(self):
         cfg = SttConfig(enabled=False, provider="faster")
-        with patch("kiro_crew.transcribe._FasterWhisperModel", MagicMock()):
+        with patch("junction.transcribe._FasterWhisperModel", MagicMock()):
             assert is_available(cfg) is False
 
     def test_available_from_disk_before_anything_has_imported_it(self):
@@ -185,7 +185,7 @@ class TestIsAvailable:
         # transcription. Locating the library on the import path answers correctly
         # from the first request.
         cfg = SttConfig(enabled=True, provider="faster")
-        with patch("kiro_crew.transcribe._FasterWhisperModel", None):
+        with patch("junction.transcribe._FasterWhisperModel", None):
             with patch("importlib.util.find_spec", return_value=MagicMock()) as find:
                 assert is_available(cfg) is True
         find.assert_called_once_with("faster_whisper")
@@ -202,7 +202,7 @@ class TestIsAvailable:
         def _fail_on_import(*_args, **_kwargs):
             pytest.fail("is_available imported faster_whisper on the event loop")
 
-        with patch("kiro_crew.transcribe._FasterWhisperModel", None):
+        with patch("junction.transcribe._FasterWhisperModel", None):
             with patch("importlib.util.find_spec", return_value=MagicMock()):
                 with patch("importlib.import_module", _fail_on_import):
                     assert is_available(cfg) is True
@@ -212,7 +212,7 @@ class TestIsAvailable:
         # find_spec raises instead of answering. This runs on the loop serving
         # /api/config/stt, where an exception is a 500 rather than a verdict.
         cfg = SttConfig(enabled=True, provider="faster")
-        with patch("kiro_crew.transcribe._FasterWhisperModel", None):
+        with patch("junction.transcribe._FasterWhisperModel", None):
             with patch("importlib.util.find_spec", side_effect=ValueError("no spec")):
                 assert is_available(cfg) is False
 
@@ -224,7 +224,7 @@ class TestLazyImportRetry:
         # availability stays False until a gateway restart.
         sentinel = MagicMock()
         fake_module = MagicMock(WhisperModel=sentinel)
-        with patch("kiro_crew.transcribe._FasterWhisperModel", None):
+        with patch("junction.transcribe._FasterWhisperModel", None):
             with patch.dict(sys.modules, {"faster_whisper": fake_module}):
                 assert _faster_whisper_model() is sentinel
 
@@ -234,7 +234,7 @@ class TestLazyImportRetry:
 
     def test_helper_prefers_the_cached_class(self):
         cached = MagicMock()
-        with patch("kiro_crew.transcribe._FasterWhisperModel", cached):
+        with patch("junction.transcribe._FasterWhisperModel", cached):
             assert _faster_whisper_model() is cached
 
 
@@ -243,14 +243,14 @@ class TestModelMemoization:
         # Constructing a WhisperModel re-loads and re-quantizes the weights;
         # concurrent recordings each holding a copy compounds to RAM exhaustion.
         model_cls = MagicMock(return_value=_fake_model(["one"]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu")
             _run_faster_whisper_sync("/tmp/b.wav", "turbo", "cpu")
         assert model_cls.call_count == 1
 
     def test_distinct_keys_get_distinct_instances(self):
         model_cls = MagicMock(side_effect=lambda *a, **k: _fake_model(["x"]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu")
             _run_faster_whisper_sync("/tmp/a.wav", "small", "cpu")
         assert model_cls.call_count == 2
@@ -258,10 +258,10 @@ class TestModelMemoization:
     def test_switching_models_evicts_the_previous_instance(self):
         # SINGLE-SLOT on purpose: keeping every size ever selected resident
         # would accumulate multi-GB native models and OOM a small gateway host.
-        from kiro_crew import transcribe
+        from junction import transcribe
 
         model_cls = MagicMock(side_effect=lambda *a, **k: _fake_model(["x"]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu")
             _run_faster_whisper_sync("/tmp/a.wav", "large-v3", "cpu")
             assert list(transcribe._FW_MODEL_CACHE) == [("large-v3", "cpu")]
@@ -274,10 +274,10 @@ class TestModelMemoization:
         # One bad load (e.g. interrupted download) must not poison every later
         # recording with a cached broken instance or a cached None.
         model_cls = MagicMock(side_effect=RuntimeError("load failed"))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             assert _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu") is None
         ok_cls = MagicMock(return_value=_fake_model(["recovered"]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", ok_cls):
+        with patch("junction.transcribe._FasterWhisperModel", ok_cls):
             assert _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu") == "recovered"
 
 
@@ -289,20 +289,20 @@ class TestModelMemoization:
 class TestRunFasterWhisperSync:
     def test_joins_segment_text(self):
         model_cls = MagicMock(return_value=_fake_model([" Hello ", "world. ", "  "]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             assert _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu") == "Hello world."
 
     def test_quantises_to_int8_on_the_configured_device(self):
         # int8 is what makes CPU inference fast enough to be usable on a
         # meeting-length recording.
         model_cls = MagicMock(return_value=_fake_model(["hi"]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             _run_faster_whisper_sync("/tmp/a.wav", "small", "cuda")
         model_cls.assert_called_once_with("small", device="cuda", compute_type="int8")
 
     def test_empty_output_is_none_not_empty_string(self):
         model_cls = MagicMock(return_value=_fake_model(["   ", ""]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             assert _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu") is None
 
     def test_returns_none_when_the_library_is_missing(self):
@@ -313,7 +313,7 @@ class TestRunFasterWhisperSync:
         # Same contract as every other provider: one bad recording must not take a
         # caller down.
         model_cls = MagicMock(side_effect=RuntimeError("model load failed"))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             assert _run_faster_whisper_sync("/tmp/a.wav", "turbo", "cpu") is None
 
 
@@ -324,7 +324,7 @@ class TestDispatch:
         audio.write_bytes(b"RIFF")
         cfg = SttConfig(enabled=True, provider="faster", model="small", device="cpu")
         model_cls = MagicMock(return_value=_fake_model(["Real speech here."]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             result = await transcribe_audio(str(audio), cfg)
         assert result == "Real speech here."
 
@@ -335,9 +335,9 @@ class TestDispatch:
         audio.write_bytes(b"RIFF")
         cfg = SttConfig(enabled=True, provider="faster")
         model_cls = MagicMock(return_value=_fake_model(["ok"]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
-            with patch("kiro_crew.transcribe.ensure_ffmpeg_in_path") as ensure:
-                with patch("kiro_crew.transcribe._run_whisper_cli") as cli:
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
+            with patch("junction.transcribe.ensure_ffmpeg_in_path") as ensure:
+                with patch("junction.transcribe._run_whisper_cli") as cli:
                     assert await transcribe_audio(str(audio), cfg) == "ok"
         ensure.assert_not_called()
         cli.assert_not_called()
@@ -359,7 +359,7 @@ class TestDispatch:
         audio.write_bytes(b"RIFF")
         cfg = SttConfig(enabled=True, provider="faster")
         model_cls = MagicMock(return_value=_fake_model(["Subtitles by Amara.org."]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             assert await transcribe_audio(str(audio), cfg) is None
 
 
@@ -444,7 +444,7 @@ class TestBoilerplateDetection:
         import re as _re
 
         attribution_markers = _re.compile(r"subtitle|caption|transcri|translat|amara|mooji")
-        from kiro_crew.transcribe import _WHISPER_BOILERPLATE as phrases
+        from junction.transcribe import _WHISPER_BOILERPLATE as phrases
 
         for phrase in phrases:
             assert attribution_markers.search(phrase), (
@@ -460,7 +460,7 @@ class TestBoilerplateDetection:
         import re as _re
 
         speech_markers = _re.compile(r"watch|subscribe|bell|video|thank|see you|like and")
-        from kiro_crew.transcribe import _WHISPER_BOILERPLATE as phrases
+        from junction.transcribe import _WHISPER_BOILERPLATE as phrases
 
         for phrase in phrases:
             assert not speech_markers.search(phrase), (
@@ -553,7 +553,7 @@ class TestFilterHallucinationsVisibility:
     """
 
     def test_dropped_boilerplate_is_named_in_the_log(self, caplog):
-        with caplog.at_level(logging.INFO, logger="kiro_crew.transcribe"):
+        with caplog.at_level(logging.INFO, logger="junction.transcribe"):
             filter_hallucinations("Priya owns the rollout. Subtitles by Amara.org.")
         assert "dropped 1 boilerplate line(s)" in caplog.text
         assert "Subtitles by Amara.org." in caplog.text
@@ -561,7 +561,7 @@ class TestFilterHallucinationsVisibility:
     def test_collapsed_repetitions_are_counted_but_not_quoted(self, caplog):
         # A repeated sentence is ordinary speech; its text belongs in the
         # transcript, not in the log, so only the count is recorded.
-        with caplog.at_level(logging.INFO, logger="kiro_crew.transcribe"):
+        with caplog.at_level(logging.INFO, logger="junction.transcribe"):
             filter_hallucinations(" ".join(["Ship the thing."] * 8))
         assert "collapsed 7 repeated sentence(s)" in caplog.text
         assert "Ship the thing" not in caplog.text
@@ -569,7 +569,7 @@ class TestFilterHallucinationsVisibility:
     def test_discarding_the_whole_transcript_warns(self, caplog):
         # The caller turns "" into None and the recording is gone with no other
         # trace, so this case is a warning rather than an info line.
-        with caplog.at_level(logging.INFO, logger="kiro_crew.transcribe"):
+        with caplog.at_level(logging.INFO, logger="junction.transcribe"):
             assert filter_hallucinations("Subtitles by Amara.org. Transcribed by.") == ""
         assert "discarded the entire transcript" in caplog.text
         assert any(r.levelno == logging.WARNING for r in caplog.records)
@@ -577,7 +577,7 @@ class TestFilterHallucinationsVisibility:
     def test_an_untouched_transcript_logs_nothing(self, caplog):
         # Every recording passes through here. A line per transcription would bury
         # the removals this logging exists to surface.
-        with caplog.at_level(logging.INFO, logger="kiro_crew.transcribe"):
+        with caplog.at_level(logging.INFO, logger="junction.transcribe"):
             filter_hallucinations("We agreed to ship on Friday.")
         assert caplog.records == []
 
@@ -589,7 +589,7 @@ class TestFilterHallucinationsVisibility:
 
 class TestInstallScript:
     def test_installs_into_the_gateways_own_interpreter(self):
-        # The library is imported IN-PROCESS by kiro_crew.transcribe, so the one
+        # The library is imported IN-PROCESS by junction.transcribe, so the one
         # environment that matters is sys.executable's. A system python's
         # user-site would be invisible here — and inside a venv pip refuses
         # `--user` outright — so the script must target the gateway interpreter
@@ -657,24 +657,24 @@ class TestInferenceExecutor:
     """
 
     def test_transcribe_binds_the_stt_pool(self):
-        from kiro_crew import executors, transcribe
+        from junction import executors, transcribe
 
         assert transcribe.stt_executor is executors.stt_executor
 
     def test_stt_pool_is_distinct_from_the_teardown_pool(self):
-        from kiro_crew import executors
+        from junction import executors
 
         assert executors.stt_executor() is not executors.subprocess_executor()
 
     def test_stt_pool_threads_are_identifiable_in_a_stack_dump(self):
-        from kiro_crew import executors
+        from junction import executors
 
         assert executors.stt_executor()._thread_name_prefix == "mc-stt"
 
     def test_pool_is_bounded_because_each_worker_holds_a_model(self):
         # The worker count is a MEMORY ceiling, not just a CPU one: every in-flight
         # call keeps a fully quantised model resident (up to ~GBs for large-v3).
-        from kiro_crew import executors
+        from junction import executors
 
         assert executors.stt_executor()._max_workers == 2
 
@@ -688,8 +688,8 @@ class TestInferenceExecutor:
         pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="probe-stt")
         try:
             model_cls = MagicMock(return_value=_fake_model(["ok"]))
-            with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
-                with patch("kiro_crew.transcribe.stt_executor", return_value=pool) as chosen:
+            with patch("junction.transcribe._FasterWhisperModel", model_cls):
+                with patch("junction.transcribe.stt_executor", return_value=pool) as chosen:
                     assert await transcribe_audio(str(audio), cfg) == "ok"
             chosen.assert_called_once()
         finally:
@@ -707,7 +707,7 @@ class TestInferenceTimeout:
     async def test_a_wedged_inference_returns_none_instead_of_hanging(self, tmp_path):
         import threading
 
-        from kiro_crew import transcribe
+        from junction import transcribe
 
         audio = tmp_path / "a.wav"
         audio.write_bytes(b"RIFF")
@@ -721,7 +721,7 @@ class TestInferenceTimeout:
             return "arrived too late"
 
         try:
-            with patch("kiro_crew.transcribe._run_faster_whisper_sync", _wedged):
+            with patch("junction.transcribe._run_faster_whisper_sync", _wedged):
                 assert await transcribe.transcribe_audio(str(audio), cfg) is None
         finally:
             release.set()
@@ -736,7 +736,7 @@ class TestInferenceTimeout:
         """
         import threading
 
-        from kiro_crew import transcribe
+        from junction import transcribe
 
         audio = tmp_path / "a.wav"
         audio.write_bytes(b"RIFF")
@@ -748,8 +748,8 @@ class TestInferenceTimeout:
             return None
 
         try:
-            with caplog.at_level("ERROR", logger="kiro_crew.transcribe"):
-                with patch("kiro_crew.transcribe._run_faster_whisper_sync", _wedged):
+            with caplog.at_level("ERROR", logger="junction.transcribe"):
+                with patch("junction.transcribe._run_faster_whisper_sync", _wedged):
                     await transcribe.transcribe_audio(str(audio), cfg)
         finally:
             release.set()
@@ -764,5 +764,5 @@ class TestInferenceTimeout:
         audio.write_bytes(b"RIFF")
         cfg = SttConfig(enabled=True, provider="faster")
         model_cls = MagicMock(return_value=_fake_model(["Real speech here."]))
-        with patch("kiro_crew.transcribe._FasterWhisperModel", model_cls):
+        with patch("junction.transcribe._FasterWhisperModel", model_cls):
             assert await transcribe_audio(str(audio), cfg) == "Real speech here."

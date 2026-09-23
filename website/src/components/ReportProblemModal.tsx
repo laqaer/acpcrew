@@ -33,7 +33,7 @@ interface ReportProblemModalProps {
  * redaction notice, and the three deliveries can never drift between surfaces.
  *
  * Calls the shared diagnostics collector (the same engine behind
- * `kirocrew doctor --bundle`): collects gateway + kiro-cli logs and crash
+ * `junction doctor --bundle`): collects gateway + kiro-cli logs and crash
  * reports, scrubs secrets, zips them, and offers three deliveries — reveal the
  * bundle in the gateway host's file manager, download, or open a pre-filled
  * GitHub issue.

@@ -409,7 +409,7 @@ describe('a provider that needs attention', () => {
     mcpServers.mockResolvedValue([server({
       status: 'error',
       enabled: false,
-      presence: { kirocrew: false, kiroGlobal: true, ccGlobal: false },
+      presence: { junction: false, kiroGlobal: true, ccGlobal: false },
     })])
     mount()
 
@@ -419,7 +419,7 @@ describe('a provider that needs attention', () => {
       url: NOTION_URL, scopes: ['read'], clientId: 'client-1',
     }))
     // Global scopes are passed through unchanged; only Kiro Crew's own is turned on.
-    expect(mcpApply).toHaveBeenCalledWith([{ name: 'notion', kirocrew: true, kiroGlobal: true, ccGlobal: false }])
+    expect(mcpApply).toHaveBeenCalledWith([{ name: 'notion', junction: true, kiroGlobal: true, ccGlobal: false }])
   })
 
   it('leaves an already-enabled entry alone apart from the endpoint rewrite', async () => {

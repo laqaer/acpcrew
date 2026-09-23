@@ -37,17 +37,17 @@ done
 
 # ── Constants ──
 # Repo root = directory containing this script (run from a local clone).
-KIROCREW_APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-# Data home: honor KIROCREW_HOME, else the current default ~/.kiro/crew (NOT the
+JUNCTION_APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Data home: honor JUNCTION_HOME, else the current default ~/.kiro/crew (NOT the
 # pre-move ~/.kirocrew, which is not the data home).
-KIROCREW_DATA_DIR="${KIROCREW_HOME:-$HOME/.kiro/crew}"
+JUNCTION_DATA_DIR="${JUNCTION_HOME:-$HOME/.kiro/crew}"
 NODE_VERSION="24"
 # Minimum Node major the frontend build actually supports. Defined here
 # (not just at the post-install check) because DETECTION consults it: a
 # pre-existing but too-old node must not short-circuit the install ladder.
 NODE_MIN_MAJOR=22
 PYTHON_VERSION="3.12"
-KIROCREW_PORT="${KIROCREW_PORT:-5476}"
+JUNCTION_PORT="${JUNCTION_PORT:-5476}"
 # ── Colors & Formatting ──
 if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
     BOLD=$(tput bold)
@@ -128,13 +128,13 @@ node_supported() {
 
 banner
 
-echo "  ${DIM}Repo directory:${RESET}     $KIROCREW_APP_DIR"
-echo "  ${DIM}Data directory:${RESET}     $KIROCREW_DATA_DIR"
+echo "  ${DIM}Repo directory:${RESET}     $JUNCTION_APP_DIR"
+echo "  ${DIM}Data directory:${RESET}     $JUNCTION_DATA_DIR"
 echo "  ${DIM}Platform:${RESET}           $(uname -s) $(uname -m)"
 echo ""
 
-if [ ! -f "$KIROCREW_APP_DIR/pyproject.toml" ]; then
-    die "Run this from inside a Junction checkout (pyproject.toml not found in $KIROCREW_APP_DIR).
+if [ ! -f "$JUNCTION_APP_DIR/pyproject.toml" ]; then
+    die "Run this from inside a Junction checkout (pyproject.toml not found in $JUNCTION_APP_DIR).
      git clone https://github.com/laqaer/junction.git && cd junction && bash install.sh"
 fi
 
@@ -333,16 +333,16 @@ ok "A vendor agent CLI is optional"
 # ══════════════════════════════════════════════════════════════════════
 step "Build"
 
-cd "$KIROCREW_APP_DIR"
+cd "$JUNCTION_APP_DIR"
 
 # ── Frontend (npm + vite) ──
-# Vite emits to website/dist; we stage it into src/kiro_crew/static/dist
+# Vite emits to website/dist; we stage it into src/junction/static/dist
 # where setup.py copies it into the package at install time.
-if has node && [ -d "$KIROCREW_APP_DIR/website" ]; then
+if has node && [ -d "$JUNCTION_APP_DIR/website" ]; then
     info "Building frontend (website/)…"
     _fe_log="$(mktemp)"
     (
-        cd "$KIROCREW_APP_DIR/website" &&
+        cd "$JUNCTION_APP_DIR/website" &&
         if [ -f package-lock.json ]; then
             npm ci --no-audit --no-fund --loglevel=error 2>"$_fe_log"
         else
@@ -357,13 +357,13 @@ if has node && [ -d "$KIROCREW_APP_DIR/website" ]; then
     spinner $! "Installing npm packages & building React app…"
     _fe_ok=0
     if wait $!; then
-        _dist_src="$KIROCREW_APP_DIR/website/dist"
-        _dist_dst="$KIROCREW_APP_DIR/src/kiro_crew/static/dist"
+        _dist_src="$JUNCTION_APP_DIR/website/dist"
+        _dist_dst="$JUNCTION_APP_DIR/src/junction/static/dist"
         if [ -d "$_dist_src" ]; then
             rm -rf "$_dist_dst"
             mkdir -p "$(dirname "$_dist_dst")"
             cp -R "$_dist_src" "$_dist_dst"
-            ok "Frontend built and staged → src/kiro_crew/static/dist"
+            ok "Frontend built and staged → src/junction/static/dist"
             _fe_ok=1
         fi
     fi
@@ -371,7 +371,7 @@ if has node && [ -d "$KIROCREW_APP_DIR/website" ]; then
         # The build did not produce a usable bundle. For a local CLI install this is
         # non-fatal — the dashboard falls back to a legacy page and the CLI still
         # works. For a cloud crew the dashboard IS the product, so
-        # KIROCREW_REQUIRE_FRONTEND=1 makes it FATAL: dump the build log and exit
+        # JUNCTION_REQUIRE_FRONTEND=1 makes it FATAL: dump the build log and exit
         # non-zero. That lets the cloud bootstrap RETRY the whole install on the warm
         # box (first-boot contention — the common cause — self-heals), and if it still
         # fails the real npm/vite error reaches the failure reason instead of being
@@ -382,8 +382,8 @@ if has node && [ -d "$KIROCREW_APP_DIR/website" ]; then
             echo "-------------------------------------"
         fi
         rm -f "$_fe_log"
-        if [ "${KIROCREW_REQUIRE_FRONTEND:-0}" = "1" ]; then
-            die "Frontend build failed and KIROCREW_REQUIRE_FRONTEND=1 — no static/dist produced (see the build log above)"
+        if [ "${JUNCTION_REQUIRE_FRONTEND:-0}" = "1" ]; then
+            die "Frontend build failed and JUNCTION_REQUIRE_FRONTEND=1 — no static/dist produced (see the build log above)"
         fi
         warn "Frontend build failed — dashboard will use legacy fallback"
     else
@@ -396,7 +396,7 @@ fi
 
 # ── Python virtual environment & package ──
 info "Creating virtual environment…"
-_venv="$KIROCREW_APP_DIR/.venv"
+_venv="$JUNCTION_APP_DIR/.venv"
 if [ -d "$_venv" ] && [ -x "$_venv/bin/python" ]; then
     ok "Existing venv found"
 else
@@ -415,9 +415,9 @@ fi
 _pip_log="$(mktemp)"
 (
     "$_venv/bin/pip" install --upgrade pip setuptools wheel 2>&1 | tail -5 > "$_pip_log"
-    cd "$KIROCREW_APP_DIR"
+    cd "$JUNCTION_APP_DIR"
     # Frontend already built and staged above; skip rebuild in setup.py.
-    KIROCREW_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" 2>&1 | tail -20 >> "$_pip_log"
+    JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_pip_target" 2>&1 | tail -20 >> "$_pip_log"
 ) &
 spinner $! "Installing Junction and dependencies…"
 if wait $!; then
@@ -425,7 +425,7 @@ if wait $!; then
         ok "Python package installed (isolated venv)"
     else
         die "Package installed but dependencies missing (aiohttp not importable).
-     Try manually: $_venv/bin/pip install -e $KIROCREW_APP_DIR"
+     Try manually: $_venv/bin/pip install -e $JUNCTION_APP_DIR"
     fi
 else
     if [ -s "$_pip_log" ]; then
@@ -437,38 +437,38 @@ else
 fi
 rm -f "$_pip_log"
 
-# Record install method so `kirocrew update` uses the right rebuild strategy
-echo "pip" > "$KIROCREW_APP_DIR/.install-method"
+# Record install method so `junction update` uses the right rebuild strategy
+echo "pip" > "$JUNCTION_APP_DIR/.install-method"
 ok "Install method recorded (.install-method=pip)"
 
 # Link the public CLI. The package also ships a silent console-script alias.
 mkdir -p "$HOME/.local/bin"
 ln -sf "$_venv/bin/junction" "$HOME/.local/bin/junction"
-if [ -x "$_venv/bin/kirocrew" ]; then
-    ln -sf "$_venv/bin/kirocrew" "$HOME/.local/bin/kirocrew"
+if [ -x "$_venv/bin/junction" ]; then
+    ln -sf "$_venv/bin/junction" "$HOME/.local/bin/junction"
 fi
 ok "Linked junction → ~/.local/bin/junction"
 
 # ── Desktop App (macOS only) ──
-if [ "$(uname)" = "Darwin" ] && has node && [ -d "$KIROCREW_APP_DIR/electron" ]; then
+if [ "$(uname)" = "Darwin" ] && has node && [ -d "$JUNCTION_APP_DIR/electron" ]; then
     printf "\n  Install the desktop app to ~/Applications? [Y/n] "
     read -r _install_app < /dev/tty
     case "${_install_app:-Y}" in
         [Yy]*)
             info "Building desktop app…"
             (
-                cd "$KIROCREW_APP_DIR/electron"
+                cd "$JUNCTION_APP_DIR/electron"
                 npm install --no-audit --no-fund --loglevel=error 2>/dev/null
                 npx electron-builder --mac --dir 2>/dev/null
             ) &
             spinner $! "Building Electron app…"
             if wait $!; then
-                _app_src="$KIROCREW_APP_DIR/electron/dist/mac-arm64/KiroCrew.app"
-                [ ! -d "$_app_src" ] && _app_src="$KIROCREW_APP_DIR/electron/dist/mac/KiroCrew.app"
+                _app_src="$JUNCTION_APP_DIR/electron/dist/mac-arm64/Junction.app"
+                [ ! -d "$_app_src" ] && _app_src="$JUNCTION_APP_DIR/electron/dist/mac/Junction.app"
                 if [ -d "$_app_src" ]; then
                     mkdir -p "$HOME/Applications"
-                    rm -rf "$HOME/Applications/KiroCrew.app" 2>/dev/null
-                    cp -R "$_app_src" "$HOME/Applications/KiroCrew.app"
+                    rm -rf "$HOME/Applications/Junction.app" 2>/dev/null
+                    cp -R "$_app_src" "$HOME/Applications/Junction.app"
                     ok "Desktop app installed to ~/Applications"
                     detail "Launch it from Spotlight or Finder → ~/Applications"
                 else
@@ -480,7 +480,7 @@ if [ "$(uname)" = "Darwin" ] && has node && [ -d "$KIROCREW_APP_DIR/electron" ];
             ;;
         *)
             info "Skipping desktop app"
-            detail "Install later: cd $KIROCREW_APP_DIR/electron && npm install && npm run dist"
+            detail "Install later: cd $JUNCTION_APP_DIR/electron && npm install && npm run dist"
             ;;
     esac
 fi
@@ -491,13 +491,13 @@ fi
 step "PATH Configuration"
 
 # The public CLI is linked at ~/.local/bin/junction.
-export PATH="$HOME/.local/bin:$KIROCREW_APP_DIR/bin:$PATH"
+export PATH="$HOME/.local/bin:$JUNCTION_APP_DIR/bin:$PATH"
 
 # Persist to shell rc files. Re-runs replace the block this script owns,
 # including the marker previous installs wrote, so PATH is not appended twice.
 _path_line="export PATH=\"\$HOME/.local/bin:\$PATH\""
 _marker="# Junction"
-_legacy_marker="# KiroCrew"  # brand-ok: previous shell-rc marker to remove
+_legacy_marker="# Junction"  # brand-ok: previous shell-rc marker to remove
 
 _strip_rc_block() {
     local rc="$1" marker="$2"
@@ -519,21 +519,21 @@ _add_to_rc() {
     ok "Added to $(basename "$rc")"
 }
 
-# Also persist KIROCREW_PROJECT_DIR so kirocrew works from any directory
-_proj_line="export KIROCREW_PROJECT_DIR=\"$KIROCREW_APP_DIR\""
+# Also persist JUNCTION_PROJECT_DIR so junction works from any directory
+_proj_line="export JUNCTION_PROJECT_DIR=\"$JUNCTION_APP_DIR\""
 
 _add_proj_to_rc() {
     local rc="$1"
     [ ! -f "$rc" ] && return
-    if grep -qF "KIROCREW_PROJECT_DIR" "$rc" 2>/dev/null; then
+    if grep -qF "JUNCTION_PROJECT_DIR" "$rc" 2>/dev/null; then
         local _tmp
         _tmp="$(mktemp)"
-        grep -v "KIROCREW_PROJECT_DIR" "$rc" > "$_tmp" && mv "$_tmp" "$rc"
+        grep -v "JUNCTION_PROJECT_DIR" "$rc" > "$_tmp" && mv "$_tmp" "$rc"
     fi
     echo "$_proj_line" >> "$rc"
 }
 
-export KIROCREW_PROJECT_DIR="$KIROCREW_APP_DIR"
+export JUNCTION_PROJECT_DIR="$JUNCTION_APP_DIR"
 
 for _rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
     if [ -f "$_rc" ]; then
@@ -550,7 +550,7 @@ if [ -f "$_fish_config" ] || [ "$(basename "${SHELL:-}")" = "fish" ]; then
         local marker="$1"
         if grep -qF "$marker" "$_fish_config" 2>/dev/null; then
             _tmp="$(mktemp)"
-            awk -v marker="$marker" 'BEGIN{s=0} $0==marker{s=1;next} s&&/^(fish_add_path|set -gx KIROCREW)/{next} {s=0;print}' "$_fish_config" > "$_tmp" && mv "$_tmp" "$_fish_config"
+            awk -v marker="$marker" 'BEGIN{s=0} $0==marker{s=1;next} s&&/^(fish_add_path|set -gx JUNCTION)/{next} {s=0;print}' "$_fish_config" > "$_tmp" && mv "$_tmp" "$_fish_config"
         fi
     }
     _strip_fish "$_marker"
@@ -558,14 +558,14 @@ if [ -f "$_fish_config" ] || [ "$(basename "${SHELL:-}")" = "fish" ]; then
     {
         echo "$_marker"
         echo "fish_add_path -g ~/.local/bin"
-        echo "set -gx KIROCREW_PROJECT_DIR $KIROCREW_APP_DIR"
+        echo "set -gx JUNCTION_PROJECT_DIR $JUNCTION_APP_DIR"
     } >> "$_fish_config"
     ok "Added to config.fish"
 fi
 
-# Save project dir for kirocrew to find
-mkdir -p "$KIROCREW_DATA_DIR"
-echo "$KIROCREW_APP_DIR" > "$KIROCREW_DATA_DIR/project_dir"
+# Save project dir for junction to find
+mkdir -p "$JUNCTION_DATA_DIR"
+echo "$JUNCTION_APP_DIR" > "$JUNCTION_DATA_DIR/project_dir"
 
 # Verify the public CLI is accessible
 if has junction; then
@@ -588,16 +588,16 @@ if has junction; then
     _cli=junction
 elif [ -x "$HOME/.local/bin/junction" ]; then
     _cli="$HOME/.local/bin/junction"
-elif has kirocrew; then
-    _cli=kirocrew
-elif [ -x "$HOME/.local/bin/kirocrew" ]; then
-    _cli="$HOME/.local/bin/kirocrew"
+elif has junction; then
+    _cli=junction
+elif [ -x "$HOME/.local/bin/junction" ]; then
+    _cli="$HOME/.local/bin/junction"
 else
     _cli=""
 fi
 if [ -n "$_cli" ]; then
     info "Installing agent config…"
-    KIROCREW_PROJECT_DIR="$KIROCREW_APP_DIR" "$_cli" setup --agent-only \
+    JUNCTION_PROJECT_DIR="$JUNCTION_APP_DIR" "$_cli" setup --agent-only \
         && ok "Agent config installed" \
         || warn "junction setup --agent-only failed (run manually after install)"
 fi
@@ -632,7 +632,7 @@ echo ""
 echo "    ${CYAN}3.${RESET} Start the dashboard:"
 echo "       ${GREEN}junction up${RESET}"
 echo ""
-echo "    ${CYAN}4.${RESET} Open ${CYAN}http://localhost:${KIROCREW_PORT}${RESET} in your browser"
+echo "    ${CYAN}4.${RESET} Open ${CYAN}http://localhost:${JUNCTION_PORT}${RESET} in your browser"
 echo ""
 # SSH tunnel tip for remote Linux users
 if [ "$(uname)" != "Darwin" ]; then
@@ -642,9 +642,9 @@ if [ "$(uname)" != "Darwin" ]; then
     echo "  ${BOLD}Remote access:${RESET}"
     echo "    Run this on your ${CYAN}local machine${RESET} to forward the dashboard:"
     echo ""
-    echo "    ${GREEN}ssh -N -L ${KIROCREW_PORT}:localhost:${KIROCREW_PORT} $_hostname${RESET}"
+    echo "    ${GREEN}ssh -N -L ${JUNCTION_PORT}:localhost:${JUNCTION_PORT} $_hostname${RESET}"
     echo ""
-    echo "    Then open ${CYAN}http://localhost:${KIROCREW_PORT}${RESET} in your local browser."
+    echo "    Then open ${CYAN}http://localhost:${JUNCTION_PORT}${RESET} in your local browser."
     echo ""
 fi
 echo "  ${DIM}────────────────────────────────────────${RESET}"

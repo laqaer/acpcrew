@@ -17,8 +17,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers import mcp as mcp_mod
-from kiro_crew.slack.gateway import GatewayOrchestrator
+from junction.dashboard.handlers import mcp as mcp_mod
+from junction.slack.gateway import GatewayOrchestrator
 
 
 def _make_request(state: object, body: dict) -> web.Request:
@@ -157,7 +157,7 @@ async def test_enable_invokes_wired_apply(monkeypatch: pytest.MonkeyPatch) -> No
     assert payload["ok"] is True
     assert payload["running"] is True
     apply_cb.assert_awaited_once_with(True)
-    from kiro_crew.config.loader import config_path
+    from junction.config.loader import config_path
 
     saved = json.loads(config_path().read_text(encoding="utf-8"))
     assert saved["mcp_gateway"]["enabled"] is True
@@ -252,7 +252,7 @@ def test_is_gateway_supported_platform_matrix(
     win32 is supported via the named-pipe transport. cygwin is not: it reports
     its own ``sys.platform`` and has neither the POSIX nor the proactor path.
     """
-    import kiro_crew.mcp_gateway as gw
+    import junction.mcp_gateway as gw
 
     monkeypatch.setattr(gw.sys, "platform", platform)
     assert gw.is_gateway_supported() is expected

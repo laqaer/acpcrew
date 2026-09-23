@@ -313,7 +313,7 @@ export default function MemoryGraphTab() {
 
   return (<>
     <Card>
-      <CardTitle><NetworkIcon className="lucide-inline" /> {i18nT('pages.overview.memoryGraphTab.memory_graph')} <InfoTip text={i18nT('pages.overview.memoryGraphTab.gpu_rendered_visualization_of_all_kirocrew_memor')} />
+      <CardTitle><NetworkIcon className="lucide-inline" /> {i18nT('pages.overview.memoryGraphTab.memory_graph')} <InfoTip text={i18nT('pages.overview.memoryGraphTab.gpu_rendered_visualization_of_all_junction_memor')} />
         <Btn onClick={() => load()} className="ml-2"><RefreshCw className="lucide-inline" /> {i18nT('pages.overview.memoryGraphTab.refresh')}</Btn>
       </CardTitle>
       <div className="flex gap-2 flex-wrap mb-3 items-center">

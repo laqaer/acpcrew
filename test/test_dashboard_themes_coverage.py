@@ -1,4 +1,4 @@
-"""Coverage tests for ``kiro_crew.dashboard.handlers.themes`` — HTTP surface.
+"""Coverage tests for ``junction.dashboard.handlers.themes`` — HTTP surface.
 
 ``test_theme_install.py`` covers the pure validation core plus a few module
 helpers; this file covers the parts a validator test never reaches: the six
@@ -8,7 +8,7 @@ the blocking workers they offload to the discovery pool (``_list_themes_sync``,
 invalid JSON, slug traversal, governance denial, read-only installed packs,
 unsupported asset types, and cross-platform pack install/serving.
 
-Every test points ``KIROCREW_HOME`` at ``tmp_path`` so ``_themes_dir()``
+Every test points ``JUNCTION_HOME`` at ``tmp_path`` so ``_themes_dir()``
 resolves inside the sandbox: nothing is written outside it. No network, no git,
 no real subprocess — ``_clone_github``'s spawn is replaced with a stub so only
 its URL guard and error mapping are exercised.
@@ -31,10 +31,10 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-import kiro_crew.platform.governance_profiles as gov_mod
+import junction.platform.governance_profiles as gov_mod
 from conftest import requires_symlinks
-from kiro_crew import platform_compat
-from kiro_crew.dashboard.handlers import themes as th
+from junction import platform_compat
+from junction.dashboard.handlers import themes as th
 
 # _validate_theme_data only *requires* --bg/--text/--accent per mode.
 _VALID_VARS: dict[str, dict[str, str]] = {
@@ -101,10 +101,10 @@ def _make_pack(root: Path, *, slug: str = "lcars", level: int = 0) -> Path:
 
 @pytest.fixture
 def themes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect KIROCREW_HOME into tmp_path and return the themes directory."""
+    """Redirect JUNCTION_HOME into tmp_path and return the themes directory."""
     home = tmp_path / "crew-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     d = home / "themes"
     d.mkdir()
     assert os.path.realpath(str(th._themes_dir())) == os.path.realpath(str(d))
@@ -133,7 +133,7 @@ class TestListThemesSync:
     def test_missing_directory_is_empty(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "nowhere"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "nowhere"))
         assert th._list_themes_sync() == []
 
     def test_custom_record_defaults_fill_missing_fields(self, themes_dir: Path) -> None:
@@ -272,7 +272,7 @@ class TestApiThemesCreate:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         home = tmp_path / "fresh"
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         resp = await th.api_themes_create(
             _request("POST", "/api/themes", body=_theme_body())
         )
@@ -710,7 +710,7 @@ class TestDoInstallRefusals:
 
 class TestDoInstallPromotion:
     def test_source_containing_the_themes_dir_is_rejected(self, themes_dir: Path) -> None:
-        # The themes directory lives under KIROCREW_HOME, so installing FROM
+        # The themes directory lives under JUNCTION_HOME, so installing FROM
         # that home would make the staging copy recurse into its own output.
         home = themes_dir.parent
         theme, err, status = th._do_install("local", {"path": str(home)})

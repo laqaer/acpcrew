@@ -1,8 +1,8 @@
-"""Coverage tests for ``kiro_crew.dashboard.server``'s startup path.
+"""Coverage tests for ``junction.dashboard.server``'s startup path.
 
 Sibling of ``test_dashboard_server_coverage.py``, which pins the module's
 extracted *helpers*. What was left uncovered is the one thing no helper test can
-reach: the body of :func:`~kiro_crew.dashboard.server.start_dashboard` itself —
+reach: the body of :func:`~junction.dashboard.server.start_dashboard` itself —
 the app factory that wires every route, middleware and lifecycle hook the
 gateway serves. Nothing asserted here is reachable from a helper, because the
 wiring order and the hook/middleware inventory only exist inside that function.
@@ -17,8 +17,8 @@ an ephemeral ``port=0`` would not exempt a real bind.
 Everything else that reaches outside the process is replaced rather than
 tolerated: app-backend launches, the builtin-app registration sweep, the Kiro
 prerequisite probe, the Playwright registration migration (which writes the
-operator's REAL ``~/.kiro/settings/mcp.json``, outside ``KIROCREW_HOME``), the
-terminal reaper (shells out to ``ps``) and the MCP probe. ``KIROCREW_HOME`` is
+operator's REAL ``~/.kiro/settings/mcp.json``, outside ``JUNCTION_HOME``), the
+terminal reaper (shells out to ``ps``) and the MCP probe. ``JUNCTION_HOME`` is
 pinned to ``tmp_path`` by ``test/conftest.py``, so the state files the startup
 writes stay inside the test's own directory.
 """
@@ -40,7 +40,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard import server as srv
+from junction.dashboard import server as srv
 
 requires_unix_socket = pytest.mark.skipif(
     not hasattr(socket, "AF_UNIX"),
@@ -200,8 +200,8 @@ def _neutralise_outside_process_work(monkeypatch) -> dict[str, Any]:
     operator's real config, or shells out to ``ps``, which is the shape of side
     effect AUTOSDE ``no-test-side-effects`` is blocking on.
     """
-    import kiro_crew.apps.dev_mode as dev_mode
-    import kiro_crew.kiro_prerequisite as kiro_prereq
+    import junction.apps.dev_mode as dev_mode
+    import junction.kiro_prerequisite as kiro_prereq
 
     spies: dict[str, Any] = {
         # Spawns a real backend process per enabled app.
@@ -209,7 +209,7 @@ def _neutralise_outside_process_work(monkeypatch) -> dict[str, Any]:
         # Writes into the apps dir and re-materialises builtin manifests.
         "register_builtin_apps": MagicMock(),
         # Rewrites the operator's REAL ~/.kiro/settings/mcp.json — the one step
-        # here whose target is outside KIROCREW_HOME.
+        # here whose target is outside JUNCTION_HOME.
         "cleanup_migrated_builtin": MagicMock(),
         "on_gateway_startup": AsyncMock(),
         "on_gateway_shutdown": AsyncMock(),
@@ -247,8 +247,8 @@ async def _start_dashboard(tmp_path: Path, monkeypatch, **kwargs: Any) -> Any:
     this from starting a service; everything else runs for real against the
     ``tmp_path`` data home. Returns ``(runner, state, spies)``.
     """
-    import kiro_crew.config.loader as _loader
-    import kiro_crew.dashboard.state as _st
+    import junction.config.loader as _loader
+    import junction.dashboard.state as _st
 
     monkeypatch.setattr(srv, "data_home", lambda: tmp_path)
     monkeypatch.setattr(_st, "config_dir", lambda: tmp_path)

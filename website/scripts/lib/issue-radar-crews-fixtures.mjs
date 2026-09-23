@@ -13,7 +13,7 @@
  */
 
 export const OWNER = 'kirodotdev'
-export const REPO = 'KiroCrew' // brand-ok: the repository name
+export const REPO = 'Junction' // brand-ok: the repository name
 export const REPO_REF = { owner: OWNER, repo: REPO, provider: 'github', host: 'github.com' }
 
 export const SETTINGS = {
@@ -34,7 +34,7 @@ export function crew(id, name, over = {}) {
     name,
     avatar_seed: name,
     avatar_variant: null,
-    agent: 'kirocrew',
+    agent: 'junction',
     model: '',
     extra_prompt: '',
     labels: ['area: dashboard', 'area: gateway'],

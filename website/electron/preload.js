@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
-contextBridge.exposeInMainWorld("kirocrew", {
+contextBridge.exposeInMainWorld("junction", {
   platform: process.platform,
   isElectron: true,
   // True when this window is a frameless Linux window (a runtime decision --
@@ -93,7 +93,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // coerced here because preload is the trust boundary: the main process writes
   // them into a log line, so a renderer bug must not be able to put an object or
   // a huge string there. Fire-and-forget — the renderer never waits on a
-  // diagnostic, and the main process drops it entirely unless KIROCREW_DEBUG.
+  // diagnostic, and the main process drops it entirely unless JUNCTION_DEBUG.
   reportPierrePerf: (w) =>
     ipcRenderer.send("pierre-perf", {
       calls: Number(w && w.calls) || 0,

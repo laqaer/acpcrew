@@ -29,8 +29,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import kiro_crew.dashboard.handlers.core as core_mod
-from kiro_crew import sel as sel_mod
+import junction.dashboard.handlers.core as core_mod
+from junction import sel as sel_mod
 
 
 class _FakeLoop:

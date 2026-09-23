@@ -1,7 +1,7 @@
 # Mochi — architecture map
 
 Mochi is a desktop pet companion, migrated from a standalone Electron app into a
-KiroCrew builtin. This file is the map: where everything lives, why the layout
+Junction builtin. This file is the map: where everything lives, why the layout
 looks the way it does, and where the seams are. Read it before moving files or
 adding cross-boundary calls.
 
@@ -10,7 +10,7 @@ adding cross-boundary calls.
 | Root | What lives there |
 |---|---|
 | `website/src/apps/mochi/` (here) | All frontend: window entry HTML + React, bridges, vendored original renderer |
-| `src/kiro_crew/apps/builtins/mochi/` | Python backend: runtime (`hooks.py`), services, MCP server, routes, agents/skills |
+| `src/junction/apps/builtins/mochi/` | Python backend: runtime (`hooks.py`), services, MCP server, routes, agents/skills |
 | `website/electron/mochi/` | Electron shell layer: pet overlay windows, preload, instance resolution |
 | `test/test_mochi_*.py` | Backend tests (flat `test/`, prefix-contained — see "Test placement") |
 
@@ -44,7 +44,7 @@ ported line-for-line. It is intentional, not a nesting mistake.
 - `test/` — frontend tests (vitest picks up `src/**/*.test.*` with zero
   config).
 
-## Backend shape (`src/kiro_crew/apps/builtins/mochi/`)
+## Backend shape (`src/junction/apps/builtins/mochi/`)
 
 `hooks.py` owns the runtime: service graph, owner loop (all periodic work
 ticks here — no free-floating tasks), notification gate, and the late-bound
@@ -70,7 +70,7 @@ token fetcher + logger, nothing else. Shell tests live in `test/` here.
 Frontend and Electron tests live inside the mochi folders. Backend tests stay
 in the repo's flat `test/` with the `test_mochi_` prefix — moving them out
 would silently lose `conftest.py`'s autouse fixtures (including the
-`KIROCREW_HOME` isolation that keeps tests from writing to the real data
+`JUNCTION_HOME` isolation that keeps tests from writing to the real data
 home), and in-package tests would ship in the wheel.
 
 ## Rules of thumb

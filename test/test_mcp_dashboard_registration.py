@@ -1,13 +1,13 @@
-"""Managed-MCP registration for ``kirocrew-dashboard``, and why it is its own server.
+"""Managed-MCP registration for ``junction-dashboard``, and why it is its own server.
 
-The dashboard-control tools are deliberately NOT in ``kirocrew-core``. Core is the
+The dashboard-control tools are deliberately NOT in ``junction-core``. Core is the
 surface every session carries and kiro-cli reads ``tools/list`` once per session,
 so a capability the user grants occasionally would otherwise spend context in
 every request of every session. Three properties encode that decision and must
 not regress:
 
 * **The default agent's spec does not carry the server**, in ``mcpServers`` or as
-  an ``@kirocrew-dashboard`` ref in ``tools``. kiro-cli loads a server only when
+  an ``@junction-dashboard`` ref in ``tools``. kiro-cli loads a server only when
   something references it, so an unreferenced set costs a default session
   literally zero context — the only shape that does.
 * **A refresh never re-grants it.** An existing spec that names the server keeps
@@ -29,16 +29,16 @@ from typing import Any
 
 import pytest
 
-from kiro_crew import agent, mcp_cleanup, mcp_discovery, onboarding_import
+from junction import agent, mcp_cleanup, mcp_discovery, onboarding_import
 
-DASH_SERVER = "kirocrew-dashboard"
+DASH_SERVER = "junction-dashboard"
 DASH_SUBCOMMAND = "mcp-dashboard"
 
 
 class TestRegistryParity:
     def test_named_in_every_managed_registry(self) -> None:
         assert DASH_SERVER in agent._MANAGED_MCP_SERVERS
-        assert DASH_SERVER in mcp_cleanup.KIROCREW_BIN_MCP_SERVERS
+        assert DASH_SERVER in mcp_cleanup.JUNCTION_BIN_MCP_SERVERS
         assert mcp_discovery._MANAGED_SERVER_SUBCOMMANDS.get(DASH_SERVER) == DASH_SUBCOMMAND
         assert DASH_SERVER in mcp_discovery._MANAGED_SERVER_NAMES
         assert DASH_SERVER in onboarding_import._managed_mcp_names()
@@ -47,7 +47,7 @@ class TestRegistryParity:
         """Discovery reads tool names in-process; an unmapped server lists zero."""
         assert (
             mcp_discovery._MANAGED_SERVER_TOOL_MODULES.get(DASH_SERVER)
-            == "kiro_crew.mcp_dashboard"
+            == "junction.mcp_dashboard"
         )
 
     def test_spec_carries_no_auto_approve(self) -> None:
@@ -72,11 +72,11 @@ class TestRegistryParity:
         flagged = {n for n, s in agent._MANAGED_MCP_SERVERS.items() if s.get("opt_in")}
         assert set(mcp_cleanup.OPT_IN_BIN_MCP_SERVERS) == flagged
         assert set(mcp_cleanup.ALWAYS_ON_BIN_MCP_SERVERS) == set(agent._MANAGED_MCP_SERVERS) - flagged
-        assert set(mcp_cleanup.KIROCREW_BIN_MCP_SERVERS) == set(agent._MANAGED_MCP_SERVERS)
+        assert set(mcp_cleanup.JUNCTION_BIN_MCP_SERVERS) == set(agent._MANAGED_MCP_SERVERS)
 
 
 class TestDoctorTreatsItAsAssignedNotMissing:
-    """`kirocrew doctor` must not undo the assignment, in either direction."""
+    """`junction doctor` must not undo the assignment, in either direction."""
 
     def test_it_is_never_blanket_auto_approved(self) -> None:
         """``allowedTools`` skips the PreToolUse gate, so doctor may not mint one.
@@ -85,7 +85,7 @@ class TestDoctorTreatsItAsAssignedNotMissing:
         For tools that rewrite the user's session layout that would delete the
         deny floor and the governance ceiling in one step.
         """
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         assert DASH_SERVER in cli_doctor._NO_BLANKET_ALLOW_MCPS
 
@@ -99,13 +99,13 @@ class TestDoctorTreatsItAsAssignedNotMissing:
         """
         import json
 
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
-        spec_path = tmp_path / "kirocrew.json"
+        spec_path = tmp_path / "junction.json"
         spec = {
             "mcpServers": {
-                n: {"command": "/usr/local/bin/kirocrew", "args": [f"mcp-{n.split('-', 1)[1]}"]}
-                for n in mcp_cleanup.KIROCREW_BIN_MCP_SERVERS
+                n: {"command": "/usr/local/bin/junction", "args": [f"mcp-{n.split('-', 1)[1]}"]}
+                for n in mcp_cleanup.JUNCTION_BIN_MCP_SERVERS
             },
             "tools": [f"@{n}" for n in mcp_cleanup.ALWAYS_ON_BIN_MCP_SERVERS],
             "allowedTools": [],
@@ -123,15 +123,15 @@ class TestDoctorTreatsItAsAssignedNotMissing:
         """The mirror half: a ref mounting a server the spec never defines."""
         import json
 
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
-        spec_path = tmp_path / "kirocrew.json"
+        spec_path = tmp_path / "junction.json"
         spec = {
             "mcpServers": {
-                n: {"command": "/usr/local/bin/kirocrew", "args": [f"mcp-{n.split('-', 1)[1]}"]}
+                n: {"command": "/usr/local/bin/junction", "args": [f"mcp-{n.split('-', 1)[1]}"]}
                 for n in mcp_cleanup.ALWAYS_ON_BIN_MCP_SERVERS
             },
-            "tools": [f"@{n}" for n in mcp_cleanup.KIROCREW_BIN_MCP_SERVERS],
+            "tools": [f"@{n}" for n in mcp_cleanup.JUNCTION_BIN_MCP_SERVERS],
             "allowedTools": [],
         }
         spec_path.write_text(json.dumps(spec), encoding="utf-8")
@@ -144,14 +144,14 @@ class TestDoctorTreatsItAsAssignedNotMissing:
         """A default install has no grant, and that is the healthy state."""
         import json
 
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
-        spec = tmp_path / "kirocrew.json"
+        spec = tmp_path / "junction.json"
         spec.write_text(
             json.dumps(
                 {
                     "mcpServers": {
-                        n: {"command": "/usr/local/bin/kirocrew", "args": [f"mcp-{n.split('-', 1)[1]}"]}
+                        n: {"command": "/usr/local/bin/junction", "args": [f"mcp-{n.split('-', 1)[1]}"]}
                         for n in mcp_cleanup.ALWAYS_ON_BIN_MCP_SERVERS
                     },
                     "tools": [f"@{n}" for n in mcp_cleanup.ALWAYS_ON_BIN_MCP_SERVERS],
@@ -183,8 +183,8 @@ class TestTheDefaultAgentIsNotGrantedTheSet:
         """The skip is scoped to opt-in sets, not to managed servers at large."""
         config = agent.build_agent_config()
         mcp = config.get("mcpServers", {})
-        assert "kirocrew-core" in mcp
-        assert "kirocrew-cron" in mcp
+        assert "junction-core" in mcp
+        assert "junction-cron" in mcp
 
     def test_a_refresh_does_not_introduce_the_server(self) -> None:
         config: dict[str, Any] = {"mcpServers": {}}
@@ -233,16 +233,16 @@ class TestAHandWrittenGrantIsUserInput:
     ) -> None:
         import json
 
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
-        spec_path = tmp_path / "kirocrew.json"
+        spec_path = tmp_path / "junction.json"
         spec_path.write_text(
             json.dumps(
                 {
                     "mcpServers": {
                         **{
                             n: {
-                                "command": "/usr/local/bin/kirocrew",
+                                "command": "/usr/local/bin/junction",
                                 "args": [f"mcp-{n.split('-', 1)[1]}"],
                             }
                             for n in mcp_cleanup.ALWAYS_ON_BIN_MCP_SERVERS
@@ -294,12 +294,12 @@ class TestTheNameAloneIsNotOwnership:
                     "mcpServers": {
                         # The user's grant, spelled the only way that works.
                         DASH_SERVER: {
-                            "command": "/usr/local/bin/kirocrew",
+                            "command": "/usr/local/bin/junction",
                             "args": ["mcp-dashboard"],
                         },
                         # A genuinely stale always-on entry, for contrast.
-                        "kirocrew-core": {
-                            "command": "/usr/local/bin/kirocrew",
+                        "junction-core": {
+                            "command": "/usr/local/bin/junction",
                             "args": ["mcp-core"],
                         },
                     }
@@ -311,7 +311,7 @@ class TestTheNameAloneIsNotOwnership:
 
         removed = mcp_cleanup.clean_stale_managed_mcp()
 
-        assert removed == ["kirocrew-core"]
+        assert removed == ["junction-core"]
         left = json.loads(mcp_json.read_text(encoding="utf-8"))["mcpServers"]
         assert DASH_SERVER in left, "deleted a grant only a human could have written"
 
@@ -348,13 +348,13 @@ class TestWhatThisSetGrants:
     GRANTED_TOOLS = FOLDER_TOOLS | SESSION_TOOLS
 
     def test_the_set_is_exactly_the_folder_tools(self) -> None:
-        from kiro_crew import mcp_dashboard
+        from junction import mcp_dashboard
 
         assert {t["name"] for t in mcp_dashboard._tool_definitions()} == self.GRANTED_TOOLS
 
     def test_the_advertised_list_is_the_set(self) -> None:
         """Reaching the process means the set was assigned; nothing is hidden."""
-        from kiro_crew import mcp_dashboard
+        from junction import mcp_dashboard
 
         assert {t["name"] for t in mcp_dashboard._list_tools()} == self.GRANTED_TOOLS
 
@@ -373,7 +373,7 @@ class TestWhatThisSetGrants:
         an accident. If either class disappears from the server, this fails and
         whoever changed it has to say which half they meant to drop.
         """
-        from kiro_crew import mcp_dashboard
+        from junction import mcp_dashboard
 
         names = {t["name"] for t in mcp_dashboard._tool_definitions()}
         folder = {n for n in names if n.startswith("chat_folder_")}

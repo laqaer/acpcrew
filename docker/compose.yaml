@@ -1,14 +1,14 @@
 # Junction gateway — compose example.
 #
 #   docker compose up -d
-#   docker compose exec kirocrew junction token --ttl 2h # mint a dashboard link
+#   docker compose exec junction junction token --ttl 2h # mint a dashboard link
 #
 # Then open the printed link at http://localhost:5476/?token=...
 # A vendor agent CLI is optional. Full guide: docs/guides/docker.md
 
 services:
-  kirocrew:
-    image: ghcr.io/laqaer/kirocrew:stable
+  junction:
+    image: ghcr.io/laqaer/junction:stable
     container_name: junction
     restart: unless-stopped
     ports:
@@ -17,14 +17,14 @@ services:
       # interfaces, but that alone is not enough for LAN browsers: every
       # request still requires a dashboard token, AND the browser's Origin/
       # Host must be allowed — set dashboard.url in config.json (or
-      # KIROCREW_CORS_ORIGINS) to the address you browse from, ideally a
+      # JUNCTION_CORS_ORIGINS) to the address you browse from, ideally a
       # TLS reverse proxy. See docs/guides/docker.md "Networking and security".
       - "127.0.0.1:5476:5476"
     volumes:
       # One named volume persists everything: gateway state (~/.kiro/crew),
       # kiro-cli credentials, agents, skills. Named volume (not bind mount)
       # so ownership matches the image's non-root user on first use.
-      - kirocrew-home:/home/kirocrew
+      - junction-home:/home/junction
     environment:
       # Channel credentials load from the environment. Put them in an .env
       # file next to this compose file (compose reads it automatically) —
@@ -35,7 +35,7 @@ services:
       # never reside in a long-lived /proc/<pid>/environ.
       SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:-}
       SLACK_APP_TOKEN: ${SLACK_APP_TOKEN:-}
-      KIROCREW_OWNER_ID: ${KIROCREW_OWNER_ID:-}
+      JUNCTION_OWNER_ID: ${JUNCTION_OWNER_ID:-}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       WECOM_BOT_ID: ${WECOM_BOT_ID:-}
@@ -52,12 +52,12 @@ services:
       # sandbox (adds unconditional unshare/clone/mount allows to the Docker
       # default; see docs/guides/docker.md "Sandbox troubleshooting"):
       #   security_opt:
-      #     - seccomp:./docker/seccomp/kirocrew-seccomp.json
-      KIROCREW_ALLOW_UNSANDBOXED: ${KIROCREW_ALLOW_UNSANDBOXED:-}
+      #     - seccomp:./docker/seccomp/junction-seccomp.json
+      JUNCTION_ALLOW_UNSANDBOXED: ${JUNCTION_ALLOW_UNSANDBOXED:-}
     # The image's HEALTHCHECK covers liveness; this block is only needed if
     # you override the port.
     # healthcheck:
     #   test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5476/api/health"]
 
 volumes:
-  kirocrew-home:
+  junction-home:

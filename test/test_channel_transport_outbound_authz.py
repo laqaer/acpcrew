@@ -28,9 +28,9 @@ from typing import Any
 
 import pytest
 
-import kiro_crew as kiro_crew_pkg
-from kiro_crew.messaging.link import ChannelLink
-from kiro_crew.messaging.transport import MessagingTransport
+import junction as junction_pkg
+from junction.messaging.link import ChannelLink
+from junction.messaging.transport import MessagingTransport
 
 #: The method every shipped transport must decide for itself.
 _HOOK = "may_send_to"
@@ -53,7 +53,7 @@ _PERMITS_WITH_REASON = {
 
 def _transport_classes() -> dict[str, list[str]]:
     """``channel -> [MessagingTransport subclass names]`` across the package."""
-    root = Path(kiro_crew_pkg.__file__).parent
+    root = Path(junction_pkg.__file__).parent
     found: dict[str, list[str]] = {}
     for path in sorted(root.glob("*/transport.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -72,7 +72,7 @@ def _transport_classes() -> dict[str, list[str]]:
 
 def _overrides_hook(channel: str, class_name: str) -> bool:
     """Whether *class_name* defines :data:`_HOOK` in its OWN body."""
-    path = Path(kiro_crew_pkg.__file__).parent / channel / "transport.py"
+    path = Path(junction_pkg.__file__).parent / channel / "transport.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     for node in tree.body:
         if isinstance(node, ast.ClassDef) and node.name == class_name:
@@ -164,7 +164,7 @@ class TestTelegramOutboundAuthz:
     """The channel the gap was reported against, and the one that can answer."""
 
     def _transport(self, **over: Any) -> Any:
-        from kiro_crew.telegram.transport import TelegramTransport
+        from junction.telegram.transport import TelegramTransport
 
         kwargs: dict[str, Any] = {
             "allowed_user_ids": [111],
@@ -220,7 +220,7 @@ class TestTelegramOutboundAuthz:
 
 class TestOtherTransportsThatCanAnswer:
     def test_imessage_matches_the_handle_roster(self) -> None:
-        from kiro_crew.imessage.transport import IMessageTransport
+        from junction.imessage.transport import IMessageTransport
 
         t = IMessageTransport(object(), allowed_handles=["+15550100"])
         assert t.may_send_to("+15550100") is True
@@ -234,7 +234,7 @@ class TestOtherTransportsThatCanAnswer:
         and a link written the plain way both normalize, and asserting that
         direction passes with the normalization deleted.
         """
-        from kiro_crew.imessage.transport import IMessageTransport
+        from junction.imessage.transport import IMessageTransport
 
         t = IMessageTransport(object(), allowed_handles=["+15550100"])
         assert t._allowed == frozenset({"+15550100"})
@@ -250,7 +250,7 @@ class TestOtherTransportsThatCanAnswer:
         mapping lives, so the test exercises the same lookup the send path does
         rather than a dict this assertion invented.
         """
-        from kiro_crew.teams.transport import TeamsTransport
+        from junction.teams.transport import TeamsTransport
 
         t = TeamsTransport(object(), allowed_emails=allowed)
         if owner and conversation:
@@ -292,7 +292,7 @@ class TestOtherTransportsThatCanAnswer:
         """
         import inspect
 
-        from kiro_crew.teams import gateway as teams_gateway
+        from junction.teams import gateway as teams_gateway
 
         src = inspect.getsource(teams_gateway)
         warm = src.index("await transport.warm_routes()")
@@ -316,7 +316,7 @@ class TestOtherTransportsThatCanAnswer:
         assert t.may_send_to("conv-1") is False
 
     def _weixin(self, policy: str, allowed: list[str]) -> Any:
-        from kiro_crew.weixin.transport import WeixinTransport
+        from junction.weixin.transport import WeixinTransport
 
         return WeixinTransport(
             object(),
@@ -347,7 +347,7 @@ class TestOtherTransportsThatCanAnswer:
         assert t.may_send_to("u1") is False
 
     def test_wecom_mirrors_authorize(self) -> None:
-        from kiro_crew.wecom.transport import WeComTransport
+        from junction.wecom.transport import WeComTransport
 
         t = WeComTransport(object(), allowed_users=["u1"], owner_id="owner")
         assert t.may_send_to("u1") is True
@@ -366,7 +366,7 @@ class TestPrincipalAnsweredTransports:
     """
 
     def _discord(self, allowed: list[str], threads: list[str] | None = None) -> Any:
-        from kiro_crew.discord.transport import DiscordTransport
+        from junction.discord.transport import DiscordTransport
 
         return DiscordTransport(
             object(), allowed_user_ids=allowed, allowed_thread_ids=threads or []
@@ -453,7 +453,7 @@ class TestPrincipalAnsweredTransports:
         rooms: list[str] | None = None,
         group: bool = False,
     ) -> Any:
-        from kiro_crew.webex.transport import WebexTransport
+        from junction.webex.transport import WebexTransport
 
         return WebexTransport(
             object(),
@@ -522,7 +522,7 @@ class TestTransportsThatPermitWithAReason:
         A reader hitting the method needs the reason at the method, not only in
         this table -- so require a docstring that says it permits deliberately.
         """
-        root = Path(kiro_crew_pkg.__file__).parent
+        root = Path(junction_pkg.__file__).parent
         for channel in _PERMITS_WITH_REASON:
             source = (root / channel / "transport.py").read_text(encoding="utf-8")
             tree = ast.parse(source)
@@ -543,16 +543,16 @@ class TestSessionPrincipalExtraction:
     """``_session_principal``: empty rather than wrong, and never a guess."""
 
     def _principal(self, key: str) -> str:
-        from kiro_crew.dashboard.chat_runner import _session_principal
+        from junction.dashboard.chat_runner import _session_principal
 
         return _session_principal(key)
 
     def test_a_direct_dm_key_names_its_peer(self) -> None:
-        assert self._principal("discord:kirocrew:direct:42") == "42"
+        assert self._principal("discord:junction:direct:42") == "42"
 
     def test_a_generation_suffix_does_not_hide_the_peer(self) -> None:
         """A reset rotates the generation; the principal must survive it."""
-        assert self._principal("discord:kirocrew:direct:42:gen3") == "42"
+        assert self._principal("discord:junction:direct:42:gen3") == "42"
 
     def test_a_forum_route_names_no_single_principal(self) -> None:
         """Its audience is a room, so claiming a principal would be a lie.
@@ -560,7 +560,7 @@ class TestSessionPrincipalExtraction:
         The scope is (chat_id, thread_id); returning chat_id would test a
         supergroup id against a USER roster.
         """
-        assert self._principal("telegram:kirocrew:forum:-100123:7") == ""
+        assert self._principal("telegram:junction:forum:-100123:7") == ""
 
     def test_a_unified_bucket_names_no_principal(self) -> None:
         """Channel and user drop out of a unified key by design.
@@ -573,8 +573,8 @@ class TestSessionPrincipalExtraction:
         link points at and pass. Wrong-and-passing is worse than declining to name
         one, which at least fails closed.
         """
-        assert self._principal("unified:kirocrew") == ""
-        assert self._principal("unified:kirocrew:gen2") == ""
+        assert self._principal("unified:junction") == ""
+        assert self._principal("unified:junction:gen2") == ""
 
     def test_a_webex_space_key_and_its_transport_agree(self) -> None:
         """Crosses the two modules that have to agree, using the REAL key builder.
@@ -589,11 +589,11 @@ class TestSessionPrincipalExtraction:
         ``webex.transport_dispatch._route_of`` produces, rather than hand-written
         here where it could drift from the grammar.
         """
-        from kiro_crew.messaging.link import CHAT_TYPE_FORUM, build_dm_session_key
-        from kiro_crew.webex.transport import WebexTransport
+        from junction.messaging.link import CHAT_TYPE_FORUM, build_dm_session_key
+        from junction.webex.transport import WebexTransport
 
         room = "Y2lzY29zcGFyazovL3Jvb20xMjM"
-        key = build_dm_session_key("webex", "kirocrew", f"space:{room}", chat_type=CHAT_TYPE_FORUM)
+        key = build_dm_session_key("webex", "junction", f"space:{room}", chat_type=CHAT_TYPE_FORUM)
         transport = WebexTransport(
             object(), allowed_emails=[], allowed_room_ids=[room], allow_group_rooms=True
         )
@@ -608,7 +608,7 @@ class TestSessionPrincipalExtraction:
         standing between it and a permit -- and it holds because the route is a 1:1
         DM room, which no operator puts in the SPACE allow-list.
         """
-        from kiro_crew.webex.transport import WebexTransport
+        from junction.webex.transport import WebexTransport
 
         transport = WebexTransport(
             object(),
@@ -617,7 +617,7 @@ class TestSessionPrincipalExtraction:
             allow_group_rooms=True,
         )
 
-        assert self._principal("unified:kirocrew") == ""
+        assert self._principal("unified:junction") == ""
         assert transport.may_send_to("dm-room-1", principal="") is False
 
     def test_the_extractor_reads_only_the_key(self) -> None:
@@ -628,7 +628,7 @@ class TestSessionPrincipalExtraction:
         """
         import inspect
 
-        from kiro_crew.dashboard.chat_runner import _session_principal
+        from junction.dashboard.chat_runner import _session_principal
 
         assert list(inspect.signature(_session_principal).parameters) == ["session_key"]
 
@@ -683,14 +683,14 @@ class TestTheLadderConsultsTheTransport:
     def _permit_governance(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Isolate the recipient decision from the channel-scope decision."""
         monkeypatch.setattr(
-            "kiro_crew.platform.governance_profiles.vet_and_audit",
+            "junction.platform.governance_profiles.vet_and_audit",
             lambda *a, **k: type("D", (), {"permitted": True})(),
         )
 
     def _resolve(
-        self, transport: Any, link: ChannelLink, key: str = "telegram:kirocrew:direct:111"
+        self, transport: Any, link: ChannelLink, key: str = "telegram:junction:direct:111"
     ) -> Any:
-        from kiro_crew.dashboard.chat_runner import _resolve_channel_target
+        from junction.dashboard.chat_runner import _resolve_channel_target
 
         return _resolve_channel_target(_StubState(transport), key, link)
 
@@ -709,7 +709,7 @@ class TestTheLadderConsultsTheTransport:
         """Including thread_id, or a forum Topic would be judged as a DM."""
         transport = _StubTransport(True)
         link = ChannelLink(channel_type="telegram", channel_id="-100123", thread_id="7")
-        self._resolve(transport, link, key="telegram:kirocrew:forum:-100123:7")
+        self._resolve(transport, link, key="telegram:junction:forum:-100123:7")
         # A forum key names no principal, so the transport is told so rather than
         # handed the supergroup id as if it were a person.
         assert transport.calls == [("-100123", "7", "")]
@@ -718,7 +718,7 @@ class TestTheLadderConsultsTheTransport:
         """Without this, Discord and Webex cannot reach their rosters at all."""
         transport = _StubTransport(True)
         link = ChannelLink(channel_type="discord", channel_id="dm-chan-1")
-        self._resolve(transport, link, key="discord:kirocrew:direct:42")
+        self._resolve(transport, link, key="discord:junction:direct:42")
         assert transport.calls == [("dm-chan-1", None, "42")]
 
     def test_a_raising_transport_fails_closed(self) -> None:
@@ -731,7 +731,7 @@ class TestTheLadderConsultsTheTransport:
         """A revoked recipient losing its notices must not look like an idle agent."""
         recorded: list[dict[str, Any]] = []
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_runner.sel",
+            "junction.dashboard.chat_runner.sel",
             lambda: type("S", (), {"log_api_access": lambda self, **kw: recorded.append(kw)})(),
         )
         link = ChannelLink(channel_type="telegram", channel_id="111")
@@ -749,7 +749,7 @@ def _send_returns_only_empty(channel: str, class_name: str) -> bool:
     return is the constant ``""``, so the value cannot express failure and failure
     has to raise instead.
     """
-    path = Path(kiro_crew_pkg.__file__).parent / channel / "transport.py"
+    path = Path(junction_pkg.__file__).parent / channel / "transport.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     for node in ast.walk(tree):
         if not isinstance(node, ast.ClassDef) or node.name != class_name:
@@ -774,7 +774,7 @@ def _declares_no_message_id(channel: str) -> bool:
     import is exactly the one whose gap would go unnoticed. An absent keyword means
     the dataclass default, which is True.
     """
-    path = Path(kiro_crew_pkg.__file__).parent / channel / "transport.py"
+    path = Path(junction_pkg.__file__).parent / channel / "transport.py"
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):

@@ -13,9 +13,9 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew import artifacts as art_mod
-from kiro_crew.artifacts import ArtifactStore, ArtifactValidationError
-from kiro_crew.dashboard.handlers import artifacts as h
+from junction import artifacts as art_mod
+from junction.artifacts import ArtifactStore, ArtifactValidationError
+from junction.dashboard.handlers import artifacts as h
 
 
 class _FakeLog:
@@ -205,7 +205,7 @@ def test_collect_session_docs_survives_bad_timestamps(tmp_path):
 
 
 def test_safe_read_with_identity_authorized(tmp_path):
-    from kiro_crew.hooks import safe_read_file_bytes_with_identity
+    from junction.hooks import safe_read_file_bytes_with_identity
 
     p = tmp_path / "doc.md"
     p.write_text("# ok\n")
@@ -215,7 +215,7 @@ def test_safe_read_with_identity_authorized(tmp_path):
 
 
 def test_safe_read_with_identity_rejects_unlisted_inode(tmp_path):
-    from kiro_crew.hooks import safe_read_file_bytes_with_identity
+    from junction.hooks import safe_read_file_bytes_with_identity
 
     p = tmp_path / "doc.md"
     p.write_text("secret\n")
@@ -224,14 +224,14 @@ def test_safe_read_with_identity_rejects_unlisted_inode(tmp_path):
 
 
 def test_safe_read_with_identity_missing_file_returns_none(tmp_path):
-    from kiro_crew.hooks import safe_read_file_bytes_with_identity
+    from junction.hooks import safe_read_file_bytes_with_identity
 
     data = safe_read_file_bytes_with_identity(str(tmp_path / "nope.md"), {(1, 2)})
     assert data is None
 
 
 def test_stat_identity_returns_dev_ino(tmp_path):
-    from kiro_crew.hooks import stat_identity
+    from junction.hooks import stat_identity
 
     p = tmp_path / "doc.md"
     p.write_text("x\n")
@@ -240,14 +240,14 @@ def test_stat_identity_returns_dev_ino(tmp_path):
 
 
 def test_stat_identity_missing_returns_none(tmp_path):
-    from kiro_crew.hooks import stat_identity
+    from junction.hooks import stat_identity
 
     assert stat_identity(str(tmp_path / "absent.md")) is None
 
 
 def test_stat_identity_rejects_sensitive_path(tmp_path, monkeypatch):
-    import kiro_crew.hooks as hooks_mod
-    from kiro_crew.hooks import stat_identity
+    import junction.hooks as hooks_mod
+    from junction.hooks import stat_identity
 
     p = tmp_path / "creds"
     p.write_text("secret\n")

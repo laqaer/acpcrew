@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-SCHEMA = "kirocrew-cli-artifact-manifest-v1"
+SCHEMA = "junction-cli-artifact-manifest-v1"
 ALGORITHM = "RSASSA_PKCS1_V1_5_SHA_256"
 CHANNELS = ("nightly", "insider", "stable")
 SIGNED_FIELDS = {
@@ -166,7 +166,7 @@ def _validate_signed_payload(payload: dict[str, Any]) -> dict[str, str]:
         raise ManifestError("invalid CLI manifest key id")
     _require_text(payload, "python_requires", max_len=128)
 
-    wheel_name = f"kirocrew-{normalized['version']}-py3-none-any.whl"
+    wheel_name = f"junction-{normalized['version']}-py3-none-any.whl"
     parsed = urlsplit(normalized["wheel_url"])
     if (
         parsed.scheme != "https"
@@ -202,7 +202,7 @@ def _validate_target_binding(
         raise ManifestError("artifact base must be a canonical HTTPS URL")
 
     version = payload["version"]
-    wheel_name = f"kirocrew-{version}-py3-none-any.whl"
+    wheel_name = f"junction-{version}-py3-none-any.whl"
     expected_url = (
         f"{normalized_base}/cli/{expected_channel}/{version}/{wheel_name}"
     )
@@ -378,7 +378,7 @@ def _kms_sign_command(args: argparse.Namespace) -> None:
     except ValueError as exc:
         raise ManifestError("AWS KMS returned an invalid signature") from exc
 
-    with tempfile.TemporaryDirectory(prefix="kirocrew-cli-manifest-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="junction-cli-manifest-") as temporary:
         signature_path = Path(temporary) / "signature.bin"
         signature_path.write_bytes(signature)
         _assemble_command(

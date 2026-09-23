@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from chat_test_helpers import _make_ready_kiro_prerequisite
 
-from kiro_crew.dashboard.state import DashboardState
-from kiro_crew.history import ConversationLog
-from kiro_crew.hooks import HOOK_EVENT_AGENT_SPAWN, HOOK_EVENT_USER_PROMPT_SUBMIT, ScriptHookStore
+from junction.dashboard.state import DashboardState
+from junction.history import ConversationLog
+from junction.hooks import HOOK_EVENT_AGENT_SPAWN, HOOK_EVENT_USER_PROMPT_SUBMIT, ScriptHookStore
 
 
 def _make_state(tmp_path):
@@ -68,11 +68,11 @@ class TestAgentSpawnHookInjection:
 
     @pytest.mark.asyncio
     async def test_not_injected_on_existing_session(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat import _run_chat
-        from kiro_crew.providers.base import LLMEvent
+        from junction.dashboard.chat import _run_chat
+        from junction.providers.base import LLMEvent
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.dashboard.chat.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.dashboard.chat.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.chat.sel", lambda: MagicMock())
 
         state = _make_state(tmp_path)
         hook_store = ScriptHookStore(config_dir=tmp_path)
@@ -112,11 +112,11 @@ class TestHookSessionKeyForwarding:
 
     @pytest.mark.asyncio
     async def test_session_key_passed_to_fire(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.chat import _run_chat
-        from kiro_crew.providers.base import LLMEvent
+        from junction.dashboard.chat import _run_chat
+        from junction.providers.base import LLMEvent
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.dashboard.chat.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.dashboard.chat.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.chat.sel", lambda: MagicMock())
 
         state = _make_state(tmp_path)
         # Mock the hook store so we can inspect the kwargs passed to fire().

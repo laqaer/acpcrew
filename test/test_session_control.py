@@ -20,16 +20,16 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.config import loader
-from kiro_crew.dashboard import chat_delivery as cd
-from kiro_crew.dashboard import session_control as sc
-from kiro_crew.dashboard.chat_utils import slot_history_key
-from kiro_crew.dashboard.handlers import session_control as handlers_sc
+from junction.config import loader
+from junction.dashboard import chat_delivery as cd
+from junction.dashboard import session_control as sc
+from junction.dashboard.chat_utils import slot_history_key
+from junction.dashboard.handlers import session_control as handlers_sc
 
 # The autouse fixture below replaces ``sc.session_control_enabled`` so every
 # other test runs in the shipped (enabled) state without reading config. Keep a
 # handle on the real function so the tests that are ABOUT that function can call
-# it — it still resolves ``KiroCrewConfig`` through module globals, so patching
+# it — it still resolves ``JunctionConfig`` through module globals, so patching
 # the config class continues to work through this reference.
 _REAL_ENABLED = sc.session_control_enabled
 
@@ -107,7 +107,7 @@ def test_resolves_target_by_the_key_list_sessions_reports(tmp_path):
     with ``target_not_found`` — the caller does the thing the description tells
     it to do and the tool says the session does not exist.
     """
-    from kiro_crew.history import transcript_stem
+    from junction.history import transcript_stem
 
     state = _make_state(tmp_path)
     caller = _slot(state, "chat-1")
@@ -123,7 +123,7 @@ def test_resolves_target_by_the_key_list_sessions_reports(tmp_path):
 
 def test_the_caller_is_also_resolvable_by_its_stem(tmp_path):
     """Symmetry: the MCP process may present either form as the caller identity."""
-    from kiro_crew.history import transcript_stem
+    from junction.history import transcript_stem
 
     state = _make_state(tmp_path)
     caller = _slot(state, "chat-1")
@@ -819,7 +819,7 @@ class TestTheRoutesRequireTheInternalSecret:
         async def _fake_run_chat(_state, _slot, _prompt):
             return None
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_runner._run_chat", _fake_run_chat)
+        monkeypatch.setattr("junction.dashboard.chat_runner._run_chat", _fake_run_chat)
 
         resp = asyncio.run(handlers_sc.api_session_control_send(req))
 
@@ -882,7 +882,7 @@ def test_the_trust_switch_needs_a_positive_grant():
     anyone asking for it, and both are pinned here:
 
     * **Absent.** The three tools ride on the existing assignable
-      `kirocrew-dashboard` server, so an operator who assigned that server for
+      `junction-dashboard` server, so an operator who assigned that server for
       folder work would gain peer stop-and-read purely by upgrading. Both the
       ``.get`` default and the dataclass field default must therefore be
       ``False`` -- a grant has to be written down.
@@ -891,7 +891,7 @@ def test_the_trust_switch_needs_a_positive_grant():
       values would keep cross-session control on while believing it off.
       ``_safe_bool`` accepts only a real bool and falls back to ``False``.
 
-    Asserted on the source rather than through ``KiroCrewConfig.load()``:
+    Asserted on the source rather than through ``JunctionConfig.load()``:
     ``load()`` merges the real data home's ``config.local.json`` and serves a
     fingerprint-cached dict, so a per-field assertion through it depends on the
     developer's own config rather than on the payload under test. The parse is
@@ -910,7 +910,7 @@ def test_the_trust_switch_needs_a_positive_grant():
     ), f"the fallback must be False so a malformed value fails closed, got: {wiring}"
     assert '"session_control", False' in wiring, (
         "an absent setting must read as DISABLED -- otherwise an existing "
-        f"kirocrew-dashboard assignment gains peer stop/read on upgrade, got: {wiring}"
+        f"junction-dashboard assignment gains peer stop/read on upgrade, got: {wiring}"
     )
     # The field default is the second absent path: it is what a config object
     # built without going through the loader resolves to.
@@ -932,7 +932,7 @@ def test_a_config_read_that_raises_disables_the_feature(monkeypatch):
         def load():
             raise ValueError("malformed knowledge.auto_ingest_artifact_kinds")
 
-    monkeypatch.setattr(sc, "KiroCrewConfig", _Exploding)
+    monkeypatch.setattr(sc, "JunctionConfig", _Exploding)
     assert _REAL_ENABLED() is False
 
 
@@ -1287,7 +1287,7 @@ def test_nothing_suspends_between_the_stop_gate_and_the_stop(tmp_path, monkeypat
 
     monkeypatch.setattr(sc, "sel", _sel)
     monkeypatch.setattr(sc, "authorize_target", _authorize)
-    monkeypatch.setattr("kiro_crew.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
+    monkeypatch.setattr("junction.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
 
     asyncio.run(sc.stop_target(state, caller_session_key=_key(caller), target=target.key))
 
@@ -1303,7 +1303,7 @@ def test_nothing_suspends_between_the_stop_gate_and_the_stop(tmp_path, monkeypat
 def test_the_config_warm_is_the_last_suspension_before_the_stop_gate(tmp_path, monkeypatch):
     """A warm with an `await` after it is no warm at all.
 
-    `session_control_enabled` is synchronous and its `KiroCrewConfig.load()`
+    `session_control_enabled` is synchronous and its `JunctionConfig.load()`
     re-reads and validates the file on the first call after a config edit. The warm
     exists so the gate's own read is a cache hit -- but a config edit landing in any
     suspension BETWEEN the warm and the gate changes the fingerprint, so the gate
@@ -1342,7 +1342,7 @@ def test_the_config_warm_is_the_last_suspension_before_the_stop_gate(tmp_path, m
     monkeypatch.setattr(sc, "sel", _sel)
     monkeypatch.setattr(sc, "authorize_target", _authorize)
     monkeypatch.setattr(sc, "session_control_enabled", _enabled)
-    monkeypatch.setattr("kiro_crew.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
+    monkeypatch.setattr("junction.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
 
     asyncio.run(sc.stop_target(state, caller_session_key=_key(caller), target=target.key))
 
@@ -1400,7 +1400,7 @@ def test_stop_constructs_the_sel_off_loop_before_stopping(tmp_path, monkeypatch)
     async def _fake_stop(_state, slot, *, source):
         return {"ok": True}
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
+    monkeypatch.setattr("junction.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
 
     async def _drive() -> int:
         await sc.stop_target(state, caller_session_key=_key(caller), target=target.key)
@@ -1427,7 +1427,7 @@ def test_stop_goes_through_the_same_path_as_the_stop_button(tmp_path, monkeypatc
         seen["source"] = source
         return {"ok": True}
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
+    monkeypatch.setattr("junction.dashboard.chat_handlers.stop_slot_turn", _fake_stop)
 
     out = asyncio.run(sc.stop_target(state, caller_session_key=_key(caller), target="chat-2"))
 
@@ -1465,7 +1465,7 @@ def test_send_to_an_idle_target_starts_a_turn_with_provenance(tmp_path, monkeypa
         ran["slot"] = slot.key
         ran["prompt"] = prompt
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_runner._run_chat", _fake_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_runner._run_chat", _fake_run_chat)
 
     async def _drive():
         out = await sc.send_to_target(
@@ -1511,7 +1511,7 @@ def test_the_sent_body_passes_through_the_outbound_guard(tmp_path, monkeypatch):
     async def _fake_run_chat(_state, slot, prompt):
         ran["prompt"] = prompt
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_runner._run_chat", _fake_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_runner._run_chat", _fake_run_chat)
 
     async def _drive():
         out = await sc.send_to_target(
@@ -1635,7 +1635,7 @@ def test_session_control_routes_are_strict_internal():
     """
     from aiohttp import web
 
-    from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS, _register_mcp_routes
+    from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS, _register_mcp_routes
 
     app = web.Application()
     _register_mcp_routes(app)
@@ -2037,7 +2037,7 @@ def test_slots_nobody_asked_for_are_charged_to_nobody(tmp_path):
 def test_creation_never_loads_the_config_on_the_event_loop():
     """A cache miss reads and validates the config file, stalling every task.
 
-    `KiroCrewConfig.load()` is synchronous filesystem work. Called directly from a
+    `JunctionConfig.load()` is synchronous filesystem work. Called directly from a
     coroutine it blocks the whole gateway, not just this request -- the loop cannot
     run anything else while it reads. Offloading it is also what the repository's
     no-blocking-call-on-event-loop rule requires.
@@ -2051,9 +2051,9 @@ def test_creation_never_loads_the_config_on_the_event_loop():
 
     src = inspect.getsource(sc.create_session)
     code = "\n".join(line.split("#", 1)[0] for line in src.splitlines())
-    assert "KiroCrewConfig.load()" not in code, "the config load must not run inline on the loop"
+    assert "JunctionConfig.load()" not in code, "the config load must not run inline on the loop"
     assert (
-        "await asyncio.to_thread(KiroCrewConfig.load)" in code
+        "await asyncio.to_thread(JunctionConfig.load)" in code
     ), "the config load must be offloaded to a worker thread"
 
 
@@ -2205,7 +2205,7 @@ def test_an_identical_steer_is_refused_while_the_first_is_still_in_flight(tmp_pa
 
     Mutation guard: checking only `_pending_steers` admits the second steer.
     """
-    from kiro_crew.dashboard import chat_delivery
+    from junction.dashboard import chat_delivery
 
     state = _make_state(tmp_path)
     slot = _busy(_slot(state, "chat-2"))
@@ -2241,7 +2241,7 @@ def test_an_unrelated_identical_queue_item_is_not_read_as_our_requeue(tmp_path):
     Mutation guard: a content count sees the queue grow and returns the requeued
     outcome, so nothing persists.
     """
-    from kiro_crew.dashboard import chat_delivery
+    from junction.dashboard import chat_delivery
 
     state = _make_state(tmp_path)
     slot = _busy(_slot(state, "chat-2"))
@@ -2271,7 +2271,7 @@ def test_our_own_requeue_is_still_detected_by_its_delivery_id(tmp_path):
     Mutation guard: dropping the id probe reports this as delivered and the drain
     then appends the row a second time.
     """
-    from kiro_crew.dashboard import chat_delivery
+    from junction.dashboard import chat_delivery
 
     state = _make_state(tmp_path)
     slot = _busy(_slot(state, "chat-2"))
@@ -2309,7 +2309,7 @@ def test_a_steer_a_hard_kill_discarded_is_not_reported_as_delivered(tmp_path):
 
     Mutation guard: without the delivery-id check this returns the delivered path.
     """
-    from kiro_crew.dashboard import chat_delivery
+    from junction.dashboard import chat_delivery
 
     state = _make_state(tmp_path)
     slot = _busy(_slot(state, "chat-2"))
@@ -2343,7 +2343,7 @@ def test_a_steer_consumed_before_a_stop_is_still_reported_as_delivered(tmp_path)
     Mutation guard: reading absence as discard would send this down the queue path
     and risk a duplicate execution.
     """
-    from kiro_crew.dashboard import chat_delivery
+    from junction.dashboard import chat_delivery
 
     state = _make_state(tmp_path)
     slot = _busy(_slot(state, "chat-2"))
@@ -2378,11 +2378,11 @@ def test_session_control_is_not_imported_on_the_gateway_boot_path():
     """
     from pathlib import Path
 
-    from kiro_crew.dashboard import server as dashboard_server
+    from junction.dashboard import server as dashboard_server
 
     src = Path(dashboard_server.__file__).read_text(encoding="utf-8")
     for line in src.splitlines():
-        if line.startswith("from kiro_crew.dashboard.handlers import"):
+        if line.startswith("from junction.dashboard.handlers import"):
             assert "session_control" not in line, (
                 "session_control must not be imported at server module level -- " f"found: {line!r}"
             )
@@ -2571,10 +2571,10 @@ def test_slot_cap_has_one_owning_constant() -> None:
     pins that no door has re-introduced its own literal: all three modules must
     expose the identical owning object.
     """
-    from kiro_crew.dashboard import chat_fork
-    from kiro_crew.dashboard import session_control as sc_mod
-    from kiro_crew.dashboard import session_transfer
-    from kiro_crew.dashboard import state as state_mod
+    from junction.dashboard import chat_fork
+    from junction.dashboard import session_control as sc_mod
+    from junction.dashboard import session_transfer
+    from junction.dashboard import state as state_mod
 
     owning = state_mod.MAX_LIVE_SLOTS
     # Each door imported the owning constant into its own namespace; assert they

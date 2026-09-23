@@ -15,9 +15,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from kiro_crew.llm_helpers import background_turn, provider_last_turn_usage
+from junction.llm_helpers import background_turn, provider_last_turn_usage
 
-_USAGE_TARGET = "kiro_crew.dashboard.handlers.usage.persist_token_record_async"
+_USAGE_TARGET = "junction.dashboard.handlers.usage.persist_token_record_async"
 
 
 class _Stats:
@@ -85,13 +85,13 @@ class TestBackgroundTurnAccounting(unittest.IsolatedAsyncioTestCase):
     async def test_a_non_default_backend_is_named_through_the_wrapper_chain(self):
         """The resolver only recognises a provider handed to it directly, and the
         shared background session wraps one behind ``_sess.provider``."""
-        from kiro_crew.acp.types import PROVIDER_LABEL_CLAUDE
-        from kiro_crew.llm_helpers import _provider_label
+        from junction.acp.types import PROVIDER_LABEL_CLAUDE
+        from junction.llm_helpers import _provider_label
 
         inner = SimpleNamespace()
         adapter = SimpleNamespace(_sess=SimpleNamespace(provider=inner))
         with patch(
-            "kiro_crew.providers.acp.provider_label",
+            "junction.providers.acp.provider_label",
             side_effect=lambda node: (PROVIDER_LABEL_CLAUDE if node is inner else "acp"),
         ):
             self.assertEqual(_provider_label(adapter), PROVIDER_LABEL_CLAUDE)
@@ -183,7 +183,7 @@ class TestBackgroundTurnAccounting(unittest.IsolatedAsyncioTestCase):
         instead of the host's speed."""
         sessions = _Sessions(_Client())
         clock = iter([100.0, 100.25])
-        with patch("kiro_crew.llm_helpers.time", SimpleNamespace(monotonic=lambda: next(clock))):
+        with patch("junction.llm_helpers.time", SimpleNamespace(monotonic=lambda: next(clock))):
             with patch(_USAGE_TARGET) as persist:
                 async with background_turn(sessions, task="consolidation") as client:
                     client.begin_turn(1.0)
@@ -197,11 +197,11 @@ class TestBackgroundTurnAccounting(unittest.IsolatedAsyncioTestCase):
         with patch(_USAGE_TARGET):
             async with background_turn(sessions, task="plan_rephrase"):
                 pass
-            async with background_turn(sessions, task="consolidation", agent="kirocrew-lite"):
+            async with background_turn(sessions, task="consolidation", agent="junction-lite"):
                 pass
 
         self.assertEqual(sessions.acquire_calls[0][1], {})
-        self.assertEqual(sessions.acquire_calls[1][1], {"agent": "kirocrew-lite"})
+        self.assertEqual(sessions.acquire_calls[1][1], {"agent": "junction-lite"})
 
 
 class TestBillingStatsReachThroughTheAdapter(unittest.TestCase):
@@ -243,9 +243,9 @@ class TestBilledAttemptsSurviveARetry(unittest.IsolatedAsyncioTestCase):
         """The first attempt's metering lands, the stream then breaks before any
         text, and the retry replaces the stats object that carried those credits.
         Reading the live stats afterwards would report only the retry's spend."""
-        from kiro_crew.acp.client import AcpError
-        from kiro_crew.llm_helpers import stream_and_collect
-        from kiro_crew.providers.base import EVENT_COMPLETE
+        from junction.acp.client import AcpError
+        from junction.llm_helpers import stream_and_collect
+        from junction.providers.base import EVENT_COMPLETE
 
         class _Provider:
             def __init__(self) -> None:
@@ -263,7 +263,7 @@ class TestBilledAttemptsSurviveARetry(unittest.IsolatedAsyncioTestCase):
                 yield SimpleNamespace(kind=EVENT_COMPLETE, text="")
 
         provider = _Provider()
-        with patch("kiro_crew.llm_helpers.transient_retry_delay", return_value=0):
+        with patch("junction.llm_helpers.transient_retry_delay", return_value=0):
             await stream_and_collect(provider, "p")
 
         self.assertEqual(provider.calls, 2)
@@ -273,9 +273,9 @@ class TestBilledAttemptsSurviveARetry(unittest.IsolatedAsyncioTestCase):
         """The sum is handed over once. A second read falls back to the live
         stats -- which for a retried turn is the final attempt alone -- so the
         total cannot be counted into two different rows."""
-        from kiro_crew.acp.client import AcpError
-        from kiro_crew.llm_helpers import stream_and_collect
-        from kiro_crew.providers.base import EVENT_COMPLETE
+        from junction.acp.client import AcpError
+        from junction.llm_helpers import stream_and_collect
+        from junction.providers.base import EVENT_COMPLETE
 
         class _Provider:
             def __init__(self) -> None:
@@ -290,7 +290,7 @@ class TestBilledAttemptsSurviveARetry(unittest.IsolatedAsyncioTestCase):
                 yield SimpleNamespace(kind=EVENT_COMPLETE, text="")
 
         provider = _Provider()
-        with patch("kiro_crew.llm_helpers.transient_retry_delay", return_value=0):
+        with patch("junction.llm_helpers.transient_retry_delay", return_value=0):
             await stream_and_collect(provider, "p")
 
         self.assertEqual(provider_last_turn_usage(provider).credits, 3.5)
@@ -309,8 +309,8 @@ class TestBilledAttemptsSurviveARetry(unittest.IsolatedAsyncioTestCase):
         is still on the provider at read time. A later ``stream_and_collect`` turn
         would overwrite the stale total instead, so it cannot show this.
         """
-        from kiro_crew.llm_helpers import stream_and_collect
-        from kiro_crew.providers.base import EVENT_COMPLETE
+        from junction.llm_helpers import stream_and_collect
+        from junction.providers.base import EVENT_COMPLETE
 
         class _Provider:
             def __init__(self) -> None:
@@ -338,7 +338,7 @@ class TestBilledAttemptsSurviveARetry(unittest.IsolatedAsyncioTestCase):
         """The guard is on the stats object's identity, not on ordering: a total
         published against stats the provider has since replaced is stale by
         definition, and the live read takes over."""
-        from kiro_crew.llm_helpers import _TURN_BILLED_ATTR, TurnUsage
+        from junction.llm_helpers import _TURN_BILLED_ATTR, TurnUsage
 
         provider = SimpleNamespace(last_prompt_stats=_Stats(4.0))
         stale_stats = _Stats(9.0)

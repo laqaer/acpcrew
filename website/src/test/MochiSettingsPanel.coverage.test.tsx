@@ -109,7 +109,7 @@ function makeConfig(over: { mochi?: Record<string, unknown> } = {}): AppConfig {
       silentSubagents: false,
       extraMcpServers: [],
       petInstance: 'self',
-      theme: 'kirocrew',
+      theme: 'junction',
       ...over.mochi,
     },
   } as unknown as AppConfig

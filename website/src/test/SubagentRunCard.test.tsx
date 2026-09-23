@@ -12,9 +12,9 @@ const SLOT = 'chat-1'
 /** Mirrors the real spawn_run tool result shape produced by mcp_core.py. */
 const SPAWN_OUTPUT = [
   'Spawned 3 subagent(s). Results will arrive as completion events:',
-  '  1713e7d0 (kirocrew): INVESTIGATION ONLY -- trace the backend signals',
-  '  5c15adde (kirocrew): INVESTIGATION ONLY -- trace the sidebar data flow',
-  '  aa5da49b (kirocrew): INVESTIGATION ONLY -- trace the chat transcript cards',
+  '  1713e7d0 (junction): INVESTIGATION ONLY -- trace the backend signals',
+  '  5c15adde (junction): INVESTIGATION ONLY -- trace the sidebar data flow',
+  '  aa5da49b (junction): INVESTIGATION ONLY -- trace the chat transcript cards',
   '',
   '⚠️ END YOUR TURN NOW — do no further work this turn.',
 ].join('\n')
@@ -31,7 +31,7 @@ function spawnToolMsg(overrides: Partial<ChatMessage> = {}): ChatMessage {
 
 function agent(id: string, status: SubagentActivity['status']): SubagentActivity {
   return {
-    id, task: 't', agent: 'kirocrew', status, streaming: '', lastTool: '',
+    id, task: 't', agent: 'junction', status, streaming: '', lastTool: '',
     startedAt: Date.now(), elapsed: 0, toolCount: 0, stalled: false,
   } as SubagentActivity
 }
@@ -48,19 +48,19 @@ describe('extractSpawnRunLaunch — MCP result envelope', () => {
         text:
           'Spawned 2 subagent(s). Results will arrive as completion events:\n' +
           '  b8f2f4d4: Print the current date and return it.\n' +
-          '  e5f6a7b8 (kirocrew): Print the working directory and return it.\n',
+          '  e5f6a7b8 (junction): Print the working directory and return it.\n',
       },
     ],
   })
 
   it('unwraps the envelope and recovers the header + agent ids', () => {
-    const msg = { role: 'tool', content: '🔧 Running: @kirocrew-core/spawn_run', cls: '', meta: { output: ENVELOPE } } as ChatMessage
+    const msg = { role: 'tool', content: '🔧 Running: @junction-core/spawn_run', cls: '', meta: { output: ENVELOPE } } as ChatMessage
     expect(extractSpawnRunLaunch(msg)).toEqual({ ids: ['b8f2f4d4', 'e5f6a7b8'], announced: 2 })
     expect(isSpawnRunTool(msg)).toBe(true)
   })
 
   it('still parses bare-text output (native/ACP tools)', () => {
-    const bare = 'Spawned 1 subagent(s). Results will arrive as completion events:\n  aaaa1111 (kirocrew): do a thing\n'
+    const bare = 'Spawned 1 subagent(s). Results will arrive as completion events:\n  aaaa1111 (junction): do a thing\n'
     const msg = { role: 'tool', content: '🔧 spawn', cls: '', meta: { output: bare } } as ChatMessage
     expect(extractSpawnRunLaunch(msg)).toEqual({ ids: ['aaaa1111'], announced: 1 })
   })
@@ -142,8 +142,8 @@ describe('SubagentRunCard — wave total comes from the header count', () => {
   it('counts every member of a staggered wave now that queued ids are real', () => {
     // The reported bug, end to end. Observed launch text (chat-9, 02:19:18Z):
     //   Spawned 2 subagent(s). …
-    //     4fbc9f4b (kirocrew): RESEARCH …
-    //     q1 (kirocrew): RESEARCH …
+    //     4fbc9f4b (junction): RESEARCH …
+    //     q1 (junction): RESEARCH …
     // The second member started 2.0s later (the default spawn stagger) under a
     // fresh id, 8b2f1e3b, that appeared nowhere in the text — so the card saw one
     // member and said "1 agent running" while the sidebar and Subagents panel
@@ -152,8 +152,8 @@ describe('SubagentRunCard — wave total comes from the header count', () => {
     // agrees with the sidebar.
     const output =
       'Spawned 2 subagent(s). Results will arrive as completion events:\n' +
-      '  4fbc9f4b (kirocrew): RESEARCH: is react-i18next\u2019s <Trans> still current\n' +
-      '  8b2f1e3b (kirocrew): RESEARCH: what is the current React version\n'
+      '  4fbc9f4b (junction): RESEARCH: is react-i18next\u2019s <Trans> still current\n' +
+      '  8b2f1e3b (junction): RESEARCH: what is the current React version\n'
     const parsed = extractSpawnRunLaunch({
       role: 'tool', content: '🔧 spawn_run', cls: '', meta: { output },
     } as ChatMessage)

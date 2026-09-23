@@ -13,7 +13,7 @@ import sqlite3
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from kiro_crew.config.loader import KnowledgeConfig
+from junction.config.loader import KnowledgeConfig
 
 # --- Config defaults ---
 
@@ -56,13 +56,13 @@ class TestKnowledgeConfigBudgetDefaults:
 
 class TestEmbedRateLimiter:
     def test_zero_rate_is_noop(self):
-        from kiro_crew.knowledge.ingestion import EmbedRateLimiter
+        from junction.knowledge.ingestion import EmbedRateLimiter
         limiter = EmbedRateLimiter(rate_limit=0)
         # Should not block
         asyncio.run(limiter.acquire())
 
     def test_high_rate_does_not_block(self):
-        from kiro_crew.knowledge.ingestion import EmbedRateLimiter
+        from junction.knowledge.ingestion import EmbedRateLimiter
         limiter = EmbedRateLimiter(rate_limit=10000)
         tokens_before = limiter._tokens
         # "Does not block" means the sleeping slow path is never reached:
@@ -73,7 +73,7 @@ class TestEmbedRateLimiter:
         # block; asyncio.run() internals never call asyncio.sleep, and the
         # patch is reverted on exit.
         fake_sleep = AsyncMock()
-        with patch("kiro_crew.knowledge.ingestion.asyncio.sleep", fake_sleep):
+        with patch("junction.knowledge.ingestion.asyncio.sleep", fake_sleep):
             asyncio.run(limiter.acquire())
         fake_sleep.assert_not_awaited()
         # The fast path must still consume exactly one token, proving
@@ -81,18 +81,18 @@ class TestEmbedRateLimiter:
         assert limiter._tokens == tokens_before - 1.0
 
     def test_rate_limit_setter_resets_bucket(self):
-        from kiro_crew.knowledge.ingestion import EmbedRateLimiter
+        from junction.knowledge.ingestion import EmbedRateLimiter
         limiter = EmbedRateLimiter(rate_limit=1)
         limiter.rate_limit = 10000
         assert limiter.rate_limit == 10000
 
     def test_get_embed_rate_limiter_reads_config(self):
-        import kiro_crew.knowledge.ingestion as ing_mod
-        from kiro_crew.knowledge.ingestion import get_embed_rate_limiter
+        import junction.knowledge.ingestion as ing_mod
+        from junction.knowledge.ingestion import get_embed_rate_limiter
 
         # Reset the singleton
         ing_mod._embed_rate_limiter = None
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load") as mock_load:
+        with patch("junction.config.loader.JunctionConfig.load") as mock_load:
             mock_load.return_value.knowledge.embed_rate_limit = 200
             limiter = get_embed_rate_limiter()
             assert limiter.rate_limit == 200
@@ -127,13 +127,13 @@ class TestMaxSourcesCap:
         """)
         conn.commit()
 
-        from kiro_crew.knowledge.store import KnowledgeStore
+        from junction.knowledge.store import KnowledgeStore
         store = MagicMock(spec=KnowledgeStore)
         store.db = conn
         store.source_count = lambda: conn.execute(
             "SELECT COUNT(*) AS cnt FROM sources").fetchone()[0]
         # Wire the real method
-        from kiro_crew.knowledge.store import KnowledgeStore as RealStore
+        from junction.knowledge.store import KnowledgeStore as RealStore
         store.create_auto_source_unless_dismissed = (
             lambda *a, **kw: RealStore.create_auto_source_unless_dismissed(store, *a, **kw)
         )
@@ -203,14 +203,14 @@ class TestMaxSourcesCap:
 
 class TestSweepChunkBudget:
     def test_sweep_budget_read_from_config(self):
-        from kiro_crew.knowledge.watcher import KnowledgeWatcher
-        with patch("kiro_crew.knowledge.watcher.KiroCrewConfig") as mock_cfg:
+        from junction.knowledge.watcher import KnowledgeWatcher
+        with patch("junction.knowledge.watcher.JunctionConfig") as mock_cfg:
             mock_cfg.load.return_value.knowledge.sweep_chunk_budget = 1000
             assert KnowledgeWatcher._sweep_chunk_budget() == 1000
 
     def test_sweep_budget_zero_means_unbounded(self):
-        from kiro_crew.knowledge.watcher import KnowledgeWatcher
-        with patch("kiro_crew.knowledge.watcher.KiroCrewConfig") as mock_cfg:
+        from junction.knowledge.watcher import KnowledgeWatcher
+        with patch("junction.knowledge.watcher.JunctionConfig") as mock_cfg:
             mock_cfg.load.return_value.knowledge.sweep_chunk_budget = 0
             assert KnowledgeWatcher._sweep_chunk_budget() == 0
 
@@ -219,21 +219,21 @@ class TestSweepChunkBudget:
 
 class TestPoolSizeConfig:
     def test_default_pool_size(self):
-        from kiro_crew.knowledge.llm_pool import DEFAULT_POOL_SIZE, _get_pool_size
+        from junction.knowledge.llm_pool import DEFAULT_POOL_SIZE, _get_pool_size
         assert _get_pool_size({}) == DEFAULT_POOL_SIZE
 
     def test_configured_pool_size(self):
-        from kiro_crew.knowledge.llm_pool import _get_pool_size
+        from junction.knowledge.llm_pool import _get_pool_size
         config = {"knowledge": {"extraction_pool_size": 5}}
         assert _get_pool_size(config) == 5
 
     def test_pool_size_clamped_to_max_10(self):
-        from kiro_crew.knowledge.llm_pool import DEFAULT_POOL_SIZE, _get_pool_size
+        from junction.knowledge.llm_pool import DEFAULT_POOL_SIZE, _get_pool_size
         config = {"knowledge": {"extraction_pool_size": 99}}
         assert _get_pool_size(config) == DEFAULT_POOL_SIZE
 
     def test_pool_size_clamped_to_min_1(self):
-        from kiro_crew.knowledge.llm_pool import DEFAULT_POOL_SIZE, _get_pool_size
+        from junction.knowledge.llm_pool import DEFAULT_POOL_SIZE, _get_pool_size
         config = {"knowledge": {"extraction_pool_size": 0}}
         assert _get_pool_size(config) == DEFAULT_POOL_SIZE
 
@@ -243,26 +243,26 @@ class TestPoolSizeConfig:
 class TestExtractionModelResolution:
     def test_empty_extraction_model_uses_agent_model(self):
         """When extraction_model is empty, _install_knowledge_agent uses agent.model."""
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load") as mock_load:
+        with patch("junction.config.loader.JunctionConfig.load") as mock_load:
             mock_load.return_value.knowledge.extraction_model = ""
             mock_load.return_value.agent.model = "claude-sonnet-4.5"
-            with patch("kiro_crew.agent._atomic_json_write") as mock_write:
-                with patch("kiro_crew.agent.kiro_agents_dir_path") as mock_path:
+            with patch("junction.agent._atomic_json_write") as mock_write:
+                with patch("junction.agent.kiro_agents_dir_path") as mock_path:
                     mock_path.return_value = Path("/tmp/agents")
-                    from kiro_crew.agent import _install_knowledge_agent
+                    from junction.agent import _install_knowledge_agent
                     _install_knowledge_agent()
                     written = mock_write.call_args[0][1]
                     assert written["model"] == "claude-sonnet-4.5"
 
     def test_explicit_extraction_model_overrides(self):
         """When extraction_model is set, it overrides agent.model."""
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load") as mock_load:
+        with patch("junction.config.loader.JunctionConfig.load") as mock_load:
             mock_load.return_value.knowledge.extraction_model = "claude-haiku-4.5"
             mock_load.return_value.agent.model = "claude-sonnet-4.5"
-            with patch("kiro_crew.agent._atomic_json_write") as mock_write:
-                with patch("kiro_crew.agent.kiro_agents_dir_path") as mock_path:
+            with patch("junction.agent._atomic_json_write") as mock_write:
+                with patch("junction.agent.kiro_agents_dir_path") as mock_path:
                     mock_path.return_value = Path("/tmp/agents")
-                    from kiro_crew.agent import _install_knowledge_agent
+                    from junction.agent import _install_knowledge_agent
                     _install_knowledge_agent()
                     written = mock_write.call_args[0][1]
                     assert written["model"] == "claude-haiku-4.5"

@@ -68,7 +68,7 @@ the number of cycles that came before it.
   fold as the identity would let one session read and overwrite another's
   state). Path safety mirrors `subagent_persistence._agent_dir`: hostile keys
   refused, resolved path required to stay inside the ledger root.
-- **Not `/tmp`, not the scratch dir.** Scratch (`KIROCREW_SCRATCH`) is keyed to
+- **Not `/tmp`, not the scratch dir.** Scratch (`JUNCTION_SCRATCH`) is keyed to
   process liveness and swept hourly once the owner process group dies; a ledger
   must survive gateway restarts for as long as its session exists.
 - **Tab close keeps the ledger.** Closing a dashboard tab

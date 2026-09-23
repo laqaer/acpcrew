@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.session_handle import WatchdogSettings
+from junction.acp.session_handle import WatchdogSettings
 
 
 @pytest.fixture(autouse=True)
@@ -30,11 +30,11 @@ def _isolate_config_dir(tmp_path, monkeypatch):
     under xdist. Isolating config_dir also stops the suite from polluting
     the developer's real ``~/.kirocrew``.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "kirocrew_home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "junction_home"))
 
 
 def _make_cfg(
-    pool_size: int = 2, pool_agent: str = "kirocrew", pool_ttl_secs: int = 1800
+    pool_size: int = 2, pool_agent: str = "junction", pool_ttl_secs: int = 1800
 ) -> MagicMock:
     cfg = MagicMock()
     cfg.session.pool_size = pool_size
@@ -42,7 +42,7 @@ def _make_cfg(
     cfg.session.pool_ttl_secs = pool_ttl_secs
     cfg.session.timeout_secs = 3600
     cfg.agent.default_agent = ""
-    cfg.agent.model = "auto"  # match real KiroCrewConfig default
+    cfg.agent.model = "auto"  # match real JunctionConfig default
     return cfg
 
 
@@ -59,13 +59,13 @@ def _make_provider() -> MagicMock:
     return p
 
 
-def _make_manager(pool_size: int = 2, pool_agent: str = "kirocrew", pool_ttl_secs: int = 1800):
-    from kiro_crew.session import SessionManager
+def _make_manager(pool_size: int = 2, pool_agent: str = "junction", pool_ttl_secs: int = 1800):
+    from junction.session import SessionManager
 
     cfg = _make_cfg(pool_size, pool_agent, pool_ttl_secs)
     factory = MagicMock(side_effect=lambda *a, **kw: _make_provider())
     with patch(
-        "kiro_crew.session.default_project_dir", return_value="/home/user/.kirocrew/workspace"
+        "junction.session.default_project_dir", return_value="/home/user/.kirocrew/workspace"
     ):
         mgr = SessionManager(cfg, provider_factory=factory)
     return mgr, factory
@@ -130,7 +130,7 @@ class TestFillWarmPool:
         provider.shutdown = AsyncMock(side_effect=asyncio.CancelledError)
         factory.side_effect = lambda *a, **kw: provider
 
-        with patch("kiro_crew.session._sync_kill_provider") as mock_kill:
+        with patch("junction.session._sync_kill_provider") as mock_kill:
             with pytest.raises(asyncio.CancelledError):
                 await mgr._fill_warm_pool()
             # The hard kill is dispatched fire-and-forget to the subprocess
@@ -153,7 +153,7 @@ class TestLivenessDrainLoop:
     @pytest.mark.asyncio
     async def test_dead_provider_discarded_healthy_used(self):
         """Dead providers are drained; first healthy one is used."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
 
         dead = _make_provider()
         dead.is_process_alive = MagicMock(return_value=False)
@@ -163,7 +163,7 @@ class TestLivenessDrainLoop:
         mgr._warm_pool.put_nowait((dead, time.monotonic()))
         mgr._warm_pool.put_nowait((healthy, time.monotonic()))
 
-        pooled = await mgr._drain_and_claim("kirocrew")
+        pooled = await mgr._drain_and_claim("junction")
 
         dead.shutdown.assert_awaited_once()
         assert pooled is healthy
@@ -171,7 +171,7 @@ class TestLivenessDrainLoop:
     @pytest.mark.asyncio
     async def test_provider_without_is_alive_discarded(self):
         """Provider missing is_alive attribute is treated as dead."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
 
         no_alive = _make_provider()
         del no_alive.is_process_alive
@@ -180,7 +180,7 @@ class TestLivenessDrainLoop:
         mgr._warm_pool.put_nowait((no_alive, time.monotonic()))
         mgr._warm_pool.put_nowait((healthy, time.monotonic()))
 
-        pooled = await mgr._drain_and_claim("kirocrew")
+        pooled = await mgr._drain_and_claim("junction")
 
         no_alive.shutdown.assert_awaited_once()
         assert pooled is healthy
@@ -193,17 +193,17 @@ class TestLivenessDrainLoop:
 
 class TestClaimFromPool:
     def test_claim_matching_agent(self):
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         provider = _make_provider()
         mgr._warm_pool.put_nowait((provider, time.monotonic()))
 
-        result = mgr._claim_from_pool("kirocrew")
+        result = mgr._claim_from_pool("junction")
         assert result[0] is provider
         assert mgr._warm_pool.qsize() == 0
 
     def test_claim_none_agent_matches_pool_agent(self):
         """None agent means 'use default' — matches pool_agent."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         provider = _make_provider()
         mgr._warm_pool.put_nowait((provider, time.monotonic()))
 
@@ -221,7 +221,7 @@ class TestClaimFromPool:
         assert result[0] is provider
 
     def test_claim_mismatched_agent_returns_none(self):
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         mgr._warm_pool.put_nowait((_make_provider(), time.monotonic()))
 
         result = mgr._claim_from_pool("custom-agent")
@@ -230,7 +230,7 @@ class TestClaimFromPool:
 
     def test_claim_empty_pool_returns_none(self):
         mgr, _ = _make_manager()
-        result = mgr._claim_from_pool("kirocrew")
+        result = mgr._claim_from_pool("junction")
         assert result is None
 
     def test_claim_nonempty_agent_rejected_when_pool_agent_empty(self):
@@ -295,7 +295,7 @@ class TestConfigWiring:
         assert mgr._pool_agent == "custom"
 
     def test_pool_agent_falls_back_to_default_agent(self):
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = _make_cfg(pool_size=1, pool_agent="")
         cfg.agent.default_agent = "fallback-agent"
@@ -303,7 +303,7 @@ class TestConfigWiring:
         assert mgr._pool_agent == "fallback-agent"
 
     def test_pool_disabled_by_default(self):
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = _make_cfg(pool_size=0)
         mgr = SessionManager(cfg)
@@ -324,9 +324,9 @@ class TestGetOrCreatePoolIntegration:
     @pytest.mark.asyncio
     async def test_claims_from_pool_when_agent_matches(self):
         """get_or_create uses pooled provider, verifies rekey() called."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -336,7 +336,7 @@ class TestGetOrCreatePoolIntegration:
         mgr._schedule_replenish = MagicMock()
 
         provider, is_new, _ = await mgr.get_or_create(
-            "test-key", agent="kirocrew", channel_id="ch-1"
+            "test-key", agent="junction", channel_id="ch-1"
         )
 
         assert provider is pooled
@@ -357,9 +357,9 @@ class TestGetOrCreatePoolIntegration:
         """The claiming session's crew_agent kwarg reaches rekey so the pooled
         handle's watchdog windows rebind to the claiming crew — the identity
         travels with the session, not the pool key."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -369,7 +369,7 @@ class TestGetOrCreatePoolIntegration:
         mgr._schedule_replenish = MagicMock()
 
         provider, _, _ = await mgr.get_or_create(
-            "test-key", agent="kirocrew", channel_id="ch-1", crew_agent="pr-reviewer"
+            "test-key", agent="junction", channel_id="ch-1", crew_agent="pr-reviewer"
         )
 
         assert provider is pooled
@@ -381,7 +381,7 @@ class TestGetOrCreatePoolIntegration:
     @pytest.mark.asyncio
     async def test_skips_pool_when_resume_sid_set(self):
         """get_or_create skips pool when session has resume_sid."""
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         mgr._warm_pool.put_nowait((pooled, time.monotonic()))
         mgr._drain_and_claim = AsyncMock(return_value=pooled)
@@ -389,7 +389,7 @@ class TestGetOrCreatePoolIntegration:
         # Simulate existing session in map
         mgr._session_map.get = MagicMock(return_value="existing-sid")
 
-        provider, is_new, _ = await mgr.get_or_create("test-key", agent="kirocrew")
+        provider, is_new, _ = await mgr.get_or_create("test-key", agent="junction")
 
         # Pool should be skipped — _drain_and_claim not called
         mgr._drain_and_claim.assert_not_awaited()
@@ -404,13 +404,13 @@ class TestGetOrCreatePoolIntegration:
         re-rooted; a caller requesting cwd must get a fresh cold-start
         process.  Forwarding cwd to the factory is verified separately.
         """
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         mgr._warm_pool.put_nowait((pooled, time.monotonic()))
         mgr._drain_and_claim = AsyncMock(return_value=pooled)
 
         provider, is_new, _ = await mgr.get_or_create(
-            "test-key", agent="kirocrew", cwd="/Users/alice/workspace/proj"
+            "test-key", agent="junction", cwd="/Users/alice/workspace/proj"
         )
 
         # Pool skipped
@@ -422,9 +422,9 @@ class TestGetOrCreatePoolIntegration:
     @pytest.mark.asyncio
     async def test_claims_pool_with_model_override_and_switches(self):
         """get_or_create claims pool even with model_override, then calls set_model."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -436,7 +436,7 @@ class TestGetOrCreatePoolIntegration:
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="default-model"):
             provider, is_new, _ = await mgr.get_or_create(
-                "test-key", agent="kirocrew", model="custom-model"
+                "test-key", agent="junction", model="custom-model"
             )
 
         assert provider is pooled
@@ -454,12 +454,12 @@ class TestTTLExpiration:
     @pytest.mark.asyncio
     async def test_stale_provider_discarded(self):
         """Provider older than TTL is discarded."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=60)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=60)
         stale = _make_provider()
         # Simulate provider spawned 120s ago
         mgr._warm_pool.put_nowait((stale, time.monotonic() - 120))
 
-        result = await mgr._drain_and_claim("kirocrew")
+        result = await mgr._drain_and_claim("junction")
 
         assert result is None
         stale.shutdown.assert_awaited_once()
@@ -467,11 +467,11 @@ class TestTTLExpiration:
     @pytest.mark.asyncio
     async def test_fresh_provider_used(self):
         """Provider within TTL is used."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=60)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=60)
         fresh = _make_provider()
         mgr._warm_pool.put_nowait((fresh, time.monotonic()))
 
-        result = await mgr._drain_and_claim("kirocrew")
+        result = await mgr._drain_and_claim("junction")
 
         assert result is fresh
         fresh.shutdown.assert_not_awaited()
@@ -479,12 +479,12 @@ class TestTTLExpiration:
     @pytest.mark.asyncio
     async def test_ttl_zero_disables_check(self):
         """TTL=0 disables expiration check."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=0)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=0)
         old = _make_provider()
         # Very old provider
         mgr._warm_pool.put_nowait((old, time.monotonic() - 10000))
 
-        result = await mgr._drain_and_claim("kirocrew")
+        result = await mgr._drain_and_claim("junction")
 
         assert result is old
         old.shutdown.assert_not_awaited()
@@ -492,12 +492,12 @@ class TestTTLExpiration:
     @pytest.mark.asyncio
     async def test_stale_drain_triggers_replenish(self):
         """Discarding stale providers triggers pool replenish."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=60)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=60)
         stale = _make_provider()
         mgr._warm_pool.put_nowait((stale, time.monotonic() - 120))
         mgr._schedule_replenish = MagicMock()
 
-        await mgr._drain_and_claim("kirocrew")
+        await mgr._drain_and_claim("junction")
 
         mgr._schedule_replenish.assert_called_once()
 
@@ -508,7 +508,7 @@ class TestTTLExpiration:
         before aging out keeps WARNING. Both are still discarded."""
         import logging
 
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=60)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=60)
         stale = _make_provider()
         stale.is_process_alive = MagicMock(return_value=True)
         stale_dead = _make_provider()
@@ -516,9 +516,9 @@ class TestTTLExpiration:
         mgr._warm_pool.put_nowait((stale, time.monotonic() - 120))
         mgr._warm_pool.put_nowait((stale_dead, time.monotonic() - 120))
 
-        with patch("kiro_crew.session._sync_kill_provider"):
-            with caplog.at_level(logging.INFO, logger="kiro_crew.session"):
-                result = await mgr._drain_and_claim("kirocrew")
+        with patch("junction.session._sync_kill_provider"):
+            with caplog.at_level(logging.INFO, logger="junction.session"):
+                result = await mgr._drain_and_claim("junction")
 
         assert result is None
         ttl_records = [
@@ -542,9 +542,9 @@ class TestModelMatchesPoolDefault:
     @pytest.mark.asyncio
     async def test_pool_claimed_when_model_matches_agent_default(self):
         """model='claude-opus-4.6' matching pool agent default → pool used, no set_model."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -556,7 +556,7 @@ class TestModelMatchesPoolDefault:
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="claude-opus-4.6"):
             provider, is_new, _ = await mgr.get_or_create(
-                "test-key", agent="kirocrew", model="claude-opus-4.6"
+                "test-key", agent="junction", model="claude-opus-4.6"
             )
 
         assert provider is pooled
@@ -567,9 +567,9 @@ class TestModelMatchesPoolDefault:
     @pytest.mark.asyncio
     async def test_pool_claimed_when_model_differs_with_post_switch(self):
         """model='claude-sonnet-4.6' != pool default → pool claimed, set_model called."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -581,7 +581,7 @@ class TestModelMatchesPoolDefault:
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="claude-opus-4.6"):
             provider, is_new, _ = await mgr.get_or_create(
-                "test-key", agent="kirocrew", model="claude-sonnet-4.6"
+                "test-key", agent="junction", model="claude-sonnet-4.6"
             )
 
         assert provider is pooled
@@ -594,9 +594,9 @@ class TestModelMatchesPoolDefault:
         """On the claude backend, a canonical wire key (e.g. opus-4.8-1m) is
         translated to a provider id before set_model — else the adapter
         mis-resolves it. kiro/acp backends still pass the value through."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -608,7 +608,7 @@ class TestModelMatchesPoolDefault:
         mgr._schedule_replenish = MagicMock()
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="default-model"):
-            await mgr.get_or_create("test-key", agent="kirocrew", model="opus-4.8-1m")
+            await mgr.get_or_create("test-key", agent="junction", model="opus-4.8-1m")
 
         pooled.client.set_model.assert_awaited_once_with("global.anthropic.claude-opus-4-8[1m]")
 
@@ -618,9 +618,9 @@ class TestModelMatchesPoolDefault:
         and the pool agent's kiro model slot that resolve to the SAME provider id
         must NOT trigger a redundant set_model. Requested 'opus-4.8-1m' vs pool
         agent kiro 'claude-opus-4.6' both → the flagship provider id."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -634,39 +634,39 @@ class TestModelMatchesPoolDefault:
         # pool agent's kiro model 'claude-opus-4.6' translates to the SAME
         # flagship provider id as the requested canonical 'opus-4.8-1m'.
         with patch.object(type(mgr), "_resolve_agent_model", return_value="claude-opus-4.6"):
-            await mgr.get_or_create("test-key", agent="kirocrew", model="opus-4.8-1m")
+            await mgr.get_or_create("test-key", agent="junction", model="opus-4.8-1m")
 
         pooled.client.set_model.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_pool_skipped_when_model_set_but_pool_disabled(self):
         """pool_size=0 → no model comparison, straight to cold start."""
-        mgr, factory = _make_manager(pool_size=0, pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_size=0, pool_agent="junction")
         mgr._drain_and_claim = AsyncMock()
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="claude-opus-4.6"):
-            await mgr.get_or_create("test-key", agent="kirocrew", model="claude-opus-4.6")
+            await mgr.get_or_create("test-key", agent="junction", model="claude-opus-4.6")
 
         mgr._drain_and_claim.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_model_match_skipped_when_resume_sid_exists(self):
         """resume_sid takes priority — pool skipped even if model matches."""
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         mgr._drain_and_claim = AsyncMock()
         mgr._session_map.get = MagicMock(return_value="existing-sid")
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="claude-opus-4.6"):
-            await mgr.get_or_create("test-key", agent="kirocrew", model="claude-opus-4.6")
+            await mgr.get_or_create("test-key", agent="junction", model="claude-opus-4.6")
 
         mgr._drain_and_claim.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_none_model_still_claims_from_pool(self):
         """model=None (no explicit model) → pool used as before."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -675,7 +675,7 @@ class TestModelMatchesPoolDefault:
         mgr._drain_and_claim = AsyncMock(return_value=pooled)
         mgr._schedule_replenish = MagicMock()
 
-        provider, is_new, _ = await mgr.get_or_create("test-key", agent="kirocrew", model=None)
+        provider, is_new, _ = await mgr.get_or_create("test-key", agent="junction", model=None)
 
         assert provider is pooled
         mgr._drain_and_claim.assert_awaited_once()
@@ -683,7 +683,7 @@ class TestModelMatchesPoolDefault:
     @pytest.mark.asyncio
     async def test_empty_pool_agent_skips_model_resolution_on_claim(self):
         """No pool_agent configured → no model resolution on post-claim check."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         mgr, factory = _make_manager(pool_agent="")
         pooled = _make_provider()
@@ -712,9 +712,9 @@ class TestModelMatchesPoolDefault:
         provider — while an identical cold start quietly withholds. That makes
         the outcome depend on whether a pooled process happened to exist.
         """
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -728,7 +728,7 @@ class TestModelMatchesPoolDefault:
 
         with patch.object(type(mgr), "_resolve_agent_model", return_value="claude-sonnet-4.6"):
             provider, _is_new, _resumed = await mgr.get_or_create(
-                "test-key", agent="kirocrew", model="claude-opus-4.8"
+                "test-key", agent="junction", model="claude-opus-4.8"
             )
 
         # Withheld, not sent — and the claim survives.
@@ -745,7 +745,7 @@ class TestStatelessSkipsPool:
     @pytest.mark.asyncio
     async def test_bg_session_skips_pool(self):
         """get_or_create for _bg must not claim from warm pool."""
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         mgr._warm_pool.put_nowait((pooled, time.monotonic()))
         mgr._drain_and_claim = AsyncMock(return_value=pooled)
@@ -759,7 +759,7 @@ class TestStatelessSkipsPool:
     async def test_stateless_prefix_skips_pool(self):
         """Stateless-prefixed keys (cron:, subagent:, etc.) skip pool."""
         for prefix in ("cron:job1", "subagent:abc", "taskrunner:step1"):
-            mgr, factory = _make_manager(pool_agent="kirocrew")
+            mgr, factory = _make_manager(pool_agent="junction")
             mgr._drain_and_claim = AsyncMock(return_value=_make_provider())
 
             await mgr.get_or_create(prefix, agent=None)
@@ -776,10 +776,10 @@ class TestPoolDisabledSkipsClaim:
     @pytest.mark.asyncio
     async def test_pool_size_zero_skips_drain_and_claim(self):
         """pool_size=0 with no resume/model/stateless must still skip pool."""
-        mgr, factory = _make_manager(pool_size=0, pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_size=0, pool_agent="junction")
         mgr._drain_and_claim = AsyncMock()
 
-        await mgr.get_or_create("test-key", agent="kirocrew")
+        await mgr.get_or_create("test-key", agent="junction")
 
         mgr._drain_and_claim.assert_not_awaited()
         factory.assert_called_once()
@@ -794,7 +794,7 @@ class TestPoolHealthLoop:
     @pytest.mark.asyncio
     async def test_removes_dead_provider_and_replenishes(self):
         """Dead provider is removed during health sweep, replenish triggered."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         dead = _make_provider()
         dead.is_process_alive.return_value = False
         dead.exit_code = 1
@@ -821,7 +821,7 @@ class TestPoolHealthLoop:
     @pytest.mark.asyncio
     async def test_removes_expired_provider(self):
         """TTL-expired provider is removed during health sweep."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=60)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=60)
         stale = _make_provider()
         mgr._warm_pool.put_nowait((stale, time.monotonic() - 120))
         mgr._schedule_replenish = MagicMock()
@@ -845,7 +845,7 @@ class TestPoolHealthLoop:
     @pytest.mark.asyncio
     async def test_keeps_healthy_provider(self):
         """Healthy provider survives health sweep."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         healthy = _make_provider()
         mgr._warm_pool.put_nowait((healthy, time.monotonic()))
         mgr._schedule_replenish = MagicMock()
@@ -869,7 +869,7 @@ class TestPoolHealthLoop:
     @pytest.mark.asyncio
     async def test_skips_when_pool_empty(self):
         """No crash when pool is empty during sweep."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         mgr._schedule_replenish = MagicMock()
 
         call_count = 0
@@ -889,7 +889,7 @@ class TestPoolHealthLoop:
     @pytest.mark.asyncio
     async def test_mixed_healthy_and_dead(self):
         """Only dead providers removed; healthy ones re-enqueued in order."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         healthy1 = _make_provider()
         dead = _make_provider()
         dead.is_process_alive.return_value = False
@@ -926,7 +926,7 @@ class TestPoolHealthLoop:
 class TestPoolPids:
     def test_returns_pids_from_pool(self):
         """Extracts PIDs from pooled providers."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         p1 = _make_provider()
         p1.client = MagicMock()
         p1.client._pid = 1234
@@ -943,13 +943,13 @@ class TestPoolPids:
         assert mgr._warm_pool.qsize() == 2
 
     def test_empty_pool_returns_empty_set(self):
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
 
         assert mgr._pool_pids() == set()
 
     def test_skips_provider_without_client(self):
         """Provider with no client attr is skipped, not crashed."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         p = _make_provider()
         del p.client  # no client attribute
         mgr._warm_pool.put_nowait((p, time.monotonic()))
@@ -961,7 +961,7 @@ class TestPoolPids:
 
     def test_skips_non_int_pid(self):
         """Provider with non-int PID is skipped."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         p = _make_provider()
         p.client = MagicMock()
         p.client._pid = None
@@ -974,7 +974,7 @@ class TestPoolPids:
 
     def test_includes_sweep_pids_during_health_check(self):
         """PIDs temporarily out of queue during health sweep are still visible."""
-        mgr, _ = _make_manager(pool_agent="kirocrew")
+        mgr, _ = _make_manager(pool_agent="junction")
         # Simulate health loop having drained providers
         mgr._pool_sweep_pids = {1111, 2222}
 
@@ -998,7 +998,7 @@ class TestReloadProviderFactoryRefillsPool:
         old_provider = _make_provider()
         mgr._warm_pool.put_nowait((old_provider, time.monotonic()))
 
-        with patch("kiro_crew.session.KiroCrewConfig.load") as mock_load:
+        with patch("junction.session.JunctionConfig.load") as mock_load:
             new_cfg = _make_cfg(pool_size=1)
             new_factory = MagicMock(side_effect=lambda *a, **kw: _make_provider())
             new_cfg.create_provider_factory = MagicMock(return_value=new_factory)
@@ -1022,7 +1022,7 @@ class TestReloadProviderFactoryRefillsPool:
         fake_task.cancel = MagicMock()
         mgr._pool_health_task = fake_task
 
-        with patch("kiro_crew.session.KiroCrewConfig.load") as mock_load:
+        with patch("junction.session.JunctionConfig.load") as mock_load:
             new_cfg = _make_cfg(pool_size=1)
             new_cfg.create_provider_factory = MagicMock(
                 return_value=MagicMock(side_effect=lambda *a, **kw: _make_provider())
@@ -1051,7 +1051,7 @@ class TestRefreshDefaultsSparesLiveSessions:
         live_provider = _make_provider()
         mgr._sessions["dashboard:1"] = SimpleNamespace(provider=live_provider)
 
-        with patch("kiro_crew.session.KiroCrewConfig.load") as mock_load:
+        with patch("junction.session.JunctionConfig.load") as mock_load:
             new_cfg = _make_cfg(pool_size=0)
             new_cfg.create_provider_factory = MagicMock(
                 return_value=MagicMock(side_effect=lambda *a, **kw: _make_provider())
@@ -1073,7 +1073,7 @@ class TestRefreshDefaultsSparesLiveSessions:
         # factory in test_effort.py::TestFactoryDefaultEffortFallback.
         mgr, old_factory = _make_manager(pool_size=0)
 
-        with patch("kiro_crew.session.KiroCrewConfig.load") as mock_load:
+        with patch("junction.session.JunctionConfig.load") as mock_load:
             new_cfg = _make_cfg(pool_size=0)
             new_factory = MagicMock(side_effect=lambda *a, **kw: _make_provider())
             new_cfg.create_provider_factory = MagicMock(return_value=new_factory)
@@ -1101,7 +1101,7 @@ class TestRefreshDefaultsSparesLiveSessions:
         stale_pooled = _make_provider()
         mgr._warm_pool.put_nowait((stale_pooled, time.monotonic()))
 
-        with patch("kiro_crew.session.KiroCrewConfig.load") as mock_load:
+        with patch("junction.session.JunctionConfig.load") as mock_load:
             new_cfg = _make_cfg(pool_size=1)
             new_cfg.create_provider_factory = MagicMock(
                 return_value=MagicMock(side_effect=lambda *a, **kw: _make_provider())
@@ -1128,7 +1128,7 @@ class TestRefreshDefaultsSparesLiveSessions:
         mgr._pool_health_task = stale_task
         mgr._warm_pool.put_nowait((_make_provider(), time.monotonic()))
 
-        with patch("kiro_crew.session.KiroCrewConfig.load") as mock_load:
+        with patch("junction.session.JunctionConfig.load") as mock_load:
             new_cfg = _make_cfg(pool_size=1)
             new_cfg.create_provider_factory = MagicMock(
                 return_value=MagicMock(side_effect=lambda *a, **kw: _make_provider())
@@ -1152,16 +1152,16 @@ class TestDefaultProjectDir:
     def test_returns_realpath_of_workspace_dir(self, tmp_path):
         ws = tmp_path / "workspace"
         ws.mkdir()
-        with patch("kiro_crew.config.loader.workspace_dir_for", return_value=ws):
-            from kiro_crew.config.loader import default_project_dir
+        with patch("junction.config.loader.workspace_dir_for", return_value=ws):
+            from junction.config.loader import default_project_dir
 
             result = default_project_dir("default")
         assert result == str(ws.resolve())
 
     def test_returns_empty_when_dir_missing(self, tmp_path):
         missing = tmp_path / "nonexistent"
-        with patch("kiro_crew.config.loader.workspace_dir_for", return_value=missing):
-            from kiro_crew.config.loader import default_project_dir
+        with patch("junction.config.loader.workspace_dir_for", return_value=missing):
+            from junction.config.loader import default_project_dir
 
             result = default_project_dir("default")
         assert result == ""
@@ -1169,17 +1169,17 @@ class TestDefaultProjectDir:
     def test_returns_empty_when_sensitive(self, tmp_path):
         ws = tmp_path / "workspace"
         ws.mkdir()
-        with patch("kiro_crew.config.loader.workspace_dir_for", return_value=ws), patch(
-            "kiro_crew.security.is_sensitive_path", return_value=True
+        with patch("junction.config.loader.workspace_dir_for", return_value=ws), patch(
+            "junction.security.is_sensitive_path", return_value=True
         ):
-            from kiro_crew.config.loader import default_project_dir
+            from junction.config.loader import default_project_dir
 
             result = default_project_dir("default")
         assert result == ""
 
     def test_returns_empty_on_exception(self):
-        with patch("kiro_crew.config.loader.workspace_dir_for", side_effect=RuntimeError("boom")):
-            from kiro_crew.config.loader import default_project_dir
+        with patch("junction.config.loader.workspace_dir_for", side_effect=RuntimeError("boom")):
+            from junction.config.loader import default_project_dir
 
             result = default_project_dir("default")
         assert result == ""
@@ -1192,27 +1192,27 @@ class TestDefaultProjectDir:
 
 class TestPoolCwd:
     def test_pool_cwd_set_from_default_project_dir(self):
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = _make_cfg()
-        with patch("kiro_crew.session.default_project_dir", return_value="/custom/workspace"):
+        with patch("junction.session.default_project_dir", return_value="/custom/workspace"):
             mgr = SessionManager(cfg)
         assert mgr._pool_cwd == "/custom/workspace"
 
     def test_pool_cwd_empty_when_no_workspace(self):
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = _make_cfg()
-        with patch("kiro_crew.session.default_project_dir", return_value=""):
+        with patch("junction.session.default_project_dir", return_value=""):
             mgr = SessionManager(cfg)
         assert mgr._pool_cwd == ""
 
     @pytest.mark.asyncio
     async def test_pool_claimed_when_cwd_matches_pool_cwd(self):
         """cwd == _pool_cwd should NOT bypass pool."""
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
-        mgr, factory = _make_manager(pool_agent="kirocrew")
+        mgr, factory = _make_manager(pool_agent="junction")
         pooled = _make_provider()
         pooled.__class__ = AcpProvider
         pooled.client = MagicMock()
@@ -1225,7 +1225,7 @@ class TestPoolCwd:
 
         provider, is_new, _ = await mgr.get_or_create(
             "test-key",
-            agent="kirocrew",
+            agent="junction",
             cwd="/home/user/.kirocrew/workspace",  # same as _pool_cwd
         )
 
@@ -1236,11 +1236,11 @@ class TestPoolCwd:
     @pytest.mark.asyncio
     async def test_pool_bypassed_when_pool_cwd_empty_and_cwd_set(self):
         """If _pool_cwd is empty, any cwd bypasses pool."""
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = _make_cfg()
         factory = MagicMock(side_effect=lambda *a, **kw: _make_provider())
-        with patch("kiro_crew.session.default_project_dir", return_value=""):
+        with patch("junction.session.default_project_dir", return_value=""):
             mgr = SessionManager(cfg, provider_factory=factory)
 
         pooled = _make_provider()
@@ -1249,7 +1249,7 @@ class TestPoolCwd:
 
         provider, is_new, _ = await mgr.get_or_create(
             "test-key",
-            agent="kirocrew",
+            agent="junction",
             cwd="/some/project",
         )
 
@@ -1268,11 +1268,11 @@ class TestPoolCwd:
     @pytest.mark.asyncio
     async def test_fill_warm_pool_passes_none_when_pool_cwd_empty(self):
         """Pool processes get cwd=None when _pool_cwd is empty."""
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = _make_cfg(pool_size=1)
         factory = MagicMock(side_effect=lambda *a, **kw: _make_provider())
-        with patch("kiro_crew.session.default_project_dir", return_value=""):
+        with patch("junction.session.default_project_dir", return_value=""):
             mgr = SessionManager(cfg, provider_factory=factory)
 
         await mgr._fill_warm_pool()
@@ -1300,13 +1300,13 @@ class TestDiscardReaping:
     async def test_survivor_after_noop_shutdown_is_hard_killed(self):
         """Graceful shutdown returning cleanly is not proof the process died —
         a still-alive process must be hard-killed."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
         survivor = _make_provider()
         survivor.is_process_alive = MagicMock(return_value=True)
         self._expired_entry(mgr, survivor)
 
-        with patch("kiro_crew.session._sync_kill_provider") as mock_kill:
-            pooled = await mgr._drain_and_claim("kirocrew")
+        with patch("junction.session._sync_kill_provider") as mock_kill:
+            pooled = await mgr._drain_and_claim("junction")
 
         assert pooled is None
         survivor.shutdown.assert_awaited_once()
@@ -1316,13 +1316,13 @@ class TestDiscardReaping:
     async def test_exited_process_is_not_hard_killed(self):
         """No hard kill when the process actually exited — its PID may already
         be recycled by an unrelated process."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
         clean = _make_provider()
         clean.is_process_alive = MagicMock(return_value=False)
         self._expired_entry(mgr, clean)
 
-        with patch("kiro_crew.session._sync_kill_provider") as mock_kill:
-            await mgr._drain_and_claim("kirocrew")
+        with patch("junction.session._sync_kill_provider") as mock_kill:
+            await mgr._drain_and_claim("junction")
 
         clean.shutdown.assert_awaited_once()
         mock_kill.assert_not_called()
@@ -1330,14 +1330,14 @@ class TestDiscardReaping:
     @pytest.mark.asyncio
     async def test_shutdown_failure_falls_back_to_hard_kill(self):
         """A raising shutdown must not be swallowed into a leak."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
         broken = _make_provider()
         broken.is_process_alive = MagicMock(return_value=True)
         broken.shutdown = AsyncMock(side_effect=RuntimeError("protocol close failed"))
         self._expired_entry(mgr, broken)
 
-        with patch("kiro_crew.session._sync_kill_provider") as mock_kill:
-            pooled = await mgr._drain_and_claim("kirocrew")
+        with patch("junction.session._sync_kill_provider") as mock_kill:
+            pooled = await mgr._drain_and_claim("junction")
 
         assert pooled is None
         mock_kill.assert_called_once_with(broken)
@@ -1347,10 +1347,10 @@ class TestDiscardReaping:
         """A shutdown that never returns must not stall the discard path
         (the health sweep is a single task — a wedge would disable TTL
         enforcement for the whole pool)."""
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         monkeypatch.setattr(SessionManager, "_POOL_DISCARD_TIMEOUT", 0.05)
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
         wedged = _make_provider()
         wedged.is_process_alive = MagicMock(return_value=True)
 
@@ -1372,11 +1372,11 @@ class TestDiscardReaping:
         # assertion about escalation ordering instead of about the shared pool's
         # spare capacity.
         with ThreadPoolExecutor(max_workers=1) as private_executor, patch(
-            "kiro_crew.session._sync_kill_provider"
+            "junction.session._sync_kill_provider"
         ) as mock_kill, patch(
-            "kiro_crew.session.subprocess_executor", return_value=private_executor
+            "junction.session.subprocess_executor", return_value=private_executor
         ):
-            pooled = await asyncio.wait_for(mgr._drain_and_claim("kirocrew"), timeout=5)
+            pooled = await asyncio.wait_for(mgr._drain_and_claim("junction"), timeout=5)
 
         assert pooled is None
         mock_kill.assert_called_once_with(wedged)
@@ -1384,12 +1384,12 @@ class TestDiscardReaping:
     @pytest.mark.asyncio
     async def test_health_sweep_hard_kills_expired_survivor(self):
         """The periodic sweep applies the same escalation as the claim path."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
         survivor = _make_provider()
         survivor.is_process_alive = MagicMock(return_value=True)
         self._expired_entry(mgr, survivor)
 
-        with patch("kiro_crew.session._sync_kill_provider") as mock_kill:
+        with patch("junction.session._sync_kill_provider") as mock_kill:
             await mgr._sweep_warm_pool_once()
 
         survivor.shutdown.assert_awaited_once()
@@ -1404,7 +1404,7 @@ class TestDiscardReaping:
         and the dead-provider branch below. All three are still reaped."""
         import logging
 
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=60)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=60)
         stale = _make_provider()
         stale.is_process_alive = MagicMock(return_value=True)
         stale_dead = _make_provider()
@@ -1416,8 +1416,8 @@ class TestDiscardReaping:
         mgr._warm_pool.put_nowait((stale_dead, time.monotonic() - 120))
         mgr._warm_pool.put_nowait((dead, time.monotonic()))
 
-        with patch("kiro_crew.session._sync_kill_provider"):
-            with caplog.at_level(logging.INFO, logger="kiro_crew.session"):
+        with patch("junction.session._sync_kill_provider"):
+            with caplog.at_level(logging.INFO, logger="junction.session"):
                 await mgr._sweep_warm_pool_once()
 
         ttl_records = [
@@ -1440,13 +1440,13 @@ class TestDiscardReaping:
         """A provider stand-in whose pid resolves to a non-int (Mock coerces
         to 1 via __index__) or to pid<=1 must never be signaled — an unguarded
         kill would SIGTERM init / the CI container entrypoint."""
-        from kiro_crew.session_pid import _sync_kill_provider
+        from junction.session_pid import _sync_kill_provider
 
         mock_provider = _make_provider()  # _client._pid auto-resolves to a Mock
         pid_one = _make_provider()
         pid_one._client = SimpleNamespace(_pid=1)
 
-        with patch("kiro_crew.session_pid.platform_compat.kill_pid") as mock_kill:
+        with patch("junction.session_pid.platform_compat.kill_pid") as mock_kill:
             _sync_kill_provider(mock_provider)
             _sync_kill_provider(pid_one)
 
@@ -1467,10 +1467,10 @@ class TestDiscardReaping:
             provider.is_process_alive = MagicMock(return_value=False)
             provider.shutdown = AsyncMock()  # "ran" but killed nothing
 
-            mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+            mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
             self._expired_entry(mgr, provider)
 
-            await mgr._drain_and_claim("kirocrew")
+            await mgr._drain_and_claim("junction")
 
             deadline = time.monotonic() + 5
             while proc.poll() is None and time.monotonic() < deadline:
@@ -1495,10 +1495,10 @@ class TestDiscardReaping:
             provider.is_process_alive = MagicMock(side_effect=lambda: proc.poll() is None)
             provider.shutdown = AsyncMock()  # graceful close that kills nothing
 
-            mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+            mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
             self._expired_entry(mgr, provider)
 
-            pooled = await mgr._drain_and_claim("kirocrew")
+            pooled = await mgr._drain_and_claim("junction")
             assert pooled is None
 
             deadline = time.monotonic() + 5
@@ -1516,7 +1516,7 @@ class TestDiscardReaping:
         teardown), the fallback must carry the kill on a dedicated thread —
         never inline on the event loop, where ``_sync_kill_provider`` blocks
         (``os.waitpid`` / ``taskkill``) and can trip the loop watchdog."""
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         dead_executor = ThreadPoolExecutor(max_workers=1)
         dead_executor.shutdown(wait=True)
@@ -1529,8 +1529,8 @@ class TestDiscardReaping:
             done.set()
 
         provider = _make_provider()
-        with patch("kiro_crew.session.subprocess_executor", return_value=dead_executor), \
-                patch("kiro_crew.session._sync_kill_provider", side_effect=_record_thread):
+        with patch("junction.session.subprocess_executor", return_value=dead_executor), \
+                patch("junction.session._sync_kill_provider", side_effect=_record_thread):
             SessionManager._dispatch_hard_kill(provider)
 
         assert done.wait(timeout=5), "fallback kill was never dispatched"
@@ -1543,7 +1543,7 @@ class TestDiscardReaping:
         """The health sweep discards several providers in one pass — a
         hard-kill failure for one provider must not escape and skip the
         discard of the remaining providers (that would re-leak them)."""
-        mgr, _ = _make_manager(pool_agent="kirocrew", pool_ttl_secs=1)
+        mgr, _ = _make_manager(pool_agent="junction", pool_ttl_secs=1)
         first = _make_provider()
         first.is_process_alive = MagicMock(return_value=True)
         second = _make_provider()
@@ -1558,7 +1558,7 @@ class TestDiscardReaping:
             if provider is first:
                 raise RuntimeError("kill blew up")
 
-        with patch("kiro_crew.session._sync_kill_provider", side_effect=_kill):
+        with patch("junction.session._sync_kill_provider", side_effect=_kill):
             await mgr._sweep_warm_pool_once()
 
         assert first in attempted and second in attempted, (

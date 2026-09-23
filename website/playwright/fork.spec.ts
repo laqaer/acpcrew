@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test'
  * click fork button → verify new tab.
  *
  * Tagged @needs-agent, so it runs only when an agent turn is available. The e2e
- * harness supplies one by pointing KIROCREW_KIRO_BIN at the stub ACP backend,
+ * harness supplies one by pointing JUNCTION_KIRO_BIN at the stub ACP backend,
  * which answers deterministically and offline. A missing reply is a failure, not
  * an environment gap.
  */

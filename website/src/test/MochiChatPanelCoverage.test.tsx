@@ -806,7 +806,7 @@ describe('ChatPanel pointer feedback', () => {
     ['win32', 'Open in File Explorer'],
     ['linux', 'Show in file manager'],
   ])('names the reveal action for a %s desktop shell', async (platform, label) => {
-    stubGlobal('kirocrew', { isElectron: true, platform })
+    stubGlobal('junction', { isElectron: true, platform })
     history = [turn('assistant', 'Check `src/app/notes.md` please.')]
     await renderPanel()
     expect(await screen.findByRole('button', { name: label })).toBeInTheDocument()

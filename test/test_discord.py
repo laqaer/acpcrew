@@ -20,14 +20,14 @@ from unittest import mock
 
 import pytest
 
-import kiro_crew.discord.transport_dispatch as td_mod
-from kiro_crew.acp.types import (
+import junction.discord.transport_dispatch as td_mod
+from junction.acp.types import (
     EVENT_COMPACTION_STATUS,
     EVENT_COMPLETE,
     EVENT_TEXT_CHUNK,
 )
-from kiro_crew.discord.attachments import process_discord_attachments
-from kiro_crew.discord.client import (
+from junction.discord.attachments import process_discord_attachments
+from junction.discord.client import (
     _INTENT_DIRECT_MESSAGES,
     _INTENT_GUILD_MESSAGES,
     _INTENT_MESSAGE_CONTENT,
@@ -38,39 +38,39 @@ from kiro_crew.discord.client import (
     DiscordInteraction,
     _find_button_label,
 )
-from kiro_crew.discord.commands import (
+from junction.discord.commands import (
     COMMAND_SPEC,
     application_command_payload,
     parse_command,
     parse_mid_turn_override,
 )
-from kiro_crew.discord.renderer import (
+from junction.discord.renderer import (
     DiscordApprovalDecider,
     DiscordRenderer,
     _extract_options,
     _strip_steering,
     build_option_components,
 )
-from kiro_crew.discord.transport import (
+from junction.discord.transport import (
     DISCORD_CAPABILITIES,
     DiscordInboundMessage,
     DiscordTransport,
 )
-from kiro_crew.discord.transport_dispatch import (
+from junction.discord.transport_dispatch import (
     _STEER_ACK_EMOJI,
     DiscordDispatcher,
 )
-from kiro_crew.messaging.attachments import cleanup
-from kiro_crew.messaging.link import (
+from junction.messaging.attachments import cleanup
+from junction.messaging.link import (
     UNBIND_REASON_UNSPECIFIED,
     ChannelLink,
     legacy_dashboard_mirror_key,
 )
-from kiro_crew.messaging.queue_receipt import receipt_text as _receipt_text
-from kiro_crew.messaging.split import split_markdown_safe
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.session import _opt_out_key
-from kiro_crew.session_map import ConversationOwnershipConflict
+from junction.messaging.queue_receipt import receipt_text as _receipt_text
+from junction.messaging.split import split_markdown_safe
+from junction.messaging.transport import InboundMessage
+from junction.session import _opt_out_key
+from junction.session_map import ConversationOwnershipConflict
 
 _PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 
@@ -679,7 +679,7 @@ class TestRotationSplitting:
         # stability promise and would interleave with the sealed frames. Holding
         # it back leaves ``cli.sent`` as exactly the sealed chunks, in order,
         # which is the channel every assertion below reads.
-        monkeypatch.setattr("kiro_crew.discord.renderer._EDIT_THROTTLE_S", 1e9)
+        monkeypatch.setattr("junction.discord.renderer._EDIT_THROTTLE_S", 1e9)
         return r, cli
 
     async def _rotate(
@@ -695,7 +695,7 @@ class TestRotationSplitting:
     async def test_pathological_rotation_work_is_offloaded(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.discord import renderer as renderer_module
+        from junction.discord import renderer as renderer_module
 
         r, _ = self._renderer(monkeypatch, 100)
         source = "`" * 5_000
@@ -1227,8 +1227,8 @@ class TestDiscordAttachmentAdapter:
             transcribed.append(path)
             return "spoken words"
 
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda: True)
-        monkeypatch.setattr("kiro_crew.transcribe.transcribe_audio", _transcribe)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda: True)
+        monkeypatch.setattr("junction.transcribe.transcribe_audio", _transcribe)
 
         result = await process_discord_attachments(
             client,  # type: ignore[arg-type]
@@ -1260,7 +1260,7 @@ class TestDiscordAttachmentAdapter:
             observed.append(threading.get_ident())
             return False
 
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", _available)
+        monkeypatch.setattr("junction.transcribe.is_available", _available)
         result = await process_discord_attachments(
             client,  # type: ignore[arg-type]
             [
@@ -1369,7 +1369,7 @@ class TestPublicInjectionSurface:
         assert d.is_authorized("99") is False
 
     def test_current_session_key_matches_inbound_derivation(self) -> None:
-        d, _cli, _sess = _dispatcher({"42"}, default_agent="kirocrew")
+        d, _cli, _sess = _dispatcher({"42"}, default_agent="junction")
         # Must agree with the private derivation the inbound path uses — the
         # generation guard compares a stored loop key against this value.
         assert d.current_session_key("42") == d._session_key("42")
@@ -1441,7 +1441,7 @@ class TestTransportReceive:
     ) -> None:
         events: list[dict[str, Any]] = []
         monkeypatch.setattr(
-            "kiro_crew.discord.transport.sel",
+            "junction.discord.transport.sel",
             lambda: SimpleNamespace(log_api_access=lambda **kwargs: events.append(kwargs)),
         )
         t, dispatched, _ = self._transport(["u1"], ["t1"])
@@ -1455,7 +1455,7 @@ class TestTransportReceive:
     ) -> None:
         events: list[dict[str, Any]] = []
         monkeypatch.setattr(
-            "kiro_crew.discord.transport.sel",
+            "junction.discord.transport.sel",
             lambda: SimpleNamespace(log_api_access=lambda **kwargs: events.append(kwargs)),
         )
         t, dispatched, _ = self._transport(["u1"], ["t1"])
@@ -1532,7 +1532,7 @@ class TestTransportReceive:
         async def _denied(_channel_type: str) -> bool:
             return False
 
-        monkeypatch.setattr("kiro_crew.discord.transport.channel_inbound_permitted", _denied)
+        monkeypatch.setattr("junction.discord.transport.channel_inbound_permitted", _denied)
         t, dispatched, client = self._transport(["u1"], allowed_channels=["c1"])
         await t.receive(
             DiscordInbound(
@@ -1898,7 +1898,7 @@ class TestRenderer:
         assert len(ids) == 2
         assert ids[0].startswith("a:req9:") and ids[0].endswith(":1")
         assert ids[1].startswith("a:req9:") and ids[1].endswith(":0")
-        from kiro_crew.messaging.renderer import new_approval_nonce
+        from junction.messaging.renderer import new_approval_nonce
 
         nonce = ids[0].split(":")[2]
         # Length is the shared minter's, not a Discord-local literal: three channels
@@ -2010,8 +2010,8 @@ class TestApprovalDecider:
         Without this the loop keeps waking, is denied by default, and spends its
         whole cycle cap accomplishing nothing.
         """
-        from kiro_crew import autonudge as _an
-        from kiro_crew.discord import renderer as _rend
+        from junction import autonudge as _an
+        from junction.discord import renderer as _rend
 
         recorded: list[str] = []
         monkeypatch.setattr(
@@ -2033,7 +2033,7 @@ class TestApprovalDecider:
         Recording it would stop a loop whose operator is right there declining
         one tool.
         """
-        from kiro_crew import autonudge as _an
+        from junction import autonudge as _an
 
         recorded: list[str] = []
         monkeypatch.setattr(
@@ -2173,7 +2173,7 @@ class TestDispatcher:
     async def test_session_released_even_when_renderer_close_raises(self, monkeypatch) -> None:
         """A rendering-finalization failure (e.g. Discord returning a
         malformed body) must never leave the session permanently busy."""
-        from kiro_crew.discord.renderer import DiscordRenderer
+        from junction.discord.renderer import DiscordRenderer
 
         async def _boom(self) -> None:
             raise RuntimeError("finalization failed")
@@ -2196,7 +2196,7 @@ class TestDispatcher:
             cleanup(paths)
 
         monkeypatch.setattr(
-            "kiro_crew.discord.transport_dispatch.cleanup_attachments",
+            "junction.discord.transport_dispatch.cleanup_attachments",
             _cleanup,
         )
         d, cli, _ = _dispatcher({"u1"})
@@ -2800,7 +2800,7 @@ class TestDispatcher:
     async def test_default_agent_fallback(self) -> None:
         d, _, sess = _dispatcher({"u1"})
         await d.handle_message(self._msg("hi"))
-        assert sess.last_agent == "kirocrew"
+        assert sess.last_agent == "junction"
 
     @pytest.mark.asyncio
     async def test_configured_default_agent_wins(self) -> None:
@@ -2872,7 +2872,7 @@ class TestInteractions:
         # (removing the gate makes the pending future resolve → test fails).
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -2915,7 +2915,7 @@ class TestInteractions:
         # strand the pending future until timeout (~300s). Only APPROVE is gated out.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -2953,7 +2953,7 @@ class TestInteractions:
         # driving a turn. Regression-locks the dispatcher's inbound chokepoint.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -3264,7 +3264,7 @@ class TestCommandSurfaceParity:
     async def test_every_catalogued_command_is_answered_over_slash(self, name: str) -> None:
         d, cli, _sess = _dispatcher({"u1"})
         with (
-            mock.patch("kiro_crew.dashboard.token_auth.generate_token", return_value="TKN"),
+            mock.patch("junction.dashboard.token_auth.generate_token", return_value="TKN"),
             mock.patch.object(td_mod, "safety_override") as so,
             mock.patch.object(td_mod, "describe_grant_lifetime", return_value="30m"),
         ):
@@ -3320,7 +3320,7 @@ class TestRenderTogglesAreWiredPerTurn:
 
         with (
             mock.patch.object(td_mod, "DiscordRenderer", _spy),
-            mock.patch("kiro_crew.config.loader.KiroCrewConfig.load") as load,
+            mock.patch("junction.config.loader.JunctionConfig.load") as load,
         ):
             load.return_value = SimpleNamespace(
                 discord=SimpleNamespace(reactions_enabled=False, show_thinking=True)
@@ -3335,7 +3335,7 @@ class TestRenderTogglesAreWiredPerTurn:
         the turn: reactions stay on (the loud default) and reasoning stays off
         (the quiet one)."""
         d, _cli, _sess = _dispatcher({"u1"})
-        with mock.patch("kiro_crew.config.loader.KiroCrewConfig.load", side_effect=OSError):
+        with mock.patch("junction.config.loader.JunctionConfig.load", side_effect=OSError):
             assert d._render_config() == (True, False)
 
 
@@ -3523,7 +3523,7 @@ class TestReviewFindingRegressions:
     async def test_an_ambiguous_allowlist_gets_no_owner_dm(self) -> None:
         """With no owner field and several allow-listed users, picking the first
         would send private agent output to the wrong human."""
-        from kiro_crew.dashboard.handlers.messaging import _owner_dm_target
+        from junction.dashboard.handlers.messaging import _owner_dm_target
 
         def _t(tid: str, available: bool = True) -> Any:
             return SimpleNamespace(target_id=tid, available=available)
@@ -3580,7 +3580,7 @@ class TestReviewFindingRegressions:
     def test_the_install_url_grants_thread_creation(self) -> None:
         """`auto_thread` promotes a channel message into a NEW public thread, so
         an install without this bit answers nothing in an allowed channel."""
-        from kiro_crew.discord.install_url import (
+        from junction.discord.install_url import (
             PERM_CREATE_PUBLIC_THREADS,
             THREAD_PERMISSIONS,
         )

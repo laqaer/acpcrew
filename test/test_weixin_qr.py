@@ -18,7 +18,7 @@ import stat
 
 import pytest
 
-from kiro_crew.dashboard.handlers import weixin_qr as qr
+from junction.dashboard.handlers import weixin_qr as qr
 
 posix_only = pytest.mark.skipif(os.name != "posix", reason="POSIX mode bits only")
 
@@ -49,7 +49,7 @@ def test_atomic_write_secret_locks_down_before_any_content_byte(tmp_path, monkey
     whole write. The shared helper restricts the empty temp file first; assert
     the sequence through the same os.write seam the helper's own ordering test
     uses."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     events = []
     real_restrict = platform_compat.restrict_to_owner
@@ -77,7 +77,7 @@ def test_atomic_write_secret_survives_a_lockdown_refusal(tmp_path, monkeypatch):
     """A host where the owner lockdown fails (e.g. SID resolution refused) must
     warn and keep the credential save, not abort a sign-in that already
     succeeded: the writer's contract is enforce-and-warn."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     def _boom(path):
         raise OSError("icacls failed")
@@ -185,12 +185,12 @@ def test_write_env_secret_upserts_and_preserves_other_lines(tmp_path, monkeypatc
 
 def test_stage_config_preserves_unrelated_sections(tmp_path, monkeypatch):
     cfg = tmp_path / "config.json"
-    cfg.write_text(json.dumps({"slack": {"command": "kirocrew"}, "agent": {"model": "auto"}}))
+    cfg.write_text(json.dumps({"slack": {"command": "junction"}, "agent": {"model": "auto"}}))
     monkeypatch.setattr(qr, "config_path", lambda: cfg)
     path, serialized = qr._stage_weixin_config(account_id="acct1@im.bot", base_url="https://x")
     assert path == cfg
     data = json.loads(serialized)
-    assert data["slack"] == {"command": "kirocrew"}  # untouched
+    assert data["slack"] == {"command": "junction"}  # untouched
     assert data["agent"] == {"model": "auto"}
     assert data["weixin"]["enabled"] is True
     assert data["weixin"]["account_id"] == "acct1@im.bot"
@@ -286,7 +286,7 @@ def test_render_qr_round_trips_the_scan_url():
 
 # -- _delete_env_key: it rewrites the user's credential file, so what it PRESERVES
 #    matters as much as what it removes. Untested before; the QR-encoder body that
-#    used to cover this file moved to kiro_crew.qr, which made the gap visible.
+#    used to cover this file moved to junction.qr, which made the gap visible.
 
 
 def test_delete_env_key_removes_only_the_named_key(tmp_path, monkeypatch):
@@ -398,7 +398,7 @@ def test_commit_credential_aborts_when_env_lock_is_held(tmp_path, monkeypatch):
       * does NOT write config.json,
       * raises OSError with a descriptive message.
     """
-    import kiro_crew.platform_compat as _pc
+    import junction.platform_compat as _pc
 
     ep = tmp_path / ".env"
     ep.write_text("OTHER=keepme\n", encoding="utf-8")

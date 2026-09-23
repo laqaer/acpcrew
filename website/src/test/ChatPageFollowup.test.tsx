@@ -151,7 +151,7 @@ describe('ChatPage follow-up worktree orchestration', () => {
     // effect when that slot activates.
     await waitFor(() => expect(store.getState().chat.activeSlot).toBe('chat-2'))
     await waitFor(() => expect(composer().value).toBe(ITEM.prompt))
-    expect(sessionStorage.getItem('kirocrew_prefill')).toBeNull()
+    expect(sessionStorage.getItem('junction_prefill')).toBeNull()
     // NOT asserted here: the final card-clear. It runs after `switchSlot(...)`
     // resolves, and that thunk does not settle under this harness (it wants
     // hydration machinery the page mock does not provide), so asserting it would

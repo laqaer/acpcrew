@@ -15,7 +15,7 @@
 // of highlighter activity that preceded it, on a normal install, with no env var
 // set in advance and no disk cost for the sessions that never crash.
 //
-// KIROCREW_DEBUG still opts into continuous per-window logging, for watching a
+// JUNCTION_DEBUG still opts into continuous per-window logging, for watching a
 // reproduction live rather than reading it post-mortem.
 //
 // Same contract as the other diagnostics modules: best-effort, never throws,
@@ -131,7 +131,7 @@ function createPierrePerfLog({ capacity = DEFAULT_CAPACITY, now } = {}) {
       return win;
     },
 
-    /** One line for the most recent window, for KIROCREW_DEBUG live logging. */
+    /** One line for the most recent window, for JUNCTION_DEBUG live logging. */
     lastLine() {
       if (entries.length === 0) return null;
       return renderWindow(entries[entries.length - 1]);

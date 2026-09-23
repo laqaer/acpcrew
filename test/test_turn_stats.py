@@ -5,10 +5,10 @@ Covers ``chat_runner._attach_turn_stats``: the helper that mirrors
 message of a completed turn, so the dashboard footer can show the same
 end-of-turn elapsed/credits line kiro-cli prints natively.
 """
-from kiro_crew.dashboard import chat_runner
-from kiro_crew.dashboard.chat_runner import _attach_turn_stats
-from kiro_crew.dashboard.handlers import usage
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard import chat_runner
+from junction.dashboard.chat_runner import _attach_turn_stats
+from junction.dashboard.handlers import usage
+from junction.dashboard.state import _ChatSlot
 
 
 def _make_slot_with_assistant_message() -> _ChatSlot:

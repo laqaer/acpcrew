@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.dashboard import session_memory as sm
+from junction.dashboard import session_memory as sm
 
 
 class _FakeSlot:
@@ -41,7 +41,7 @@ def _row(
 ) -> dict[str, object]:
     return {
         "key": key,
-        "agent": "kirocrew",
+        "agent": "junction",
         "pid": pid,
         "owns_runtime": owns,
         "created_at": created,
@@ -155,7 +155,7 @@ def stub_proc(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sm.sys, "platform", "linux")
     monkeypatch.setattr(sm, "_get_rss_tree_mb", lambda pid: {7: 3238.0, 8: 843.0}.get(pid, 0.0))
     monkeypatch.setattr(sm, "_iter_descendant_pids", lambda pid: [pid, pid + 100, pid + 200])
-    monkeypatch.setattr(sm, "_read_cmdline", lambda pid: "python -m kiro_crew.mcp_gateway.stub")
+    monkeypatch.setattr(sm, "_read_cmdline", lambda pid: "python -m junction.mcp_gateway.stub")
     monkeypatch.setattr(sm, "_subtree_cpu_jiffies", lambda pid: 0)
     monkeypatch.setattr(sm, "_get_static_system_info", lambda: {"mem_total_gb": 124.0})
 
@@ -301,7 +301,7 @@ class _SelfShapedProvider:
 def _manager():
     from unittest.mock import MagicMock
 
-    from kiro_crew.session import SessionManager
+    from junction.session import SessionManager
 
     cfg = MagicMock()
     cfg.session.pool_size = 0
@@ -318,7 +318,7 @@ def test_runtime_pids_resolves_both_provider_shapes() -> None:
     silently reported pid=None for the latter, so those sessions rendered as
     "unknown memory" forever -- invisible because chat sessions use the other shape.
     """
-    from kiro_crew.session import _Session
+    from junction.session import _Session
 
     mgr = _manager()
     mgr._sessions["dashboard:nested"] = _Session(provider=_ClientShapedProvider(4242))
@@ -337,7 +337,7 @@ def test_runtime_pids_resolves_both_provider_shapes() -> None:
 
 def test_runtime_pids_reports_unknown_when_there_is_no_runtime() -> None:
     """A non-ACP provider has no runtime at all -- that is unknown, not a crash."""
-    from kiro_crew.session import _Session
+    from junction.session import _Session
 
     mgr = _manager()
     mgr._sessions["dashboard:plain"] = _Session(provider=object())
@@ -360,7 +360,7 @@ async def test_background_session_records_the_agent_it_runs_as() -> None:
     """
     from unittest.mock import MagicMock
 
-    from kiro_crew.session import BACKGROUND_AGENT, BACKGROUND_KEY, SessionManager
+    from junction.session import BACKGROUND_AGENT, BACKGROUND_KEY, SessionManager
 
     factory_saw: list[str] = []
 
@@ -455,7 +455,7 @@ def test_slot_spend_sums_credits_and_counts_turns(
     from datetime import datetime, timezone
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     now = datetime.now(timezone.utc)
@@ -487,7 +487,7 @@ def test_slot_spend_returns_empty_for_no_shards(
     """A slot with no rows means credits=None and turns=None in the payload."""
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     tmp.mkdir(exist_ok=True)
@@ -508,7 +508,7 @@ def test_slot_spend_drops_nan_and_infinity(
     from datetime import datetime, timezone
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     now = datetime.now(timezone.utc)
@@ -545,7 +545,7 @@ def test_slot_spend_cache_expires_as_the_cutoff_moves(
     from datetime import datetime, timedelta, timezone
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     real_now = datetime.now(timezone.utc)
@@ -593,7 +593,7 @@ def test_slot_spend_excludes_non_session_slots(
     from datetime import datetime, timezone
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     now = datetime.now(timezone.utc)
@@ -622,7 +622,7 @@ def test_slot_spend_cache_invalidates_on_shard_growth(
     from datetime import datetime, timezone
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     now = datetime.now(timezone.utc)
@@ -667,7 +667,7 @@ def test_slot_spend_window_matches_cost_breakdown_window() -> None:
     # Both use the same constant; this pinning test catches any drift.
     import inspect
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     sig = inspect.signature(usage.cost_breakdown)
     cost_default = sig.parameters["days"].default
@@ -691,7 +691,7 @@ def test_slot_spend_applies_per_row_timestamp_cutoff(
     from datetime import datetime, timedelta, timezone
     from pathlib import Path
 
-    from kiro_crew.dashboard.handlers import usage
+    from junction.dashboard.handlers import usage
 
     tmp = Path(str(tmp_path))
     now = datetime.now(timezone.utc)

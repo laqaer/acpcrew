@@ -12,10 +12,10 @@ import os
 
 import pytest
 
-from kiro_crew import security
-from kiro_crew.hooks import TOOL_DENY, HookManager, validate_file_path
-from kiro_crew.platform.context import PlatformCompositionError
-from kiro_crew.platform.governance import assert_governance_paths_protected
+from junction import security
+from junction.hooks import TOOL_DENY, HookManager, validate_file_path
+from junction.platform.context import PlatformCompositionError
+from junction.platform.governance import assert_governance_paths_protected
 
 # The data home moved from the top-level ``~/.kirocrew`` to ``~/.kiro/crew``.
 # The security floor gates the trust-root files under EVERY known crew-home
@@ -78,7 +78,7 @@ def test_agent_fs_write_to_policy_denied_at_gate():
 _RUN_EXEC_PATHS = (
     "~/.kirocrew/run",
     "~/.kirocrew/run/gateway-7781.bin",
-    "~/.kirocrew/run/kirocrew_sandbox_abc.py",
+    "~/.kirocrew/run/junction_sandbox_abc.py",
 )
 
 
@@ -236,7 +236,7 @@ def test_home_var_expansion_survives_windows_backslashes(monkeypatch):
     the expanded path are never reinterpreted as escape characters by shlex."""
     import os as _os
 
-    from kiro_crew.security import normalize_shell_command
+    from junction.security import normalize_shell_command
 
     win_home = r"C:\Users\runneradmin"
     monkeypatch.setattr(_os.path, "expanduser", lambda _p: win_home)
@@ -320,7 +320,7 @@ def test_case_variant_policy_path_is_sensitive():
     assert security.is_sensitive_path("~/.KIRO/CREW/profiles/x.json")
     # Legacy pre-move home is still gated.
     assert security.is_sensitive_path("~/.kirocrew/Security_Policy.json")
-    assert security.is_sensitive_path("~/.KIROCREW/profiles/x.json")
+    assert security.is_sensitive_path("~/.JUNCTION/profiles/x.json")
 
 
 def test_boot_assertion_passes_with_paths_present():

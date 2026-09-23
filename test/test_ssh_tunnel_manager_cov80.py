@@ -28,8 +28,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.instances.ssh_tunnel_manager import (
+from junction import platform_compat
+from junction.instances.ssh_tunnel_manager import (
     TunnelState,
     _SshTunnel,
     _TransportParams,
@@ -170,7 +170,7 @@ class TestCaptureStderr:
 
     @pytest.mark.asyncio
     async def test_the_buffer_is_bounded(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from kiro_crew.instances import ssh_tunnel_manager as stm
+        from junction.instances import ssh_tunnel_manager as stm
 
         monkeypatch.setattr(stm, "_MAX_STDERR_CHARS", 16)
         tunnel = _tunnel()

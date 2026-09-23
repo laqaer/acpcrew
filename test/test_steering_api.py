@@ -20,9 +20,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-import kiro_crew.dashboard.handlers.steering as steering_mod
-from kiro_crew.dashboard.handlers._shared import active_project_dir, active_project_state
-from kiro_crew.dashboard.handlers.steering import (
+import junction.dashboard.handlers.steering as steering_mod
+from junction.dashboard.handlers._shared import active_project_dir, active_project_state
+from junction.dashboard.handlers.steering import (
     STEERING_FILE_MAX_BYTES,
     STEERING_MAX_FILES,
     STEERING_PROJECT_HEADER,
@@ -46,7 +46,7 @@ def fake_home(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
-    monkeypatch.delenv("KIROCREW_HOME", raising=False)
+    monkeypatch.delenv("JUNCTION_HOME", raising=False)
     monkeypatch.setattr(Path, "home", lambda: home)
     return home
 
@@ -446,7 +446,7 @@ class TestListEndpoint:
     @pytest.mark.asyncio
     async def test_get_audits(self, fake_home, monkeypatch):
         sel_mock = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: sel_mock)
+        monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: sel_mock)
         async with TestClient(TestServer(_make_app(_state()))) as client:
             assert (await client.get("/api/steering")).status == 200
         names = [c.kwargs.get("tool_name") for c in sel_mock.log_tool_invocation.call_args_list]
@@ -485,7 +485,7 @@ class TestReadEndpoint:
         ``safe_read_file_bytes_nolink`` (O_NOFOLLOW + fstat), so the swap yields
         an error rather than the symlink target's contents.
         """
-        from kiro_crew.dashboard.handlers import steering as mod
+        from junction.dashboard.handlers import steering as mod
 
         root = fake_home / ".kiro" / "steering"
         real = _write_steering(root, "a.md", "real content\n")
@@ -503,8 +503,8 @@ class TestReadEndpoint:
     @pytest.mark.asyncio
     async def test_growth_past_cap_mid_read_is_413_not_500(self, fake_home, monkeypatch):
         """The helper raises FileTooLargeError if the file grows after the lstat."""
-        from kiro_crew import hooks
-        from kiro_crew.dashboard.handlers import steering as mod
+        from junction import hooks
+        from junction.dashboard.handlers import steering as mod
 
         _write_steering(fake_home / ".kiro" / "steering", "a.md", "small\n")
 
@@ -597,7 +597,7 @@ class TestCreateEndpoint:
     @pytest.mark.asyncio
     async def test_audits_creation(self, fake_home, monkeypatch):
         sel_mock = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: sel_mock)
+        monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: sel_mock)
         async with TestClient(TestServer(_make_app(_state()))) as client:
             await client.post("/api/steering", json={"name": "a.md", "content": "x"})
         ops = [c.kwargs.get("operation") for c in sel_mock.log_api_access.call_args_list]
@@ -656,7 +656,7 @@ class TestUpdateDeleteEndpoints:
         Referencing ``os.O_NOFOLLOW`` directly would raise AttributeError there
         and turn every create/update into a 500.
         """
-        from kiro_crew.dashboard.handlers import steering as mod
+        from junction.dashboard.handlers import steering as mod
 
         assert mod._O_NOFOLLOW == getattr(os, "O_NOFOLLOW", 0)
 
@@ -670,7 +670,7 @@ class TestUpdateDeleteEndpoints:
         truncating in place, so a write that dies part-way — a full filesystem,
         say — cannot destroy the user's steering document.
         """
-        from kiro_crew.dashboard.handlers import steering as mod
+        from junction.dashboard.handlers import steering as mod
 
         path = _write_steering(fake_home / ".kiro" / "steering", "a.md", "original\n")
 

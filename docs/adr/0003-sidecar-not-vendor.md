@@ -33,10 +33,10 @@ Do not copy:
   bridges)
 
 Do not reimplement LiteLLM. Do not rewrite the router's secret-entry
-rules into `KIROCREW_HOME`.
+rules into `JUNCTION_HOME`.
 
 This cut's Python surface is health and status in
-`src/kiro_crew/model_router/`. Operator-install of the sidecar is M2.
+`src/junction/model_router/`. Operator-install of the sidecar is M2.
 
 ## Consequences
 

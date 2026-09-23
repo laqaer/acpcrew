@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import vector_memory
-from kiro_crew.vector_memory import VectorMemoryStore
+from junction import vector_memory
+from junction.vector_memory import VectorMemoryStore
 
 # Deliberately share no significant words, so write_lesson's topic-overlap
 # dedup keeps all of them and each test controls the ordering it exercises.

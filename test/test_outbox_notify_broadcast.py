@@ -14,7 +14,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from tmpdir_helpers import short_tmp_base
 
-from kiro_crew.dashboard.handlers import api_outbox_notify
+from junction.dashboard.handlers import api_outbox_notify
 
 
 def _make_app(state=None) -> web.Application:
@@ -125,7 +125,7 @@ def _make_state_with_empty_slot(has_reader=True):
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.files._sel") as m:
+    with patch("junction.dashboard.handlers.files._sel") as m:
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -148,7 +148,7 @@ def outbox(tmp_path):
     odir = base / "outbox"
     odir.mkdir()
     try:
-        with patch("kiro_crew.config.loader.outbox_dir", return_value=odir):
+        with patch("junction.config.loader.outbox_dir", return_value=odir):
             yield odir
     finally:
         shutil.rmtree(base, ignore_errors=True)
@@ -376,7 +376,7 @@ class TestOutboxNotifyRedaction:
         # shim (which runs both the exfil-URL and credential passes and applies
         # a loaded companion's extra regexes). Patch that one shim.
         with patch(
-            "kiro_crew.dashboard.handlers.files.redact",
+            "junction.dashboard.handlers.files.redact",
             side_effect=lambda s: s.replace("http://evil.com", "[REDACTED_URL]"),
         ) as mock_redact:
             async with TestClient(TestServer(_make_app(state))) as client:

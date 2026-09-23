@@ -39,7 +39,7 @@ its filter is *symmetric*:
 Two consequences worth internalising:
 
 - The match is on the **`mcpServers` map key**, not on the command, not on a
-  registry id. `kirocrew-core` in your spec must be `kirocrew-core` in the
+  registry id. `junction-core` in your spec must be `junction-core` in the
   registry file.
 - `"type": "registry"` is **not a transport**. It declares "this entry is a
   pointer into the catalog", and only `env`, `headers` and `timeout` are carried
@@ -76,55 +76,55 @@ Junction needs three servers, and they must appear in the registry file under
 
 | Server | What is lost without it |
 |---|---|
-| `kirocrew-core` | `spawn_run`, `learn_add`, artifacts, knowledge, monitoring — the bulk of the product |
-| `kirocrew-cron` | every scheduled job (`cron_add` and the whole cron surface) |
-| `kirocrew-computer` | desktop automation (inert unless separately enabled, but still filtered) |
+| `junction-core` | `spawn_run`, `learn_add`, artifacts, knowledge, monitoring — the bulk of the product |
+| `junction-cron` | every scheduled job (`cron_add` and the whole cron surface) |
+| `junction-computer` | desktop automation (inert unless separately enabled, but still filtered) |
 
 The registry file format is a subset of the MCP registry standard's server
 schema. Each entry needs a `packages` entry describing how to launch the server,
 and — because all three Junction servers live behind one package — a
 `packageArguments` entry naming the subcommand. For a `pypi` package the client
 derives `uvx <identifier> <packageArguments>`, so an entry without the argument
-launches `uvx kirocrew` with no subcommand, which prints CLI help instead of
+launches `uvx junction` with no subcommand, which prints CLI help instead of
 speaking MCP and fails the handshake:
 
 ```json
 {
   "servers": [
     {
-      "name": "kirocrew-core",
+      "name": "junction-core",
       "description": "Junction orchestration: subagents, memory, artifacts, monitoring",
       "version": "0.3.0",
       "packages": [
         {
           "registryType": "pypi",
-          "identifier": "kirocrew",
+          "identifier": "junction",
           "packageArguments": [{ "type": "positional", "value": "mcp-core" }],
           "transport": { "type": "stdio" }
         }
       ]
     },
     {
-      "name": "kirocrew-cron",
+      "name": "junction-cron",
       "description": "Junction scheduled jobs",
       "version": "0.3.0",
       "packages": [
         {
           "registryType": "pypi",
-          "identifier": "kirocrew",
+          "identifier": "junction",
           "packageArguments": [{ "type": "positional", "value": "mcp-cron" }],
           "transport": { "type": "stdio" }
         }
       ]
     },
     {
-      "name": "kirocrew-computer",
+      "name": "junction-computer",
       "description": "Junction desktop automation (macOS, opt-in)",
       "version": "0.3.0",
       "packages": [
         {
           "registryType": "pypi",
-          "identifier": "kirocrew",
+          "identifier": "junction",
           "packageArguments": [{ "type": "positional", "value": "mcp-computer" }],
           "transport": { "type": "stdio" }
         }
@@ -139,7 +139,7 @@ Set `version` to the Junction version your fleet runs.
 ## Known limitation: the registry launches the server, not your install
 
 Junction's MCP servers are not standalone tools — they are the gateway's own
-process, reached through subcommands (`kirocrew mcp-core`, `mcp-cron`,
+process, reached through subcommands (`junction mcp-core`, `mcp-cron`,
 `mcp-computer`), and they share the gateway's data home and version.
 
 A registry-type entry hands the launch decision to the catalog: the client
@@ -147,7 +147,7 @@ resolves the package and, when a locally installed server's version differs from
 the registry's, relaunches it at the registry's version. For a `pypi` entry that
 means `uvx` fetching Junction from PyPI into its own ephemeral environment — so
 the process serving your MCP tools can be a *different* Junction from the
-gateway serving your dashboard. Your `env` overrides (including `KIROCREW_HOME`)
+gateway serving your dashboard. Your `env` overrides (including `JUNCTION_HOME`)
 do flow through, which keeps the data home aligned, but the code does not.
 
 Keep the registry `version` in step with your fleet's installed version. If your
@@ -158,14 +158,14 @@ organisation pins Junction centrally, that pin now governs the MCP side too.
 MCP registry governance requires Kiro CLI **1.23** or later (Kiro IDE 0.11.28).
 Enforcement in the V2 TUI arrived in **2.2.2**, and **2.6.0** made personal
 `mcp.json` servers load alongside registry-managed ones. Junction's servers
-live in an agent spec (`~/.kiro/agents/kirocrew.json`), not in personal
+live in an agent spec (`~/.kiro/agents/junction.json`), not in personal
 `mcp.json`, so that last change does not exempt them.
 
 ## Related
 
 - [../architecture/mcp.md](../architecture/mcp.md) — how Junction composes the
   agent spec's `mcpServers` map and which files it owns.
-- [../../src/kiro_crew/docs/troubleshooting.md](../../src/kiro_crew/docs/troubleshooting.md)
+- [../../src/junction/docs/troubleshooting.md](../../src/junction/docs/troubleshooting.md)
   — the user-facing "MCP tools not working" checklist.
 - Kiro's own documentation: `https://kiro.dev/docs/enterprise/governance/mcp/`
   (administrator setup) and `https://kiro.dev/docs/mcp/registry/` (registry mode

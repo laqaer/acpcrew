@@ -26,16 +26,16 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.discord import commands as dcmd
-from kiro_crew.discord import transport_dispatch as dtd
-from kiro_crew.discord.session_resume import RoutingDecision
-from kiro_crew.discord.transport import DISCORD_CAPABILITIES
-from kiro_crew.discord.transport_dispatch import DiscordDispatcher
-from kiro_crew.hooks import HookResult
-from kiro_crew.messaging import dispatch as D
-from kiro_crew.messaging.dispatch import ChannelTurn, drive_turn
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.telegram import commands as tcmd
+from junction.discord import commands as dcmd
+from junction.discord import transport_dispatch as dtd
+from junction.discord.session_resume import RoutingDecision
+from junction.discord.transport import DISCORD_CAPABILITIES
+from junction.discord.transport_dispatch import DiscordDispatcher
+from junction.hooks import HookResult
+from junction.messaging import dispatch as D
+from junction.messaging.dispatch import ChannelTurn, drive_turn
+from junction.messaging.transport import InboundMessage
+from junction.telegram import commands as tcmd
 
 # ── 1. An unrecognized ``!command`` (and the prose that must not trip it) ───
 

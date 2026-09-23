@@ -25,8 +25,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.cron import CronService
-from kiro_crew.dashboard.handlers import api_crons_create
+from junction.cron import CronService
+from junction.dashboard.handlers import api_crons_create
 
 
 def _create_request(body: dict, crons: CronService) -> MagicMock:

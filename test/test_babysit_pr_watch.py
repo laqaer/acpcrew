@@ -17,16 +17,16 @@ from types import ModuleType
 import pytest
 from skill_script_helpers import load_skill_script
 
-from kiro_crew import irq
-from kiro_crew.cron_script import Done, Report, Skip
+from junction import irq
+from junction.cron_script import Done, Report, Skip
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = (
     ROOT
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "builtin_skills"
-    / "kirocrew-dev"
+    / "junction-dev"
     / "babysit"
     / "scripts"
     / "pr_watch.py"
@@ -69,7 +69,7 @@ def _payload(
 @pytest.fixture()
 def module(monkeypatch, tmp_path) -> ModuleType:
     mod = load_skill_script("babysit_pr_watch", SCRIPT)
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     return mod
 
 

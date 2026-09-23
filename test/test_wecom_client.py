@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.wecom.client."""
+"""Tests for junction.wecom.client."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, patch
 import aiohttp
 import pytest
 
-from kiro_crew.wecom.client import (
+from junction.wecom.client import (
     WeComClient,
     WeComInbound,
     _build_subscribe_frame,
@@ -579,14 +579,14 @@ class TestThresholdClamp:
     """WeComConfig.__post_init__ clamps to [1,100] and enforces soft <= hard."""
 
     def test_soft_above_hard_is_lowered_to_hard(self) -> None:
-        from kiro_crew.config.loader import WeComConfig
+        from junction.config.loader import WeComConfig
 
         c = WeComConfig(soft_threshold_pct=95, hard_threshold_pct=50)
         assert c.soft_threshold_pct == 50
         assert c.hard_threshold_pct == 50
 
     def test_out_of_range_values_clamped(self) -> None:
-        from kiro_crew.config.loader import WeComConfig
+        from junction.config.loader import WeComConfig
 
         c = WeComConfig(soft_threshold_pct=-10, hard_threshold_pct=200)
         assert c.soft_threshold_pct == 1
@@ -728,7 +728,7 @@ class TestFrameLoggingOmitsContent:
         # Unhandled cmd path exercises both the inbound-frame debug line and the
         # unhandled-cmd debug line for a single frame.
         raw = json.dumps({"cmd": "totally-unknown-cmd", "response_url": secret})
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.wecom.client"):
+        with caplog.at_level(logging.DEBUG, logger="junction.wecom.client"):
             await client._handle_message(raw)
         # The raw frame (incl. the response_url credential) never reaches logs.
         assert secret not in caplog.text
@@ -757,7 +757,7 @@ class TestFrameLoggingOmitsContent:
         """An unhandled command logs a generic event, never the command name."""
         client = self._client()
         cmd = "aibot_secret_command_name"
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.wecom.client"):
+        with caplog.at_level(logging.DEBUG, logger="junction.wecom.client"):
             await client._handle_message(json.dumps({"cmd": cmd}))
         # The externally-derived command name must not appear...
         assert cmd not in caplog.text
@@ -833,7 +833,7 @@ class TestStatusCallback:
         async def _no_sleep(_delay: float) -> None:
             return None
 
-        with patch("kiro_crew.wecom.client.asyncio.sleep", _no_sleep):
+        with patch("junction.wecom.client.asyncio.sleep", _no_sleep):
             await client._run_loop()
 
         assert seen and seen[0][0] is False

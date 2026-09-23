@@ -26,15 +26,15 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import platform_compat
+from junction import platform_compat
 
 # ── config flag + constants ────────────────────────────────────────────────
 
 
 class TestConfig:
     def test_defaults_off_and_tunables(self):
-        from kiro_crew.config.loader import InstancesConfig
-        from kiro_crew.instances.constants import (
+        from junction.config.loader import InstancesConfig
+        from junction.instances.constants import (
             DEFAULT_CONNECT_TIMEOUT_SECS,
             DEFAULT_MINT_TIMEOUT_SECS,
             DEFAULT_TUNNEL_BASE_PORT,
@@ -51,17 +51,17 @@ class TestConfig:
         assert c.mint_timeout_secs is None
 
     def test_clamps_out_of_range(self):
-        from kiro_crew.config.loader import InstancesConfig
+        from junction.config.loader import InstancesConfig
 
         c = InstancesConfig(warm_set_cap=0, tunnel_base_port=99999)
         assert c.warm_set_cap == 1
         assert c.tunnel_base_port == 7778
 
     def test_roundtrip_and_schema(self):
-        from kiro_crew.config.loader import KiroCrewConfig
-        from kiro_crew.config.schema import SCHEMA_REGISTRY
+        from junction.config.loader import JunctionConfig
+        from junction.config.schema import SCHEMA_REGISTRY
 
-        d = KiroCrewConfig().to_dict()
+        d = JunctionConfig().to_dict()
         assert d["instances"] == {
             "enabled": False,
             "warm_set_cap": 5,
@@ -97,7 +97,7 @@ class TestConfig:
     def test_recovery_knobs_parse_from_config_file(self, tmp_path, monkeypatch):
         import json
 
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(
@@ -111,14 +111,14 @@ class TestConfig:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        cfg = KiroCrewConfig.load()
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        cfg = JunctionConfig.load()
         assert cfg.instances.max_recovery_attempts == 12
         assert cfg.instances.recover_backoff_max_secs == 45.0
         assert cfg.instances.probe_failure_threshold == 5
 
     def test_recovery_knob_clamps(self):
-        from kiro_crew.config.loader import InstancesConfig
+        from junction.config.loader import InstancesConfig
 
         c = InstancesConfig(
             max_recovery_attempts=0, recover_backoff_max_secs=0, probe_failure_threshold=0
@@ -130,7 +130,7 @@ class TestConfig:
         # Upper bound: a pathological max_recovery_attempts is clamped down to the
         # ceiling (warned, not silently dropped) so it can't spin a near-infinite
         # self-heal loop. The boundary value itself is left untouched.
-        from kiro_crew.instances.constants import MAX_RECOVERY_ATTEMPTS_CEILING
+        from junction.instances.constants import MAX_RECOVERY_ATTEMPTS_CEILING
 
         assert MAX_RECOVERY_ATTEMPTS_CEILING == 100
         assert (
@@ -147,7 +147,7 @@ class TestConfig:
         # recover_backoff_max_secs has the same two-sided guard: a pathological
         # pacing is clamped down to the ceiling so the attempt cap can't be stretched
         # into a multi-day wall-clock window; the boundary value is left untouched.
-        from kiro_crew.instances.constants import RECOVER_BACKOFF_MAX_CEILING_SECS
+        from junction.instances.constants import RECOVER_BACKOFF_MAX_CEILING_SECS
 
         assert RECOVER_BACKOFF_MAX_CEILING_SECS == 300.0
         assert (
@@ -162,8 +162,8 @@ class TestConfig:
         )
 
     def test_connect_timeout_default_and_clamps(self):
-        from kiro_crew.config.loader import InstancesConfig
-        from kiro_crew.instances.constants import (
+        from junction.config.loader import InstancesConfig
+        from junction.instances.constants import (
             CONNECT_TIMEOUT_CEILING_SECS,
             DEFAULT_CONNECT_TIMEOUT_SECS,
         )
@@ -200,31 +200,31 @@ class TestConfig:
     def test_connect_timeout_parses_from_config_file(self, tmp_path, monkeypatch):
         import json
 
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(
             json.dumps({"instances": {"connect_timeout_secs": 45.0}})
         )
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        cfg = KiroCrewConfig.load()
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        cfg = JunctionConfig.load()
         assert cfg.instances.connect_timeout_secs == 45.0
 
         cfg_file.write_text(json.dumps({"instances": {}}))
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.instances.connect_timeout_secs is None
 
         cfg_file.write_text(json.dumps({"instances": {"connect_timeout_secs": None}}))
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.instances.connect_timeout_secs is None
 
         cfg_file.write_text(json.dumps({"instances": {"connect_timeout_secs": 15.0}}))
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.instances.connect_timeout_secs == 15.0
 
     def test_mint_timeout_default_and_clamps(self):
-        from kiro_crew.config.loader import InstancesConfig
-        from kiro_crew.instances.constants import (
+        from junction.config.loader import InstancesConfig
+        from junction.instances.constants import (
             DEFAULT_MINT_TIMEOUT_SECS,
             MINT_TIMEOUT_CEILING_SECS,
             MINT_TIMEOUT_FLOOR_SECS,
@@ -265,24 +265,24 @@ class TestConfig:
     def test_mint_timeout_parses_from_config_file(self, tmp_path, monkeypatch):
         import json
 
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({"instances": {"mint_timeout_secs": 60.0}}))
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        cfg = KiroCrewConfig.load()
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        cfg = JunctionConfig.load()
         assert cfg.instances.mint_timeout_secs == 60.0
 
         cfg_file.write_text(json.dumps({"instances": {}}))
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.instances.mint_timeout_secs is None
 
         cfg_file.write_text(json.dumps({"instances": {"mint_timeout_secs": None}}))
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.instances.mint_timeout_secs is None
 
         cfg_file.write_text(json.dumps({"instances": {"mint_timeout_secs": 30.0}}))
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.instances.mint_timeout_secs == 30.0
 
 
@@ -291,13 +291,13 @@ class TestConfig:
 
 class TestPortAllocator:
     def test_rejects_bad_base(self):
-        from kiro_crew.instances.port_allocator import PortAllocator
+        from junction.instances.port_allocator import PortAllocator
 
         with pytest.raises(ValueError):
             PortAllocator(base_port=0)
 
     def test_skips_bound_and_excluded(self):
-        from kiro_crew.instances.port_allocator import PortAllocator
+        from junction.instances.port_allocator import PortAllocator
 
         # Bind an OS-assigned free port so the test never collides with a port
         # something else already holds (the old hard-coded base was flaky).
@@ -323,7 +323,7 @@ class TestPortAllocator:
         never an active LISTEN, so the probe (also SO_REUSEADDR) must still fail
         to bind against a LISTENing socket that itself set SO_REUSEADDR.
         """
-        from kiro_crew.instances.port_allocator import _is_port_free
+        from junction.instances.port_allocator import _is_port_free
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # The occupier sets SO_REUSEADDR too (as ssh does); the probe must still
@@ -338,7 +338,7 @@ class TestPortAllocator:
             s.close()
 
     def test_is_port_free_true_for_unbound_port(self):
-        from kiro_crew.instances.port_allocator import _is_port_free
+        from junction.instances.port_allocator import _is_port_free
 
         # Grab an OS-assigned port, then release it — it is now free to bind.
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -353,7 +353,7 @@ class TestPortAllocator:
 
 class TestTokenMint:
     def test_parse(self):
-        from kiro_crew.instances.token_mint import parse_token_from_stdout
+        from junction.instances.token_mint import parse_token_from_stdout
 
         assert parse_token_from_stdout("http://localhost:7777?token=eyJa.b\n") == "eyJa.b"
         assert parse_token_from_stdout("https://h/?x=1&token=TOK&y=2") == "TOK"
@@ -361,42 +361,42 @@ class TestTokenMint:
 
     @pytest.mark.parametrize("bad", ["abc", "20", "0h", "-1h", "20s", "99999h"])
     def test_ttl_rejects(self, bad):
-        from kiro_crew.instances.token_mint import TokenMintError, _validate_ttl
+        from junction.instances.token_mint import TokenMintError, _validate_ttl
 
         with pytest.raises(TokenMintError):
             _validate_ttl(bad)
 
     def test_command_builders(self):
-        from kiro_crew.instances.token_mint import build_remote_token_command
+        from junction.instances.token_mint import build_remote_token_command
 
         # empty remote_bin -> candidate-ladder path (build_remote_command -> build_candidate_command)
         assert 'exec "$b" token --ttl 20h;' in build_remote_token_command("", ttl="20h")
-        custom = build_remote_token_command("~/bin/kirocrew", ttl="30m")
-        assert '"$HOME/bin/kirocrew" token --ttl 30m' in custom
+        custom = build_remote_token_command("~/bin/junction", ttl="30m")
+        assert '"$HOME/bin/junction" token --ttl 30m' in custom
         default = build_remote_token_command("", ttl=None)
         assert 'exec "$b" token;' in default and "--ttl" not in default
         # port is threaded through so the remote mint targets the right gateway
         # (not the default 7777) — essential for instances on a custom port.
-        with_port = build_remote_token_command("~/bin/kirocrew", ttl="20h", port=7879)
-        assert '"$HOME/bin/kirocrew" token --ttl 20h --port 7879' in with_port
+        with_port = build_remote_token_command("~/bin/junction", ttl="20h", port=7879)
+        assert '"$HOME/bin/junction" token --ttl 20h --port 7879' in with_port
         # invalid port is rejected (kept out of the shell command unvalidated)
-        from kiro_crew.instances.token_mint import TokenMintError
+        from junction.instances.token_mint import TokenMintError
 
         with pytest.raises(TokenMintError):
             build_remote_token_command("", ttl="20h", port=99999)
 
     def test_token_command_prefers_run_marker_for_port(self):
-        from kiro_crew.config.paths import CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME
-        from kiro_crew.instances.token_mint import (
+        from junction.config.paths import CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME
+        from junction.instances.token_mint import (
             build_candidate_command,
             build_remote_token_command,
         )
 
         # empty remote_bin + port -> run-marker clause runs BEFORE the candidate
         # ladder, keyed by the same port, and execs the recorded launcher. The
-        # marker is probed under each candidate data home (KIROCREW_HOME override,
+        # marker is probed under each candidate data home (JUNCTION_HOME override,
         # the current default, then the legacy home) so a migrated remote whose
-        # non-interactive SSH shell doesn't export KIROCREW_HOME still hits the
+        # non-interactive SSH shell doesn't export JUNCTION_HOME still hits the
         # marker written under the new default home. The default/legacy home
         # segments are asserted via the SHARED config.paths constants (not
         # re-hardcoded literals) so that re-hardcoding — the read/write desync
@@ -404,7 +404,7 @@ class TestTokenMint:
         default_marker = f'"$HOME/{CONFIG_DIR_NAME}/run/gateway-7879.bin"'
         legacy_marker = f'"$HOME/{LEGACY_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
         cmd = build_remote_token_command("", ttl="20h", port=7879)
-        assert '"${KIROCREW_HOME:+$KIROCREW_HOME/run/gateway-7879.bin}"' in cmd
+        assert '"${JUNCTION_HOME:+$JUNCTION_HOME/run/gateway-7879.bin}"' in cmd
         assert default_marker in cmd
         assert legacy_marker in cmd
         # new default home is probed before the legacy home
@@ -422,33 +422,33 @@ class TestTokenMint:
         assert "for __mk in" not in no_port and "gateway-" not in no_port
 
         # explicit custom remote_bin is never overridden by the marker.
-        custom = build_remote_token_command("~/bin/kirocrew", ttl="20h", port=7879)
+        custom = build_remote_token_command("~/bin/junction", ttl="20h", port=7879)
         assert "for __mk in" not in custom and "gateway-" not in custom
-        assert '"$HOME/bin/kirocrew" token --ttl 20h --port 7879' in custom
+        assert '"$HOME/bin/junction" token --ttl 20h --port 7879' in custom
 
         # generic candidate builder: marker only when a port is supplied.
         assert "for __mk in" not in build_candidate_command("restart")
         assert "gateway-" not in build_candidate_command("restart")
         assert "gateway-7880.bin" in build_candidate_command("token", marker_port=7880)
 
-        # the sibling remote-exec path (restart, via run_remote_kirocrew) also
+        # the sibling remote-exec path (restart, via run_remote_junction) also
         # prefers the marker when the caller passes the remote port.
-        from kiro_crew.instances.token_mint import build_remote_command
+        from junction.instances.token_mint import build_remote_command
 
         restart = build_remote_command("", "restart", marker_port=7781)
         assert "gateway-7781.bin" in restart and 'exec "$__kb" restart;' in restart
         # ...unless an explicit custom remote_bin is set (never overridden).
-        pinned_restart = build_remote_command("~/bin/kirocrew", "restart", marker_port=7781)
+        pinned_restart = build_remote_command("~/bin/junction", "restart", marker_port=7781)
         assert "for __mk in" not in pinned_restart and "gateway-" not in pinned_restart
 
     def test_ssh_argv_shape(self):
-        from kiro_crew.instances.token_mint import _build_ssh_argv
+        from junction.instances.token_mint import _build_ssh_argv
 
         argv = _build_ssh_argv("cd-1", "echo hi")
         assert argv[0] == "ssh" and argv[-2] == "cd-1"
         assert "BatchMode=yes" in argv and "AddressFamily=inet" in argv
         # Default fail-fast connect bound is preserved for callers that
-        # don't thread a budget (e.g. run_remote_kirocrew).
+        # don't thread a budget (e.g. run_remote_junction).
         assert "ConnectTimeout=10" in argv
         # The mint threads its configurable budget into ConnectTimeout so a
         # slow ProxyCommand/banner exchange isn't killed at the 10s default
@@ -461,7 +461,7 @@ class TestTokenMint:
         assert "ConnectTimeout=1" in argv
 
     def test_mint_success_and_no_token_in_logs(self, monkeypatch, caplog):
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         class FakeProc:
             returncode = 0
@@ -479,13 +479,13 @@ class TestTokenMint:
         assert "SECRETJWT" not in caplog.text
 
     def test_mint_nonzero_exit_raises(self, monkeypatch):
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         class FakeProc:
             returncode = 127
 
             async def communicate(self):
-                return b"", b"kirocrew binary not found"
+                return b"", b"junction binary not found"
 
         async def fake_exec(*a, **k):
             return FakeProc()
@@ -511,11 +511,11 @@ class TestTokenMint:
     def test_nonzero_exit_surfaces_stdout_tail_when_stderr_empty(self, monkeypatch):
         """The real reason travels with the error instead of '<no stderr>'.
 
-        Pre-fix ``kirocrew token`` printed its failure prose to stdout, so a
+        Pre-fix ``junction token`` printed its failure prose to stdout, so a
         stderr-only message degraded to a useless ``<no stderr>`` and someone
         had to SSH in to find out why.
         """
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         self._fake_proc(
             monkeypatch,
@@ -531,7 +531,7 @@ class TestTokenMint:
         assert "<no stderr>" in msg  # stderr genuinely was empty — still reported
 
     def test_unparseable_output_surfaces_stdout_tail(self, monkeypatch):
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         self._fake_proc(monkeypatch, 0, b"Gateway returned empty token\n", b"")
         with pytest.raises(tm.TokenMintError) as excinfo:
@@ -554,7 +554,7 @@ class TestTokenMint:
         tokens unscrubbed, so the segment count is asserted explicitly and
         ``test_bare_token_scrubbed_at_every_segment_count`` pins the full range.
         """
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         minted = "eyJzdWIiOiJvd25lciIsImV4cCI6MTIzfQ.c2lnbmF0dXJlLWJ5dGVz"
         assert minted.count(".") == 1
@@ -582,7 +582,7 @@ class TestTokenMint:
         Five segments is the compact-JWE shape: a pattern capped lower would
         match a prefix and leave ``.ciphertext.tag`` in the surfaced error.
         """
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         bare = "eyJhbGciOiJIUzI1NiJ9" + "".join(f".seg{i}" for i in range(segments - 1))
         self._fake_proc(monkeypatch, 1, f"{bare}\nwhy it died\n".encode(), b"")
@@ -594,7 +594,7 @@ class TestTokenMint:
         assert "why it died" in msg
 
     def test_stdout_tail_is_bounded_and_absent_when_stdout_empty(self, monkeypatch):
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         # bounded: only the TAIL is carried (the reason is printed last). The
         # reason sits on its own line, as a real remote prints it — the scan
@@ -610,11 +610,11 @@ class TestTokenMint:
 
         # modern remote (reason on stderr, nothing on stdout) keeps the original
         # single-stream message shape — no empty "stdout tail:" noise.
-        self._fake_proc(monkeypatch, 127, b"", b"kirocrew binary not found")
+        self._fake_proc(monkeypatch, 127, b"", b"junction binary not found")
         with pytest.raises(tm.TokenMintError) as excinfo:
             asyncio.run(tm.mint_remote_token("cd-1", ttl="20h"))
         assert "stdout tail:" not in str(excinfo.value)
-        assert "kirocrew binary not found" in str(excinfo.value)
+        assert "junction binary not found" in str(excinfo.value)
 
     def test_success_path_never_builds_the_stdout_tail(self, monkeypatch):
         """The tail is built inside the failure branches only.
@@ -624,7 +624,7 @@ class TestTokenMint:
         "only ever built on a failure path" invariant the helper documents. This
         locks the invariant to control flow instead of a comment.
         """
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         calls: list[str] = []
         monkeypatch.setattr(
@@ -650,7 +650,7 @@ class TestTokenMint:
         same payload, GIL-bound). Asserting on the *input length* handed to the
         redactors instead of on wall-clock keeps this deterministic.
         """
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         seen: list[int] = []
         real = tm.redact_credentials
@@ -678,7 +678,7 @@ class TestTokenMint:
         the tail when the scrubbers shrink the text around it, which the third
         case below pins.
         """
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         secret = "eyJ" + "A" * 3000 + ".SIGNATURE-MUST-NOT-APPEAR"
         for stdout in (f"noise\n{secret}\n", secret):  # with and without a trailing newline
@@ -724,13 +724,13 @@ class TestRunMarker:
     def test_write_read_clear(self, tmp_path, monkeypatch):
         import sys
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
-        # Fabricate a venv layout: <venv>/bin/{python,kirocrew}
+        # Fabricate a venv layout: <venv>/bin/{python,junction}
         bindir = tmp_path / "venv" / "bin"
         bindir.mkdir(parents=True)
-        launcher = bindir / "kirocrew"
+        launcher = bindir / "junction"
         launcher.write_text("#!/bin/sh\n")
         launcher.chmod(0o755)
         monkeypatch.setattr(sys, "executable", str(bindir / "python"))
@@ -758,11 +758,11 @@ class TestRunMarker:
         """
         import sys
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         bindir = tmp_path / "venv2" / "bin"
-        bindir.mkdir(parents=True)  # no sibling 'kirocrew' launcher
+        bindir.mkdir(parents=True)  # no sibling 'junction' launcher
         monkeypatch.setattr(sys, "executable", str(bindir / "python"))
 
         assert run_marker.gateway_launcher_path() is None
@@ -775,7 +775,7 @@ class TestRunMarker:
 
     def test_mint_clause_ignores_an_empty_marker(self):
         """...and inert for mint: the exec is guarded on a non-empty -x path."""
-        from kiro_crew.instances.token_mint import build_candidate_command
+        from junction.instances.token_mint import build_candidate_command
 
         cmd = build_candidate_command("status", marker_port=7000)
         assert '[ -n "$__kb" ] && [ -x "$__kb" ]' in cmd
@@ -797,11 +797,11 @@ class TestRunMarkerDiscovery:
     def _marker(self, home, name: str) -> None:
         d = home / "run"
         d.mkdir(parents=True, exist_ok=True)
-        (d / name).write_text("/some/venv/bin/kirocrew\n", encoding="utf-8")
+        (d / name).write_text("/some/venv/bin/junction\n", encoding="utf-8")
 
     def test_no_run_dir_yields_no_ports_and_creates_nothing(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         assert run_marker.marker_ports() == []
         # Discovery is read-only: a client merely looking for a gateway must not
@@ -809,8 +809,8 @@ class TestRunMarkerDiscovery:
         assert not (tmp_path / "run").exists()
 
     def test_lists_sorted_ports_and_ignores_non_markers(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         self._marker(tmp_path, "gateway-6776.bin")
         self._marker(tmp_path, "gateway-5476.bin")
@@ -839,16 +839,16 @@ class TestRunMarkerDiscovery:
         trusting a marker. Keeping any such helper out of this module stops a
         future caller from reaching for the unsafe check.
         """
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         assert not hasattr(run_marker, "port_is_live")
         assert not hasattr(run_marker, "live_marker_ports")
 
     def test_read_pid_rejects_junk_and_missing(self, tmp_path, monkeypatch):
         """The sidecar is an identity claim, so parse it strictly."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         assert run_marker.read_pid(6776) is None  # absent
         d = tmp_path / "run"
@@ -862,8 +862,8 @@ class TestRunMarkerDiscovery:
     def test_read_launcher_reads_marker_content(self, tmp_path, monkeypatch):
         """read_launcher returns the recorded path, None for absent/empty, and
         never creates run/ (read-only, like read_pid)."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         assert run_marker.read_launcher(6776) is None  # absent
         assert not (tmp_path / "run").exists()  # read never materialises run/
@@ -874,8 +874,8 @@ class TestRunMarkerDiscovery:
         assert run_marker.read_launcher(6776) is None
         (d / "gateway-6776.bin").write_text("  \n", encoding="utf-8")
         assert run_marker.read_launcher(6776) is None
-        (d / "gateway-6776.bin").write_text("/opt/venv/bin/kirocrew\n", encoding="utf-8")
-        assert run_marker.read_launcher(6776) == "/opt/venv/bin/kirocrew"
+        (d / "gateway-6776.bin").write_text("/opt/venv/bin/junction\n", encoding="utf-8")
+        assert run_marker.read_launcher(6776) == "/opt/venv/bin/junction"
 
     def test_write_prunes_markers_from_earlier_runs(self, tmp_path, monkeypatch):
         """A gateway is a singleton per home, so markers naming other ports are
@@ -884,12 +884,12 @@ class TestRunMarkerDiscovery:
         """
         import sys
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         bindir = tmp_path / "venv" / "bin"
         bindir.mkdir(parents=True)
-        launcher = bindir / "kirocrew"
+        launcher = bindir / "junction"
         launcher.write_text("#!/bin/sh\n")
         launcher.chmod(0o755)
         monkeypatch.setattr(sys, "executable", str(bindir / "python"))
@@ -908,8 +908,8 @@ class TestRunMarkerDiscovery:
 
     def test_prune_keeps_unrelated_files(self, tmp_path, monkeypatch):
         """Pruning targets only this module's own marker/pid pairs."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew.instances import run_marker
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction.instances import run_marker
 
         d = tmp_path / "run"
         d.mkdir(parents=True, exist_ok=True)
@@ -930,7 +930,7 @@ class TestRunMarkerDiscovery:
 class TestValidation:
     @pytest.mark.parametrize("good", ["cd-1-alias", "user@host.example.com", "h_1"])
     def test_ssh_host_accept(self, good):
-        from kiro_crew.instances.validation import validate_ssh_host
+        from junction.instances.validation import validate_ssh_host
 
         assert validate_ssh_host(good) == good
 
@@ -938,16 +938,16 @@ class TestValidation:
         "bad", ["-oProxyCommand=x", "a b", "a;b", "a$b", "a@b@c", "", "@h", "h@", "`x`"]
     )
     def test_ssh_host_reject(self, bad):
-        from kiro_crew.instances.validation import SshValidationError, validate_ssh_host
+        from junction.instances.validation import SshValidationError, validate_ssh_host
 
         with pytest.raises(SshValidationError):
             validate_ssh_host(bad)
 
     def test_remote_bin(self):
-        from kiro_crew.instances.validation import SshValidationError, validate_remote_bin
+        from junction.instances.validation import SshValidationError, validate_remote_bin
 
         assert validate_remote_bin("") == ""
-        assert validate_remote_bin("~/.local/bin/kirocrew") == "~/.local/bin/kirocrew"
+        assert validate_remote_bin("~/.local/bin/junction") == "~/.local/bin/junction"
         for bad in ("$(x)", "a;b", "`x`", "-rf", 'a"b'):
             with pytest.raises(SshValidationError):
                 validate_remote_bin(bad)
@@ -958,12 +958,12 @@ class TestValidation:
 
 class TestRegistry:
     def _reg(self, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         return InstancesRegistry(path=tmp_path / "instances.json")
 
     def test_crud_and_collision(self, tmp_path):
-        from kiro_crew.instances.registry import DuplicateInstanceError
+        from junction.instances.registry import DuplicateInstanceError
 
         reg = self._reg(tmp_path)
         a = reg.add(name="Cloud Desktop 1", ssh_host="cd-1-alias")
@@ -975,7 +975,7 @@ class TestRegistry:
         assert len(reg.list()) == 2
 
     def test_update_validation_and_hints(self, tmp_path):
-        from kiro_crew.instances.registry import InstanceNotFoundError, InvalidInstanceError
+        from junction.instances.registry import InstanceNotFoundError, InvalidInstanceError
 
         reg = self._reg(tmp_path)
         reg.add(name="CD", ssh_host="cd-1", instance_id="cd-1")
@@ -1023,9 +1023,9 @@ class TestRegistry:
         assert "token" not in raw.lower()
 
     def test_env_home_path(self, tmp_path, monkeypatch):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         assert InstancesRegistry().path == tmp_path / "instances.json"
 
 
@@ -1049,8 +1049,8 @@ def _patch_port_probe(monkeypatch, *, manager_free: bool = True, allocator_free:
     conflict case models a TOCTOU loss, where allocation succeeds and the
     re-probe then finds that port taken.
     """
-    import kiro_crew.instances.port_allocator as pa
-    import kiro_crew.instances.ssh_tunnel_manager as stm
+    import junction.instances.port_allocator as pa
+    import junction.instances.ssh_tunnel_manager as stm
 
     monkeypatch.setattr(stm, "_is_port_free", lambda port, host="127.0.0.1": manager_free)
     monkeypatch.setattr(pa, "_is_port_free", lambda port, host="127.0.0.1": allocator_free)
@@ -1073,7 +1073,7 @@ class _FakeTunnel:
         aws_profile="",
         aws_region="",
     ):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         self.iid = iid
         self.stopped = False
@@ -1110,7 +1110,7 @@ class TestSshTunnelArgvCompression:
         _patch_port_probe(monkeypatch)
 
     def test_compression_flag_present_by_default(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         argv = _build_ssh_tunnel_argv("host-a", 7779, 7879)
         assert "-C" in argv
@@ -1119,7 +1119,7 @@ class TestSshTunnelArgvCompression:
         assert argv[0] == "ssh" and argv[-1] == "host-a"
 
     def test_compression_flag_omitted_when_disabled(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         argv = _build_ssh_tunnel_argv("host-a", 7779, 7879, compression=False)
         assert "-C" not in argv
@@ -1132,8 +1132,8 @@ class TestSshTunnelArgvCompression:
         # The manager must thread ssh_compression to the tunnel factory on
         # connect() -- that flag is what _build_ssh_tunnel_argv uses to add/omit
         # -C. Drive a real connect and assert the captured value both ways.
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager, TunnelState
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager, TunnelState
 
         captured: dict = {}
 
@@ -1233,7 +1233,7 @@ Host {host}
 """
 
     def test_tunnel_argv_pins_multiplexing_off(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         argv = _build_ssh_tunnel_argv("host-a", 7779, 7879)
         assert "ControlPath=none" in argv
@@ -1252,7 +1252,7 @@ Host {host}
         so the assertions above test the pins rather than restating ssh's
         defaults.
         """
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         args = _ssh_args(_build_ssh_tunnel_argv(self._HOST, 7779, 7879))
         pinned = _ssh_effective_config(tmp_path, self._ADVERSARIAL_CONFIG, args, self._HOST)
@@ -1280,7 +1280,7 @@ Host {host}
         The keyword is invented so no OpenSSH release knows it, which keeps the
         result independent of platform and version.
         """
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         cfg = tmp_path / "ssh_config"
         cfg.write_text(
@@ -1309,7 +1309,7 @@ Host {host}
         ssh-config alias path for identity, port, and bastion reachability, so
         pinning must not turn the argv into a general ssh_config override.
         """
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         config = (
             self._ADVERSARIAL_CONFIG
@@ -1339,8 +1339,8 @@ class TestSshTunnelManager:
         _patch_port_probe(monkeypatch)
 
     def _mgr(self, tmp_path, *, mint=None, factory=_FakeTunnel):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -1355,7 +1355,7 @@ class TestSshTunnelManager:
 
     @pytest.mark.asyncio
     async def test_connect_persists_and_idempotent(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1-alias", instance_id="cd-1")
@@ -1390,7 +1390,7 @@ class TestSshTunnelManager:
             asyncio.run(mgr.connect("ghost"))
 
     def test_validation_failure(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="Bad", ssh_host="-obadhost", instance_id="bad")  # registry ok; manager rejects
@@ -1399,7 +1399,7 @@ class TestSshTunnelManager:
         assert mgr.status("bad") is None and mgr.get_token("bad") == ""
 
     def test_tunnel_failure(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         def failing(*a, **k):
             t = _FakeTunnel(*a, **k)
@@ -1412,8 +1412,8 @@ class TestSshTunnelManager:
         assert st.state == TunnelState.ERROR and mgr.get_token("cd-1") == ""
 
     def test_mint_failure_tears_down(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
-        from kiro_crew.instances.token_mint import TokenMintError
+        from junction.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.token_mint import TokenMintError
 
         async def bad_mint(
             host, *, remote_bin="", ttl="20h", remote_port=None, embed_parent_port=None, timeout_secs=None
@@ -1445,7 +1445,7 @@ class TestSshTunnelManager:
         # Regression: connect() records the allocated local_port, but
         # disconnect() must reset it to the unallocated sentinel. Otherwise the
         # freed port stays recorded and reads as reserved forever.
-        from kiro_crew.instances.registry import _UNALLOCATED_PORT
+        from junction.instances.registry import _UNALLOCATED_PORT
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1", instance_id="cd-1")
@@ -1465,7 +1465,7 @@ class TestSshTunnelManager:
     async def test_disconnect_clears_stale_port_without_live_tunnel(self, tmp_path):
         # A port left recorded by an unclean prior exit (no live tunnel tracked)
         # must still be clearable via disconnect, so the user can recover.
-        from kiro_crew.instances.registry import _UNALLOCATED_PORT
+        from junction.instances.registry import _UNALLOCATED_PORT
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1", instance_id="cd-1")
@@ -1477,7 +1477,7 @@ class TestSshTunnelManager:
 
     @pytest.mark.asyncio
     async def test_token_validates_status_mapping(self, tmp_path, monkeypatch):
-        from kiro_crew.instances import ssh_tunnel_manager as m
+        from junction.instances import ssh_tunnel_manager as m
 
         class _Resp:
             def __init__(self, status):
@@ -1518,7 +1518,7 @@ class TestSshTunnelManager:
 
     @pytest.mark.asyncio
     async def test_token_validates_denies_on_error(self, tmp_path, monkeypatch):
-        from kiro_crew.instances import ssh_tunnel_manager as m
+        from junction.instances import ssh_tunnel_manager as m
 
         class _BoomSess:
             def __init__(self, *a, **k):
@@ -1585,9 +1585,9 @@ class _State:
 
 
 def _enable(tmp_path: Path, monkeypatch, *, enabled=True):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     (tmp_path / "config.json").write_text(json.dumps({"instances": {"enabled": enabled}}))
-    from kiro_crew.config import loader
+    from junction.config import loader
 
     loader._invalidate_config_cache()
 
@@ -1615,7 +1615,7 @@ class TestValidatorsRejectEmbeddedNewlines:
             path = (
                 Path(__file__).resolve().parents[1]
                 / "src"
-                / "kiro_crew"
+                / "junction"
                 / "instances"
                 / f"{mod}.py"
             )
@@ -1640,8 +1640,8 @@ class TestValidatorsRejectEmbeddedNewlines:
         given. What must not happen is a guard accepting the value and passing the
         newline through unchanged.
         """
-        from kiro_crew.instances import validation
-        from kiro_crew.instances.registry import (
+        from junction.instances import validation
+        from junction.instances.registry import (
             InstancesRegistry,
             InvalidInstanceError,
             validate_ttl,
@@ -1649,7 +1649,7 @@ class TestValidatorsRejectEmbeddedNewlines:
 
         for fn, dirty in (
             (validation.validate_ssh_host, "host\n"),
-            (validation.validate_remote_bin, "/usr/bin/kirocrew\n"),
+            (validation.validate_remote_bin, "/usr/bin/junction\n"),
             (validation.validate_ssm_target, "i-0123456789abcdef0\n"),
             (validation.validate_ssm_run_as, "ec2-user\n"),
             (validation.validate_aws_profile, "Admin\n"),
@@ -1673,8 +1673,8 @@ class TestReconfigureAtomicity:
     """`reconfigure` must serialize against everything else taking the lock."""
 
     def _manager(self, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(tmp_path / "instances.json")
         reg.add(name="CD", ssh_host="cd-1-alias", instance_id="cd-1")
@@ -1885,19 +1885,19 @@ class TestReconfigureAtomicity:
 
 class TestHandlers:
     def _reg(self, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         return InstancesRegistry(path=tmp_path / "instances.json")
 
     def test_disabled_returns_403(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch, enabled=False)
         r = asyncio.run(handlers.api_instances_list(_FakeReq(_State(self._reg(tmp_path)))))
         assert r.status == 403 and "disabled" in _body(r)["error"]
 
     def test_slack_origin_rejected(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         req = _FakeReq(_State(self._reg(tmp_path)), headers={"X-Session-Key": "slack:T:C"})
@@ -1905,7 +1905,7 @@ class TestHandlers:
         assert r.status == 403 and "owner-only" in _body(r)["error"]
 
     def test_unauthenticated_rejected(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         # No authenticated user (require_auth would have set request["user"]).
@@ -1914,7 +1914,7 @@ class TestHandlers:
         assert r.status == 401 and "authentication required" in _body(r)["error"]
 
     def test_add_list_includes_cap(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -1932,7 +1932,7 @@ class TestHandlers:
         assert b["active"] is False
 
     def test_list_active_reflects_manager_running(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -1943,7 +1943,7 @@ class TestHandlers:
         assert _body(r)["active"] is False
 
     def test_add_invalid_ssh_host_400(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         r = asyncio.run(
@@ -1954,8 +1954,8 @@ class TestHandlers:
         assert r.status == 400
 
     def test_connect_returns_token_but_list_does_not_leak(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2002,8 +2002,8 @@ class TestHandlers:
         assert "SECRET_TOK" not in r.body.decode()
 
     def test_connect_remints_when_stored_token_stale(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2040,8 +2040,8 @@ class TestHandlers:
         assert mgr.refreshed == ["cd-1"]
 
     def test_connect_502_when_stale_and_remint_fails(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2075,7 +2075,7 @@ class TestHandlers:
         assert "STALE_TOK" not in r.body.decode()
 
     def test_status_404(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         r = asyncio.run(
@@ -2086,7 +2086,7 @@ class TestHandlers:
         assert r.status == 404
 
     def test_status_diagnose_runs_ladder(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2130,8 +2130,8 @@ class TestHandlers:
         unit test built records via ``reg.add`` directly and so could not see it;
         an isolated-pod run against the real endpoint did.
         """
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.registry import DEFAULT_REMOTE_PORT
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.registry import DEFAULT_REMOTE_PORT
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2141,7 +2141,7 @@ class TestHandlers:
         assert reg.get("cd-1").remote_port == DEFAULT_REMOTE_PORT == 5476
 
     def test_add_duplicate_and_bad_body(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         state = _State(self._reg(tmp_path))
@@ -2155,7 +2155,7 @@ class TestHandlers:
         assert asyncio.run(handlers.api_instances_add(_FakeReq(state, body=["x"]))).status == 400
 
     def test_update_paths(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2206,7 +2206,7 @@ class TestHandlers:
         400 specifically, because coercing the value would store a port or a name
         the caller never asked for.
         """
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2240,7 +2240,7 @@ class TestHandlers:
         """
         import inspect
 
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         src = inspect.getsource(handlers.api_instances_update)
         assert "allowed = set(_PATCH_FIELD_TYPES)" in src
@@ -2252,7 +2252,7 @@ class TestHandlers:
         under the new label. The edit must tear it down, and must keep
         ``was_connected`` — that flag records an explicit user disconnect, which an
         edit is not, and clearing it would drop the crew out of the switcher."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2305,8 +2305,8 @@ class TestHandlers:
         through is persisted happily and then fails at the next connect, blaming
         the tunnel for a value the edit should have refused — so the registry
         enforces the same bound the minters do."""
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.registry import InvalidInstanceError
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.registry import InvalidInstanceError
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2333,7 +2333,7 @@ class TestHandlers:
         """A rejected save must not cost the user their connection: the proposed
         record is validated before the teardown, so a typo answers 400 with the
         crew still connected."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2374,7 +2374,7 @@ class TestHandlers:
         """``disconnect()`` clears the persisted intent whether or not it tracked
         a live tunnel, and reports False in that case. Restoring only on a True
         return would drop the crew out of the switcher."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2418,8 +2418,8 @@ class TestHandlers:
         the new coordinates."""
         import time as _time
 
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2466,7 +2466,7 @@ class TestHandlers:
         """An explicit Disconnect landing while a transport edit is in flight must
         win. The edit's teardown preserves intent rather than restoring a snapshot
         of it, so the user's disconnect is not overwritten."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2518,7 +2518,7 @@ class TestHandlers:
         whether its tunnel is CONNECTED or still CONNECTING when the write lands
         decides whether anything notices — so the handler must not persist on its
         own when a manager is present."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2573,7 +2573,7 @@ class TestHandlers:
         the one the user reaches. So the edit aborts, nothing is written, and the
         caller is told to disconnect and retry.
         """
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2613,7 +2613,7 @@ class TestHandlers:
     ):
         """A rename does not change how the tunnel is opened, so dropping the
         connection for it would be a self-inflicted outage."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2650,7 +2650,7 @@ class TestHandlers:
         assert mgr.disconnected == []
 
     def test_remove_success_and_404(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2671,7 +2671,7 @@ class TestHandlers:
         tunnel for the record mid-delete. A successful removal must disconnect
         AGAIN afterwards: the record is gone by then, so connect refuses new
         attempts and the sweep tears down whatever slipped in."""
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2700,8 +2700,8 @@ class TestHandlers:
         assert mgr.live is False, "the racing reconnect's tunnel survived the removal"
 
     def test_connect_503_404_and_502(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.dashboard import handlers_instances as handlers
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2736,7 +2736,7 @@ class TestHandlers:
         assert r.status == 502 and _body(r)["error"] == "boom"
 
     def test_disconnect_reports_was_connected(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
 
@@ -2752,7 +2752,7 @@ class TestHandlers:
         assert r.status == 200 and _body(r)["was_connected"] is True
 
     def test_restart_paths(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
         reg = self._reg(tmp_path)
@@ -2797,7 +2797,7 @@ class TestHandlers:
         assert r.status == 502
 
     def test_audit_failure_never_breaks_request(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard import handlers_instances as handlers
+        from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
 
@@ -2817,7 +2817,7 @@ class TestHandlers:
 
 class TestTokenMintGeneric:
     def test_ttl_to_seconds(self):
-        from kiro_crew.instances.token_mint import TokenMintError, ttl_to_seconds
+        from junction.instances.token_mint import TokenMintError, ttl_to_seconds
 
         assert ttl_to_seconds("20h") == 72000
         assert ttl_to_seconds("30m") == 1800
@@ -2825,19 +2825,19 @@ class TestTokenMintGeneric:
             ttl_to_seconds("bad")
 
     def test_generic_builders_and_token_delegation(self):
-        from kiro_crew.instances.token_mint import (
+        from junction.instances.token_mint import (
             build_candidate_command,
             build_remote_command,
             build_remote_token_command,
         )
 
         assert 'exec "$b" restart;' in build_candidate_command("restart")
-        assert '"$HOME/bin/kirocrew" restart' in build_remote_command("~/bin/kirocrew", "restart")
+        assert '"$HOME/bin/junction" restart' in build_remote_command("~/bin/junction", "restart")
         # token builder emits identical strings via the generic builders it delegates to
         assert 'exec "$b" token --ttl 20h;' in build_remote_token_command("", ttl="20h")
 
-    def test_run_remote_kirocrew(self, monkeypatch):
-        from kiro_crew.instances import token_mint as tm
+    def test_run_remote_junction(self, monkeypatch):
+        from junction.instances import token_mint as tm
 
         class FakeProc:
             returncode = 0
@@ -2849,14 +2849,14 @@ class TestTokenMintGeneric:
             return FakeProc()
 
         monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
-        rc, err = asyncio.run(tm.run_remote_kirocrew("cd-1", "restart"))
+        rc, err = asyncio.run(tm.run_remote_junction("cd-1", "restart"))
         assert rc == 0 and err == ""
 
-    def test_run_remote_kirocrew_honors_connect_timeout_secs(self, monkeypatch):
+    def test_run_remote_junction_honors_connect_timeout_secs(self, monkeypatch):
         """#3579: the fail-fast 10s ConnectTimeout default must not silently
         override a caller-supplied budget -- a restart on a slow-proxy host
         needs the same connect budget the mint itself gets."""
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         class FakeProc:
             returncode = 0
@@ -2872,15 +2872,15 @@ class TestTokenMintGeneric:
 
         monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
         rc, _ = asyncio.run(
-            tm.run_remote_kirocrew("cd-1", "restart", connect_timeout_secs=45.0)
+            tm.run_remote_junction("cd-1", "restart", connect_timeout_secs=45.0)
         )
         assert rc == 0
         assert "ConnectTimeout=45" in captured["argv"]
 
-    def test_run_remote_kirocrew_redacts_stderr(self, monkeypatch):
+    def test_run_remote_junction_redacts_stderr(self, monkeypatch):
         # Proxy-controlled stderr carrying a credential is redacted before return,
         # so a caller logging the tail cannot leak it.
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         class FakeProc:
             returncode = 255
@@ -2892,7 +2892,7 @@ class TestTokenMintGeneric:
             return FakeProc()
 
         monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
-        rc, err = asyncio.run(tm.run_remote_kirocrew("cd-1", "restart"))
+        rc, err = asyncio.run(tm.run_remote_junction("cd-1", "restart"))
         assert rc == 255
         assert "AKIAIOSFODNN7EXAMPLE" not in err
         assert "[REDACTED: credential]" in err
@@ -2925,7 +2925,7 @@ class TestTokenMintGeneric:
             return -9
 
     def test_mint_timeout_reaps_child_via_communicate_not_wait(self, monkeypatch):
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         proc = self._HangProc()
 
@@ -2947,10 +2947,10 @@ class TestTokenMintGeneric:
         assert proc.communicate_calls == 2
         assert proc.wait_calls == 0
 
-    def test_run_remote_kirocrew_timeout_reaps_child_via_communicate_not_wait(
+    def test_run_remote_junction_timeout_reaps_child_via_communicate_not_wait(
         self, monkeypatch
     ):
-        from kiro_crew.instances import token_mint as tm
+        from junction.instances import token_mint as tm
 
         proc = self._HangProc()
 
@@ -2965,7 +2965,7 @@ class TestTokenMintGeneric:
 
         monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
         monkeypatch.setattr(platform_compat, "kill_process_tree_async", _tree)
-        rc, err = asyncio.run(tm.run_remote_kirocrew("cd-1", "restart"))
+        rc, err = asyncio.run(tm.run_remote_junction("cd-1", "restart"))
         assert rc == -1
         assert "timed out after" in err
         assert killed == [(proc.pid, platform_compat.SIGKILL)]
@@ -2976,7 +2976,7 @@ class TestTokenMintGeneric:
 
 class TestDiagnostics:
     def _set_probes(self, monkeypatch, ssh, remote, local):
-        from kiro_crew.instances import diagnostics as diag
+        from junction.instances import diagnostics as diag
 
         async def _ssh(h, connect_timeout_secs=10.0):
             return ssh
@@ -2992,7 +2992,7 @@ class TestDiagnostics:
         monkeypatch.setattr(diag, "_probe_local_forward", _loc)
 
     def test_ladder_first_broken_link(self, monkeypatch):
-        from kiro_crew.instances.diagnostics import (
+        from junction.instances.diagnostics import (
             NOT_CONNECTED,
             OK,
             REMOTE_DOWN,
@@ -3016,13 +3016,13 @@ class TestDiagnostics:
         assert asyncio.run(diagnose_instance("cd-1-alias", 7777, 0)).code == NOT_CONNECTED
 
     def test_invalid_host_short_circuits(self):
-        from kiro_crew.instances.diagnostics import UNKNOWN, diagnose_instance
+        from junction.instances.diagnostics import UNKNOWN, diagnose_instance
 
         r = asyncio.run(diagnose_instance("-obadhost", 7777, 7778))
         assert r.code == UNKNOWN and r.probes == []
 
     def test_probe_helpers_via_mocked_subprocess(self, monkeypatch):
-        from kiro_crew.instances import diagnostics as diag
+        from junction.instances import diagnostics as diag
 
         class FakeProc:
             def __init__(self, rc, out=b""):
@@ -3072,7 +3072,7 @@ class TestDiagnostics:
         already tuned instances.connect_timeout_secs for must not be
         misreported as unreachable just because the probe never saw that
         tuning."""
-        from kiro_crew.instances import diagnostics as diag
+        from junction.instances import diagnostics as diag
 
         captured = {}
 
@@ -3110,7 +3110,7 @@ class TestDiagnostics:
         assert "AddressFamily=inet" in captured["argv"]
 
     def test_probe_local_forward(self):
-        from kiro_crew.instances import diagnostics as diag
+        from junction.instances import diagnostics as diag
 
         # no port -> False without connecting
         assert asyncio.run(diag._probe_local_forward(0)) is False
@@ -3144,7 +3144,7 @@ class _ResilTunnel:
         aws_profile="",
         aws_region="",
     ):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         self._S = TunnelState
         self.transport = transport
@@ -3163,7 +3163,7 @@ class _ResilTunnel:
 
 class TestTunnelStatus:
     def test_to_dict_includes_diagnosis_only_when_set(self):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
+        from junction.instances.ssh_tunnel_manager import TunnelState, TunnelStatus
 
         # no diagnosis -> key absent
         d = TunnelStatus("cd-1", TunnelState.CONNECTED, local_port=7778, remote_port=7777).to_dict()
@@ -3180,8 +3180,8 @@ class TestSelfHealRefreshRestart:
         _patch_port_probe(monkeypatch)
 
     def _mgr(self, tmp_path, *, mint=None, factory=_ResilTunnel):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -3196,7 +3196,7 @@ class TestSelfHealRefreshRestart:
 
     @pytest.mark.asyncio
     async def test_recover_tier1_then_tier2(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1-alias", instance_id="cd-1")
@@ -3208,7 +3208,7 @@ class TestSelfHealRefreshRestart:
         assert mgr._recover_attempts.get("cd-1", 0) == 0
 
     def test_recover_releases_lock_during_io(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         started = asyncio.Event()
         release = asyncio.Event()
@@ -3240,7 +3240,7 @@ class TestSelfHealRefreshRestart:
 
     @pytest.mark.asyncio
     async def test_recover_attempt_cap_then_diagnose(self, tmp_path, monkeypatch):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         def failing(*a, **k):
             t = _ResilTunnel(*a, **k)
@@ -3264,7 +3264,7 @@ class TestSelfHealRefreshRestart:
 
     @pytest.mark.asyncio
     async def test_rebuild_stops_old_before_replace(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1-alias", instance_id="cd-1")
@@ -3283,7 +3283,7 @@ class TestSelfHealRefreshRestart:
 
     @pytest.mark.asyncio
     async def test_connect_stops_stale_tunnel_before_replace(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         # Use the _FakeTunnel (tracks .stopped) for this manager.
         reg, mgr = self._mgr(tmp_path, factory=_FakeTunnel)
@@ -3298,7 +3298,7 @@ class TestSelfHealRefreshRestart:
 
     @pytest.mark.asyncio
     async def test_wait_until_ready_rejects_child_that_dies_during_probe(self):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, _SshTunnel
+        from junction.instances.ssh_tunnel_manager import TunnelState, _SshTunnel
 
         class _Proc:
             def __init__(self):
@@ -3323,7 +3323,7 @@ class TestSelfHealRefreshRestart:
         assert "post-quantum" not in t.status.error.lower()
 
     def test_exit_error_strips_post_quantum_noise(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _SshTunnel
+        from junction.instances.ssh_tunnel_manager import _SshTunnel
 
         t = _SshTunnel("cd-1", "h", 1, 2)
         t._stderr_buf = (
@@ -3342,7 +3342,7 @@ class TestSelfHealRefreshRestart:
         assert t._exit_error(255) == "ssh exited with code 255"
 
     def test_exit_error_classifies_wssh_transport_vs_auth(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _SshTunnel
+        from junction.instances.ssh_tunnel_manager import _SshTunnel
 
         t = _SshTunnel("cd-1", "h", 1, 2)
 
@@ -3373,7 +3373,7 @@ class TestSelfHealRefreshRestart:
         assert "auth failed" in t._exit_error(255).lower()
 
     def test_recover_backoff_grows_and_caps(self):
-        from kiro_crew.instances.ssh_tunnel_manager import (
+        from junction.instances.ssh_tunnel_manager import (
             _RECOVER_BACKOFF_MAX_SECS,
             _recover_backoff_secs,
         )
@@ -3480,7 +3480,7 @@ class TestSelfHealRefreshRestart:
         assert seen[-1] == 9001  # proactive refresh re-mints with the same port
 
     def test_restart_remote(self, tmp_path, monkeypatch):
-        from kiro_crew.instances import ssh_tunnel_manager as stm
+        from junction.instances import ssh_tunnel_manager as stm
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1-alias", instance_id="cd-1")
@@ -3494,7 +3494,7 @@ class TestSelfHealRefreshRestart:
             calls["a"] = (host, sub, marker_port, connect_timeout_secs)
             return (0, "")
 
-        monkeypatch.setattr(stm, "run_remote_kirocrew", fake_run)
+        monkeypatch.setattr(stm, "run_remote_junction", fake_run)
         r = asyncio.run(mgr.restart_remote("cd-1"))
         # remote_port defaults to 5476 → threaded so restart uses the marker resolver.
         # connect_timeout_secs comes from the configured mint budget (unset here,
@@ -3517,7 +3517,7 @@ class TestSelfHealRefreshRestart:
         under a minute, not silently inherit the full tunable -- diagnose()
         must cap what it forwards, not pass the configured value straight
         through."""
-        from kiro_crew.instances import ssh_tunnel_manager as stm
+        from junction.instances import ssh_tunnel_manager as stm
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1-alias", instance_id="cd-1")
@@ -3526,7 +3526,7 @@ class TestSelfHealRefreshRestart:
 
         async def fake_diagnose(ssh_host, remote_port, local_port, connect_timeout_secs=10.0):
             captured["connect_timeout_secs"] = connect_timeout_secs
-            from kiro_crew.instances.diagnostics import OK, DiagnosisResult
+            from junction.instances.diagnostics import OK, DiagnosisResult
 
             return DiagnosisResult(OK, "ok", [])
 
@@ -3537,8 +3537,8 @@ class TestSelfHealRefreshRestart:
         assert captured["connect_timeout_secs"] < 90.0
 
     def test_probe_loop_tears_down_after_threshold(self, tmp_path, monkeypatch):
-        from kiro_crew.instances import ssh_tunnel_manager as stm
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, _SshTunnel
+        from junction.instances import ssh_tunnel_manager as stm
+        from junction.instances.ssh_tunnel_manager import TunnelState, _SshTunnel
 
         monkeypatch.setattr(stm, "_PROBE_INTERVAL", 0.01)
 
@@ -3578,8 +3578,8 @@ class TestSelfHealRefreshRestart:
         asyncio.run(main())
 
     def test_sshtunnel_start_success_then_stop(self, monkeypatch):
-        from kiro_crew.instances import ssh_tunnel_manager as stm
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState, _SshTunnel
+        from junction.instances import ssh_tunnel_manager as stm
+        from junction.instances.ssh_tunnel_manager import TunnelState, _SshTunnel
 
         monkeypatch.setattr(stm, "_PROBE_INTERVAL", 0)  # no probe-loop task
 
@@ -3640,7 +3640,7 @@ class TestInstancesStartupHooks:
     def _state(self):
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.state import DashboardState
 
         return DashboardState(
             sessions=MagicMock(), crons=MagicMock(), lessons=MagicMock(), start_time=0.0
@@ -3649,7 +3649,7 @@ class TestInstancesStartupHooks:
     def test_register_then_freeze_then_startup_creates_manager(self, tmp_path, monkeypatch):
         from aiohttp import web
 
-        from kiro_crew.dashboard.server import _register_instances_hooks
+        from junction.dashboard.server import _register_instances_hooks
 
         _enable(tmp_path, monkeypatch, enabled=True)
         app = web.Application()
@@ -3679,7 +3679,7 @@ class TestInstancesStartupHooks:
     def test_disabled_skips_manager_creation(self, tmp_path, monkeypatch):
         from aiohttp import web
 
-        from kiro_crew.dashboard.server import _register_instances_hooks
+        from junction.dashboard.server import _register_instances_hooks
 
         _enable(tmp_path, monkeypatch, enabled=False)
         app = web.Application()
@@ -3702,7 +3702,7 @@ class TestPortMirror:
 
     @staticmethod
     def _mgr(reg, factory, monkeypatch, *, port_free=True):
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         # Allocation must still succeed when ``port_free`` is False: that case
         # models the TOCTOU loss where the port is taken between allocating it
@@ -3718,8 +3718,8 @@ class TestPortMirror:
 
     @pytest.mark.asyncio
     async def test_local_port_allocated_not_mirrored(self, tmp_path, monkeypatch):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         captured: dict = {}
 
@@ -3747,8 +3747,8 @@ class TestPortMirror:
         This is the case mirroring made impossible — and the shipped defaults put
         every stock pair in it.
         """
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         seen: dict[str, int] = {}
 
@@ -3781,8 +3781,8 @@ class TestPortMirror:
         is no origin or ``mc_token_<port>`` cookie left to preserve. The in-session
         case that does want the same port is served by ``_recover`` instead.
         """
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         captured: dict = {}
 
@@ -3803,8 +3803,8 @@ class TestPortMirror:
 
     @pytest.mark.asyncio
     async def test_port_conflict_hard_fails(self, tmp_path, monkeypatch):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         captured: dict = {}
 
@@ -3832,8 +3832,8 @@ class TestLastError:
         _patch_port_probe(monkeypatch)
 
     def _mgr(self, tmp_path, *, mint=None, factory=_FakeTunnel):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -3870,7 +3870,7 @@ class TestLastError:
 
     @pytest.mark.asyncio
     async def test_retained_on_mint_failure_after_teardown(self, tmp_path):
-        from kiro_crew.instances.token_mint import TokenMintError
+        from junction.instances.token_mint import TokenMintError
 
         async def bad_mint(
             host, *, remote_bin="", ttl="20h", remote_port=None, embed_parent_port=None, timeout_secs=None
@@ -3885,8 +3885,8 @@ class TestLastError:
 
     @pytest.mark.asyncio
     async def test_cleared_on_successful_connect(self, tmp_path):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
-        from kiro_crew.instances.token_mint import TokenMintError
+        from junction.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.token_mint import TokenMintError
 
         calls = {"n": 0}
 
@@ -3908,7 +3908,7 @@ class TestLastError:
 
     @pytest.mark.asyncio
     async def test_cleared_on_explicit_disconnect(self, tmp_path):
-        from kiro_crew.instances.token_mint import TokenMintError
+        from junction.instances.token_mint import TokenMintError
 
         async def bad_mint(
             host, *, remote_bin="", ttl="20h", remote_port=None, embed_parent_port=None, timeout_secs=None
@@ -3932,8 +3932,8 @@ class TestStatusForRetainedError:
         _patch_port_probe(monkeypatch)
 
     def _mgr(self, tmp_path, *, mint=None, factory=_FakeTunnel):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -3950,8 +3950,8 @@ class TestStatusForRetainedError:
     async def test_surfaces_error_when_no_live_tunnel(self, tmp_path):
         import types
 
-        from kiro_crew.dashboard.handlers_instances import _status_for
-        from kiro_crew.instances.token_mint import TokenMintError
+        from junction.dashboard.handlers_instances import _status_for
+        from junction.instances.token_mint import TokenMintError
 
         async def bad_mint(
             host, *, remote_bin="", ttl="20h", remote_port=None, embed_parent_port=None, timeout_secs=None
@@ -3971,7 +3971,7 @@ class TestStatusForRetainedError:
     async def test_disconnected_when_no_tunnel_and_no_error(self, tmp_path):
         import types
 
-        from kiro_crew.dashboard.handlers_instances import _status_for
+        from junction.dashboard.handlers_instances import _status_for
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1", instance_id="cd-1")
@@ -3983,7 +3983,7 @@ class TestStatusForRetainedError:
     async def test_live_tunnel_status_wins(self, tmp_path):
         import types
 
-        from kiro_crew.dashboard.handlers_instances import _status_for
+        from junction.dashboard.handlers_instances import _status_for
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="CD", ssh_host="cd-1", instance_id="cd-1")
@@ -4004,8 +4004,8 @@ class TestStartupRevive:
         _patch_port_probe(monkeypatch)
 
     def _mgr(self, tmp_path, *, mint=None, factory=_FakeTunnel):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -4020,8 +4020,8 @@ class TestStartupRevive:
 
     @pytest.mark.asyncio
     async def test_revives_all_was_connected(self, tmp_path):
-        import kiro_crew.dashboard.server as server
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.dashboard.server as server
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="A", ssh_host="host-a", instance_id="a", remote_port=7777)
@@ -4039,9 +4039,9 @@ class TestStartupRevive:
 
     @pytest.mark.asyncio
     async def test_some_fail_isolated_and_intent_preserved(self, tmp_path):
-        import kiro_crew.dashboard.server as server
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
-        from kiro_crew.instances.token_mint import TokenMintError
+        import junction.dashboard.server as server
+        from junction.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.token_mint import TokenMintError
 
         async def mint(host, *, remote_bin="", ttl="20h", remote_port=None, embed_parent_port=None, timeout_secs=None):
             if "bad" in host:
@@ -4066,7 +4066,7 @@ class TestStartupRevive:
 
     @pytest.mark.asyncio
     async def test_noop_when_none_intended(self, tmp_path):
-        import kiro_crew.dashboard.server as server
+        import junction.dashboard.server as server
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(name="A", ssh_host="host-a", instance_id="a")  # was_connected False
@@ -4089,7 +4089,7 @@ class TestStartupRevive:
 
         from aiohttp import web
 
-        import kiro_crew.dashboard.server as server
+        import junction.dashboard.server as server
 
         cfg = types.SimpleNamespace(
             instances=types.SimpleNamespace(
@@ -4103,7 +4103,7 @@ class TestStartupRevive:
                 probe_failure_threshold=3,
             )
         )
-        monkeypatch.setattr(server, "KiroCrewConfig", types.SimpleNamespace(load=lambda: cfg))
+        monkeypatch.setattr(server, "JunctionConfig", types.SimpleNamespace(load=lambda: cfg))
         monkeypatch.setattr(server, "InstancesRegistry", lambda: object())
         monkeypatch.setattr(server, "SshTunnelManager", lambda *a, **k: object())
 
@@ -4143,7 +4143,7 @@ class TestSsmValidation:
     """Injection-safe validation of the SSM-transport inputs."""
 
     def test_valid_targets(self):
-        from kiro_crew.instances.validation import validate_ssm_target
+        from junction.instances.validation import validate_ssm_target
 
         assert validate_ssm_target("i-0123456789abcdef0") == "i-0123456789abcdef0"
         assert validate_ssm_target("mi-0123456789abcdef0") == "mi-0123456789abcdef0"
@@ -4164,13 +4164,13 @@ class TestSsmValidation:
         ],
     )
     def test_rejects_bad_targets(self, bad):
-        from kiro_crew.instances.validation import SsmValidationError, validate_ssm_target
+        from junction.instances.validation import SsmValidationError, validate_ssm_target
 
         with pytest.raises(SsmValidationError):
             validate_ssm_target(bad)
 
     def test_profile_and_region(self):
-        from kiro_crew.instances.validation import (
+        from junction.instances.validation import (
             SsmValidationError,
             validate_aws_profile,
             validate_aws_region,
@@ -4195,7 +4195,7 @@ class TestSsmValidation:
 
     def test_ssm_run_as_accepts_unix_usernames_and_defaults_when_empty(self):
         """Empty means "the default user", never an empty ``sudo -u``."""
-        from kiro_crew.instances.validation import validate_ssm_run_as
+        from junction.instances.validation import validate_ssm_run_as
 
         assert validate_ssm_run_as("ubuntu") == "ubuntu"
         assert validate_ssm_run_as("ec2-user") == "ec2-user"
@@ -4207,7 +4207,7 @@ class TestSsmValidation:
 
     def test_ssm_run_as_rejects_injection_and_bad_usernames(self):
         """It is interpolated into `sudo -u <user> -i` on the remote box."""
-        from kiro_crew.instances.validation import SsmValidationError, validate_ssm_run_as
+        from junction.instances.validation import SsmValidationError, validate_ssm_run_as
 
         for bad in (
             "root; rm -rf /",
@@ -4226,7 +4226,7 @@ class TestSsmRegistry:
     """Registry support for connection_method + the SSM coordinate fields."""
 
     def _reg(self, tmp_path):
-        from kiro_crew.instances.registry import InstancesRegistry
+        from junction.instances.registry import InstancesRegistry
 
         return InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -4276,7 +4276,7 @@ class TestSsmRegistry:
         assert reloaded.ssm_target == "i-0123456789abcdef0"
 
     def test_ssm_requires_target_and_ssh_requires_host(self, tmp_path):
-        from kiro_crew.instances.registry import InvalidInstanceError
+        from junction.instances.registry import InvalidInstanceError
 
         reg = self._reg(tmp_path)
         # ssm without a target is invalid...
@@ -4312,7 +4312,7 @@ class TestSsmRegistry:
     def test_aws_profile_allows_plus_and_rejects_metacharacters(self, tmp_path):
         """The record check accepts '+' (SSO-derived profile names) but still
         refuses whitespace and shell metacharacters, mirroring validation.py."""
-        from kiro_crew.instances.registry import InvalidInstanceError
+        from junction.instances.registry import InvalidInstanceError
 
         reg = self._reg(tmp_path)
         inst = reg.add(
@@ -4347,7 +4347,7 @@ class TestSsmRegistry:
         empty "default chain" value is handled by the `if self.aws_profile`
         guard at the registry check site.
         """
-        from kiro_crew.instances import registry, validation
+        from junction.instances import registry, validation
 
         assert registry._AWS_PROFILE_RE is validation._AWS_PROFILE_RE
 
@@ -4360,7 +4360,7 @@ class TestSsmRegistry:
         file has no key at all, and a file with an explicit empty string would
         fail validation, so BOTH must resolve to the default.
         """
-        from kiro_crew.instances.registry import Instance
+        from junction.instances.registry import Instance
 
         assert Instance.from_dict({"id": "a", "name": "A"}).ssm_run_as == "ec2-user"
         assert Instance.from_dict({"id": "a", "ssm_run_as": ""}).ssm_run_as == "ec2-user"
@@ -4380,7 +4380,7 @@ class TestSsmRegistry:
 
     def test_ssm_run_as_is_validated_on_add(self, tmp_path):
         """User input reaches `sudo -u` on the remote box, so it is validated."""
-        from kiro_crew.instances.registry import InvalidInstanceError
+        from junction.instances.registry import InvalidInstanceError
 
         reg = self._reg(tmp_path)
         with pytest.raises(InvalidInstanceError):
@@ -4397,7 +4397,7 @@ class TestSsmRegistry:
 
         UX-review finding: the pattern flowed verbatim into the Settings form.
         """
-        from kiro_crew.instances.registry import InvalidInstanceError
+        from junction.instances.registry import InvalidInstanceError
 
         reg = self._reg(tmp_path)
         with pytest.raises(InvalidInstanceError) as e:
@@ -4419,7 +4419,7 @@ class TestSsmTunnelArgv:
     def _bare_resolver(self, monkeypatch):
         """Pin the shared aws-CLI resolver (#4770) to the bare name so the
         argv-shape assertions stay deterministic across hosts."""
-        from kiro_crew.cloud import ssm
+        from junction.cloud import ssm
 
         monkeypatch.setattr(ssm, "resolve_aws_bin", lambda: "aws")
 
@@ -4428,8 +4428,8 @@ class TestSsmTunnelArgv:
         probes the filesystem — start() must run it in a worker thread, never
         on the gateway event loop (a stalled network mount on PATH would
         otherwise freeze every request)."""
-        from kiro_crew.instances import ssh_tunnel_manager as stm
-        from kiro_crew.instances.ssh_tunnel_manager import _SshTunnel
+        from junction.instances import ssh_tunnel_manager as stm
+        from junction.instances.ssh_tunnel_manager import _SshTunnel
 
         seen: dict = {}
 
@@ -4484,7 +4484,7 @@ class TestSsmTunnelArgv:
         assert seen["on_loop"] is False  # built in a worker thread, not on the loop
 
     def test_argv_shape(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssm_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssm_tunnel_argv
 
         argv = _build_ssm_tunnel_argv(
             "i-0123456789abcdef0", 7777, 7777, profile="dev", region="eu-west-2"
@@ -4499,14 +4499,14 @@ class TestSsmTunnelArgv:
         assert all(isinstance(a, str) for a in argv)
 
     def test_omits_empty_profile_and_region(self):
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssm_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssm_tunnel_argv
 
         argv = _build_ssm_tunnel_argv("i-0123456789abcdef0", 7777, 7777)
         assert "--profile" not in argv and "--region" not in argv
 
     def test_ssh_argv_unchanged_for_ssh_instances(self):
         """Regression guard: the SSH argv must not gain SSM flags."""
-        from kiro_crew.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
+        from junction.instances.ssh_tunnel_manager import _build_ssh_tunnel_argv
 
         argv = _build_ssh_tunnel_argv("dev-1", 7777, 7777)
         assert argv[0] == "ssh" and "-N" in argv
@@ -4528,7 +4528,7 @@ class TestSsmTunnelProcessGroup:
     """
 
     def _tunnel(self, transport):
-        from kiro_crew.instances.ssh_tunnel_manager import _SshTunnel
+        from junction.instances.ssh_tunnel_manager import _SshTunnel
 
         return _SshTunnel(
             instance_id="i1",
@@ -4542,7 +4542,7 @@ class TestSsmTunnelProcessGroup:
     @pytest.mark.asyncio
     async def test_ssm_spawn_passes_both_isolation_kwargs(self, monkeypatch):
         """POSIX gets setsid; Windows gets CREATE_NEW_PROCESS_GROUP."""
-        import kiro_crew.instances.ssh_tunnel_manager as mod
+        import junction.instances.ssh_tunnel_manager as mod
 
         seen = {}
 
@@ -4568,7 +4568,7 @@ class TestSsmTunnelProcessGroup:
     @pytest.mark.asyncio
     async def test_ssh_spawn_gets_no_process_group(self, monkeypatch):
         """Regression guard: the SSH transport's spawn is unchanged."""
-        import kiro_crew.instances.ssh_tunnel_manager as mod
+        import junction.instances.ssh_tunnel_manager as mod
 
         seen = {}
 
@@ -4584,7 +4584,7 @@ class TestSsmTunnelProcessGroup:
 
     def test_teardown_routes_through_the_platform_shim(self, monkeypatch):
         """Not raw os.killpg — that leaves the plugin alive on Windows."""
-        import kiro_crew.instances.ssh_tunnel_manager as mod
+        import junction.instances.ssh_tunnel_manager as mod
 
         calls = []
         monkeypatch.setattr(
@@ -4597,7 +4597,7 @@ class TestSsmTunnelProcessGroup:
 
     def test_teardown_reports_undelivered_instead_of_raising(self, monkeypatch):
         """The shim propagates; a failure must degrade to the single-proc kill."""
-        import kiro_crew.instances.ssh_tunnel_manager as mod
+        import junction.instances.ssh_tunnel_manager as mod
 
         for exc in (ProcessLookupError, PermissionError, OSError, ValueError):
 
@@ -4624,8 +4624,8 @@ class TestSsmTransportSelection:
         _patch_port_probe(monkeypatch)
 
     def _mgr(self, tmp_path, *, mint=None, connect_timeout_secs=None):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         async def ok_mint(
             host, *, remote_bin="", ttl="20h", remote_port=None, embed_parent_port=None, timeout_secs=None
@@ -4657,8 +4657,8 @@ class TestSsmTransportSelection:
     def test_connect_timeout_matrix(
         self, tmp_path, configured, ssh_expected, ssm_expected
     ):
-        from kiro_crew.config.loader import InstancesConfig
-        from kiro_crew.instances.constants import (
+        from junction.config.loader import InstancesConfig
+        from junction.instances.constants import (
             CONNECT_TIMEOUT_CEILING_SECS,
             DEFAULT_CONNECT_TIMEOUT_SECS,
             DEFAULT_SSM_CONNECT_TIMEOUT_SECS,
@@ -4689,8 +4689,8 @@ class TestSsmTransportSelection:
 
     @pytest.mark.asyncio
     async def test_ssm_instance_uses_ssm_transport_and_ssm_mint(self, tmp_path, monkeypatch):
-        import kiro_crew.instances.ssh_tunnel_manager as mod
-        from kiro_crew.instances.constants import DEFAULT_SSM_CONNECT_TIMEOUT_SECS
+        import junction.instances.ssh_tunnel_manager as mod
+        from junction.instances.constants import DEFAULT_SSM_CONNECT_TIMEOUT_SECS
 
         seen = {}
 
@@ -4701,7 +4701,7 @@ class TestSsmTransportSelection:
 
         monkeypatch.setattr(mod, "mint_remote_token_ssm", fake_ssm_mint)
         # The plugin presence check must not gate the unit test.
-        monkeypatch.setattr("kiro_crew.cloud.ssm.session_manager_plugin_installed", lambda: True)
+        monkeypatch.setattr("junction.cloud.ssm.session_manager_plugin_installed", lambda: True)
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(
@@ -4729,8 +4729,8 @@ class TestSsmTransportSelection:
     @pytest.mark.asyncio
     async def test_mint_timeout_threads_to_ssh_mint(self, tmp_path):
         """A configured instances.mint_timeout_secs reaches the ssh mint call."""
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         seen = {}
 
@@ -4756,10 +4756,10 @@ class TestSsmTransportSelection:
     @pytest.mark.asyncio
     async def test_mint_timeout_ssm_default_and_override(self, tmp_path, monkeypatch):
         """SSM mint keeps its higher default; an explicit override wins for it too."""
-        import kiro_crew.instances.ssh_tunnel_manager as mod
-        from kiro_crew.instances.constants import DEFAULT_SSM_MINT_TIMEOUT_SECS
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        import junction.instances.ssh_tunnel_manager as mod
+        from junction.instances.constants import DEFAULT_SSM_MINT_TIMEOUT_SECS
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         seen = {}
 
@@ -4769,7 +4769,7 @@ class TestSsmTransportSelection:
 
         monkeypatch.setattr(mod, "mint_remote_token_ssm", fake_ssm_mint)
         monkeypatch.setattr(
-            "kiro_crew.cloud.ssm.session_manager_plugin_installed", lambda: True
+            "junction.cloud.ssm.session_manager_plugin_installed", lambda: True
         )
 
         def add_ssm(reg, iid, port):
@@ -4803,9 +4803,9 @@ class TestSsmTransportSelection:
 
     @pytest.mark.asyncio
     async def test_ssm_connect_fails_clean_without_plugin(self, tmp_path, monkeypatch):
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
-        monkeypatch.setattr("kiro_crew.cloud.ssm.session_manager_plugin_installed", lambda: False)
+        monkeypatch.setattr("junction.cloud.ssm.session_manager_plugin_installed", lambda: False)
         reg, mgr = self._mgr(tmp_path)
         reg.add(
             name="EC2",
@@ -4826,7 +4826,7 @@ class TestSsmTransportSelection:
         """A registry record hand-edited to a bad target must not reach argv."""
         import dataclasses
 
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         reg, mgr = self._mgr(tmp_path)
         reg.add(
@@ -4851,7 +4851,7 @@ class TestSsmDiagnostics:
 
     @pytest.mark.asyncio
     async def test_unreachable_node_is_first_rung(self, monkeypatch):
-        import kiro_crew.instances.diagnostics as diag
+        import junction.instances.diagnostics as diag
 
         async def no_node(*a, **k):
             return False
@@ -4865,7 +4865,7 @@ class TestSsmDiagnostics:
 
     @pytest.mark.asyncio
     async def test_remote_down_then_not_connected_then_ok(self, monkeypatch):
-        import kiro_crew.instances.diagnostics as diag
+        import junction.instances.diagnostics as diag
 
         async def node_ok(*a, **k):
             return True
@@ -4896,7 +4896,7 @@ class TestSsmDiagnostics:
 
     @pytest.mark.asyncio
     async def test_invalid_target_short_circuits(self):
-        import kiro_crew.instances.diagnostics as diag
+        import junction.instances.diagnostics as diag
 
         res = await diag.diagnose_instance_ssm("-oProxyCommand=evil", 7777, 7777)
         assert res.code == diag.UNKNOWN
@@ -4907,7 +4907,7 @@ class TestSsmExitErrorClassification:
     """SSM stderr must be classified with SSM vocabulary, not ssh's."""
 
     def _tunnel(self, stderr):
-        from kiro_crew.instances.ssh_tunnel_manager import _SshTunnel
+        from junction.instances.ssh_tunnel_manager import _SshTunnel
 
         t = _SshTunnel("ec2", "", 7777, 7777, transport="ssm", ssm_target="i-0123456789abcdef0")
         t._stderr_buf = stderr
@@ -4936,7 +4936,7 @@ class TestSsmExitErrorClassification:
 
     def test_ssh_classification_unchanged(self):
         """Regression guard: the ssh classifier still owns ssh instances."""
-        from kiro_crew.instances.ssh_tunnel_manager import _SshTunnel
+        from junction.instances.ssh_tunnel_manager import _SshTunnel
 
         t = _SshTunnel("dev", "dev-1", 7777, 7777)
         t._stderr_buf = "Permission denied (publickey)."
@@ -4952,13 +4952,13 @@ class TestForwarderPidHints:
 
     @pytest.fixture(autouse=True)
     def _free_ports(self, monkeypatch):
-        import kiro_crew.instances.ssh_tunnel_manager as stm
+        import junction.instances.ssh_tunnel_manager as stm
 
         monkeypatch.setattr(stm, "_is_port_free", lambda port, host="127.0.0.1": True)
 
     def _mgr(self, tmp_path, *, factory=_FakeTunnel):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -4972,7 +4972,7 @@ class TestForwarderPidHints:
         )
 
     def test_registry_field_default_roundtrip_and_validation(self, tmp_path):
-        from kiro_crew.instances.registry import Instance, InvalidInstanceError
+        from junction.instances.registry import Instance, InvalidInstanceError
 
         # Older registry files have no keys -> sentinel defaults.
         old = Instance.from_dict({"id": "a", "name": "A"})
@@ -5000,9 +5000,9 @@ class TestForwarderPidHints:
 
     @pytest.mark.asyncio
     async def test_connect_persists_forwarder_identity(self, tmp_path, monkeypatch):
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         # A REAL pid (our own), so the recorded start-time identity is the
         # genuine platform value rather than "".
@@ -5053,7 +5053,7 @@ class TestForwarderPidHints:
     async def test_mark_recovered_refreshes_forwarder_identity(self, tmp_path):
         """A rebuild replaces the child; the recorded identity must move with
         it, or the replacement leaks unrecorded at the next hard-kill."""
-        from kiro_crew import platform_compat as pc
+        from junction import platform_compat as pc
 
         def factory(*a, **k):
             t = _FakeTunnel(*a, **k)
@@ -5091,8 +5091,8 @@ class TestOrphanForwarderReclaim:
     """
 
     def _mgr(self, tmp_path, *, base_port):
-        from kiro_crew.instances.registry import InstancesRegistry
-        from kiro_crew.instances.ssh_tunnel_manager import SshTunnelManager
+        from junction.instances.registry import InstancesRegistry
+        from junction.instances.ssh_tunnel_manager import SshTunnelManager
 
         reg = InstancesRegistry(path=tmp_path / "instances.json")
 
@@ -5149,7 +5149,7 @@ class TestOrphanForwarderReclaim:
     @staticmethod
     def _fake_orphan(monkeypatch):
         """Make the orphan gate see every pid as init-reparented (test scope)."""
-        from kiro_crew import platform_compat as pc
+        from junction import platform_compat as pc
 
         monkeypatch.setattr(pc, "get_ppid", lambda pid: 1)
 
@@ -5164,7 +5164,7 @@ class TestOrphanForwarderReclaim:
         compare_digest gate) fully real while making signatures computable by
         the test exactly the way the pre-kill gateway would have.
         """
-        import kiro_crew.instances.ssh_tunnel_manager as stm
+        import junction.instances.ssh_tunnel_manager as stm
 
         monkeypatch.setattr(stm, "_reclaim_identity_key", lambda: cls._TEST_IDENTITY_KEY)
 
@@ -5195,10 +5195,10 @@ class TestOrphanForwarderReclaim:
     async def test_hard_kill_leaked_forwarder_is_reclaimed_by_pid(self, tmp_path, monkeypatch):
         """hard-kill -> restart -> reconnect: the recorded child is terminated
         and its port released; connect proceeds on a fresh port."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.port_allocator import _is_port_free
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
+        from junction.instances.port_allocator import _is_port_free
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         proc, port, argv = self._spawn_port_holder()
         try:
@@ -5256,9 +5256,9 @@ class TestOrphanForwarderReclaim:
         the grace (identity re-confirmed before the destructive escalation)."""
         import signal as signal_mod
 
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         code = (
             "import signal, socket, sys, time\n"
@@ -5317,9 +5317,9 @@ class TestOrphanForwarderReclaim:
         missing or wrong — authorizes nothing, even with the orphan gate open
         and the argv matching. Only the gateway can mint the signature (its
         key derives from the deny-listed SEL trust root)."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         proc, port, argv = self._spawn_port_holder()
         try:
@@ -5359,9 +5359,9 @@ class TestOrphanForwarderReclaim:
         (real pid, real start time, matching argv). The orphan gate must
         refuse it: a process whose parent is alive belongs to a running
         gateway and is never a hard-kill leak."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         # Direct child of the test process == a live parent (this process).
         proc, port, argv = self._spawn_port_holder()
@@ -5400,8 +5400,8 @@ class TestOrphanForwarderReclaim:
         whose argv happens to match, but its start-time identity does not.
         Nothing may be signalled — the start-time pin is what defeats a
         recycled pid running an identical command line."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         proc, port, argv = self._spawn_port_holder()
         try:
@@ -5436,8 +5436,8 @@ class TestOrphanForwarderReclaim:
         manager did not spawn (its argv is not the forward command line). It
         must be left alone even with a matching start time and an open orphan
         gate."""
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction import platform_compat as pc
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         proc, port, _argv = self._spawn_port_holder()
         try:
@@ -5471,7 +5471,7 @@ class TestOrphanForwarderReclaim:
         """No recorded identity -> no candidate: the reclaim never scans the
         process table for whoever holds the port (that scan is what #1972
         removed)."""
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         proc, port, _argv = self._spawn_port_holder()
         try:
@@ -5493,9 +5493,9 @@ class TestOrphanForwarderReclaim:
         """A free recorded port means nothing leaked: the recorded pid is not
         signalled even when its identity WOULD match (e.g. the pid was
         recycled onto an innocent process while nothing holds the port)."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
-        from kiro_crew.instances.ssh_tunnel_manager import TunnelState
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
+        from junction.instances.ssh_tunnel_manager import TunnelState
 
         code = "import sys, time; sys.stdout.write('R'); sys.stdout.flush(); time.sleep(120)"
         argv = [sys.executable, "-c", code]
@@ -5542,8 +5542,8 @@ class TestOrphanForwarderReclaim:
         start-time identity during the TERM grace (exit + recycle inside a
         poll gap, which pid_exists cannot observe), the destructive SIGKILL is
         withheld — leak-not-mis-kill."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
 
         delivered: list[int] = []
         starts = iter(["identity-A", "identity-B"])  # pre-TERM, then re-check
@@ -5568,8 +5568,8 @@ class TestOrphanForwarderReclaim:
         poll gap) is NOT a safe SIGKILL fall-through: getpgid on a recycled
         pid would resolve the REPLACEMENT process. No verified identity, no
         SIGKILL."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
 
         delivered: list[int] = []
         starts = iter(["identity-A", None])  # pre-TERM ok; re-check: pid gone
@@ -5599,8 +5599,8 @@ class TestOrphanForwarderReclaim:
         same-second pid reuse can keep it matching — the argv half of the
         re-check is what breaks the tie. argv mismatch at escalation time
         withholds the SIGKILL."""
-        import kiro_crew.instances.ssh_tunnel_manager as stm
-        from kiro_crew import platform_compat as pc
+        import junction.instances.ssh_tunnel_manager as stm
+        from junction import platform_compat as pc
 
         delivered: list[int] = []
         argv_answers = iter([True, False])  # pre-TERM ok; re-check: different argv

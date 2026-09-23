@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.messaging -- v1a contracts (ABCs, value objects)."""
+"""Tests for junction.messaging -- v1a contracts (ABCs, value objects)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from dataclasses import fields
 
 import pytest
 
-from kiro_crew.messaging import (
+from junction.messaging import (
     COMPACTION,
     DONE,
     OUTPUT_KINDS,

@@ -88,7 +88,7 @@ globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} 
 import ChatPage from '../pages/ChatPage'
 
 const setExpanded = (expanded: boolean) => act(() => {
-  window.dispatchEvent(new CustomEvent('kirocrew-preview-expand', { detail: { expanded } }))
+  window.dispatchEvent(new CustomEvent('junction-preview-expand', { detail: { expanded } }))
 })
 
 function renderChat({ slots = 1, strict = false }: { slots?: number; strict?: boolean } = {}) {

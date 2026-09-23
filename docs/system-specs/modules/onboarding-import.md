@@ -7,12 +7,12 @@ user-selectable conflict strategies)
 ## Overview
 
 `onboarding_import.py` migrates a user's setup from another AI agent into
-KiroCrew. It runs from the first-run onboarding flow (after the Kiro CLI
+Junction. It runs from the first-run onboarding flow (after the Kiro CLI
 prerequisite gate, before the theme tour) and from Settings on demand.
 
 The module is a **projection**, not a mirror: it reads a foreign layout and
-writes only into KiroCrew's own containers through KiroCrew's own APIs. It never
-invents a storage format, never writes a file KiroCrew does not otherwise read,
+writes only into Junction's own containers through Junction's own APIs. It never
+invents a storage format, never writes a file Junction does not otherwise read,
 and never copies a foreign store verbatim.
 
 Three phases, always in this order:
@@ -58,17 +58,17 @@ looks like a gap — reopen the decision in this spec first.
 
 | Excluded | Why |
 |----------|-----|
-| **Sessions / conversation transcripts** | Not industry practice — no surveyed agent migrates transcripts. A transcript is a record of a conversation with a *different* model under a *different* system prompt; replayed into KiroCrew it is misleading context, not useful memory. Reading it also requires hard-coding each source's private JSONL/SQLite schema, which fails **silently** when upstream drifts. Removing it deletes the module's largest and most fragile surface. See "Session-import removal". |
-| **Persona / `SOUL.md` as a persona** | KiroCrew's persona surface is theme-pack persona, governed by `capabilities.theme_persona`. Importing a foreign persona document *as a persona* would inject third-party text into the agent's identity through a path that bypasses that gate. The **directive content** of such a file is still migrated — as memory (below) — but its persona role is dropped. |
+| **Sessions / conversation transcripts** | Not industry practice — no surveyed agent migrates transcripts. A transcript is a record of a conversation with a *different* model under a *different* system prompt; replayed into Junction it is misleading context, not useful memory. Reading it also requires hard-coding each source's private JSONL/SQLite schema, which fails **silently** when upstream drifts. Removing it deletes the module's largest and most fragile surface. See "Session-import removal". |
+| **Persona / `SOUL.md` as a persona** | Junction's persona surface is theme-pack persona, governed by `capabilities.theme_persona`. Importing a foreign persona document *as a persona* would inject third-party text into the agent's identity through a path that bypasses that gate. The **directive content** of such a file is still migrated — as memory (below) — but its persona role is dropped. |
 | **Credentials of any kind** | `~/.claude/.credentials.json`, `~/.codex/auth.json`, `.env`, `auth-profiles.json`, gateway tokens, provider API keys. Never read. MCP `env`/`headers` keys matching the secret patterns are stripped and counted into `secret_count`. |
 | **Runtime state** | Subagent records, tool results, checkpoints, hook state, in-flight task state. Not user data. |
-| **Architecture-specific config** | Plugin/hook/binding/agent-list configs, memory-backend selection, provider and model mappings. KiroCrew is KiroACP-only, so provider/model translation has no destination. |
+| **Architecture-specific config** | Plugin/hook/binding/agent-list configs, memory-backend selection, provider and model mappings. Junction is KiroACP-only, so provider/model translation has no destination. |
 | **Opaque binary stores** | Foreign SQLite memory stores are reported as `unsupported_memory_database`, never parsed. |
-| **Allow-lists (as opposed to deny-lists)** | A foreign `permissions.allow` *widens* the security boundary. Importing it would let a foreign config grant tool access inside KiroCrew's own gate. Deny rules only. |
+| **Allow-lists (as opposed to deny-lists)** | A foreign `permissions.allow` *widens* the security boundary. Importing it would let a foreign config grant tool access inside Junction's own gate. Deny rules only. |
 
 ## Destination mapping: the memory hierarchy
 
-Imported instruction/knowledge content is rewritten into KiroCrew's existing
+Imported instruction/knowledge content is rewritten into Junction's existing
 memory tiers. Tier choice is driven by two properties — **context priority**
 (`context.py` per-section caps) and **durability**.
 
@@ -170,7 +170,7 @@ dropped, a merely *truncated* one is not) and `contains_injection` (dropped as
 
 ### Foreign workspace-scope columns: sentinel vs. real scoping
 
-A foreign memory store may carry a workspace/scope column. KiroCrew's own memory
+A foreign memory store may carry a workspace/scope column. Junction's own memory
 tables have none, so a genuinely workspace-scoped row has no faithful destination
 and is reported `scoped_memory_unsupported`.
 
@@ -244,7 +244,7 @@ request carries a strategy; the default is the safest one.
 
 | Strategy | Behavior |
 |----------|----------|
-| `skip` (**default**) | Keep KiroCrew's existing item untouched; report the incoming one as `conflict`. |
+| `skip` (**default**) | Keep Junction's existing item untouched; report the incoming one as `conflict`. |
 | `rename` | Import alongside the existing item under a derived non-colliding name. |
 | `overwrite` | Replace the existing item, after writing a restore copy. |
 
@@ -496,7 +496,7 @@ user is still running.
 Hermes's own import tooling writes foreign skills into
 `skills/claude-code-imports/`, `skills/codex-imports/`, and
 `skills/openclaw-imports/`, and merges foreign `MEMORY.md`/`USER.md` into its
-own. A user who migrated Claude Code → Hermes → KiroCrew would otherwise import
+own. A user who migrated Claude Code → Hermes → Junction would otherwise import
 the same skill twice under two different `source_id`s — which **neither** the
 fingerprint (source-scoped) **nor** the destination check (different target dir)
 can catch.

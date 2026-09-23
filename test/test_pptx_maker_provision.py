@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 The engine is third-party code fetched at runtime and then BUILT and EXECUTED
 (`uv sync` compiles wheels; the app's agents drive the engine), so what decides
@@ -25,7 +25,7 @@ from unittest import mock
 
 import pytest
 
-from kiro_crew.apps.builtins.pptx_maker.backend import provision
+from junction.apps.builtins.pptx_maker.backend import provision
 
 
 def _json_strings(node: object) -> list[str]:
@@ -100,7 +100,7 @@ class TestEnginePin:
     def test_the_pin_is_re_exported_from_the_verifying_module(self):
         """One pin, one owner: `engine_source` verifies it, so `provision` must
         not carry a second copy that could drift out of step with the digest."""
-        from kiro_crew.apps.builtins.pptx_maker.backend import engine_source
+        from junction.apps.builtins.pptx_maker.backend import engine_source
 
         assert provision.ENGINE_COMMIT == engine_source.ENGINE_COMMIT
         assert provision.ENGINE_TAG == engine_source.ENGINE_TAG
@@ -339,9 +339,9 @@ class TestRunSandboxing:
         registered: list[str] = []
         log: list[str] = []
         with (
-            mock.patch("kiro_crew.apps.manager.is_app_enabled", return_value=False),
+            mock.patch("junction.apps.manager.is_app_enabled", return_value=False),
             mock.patch(
-                "kiro_crew.apps.bridges.register_app",
+                "junction.apps.bridges.register_app",
                 side_effect=lambda name: registered.append(name),
             ),
         ):
@@ -363,8 +363,8 @@ class TestRunSandboxing:
             return _Result()
 
         with (
-            mock.patch("kiro_crew.apps.manager.is_app_enabled", return_value=True),
-            mock.patch("kiro_crew.apps.bridges.register_app", side_effect=_register),
+            mock.patch("junction.apps.manager.is_app_enabled", return_value=True),
+            mock.patch("junction.apps.bridges.register_app", side_effect=_register),
         ):
             provision._register_resources([])
         assert registered == [provision.paths.APP_NAME]
@@ -443,7 +443,7 @@ class TestEnsureVenv:
         """Never the bare name `uv`: the gateway's PATH may not carry the venv's
         scripts dir (installed service), and a frozen bundle has none at all."""
         (tmp_path / "mcp-local").mkdir()
-        resolved = "/opt/kirocrew/uv"
+        resolved = "/opt/junction/uv"
         with mock.patch.object(provision, "_run", return_value=(0, "")) as run:
             assert provision._ensure_venv(tmp_path, [], resolved) is True
         assert run.call_count == 2
@@ -558,7 +558,7 @@ class TestRenderAgents:
             mock.patch.object(provision, "_seed_deck_root", side_effect=lambda *a, **k: None),
             mock.patch.object(provision, "_current_tag", return_value="v0"),
             mock.patch(
-                "kiro_crew.apps.builtins.pptx_maker.backend.preview_tools.install_pdftoppm",
+                "junction.apps.builtins.pptx_maker.backend.preview_tools.install_pdftoppm",
                 side_effect=lambda: (calls.append("install_tool"), (True, "ready"))[1],
             ),
         ):
@@ -800,13 +800,13 @@ class TestProvision:
         """Resolved ONCE and passed down, so the fetch and the two uv calls can
         never disagree about which binary they are using."""
         with (
-            mock.patch.object(provision, "resolve_uv", return_value="/opt/kirocrew/uv"),
+            mock.patch.object(provision, "resolve_uv", return_value="/opt/junction/uv"),
             mock.patch.object(provision, "_ensure_engine", return_value=True) as fetch,
             mock.patch.object(provision, "_ensure_venv", return_value=False) as venv,
         ):
             provision.provision()
-        assert fetch.call_args.args[2] == "/opt/kirocrew/uv"
-        assert venv.call_args.args[2] == "/opt/kirocrew/uv"
+        assert fetch.call_args.args[2] == "/opt/junction/uv"
+        assert venv.call_args.args[2] == "/opt/junction/uv"
 
     def test_a_refused_engine_fetch_never_builds_a_venv(self):
         """The digest-pin refusal is worthless if the build runs anyway."""
@@ -836,10 +836,10 @@ class TestProvision:
             mock.patch.object(provision, "_ensure_engine", return_value=True),
             mock.patch.object(provision, "_ensure_venv", return_value=True),
             # Enabled: see the disable-during-provision test above.
-            mock.patch("kiro_crew.apps.manager.is_app_enabled", return_value=True),
-            mock.patch("kiro_crew.apps.bridges.register_app") as register,
+            mock.patch("junction.apps.manager.is_app_enabled", return_value=True),
+            mock.patch("junction.apps.bridges.register_app") as register,
             mock.patch(
-                "kiro_crew.apps.builtins.pptx_maker.backend.engine.scan_new_templates",
+                "junction.apps.builtins.pptx_maker.backend.engine.scan_new_templates",
                 return_value=["corp"],
             ),
         ):
@@ -873,10 +873,10 @@ class TestProvision:
             mock.patch.object(provision, "resolve_uv", return_value="/x/uv"),
             mock.patch.object(provision, "_ensure_engine", return_value=True),
             mock.patch.object(provision, "_ensure_venv", return_value=True),
-            mock.patch("kiro_crew.apps.manager.is_app_enabled", return_value=True),
-            mock.patch("kiro_crew.apps.bridges.register_app") as register,
+            mock.patch("junction.apps.manager.is_app_enabled", return_value=True),
+            mock.patch("junction.apps.bridges.register_app") as register,
             mock.patch(
-                "kiro_crew.apps.builtins.pptx_maker.backend.engine.scan_new_templates",
+                "junction.apps.builtins.pptx_maker.backend.engine.scan_new_templates",
                 return_value=[],
             ),
         ):
@@ -891,9 +891,9 @@ class TestProvision:
             mock.patch.object(provision, "resolve_uv", return_value="/x/uv"),
             mock.patch.object(provision, "_ensure_engine", return_value=True),
             mock.patch.object(provision, "_ensure_venv", return_value=True),
-            mock.patch("kiro_crew.apps.bridges.register_app") as register,
+            mock.patch("junction.apps.bridges.register_app") as register,
             mock.patch(
-                "kiro_crew.apps.builtins.pptx_maker.backend.engine.scan_new_templates",
+                "junction.apps.builtins.pptx_maker.backend.engine.scan_new_templates",
                 side_effect=RuntimeError("engine exploded"),
             ),
         ):
@@ -908,8 +908,8 @@ class TestProvision:
         and its reporting still has to reach the log the UI shows."""
         log: list[str] = []
         with (
-            mock.patch("kiro_crew.apps.manager.is_app_enabled", return_value=True),
-            mock.patch("kiro_crew.apps.bridges.register_app") as register,
+            mock.patch("junction.apps.manager.is_app_enabled", return_value=True),
+            mock.patch("junction.apps.bridges.register_app") as register,
         ):
             register.return_value = mock.Mock(
                 agents=[], skills=[], errors=["skill link already exists"]
@@ -922,9 +922,9 @@ class TestProvision:
         to the user is this log, so a registrar exception must be reported."""
         log: list[str] = []
         with (
-            mock.patch("kiro_crew.apps.manager.is_app_enabled", return_value=True),
+            mock.patch("junction.apps.manager.is_app_enabled", return_value=True),
             mock.patch(
-                "kiro_crew.apps.bridges.register_app", side_effect=RuntimeError("manifest gone")
+                "junction.apps.bridges.register_app", side_effect=RuntimeError("manifest gone")
             ),
         ):
             provision._register_resources(log)
@@ -952,7 +952,7 @@ class TestShippedAgentsDoNotPreAuthorizeTools:
     informational and cannot block. So an ``allowedTools`` entry skips the whole
     PreToolUse plane — deny rules, the governance ceiling, an enterprise
     ``enabled: false``. ``AGENTS.md`` states the same rule for the managed
-    ``kirocrew-computer`` server, which is deliberately in ``tools`` but NOT
+    ``junction-computer`` server, which is deliberately in ``tools`` but NOT
     ``allowedTools`` and ships no ``autoApprove`` key.
 
     These four configs pre-authorized ``read`` alongside ``web_fetch`` — the
@@ -1020,7 +1020,7 @@ class TestShippedAgentsDoNotPreAuthorizeTools:
           itself, the registry ``bridges._materialize_managed_refs`` consults,
           so a renamed managed server fails here instead of un-mounting. The
           materializer keys on the WHOLE remainder after ``@`` (``t[1:]``), so
-          only the bare ``@server`` form resolves — ``@kirocrew-core/tool``
+          only the bare ``@server`` form resolves — ``@junction-core/tool``
           would never be copied into the spec's ``mcpServers`` and must FAIL
           this gate;
         - the owning app's NAMESPACED servers, ``<app>:<server>`` for every
@@ -1034,7 +1034,7 @@ class TestShippedAgentsDoNotPreAuthorizeTools:
         """
         import io
 
-        from kiro_crew.agent import _MANAGED_MCP_SERVERS
+        from junction.agent import _MANAGED_MCP_SERVERS
 
         builtins_dir = provision._PACKAGE_ROOT.parent
         templates = sorted(builtins_dir.glob("*/agents/*.json"))

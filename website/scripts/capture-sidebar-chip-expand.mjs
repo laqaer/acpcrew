@@ -46,12 +46,12 @@ const full = [budgeted[0], budgeted[1], budgeted[2], hidden[0], budgeted[3], hid
 const slots = [
   {
     key: ACTIVE, title: 'Draft the release notes', running: false, messages: 4,
-    agent: 'kirocrew', modified: now, last_ts: '2026-08-09T00:10:00Z', folder_id: '',
+    agent: 'junction', modified: now, last_ts: '2026-08-09T00:10:00Z', folder_id: '',
     last_message: 'Grouped the entries by area.',
   },
   {
     key: BUSY, title: ROW, running: false, messages: 24,
-    agent: 'kirocrew', modified: now - 1800, last_ts: '2026-08-09T00:00:00Z', folder_id: '',
+    agent: 'junction', modified: now - 1800, last_ts: '2026-08-09T00:00:00Z', folder_id: '',
     last_message: 'Rebased and pushed; 47 checks green.',
     source_links: budgeted,
     source_links_total: 6,

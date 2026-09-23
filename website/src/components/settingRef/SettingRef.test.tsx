@@ -98,14 +98,14 @@ describe('SettingRef component', () => {
 
   describe('kind: env (set mode - default)', () => {
     it('renders a button (popover trigger) with env var name', () => {
-      const { container } = renderRef({ configKey: 'KIROCREW_EMBED_MODEL_PATH', kind: 'env' })
+      const { container } = renderRef({ configKey: 'JUNCTION_EMBED_MODEL_PATH', kind: 'env' })
       const button = container.querySelector('button')
       expect(button).not.toBeNull()
-      expect(container.textContent).toContain('KIROCREW_EMBED_MODEL_PATH')
+      expect(container.textContent).toContain('JUNCTION_EMBED_MODEL_PATH')
     })
 
     it('does not render a Link', () => {
-      const { container } = renderRef({ configKey: 'KIROCREW_DEBUG', kind: 'env' })
+      const { container } = renderRef({ configKey: 'JUNCTION_DEBUG', kind: 'env' })
       const link = container.querySelector('a')
       expect(link).toBeNull()
     })

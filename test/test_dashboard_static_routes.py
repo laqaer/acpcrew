@@ -1,4 +1,4 @@
-"""Tests for ``kiro_crew.dashboard.server._register_dist_static_routes``.
+"""Tests for ``junction.dashboard.server._register_dist_static_routes``.
 
 The dashboard serves the React ``dist/`` build by mounting each present
 subdirectory at a fixed URL prefix. The font route in particular is load-
@@ -16,7 +16,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.server import _register_dist_static_routes
+from junction.dashboard.server import _register_dist_static_routes
 
 
 def _registered_prefixes(app: web.Application) -> set[str]:
@@ -82,7 +82,7 @@ def test_app_assets_route_registered_when_dir_present(tmp_path) -> None:
     ``url('/app-assets/...')`` (iconUrl / heroImage / heroImageDark). Without
     this mount the request falls through to the SPA fallback (index.html) and
     the App Store <img> tags load HTML as an image, tripping their onError
-    placeholder (generic lucide icon / "KIROCREW" hero).
+    placeholder (generic lucide icon / "JUNCTION" hero).
     """
     dist = _make_dist(tmp_path, "assets", "app-assets")
     app = web.Application()

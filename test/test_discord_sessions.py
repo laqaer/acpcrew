@@ -10,22 +10,22 @@ from typing import Any
 import pytest
 from test_discord import MultipartFake
 
-from kiro_crew.config.paths import config_dir
-from kiro_crew.discord import session_resume
-from kiro_crew.discord.client import DISCORD_CHUNK_LIMIT, DiscordInteraction
-from kiro_crew.discord.commands import parse_command, parse_command_argument
-from kiro_crew.discord.transport_dispatch import DiscordDispatcher
-from kiro_crew.messaging import resume_expectation
-from kiro_crew.messaging import session_resume as session_resume_core
-from kiro_crew.messaging.link import UNBIND_REASON_UNSPECIFIED, ChannelLink
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.session import _opt_out_key
-from kiro_crew.session_map import ConversationOwnershipConflict
+from junction.config.paths import config_dir
+from junction.discord import session_resume
+from junction.discord.client import DISCORD_CHUNK_LIMIT, DiscordInteraction
+from junction.discord.commands import parse_command, parse_command_argument
+from junction.discord.transport_dispatch import DiscordDispatcher
+from junction.messaging import resume_expectation
+from junction.messaging import session_resume as session_resume_core
+from junction.messaging.link import UNBIND_REASON_UNSPECIFIED, ChannelLink
+from junction.messaging.transport import InboundMessage
+from junction.session import _opt_out_key
+from junction.session_map import ConversationOwnershipConflict
 
 
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
 
 
 class _Client(MultipartFake):
@@ -86,7 +86,7 @@ class _Provider:
     supports_steer, cwd = False, str(Path.cwd())
 
     async def stream(self, message: str):
-        from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         yield SimpleNamespace(
             kind=EVENT_TEXT_CHUNK,
@@ -264,7 +264,7 @@ class _ConversationLog:
         return list(self.rows)
 
     def search_sessions(self, query: str, limit: int = 50) -> list[dict]:
-        """Mirror KiroCrewHistory.search_sessions' FIELD COVERAGE and phrase
+        """Mirror JunctionHistory.search_sessions' FIELD COVERAGE and phrase
         semantics: one casefolded phrase matched against title OR message
         content, title hits ranked first. Deliberately not a reimplementation of
         the real scorer -- the ranking formula is tested in the history tests;
@@ -339,7 +339,7 @@ def _config() -> Any:
             restore_window_minutes=30,
             surface_channel_sessions=True,
         ),
-        agent=SimpleNamespace(default_agent="kirocrew"),
+        agent=SimpleNamespace(default_agent="junction"),
         messaging=SimpleNamespace(
             dm_scope="per-channel-peer",
             idle_reset_minutes=0,
@@ -480,7 +480,7 @@ async def test_sessions_cjk_query_reaches_title_fallback() -> None:
 async def test_sessions_delegates_to_the_shared_search() -> None:
     """Assert DELEGATION, not re-implemented ranking.
 
-    The scoring formula belongs to KiroCrewHistory.search_sessions and is tested
+    The scoring formula belongs to JunctionHistory.search_sessions and is tested
     there; what this surface must guarantee is that it calls that search rather
     than growing a second one that drifts from the dashboard.
     """
@@ -603,7 +603,7 @@ async def test_sessions_lists_only_persistent_dashboard_sessions_and_redacts() -
                 "memory_mode": "persistent",
             },
             {
-                "key": "discord_kirocrew_direct_u1",
+                "key": "discord_junction_direct_u1",
                 "title": "Current Discord session",
                 "memory_mode": "persistent",
             },
@@ -1020,7 +1020,7 @@ async def test_own_session_records_the_origin_conversation() -> None:
 @pytest.mark.asyncio
 async def test_new_own_session_surfaces_in_dashboard_immediately(monkeypatch) -> None:
     """Discord must not wait for the 30-second lifetime reconcile pass."""
-    from kiro_crew.dashboard import channel_slots
+    from junction.dashboard import channel_slots
 
     log = _log()
     dispatcher, _, sessions = _dispatcher({"u1"}, log)
@@ -1043,7 +1043,7 @@ async def test_new_own_session_surfaces_in_dashboard_immediately(monkeypatch) ->
 @pytest.mark.asyncio
 async def test_resumed_session_does_not_surface_duplicate_dashboard_slot(monkeypatch) -> None:
     """A Discord-driven dashboard resume already owns a slot."""
-    from kiro_crew.dashboard import channel_slots
+    from junction.dashboard import channel_slots
 
     log = _log()
     log.messages["dashboard:chat-1"] = [{"role": "assistant", "content": "prior"}]
@@ -1103,7 +1103,7 @@ async def test_persisted_default_agent_sentinel_is_not_forwarded() -> None:
     await dispatcher.handle_message(_message("continue here"))
 
     assert sessions.last_key == "dashboard:chat-1"
-    assert sessions.last_agent == "kirocrew"
+    assert sessions.last_agent == "junction"
 
 
 @pytest.mark.asyncio
@@ -1119,7 +1119,7 @@ async def test_persisted_auto_agent_sentinel_is_not_forwarded() -> None:
     sessions.is_new_result = True
     await dispatcher.handle_message(_message("continue here"))
 
-    assert sessions.last_agent == "kirocrew"
+    assert sessions.last_agent == "junction"
 
 
 @pytest.mark.asyncio
@@ -1157,7 +1157,7 @@ async def test_resumed_session_without_recorded_agent_falls_back() -> None:
     sessions.is_new_result = True
     await dispatcher.handle_message(_message("continue here"))
 
-    assert sessions.last_agent == "kirocrew"
+    assert sessions.last_agent == "junction"
 
 
 @pytest.mark.asyncio
@@ -1818,7 +1818,7 @@ class TestExpectationStoreInvariants:
     async def test_the_store_is_gated_from_agent_tools_yet_writable_by_the_gateway(
         self, monkeypatch
     ) -> None:
-        from kiro_crew.security import is_sensitive_path
+        from junction.security import is_sensitive_path
 
         restricted: list[str] = []
         pc = resume_expectation.platform_compat

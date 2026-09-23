@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.config import loader as cfg_loader
+from junction.config import loader as cfg_loader
 
 
 @pytest.fixture()
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     d = tmp_path / "home"
     d.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(d))
+    monkeypatch.setenv("JUNCTION_HOME", str(d))
     cfg = d / "config.json"
     cfg.write_text(
         json.dumps({"timezone": "UTC", "auto_update": False, "session": {"timeout_secs": 7200}}),

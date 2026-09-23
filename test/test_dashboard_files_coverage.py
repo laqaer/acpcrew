@@ -1,4 +1,4 @@
-"""Coverage tests for ``kiro_crew.dashboard.handlers.files``.
+"""Coverage tests for ``junction.dashboard.handlers.files``.
 
 The handlers in that module were largely exercised only through their happy
 paths (or not at all). This file targets the endpoints and error arms the
@@ -44,8 +44,8 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from tmpdir_helpers import short_tmp_base
 
-from kiro_crew import platform_compat
-from kiro_crew.dashboard.handlers import files as files_mod
+from junction import platform_compat
+from junction.dashboard.handlers import files as files_mod
 
 # ``api_file_raw`` and ``api_file_download`` open with ``os.O_NOFOLLOW``, which
 # only exists on POSIX; the whole code path is unreachable on Windows.
@@ -58,7 +58,7 @@ posix_only = pytest.mark.skipif(
 @pytest.fixture()
 def mock_sel():
     """Stub the SEL audit sink that every handler in this module writes to."""
-    with patch("kiro_crew.dashboard.handlers.files._sel") as m:
+    with patch("junction.dashboard.handlers.files._sel") as m:
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -186,7 +186,7 @@ class TestFileRead:
 
     @pytest.mark.asyncio
     async def test_resolve_without_project_dir_is_400(self, mock_sel, monkeypatch):
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
         async with TestClient(TestServer(self._client_app())) as client:
             resp = await client.get("/api/file-read?resolve=1&path=notes.md")
             assert resp.status == 400
@@ -197,7 +197,7 @@ class TestFileRead:
         proj = tmp_path / "proj"
         proj.mkdir()
         (proj / "readme.md").write_text("# in project", encoding="utf-8")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         async with TestClient(TestServer(self._client_app())) as client:
             resp = await client.get("/api/file-read?resolve=1&path=readme.md")
             assert resp.status == 200
@@ -208,7 +208,7 @@ class TestFileRead:
         proj = tmp_path / "proj"
         proj.mkdir()
         (tmp_path / "outside.md").write_text("secret", encoding="utf-8")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         async with TestClient(TestServer(self._client_app())) as client:
             resp = await client.get("/api/file-read?resolve=1&path=../outside.md")
             assert resp.status == 400
@@ -440,7 +440,7 @@ class TestFileRaw:
 
     @pytest.mark.asyncio
     async def test_forbidden_path_is_400(self, mock_sel):
-        with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=None):
+        with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=None):
             async with TestClient(TestServer(self._client_app())) as client:
                 resp = await client.get("/api/file-raw?path=/tmp/whatever.png")
                 assert resp.status == 400
@@ -449,7 +449,7 @@ class TestFileRaw:
     async def test_sensitive_path_is_403(self, tmp_path, mock_sel):
         f = tmp_path / "s.png"
         f.write_bytes(b"\x89PNG\r\n\x1a\n")
-        with patch("kiro_crew.dashboard.handlers.files.is_sensitive_path", return_value=True):
+        with patch("junction.dashboard.handlers.files.is_sensitive_path", return_value=True):
             async with TestClient(TestServer(self._client_app())) as client:
                 resp = await client.get(f"/api/file-raw?path={f}")
                 assert resp.status == 403
@@ -480,7 +480,7 @@ class TestFileRaw:
         # Hand the handler the link itself: the real validator would have
         # realpath'd it away, and O_NOFOLLOW is what must catch it.
         with patch(
-            "kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(link)
+            "junction.dashboard.handlers._validate_dashboard_path", return_value=str(link)
         ):
             async with TestClient(TestServer(self._client_app())) as client:
                 resp = await client.get(f"/api/file-raw?path={link}")
@@ -583,7 +583,7 @@ def outbox(tmp_path):
     base = Path(tempfile.mkdtemp(dir=short_tmp_base()))
     odir = base / "outbox"
     odir.mkdir()
-    with patch("kiro_crew.config.loader.outbox_dir", return_value=odir):
+    with patch("junction.config.loader.outbox_dir", return_value=odir):
         try:
             yield odir
         finally:
@@ -667,11 +667,11 @@ class TestOutboxDownload:
 
     @pytest.mark.asyncio
     async def test_oversize_file_is_413(self, outbox, mock_sel):
-        from kiro_crew.hooks import FileTooLargeError
+        from junction.hooks import FileTooLargeError
 
         (outbox / "huge.txt").write_text("x", encoding="utf-8")
         with patch(
-            "kiro_crew.hooks.safe_read_file_bytes",
+            "junction.hooks.safe_read_file_bytes",
             side_effect=FileTooLargeError("file exceeds 50 MB"),
         ):
             resp = await files_mod.api_outbox_download(self._request("huge.txt"))
@@ -681,7 +681,7 @@ class TestOutboxDownload:
     @pytest.mark.asyncio
     async def test_unreadable_file_is_403(self, outbox, mock_sel):
         (outbox / "denied.txt").write_text("x", encoding="utf-8")
-        with patch("kiro_crew.hooks.safe_read_file_bytes", return_value=None):
+        with patch("junction.hooks.safe_read_file_bytes", return_value=None):
             resp = await files_mod.api_outbox_download(self._request("denied.txt"))
         assert resp.status == 403
 
@@ -750,7 +750,7 @@ class TestRevealPath:
         f = tmp_path / "doc.pdf"
         f.write_text("x", encoding="utf-8")
         with patch("sys.platform", "linux"), \
-             patch("kiro_crew.dashboard.handlers.files.platform_compat.open_with_default_app", return_value=True) as launch:
+             patch("junction.dashboard.handlers.files.platform_compat.open_with_default_app", return_value=True) as launch:
             async with TestClient(TestServer(self._client_app())) as client:
                 resp = await client.post(
                     "/api/reveal", json={"path": str(f), "action": "open"}
@@ -784,7 +784,7 @@ class TestRevealPath:
         f = tmp_path / "doc.pdf"
         f.write_text("x", encoding="utf-8")
         with patch("sys.platform", "darwin"), \
-             patch("kiro_crew.dashboard.handlers.files.platform_compat.reveal_in_file_manager", return_value=True) as reveal:
+             patch("junction.dashboard.handlers.files.platform_compat.reveal_in_file_manager", return_value=True) as reveal:
             async with TestClient(TestServer(self._client_app())) as client:
                 resp = await client.post("/api/reveal", json={"path": str(f)})
                 assert resp.status == 200
@@ -801,8 +801,8 @@ class TestRevealPath:
         for platform, action in (("darwin", "reveal"), ("linux", "reveal"),
                                  ("win32", "reveal"), ("linux", "open")):
             with patch("sys.platform", platform), \
-                 patch("kiro_crew.dashboard.handlers.files.platform_compat.reveal_in_file_manager", return_value=False), \
-                 patch("kiro_crew.dashboard.handlers.files.platform_compat.open_with_default_app", return_value=False):
+                 patch("junction.dashboard.handlers.files.platform_compat.reveal_in_file_manager", return_value=False), \
+                 patch("junction.dashboard.handlers.files.platform_compat.open_with_default_app", return_value=False):
                 async with TestClient(TestServer(self._client_app())) as client:
                     resp = await client.post(
                         "/api/reveal", json={"path": str(f), "action": action}
@@ -820,8 +820,8 @@ class TestRevealPath:
         for action in ("reveal", "open"):
             mock_sel.log_tool_invocation.reset_mock()
             with patch("sys.platform", "linux"), \
-                 patch("kiro_crew.dashboard.handlers.files.platform_compat.reveal_in_file_manager", return_value=False), \
-                 patch("kiro_crew.dashboard.handlers.files.platform_compat.open_with_default_app", return_value=False):
+                 patch("junction.dashboard.handlers.files.platform_compat.reveal_in_file_manager", return_value=False), \
+                 patch("junction.dashboard.handlers.files.platform_compat.open_with_default_app", return_value=False):
                 async with TestClient(TestServer(self._client_app())) as client:
                     resp = await client.post(
                         "/api/reveal", json={"path": str(f), "action": action}
@@ -986,7 +986,7 @@ class TestNativePickers:
 def cfg_file(tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    with patch("kiro_crew.config.loader.config_path", return_value=p):
+    with patch("junction.config.loader.config_path", return_value=p):
         yield p
 
 

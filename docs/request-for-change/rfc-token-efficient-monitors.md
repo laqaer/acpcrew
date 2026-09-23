@@ -373,8 +373,8 @@ Suggested title: `feat: add durable monitor decisions`
 
 Primary areas:
 
-- `src/kiro_crew/monitoring/` for typed observations, outcomes, and pure policy;
-- `src/kiro_crew/autonudge.py` for optional versioned monitor persistence;
+- `src/junction/monitoring/` for typed observations, outcomes, and pure policy;
+- `src/junction/autonudge.py` for optional versioned monitor persistence;
 - `test/test_monitor_decision.py` and persistence compatibility tests;
 - the AutoNudge system specification.
 

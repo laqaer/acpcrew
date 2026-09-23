@@ -16,11 +16,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import task_executor
-from kiro_crew.context import ContextBuilder
-from kiro_crew.hooks import TOOL_ALLOW, TOOL_AUTO_APPROVE, HookManager, ToolHookResult
-from kiro_crew.providers.base import LLMEvent
-from kiro_crew.task_models import Project, Task
+from junction import task_executor
+from junction.context import ContextBuilder
+from junction.hooks import TOOL_ALLOW, TOOL_AUTO_APPROVE, HookManager, ToolHookResult
+from junction.providers.base import LLMEvent
+from junction.task_models import Project, Task
 
 
 def _mock_sessions(provider):
@@ -78,7 +78,7 @@ async def test_hook_auto_approve_bypasses_interactive_prompt(tmp_path):
     sessions = _mock_sessions(provider)
     run, task = _run_and_task()
     ctx = _ctx_with_hook_action(TOOL_AUTO_APPROVE)
-    with patch.object(task_executor.KiroCrewConfig, "load") as cfg:
+    with patch.object(task_executor.JunctionConfig, "load") as cfg:
         cfg.return_value.agent.provider = "acp"
         await task_executor.execute_task(
             run=run, task=task, sessions=sessions, ctx=ctx, agent="",
@@ -96,7 +96,7 @@ async def test_headless_no_authorization_rejects(tmp_path):
     sessions = _mock_sessions(provider)
     run, task = _run_and_task()
     ctx = _ctx_with_hook_action(TOOL_ALLOW)
-    with patch.object(task_executor.KiroCrewConfig, "load") as cfg:
+    with patch.object(task_executor.JunctionConfig, "load") as cfg:
         cfg.return_value.agent.provider = "acp"
         await task_executor.execute_task(
             run=run, task=task, sessions=sessions, ctx=ctx, agent="",
@@ -115,7 +115,7 @@ async def test_headless_hook_auto_approve_still_approves(tmp_path):
     sessions = _mock_sessions(provider)
     run, task = _run_and_task()
     ctx = _ctx_with_hook_action(TOOL_AUTO_APPROVE)
-    with patch.object(task_executor.KiroCrewConfig, "load") as cfg:
+    with patch.object(task_executor.JunctionConfig, "load") as cfg:
         cfg.return_value.agent.provider = "acp"
         await task_executor.execute_task(
             run=run, task=task, sessions=sessions, ctx=ctx, agent="",
@@ -134,7 +134,7 @@ async def test_interactive_prompt_fires_when_handler_present(tmp_path):
     sessions = _mock_sessions(provider)
     run, task = _run_and_task()
     ctx = _ctx_with_hook_action(TOOL_ALLOW)
-    with patch.object(task_executor.KiroCrewConfig, "load") as cfg:
+    with patch.object(task_executor.JunctionConfig, "load") as cfg:
         cfg.return_value.agent.provider = "acp"
         await task_executor.execute_task(
             run=run, task=task, sessions=sessions, ctx=ctx, agent="",

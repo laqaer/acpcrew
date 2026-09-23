@@ -76,7 +76,7 @@ const slots = [{
   running: false,
   last_message: 'Proposal review',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: Math.floor(Date.now() / 1000),
@@ -220,7 +220,7 @@ async function main() {
     localStorage.setItem('mc-panel-tabs:' + slot, tabsJson)
     localStorage.setItem('mc-files-rail-open', '0')
     localStorage.setItem('mc-side-panel-width', '760')
-    localStorage.setItem('kirocrew:comment-hint-dismissed', '1')
+    localStorage.setItem('junction:comment-hint-dismissed', '1')
     localStorage.setItem('mc-git-panel-opened:' + slot + ':' + project, '1')
     localStorage.setItem('mc-chat-config', JSON.stringify({ pinLastPrompt: false, streamMode: 'immediate' }))
   }, [SLOT, PROJECT, JSON.stringify({ activeId: fileTab.id, tabs: [fileTab] })])

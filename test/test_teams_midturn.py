@@ -14,9 +14,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.teams.client import TeamsInbound
-from kiro_crew.teams.commands import COMMAND_SPEC, build_help_text, parse_command
-from kiro_crew.teams.transport_dispatch import TeamsDispatcher
+from junction.teams.client import TeamsInbound
+from junction.teams.commands import COMMAND_SPEC, build_help_text, parse_command
+from junction.teams.transport_dispatch import TeamsDispatcher
 
 _SVC = "https://smba.trafficmanager.net/teams"
 _EMAIL = "me@example.com"
@@ -144,7 +144,7 @@ def _cfg() -> SimpleNamespace:
         messaging=SimpleNamespace(
             queue_mode="steer", dm_scope="per_user", idle_reset_minutes=0, daily_reset_hour=-1
         ),
-        agent=SimpleNamespace(default_agent="kirocrew", approval_mode="interactive"),
+        agent=SimpleNamespace(default_agent="junction", approval_mode="interactive"),
         teams=SimpleNamespace(soft_threshold_pct=80, hard_threshold_pct=95),
     )
 
@@ -270,9 +270,9 @@ class TestDrain:
         async def _fake_drive(turn, **kw):
             turns.append(turn.user_text)
 
-        monkeypatch.setattr("kiro_crew.teams.transport_dispatch.drive_turn", _fake_drive)
+        monkeypatch.setattr("junction.teams.transport_dispatch.drive_turn", _fake_drive)
         monkeypatch.setattr(
-            "kiro_crew.teams.transport_dispatch.inbound_permitted",
+            "junction.teams.transport_dispatch.inbound_permitted",
             lambda _c: _true(),
         )
         sessions = _Sessions(_Provider(), busy=False)
@@ -298,9 +298,9 @@ class TestDrain:
             return None
 
         monkeypatch.setattr(TeamsDispatcher, "_drain_queue", _spy)
-        monkeypatch.setattr("kiro_crew.teams.transport_dispatch.drive_turn", _fake_drive)
+        monkeypatch.setattr("junction.teams.transport_dispatch.drive_turn", _fake_drive)
         monkeypatch.setattr(
-            "kiro_crew.teams.transport_dispatch.inbound_permitted", lambda _c: _true()
+            "junction.teams.transport_dispatch.inbound_permitted", lambda _c: _true()
         )
         sessions = _Sessions(_Provider(), busy=False)
         d = _dispatcher(sessions, _Client())

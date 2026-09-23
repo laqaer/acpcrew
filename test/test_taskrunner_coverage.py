@@ -1,4 +1,4 @@
-"""Coverage-focused tests for the :mod:`kiro_crew.taskrunner` orchestrator.
+"""Coverage-focused tests for the :mod:`junction.taskrunner` orchestrator.
 
 Exercises the surfaces the existing task-runner suites leave untouched: the
 workspace-dir security gate, plan/update_task validation, ``execute_plan``'s
@@ -23,10 +23,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import taskrunner as tr
-from kiro_crew.safety_override import safety_override
-from kiro_crew.task_models import Project, Task, TaskStatus
-from kiro_crew.taskrunner import TaskRunner, _auto_approve_scope, _resolve_workspace_dir
+from junction import taskrunner as tr
+from junction.safety_override import safety_override
+from junction.task_models import Project, Task, TaskStatus
+from junction.taskrunner import TaskRunner, _auto_approve_scope, _resolve_workspace_dir
 
 # ── Fixtures / helpers ──
 
@@ -727,7 +727,7 @@ class TestDeleteRun:
     ) -> None:
         runner = _runner(tmp_path)
         _seed_run(runner, tmp_path)
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         monkeypatch.setattr(sel_mod, "sel", MagicMock(side_effect=RuntimeError("sel down")))
         assert await runner.delete_run("plan_1") is True
@@ -1095,7 +1095,7 @@ class TestLogTask:
         log.append = MagicMock(side_effect=RuntimeError("history locked"))
         runner = _runner(tmp_path, conversation_log=log)
         run = _seed_run(runner, tmp_path)
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.taskrunner"):
+        with caplog.at_level(logging.DEBUG, logger="junction.taskrunner"):
             runner._log_task("hist", run, Task(index=1, title="T", description="d"))
             for _ in range(100):
                 if any("history locked" in rec.getMessage() for rec in caplog.records):

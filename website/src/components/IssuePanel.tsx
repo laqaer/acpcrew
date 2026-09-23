@@ -423,7 +423,7 @@ export default function IssuePanel({
             {queryError.loginCommand ? (
               <>
                 <div className="text-[12px] text-muted mt-1 text-center">
-                  {i18nT('components.issuePanel.kiro_crew_uses_your_local_provider_cli_to_load_i')}
+                  {i18nT('components.issuePanel.junction_uses_your_local_provider_cli_to_load_i')}
                 </div>
                 <code className="inline-block mt-2 px-2 py-1 rounded bg-bg-hover text-[12px] text-text">
                   {queryError.loginCommand}

@@ -1,4 +1,4 @@
-"""Tests for Teams' file POLICY layer (``kiro_crew.teams.attachments``).
+"""Tests for Teams' file POLICY layer (``junction.teams.attachments``).
 
 Covers the inbound envelope mapping -- including the auth flag that differs per
 attachment kind and is a credential leak if inverted -- and the outbound
@@ -15,9 +15,9 @@ import base64
 
 import pytest
 
-from kiro_crew.messaging.attachments import IngestResult
-from kiro_crew.messaging.outbound_files import OutboundFile
-from kiro_crew.teams.attachments import (
+from junction.messaging.attachments import IngestResult
+from junction.messaging.outbound_files import OutboundFile
+from junction.teams.attachments import (
     REASON_INLINE_UNDELIVERED,
     REASON_INLINE_UNSUPPORTED,
     TEAMS_FILE_DOWNLOAD_INFO,
@@ -158,7 +158,7 @@ class TestInboundIngestion:
         assert len(result.text_blocks) == 1
         for path in result.temp_paths:
             assert path.startswith(str(tmp_path))
-        from kiro_crew.messaging.attachments import cleanup
+        from junction.messaging.attachments import cleanup
 
         cleanup(result.temp_paths)
 
@@ -284,7 +284,7 @@ class TestQuoteReply:
         assert quoted_reply_text(self._body(html)) == ""
 
     def test_an_oversized_body_is_skipped_rather_than_parsed(self) -> None:
-        from kiro_crew.teams.attachments import _MAX_REPLY_HTML_CHARS
+        from junction.teams.attachments import _MAX_REPLY_HTML_CHARS
 
         html = (
             f"<blockquote {self._MARKER}><p>{'x' * _MAX_REPLY_HTML_CHARS}</p>"
@@ -312,7 +312,7 @@ class TestQuoteReply:
         """
         import time
 
-        from kiro_crew.teams.attachments import _BREAK_RE
+        from junction.teams.attachments import _BREAK_RE
 
         def _elapsed(n: int) -> float:
             payload = "<br" + "\t" * n

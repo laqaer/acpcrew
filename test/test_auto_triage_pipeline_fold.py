@@ -19,8 +19,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.apps.builtins.auto_triage_pipeline.backend import pipeline_fold as fold
-from kiro_crew.apps.builtins.auto_triage_pipeline.backend import routes
+from junction.apps.builtins.auto_triage_pipeline.backend import pipeline_fold as fold
+from junction.apps.builtins.auto_triage_pipeline.backend import routes
 
 # --------------------------------------------------------------------------
 # Fixtures: everything resolves inside tmp_path.
@@ -402,7 +402,7 @@ def test_pr_extraction_details_pr() -> None:
 
 
 def test_pr_extraction_pull_url_anywhere() -> None:
-    rec = {"event": "pr_green", "details": {"url": "https://github.com/o/KiroCrew/pull/5600"}}
+    rec = {"event": "pr_green", "details": {"url": "https://github.com/o/Junction/pull/5600"}}
     assert fold._extract_pr(rec) == 5600
 
 

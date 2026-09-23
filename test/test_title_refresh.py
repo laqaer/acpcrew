@@ -24,15 +24,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.dashboard import chat_persistence, chat_title
-from kiro_crew.dashboard.chat_title import (
+from junction.dashboard import chat_persistence, chat_title
+from junction.dashboard.chat_title import (
     _TITLE_ORIGIN_AUTO,
     _TITLE_ORIGIN_USER,
     _TITLE_REFRESH_MILESTONES,
     _build_refresh_prompt,
     maybe_refresh_title,
 )
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard.state import _ChatSlot
 
 
 def _fake_state():
@@ -576,7 +576,7 @@ class TestPersistWriteOrdering:
         in flight bumps the epoch; the persist loop must then write AGAIN with
         the current (user) values, so the disk can never end up on the stale
         auto title regardless of flock acquisition order."""
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("dashboard:chat-1-1", "user", "seed")
@@ -616,7 +616,7 @@ class TestPersistWriteOrdering:
 
     @pytest.mark.asyncio
     async def test_stable_epoch_writes_exactly_once(self, tmp_path):
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("dashboard:chat-1-1", "user", "seed")
@@ -672,11 +672,11 @@ class TestSlotCreatePinIsFinal:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_ready_kiro_prerequisite
 
-        from kiro_crew.dashboard.chat import api_chat_slot_create
-        from kiro_crew.dashboard.state import DashboardState
-        from kiro_crew.history import ConversationLog
+        from junction.dashboard.chat import api_chat_slot_create
+        from junction.dashboard.state import DashboardState
+        from junction.history import ConversationLog
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         sessions = MagicMock(count=0)
         sessions.remove = AsyncMock()
         sessions.recycle_background = AsyncMock()
@@ -737,7 +737,7 @@ class TestResumeRehydratesProvenance:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         log = state.conversation_log
         log.append("dashboard:s1", "user", "hello")
@@ -761,7 +761,7 @@ class TestResumeRehydratesProvenance:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         log = state.conversation_log
         log.append("dashboard:s1", "user", "hello")
@@ -780,7 +780,7 @@ class TestResumeRehydratesProvenance:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.conversation_log.append("dashboard:s1", "user", "hello")
 
@@ -808,10 +808,10 @@ class TestCreatePinPersists:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_state
 
-        from kiro_crew.dashboard import chat_handlers
-        from kiro_crew.dashboard.chat import api_chat_slot_create
+        from junction.dashboard import chat_handlers
+        from junction.dashboard.chat import api_chat_slot_create
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         save_spy = AsyncMock()
         monkeypatch.setattr(chat_handlers, "save_slot_off_loop", save_spy)
         state = _make_state(tmp_path)
@@ -885,7 +885,7 @@ class TestResumeTitleEchoIsNotAPin:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         log = state.conversation_log
         log.append("dashboard:s1", "user", "hello")
@@ -912,7 +912,7 @@ class TestResumeTitleEchoIsNotAPin:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         log = state.conversation_log
         log.append("dashboard:s1", "user", "hello")
@@ -938,7 +938,7 @@ class TestResumeTitleEchoIsNotAPin:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         log = state.conversation_log
         log.append("dashboard:s1", "user", "hello")
@@ -987,7 +987,7 @@ class TestRefreshDurableMarkGate:
 
     @pytest.mark.asyncio
     async def test_persist_returns_false_on_write_failure(self, tmp_path):
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(base_dir=tmp_path)
         log.append("dashboard:chat-1-1", "user", "seed")
@@ -1051,7 +1051,7 @@ class TestResumeCorruptedTitleMetadata:
         from aiohttp.test_utils import TestClient, TestServer
         from chat_test_helpers import _make_app, _make_state
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         log = state.conversation_log
         log.append("dashboard:s1", "user", "hello")

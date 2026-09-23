@@ -1,4 +1,4 @@
-"""Coverage tests for ``kiro_crew.subagent`` helpers and manager bookkeeping.
+"""Coverage tests for ``junction.subagent`` helpers and manager bookkeeping.
 
 Focused on the module-level probes (memory / CPU / cgroup readers, env
 parsing, agent + governance vetting) and the ``SubagentManager`` bookkeeping
@@ -6,7 +6,7 @@ surfaces — slot accounting, queue depth, wave submission reconciliation,
 digest-hold release, continuable-conversation retention — none of which need a
 real agent process. Every process boundary is stubbed: no test here launches a
 binary, opens a socket, or writes outside ``tmp_path`` / the autouse isolated
-``KIROCREW_HOME``.
+``JUNCTION_HOME``.
 """
 
 from __future__ import annotations
@@ -21,8 +21,8 @@ from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import pytest
 
-from kiro_crew import subagent as sa
-from kiro_crew.subagent import SubagentInfo, SubagentManager
+from junction import subagent as sa
+from junction.subagent import SubagentInfo, SubagentManager
 
 # ── Fixtures / builders ───────────────────────────────────────────────────
 
@@ -124,14 +124,14 @@ def _verdict(permitted: bool, reason: str = "") -> SimpleNamespace:
 class TestVetSpawnGovernance:
     def test_permitted_returns_none(self) -> None:
         with patch(
-            "kiro_crew.platform.governance_profiles.governance_permits",
+            "junction.platform.governance_profiles.governance_permits",
             return_value=_verdict(True),
         ):
             assert sa._vet_spawn_governance("dash:1", "scout") is None
 
     def test_capability_disabled_returns_reason(self) -> None:
         with patch(
-            "kiro_crew.platform.governance_profiles.governance_permits",
+            "junction.platform.governance_profiles.governance_permits",
             return_value=_verdict(False, "spawn off for this app"),
         ):
             assert sa._vet_spawn_governance("dash:1", "", app="notes") == "spawn off for this app"
@@ -144,17 +144,17 @@ class TestVetSpawnGovernance:
             return _verdict(not item.startswith("agents:"))
 
         with patch(
-            "kiro_crew.platform.governance_profiles.governance_permits", side_effect=_permits
+            "junction.platform.governance_profiles.governance_permits", side_effect=_permits
         ):
             reason = sa._vet_spawn_governance("dash:1", "scout")
         assert reason == "agent 'scout' not permitted by spawn policy"
         assert "agents:scout" in calls
 
     def test_composition_error_propagates(self) -> None:
-        from kiro_crew.platform.context import PlatformCompositionError
+        from junction.platform.context import PlatformCompositionError
 
         with patch(
-            "kiro_crew.platform.governance_profiles.governance_permits",
+            "junction.platform.governance_profiles.governance_permits",
             side_effect=PlatformCompositionError("bad platform"),
         ):
             with pytest.raises(PlatformCompositionError):
@@ -164,11 +164,11 @@ class TestVetSpawnGovernance:
         audit = MagicMock()
         with (
             patch(
-                "kiro_crew.platform.governance_profiles.governance_permits",
+                "junction.platform.governance_profiles.governance_permits",
                 side_effect=RuntimeError("store down"),
             ),
             patch(
-                "kiro_crew.platform.governance_profiles.audit_governance_degraded",
+                "junction.platform.governance_profiles.audit_governance_degraded",
                 audit,
             ),
         ):
@@ -180,11 +180,11 @@ class TestVetSpawnGovernance:
     def test_audit_failure_still_fails_closed(self) -> None:
         with (
             patch(
-                "kiro_crew.platform.governance_profiles.governance_permits",
+                "junction.platform.governance_profiles.governance_permits",
                 side_effect=RuntimeError("store down"),
             ),
             patch(
-                "kiro_crew.platform.governance_profiles.audit_governance_degraded",
+                "junction.platform.governance_profiles.audit_governance_degraded",
                 side_effect=RuntimeError("audit down"),
             ),
         ):
@@ -231,28 +231,28 @@ class TestTimeoutContext:
 
 class TestEnvFloat:
     def test_absent_uses_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("KIROCREW_TEST_FLOAT", raising=False)
-        assert sa._env_float("KIROCREW_TEST_FLOAT", 7.5) == 7.5
+        monkeypatch.delenv("JUNCTION_TEST_FLOAT", raising=False)
+        assert sa._env_float("JUNCTION_TEST_FLOAT", 7.5) == 7.5
 
     def test_valid_value_wins(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_TEST_FLOAT", "12.25")
-        assert sa._env_float("KIROCREW_TEST_FLOAT", 7.5) == 12.25
+        monkeypatch.setenv("JUNCTION_TEST_FLOAT", "12.25")
+        assert sa._env_float("JUNCTION_TEST_FLOAT", 7.5) == 12.25
 
     @pytest.mark.parametrize("raw", ["0", "-3", "abc"])
     def test_invalid_or_nonpositive_falls_back(
         self, raw: str, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_TEST_FLOAT", raw)
-        assert sa._env_float("KIROCREW_TEST_FLOAT", 7.5) == 7.5
+        monkeypatch.setenv("JUNCTION_TEST_FLOAT", raw)
+        assert sa._env_float("JUNCTION_TEST_FLOAT", 7.5) == 7.5
 
 
 class TestResolveInjectionTimeout:
     def test_clamped_to_outer_cap(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_INJECTION_TIMEOUT", str(sa._ON_DONE_TIMEOUT * 10))
+        monkeypatch.setenv("JUNCTION_INJECTION_TIMEOUT", str(sa._ON_DONE_TIMEOUT * 10))
         assert sa._resolve_injection_timeout() == sa._ON_DONE_TIMEOUT
 
     def test_below_cap_kept(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_INJECTION_TIMEOUT", "60")
+        monkeypatch.setenv("JUNCTION_INJECTION_TIMEOUT", "60")
         assert sa._resolve_injection_timeout() == 60.0
 
 
@@ -261,58 +261,58 @@ class TestSubagentRolePins:
         cfg = MagicMock()
         cfg.agent.role_models = {"subagent": " sonnet "}
         with (
-            patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=cfg),
-            patch("kiro_crew.config.loader.normalize_agent_model", side_effect=str.strip),
+            patch("junction.config.loader.JunctionConfig.load", return_value=cfg),
+            patch("junction.config.loader.normalize_agent_model", side_effect=str.strip),
         ):
             assert sa._subagent_default_model() == "sonnet"
 
     def test_model_pin_never_raises(self) -> None:
         with patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load", side_effect=RuntimeError("no config")
+            "junction.config.loader.JunctionConfig.load", side_effect=RuntimeError("no config")
         ):
             assert sa._subagent_default_model() == ""
 
     def test_effort_pin_returns_string(self) -> None:
         cfg = MagicMock()
         cfg.agent.role_efforts = {"subagent": "high"}
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=cfg):
+        with patch("junction.config.loader.JunctionConfig.load", return_value=cfg):
             assert sa._subagent_default_effort() == "high"
 
     def test_effort_pin_rejects_non_string(self) -> None:
         cfg = MagicMock()
         cfg.agent.role_efforts = {"subagent": 3}
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=cfg):
+        with patch("junction.config.loader.JunctionConfig.load", return_value=cfg):
             assert sa._subagent_default_effort() == ""
 
     def test_effort_pin_never_raises(self) -> None:
         with patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load", side_effect=RuntimeError("no config")
+            "junction.config.loader.JunctionConfig.load", side_effect=RuntimeError("no config")
         ):
             assert sa._subagent_default_effort() == ""
 
 
 class TestDigestHoldSecs:
     def test_absent_uses_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", raising=False)
+        monkeypatch.delenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", raising=False)
         assert sa._digest_hold_secs() == sa._DEFAULT_DIGEST_HOLD_SECS
 
     def test_nan_is_malformed_not_a_deadline(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "nan")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "nan")
         val = sa._digest_hold_secs()
         assert not math.isnan(val)
         assert val == sa._DEFAULT_DIGEST_HOLD_SECS
 
     @pytest.mark.parametrize("raw", ["0", "-1"])
     def test_nonpositive_opts_out(self, raw: str, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", raw)
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", raw)
         assert sa._digest_hold_secs() == 0.0
 
     def test_clamped_to_hard_deadline(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", str(sa._TIMEOUT_SECS * 5))
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", str(sa._TIMEOUT_SECS * 5))
         assert sa._digest_hold_secs() == float(sa._TIMEOUT_SECS)
 
     def test_valid_value_kept(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "45")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "45")
         assert sa._digest_hold_secs() == 45.0
 
 
@@ -1348,7 +1348,7 @@ class TestStaggerGate:
 class TestNotifyInjectionFailed:
     def test_parent_without_a_tab_is_skipped(self) -> None:
         mgr = _manager(on_event=AsyncMock())
-        with patch("kiro_crew.dashboard.chat_utils.dashboard_slot_key", return_value=""):
+        with patch("junction.dashboard.chat_utils.dashboard_slot_key", return_value=""):
             mgr.notify_injection_failed(_info(parent_session_key="cron:1"))
 
     @pytest.mark.asyncio
@@ -1362,7 +1362,7 @@ class TestNotifyInjectionFailed:
         result.write_text("hello", newline="\n")
         mgr = _manager(on_event=_on_event)
         info = _info(parent_session_key="dash:1", result_path=str(result))
-        with patch("kiro_crew.dashboard.chat_utils.dashboard_slot_key", return_value="slot-1"):
+        with patch("junction.dashboard.chat_utils.dashboard_slot_key", return_value="slot-1"):
             mgr.notify_injection_failed(info)
         await asyncio.sleep(0)
         await asyncio.sleep(0)
@@ -1378,7 +1378,7 @@ class TestNotifyInjectionFailed:
 
         mgr = _manager(on_event=_on_event)
         info = _info(parent_session_key="dash:1", result_path=str(tmp_path / "absent.txt"))
-        with patch("kiro_crew.dashboard.chat_utils.dashboard_slot_key", return_value="slot-1"):
+        with patch("junction.dashboard.chat_utils.dashboard_slot_key", return_value="slot-1"):
             mgr.notify_injection_failed(info)
         await asyncio.sleep(0)
         await asyncio.sleep(0)
@@ -1387,7 +1387,7 @@ class TestNotifyInjectionFailed:
     def test_lookup_failure_is_swallowed(self) -> None:
         mgr = _manager(on_event=AsyncMock())
         with patch(
-            "kiro_crew.dashboard.chat_utils.dashboard_slot_key",
+            "junction.dashboard.chat_utils.dashboard_slot_key",
             side_effect=RuntimeError("no dashboard"),
         ):
             mgr.notify_injection_failed(_info(parent_session_key="dash:1"))
@@ -1469,7 +1469,7 @@ class TestNotifyInjectionFailedOutcomeCopy:
             seen.append(extra)
 
         mgr = _manager(on_event=_on_event)
-        with patch("kiro_crew.dashboard.chat_utils.dashboard_slot_key", return_value="slot-1"):
+        with patch("junction.dashboard.chat_utils.dashboard_slot_key", return_value="slot-1"):
             mgr.notify_injection_failed(info)
         await asyncio.sleep(0)
         await asyncio.sleep(0)
@@ -2022,12 +2022,12 @@ class TestShouldUseSessionSharing:
         mgr = _manager()
         cfg = MagicMock()
         cfg.agent.session_sharing = False
-        with patch("kiro_crew.subagent.KiroCrewConfig.load", return_value=cfg):
+        with patch("junction.subagent.JunctionConfig.load", return_value=cfg):
             assert mgr._should_use_session_sharing(_info(parent_session_key="dash:1")) is False
 
     def test_config_failure_fails_closed(self) -> None:
         mgr = _manager()
-        with patch("kiro_crew.subagent.KiroCrewConfig.load", side_effect=RuntimeError):
+        with patch("junction.subagent.JunctionConfig.load", side_effect=RuntimeError):
             assert mgr._should_use_session_sharing(_info(parent_session_key="dash:1")) is False
 
     @pytest.mark.parametrize(
@@ -2039,21 +2039,21 @@ class TestShouldUseSessionSharing:
         cfg = MagicMock()
         cfg.agent.session_sharing = True
         info = _info(parent_session_key="dash:1", **override)
-        with patch("kiro_crew.subagent.KiroCrewConfig.load", return_value=cfg):
+        with patch("junction.subagent.JunctionConfig.load", return_value=cfg):
             assert mgr._should_use_session_sharing(info) is False
 
     def test_parentless_spawn_excluded(self) -> None:
         mgr = _manager()
         cfg = MagicMock()
         cfg.agent.session_sharing = True
-        with patch("kiro_crew.subagent.KiroCrewConfig.load", return_value=cfg):
+        with patch("junction.subagent.JunctionConfig.load", return_value=cfg):
             assert mgr._should_use_session_sharing(_info()) is False
 
     def test_eligible_parent_accepted(self) -> None:
         mgr = _manager()
         cfg = MagicMock()
         cfg.agent.session_sharing = True
-        with patch("kiro_crew.subagent.KiroCrewConfig.load", return_value=cfg):
+        with patch("junction.subagent.JunctionConfig.load", return_value=cfg):
             assert mgr._should_use_session_sharing(_info(parent_session_key="dash:1")) is True
 
 
@@ -2079,11 +2079,11 @@ class TestGetParentRuntime:
 
 class TestIsCcProvider:
     def test_delegates_to_backend_probe(self) -> None:
-        with patch("kiro_crew.providers.acp.is_claude_backend", return_value=True):
+        with patch("junction.providers.acp.is_claude_backend", return_value=True):
             assert SubagentManager._is_cc_provider(object()) is True
 
     def test_non_claude_backend(self) -> None:
-        with patch("kiro_crew.providers.acp.is_claude_backend", return_value=False):
+        with patch("junction.providers.acp.is_claude_backend", return_value=False):
             assert SubagentManager._is_cc_provider(object()) is False
 
 

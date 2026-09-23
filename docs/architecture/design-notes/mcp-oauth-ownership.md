@@ -23,7 +23,7 @@ kiro-cli reads its agent definition from `agent.json` at session start. MCP serv
 Path B has two showstoppers:
 
 - **Expiration is invisible.** The token in `agent.json` is static. When it expires, the next MCP call returns 401 mid-turn, and there's no refresh story.
-- **Plaintext on disk.** The token sits in a JSON file the agent itself can read. An agent doing legitimate filesystem work — `cat ~/.kiro/agents/kirocrew.json`, `grep -r Bearer ~`, anything — pulls the credential into its own context. Same risk class as `.env` files and `.aws/credentials`, except agents are LLM-driven, with a "curiosity gradient" much higher than a human's.
+- **Plaintext on disk.** The token sits in a JSON file the agent itself can read. An agent doing legitimate filesystem work — `cat ~/.kiro/agents/junction.json`, `grep -r Bearer ~`, anything — pulls the credential into its own context. Same risk class as `.env` files and `.aws/credentials`, except agents are LLM-driven, with a "curiosity gradient" much higher than a human's.
 
 So in practice we live on Path A. The cost: **kiro-cli owns the entire OAuth chain** — config reading, browser flow, callback server, token storage, refresh, sign-out — and Kiro Crew's only observation surface is one-directional `_kiro.dev/*` notifications. Concretely:
 

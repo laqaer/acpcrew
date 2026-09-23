@@ -17,7 +17,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kiro_crew.config.schema import (
+from junction.config.schema import (
     SCHEMA_REGISTRY,
     config_entry_to_dict,
 )
@@ -30,7 +30,7 @@ def _owner_caller(monkeypatch):
     its own enumerate-the-invariant coverage in
     test_agents_endpoints_owner_auth.py."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.agents.is_owner_dashboard_request",
+        "junction.dashboard.handlers.agents.is_owner_dashboard_request",
         lambda request: True,
     )
 
@@ -42,7 +42,7 @@ def _owner_caller(monkeypatch):
 
 def _make_app() -> web.Application:
     """Minimal aiohttp app with the schema endpoint."""
-    from kiro_crew.dashboard.handlers import api_config_schema
+    from junction.dashboard.handlers import api_config_schema
 
     app = web.Application()
     app.router.add_get("/api/config/schema", api_config_schema)
@@ -205,24 +205,24 @@ class TestSchemaApiEndpoint:
 
 
 # ---------------------------------------------------------------------------
-# KiroCrew Agent CRUD API tests (Tasks 5.3 + 5.4)
+# Junction Agent CRUD API tests (Tasks 5.3 + 5.4)
 # ---------------------------------------------------------------------------
 
 
 def _make_crud_app() -> web.Application:
-    """Minimal aiohttp app with KiroCrew Agent CRUD endpoints."""
-    from kiro_crew.dashboard.handlers import (
-        api_kirocrew_agent_delete,
-        api_kirocrew_agent_update,
-        api_kirocrew_agents,
-        api_kirocrew_agents_create,
+    """Minimal aiohttp app with Junction Agent CRUD endpoints."""
+    from junction.dashboard.handlers import (
+        api_junction_agent_delete,
+        api_junction_agent_update,
+        api_junction_agents,
+        api_junction_agents_create,
     )
 
     app = web.Application()
-    app.router.add_get("/api/agents", api_kirocrew_agents)
-    app.router.add_post("/api/agents", api_kirocrew_agents_create)
-    app.router.add_put("/api/agents/{name}", api_kirocrew_agent_update)
-    app.router.add_delete("/api/agents/{name}", api_kirocrew_agent_delete)
+    app.router.add_get("/api/agents", api_junction_agents)
+    app.router.add_post("/api/agents", api_junction_agents_create)
+    app.router.add_put("/api/agents/{name}", api_junction_agent_update)
+    app.router.add_delete("/api/agents/{name}", api_junction_agent_delete)
     return app
 
 
@@ -237,7 +237,7 @@ def _seed_config() -> dict:
     return {
         "agents": {
             "default": {
-                "kiro_agent": "kirocrew",
+                "kiro_agent": "junction",
                 "workspace": "default",
                 "memory_store": "default",
             },
@@ -253,7 +253,7 @@ def _seed_config() -> dict:
 
 
 class TestAgentCrudProperties:
-    """Property-based tests for KiroCrew Agent CRUD round-trips."""
+    """Property-based tests for Junction Agent CRUD round-trips."""
 
     # Feature: multi-agent-orchestration, Property 8: CRUD create round-trip
     # **Validates: Requirements 4.1, 4.2**
@@ -264,7 +264,7 @@ class TestAgentCrudProperties:
             min_size=1,
             max_size=30,
         ),
-        kiro_agent=st.sampled_from(["kirocrew", "oncall", "research", "coding"]),
+        kiro_agent=st.sampled_from(["junction", "oncall", "research", "coding"]),
         workspace=st.sampled_from(["default", "oncall", "research"]),
         memory_store=st.sampled_from(["default", "oncall-kb", "research-mem"]),
     )
@@ -286,7 +286,7 @@ class TestAgentCrudProperties:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     # Create
                     resp = await client.post(
@@ -331,13 +331,13 @@ class TestAgentCrudProperties:
         if not (update_kiro or update_ws or update_ms):
             update_kiro = True  # ensure at least one field updated
 
-        new_kiro = data.draw(st.sampled_from(["kirocrew", "oncall", "research"]))
+        new_kiro = data.draw(st.sampled_from(["junction", "oncall", "research"]))
         new_ws = data.draw(st.sampled_from(["default", "oncall"]))
         new_ms = data.draw(st.sampled_from(["default", "oncall-kb"]))
 
         seed = _seed_config()
         seed["agents"]["test-agent"] = {
-            "kiro_agent": "kirocrew",
+            "kiro_agent": "junction",
             "workspace": "default",
             "memory_store": "default",
         }
@@ -347,7 +347,7 @@ class TestAgentCrudProperties:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     body: dict = {}
                     if update_kiro:
@@ -368,7 +368,7 @@ class TestAgentCrudProperties:
                     if update_kiro:
                         assert agent["kiro_agent"] == new_kiro
                     else:
-                        assert agent["kiro_agent"] == "kirocrew"
+                        assert agent["kiro_agent"] == "junction"
                     if update_ws:
                         assert agent["workspace"] == new_ws
                     else:
@@ -399,7 +399,7 @@ class TestAgentCrudProperties:
 
         seed = _seed_config()
         seed["agents"][name] = {
-            "kiro_agent": "kirocrew",
+            "kiro_agent": "junction",
             "workspace": "default",
             "memory_store": "default",
         }
@@ -409,7 +409,7 @@ class TestAgentCrudProperties:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.delete(f"/api/agents/{name}")
                     assert resp.status == 200
@@ -428,7 +428,7 @@ class TestAgentCrudProperties:
 
 
 class TestAgentCrudEdgeCases:
-    """Unit tests for KiroCrew Agent CRUD error handling."""
+    """Unit tests for Junction Agent CRUD error handling."""
 
     @pytest.mark.asyncio
     async def test_create_duplicate_returns_409(self) -> None:
@@ -438,11 +438,11 @@ class TestAgentCrudEdgeCases:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.post(
                         "/api/agents",
-                        json={"name": "default", "kiro_agent": "kirocrew"},
+                        json={"name": "default", "kiro_agent": "junction"},
                     )
                     assert resp.status == 409
                     data = await resp.json()
@@ -458,7 +458,7 @@ class TestAgentCrudEdgeCases:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.put(
                         "/api/agents/nonexistent",
@@ -478,7 +478,7 @@ class TestAgentCrudEdgeCases:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.delete("/api/agents/default")
                     assert resp.status == 409
@@ -495,7 +495,7 @@ class TestAgentCrudEdgeCases:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.delete("/api/agents/nonexistent")
                     assert resp.status == 404
@@ -512,11 +512,11 @@ class TestAgentCrudEdgeCases:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.post(
                         "/api/agents",
-                        json={"name": "", "kiro_agent": "kirocrew"},
+                        json={"name": "", "kiro_agent": "junction"},
                     )
                     assert resp.status == 400
                     data = await resp.json()
@@ -532,11 +532,11 @@ class TestAgentCrudEdgeCases:
             tmp = Path(f.name)
 
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(_make_crud_app())) as client:
                     resp = await client.post(
                         "/api/agents",
-                        json={"name": "   ", "kiro_agent": "kirocrew"},
+                        json={"name": "   ", "kiro_agent": "junction"},
                     )
                     assert resp.status == 400
         finally:
@@ -550,14 +550,14 @@ async def test_crud_triggers_create_and_update_round_trip() -> None:
         json.dump(_seed_config(), f)
         tmp = Path(f.name)
     try:
-        with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+        with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
             async with TestClient(TestServer(_make_crud_app())) as client:
                 # Create carrying triggers
                 resp = await client.post(
                     "/api/agents",
                     json={
                         "name": "oncall",
-                        "kiro_agent": "kirocrew",
+                        "kiro_agent": "junction",
                         "triggers": "incident, prod outage, pager escalation",
                     },
                 )
@@ -589,7 +589,7 @@ class TestDefaultAgentGuard:
     """
 
     def _default_agent_app(self) -> web.Application:
-        from kiro_crew.dashboard.handlers import api_default_agent
+        from junction.dashboard.handlers import api_default_agent
 
         app = web.Application()
         app.router.add_put("/api/config/default-agent", api_default_agent)
@@ -602,7 +602,7 @@ class TestDefaultAgentGuard:
             json.dump(_seed_config(), f)
             tmp = Path(f.name)
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(self._default_agent_app())) as client:
                     resp = await client.put(
                         "/api/config/default-agent", json={"agent": "repo-only-agent"}
@@ -622,7 +622,7 @@ class TestDefaultAgentGuard:
             json.dump(_seed_config(), f)
             tmp = Path(f.name)
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(self._default_agent_app())) as client:
                     for bad in (["x"], {"n": 1}, 7):
                         resp = await client.put("/api/config/default-agent", json={"agent": bad})
@@ -643,9 +643,9 @@ class TestDefaultAgentGuard:
             json.dump(_seed_config(), f)
             tmp = Path(f.name)
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 with unittest.mock.patch(
-                    "kiro_crew.dashboard.handlers.agents.KiroCrewConfig.load",
+                    "junction.dashboard.handlers.agents.JunctionConfig.load",
                     side_effect=RuntimeError("boom"),
                 ):
                     async with TestClient(TestServer(self._default_agent_app())) as client:
@@ -664,7 +664,7 @@ class TestDefaultAgentGuard:
             json.dump(_seed_config(), f)
             tmp = Path(f.name)
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
                 async with TestClient(TestServer(self._default_agent_app())) as client:
                     resp = await client.put("/api/config/default-agent", json={"agent": "default"})
                     assert resp.status == 200

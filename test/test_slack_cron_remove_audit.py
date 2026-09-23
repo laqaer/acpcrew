@@ -22,10 +22,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.cron as cron_mod
-import kiro_crew.messaging.commands as mc
-import kiro_crew.slack.handler as h
-from kiro_crew.cron import CronJob, CronSchedule, CronService, CronStoreBusy
+import junction.cron as cron_mod
+import junction.messaging.commands as mc
+import junction.slack.handler as h
+from junction.cron import CronJob, CronSchedule, CronService, CronStoreBusy
 
 
 def _job(job_id: str = "j1", *, name: str = "nightly") -> CronJob:
@@ -48,7 +48,7 @@ class TestSlackSingleRemoveAudit:
     async def test_remove_emits_sel_audit_with_caller(self):
         svc = MagicMock()
         svc.remove_job_async = AsyncMock(return_value=True)
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             out = await h._handle_cron_command("cron remove j1", svc, "C", "t", user_id="U123")
         assert out is not None and "Removed cron job" in out
         svc.remove_job_async.assert_awaited_once_with("j1", actor="U123", source="slack")
@@ -58,7 +58,7 @@ class TestSlackSingleRemoveAudit:
     async def test_remove_missing_audits_not_found(self):
         svc = MagicMock()
         svc.remove_job_async = AsyncMock(return_value=False)
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             out = await h._handle_cron_command("cron remove ghost", svc, "C", "t", user_id="U123")
         assert out is not None and "not found" in out
         svc.remove_job_async.assert_awaited_once_with("ghost", actor="U123", source="slack")
@@ -68,7 +68,7 @@ class TestSlackSingleRemoveAudit:
     async def test_caller_falls_back_to_surface_when_no_user(self):
         svc = MagicMock()
         svc.remove_job_async = AsyncMock(return_value=True)
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             await h._handle_cron_command("cron remove j1", svc, "C", "t")
         svc.remove_job_async.assert_awaited_once_with("j1", actor="slack", source="slack")
         mock_sel.return_value.log_api_access.assert_not_called()
@@ -79,7 +79,7 @@ class TestSlackSingleRemoveAudit:
         # audit, matching the dashboard single-delete busy path.
         svc = MagicMock()
         svc.remove_job_async = AsyncMock(side_effect=CronStoreBusy())
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             out = await h._handle_cron_command("cron remove j1", svc, "C", "t", user_id="U123")
         assert out is not None and "busy" in out
         mock_sel.return_value.log_api_access.assert_not_called()
@@ -92,7 +92,7 @@ class TestSlackSingleRemoveAudit:
         svc = MagicMock()
         svc.remove_job_async = AsyncMock(return_value=True)
         with patch(
-            "kiro_crew.messaging.commands.sel",
+            "junction.messaging.commands.sel",
             side_effect=RuntimeError("SEL trust root unavailable"),
         ):
             out = await h._handle_cron_command("cron remove j1", svc, "C", "t", user_id="U123")
@@ -110,7 +110,7 @@ class TestSlackRemoveAllAudit:
         svc = MagicMock()
         svc.list_jobs.return_value = [_job("j1"), _job("j2")]
         svc.remove_jobs = AsyncMock(return_value=(["j1", "j2"], []))
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             out = await mc.cron_remove_all_reply(svc, source="slack", caller="U123")
         assert "Removed 2 cron job(s)" in out
         svc.remove_jobs.assert_awaited_once_with(["j1", "j2"], actor="U123", source="slack")
@@ -123,7 +123,7 @@ class TestSlackRemoveAllAudit:
         svc = MagicMock()
         svc.list_jobs.return_value = [_job("j1")]
         svc.remove_jobs = AsyncMock(return_value=([], ["j1"]))
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             await mc.cron_remove_all_reply(svc, source="slack", caller="U123")
         svc.remove_jobs.assert_awaited_once_with(["j1"], actor="U123", source="slack")
         mock_sel.return_value.log_api_access.assert_not_called()
@@ -133,7 +133,7 @@ class TestSlackRemoveAllAudit:
         svc = MagicMock()
         svc.list_jobs.return_value = [_job("j1")]
         svc.remove_jobs = AsyncMock(side_effect=CronStoreBusy())
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             out = await mc.cron_remove_all_reply(svc, source="slack", caller="U123")
         assert "busy" in out
         mock_sel.return_value.log_api_access.assert_not_called()
@@ -144,7 +144,7 @@ class TestSlackRemoveAllAudit:
         svc.list_jobs.return_value = [_job("j1"), _job("j2")]
         svc.remove_jobs = AsyncMock(return_value=(["j1", "j2"], []))
         with patch(
-            "kiro_crew.messaging.commands.sel",
+            "junction.messaging.commands.sel",
             side_effect=RuntimeError("SEL trust root unavailable"),
         ):
             out = await mc.cron_remove_all_reply(svc, source="slack", caller="U123")
@@ -295,7 +295,7 @@ class TestMergeJobResultOneShotAudit:
 # One-shot auto-removal: gateway direct Done removal (slack/gateway.py)
 # ──────────────────────────────────────────────────────────────────────
 def _make_gw():
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     gw = GatewayOrchestrator.__new__(GatewayOrchestrator)
     gw.sessions = MagicMock()
@@ -346,13 +346,13 @@ async def _run_done_callback(
     recorder = MagicMock()
 
     with (
-        patch("kiro_crew.slack.gateway.CronService") as mock_cron_cls,
+        patch("junction.slack.gateway.CronService") as mock_cron_cls,
         patch(
-            "kiro_crew.slack.gateway.run_script_sandboxed",
+            "junction.slack.gateway.run_script_sandboxed",
             return_value={"status": "done", "message": "all done"},
         ),
-        patch("kiro_crew.slack.gateway.vet_job_at_fire_time", return_value=None),
-        patch("kiro_crew.slack.gateway.sel", return_value=recorder),
+        patch("junction.slack.gateway.vet_job_at_fire_time", return_value=None),
+        patch("junction.slack.gateway.sel", return_value=recorder),
     ):
 
         def capture_cron(on_job=None, **kw):

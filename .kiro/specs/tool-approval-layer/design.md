@@ -5,7 +5,7 @@
 The approval layer is the seam between an autonomous agent and any consequential action.
 It already exists in Kiro Crew as three cooperating pieces:
 
-1. **Enforcement (backend):** `HookManager.on_tool_call` in `src/kiro_crew/hooks.py`
+1. **Enforcement (backend):** `HookManager.on_tool_call` in `src/junction/hooks.py`
    returns `TOOL_ALLOW` / `TOOL_AUTO_APPROVE` / `TOOL_DENY` at the PreToolUse boundary,
    applying sensitive-path, exfiltration, write-protected-config, deny-by-default-shell,
    and governance (ceiling ∩ profile) rules. This is the **only** policy authority.
@@ -59,7 +59,7 @@ Tool executes (approved) or is skipped (rejected); agent turn continues
 
 | Existing | Layer relationship |
 |---|---|
-| `src/kiro_crew/hooks.py` (`on_tool_call`) | **Unchanged.** Sole policy authority; the layer reads its verdict. |
+| `src/junction/hooks.py` (`on_tool_call`) | **Unchanged.** Sole policy authority; the layer reads its verdict. |
 | `website/src/components/ApprovalCard.tsx` | Hosts `ToolPreviewFrame` + the batch affordance. |
 | `website/src/components/ToolInputPreview.tsx` | The fallback preview and the "show raw input" surface. |
 | `website/src/components/ChatInput.tsx` (`resolveApproval`) | **Unchanged** resume path the layer reuses (id-scoped by `request_id`; `approveChatSlot` is trust-grants only). |

@@ -67,7 +67,7 @@ before the app.json merge — never from the repo-fetched manifest — because
 `origin` and `author` are otherwise copied verbatim from index or manifest
 content for a not-yet-installed app: deriving trust from either let an added
 registry publish `origin: "builtin"`, or a third-party core repo publish
-`author: "KiroCrew"`, and self-award the first-party mark next to a button
+`author: "Junction"`, and self-award the first-party mark next to a button
 that runs its setup code with gateway privileges. The author comparison runs
 through `_fold_author` (NFKC, drop category-`Cf`, collapse whitespace, lower)
 against `FIRST_PARTY_AUTHORS`, so both the joined historical spelling and the
@@ -117,10 +117,10 @@ emitted: besides the external-source label and older clients,
 `appManifest.ts::keysFor` (first-party copy gate) and `pickFeatured`'s
 legacy arm still read it.
 
-## 1. App MCP servers land in KiroCrew's agent config, never the shared kiro file
+## 1. App MCP servers land in Junction's agent config, never the shared kiro file
 
-An app's `mcpServers` are written into KiroCrew's own agent config
-(`<kiro agents dir>/kirocrew.json`, resolved through `config.paths.kiro_agents_dir`
+An app's `mcpServers` are written into Junction's own agent config
+(`<kiro agents dir>/junction.json`, resolved through `config.paths.kiro_agents_dir`
 so test/dev home redirects are honoured), **not** the shared
 `~/.kiro/settings/mcp.json`.
 
@@ -128,7 +128,7 @@ Why it is a contract and not a detail: the shared file is read by everything els
 living under `~/.kiro` — the Kiro IDE and every other kiro-cli agent — so
 registering an app's servers there leaked that app's private tools into surfaces
 that never installed it, and a dead HTTP entry there broke EVERY kiro session, not
-just the app's. KiroCrew sessions read only the agent config (`includeMcpJson` is
+just the app's. Junction sessions read only the agent config (`includeMcpJson` is
 pinned False in `agent.py`), so the narrower target is also sufficient.
 
 **Migration is finished at boot, not at disable.** `reconcile_enabled_app_resources`
@@ -385,7 +385,7 @@ hook against partially initialized state.
 
 Normal recovery is to retry after retained startup execution exits. If a startup
 hook is permanently wedged, the operator must **stop the gateway completely**,
-run `kirocrew app disable <name>` while no gateway process can execute app code,
+run `junction app disable <name>` while no gateway process can execute app code,
 and then restart the gateway. The CLI command only writes `enabled=false` to
 installed-app metadata; it is not runtime teardown and must not be run against a
 live gateway as evidence that old app code stopped. The disabled app is skipped
@@ -751,7 +751,7 @@ resolution), `dashboard/state.py` (`_send_ws_all`, `_ws_client_allowed`,
 (`_granted_list`); consumers: `website/src/app-sdk/index.ts` (mirrors the tables
 for developer-facing diagnostics, drift-guarded by
 `website/src/test/appSdkEventScope.test.ts`). Runtime-facing summary for app
-authors: [../../../src/kiro_crew/docs/app-platform-trust-model.md](../../../src/kiro_crew/docs/app-platform-trust-model.md).
+authors: [../../../src/junction/docs/app-platform-trust-model.md](../../../src/junction/docs/app-platform-trust-model.md).
 
 ## 14. The published catalog is the store's inventory
 

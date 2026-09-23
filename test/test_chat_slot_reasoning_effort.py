@@ -8,8 +8,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.chat import api_chat_slot_reasoning_effort
-from kiro_crew.dashboard.state import DashboardState, _ChatSlot
+from junction.dashboard.chat import api_chat_slot_reasoning_effort
+from junction.dashboard.state import DashboardState, _ChatSlot
 
 
 def _make_app(state: DashboardState) -> web.Application:
@@ -269,7 +269,7 @@ class TestChatSlotReasoningEffortLiveProvider:
 
     @pytest.mark.asyncio
     async def test_live_effort_capable_model_uses_change_effort_no_reset(self):
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -292,7 +292,7 @@ class TestChatSlotReasoningEffortLiveProvider:
     async def test_live_clear_applied_live_skips_reset(self):
         # clear_effort returns True only when a default was applied LIVE
         # (kiro with a workspace default) → no session reset needed.
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -315,7 +315,7 @@ class TestChatSlotReasoningEffortLiveProvider:
         # clear_effort returns False (claude, or kiro with no workspace default)
         # → the running session can't be reset to default live, so the handler
         # MUST reset the session so a cold start re-resolves the true default.
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -335,7 +335,7 @@ class TestChatSlotReasoningEffortLiveProvider:
 
     @pytest.mark.asyncio
     async def test_non_effort_capable_model_persists_without_live_or_reset(self):
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=False)
@@ -356,7 +356,7 @@ class TestChatSlotReasoningEffortLiveProvider:
 
     @pytest.mark.asyncio
     async def test_live_change_failure_falls_back_to_reset(self):
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -378,7 +378,7 @@ class TestChatSlotReasoningEffortLiveProvider:
         # (change_effort's response wait would race the in-flight prompt read
         # loop on the same process). The override is persisted on the slot and
         # applies on the next turn; no live push, no session reset.
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -405,7 +405,7 @@ class TestChatSlotReasoningEffortLiveProvider:
     @pytest.mark.asyncio
     async def test_active_turn_defers_clear_too(self):
         # Clearing to default while a turn is active is likewise deferred.
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -431,7 +431,7 @@ class TestChatSlotReasoningEffortLiveProvider:
     @pytest.mark.asyncio
     async def test_no_active_turn_pushes_live(self):
         # Contrast: with no active turn the handler pushes change_effort live.
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         provider = MagicMock(spec=AcpProvider)
         provider.supports_effort = MagicMock(return_value=True)
@@ -457,7 +457,7 @@ class TestValidateReasoningEffortPersistence:
 
     @pytest.mark.parametrize("level", ["", "low", "medium", "high", "xhigh", "max"])
     def test_passes_through_allowlisted(self, level: str):
-        from kiro_crew.dashboard.chat_persistence import _validate_reasoning_effort
+        from junction.dashboard.chat_persistence import _validate_reasoning_effort
         assert _validate_reasoning_effort(level) == level
 
     @pytest.mark.parametrize(
@@ -465,11 +465,11 @@ class TestValidateReasoningEffortPersistence:
         ["LOW", "; rm -rf /", "max --evil-flag", "../../../etc", "extreme", " low"],
     )
     def test_discards_disallowed(self, tampered: str):
-        from kiro_crew.dashboard.chat_persistence import _validate_reasoning_effort
+        from junction.dashboard.chat_persistence import _validate_reasoning_effort
         assert _validate_reasoning_effort(tampered) == ""
 
     def test_discards_non_string(self):
-        from kiro_crew.dashboard.chat_persistence import _validate_reasoning_effort
+        from junction.dashboard.chat_persistence import _validate_reasoning_effort
         assert _validate_reasoning_effort(5) == ""
         assert _validate_reasoning_effort(None) == ""
         assert _validate_reasoning_effort(["max"]) == ""

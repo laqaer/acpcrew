@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import threading
 
-from kiro_crew._sqlite_compat import sqlite3
-from kiro_crew.memory import MemoryStore, _is_corruption_error
+from junction._sqlite_compat import sqlite3
+from junction.memory import MemoryStore, _is_corruption_error
 
 
 class TestCorruptionDetection:

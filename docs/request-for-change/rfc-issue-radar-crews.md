@@ -2,7 +2,7 @@
 title: Issue Radar Crews — autonomous issue workers with a public claim ledger
 status: draft
 revision: v1
-author: kirocrew agent session, directed by diwm
+author: junction agent session, directed by diwm
 created: 2026-08-08
 last-audited: 2026-08-08
 audited-at: f2aa4c8bb
@@ -19,7 +19,7 @@ was read at `5adec8c58` and re-verified unchanged at `f2aa4c8bb`, the commit
 implementation starts from.
 
 **Disambiguation.** "Crews" already names two other things in this repository: the
-agent-template roster at `/capabilities` → Crews (`website/src/pages/KiroCrewAgentsPage.tsx`),
+agent-template roster at `/capabilities` → Crews (`website/src/pages/JunctionAgentsPage.tsx`),
 and "Crew Mode" in `rfc-orchestrator-chat-sessions.md`. This RFC's crews are
 neither. A crew here is a long-lived worker session that works one repository's
 open issues. The name is kept because it is the one the feature will be called;
@@ -51,9 +51,9 @@ human, so there would be nothing for one to show.
 
 Two companion documents carry the detail this one deliberately does not repeat:
 
-- `src/kiro_crew/apps/builtins/issue_radar/backend/crew_brief.md` — the crew's
+- `src/junction/apps/builtins/issue_radar/backend/crew_brief.md` — the crew's
   behavioural contract, delivered to the model verbatim.
-- `src/kiro_crew/apps/builtins/issue_radar/backend/crew_ledger_spec.md` — record
+- `src/junction/apps/builtins/issue_radar/backend/crew_ledger_spec.md` — record
   schemas, the phase enum, the event log, and the two MCP tools.
 
 ## 2. Why, and the honest ceiling
@@ -96,7 +96,7 @@ per-crew page therefore shows *phase and next step*, not a velocity number.
 | Workspace | one git worktree per issue |
 
 The closest existing precedent is `auto_research`
-(`src/kiro_crew/apps/builtins/auto_research/handlers.py:974-1040`): an app-owned
+(`src/junction/apps/builtins/auto_research/handlers.py:974-1040`): an app-owned
 dashboard slot, an autonudge loop, per-slot trust, a STOP sentinel, and a TTL
 watchdog. That launch sequence is the one to copy.
 
@@ -200,7 +200,7 @@ implementing · PR #2271 · CI round 3 · updated 20:44 UTC
 
 </details>
 
-<!-- kirocrew-crew v=1 id=c_7f3a phase=implementing pr=2271 updated=2026-08-08T20:44:12Z -->
+<!-- junction-crew v=1 id=c_7f3a phase=implementing pr=2271 updated=2026-08-08T20:44:12Z -->
 ```
 
 Two visible lines, history folded. The HTML comment is the machine payload, and
@@ -335,7 +335,7 @@ whatever agent the user picked. No agent spec is shipped for crews, and nothing
 has to be pasted anywhere.
 
 **Injection is a presence check, not a schedule.** The backend scans
-`slot.messages` for the sentinel `<!-- kirocrew-crew-brief v1 -->`, requiring the
+`slot.messages` for the sentinel `<!-- junction-crew-brief v1 -->`, requiring the
 carrying message to be at least as long as the brief so that a compaction summary
 quoting the sentinel is not a false hit. On a miss, inject. One rule covers session
 start, post-compaction, gateway restart, and any future truncation mechanism, with

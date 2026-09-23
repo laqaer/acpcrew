@@ -1,7 +1,7 @@
-// The kiro agent FILE's model (~/.kiro/agents/kirocrew.json → e.g.
+// The kiro agent FILE's model (~/.kiro/agents/junction.json → e.g.
 // claude-opus-4.8) can differ from the configured default the turn actually
 // runs on (e.g. claude-opus-5). The precedence chain is four tiers deep (the
-// KiroCrew agent's own model, the bound kiro agent's pin, the global fallback,
+// Junction agent's own model, the bound kiro agent's pin, the global fallback,
 // the installed agent file) and ONE backend resolver owns it — resolveModel
 // must delegate rather than keep a second copy that can drift and mismatch.
 
@@ -9,7 +9,7 @@ vi.mock('../api/client', () => ({
   api: {
     agentDetail: vi.fn(),
     agentResolvedModel: vi.fn(),
-    kirocrewConfig: vi.fn(),
+    junctionConfig: vi.fn(),
   },
 }))
 
@@ -18,7 +18,7 @@ import { AcpAdapter } from '../providers/adapters/acp'
 
 const agentDetail = api.agentDetail as unknown as ReturnType<typeof vi.fn>
 const agentResolvedModel = api.agentResolvedModel as unknown as ReturnType<typeof vi.fn>
-const kirocrewConfig = api.kirocrewConfig as unknown as ReturnType<typeof vi.fn>
+const junctionConfig = api.junctionConfig as unknown as ReturnType<typeof vi.fn>
 
 describe('AcpAdapter.resolveModel — delegates to the backend resolver', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -28,7 +28,7 @@ describe('AcpAdapter.resolveModel — delegates to the backend resolver', () => 
     expect(await new AcpAdapter().resolveModel('oncall')).toBe('claude-opus-5')
   })
 
-  it('passes the KiroCrew agent name through, not a kiro template name', async () => {
+  it('passes the Junction agent name through, not a kiro template name', async () => {
     // Several agents can share one template, so the agent name is the only
     // input that can select a per-agent pin.
     agentResolvedModel.mockResolvedValue({ model: 'claude-opus-5' })
@@ -40,7 +40,7 @@ describe('AcpAdapter.resolveModel — delegates to the backend resolver', () => 
     agentResolvedModel.mockResolvedValue({ model: 'claude-opus-5' })
     await new AcpAdapter().resolveModel('oncall')
     expect(agentDetail).not.toHaveBeenCalled()
-    expect(kirocrewConfig).not.toHaveBeenCalled()
+    expect(junctionConfig).not.toHaveBeenCalled()
   })
 
   it('reports "" when every tier defers, so callers keep the backend-picks semantics', async () => {
@@ -68,17 +68,17 @@ describe('AcpAdapter.resolveDefaultEffort', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('returns the configured default effort', async () => {
-    kirocrewConfig.mockResolvedValue({ agent: { reasoning_effort: 'high' } })
+    junctionConfig.mockResolvedValue({ agent: { reasoning_effort: 'high' } })
     expect(await new AcpAdapter().resolveDefaultEffort()).toBe('high')
   })
 
   it('returns "" when unset, so callers keep the model-default semantics', async () => {
-    kirocrewConfig.mockResolvedValue({ agent: {} })
+    junctionConfig.mockResolvedValue({ agent: {} })
     expect(await new AcpAdapter().resolveDefaultEffort()).toBe('')
   })
 
   it('returns "" on a failed config read rather than throwing', async () => {
-    kirocrewConfig.mockRejectedValue(new Error('boom'))
+    junctionConfig.mockRejectedValue(new Error('boom'))
     expect(await new AcpAdapter().resolveDefaultEffort()).toBe('')
   })
 })

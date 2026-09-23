@@ -33,13 +33,13 @@ from pathlib import Path
 from typing import Any, cast
 from unittest import mock
 
-from kiro_crew.apps.builtins.issue_radar.backend import crew_runtime as cr
-from kiro_crew.apps.builtins.issue_radar.backend import crew_store as cs
-from kiro_crew.apps.builtins.issue_radar.backend import provider
-from kiro_crew.apps.builtins.issue_radar.backend import store as store_mod
-from kiro_crew.apps.builtins.issue_radar.backend import watch as watch_mod
-from kiro_crew.dashboard import chat_runner
-from kiro_crew.safety_override import reset_singleton, safety_override
+from junction.apps.builtins.issue_radar.backend import crew_runtime as cr
+from junction.apps.builtins.issue_radar.backend import crew_store as cs
+from junction.apps.builtins.issue_radar.backend import provider
+from junction.apps.builtins.issue_radar.backend import store as store_mod
+from junction.apps.builtins.issue_radar.backend import watch as watch_mod
+from junction.dashboard import chat_runner
+from junction.safety_override import reset_singleton, safety_override
 
 OWNER, REPO = "o", "r"
 _KEY = provider.key_from_parts(OWNER, REPO)
@@ -571,7 +571,7 @@ class TestCrewStoreScoping(unittest.TestCase):
         return False
 
     def test_no_unscoped_crew_store_call_survives(self):
-        from kiro_crew.apps.builtins.issue_radar.backend import crew_routes
+        from junction.apps.builtins.issue_radar.backend import crew_routes
 
         for module in (crew_routes, cr):
             offenders = self._offenders(module)
@@ -617,13 +617,13 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(reset_singleton)
 
     async def test_session_key_agent_workspace_and_model_come_from_the_record(self):
-        crew = _crew(self.root, agent="kirocrew", model="claude-opus-5")
+        crew = _crew(self.root, agent="junction", model="claude-opus-5")
         state = _FakeState()
         slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
         self.assertEqual(slot.key, f"crew-{crew['id']}")
         created = state.created[-1]
         self.assertEqual(created["name"], f"crew-{crew['id']}")
-        self.assertEqual(created["agent"], "kirocrew")
+        self.assertEqual(created["agent"], "junction")
         self.assertEqual(created["app"], "issue-radar")
         # The record's model is passed EXPLICITLY, which is what overrides the
         # agent's own pin.
@@ -706,7 +706,7 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
         auto-approving tools with no record that it was ever allowed to."""
         crew = _crew(self.root, unattended=True)
         with mock.patch(
-            "kiro_crew.safety_override.sel", side_effect=OSError("SEL unavailable")
+            "junction.safety_override.sel", side_effect=OSError("SEL unavailable")
         ):
             slot = await cr.ensure_crew_session(_FakeState(), OWNER, REPO, crew)
         self.assertFalse(_effectively_trusted(slot))
@@ -1449,7 +1449,7 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         independent assertion to the change under test destroys the only signal
         that assertion carries.
         """
-        from kiro_crew.apps import teardown
+        from junction.apps import teardown
 
         self.addCleanup(teardown.unregister_slot_close_hook, cr.APP_NAME)
         return teardown
@@ -1583,7 +1583,7 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         the watchdog's own idempotent registration) never runs. The hook can only
         be present here if the loop registered it on entry.
         """
-        from kiro_crew.apps.builtins.issue_radar.backend import watch
+        from junction.apps.builtins.issue_radar.backend import watch
 
         teardown = self._teardown_mod()
         teardown.unregister_slot_close_hook(cr.APP_NAME)
@@ -1691,7 +1691,7 @@ class TestWatchGating(unittest.IsolatedAsyncioTestCase):
     """The two gates in ``watch.py`` and the difference between them."""
 
     def _watch(self):
-        from kiro_crew.apps.builtins.issue_radar.backend import watch
+        from junction.apps.builtins.issue_radar.backend import watch
 
         watch._crews_suspended = False
         return watch
@@ -1802,7 +1802,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         reset_singleton()
         self.addCleanup(reset_singleton)
-        from kiro_crew.apps import teardown
+        from junction.apps import teardown
 
         # ``watchdog_cycle`` re-registers the dismissal hook, which is process-wide
         # state; drop it again so these tests cannot change another's outcome.
@@ -1827,7 +1827,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         registers the right callable under its own name, so the seam is live the
         moment core calls it.
         """
-        from kiro_crew.apps import teardown
+        from junction.apps import teardown
 
         registry: dict[str, Any] = {}
         patch = mock.patch.object(
@@ -1900,7 +1900,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.slot._trust_scope, "")
 
     async def test_the_sweep_still_suspends_a_flag_flipped_behind_our_back(self):
-        """The BACKSTOP. ``kirocrew app disable`` runs in another process and an
+        """The BACKSTOP. ``junction app disable`` runs in another process and an
         ``installed.json`` can be edited on disk, so neither can reach an in-process
         hook. The sweep is the only thing that catches those, and it must keep
         working with no hook registered at all."""
@@ -1967,7 +1967,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         The absence is SIMULATED rather than read off the real module, so this keeps
         testing the degradation path after core lands the registry.
         """
-        from kiro_crew.apps import teardown
+        from junction.apps import teardown
 
         with mock.patch.object(teardown, "register_app_disable_hook", None, create=True):
             self.assertFalse(cr.install_app_disable_hook(self.state))

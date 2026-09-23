@@ -17,7 +17,7 @@ const BASE_USAGE: KiroCreditUsage = {
 
 describe('KiroAccountModal', () => {
   beforeEach(() => {
-    localStorage.removeItem('kirocrew:account-email-hidden')
+    localStorage.removeItem('junction:account-email-hidden')
   })
 
   it('combines owner identity, plan, remaining credits, and billing details', async () => {
@@ -102,10 +102,10 @@ describe('KiroAccountModal', () => {
 
     const email = await screen.findByText('owner@example.com')
     expect(email).toHaveClass('blur-[5px]')
-    expect(localStorage.getItem('kirocrew:account-email-hidden')).toBeNull()
+    expect(localStorage.getItem('junction:account-email-hidden')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Show email' }))
     expect(email).not.toHaveClass('blur-[5px]')
-    expect(localStorage.getItem('kirocrew:account-email-hidden')).toBe('0')
+    expect(localStorage.getItem('junction:account-email-hidden')).toBe('0')
 
     firstRender.unmount()
     renderWithProviders(
@@ -116,7 +116,7 @@ describe('KiroAccountModal', () => {
     expect(persistedEmail).not.toHaveClass('blur-[5px]')
     fireEvent.click(screen.getByRole('button', { name: 'Hide email' }))
     expect(persistedEmail).toHaveClass('blur-[5px]')
-    expect(localStorage.getItem('kirocrew:account-email-hidden')).toBe('1')
+    expect(localStorage.getItem('junction:account-email-hidden')).toBe('1')
   })
 
   it('keeps the generic label for an unspecified social provider', async () => {

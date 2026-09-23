@@ -29,8 +29,8 @@ from aiohttp.test_utils import TestClient, TestServer
 # resolves to the stdlib `test` and fails with ModuleNotFoundError on CI.
 from chat_test_helpers import _make_ready_kiro_prerequisite
 
-from kiro_crew.dashboard.state import _SLOTS_BROADCAST_INTERVAL_S, DashboardState
-from kiro_crew.history import ConversationLog
+from junction.dashboard.state import _SLOTS_BROADCAST_INTERVAL_S, DashboardState
+from junction.history import ConversationLog
 
 FOLDER_ID = "f-design"
 
@@ -53,7 +53,7 @@ def _make_state(tmp_path):
 
 
 def _make_app(state) -> web.Application:
-    from kiro_crew.dashboard.chat import api_chat_slot_create
+    from junction.dashboard.chat import api_chat_slot_create
 
     app = web.Application()
     app["state"] = state
@@ -68,7 +68,7 @@ def _as_app_handler(app_name: str):
     so the ownership branch is exercised through the real handler.
     """
 
-    from kiro_crew.dashboard.chat import api_chat_slot_create
+    from junction.dashboard.chat import api_chat_slot_create
 
     async def handler(request: web.Request) -> web.Response:
         request["app"] = app_name
@@ -96,7 +96,7 @@ def _record_broadcasts(state) -> list[list[dict]]:
 
 @pytest.fixture(autouse=True)
 def _isolate_config_dir(tmp_path, monkeypatch):
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
 
 
 class TestCreateInFolder:

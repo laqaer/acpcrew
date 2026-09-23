@@ -11,7 +11,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import api_project_tree
+from junction.dashboard.handlers import api_project_tree
 
 
 class _Slot:
@@ -37,7 +37,7 @@ def passthrough_sandbox(monkeypatch):
     fail CLOSED without one. The chokepoint's own behavior is covered by
     test_sandbox*/test_spawn_audit; these tests exercise the listing logic.
     """
-    from kiro_crew.dashboard.handlers import files as files_mod
+    from junction.dashboard.handlers import files as files_mod
 
     monkeypatch.setattr(
         files_mod,
@@ -48,7 +48,7 @@ def passthrough_sandbox(monkeypatch):
 
 @pytest.fixture()
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.sel") as m:
+    with patch("junction.dashboard.handlers.sel") as m:
         m.return_value = MagicMock()
         yield m.return_value
 
@@ -119,7 +119,7 @@ class TestProjectTree:
         redaction as the listing below it -- a project directory can carry a
         credential-shaped segment, and this arm is reachable, not defensive.
         """
-        from kiro_crew.dashboard.handlers import files as files_mod
+        from junction.dashboard.handlers import files as files_mod
 
         known = tmp_path / "AKIAIOSFODNN7EXAMPLE"
         known.mkdir()
@@ -152,7 +152,7 @@ class TestProjectTree:
         # must not let it run. Pinned on the argv because the flag is invisible
         # in the response: a listing with the hook enabled looks identical.
         seen: list[list[str]] = []
-        from kiro_crew.dashboard.handlers import files as files_mod
+        from junction.dashboard.handlers import files as files_mod
 
         real = files_mod._run_git_bounded
 
@@ -186,7 +186,7 @@ class TestProjectTree:
 
     @pytest.mark.asyncio
     async def test_walk_caps_entries_and_flags_truncation(self, tmp_path, mock_sel, monkeypatch):
-        from kiro_crew.dashboard.handlers import files as files_mod
+        from junction.dashboard.handlers import files as files_mod
 
         monkeypatch.setattr(files_mod, "_PROJECT_TREE_MAX_ENTRIES", 2)
         plain = tmp_path / "plain"

@@ -6,13 +6,13 @@ from pathlib import Path
 
 from test_folder_watcher import LOCK_FILES
 
-from kiro_crew.knowledge.doc_filter import (
+from junction.knowledge.doc_filter import (
     DOC_EXTENSIONS,
     MIN_DOC_BYTES,
     project_doc_properties,
     should_ingest_doc,
 )
-from kiro_crew.knowledge.folder_watcher import FolderWatcher
+from junction.knowledge.folder_watcher import FolderWatcher
 
 BIG = MIN_DOC_BYTES + 10
 
@@ -54,7 +54,7 @@ class TestExtensions:
             assert not should_ingest_doc(rel, BIG), rel
 
     def test_doc_extensions_are_all_reader_supported(self):
-        from kiro_crew.knowledge.readers import FileReader
+        from junction.knowledge.readers import FileReader
         assert DOC_EXTENSIONS <= FileReader.SUPPORTED
 
 
@@ -66,7 +66,7 @@ class TestSkips:
 
     def test_egg_info_pruned(self):
         # The dot is mid-name, so the walk's dot-prefix pruning never sees it.
-        assert not should_ingest_doc("src/kirocrew.egg-info/PKG-INFO.md", BIG)
+        assert not should_ingest_doc("src/junction.egg-info/PKG-INFO.md", BIG)
 
     def test_skip_dirs_pruned(self):
         for rel in ("tmp/notes.md", "vendor/lib/readme.md", "fixtures/case.md",
@@ -164,14 +164,14 @@ class TestRootConfinement:
         assert self._walk(self._tree(tmp_path), False) == ["real.md", "runbook.md"]
 
     def test_project_sources_turn_confinement_on(self):
-        from kiro_crew.knowledge.project_docs import project_source_properties
+        from junction.knowledge.project_docs import project_source_properties
         assert project_source_properties()["confine_to_root"] is True
 
     def test_a_sibling_prefix_is_not_treated_as_inside(self, tmp_path):
         # Both separator forms must work: commonpath answers in the platform's own
         # separator, so a "/"-style input compared against its own source string
         # never matched on Windows.
-        from kiro_crew.knowledge.folder_watcher import _within
+        from junction.knowledge.folder_watcher import _within
         base = str(tmp_path / "repo")
         assert _within(str(tmp_path / "repo" / "docs" / "a.md"), base)
         assert not _within(str(tmp_path / "repo-evil" / "a.md"), base)

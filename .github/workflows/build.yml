@@ -46,9 +46,9 @@ jobs:
 
       - name: Stage frontend into package
         run: |
-          rm -rf src/kiro_crew/static/dist
-          mkdir -p src/kiro_crew/static
-          cp -R website/dist src/kiro_crew/static/dist
+          rm -rf src/junction/static/dist
+          mkdir -p src/junction/static
+          cp -R website/dist src/junction/static/dist
 
       # Build the sdist too, not just the wheel: `--wheel` alone reads
       # package_data and never evaluates MANIFEST.in, so a MANIFEST regression
@@ -63,7 +63,7 @@ jobs:
       - name: Verify wheel installs cleanly
         run: |
           pip install dist/*.whl
-          kirocrew --version
+          junction --version
 
       # The PR-time vendored-lib gate. Without it the only such gate on a PR is
       # the pytest guard, which MODELS MANIFEST.in rather than executing it — so
@@ -103,8 +103,8 @@ jobs:
         shell: pwsh
         working-directory: website/electron
         run: |
-          New-Item -ItemType Directory -Force backend-dist/kirocrew-backend/bin | Out-Null
-          @('@echo off', 'exit /b 0') | Set-Content -Encoding ascii backend-dist/kirocrew-backend/bin/kirocrew.cmd
+          New-Item -ItemType Directory -Force backend-dist/junction-backend/bin | Out-Null
+          @('@echo off', 'exit /b 0') | Set-Content -Encoding ascii backend-dist/junction-backend/bin/junction.cmd
 
       - name: Compile unsigned x64 NSIS installer
         working-directory: website/electron

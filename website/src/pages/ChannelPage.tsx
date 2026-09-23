@@ -527,8 +527,8 @@ export default function ChannelPage() {
         setChannels(prev => prev.map(c => c.id === data.channel_id ? { ...c, messages: [] } : c))
       }
     }
-    window.addEventListener('kirocrew-channel', handler)
-    return () => window.removeEventListener('kirocrew-channel', handler)
+    window.addEventListener('junction-channel', handler)
+    return () => window.removeEventListener('junction-channel', handler)
   }, [reload])
 
   useEffect(() => {

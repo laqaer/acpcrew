@@ -26,7 +26,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 STEP_NAME = "Assemble release assets (require gated macOS artifacts)"
 CHANNEL = "stable"
 VERSION = "1.2.3"
-ARTIFACT_NAME = f"KiroCrew-notarized-{CHANNEL}-{VERSION}"
+ARTIFACT_NAME = f"Junction-notarized-{CHANNEL}-{VERSION}"
 
 
 def _assembly_script() -> str:
@@ -48,7 +48,7 @@ def _artifact_dir(root: Path, name: str = ARTIFACT_NAME) -> Path:
     return path
 
 
-def _write_valid_zip(path: Path, app_name: str = "KiroCrew.app") -> None:
+def _write_valid_zip(path: Path, app_name: str = "Junction.app") -> None:
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr(f"{app_name}/Contents/Info.plist", "<plist/>")
 
@@ -61,7 +61,7 @@ def _write_valid_dmg(path: Path) -> None:
 def _write_valid_handoff(root: Path, name: str = ARTIFACT_NAME) -> Path:
     artifact = _artifact_dir(root, name)
     _write_valid_zip(artifact / "notarized.zip")
-    _write_valid_dmg(artifact / "KiroCrew.dmg")
+    _write_valid_dmg(artifact / "Junction.dmg")
     return artifact
 
 
@@ -79,9 +79,9 @@ def _run_assembly(root: Path) -> subprocess.CompletedProcess[str]:
 def test_missing_exact_gated_artifact_does_not_fall_back_to_unsigned(tmp_path: Path) -> None:
     """A valid-looking unsigned build or stale notarized run cannot be selected."""
     unsigned = _artifact_dir(tmp_path, "unsigned-build-darwin-universal")
-    _write_valid_zip(unsigned / "KiroCrew-universal-mac.zip")
-    _write_valid_dmg(unsigned / "KiroCrew.dmg")
-    _write_valid_handoff(tmp_path, "KiroCrew-notarized-stable-1.2.2")
+    _write_valid_zip(unsigned / "Junction-universal-mac.zip")
+    _write_valid_dmg(unsigned / "Junction.dmg")
+    _write_valid_handoff(tmp_path, "Junction-notarized-stable-1.2.2")
 
     result = _run_assembly(tmp_path)
 
@@ -95,7 +95,7 @@ def test_missing_exact_gated_artifact_does_not_fall_back_to_unsigned(tmp_path: P
     ("missing_name", "expected_error"),
     (
         ("notarized.zip", "Required gated macOS ZIP is missing or empty"),
-        ("KiroCrew.dmg", "Required gated macOS DMG is missing or empty"),
+        ("Junction.dmg", "Required gated macOS DMG is missing or empty"),
     ),
 )
 def test_incomplete_gated_handoff_fails(
@@ -113,7 +113,7 @@ def test_incomplete_gated_handoff_fails(
 def test_corrupt_notarized_zip_fails(tmp_path: Path) -> None:
     artifact = _artifact_dir(tmp_path)
     (artifact / "notarized.zip").write_bytes(b"not a zip")
-    _write_valid_dmg(artifact / "KiroCrew.dmg")
+    _write_valid_dmg(artifact / "Junction.dmg")
 
     result = _run_assembly(tmp_path)
 
@@ -124,7 +124,7 @@ def test_corrupt_notarized_zip_fails(tmp_path: Path) -> None:
 def test_non_udif_dmg_fails(tmp_path: Path) -> None:
     artifact = _artifact_dir(tmp_path)
     _write_valid_zip(artifact / "notarized.zip")
-    (artifact / "KiroCrew.dmg").write_bytes(b"not a UDIF image")
+    (artifact / "Junction.dmg").write_bytes(b"not a UDIF image")
 
     result = _run_assembly(tmp_path)
 
@@ -143,9 +143,9 @@ def test_exact_gated_handoff_is_renamed_for_the_release(tmp_path: Path) -> None:
 
     assert result.returncode == 0, result.stderr + result.stdout
     release = tmp_path / "release"
-    release_zip = release / f"KiroCrew-{VERSION}-universal-mac.zip"
-    release_dmg = release / f"KiroCrew-{VERSION}-universal.dmg"
+    release_zip = release / f"Junction-{VERSION}-universal-mac.zip"
+    release_dmg = release / f"Junction-{VERSION}-universal.dmg"
     assert release_zip.read_bytes() == (gated / "notarized.zip").read_bytes()
-    assert release_dmg.read_bytes() == (gated / "KiroCrew.dmg").read_bytes()
+    assert release_dmg.read_bytes() == (gated / "Junction.dmg").read_bytes()
     assert not (release / "unsigned-mac.zip").exists()
     assert not (release / "unsigned.dmg").exists()

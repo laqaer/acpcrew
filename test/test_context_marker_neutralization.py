@@ -18,13 +18,13 @@ from __future__ import annotations
 
 import time
 
-from kiro_crew.context import (
+from junction.context import (
     ContextBuilder,
     _neutralize_structural_markers,
 )
-from kiro_crew.hooks import HookResult
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.hooks import HookResult
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 
 def _make_builder(tmp_path):
@@ -307,7 +307,7 @@ class TestSessionContextNeutralized:
 
 class TestChannelHistoryNeutralized:
     def test_forged_marker_in_channel_history_stripped(self, tmp_path):
-        from kiro_crew.channel_history import ChannelHistory
+        from junction.channel_history import ChannelHistory
 
         builder = _make_builder(tmp_path)
         ch = ChannelHistory()
@@ -329,7 +329,7 @@ class TestChannelHistoryNeutralized:
         """An en-dash separator (U+2013) that _MULTIBYTE_TABLE canonicalizes to a
         hyphen must be neutralized BEFORE that translate, so the final prompt
         carries no forged '[CURRENT USER REQUEST - ...]' marker."""
-        from kiro_crew.channel_history import ChannelHistory
+        from junction.channel_history import ChannelHistory
 
         builder = _make_builder(tmp_path)
         ch = ChannelHistory()

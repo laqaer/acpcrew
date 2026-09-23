@@ -1,7 +1,7 @@
 """Coverage tests for dashboard messaging handlers.
 
 Focus: the request-validation, delivery-failure and status-code branches of
-``kiro_crew.dashboard.handlers.messaging`` that the existing per-channel test
+``junction.dashboard.handlers.messaging`` that the existing per-channel test
 files (slack/webex/wecom/telegram/discord config, send-message, notifications
 phase 5) never reach -- the subagent lifecycle routes, the notification
 ack/unack/channel routes, the Slack pins/reactions proxies, the browser
@@ -26,8 +26,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import web
 
-import kiro_crew.config.loader as loader
-import kiro_crew.dashboard.handlers.messaging as mod
+import junction.config.loader as loader
+import junction.dashboard.handlers.messaging as mod
 
 
 class _Req:
@@ -106,7 +106,7 @@ def _info(**kw: Any) -> Any:
         "turns": 2,
         "last_tool": "fs_read",
         "parent_session_key": "dashboard:chat-1",
-        "agent": "kirocrew",
+        "agent": "junction",
         "user_stopped": False,
         "outcome": "",
         "max_turns": 0,
@@ -810,7 +810,7 @@ class TestNotificationRoutes:
         state.crons.unack_job_async.assert_awaited_once_with("j1")
 
     def test_unack_survives_a_busy_cron_store(self) -> None:
-        from kiro_crew.cron import CronStoreBusy
+        from junction.cron import CronStoreBusy
 
         state = _state(
             _notification_log=[{"ts": "1", "kind": "cron", "job_id": "j1"}],
@@ -887,7 +887,7 @@ class TestNotificationChannelSettings:
         assert _payload(resp)["error"] == "priority must be a string or null"
 
     def test_settings_error_becomes_400(self) -> None:
-        from kiro_crew.notifications.settings import ChannelSettingsError
+        from junction.notifications.settings import ChannelSettingsError
 
         state = self._state_with_update(error=ChannelSettingsError("cannot mute approval"))
         req = _Req(state, {"channel": "system.approval", "muted": True})
@@ -915,7 +915,7 @@ class TestNotificationChannelSettings:
 
 
 def _track(monkeypatch, tracked: bool) -> None:
-    monkeypatch.setattr("kiro_crew.slack.handler.is_tracked_channel", lambda cid: tracked)
+    monkeypatch.setattr("junction.slack.handler.is_tracked_channel", lambda cid: tracked)
 
 
 class TestSlackPins:
@@ -1151,7 +1151,7 @@ class TestHelpers:
         assert "add the required scope to" in msg
 
     def test_sanitize_blocks_redacts_keys_and_values(self) -> None:
-        from kiro_crew.security import redact_credentials
+        from junction.security import redact_credentials
 
         blocks = [{"text": {"type": "mrkdwn", "text": "tok xoxb-1234567890-secret"}}]
         out = mod._sanitize_blocks(blocks, redact_credentials)
@@ -1159,7 +1159,7 @@ class TestHelpers:
         assert blocks[0]["text"]["text"].endswith("secret")  # input untouched
 
     def test_sanitize_blocks_truncates_deep_structures(self) -> None:
-        from kiro_crew.security import redact_credentials
+        from junction.security import redact_credentials
 
         deep: Any = "leaf"
         for _ in range(mod._MAX_WALK_DEPTH + 3):
@@ -1168,7 +1168,7 @@ class TestHelpers:
         assert isinstance(out, list) and len(out) == 1
 
     def test_sanitize_blocks_caps_the_block_count(self) -> None:
-        from kiro_crew.security import redact_credentials
+        from junction.security import redact_credentials
 
         blocks = [{"i": i} for i in range(mod._MAX_BLOCKS + 5)]
         assert len(mod._sanitize_blocks(blocks, redact_credentials)) == mod._MAX_BLOCKS
@@ -1383,7 +1383,7 @@ class TestTeamsConfigSave:
         monkeypatch.setattr(mod, "is_direct_local_request", lambda req: True)
         monkeypatch.setenv("MICROSOFT_APP_PASSWORD", "")
 
-        import kiro_crew.agent as _agent
+        import junction.agent as _agent
 
         def _boom(*_a, **_k):
             raise OSError("disk full during config write")
@@ -1445,7 +1445,7 @@ class TestWriteEnvUpdates:
     def test_a_failed_permission_lockdown_is_warned_not_raised(
         self, monkeypatch, tmp_path: Path
     ) -> None:
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         env = tmp_path / ".env"
         monkeypatch.setattr(loader, "env_path", lambda: env)
@@ -1467,7 +1467,7 @@ class TestWriteEnvUpdates:
         through the same os.write seam the helper's own ordering test uses."""
         import os as _os
 
-        from kiro_crew import platform_compat
+        from junction import platform_compat
 
         env = tmp_path / ".env"
         monkeypatch.setattr(loader, "env_path", lambda: env)
@@ -1498,8 +1498,8 @@ class TestWriteEnvUpdates:
         when another writer holds the lock — and leaves .env untouched."""
         import os
 
-        from kiro_crew import platform_compat
-        from kiro_crew.secrets.migrate import _env_lock_path
+        from junction import platform_compat
+        from junction.secrets.migrate import _env_lock_path
 
         env = tmp_path / ".env"
         env.write_text("A=1\n", encoding="utf-8")
@@ -1708,7 +1708,7 @@ class TestSlackManifest:
         assert data["create_url"].startswith("https://api.slack.com/apps?new_app=1&manifest_yaml=")
 
     def test_defaults_to_a_non_identifying_alias(self) -> None:
-        assert _payload(_run(mod.api_slack_manifest, _Req(_state())))["alias"] == "kirocrew"
+        assert _payload(_run(mod.api_slack_manifest, _Req(_state())))["alias"] == "junction"
 
 
 class _FakeBus:

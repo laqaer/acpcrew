@@ -17,8 +17,8 @@ import asyncio
 
 import pytest
 
-import kiro_crew.llm_helpers as llm_helpers
-from kiro_crew.workflows.service import WorkflowService
+import junction.llm_helpers as llm_helpers
+from junction.workflows.service import WorkflowService
 
 pytestmark = pytest.mark.asyncio
 
@@ -65,7 +65,7 @@ def _patch_stream(monkeypatch, replies: list[str]) -> dict:
     monkeypatch.setattr(llm_helpers, "stream_and_collect", fake_stream)
     # service.py binds stream_and_collect at module top (top-level-imports rule),
     # so patch the name in the service module's namespace too.
-    import kiro_crew.workflows.service as svc_mod
+    import junction.workflows.service as svc_mod
 
     monkeypatch.setattr(svc_mod, "stream_and_collect", fake_stream)
     return state
@@ -96,7 +96,7 @@ async def test_author_returns_valid_script(monkeypatch) -> None:
 
 async def test_author_uses_isolated_torn_down_lite_session(monkeypatch) -> None:
     """Separation of concerns: authoring runs in a FRESH, ISOLATED, ephemeral
-    session (never the shared _bg), on the tool-less kirocrew-lite agent, and tears
+    session (never the shared _bg), on the tool-less junction-lite agent, and tears
     it down after — so a workflow's authoring never pollutes (or is polluted by)
     chat/consolidation/other runs, while staying cheap (no MCP toolset load)."""
     _patch_stream(monkeypatch, [GOOD_SCRIPT])
@@ -108,7 +108,7 @@ async def test_author_uses_isolated_torn_down_lite_session(monkeypatch) -> None:
     # NOT the shared background session
     assert key != "_bg" and key.startswith("wf-author:")
     # tool-less lite agent
-    assert kw.get("agent") == "kirocrew-lite"
+    assert kw.get("agent") == "junction-lite"
     # torn down (cleanup=True) — nothing persists between runs
     assert key in sessions.cleaned
 
@@ -342,7 +342,7 @@ class _IntgState:
 
 
 async def test_finished_run_injects_result_and_autoruns_agent_turn(monkeypatch) -> None:
-    from kiro_crew.dashboard.workflow_inject import inject_workflow_result
+    from junction.dashboard.workflow_inject import inject_workflow_result
 
     _patch_stream(monkeypatch, ["stub"])
     origin = _IntgSlot("chat-1")
@@ -374,7 +374,7 @@ async def test_finished_run_injects_result_and_autoruns_agent_turn(monkeypatch) 
 async def test_finished_run_busy_slot_queues_turn(monkeypatch) -> None:
     """If the originating slot is mid-turn, the auto-turn queues (does not start),
     so we never stack a concurrent turn — mirrors enqueue_or_run_prompt semantics."""
-    from kiro_crew.dashboard.workflow_inject import inject_workflow_result
+    from junction.dashboard.workflow_inject import inject_workflow_result
 
     _patch_stream(monkeypatch, ["stub"])
     origin = _IntgSlot("chat-1")

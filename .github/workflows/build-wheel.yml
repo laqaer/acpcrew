@@ -1,6 +1,6 @@
 name: Build Wheel (reusable)
 
-# Reusable workflow: build the kirocrew pip wheel + sdist with the frontend
+# Reusable workflow: build the junction pip wheel + sdist with the frontend
 # staged in, stamped to an exact PEP 440 version. Called by nightly.yml and
 # release.yml so the build recipe exists exactly once -- the callers differ
 # only in how they derive the version (date stamp vs tag).
@@ -43,11 +43,11 @@ jobs:
           WHEEL_VERSION: ${{ inputs.wheel_version }}
         run: |
           # The wheel version is sourced from pyproject.toml [project].version
-          # (static), NOT src/kiro_crew/__init__.py -- so stamp pyproject to make
+          # (static), NOT src/junction/__init__.py -- so stamp pyproject to make
           # the built wheel carry the exact version. Keep __init__.py in sync for
           # the runtime --version string.
           sed -i -E "s/^version = \".*\"/version = \"${WHEEL_VERSION}\"/" pyproject.toml
-          sed -i "s/__version__ = \".*\"/__version__ = \"${WHEEL_VERSION}\"/" src/kiro_crew/__init__.py
+          sed -i "s/__version__ = \".*\"/__version__ = \"${WHEEL_VERSION}\"/" src/junction/__init__.py
           echo "Building wheel: ${WHEEL_VERSION}"
 
       - name: Stamp distribution channel
@@ -65,9 +65,9 @@ jobs:
 
       - name: Stage frontend into package
         run: |
-          rm -rf src/kiro_crew/static/dist
-          mkdir -p src/kiro_crew/static
-          cp -R website/dist src/kiro_crew/static/dist
+          rm -rf src/junction/static/dist
+          mkdir -p src/junction/static
+          cp -R website/dist src/junction/static/dist
 
       - name: Build wheel + sdist
         run: |

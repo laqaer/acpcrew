@@ -22,9 +22,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.autonudge import NudgeLoop
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.slack import gateway as gw
+from junction.autonudge import NudgeLoop
+from junction.config.loader import JunctionConfig
+from junction.slack import gateway as gw
 
 
 def _loop(slot_key: str = "chat-1-1785") -> NudgeLoop:
@@ -51,8 +51,8 @@ def _slot(
 
 
 def _orchestrator() -> gw.GatewayOrchestrator:
-    cfg = KiroCrewConfig()
-    with patch.object(cfg, "load_credentials", return_value={"KIROCREW_OWNER_ID": "U_OWNER"}):
+    cfg = JunctionConfig()
+    with patch.object(cfg, "load_credentials", return_value={"JUNCTION_OWNER_ID": "U_OWNER"}):
         orch = gw.GatewayOrchestrator(cfg, no_dashboard=True, no_crons=True, no_open=True)
     orch.dashboard_state = SimpleNamespace(
         get_slot=MagicMock(return_value=None),
@@ -100,7 +100,7 @@ class TestDashboardNudgeSlotResolution:
                 new=AsyncMock(return_value=restored),
             ) as rehydrate,
             patch.object(gw, "spawn_guarded_turn", spawn),
-            patch("kiro_crew.dashboard.chat._run_chat", new=AsyncMock()),
+            patch("junction.dashboard.chat._run_chat", new=AsyncMock()),
         ):
             assert await orch._fire_dashboard_nudge(loop) is True
         rehydrate.assert_awaited_once_with(
@@ -131,7 +131,7 @@ class TestDashboardNudgeSlotResolution:
                 gw, "rehydrate_slot_from_history_async", new=AsyncMock(return_value=restored)
             ) as rehydrate,
             patch.object(gw, "spawn_guarded_turn", spawn),
-            patch("kiro_crew.dashboard.chat._run_chat", new=AsyncMock()),
+            patch("junction.dashboard.chat._run_chat", new=AsyncMock()),
         ):
             assert await orch._fire_dashboard_nudge(loop) is True
         rehydrate.assert_awaited_once_with(
@@ -155,7 +155,7 @@ class TestDashboardNudgeSlotResolution:
                 gw, "rehydrate_slot_from_history_async", new=AsyncMock(return_value=_slot())
             ),
             patch.object(gw, "spawn_guarded_turn", _fake_spawn()),
-            patch("kiro_crew.dashboard.chat._run_chat", new=AsyncMock()),
+            patch("junction.dashboard.chat._run_chat", new=AsyncMock()),
         ):
             await orch._fire_dashboard_nudge(_loop())
         assert orch.dashboard_state.restoring_open_slots is True, (
@@ -174,7 +174,7 @@ class TestDashboardNudgeSlotResolution:
                 gw, "rehydrate_slot_from_history_async", new=AsyncMock()
             ) as rehydrate,
             patch.object(gw, "spawn_guarded_turn", spawn),
-            patch("kiro_crew.dashboard.chat._run_chat", new=AsyncMock()),
+            patch("junction.dashboard.chat._run_chat", new=AsyncMock()),
         ):
             assert await orch._fire_dashboard_nudge(_loop()) is True
         rehydrate.assert_not_awaited()
@@ -216,7 +216,7 @@ class TestDashboardNudgeSlotResolution:
         spawn = _fake_spawn()
         with (
             patch.object(gw, "spawn_guarded_turn", spawn),
-            patch("kiro_crew.dashboard.chat._run_chat", new=AsyncMock()),
+            patch("junction.dashboard.chat._run_chat", new=AsyncMock()),
         ):
             assert await orch._fire_dashboard_nudge(loop) is False
         orch.autonudge_svc.remove.assert_not_awaited()
@@ -241,7 +241,7 @@ class TestDashboardNudgeSlotResolution:
         spawn = _fake_spawn()
         with (
             patch.object(gw, "spawn_guarded_turn", spawn),
-            patch("kiro_crew.dashboard.chat._run_chat", new=AsyncMock()),
+            patch("junction.dashboard.chat._run_chat", new=AsyncMock()),
         ):
             assert await orch._fire_dashboard_nudge(loop) is False
         orch.autonudge_svc.remove.assert_not_awaited()

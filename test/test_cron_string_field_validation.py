@@ -22,12 +22,12 @@ import dataclasses
 
 import pytest
 
-from kiro_crew.cron import (
+from junction.cron import (
     _CRON_STRING_FIELD_CAPS,
     CronJob,
     CronService,
 )
-from kiro_crew.validation import CHANNEL_MAX_LEN, CRON_ADD_SCHEMA, MAX_SHORT_STRING
+from junction.validation import CHANNEL_MAX_LEN, CRON_ADD_SCHEMA, MAX_SHORT_STRING
 
 # Derived from the table (its single source of truth) — the set the anti-drift
 # test checks CronJob's fields against.
@@ -38,7 +38,7 @@ _VALIDATED_FIELD_NAMES: frozenset[str] = frozenset(name for name, _ in _CRON_STR
 
 @pytest.fixture(autouse=True)
 def _isolate_cron_store(monkeypatch, tmp_path):
-    monkeypatch.setattr("kiro_crew.cron._DEFAULT_DIR", tmp_path)
+    monkeypatch.setattr("junction.cron._DEFAULT_DIR", tmp_path)
     yield
 
 

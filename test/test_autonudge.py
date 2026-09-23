@@ -9,15 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import autonudge as _an
-from kiro_crew import autonudge_authz as _autonudge_mod
-from kiro_crew.autonudge import AutoNudgeService, NudgeLoop
-from kiro_crew.dashboard.handlers.autonudge import render_nudge_message
+from junction import autonudge as _an
+from junction import autonudge_authz as _autonudge_mod
+from junction.autonudge import AutoNudgeService, NudgeLoop
+from junction.dashboard.handlers.autonudge import render_nudge_message
 
 
 @pytest.fixture(autouse=True)
 def _enable(monkeypatch):
-    monkeypatch.setenv("KIROCREW_AUTONUDGE", "1")
+    monkeypatch.setenv("JUNCTION_AUTONUDGE", "1")
 
 
 @pytest.fixture
@@ -37,7 +37,7 @@ async def test_add_and_fire_on_idle(svc, monkeypatch):
     svc._on_fire = on_fire
     # Patch asyncio.sleep inside the service's _timer to a no-op so the
     # test exercises the real fire path without waiting _MIN_IDLE_SECS.
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -99,7 +99,7 @@ async def test_persistence_across_restart(tmp_path):
 
 @pytest.mark.asyncio
 async def test_max_cycles_deactivates(svc, monkeypatch):
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -125,7 +125,7 @@ async def test_max_cycles_emits_expired_event(svc, monkeypatch):
     line plus an ``updated`` event indistinguishable from the user pressing
     Stop, so a capped-out loop looked the same as the agent stopping itself.
     """
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -152,7 +152,7 @@ async def test_no_expired_event_on_manual_deactivate(svc, monkeypatch):
     ``expired`` drives a user-visible notification, so overloading it onto
     every deactivation would notify the user about their own Stop click.
     """
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -170,7 +170,7 @@ async def test_no_expired_event_on_manual_deactivate(svc, monkeypatch):
 @pytest.mark.asyncio
 async def test_unlimited_loop_never_expires(svc, monkeypatch):
     """max_cycles=0 means unlimited — the cap branch must not fire at all."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -195,7 +195,7 @@ async def test_unlimited_loop_never_expires(svc, monkeypatch):
 def test_runtime_budget_exceeded_predicate():
     """Direct contract of the shared predicate: 0 = unlimited, missing
     created_ts never trips (no anchor to measure from), boundary is >=."""
-    from kiro_crew.autonudge import runtime_budget_exceeded
+    from junction.autonudge import runtime_budget_exceeded
 
     base = NudgeLoop(id="x", slot_key="s", message="m", created_ts=1000.0)
     # No budget → never exceeded, however old the loop is.
@@ -218,7 +218,7 @@ async def test_runtime_budget_deactivates_and_emits_expired(svc, monkeypatch):
     """A spent wall-clock budget stops the loop BEFORE it buys another turn,
     with the same terminal treatment as the cycle cap: deactivate (not
     remove) + ``expired`` so the user-visible notification fires."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -250,7 +250,7 @@ async def test_runtime_budget_deactivates_and_emits_expired(svc, monkeypatch):
 @pytest.mark.asyncio
 async def test_runtime_budget_unspent_fires_normally(svc, monkeypatch):
     """A loop within its budget behaves exactly like an unbudgeted one."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -276,7 +276,7 @@ async def test_runtime_budget_unspent_fires_normally(svc, monkeypatch):
 @pytest.mark.asyncio
 async def test_runtime_budget_zero_is_unlimited(svc, monkeypatch):
     """max_runtime_secs=0 means unlimited — an arbitrarily old loop still fires."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -325,7 +325,7 @@ async def test_stopped_reason_records_why_and_clears_on_revival(svc, monkeypatch
     'cycle_cap'/'runtime_budget', a plain update(active=False) tags 'manual',
     and any revival clears the tag. This is what lets revival logic refuse to
     resume a manual pause whose budget has since elapsed (GPT P1 on #2116)."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -382,7 +382,7 @@ async def test_budget_expiring_mid_turn_deactivates_post_delivery(svc, monkeypat
     in-flight turn — but once a slow turn ENDS with the budget spent, the loop
     deactivates immediately (tagged runtime_budget, expired emitted) instead
     of arming another idle cycle. Channel loops must not self-re-arm."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -434,7 +434,7 @@ async def test_update_changes_runtime_budget(svc):
 
 @pytest.mark.asyncio
 async def test_stop_sentinel_removes_loop(svc, tmp_path, monkeypatch):
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -465,12 +465,12 @@ async def test_one_loop_per_slot_replaces(svc):
 
 @pytest.mark.asyncio
 async def test_disabled_when_flag_off(tmp_path, monkeypatch):
-    monkeypatch.setenv("KIROCREW_AUTONUDGE", "0")
+    monkeypatch.setenv("JUNCTION_AUTONUDGE", "0")
     svc = AutoNudgeService(base_dir=tmp_path)
     await svc.start()
     # Service is a no-op when flag is off — add/remove still work on the in-memory
     # dict but timers never arm. Verify via the enabled() helper.
-    from kiro_crew.autonudge import enabled
+    from junction.autonudge import enabled
 
     assert not enabled()
 
@@ -503,7 +503,7 @@ async def test_skip_when_delivery_returns_false(svc, monkeypatch):
     re-arm the timer with a backoff so the loop self-heals."""
     import asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     real_sleep = asyncio.sleep  # capture before patching
     sleep_calls: list[float] = []
@@ -555,7 +555,7 @@ async def test_fire_callback_exception_does_not_deactivate(svc, monkeypatch):
     re-arming with a backoff."""
     import asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     real_sleep = asyncio.sleep  # capture before patching
     sleep_calls: list[float] = []
@@ -596,7 +596,7 @@ async def test_rearm_backoff_escalates_on_consecutive_failures(svc, monkeypatch)
     so a never-delivering loop backs off instead of hammering."""
     import asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     sleep_calls: list[float] = []
     real_sleep = asyncio.sleep
@@ -653,7 +653,7 @@ async def test_failure_log_rate_limited_to_once_per_streak(svc, monkeypatch):
     failure of a streak, not every re-arm (log-spam fix)."""
     import asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     sleep_calls: list[float] = []
 
@@ -695,7 +695,7 @@ async def test_failure_streak_resets_on_delivery(svc, monkeypatch):
     backoff ramp fresh."""
     import asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     sleep_calls: list[float] = []
 
@@ -741,7 +741,7 @@ async def test_fire_removed_loop_does_not_rearm_orphan(svc, monkeypatch):
     re-arm path must NOT resurrect it with a fresh timer (orphan)."""
     import asyncio as _asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     real_sleep = _asyncio.sleep  # capture before patching
     sleep_calls: list[float] = []
@@ -779,7 +779,7 @@ async def test_fire_removed_loop_does_not_rearm_orphan(svc, monkeypatch):
 @pytest.mark.asyncio
 async def test_delivered_bumps_cycle_count(svc, monkeypatch):
     """When _on_fire returns True, cycle_count bumps and 'fired' event emits."""
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -824,11 +824,11 @@ def test_render_nudge_message():
 
 
 def test_is_channel_key():
-    from kiro_crew.autonudge import is_channel_key
+    from junction.autonudge import is_channel_key
 
     assert is_channel_key("slack:1700000000.123456")
-    assert is_channel_key("discord:kirocrew:direct:42")
-    assert is_channel_key("unified:kirocrew")
+    assert is_channel_key("discord:junction:direct:42")
+    assert is_channel_key("unified:junction")
     # Bare dashboard slot keys are NOT channel keys.
     assert not is_channel_key("chat-1-123")
     # Fully-qualified dashboard keys never appear as binding keys, but must
@@ -839,11 +839,11 @@ def test_is_channel_key():
 @pytest.mark.parametrize(
     "key",
     [
-        "telegram:kirocrew:direct:4242",
-        "webex:kirocrew:direct:user@example.com",
-        "teams:kirocrew:direct:29:1abcdef",
-        "weixin:kirocrew:direct:oUserOpenId",
-        "imessage:kirocrew:direct:+15550100",
+        "telegram:junction:direct:4242",
+        "webex:junction:direct:user@example.com",
+        "teams:junction:direct:29:1abcdef",
+        "weixin:junction:direct:oUserOpenId",
+        "imessage:junction:direct:+15550100",
     ],
 )
 def test_proactive_channel_namespaces_are_channel_keys(key):
@@ -858,7 +858,7 @@ def test_proactive_channel_namespaces_are_channel_keys(key):
     jump link pointing at no slot — even though each of those transports declares
     ``supports_proactive_send=True``.
     """
-    from kiro_crew.autonudge import is_channel_key
+    from junction.autonudge import is_channel_key
 
     assert is_channel_key(key)
 
@@ -877,11 +877,11 @@ def test_wecom_is_classified_because_it_gained_a_proactive_send_path():
     loops with nowhere to deliver, and a flipped capability with no entry leaves a
     channel that CAN be nudged unreachable.
     """
-    from kiro_crew.autonudge import is_channel_key
-    from kiro_crew.wecom.transport import WECOM_CAPABILITIES
+    from junction.autonudge import is_channel_key
+    from junction.wecom.transport import WECOM_CAPABILITIES
 
     assert WECOM_CAPABILITIES.supports_proactive_send is True
-    assert is_channel_key("wecom:kirocrew:direct:oUserOpenId")
+    assert is_channel_key("wecom:junction:direct:oUserOpenId")
 
 
 def test_channel_key_prefixes_mirror_the_shipped_namespaces():
@@ -889,9 +889,9 @@ def test_channel_key_prefixes_mirror_the_shipped_namespaces():
 
     Deriving it would make ``autonudge`` — imported at module scope by
     ``mcp_core`` (every MCP server process) and by the dashboard chat layer —
-    name ``kiro_crew.messaging.link``, whose package ``__init__`` pulls the
+    name ``junction.messaging.link``, whose package ``__init__`` pulls the
     driver/renderer/transport layer and with it the ACP client, agent, hooks,
-    artifacts, metrics and sqlite: 48 extra ``kiro_crew`` modules to obtain one
+    artifacts, metrics and sqlite: 48 extra ``junction`` modules to obtain one
     tuple of string literals. This assertion buys the drift protection that
     import would have bought, at no import cost.
 
@@ -902,8 +902,8 @@ def test_channel_key_prefixes_mirror_the_shipped_namespaces():
     unlisted key reads as a dashboard slot and stops being re-armed silently.
     Undeliverability belongs to the ladder; see ``_CHANNEL_KEY_PREFIXES``.
     """
-    from kiro_crew.autonudge import _CHANNEL_KEY_PREFIXES
-    from kiro_crew.messaging.link import CHANNEL_SESSION_NAMESPACES
+    from junction.autonudge import _CHANNEL_KEY_PREFIXES
+    from junction.messaging.link import CHANNEL_SESSION_NAMESPACES
 
     assert {p.rstrip(":") for p in _CHANNEL_KEY_PREFIXES} == set(CHANNEL_SESSION_NAMESPACES)
 
@@ -921,7 +921,7 @@ async def test_unrouted_channel_namespace_degrades_instead_of_raising(svc, monke
     """
     import asyncio as _asyncio
 
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     real_sleep = _asyncio.sleep  # capture before patching
     sleep_calls: list[float] = []
@@ -944,7 +944,7 @@ async def test_unrouted_channel_namespace_degrades_instead_of_raising(svc, monke
     svc._on_fire = on_fire_unsupported
     await svc.start()
     loop = await svc.add(
-        slot_key="whatsapp:kirocrew:direct:15550100", message="watch", idle_secs=60
+        slot_key="whatsapp:junction:direct:15550100", message="watch", idle_secs=60
     )
     for _ in range(500):
         if removed.is_set() and loop.id not in svc._timers:
@@ -977,9 +977,9 @@ async def test_cross_surface_ladder_still_refuses_unroutable_channels(tmp_path):
 
     from chat_test_helpers import _make_state
 
-    from kiro_crew.dashboard.chat_runner import _deliver_cross_surface_reply
-    from kiro_crew.messaging.link import ChannelLink
-    from kiro_crew.messaging.transport import TransportCapabilities
+    from junction.dashboard.chat_runner import _deliver_cross_surface_reply
+    from junction.messaging.link import ChannelLink
+    from junction.messaging.transport import TransportCapabilities
 
     state = _make_state(tmp_path)
 
@@ -988,7 +988,7 @@ async def test_cross_surface_ladder_still_refuses_unroutable_channels(tmp_path):
         return_value=ChannelLink("whatsapp", channel_id="15550100", thread_id=None)
     )
     assert state.get_channel_transport("whatsapp") is None
-    await _deliver_cross_surface_reply(state, "whatsapp:kirocrew:direct:15550100", "cycle 1 output")
+    await _deliver_cross_surface_reply(state, "whatsapp:junction:direct:15550100", "cycle 1 output")
 
     # (b) Registered, but declaring no unattended send — the
     # ``supports_proactive_send`` arm. SYNTHETIC on purpose: every shipped channel
@@ -1003,7 +1003,7 @@ async def test_cross_surface_ladder_still_refuses_unroutable_channels(tmp_path):
     state.sessions.get_mirror_link = MagicMock(
         return_value=ChannelLink("telegram", channel_id="4242", thread_id=None)
     )
-    await _deliver_cross_surface_reply(state, "telegram:kirocrew:direct:4242", "cycle 1 output")
+    await _deliver_cross_surface_reply(state, "telegram:junction:direct:4242", "cycle 1 output")
     bound.send_message.assert_not_awaited()
 
 
@@ -1017,12 +1017,12 @@ def test_binding_key_for_does_not_widen_with_the_classifier():
     that is removed on its first fire), which is strictly worse than the clean "not
     supported from this session type" refusal it replaces.
     """
-    from kiro_crew.autonudge import binding_key_for, is_channel_key
+    from junction.autonudge import binding_key_for, is_channel_key
 
     for key in (
-        "weixin:kirocrew:direct:oUserOpenId",
-        "teams:kirocrew:direct:29:1abcdef",
-        "imessage:kirocrew:direct:+15550100",
+        "weixin:junction:direct:oUserOpenId",
+        "teams:junction:direct:29:1abcdef",
+        "imessage:junction:direct:+15550100",
     ):
         assert is_channel_key(key)
         assert binding_key_for(key) is None
@@ -1032,10 +1032,10 @@ def test_binding_key_for_does_not_widen_with_the_classifier():
     # ``autonudge_authz`` (allow-listed DM sessions only, matched against the key
     # the dispatcher currently derives) — the same pair Discord has.
     assert binding_key_for("slack:1700000000.123456") == "slack:1700000000.123456"
-    assert binding_key_for("discord:kirocrew:direct:42") == "discord:kirocrew:direct:42"
+    assert binding_key_for("discord:junction:direct:42") == "discord:junction:direct:42"
     assert (
-        binding_key_for("webex:kirocrew:direct:user@example.com")
-        == "webex:kirocrew:direct:user@example.com"
+        binding_key_for("webex:junction:direct:user@example.com")
+        == "webex:junction:direct:user@example.com"
     )
 
 
@@ -1050,7 +1050,7 @@ async def test_channel_loop_self_rearms_after_delivered_fire(svc, monkeypatch):
         return True
 
     svc._on_fire = on_fire
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     _real_sleep = _an.asyncio.sleep
 
@@ -1091,7 +1091,7 @@ async def test_dashboard_loop_does_not_self_rearm(svc, monkeypatch):
         return True
 
     svc._on_fire = on_fire
-    import kiro_crew.autonudge as _an
+    import junction.autonudge as _an
 
     async def _nosleep(_secs):
         return None
@@ -1113,7 +1113,7 @@ class TestAutonudgeDisabledSettingLink:
     def _app(self, monkeypatch):
         from aiohttp import web
 
-        from kiro_crew.dashboard.handlers import autonudge as _handler
+        from junction.dashboard.handlers import autonudge as _handler
 
         monkeypatch.setattr(_handler, "_autonudge_get", lambda: None)
         app = web.Application()
@@ -1170,7 +1170,7 @@ class TestAutonudgeStartIntCoercion:
 
         from aiohttp import web
 
-        from kiro_crew.dashboard.handlers import autonudge as _handler
+        from junction.dashboard.handlers import autonudge as _handler
 
         monkeypatch.setattr(_handler, "_autonudge_get", lambda: fake_svc)
         state = MagicMock()
@@ -1275,7 +1275,7 @@ class TestAutonudgeUpdateChokepoint:
     def _client_app(self, monkeypatch, fake_svc):
         from aiohttp import web
 
-        from kiro_crew.dashboard.handlers import autonudge as _handler
+        from junction.dashboard.handlers import autonudge as _handler
 
         monkeypatch.setattr(_handler, "_autonudge_get", lambda: fake_svc)
         app = web.Application()
@@ -1424,7 +1424,7 @@ class TestAutonudgeUpdateChokepoint:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from kiro_crew import autonudge_authz as _authz
+        from junction import autonudge_authz as _authz
 
         svc = MagicMock()
         svc.update = AsyncMock(return_value=None)
@@ -1450,7 +1450,7 @@ class TestAutonudgeUpdateChokepoint:
 
         from aiohttp.test_utils import TestClient, TestServer
 
-        from kiro_crew import autonudge_authz as _authz
+        from junction import autonudge_authz as _authz
 
         svc = self._fake_svc()
         app = self._client_app(monkeypatch, svc)
@@ -1986,7 +1986,7 @@ class TestSentinelPathRepair:
         assert _an.repair_sentinel_path(value) == ""
 
     def test_nested_current_home_inside_legacy_is_not_rehomed(self, tmp_path, monkeypatch):
-        """KIROCREW_HOME may legally point INSIDE the legacy root.
+        """JUNCTION_HOME may legally point INSIDE the legacy root.
 
         ``~/.kirocrew/dev`` is lexically under ``~/.kirocrew`` but is the live
         home, so its sentinel is already correct. Re-homing it would yield
@@ -2520,9 +2520,9 @@ def test_a_webex_session_is_nudge_able():
     denied or deleted on its first cycle while reporting itself healthy — which is
     exactly why these rosters are narrow.
     """
-    from kiro_crew.autonudge import binding_key_for, is_channel_key
+    from junction.autonudge import binding_key_for, is_channel_key
 
-    key = "webex:kirocrew:direct:kyle@example.com"
+    key = "webex:junction:direct:kyle@example.com"
     assert is_channel_key(key)
     assert binding_key_for(key) == key
 
@@ -2539,10 +2539,10 @@ def test_the_channels_without_a_fire_adapter_stay_excluded():
     channel key, deliberately, so that a loop whose transport is momentarily
     absent is not misread as a dashboard slot and silently stops re-arming.
     """
-    from kiro_crew.autonudge import binding_key_for, is_channel_key
+    from junction.autonudge import binding_key_for, is_channel_key
 
     for channel in ("wecom", "teams", "weixin", "imessage"):
-        key = f"{channel}:kirocrew:direct:someone"
+        key = f"{channel}:junction:direct:someone"
         assert is_channel_key(key), channel  # names a conversation...
         assert binding_key_for(key) is None, channel  # ...but is not armable
 
@@ -2553,10 +2553,10 @@ def test_a_unified_scope_key_is_never_bindable():
     It counts as a channel key (so the fixed-interval timer applies) but has no
     single conversation to deliver to, so a loop must not bind there.
     """
-    from kiro_crew.autonudge import binding_key_for, is_channel_key
+    from junction.autonudge import binding_key_for, is_channel_key
 
-    assert is_channel_key("unified:kirocrew")
-    assert binding_key_for("unified:kirocrew") is None
+    assert is_channel_key("unified:junction")
+    assert binding_key_for("unified:junction") is None
 
 
 def test_every_nudge_able_channel_has_a_fire_adapter():
@@ -2566,7 +2566,7 @@ def test_every_nudge_able_channel_has_a_fire_adapter():
     was added to ``binding_key_for`` while ``_fire`` still handled only slack and
     discord, so an armed Webex loop was DELETED on its first cycle.
     """
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     for prefix in ("slack:", "discord:", "webex:"):
         channel = prefix.rstrip(":")

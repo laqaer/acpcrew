@@ -29,7 +29,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-import kiro_crew.apps.builtins.dev_fleet.server as mod
+import junction.apps.builtins.dev_fleet.server as mod
 
 # ---------------------------------------------------------------------------
 # Fixtures

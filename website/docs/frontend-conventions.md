@@ -43,8 +43,8 @@ Other shared modules:
 - `InfoTip.tsx`, `MarkdownRenderer.tsx` (highlight.js syntax highlighting),
   `TypewriterText.tsx`
 
-`src/kirocrew-ui/index.ts` re-exports the subset that apps may import as
-`@kirocrew/ui`. Adding a primitive there makes it app-facing API, so add
+`src/junction-ui/index.ts` re-exports the subset that apps may import as
+`@junction/ui`. Adding a primitive there makes it app-facing API, so add
 deliberately.
 
 ## Accessibility

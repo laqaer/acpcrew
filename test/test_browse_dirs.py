@@ -9,8 +9,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import api_browse_dirs
-from kiro_crew.dashboard.handlers.files import _browse_dirs_sync
+from junction.dashboard.handlers import api_browse_dirs
+from junction.dashboard.handlers.files import _browse_dirs_sync
 
 
 def _make_app() -> web.Application:
@@ -21,7 +21,7 @@ def _make_app() -> web.Application:
 
 @pytest.fixture()
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.sel") as m:
+    with patch("junction.dashboard.handlers.sel") as m:
         m.return_value = MagicMock()
         yield m.return_value
 
@@ -118,7 +118,7 @@ class TestBrowseDirs:
             ran_on.append(threading.get_ident())
             return _browse_dirs_sync(base, skip)
 
-        with patch("kiro_crew.dashboard.handlers.files._browse_dirs_sync", spy):
+        with patch("junction.dashboard.handlers.files._browse_dirs_sync", spy):
             async with TestClient(TestServer(_make_app())) as client:
                 resp = await client.get(f"/api/browse-dirs?path={tmp_path}")
                 assert resp.status == 200

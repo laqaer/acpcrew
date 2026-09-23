@@ -14,9 +14,9 @@ from typing import Any
 
 import pytest
 
-import kiro_crew.whatsapp.gateway as gw
-from kiro_crew.messaging.driver import APPROVAL_AUTO, APPROVAL_INTERACTIVE
-from kiro_crew.whatsapp.gateway import (
+import junction.whatsapp.gateway as gw
+from junction.messaging.driver import APPROVAL_AUTO, APPROVAL_INTERACTIVE
+from junction.whatsapp.gateway import (
     _check_configured_groups,
     _configured_group_jids,
     _resolve_approval_mode,
@@ -41,7 +41,7 @@ def _cfg(**wa):
         allowed_wa_ids=wa.get("allowed_wa_ids", []),
         groups=wa.get("groups", []),
     )
-    agent = SimpleNamespace(default_agent="kirocrew", approval_mode="auto")
+    agent = SimpleNamespace(default_agent="junction", approval_mode="auto")
     messaging = SimpleNamespace(idle_reset_minutes=0, daily_reset_hour=-1, dm_scope="user")
     return SimpleNamespace(whatsapp=whatsapp, agent=agent, messaging=messaging)
 
@@ -172,8 +172,8 @@ def test_start_pins_the_session_store_to_the_protected_path(monkeypatch, tmp_pat
     that stops a prompt-injected agent reading it, so the setting is inert and the
     path is always the default.
     """
-    from kiro_crew.config.paths import data_home
-    from kiro_crew.whatsapp.client import default_db_path
+    from junction.config.paths import data_home
+    from junction.whatsapp.client import default_db_path
 
     built: list[str] = []
 
@@ -306,7 +306,7 @@ def test_check_names_only_the_unmatched_groups_in_one_warning(caplog):
     client = GroupClient([{"jid": "here@g.us", "name": "Here"}])
     groups = [{"jid": "here@g.us"}, {"jid": "gone@g.us"}, {"jid": "typo@g.us"}]
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         asyncio.run(_check_configured_groups(client, groups))
 
     warned = _warnings(caplog)
@@ -320,7 +320,7 @@ def test_check_names_only_the_unmatched_groups_in_one_warning(caplog):
 def test_check_is_silent_when_every_configured_group_matches(caplog):
     client = GroupClient([{"jid": "a@g.us"}, {"jid": "b@g.us"}])
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         asyncio.run(_check_configured_groups(client, [{"jid": "b@g.us"}]))
 
     assert _warnings(caplog) == []
@@ -332,7 +332,7 @@ def test_check_compares_exactly_so_a_case_variant_is_reported(caplog):
     Normalizing here would call the typo fine and leave the group mute."""
     client = GroupClient([{"jid": "abc@g.us"}])
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         asyncio.run(_check_configured_groups(client, [{"jid": "ABC@g.us"}]))
 
     warned = _warnings(caplog)
@@ -347,7 +347,7 @@ def test_check_stays_quiet_when_no_joined_groups_are_reported(caplog):
     failure is what teaches an operator to ignore the warning."""
     client = GroupClient([])
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         asyncio.run(_check_configured_groups(client, [{"jid": "gone@g.us"}]))
 
     assert _warnings(caplog) == []
@@ -367,7 +367,7 @@ def test_check_survives_a_raising_client(caplog):
     unretrieved task exception at collection time."""
     client = GroupClient(RuntimeError("socket gone"))
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         asyncio.run(_check_configured_groups(client, [{"jid": "a@g.us"}]))
 
     warned = _warnings(caplog)
@@ -415,7 +415,7 @@ async def test_the_connected_transition_schedules_the_check(monkeypatch, caplog)
     orch._cfg.whatsapp.groups = [{"jid": "here@g.us"}, {"jid": "gone@g.us"}]
     client = await maybe_start_whatsapp(orch)
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         client.on_state_change("connected", "")
         await _drain_group_check()
 
@@ -434,7 +434,7 @@ async def test_a_reconnect_does_not_repeat_the_warning(monkeypatch, caplog):
     orch._cfg.whatsapp.groups = [{"jid": "gone@g.us"}]
     client = await maybe_start_whatsapp(orch)
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         client.on_state_change("connected", "")
         await _drain_group_check()
         client.on_state_change("error", "disconnected (auto-reconnecting)")
@@ -473,7 +473,7 @@ async def test_the_check_runs_with_no_dashboard_state(monkeypatch, caplog):
     client = await maybe_start_whatsapp(orch)
 
     assert callable(client.on_state_change)
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         client.on_state_change("connected", "")
         await _drain_group_check()
 
@@ -491,7 +491,7 @@ def test_a_state_change_after_the_loop_closed_is_not_an_error(monkeypatch, caplo
     orch._cfg.whatsapp.groups = [{"jid": "gone@g.us"}]
     client = asyncio.run(maybe_start_whatsapp(orch))
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.whatsapp.gateway"):
+    with caplog.at_level(logging.DEBUG, logger="junction.whatsapp.gateway"):
         client.on_state_change("connected", "")  # loop from asyncio.run() is closed
 
     assert _warnings(caplog) == []

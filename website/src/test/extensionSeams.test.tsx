@@ -428,9 +428,9 @@ describe('extension slot isolation', () => {
 })
 
 describe('composition root — stock extensions.ts is empty', () => {
-  // extensions.ts is core-OWNED: it imports the `virtual:kirocrew-edition`
+  // extensions.ts is core-OWNED: it imports the `virtual:junction-edition`
   // module (resolved by editionExtensionPlugin to an inert stub in the stock
-  // build, or the edition's own composition root when KIROCREW_EDITION_DIR is
+  // build, or the edition's own composition root when JUNCTION_EDITION_DIR is
   // set). The core must register NOTHING of its own here — its only body is the
   // edition import + `export {}` (plus comments). If the core ever added a
   // registration here, the stock build would stop being a pure no-op. Guard
@@ -443,7 +443,7 @@ describe('composition root — stock extensions.ts is empty', () => {
       .replace(/\/\*[\s\S]*?\*\//g, '') // block comments
       .replace(/^\s*\/\/.*$/gm, '') // line comments
       .trim()
-    expect(code).toBe("import 'virtual:kirocrew-edition'\n\nexport {}")
+    expect(code).toBe("import 'virtual:junction-edition'\n\nexport {}")
   })
 
   it('capsule-segment + overview-stat-card seams are empty in the stock build', () => {

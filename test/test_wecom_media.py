@@ -17,10 +17,10 @@ import pytest
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from kiro_crew import link_unfurl
-from kiro_crew.wecom import media as media_mod
-from kiro_crew.wecom.attachments import to_attachments
-from kiro_crew.wecom.media import (
+from junction import link_unfurl
+from junction.wecom import media as media_mod
+from junction.wecom.attachments import to_attachments
+from junction.wecom.media import (
     WeComMediaError,
     _vet_media_url,
     decode_aes_key,
@@ -233,7 +233,7 @@ class TestDownloadCaps:
     def test_a_missing_url_is_refused_before_any_request(self) -> None:
         with pytest.raises(WeComMediaError, match="no url"):
             asyncio.run(
-                __import__("kiro_crew.wecom.media", fromlist=["x"]).download_media(None, "", "k")
+                __import__("junction.wecom.media", fromlist=["x"]).download_media(None, "", "k")
             )
 
 

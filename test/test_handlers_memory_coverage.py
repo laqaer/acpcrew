@@ -1,4 +1,4 @@
-"""Coverage tests for ``kiro_crew.dashboard.handlers.memory``.
+"""Coverage tests for ``junction.dashboard.handlers.memory``.
 
 Focused on the request/response contract of the memory HTTP handlers: method
 dispatch, body and query validation, the restricted-session 403 gate, the
@@ -28,9 +28,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 
-import kiro_crew.dashboard.handlers.memory as mem_mod
+import junction.dashboard.handlers.memory as mem_mod
 
-_MOD = "kiro_crew.dashboard.handlers.memory"
+_MOD = "junction.dashboard.handlers.memory"
 
 _CRED = "AKIAIOSFODNN7EXAMPLE"
 
@@ -117,7 +117,7 @@ def _store(**attrs: Any) -> Any:
 @pytest.fixture(autouse=True)
 def _fake_sel(monkeypatch: pytest.MonkeyPatch) -> None:
     """Never write to the real security event log from a unit test."""
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: MagicMock())
+    monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: MagicMock())
 
 
 @pytest.fixture(autouse=True)
@@ -300,8 +300,8 @@ class TestRunConfigWriteCancellation:
         The assertion is on ORDER, not on the number of cancels: the second
         writer must not enter the critical section until the worker returns.
         """
-        from kiro_crew.dashboard.chat_utils import run_config_write
-        from kiro_crew.dashboard.handlers.agents import _get_config_lock
+        from junction.dashboard.chat_utils import run_config_write
+        from junction.dashboard.handlers.agents import _get_config_lock
 
         in_write = threading.Event()
         finish = threading.Event()
@@ -361,7 +361,7 @@ class TestRunConfigWriteCancellation:
 
     def test_an_uncancelled_call_returns_the_worker_result(self):
         """The loop must not change the ordinary path: the value still comes back."""
-        from kiro_crew.dashboard.chat_utils import run_config_write
+        from junction.dashboard.chat_utils import run_config_write
 
         async def _drive():
             return await run_config_write(lambda a, b=0: a + b, 40, b=2)
@@ -373,7 +373,7 @@ class TestMemorySettings:
     @pytest.mark.asyncio
     async def test_get_reports_config_values(self) -> None:
         state = _make_state()
-        with patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg(2.5, 14, True)):
+        with patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg(2.5, 14, True)):
             resp = await mem_mod.api_memory_settings(_make_request(state))
         assert _body(resp) == {
             "history_idle_hours": 2.5,
@@ -386,7 +386,7 @@ class TestMemorySettings:
         state = _make_state()
         req = _make_request(state, method="PUT", json_body=_BadJSON())
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()),
             patch(f"{_MOD}.config_path", return_value=tmp_path / "config.json"),
         ):
             resp = await mem_mod.api_memory_settings(req)
@@ -404,7 +404,7 @@ class TestMemorySettings:
             json_body={"history_idle_hours": 0.1, "history_max_days": 1, "migrated": 1},
         )
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()),
             patch(f"{_MOD}.config_path", return_value=cfg_path),
         ):
             resp = await mem_mod.api_memory_settings(req)
@@ -423,7 +423,7 @@ class TestMemorySettings:
         state = _make_state()
         req = _make_request(state, method="PUT", json_body={"history_idle_hours": "soon"})
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()),
             patch(f"{_MOD}.config_path", return_value=cfg_path),
         ):
             resp = await mem_mod.api_memory_settings(req)
@@ -437,7 +437,7 @@ class TestMemorySettings:
         state = _make_state()
         req = _make_request(state, method="PUT", json_body={"history_max_days": "many"})
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()),
             patch(f"{_MOD}.config_path", return_value=cfg_path),
         ):
             resp = await mem_mod.api_memory_settings(req)
@@ -451,7 +451,7 @@ class TestMemorySettings:
         state = _make_state()
         req = _make_request(state, method="PUT", json_body={"migrated": True})
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()),
             patch(f"{_MOD}.config_path", return_value=cfg_path),
         ):
             resp = await mem_mod.api_memory_settings(req)
@@ -467,7 +467,7 @@ class TestMemorySettings:
         state = _make_state(consolidator=consolidator)
         req = _make_request(state, method="PUT", json_body={"history_idle_hours": 3})
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg(idle=3.0, migrated=True)),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg(idle=3.0, migrated=True)),
             patch(f"{_MOD}.config_path", return_value=cfg_path),
         ):
             assert (await mem_mod.api_memory_settings(req)).status == 200
@@ -506,8 +506,8 @@ class TestRedactAndStoreResolution:
         state: Any = SimpleNamespace(context_builder=SimpleNamespace(memory=mem))
         created = MagicMock()
         with (
-            patch("kiro_crew.vector_memory.VectorMemoryStore", return_value=created) as ctor,
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()),
+            patch("junction.vector_memory.VectorMemoryStore", return_value=created) as ctor,
+            patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()),
         ):
             first = mem_mod._get_vector_store(state)
             second = mem_mod._get_vector_store(state)
@@ -536,7 +536,7 @@ class TestGetVectorStoreAsync:
     @pytest.mark.asyncio
     async def test_standalone_fallback_init_runs_off_event_loop(self, monkeypatch) -> None:
         """Fail-before: with the sync call reinstated, init runs on this thread."""
-        import kiro_crew.vector_memory as vm_mod
+        import junction.vector_memory as vm_mod
 
         init_threads: list[threading.Thread] = []
 
@@ -549,7 +549,7 @@ class TestGetVectorStoreAsync:
 
         monkeypatch.setattr(vm_mod, "VectorMemoryStore", RecordingStore)
         state = self._fallback_state()
-        with patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()):
+        with patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()):
             store = await mem_mod._get_vector_store_async(state)
 
             assert isinstance(store, RecordingStore)
@@ -568,7 +568,7 @@ class TestGetVectorStoreAsync:
         """Cancelling the first caller (e.g. an aiohttp client disconnect)
         must not let a racing request arm a second ``init()``: the shared
         shielded task keeps the in-flight init as the single flight."""
-        import kiro_crew.vector_memory as vm_mod
+        import junction.vector_memory as vm_mod
 
         init_calls: list[threading.Thread] = []
         started = threading.Event()
@@ -585,7 +585,7 @@ class TestGetVectorStoreAsync:
 
         monkeypatch.setattr(vm_mod, "VectorMemoryStore", SlowStore)
         state = self._fallback_state()
-        with patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()):
+        with patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()):
             first = asyncio.ensure_future(mem_mod._get_vector_store_async(state))
             # Wait until init() is genuinely running in the worker thread,
             # then cancel the caller mid-init.
@@ -606,7 +606,7 @@ class TestGetVectorStoreAsync:
     async def test_concurrent_first_calls_init_once(self, monkeypatch) -> None:
         """Single-flight: the lock restores the serialization the sync call
         sites used to get for free from the event loop."""
-        import kiro_crew.vector_memory as vm_mod
+        import junction.vector_memory as vm_mod
 
         init_calls: list[threading.Thread] = []
         release = threading.Event()
@@ -621,7 +621,7 @@ class TestGetVectorStoreAsync:
 
         monkeypatch.setattr(vm_mod, "VectorMemoryStore", SlowStore)
         state = self._fallback_state()
-        with patch(f"{_MOD}.KiroCrewConfig.load", return_value=_cfg()):
+        with patch(f"{_MOD}.JunctionConfig.load", return_value=_cfg()):
             t1 = asyncio.ensure_future(mem_mod._get_vector_store_async(state))
             t2 = asyncio.ensure_future(mem_mod._get_vector_store_async(state))
             # Let both tasks pass the fast-path check and reach the lock while
@@ -759,7 +759,7 @@ class TestSemanticEndpoints:
 
     @pytest.mark.asyncio
     async def test_write_conflict_reject_is_409(self) -> None:
-        from kiro_crew.vector_memory import SemanticRejectCode
+        from junction.vector_memory import SemanticRejectCode
 
         store = _store()
         store.set_semantic.return_value = (SemanticRejectCode.CONFLICT, "already set")
@@ -776,7 +776,7 @@ class TestSemanticEndpoints:
 
     @pytest.mark.asyncio
     async def test_write_other_reject_is_422_and_redacted(self) -> None:
-        from kiro_crew.vector_memory import SemanticRejectCode
+        from junction.vector_memory import SemanticRejectCode
 
         store = _store()
         store.set_semantic.return_value = (
@@ -960,8 +960,8 @@ class TestStatsMigrateImport:
         cfg = _cfg(migrated=True)
         cfg.memory.embedding_provider = "llama_cpp"
         with (
-            patch(f"{_MOD}.KiroCrewConfig.load", return_value=cfg),
-            patch("kiro_crew.memory.legacy_memory_present", return_value=True),
+            patch(f"{_MOD}.JunctionConfig.load", return_value=cfg),
+            patch("junction.memory.legacy_memory_present", return_value=True),
         ):
             body = _body(await mem_mod.api_memory_stats(_make_request(state)))
         assert body == {
@@ -1187,7 +1187,7 @@ def _prog(active: bool = False) -> Any:
 class TestEmbeddingModelEndpoint:
     @pytest.fixture(autouse=True)
     def _no_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("KIROCREW_EMBED_MODEL_PATH", raising=False)
+        monkeypatch.delenv("JUNCTION_EMBED_MODEL_PATH", raising=False)
 
     @pytest.mark.asyncio
     async def test_denied_for_restricted_session(self) -> None:
@@ -1260,7 +1260,7 @@ class TestEmbeddingModelEndpoint:
     async def test_env_override_blocks_config_write_with_409(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_EMBED_MODEL_PATH", "/env/model.gguf")
+        monkeypatch.setenv("JUNCTION_EMBED_MODEL_PATH", "/env/model.gguf")
         state = _make_state()
         req = _make_request(state, method="POST", json_body={"path": ""})
         resp = await mem_mod.api_memory_embedding_model(req)
@@ -1446,7 +1446,7 @@ class TestWriteEmbedModelConfig:
 class TestEnsurePipEdgeCases:
     @pytest.mark.asyncio
     async def test_sandbox_unavailable_is_a_normal_not_ok_result(self) -> None:
-        from kiro_crew.sandbox import SandboxUnavailableError
+        from junction.sandbox import SandboxUnavailableError
 
         def _refuse(argv: Any, **kw: Any) -> Any:
             raise SandboxUnavailableError("no backend", kind="no_backend", detail="not Linux")
@@ -1880,7 +1880,7 @@ class TestConfigWritesRunOffTheEventLoop:
         """
         import threading
 
-        from kiro_crew.config import loader as loader_mod
+        from junction.config import loader as loader_mod
 
         cfg = tmp_path / "config.json"
         cfg.write_text(initial, encoding="utf-8")
@@ -1940,7 +1940,7 @@ class TestConfigWritesRunOffTheEventLoop:
         import threading
 
         seen, cfg = self._instrument(monkeypatch, tmp_path)
-        monkeypatch.setattr(mem_mod.KiroCrewConfig, "load", staticmethod(lambda: MagicMock()))
+        monkeypatch.setattr(mem_mod.JunctionConfig, "load", staticmethod(lambda: MagicMock()))
 
         state = _make_state(consolidator=None)
         req = _make_request(state, method="PUT", json_body={"history_max_days": 30})
@@ -1991,7 +1991,7 @@ class TestConfigWritesRunOffTheEventLoop:
         self, monkeypatch, tmp_path: Path
     ) -> None:
         seen, cfg = self._instrument(monkeypatch, tmp_path, initial="{oops")
-        monkeypatch.setattr(mem_mod.KiroCrewConfig, "load", staticmethod(lambda: MagicMock()))
+        monkeypatch.setattr(mem_mod.JunctionConfig, "load", staticmethod(lambda: MagicMock()))
 
         state = _make_state(consolidator=None)
         req = _make_request(state, method="PUT", json_body={"history_max_days": 30})
@@ -2020,7 +2020,7 @@ class TestConfigWritesRunOffTheEventLoop:
     ) -> None:
         """Validation runs ahead of the transaction; a 400 must not write."""
         seen, cfg = self._instrument(monkeypatch, tmp_path)
-        monkeypatch.setattr(mem_mod.KiroCrewConfig, "load", staticmethod(lambda: MagicMock()))
+        monkeypatch.setattr(mem_mod.JunctionConfig, "load", staticmethod(lambda: MagicMock()))
 
         state = _make_state(consolidator=None)
         req = _make_request(state, method="PUT", json_body={"history_max_days": "abc"})
@@ -2050,7 +2050,7 @@ class TestConfigWritesRunOffTheEventLoop:
         """
         import threading
 
-        from kiro_crew.dashboard.chat_utils import run_config_write
+        from junction.dashboard.chat_utils import run_config_write
 
         in_txn = threading.Event()
         finish = threading.Event()
@@ -2108,7 +2108,7 @@ class TestConfigWritesRunOffTheEventLoop:
         behaviour this change is responsible for.
         """
         seen, cfg = self._instrument(monkeypatch, tmp_path, initial='{"memory": []}')
-        monkeypatch.setattr(mem_mod.KiroCrewConfig, "load", staticmethod(lambda: MagicMock()))
+        monkeypatch.setattr(mem_mod.JunctionConfig, "load", staticmethod(lambda: MagicMock()))
 
         state = _make_state(consolidator=None)
         req = _make_request(state, method="PUT", json_body={})

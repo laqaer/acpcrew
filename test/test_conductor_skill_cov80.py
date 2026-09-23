@@ -1,4 +1,4 @@
-"""Coverage for ``kiro_crew.conductor_skill`` — the always-loaded delegation guide.
+"""Coverage for ``junction.conductor_skill`` — the always-loaded delegation guide.
 
 The generated SKILL.md is injected into every default-agent turn, so the
 contract worth pinning is: it lands at ``<loader._dir>/conductor/SKILL.md``
@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from kiro_crew.conductor_skill import generate_conductor_skill
+from junction.conductor_skill import generate_conductor_skill
 
 
 def _loader(root: Path) -> SimpleNamespace:

@@ -16,7 +16,7 @@ import sys
 
 import pytest
 
-from kiro_crew.subprocess_utf8 import UTF8_TEXT
+from junction.subprocess_utf8 import UTF8_TEXT
 
 # A child printing this exercises multi-byte UTF-8; under cp1252 these bytes
 # decode to mojibake, so a passing equality check proves UTF-8 decoding.

@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.hooks import (
+from junction.hooks import (
     HOOK_EVENT_PRE_TOOL_USE,
     HOOK_EVENT_STOP,
     HOOK_EVENT_USER_PROMPT_SUBMIT,
@@ -191,7 +191,7 @@ class TestScriptHookStoreFire:
 
     @pytest.mark.asyncio
     async def test_fire_emits_subagent_id_when_set(self, fire_store: ScriptHookStore):
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "test-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await fire_store.fire(
                 HOOK_EVENT_PRE_TOOL_USE,
@@ -205,7 +205,7 @@ class TestScriptHookStoreFire:
 
     @pytest.mark.asyncio
     async def test_fire_emits_parent_session_key_when_set(self, fire_store: ScriptHookStore):
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "test-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await fire_store.fire(
                 HOOK_EVENT_PRE_TOOL_USE,
@@ -219,7 +219,7 @@ class TestScriptHookStoreFire:
 
     @pytest.mark.asyncio
     async def test_fire_emits_agent_role_when_set(self, fire_store: ScriptHookStore):
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "test-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await fire_store.fire(
                 HOOK_EVENT_PRE_TOOL_USE,
@@ -233,7 +233,7 @@ class TestScriptHookStoreFire:
 
     @pytest.mark.asyncio
     async def test_fire_emits_all_three_together(self, fire_store: ScriptHookStore):
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "test-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await fire_store.fire(
                 HOOK_EVENT_PRE_TOOL_USE,
@@ -250,7 +250,7 @@ class TestScriptHookStoreFire:
     @pytest.mark.asyncio
     async def test_fire_omits_all_three_when_none(self, fire_store: ScriptHookStore):
         """Backward compatibility: when all three are None (default), payload is byte-identical to pre-CR behavior."""
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "test-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await fire_store.fire(HOOK_EVENT_PRE_TOOL_USE, tool_name="ReadFile")
             (_, _, hook_event), _ = mock_run.call_args
@@ -262,7 +262,7 @@ class TestScriptHookStoreFire:
 class TestScriptHookStoreStopContext:
     """Stop hooks receive the final assistant segment on stdin, untruncated.
 
-    The env var ``KIROCREW_HOOK_CONTEXT`` is capped at 500 chars (ARG_MAX
+    The env var ``JUNCTION_HOOK_CONTEXT`` is capped at 500 chars (ARG_MAX
     safety), which drops the tail of the segment. A Stop hook that keys on tail
     content (e.g. the harness ``[OPTIONS:]`` menu line) never sees it via the env
     var. fire() therefore emits the untruncated segment into the stdin
@@ -286,7 +286,7 @@ class TestScriptHookStoreStopContext:
     async def test_stop_full_context_on_stdin_and_matcher(self, stop_store: ScriptHookStore):
         # The load-bearing marker sits at the tail, past the 500-char env cap.
         full = ("x" * 900) + "\n[OPTIONS: A | B | C]"
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "stop-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await stop_store.fire(HOOK_EVENT_STOP, context=full)
             (_, ctx_arg, hook_event), _ = mock_run.call_args
@@ -310,7 +310,7 @@ class TestScriptHookStoreStopContext:
             "command": "echo test",
         })
         full = ("x" * 900) + "\n[OPTIONS: A | B | C]"
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "options-stop-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await store.fire(HOOK_EVENT_STOP, context=full)
             assert mock_run.await_count == 1, "tail-matching Stop hook was filtered out by env truncation"
@@ -320,7 +320,7 @@ class TestScriptHookStoreStopContext:
         # An empty / no-output turn still fires Stop with context="". The key MUST
         # be present (unconditional, not truthiness-gated) so a hook that always
         # reads hook_event["assistant_text"] gets "" rather than KeyError-ing.
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "stop-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await stop_store.fire(HOOK_EVENT_STOP, context="")
             (_, _, hook_event), _ = mock_run.call_args
@@ -337,7 +337,7 @@ class TestScriptHookStoreStopContext:
             "matcher": "",
             "command": "echo test",
         })
-        with patch("kiro_crew.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
+        with patch("junction.hooks.run_script_hook", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = type("R", (), {"hook_name": "ups-hook", "exit_code": 0, "stdout": "", "stderr": "", "duration_ms": 1})()
             await store.fire(HOOK_EVENT_USER_PROMPT_SUBMIT, context="hello")
             (_, _, hook_event), _ = mock_run.call_args
@@ -351,7 +351,7 @@ class TestRunScriptHookStopEnvCap:
 
     @pytest.mark.asyncio
     async def test_stop_env_context_capped_but_stdin_full(self) -> None:
-        """Stop hook: KIROCREW_HOOK_CONTEXT env is capped at 500; stdin JSON is full.
+        """Stop hook: JUNCTION_HOOK_CONTEXT env is capped at 500; stdin JSON is full.
 
         The env var is bounded by ARG_MAX (a multi-KB turn there can fail process
         creation), so run_script_hook truncates the ENV copy for Stop only — while
@@ -396,15 +396,15 @@ class TestRunScriptHookStopEnvCap:
         # ``/bin/sh -c`` as an argv. The env cap under test is identical either
         # way, so the test must not assume one host's form.
         with (
-            patch("kiro_crew.sandbox.wrap_argv", lambda argv, *a, **k: (argv, None)),
-            patch("kiro_crew.sandbox.cgroup_scope_argv", lambda argv: argv),
+            patch("junction.sandbox.wrap_argv", lambda argv, *a, **k: (argv, None)),
+            patch("junction.sandbox.cgroup_scope_argv", lambda argv: argv),
             patch("asyncio.create_subprocess_exec", side_effect=fake_exec),
             patch("asyncio.create_subprocess_shell", side_effect=fake_exec),
         ):
             await run_script_hook(hook, context=full, hook_event=hook_event)
 
         # ENV copy is capped at 500 chars — the tail marker is dropped there.
-        env_ctx = captured["env"]["KIROCREW_HOOK_CONTEXT"]
+        env_ctx = captured["env"]["JUNCTION_HOOK_CONTEXT"]
         assert len(env_ctx) == 500
         assert "[OPTIONS:" not in env_ctx
         # Assert on what actually reached the subprocess stdin (not the input

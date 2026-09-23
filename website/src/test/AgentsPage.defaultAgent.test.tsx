@@ -25,7 +25,7 @@ const mockApi = vi.hoisted(() => ({
   defaultAgent: vi.fn(),
   agentDetail: vi.fn(),
   agentMetadata: vi.fn(),
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   skills: vi.fn(),
   agentPatch: vi.fn(),
   spawnClear: vi.fn(),
@@ -69,12 +69,12 @@ beforeEach(() => {
   mockApi.spawnList.mockResolvedValue({ agents: [] })
   mockApi.sessionsContext.mockResolvedValue({ sessions: [] })
   mockApi.sessionsUsage.mockResolvedValue({ usage: null })
-  mockApi.agentsInstalled.mockResolvedValue([mkAgent('kirocrew'), mkAgent('fable')])
+  mockApi.agentsInstalled.mockResolvedValue([mkAgent('junction'), mkAgent('fable')])
   mockApi.mcpProbeCache.mockResolvedValue([])
   mockApi.agentMetadata.mockResolvedValue({ content: '' })
-  mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+  mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
   mockApi.skills.mockResolvedValue([])
-  mockApi.agentDetail.mockResolvedValue({ ...mkAgent('kirocrew'), unmanaged_skills: [] })
+  mockApi.agentDetail.mockResolvedValue({ ...mkAgent('junction'), unmanaged_skills: [] })
   mockApi.setDefaultAgent.mockResolvedValue({ ok: true, default_agent: '' })
 })
 
@@ -90,7 +90,7 @@ describe('AgentsPage default template', () => {
   })
 
   it('writes the pick immediately, with no Save step', async () => {
-    mockApi.defaultAgent.mockResolvedValue({ default_agent: 'kirocrew' })
+    mockApi.defaultAgent.mockResolvedValue({ default_agent: 'junction' })
     renderPage()
 
     fireEvent.click(await screen.findByRole('combobox', { name: 'When nothing names a template, use' }))
@@ -101,7 +101,7 @@ describe('AgentsPage default template', () => {
   })
 
   it('can clear the default from the same picker', async () => {
-    mockApi.defaultAgent.mockResolvedValue({ default_agent: 'kirocrew' })
+    mockApi.defaultAgent.mockResolvedValue({ default_agent: 'junction' })
     renderPage()
 
     fireEvent.click(await screen.findByRole('combobox', { name: 'When nothing names a template, use' }))

@@ -22,7 +22,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers import sandbox_doc as sd
+from junction.dashboard.handlers import sandbox_doc as sd
 
 
 @pytest.fixture(autouse=True)
@@ -283,7 +283,7 @@ def test_the_pop_happens_under_the_lock() -> None:
 def test_the_serving_route_is_on_the_auth_bypass_list() -> None:
     """The token is the credential, so the route must bypass session auth — and
     the prefix in the middleware must be the one the handler actually serves."""
-    from kiro_crew.dashboard import token_auth
+    from junction.dashboard import token_auth
 
     assert sd.SANDBOX_DOC_PREFIX in token_auth._BYPASS_PREFIXES, (
         "the document route is not on the bypass list, so a sandboxed frame "

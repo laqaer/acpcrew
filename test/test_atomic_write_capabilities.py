@@ -23,8 +23,8 @@ import stat
 
 import pytest
 
-from kiro_crew import atomic_write as aw
-from kiro_crew import platform_compat
+from junction import atomic_write as aw
+from junction import platform_compat
 
 
 def test_bytes_content_lands_verbatim(tmp_path):
@@ -191,7 +191,7 @@ def test_restrict_on_error_warn_does_not_log_the_payload(tmp_path, monkeypatch, 
 
     secret = b"correct-horse-battery-staple"
     target = tmp_path / "hmac.key"
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.atomic_write"):
+    with caplog.at_level(logging.WARNING, logger="junction.atomic_write"):
         aw.atomic_write(target, secret, restrict_to_owner=True, restrict_on_error="warn")
 
     logged = "\n".join(r.getMessage() for r in caplog.records)

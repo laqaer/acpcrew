@@ -16,7 +16,7 @@ Two tests, the second a negative control so the first cannot pass vacuously:
 Capture happens at ``usage._write_token_record`` so the REAL
 ``persist_token_record_async`` and ``_build_token_record`` run — the assertions
 see the genuine ``duration_ms or elapsed_ms`` precedence, not a re-implemented
-copy of it. Subagent-registry and ``KIROCREW_HOME`` isolation come from the
+copy of it. Subagent-registry and ``JUNCTION_HOME`` isolation come from the
 autouse conftest fixtures.
 """
 
@@ -29,9 +29,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.types import TurnUsage
-from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
-from kiro_crew.subagent import SubagentManager
+from junction.acp.types import TurnUsage
+from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+from junction.subagent import SubagentManager
 
 # ``SubagentManager.spawn`` refuses -- registering no task -- while the host
 # looks short of memory, which is the runner's state, not this test's input.
@@ -107,22 +107,22 @@ async def _spawn_and_capture(stream_factory) -> list[dict]:
     captured: list[dict] = []
     mgr = _manager(_mock_sessions(stream_factory))
     with (
-        patch("kiro_crew.subagent.Stats"),
-        patch("kiro_crew.subagent.sel"),
+        patch("junction.subagent.Stats"),
+        patch("junction.subagent.sel"),
         patch(
-            "kiro_crew.dashboard.handlers.usage._write_token_record",
+            "junction.dashboard.handlers.usage._write_token_record",
             side_effect=lambda record, now: captured.append(record),
         ),
         patch(
-            "kiro_crew.dashboard.handlers.usage.read_context_tokens",
+            "junction.dashboard.handlers.usage.read_context_tokens",
             return_value=(0, 0),
         ),
         patch(
-            "kiro_crew.dashboard.handlers.usage.read_effective_agent",
-            return_value="kirocrew",
+            "junction.dashboard.handlers.usage.read_effective_agent",
+            return_value="junction",
         ),
         patch(
-            "kiro_crew.dashboard.handlers.usage.read_effective_model",
+            "junction.dashboard.handlers.usage.read_effective_model",
             return_value="claude-opus-5",
         ),
     ):

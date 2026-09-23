@@ -29,7 +29,7 @@ import McpTab from '../pages/overview/McpTab'
 import { MemoryRouter } from 'react-router-dom'
 
 const server = (name: string): McpServer => ({
-  name, command: `${name}-cmd`, status: 'ok', source: 'kirocrew', enabled: true, tools: ['t1'],
+  name, command: `${name}-cmd`, status: 'ok', source: 'junction', enabled: true, tools: ['t1'],
 })
 
 function renderTab() {
@@ -267,7 +267,7 @@ describe('McpTab needs_auth status', () => {
     mockApi.mcpServers.mockResolvedValue([
       {
         ...remote('needs_auth'),
-        kirocrewManaged: true,
+        junctionManaged: true,
         authChallenge: true,
         authGrantPresent: false,
       },

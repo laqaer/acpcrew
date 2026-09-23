@@ -29,7 +29,7 @@ async def _context(slot, tracker, stage_idx):
     tree; a bare ``await`` against the synchronous version would raise "can't be
     used in 'await' expression", which proves only that the symbol changed.
     """
-    from kiro_crew.dashboard.chat_orchestrator import _build_stage_context
+    from junction.dashboard.chat_orchestrator import _build_stage_context
 
     result = _build_stage_context(slot, tracker, stage_idx)
     if inspect.isawaitable(result):
@@ -40,10 +40,10 @@ async def _context(slot, tracker, stage_idx):
 def _fixture(tmp_path, monkeypatch, *, content="stage one output"):
     """A slot + tracker where stage 1 has a result file on disk."""
     monkeypatch.setattr(
-        "kiro_crew.dashboard.chat_orchestrator.is_sensitive_path", lambda p: False
+        "junction.dashboard.chat_orchestrator.is_sensitive_path", lambda p: False
     )
-    from kiro_crew.context_management import OrchestrationTracker
-    from kiro_crew.dashboard.state import _ChatSlot
+    from junction.context_management import OrchestrationTracker
+    from junction.dashboard.state import _ChatSlot
 
     slot = _ChatSlot("prev-result-slot", mode="orchestrator")
     # `_plan_stage_count` is derived from the titles, not settable.
@@ -194,7 +194,7 @@ async def test_sensitive_path_is_not_read(tmp_path, monkeypatch):
     """The sensitive-path refusal still short-circuits before any read."""
     slot, tracker, result_file = _fixture(tmp_path, monkeypatch, content="secret body")
     monkeypatch.setattr(
-        "kiro_crew.dashboard.chat_orchestrator.is_sensitive_path", lambda p: True
+        "junction.dashboard.chat_orchestrator.is_sensitive_path", lambda p: True
     )
 
     reads: list[str] = []

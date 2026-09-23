@@ -6,7 +6,7 @@ these two MCP tools are the crew's memory, and every property asserted here is
 load-bearing for a cold resume:
 
   * the ledger must be REACHABLE from an agent session, which has no dashboard
-    credential (httpOnly cookie, ``KIROCREW_INTERNAL_SECRET`` stripped from agent
+    credential (httpOnly cookie, ``JUNCTION_INTERNAL_SECRET`` stripped from agent
     env, ``.local_secret`` on the sensitive-path denylist) — hence the
     internal-secret allowlist entries, and hence a raw HTTP call earning 403;
   * a partial write must never erase what an earlier write stored, or a resume
@@ -27,9 +27,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew import mcp_core
-from kiro_crew.dashboard.token_auth import token_auth_middleware
-from kiro_crew.validation import MCP_CORE_SCHEMAS, ValidationError, validate_tool_args
+from junction import mcp_core
+from junction.dashboard.token_auth import token_auth_middleware
+from junction.validation import MCP_CORE_SCHEMAS, ValidationError, validate_tool_args
 
 READ_TOOL = "issue_radar_crew_read"
 RECORD_TOOL = "issue_radar_crew_record"
@@ -161,7 +161,7 @@ class TestGatewayPathsAreReachableWithTheInternalSecret(unittest.TestCase):
                 )
 
     def test_both_crew_routes_are_mixed_internal_paths(self):
-        from kiro_crew.dashboard.server import _MIXED_INTERNAL_API_PATHS
+        from junction.dashboard.server import _MIXED_INTERNAL_API_PATHS
 
         assert READ_PATH in _MIXED_INTERNAL_API_PATHS
         assert WORK_PATH in _MIXED_INTERNAL_API_PATHS
@@ -174,7 +174,7 @@ class TestGatewayPathsAreReachableWithTheInternalSecret(unittest.TestCase):
         ``/issue/close`` and the comment routes — which write to GitHub — to
         anything holding the internal secret.
         """
-        from kiro_crew.dashboard.server import (
+        from junction.dashboard.server import (
             _MIXED_INTERNAL_API_PATHS,
             _STRICT_INTERNAL_API_PATHS,
         )
@@ -189,7 +189,7 @@ class TestGatewayPathsAreReachableWithTheInternalSecret(unittest.TestCase):
     def test_the_paths_the_tools_call_are_the_paths_allowlisted(self):
         # A route constant that drifts from the allowlist entry is a silent 403
         # for an unattended agent — nobody is watching the turn it happens on.
-        from kiro_crew.dashboard.server import _MIXED_INTERNAL_API_PATHS
+        from junction.dashboard.server import _MIXED_INTERNAL_API_PATHS
 
         assert mcp_core._CREW_READ_PATH == READ_PATH
         assert mcp_core._CREW_WORK_PATH == WORK_PATH
@@ -200,7 +200,7 @@ class TestGatewayPathsAreReachableWithTheInternalSecret(unittest.TestCase):
 class TestToolRegistration(unittest.TestCase):
     def test_both_schemas_are_registered(self):
         # An unregistered tool's args pass through raw and its ValidationError
-        # escapes the stdio loop, killing kirocrew-core for the whole session.
+        # escapes the stdio loop, killing junction-core for the whole session.
         assert READ_TOOL in MCP_CORE_SCHEMAS
         assert RECORD_TOOL in MCP_CORE_SCHEMAS
 
@@ -272,7 +272,7 @@ class TestToolRegistration(unittest.TestCase):
         # enforced as ``allowed=``: refusing an odd label would fail the write
         # that indexes the skip, and an unindexed skip is the waste the index
         # exists to remove. The store coerces to ``other`` instead.
-        from kiro_crew.apps.builtins.issue_radar.backend import crew_store
+        from junction.apps.builtins.issue_radar.backend import crew_store
 
         spec = next(t for t in mcp_core._list_tools() if t["name"] == RECORD_TOOL)
         advertised = set(spec["inputSchema"]["properties"]["skip_scope"]["enum"])
@@ -283,7 +283,7 @@ class TestToolRegistration(unittest.TestCase):
     def test_the_phase_vocabulary_mirrors_the_store_exactly(self):
         # validation.py cannot import an app package, so it mirrors these. Drift
         # would silently reject a legitimate phase at the tool boundary.
-        from kiro_crew.apps.builtins.issue_radar.backend import crew_store
+        from junction.apps.builtins.issue_radar.backend import crew_store
 
         by_name = {f.name: f for f in MCP_CORE_SCHEMAS[RECORD_TOOL].fields}
         assert set(by_name["phase"].allowed) == set(crew_store.PHASES)
@@ -586,10 +586,10 @@ class TestPublicStringsAreSanitizedOnTheWayIn(unittest.TestCase):
         assert home not in captured["body"]["event"]
         assert "<home>" in captured["body"]["event"]
 
-    def test_the_kirocrew_home_collapses_before_the_user_home(self):
+    def test_the_junction_home_collapses_before_the_user_home(self):
         # Longest-first ordering: scrubbing the home first would leave
         # "<home>/.kiro/crew/..." — still this machine's directory layout.
-        from kiro_crew.config.loader import config_dir
+        from junction.config.loader import config_dir
 
         captured, _ = _record(
             event=f"read the ledger under {config_dir()}/workspace",
@@ -845,7 +845,7 @@ class TestMiddlewareDecision:
         return req
 
     def _mw(self, secret: str = "s3cret"):
-        from kiro_crew.dashboard.server import (
+        from junction.dashboard.server import (
             _MIXED_INTERNAL_API_PATHS,
             _STRICT_INTERNAL_API_PATHS,
         )
@@ -940,7 +940,7 @@ class TestMiddlewareDecision:
         route that does not exist cannot be registered, so the lookup below would
         fail before the gate was ever consulted. The deletion is asserted separately.
         """
-        from kiro_crew.apps.builtins.issue_radar.backend import crew_routes, routes
+        from junction.apps.builtins.issue_radar.backend import crew_routes, routes
 
         app = web.Application()
         crew_routes.register_crew_routes(app)
@@ -978,7 +978,7 @@ class TestMiddlewareDecision:
         that exists and refuses, and "the endpoint is gone" is the property that
         actually stops anyone building on it again.
         """
-        from kiro_crew.apps.builtins.issue_radar.backend import crew_routes
+        from junction.apps.builtins.issue_radar.backend import crew_routes
 
         app = web.Application()
         crew_routes.register_crew_routes(app)

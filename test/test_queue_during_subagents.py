@@ -16,12 +16,12 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
-from kiro_crew.dashboard.chat_utils import (
+from junction.dashboard.chat_utils import (
     CRON_NOTIFICATION_KIND,
     SUBAGENT_COMPLETION_KIND,
     _dequeue_next_system_message,
 )
-from kiro_crew.dashboard.state import (
+from junction.dashboard.state import (
     CRON_NOTIFY_PREFIX,
     SUBAGENT_COMPLETION_PREFIX,
     _ChatSlot,
@@ -161,14 +161,14 @@ class TestApiChatSubagentQueueGate:
     running for the slot (always on), querying the correct parent key."""
 
     async def test_queues_when_subagents_running(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         ran = {"called": False}
 
         async def fake_run_chat(st, sl, msg, *, _directive_user_origin):
             assert _directive_user_origin is True
             ran["called"] = True
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_handlers._run_chat", fake_run_chat)
+        monkeypatch.setattr("junction.dashboard.chat_handlers._run_chat", fake_run_chat)
         subs = MagicMock()
         subs.running_agents_for = MagicMock(return_value=[{"id": "a1"}])
         state = _make_state(tmp_path, subagents=subs)
@@ -186,13 +186,13 @@ class TestApiChatSubagentQueueGate:
         subs.running_agents_for.assert_any_call("dashboard:s1")
 
     async def test_not_queued_when_no_subagents_running(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
 
         async def fake_run_chat(st, sl, msg, *, _directive_user_origin):
             assert _directive_user_origin is True
             return None
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_handlers._run_chat", fake_run_chat)
+        monkeypatch.setattr("junction.dashboard.chat_handlers._run_chat", fake_run_chat)
         subs = MagicMock()
         subs.running_agents_for = MagicMock(return_value=[])  # no agents running
         state = _make_state(tmp_path, subagents=subs)
@@ -219,7 +219,7 @@ class TestApiChatBusySlotEmptyMessage:
 
     async def _busy_client(self, tmp_path, monkeypatch):
         """Real state + slot; the slot is made busy via a live, never-done task."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         pushes: list[tuple[str, dict]] = []
@@ -292,7 +292,7 @@ class TestSerializeSlotsSubagentsRunning:
     (see precedent)."""
 
     async def test_flag_true_when_agents_running(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         subs = MagicMock()
         subs.running_agents_for = MagicMock(return_value=[{"id": "a1"}])
         state = _make_state(tmp_path, subagents=subs)
@@ -305,7 +305,7 @@ class TestSerializeSlotsSubagentsRunning:
         subs.running_agents_for.assert_any_call("dashboard:s1")
 
     async def test_flag_false_when_no_agents_running(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         subs = MagicMock()
         subs.running_agents_for = MagicMock(return_value=[])
         state = _make_state(tmp_path, subagents=subs)

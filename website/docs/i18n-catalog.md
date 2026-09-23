@@ -110,7 +110,7 @@ Authoring rules that follow:
   stay byte-identical to the Python-side `app.json` prose (`[manifest-sync]`
   is a hard zero), so they keep the literal English name.
 - **Repo-attribution copy keeps the literal too.** A string naming this
-  project as the star/fork/issue target (`app.star_kirocrew_on_github`) wraps
+  project as the star/fork/issue target (`app.star_junction_on_github`) wraps
   a hardcoded upstream URL, so interpolating the product name would make an
   edition render its own name linking to the upstream repository.
 - **A call-time variable of the same name wins** over the default, per
@@ -229,7 +229,7 @@ wrong.
 ## Built-in app copy comes from Python, and is localised without touching it
 
 An app's `displayName`, `description`, `highlights[]` and `ui.pages[0].label` live in
-`src/kiro_crew/apps/builtins/<app>/app.json` on the **Python** side, and the App Store
+`src/junction/apps/builtins/<app>/app.json` on the **Python** side, and the App Store
 components interpolate them raw. So they were English in every locale, and the nav rail
 read `Papyrus` while that app's own page header was translated.
 
@@ -240,7 +240,7 @@ Render through its resolvers — `appDisplayName`, `appDescription`, `appPageLab
 
 **It is additive on purpose: `app.json` keeps its English.** The obvious design is VS
 Code's, a `%key%` placeholder inside the manifest, and it was rejected because it
-*replaces* the English. `kirocrew app list` prints `displayName` straight to a terminal
+*replaces* the English. `junction app list` prints `displayName` straight to a terminal
 with no catalog, and `ui_language_tag()` returns `''` whenever the user is on "follow the
 browser" — so resolving there would mean a second localisation stack in Python plus a
 request locale the backend does not have. Keeping the manifest untouched leaves every

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api/client'
-import type { KiroCrewAgent } from '../components/AgentSelector'
+import type { JunctionAgent } from '../components/AgentSelector'
 
 /**
  * @param sessionKey Chat-slot key whose project scope should apply. Omit on
@@ -12,7 +12,7 @@ import type { KiroCrewAgent } from '../components/AgentSelector'
  *   context (the roster is then global-only and cannot go stale this way).
  */
 export function useAgents(refreshTrigger: number, sessionKey?: string, projectDir?: string) {
-  const [agents, setAgents] = useState<KiroCrewAgent[]>([])
+  const [agents, setAgents] = useState<JunctionAgent[]>([])
   const [defaultAgent, setDefaultAgent] = useState('')
   const syncOnce = useRef<Promise<unknown> | null>(null)
   const syncSettled = useRef(false)
@@ -37,7 +37,7 @@ export function useAgents(refreshTrigger: number, sessionKey?: string, projectDi
       setAgents([])
     }
     const fetchAgents = () =>
-      api.kirocrewAgents(sessionKey).then(d => {
+      api.junctionAgents(sessionKey).then(d => {
         if (cancelled) return
         setAgents(d.agents || [])
         setDefaultAgent(d.default_agent || '')
@@ -53,7 +53,7 @@ export function useAgents(refreshTrigger: number, sessionKey?: string, projectDi
     // A failed sync must not strand the roster: it still settles, and the fetch
     // proceeds against whatever config is already on disk.
     if (!syncOnce.current) {
-      syncOnce.current = api.syncKirocrewAgents()
+      syncOnce.current = api.syncJunctionAgents()
         .catch(() => {})
         .then(() => { syncSettled.current = true })
     }

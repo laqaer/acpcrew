@@ -25,7 +25,7 @@ const OUT = process.argv[2] || '/tmp/spec-builder-decisions'
 mkdirSync(OUT, { recursive: true })
 
 const NAME = 'codex-acp-oauth'
-const SPEC_DIR = '/proj/KiroCrew/.kiro/specs/' + NAME
+const SPEC_DIR = '/proj/Junction/.kiro/specs/' + NAME
 
 const REQUIREMENTS = `# Requirements — pluggable ACP backend
 
@@ -73,7 +73,7 @@ const detail = {
   phase: 'requirements',
   status: 'planning',
   running: false,
-  working_dir: '/proj/KiroCrew',
+  working_dir: '/proj/Junction',
   spec_dir: SPEC_DIR,
   spec_type: 'feature',
   slot_key: 'spec-builder-' + NAME + '-1',

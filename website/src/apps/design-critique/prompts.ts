@@ -17,7 +17,7 @@ const CRITIC =
   'looking over someone’s work, not a title on a review panel.\n\n' +
   'Before judging anything, load the method. Resolve the directory that holds it and read ' +
   'both files from it:\n' +
-  '  python3 -c "import kiro_crew, pathlib; print(pathlib.Path(kiro_crew.__file__).parent / \'apps/builtins/design_critique/skills/design-critique\')"\n' +
+  '  python3 -c "import junction, pathlib; print(pathlib.Path(junction.__file__).parent / \'apps/builtins/design_critique/skills/design-critique\')"\n' +
   'If that prints nothing or python3 is unavailable, try `python` instead, and if neither ' +
   'works use glob to find a path ending in ' +
   '`apps/builtins/design_critique/skills/design-critique/SKILL.md`. From that directory ' +
@@ -30,23 +30,23 @@ const CRITIC =
   'Do not invent personas or backstories to justify a finding. Never judge what the supplied ' +
   'evidence cannot reveal, and never critique visuals from unrendered source.\n\n'
 
-// As a BUILTIN app, the skill's scripts live inside the installed kiro_crew
+// As a BUILTIN app, the skill's scripts live inside the installed junction
 // package, not under ~/.kiro/crew/apps. The path is machine-specific, so we never
 // hardcode it: instead every prompt that runs a script tells the agent to resolve
 // the two directories itself and substitute the printed paths wherever <SCRIPTS>
 // and <UPLOADS> appear. <SCRIPTS> is the skill's bundled scripts dir; <UPLOADS> is
-// the KiroCrew uploads dir (both derived with pathlib, no absolute paths baked in).
+// the Junction uploads dir (both derived with pathlib, no absolute paths baked in).
 const RESOLVE_PATHS =
   'FIRST, resolve two directories on THIS machine and use the printed paths wherever ' +
   '<SCRIPTS> and <UPLOADS> appear below. Run each command and read its single line of output:\n' +
   '  <SCRIPTS> = the design-critique skill scripts dir:\n' +
-  '    python3 -c "import kiro_crew, pathlib; print(pathlib.Path(kiro_crew.__file__).parent / \'apps/builtins/design_critique/skills/design-critique/scripts\')"\n' +
-  '  <UPLOADS> = the KiroCrew uploads dir:\n' +
-  // Must go through config_dir(), not Path.home(): KIROCREW_HOME can move the
+  '    python3 -c "import junction, pathlib; print(pathlib.Path(junction.__file__).parent / \'apps/builtins/design_critique/skills/design-critique/scripts\')"\n' +
+  '  <UPLOADS> = the Junction uploads dir:\n' +
+  // Must go through config_dir(), not Path.home(): JUNCTION_HOME can move the
   // data home (a dev instance does exactly that), and hardcoding ~/.kiro/crew
   // would write captures into the production home and contaminate isolated data.
   // This is the same resolution the upload handler itself uses.
-  '    python3 -c "from kiro_crew.config.paths import config_dir; print(config_dir() / \'uploads\')"\n\n'
+  '    python3 -c "from junction.config.paths import config_dir; print(config_dir() / \'uploads\')"\n\n'
 
 // Shared tail: the JSON contract. Same shape for one screen or many.
 export const SCHEMA = (multi: boolean): string =>

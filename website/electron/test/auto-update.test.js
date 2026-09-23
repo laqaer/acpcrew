@@ -418,7 +418,7 @@ test("configureUpdater: allowPrerelease=true (nightly/insider stamps are semver 
 test("CONTRACT: absolute artifact urls pass through newUrlFromBase unchanged (pointer/bytes split)", () => {
   const { newBaseUrl, newUrlFromBase } = require("electron-updater/out/util");
   const base = newBaseUrl(buildFeedBase({ base: "https://updates.crew.kiro.dev/feed", channel: "nightly" }));
-  const absolute = "https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260728t112233/KiroCrew-arm64.dmg";
+  const absolute = "https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260728t112233/Junction-arm64.dmg";
   // Base is on a DIFFERENT host than the artifact: the absolute url must win.
   assert.strictEqual(newUrlFromBase(absolute, base).href, absolute);
 });
@@ -731,11 +731,11 @@ test("externally-managed BARE marker returns disabled:'externally-managed' and n
 test("externally-managed getInfo carries the marker metadata and kills the switcher", () => {
   const { deps } = makeDeps({
     appVersion: "1.0.0", // bare semver stamps as 'stable' -> switchable on a normal install
-    externallyManaged: { managedBy: "internal-registry", updateCommand: "pkgtool update kirocrew" },
+    externallyManaged: { managedBy: "internal-registry", updateCommand: "pkgtool update junction" },
   });
   const info = initAutoUpdate(deps).getInfo();
   assert.strictEqual(info.managedBy, "internal-registry");
-  assert.strictEqual(info.updateCommand, "pkgtool update kirocrew");
+  assert.strictEqual(info.updateCommand, "pkgtool update junction");
   assert.strictEqual(info.channelSwitchable, false,
     "a managed install has no lane the marker's owner reads");
 });
@@ -802,8 +802,8 @@ test("managed check() with updateCommand+checkCommand emits found with the print
     osPlatform: "win32",
     externallyManaged: {
       managedBy: "internal-registry",
-      updateCommand: "pkgtool update kirocrew",
-      checkCommand: "pkgtool check kirocrew",
+      updateCommand: "pkgtool update junction",
+      checkCommand: "pkgtool check junction",
     },
   });
   // Sibling contract: exit 0 and stdout IS the version (the packager authors
@@ -813,7 +813,7 @@ test("managed check() with updateCommand+checkCommand emits found with the print
   const u = initAutoUpdate(deps);
   assert.strictEqual(u.disabled, undefined, "a marker with an updateCommand is NOT disabled");
   await u.check();
-  assert.deepStrictEqual(commands, ["pkgtool check kirocrew"], "check must shell the checkCommand");
+  assert.deepStrictEqual(commands, ["pkgtool check junction"], "check must shell the checkCommand");
   const found = states.find((s) => s.state === "found");
   assert.ok(found, "an available update must surface a 'found' state");
   assert.strictEqual(found.version, "0.5.0.5", "trimmed stdout is the version");
@@ -907,7 +907,7 @@ test("managed install() runs updateCommand then relaunch+exit", async (t) => {
   const relaunches = [];
   const exits = [];
   const { deps, states } = makeDeps({
-    externallyManaged: { managedBy: "m", updateCommand: "pkgtool update kirocrew", checkCommand: "check" },
+    externallyManaged: { managedBy: "m", updateCommand: "pkgtool update junction", checkCommand: "check" },
   });
   deps.app.relaunch = () => relaunches.push(true);
   deps.app.exit = (c) => exits.push(c);
@@ -917,7 +917,7 @@ test("managed install() runs updateCommand then relaunch+exit", async (t) => {
   const u = initAutoUpdate(deps);
   await u.check();
   await u.install();
-  assert.ok(commands.includes("pkgtool update kirocrew"), "install must shell the updateCommand");
+  assert.ok(commands.includes("pkgtool update junction"), "install must shell the updateCommand");
   assert.ok(states.some((s) => s.state === "installing"));
   assert.strictEqual(relaunches.length, 1, "a successful install relaunches");
   assert.deepStrictEqual(exits, [0], "a successful install exits(0)");
@@ -945,7 +945,7 @@ test("managed auto-on-restart: pref true + found arms before-quit that runs upda
   const relaunches = [];
   const exits = [];
   const { deps, appOnce } = makeDeps({
-    externallyManaged: { managedBy: "m", updateCommand: "pkgtool update kirocrew", checkCommand: "check" },
+    externallyManaged: { managedBy: "m", updateCommand: "pkgtool update junction", checkCommand: "check" },
   });
   deps.getAutoDownloadPreference = () => true;
   deps.app.relaunch = () => relaunches.push(true);
@@ -960,7 +960,7 @@ test("managed auto-on-restart: pref true + found arms before-quit that runs upda
   const event = { preventDefault: () => {} };
   quit.fn(event);
   await new Promise((r) => setImmediate(() => setImmediate(r)));
-  assert.ok(commands.includes("pkgtool update kirocrew"), "before-quit must run the updateCommand");
+  assert.ok(commands.includes("pkgtool update junction"), "before-quit must run the updateCommand");
   assert.strictEqual(relaunches.length, 1);
   assert.deepStrictEqual(exits, [0]);
 });
@@ -1098,11 +1098,11 @@ test("readExternallyManaged: JSON marker carries metadata", (t) => {
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(
     path.join(dir, "EXTERNALLY-MANAGED"),
-    JSON.stringify({ managedBy: "internal-registry", updateCommand: "pkgtool update kirocrew" }),
+    JSON.stringify({ managedBy: "internal-registry", updateCommand: "pkgtool update junction" }),
   );
   assert.deepStrictEqual(readExternallyManaged({ env: {}, resourcesPath: dir }), {
     managedBy: "internal-registry",
-    updateCommand: "pkgtool update kirocrew",
+    updateCommand: "pkgtool update junction",
     checkCommand: "",
   });
 });
@@ -1190,7 +1190,7 @@ test("readExternallyManaged: env override points at a marker file", (t) => {
   const marker = path.join(dir, "custom-marker.json");
   fs.writeFileSync(marker, JSON.stringify({ managedBy: "harness", updateCommand: "" }));
   const got = readExternallyManaged({
-    env: { KIROCREW_EXTERNALLY_MANAGED: marker },
+    env: { JUNCTION_EXTERNALLY_MANAGED: marker },
     resourcesPath: "/nonexistent",
   });
   assert.deepStrictEqual(got, { managedBy: "harness", updateCommand: "", checkCommand: "" });

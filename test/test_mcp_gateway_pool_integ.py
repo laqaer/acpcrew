@@ -27,7 +27,7 @@ platform branch other than where the endpoint is placed. Permission modes
 token SID vs macOS ``UNVERIFIABLE``) are genuinely platform-shaped and are
 covered by their own platform-split tests; folding them in here would turn this
 into a per-platform mock farm and cost the portability that
-:mod:`kiro_crew.mcp_gateway.transport` was written to provide.
+:mod:`junction.mcp_gateway.transport` was written to provide.
 
 ``test_pool_integ_is_never_silently_skipped_on_windows`` guards the coverage
 itself: a Windows skip would remove the only positive proof of pooling on the
@@ -43,9 +43,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.mcp_gateway import gatewayd as gw
-from kiro_crew.mcp_gateway import transport
+from junction import platform_compat as pc
+from junction.mcp_gateway import gatewayd as gw
+from junction.mcp_gateway import transport
 
 _FAKE_SERVER = Path(__file__).with_name("fake_pool_mcp_server.py")
 
@@ -101,15 +101,15 @@ async def _spawn_stub(
     what gatewayd injects as the caller block. Empty means the stub registers
     without an identity -- a state gatewayd handles by forwarding ``caller=None``.
     """
-    env = {**_clean_env(), "KIROCREW_HOME": str(home)}
+    env = {**_clean_env(), "JUNCTION_HOME": str(home)}
     if session_key:
-        env["KIROCREW_SESSION_KEY"] = session_key
+        env["JUNCTION_SESSION_KEY"] = session_key
     else:
-        env.pop("KIROCREW_SESSION_KEY", None)
+        env.pop("JUNCTION_SESSION_KEY", None)
     return await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",
-        "kiro_crew.mcp_gateway.stub",
+        "junction.mcp_gateway.stub",
         "--server", server,
         "--agent", agent,
         "--target-command", sys.executable,
@@ -122,7 +122,7 @@ async def _spawn_stub(
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
-        # KIROCREW_HOME redirects the stub's fallback audit log into the test's
+        # JUNCTION_HOME redirects the stub's fallback audit log into the test's
         # own tree, so a degradation is observable instead of landing in the
         # developer's real home.
         env=env,
@@ -134,7 +134,7 @@ def _clean_env() -> dict[str, str]:
 
     # Drop any inherited channel id: it feeds PoolKey.channel_id, and a value
     # leaking in from the developer's shell would silently change partitioning.
-    return {k: v for k, v in os.environ.items() if k != "KIROCREW_CHANNEL_ID"}
+    return {k: v for k, v in os.environ.items() if k != "JUNCTION_CHANNEL_ID"}
 
 
 async def _drive_frame(proc: asyncio.subprocess.Process, frame: str, req_id: int) -> dict:
@@ -226,11 +226,11 @@ def _observed_callers(log: Path) -> list[str]:
 async def test_two_stubs_on_one_backend_are_told_apart(tmp_path: Path, short_sock_dir) -> None:
     """Each session's calls reach the SHARED backend carrying its own identity.
 
-    The unit tests around ``kirocrew-cron`` prove the server CONSUMES the caller
+    The unit tests around ``junction-cron`` prove the server CONSUMES the caller
     block. They cannot prove gatewayd SENDS one, which is the half that was
     broken: ``backend.py`` strips any stub-supplied block from every forwarded
     request and re-injects its own only when the backend advertised
-    ``kirocrew.caller-identity`` -- and that capability is parsed off a REAL
+    ``junction.caller-identity`` -- and that capability is parsed off a REAL
     ``initialize`` response, a step the in-process stub seam every other gateway
     test uses does not go through.
 
@@ -552,7 +552,7 @@ async def test_backends_hosting_stub_covers_exclusive() -> None:
     """The stub lookup must cover exclusive (private) backends too: a
     private stub rekeys like a pooled one, and omitting it would leave the
     previous caller's subscriptions routing to the new owner."""
-    from kiro_crew.mcp_gateway.pool import BackendPool
+    from junction.mcp_gateway.pool import BackendPool
 
     class _Stub:
         def __init__(self, inboxes: dict) -> None:

@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.apps.dependency_ledger import canonical_dep_key
+from junction.apps.dependency_ledger import canonical_dep_key
 
 
 class TestCanonicalDepKeyRobustness:
@@ -40,20 +40,20 @@ class TestUninstallKeepSpecificParsing:
         request.json = AsyncMock(return_value=body)
 
         with (
-            patch("kiro_crew.apps.routes.get_app", return_value=fake_app),
-            patch("kiro_crew.apps.routes.uninstall_app", return_value=MagicMock(
+            patch("junction.apps.routes.get_app", return_value=fake_app),
+            patch("junction.apps.routes.uninstall_app", return_value=MagicMock(
                 ok=True, to_dict=lambda: {"ok": True})),
-            patch("kiro_crew.apps.routes.stop_app_backend", return_value=None),
-            patch("kiro_crew.apps.routes.deregister_app", return_value=None),
-            patch("kiro_crew.apps.teardown.on_app_disable", new_callable=AsyncMock,
+            patch("junction.apps.routes.stop_app_backend", return_value=None),
+            patch("junction.apps.routes.deregister_app", return_value=None),
+            patch("junction.apps.teardown.on_app_disable", new_callable=AsyncMock,
                   return_value=None),
-            patch("kiro_crew.apps.routes.sel", return_value=MagicMock()),
-            patch("kiro_crew.apps.routes.classify_and_clean_for_uninstall",
+            patch("junction.apps.routes.sel", return_value=MagicMock()),
+            patch("junction.apps.routes.classify_and_clean_for_uninstall",
                   return_value={"removable": [], "shared": [], "userInstalled": []}) as m,
-            patch("kiro_crew.apps.routes.clean_dependencies", new_callable=AsyncMock,
+            patch("junction.apps.routes.clean_dependencies", new_callable=AsyncMock,
                   return_value=[]),
         ):
-            from kiro_crew.apps.routes import handle_uninstall_app
+            from junction.apps.routes import handle_uninstall_app
 
             resp = await handle_uninstall_app(request)
         assert resp.status < 500, f"malformed body produced {resp.status}"

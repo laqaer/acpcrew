@@ -18,8 +18,8 @@ import os
 import time
 from unittest.mock import patch
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.mcp_gateway.spill import (
+from junction import platform_compat as pc
+from junction.mcp_gateway.spill import (
     cleanup_old_spill_files,
     extract_id_from_bytes,
     maybe_spill_response,
@@ -83,7 +83,7 @@ class TestSpillToFile:
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
         threshold = 256 * 1024
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             result = maybe_spill_response(line, "test-mcp", threshold)
 
         # Result should be valid JSON
@@ -93,7 +93,7 @@ class TestSpillToFile:
 
         # Text should be truncated with marker
         text = result_msg["result"]["content"][0]["text"]
-        assert "[KiroCrew: response truncated" in text
+        assert "[Junction: response truncated" in text
         assert "mcp_spill" in text
         assert len(text.encode("utf-8")) < len(line)
 
@@ -115,7 +115,7 @@ class TestSpillToFile:
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             result = maybe_spill_response(line, "builder-mcp", 100_000)
 
         result_msg = json.loads(result.decode("utf-8"))
@@ -131,7 +131,7 @@ class TestSpillToFile:
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             maybe_spill_response(line, "server", 100_000)
 
         spill_dir = tmp_path / "mcp_spill"
@@ -163,7 +163,7 @@ class TestSpillToFile:
             "result": {"content": [{"type": "text", "text": "y" * 200_000}]},
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             maybe_spill_response(line, "server", 100_000)
 
         if pc.IS_WINDOWS:
@@ -189,7 +189,7 @@ class TestSpillFailure:
 
         # Point at a non-existent path that can't be created
         fake_home = "/nonexistent/path/that/cannot/be/created"
-        with patch.dict(os.environ, {"KIROCREW_HOME": fake_home}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": fake_home}):
             result = maybe_spill_response(line, "server", 100_000)
 
         # Original returned unmodified
@@ -210,7 +210,7 @@ class TestNonToolResultPassthrough:
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             result = maybe_spill_response(line, "server", 100_000)
 
         assert result == line
@@ -224,7 +224,7 @@ class TestNonToolResultPassthrough:
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             result = maybe_spill_response(line, "server", 100_000)
 
         assert result == line
@@ -234,7 +234,7 @@ class TestNonToolResultPassthrough:
         msg = {"jsonrpc": "2.0", "method": "notifications/progress", "params": {"data": "x" * 300_000}}
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             result = maybe_spill_response(line, "server", 100_000)
 
         assert result == line
@@ -248,7 +248,7 @@ class TestNonToolResultPassthrough:
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             result = maybe_spill_response(line, "server", 100_000)
 
         assert result == line
@@ -259,37 +259,37 @@ class TestNonToolResultPassthrough:
 
 class TestConfigOverrides:
     def test_read_limit_env_override(self):
-        """KIROCREW_MCP_READ_LIMIT env var overrides the default."""
-        from kiro_crew.mcp_gateway import pool
-        with patch.dict(os.environ, {"KIROCREW_MCP_READ_LIMIT": "8388608"}):
+        """JUNCTION_MCP_READ_LIMIT env var overrides the default."""
+        from junction.mcp_gateway import pool
+        with patch.dict(os.environ, {"JUNCTION_MCP_READ_LIMIT": "8388608"}):
             val = pool._resolve_read_buffer_limit()
         assert val == 8388608
 
     def test_read_limit_env_invalid_uses_default(self):
-        """Invalid KIROCREW_MCP_READ_LIMIT falls back to default."""
-        from kiro_crew.mcp_gateway import pool
-        with patch.dict(os.environ, {"KIROCREW_MCP_READ_LIMIT": "not_a_number"}):
+        """Invalid JUNCTION_MCP_READ_LIMIT falls back to default."""
+        from junction.mcp_gateway import pool
+        with patch.dict(os.environ, {"JUNCTION_MCP_READ_LIMIT": "not_a_number"}):
             val = pool._resolve_read_buffer_limit()
         assert val == pool._DEFAULT_READ_BUFFER_LIMIT
 
     def test_read_limit_env_too_small_uses_default(self):
-        """KIROCREW_MCP_READ_LIMIT below 1024 falls back to default."""
-        from kiro_crew.mcp_gateway import pool
-        with patch.dict(os.environ, {"KIROCREW_MCP_READ_LIMIT": "100"}):
+        """JUNCTION_MCP_READ_LIMIT below 1024 falls back to default."""
+        from junction.mcp_gateway import pool
+        with patch.dict(os.environ, {"JUNCTION_MCP_READ_LIMIT": "100"}):
             val = pool._resolve_read_buffer_limit()
         assert val == pool._DEFAULT_READ_BUFFER_LIMIT
 
     def test_spill_threshold_env_override(self):
-        """KIROCREW_MCP_SPILL_THRESHOLD env var overrides the default."""
-        from kiro_crew.mcp_gateway import pool
-        with patch.dict(os.environ, {"KIROCREW_MCP_SPILL_THRESHOLD": "1048576"}):
+        """JUNCTION_MCP_SPILL_THRESHOLD env var overrides the default."""
+        from junction.mcp_gateway import pool
+        with patch.dict(os.environ, {"JUNCTION_MCP_SPILL_THRESHOLD": "1048576"}):
             val = pool._resolve_spill_threshold()
         assert val == 1048576
 
     def test_spill_threshold_zero_disables(self):
-        """KIROCREW_MCP_SPILL_THRESHOLD=0 disables spilling."""
-        from kiro_crew.mcp_gateway import pool
-        with patch.dict(os.environ, {"KIROCREW_MCP_SPILL_THRESHOLD": "0"}):
+        """JUNCTION_MCP_SPILL_THRESHOLD=0 disables spilling."""
+        from junction.mcp_gateway import pool
+        with patch.dict(os.environ, {"JUNCTION_MCP_SPILL_THRESHOLD": "0"}):
             val = pool._resolve_spill_threshold()
         assert val == 0
 
@@ -300,40 +300,40 @@ class TestConfigOverrides:
     # no-op; oversize responses kept being fast-failed). The
     # resolvers now consult the config value when the env var is unset.
     def test_read_buffer_limit_reads_config_when_env_unset(self, monkeypatch):
-        import kiro_crew.mcp_gateway.pool as pool
+        import junction.mcp_gateway.pool as pool
 
-        monkeypatch.delenv("KIROCREW_MCP_READ_LIMIT", raising=False)
+        monkeypatch.delenv("JUNCTION_MCP_READ_LIMIT", raising=False)
         with patch(
-            "kiro_crew.config.loader._raw_config",
+            "junction.config.loader._raw_config",
             return_value={"mcp_gateway": {"read_buffer_limit_bytes": 134217728}},
         ):
             assert pool._resolve_read_buffer_limit() == 134217728
 
     def test_spill_threshold_reads_config_when_env_unset(self, monkeypatch):
-        import kiro_crew.mcp_gateway.pool as pool
+        import junction.mcp_gateway.pool as pool
 
-        monkeypatch.delenv("KIROCREW_MCP_SPILL_THRESHOLD", raising=False)
+        monkeypatch.delenv("JUNCTION_MCP_SPILL_THRESHOLD", raising=False)
         with patch(
-            "kiro_crew.config.loader._raw_config",
+            "junction.config.loader._raw_config",
             return_value={"mcp_gateway": {"response_spill_threshold_bytes": 1048576}},
         ):
             assert pool._resolve_spill_threshold() == 1048576
 
     def test_env_var_still_beats_config(self, monkeypatch):
-        import kiro_crew.mcp_gateway.pool as pool
+        import junction.mcp_gateway.pool as pool
 
-        monkeypatch.setenv("KIROCREW_MCP_READ_LIMIT", "2048")
+        monkeypatch.setenv("JUNCTION_MCP_READ_LIMIT", "2048")
         with patch(
-            "kiro_crew.config.loader._raw_config",
+            "junction.config.loader._raw_config",
             return_value={"mcp_gateway": {"read_buffer_limit_bytes": 999999}},
         ):
             assert pool._resolve_read_buffer_limit() == 2048
 
     def test_default_when_neither_env_nor_config(self, monkeypatch):
-        import kiro_crew.mcp_gateway.pool as pool
+        import junction.mcp_gateway.pool as pool
 
-        monkeypatch.delenv("KIROCREW_MCP_READ_LIMIT", raising=False)
-        with patch("kiro_crew.config.loader._raw_config", return_value={}):
+        monkeypatch.delenv("JUNCTION_MCP_READ_LIMIT", raising=False)
+        with patch("junction.config.loader._raw_config", return_value={}):
             assert pool._resolve_read_buffer_limit() == pool._DEFAULT_READ_BUFFER_LIMIT
 
 
@@ -355,7 +355,7 @@ class TestSpillCleanup:
         fresh_file = spill_dir / "fresh-response.json"
         fresh_file.write_text("fresh")
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             deleted = cleanup_old_spill_files()
 
         assert deleted == 1
@@ -364,7 +364,7 @@ class TestSpillCleanup:
 
     def test_cleanup_no_dir_returns_zero(self, tmp_path):
         """When spill dir doesn't exist, returns 0."""
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             assert cleanup_old_spill_files() == 0
 
     def test_cleanup_keeps_fresh_files(self, tmp_path):
@@ -375,7 +375,7 @@ class TestSpillCleanup:
         fresh_file = spill_dir / "recent.json"
         fresh_file.write_text("recent")
 
-        with patch.dict(os.environ, {"KIROCREW_HOME": str(tmp_path)}):
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
             deleted = cleanup_old_spill_files()
 
         assert deleted == 0

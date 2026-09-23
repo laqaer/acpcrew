@@ -8,8 +8,8 @@ F2: attach/detach backend helpers must NEVER spawn AWS commands without the
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-SERVER_PY = REPO / "src" / "kiro_crew" / "dashboard" / "server.py"
-SCRIPTS = REPO / "src" / "kiro_crew" / "deploy" / "skills" / "artifact-deploy" / "scripts"
+SERVER_PY = REPO / "src" / "junction" / "dashboard" / "server.py"
+SCRIPTS = REPO / "src" / "junction" / "deploy" / "skills" / "artifact-deploy" / "scripts"
 
 
 class TestF1MigrationOffLoop:

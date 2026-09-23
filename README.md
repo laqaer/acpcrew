@@ -130,7 +130,7 @@ You can also paste a screenshot and ask what is causing an error. Junction sends
 the image to the session’s model and keeps the diagnosis in the conversation
 history.
 
-The complete inventory is in [Features](src/kiro_crew/docs/index.md) and
+The complete inventory is in [Features](src/junction/docs/index.md) and
 [What's New](CHANGELOG.md).
 
 ## How it works
@@ -235,8 +235,8 @@ chat. Read the [security architecture](docs/architecture/security-deep-dive.md) 
 **Installer details.** The installer resolves the channel feed, verifies the wheel's SHA-256 against
 the published manifest, installs through `pipx` when available or a managed
 virtual environment at `~/.kiro/crew-venv` (beside the data home; override with
-`KIROCREW_VENV`), and records the channel in `~/.kiro/crew/channel`. The channels
-are `stable`, `insider`, and `nightly`, and `KIROCREW_CHANNEL` sets the default.
+`JUNCTION_VENV`), and records the channel in `~/.kiro/crew/channel`. The channels
+are `stable`, `insider`, and `nightly`, and `JUNCTION_CHANNEL` sets the default.
 On Linux and macOS, when the system lacks a Python 3.10+ interpreter the
 installer provisions one itself — no package manager, no sudo: it downloads a
 SHA-256-pinned [uv](https://docs.astral.sh/uv/) binary (or uses your installed
@@ -259,7 +259,7 @@ pip install .
 downloads its embedding model in the background on first start, verifies it,
 and stores it under `~/.kiro/crew/models`. Until the model lands, memory search
 falls back to keyword search and picks up embeddings automatically without a
-restart. Set `KIROCREW_EMBED_MODEL_URL` to point at a mirror for airgapped
+restart. Set `JUNCTION_EMBED_MODEL_URL` to point at a mirror for airgapped
 installs.
 
 See [Installing and Building](docs/guides/install.md) for wheels, desktop builds,
@@ -277,7 +277,7 @@ and chat surfaces connect to that Gateway.
 | **Remote hardware** | Follow the [remote host guide](docs/guides/remote-and-mobile.md) and install the service | The Gateway, agent sessions, and state run continuously on your Linux server, home lab, or cloud instance. Connect the desktop app or browser through an SSH tunnel. |
 | **Windows source install** | Follow [the Windows guide](docs/guides/windows-install.md) | The Gateway, agent sessions, chat, cron, and dashboard run natively with documented feature limits. |
 
-For containers, mount the directory selected by `KIROCREW_HOME` so sessions,
+For containers, mount the directory selected by `JUNCTION_HOME` so sessions,
 configuration, memory, and credentials survive replacement. Keep the Gateway
 port bound to loopback unless you intentionally configure authenticated remote
 access. Container isolation and the Junction OS sandbox are separate layers
@@ -294,11 +294,11 @@ junction logs
 ```
 
 To bind a non-default port (for example a host where `5476` is already taken),
-set `KIROCREW_PORT` when you install the service — the value is baked into the
+set `JUNCTION_PORT` when you install the service — the value is baked into the
 unit:
 
 ```bash
-KIROCREW_PORT=5477 junction service install
+JUNCTION_PORT=5477 junction service install
 ```
 
 To change it later without reinstalling, edit the service environment file
@@ -333,7 +333,7 @@ main configuration with `junction config get`, `set`, and `edit`.
 ```
 
 `agent.provider` is fixed to `acp`. The gateway drives an ACP runtime over the
-Agent Client Protocol (a vendor agent CLI is optional). Set the dashboard port with `KIROCREW_PORT` or
+Agent Client Protocol (a vendor agent CLI is optional). Set the dashboard port with `JUNCTION_PORT` or
 `junction up --port <n>`. Messaging-channel credentials (Slack, Discord,
 Telegram, and the rest) live in `~/.kiro/crew/.env` rather than the JSON config.
 
@@ -352,7 +352,7 @@ gateway log otherwise. Raise verbosity with `junction up -v` (INFO:
 session lifecycle and context usage) or `-vv` (DEBUG: full ACP events and
 message traces); set the persistent default with
 `junction config set agent.log_level`, or change it at runtime from the
-dashboard **Logs** page. Under `~/.kiro/crew` (or your `KIROCREW_HOME`) you can
+dashboard **Logs** page. Under `~/.kiro/crew` (or your `JUNCTION_HOME`) you can
 also read the raw files directly:
 
 | File | What it holds |
@@ -362,7 +362,7 @@ also read the raw files directly:
 | `~/.kiro/crew/audit.log` | Human-readable audit trail of privileged operations. |
 | `~/.kiro/crew/subagents/<agent_id>/result.txt` | Full transcript of a completed subagent, kept for a grace window after it finishes. |
 
-See the [Troubleshooting guide](src/kiro_crew/docs/troubleshooting.md) for the
+See the [Troubleshooting guide](src/junction/docs/troubleshooting.md) for the
 full log-level reference and emergency recovery steps.
 
 ## Anonymous usage telemetry
@@ -379,12 +379,12 @@ onboarding). Or from a terminal:
 
 ```bash
 junction telemetry disable        # persists to config.json
-export KIROCREW_TELEMETRY_DISABLED=1   # or per-shell / per-container
+export JUNCTION_TELEMETRY_DISABLED=1   # or per-shell / per-container
 junction telemetry status         # print exactly what would be sent
 ```
 
 The toggle and `junction telemetry disable` write the same setting, so either
-one sticks across restarts and upgrades. `KIROCREW_TELEMETRY_DISABLED` overrides
+one sticks across restarts and upgrades. `JUNCTION_TELEMETRY_DISABLED` overrides
 both — when it is set, the dashboard toggle is disabled and says so.
 
 **Exactly these five fields are sent, at most once per day, and nothing else:**
@@ -428,7 +428,7 @@ or branch names, credentials, environment variables, hostname, username, or IP
 address. The receiving CDN is configured **not to log client IP addresses** — the
 log delivery does not include that field, so no IP is stored at all.
 
-**Automatically off** in CI, and whenever `KIROCREW_HOME` points somewhere other
+**Automatically off** in CI, and whenever `JUNCTION_HOME` points somewhere other
 than `~/.kiro/crew` (dev instances and pods are never counted).
 
 **Enterprise administrators can pin it off entirely.** A `capabilities.telemetry`
@@ -452,9 +452,9 @@ performance metrics that never leave your machine. See
 | Topic | Start here |
 |---|---|
 | Install and packaging | [Install and build](docs/guides/install.md), [Windows](docs/guides/windows-install.md), [Docker](docs/guides/docker.md), [Desktop](docs/build/desktop-app.md), [Remote host](docs/guides/remote-and-mobile.md), [Release process](docs/build/release.md) |
-| Product capabilities | [Features](src/kiro_crew/docs/index.md), [Skills](skills/README.md), [All user docs](src/kiro_crew/docs/README.md) |
+| Product capabilities | [Features](src/junction/docs/index.md), [Skills](skills/README.md), [All user docs](src/junction/docs/README.md) |
 | All documentation | [docs/](docs/README.md) for contributor and architecture docs |
-| Channels | [Slack](docs/guides/slack-setup.md), [Discord](src/kiro_crew/docs/discord-integration.md), [Telegram](src/kiro_crew/docs/telegram-integration.md), [Teams](src/kiro_crew/docs/teams-integration.md), [Webex](src/kiro_crew/docs/webex-integration.md), [WeCom](src/kiro_crew/docs/wecom-integration.md), [WeChat (Weixin)](src/kiro_crew/docs/weixin-integration.md), [WhatsApp](src/kiro_crew/docs/whatsapp-integration.md) |
+| Channels | [Slack](docs/guides/slack-setup.md), [Discord](src/junction/docs/discord-integration.md), [Telegram](src/junction/docs/telegram-integration.md), [Teams](src/junction/docs/teams-integration.md), [Webex](src/junction/docs/webex-integration.md), [WeCom](src/junction/docs/wecom-integration.md), [WeChat (Weixin)](src/junction/docs/weixin-integration.md), [WhatsApp](src/junction/docs/whatsapp-integration.md) |
 | Architecture | [System architecture](docs/architecture/overview.md), [Memory](docs/system-specs/modules/memory-skills-hooks.md), [MCP](docs/architecture/mcp.md), [App Kit](docs/app-kit/getting-started.md) |
 | Trust and dependencies | [Security](docs/architecture/security-deep-dive.md), [Security policy](SECURITY.md) |
 | Project work | [Contributing](CONTRIBUTING.md), [Tenets](TENETS.md), [Governance](GOVERNANCE.md), [Maintainers](MAINTAINERS.md), [AI assistant rules](AGENTS.md), [Changelog](CHANGELOG.md) |

@@ -8,14 +8,14 @@ from unittest.mock import patch
 
 def _load_cli():
     """Import cli module."""
-    from kiro_crew import cli
+    from junction import cli
     return cli
 
 
 class TestFixShellProfiles:
     """Tests for _fix_shell_profiles."""
 
-    def test_removes_kirocrew_app_path(self, tmp_path):
+    def test_removes_junction_app_path(self, tmp_path):
         cli = _load_cli()
         zshrc = tmp_path / ".zshrc"
         zshrc.write_text(

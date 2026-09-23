@@ -20,8 +20,8 @@ export const json = (route, body, status = 200) => route.fulfill({
 })
 
 /**
- * The `/api/config/kirocrew` body, matching `KiroCrewCfg` in
- * `website/src/pages/overview/KiroCrewCfgTab.tsx`.
+ * The `/api/config/junction` body, matching `JunctionCfg` in
+ * `website/src/pages/overview/JunctionCfgTab.tsx`.
  *
  * Named ahead of the catch-all because that tab does
  * `Object.entries(cfg.agents)` on mount. Under the catch-all's `{}`,
@@ -36,11 +36,11 @@ export const json = (route, body, status = 200) => route.fulfill({
  * where the component reads `dir`, so those rows rendered blank in the
  * screenshots that were supposed to prove them.
  */
-export const KIROCREW_CONFIG_FIXTURE = {
+export const JUNCTION_CONFIG_FIXTURE = {
   agents: {
-    kirocrew: { kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default' },
+    junction: { kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   },
-  default_agent: 'kirocrew',
+  default_agent: 'junction',
   workspaces: { default: { dir: '~/.kiro/crew/workspace' } },
   default_workspace: 'default',
   memory_stores: {
@@ -48,19 +48,19 @@ export const KIROCREW_CONFIG_FIXTURE = {
   },
   default_memory_store: 'default',
   agent: {
-    default_agent: 'kirocrew', provider: 'acp', model: 'auto',
+    default_agent: 'junction', provider: 'acp', model: 'auto',
     approval_mode: 'interactive', sandbox: 'auto',
     subagent_max_turns: 100, max_subagents: 3, subagent_auto_max: 16,
     conductor_skill: false, tool_search: true,
     max_channels: 8, max_channel_agents: 4, enforce_denied_commands: 'all',
   },
-  session: { timeout_secs: 1800, pool_size: 2, pool_agent: 'kirocrew', pool_ttl_secs: 600 },
+  session: { timeout_secs: 1800, pool_size: 2, pool_agent: 'junction', pool_ttl_secs: 600 },
   memory: { embedding_provider: 'local' },
   auto_update: true,
 }
 
 /** The `/api/agent/config` body — the per-agent MCP view. */
-export const AGENT_CONFIG_FIXTURE = { name: 'kirocrew', mcpServers: {} }
+export const AGENT_CONFIG_FIXTURE = { name: 'junction', mcpServers: {} }
 
 /** Whether an unmapped path should be guessed as an object rather than a list. */
 const objectish = path =>
@@ -143,19 +143,19 @@ export async function stubDashboardApi(page, opts = {}) {
       })
     }
     if (path === '/api/agents' || path === '/api/chat/agents') {
-      return json(route, [{ name: 'kirocrew', source: 'builtin' }, { name: 'oncall', source: 'aim' }])
+      return json(route, [{ name: 'junction', source: 'builtin' }, { name: 'oncall', source: 'aim' }])
     }
     // Named BEFORE the catch-all: both paths match its `config` test, and the
     // `{}` it would return blanks the whole Developer > Config surface (see
-    // KIROCREW_CONFIG_FIXTURE for why).
-    if (path === '/api/config/kirocrew') return json(route, KIROCREW_CONFIG_FIXTURE)
+    // JUNCTION_CONFIG_FIXTURE for why).
+    if (path === '/api/config/junction') return json(route, JUNCTION_CONFIG_FIXTURE)
     if (path === '/api/agent/config') return json(route, AGENT_CONFIG_FIXTURE)
     // Endpoints not worth naming individually: anything object-shaped gets {},
     // everything else gets []. Guessing wrong only costs an empty panel — in
     // the cases where it does not, the endpoint belongs above this line.
     //
     // Announced once per path per run. The fixture gap this catch-all produced
-    // for /api/config/kirocrew was silent AND fatal, and a harness author with
+    // for /api/config/junction was silent AND fatal, and a harness author with
     // no reason to suspect the stub had nothing to go on: the page just came
     // back blank. A guess is a reasonable default, but it should say so, so the
     // NEXT unmapped endpoint is discoverable rather than mysterious.

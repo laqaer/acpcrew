@@ -116,7 +116,7 @@ stays subprocess-free.
 **The manifest is attributed to a `@playwright/cli` package, never searched for.**
 Resolution anchors on that package — the hoisted sibling in the same
 `node_modules`, a copy nested under the package, or the standalone installer's
-known prefix (`KIROCREW_PLAYWRIGHT_CLI_HOME`, else `<data home>/playwright-cli`).
+known prefix (`JUNCTION_PLAYWRIGHT_CLI_HOME`, else `<data home>/playwright-cli`).
 Anchoring is a correctness property, not an optimization: walking ancestors
 instead passes through `$HOME` on the standalone layout, where one unrelated
 `~/node_modules/playwright-core` supplies a revision from a **different** install.
@@ -419,7 +419,7 @@ world-readable, so `--registry https://user:token@host/` publishes the token to
 every account on the machine for as long as the install runs, and leaves it in shell
 history besides — neither of which redaction can reach, since redaction covers only
 what the scripts print. The credential travels in the environment instead
-(`KIROCREW_NPM_REGISTRY`, `PLAYWRIGHT_DOWNLOAD_HOST`), where `/proc/<pid>/environ` is
+(`JUNCTION_NPM_REGISTRY`, `PLAYWRIGHT_DOWNLOAD_HOST`), where `/proc/<pid>/environ` is
 readable only by its owner, or through `npm login`. The refusal keys on PROVENANCE
 rather than content: the resolved registry value also holds an env-supplied
 credential, and refusing that would break the escape the error message recommends.
@@ -439,9 +439,9 @@ absent) and 16 (browser download blocked).
 
 ### Related
 
-- [web-browse](../../../src/kiro_crew/builtin_skills/web-browse/SKILL.md) for
+- [web-browse](../../../src/junction/builtin_skills/web-browse/SKILL.md) for
   opening a page so the user can see it.
-- [web-verify](../../../src/kiro_crew/builtin_skills/web-verify/SKILL.md) for
+- [web-verify](../../../src/junction/builtin_skills/web-verify/SKILL.md) for
   screenshotting a front-end change as evidence.
 - [mcp](../../architecture/mcp.md) for why browsing is deliberately not an MCP
   server.

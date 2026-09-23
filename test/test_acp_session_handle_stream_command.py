@@ -17,8 +17,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.acp.session_handle import AcpRuntimeError, AcpSessionHandle
-from kiro_crew.acp.types import (
+from junction.acp.session_handle import AcpRuntimeError, AcpSessionHandle
+from junction.acp.types import (
     EVENT_AGENT_SWITCHED,
     EVENT_COMPLETE,
     EVENT_TEXT_CHUNK,
@@ -186,12 +186,12 @@ async def test_agent_switch_extracted_from_result():
     handle, _ = _make(
         response_result={
             "message": "switched",
-            "data": {"agent": {"name": "kirocrew"}},
+            "data": {"agent": {"name": "junction"}},
         }
     )
-    events = await _collect(handle, "/agent kirocrew")
+    events = await _collect(handle, "/agent junction")
     switches = [ev for ev in events if ev.kind == EVENT_AGENT_SWITCHED]
-    assert [ev.text for ev in switches] == ["kirocrew"]
+    assert [ev.text for ev in switches] == ["junction"]
 
 
 @pytest.mark.asyncio
@@ -200,13 +200,13 @@ async def test_agent_switch_not_duplicated_when_notification_arrived():
     the result-extracted fallback must not emit a second event."""
     notification = JsonRpcMessage(
         method=METHOD_AGENT_SWITCHED,
-        params={"sessionId": "sA", "agentName": "kirocrew"},
+        params={"sessionId": "sA", "agentName": "junction"},
     )
     handle, _ = _make(
-        response_result={"data": {"agent": {"name": "kirocrew"}}},
+        response_result={"data": {"agent": {"name": "junction"}}},
         updates=[notification],
     )
-    events = await _collect(handle, "/agent kirocrew")
+    events = await _collect(handle, "/agent junction")
     switches = [ev for ev in events if ev.kind == EVENT_AGENT_SWITCHED]
     assert len(switches) == 1
 
@@ -281,7 +281,7 @@ async def test_prompt_transport_commands_stay_on_prompt(command):
     no response for them over commands/execute, and the compaction flow
     (session.py, Slack !compact) watches compaction status on the prompt
     stream — routing them natively would strand it until timeout."""
-    from kiro_crew.acp.types import METHOD_PROMPT
+    from junction.acp.types import METHOD_PROMPT
 
     handle, rt = _make(response_result={"stopReason": "end_turn"})
     events = await _collect(handle, command)
@@ -294,7 +294,7 @@ async def test_kas_backend_falls_back_to_prompt():
     """_kiro.dev/commands/execute is kiro-cli-specific: a KAS shared-runtime
     session must keep degrading softly through session/prompt instead of
     erroring on an unimplemented method."""
-    from kiro_crew.acp.types import ACP_BACKEND_KAS, METHOD_PROMPT
+    from junction.acp.types import ACP_BACKEND_KAS, METHOD_PROMPT
 
     handle, rt = _make(response_result={"stopReason": "end_turn"}, acp_backend=ACP_BACKEND_KAS)
     events = await _collect(handle, "/tools")

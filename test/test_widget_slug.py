@@ -2,7 +2,7 @@
 
 The vectors in :data:`PARITY_VECTORS` are duplicated verbatim in
 ``website/src/test/widgetSlug.test.ts``. They are the contract that keeps
-``kiro_crew.widget_slug.derive_widget_slug`` and the frontend's
+``junction.widget_slug.derive_widget_slug`` and the frontend's
 ``deriveWidgetSlug`` producing identical output — if they drift, an
 auto-registered widget artifact becomes invisible to the frontend probe and the
 star button creates a duplicate. Change a vector here and the TS suite fails too.
@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.widget_slug import DERIVED_SLUG_RE, derive_widget_slug
+from junction.widget_slug import DERIVED_SLUG_RE, derive_widget_slug
 
 #: ``(message_ts, widget_index) -> slug``. Values captured from the frontend
 #: implementation; both suites assert against these exact strings.
@@ -64,7 +64,7 @@ class TestDeriveWidgetSlug:
 
     def test_slug_passes_artifact_slug_validation(self):
         """A derived slug must be a legal artifact slug, or registration 500s."""
-        from kiro_crew.artifacts import _validate_slug
+        from junction.artifacts import _validate_slug
 
         for message_ts, widget_index, _ in PARITY_VECTORS:
             slug = derive_widget_slug(message_ts, widget_index)

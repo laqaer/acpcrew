@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.cloud import aws, ssm
+from junction import platform_compat
+from junction.cloud import aws, ssm
 
 
 class TestArgvBuilders:
@@ -54,8 +54,8 @@ class TestArgvBuilders:
 
         if _os.name == "nt":
             pytest.skip("fallback install dirs are POSIX literals; dead on Windows by design")
-        from kiro_crew import github_runner
-        from kiro_crew.deploy import engine
+        from junction import github_runner
+        from junction.deploy import engine
 
         fake_aws = tmp_path / "aws"
         fake_aws.write_text("#!/bin/sh\n")
@@ -100,7 +100,7 @@ class TestOpenPortForward:
     def test_open_port_forward_refused_under_agent_session(self, monkeypatch):
         # The streaming tunnel bypasses run_aws, so it carries its own
         # human-action guard: an agent session must not open a tunnel.
-        monkeypatch.setenv("KIROCREW_SESSION_KEY", "sess-1")
+        monkeypatch.setenv("JUNCTION_SESSION_KEY", "sess-1")
         monkeypatch.setattr(
             ssm.subprocess, "Popen", lambda *a, **k: pytest.fail("must not spawn tunnel")
         )

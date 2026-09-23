@@ -47,7 +47,7 @@ describe('InstancesPanel', () => {
     ;vi.mocked(api.listInstances).mockResolvedValue({ active: false, instances: [], warm_set_cap: 5 })
     renderWithProviders(<InstancesPanel />)
     expect(await screen.findByText(/not active yet/i)).toBeInTheDocument()
-    expect(screen.getByText(/kirocrew restart/i)).toBeInTheDocument()
+    expect(screen.getByText(/junction restart/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Disable remote crew management/i })).toBeInTheDocument()
   })
 
@@ -69,7 +69,7 @@ describe('InstancesPanel', () => {
     await u.type(screen.getByPlaceholderText('host-1-alias'), 'nimbus-alias')
     await u.type(
       screen.getByPlaceholderText(/leave blank for standard installs/i),
-      '/home/nimbus/.local/bin/kirocrew',
+      '/home/nimbus/.local/bin/junction',
     )
     await u.click(screen.getByRole('button', { name: 'Add remote crew' }))
 
@@ -78,7 +78,7 @@ describe('InstancesPanel', () => {
         expect.objectContaining({
           name: 'Nimbus',
           ssh_host: 'nimbus-alias',
-          remote_bin: '/home/nimbus/.local/bin/kirocrew',
+          remote_bin: '/home/nimbus/.local/bin/junction',
         }),
       ),
     )

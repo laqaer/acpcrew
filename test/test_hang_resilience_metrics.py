@@ -1,4 +1,4 @@
-"""Hang-resilience telemetry — the kirocrew.* series added after the silent
+"""Hang-resilience telemetry — the junction.* series added after the silent
 child-permission hang incidents (issue #3785, PRs #3786/#3889).
 
 Each test drives the REAL production emit site (never a reimplementation)
@@ -18,9 +18,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.runtime import AcpRuntime, JsonRpcMessage
-from kiro_crew.acp.session_handle import AcpSessionHandle
-from kiro_crew.metrics import events as metric_events
+from junction.acp.runtime import AcpRuntime, JsonRpcMessage
+from junction.acp.session_handle import AcpSessionHandle
+from junction.metrics import events as metric_events
 
 
 def _make_runtime():
@@ -72,12 +72,12 @@ def recorded(monkeypatch):
     # Patch at the SOURCE module; the emitting modules import the function by
     # name, so patch their bound references too.
     for mod in (
-        "kiro_crew.metrics.events",
-        "kiro_crew.acp.runtime",
-        "kiro_crew.acp.session_handle",
-        "kiro_crew.subagent",
-        "kiro_crew.session",
-        "kiro_crew.dashboard.chat_runner",
+        "junction.metrics.events",
+        "junction.acp.runtime",
+        "junction.acp.session_handle",
+        "junction.subagent",
+        "junction.session",
+        "junction.dashboard.chat_runner",
     ):
         monkeypatch.setattr(f"{mod}.emit_counter", _fake, raising=False)
     return calls
@@ -86,10 +86,10 @@ def recorded(monkeypatch):
 def test_emit_counter_never_raises():
     """Telemetry must never break the instrumented path."""
     with patch(
-        "kiro_crew.metrics.provider.get_recorder",
+        "junction.metrics.provider.get_recorder",
         side_effect=RuntimeError("recorder down"),
     ):
-        metric_events.emit_counter("kirocrew.test", {"a": 1})  # no raise
+        metric_events.emit_counter("junction.test", {"a": 1})  # no raise
 
 
 @pytest.mark.asyncio
@@ -194,8 +194,8 @@ async def test_routed_child_permission_emits_routed(recorded):
 
 @pytest.mark.asyncio
 async def test_subagent_child_reject_emits_denied(recorded):
-    from kiro_crew.providers.base import EVENT_PERMISSION_REQUEST, LLMEvent
-    from kiro_crew.subagent import SubagentManager
+    from junction.providers.base import EVENT_PERMISSION_REQUEST, LLMEvent
+    from junction.subagent import SubagentManager
 
     client = MagicMock()
 
@@ -209,13 +209,13 @@ async def test_subagent_child_reject_emits_denied(recorded):
         title="t",
         sub_session_id="child-a",
     )
-    with patch("kiro_crew.subagent.sel"):
+    with patch("junction.subagent.sel"):
         await SubagentManager._reject_and_log(client, 9, "k", ev, error="child_escalation_limit")
     hits = [a for n, a in recorded if n == metric_events.CHILD_PERMISSION_DENIED]
     assert {"surface": "subagent", "reason": "child_escalation_limit"} in hits
     # Parent-origin rejections do NOT emit (child series only).
     ev2 = LLMEvent(kind=EVENT_PERMISSION_REQUEST, request_id=10, title="t")
-    with patch("kiro_crew.subagent.sel"):
+    with patch("junction.subagent.sel"):
         await SubagentManager._reject_and_log(client, 10, "k", ev2, error="hook_deny")
     assert len([a for n, a in recorded if n == metric_events.CHILD_PERMISSION_DENIED]) == 1
 
@@ -226,7 +226,7 @@ def test_dashboard_ceiling_emits_timeout_cause(recorded):
     callback) must emit the cause metric from the slot's stashed snapshot.
     (Its lazy `from metrics.events import emit_counter` picks up the
     `recorded` fixture's patch at call time.)"""
-    from kiro_crew.dashboard import turn_dispatch
+    from junction.dashboard import turn_dispatch
 
     class _DoneTask:
         def cancelled(self):
@@ -262,7 +262,7 @@ def test_terminal_children_do_not_count_as_announced():
     children_announced. Exercises the real close_all safety net to pin the
     hazard: it force-marks every entry done, so the snapshot MUST be taken
     before it runs (terminal entries also linger for reconnect replay)."""
-    from kiro_crew.dashboard import chat_runner
+    from junction.dashboard import chat_runner
 
     state = MagicMock()
     slot = MagicMock()

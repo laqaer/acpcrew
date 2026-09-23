@@ -19,11 +19,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.messaging import privacy_mode
-from kiro_crew.session_map import SessionMap
+from junction.messaging import privacy_mode
+from junction.session_map import SessionMap
 
 #: A key in a namespace that is NOT Slack. The whole point of the hoist.
-_TG_KEY = "telegram:kirocrew:direct:4242"
+_TG_KEY = "telegram:junction:direct:4242"
 _SLACK_KEY = "slack:1700000000.000100"
 
 
@@ -42,8 +42,8 @@ def session_map(tmp_path, monkeypatch):
     A second instance reading the same directory IS the restart: it shares no
     in-memory state with the first, only the file on disk.
     """
-    monkeypatch.setattr("kiro_crew.session_map.config_dir", lambda: tmp_path)
-    monkeypatch.setattr("kiro_crew.session_map._KIRO_SESSIONS_DIR", tmp_path / "kiro")
+    monkeypatch.setattr("junction.session_map.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.session_map._KIRO_SESSIONS_DIR", tmp_path / "kiro")
     return SessionMap
 
 
@@ -470,7 +470,7 @@ class TestDashboardGateReach:
     def test_a_telegram_incognito_session_is_restricted(self):
         """Mutation: narrow the branch back to ``sk.startswith("slack:")`` — red
         here while the Slack case below stays green."""
-        from kiro_crew.dashboard.handlers._shared import _is_restricted_session
+        from junction.dashboard.handlers._shared import _is_restricted_session
 
         privacy_mode.mark_incognito(_TG_KEY)
         state, request = self._state_and_request(_TG_KEY)
@@ -478,14 +478,14 @@ class TestDashboardGateReach:
 
     def test_a_telegram_temporary_session_blocks_reads(self):
         """Mutation: narrow ``_blocks_reads_session``'s branch — red."""
-        from kiro_crew.dashboard.handlers._shared import _blocks_reads_session
+        from junction.dashboard.handlers._shared import _blocks_reads_session
 
         privacy_mode.mark_temporary(_TG_KEY)
         state, request = self._state_and_request(_TG_KEY)
         assert _blocks_reads_session(state, request) is True
 
     def test_the_slack_answers_are_unchanged(self):
-        from kiro_crew.dashboard.handlers._shared import (
+        from junction.dashboard.handlers._shared import (
             _blocks_reads_session,
             _is_restricted_session,
         )
@@ -500,7 +500,7 @@ class TestDashboardGateReach:
     def test_an_incognito_session_still_serves_reads(self):
         """Incognito blocks writes only; widening the reach must not also widen
         what each mode means."""
-        from kiro_crew.dashboard.handlers._shared import (
+        from junction.dashboard.handlers._shared import (
             _blocks_reads_session,
             _is_restricted_session,
         )
@@ -517,7 +517,7 @@ class TestDashboardGateReach:
         because a dashboard slot that shares a name with a marked channel key
         would start answering off the channel trackers.
         """
-        from kiro_crew.dashboard.handlers._shared import _is_restricted_session
+        from junction.dashboard.handlers._shared import _is_restricted_session
 
         key = "dashboard:chat-1"
         privacy_mode.mark_incognito(key)

@@ -67,7 +67,7 @@ const workflowLaunch = msg('tool', {
 })
 const subagentLaunch = msg('tool', {
   content: '🔧 spawn_run',
-  meta: { output: 'Spawned 2 subagent(s).\n  1a2b3c4d (kirocrew): read specs\n  5e6f7a8b (kirocrew): read code' },
+  meta: { output: 'Spawned 2 subagent(s).\n  1a2b3c4d (junction): read specs\n  5e6f7a8b (junction): read code' },
 })
 
 describe('fixtures match the shared launch predicates', () => {
@@ -175,7 +175,7 @@ describe('shape still beats role after the defaults are replaced', () => {
 
   it('keeps the sub-agent completion card ahead of the role rows', () => {
     const completion = msg('subagent', {
-      content: '[Subagent completion event]\nAgent `1a2b3c4d` (kirocrew) ✅ completed\nTask: read specs\n',
+      content: '[Subagent completion event]\nAgent `1a2b3c4d` (junction) ✅ completed\nTask: read specs\n',
     })
     expect(isSubagentCompletionMessage(completion)).toBe(true)
     expect(idFor(completion)).toBe('subagent_completion')

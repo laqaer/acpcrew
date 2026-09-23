@@ -12,7 +12,7 @@ import os
 
 import pytest
 
-from kiro_crew import task_executor
+from junction import task_executor
 
 
 @pytest.mark.asyncio

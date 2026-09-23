@@ -1,6 +1,6 @@
 """``cli_setup`` — the two helpers that touch the user's own files unattended.
 
-Both are run by ``kirocrew setup`` without asking, and neither is exercised by
+Both are run by ``junction setup`` without asking, and neither is exercised by
 the existing setup suites:
 
 * ``_fix_shell_profiles`` REWRITES ``~/.zshrc`` and friends in place. It must
@@ -10,7 +10,7 @@ the existing setup suites:
   conflict for nothing), must swallow an unreadable profile rather than aborting
   setup, and must name every profile it touched so the user knows what to
   re-source.
-* ``_find_electron_dir`` resolves the desktop-app sources. ``KIROCREW_PROJECT_DIR``
+* ``_find_electron_dir`` resolves the desktop-app sources. ``JUNCTION_PROJECT_DIR``
   must win over the walk-up, the walk-up must find a real checkout, and a
   pip-installed tree with no ``website/electron`` anywhere must return ``None``
   rather than a path that does not exist.
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.cli_setup import (
+from junction.cli_setup import (
     _find_electron_dir,
     _fix_shell_profiles,
     _setup_slash_command,
@@ -131,12 +131,12 @@ class TestSetupSlashCommand:
     @pytest.fixture()
     def cfg_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         target = tmp_path / "config.json"
-        monkeypatch.setattr("kiro_crew.cli_setup.config_path", lambda: target)
+        monkeypatch.setattr("junction.cli_setup.config_path", lambda: target)
         return target
 
     @staticmethod
     def _answer(monkeypatch: pytest.MonkeyPatch, value: str | None) -> None:
-        monkeypatch.setattr("kiro_crew.cli_setup._input_or_skip", lambda prompt: value)
+        monkeypatch.setattr("junction.cli_setup._input_or_skip", lambda prompt: value)
 
     def _saved(self, cfg_file: Path) -> str:
         return json.loads(cfg_file.read_text(encoding="utf-8"))["slack"]["command"]
@@ -161,7 +161,7 @@ class TestSetupSlashCommand:
     ) -> None:
         self._answer(monkeypatch, "has space")
         _setup_slash_command()
-        assert self._saved(cfg_file) == "kirocrew"
+        assert self._saved(cfg_file) == "junction"
         assert "letters, numbers, hyphens" in capsys.readouterr().out
 
     def test_an_over_long_name_falls_back_to_the_current_name(
@@ -169,7 +169,7 @@ class TestSetupSlashCommand:
     ) -> None:
         self._answer(monkeypatch, "z" * 33)
         _setup_slash_command()
-        assert self._saved(cfg_file) == "kirocrew"
+        assert self._saved(cfg_file) == "junction"
         assert "too long" in capsys.readouterr().out
 
     def test_an_unreadable_config_aborts_the_step_without_writing(
@@ -190,7 +190,7 @@ class TestFindElectronDir:
         root = tmp_path / "checkout"
         electron = root / "website" / "electron"
         electron.mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(root))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(root))
 
         assert _find_electron_dir() == electron
 
@@ -198,7 +198,7 @@ class TestFindElectronDir:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """With no env var, a source checkout is still found from this file's location."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
 
         found = _find_electron_dir()
 
@@ -210,7 +210,7 @@ class TestFindElectronDir:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A pip-installed tree has no desktop sources — say so, don't guess a path."""
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
         monkeypatch.setattr(Path, "is_dir", lambda self: False)
 
         assert _find_electron_dir() is None
@@ -218,7 +218,7 @@ class TestFindElectronDir:
     def test_an_env_var_pointing_nowhere_is_ignored_not_returned(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path / "does-not-exist"))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path / "does-not-exist"))
 
         found = _find_electron_dir()
 
@@ -227,7 +227,7 @@ class TestFindElectronDir:
 
 
 class TestSetupWhatsApp:
-    """``_setup_whatsapp``: the guided WhatsApp opt-in (`kirocrew setup --whatsapp`).
+    """``_setup_whatsapp``: the guided WhatsApp opt-in (`junction setup --whatsapp`).
 
     WhatsApp has no token to collect: it pairs as a linked device on the operator's
     own account, and pairing is a QR scan served by the RUNNING gateway. So the step
@@ -241,14 +241,14 @@ class TestSetupWhatsApp:
     @pytest.fixture()
     def cfg_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         target = tmp_path / "config.json"
-        monkeypatch.setattr("kiro_crew.cli_setup.config_path", lambda: target)
-        monkeypatch.setattr("kiro_crew.config.paths.data_home", lambda: tmp_path / "home")
-        monkeypatch.setattr("kiro_crew.whatsapp.client.neonize_available", lambda: True)
+        monkeypatch.setattr("junction.cli_setup.config_path", lambda: target)
+        monkeypatch.setattr("junction.config.paths.data_home", lambda: tmp_path / "home")
+        monkeypatch.setattr("junction.whatsapp.client.neonize_available", lambda: True)
         return target
 
     @staticmethod
     def _answer(monkeypatch: pytest.MonkeyPatch, value: str | None) -> None:
-        monkeypatch.setattr("kiro_crew.cli_setup._input_or_skip", lambda prompt: value)
+        monkeypatch.setattr("junction.cli_setup._input_or_skip", lambda prompt: value)
 
     def test_yes_enables_the_channel_and_keeps_the_rest_of_the_config(
         self, cfg_file: Path, monkeypatch: pytest.MonkeyPatch
@@ -292,13 +292,13 @@ class TestSetupWhatsApp:
     def test_a_missing_extra_is_named_with_its_install_command(
         self, cfg_file: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        monkeypatch.setattr("kiro_crew.whatsapp.client.neonize_available", lambda: False)
+        monkeypatch.setattr("junction.whatsapp.client.neonize_available", lambda: False)
         self._answer(monkeypatch, "y")
 
         _setup_whatsapp()
 
         out = capsys.readouterr().out
-        assert "kirocrew[whatsapp]" in out
+        assert "junction[whatsapp]" in out
         # Still enabled: the operator can install the extra afterwards, and doctor
         # reports the gap until they do. Refusing here would strand them.
         assert json.loads(cfg_file.read_text(encoding="utf-8"))["whatsapp"]["enabled"] is True

@@ -1,4 +1,4 @@
-"""Guards `kirocrew doctor`'s Discord section and the intent probe behind it.
+"""Guards `junction doctor`'s Discord section and the intent probe behind it.
 
 Three things here are worth more than the line-by-line rendering:
 
@@ -9,7 +9,7 @@ Three things here are worth more than the line-by-line rendering:
   sitting between two pairs turns nothing on.
 * **Degrading to "unknown".** The probe is a network call inside a diagnostic.
   Every failure has to become a reported unknown, never an exception, or
-  `kirocrew doctor` produces no report at the moment the operator needs one.
+  `junction doctor` produces no report at the moment the operator needs one.
 * **The empty user allow-list.** The Discord transport fails closed, so an
   install that looks completely configured denies every message when
   ``allowed_user_ids`` is empty. That has to be called out as a blocking issue,
@@ -24,9 +24,9 @@ from typing import Any
 
 import pytest
 
-from kiro_crew import cli_doctor
-from kiro_crew.config.loader import DiscordConfig, KiroCrewConfig
-from kiro_crew.discord import intent_probe
+from junction import cli_doctor
+from junction.config.loader import DiscordConfig, JunctionConfig
+from junction.discord import intent_probe
 
 _TOKEN = "MFYzNQ.qXpLwZ.vKjHgFdSaPoIuYtReWq"
 _APP_ID = "123456789012345678"
@@ -345,8 +345,8 @@ class TestDoctorIntentGrantsWrapper:
 # ── The doctor section ────────────────────────────────────────────────────────
 
 
-def _cfg(**kwargs: Any) -> KiroCrewConfig:
-    cfg = KiroCrewConfig()
+def _cfg(**kwargs: Any) -> JunctionConfig:
+    cfg = JunctionConfig()
     cfg.discord = DiscordConfig(**kwargs)
     return cfg
 
@@ -355,7 +355,7 @@ def _render(
     monkeypatch,
     capsys,
     *,
-    cfg: KiroCrewConfig,
+    cfg: JunctionConfig,
     token: str = "",
     grants: intent_probe.IntentGrants | None = None,
     live: dict[str, object] | None = None,
@@ -402,7 +402,7 @@ class TestDoctorDiscordSection:
 
         assert "token:       ❌" in out
         assert "the channel never starts" in out
-        assert "kirocrew restart" in out
+        assert "junction restart" in out
         assert "discord: enabled without a bot token" in issues
 
     def test_empty_user_allowlist_is_called_out_as_denying_everything(
@@ -477,7 +477,7 @@ class TestDoctorDiscordSection:
         assert "Message Content required" in out
 
 
-def _thread_cfg() -> KiroCrewConfig:
+def _thread_cfg() -> JunctionConfig:
     return _cfg(
         enabled=True,
         allowed_user_ids=[_USER_ID],
@@ -669,7 +669,7 @@ class TestDoctorLiveConnection:
         )
 
         assert "connection:  ⚠️" in out
-        assert "kirocrew" in out and "restart" in out
+        assert "junction" in out and "restart" in out
         assert issues == []
 
     def test_unreachable_gateway_is_not_a_discord_fault(self, monkeypatch, capsys) -> None:

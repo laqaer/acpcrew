@@ -16,7 +16,7 @@ move and kept re-creating the abandoned home seconds after every launch:
 * ``scripts/install-demo-app.sh`` -- installed the demo app into the legacy home.
 * ``scripts/refresh-playwright-cookies.py`` -- wrote the browser storage state
   there with ``O_CREAT``, so every refresh resurrected the directory.
-* ``packages/kirocrew-client-py`` -- the shipped client defaulted to the legacy
+* ``packages/junction-client-py`` -- the shipped client defaulted to the legacy
   home, so ``_read_app_secret`` silently returned ``""`` (app auth degraded to
   unauthenticated) and ``get_app_data_dir`` handed callers a legacy-rooted dir.
 
@@ -25,8 +25,8 @@ conflict WARNING in ``config/paths.py`` reported it as debris forever --
 un-actionable, because deleting it just brought it back.
 
 Scope, stated honestly: these tests assert on **write targets in code**, across
-four shapes -- shell ``${KIROCREW_HOME:-...}`` fallbacks, bare legacy literals on
-non-comment shell lines, Python ``KIROCREW_HOME`` defaults in shipped packages,
+four shapes -- shell ``${JUNCTION_HOME:-...}`` fallbacks, bare legacy literals on
+non-comment shell lines, Python ``JUNCTION_HOME`` defaults in shipped packages,
 and Python ``expanduser`` of a hardcoded legacy literal. Comment/doc prose is
 deliberately NOT asserted (a comment cannot create a directory;
 ``test_skill_home_paths.py`` owns guidance text), and neither are modules that
@@ -48,7 +48,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-DEFAULTS_JSON = REPO_ROOT / "src" / "kiro_crew" / "config" / "defaults.json"
+DEFAULTS_JSON = REPO_ROOT / "src" / "junction" / "config" / "defaults.json"
 
 # ``.kirocrew`` NOT followed by ``-`` or ``.`` -- so the top-level siblings that
 # genuinely did not move (``.kirocrew-pods``, ``.kirocrew-dev``,
@@ -66,7 +66,7 @@ LEGACY_READER_SCRIPTS = frozenset(
         # seeds a dev home FROM the pre-move home on a not-yet-migrated box
         "dev-seed.sh",
         # sensitive-path denylist; must still refuse the legacy tree
-        "src/kiro_crew/deploy/skills/artifact-deploy/scripts/_common.sh",
+        "src/junction/deploy/skills/artifact-deploy/scripts/_common.sh",
     }
 )
 
@@ -128,7 +128,7 @@ def _shipped_python() -> list[Path]:
     ``test/`` is excluded on purpose -- test fixtures legitimately construct the
     legacy path to assert migration and sensitive-path behavior.
     """
-    roots = [REPO_ROOT / "src" / "kiro_crew", REPO_ROOT / "packages"]
+    roots = [REPO_ROOT / "src" / "junction", REPO_ROOT / "packages"]
     files: list[Path] = []
     for root in roots:
         if not root.is_dir():
@@ -158,11 +158,11 @@ def test_default_audit_hook_writes_to_the_current_data_home() -> None:
 
 
 def test_no_shell_home_default_points_at_the_legacy_home() -> None:
-    """Every ``${KIROCREW_HOME:-...}`` fallback must name the current home."""
+    """Every ``${JUNCTION_HOME:-...}`` fallback must name the current home."""
     scripts = _shell_scripts()
     assert len(scripts) > 5, f"guard scanned too few scripts: {len(scripts)}"
 
-    pattern = re.compile(r"\$\{KIROCREW_HOME:-([^}]*)\}")
+    pattern = re.compile(r"\$\{JUNCTION_HOME:-([^}]*)\}")
     offenders: list[str] = []
     for path in scripts:
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -171,7 +171,7 @@ def test_no_shell_home_default_points_at_the_legacy_home() -> None:
                     offenders.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: {line.strip()}")
 
     assert not offenders, (
-        "A shell KIROCREW_HOME fallback still names the pre-move home. Unset is "
+        "A shell JUNCTION_HOME fallback still names the pre-move home. Unset is "
         "the COMMON case (kiro-cli strips env for MCP subprocesses), so the "
         "fallback is what actually runs:\n  " + "\n  ".join(offenders)
     )
@@ -206,7 +206,7 @@ def test_no_shell_script_uses_a_bare_legacy_home_path() -> None:
 
 
 def test_no_shipped_python_defaults_to_the_legacy_home() -> None:
-    """A shipped ``KIROCREW_HOME`` default must not resolve to the legacy home.
+    """A shipped ``JUNCTION_HOME`` default must not resolve to the legacy home.
 
     Regression guard for the client package, where the legacy default made
     ``_read_app_secret`` return ``""`` -- silently downgrading app auth to
@@ -215,7 +215,7 @@ def test_no_shipped_python_defaults_to_the_legacy_home() -> None:
     # Only the DEFAULT is inspected, and only in real call sites -- docstring
     # prose mentioning the legacy home cannot match this shape.
     pattern = re.compile(
-        r"""(?:os\.environ\.get|os\.getenv)\(\s*["']KIROCREW_HOME["']\s*,(?P<default>.*)$"""
+        r"""(?:os\.environ\.get|os\.getenv)\(\s*["']JUNCTION_HOME["']\s*,(?P<default>.*)$"""
     )
     offenders: list[str] = []
     for path in _shipped_python():
@@ -225,7 +225,7 @@ def test_no_shipped_python_defaults_to_the_legacy_home() -> None:
                 offenders.append(f"{path.relative_to(REPO_ROOT)}:{lineno}: {line.strip()}")
 
     assert not offenders, (
-        "Shipped Python defaults KIROCREW_HOME to the pre-move home. Unset is the "
+        "Shipped Python defaults JUNCTION_HOME to the pre-move home. Unset is the "
         "normal case, so the default is what runs:\n  " + "\n  ".join(offenders)
     )
 
@@ -235,7 +235,7 @@ def test_no_python_expands_a_hardcoded_legacy_home() -> None:
 
     Fourth shape, and the one the other three could not see: a hardcoded
     ``os.path.expanduser("~/.kirocrew/...")`` is not a shell script, need not be
-    in a shipped package, and never mentions ``KIROCREW_HOME`` -- which is how
+    in a shipped package, and never mentions ``JUNCTION_HOME`` -- which is how
     ``scripts/refresh-playwright-cookies.py`` kept re-creating the legacy home.
 
     Scanned repo-wide, excluding ``test/`` where fixtures legitimately construct

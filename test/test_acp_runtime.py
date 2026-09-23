@@ -31,8 +31,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from spawn_test_helpers import strip_spawn_shim
 
-from kiro_crew.acp.client import _OVERSIZE_DRAIN_MAX_BYTES
-from kiro_crew.acp.runtime import (
+from junction.acp.client import _OVERSIZE_DRAIN_MAX_BYTES
+from junction.acp.runtime import (
     _REQUEST_TIMEOUT,
     _SESSION_NEW_TIMEOUT,
     _TERMINATE_TIMEOUT,
@@ -41,7 +41,7 @@ from kiro_crew.acp.runtime import (
     AcpRuntimeError,
     AcpSessionHandle,
 )
-from kiro_crew.acp.types import (
+from junction.acp.types import (
     ACP_BACKEND_KAS,
     EVENT_COMPLETE,
     EVENT_TEXT_CHUNK,
@@ -71,7 +71,7 @@ def _fast_no_report_ceiling(monkeypatch):
     the module constant at call time precisely so this patch takes effect.
     Tests that exercise the ceiling itself pass an explicit value instead.
     """
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     monkeypatch.setattr(sh, "_MCP_DRAIN_NO_REPORT_CEILING", 0.05, raising=False)
 
@@ -495,7 +495,7 @@ async def test_missing_agent_spec_error_reaches_caller_actionable(tmp_path):
     rt._pending_requests[7] = fut
     task = await _start_reader(rt)
     try:
-        with patch("kiro_crew.acp.runtime.kiro_agents_dir", return_value=tmp_path):
+        with patch("junction.acp.runtime.kiro_agents_dir", return_value=tmp_path):
             _feed(
                 reader,
                 {
@@ -503,7 +503,7 @@ async def test_missing_agent_spec_error_reaches_caller_actionable(tmp_path):
                     "error": {
                         "code": -32603,
                         "message": "Internal error",
-                        "data": "Mode 'kirocrew' not found",
+                        "data": "Mode 'junction' not found",
                     },
                 },
             )
@@ -513,7 +513,7 @@ async def test_missing_agent_spec_error_reaches_caller_actionable(tmp_path):
         await _stop_reader(task)
 
     text = str(excinfo.value)
-    assert "'kirocrew.json'" in text  # the file that is missing
+    assert "'junction.json'" in text  # the file that is missing
     assert str(tmp_path) in text  # where it was looked for
     assert "junction setup --agent-only --clean" in text  # the repair
     assert "-32603" not in text  # no raw protocol frame
@@ -798,8 +798,8 @@ def test_runtime_reuses_clients_oversize_drain_helper():
     """The consume-prefix-and-retry drain must have ONE definition. A second copy
     is how two read paths drift apart (they already disagreed once, when only one
     of them killed the process)."""
-    import kiro_crew.acp.client as client_mod
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.client as client_mod
+    import junction.acp.runtime as runtime_mod
 
     assert runtime_mod._drain_oversize_line is client_mod._drain_oversize_line
     assert runtime_mod.OversizeLineUnrecoverable is client_mod.OversizeLineUnrecoverable
@@ -807,11 +807,11 @@ def test_runtime_reuses_clients_oversize_drain_helper():
 
 def test_runtime_uses_clients_augmented_kiro_bin_resolver():
     """spawn() must resolve kiro-cli via the SAME augmented-PATH resolver as
-    AcpClient (honours KIROCREW_KIRO_BIN + augmented_path so a non-login gateway
+    AcpClient (honours JUNCTION_KIRO_BIN + augmented_path so a non-login gateway
     finds a ~/.local/bin install). A bare shutil.which(PATH) duplicate regressed
     the kiro/_bg path to 'kiro-cli not found in PATH'. Assert single-source."""
-    import kiro_crew.acp.client as client_mod
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.client as client_mod
+    import junction.acp.runtime as runtime_mod
 
     assert runtime_mod._resolve_kiro_bin_for_spawn is client_mod._resolve_kiro_bin_for_spawn
 
@@ -821,7 +821,7 @@ async def test_runtime_spawn_passes_installed_path_through_exact_wrappers(
     tmp_path,
     monkeypatch,
 ):
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.runtime as runtime_mod
 
     macos_dir = tmp_path / "Kiro CLI.app" / "Contents" / "MacOS"
     macos_dir.mkdir(parents=True)
@@ -922,7 +922,7 @@ async def test_mark_dead_is_idempotent():
 # ── Death-log severity: deliberate teardown vs genuine death (#4052) ──
 #
 # A warm-pool TTL recycle tears runtimes down via kill() on a schedule; logging
-# that at the same severity and shape as a crash made `kirocrew logs` misreport
+# that at the same severity and shape as a crash made `junction logs` misreport
 # routine recycling as process death. These tests pin the split: kill() → INFO,
 # every genuine death path → WARNING, and the state transitions identical.
 
@@ -936,7 +936,7 @@ def _death_records(caplog):
 def _neuter_kill_side_effects(monkeypatch, proc):
     """Keep kill() away from the host: never signal the fake PID (4242 could be
     a real process), never touch the PID-tracking files."""
-    import kiro_crew.acp.runtime as rt_mod
+    import junction.acp.runtime as rt_mod
 
     proc.wait = AsyncMock(return_value=0)
     monkeypatch.setattr(rt_mod.platform_compat, "kill_process_tree", lambda *a, **k: None)
@@ -959,7 +959,7 @@ async def test_deliberate_kill_logs_info_and_still_fails_pending_futures(caplog,
     fut: asyncio.Future = asyncio.get_event_loop().create_future()
     rt._pending_requests[7] = fut
 
-    with caplog.at_level(logging.INFO, logger="kiro_crew.acp.runtime"):
+    with caplog.at_level(logging.INFO, logger="junction.acp.runtime"):
         await rt.kill(expected=True)
 
     records = _death_records(caplog)
@@ -982,7 +982,7 @@ async def test_kill_default_is_unexpected_and_warns(caplog, monkeypatch):
     rt, _, proc = _make_runtime()
     _neuter_kill_side_effects(monkeypatch, proc)
 
-    with caplog.at_level(logging.INFO, logger="kiro_crew.acp.runtime"):
+    with caplog.at_level(logging.INFO, logger="junction.acp.runtime"):
         await rt.kill()
 
     assert [r.levelname for r in _death_records(caplog)] == ["WARNING"]
@@ -1000,7 +1000,7 @@ async def test_kill_refuses_info_downgrade_when_process_already_exited(caplog, m
     _neuter_kill_side_effects(monkeypatch, proc)
     proc.returncode = 1  # process already exited on its own; _dead still False
 
-    with caplog.at_level(logging.INFO, logger="kiro_crew.acp.runtime"):
+    with caplog.at_level(logging.INFO, logger="junction.acp.runtime"):
         await rt.kill(expected=True)
 
     records = _death_records(caplog)
@@ -1020,7 +1020,7 @@ async def test_unexpected_process_exit_still_warns_with_diagnostic_shape(caplog)
     rt._pending_requests[3] = fut
     task = await _start_reader(rt)
     try:
-        with caplog.at_level(logging.INFO, logger="kiro_crew.acp.runtime"):
+        with caplog.at_level(logging.INFO, logger="junction.acp.runtime"):
             reader.feed_eof()  # empty readline → process exited
             with pytest.raises(AcpRuntimeDead):
                 await asyncio.wait_for(fut, timeout=1.0)
@@ -1182,7 +1182,7 @@ async def test_is_stale_none_when_fresh_and_small(monkeypatch):
         called["n"] += 1
         return 999999.0  # would be "stale" if ever consulted
 
-    monkeypatch.setattr("kiro_crew.acp.runtime._get_rss_tree_mb", _boom)
+    monkeypatch.setattr("junction.acp.runtime._get_rss_tree_mb", _boom)
     assert await rt._is_stale() is None
     assert called["n"] == 0  # young runtime never probes RSS
 
@@ -1195,7 +1195,7 @@ async def test_is_stale_none_when_old_but_small_rss(monkeypatch):
     rt._max_age_secs = 6 * 3600
     rt._spawn_monotonic = time.monotonic() - 600.0  # older than the probe band
     rt._max_rss_mb = 500.0
-    monkeypatch.setattr("kiro_crew.acp.runtime._get_rss_tree_mb", lambda pid: 10.0)
+    monkeypatch.setattr("junction.acp.runtime._get_rss_tree_mb", lambda pid: 10.0)
     assert await rt._is_stale() is None
 
 
@@ -1215,7 +1215,7 @@ async def test_is_stale_rss_when_tree_over_threshold(monkeypatch):
     rt._max_age_secs = 6 * 3600
     rt._spawn_monotonic = time.monotonic() - 600.0  # old enough to probe
     rt._max_rss_mb = 100.0
-    monkeypatch.setattr("kiro_crew.acp.runtime._get_rss_tree_mb", lambda pid: 250.0)
+    monkeypatch.setattr("junction.acp.runtime._get_rss_tree_mb", lambda pid: 250.0)
     assert await rt._is_stale() == "rss"
 
 
@@ -1242,7 +1242,7 @@ def test_get_rss_mb_real_process():
     positive MiB value; a nonexistent PID returns None. Skips where the
     platform can't introspect RSS (no /proc AND ps blocked, e.g. a locked-down
     macOS sandbox) — _get_rss_mb returns None there by design."""
-    from kiro_crew.acp.runtime import _get_rss_mb
+    from junction.acp.runtime import _get_rss_mb
 
     rss = _get_rss_mb(os.getpid())
     if rss is None:
@@ -1255,7 +1255,7 @@ def test_get_rss_tree_mb_real_process():
     """_get_rss_tree_mb sums at least this process's RSS (>0); nonexistent
     PID returns None. Skips where RSS introspection is unavailable (see
     test_get_rss_mb_real_process)."""
-    from kiro_crew.acp.runtime import _get_rss_mb, _get_rss_tree_mb
+    from junction.acp.runtime import _get_rss_mb, _get_rss_tree_mb
 
     self_rss = _get_rss_mb(os.getpid())
     if self_rss is None:
@@ -1458,7 +1458,7 @@ async def test_prompt_resets_turn_done_when_cancelled_while_building_blocks():
     rt.send_request = AsyncMock(return_value=1)
 
     with patch(
-        "kiro_crew.acp.session_handle.build_prompt_blocks",
+        "junction.acp.session_handle.build_prompt_blocks",
         side_effect=asyncio.CancelledError(),
     ):
         gen = handle.prompt("hi", timeout=3.0)
@@ -1516,10 +1516,10 @@ async def test_handle_set_mode():
     rt, _, proc = _make_runtime()
     q = _register(rt, "sA")
     handle = AcpSessionHandle("sA", q["sA"], rt)
-    await handle.set_mode("kirocrew-lite")
+    await handle.set_mode("junction-lite")
     sent = json.loads(proc.stdin.write.call_args.args[0].decode())
     assert sent["method"] == "session/set_mode"
-    assert sent["params"]["modeId"] == "kirocrew-lite"
+    assert sent["params"]["modeId"] == "junction-lite"
 
 
 @pytest.mark.asyncio
@@ -1626,7 +1626,7 @@ async def test_dispatch_permission_request():
     so the permission event resolves ``is_shell=True`` — the signal chat_runner's
     trust-mode gate needs to waive the tool-name length cap on shell commands.
     """
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         EVENT_PERMISSION_REQUEST,
         METHOD_REQUEST_PERMISSION,
         METHOD_SESSION_UPDATE,
@@ -1729,7 +1729,7 @@ async def test_reject_tool_prefers_recorded_reject_option():
 @pytest.mark.asyncio
 async def test_dispatch_tool_call_and_result():
     """Tool call + tool result notifications yield correct events."""
-    from kiro_crew.acp.types import EVENT_TOOL_CALL, EVENT_TOOL_RESULT
+    from junction.acp.types import EVENT_TOOL_CALL, EVENT_TOOL_RESULT
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -1791,8 +1791,8 @@ async def test_tool_stall_cancels_session_not_runtime(monkeypatch):
     """A dispatched tool that goes silent must be recovered by a session-scoped
     session/cancel (so co-tenant sessions on the shared runtime survive), NOT by
     killing the runtime process. The turn ends with stop_reason 'tool_stall'."""
-    from kiro_crew.acp.session_handle import WatchdogSettings
-    from kiro_crew.acp.types import EVENT_COMPLETE
+    from junction.acp.session_handle import WatchdogSettings
+    from junction.acp.types import EVENT_COMPLETE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -1837,8 +1837,8 @@ async def test_tool_stall_recovery_completes_even_if_cancel_fails(monkeypatch):
     """If session/cancel raises or times out (an unresponsive runtime is likely
     right after a stall), the watchdog must still complete the turn — the
     bounded wait_for + except must not let recovery hang or bubble."""
-    from kiro_crew.acp.session_handle import WatchdogSettings
-    from kiro_crew.acp.types import EVENT_COMPLETE
+    from junction.acp.session_handle import WatchdogSettings
+    from junction.acp.types import EVENT_COMPLETE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -1876,7 +1876,7 @@ async def test_tool_stall_recovery_completes_even_if_cancel_fails(monkeypatch):
 @pytest.mark.asyncio
 async def test_dispatch_thinking_chunk():
     """agent_thought_chunk yields EVENT_THINKING_CHUNK."""
-    from kiro_crew.acp.types import EVENT_THINKING_CHUNK
+    from junction.acp.types import EVENT_THINKING_CHUNK
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -1912,7 +1912,7 @@ async def test_dispatch_thinking_chunk():
 @pytest.mark.asyncio
 async def test_dispatch_compaction_and_clear():
     """Compaction and clear notifications yield appropriate events."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         EVENT_CLEAR_STATUS,
         EVENT_COMPACTION_STATUS,
         METHOD_CLEAR_STATUS,
@@ -1959,7 +1959,7 @@ async def test_dispatch_compaction_completed_resets_context_stats():
     """A completed compaction in the prompt dispatch loop must drop the stale
     context-usage counts (regression: the meter froze at the pre-compaction
     value because context_tokens_from_usage=True blocked fresh metadata)."""
-    from kiro_crew.acp.types import METHOD_COMPACTION_STATUS, AcpPromptStats
+    from junction.acp.types import METHOD_COMPACTION_STATUS, AcpPromptStats
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2005,7 +2005,7 @@ async def test_dispatch_compaction_completed_resets_context_stats():
 async def test_wait_for_compaction_drain_path_resets_context_stats():
     """The async-after-end_turn drain path in wait_for_compaction bypasses the
     prompt dispatch loop, so it must drop the stale counts itself."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         METHOD_COMPACTION_STATUS,
         AcpPromptStats,
         JsonRpcMessage,
@@ -2044,7 +2044,7 @@ async def test_wait_for_compaction_drain_path_resets_context_stats():
 async def test_wait_for_compaction_drain_applies_post_compaction_metadata():
     """kiro emits the real post-compaction pct ~1s after the completed status;
     the drain path must capture it and derive against the KEPT served window."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         METHOD_COMPACTION_STATUS,
         AcpPromptStats,
         JsonRpcMessage,
@@ -2085,7 +2085,7 @@ async def test_wait_for_compaction_drain_applies_post_compaction_metadata():
 async def test_post_compaction_drain_requeues_frames_before_poison():
     """Death during the grace drain: buffered frames must be re-queued BEFORE
     the poison sentinel, or recovery would see death first and strand them."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         METHOD_COMPACTION_STATUS,
         AcpPromptStats,
         JsonRpcMessage,
@@ -2125,7 +2125,7 @@ async def test_outer_buffered_frame_restored_before_poison_from_nested_drain():
     grace drain — separate buffers restored at different times would park the
     frame behind the death sentinel and its consumer would see AcpProcessDied
     despite a completed command."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         METHOD_COMPACTION_STATUS,
         AcpPromptStats,
         JsonRpcMessage,
@@ -2163,7 +2163,7 @@ async def test_drain_passes_metering_frames_through_for_next_turn_billing():
     on the between-turns auto-compact path the credits would land in a stats
     window nothing reads and be wiped by the next prompt's re-init. The frame
     is re-queued untouched so the next turn's dispatch loop bills it."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         METHOD_COMPACTION_STATUS,
         AcpPromptStats,
         JsonRpcMessage,
@@ -2211,7 +2211,7 @@ async def test_drain_passes_metering_frames_through_for_next_turn_billing():
 async def test_wait_for_compaction_cached_result_applies_post_compaction_metadata():
     """The mid-turn cached path (compact() captured the completed status while
     draining its own prompt) must also grace-drain for the metadata."""
-    from kiro_crew.acp.types import AcpPromptStats, JsonRpcMessage
+    from junction.acp.types import AcpPromptStats, JsonRpcMessage
 
     rt, _reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2242,7 +2242,7 @@ async def test_wait_for_compaction_cached_result_applies_post_compaction_metadat
 @pytest.mark.asyncio
 async def test_dispatch_agent_switched():
     """Agent switched notification yields EVENT_AGENT_SWITCHED."""
-    from kiro_crew.acp.types import EVENT_AGENT_SWITCHED, METHOD_AGENT_SWITCHED
+    from junction.acp.types import EVENT_AGENT_SWITCHED, METHOD_AGENT_SWITCHED
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2263,14 +2263,14 @@ async def test_dispatch_agent_switched():
                 "method": METHOD_AGENT_SWITCHED,
                 "params": {
                     "sessionId": "sA",
-                    "agentName": "kirocrew-lite",
+                    "agentName": "junction-lite",
                 },
             },
         )
         _feed(reader, {"id": req_id, "result": {"stopReason": "end_turn"}})
         await asyncio.wait_for(driver, timeout=3.0)
         sw = [e for e in events if e.kind == EVENT_AGENT_SWITCHED]
-        assert len(sw) == 1 and sw[0].text == "kirocrew-lite"
+        assert len(sw) == 1 and sw[0].text == "junction-lite"
     finally:
         await _stop_reader(task)
 
@@ -2278,7 +2278,7 @@ async def test_dispatch_agent_switched():
 @pytest.mark.asyncio
 async def test_dispatch_mcp_oauth_request():
     """MCP OAuth request notification yields EVENT_MCP_OAUTH_REQUEST."""
-    from kiro_crew.acp.types import EVENT_MCP_OAUTH_REQUEST, METHOD_MCP_OAUTH_REQUEST
+    from junction.acp.types import EVENT_MCP_OAUTH_REQUEST, METHOD_MCP_OAUTH_REQUEST
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2317,7 +2317,7 @@ async def test_dispatch_mcp_oauth_request():
 @pytest.mark.asyncio
 async def test_dispatch_mcp_server_initialized():
     """MCP server initialized yields EVENT_MCP_SERVER_INITIALIZED."""
-    from kiro_crew.acp.types import EVENT_MCP_SERVER_INITIALIZED, METHOD_MCP_SERVER_INITIALIZED
+    from junction.acp.types import EVENT_MCP_SERVER_INITIALIZED, METHOD_MCP_SERVER_INITIALIZED
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2353,7 +2353,7 @@ async def test_dispatch_mcp_server_initialized():
 @pytest.mark.asyncio
 async def test_dispatch_mcp_server_init_failure():
     """MCP server init failure yields EVENT_MCP_SERVER_INIT_FAILURE."""
-    from kiro_crew.acp.types import EVENT_MCP_SERVER_INIT_FAILURE, METHOD_MCP_SERVER_INIT_FAILURE
+    from junction.acp.types import EVENT_MCP_SERVER_INIT_FAILURE, METHOD_MCP_SERVER_INIT_FAILURE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2423,7 +2423,7 @@ async def test_dispatch_unknown_server_request_gets_error_response():
 @pytest.mark.asyncio
 async def test_dispatch_tool_call_update_raw_output():
     """tool_call_update with rawOutput yields EVENT_TOOL_RESULT."""
-    from kiro_crew.acp.types import EVENT_TOOL_RESULT
+    from junction.acp.types import EVENT_TOOL_RESULT
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2463,7 +2463,7 @@ async def test_dispatch_tool_call_update_raw_output():
 @pytest.mark.asyncio
 async def test_dispatch_tool_call_update_refinement():
     """tool_call_update with title but no content yields EVENT_TOOL_CALL_UPDATE."""
-    from kiro_crew.acp.types import EVENT_TOOL_CALL_UPDATE
+    from junction.acp.types import EVENT_TOOL_CALL_UPDATE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2576,7 +2576,7 @@ def test_handle_update_malformed_usage_is_noop(used, size):
 async def test_dispatch_metadata_credits():
     """_kiro.dev/metadata meteringUsage(unit=credit) accumulates into last_prompt_stats
     and is propagated onto EVENT_COMPLETE; non-credit units are ignored."""
-    from kiro_crew.acp.types import EVENT_COMPLETE, METHOD_METADATA
+    from junction.acp.types import EVENT_COMPLETE, METHOD_METADATA
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2620,7 +2620,7 @@ async def test_dispatch_metadata_credits():
 async def test_dispatch_metadata_credits_robust():
     """Non-numeric / missing meteringUsage values and metadata with no meteringUsage
     are handled without raising; credits stays 0."""
-    from kiro_crew.acp.types import METHOD_METADATA
+    from junction.acp.types import METHOD_METADATA
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2658,7 +2658,7 @@ async def test_dispatch_metadata_credits_robust():
 async def test_metadata_credits_routed_per_session():
     """Concurrent sessions on one runtime each accrue only their own kiro credits —
     metadata notifications are demuxed by sessionId, no cross-talk."""
-    from kiro_crew.acp.types import METHOD_METADATA
+    from junction.acp.types import METHOD_METADATA
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA", "sB")
@@ -2712,7 +2712,7 @@ async def test_metadata_credits_routed_per_session():
 @pytest.mark.asyncio
 async def test_dispatch_subagent_list():
     """Subagent list notification yields EVENT_SUBAGENT_LIST."""
-    from kiro_crew.acp.types import EVENT_SUBAGENT_LIST, METHOD_SUBAGENT_LIST_UPDATE
+    from junction.acp.types import EVENT_SUBAGENT_LIST, METHOD_SUBAGENT_LIST_UPDATE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2753,7 +2753,7 @@ async def test_dispatch_subagent_activity_tool():
     registered session), so the reader would correctly drop it. We inject it
     straight into the parent's queue to exercise the dispatch branch.
     """
-    from kiro_crew.acp.types import EVENT_SUBAGENT_ACTIVITY, METHOD_KIRO_SESSION_UPDATE
+    from junction.acp.types import EVENT_SUBAGENT_ACTIVITY, METHOD_KIRO_SESSION_UPDATE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2792,7 +2792,7 @@ async def test_dispatch_subagent_activity_tool():
 @pytest.mark.asyncio
 async def test_dispatch_subagent_activity_text():
     """Subagent activity with agent_message_chunk yields text event."""
-    from kiro_crew.acp.types import EVENT_SUBAGENT_ACTIVITY, METHOD_KIRO_SESSION_UPDATE
+    from junction.acp.types import EVENT_SUBAGENT_ACTIVITY, METHOD_KIRO_SESSION_UPDATE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2834,7 +2834,7 @@ async def test_dispatch_subagent_activity_text():
 async def test_dispatch_subagent_activity_text_is_redacted():
     """Sub-agent streamed text is LLM output surfaced on the dashboard, so it
     MUST be scrubbed (credentials + exfil URLs) before being yielded."""
-    from kiro_crew.acp.types import EVENT_SUBAGENT_ACTIVITY, METHOD_KIRO_SESSION_UPDATE
+    from junction.acp.types import EVENT_SUBAGENT_ACTIVITY, METHOD_KIRO_SESSION_UPDATE
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2879,7 +2879,7 @@ async def test_dispatch_subagent_activity_text_is_redacted():
 @pytest.mark.asyncio
 async def test_prompt_error_response_raises():
     """An error response for the prompt request raises AcpError."""
-    from kiro_crew.acp.client import AcpError
+    from junction.acp.client import AcpError
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2906,7 +2906,7 @@ async def test_prompt_transient_error_sets_transient_flag():
     surfaced as JSON-RPC -32603) raises AcpError with transient=True, so the
     chat_runner / llm_helpers retry ladder fires instead of a bare error card.
     Regression for the kiro raise site that previously lacked the flag."""
-    from kiro_crew.acp.client import AcpError
+    from junction.acp.client import AcpError
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2946,7 +2946,7 @@ async def test_prompt_transient_error_sets_transient_flag():
 async def test_prompt_auth_error_not_transient():
     """An auth error response raises AcpError with transient=False so it fails
     fast — a retry cannot fix an expired/denied credential."""
-    from kiro_crew.acp.client import AcpError
+    from junction.acp.client import AcpError
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -2984,7 +2984,7 @@ async def test_wait_for_response_transient_error_sets_flag():
     backend 5xx (a -32603 InternalServerError) as transient=True, so
     request/response turns (session/new, set_mode, cancel, …) share the same
     retry eligibility. Covers the second kiro raise site."""
-    from kiro_crew.acp.client import AcpError
+    from junction.acp.client import AcpError
 
     rt, _, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -3078,7 +3078,7 @@ async def test_one_session_errors_others_unaffected():
     """When one session's turn errors, the other concurrent session still
     completes normally — failures are isolated per session.
     """
-    from kiro_crew.acp.client import AcpError
+    from junction.acp.client import AcpError
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sOk", "sErr")
@@ -3138,7 +3138,7 @@ async def test_interleaved_tool_calls_routed_per_session():
     """tool_call frames for two concurrent sessions are each delivered only to
     the originating session's stream.
     """
-    from kiro_crew.acp.types import EVENT_TOOL_CALL
+    from junction.acp.types import EVENT_TOOL_CALL
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA", "sB")
@@ -3478,9 +3478,9 @@ class TestAcpRuntimePidTracking:
         proc.wait = AsyncMock(return_value=0)
 
         calls: dict[str, list[int]] = {"pid": [], "session": []}
-        import kiro_crew.acp.runtime as rt_mod
+        import junction.acp.runtime as rt_mod
 
-        # runtime.py imports these at module top (from kiro_crew.session_pid
+        # runtime.py imports these at module top (from junction.session_pid
         # import _untrack_pid, _untrack_session_pid), so kill() resolves them in
         # the runtime namespace — patch WHERE USED, not the source module.
         monkeypatch.setattr(rt_mod, "_untrack_pid", lambda p: calls["pid"].append(p))
@@ -3514,7 +3514,7 @@ class TestAcpRuntimePidTracking:
         proc.wait = AsyncMock(return_value=0)
 
         calls: dict[str, list[int]] = {"pid": [], "session": []}
-        import kiro_crew.acp.runtime as rt_mod
+        import junction.acp.runtime as rt_mod
 
         monkeypatch.setattr(rt_mod, "_untrack_pid", lambda p: calls["pid"].append(p))
         monkeypatch.setattr(rt_mod, "_untrack_session_pid", lambda p: calls["session"].append(p))
@@ -3544,7 +3544,7 @@ class TestAcpRuntimeLoadSession:
             sent.append((method, params))
             # session/load echoes "modes"; set_mode echoes nothing meaningful.
             if method == METHOD_SESSION_LOAD:
-                return {"modes": {"currentModeId": "kirocrew"}, "models": []}
+                return {"modes": {"currentModeId": "junction"}, "models": []}
             return {}
 
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
@@ -3553,7 +3553,7 @@ class TestAcpRuntimeLoadSession:
             "/home/u/.kiro/sessions/cli/sid-123.json",
             "sid-123",
             cwd="/work",
-            agent="kirocrew",
+            agent="junction",
         )
 
         # No session/new was issued — the first RPC is session/load itself.
@@ -3596,7 +3596,7 @@ class TestAcpRuntimeLoadSession:
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
 
         with pytest.raises(AcpRuntimeError):
-            await rt.load_session("/f.json", "sid-y", agent="kirocrew")
+            await rt.load_session("/f.json", "sid-y", agent="junction")
         # The queue registered before the send must be cleaned up on failure.
         assert "sid-y" not in rt._session_queues
 
@@ -3611,7 +3611,7 @@ class TestAcpRuntimeLoadSession:
         the requested mode genuinely absent on resume, and the mode guard then
         refused the load rather than silently running the backend default.
         """
-        from kiro_crew.acp._dispatch import build_session_new_params
+        from junction.acp._dispatch import build_session_new_params
 
         rt, _, _ = _make_runtime()
         rt._can_load_session = True
@@ -3620,7 +3620,7 @@ class TestAcpRuntimeLoadSession:
         async def _fake_send(method, params, timeout=None):
             sent.append((method, params))
             if method == METHOD_SESSION_LOAD:
-                return {"modes": {"currentModeId": "kirocrew"}, "models": []}
+                return {"modes": {"currentModeId": "junction"}, "models": []}
             return {}
 
         async def _fake_agents(agent):
@@ -3630,11 +3630,11 @@ class TestAcpRuntimeLoadSession:
         monkeypatch.setattr(rt, "_kas_custom_agents", _fake_agents)
         rt._acp_backend = ACP_BACKEND_KAS
 
-        await rt.load_session("", "sid-kas", cwd="/work", agent="kirocrew")
+        await rt.load_session("", "sid-kas", cwd="/work", agent="junction")
 
         load_params = sent[0][1]
         assert load_params["_meta"]["kiro"]["customAgents"] == [
-            {"id": "kirocrew", "prompt": "p", "tools": []}
+            {"id": "junction", "prompt": "p", "tools": []}
         ]
         # Same envelope as session/new, because both go through one builder. Two
         # hand-built copies of this nesting would be free to drift, and a resumed
@@ -3643,7 +3643,7 @@ class TestAcpRuntimeLoadSession:
         assert (
             load_params["_meta"]["kiro"]
             == build_session_new_params(
-                "/work", kas_custom_agents=[{"id": "kirocrew", "prompt": "p", "tools": []}]
+                "/work", kas_custom_agents=[{"id": "junction", "prompt": "p", "tools": []}]
             )["_meta"]["kiro"]
         )
 
@@ -3662,7 +3662,7 @@ class TestAcpRuntimeLoadSession:
         async def _fake_send(method, params, timeout=None):
             sent.append((method, params))
             if method == METHOD_SESSION_LOAD:
-                return {"modes": {"currentModeId": "kirocrew"}, "models": []}
+                return {"modes": {"currentModeId": "junction"}, "models": []}
             return {}
 
         async def _fake_agents(agent):
@@ -3672,7 +3672,7 @@ class TestAcpRuntimeLoadSession:
         monkeypatch.setattr(rt, "_kas_custom_agents", _fake_agents)
         rt._acp_backend = ACP_BACKEND_KAS
 
-        await rt.load_session("/t.json", "sid-both", cwd="/work", agent="kirocrew")
+        await rt.load_session("/t.json", "sid-both", cwd="/work", agent="junction")
 
         meta = sent[0][1]["_meta"]
         assert meta["_kiro.dev/session_file"] == "/t.json"
@@ -3695,7 +3695,7 @@ class TestAcpRuntimeLoadSession:
         async def _fake_send(method, params, timeout=None):
             sent.append((method, params))
             if method == METHOD_SESSION_LOAD:
-                return {"modes": {"currentModeId": "kirocrew"}, "models": []}
+                return {"modes": {"currentModeId": "junction"}, "models": []}
             return {}
 
         async def _fake_agents(agent):
@@ -3705,7 +3705,7 @@ class TestAcpRuntimeLoadSession:
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
         monkeypatch.setattr(rt, "_kas_custom_agents", _fake_agents)
 
-        await rt.load_session("/t.json", "sid-kiro", cwd="/work", agent="kirocrew")
+        await rt.load_session("/t.json", "sid-kiro", cwd="/work", agent="junction")
 
         assert calls == []
         assert sent[0][1]["_meta"] == {"_kiro.dev/session_file": "/t.json"}
@@ -3726,7 +3726,7 @@ class TestAcpRuntimeLoadSession:
             return {}
 
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
-        await rt.load_session("/k/sid.json", "sid", cwd="/w", agent="kirocrew")
+        await rt.load_session("/k/sid.json", "sid", cwd="/w", agent="junction")
 
         # Mirror of AcpClient's kiro-branch load_params (client.py step 2).
         # mcpServers is [] on BOTH paths here because no overlay is configured;
@@ -3761,7 +3761,7 @@ class TestAcpRuntimeLoadSession:
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
 
         with pytest.raises(AcpRuntimeError):
-            await rt.load_session("/k/sid.json", "sid-z", cwd="/w", agent="kirocrew")
+            await rt.load_session("/k/sid.json", "sid-z", cwd="/w", agent="junction")
         assert METHOD_SESSION_TERMINATE in methods
         assert "sid-z" not in rt._session_queues
 
@@ -3776,14 +3776,14 @@ class TestAcpRuntimeLoadSession:
         Asserts on the EMITTED mcpServers of both requests: load_session must
         carry exactly the entries create_session injects for the same agent +
         overlay. Mutating the fix back to [] fails the first assert."""
-        from kiro_crew.mcp_gateway.rewriter import _WRAPPER_MARKER
+        from junction.mcp_gateway.rewriter import _WRAPPER_MARKER
 
         overlay = tmp_path / "agents"
         overlay.mkdir()
-        (overlay / "kirocrew.json").write_text(
+        (overlay / "junction.json").write_text(
             json.dumps(
                 {
-                    "name": "kirocrew",
+                    "name": "junction",
                     "mcpServers": {
                         "builder-mcp": {
                             _WRAPPER_MARKER: True,
@@ -3812,13 +3812,13 @@ class TestAcpRuntimeLoadSession:
 
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
 
-        await rt.load_session("/k/sid.json", "sid-r", cwd="/w", agent="kirocrew")
+        await rt.load_session("/k/sid.json", "sid-r", cwd="/w", agent="junction")
         load_params = next(p for m, p in sent if m == METHOD_SESSION_LOAD)
         assert [e["name"] for e in load_params["mcpServers"]] == ["builder-mcp"]
 
         # Parity with create_session for the same agent + overlay: the two
         # injection paths must never diverge.
-        await rt.create_session(cwd="/w", agent="kirocrew")
+        await rt.create_session(cwd="/w", agent="junction")
         new_params = next(p for m, p in sent if m == METHOD_SESSION_NEW)
         assert load_params["mcpServers"] == new_params["mcpServers"]
 
@@ -3828,7 +3828,7 @@ class TestAcpRuntimeLoadSession:
         run via asyncio.to_thread, not on the loop thread."""
         import threading
 
-        import kiro_crew.acp.runtime as rt_mod
+        import junction.acp.runtime as rt_mod
 
         rt, _, _ = _make_runtime()
         rt._can_load_session = True
@@ -3849,7 +3849,7 @@ class TestAcpRuntimeLoadSession:
             return {}
 
         monkeypatch.setattr(rt, "_send_and_await", _fake_send)
-        await rt.load_session("/k/sid.json", "sid-t", cwd="/w", agent="kirocrew")
+        await rt.load_session("/k/sid.json", "sid-t", cwd="/w", agent="junction")
 
         assert seen, "load_session never consulted pooled_session_servers"
         assert all(t is not loop_thread for t in seen)
@@ -3865,8 +3865,8 @@ class TestAcpRuntimeLoadSession:
         import ast
         import inspect
 
-        import kiro_crew.acp.client as client_mod
-        import kiro_crew.acp.runtime as rt_mod
+        import junction.acp.client as client_mod
+        import junction.acp.runtime as rt_mod
 
         _SEND_FUNCS = {"_send_request", "_send_and_await"}
         _SESSION_METHODS = {"METHOD_SESSION_NEW", "METHOD_SESSION_LOAD"}
@@ -3926,7 +3926,7 @@ async def test_create_session_terminates_session_when_set_mode_fails(monkeypatch
     monkeypatch.setattr(rt, "_send_and_await", _fake_send)
 
     with pytest.raises(AcpRuntimeError):
-        await rt.create_session(cwd="/w", agent="kirocrew")
+        await rt.create_session(cwd="/w", agent="junction")
     # kiro-cli was told to evict the just-created session, and the local queue
     # registered before set_mode is cleaned up on failure.
     assert METHOD_SESSION_TERMINATE in methods
@@ -3946,7 +3946,7 @@ async def test_create_session_registers_queue_on_success(monkeypatch):
 
     monkeypatch.setattr(rt, "_send_and_await", _fake_send)
 
-    handle = await rt.create_session(cwd="/w", agent="kirocrew")
+    handle = await rt.create_session(cwd="/w", agent="junction")
     assert handle.session_id == "sid-ok"
     assert "sid-ok" in rt._session_queues
 
@@ -3954,7 +3954,7 @@ async def test_create_session_registers_queue_on_success(monkeypatch):
 @pytest.mark.asyncio
 async def test_create_session_buffers_oauth_emitted_before_response():
     """OAuth emitted during session/new survives until the provider can drain it."""
-    from kiro_crew.acp.session_provider import AcpSessionProvider
+    from junction.acp.session_provider import AcpSessionProvider
 
     rt, reader, _ = _make_runtime()
     reader_task = await _start_reader(rt)
@@ -4038,7 +4038,7 @@ async def test_steer_notifications_yield_steer_events():
     """#4: steering_* session/update frames classify as "steer" and yield the
     EVENT_STEER_* events (previously dropped — classify_notification had no steer
     branch, so the shared demux path never surfaced mid-turn steer)."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         EVENT_STEER_CLEARED,
         EVENT_STEER_CONSUMED,
         EVENT_STEER_QUEUED,
@@ -4108,7 +4108,7 @@ async def test_tool_interrupted_marker_synthesizes_complete(monkeypatch):
     must synthesize EVENT_COMPLETE so the turn does not hang until the 2h prompt
     timeout, and must emit the SEL audit. No prompt response is fed here — the
     turn MUST still terminate."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     sel_mock = MagicMock()
     monkeypatch.setattr(sh, "sel", lambda: sel_mock)
@@ -4258,7 +4258,7 @@ async def test_drain_init_waits_past_idle_window_for_first_mcp_report(monkeypatc
     registration frame. A server that stays silent past the idle window and
     THEN reports is still observed — non-MCP frames (metadata) that arrive
     immediately after set_mode must not arm the shortcut either."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     monkeypatch.setattr(sh, "_MCP_DRAIN_NO_REPORT_CEILING", 5.0, raising=False)
     rt, _, _ = _make_runtime()
@@ -4360,7 +4360,7 @@ async def test_mcp_free_runtime_skips_no_report_ceiling(monkeypatch):
         await orig(self, *args, **kwargs)
 
     with patch.object(AcpSessionHandle, "drain_init", _spy):
-        await rt.create_session(cwd="/w", agent="kirocrew-lite", mcp_servers=[])
+        await rt.create_session(cwd="/w", agent="junction-lite", mcp_servers=[])
     assert seen.get("no_report_ceiling") == 0.0
 
 
@@ -4370,7 +4370,7 @@ async def test_drain_init_ignores_pre_switch_reports_still_waits_for_new_agent(m
     PARENT mode's servers; their staged registration frames must not arm the
     idle shortcut for a session that was then mode-SWITCHED — the switched-to
     agent's own slow server, reporting after set_mode, must still be observed."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     monkeypatch.setattr(sh, "_MCP_DRAIN_NO_REPORT_CEILING", 5.0, raising=False)
     rt, _, _ = _make_runtime()
@@ -4428,7 +4428,7 @@ async def test_reader_retains_mcp_registration_frames_during_init():
 
         with patch.object(rt, "_send_and_await", _fake_send):
             with patch.object(AcpSessionHandle, "drain_init", AsyncMock()) as mock_drain:
-                handle = await rt.create_session(cwd="/w", agent="kirocrew", mcp_servers=[])
+                handle = await rt.create_session(cwd="/w", agent="junction", mcp_servers=[])
         assert handle.session_id == "sid-warm"
         mock_drain.assert_awaited_once()
         # Both registration frames were transferred into the session queue
@@ -4455,7 +4455,7 @@ async def test_reader_retains_mcp_registration_frames_during_init():
 def test_backfill_context_window_from_pct(monkeypatch):
     """#5b: pct-only metadata (kiro 2.10+) backfills window/used tokens from the
     model registry; no-op once a real usage_update set the window."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     # The backfill only fires for a KNOWN window (has_known_window) and resolves
     # via the central model_window authority, so mock both for the fake model.
@@ -4542,7 +4542,7 @@ def test_backfill_context_window_clamps_malformed_pct(monkeypatch):
     """A degenerate metadata percentage (huge finite / inf / NaN) must not
     overflow round() and abort the turn on the shared-runtime path; derived
     used stays in [0, window]."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     monkeypatch.setattr(sh.model_registry, "has_known_window", lambda mid: True)
     monkeypatch.setattr(sh.model_registry, "model_window", lambda mid, **kw: 200000)
@@ -4591,7 +4591,7 @@ def test_backfill_uses_resolved_model_id_from_session_config(monkeypatch):
     """#5b (parity): store_session_config captures currentModelId into
     _resolved_model_id, so context-window backfill works even when the user
     never called set_model — and _model stays empty (no pinning)."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     monkeypatch.setattr(sh.model_registry, "has_known_window", lambda mid: True)
     monkeypatch.setattr(sh.model_registry, "model_window", lambda mid, **kw: 300000)
@@ -4619,7 +4619,7 @@ def test_backfill_uses_resolved_model_id_from_session_config(monkeypatch):
 async def test_send_command_redacts_output(monkeypatch):
     """#send_command (parity): the command response text is redacted before
     return, matching AcpClient.send_command."""
-    import kiro_crew.acp.session_handle as sh
+    import junction.acp.session_handle as sh
 
     # send_command now applies the explicit two-pass redactors (parity with
     # AcpClient.send_command), not the redact_text helper.
@@ -4660,8 +4660,8 @@ async def test_stream_translates_runtime_dead_to_process_died():
     """#2: AcpSessionProvider.stream translates AcpRuntimeDead (an
     AcpRuntimeError, which chat_runner does NOT catch) into AcpProcessDied so
     the caller's AcpProcessDied handler fires (parity with AcpClient)."""
-    from kiro_crew.acp.client import AcpProcessDied
-    from kiro_crew.acp.session_provider import AcpSessionProvider
+    from junction.acp.client import AcpProcessDied
+    from junction.acp.session_provider import AcpSessionProvider
 
     rt = MagicMock()
     rt.saw_not_logged_in = MagicMock(return_value=False)
@@ -4684,8 +4684,8 @@ async def test_stream_translates_runtime_dead_to_process_died():
 async def test_stream_translates_auth_failure_to_auth_required():
     """#1: when stderr shows 'not logged in', a runtime death surfaces as
     AcpAuthRequired (non-retryable login prompt) rather than AcpProcessDied."""
-    from kiro_crew.acp.client import AcpAuthRequired
-    from kiro_crew.acp.session_provider import AcpSessionProvider
+    from junction.acp.client import AcpAuthRequired
+    from junction.acp.session_provider import AcpSessionProvider
 
     rt = MagicMock()
     rt.saw_not_logged_in = MagicMock(return_value=True)
@@ -4742,7 +4742,7 @@ async def test_handle_steer_stamps_write_time_and_provider_passes_it_through():
 
     rt.send_request = _send_request
     handle = AcpSessionHandle("sA", asyncio.Queue(), rt)
-    from kiro_crew.acp.session_provider import AcpSessionProvider
+    from junction.acp.session_provider import AcpSessionProvider
 
     prov = AcpSessionProvider.__new__(AcpSessionProvider)
     prov._handle = handle
@@ -4771,7 +4771,7 @@ async def test_provider_cancel_session_accepts_and_forwards_grace():
     """Blocker #1: AcpSessionProvider.cancel_session must accept grace_secs
     (AcpProvider.cancel calls it with grace_secs=) and forward it to the
     handle — otherwise a kiro-path cancel raises TypeError."""
-    from kiro_crew.acp.session_provider import AcpSessionProvider
+    from junction.acp.session_provider import AcpSessionProvider
 
     rt, _, _ = _make_runtime()
     rt.send_notification = AsyncMock()  # type: ignore[method-assign]
@@ -4802,7 +4802,7 @@ async def test_dispatch_mcp_oauth_guard_and_dedup():
     """Shared-path mcp_oauth_request mirrors AcpClient (R5 fix): unsafe-scheme
     URLs and empty serverName are dropped; duplicates deduped; a matching
     server_initialized discards the dedupe entry so a later retry re-emits."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         EVENT_MCP_OAUTH_REQUEST,
         METHOD_MCP_OAUTH_REQUEST,
         METHOD_MCP_SERVER_INITIALIZED,
@@ -4911,7 +4911,7 @@ async def test_set_model_rebases_context_stats(monkeypatch):
     last_prompt_stats to the new model's window and clears the authoritative
     usage flag, so the next metadata pct backfills against the NEW model
     instead of being gated forever by the old model's usage_update."""
-    from kiro_crew import model_registry
+    from junction import model_registry
 
     monkeypatch.setattr(model_registry, "has_known_window", lambda mid: True)
     monkeypatch.setattr(model_registry, "model_window", lambda mid, **kw: 272_000)
@@ -4958,9 +4958,9 @@ def test_store_session_config_syncs_effort_levels(monkeypatch):
     import types
 
     calls = []
-    fake = types.ModuleType("kiro_crew.dashboard.chat_persistence")
+    fake = types.ModuleType("junction.dashboard.chat_persistence")
     fake.update_reasoning_effort_values = lambda levels: calls.append(levels)
-    monkeypatch.setitem(sys.modules, "kiro_crew.dashboard.chat_persistence", fake)
+    monkeypatch.setitem(sys.modules, "junction.dashboard.chat_persistence", fake)
     rt = MagicMock()
     rt.is_alive.return_value = True
     h = AcpSessionHandle("sA", asyncio.Queue(), rt)
@@ -4979,7 +4979,7 @@ async def test_stale_turn_probes_then_signals_recovery():
     which orphaned the wedged turn until the user's next message collided with
     'prompt already in progress'. (Stale DETECTION → probe is covered by
     test_acp_stale_recovery.py::test_genuine_stale_probes_via_cancel.)"""
-    from kiro_crew.acp.types import EVENT_COMPLETE, STOP_REASON_STALE_RECOVER
+    from junction.acp.types import EVENT_COMPLETE, STOP_REASON_STALE_RECOVER
 
     rt, reader, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -5018,8 +5018,8 @@ def test_build_permission_event_sets_raw_tool_params():
     the governance keystone (hooks.on_tool_call sensitive-path / write-protected
     checks) enforces on the shared-runtime path even when the display title
     hides the path."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     raw_cache = {"tc-1": {"path": "/home/u/.ssh/id_rsa", "content": "x"}}
     msg = JsonRpcMessage.from_dict(
@@ -5045,8 +5045,8 @@ def test_build_permission_event_sets_raw_tool_params():
 
 def test_build_permission_event_raw_params_none_without_cache():
     """No cache entry + no inline dict → raw_tool_params stays None (no crash)."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     msg = JsonRpcMessage.from_dict(
         {
@@ -5062,8 +5062,8 @@ def test_build_permission_event_raw_params_none_without_cache():
 @pytest.mark.parametrize("redaction_cache", [None, {}])
 def test_cached_input_without_redaction_provenance_fails_closed(redaction_cache):
     """Unknown cached-input provenance may display, but cannot grant trust."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     msg = JsonRpcMessage.from_dict(
         {
@@ -5093,8 +5093,8 @@ def test_build_permission_event_recovers_mcp_server_name_from_cache():
     hooks.on_tool_call's app-own-server auto-approve can fire on the dashboard
     permission path. Without this the event's mcp_server_name is always "" and
     the feature is inert."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     mcp_cache = {"tc-1": "mochi:mochi"}
     msg = JsonRpcMessage.from_dict(
@@ -5116,8 +5116,8 @@ def test_build_permission_event_recovers_mcp_server_name_from_cache():
 def test_build_permission_event_mcp_server_name_empty_without_cache():
     """No cache / no entry → mcp_server_name stays "" (fail-closed: the app-own
     auto-approve never matches on a forged title with no trusted server name)."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     msg = JsonRpcMessage.from_dict(
         {
@@ -5136,8 +5136,8 @@ def test_build_permission_event_recovers_tool_name_from_cache():
     preceding tool_call via tool_name_cache. This is what lets the
     app-own-server auto-approve rebuild the canonical mcp__<server>__<tool> and
     govern the real tool on the permission path."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     name_cache = {"tc-1": "perform_pet_action"}
     msg = JsonRpcMessage.from_dict(
@@ -5159,8 +5159,8 @@ def test_build_permission_event_recovers_tool_name_from_cache():
 def test_build_permission_event_tool_name_empty_without_cache():
     """No cache / no entry → tool_name stays "" (fail-closed: the app-own-server
     auto-approve cannot identify the tool to govern it, so it never fires)."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     msg = JsonRpcMessage.from_dict(
         {
@@ -5225,7 +5225,7 @@ def test_shared_handle_permission_inherits_origin_bound_tool_identity():
 
 def test_shared_handle_structured_non_shell_reprompt_keeps_argument_provenance():
     """Shared transport retains display and raw params across a re-prompt."""
-    from kiro_crew.trust_patterns import approval_command
+    from junction.trust_patterns import approval_command
 
     rt, _, _ = _make_runtime()
     handle = AcpSessionHandle("sA", asyncio.Queue(), rt)
@@ -5288,7 +5288,7 @@ def test_shared_handle_structured_non_shell_reprompt_keeps_argument_provenance()
 @pytest.mark.parametrize("raw_input", ["/etc/secret", ["/etc/secret"]])
 def test_shared_non_dict_non_shell_reprompt_cannot_become_durable_tool_trust(raw_input):
     """String/list rawInput remains visible to the repeat trust gate."""
-    from kiro_crew.trust_patterns import approval_command
+    from junction.trust_patterns import approval_command
 
     rt, _, _ = _make_runtime()
     handle = AcpSessionHandle("sA", asyncio.Queue(), rt)
@@ -5349,8 +5349,8 @@ def test_build_permission_event_non_string_option_entries_skipped():
     transport — the same class of crash AcpClient's copy guards against.
     Non-dict entries and non-string label/kind must be skipped/coerced while
     valid entries still parse."""
-    from kiro_crew.acp._dispatch import build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     msg = JsonRpcMessage.from_dict(
         {
@@ -5380,7 +5380,7 @@ def test_mark_dead_unregisters_protected_pid():
     """Regression (PR #21 follow-up): _mark_dead must release the sweep-protection
     shield on ANY death path (not just kill()), else the dead PID lingers in
     _PROTECTED_PIDS forever and could shield a recycled-orphan from the sweep."""
-    from kiro_crew.session_pid import _protected_pids, register_protected_pid
+    from junction.session_pid import _protected_pids, register_protected_pid
 
     rt, _, _ = _make_runtime()
     rt._pid = 515151
@@ -5398,9 +5398,9 @@ def test_protected_runtime_pid_lands_in_sweep_active_set():
     their PID via ``register_protected_pid``, and ``_collect_active_pids`` seeds
     from ``_protected_pids()``. This asserts both a companion and a bg runtime
     PID land in the sweep's active set (so phase-2 never confirms them orphans) —
-    the KiroCrew analog of the upstream project's end-to-end guard.
+    the Junction analog of the upstream project's end-to-end guard.
     """
-    from kiro_crew.session_pid import (
+    from junction.session_pid import (
         _collect_active_pids,
         register_protected_pid,
         unregister_protected_pid,
@@ -5436,7 +5436,7 @@ def test_periodic_sweep_skips_protected_runtime_pid():
     """
     from unittest.mock import patch
 
-    from kiro_crew.session_pid import (
+    from junction.session_pid import (
         _collect_active_pids,
         _sweep_pid_entries,
         register_protected_pid,
@@ -5468,19 +5468,19 @@ async def test_runtime_spawn_scrubs_sensitive_env_on_default_auto(monkeypatch):
     This parent-side enforcement is what protects raw Windows Kiro delegation;
     POSIX launchers apply the same sensitive/Python scrub inline.
     """
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.runtime as runtime_mod
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "0000:FAKE-telegram")
     monkeypatch.setenv("WECOM_BOT_ID", "FAKE-wecom-bot")
     monkeypatch.setenv("WECOM_SECRET", "FAKE-wecom-secret")
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-FAKE")
-    monkeypatch.setenv("KIROCREW_OWNER_ID", "U_FAKE_OWNER")
+    monkeypatch.setenv("JUNCTION_OWNER_ID", "U_FAKE_OWNER")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "FAKE-secret")
     monkeypatch.setenv("SSH_AUTH_SOCK", "/tmp/fake-agent.sock")
     monkeypatch.setenv("PYTHONPATH", "/gateway/pythonpath")
     monkeypatch.setenv("PYTHONPYCACHEPREFIX", "/gateway/pycache")
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "FAKE-akid")
-    monkeypatch.setenv("KIROCREW_UNRELATED_KEEPME", "keep-this-value")
+    monkeypatch.setenv("JUNCTION_UNRELATED_KEEPME", "keep-this-value")
 
     captured: dict[str, object] = {}
 
@@ -5520,14 +5520,14 @@ async def test_runtime_spawn_scrubs_sensitive_env_on_default_auto(monkeypatch):
         "WECOM_BOT_ID",
         "WECOM_SECRET",
         "SLACK_BOT_TOKEN",
-        "KIROCREW_OWNER_ID",
+        "JUNCTION_OWNER_ID",
         "AWS_SECRET_ACCESS_KEY",
         "SSH_AUTH_SOCK",
         "PYTHONPATH",
         "PYTHONPYCACHEPREFIX",
     ):
         assert key not in env, f"{key} leaked into runtime child env"
-    assert env.get("KIROCREW_UNRELATED_KEEPME") == "keep-this-value"
+    assert env.get("JUNCTION_UNRELATED_KEEPME") == "keep-this-value"
     assert env.get("AWS_ACCESS_KEY_ID") == "FAKE-akid"
 
 
@@ -5569,12 +5569,12 @@ async def test_unknown_session_drops_aggregate_into_one_counted_record(caplog):
     """N drops of the same (sid, method) inside one window → ONE record, count N."""
     import logging
 
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.runtime as runtime_mod
 
     rt, reader, _ = _make_runtime()
     task = await _start_reader(rt)
     try:
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.acp.runtime"):
+        with caplog.at_level(logging.DEBUG, logger="junction.acp.runtime"):
             for _ in range(5):
                 _feed(reader, {"method": "session/update", "params": {"sessionId": "ghost"}})
             await _drain(reader)
@@ -5608,7 +5608,7 @@ async def test_two_unknown_sessions_are_counted_separately(caplog):
     rt, reader, _ = _make_runtime()
     task = await _start_reader(rt)
     try:
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.acp.runtime"):
+        with caplog.at_level(logging.DEBUG, logger="junction.acp.runtime"):
             for _ in range(3):
                 _feed(reader, {"method": "session/update", "params": {"sessionId": "sid-aaa"}})
             for _ in range(2):
@@ -5647,12 +5647,12 @@ async def test_no_session_broadcast_drops_are_counted(caplog):
     """With zero registered sessions every global frame drops — same shape."""
     import logging
 
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.runtime as runtime_mod
 
     rt, reader, _ = _make_runtime()
     task = await _start_reader(rt)
     try:
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.acp.runtime"):
+        with caplog.at_level(logging.DEBUG, logger="junction.acp.runtime"):
             for _ in range(4):
                 _feed(reader, {"method": "mcp/status", "params": {}})
             await _drain(reader)
@@ -5673,7 +5673,7 @@ def test_drop_counter_state_does_not_leak_between_intervals(caplog):
 
     rt, _reader, _ = _make_runtime()
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.acp.runtime"):
+    with caplog.at_level(logging.DEBUG, logger="junction.acp.runtime"):
         rt._note_dropped_frame("sid-x", "session/update")
         rt._note_dropped_frame("sid-x", "session/update")
         rt._flush_dropped_frames()
@@ -5694,12 +5694,12 @@ def test_drop_counter_map_is_bounded(caplog):
     """A wide fan-out of distinct keys flushes early instead of growing."""
     import logging
 
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.runtime as runtime_mod
 
     rt, _reader, _ = _make_runtime()
     cap = runtime_mod._DROP_SUMMARY_MAX_KEYS
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.acp.runtime"):
+    with caplog.at_level(logging.DEBUG, logger="junction.acp.runtime"):
         for i in range(cap * 3):
             rt._note_dropped_frame(f"sid-{i}", "session/update")
             assert len(rt._dropped_frames) <= cap
@@ -5710,7 +5710,7 @@ def test_drop_counter_map_is_bounded(caplog):
 
 def test_drop_counter_truncates_backend_controlled_key_text():
     """A pathological sessionId/method cannot be retained at full length."""
-    import kiro_crew.acp.runtime as runtime_mod
+    import junction.acp.runtime as runtime_mod
 
     rt, _reader, _ = _make_runtime()
     limit = runtime_mod._DROP_SUMMARY_KEY_MAX_CHARS
@@ -5791,7 +5791,7 @@ def test_drop_counter_placeholder_appears_in_flushed_summary(caplog):
 
     rt, _reader, _ = _make_runtime()
 
-    with caplog.at_level(logging.DEBUG, logger="kiro_crew.acp.runtime"):
+    with caplog.at_level(logging.DEBUG, logger="junction.acp.runtime"):
         rt._note_dropped_frame(12345, 123)
         rt._flush_dropped_frames()
 
@@ -5816,7 +5816,7 @@ class TestToolPurposeExtraction:
         }
 
     def test_snake_case_key(self):
-        from kiro_crew.acp._dispatch import _build_tool_call_event
+        from junction.acp._dispatch import _build_tool_call_event
 
         event = _build_tool_call_event(
             self._update({"command": "node kc-shot.mjs", "__tool_use_purpose": "check harness"}),
@@ -5825,7 +5825,7 @@ class TestToolPurposeExtraction:
         assert event.tool_purpose == "check harness"
 
     def test_camel_case_key(self):
-        from kiro_crew.acp._dispatch import _build_tool_call_event
+        from junction.acp._dispatch import _build_tool_call_event
 
         event = _build_tool_call_event(
             self._update({"command": "node kc-shot.mjs", "__toolUsePurpose": "check harness"}),
@@ -5834,13 +5834,13 @@ class TestToolPurposeExtraction:
         assert event.tool_purpose == "check harness"
 
     def test_no_purpose_key_yields_empty(self):
-        from kiro_crew.acp._dispatch import _build_tool_call_event
+        from junction.acp._dispatch import _build_tool_call_event
 
         event = _build_tool_call_event(self._update({"command": "node kc-shot.mjs"}), None)
         assert event.tool_purpose == ""
 
     def test_blank_and_non_string_values_ignored(self):
-        from kiro_crew.acp._dispatch import extract_tool_purpose
+        from junction.acp._dispatch import extract_tool_purpose
 
         assert extract_tool_purpose({"__tool_use_purpose": "   "}) == ""
         assert extract_tool_purpose({"__toolUsePurpose": 123}) == ""
@@ -5867,7 +5867,7 @@ async def test_create_session_sets_mode_when_agent_is_advertised():
     rt, _, _ = _make_runtime()
     rt._finish_session_init = MagicMock(return_value=[])  # type: ignore[method-assign]
     resp = _new_resp(
-        {"currentModeId": "kirocrew", "availableModes": [{"id": "kirocrew"}, {"id": "ops"}]}
+        {"currentModeId": "junction", "availableModes": [{"id": "junction"}, {"id": "ops"}]}
     )
     rt._send_and_await = AsyncMock(side_effect=[resp, {}])  # type: ignore[method-assign]
     with patch.object(AcpSessionHandle, "drain_init", AsyncMock()):
@@ -5894,7 +5894,7 @@ async def test_create_session_fails_closed_when_agent_not_advertised():
     rt._send_and_await = AsyncMock(side_effect=[resp, {}])  # type: ignore[method-assign]
     with patch.object(AcpSessionHandle, "drain_init", AsyncMock()):
         with pytest.raises(AcpRuntimeError, match="not available"):
-            await rt.create_session(agent="kirocrew", mcp_servers=[])
+            await rt.create_session(agent="junction", mcp_servers=[])
     methods = [c.args[0] for c in rt._send_and_await.call_args_list]
     assert METHOD_SET_MODE not in methods  # never activated the wrong mode
     assert METHOD_SESSION_TERMINATE in methods  # created session cleaned up
@@ -5908,11 +5908,11 @@ async def test_create_session_fails_closed_when_available_modes_empty():
     "no modes → attempt" and then fault with "Mode not found"."""
     rt, _, _ = _make_runtime()
     rt._finish_session_init = MagicMock(return_value=[])  # type: ignore[method-assign]
-    resp = _new_resp({"currentModeId": "kirocrew", "availableModes": []})
+    resp = _new_resp({"currentModeId": "junction", "availableModes": []})
     rt._send_and_await = AsyncMock(side_effect=[resp, {}])  # type: ignore[method-assign]
     with patch.object(AcpSessionHandle, "drain_init", AsyncMock()):
         with pytest.raises(AcpRuntimeError, match="not available"):
-            await rt.create_session(agent="kirocrew", mcp_servers=[])
+            await rt.create_session(agent="junction", mcp_servers=[])
     methods = [c.args[0] for c in rt._send_and_await.call_args_list]
     assert METHOD_SET_MODE not in methods
     assert METHOD_SESSION_TERMINATE in methods
@@ -5927,7 +5927,7 @@ async def test_create_session_sets_mode_when_no_modes_advertised():
     resp = _new_resp(None)
     rt._send_and_await = AsyncMock(side_effect=[resp, {}])  # type: ignore[method-assign]
     with patch.object(AcpSessionHandle, "drain_init", AsyncMock()):
-        await rt.create_session(agent="kirocrew", mcp_servers=[])
+        await rt.create_session(agent="junction", mcp_servers=[])
     methods = [c.args[0] for c in rt._send_and_await.call_args_list]
     assert METHOD_SET_MODE in methods
 
@@ -5935,28 +5935,28 @@ async def test_create_session_sets_mode_when_no_modes_advertised():
 def test_mode_available_helper():
     """Unit: the guard predicate. Empty modes ⇒ attempt (True); advertised ⇒
     membership test."""
-    from kiro_crew.acp.runtime import AcpRuntime
+    from junction.acp.runtime import AcpRuntime
 
-    assert AcpRuntime._mode_available("kirocrew", _new_resp(None)) is True
+    assert AcpRuntime._mode_available("junction", _new_resp(None)) is True
     assert (
-        AcpRuntime._mode_available("kirocrew", _new_resp({"availableModes": [{"id": "kirocrew"}]}))
+        AcpRuntime._mode_available("junction", _new_resp({"availableModes": [{"id": "junction"}]}))
         is True
     )
     assert (
-        AcpRuntime._mode_available("kirocrew", _new_resp({"availableModes": [{"id": "default"}]}))
+        AcpRuntime._mode_available("junction", _new_resp({"availableModes": [{"id": "default"}]}))
         is False
     )
     # Present-but-empty availableModes → advertised, agent absent → fail closed.
-    assert AcpRuntime._mode_available("kirocrew", _new_resp({"availableModes": []})) is False
+    assert AcpRuntime._mode_available("junction", _new_resp({"availableModes": []})) is False
     # A modes dict WITHOUT an availableModes list → not advertised → attempt.
-    assert AcpRuntime._mode_available("kirocrew", _new_resp({"currentModeId": "x"})) is True
+    assert AcpRuntime._mode_available("junction", _new_resp({"currentModeId": "x"})) is True
 
 
 def test_parse_session_modes_shapes():
     """The shared parser: absent/odd `modes` ⇒ ([], '', False); a present
     availableModes list ⇒ advertised=True (even when empty); id read from
     id → modeId → value fallbacks."""
-    from kiro_crew.acp._dispatch import parse_session_modes
+    from junction.acp._dispatch import parse_session_modes
 
     assert parse_session_modes({}) == ([], "", False)
     assert parse_session_modes({"modes": "nonsense"}) == ([], "", False)
@@ -5967,9 +5967,9 @@ def test_parse_session_modes_shapes():
     ids, current, advertised = parse_session_modes(
         {
             "modes": {
-                "currentModeId": "kirocrew",
+                "currentModeId": "junction",
                 "availableModes": [
-                    {"id": "kirocrew"},
+                    {"id": "junction"},
                     {"modeId": "ops"},
                     {"value": "code-reviewer"},
                     {"name": "no-id-dropped"},
@@ -5978,8 +5978,8 @@ def test_parse_session_modes_shapes():
             }
         }
     )
-    assert ids == ["kirocrew", "ops", "code-reviewer"]
-    assert current == "kirocrew"
+    assert ids == ["junction", "ops", "code-reviewer"]
+    assert current == "junction"
     assert advertised is True
 
 
@@ -6030,7 +6030,7 @@ async def test_session_load_call_site_passes_budget_above_request_timeout(monkey
     async def _fake_send(method, params, timeout=None):
         if method == METHOD_SESSION_LOAD:
             seen["timeout"] = timeout
-            return {"modes": {"currentModeId": "kirocrew"}}
+            return {"modes": {"currentModeId": "junction"}}
         return {}
 
     monkeypatch.setattr(rt, "_send_and_await", _fake_send)
@@ -6052,10 +6052,10 @@ async def test_session_start_budget_follows_config(monkeypatch):
     constant. Resolved once per runtime and cached thereafter."""
     from types import SimpleNamespace
 
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
     fake_cfg = SimpleNamespace(agent=SimpleNamespace(session_start_timeout_secs=240))
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: fake_cfg))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: fake_cfg))
 
     rt, _, _ = _make_runtime()
     rt._expect_mcp_reports = False
@@ -6080,16 +6080,16 @@ async def test_session_start_budget_follows_config(monkeypatch):
 
 
 def test_runtime_construction_never_touches_config(monkeypatch):
-    """AcpRuntime.__init__ runs on the event loop; KiroCrewConfig.load() is a
+    """AcpRuntime.__init__ runs on the event loop; JunctionConfig.load() is a
     synchronous disk read + schema validation on a cache miss, so the budget
     must resolve lazily (off-loop) on first session start — never at
     construction."""
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
     def _boom(cls):
         raise AssertionError("config must not be consulted at construction")
 
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(_boom))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(_boom))
     rt = AcpRuntime(work_dir="/tmp")
     assert rt._session_start_timeout is None
 
@@ -6100,20 +6100,20 @@ def test_resolve_session_start_timeout_floors_and_falls_back(monkeypatch):
     failure degrades to the default instead of breaking runtime construction."""
     from types import SimpleNamespace
 
-    from kiro_crew.acp.runtime import _resolve_session_start_timeout
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.acp.runtime import _resolve_session_start_timeout
+    from junction.config.loader import JunctionConfig
 
     # Below-floor value (belt-and-braces: the loader clamp already prevents
     # this on disk, but a degraded load must not shrink the budget either).
     low_cfg = SimpleNamespace(agent=SimpleNamespace(session_start_timeout_secs=10))
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: low_cfg))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: low_cfg))
     assert _resolve_session_start_timeout() == _SESSION_NEW_TIMEOUT
 
     # Config load blowing up falls back to the default.
     def _boom(cls):
         raise RuntimeError("config unavailable")
 
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(_boom))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(_boom))
     assert _resolve_session_start_timeout() == _SESSION_NEW_TIMEOUT
 
 
@@ -6167,7 +6167,7 @@ def _stub_sel_for_permission_tests(request, monkeypatch):
     ):
         yield
         return
-    import kiro_crew.sel as sel_mod
+    import junction.sel as sel_mod
 
     class _StubSel:
         def log_tool_invocation(self, **kwargs):  # noqa: D401 - stub
@@ -6191,7 +6191,7 @@ async def test_unroutable_permission_request_is_auto_rejected(caplog):
     rt, reader, proc = _make_runtime()
     task = await _start_reader(rt)
     try:
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.acp.runtime"):
+        with caplog.at_level(logging.WARNING, logger="junction.acp.runtime"):
             _feed(
                 reader,
                 {
@@ -6629,7 +6629,7 @@ def test_child_low_fidelity_requires_structured_security_context():
     """A rendered-diff tool_input alone is NOT fidelity: the child gate
     requires cache-provenance structured params, a resolved shell
     classification, and (for shells) a recoverable command."""
-    from kiro_crew.acp.types import AcpEvent
+    from junction.acp.types import AcpEvent
 
     # Child edit refinement: diff text cached, no structured params → LOW.
     ev = AcpEvent(kind="permission_request", sub_session_id="child-a", tool_input="--- a\n+++ b")
@@ -6773,7 +6773,7 @@ async def test_notice_yield_abandonment_clears_turn_state():
     handle permanently turn-active (mark_turn_active leaked True /
     _turn_done cleared) — the notice loop must live inside the same
     try/finally as the dispatch loop."""
-    from kiro_crew.acp.types import EVENT_SUBAGENT_ACTIVITY
+    from junction.acp.types import EVENT_SUBAGENT_ACTIVITY
 
     rt, _, _ = _make_runtime()
     q = _register(rt, "sA")
@@ -6844,8 +6844,8 @@ def test_missing_kind_is_not_a_resolved_shell_classification():
     classification: the miss-default False would otherwise read as a RESOLVED
     non-shell on the later permission frame (shell_classified=True), skipping
     the low-fidelity downgrade without any classification having happened."""
-    from kiro_crew.acp._dispatch import _build_tool_call_event, build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import _build_tool_call_event, build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     shell_cache: dict[str, bool] = {}
     raw_cache: dict[str, dict] = {}
@@ -6891,8 +6891,8 @@ def test_shared_permission_event_carries_redaction_provenance_without_secret():
     command trust needs the separate boolean while the removed bytes stay out
     of the event's display input.
     """
-    from kiro_crew.acp._dispatch import _build_tool_call_event, build_permission_event
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import _build_tool_call_event, build_permission_event
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     input_cache: dict[str, str] = {}
     redacted_cache: dict[str, bool] = {}
@@ -6947,8 +6947,8 @@ def test_refinement_fills_raw_params_cache_for_following_permission():
     permission frame full-provenance (raw_params_trusted=True) — this is the
     path that keeps backends streaming an empty initial rawInput out of the
     low-fidelity downgrade. Pins the required frame ordering explicitly."""
-    from kiro_crew.acp._dispatch import build_permission_event, parse_session_update
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event, parse_session_update
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     shell_cache: dict[str, bool] = {}
     raw_cache: dict[str, dict] = {}
@@ -7003,7 +7003,7 @@ async def test_fidelity_unaware_consumer_gate_rejects_and_audits():
     a low-fidelity child permission request reaching _dispatch_events on a
     handle whose consumer never opted in must be REJECTED (answered, never
     yielded as a permission event) and SEL-audited."""
-    from kiro_crew.acp.types import (
+    from junction.acp.types import (
         EVENT_PERMISSION_REQUEST,
         METHOD_REQUEST_PERMISSION,
     )
@@ -7282,8 +7282,8 @@ def test_cross_session_toolcallid_replay_does_not_inherit_provenance():
     cache keys are origin-scoped, so cross-session replay misses and the
     request stays low fidelity, while a SAME-origin repeat frame still
     resolves."""
-    from kiro_crew.acp._dispatch import build_permission_event, parse_session_update
-    from kiro_crew.acp.types import METHOD_REQUEST_PERMISSION
+    from junction.acp._dispatch import build_permission_event, parse_session_update
+    from junction.acp.types import METHOD_REQUEST_PERMISSION
 
     shell_cache: dict[str, bool] = {}
     raw_cache: dict[str, dict] = {}

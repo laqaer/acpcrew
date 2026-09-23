@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import mcp_apps_render
+from junction import mcp_apps_render
 
 # ── marker regex ─────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ def _hex() -> str:
 
 def test_find_marker_valid_id():
     sid = _hex()
-    assert mcp_apps_render.find_marker(f"done [kirocrew-mcp-app:{sid}] ok") == sid
+    assert mcp_apps_render.find_marker(f"done [junction-mcp-app:{sid}] ok") == sid
 
 
 def test_find_marker_none_when_absent():
@@ -32,27 +32,27 @@ def test_find_marker_none_when_absent():
 def test_find_marker_rejects_wrong_length():
     short = "a" * 31
     long = "a" * 33
-    assert mcp_apps_render.find_marker(f"[kirocrew-mcp-app:{short}]") is None
+    assert mcp_apps_render.find_marker(f"[junction-mcp-app:{short}]") is None
     # 33 hex chars: the regex matches the first 32 only if followed by ']', so a
     # 33-char body does NOT form a valid closed marker → no match.
-    assert mcp_apps_render.find_marker(f"[kirocrew-mcp-app:{long}]") is None
+    assert mcp_apps_render.find_marker(f"[junction-mcp-app:{long}]") is None
 
 
 def test_find_marker_rejects_uppercase():
     upper = "A" * 32
-    assert mcp_apps_render.find_marker(f"[kirocrew-mcp-app:{upper}]") is None
+    assert mcp_apps_render.find_marker(f"[junction-mcp-app:{upper}]") is None
     mixed = "abcdef0123456789ABCDEF0123456789"
-    assert mcp_apps_render.find_marker(f"[kirocrew-mcp-app:{mixed}]") is None
+    assert mcp_apps_render.find_marker(f"[junction-mcp-app:{mixed}]") is None
 
 
 def test_find_marker_rejects_non_hex():
     bad = "g" * 32
-    assert mcp_apps_render.find_marker(f"[kirocrew-mcp-app:{bad}]") is None
+    assert mcp_apps_render.find_marker(f"[junction-mcp-app:{bad}]") is None
 
 
 def test_strip_marker_removes_all():
     sid1, sid2 = _hex(), _hex()
-    text = f"a[kirocrew-mcp-app:{sid1}]b[kirocrew-mcp-app:{sid2}]c"
+    text = f"a[junction-mcp-app:{sid1}]b[junction-mcp-app:{sid2}]c"
     assert mcp_apps_render.strip_marker(text) == "abc"
 
 
@@ -68,7 +68,7 @@ def test_strip_marker_noop_without_marker():
 def spool(tmp_path, monkeypatch):
     d = tmp_path / "mcp-apps"
     d.mkdir()
-    monkeypatch.setenv("KIROCREW_MCP_APPS_SPOOL", str(d))
+    monkeypatch.setenv("JUNCTION_MCP_APPS_SPOOL", str(d))
     return d
 
 
@@ -180,7 +180,7 @@ async def test_handle_tool_result_broadcasts_and_strips(spool):
         },
     )
     st = _FakeState()
-    text = f"result [kirocrew-mcp-app:{sid}] tail"
+    text = f"result [junction-mcp-app:{sid}] tail"
     out = await mcp_apps_render.handle_tool_result(
         st, slot_key="dashboard:7", tool_call_id="tc42", text=text
     )
@@ -211,7 +211,7 @@ async def test_handle_tool_result_broadcasts_and_strips(spool):
 async def test_handle_tool_result_marker_but_missing_spool_still_strips(spool):
     sid = _hex()  # no file written
     st = _FakeState()
-    text = f"x [kirocrew-mcp-app:{sid}] y"
+    text = f"x [junction-mcp-app:{sid}] y"
     out = await mcp_apps_render.handle_tool_result(
         st, slot_key="dashboard:1", tool_call_id="tc", text=text
     )
@@ -230,7 +230,7 @@ async def test_handle_tool_result_broadcast_exception_degrades_gracefully(spool)
         def broadcast_ws(self, *_a, **_k):
             raise RuntimeError("ws down")
 
-    text = f"a [kirocrew-mcp-app:{sid}] b"
+    text = f"a [junction-mcp-app:{sid}] b"
     # Must not raise; still returns stripped text.
     out = await mcp_apps_render.handle_tool_result(
         _BoomState(), slot_key="dashboard:1", tool_call_id="tc", text=text
@@ -259,7 +259,7 @@ async def test_handle_tool_result_offloads_spool_read(spool, monkeypatch):
     st = _FakeState()
     out = await mcp_apps_render.handle_tool_result(
         st, slot_key="dashboard:1", tool_call_id="tc",
-        text=f"pre [kirocrew-mcp-app:{sid}] post",
+        text=f"pre [junction-mcp-app:{sid}] post",
     )
     assert sid not in out
     assert "thread" in seen and seen["thread"] != loop_thread
@@ -285,7 +285,7 @@ async def test_handle_tool_result_replayed_marker_is_inert(spool):
     sid = _hex()
     _write_spool(spool, sid, {"server": "s", "tool": "t", "html": "h"})
     st = _FakeState()
-    text = f"a [kirocrew-mcp-app:{sid}] b"
+    text = f"a [junction-mcp-app:{sid}] b"
     out1 = await mcp_apps_render.handle_tool_result(
         st, slot_key="dashboard:1", tool_call_id="tc1", text=text
     )
@@ -309,7 +309,7 @@ async def test_handle_tool_result_refuses_cross_session_marker(spool):
     })
     st = _FakeState()
     out = await mcp_apps_render.handle_tool_result(
-        st, slot_key="dashboard:B", tool_call_id="tc", text=f"[kirocrew-mcp-app:{sid}]"
+        st, slot_key="dashboard:B", tool_call_id="tc", text=f"[junction-mcp-app:{sid}]"
     )
     assert st.calls == []
     assert sid not in out
@@ -323,7 +323,7 @@ async def test_handle_tool_result_renders_in_bound_session(spool):
     })
     st = _FakeState()
     await mcp_apps_render.handle_tool_result(
-        st, slot_key="dashboard:A", tool_call_id="tc", text=f"[kirocrew-mcp-app:{sid}]"
+        st, slot_key="dashboard:A", tool_call_id="tc", text=f"[junction-mcp-app:{sid}]"
     )
     assert len(st.calls) == 1
 
@@ -338,7 +338,7 @@ async def test_wrong_slot_replay_does_not_burn_the_render_claim(spool):
         "server": "s", "tool": "t", "html": "h", "session_key": "dashboard:A",
     })
     st = _FakeState()
-    text = f"[kirocrew-mcp-app:{sid}]"
+    text = f"[junction-mcp-app:{sid}]"
     # Wrong slot arrives first: refused, and the claim is NOT taken.
     await mcp_apps_render.handle_tool_result(
         st, slot_key="dashboard:B", tool_call_id="tc1", text=text
@@ -353,21 +353,21 @@ async def test_wrong_slot_replay_does_not_burn_the_render_claim(spool):
 
 
 def test_default_spool_dir_uses_config_dir(monkeypatch, tmp_path):
-    monkeypatch.delenv("KIROCREW_MCP_APPS_SPOOL", raising=False)
+    monkeypatch.delenv("JUNCTION_MCP_APPS_SPOOL", raising=False)
     monkeypatch.setattr(mcp_apps_render, "config_dir", lambda: tmp_path)
     assert mcp_apps_render._spool_dir() == tmp_path / "mcp-apps"
 
 
 def test_env_override_spool_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("KIROCREW_MCP_APPS_SPOOL", str(tmp_path / "custom"))
+    monkeypatch.setenv("JUNCTION_MCP_APPS_SPOOL", str(tmp_path / "custom"))
     assert mcp_apps_render._spool_dir() == tmp_path / "custom"
 
 
 def test_module_has_no_import_side_effect_on_env(monkeypatch):
     # _spool_dir() reads the env at call time, not import time.
-    monkeypatch.setenv("KIROCREW_MCP_APPS_SPOOL", "/tmp/a")
+    monkeypatch.setenv("JUNCTION_MCP_APPS_SPOOL", "/tmp/a")
     assert mcp_apps_render._spool_dir() == Path("/tmp/a")
-    monkeypatch.setenv("KIROCREW_MCP_APPS_SPOOL", "/tmp/b")
+    monkeypatch.setenv("JUNCTION_MCP_APPS_SPOOL", "/tmp/b")
     assert mcp_apps_render._spool_dir() == Path("/tmp/b")
 
 
@@ -388,7 +388,7 @@ async def test_handle_tool_result_redacts_credentials_in_leaves(spool):
     })
     st = _FakeState()
     await mcp_apps_render.handle_tool_result(
-        st, slot_key="dashboard:1", tool_call_id="tc", text=f"[kirocrew-mcp-app:{sid}]"
+        st, slot_key="dashboard:1", tool_call_id="tc", text=f"[junction-mcp-app:{sid}]"
     )
     _, data = st.calls[0]
     blob = json.dumps({"a": data["tool_input"], "b": data["structured_content"]})
@@ -405,7 +405,7 @@ async def test_binding_uses_producing_session_key_not_slot(spool):
                               "session_key": "dashboard:9"})
     st = _FakeState()
     await mcp_apps_render.handle_tool_result(
-        st, slot_key="9", tool_call_id="tc", text=f"[kirocrew-mcp-app:{sid}]",
+        st, slot_key="9", tool_call_id="tc", text=f"[junction-mcp-app:{sid}]",
         producing_session_key="dashboard:9",
     )
     assert len(st.calls) == 1
@@ -415,7 +415,7 @@ async def test_binding_uses_producing_session_key_not_slot(spool):
                                "session_key": "dashboard:9"})
     st2 = _FakeState()
     await mcp_apps_render.handle_tool_result(
-        st2, slot_key="9", tool_call_id="tc", text=f"[kirocrew-mcp-app:{sid2}]",
+        st2, slot_key="9", tool_call_id="tc", text=f"[junction-mcp-app:{sid2}]",
         producing_session_key="dashboard:OTHER",
     )
     assert len(st2.calls) == 0
@@ -442,7 +442,7 @@ async def test_render_uses_owner_only_channel_not_generic(spool):
                               "callback_secret": "cap-xyz"})
     st = _OwnerState()
     await mcp_apps_render.handle_tool_result(
-        st, slot_key="dashboard:1", tool_call_id="tc", text=f"[kirocrew-mcp-app:{sid}]"
+        st, slot_key="dashboard:1", tool_call_id="tc", text=f"[junction-mcp-app:{sid}]"
     )
     assert len(st.owner_calls) == 1
     assert st.generic_calls == []

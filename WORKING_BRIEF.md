@@ -16,7 +16,7 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
 | Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. `www.getjunction.dev` redirects there. |
 | GitHub slug | `laqaer/junction` (renamed). Description and homepage still need a token that can PATCH repo metadata. |
-| Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
+| Package / data home | `junction`, `JUNCTION_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
 
 Decision record: [`docs/adr/0001-product-identity.md`](docs/adr/0001-product-identity.md).
@@ -38,9 +38,9 @@ Operator
 ```
 
 - **Harness plane** already exists on `main`: `agent.acp_backend` defaults to
-  `auto` via `src/kiro_crew/acp/runtimes.py`. Multi-ACP must not be re-landed.
+  `auto` via `src/junction/acp/runtimes.py`. Multi-ACP must not be re-landed.
 - **Model plane** is observed and composed this cut: Python supervisor /
-  health / status in `src/kiro_crew/model_router/`. The sidecar is the
+  health / status in `src/junction/model_router/`. The sidecar is the
   published Codex Router (or a later vendored subset). If the sidecar is
   absent, Junction still works as an ACP gateway (degraded, documented).
 - Agents may optionally point `openai_base_url` at the model plane. Junction
@@ -74,7 +74,7 @@ Safe agent-prompts defaults for this execution:
 Merge; GitHub rename (token-blocked); package / data-home rename; PyPI / Docker / paid
 Vercel; vendoring Codex Router; copying tray / widget / Electron / public
 Cursor HTTPS tunnel / ACP agent bridges; reimplementing LiteLLM; storing
-provider keys in `KIROCREW_HOME` without the router's secret-entry rules;
+provider keys in `JUNCTION_HOME` without the router's secret-entry rules;
 weakening keystone or harness-parity; restoring Channels / Board; whole-tree
 i18n rewrite; Dependabot unless it blocks the branch; `CHANGELOG.md` (written
 only at version bump).

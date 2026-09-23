@@ -1972,8 +1972,8 @@ function ChatSidebar({
   const pinned = useMemo(() => new Set(slots.filter(s => s.pinned).map(s => s.key)), [slots])
   // Ranks up to the configured count of sessions by settled recency for the sidebar tint —
   // see ../utils/recencyTint. Count = server-side dashboard.recent_tint_count (shared
-  // kirocrewConfig query); recomputes when the slots or the configured count change.
-  const { data: mcCfg } = useQuery({ queryKey: ['kirocrewConfig'], queryFn: () => api.kirocrewConfig() })
+  // junctionConfig query); recomputes when the slots or the configured count change.
+  const { data: mcCfg } = useQuery({ queryKey: ['junctionConfig'], queryFn: () => api.junctionConfig() })
   const recentTintCount = clampTintCount(mcCfg?.dashboard?.recent_tint_count)
   const recentRank = useMemo(() => computeRecentRank(slots, recentTintCount), [slots, recentTintCount])
 
@@ -3979,7 +3979,7 @@ function ChatSidebar({
                   </span>
                 ))}
               {s.clean_mode
-                ? <span className="text-accent" title={i18nT('pages.chatSidebar.clean_agent_only_no_kirocrew_context_or_mcp')}><Droplet size={10} /></span>
+                ? <span className="text-accent" title={i18nT('pages.chatSidebar.clean_agent_only_no_junction_context_or_mcp')}><Droplet size={10} /></span>
                 : <>
                     {s.memory_mode === 'incognito' && <span className="text-muted" title={i18nT('pages.chatSidebar.incognito_no_memory_writes')}><EyeOff size={10} /></span>}
                     {s.memory_mode === 'temporary' && <span className="text-aim" title={i18nT('pages.chatSidebar.temporary_no_memory_reads_or_writes')}><VenetianMask size={10} /></span>}
@@ -5753,7 +5753,7 @@ function ChatSidebar({
                           <span className="truncate">{agentName || '\u00A0'}</span>
                           {remoteInstanceName && <span className="shrink-0 text-[10px] px-1 rounded bg-bg-elevated text-muted border border-border" title={remoteInstanceName}>{remoteInstanceName}</span>}
                           {s.clean_mode
-                            ? <span className="text-accent" title={i18nT('pages.chatSidebar.clean_agent_only_no_kirocrew_context_or_mcp')}><Droplet size={10} /></span>
+                            ? <span className="text-accent" title={i18nT('pages.chatSidebar.clean_agent_only_no_junction_context_or_mcp')}><Droplet size={10} /></span>
                             : <>
                                 {s.memory_mode === 'incognito' && <span className="text-muted" title={i18nT('pages.chatSidebar.incognito_no_memory_writes')}><EyeOff size={10} /></span>}
                                 {s.memory_mode === 'temporary' && <span className="text-aim" title={i18nT('pages.chatSidebar.temporary_no_memory_reads_or_writes')}><VenetianMask size={10} /></span>}

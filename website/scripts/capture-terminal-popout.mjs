@@ -94,7 +94,7 @@ async function stubContext(context) {
       // empty-array answer puts a keyless slot in redux and crashes the shell
       // (command-palette recents maps slot.key.startsWith).
       if (route.request().method() === 'POST') {
-        return json(route, { key: 'fixture-chat', title: 'New Session…', agent: 'kirocrew' })
+        return json(route, { key: 'fixture-chat', title: 'New Session…', agent: 'junction' })
       }
       return json(route, [])
     }
@@ -109,13 +109,13 @@ async function stubContext(context) {
     if (path === '/api/recent-projects') return json(route, { dirs: [] })
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: 'kirocrew', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default' }],
-        default_agent: 'kirocrew',
+        agents: [{ name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' }],
+        default_agent: 'junction',
       })
     }
-    if (path === '/api/agents/installed') return json(route, [{ name: 'kirocrew' }])
+    if (path === '/api/agents/installed') return json(route, [{ name: 'junction' }])
     if (path === '/api/workspaces') return json(route, { workspaces: [{ name: 'default' }] })
-    if (path === '/api/chat/agents') return json(route, [{ name: 'kirocrew', source: 'builtin' }])
+    if (path === '/api/chat/agents') return json(route, [{ name: 'junction', source: 'builtin' }])
     const objectish = /(config|tips|voice|autonudge|branding|status|usage-summary)/.test(path)
     return json(route, objectish ? {} : [])
   })

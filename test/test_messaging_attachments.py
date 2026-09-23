@@ -19,8 +19,8 @@ import time
 
 import pytest
 
-from kiro_crew.messaging import attachments
-from kiro_crew.messaging.attachments import (
+from junction.messaging import attachments
+from junction.messaging.attachments import (
     AUDIO,
     DOCUMENT,
     IMAGE,
@@ -554,7 +554,7 @@ class TestAppendAttachmentContext:
 
     def test_reexport_from_discord(self):
         """discord/attachments re-exports the same function."""
-        from kiro_crew.discord.attachments import append_attachment_context as discord_fn
+        from junction.discord.attachments import append_attachment_context as discord_fn
 
         assert discord_fn is append_attachment_context
 

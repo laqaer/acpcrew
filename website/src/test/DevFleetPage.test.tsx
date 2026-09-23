@@ -488,7 +488,7 @@ describe('DevFleetPage', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(screen.queryByText('Discovery Error')).not.toBeInTheDocument()
     expect(screen.getByText('No Junction checkout found')).toBeInTheDocument()
-    expect(screen.getByText(/KIROCREW_DEVFLEET_REPO=/)).toBeInTheDocument()
+    expect(screen.getByText(/JUNCTION_DEVFLEET_REPO=/)).toBeInTheDocument()
     // Controls that act on a fleet which does not exist yet are suppressed:
     // rendering them invites a click whose only answer is a failure toast.
     expect(screen.queryByText('Prune merged')).not.toBeInTheDocument()
@@ -711,7 +711,7 @@ describe('DevFleetPage', () => {
   // on this page reveals that the managed code is not the running code.
   it('warns when the install serving the dashboard is not the managed checkout', async () => {
     mockFleet({
-      serving_install_reason: 'this dashboard is served by the install at /Applications/KiroCrew.app/Contents/Resources/backend-dist/kirocrew-backend-arm64/lib/python3.12/site-packages/kiro_crew, which is not inside the checkout Dev Fleet manages (/Users/dev/kirocrew).',
+      serving_install_reason: 'this dashboard is served by the install at /Applications/Junction.app/Contents/Resources/backend-dist/junction-backend-arm64/lib/python3.12/site-packages/junction, which is not inside the checkout Dev Fleet manages (/Users/dev/junction).',
       worktrees: [{ name: 'main', is_main: true, running: false, has_dist: true, behind: 0 }],
     })
     renderPage()
@@ -741,7 +741,7 @@ describe('DevFleetPage', () => {
     mockFleet({
       serving_install_reason: 'served by an install outside the managed checkout.',
       main_repo_inferred: true,
-      main_repo: '/Users/dev/kirocrew',
+      main_repo: '/Users/dev/junction',
       worktrees: [{ name: 'main', is_main: true, running: false, has_dist: true, behind: 0 }],
     })
     renderPage()
@@ -1626,7 +1626,7 @@ describe('DevFleetPage restart handshake', () => {
     // The message restart_detached returns when the loaded agent predates the
     // graceful-restart contract: an instruction the operator has to act on, so it
     // must survive long enough to be read and copied.
-    const RESTART_ERR = "loaded launchd restart contract is outdated; re-run `kirocrew service install`"
+    const RESTART_ERR = "loaded launchd restart contract is outdated; re-run `junction service install`"
     const FLEET_LIVE = {
       gateway_service_active: true,
       worktrees: [
@@ -1650,7 +1650,7 @@ describe('DevFleetPage restart handshake', () => {
     const banner = await screen.findByTestId('gateway-restart-error')
     // The remedy survives in full, not truncated or summarised away.
     expect(banner.textContent).toContain('restart contract is outdated')
-    expect(banner.textContent).toContain('kirocrew service install')
+    expect(banner.textContent).toContain('junction service install')
     // Dismissable, so it does not become permanent furniture.
     fireEvent.click(within(banner).getByLabelText('Dismiss'))
     await waitFor(() => expect(screen.queryByTestId('gateway-restart-error')).toBeNull())
@@ -1675,8 +1675,8 @@ describe('DevFleetPage restart handshake', () => {
       if (u.includes('/make-live')) {
         return Promise.resolve(new Response(JSON.stringify({
           ok: true, cutover: true, staged_only: true, target: '/wt/main',
-          manual_restart: 'sudo systemctl restart kirocrew',
-          notice: 'main is now the live target. Run `sudo systemctl restart kirocrew` to finish the cutover.',
+          manual_restart: 'sudo systemctl restart junction',
+          notice: 'main is now the live target. Run `sudo systemctl restart junction` to finish the cutover.',
         }), { status: 200 }))
       }
       if (u.includes('/health')) { healthPolled = true; return Promise.resolve(new Response('{}', { status: 200 })) }
@@ -1704,7 +1704,7 @@ describe('DevFleetPage restart handshake', () => {
     const FLEET = {
       gateway_service_active: false,
       staged_target: '/wt/feature',
-      manual_restart: 'kirocrew restart',
+      manual_restart: 'junction restart',
       worktrees: [
         { name: 'main', is_main: true, running: false, has_dist: true, behind: 0, is_live: true, is_staged: false, path: '/wt/main' },
         { name: 'feature', is_main: false, running: false, has_dist: true, behind: 0, is_live: false, is_staged: true, path: '/wt/feature' },
@@ -1730,7 +1730,7 @@ describe('DevFleetPage restart handshake', () => {
     // automatically" is a promise the staged path does not keep.
     const FLEET = {
       gateway_service_active: false,
-      manual_restart: 'kirocrew restart',
+      manual_restart: 'junction restart',
       worktrees: [
         { name: 'main', is_main: true, running: false, has_dist: true, behind: 0, is_live: false, path: '/wt/main' },
       ],
