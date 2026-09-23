@@ -5,7 +5,7 @@
 If you discover a potential security issue in this project, please **do not** create a public
 GitHub issue. Instead, report it privately:
 
-- **GitHub:** [private vulnerability report](https://github.com/myrmitis/junction/security/advisories/new)
+- **GitHub:** [private vulnerability report](https://github.com/laqaer/junction/security/advisories/new)
 
 Please include:
 - A description of the vulnerability

@@ -60,7 +60,7 @@ import { i18nT } from '../../i18n/t'
  */
 
 const DOCS_URL =
-  'https://github.com/myrmitis/junction/blob/main/docs/architecture/design-notes/mcp-stub-decoupling.md'
+  'https://github.com/laqaer/junction/blob/main/docs/architecture/design-notes/mcp-stub-decoupling.md'
 
 type GatewayStatus = {
   enabled: boolean

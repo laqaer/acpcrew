@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # The frontend is in-tree at ``<repo-root>/website``; there is no remote to
 # clone. ``JUNCTION_WEBSITE_REPO`` is retained only so existing tooling/docs
 # referencing the public mirror keep a stable name to point at.
-_DEFAULT_REPO_URL = "https://github.com/myrmitis/junction"
+_DEFAULT_REPO_URL = "https://github.com/laqaer/junction"
 _REPO_URL = os.environ.get("JUNCTION_WEBSITE_REPO") or _DEFAULT_REPO_URL
 # In-tree frontend directory name (under the repo root). The legacy sibling
 # clone directory name is kept only for last-resort dist resolution.

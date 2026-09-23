@@ -86,7 +86,7 @@ Rejected names (Hearth, Relay, Rudder, and the rest) live in
 ## Implementation identifiers
 
 Python package `junction`. Data-home env `JUNCTION_HOME`. A new install
-stores data in `~/.junction`. GitHub slug: `myrmitis/junction`. Site:
+stores data in `~/.junction`. GitHub slug: `laqaer/junction`. Site:
 https://getjunction.dev
 
 ## Authority

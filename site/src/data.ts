@@ -1,5 +1,5 @@
 export const SITE_URL = 'https://getjunction.dev';
-export const GITHUB_URL = 'https://github.com/myrmitis/junction';
+export const GITHUB_URL = 'https://github.com/laqaer/junction';
 
 export const ROLE_DAG = [
   {
@@ -99,7 +99,7 @@ export const FAQ = [
   },
   {
     q: 'How do I contribute?',
-    a: 'Clone github.com/myrmitis/junction, create a branch, and open a PR. See CONTRIBUTING.md.',
+    a: 'Clone github.com/laqaer/junction, create a branch, and open a PR. See CONTRIBUTING.md.',
   },
   {
     q: 'Does Junction forward provider traffic?',

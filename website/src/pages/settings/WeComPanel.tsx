@@ -4,7 +4,7 @@ import { api } from '../../api/client'
 import { i18nT } from '../../i18n/t'
 import { BotChannelPanel, type BotChannelSpec } from './BotChannelPanel'
 
-const SETUP_GUIDE = 'https://github.com/myrmitis/junction/blob/main/src/junction/docs/wecom-integration.md'
+const SETUP_GUIDE = 'https://github.com/laqaer/junction/blob/main/src/junction/docs/wecom-integration.md'
 
 // WeCom userids: 1-64 chars of letters, digits, and .-_@ (mirrors the
 // backend's fail-closed check in the save handler).

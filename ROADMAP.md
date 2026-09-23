@@ -17,17 +17,17 @@ ADR [0001](docs/adr/0001-product-identity.md). Envelope and execution id in
 
 ### M1 — bootstrap PR
 
-**Merged** as [#23](https://github.com/myrmitis/junction/pull/23). Contributor
+**Merged** as [#23](https://github.com/laqaer/junction/pull/23). Contributor
 docs, `site/` overlay, CLI chrome, model-router health, Vercel hobby preview.
 
 ### M1.5 — model plane catalog + role DAG
 
-**Merged** as [#24](https://github.com/myrmitis/junction/pull/24). Namespaced
+**Merged** as [#24](https://github.com/laqaer/junction/pull/24). Namespaced
 catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 
 ### M1.6 — ship program (this cut)
 
-**Open** as [#26](https://github.com/myrmitis/junction/pull/26) on
+**Open** as [#26](https://github.com/laqaer/junction/pull/26) on
 `cursor/junction-ship-program-55da`. Do not merge in agent executions.
 
 - Advertised-model lookup actually calls ACP `available_models`.
@@ -78,7 +78,7 @@ taken. Agents must not buy a domain or change DNS.
 - Package import path is `junction`. Env is `JUNCTION_HOME`. A new install
   uses `~/.junction`. An older data directory is still opened when the new
   one is absent, and it stays on the security floor.
-- GitHub slug is `myrmitis/junction`. Site is https://getjunction.dev.
+- GitHub slug is `laqaer/junction`. Site is https://getjunction.dev.
 - Catalog-wide dashboard i18n (`{{productName}}` already binds new copy)
   still has older path spellings in some locale strings.
 
@@ -120,17 +120,17 @@ is [ADR 0006](docs/adr/0006-agent-os-no-automerge.md).
 Worth doing, not on the bootstrap PR:
 
 - Confirm a domain from the M3 table and attach it to `junction-site`
-  ([#27](https://github.com/myrmitis/junction/issues/27)).
+  ([#27](https://github.com/laqaer/junction/issues/27)).
 - Provider translation is intentionally not bundled. Do not vendor another
   product's router tree to get it.
 - Remaining dashboard catalog literals (`en.json` / locale values) in
-  reviewable chunks ([#28](https://github.com/myrmitis/junction/issues/28)).
+  reviewable chunks ([#28](https://github.com/laqaer/junction/issues/28)).
 - Packaged user docs under `src/junction/docs/` still say the old CLI in
   places; rewrite as a docs PR, not a silent sweep.
 - Create Cursor Automations for scout / implementer / reviewer, and mint
-  the `agent-os/*` labels once ([#29](https://github.com/myrmitis/junction/issues/29)).
+  the `agent-os/*` labels once ([#29](https://github.com/laqaer/junction/issues/29)).
 - Adversarial leftovers: orchestration apply site, brand-gate teaching text
-  ([#30](https://github.com/myrmitis/junction/issues/30)).
+  ([#30](https://github.com/laqaer/junction/issues/30)).
 - PyPI name reservation for `junction` when publish is real.
 - A short demo recording on the marketing site once M2 is true.
 - Do not present Junction as a public fork. Do not vendor Codex Router.

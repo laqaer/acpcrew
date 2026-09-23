@@ -44,7 +44,7 @@ Site: https://getjunction.dev
 ## Implementation identifiers
 
 `junction`, `JUNCTION_HOME`, `~/.junction`, Electron `productName` Junction.
-GitHub slug is `myrmitis/junction`. A new install uses `~/.junction`. When
+GitHub slug is `laqaer/junction`. A new install uses `~/.junction`. When
 that directory is absent, an existing `~/.kiro/crew` or `~/.kirocrew` is kept.
 The brand gate still forbids the concatenated upstream brand token in new prose.
 

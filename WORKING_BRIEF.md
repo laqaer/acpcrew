@@ -15,7 +15,7 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Promise | Run Cursor, Claude, Codex, and Grok from one local dashboard, with memory and cron. `junction up` starts a loopback catalog and a role DAG. The docked agent uses models it already serves. Provider translation is not bundled. A vendor agent CLI is optional. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
 | Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. `www.getjunction.dev` redirects there. |
-| GitHub slug | `myrmitis/junction` (renamed). Description and homepage still need a token that can PATCH repo metadata. |
+| GitHub slug | `laqaer/junction`. |
 | Package / data home | `junction`, `JUNCTION_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
 
@@ -88,8 +88,8 @@ only at version bump).
 
 | Surface | URL |
 |---|---|
-| Bootstrap PR | https://github.com/myrmitis/junction/pull/23 |
-| Epic | https://github.com/myrmitis/junction/issues/16 |
+| Bootstrap PR | https://github.com/laqaer/junction/pull/23 |
+| Epic | https://github.com/laqaer/junction/issues/16 |
 | Hobby **preview** (this SHA, `target` unset) | https://junction-site-drdzpa9u5-laqaers-projects.vercel.app |
 | Production site | https://getjunction.dev (live) |
 | Canonical host | https://getjunction.dev (`www` redirects here). `junction.computer` is not the host: no public DNS, and it was not purchased. |

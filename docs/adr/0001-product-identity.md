@@ -6,7 +6,7 @@
 
 ## Context
 
-`myrmitis/junction` docks multiple ACP agents. User-facing chrome is Junction
+`laqaer/junction` docks multiple ACP agents. User-facing chrome is Junction
 in the README, the marketing site, CLI help, and the dashboard default bot
 name. Junction is the product of this checkout.
 
@@ -24,7 +24,7 @@ The product name is **Junction**.
 | Primary CLI | `junction` |
 | Product-facing aliases | none |
 | Tagline | Where coding agents meet the models you want. |
-| GitHub slug | `myrmitis/junction` |
+| GitHub slug | `laqaer/junction` |
 | Python package | `junction` |
 | Data home | `~/.junction` (an existing previous directory is kept) |
 | Electron id | Junction |
