@@ -599,9 +599,7 @@ class TestAutoMigrateMemory:
     @pytest.mark.asyncio
     async def test_set_memory_migrated_delegates_to_handler(self):
         orch = _make_orchestrator()
-        with patch(
-            "junction.dashboard.handlers.memory._set_migrated", AsyncMock()
-        ) as set_migrated:
+        with patch("junction.dashboard.handlers.memory._set_migrated", AsyncMock()) as set_migrated:
             await orch._set_memory_migrated(True)
         set_migrated.assert_awaited_once_with(True)
 

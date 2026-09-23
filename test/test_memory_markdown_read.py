@@ -630,9 +630,7 @@ class TestStaleBaselineWriteGuard:
         ms.init()
         ms.write_preferences("# User Preferences\n\n- v1\n")
         baseline = ms.read_preferences()
-        wrote = ms.write_preferences(
-            "# User Preferences\n\n- merged\n", expected_baseline=baseline
-        )
+        wrote = ms.write_preferences("# User Preferences\n\n- merged\n", expected_baseline=baseline)
         assert wrote is True
         assert "- merged" in ms.read_preferences()
 
@@ -642,7 +640,10 @@ class TestStaleBaselineWriteGuard:
         ms.write_projects("# Active Projects\n\n- p1\n")
         baseline = ms.read_projects()
         ms.write_projects("# Active Projects\n\n- user edit\n")
-        assert ms.write_projects("# Active Projects\n\n- merged\n", expected_baseline=baseline) is False
+        assert (
+            ms.write_projects("# Active Projects\n\n- merged\n", expected_baseline=baseline)
+            is False
+        )
         assert "- user edit" in ms.read_projects()
         fresh = ms.read_projects()
         assert ms.write_projects("# Active Projects\n\n- merged\n", expected_baseline=fresh) is True
@@ -681,9 +682,7 @@ class TestLockFileSymlinkGuard:
         except (OSError, NotImplementedError):  # pragma: no cover - Windows CI
             pytest.skip("symlinks not available on this platform")
 
-    def test_planted_write_lock_symlink_fails_closed_target_intact(
-        self, tmp_path: Path
-    ) -> None:
+    def test_planted_write_lock_symlink_fails_closed_target_intact(self, tmp_path: Path) -> None:
         target = tmp_path / "victim.txt"
         target.write_text("precious", encoding="utf-8")
         ms = _store(tmp_path)
@@ -694,9 +693,7 @@ class TestLockFileSymlinkGuard:
             ms.write_preferences("# User Preferences\n\n- attack\n")
         assert target.read_text(encoding="utf-8") == "precious"
 
-    def test_planted_append_lock_symlink_fails_closed_target_intact(
-        self, tmp_path: Path
-    ) -> None:
+    def test_planted_append_lock_symlink_fails_closed_target_intact(self, tmp_path: Path) -> None:
         target = tmp_path / "victim.txt"
         target.write_text("precious", encoding="utf-8")
         ms = _store(tmp_path)

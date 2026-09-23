@@ -143,9 +143,7 @@ def builtin_specs(
             id=ACP_BACKEND_DSH,
             argv=(str(dsh),),
             protocol="spec",
-            login_hint=(
-                "Clone deepseek-harness and keep ~/.buzz/tools/dsh-buzz/launch-acp.sh."
-            ),
+            login_hint=("Clone deepseek-harness and keep ~/.buzz/tools/dsh-buzz/launch-acp.sh."),
             needs=(),
         ),
         ACP_BACKEND_GOOSE: RuntimeSpec(
@@ -268,9 +266,7 @@ def resolve_spawn_argv(
     env: Mapping[str, str] | None = None,
 ) -> list[str]:
     """Return argv for a concrete (non-auto) runtime id."""
-    spec = select_runtime(
-        runtime_id, which=which, home=home, env=env, allow_kiro=True
-    )
+    spec = select_runtime(runtime_id, which=which, home=home, env=env, allow_kiro=True)
     return list(spec.argv)
 
 

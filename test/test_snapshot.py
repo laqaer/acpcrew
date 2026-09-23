@@ -40,7 +40,8 @@ def _setup_fake_junction(d: Path) -> None:
 
     # memory.db with all tables
     conn = sqlite3.connect(str(d / "memory.db"))
-    conn.executescript("""
+    conn.executescript(
+        """
         CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
         CREATE TABLE semantic_memory (key TEXT PRIMARY KEY, value_json TEXT NOT NULL,
             confidence REAL DEFAULT 0.5, source TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -72,7 +73,8 @@ def _setup_fake_junction(d: Path) -> None:
             VALUES ('user', 'prefers', 'dark_mode', 'ep1', '2026-01-01');
         INSERT INTO knowledge_edges (source_key, target_key, relation, weight, created_at)
             VALUES ('user', 'dark_mode', 'prefers', 1.0, '2026-01-01');
-    """)
+    """
+    )
     conn.close()
 
     (d / "crons.json").write_text(

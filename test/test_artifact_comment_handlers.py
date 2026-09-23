@@ -315,9 +315,7 @@ class TestEditComment:
         prov = MagicMock()
         prov.capabilities.return_value = {Capability.COMMENTS_EDIT}
         prov.edit_comment = edit
-        monkeypatch.setattr(
-            "junction.dashboard.handlers.artifacts.get_provider", lambda name: prov
-        )
+        monkeypatch.setattr("junction.dashboard.handlers.artifacts.get_provider", lambda name: prov)
 
         resp = await h.api_artifact_edit_comment(
             _req(body={"text": "fixed"}, match={"slug": "doc", "comment_id": "cx"})
@@ -351,9 +349,7 @@ class TestEditComment:
         prov = MagicMock()
         prov.capabilities.return_value = set()  # no COMMENTS_EDIT
         prov.edit_comment = AsyncMock()
-        monkeypatch.setattr(
-            "junction.dashboard.handlers.artifacts.get_provider", lambda name: prov
-        )
+        monkeypatch.setattr("junction.dashboard.handlers.artifacts.get_provider", lambda name: prov)
 
         resp = await h.api_artifact_edit_comment(
             _req(body={"text": "fixed"}, match={"slug": "doc", "comment_id": "ca"})
@@ -394,9 +390,7 @@ class TestEditComment:
         prov = MagicMock()
         prov.capabilities.return_value = {Capability.COMMENTS_EDIT}
         prov.edit_comment = AsyncMock()
-        monkeypatch.setattr(
-            "junction.dashboard.handlers.artifacts.get_provider", lambda name: prov
-        )
+        monkeypatch.setattr("junction.dashboard.handlers.artifacts.get_provider", lambda name: prov)
         # Ceiling: publish enabled, but destinations allow only "mirrorprov".
         from junction.config.loader import JunctionConfig
 

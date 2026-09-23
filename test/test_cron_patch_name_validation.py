@@ -88,8 +88,6 @@ class TestDashboardUpdateName:
         (zero-width space) is stripped before persistence, matching create."""
         crons = CronService(base_dir=tmp_path)
         job = crons.add_job(name="old", message="m", every_secs=3600)
-        resp = await api_cron_update(
-            _update_request({"name": "new\u200bname"}, crons, job.id)
-        )
+        resp = await api_cron_update(_update_request({"name": "new\u200bname"}, crons, job.id))
         assert resp.status == 200
         assert crons.list_jobs()[0].name == "newname"

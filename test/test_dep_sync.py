@@ -21,7 +21,8 @@ import pytest
 
 from junction import dep_sync
 
-_SETUP_CFG = textwrap.dedent("""
+_SETUP_CFG = textwrap.dedent(
+    """
     [options]
     python_requires = >=3.10
     install_requires =
@@ -32,7 +33,8 @@ _SETUP_CFG = textwrap.dedent("""
     [options.extras_require]
     voice =
         boto3>=1.34,<2
-    """).strip()
+    """
+).strip()
 
 
 @pytest.fixture
@@ -533,9 +535,7 @@ def test_main_reports_a_repointed_console_script_after_installing(repo, capsys):
 
     with (
         patch.object(dep_sync, "console_script_target", return_value="junction.new:main"),
-        patch.object(
-            dep_sync, "installed_console_script_target", return_value="junction.old:main"
-        ),
+        patch.object(dep_sync, "installed_console_script_target", return_value="junction.old:main"),
         patch.object(dep_sync.subprocess, "run", return_value=_Proc()),
     ):
         rc = dep_sync.main([str(repo), "py"])
@@ -563,9 +563,7 @@ def test_main_reports_a_removed_console_script_as_a_removal(repo, capsys):
 
     with (
         patch.object(dep_sync, "console_script_target", return_value=dep_sync.SCRIPT_REMOVED),
-        patch.object(
-            dep_sync, "installed_console_script_target", return_value="junction.old:main"
-        ),
+        patch.object(dep_sync, "installed_console_script_target", return_value="junction.old:main"),
         patch.object(dep_sync.subprocess, "run", return_value=_Proc()),
     ):
         rc = dep_sync.main([str(repo), "py"])

@@ -64,10 +64,7 @@ class TestAvailability:
         spec = builtin_specs()[ACP_BACKEND_CURSOR]
         assert runtime_available(spec, which=_which_for({})) is False
         assert (
-            runtime_available(
-                spec, which=_which_for({"cursor-agent": "/bin/cursor-agent"})
-            )
-            is True
+            runtime_available(spec, which=_which_for({"cursor-agent": "/bin/cursor-agent"})) is True
         )
 
     def test_dsh_requires_executable_launcher(self, tmp_path: Path):
@@ -129,9 +126,7 @@ class TestSelectRuntime:
 
     def test_auto_falls_back_to_kiro_only_when_nothing_else_is_installed(self, tmp_path: Path):
         which = _which_for({"kiro-cli": "/bin/kiro-cli"})
-        spec = select_runtime(
-            ACP_BACKEND_AUTO, which=which, allow_kiro=True, home=tmp_path, env={}
-        )
+        spec = select_runtime(ACP_BACKEND_AUTO, which=which, allow_kiro=True, home=tmp_path, env={})
         assert spec.id == ACP_BACKEND_KIRO
 
     def test_auto_raises_when_nothing_is_installed(self, tmp_path: Path):

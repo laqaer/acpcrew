@@ -164,9 +164,7 @@ class TestSeam:
     """The shared gate the API, CLI and boot paths call."""
 
     def test_ungoverned_host_is_unpinned(self, monkeypatch):
-        monkeypatch.setattr(
-            "junction.platform.governance.active_update_pins", lambda: UpdatePins()
-        )
+        monkeypatch.setattr("junction.platform.governance.active_update_pins", lambda: UpdatePins())
         assert update_governance.update_blocked_reason("https://anywhere") == ""
         assert update_governance.update_required("0.0.1") is False
         assert update_governance.min_version() == ""
