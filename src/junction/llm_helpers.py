@@ -53,7 +53,7 @@ _NO_PRIOR_STATS = object()
 # (stats object, TurnUsage) pair: the provider outlives the turn, so the identity
 # of the stats the sum was computed from is what tells a later turn that the sum
 # is not its own.
-_TURN_BILLED_ATTR = "_kc_turn_billed"
+_TURN_BILLED_ATTR = "_jn_turn_billed"
 
 # Transient backend (Bedrock 5xx / throttle / stream-reset) retry budget. These
 # are server-side hiccups where the credential is VALID — retry helps, re-auth
@@ -224,7 +224,7 @@ FALLBACK_CANDIDATE_ATTEMPTS = 2
 # turn and prepend a warning line to the delivered result). Cleared on a
 # successful restore, never on turn completion: the swap is sticky for the
 # remainder of the session by design.
-TURN_FALLBACK_ATTR = "_kc_active_fallback"
+TURN_FALLBACK_ATTR = "_jn_active_fallback"
 
 
 def provider_fallback_active(provider: Any) -> bool:
@@ -1495,7 +1495,7 @@ async def stream_and_collect(
                         exc,
                     )
                     try:
-                        exc._kc_fallback_story = _story  # type: ignore[attr-defined]
+                        exc._jn_fallback_story = _story  # type: ignore[attr-defined]
                     except Exception:
                         pass
                 # Fall through to Case 2.5 / Case 3.

@@ -2410,7 +2410,7 @@ class SubagentManager:
     def _record_slow_command(info: SubagentInfo, idle: float) -> None:
         """Best-effort append of a stalled subagent's slow command for analysis.
 
-        Writes to ``~/.kiro/crew/subagents/slow_commands.jsonl`` (append-only,
+        Writes to ``~/.junction/subagents/slow_commands.jsonl`` (append-only,
         survives per-agent folder cleanup). Deliberately separate from the
         tombstone path, which marks an agent dead — a stalled agent is still
         running.
@@ -5782,7 +5782,7 @@ class SubagentManager:
                                         info.id,
                                     )
                                     try:
-                                        exc._kc_fallback_story = _story  # type: ignore[attr-defined]
+                                        exc._jn_fallback_story = _story  # type: ignore[attr-defined]
                                     except Exception:
                                         pass
                                 raise

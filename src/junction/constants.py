@@ -259,13 +259,11 @@ AWS_PROFILE_NAME_RE = re.compile(AWS_PROFILE_NAME_PATTERN)
 # dashboard default.
 PRODUCT_NAME = "Junction"
 
-# User-facing CLI binary. The `acpcrew` alias still dispatches here.
-# Prints, usage, and help name `junction`.
+# User-facing CLI binary. Prints, usage, and help name `junction`.
 CLI_BIN = "junction"
-# Console-script basenames that dispatch here, plus the previous binary name
-# so a leftover process can still be stopped. Primary first so PATH lookup,
-# restart respawn, and service ExecStart prefer `junction`.
-CLI_CONSOLE_STEMS: tuple[str, ...] = (CLI_BIN, "acpcrew", "kirocrew")
+# Console-script basenames that dispatch here. PATH lookup, restart respawn, and
+# service ExecStart walk this tuple in order.
+CLI_CONSOLE_STEMS: tuple[str, ...] = (CLI_BIN,)
 
 # Canonical public hostname. CLI chrome and the marketing site use this.
 # www.getjunction.dev redirects here.
@@ -280,10 +278,10 @@ GITHUB_SLUG = "laqaer/junction"
 # re-inline it. `cloud/ui.py` keeps its own art because it renders a different
 # wordmark ("Junction Cloud") with ANSI color.
 BANNER = r"""
-     _                 _   _
-  _ | |_  _ _ _  __ __| |_(_)___ _ _
- | || | || | ' \/ _/ _|  _| / _ \ ' \
-  \__/ \_,_|_||_\__\__|\__|_\___/_||_|
+    _              _   _
+ _ | |_  _ _ _  __| |_(_)___ _ _
+| || | || | ' \/ _|  _| / _ \ ' \
+ \__/ \_,_|_||_\__|\__|_\___/_||_|
 
   Junction - Where coding agents meet the models you want.
 """

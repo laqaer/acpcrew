@@ -76,12 +76,7 @@ def launchd_live_program() -> "os.PathLike[str]":
 
 
 def which_console_script() -> str | None:
-    """PATH lookup for the Junction console script, primary name first.
-
-    ``junction`` is the operator binary. ``junction`` and ``acpcrew`` are
-    silent aliases and only win when the primary name is not on PATH, so a
-    leftover wrapper still finds a running install.
-    """
+    """PATH lookup for the Junction console script (``junction``)."""
     for name in CLI_CONSOLE_STEMS:
         found = shutil.which(name)
         if found:
@@ -103,7 +98,7 @@ def junction_bin() -> str:
        manager has no meaningful working directory, so a relative override
        would produce an invalid ``ExecStart`` / ``ProgramArguments`` and the
        service would fail to start.
-    2. :func:`which_console_script` — ``junction`` first, then silent aliases.
+    2. :func:`which_console_script` — ``junction`` on ``$PATH``.
     3. ``sys.argv[0]`` — for development installs where ``junction`` isn't on
        the global PATH.
     """
@@ -231,7 +226,7 @@ def headless_auth_warning(environ: "Mapping[str, str] | None" = None) -> str:
     baked locations are readable by every local user — the systemd unit lives in
     ``/etc/systemd/system`` and the operator-editable override file is installed
     mode ``0644`` — so baking a credential there would trade a silent
-    misconfiguration for a durable disclosure. ``~/.kiro/crew/.env`` is the
+    misconfiguration for a durable disclosure. ``~/.junction/.env`` is the
     supported home: ``load_credentials()`` reads EVERY key from that file (not
     just the channel-credential allowlist) into the gateway's environment at
     boot, and enforces ``0600`` on it first.
@@ -249,7 +244,7 @@ def headless_auth_warning(environ: "Mapping[str, str] | None" = None) -> str:
     # it the next time it reads it — so the key would sit world-readable until
     # then. Pre-create and chmod first, which also repairs an already-loose file.
     #
-    # shlex.quote because this line is copy-pasted verbatim: a crew home with a
+    # shlex.quote because this line is copy-pasted verbatim: a data home with a
     # space word-splits an unquoted path, so `touch` makes the wrong files,
     # `chmod` fails on a path that does not exist, and the redirect lands the
     # credential in a different 0644 file that load_credentials() never visits
@@ -278,7 +273,7 @@ def headless_auth_warning(environ: "Mapping[str, str] | None" = None) -> str:
 
 
 def _home_override_is_set(environ: "Mapping[str, str] | None" = None) -> bool:
-    """Whether the installer overrides the crew home (also not inherited)."""
+    """Whether the installer overrides the data home (also not inherited)."""
     source = os.environ if environ is None else environ
     return bool(source.get("JUNCTION_HOME", "").strip())
 
