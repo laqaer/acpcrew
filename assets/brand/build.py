@@ -378,6 +378,35 @@ def write_bmp24(path: Path, png: Path) -> None:
     Image.open(png).convert("RGB").save(path, format="BMP")
 
 
+def write_template_png(path: Path) -> None:
+    """Re-encode a tray template as pure black plus alpha, one filter-0 scanline
+    per row. macOS reads only the alpha of a template image; forcing RGB to
+    black means antialiased edges can never tint it, and the plain encoding is
+    what electron/test/tray-template.test.js decodes without an image library."""
+    import struct
+    import zlib
+
+    alpha = Image.open(path).convert("RGBA").getchannel("A")
+    width, height = alpha.size
+    raw = bytearray()
+    for y in range(height):
+        raw.append(0)
+        for x in range(width):
+            raw += bytes((0, 0, 0, alpha.getpixel((x, y))))
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        body = kind + data
+        return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body))
+
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", header)
+        + chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+        + chunk(b"IEND", b"")
+    )
+
+
 def write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -488,6 +517,8 @@ def main() -> int:
         electron / "icon-nightly.icns", {s: tmp / f"icns-nightly-{s}.png" for s in icns_sizes}
     )
     print("wrote website/electron/icon.icns, website/electron/icon-nightly.icns")
+    for name in ("trayTemplate.png", "trayTemplate@2x.png"):
+        write_template_png(electron / name)
     write_tiff_hidpi(
         installer / "dmg-background.tiff",
         tmp / "dmg-background.png",
