@@ -35,7 +35,7 @@
    platform. If none is installed the face has no usable source and matching falls
    through to the next family — i.e. exactly today's behaviour, never worse. */
 @font-face {
-  font-family: 'KC Han Fallback';
+  font-family: 'Junction Han Fallback';
   font-style: normal; font-weight: 400;
   src: local('PingFang SC'), local('PingFangSC-Regular'), local('Hiragino Sans GB'),
        local('Microsoft YaHei'), local('MicrosoftYaHei'), local('Noto Sans CJK SC'),
@@ -46,7 +46,7 @@
                  U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Han Fallback';
+  font-family: 'Junction Han Fallback';
   font-style: normal; font-weight: 700;
   src: local('PingFang SC Semibold'), local('PingFangSC-Semibold'),
        local('Hiragino Sans GB W6'), local('Microsoft YaHei Bold'),
@@ -61,7 +61,7 @@
    changing the SC aliases used by :lang(zh-CN). Kana joins the Han ranges so
    Japanese punctuation and syllabaries come from the same face. */
 @font-face {
-  font-family: 'KC Japanese Fallback';
+  font-family: 'Junction Japanese Fallback';
   font-style: normal; font-weight: 400;
   src: local('Hiragino Sans W3'), local('HiraginoSans-W3'),
        local('Yu Gothic Regular'), local('YuGothic-Regular'),
@@ -74,7 +74,7 @@
                  U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Japanese Fallback';
+  font-family: 'Junction Japanese Fallback';
   font-style: normal; font-weight: 700;
   src: local('Hiragino Sans W6'), local('HiraginoSans-W6'),
        local('Yu Gothic Bold'), local('YuGothic-Bold'),
@@ -95,7 +95,7 @@
    copy is Hangul-only, but a quoted 한자 in user content should draw the Korean
    glyph form, not the Simplified one. */
 @font-face {
-  font-family: 'KC Korean Fallback';
+  font-family: 'Junction Korean Fallback';
   font-style: normal; font-weight: 400;
   src: local('Apple SD Gothic Neo'), local('AppleSDGothicNeo-Regular'),
        local('Malgun Gothic'), local('MalgunGothic'), local('Noto Sans CJK KR'),
@@ -107,7 +107,7 @@
                  U+AC00-D7AF, U+D7B0-D7FF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Korean Fallback';
+  font-family: 'Junction Korean Fallback';
   font-style: normal; font-weight: 700;
   src: local('Apple SD Gothic Neo Bold'), local('AppleSDGothicNeo-Bold'),
        local('Malgun Gothic Bold'), local('MalgunGothic-Bold'),
@@ -120,11 +120,11 @@
                  U+AC00-D7AF, U+D7B0-D7FF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 /* Monospace Han, for code and CLI surfaces. Rarely installed on a stock machine;
-   when absent 'KC Han Fallback' follows it in the :lang(zh-CN) mono token, so Han in
+   when absent 'Junction Han Fallback' follows it in the :lang(zh-CN) mono token, so Han in
    a code block draws from a proportional face — the same pairing the browser's
    own fallback produces today, and better than a missing glyph. */
 @font-face {
-  font-family: 'KC Han Mono Fallback';
+  font-family: 'Junction Han Mono Fallback';
   font-style: normal; font-weight: 400;
   src: local('Sarasa Mono SC'), local('SarasaMonoSC-Regular'), local('Noto Sans Mono CJK SC'),
        local('NotoSansMonoCJKsc-Regular');
@@ -133,7 +133,7 @@
                  U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Han Mono Fallback';
+  font-family: 'Junction Han Mono Fallback';
   font-style: normal; font-weight: 700;
   src: local('Sarasa Mono SC Bold'), local('SarasaMonoSC-Bold'),
        local('Noto Sans Mono CJK SC Bold'), local('NotoSansMonoCJKsc-Bold');
@@ -142,7 +142,7 @@
                  U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Japanese Mono Fallback';
+  font-family: 'Junction Japanese Mono Fallback';
   font-style: normal; font-weight: 400;
   src: local('Sarasa Mono J'), local('SarasaMonoJ-Regular'),
        local('Noto Sans Mono CJK JP'), local('NotoSansMonoCJKjp-Regular');
@@ -151,7 +151,7 @@
                  U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Japanese Mono Fallback';
+  font-family: 'Junction Japanese Mono Fallback';
   font-style: normal; font-weight: 700;
   src: local('Sarasa Mono J Bold'), local('SarasaMonoJ-Bold'),
        local('Noto Sans Mono CJK JP Bold'), local('NotoSansMonoCJKjp-Bold');
@@ -160,7 +160,7 @@
                  U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Korean Mono Fallback';
+  font-family: 'Junction Korean Mono Fallback';
   font-style: normal; font-weight: 400;
   src: local('D2Coding'), local('D2Coding-Regular'), local('Sarasa Mono K'),
        local('SarasaMonoK-Regular'), local('Noto Sans Mono CJK KR'),
@@ -170,7 +170,7 @@
                  U+AC00-D7AF, U+D7B0-D7FF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Korean Mono Fallback';
+  font-family: 'Junction Korean Mono Fallback';
   font-style: normal; font-weight: 700;
   src: local('D2Coding Bold'), local('D2Coding-Bold'), local('Sarasa Mono K Bold'),
        local('SarasaMonoK-Bold'), local('Noto Sans Mono CJK KR Bold'),
@@ -180,33 +180,56 @@
                  U+AC00-D7AF, U+D7B0-D7FF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF;
 }
 @font-face {
-  font-family: 'KC Devanagari Fallback';
+  font-family: 'Junction Devanagari Fallback';
   font-style: normal; font-weight: 400;
   src: local('Noto Sans Devanagari'), local('NotoSansDevanagari-Regular'), local('Nirmala UI'),
        local('NirmalaUI'), local('Kohinoor Devanagari'), local('Devanagari Sangam MN');
   unicode-range: U+0900-097F, U+1CD0-1CFF, U+A8E0-A8FF;
 }
 @font-face {
-  font-family: 'KC Devanagari Fallback';
+  font-family: 'Junction Devanagari Fallback';
   font-style: normal; font-weight: 700;
   src: local('Noto Sans Devanagari Bold'), local('NotoSansDevanagari-Bold'),
        local('Nirmala UI Bold'), local('NirmalaUI-Bold'), local('Kohinoor Devanagari Semibold');
   unicode-range: U+0900-097F, U+1CD0-1CFF, U+A8E0-A8FF;
 }
 @font-face {
-  font-family: 'KC Bengali Fallback';
+  font-family: 'Junction Bengali Fallback';
   font-style: normal; font-weight: 400;
   src: local('Noto Sans Bengali'), local('NotoSansBengali-Regular'), local('Nirmala UI'),
        local('NirmalaUI'), local('Vrinda'), local('Bangla Sangam MN');
   unicode-range: U+0980-09FF;
 }
 @font-face {
-  font-family: 'KC Bengali Fallback';
+  font-family: 'Junction Bengali Fallback';
   font-style: normal; font-weight: 700;
   src: local('Noto Sans Bengali Bold'), local('NotoSansBengali-Bold'), local('Nirmala UI Bold'),
        local('NirmalaUI-Bold'), local('Vrinda Bold');
   unicode-range: U+0980-09FF;
 }
+
+/* ─── Overpass + Overpass Mono (SIL-OFL) ── Junction's typefaces ───
+   Overpass descends from Highway Gothic, the lettering on road signs, which is
+   where a product named for an interchange takes its voice from. Both are
+   variable fonts bundled under /fonts/overpass, so the dashboard renders the
+   same face offline, in the desktop shell, and on a machine that has never
+   reached a font CDN. One file per script subset and style; `unicode-range`
+   means a page in English downloads only the Latin files. */
+@font-face{font-family:'Overpass';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-cyrillic-ext-wght-normal.woff2') format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:'Overpass';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-cyrillic-wght-normal.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Overpass';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-vietnamese-wght-normal.woff2') format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}
+@font-face{font-family:'Overpass';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-latin-ext-wght-normal.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Overpass';font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-latin-wght-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Overpass';font-style:italic;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-cyrillic-ext-wght-italic.woff2') format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:'Overpass';font-style:italic;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-cyrillic-wght-italic.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Overpass';font-style:italic;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-vietnamese-wght-italic.woff2') format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}
+@font-face{font-family:'Overpass';font-style:italic;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-latin-ext-wght-italic.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Overpass';font-style:italic;font-weight:100 900;font-display:swap;src:url('/fonts/overpass/overpass-latin-wght-italic.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Overpass Mono';font-style:normal;font-weight:300 700;font-display:swap;src:url('/fonts/overpass/overpass-mono-cyrillic-ext-wght-normal.woff2') format('woff2');unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:'Overpass Mono';font-style:normal;font-weight:300 700;font-display:swap;src:url('/fonts/overpass/overpass-mono-cyrillic-wght-normal.woff2') format('woff2');unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:'Overpass Mono';font-style:normal;font-weight:300 700;font-display:swap;src:url('/fonts/overpass/overpass-mono-vietnamese-wght-normal.woff2') format('woff2');unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}
+@font-face{font-family:'Overpass Mono';font-style:normal;font-weight:300 700;font-display:swap;src:url('/fonts/overpass/overpass-mono-latin-ext-wght-normal.woff2') format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Overpass Mono';font-style:normal;font-weight:300 700;font-display:swap;src:url('/fonts/overpass/overpass-mono-latin-wght-normal.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 
 /* ─── OpenDyslexic (SIL-OFL) ── accessibility built-in ───
    Registered as its own font-family so the a11y font never leaks into
@@ -219,7 +242,7 @@
    destroys the weighted-bottom/asymmetric-shape properties dyslexic readers
    pick this font for. Family-name isolation means italic never resolves inside
    <code> blocks: var(--mono) reads 'OpenDyslexicMono' which has no italic face
-   declared, so italic inside code stays synthesized (same as JetBrains Mono).
+   declared, so italic inside code stays synthesized (same as Overpass Mono).
 */
 @font-face {
   font-family: 'OpenDyslexic';
@@ -269,39 +292,39 @@
      isolated regional faces for that UI language. A bare :lang(zh) is avoided
      — it also matches zh-TW/zh-HK. They lead each stack; unicode-range is what
      makes leading safe. */
-  --script-fallbacks:'KC Devanagari Fallback','KC Bengali Fallback';
-  --script-fallbacks-mono:'KC Devanagari Fallback','KC Bengali Fallback';
+  --script-fallbacks:'Junction Devanagari Fallback','Junction Bengali Fallback';
+  --script-fallbacks-mono:'Junction Devanagari Fallback','Junction Bengali Fallback';
   /* An installed theme pack fills --theme-font-sans / --theme-font-mono with its
      own faces (see hooks/themeCss.ts). Reading them here means code surfaces
      follow a pack's monospace face without the user having to switch the whole UI
      to monospace, and the pack's proportional face is already in place on first
      paint rather than swapping in when the preference effect runs. Unfilled, each
      var() falls back to the built-in stack. */
-  --font-body:var(--theme-font-sans, var(--script-fallbacks),'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif);
-  --mono:var(--theme-font-mono, var(--script-fallbacks-mono),'JetBrains Mono',ui-monospace,SFMono-Regular,monospace);
+  --font-body:var(--theme-font-sans, var(--script-fallbacks),'Overpass',-apple-system,BlinkMacSystemFont,sans-serif);
+  --mono:var(--theme-font-mono, var(--script-fallbacks-mono),'Overpass Mono',ui-monospace,SFMono-Regular,monospace);
   --radius-sm:6px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;
 }
 html:lang(zh-CN) {
   /* Isolated Simplified aliases for Chinese UI. Not :lang(zh): that also
      matches zh-TW / zh-HK / zh-Hant. Document-level only — :root/--font-body
      and useZoom already resolve var(--script-fallbacks) on <html>. */
-  --script-fallbacks:'KC Han Fallback','KC Devanagari Fallback','KC Bengali Fallback';
-  --script-fallbacks-mono:'KC Han Mono Fallback','KC Han Fallback','KC Devanagari Fallback','KC Bengali Fallback';
+  --script-fallbacks:'Junction Han Fallback','Junction Devanagari Fallback','Junction Bengali Fallback';
+  --script-fallbacks-mono:'Junction Han Mono Fallback','Junction Han Fallback','Junction Devanagari Fallback','Junction Bengali Fallback';
 }
 html:lang(ja) {
   /* Never retain the SC aliases here. If no named Japanese face is installed,
      falling through lets the browser use its lang-aware Japanese fallback. */
-  --script-fallbacks:'KC Japanese Fallback','KC Devanagari Fallback','KC Bengali Fallback';
-  --script-fallbacks-mono:'KC Japanese Mono Fallback','KC Japanese Fallback','KC Devanagari Fallback','KC Bengali Fallback';
+  --script-fallbacks:'Junction Japanese Fallback','Junction Devanagari Fallback','Junction Bengali Fallback';
+  --script-fallbacks-mono:'Junction Japanese Mono Fallback','Junction Japanese Fallback','Junction Devanagari Fallback','Junction Bengali Fallback';
 }
 html:lang(ko) {
   /* Never retain the SC or JP aliases here. Neither draws Hangul, so leaving one
      in front only delays resolution to the browser's lang-aware Korean fallback. */
-  --script-fallbacks:'KC Korean Fallback','KC Devanagari Fallback','KC Bengali Fallback';
-  --script-fallbacks-mono:'KC Korean Mono Fallback','KC Korean Fallback','KC Devanagari Fallback','KC Bengali Fallback';
+  --script-fallbacks:'Junction Korean Fallback','Junction Devanagari Fallback','Junction Bengali Fallback';
+  --script-fallbacks-mono:'Junction Korean Mono Fallback','Junction Korean Fallback','Junction Devanagari Fallback','Junction Bengali Fallback';
 }
 /* Dark theme shadows */
-:root,[data-theme="dark"],[data-theme="kiro-dark"],[data-theme="monokai-dark"],[data-theme="solarized-dark"],[data-theme="amber-dark"],[data-theme="nord-dark"],[data-theme="dracula-dark"],[data-theme="rosepine-dark"],[data-theme="catppuccin-dark"],[data-theme="tokyonight-dark"],[data-theme="gruvbox-dark"],[data-theme="ice-dark"]{
+:root,[data-theme="junction-dark"],[data-theme="dark"],[data-theme="monokai-dark"],[data-theme="solarized-dark"],[data-theme="amber-dark"],[data-theme="nord-dark"],[data-theme="dracula-dark"],[data-theme="rosepine-dark"],[data-theme="catppuccin-dark"],[data-theme="tokyonight-dark"],[data-theme="gruvbox-dark"],[data-theme="ice-dark"]{
   --shadow-sm:0 1px 2px rgba(0,0,0,.2);
   --shadow-md:0 4px 12px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.03);
   --shadow-lg:0 12px 28px rgba(0,0,0,.35);
@@ -344,63 +367,80 @@ html:lang(ko) {
   --shadow-lg:0 12px 28px rgba(0,0,0,.45);
 }
 /* Light theme shadows */
-[data-theme="light"],[data-theme="monokai-light"],[data-theme="solarized-light"],[data-theme="amber-light"],[data-theme="nord-light"],[data-theme="dracula-light"],[data-theme="rosepine-light"],[data-theme="catppuccin-light"],[data-theme="tokyonight-light"],[data-theme="gruvbox-light"],[data-theme="ice-light"]{
+[data-theme="junction-light"],[data-theme="light"],[data-theme="monokai-light"],[data-theme="solarized-light"],[data-theme="amber-light"],[data-theme="nord-light"],[data-theme="dracula-light"],[data-theme="rosepine-light"],[data-theme="catppuccin-light"],[data-theme="tokyonight-light"],[data-theme="gruvbox-light"],[data-theme="ice-light"]{
   --search-highlight:rgba(255,167,38,.35);--search-highlight-current:rgba(255,120,0,.7);--search-highlight-current-border:rgba(0,0,0,.8);
   --shadow-sm:0 1px 2px rgba(0,0,0,.06);
   --shadow-md:0 4px 12px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.04);
   --shadow-lg:0 12px 28px rgba(0,0,0,.12);
 }
-:root,[data-theme="dark"],[data-theme="kiro-dark"],[data-theme="amber-dark"]{
-  --search-highlight:rgba(255,167,38,.45);--search-highlight-current:rgba(255,120,0,.85);--search-highlight-current-border:rgba(255,255,255,.9);
-  --bg:#0c0d12;--bg-accent:#101118;--bg-elevated:#16171f;--bg-hover:#1e2029;
-  --card:#14151c;--card-fg:#f4f4f5;--card-hl:rgba(255,255,255,.05);
-  --panel:#0c0d12;--panel-strong:#16171f;
-  --chrome:rgba(12,13,18,.95);
-  --text:#e4e4e7;--text-strong:#fafafa;--muted:#7f7f88;--muted-fg:#fff;--muted-strong:#52525b;
-  --border:#27272a;--border-strong:#3f3f46;--border-hover:#52525b;
-  --accent:#e4a54a;--accent-fg:#0c0d12;--accent-hover:#f0b35c;--accent-subtle:rgba(228,165,74,.16);
-  --accent-glow:rgba(228,165,74,.28);--ring:#e4a54a;
-  --ok:#22c55e;--ok-fg:#000;--ok-subtle:rgba(34,197,94,.12);
-  --warn:#eab308;--warn-fg:#000;--warn-subtle:rgba(234,179,8,.12);
-  --danger:#ef4444;--danger-fg:#000;--danger-subtle:rgba(239,68,68,.12);
-  --info:#0891b2;--info-fg:#000;
+/* ── Junction (factory default) ──
+   "Interchange": signal blue on asphalt, the palette of a motorway sign. The
+   blue is the plate colour of the Junction mark; in dark mode it is lifted to
+   #5c8dff so text in the accent clears 4.5:1 on every surface. Neutrals lean
+   cool so the blue reads as the only colour on screen. :root carries the dark
+   set so the first paint, before a theme resolves, is already Junction.
+   Emerald and Amber reuse these neutrals and override only their accents. */
+:root,[data-theme="junction-dark"],[data-theme="dark"],[data-theme="amber-dark"]{
+  --search-highlight:rgba(255,193,61,.42);--search-highlight-current:rgba(255,150,30,.85);--search-highlight-current-border:rgba(255,255,255,.9);
+  --bg:#0b0e13;--bg-accent:#0e1218;--bg-elevated:#161b24;--bg-hover:#1d232e;
+  --card:#11151c;--card-fg:#f3f6fa;--card-hl:rgba(255,255,255,.045);
+  --panel:#0b0e13;--panel-strong:#161b24;
+  --chrome:rgba(11,14,19,.94);
+  --text:#d8dee7;--text-strong:#f3f6fa;--muted:#8591a3;--muted-fg:#fff;--muted-strong:#566275;
+  --border:#232a35;--border-strong:#313a48;--border-hover:#465264;
+  --accent:#5c8dff;--accent-fg:#06112b;--accent-hover:#7ea5ff;--accent-subtle:rgba(92,141,255,.15);
+  --accent-glow:rgba(92,141,255,.3);--ring:#5c8dff;
+  --ok:#2fbf71;--ok-fg:#000;--ok-subtle:rgba(47,191,113,.13);
+  --warn:#f2b632;--warn-fg:#000;--warn-subtle:rgba(242,182,50,.13);
+  --danger:#f0525a;--danger-fg:#000;--danger-subtle:rgba(240,82,90,.13);
+  --info:#38bdf8;--info-fg:#000;
   --aim:#a78bfa;--aim-fg:#000;--aim-subtle:rgba(167,139,250,.15);
-  --clarify:#eab308;--clarify-subtle:rgba(234,179,8,.08);
-  --diff-add:rgba(46,160,67,.15);--diff-add-text:#7ee787;
-  --diff-del:rgba(248,81,73,.15);--diff-del-text:#ffa198;
-  --diff-hunk:rgba(4,117,88,.2);--diff-hunk-text:#6ee7b7;
-  --diff-meta-text:#e6edf3;
-  --json-key:#9CDCFE;--json-str:#CE9178;--json-num:#B5CEA8;--json-bool:#569CD6;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.2);
-  --shadow-md:0 4px 12px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.03);
-  --shadow-lg:0 12px 28px rgba(0,0,0,.35);
+  --clarify:#f2b632;--clarify-subtle:rgba(242,182,50,.08);
+  --diff-add:rgba(47,191,113,.15);--diff-add-text:#7ee2a8;
+  --diff-del:rgba(240,82,90,.15);--diff-del-text:#ffa3a8;
+  --diff-hunk:rgba(92,141,255,.16);--diff-hunk-text:#9dbcff;
+  --diff-meta-text:#e3e9f1;
+  --json-key:#9dbcff;--json-str:#f0b98a;--json-num:#7ee2a8;--json-bool:#5c8dff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.24);
+  --shadow-md:0 4px 12px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.03);
+  --shadow-lg:0 12px 28px rgba(0,0,0,.4);
   color-scheme:dark;
 }
-[data-theme="light"],[data-theme="kiro-light"],[data-theme="amber-light"]{
-  --search-highlight:rgba(255,167,38,.35);--search-highlight-current:rgba(255,120,0,.7);--search-highlight-current-border:rgba(0,0,0,.8);
-  --bg:#fafafa;--bg-accent:#f5f5f5;--bg-elevated:#ffffff;--bg-hover:#f0f0f0;
-  --card:#ffffff;--card-fg:#18181b;--card-hl:rgba(0,0,0,.03);
-  --panel:#fafafa;--panel-strong:#f5f5f5;
-  --chrome:rgba(250,250,250,.95);
-  --text:#3f3f46;--text-strong:#18181b;--muted:#71717a;--muted-fg:#fff;--muted-strong:#52525b;
-  --border:#e4e4e7;--border-strong:#d4d4d8;--border-hover:#a1a1aa;
-  --accent:#b45309;--accent-fg:#fff;--accent-hover:#d97706;--accent-subtle:rgba(180,83,9,.12);
-  --accent-glow:rgba(180,83,9,.18);--ring:#b45309;
-  --ok:#16a34a;--ok-fg:#000;--ok-subtle:rgba(22,163,74,.1);
-  --warn:#a16207;--warn-fg:#fff;--warn-subtle:rgba(161,98,7,.1);
-  --danger:#dc2626;--danger-fg:#fff;--danger-subtle:rgba(220,38,38,.1);
-  --info:#0891b2;--info-fg:#000;
+[data-theme="junction-light"],[data-theme="light"],[data-theme="amber-light"]{
+  --search-highlight:rgba(255,193,61,.38);--search-highlight-current:rgba(255,140,0,.7);--search-highlight-current-border:rgba(0,0,0,.8);
+  --bg:#f4f6f9;--bg-accent:#eef1f5;--bg-elevated:#ffffff;--bg-hover:#e8ecf2;
+  --card:#ffffff;--card-fg:#0e1521;--card-hl:rgba(10,20,40,.03);
+  --panel:#f4f6f9;--panel-strong:#eef1f5;
+  --chrome:rgba(244,246,249,.94);
+  --text:#2a3240;--text-strong:#0e1521;--muted:#5d6878;--muted-fg:#fff;--muted-strong:#465061;
+  --border:#dce2ea;--border-strong:#c8d0db;--border-hover:#98a4b5;
+  --accent:#1f55ec;--accent-fg:#fff;--accent-hover:#1847d0;--accent-subtle:rgba(31,85,236,.1);
+  --accent-glow:rgba(31,85,236,.18);--ring:#1f55ec;
+  --ok:#15803d;--ok-fg:#fff;--ok-subtle:rgba(21,128,61,.1);
+  --warn:#a15c07;--warn-fg:#fff;--warn-subtle:rgba(161,92,7,.1);
+  --danger:#d42a33;--danger-fg:#fff;--danger-subtle:rgba(212,42,51,.1);
+  --info:#0877a8;--info-fg:#fff;
   --aim:#7c3aed;--aim-fg:#fff;--aim-subtle:rgba(124,58,237,.12);
-  --clarify:#a16207;--clarify-subtle:rgba(161,98,7,.06);
-  --diff-add:rgba(22,163,74,.12);--diff-add-text:#1a7f37;
-  --diff-del:rgba(220,38,38,.12);--diff-del-text:#cf222e;
-  --diff-hunk:rgba(4,117,88,.12);--diff-hunk-text:#065f46;
-  --diff-meta-text:#1f2328;
-  --json-key:#001080;--json-str:#A31515;--json-num:#098658;--json-bool:#0000FF;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.06);
-  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.04);
-  --shadow-lg:0 12px 28px rgba(0,0,0,.12);
+  --clarify:#a15c07;--clarify-subtle:rgba(161,92,7,.06);
+  --diff-add:rgba(21,128,61,.12);--diff-add-text:#166534;
+  --diff-del:rgba(212,42,51,.12);--diff-del-text:#b4232b;
+  --diff-hunk:rgba(31,85,236,.1);--diff-hunk-text:#1847d0;
+  --diff-meta-text:#1b2230;
+  --json-key:#1847d0;--json-str:#a33a12;--json-num:#15803d;--json-bool:#7c3aed;
+  --shadow-sm:0 1px 2px rgba(14,21,33,.06);
+  --shadow-md:0 4px 12px rgba(14,21,33,.08),0 0 0 1px rgba(14,21,33,.04);
+  --shadow-lg:0 12px 28px rgba(14,21,33,.12);
   color-scheme:light;
+}
+
+/* ── Emerald ── the Junction neutrals with a green accent. */
+[data-theme="dark"]{
+  --accent:#34d399;--accent-fg:#03140d;--accent-hover:#6ee7b7;--accent-subtle:rgba(52,211,153,.15);
+  --accent-glow:rgba(52,211,153,.28);--ring:#34d399;
+}
+[data-theme="light"]{
+  --accent:#047857;--accent-fg:#fff;--accent-hover:#065f46;--accent-subtle:rgba(4,120,87,.1);
+  --accent-glow:rgba(4,120,87,.18);--ring:#047857;
 }
 
 /* ── Monokai ── */
@@ -919,8 +959,8 @@ html:lang(ko) {
   --diff-hunk:rgba(10,132,255,.15);--diff-hunk-text:#64d2ff;
   --diff-meta-text:#e4e4e7;
   --json-key:#64d2ff;--json-str:#30d158;--json-num:#bf5af2;--json-bool:#0a84ff;
-  --font-body:var(--script-fallbacks),'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;
-  --mono:var(--script-fallbacks-mono),'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;
+  --font-body:var(--script-fallbacks),'Overpass',-apple-system,BlinkMacSystemFont,sans-serif;
+  --mono:var(--script-fallbacks-mono),'Overpass Mono',ui-monospace,SFMono-Regular,monospace;
   --shadow-sm:none;
   --shadow-md:0 0 0 1px rgba(255,255,255,.06);
   --shadow-lg:0 0 0 1px rgba(255,255,255,.08);
@@ -953,10 +993,7 @@ html:lang(ko) {
   color-scheme:light;
 }
 
-/* Junction factory default. The picker slug stays `kiro` so persisted
-   selections and tests keep working; the painted tokens are ink + copper,
-   inherited from :root / [data-theme="light"] above. Do not reintroduce
-   the upstream purple (#8e48ff) or mint (#00d492) here. */
+
 
 [data-theme="intellij-dark"]{
   --bg:#191a1c;--bg-accent:#1e1f21;--bg-elevated:#222427;--bg-hover:#2e3034;
@@ -1419,19 +1456,17 @@ button:hover .app-icon{--ico-a:var(--accent);--ico-b:var(--text)}
 .msg-content code{font-family:var(--mono);font-size:.9em}
 .msg-content :not(pre)>code{background:rgba(0,0,0,.15);padding:.15em .4em;border-radius:4px;overflow-wrap:break-word;word-break:break-all}
 [data-mode="light"] .msg-content :not(pre)>code{background:rgba(0,0,0,.06)}
-/* Junction factory theme: copper-tinted chrome on the inherited ink palette.
-   Thin copper strokes need a slightly brighter foreground than the button fill. */
-[data-theme="kiro-dark"] .msg-content :not(pre)>code{background:#1e2029;color:#f0b35c}
-[data-theme="kiro-light"] .msg-content :not(pre)>code{background:var(--bg-hover);color:#b45309}
-[data-theme="kiro-dark"] .msg-content a{color:#f0b35c;text-decoration-color:rgba(228,165,74,.45)}
-[data-theme="kiro-dark"] .text-accent{color:#f0b35c}
-[data-theme="kiro-dark"] .nav-item.nav-active,[data-theme="kiro-dark"] .session-row.session-active,[data-theme="kiro-dark"] .list-selected{background:var(--bg-hover);color:var(--accent-hover);border-color:var(--border-strong);box-shadow:inset 2px 0 0 var(--accent)}
-[data-theme="kiro-dark"] .nav-active .text-accent{color:#f0b35c}
-[data-theme="kiro-light"] .nav-active,[data-theme="kiro-light"] .session-row.session-active,[data-theme="kiro-light"] .list-selected{background:#f5e6d0;color:#b45309;border-color:#e7d3b0}
-[data-theme="kiro-light"] .nav-active .text-accent{color:#b45309}
-[data-theme="kiro-dark"] .session-header-title,[data-theme="kiro-light"] .session-header-title,
-[data-theme="kiro-dark"] .sessions-panel-title,[data-theme="kiro-light"] .sessions-panel-title{color:var(--text)}
-[data-theme="kiro-dark"] .group\/drag:hover .resize-accent{background-color:#f0b35c}
+/* Junction factory theme: inline code and the active row borrow the signal blue.
+   The active nav row carries a 2px inset rail on its leading edge, the way a
+   route line marks the lane you are in. */
+[data-theme="junction-dark"] .msg-content :not(pre)>code{background:#161f33;color:#9dbcff}
+[data-theme="junction-light"] .msg-content :not(pre)>code{background:#e7eefe;color:#1847d0}
+[data-theme="junction-dark"] .msg-content a{color:var(--accent-hover);text-decoration-color:rgba(92,141,255,.45)}
+[data-theme="junction-dark"] .nav-item.nav-active,[data-theme="junction-dark"] .session-row.session-active,[data-theme="junction-dark"] .list-selected{background:var(--bg-hover);color:var(--text-strong);border-color:var(--border-strong);box-shadow:inset 2px 0 0 var(--accent)}
+[data-theme="junction-light"] .nav-item.nav-active,[data-theme="junction-light"] .session-row.session-active,[data-theme="junction-light"] .list-selected{background:#e7eefe;color:#1847d0;border-color:#c9d8fb;box-shadow:inset 2px 0 0 var(--accent)}
+[data-theme="junction-dark"] .session-header-title,[data-theme="junction-light"] .session-header-title,
+[data-theme="junction-dark"] .sessions-panel-title,[data-theme="junction-light"] .sessions-panel-title{color:var(--text)}
+[data-theme="junction-dark"] .group\/drag:hover .resize-accent,[data-theme="junction-light"] .group\/drag:hover .resize-accent{background-color:var(--accent)}
 .msg-content pre{background:rgba(0,0,0,.15);border-radius:var(--radius-sm);padding:10px 12px;overflow-x:auto;margin:4px 0;font-size:0.8125rem;font-family:var(--mono);line-height:1.5}
 [data-mode="light"] .msg-content pre{background:rgba(0,0,0,.04)}
 /* Reset pre inside new code/diff block components */
@@ -2297,7 +2332,7 @@ body.mc-focus-mode.mc-focus-rail .focus-chrome-rail{
 }
 
 /* ── Mono-family compensation ─────────────────────────────────────────────
-   JetBrains Mono is ~20% wider than Space Grotesk at the same size, so chrome
+   Overpass Mono is ~30% wider than Overpass at the same size, so chrome
    sized against the default family can overflow once a user picks Mono in
    Settings -> Display (or lands in CLI mode, which auto-resolves to mono).
    `useZoom` publishes the RESOLVED family as html[data-font-family].
@@ -2307,57 +2342,56 @@ body.mc-focus-mode.mc-focus-rail .focus-chrome-rail{
    for "Star us" + "Report issue" at 12px against its budget:
 
      tracking      mono labels   slack
-     normal            136.8     -9.0  (truncates: "Report is…")
-     -0.03em           130.0     -1.8
-     -0.05em           125.4     +6.0  <- this rule, with the spacing below
-     -0.06em           123.1          (visibly condensed)
+     normal            140.4    -12.6  (truncates: "Report is…")
+     -0.03em           133.6     -5.8
+     -0.05em           129.0     +2.4  <- this rule, with the spacing below
+     -0.06em           126.7          (visibly condensed)
 
    Two spacing overrides ride along, because mono and sans want OPPOSITE
    treatment and a single set of numbers cannot serve both.
 
-   MEASURED glyph metrics at 12px (fontTools, the shipped Google Fonts files):
+   MEASURED glyph metrics at 12px (fontTools, the bundled /fonts/overpass files):
 
                         advance   ink    sidebearing
-     Space Grotesk  S    7.36     6.19      0.58
-     JetBrains Mono S    7.20     5.47      0.86
-     Space Grotesk  ·    2.24     1.63      0.30
-     JetBrains Mono ·    7.20     1.99      2.60
+     Overpass       S    7.25     5.87      0.64
+     Overpass Mono  S    7.39     5.14      1.11
+     Overpass       ·    2.77     1.77      0.50
+     Overpass Mono  ·    7.39     1.61      2.89
 
    The two capitals are effectively identical, so the mark gap is the SAME for
-   both families (ml-1.5 = 6px on the element) — an earlier version of this rule
-   tightened sans to 2px on the false premise that its "S" had more sidebearing
-   than mono's. It does not; it has slightly less.
+   both families (ml-1.5 = 6px on the element). Sans does not need a tighter mark
+   gap: its "S" carries slightly LESS sidebearing than mono's, not more.
 
    The middot is where they genuinely differ, and it is the only gap this rule
    still overrides:
 
-   * gap 3px on mono vs 5px on sans. Mono's middot carries 2.6px of built-in
-     space either side, sans's carries 0.3px, so equal CSS values would render
+   * gap 3px on mono vs 5px on sans. Mono's middot carries 2.9px of built-in
+     space either side, sans's carries 0.5px, so equal CSS values would render
      as very unequal optical gaps. Targeting ~5.5px of visible space either side
-     of the dot ink yields 2.9px for mono and 5.2px for sans.
+     of the dot ink yields 3px for mono and 5px for sans.
    * word-spacing -2.5px (mono only) — fixes "Star us" looking looser than it
-     should. Mono's space character is a full 7.2px cell, over 3x Space
-     Grotesk's 2.24px, so the gap INSIDE each label dominated the gaps BETWEEN
-     the labels and the row read as four floating words. Pulling it to 4.7px
+     should. Mono's space character is a full 7.4px cell, over 2.5x Overpass's
+     2.88px, so the gap INSIDE each label dominated the gaps BETWEEN
+     the labels and the row read as four floating words. Pulling it to 4.9px
      restores the hierarchy (space inside a label < gap around the separator)
      while staying wider than sans.
 
    word-spacing is also what PAYS for the wider gaps on mono: it recovers 5px
-   across the pair's two spaces, leaving ~6px of slack.
+   across the pair's two spaces, leaving ~2px of slack.
 
-   Scoped to mono ON PURPOSE: sans has ~13px of slack and needs no tightening,
+   Scoped to mono ON PURPOSE: sans has ~20px of slack and needs no tightening,
    and applying letter/word-spacing there would make this row inconsistent with
    every other label in the app (everything else inherits letter-spacing:normal
    from body). Do not promote any of this to an unscoped rule. */
 html[data-font-family="mono"] .rail-community-links{ letter-spacing:-0.05em; word-spacing:-2.5px; gap:3px }
 
 /* OpenDyslexicMono (data-font-family="opendyslexic" in CLI mode) is measured
-   ~22% wider than JetBrains Mono at 12px (advance 8.784 vs 7.20 for capital 'S'
+   ~19% wider than Overpass Mono at 12px (advance 8.784 vs 7.39 for capital 'S'
    from fontTools on the shipped .woff2). The rail budget above therefore has
    less slack under opendyslexic than under mono, and the "Report issue" button
    may truncate to an ellipsis on very narrow rails.
    No opendyslexic-specific tightening rule is applied: -0.05em / -2.5px are
-   metrically tuned for JetBrains Mono's advance and would misfire on
+   metrically tuned for Overpass Mono's advance and would misfire on
    OpenDyslexicMono, and negative tracking on a legibility font actively fights
    the readability properties a user picking OpenDyslexic came for. The
    button's `text-ellipsis` on `Report issue` handles overflow gracefully;

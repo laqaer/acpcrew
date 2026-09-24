@@ -118,7 +118,7 @@ describe('ApprovalModePicker', () => {
 /** The trigger pill is CHROME: "Normal" / "Reads" / "Trust" / "YOLO" are labels,
  *  so the pill must follow the user's Font Family choice (`--font-body`).
  *  Tailwind's `font-mono` resolves to `var(--mono)`, a token that setting never
- *  writes, so a `font-mono` here would pin JetBrains Mono in every mode. */
+ *  writes, so a `font-mono` here would pin Overpass Mono in every mode. */
 describe('ApprovalModePicker — trigger follows the Font Family setting', () => {
   beforeEach(() => { localStorage.clear() })
 

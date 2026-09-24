@@ -23,7 +23,7 @@ import { safeSetItem } from '../utils/safeStorage'
  * property value (a stylesheet declaration) rather than translatable UI copy.
  */
 const terminalFontDefaults = {
-  fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+  fontFamily: "'Overpass Mono', 'Fira Code', 'Cascadia Code', monospace",
   fontSize: 13,
 }
 /** Fallback stack when the user has not chosen a family. */

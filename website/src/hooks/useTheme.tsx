@@ -341,7 +341,7 @@ export const THEME_LABEL_KEY: Record<string, string> = {
 }
 
 export const THEMES: ThemeEntry[] = [
-  { value: 'kiro', label: 'Junction' },
+  { value: 'junction', label: 'Junction' },
   { value: 'emerald', label: '🌿 Emerald' },
   { value: 'monokai', label: '🎨 Monokai' },
   { value: 'solarized', label: '☀️ Solarized' },
@@ -387,7 +387,7 @@ function builtinThemes(): ThemeEntry[] {
 }
 
 /** Default color theme applied on first run when no preference is persisted. */
-export const DEFAULT_COLOR_THEME: ColorTheme = 'kiro'
+export const DEFAULT_COLOR_THEME: ColorTheme = 'junction'
 
 /**
  * Downstream-registered built-in themes.

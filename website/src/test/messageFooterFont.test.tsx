@@ -7,7 +7,7 @@ import { fmtMessageTime, fmtMessageTimeFull } from '../pages/chat/messageTime'
  * The message footer is CHROME, so it must follow Settings → Display → Font
  * Family. Tailwind's `font-mono` resolves to `var(--mono)` — a token that
  * setting never writes — so any hardcoded `font-mono` here silently overrode the
- * user's choice and pinned JetBrains Mono, which has no CJK coverage, under a
+ * user's choice and pinned Overpass Mono, which has no CJK coverage, under a
  * date string that a zh/ja dashboard renders WITH CJK characters.
  *
  * `tabular-nums` is the part that must SURVIVE: fixed-width digits were the real

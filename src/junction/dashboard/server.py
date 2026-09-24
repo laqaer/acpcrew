@@ -683,17 +683,13 @@ _BASE_CSP = (
     "script-src 'self' 'unsafe-inline' "
     "https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
     "https://esm.sh; "
-    # https://fonts.googleapis.com + https://fonts.gstatic.com: index.html loads
-    # the UI's two brand faces (Space Grotesk, JetBrains Mono) from Google Fonts.
-    # Without these the stylesheet is refused and BOTH families fall through the
-    # stack. macOS lands on -apple-system and looks deliberate; Windows has no
-    # such entry, so it drops to the generic sans-serif/monospace and the whole
-    # dashboard renders in a face the design never targeted (metrics tuned for
-    # Space Grotesk/JetBrains Mono then mis-fit, so chrome text also mis-sizes).
+    # No font CDN: the UI's typefaces (Overpass, Overpass Mono) are bundled and
+    # served from /fonts on this origin, so 'self' covers them and the
+    # dashboard renders its own faces offline too.
     "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net "
-    "https://esm.sh https://fonts.googleapis.com; "
+    "https://esm.sh; "
     "img-src 'self' data: blob: https:; "
-    "font-src 'self' data: https://esm.sh https://fonts.gstatic.com; "
+    "font-src 'self' data: https://esm.sh; "
     # Loopback http(s) origins ({connect_src_extra}) mirror the frame-src note
     # below: WebPreviewPanel does not merely FRAME the local dev server, it also
     # polls it with a no-cors `fetch` liveness probe (a cross-origin iframe
@@ -3292,7 +3288,7 @@ async def start_dashboard(
     # the PID by hand.
     #
     # Crash-dump discoverability: route dumps to a dedicated file under
-    # ~/.kiro/crew/logs/crash-dumps/ so they are findable via `junction doctor`
+    # ~/.junction/logs/crash-dumps/ so they are findable via `junction doctor`
     # and startup warnings, rather than buried in interleaved stderr/journal.
     # Crash-dump hygiene: sweep header-only dumps left by prior sessions that
     # exited without ever wedging (every startup pre-creates one for

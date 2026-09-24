@@ -196,7 +196,7 @@ export function useDeleteTerminalSession() {
 /**
  * Force xterm to re-measure the character cell, then refit. xterm measures the
  * cell at open()/fit() time with whatever font is resolvable then; the terminal
- * font ('JetBrains Mono') is a Google web font (display=swap) that can swap in
+ * font ('Overpass Mono') is a bundled web font (display=swap) that can swap in
  * *after* the first measure, widening the cell while `cols` stays stale, so the
  * screen overflows the pane and the right edge is clipped (worst in
  * the narrow right sidebar). xterm exposes no public "re-measure now" API, so we
@@ -298,10 +298,10 @@ function TerminalView({ sessionId, cwd, visible, onSendToChat }: { sessionId: st
     fonts.ready.then(onReady)
     try {
       const px = term.options.fontSize ?? 13
-      // Preload the family the terminal is actually configured to render. The
-      // previous version hardcoded 'JetBrains Mono' — fine for the default
-      // stack but silently miss for anyone who picked a different Terminal
-      // Font Family (e.g. the bundled OpenDyslexicMono, or a custom Nerd Font):
+      // Preload the family the terminal is actually configured to render, not
+      // the default stack: a fixed name would silently miss for anyone who
+      // picked a different Terminal Font Family (e.g. the bundled
+      // OpenDyslexicMono, or a custom Nerd Font):
       // @font-face fonts fetch lazily on first DOM use, so xterm's canvas
       // renderer would measure and draw against the generic monospace fallback
       // until some other var(--mono) surface pulled the resolved family in.

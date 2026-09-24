@@ -27,7 +27,7 @@ vi.spyOn(api, 'chatSlotReasoningEffort').mockResolvedValue({ ok: true } as never
  * not an identifier the user transcribes. Both must therefore follow
  * Settings → Display → Font Family, which writes only `--font-body`
  * (hooks/useZoom.ts). Tailwind's `font-mono` resolves to `var(--mono)`, a token
- * that setting never writes, so a `font-mono` here pinned JetBrains Mono no
+ * that setting never writes, so a `font-mono` here pinned Overpass Mono no
  * matter what the user picked. These were also the only `Input` call sites in
  * the app that overrode the primitive's own `font-body` (components/ui.tsx).
  *

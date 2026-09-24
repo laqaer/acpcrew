@@ -3225,19 +3225,19 @@ export default function App() {
 
                   CRITICAL: size this against the WIDEST font the user can pick,
                   not the default. `useZoom` lets them set --font-body to sans
-                  (Space Grotesk), mono (JetBrains Mono) or system (-apple-system),
-                  and mono is ~20% wider. A 12px row measured only against Space
-                  Grotesk truncates for every mono user.
+                  (Overpass), mono (Overpass Mono) or system (-apple-system),
+                  and mono is ~30% wider. A 12px row measured only against
+                  Overpass truncates for every mono user.
 
                   "Star us · Report issue" at 12px, measured:
-                    Space Grotesk   114.0px against a 132.8px budget — 18.7 spare
-                    JetBrains Mono  136.8px against a 127.8px budget — 9.0 OVER
+                    Overpass        107.0px against a 132.8px budget — 25.8 spare
+                    Overpass Mono   140.4px against a 127.8px budget — 12.6 OVER
                   Rather than shrink the type for everyone or drop the Discord
                   link, mono alone is tightened to -0.05em, which brings it to
-                  125.4px (+3.0 spare). That rule lives in index.css keyed on
+                  129.0px (+2.4 spare with its word-spacing). That rule lives in index.css keyed on
                   html[data-font-family="mono"] via the `rail-community-links`
                   class, and its measurement table is there. Mono's margin is only
-                  ~3px, so ANY copy growth here must be re-measured IN MONO first.
+                  ~2px, so ANY copy growth here must be re-measured IN MONO first.
 
                   The separator is a middot because " / " is wider, and the row's
                   right padding is trimmed for the same budget reason.

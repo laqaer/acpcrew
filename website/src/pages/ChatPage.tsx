@@ -6271,7 +6271,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
                 {/* No `font-mono`: a formatted date is prose, and Tailwind's
                     `font-mono` pins `var(--mono)` — a token the Font Family
                     setting never writes, so it overrode the user's choice and
-                    put JetBrains Mono (no CJK coverage) under a date that a
+                    put Overpass Mono (no CJK coverage) under a date that a
                     zh/ja dashboard renders WITH CJK characters. `tabular-nums`
                     keeps the digits fixed-width, which is the alignment the
                     mono was actually there for. */}

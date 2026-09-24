@@ -1173,7 +1173,7 @@ def _validate_theme_dir(
     # check below. "monospace" (the CSS keyword) is the likeliest typo for
     # exactly the role most likely to be mistyped, and the failure is
     # otherwise silent: the mono face quietly renders as Sans while Mono keeps
-    # the built-in JetBrains Mono (#2750).
+    # the built-in Overpass Mono.
     if installing:
         fonts_manifest = manifest.get("fonts")
         if isinstance(fonts_manifest, list):
