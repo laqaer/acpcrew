@@ -151,7 +151,7 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
   })
 
   it('does NOT pull the active pinned crew to a leading chip when stable-order is relayed on', () => {
-    // The exact runtime scenario the relay must fix: a CONNECTED remote crew is
+    // The exact runtime scenario the relay must fix: a CONNECTED remote instance is
     // the active pane, it is pinned, and the parent relays stableOrder=true. The
     // active crew must be highlighted in place inside the chip row, never hoisted
     // to a leading `tb-crew-active-chip` — that hoist is the reorder-on-switch.

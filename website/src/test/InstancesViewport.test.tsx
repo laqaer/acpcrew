@@ -394,7 +394,7 @@ describe('InstancesViewport', () => {
     // host, so there is no header left to drag by — and leaving the strips up makes
     // the pane's top band answer neither hover nor clicks, so its chrome can never
     // be summoned back. This is the bug reported on the desktop app: switching to a
-    // remote crew left the top region drag-only and dead.
+    // remote instance left the top region drag-only and dead.
     const { setFocusModeEnabled } = await import('../hooks/useFocusMode')
     mockConnectedCd1()
     const store = createTestStore({

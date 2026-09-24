@@ -2015,7 +2015,7 @@ export const api = {
       // '' when the peer is too old to report it — treated as unknown.
       resume_mode?: 'session_load' | 'prefix' | ''
     }>,
-  // Cloud provisioning (owner-only) — launch a cloud-hosted remote crew on the
+  // Cloud provisioning (owner-only) — launch a cloud-hosted remote instance on the
   // user's OWN AWS account, then register it as an SSM instance on connect. The
   // launch is a DURABLE gateway job (see cloud/launch_job.py): it survives
   // dashboard navigation and restart, so the UI polls its state rather than

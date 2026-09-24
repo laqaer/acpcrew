@@ -29,7 +29,7 @@ vi.mock('../hooks/useAgents', () => ({ useAgents: vi.fn(() => ({ agents: [{ name
 vi.mock('../providers/context', () => ({ useProvider: () => ({ id: 'acp' }) }))
 vi.mock('../components/MarkdownRenderer', () => ({ default: ({ content }: { content: string }) => <span>{content}</span>, Lightbox: () => null }))
 
-// One remembered remote crew: the switcher renders only when at least one exists
+// One remembered remote instance: the switcher renders only when at least one exists
 // (visibleInstanceTabs), so a single-crew user's header is unchanged. Built inside
 // vi.hoisted because the mock factory below is hoisted above module scope.
 const { crew } = vi.hoisted(() => ({

@@ -92,7 +92,7 @@ export default function InstancesViewport({ macInset = false }: { macInset?: boo
   // bar does. Reactive like the pins: a change re-broadcasts the model, and an
   // embedded toggle routes back here via `mc-set-stable-order`.
   const [stableOrder] = useCrewSwitcherStableOrder()
-  // Focus mode is a property of the WINDOW, not of one pane: a remote crew shown
+  // Focus mode is a property of the WINDOW, not of one pane: a remote instance shown
   // inside a focused window must hide its chrome too. Relayed down the host model
   // below, and it also gates the host drag strips (see their render site).
   const { enabled: focusMode } = useFocusMode()

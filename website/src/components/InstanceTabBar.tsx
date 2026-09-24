@@ -1,6 +1,6 @@
 /**
  * InstanceTabBar — a thin, full-width strip at the very top of the dashboard
- * that switches between the local dashboard and connected remote crews.
+ * that switches between the local dashboard and connected remote instances.
  *
  * The switcher is a single dropdown by default: the number of crews a user
  * configures is unbounded, and a horizontal strip forced them to shrink the
@@ -12,7 +12,7 @@
  * Unread counts survive that collapse in two places, because a count hidden
  * behind a closed menu would be invisible: the trigger carries an AGGREGATE
  * badge for every crew that is not on screen, and each menu row carries its
- * own. The bar appears ONLY when at least one remote crew is connected or
+ * own. The bar appears ONLY when at least one remote instance is connected or
  * remembered, so the common single-crew experience is unchanged. Everything
  * *below* the bar is the switchable "window" — the Local dashboard, or a remote
  * crew's embedded dashboard (see InstancesViewport). The bar intentionally
@@ -1116,7 +1116,7 @@ export default function InstanceTabBar({
   // when embedded, so this is cheap.
   if (embedded) return <EmbeddedInstanceTabBar variant={variant} />
 
-  // Single-crew experience is unchanged: no bar until a remote crew is
+  // Single-instance experience is unchanged: no bar until a remote instance is
   // connected or remembered.
   if (disabled || tabInstances.length === 0) return null
 
