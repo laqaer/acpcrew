@@ -1285,9 +1285,7 @@ def _build_stt_install_script(provider: str = "whisper") -> str:
         # provider on _pip_install_channel_available(), so the command below is
         # only reached where a pip install into sys.executable can succeed.
         gateway_py = shlex.quote(sys.executable)
-        return (
-            prelude
-            + f"""
+        return prelude + f"""
 # faster-whisper (CTranslate2 backend) — no system ffmpeg required, because audio
 # is decoded in-process through PyAV's bundled FFmpeg.
 # CTranslate2 publishes wheels for Linux x86-64/AArch64, macOS x86-64/ARM64 and
@@ -1309,13 +1307,10 @@ if ! FW_PATH=$("$PY" -c "import faster_whisper; print(faster_whisper.__file__)" 
 fi
 echo "Done. faster_whisper=$FW_PATH"
 """
-        )
     if provider in ("mlx", "parakeet"):
         pipx_pkg = "parakeet-mlx" if provider == "parakeet" else "mlx-whisper"
         verify_bin = "parakeet-mlx" if provider == "parakeet" else "mlx_whisper"
-        return (
-            prelude
-            + rf"""
+        return prelude + rf"""
 [ -d "$HOME/ffmpeg" ] && export PATH="$HOME/ffmpeg:$PATH"
 
 if ! command -v brew >/dev/null 2>&1; then
@@ -1336,10 +1331,7 @@ pipx install --force {pipx_pkg} 2>&1 || {{ echo "ERROR: pipx install {pipx_pkg} 
 
 echo "Done. {verify_bin}=$(command -v {verify_bin} 2>/dev/null || echo 'check PATH') ffmpeg=$(command -v ffmpeg 2>/dev/null || echo 'MISSING')"
 """
-        )
-    return (
-        prelude
-        + r"""
+    return prelude + r"""
 # Pick up ffmpeg from ~/ffmpeg if installed there
 [ -d "$HOME/ffmpeg" ] && export PATH="$HOME/ffmpeg:$PATH"
 
@@ -1408,7 +1400,6 @@ echo "Installing openai-whisper..."
 
 echo "Done. whisper=$(command -v whisper 2>/dev/null || echo 'check PATH') ffmpeg=$(command -v ffmpeg 2>/dev/null || echo 'MISSING')"
 """
-    )
 
 
 async def api_stt_transcribe(request: web.Request) -> web.Response:
