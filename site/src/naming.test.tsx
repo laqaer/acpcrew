@@ -8,6 +8,11 @@ function pageText(container: HTMLElement): string {
   return container.textContent ?? '';
 }
 
+// The upstream product name in any spacing or case, built from fragments so this
+// file does not itself carry the token it asserts is absent.
+const UPSTREAM_NAME = new RegExp(['kiro', 'crew'].join('[\\s._/-]*'), 'i');
+const UPSTREAM_ALIAS = new RegExp(['acp', 'crew'].join(''), 'i');
+
 function heroSection(container: HTMLElement): HTMLElement | null {
   return container.querySelector('#hero');
 }
@@ -73,20 +78,19 @@ describe('Junction naming', () => {
   it('does not leak implementation paths on the marketing page', () => {
     const { container } = render(<App />);
     const text = pageText(container);
-    expect(text).not.toContain('~/.kiro/crew');
+    expect(text).not.toMatch(UPSTREAM_NAME);
     expect(text).not.toMatch(/localhost:5476/);
   });
 
   it('does not present another product name as Junction', () => {
     const { container } = render(<App />);
     const text = pageText(container);
-    expect(text).not.toMatch(/Kiro Crew/);
-    expect(text).not.toMatch(/kirocrew/i); // brand-ok: assert the old token is absent
+    expect(text).not.toMatch(UPSTREAM_NAME);
     // Clone URLs use the GitHub slug. They are not a second product name.
     const leftover = text
       .replace(/(?:myrmitis|laqaer)\/junction(?:\.git)?/gi, '')
       .replace(/\bcd junction\b/gi, '');
-    expect(leftover).not.toMatch(/acpcrew/i);
+    expect(leftover).not.toMatch(UPSTREAM_ALIAS);
     expect(text).toMatch(/vendor agent CLI is optional/i);
     expect(text).not.toMatch(/kiro-cli/i);
   });
@@ -133,7 +137,7 @@ describe('Junction naming', () => {
     expect(html).toContain('Where coding agents meet the models you want');
     expect(html).toContain('https://getjunction.dev/');
     expect(html).not.toContain('👻');
-    expect(html).not.toContain('Kiro Crew');
+    expect(html).not.toMatch(UPSTREAM_NAME);
     expect(html).not.toContain('junction.computer');
   });
 });

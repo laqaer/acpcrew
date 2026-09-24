@@ -5,21 +5,24 @@ import {
   History, Sparkles, Mic, ArrowUp, FolderOpen, GitMerge, Bell, Route,
 } from 'lucide-react';
 
-// Ink + copper factory paint — fixed colors so this mock matches the
-// dashboard even when the landing page is in light mode. No `dark:` variants.
+// The dashboard's factory "Interchange" dark theme, as fixed colors so this mock
+// matches the real dashboard even when the landing page is in light mode. No
+// `dark:` variants.
 const C = {
-  bg: '#0c0d12',
-  panel: '#14151c',
-  railBg: '#0c0d12',
-  border: '#27272a',
-  borderSoft: '#1e2029',
-  textStrong: '#fafafa',
-  text: '#e4e4e7',
-  muted: '#a1a1aa',
-  mutedSoft: '#71717a',
-  accent: '#e4a54a',
-  accentBg: 'rgba(228,165,74,0.16)',
-  pill: '#16171f',
+  bg: '#0b0e13',
+  panel: '#11151c',
+  railBg: '#0b0e13',
+  border: '#232a35',
+  borderSoft: '#1d232e',
+  textStrong: '#f3f6fa',
+  text: '#d8dee7',
+  muted: '#8591a3',
+  mutedSoft: '#566275',
+  accent: '#5c8dff',
+  accentInk: '#06112b',
+  accentBg: 'rgba(92,141,255,0.15)',
+  pill: '#161b24',
+  plate: '#1f55ec',
 };
 
 const RAIL = [
@@ -75,7 +78,7 @@ export function AppPreview() {
       className="max-w-[1120px] mx-auto px-5 md:px-8 pb-24"
     >
       <div className="overflow-hidden"
-        style={{ background: C.bg, border: `1px solid ${C.border}`, boxShadow: '0 30px 80px rgba(0,0,0,0.28)' }}>
+        style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14, boxShadow: '0 30px 80px rgba(0,0,0,0.28)' }}>
         <div className="flex items-center gap-3 px-4 h-9" style={{ borderBottom: `1px solid ${C.border}` }}>
           <span className="w-8 h-px" style={{ background: C.accent }} />
           <span className="text-[11px] tracking-[0.16em] uppercase" style={{ color: C.muted }}>Switchboard</span>
@@ -102,10 +105,12 @@ export function AppPreview() {
 
         <div className="hidden md:flex items-center justify-between h-[46px] px-3" style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: '#e4a54a' }}>
-              <GitMerge size={14} style={{ color: '#0c0d12' }} />
-            </div>
-            <span className="text-[13px] font-bold tracking-[.08em]" style={{ color: C.textStrong }}>JUNCTION</span>
+            <svg viewBox="0 0 64 64" className="w-7 h-7" aria-hidden="true">
+              <rect x="2" y="2" width="60" height="60" rx="15" fill={C.plate} />
+              <path d="M34 13v25a11 11 0 0 1-22 0" fill="none" stroke="#fff" strokeWidth="7" strokeLinecap="round" />
+              <path d="M34 36c0-11 16-10 16-21v-2" fill="none" stroke="#fff" strokeWidth="7" strokeLinecap="round" />
+            </svg>
+            <span className="text-[14px] font-extrabold tracking-[-0.01em]" style={{ color: C.textStrong }}>Junction</span>
           </div>
           <div className="hidden lg:flex items-center gap-1.5">
             <Pill>Planes</Pill>
@@ -146,9 +151,9 @@ export function AppPreview() {
               <div className="flex items-center gap-1.5">
                 <MoreVertical size={13} style={{ color: C.mutedSoft }} />
                 <div className="flex items-center rounded-md overflow-hidden" style={{ background: C.accent }}>
-                  <span className="flex items-center gap-1 pl-1.5 pr-2 h-6 text-[11px] font-semibold" style={{ color: '#0c0d12' }}><Plus size={11} /> New chat</span>
-                  <span className="w-px h-3.5" style={{ background: 'rgba(12,13,18,.3)' }} />
-                  <span className="px-1 h-6 flex items-center" style={{ color: '#0c0d12' }}><ChevronDown size={11} /></span>
+                  <span className="flex items-center gap-1 pl-1.5 pr-2 h-6 text-[11px] font-semibold" style={{ color: C.accentInk }}><Plus size={11} /> New chat</span>
+                  <span className="w-px h-3.5" style={{ background: 'rgba(6,17,43,.3)' }} />
+                  <span className="px-1 h-6 flex items-center" style={{ color: C.accentInk }}><ChevronDown size={11} /></span>
                 </div>
               </div>
             </div>
@@ -159,7 +164,7 @@ export function AppPreview() {
                 <span className="text-[11px] flex-1" style={{ color: C.mutedSoft }}>Search sessions...</span>
                 <span className="relative">
                   <ListFilter size={12} style={{ color: C.muted }} />
-                  <span className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full text-[7px] font-bold flex items-center justify-center text-white" style={{ background: C.accent }}>1</span>
+                  <span className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full text-[7px] font-bold flex items-center justify-center" style={{ background: C.accent, color: C.accentInk }}>1</span>
                 </span>
               </div>
             </div>
@@ -231,10 +236,10 @@ export function AppPreview() {
               {/* diff block */}
               <div className="rounded-lg overflow-hidden text-[11px] font-mono" style={{ border: `1px solid ${C.border}` }}>
                 <div className="px-3 py-1.5" style={{ background: C.panel, borderBottom: `1px solid ${C.border}`, color: C.muted }}>diff — role DAG</div>
-                <div className="px-3 py-2" style={{ background: '#14151c' }}>
+                <div className="px-3 py-2" style={{ background: C.panel }}>
                   <div style={{ color: C.mutedSoft }}>@@ orchestration → planning → execution @@</div>
-                  <div style={{ color: '#e4a54a' }}>+ role_models.orchestration = economy</div>
-                  <div style={{ color: '#e4a54a' }}>+ role_models.planning = capable</div>
+                  <div style={{ color: '#7ee2a8' }}>+ role_models.orchestration = economy</div>
+                  <div style={{ color: '#7ee2a8' }}>+ role_models.planning = capable</div>
                   <div style={{ color: C.muted }}>  catalog on loopback; keys stay off chat</div>
                 </div>
               </div>
@@ -254,7 +259,7 @@ export function AppPreview() {
                     <Mic size={14} style={{ color: C.muted }} />
                     <Sparkles size={14} style={{ color: C.muted }} />
                     <span className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: C.accent }}>
-                      <ArrowUp size={13} className="text-white" />
+                      <ArrowUp size={13} style={{ color: C.accentInk }} />
                     </span>
                   </div>
                 </div>
