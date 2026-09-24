@@ -18,8 +18,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from kiro_crew.acp.types import AcpEvent
-from kiro_crew.slack.client import SlackClientOps
+from junction.acp.types import AcpEvent
+from junction.slack.client import SlackClientOps
 
 
 def make_event(kind: str, **kw: Any) -> AcpEvent:

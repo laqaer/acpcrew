@@ -34,7 +34,7 @@ import pytest
 from skill_script_helpers import load_skill_script
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SKILL_DIR = REPO_ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr"
+SKILL_DIR = REPO_ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr"
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 PROFILES_DIR = SKILL_DIR / "profiles"
 WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
@@ -55,8 +55,8 @@ local_review = _load("_pp_local_review", "local_review.py")
 #: reach another process, so the child needs the environment variable.
 NO_PYC = {"PYTHONDONTWRITEBYTECODE": "1"}
 
-KIROCREW_PROFILE = json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))
-PROFILE_MODELS = {r["name"]: r for r in KIROCREW_PROFILE["reviewers"]}
+JUNCTION_PROFILE = json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))
+PROFILE_MODELS = {r["name"]: r for r in JUNCTION_PROFILE["reviewers"]}
 
 # Local values for the GitHub event expressions the workflows interpolate.
 FAKE_VALUES = {
@@ -141,7 +141,7 @@ def no_gh(monkeypatch):
 
 @pytest.fixture
 def parity_repo(tmp_path):
-    """A synthetic repo that resolve_profile.py recognises as Kiro Crew.
+    """A synthetic repo that resolve_profile.py recognises as Junction.
 
     Carries real copies of both reviewer workflows and both base-ref prompt
     files, a backend AUTOSDE.yaml, and deliberately NO website/AUTOSDE.yaml so

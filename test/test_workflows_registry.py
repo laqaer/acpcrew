@@ -18,13 +18,13 @@ import asyncio
 
 import pytest
 
-from kiro_crew.workflows.registry import (
+from junction.workflows.registry import (
     STATUS_CANCELLED,
     STATUS_FINISHED,
     STATUS_RUNNING,
     RunRegistry,
 )
-from kiro_crew.workflows.runner import WorkflowRunner
+from junction.workflows.runner import WorkflowRunner
 
 pytestmark = pytest.mark.asyncio
 

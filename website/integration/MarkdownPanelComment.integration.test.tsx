@@ -80,7 +80,7 @@ describe('MarkdownPanel comment/copy flow', () => {
     writeText.mockClear()
     defaultProps.onSubmitComments.mockClear()
     defaultProps.onClose.mockClear()
-    localStorage.setItem('kirocrew:comment-hint-dismissed', '1')
+    localStorage.setItem('junction:comment-hint-dismissed', '1')
   })
   afterEach(() => {
     vi.useRealTimers()
@@ -184,12 +184,12 @@ describe('MarkdownPanel comment/copy flow', () => {
   })
 
   it('dismisses comment hint when Got it is clicked', () => {
-    localStorage.removeItem('kirocrew:comment-hint-dismissed')
+    localStorage.removeItem('junction:comment-hint-dismissed')
     render(<Providers><MarkdownPanel {...defaultProps} /></Providers>)
     expect(screen.getByText('Got it')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Got it'))
     expect(screen.queryByText('Got it')).not.toBeInTheDocument()
-    expect(localStorage.getItem('kirocrew:comment-hint-dismissed')).toBe('1')
+    expect(localStorage.getItem('junction:comment-hint-dismissed')).toBe('1')
   })
 
   it('does not show selection toolbar in edit mode', () => {

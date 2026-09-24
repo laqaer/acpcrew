@@ -28,7 +28,7 @@ const POOL_SIZE_DEFAULT = 3
  *
  * Fields: per-source chunk limit, max sources, embedding rate limit,
  * extraction model, extraction pool size. Reads/writes via the same
- * PATCH /api/config/kirocrew endpoint as the Settings page.
+ * PATCH /api/config/junction endpoint as the Settings page.
  */
 export function SettingsTab() {
   const qc = useQueryClient()
@@ -47,8 +47,8 @@ export function SettingsTab() {
       extraction_pool_size?: number
     }
   }>({
-    queryKey: ['kirocrewConfig'],
-    queryFn: () => api.kirocrewConfig(),
+    queryKey: ['junctionConfig'],
+    queryFn: () => api.junctionConfig(),
   })
   const cfg = cfgQ.data?.knowledge
 
@@ -56,7 +56,7 @@ export function SettingsTab() {
   const patchMut = useMutation({
     mutationFn: ({ path, value }: { path: string; value: number | string | boolean }) =>
       api.patchConfig(path, value),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
     onError: () => {
       setSaveError(i18nT('pages.knowledge.settings.save_failed'))
       // Revert all local inputs to last-known server values

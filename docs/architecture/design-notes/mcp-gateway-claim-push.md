@@ -5,7 +5,7 @@ identity-repair path; the poll remains as a fallback.
 
 ## Problem
 
-gatewayd stamps a caller identity (`_meta.kirocrew.caller`) on every MCP call
+gatewayd stamps a caller identity (`_meta.junction.caller`) on every MCP call
 it forwards, so pooled backends know which session is calling. That identity
 comes from one place: the `register` frame each stub sends when it connects.
 No `session_key` on the register means every call from that connection is
@@ -108,11 +108,11 @@ claim-path involvement.
 
 ## Files
 
-- `src/kiro_crew/mcp_gateway/claim.py` — frame builder + sender (stdlib-only)
-- `src/kiro_crew/mcp_gateway/gatewayd.py` — `_StubConn`, `_CONN_INDEX`,
+- `src/junction/mcp_gateway/claim.py` — frame builder + sender (stdlib-only)
+- `src/junction/mcp_gateway/gatewayd.py` — `_StubConn`, `_CONN_INDEX`,
   `_apply_claim`, claim first-frame dispatch, per-frame caller pickup
-- `src/kiro_crew/mcp_gateway/stub.py` — `parent_pid` on register; unbounded
+- `src/junction/mcp_gateway/stub.py` — `parent_pid` on register; unbounded
   backoff recaller
-- `src/kiro_crew/acp/client.py`, `src/kiro_crew/acp/session_provider.py` —
+- `src/junction/acp/client.py`, `src/junction/acp/session_provider.py` —
   `rekey()` claim hooks
 - `test/test_mcp_gateway_claim.py` — functional + unit coverage

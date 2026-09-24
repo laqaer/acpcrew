@@ -14,9 +14,9 @@ import subprocess
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.platform import update_capability
-from kiro_crew.platform.update_capability import (
+from junction import platform_compat
+from junction.platform import update_capability
+from junction.platform.update_capability import (
     _git_toplevel,
     derive_capability,
     is_git_worktree,
@@ -276,7 +276,7 @@ class TestRunningFromCheckout:
         assert running_from_checkout(str(tmp_path)) is True
 
     def test_a_different_checkout_is_refused(self, tmp_path, monkeypatch):
-        # The field failure: a real Kiro Crew worktree the process does NOT run
+        # The field failure: a real Junction worktree the process does NOT run
         # from. Same markers, wrong identity.
         clone = tmp_path / "clone"
         clone.mkdir()
@@ -337,14 +337,14 @@ class TestDeriveCapability:
         assert capability.managed_by == "git"
         assert capability.can_apply is True
         assert capability.remediation is not None
-        assert capability.remediation["command"] == "kirocrew update"
+        assert capability.remediation["command"] == "junction update"
 
     @pytest.mark.parametrize("dist", ["wheel", "source"])
     def test_feed_checkable_shapes_share_one_capability(self, dist, tmp_path):
         # `source` is what an unstamped wheel reports, so both must answer alike
         # or every already-released CLI install falls outside the contract.
         capability = derive_capability(install_root=str(tmp_path), dist=dist)
-        assert capability.managed_by == "kirocrew"
+        assert capability.managed_by == "junction"
         assert capability.can_apply is False
         assert capability.remediation is not None
         command = capability.remediation["command"]
@@ -360,7 +360,7 @@ class TestDeriveCapability:
 
     def test_install_root_defaults_to_the_project_env(self, tmp_path, monkeypatch):
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(update_capability, "running_from_checkout", lambda root, **kw: True)
         assert derive_capability(dist="source").managed_by == "git"
 
@@ -376,11 +376,11 @@ class TestDeriveCapability:
         """
         _init_repo(tmp_path)
         capability = derive_capability(install_root=str(tmp_path), dist="wheel")
-        assert capability.managed_by == "kirocrew"
+        assert capability.managed_by == "junction"
         assert capability.can_apply is False
         # The remediation is the installer for THIS install's real channel, not
-        # "kirocrew update" against the unrelated clone.
-        assert (capability.remediation or {}).get("command", "") != "kirocrew update"
+        # "junction update" against the unrelated clone.
+        assert (capability.remediation or {}).get("command", "") != "junction update"
 
     def test_to_dict_carries_the_whole_contract_half(self, tmp_path):
         contract = derive_capability(install_root=str(tmp_path), dist="wheel").to_dict()
@@ -411,8 +411,8 @@ class TestRemediationTracksTheReportedChannel:
     """
 
     def test_a_switch_between_the_two_reads_cannot_split_the_pair(self, monkeypatch):
-        monkeypatch.setattr("kiro_crew.platform.update_layout.release_channel", lambda: "stable")
-        capability = derive_capability(install_root="", dist="kirocrew")
+        monkeypatch.setattr("junction.platform.update_layout.release_channel", lambda: "stable")
+        capability = derive_capability(install_root="", dist="junction")
         assert "stable" in (capability.remediation or {})["command"]
 
         repinned = capability.for_channel("nightly")
@@ -435,7 +435,7 @@ class TestUndecodablePathsDoNotBreakDetection:
 
     Paths on Linux are bytes. The probe decodes git's stdout, so the concern is
     real — but it must never reach the caller as an exception, because
-    `kirocrew update` and the boot check both run through this.
+    `junction update` and the boot check both run through this.
     """
 
     def test_a_decode_failure_never_escapes_the_probe(self, monkeypatch, tmp_path):
@@ -521,7 +521,7 @@ class TestTheProbeDoesNotTrustPath:
         does not come back with it.
         """
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.trusted_system_bin", lambda _n: None
+            "junction.platform.update_capability.trusted_system_bin", lambda _n: None
         )
         checkout = tmp_path / "checkout"
         checkout.mkdir()

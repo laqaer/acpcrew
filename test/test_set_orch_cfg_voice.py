@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.slack import handler as handler_mod
-from kiro_crew.slack.handler import _vc, load_voice_reply_config, set_orch_cfg
+from junction.slack import handler as handler_mod
+from junction.slack.handler import _vc, load_voice_reply_config, set_orch_cfg
 
 
 @pytest.fixture(autouse=True)
@@ -130,7 +130,7 @@ def test_provider_typo_falls_back_to_local_with_warning(tmp_path, monkeypatch, c
     import logging
 
     _cfg_file(tmp_path, monkeypatch, {"provider": "ploly"})
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.slack.handler"):
+    with caplog.at_level(logging.WARNING, logger="junction.slack.handler"):
         set_orch_cfg(SimpleNamespace())
     assert _vc.provider == "piper"
     assert any(
@@ -189,7 +189,7 @@ def test_dashboard_entrypoints_restore_voice_settings():
     disabled while the dashboard's settings PUT keeps reporting success."""
     import inspect
 
-    from kiro_crew.dashboard import server as server_mod
+    from junction.dashboard import server as server_mod
 
     for func, name in (
         (server_mod.start_dashboard, "start_dashboard"),

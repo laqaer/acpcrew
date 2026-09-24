@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.dashboard.cron_inject import inject_cron_result_to_dashboard
-from kiro_crew.session_surface import set_dashboard_surfaced
+from junction.dashboard.cron_inject import inject_cron_result_to_dashboard
+from junction.session_surface import set_dashboard_surfaced
 
 
 @pytest.fixture(autouse=True)
@@ -87,7 +87,7 @@ class TestInjectCronResultToDashboard:
         get_or_create_slot's default, which put private cron content inside the
         ``slots:user`` WS scope -- so any app holding that scope received it.
         """
-        from kiro_crew.dashboard.state import SlotOrigin
+        from junction.dashboard.state import SlotOrigin
 
         state = _make_state()
         job = _make_job()
@@ -175,8 +175,8 @@ class TestInjectCronResultToDashboard:
         slot fails those gates until some unrelated slot change republishes,
         so the first cron run's sub-agents stayed invisible and their results
         were never injected."""
-        from kiro_crew.dashboard.chat_utils import dashboard_slot_key
-        from kiro_crew.session_surface import (
+        from junction.dashboard.chat_utils import dashboard_slot_key
+        from junction.session_surface import (
             has_dashboard_surface,
             set_dashboard_surfaced,
         )
@@ -260,7 +260,7 @@ class TestHydrateSlotFromHistory:
     """Tests for hydrate_slot_from_history (accepts pre-loaded messages)."""
 
     def test_hydrates_messages_into_slot(self):
-        from kiro_crew.dashboard.cron_inject import hydrate_slot_from_history
+        from junction.dashboard.cron_inject import hydrate_slot_from_history
 
         history = [
             {"role": "user", "content": "hello"},
@@ -274,7 +274,7 @@ class TestHydrateSlotFromHistory:
         assert slot.messages[1]["content"] == "world"
 
     def test_empty_history_produces_no_messages(self):
-        from kiro_crew.dashboard.cron_inject import hydrate_slot_from_history
+        from junction.dashboard.cron_inject import hydrate_slot_from_history
 
         state = _make_state(history_messages=[])
         slot = state.get_or_create_slot(name="cron-abc")
@@ -282,7 +282,7 @@ class TestHydrateSlotFromHistory:
         assert len(slot.messages) == 0
 
     def test_skips_messages_with_empty_content(self):
-        from kiro_crew.dashboard.cron_inject import hydrate_slot_from_history
+        from junction.dashboard.cron_inject import hydrate_slot_from_history
 
         history = [
             {"role": "assistant", "content": ""},
@@ -295,7 +295,7 @@ class TestHydrateSlotFromHistory:
         assert slot.messages[0]["content"] == "real message"
 
     def test_assigns_user_role_class(self):
-        from kiro_crew.dashboard.cron_inject import hydrate_slot_from_history
+        from junction.dashboard.cron_inject import hydrate_slot_from_history
 
         history = [
             {"role": "user", "content": "user msg"},
@@ -313,7 +313,7 @@ class TestHydrateSlotFromHistory:
         # disjoint id sets for the same rows while the durable injection
         # copies make the region read all-id — the identity walk then marks
         # every hydrated row owed and a bounded read serves the history twice.
-        from kiro_crew.dashboard.cron_inject import hydrate_slot_from_history
+        from junction.dashboard.cron_inject import hydrate_slot_from_history
 
         history = [
             {"role": "user", "content": "hello", "meta": {"mid": "m-disk-1"}},
@@ -333,7 +333,7 @@ class TestHasSlot:
     """Tests for DashboardState.has_slot method."""
 
     def test_returns_true_when_slot_exists(self):
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.state import DashboardState
 
         state = MagicMock(spec=DashboardState)
         state._slots = {"cron-abc": MagicMock()}
@@ -341,7 +341,7 @@ class TestHasSlot:
         assert state.has_slot("cron-abc") is True
 
     def test_returns_false_when_slot_missing(self):
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.state import DashboardState
 
         state = MagicMock(spec=DashboardState)
         state._slots = {}

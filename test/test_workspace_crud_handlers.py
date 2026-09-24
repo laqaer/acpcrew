@@ -12,12 +12,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.config.loader import (
-    KiroCrewAgentConfig,
-    KiroCrewConfig,
+from junction.config.loader import (
+    JunctionAgentConfig,
+    JunctionConfig,
     WorkspaceConfig,
 )
-from kiro_crew.dashboard.handlers import (
+from junction.dashboard.handlers import (
     api_workspaces_create,
     api_workspaces_delete,
     api_workspaces_update,
@@ -38,20 +38,20 @@ def _req(body: dict | None = None, match_info: dict | None = None) -> MagicMock:
     return r
 
 
-def _cfg(**kw: object) -> KiroCrewConfig:
+def _cfg(**kw: object) -> JunctionConfig:
     defaults: dict = {
         "workspaces": {"default": WorkspaceConfig(dir="workspace")},
         "default_workspace": "default",
         "agents": {},
     }
     defaults.update(kw)
-    return KiroCrewConfig(**defaults)
+    return JunctionConfig(**defaults)
 
 
-_SEL = "kiro_crew.sel.sel"
-_LOAD = "kiro_crew.config.loader.KiroCrewConfig.load"
-_CFGDIR = "kiro_crew.config.loader.config_dir"
-_DATAHOME = "kiro_crew.dashboard.handlers.files.data_home"
+_SEL = "junction.sel.sel"
+_LOAD = "junction.config.loader.JunctionConfig.load"
+_CFGDIR = "junction.config.loader.config_dir"
+_DATAHOME = "junction.dashboard.handlers.files.data_home"
 
 
 # ── Create handler ──
@@ -243,7 +243,7 @@ class TestDeleteHandler:
                 "default": WorkspaceConfig(dir="workspace"),
                 "staging": WorkspaceConfig(dir="workspace-staging"),
             },
-            agents={"bot": KiroCrewAgentConfig(workspace="staging")},
+            agents={"bot": JunctionAgentConfig(workspace="staging")},
         )
         with patch(_LOAD, return_value=cfg):
             resp = await api_workspaces_delete(_req(match_info={"name": "staging"}))

@@ -10,7 +10,7 @@ import { safeSetSessionItem } from './safeStorage'
  * popout nav-intent applier below) can write it without importing a page
  * component. ChatPage re-exports it for its existing importers.
  */
-export const PREFILL_STORAGE_KEY = 'kirocrew_prefill'
+export const PREFILL_STORAGE_KEY = 'junction_prefill'
 
 /** Seed the composer prefill for a slot. Returns whether sessionStorage accepted it. */
 export function writePrefill(slotKey: string, prompt: string): boolean {

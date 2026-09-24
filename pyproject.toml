@@ -3,7 +3,7 @@ requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kirocrew"
+name = "junction"
 version = "0.5.0"
 description = "Junction — local control plane that docks ACP coding agents and routes their models"
 readme = "README.md"
@@ -24,9 +24,8 @@ Homepage = "https://getjunction.dev"
 Repository = "https://github.com/laqaer/junction"
 
 [project.scripts]
-kirocrew = "kiro_crew._bootstrap:main"
-acpcrew = "kiro_crew._bootstrap:main"
-junction = "kiro_crew._bootstrap:main"
+junction = "junction._bootstrap:main"
+acpcrew = "junction._bootstrap:main"
 
 [dependency-groups]
 # Pinned dev tool versions for reproducible CI. Bump as needed.
@@ -44,7 +43,7 @@ dev = [
     "mypy==1.14.1",
     "black==26.3.1",
     "isort==6.0.0",
-    # Not a dev TOOL. kiro_crew.config.validation imports jsonschema behind a
+    # Not a dev TOOL. junction.config.validation imports jsonschema behind a
     # try/except and returns the config unvalidated when the import fails, so a
     # run without it exercises none of the schema-validation path and silently
     # SKIPS the 11 tests that cover it (pytest scores a skip as a pass). It is
@@ -74,7 +73,7 @@ line-length = 100
 force-exclude = "/_vendor/"
 
 [tool.isort]
-known_first_party = ["kiro_crew"]
+known_first_party = ["junction"]
 
 # required for compatibility with black:
 profile = "black"
@@ -83,7 +82,7 @@ profile = "black"
 line_length = 100
 # skip + skip_glob: isort's skip_glob alone is not honored when a formatter
 # hook passes explicit file paths with --filter-files unset; filter both ways.
-skip_glob = ["**/_vendor/*", "src/kiro_crew/_vendor/*"]
+skip_glob = ["**/_vendor/*", "src/junction/_vendor/*"]
 extend_skip = ["_vendor"]
 
 [tool.mypy]
@@ -113,9 +112,9 @@ exclude = ['/_vendor/']
 
 [[tool.mypy.overrides]]
 # _vendor has no __init__.py (it is a sys.path root), so mypy may resolve the
-# vendored files as either kiro_crew._vendor.* or top-level llama_cpp.* /
+# vendored files as either junction._vendor.* or top-level llama_cpp.* /
 # diskcache depending on invocation — suppress both spellings.
-module = ["kiro_crew._vendor.*", "llama_cpp", "llama_cpp.*", "diskcache"]
+module = ["junction._vendor.*", "llama_cpp", "llama_cpp.*", "diskcache"]
 ignore_errors = true
 follow_imports = "skip"
 

@@ -89,13 +89,13 @@ describe('DevFleetPage row rendering helpers', () => {
   it('surfaces the inferred main checkout once above the fleet', async () => {
     installFetch({
       ...fleetOf(MAIN_ROW),
-      main_repo: '/Users/dev/work/KiroCrew',
+      main_repo: '/Users/dev/work/Junction',
       main_repo_inferred: true,
     })
     renderPage()
     const note = await screen.findByTestId('inferred-main-checkout')
     expect(note).toHaveTextContent('The primary checkout this fleet is discovered from')
-    expect(note).toHaveTextContent('/Users/dev/work/KiroCrew')
+    expect(note).toHaveTextContent('/Users/dev/work/Junction')
     expect(screen.getAllByTestId('inferred-main-checkout')).toHaveLength(1)
   })
 
@@ -868,7 +868,7 @@ describe('DevFleetPage make live', () => {
         gateway_service_active: false,
         staged_target: '/w/wt-staged',
         staged_cancel_available: true,
-        manual_restart: 'kirocrew restart',
+        manual_restart: 'junction restart',
       },
       (u, opts) => {
         if (u.includes('/make-live') && isPost(opts)) {

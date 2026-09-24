@@ -7,7 +7,7 @@ bypass sets NOR the internal-path sets, and an agent session has no dashboard
 credential to satisfy the cookie path with:
 
   * the access cookie is httpOnly (the frontend cannot hand it over),
-  * ``KIROCREW_INTERNAL_SECRET`` is stripped from agent env by
+  * ``JUNCTION_INTERNAL_SECRET`` is stripped from agent env by
     ``sandbox._AGENT_DENIED_ENV_KEYS``,
   * ``.local_secret`` — needed for the documented ``GET /api/token/local``
     bootstrap — is on the ``security.py`` sensitive-path denylist.
@@ -27,10 +27,10 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew import mcp_core
-from kiro_crew.apps.builtins.issue_radar.backend import routes as ir_routes
-from kiro_crew.dashboard.token_auth import token_auth_middleware
-from kiro_crew.validation import MCP_CORE_SCHEMAS, ValidationError, validate_tool_args
+from junction import mcp_core
+from junction.apps.builtins.issue_radar.backend import routes as ir_routes
+from junction.dashboard.token_auth import token_auth_middleware
+from junction.validation import MCP_CORE_SCHEMAS, ValidationError, validate_tool_args
 
 TOOL = "issue_radar_record_investigation"
 RECORD_PATH = "/api/apps/issue-radar/investigation"
@@ -44,7 +44,7 @@ class TestGatewayPathIsReachableWithTheInternalSecret(unittest.TestCase):
     """Without this entry the tool's PUT gets the same 403 the prompt did."""
 
     def test_record_path_is_a_mixed_internal_path(self):
-        from kiro_crew.dashboard.server import _MIXED_INTERNAL_API_PATHS
+        from junction.dashboard.server import _MIXED_INTERNAL_API_PATHS
 
         assert RECORD_PATH in _MIXED_INTERNAL_API_PATHS
 
@@ -57,7 +57,7 @@ class TestGatewayPathIsReachableWithTheInternalSecret(unittest.TestCase):
         secret. Those write to GitHub/GitLab; the record route is local triage
         state only.
         """
-        from kiro_crew.dashboard.server import (
+        from junction.dashboard.server import (
             _MIXED_INTERNAL_API_PATHS,
             _STRICT_INTERNAL_API_PATHS,
         )
@@ -70,7 +70,7 @@ class TestGatewayPathIsReachableWithTheInternalSecret(unittest.TestCase):
 class TestToolRegistration(unittest.TestCase):
     def test_schema_is_registered_so_bad_args_do_not_crash_the_server(self):
         # An unregistered tool's internal ValidationError escapes the stdio loop
-        # and kills the whole kirocrew-core server (see test_mcp_core_arg_crash).
+        # and kills the whole junction-core server (see test_mcp_core_arg_crash).
         assert TOOL in MCP_CORE_SCHEMAS
         required = {f.name for f in MCP_CORE_SCHEMAS[TOOL].fields if f.required}
         # provider/host/kind join owner/repo/number as required: they pick the
@@ -287,7 +287,7 @@ class TestMiddlewareDecision:
         return req
 
     def _mw(self, secret: str = "s3cret"):
-        from kiro_crew.dashboard.server import (
+        from junction.dashboard.server import (
             _MIXED_INTERNAL_API_PATHS,
             _STRICT_INTERNAL_API_PATHS,
         )

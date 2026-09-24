@@ -45,7 +45,7 @@
     "id": "credential-exfil-kirocrew-token",
     "pattern": "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*(?:kiro[-.]?crew|junction|acpcrew)\\b[^|;&#>/*]*\\btoken\\b",
     "category": "credential-exfil",
-    "description": "Blocks the `junction token` / `kirocrew token` CLI, which mints a signed dashboard access token an attacker could use to authenticate to the gateway. Matches the CLI name (including public aliases `junction` and `acpcrew`) and the token verb within one command segment. The argv floor additionally covers `python -m kiro_crew ... token`."
+    "description": "Blocks the `junction token` / `kirocrew token` CLI, which mints a signed dashboard access token an attacker could use to authenticate to the gateway. Matches the CLI name (including public aliases `junction` and `acpcrew`) and the token verb within one command segment. The argv floor additionally covers `python -m junction ... token`."
   },
   {
     "id": "credential-exfil-kirocrew-token-argv",
@@ -661,9 +661,9 @@
   },
   {
     "id": "sensitive-file-read-cat-kirocrew-env",
-    "pattern": ".*cat.*/(?:\\.kiro/crew|\\.kirocrew)/\\.env.*",
+    "pattern": ".*cat.*/(?:\\.junction|\\.kiro/crew|\\.kirocrew)/\\.env.*",
     "category": "sensitive-file-read",
-    "description": "Blocks using cat to read Kiro Crew's own credential file (~/.kiro/crew/.env, or the pre-move ~/.kirocrew/.env), which holds Kiro Crew's own secrets and environment credentials."
+    "description": "Blocks using cat to read Junction's credential file (~/.junction/.env, the previous ~/.kiro/crew/.env, or the older ~/.kirocrew/.env), which holds Junction's secrets and environment credentials."
   },
   {
     "id": "sensitive-file-read-head-aws",

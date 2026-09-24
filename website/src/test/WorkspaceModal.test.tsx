@@ -11,14 +11,14 @@ import notificationsReducer from '../store/notificationsSlice'
 
 /* ── Mock api client ── */
 const mockApi = vi.hoisted(() => ({
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   agentsInstalled: vi.fn(),
   workspaces: vi.fn(),
-  kirocrewConfig: vi.fn(),
+  junctionConfig: vi.fn(),
   createWorkspace: vi.fn(),
-  createKirocrewAgent: vi.fn(),
-  updateKirocrewAgent: vi.fn(),
-  deleteKirocrewAgent: vi.fn(),
+  createJunctionAgent: vi.fn(),
+  updateJunctionAgent: vi.fn(),
+  deleteJunctionAgent: vi.fn(),
   agentResolvedModel: vi.fn(),
   setDefaultAgent: vi.fn(),
   createChatSlot: vi.fn(),
@@ -57,7 +57,7 @@ vi.mock('../components/SimpleSelect', () => ({
 
 vi.mock('../api/client', () => ({ api: mockApi }))
 
-import KiroCrewAgentsPage from '../pages/KiroCrewAgentsPage'
+import JunctionAgentsPage from '../pages/JunctionAgentsPage'
 
 function createTestStore() {
   return configureStore({
@@ -72,7 +72,7 @@ function renderPage() {
     <QueryClientProvider client={qc}>
       <Provider store={store}>
         <MemoryRouter>
-          <KiroCrewAgentsPage />
+          <JunctionAgentsPage />
         </MemoryRouter>
       </Provider>
     </QueryClientProvider>,
@@ -80,20 +80,20 @@ function renderPage() {
 }
 
 const AGENTS_RESPONSE = {
-  agents: [{ name: 'kirocrew', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default' }],
-  default_agent: 'kirocrew',
+  agents: [{ name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' }],
+  default_agent: 'junction',
 }
 const WORKSPACES_RESPONSE = { workspaces: [{ name: 'default', dir: 'workspace' }, { name: 'oncall', dir: 'workspace-oncall' }] }
-const INSTALLED_RESPONSE = [{ name: 'kirocrew' }]
+const INSTALLED_RESPONSE = [{ name: 'junction' }]
 const CONFIG_RESPONSE = { memory_stores: { default: {} } }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockApi.kirocrewAgents.mockResolvedValue(AGENTS_RESPONSE)
+  mockApi.junctionAgents.mockResolvedValue(AGENTS_RESPONSE)
   mockApi.agentsInstalled.mockResolvedValue(INSTALLED_RESPONSE)
   mockApi.workspaces.mockResolvedValue(WORKSPACES_RESPONSE)
-  mockApi.kirocrewConfig.mockResolvedValue(CONFIG_RESPONSE)
-  mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'kirocrew' })
+  mockApi.junctionConfig.mockResolvedValue(CONFIG_RESPONSE)
+  mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'junction' })
 })
 
 /** Open the crew editor panel. The workspace picker lives inside it now, so
@@ -116,7 +116,7 @@ async function openModalViaWorkspaceDropdown() {
 describe('WorkspaceModal — StyledSelect trigger and modal lifecycle', () => {
   it('workspace dropdown contains "+ New workspace…" action', async () => {
     renderPage()
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalled())
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
     await waitFor(() => expect(mockApi.workspaces).toHaveBeenCalled())
     const sheet = await openCrewSheet()
     fireEvent.click(within(sheet).getByRole('combobox', { name: 'Workspace' }))

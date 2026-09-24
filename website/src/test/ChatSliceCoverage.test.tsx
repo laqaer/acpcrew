@@ -291,7 +291,7 @@ describe('chatSlice prototype-pollution guards', () => {
     for (const bad of POISON) {
       store.dispatch(sseSubagentPending({ slot: bad, id: 'a', task: 't', approval_id: 'ap' }))
       store.dispatch(sseSubagentPending({ slot: 'real', id: bad, task: 't', approval_id: 'ap' }))
-      store.dispatch(sseSubagentSpawn({ slot: 'real', id: bad, task: 't', agent: 'kirocrew' }))
+      store.dispatch(sseSubagentSpawn({ slot: 'real', id: bad, task: 't', agent: 'junction' }))
       store.dispatch(sseSubagentDone({ slot: 'real', id: bad, elapsed: 1 }))
       store.dispatch(sseSubagentSnapshot({ id: bad, slot: 'real', task: 't', agent: 'a', streaming: '', last_tool: '', started: 1 }))
       store.dispatch(markSubagentApproving({ id: bad, approving: true }))
@@ -856,7 +856,7 @@ describe('chatSlice selectors', () => {
   it('reports the composer busy while a background sub-agent runs', () => {
     const store = makeStore()
     store.dispatch(setActiveSlot('front'))
-    store.dispatch(sseSubagentSpawn({ slot: 'back', id: 'a1', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'back', id: 'a1', task: 't', agent: 'junction' }))
     expect(selectSlotSubagentsActive(root(store), 'back')).toBe(true)
     expect(selectComposerBusy(root(store), 'back')).toBe(true)
     expect(selectSlotSubagentsActive(root(store), 'never-seen')).toBe(false)
@@ -878,7 +878,7 @@ describe('chatSlice selectors', () => {
     store.dispatch(markSubagentApproving({ id: 'a1', approving: true }))
     expect(chat(store).subagents.a1.approving).toBe(true)
 
-    store.dispatch(sseSubagentSpawn({ slot: 'front', id: 'a1', task: 'map it well', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'front', id: 'a1', task: 'map it well', agent: 'junction' }))
     expect(chat(store).subagents.a1.status).toBe('running')
     expect(chat(store).subagents.a1.task).toBe('map it well')
     expect(selectSlotPendingSpawnApprovals(root(store), 'front')).toEqual([])
@@ -887,8 +887,8 @@ describe('chatSlice selectors', () => {
   it('counts in-flight sub-agents across every slot exactly once', () => {
     const store = makeStore()
     store.dispatch(setActiveSlot('front'))
-    store.dispatch(sseSubagentSpawn({ slot: 'front', id: 'a1', task: 't', agent: 'kirocrew' }))
-    store.dispatch(sseSubagentSpawn({ slot: 'back', id: 'b1', task: 't', agent: 'kirocrew' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'front', id: 'a1', task: 't', agent: 'junction' }))
+    store.dispatch(sseSubagentSpawn({ slot: 'back', id: 'b1', task: 't', agent: 'junction' }))
     store.dispatch(sseSubagentQueued({ slot: 'back', queued: 2 }))
     expect(selectSubagentActivityCount(root(store))).toBe(4)
 
@@ -1174,7 +1174,7 @@ describe('chatSlice thunks', () => {
     })
     const store = makeStore()
     store.dispatch(setActiveSlot('origin'))
-    await store.dispatch(createSlot({ agent: 'kirocrew' }))
+    await store.dispatch(createSlot({ agent: 'junction' }))
     expect(chat(store).creatingSlot).toBe(false)
     expect(chat(store).activeSlot).toBe('elsewhere')
   })

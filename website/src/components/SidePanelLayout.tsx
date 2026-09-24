@@ -84,7 +84,7 @@ interface SidePanelLayoutProps {
  *  off-screen. */
 export const SidePanelDockContext = React.createContext<'header' | 'bottom-float'>('header')
 
-const TAB_MEMORY_PREFIX = 'kirocrew:sidepanel-tab:'
+const TAB_MEMORY_PREFIX = 'junction:sidepanel-tab:'
 
 export default function SidePanelLayout({ title, tabs, defaultTab, rememberKey, footer, headerRight, headerRightDock = 'header', fixedContent, basePath, children }: SidePanelLayoutProps) {
   const [params, setParams] = useSearchParams()

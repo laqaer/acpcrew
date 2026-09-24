@@ -86,7 +86,7 @@ test.describe('Settings Page', () => {
 
   test('config mutation round-trip: recent_tint_count via Display stepper', async ({ page, request }) => {
     // Read the current value via API
-    const before = await (await request.get('/api/config/kirocrew')).json()
+    const before = await (await request.get('/api/config/junction')).json()
     const originalCount: number = before?.dashboard?.recent_tint_count ?? 0
 
     // Navigate to the Display tab
@@ -112,12 +112,12 @@ test.describe('Settings Page', () => {
     // Read back via API to verify server-side persistence. expect.poll owns the
     // wait for the mutation to reach the server -- no fixed sleep needed.
     await expect.poll(async () => {
-      const cfg = await (await request.get('/api/config/kirocrew')).json()
+      const cfg = await (await request.get('/api/config/junction')).json()
       return cfg?.dashboard?.recent_tint_count
     }, { timeout: 5000 }).toBe(originalCount + delta)
 
     // Restore original value to not pollute other tests
-    await request.fetch('/api/config/kirocrew', {
+    await request.fetch('/api/config/junction', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       data: JSON.stringify({ path: 'dashboard.recent_tint_count', value: originalCount }),

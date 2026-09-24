@@ -6,7 +6,7 @@ const { spawn, execFile, execFileSync } = require("child_process");
 const path = require("path");
 const http = require("http");
 
-const { findKirocrewBin } = require("./find-bin");
+const { findJunctionBin } = require("./find-bin");
 const { buildGatewayEnvironment, gatewayBytecodeEnvironment } = require("./gateway-env");
 const { resolveGatewayPath } = require("./mac-env");
 const {
@@ -45,7 +45,7 @@ const {
   stopGatewayGracefully: _stopGatewayGracefully,
   forceStopPort,
   classifyPortOwner,
-  isKirocrewCommand,
+  isJunctionCommand,
 } = require("./gateway-stop");
 const {
   windowsGatewayExecutablePaths,
@@ -154,7 +154,7 @@ seedRenamedStore(app.getPath("userData"), {
 const store = new Store({
   defaults: {
     remoteHost: "",                        // LEGACY — migrated to remoteHosts
-    kirocrewBinPath: DEFAULT_REMOTE_BIN,   // LEGACY — migrated to remoteHosts
+    junctionBinPath: DEFAULT_REMOTE_BIN,   // LEGACY — migrated to remoteHosts
     remoteHosts: {},                       // { [port]: { host, binPath, remotePort?, remotePath? } }
     sshTimeoutMs: 20000,
     windowState: null,                     // persisted main-window geometry (see window-state.js)
@@ -179,19 +179,19 @@ const store = new Store({
 let runLocalGateway = isLocalGatewayEnabled(store);
 
 // The data home whose config.json governs this launch (see home-dir.js): a
-// valid KIROCREW_HOME override, else the default ~/.kiro/crew -- mirroring the
+// valid JUNCTION_HOME override, else the default ~/.kiro/crew -- mirroring the
 // backend resolver in config/paths.py. Boot-time WRITES (mkdir, pycache prefix)
 // use canonicalHome() so an override is honored without a stray write.
 const { resolveHome, canonicalHome } = require("./home-dir");
 const { fetchLocalToken: fetchTokenFromHome } = require("./local-token");
-const KIROCREW_HOME = resolveHome();
+const JUNCTION_HOME = resolveHome();
 
 function resolvePort() {
-  const raw = process.env.KIROCREW_PORT;
+  const raw = process.env.JUNCTION_PORT;
   if (raw) {
     const n = parseInt(raw, 10);
     if (isNaN(n) || n < 1 || n > 65535) {
-      console.warn(`Invalid KIROCREW_PORT="${raw}", falling back to 5476`);
+      console.warn(`Invalid JUNCTION_PORT="${raw}", falling back to 5476`);
       return 5476;
     }
     return n;
@@ -200,7 +200,7 @@ function resolvePort() {
   // DashboardConfig has no `dashboard.port` key; the port lives in
   // `dashboard.url` (see backend cli_server.resolve_client_port /
   // dashboard/origin.parse_dashboard_url). Read it from the resolved data home.
-  const configuredPort = findConfiguredDashboardPort(fs, path, [KIROCREW_HOME]);
+  const configuredPort = findConfiguredDashboardPort(fs, path, [JUNCTION_HOME]);
   if (configuredPort) return configuredPort;
   console.debug("No usable dashboard.url port in the data home, falling back to 5476");
   return 5476;
@@ -267,7 +267,7 @@ app.name = identityFamily(app.getVersion()) === "nightly" ? "Junction Nightly" :
 
 // Windows taskbar identity. Without an explicit AppUserModelID, Windows groups
 // the app under the generic Electron host (wrong icon in the taskbar/jumplist,
-// pinning targets Electron rather than KiroCrew). Match the packaged appId
+// pinning targets Electron rather than Junction). Match the packaged appId
 // (build.appId = "com.amazon.kiro.crew"); nightly gets a distinct id so it
 // pins/groups side-by-side with stable, mirroring the app.name split above.
 if (IS_WIN) {
@@ -345,7 +345,7 @@ let gatewayProcess = null;
 //                      recovery may kill + respawn it.
 //   "reused-local"   — reuse path, holder POSITIVELY identified as a local
 //                      same-family Junction process (same-family /api/health
-//                      + a "kirocrew" LISTEN owner). An adopted local gateway
+//                      + a "junction" LISTEN owner). An adopted local gateway
 //                      that dies will never come back on its own, so recovery
 //                      must wait BOUNDED and then respawn — never the
 //                      indefinite tunnel-heal wait, which leaves the shell
@@ -370,7 +370,7 @@ let livenessMonitor = null;
 // path). Consulted only during the primary boot wait (see showLoadingThenConnect).
 let gatewayStartFailure = null;
 let isQuitting = false;
-// Debug-only metrics recorder handle; null unless KIROCREW_DEBUG enabled it.
+// Debug-only metrics recorder handle; null unless JUNCTION_DEBUG enabled it.
 let desktopMetricsRecorder = null;
 // True from the moment an update install is dispatched. The updater stops the
 // gateway ON PURPOSE before the bundle swap; without this flag the liveness
@@ -483,14 +483,14 @@ function quitOtherApp(appName) {
 // file are available here.
 //
 function isTrustedWindowsGatewayCommand(command) {
-  const gatewayBin = findKirocrewBin(
+  const gatewayBin = findJunctionBin(
     fs,
     os,
     path,
     process.resourcesPath,
     __dirname
   );
-  return isKirocrewCommand(command, {
+  return isJunctionCommand(command, {
     trustedExecutablePaths: windowsGatewayExecutablePaths(gatewayBin),
   });
 }
@@ -500,7 +500,7 @@ function probeGatewayPortOwner(port) {
     return classifyPortOwner(port, {
       getListenPids: windowsListenPids,
       getCommand: windowsProcessCommand,
-      isKirocrew: isTrustedWindowsGatewayCommand,
+      isJunction: isTrustedWindowsGatewayCommand,
       log: glog,
     });
   }
@@ -622,7 +622,7 @@ async function resolveGatewayConflict(rebindDepth = 0) {
       if (await waitForPortFree()) {
         if (localOwner === "service") {
           // A SERVICE-classified holder that released its port may be mid-restart
-          // (kirocrew restart bounces the launchd/systemd unit): the manager is
+          // (junction restart bounces the launchd/systemd unit): the manager is
           // about to respawn it, and spawning now races that rebind — one side
           // exits with EADDRINUSE. But orphans (reparented to init) classify as
           // service too and have no manager to respawn them, so don't exempt —
@@ -776,7 +776,7 @@ async function offerRelocationIfUnupdatable() {
 }
 
 function startGateway() {
-  glog(`launch: port=${PORT} home=${KIROCREW_HOME} packaged=${app.isPackaged} resourcesPath=${process.resourcesPath || "(none)"} log=${gatewayLogPath()}`);
+  glog(`launch: port=${PORT} home=${JUNCTION_HOME} packaged=${app.isPackaged} resourcesPath=${process.resourcesPath || "(none)"} log=${gatewayLogPath()}`);
   sendStatus("Checking if gateway is running…");
   return new Promise((resolve) => {
     // Both branches below funnel through here, so the client-only choice cannot
@@ -826,8 +826,8 @@ function startGateway() {
   });
 }
 
-// Resolve the KiroCrew project root (the tree that ships `agents/` + `skills/`)
-// for the gateway's KIROCREW_PROJECT_DIR. The bundled app keeps these alongside
+// Resolve the Junction project root (the tree that ships `agents/` + `skills/`)
+// for the gateway's JUNCTION_PROJECT_DIR. The bundled app keeps these alongside
 // the Electron files (Resources/), i.e. one level up from `electron/`; a source
 // checkout has them at the repo root, two levels up (<repo>/website/electron).
 // Probe both and pick the first that actually contains the markers so a source
@@ -850,17 +850,17 @@ function resolveProjectDir() {
 
 function spawnGateway(resolve) {
         // Pre-create the backend's data root so the pycache prefix below has a
-        // live target. Honor a KIROCREW_HOME override, else the default home
+        // live target. Honor a JUNCTION_HOME override, else the default home
         // (canonicalHome()). The gateway creates/owns its home and
         // .local_secret regardless.
-        const kirocrewDir = process.env.KIROCREW_HOME || canonicalHome();
+        const junctionDir = process.env.JUNCTION_HOME || canonicalHome();
         try {
-          fs.mkdirSync(kirocrewDir, { recursive: true, mode: 0o700 });
+          fs.mkdirSync(junctionDir, { recursive: true, mode: 0o700 });
         } catch (err) {
-          glog(`WARN failed to create kirocrew dir ${kirocrewDir}: ${err.message}`);
+          glog(`WARN failed to create junction dir ${junctionDir}: ${err.message}`);
         }
 
-        const bin = findKirocrewBin(fs, os, path, process.resourcesPath, __dirname);
+        const bin = findJunctionBin(fs, os, path, process.resourcesPath, __dirname);
         const bundled = bin.includes("backend-dist");
         let execState = "executable";
         try { fs.accessSync(bin, fs.constants.X_OK); } catch (e) { execState = `NOT-EXECUTABLE(${e.code})`; }
@@ -909,7 +909,7 @@ function spawnGateway(resolve) {
             env: process.env,
             readSysctl: (p) => fs.readFileSync(p, "utf8"),
             // The bundled CLI's absolute path: this persona installed no CLI, so
-            // `kirocrew` is not on their PATH and a bare command would fail.
+            // `junction` is not on their PATH and a bare command would fail.
             cliBin: bin,
           });
           if (need) {
@@ -920,16 +920,16 @@ function spawnGateway(resolve) {
           glog(`WARN sandbox profile check failed: ${e.message}`);
         }
 
-        // Strip KIROCREW_PORT and pass the port EXPLICITLY instead (below).
+        // Strip JUNCTION_PORT and pass the port EXPLICITLY instead (below).
         // Inheriting it would leave the child free to re-derive its own port
         // from env/config; the explicit flag makes the shell's resolvePort()
         // the single source of truth. Before this, the shell honoured
-        // KIROCREW_PORT while the stripped child fell back to config.json (or
+        // JUNCTION_PORT while the stripped child fell back to config.json (or
         // 5476), so the two could disagree — the window loaded one port while
         // the backend bound another, and the backend's own DASHBOARD_PORT (used
         // as the remote-embed frame-ancestor claim) named a port nothing was
         // served on.
-        const { KIROCREW_PORT: _ignored, ...cleanEnv } = process.env;
+        const { JUNCTION_PORT: _ignored, ...cleanEnv } = process.env;
 
         // macOS: a GUI-launched .app inherits launchd's minimal environment, so
         // cleanEnv.PATH is typically /usr/bin:/bin:/usr/sbin:/sbin. Recover the
@@ -977,11 +977,11 @@ function spawnGateway(resolve) {
         // chose. Never omit it: an unset port makes the backend re-derive one,
         // which is how the shell and the backend came to disagree.
         let spawnArgs = ["gateway", "--no-open", "--port", String(PORT)];
-        if (bin.endsWith("kirocrew.cmd")) {
+        if (bin.endsWith("junction.cmd")) {
           const pyExe = path.resolve(path.dirname(bin), "..", "python.exe");
           if (fs.existsSync(pyExe)) {
             spawnBin = pyExe;
-            spawnArgs = ["-s", "-m", "kiro_crew", ...spawnArgs];
+            spawnArgs = ["-s", "-m", "junction", ...spawnArgs];
           } else {
             // The .cmd shim is here but python.exe is not. That is the same
             // extraction race as the incomplete-stdlib case above, caught one
@@ -1021,7 +1021,7 @@ function spawnGateway(resolve) {
             // Windows source layout puts agents/ + skills/ at the repo root
             // (two levels up from electron/), so resolve by markers there.
             // macOS/Linux keep the original one-level-up path unchanged.
-            KIROCREW_PROJECT_DIR: IS_WIN ? resolveProjectDir() : path.resolve(__dirname, ".."),
+            JUNCTION_PROJECT_DIR: IS_WIN ? resolveProjectDir() : path.resolve(__dirname, ".."),
             // macOS code signing seals the app tree and Linux packages may be
             // read-only, so those platforms redirect runtime bytecode. Windows
             // consumes checked-hash pycs generated during packaging instead;
@@ -1029,7 +1029,7 @@ function spawnGateway(resolve) {
             // win on a freshly installed, Defender-scanned bundle.
             ...gatewayBytecodeEnvironment(
               process.platform,
-              path.join(kirocrewDir, "cache", "pycache"),
+              path.join(junctionDir, "cache", "pycache"),
               app.isPackaged,
             ),
           }),
@@ -1059,7 +1059,7 @@ function spawnGateway(resolve) {
           // every fallback stop, in the very log the unrecoverable-gateway dialog
           // tells the user to read.
           if (signal === "SIGKILL" && IS_MAC) {
-            glog("HINT: SIGKILL on a freshly-spawned bundled binary almost always means macOS Gatekeeper blocked an unsigned/quarantined nested executable. On the recipient's Mac run: xattr -cr <path to KiroCrew.app>");
+            glog("HINT: SIGKILL on a freshly-spawned bundled binary almost always means macOS Gatekeeper blocked an unsigned/quarantined nested executable. On the recipient's Mac run: xattr -cr <path to Junction.app>");
           }
           // Only the CURRENT child may mutate the shared state. A stale child's
           // late exit (e.g. the one recoverWedgedGateway just SIGKILLed) must be
@@ -1085,7 +1085,7 @@ function spawnGateway(resolve) {
  * the module-level child process + config.
  *
  * Uses call-time home resolution (secretCandidates) rather than the boot-time
- * KIROCREW_HOME pin, so a KIROCREW_HOME change between boot and shutdown is
+ * JUNCTION_HOME pin, so a JUNCTION_HOME change between boot and shutdown is
  * honored when locating the secret.
  */
 async function stopGatewayGracefully({ timeoutMs = 15000 } = {}) {
@@ -1096,7 +1096,7 @@ async function stopGatewayGracefully({ timeoutMs = 15000 } = {}) {
   // value and let gateway-stop POST each one — the gateway answers 200 only to
   // the secret it actually loaded, so a stale copy can't force a hard SIGTERM.
   const candidates = secretCandidates();
-  const kirocrewHome = path.dirname(candidates[0]); // canonical dir (for logs/SIGTERM path)
+  const junctionHome = path.dirname(candidates[0]); // canonical dir (for logs/SIGTERM path)
   const secrets = [];
   for (const candidate of candidates) {
     try {
@@ -1106,7 +1106,7 @@ async function stopGatewayGracefully({ timeoutMs = 15000 } = {}) {
   }
   await _stopGatewayGracefully(proc, {
     backendUrl: BACKEND_URL,
-    kirocrewHome,
+    junctionHome,
     secrets,
     timeoutMs,
     // Windows fallback scope: when /api/shutdown does not take, a single-pid kill
@@ -1222,7 +1222,7 @@ function fetchRemoteToken(port) {
 }
 
 async function fetchLocalToken(backendUrl = BACKEND_URL) {
-  // Re-resolve the authoritative home at call time so a KIROCREW_HOME change
+  // Re-resolve the authoritative home at call time so a JUNCTION_HOME change
   // after Electron starts is honored. Send exactly that one secret to the
   // gateway's literal IPv4 bind address; never probe alternate homes/addresses.
   return fetchTokenFromHome({
@@ -1287,7 +1287,7 @@ function waitForBackend(targetWin, healthUrl = HEALTH_URL, { watchSpawn = false 
 
 // ── Theme-aware modal styles ──
 
-/** Read CSS custom properties from the active KiroCrew dashboard. */
+/** Read CSS custom properties from the active Junction dashboard. */
 async function getDashboardThemeVars() {
   const win = BaseWindow.getFocusedWindow() || mainWindow;
   if (!win || win.isDestroyed()) return null;
@@ -1394,7 +1394,7 @@ function syncNativeTheme(view, win) {
  * the default partition so it never receives the dashboard's `mc_token_<port>`
  * cookie (cookies are host-scoped, not port-scoped).
  */
-const BROWSER_PARTITION = "persist:kirocrew-browser";
+const BROWSER_PARTITION = "persist:junction-browser";
 
 /**
  * Lock down the embedded-browser partition.
@@ -1681,7 +1681,7 @@ function setupWindowContents(win, backendUrl) {
     // VIEW PRECONDITION, because authorization to drive the built-in browser is
     // Browser Mode (the Settings toggle), the agent's keystone-level grant.
     //
-    // Precedent (src/kiro_crew/security.py ~line 4236): Browser Mode is documented
+    // Precedent (src/junction/security.py ~line 4236): Browser Mode is documented
     // as keystone-level authorization — "Presence alone is the authorization" —
     // and in attach mode it authorizes driving the operator's OWN running,
     // logged-in browser. The agent's browser_* tools only exist while Browser Mode
@@ -2034,7 +2034,7 @@ function setupWindowContents(win, backendUrl) {
             // caption buttons are never in the tab order, so keep these out
             // of it too (WM shortcuts cover keyboard users).
             b.tabIndex = -1;
-            b.addEventListener('click', () => window.kirocrew?.windowControl?.(action));
+            b.addEventListener('click', () => window.junction?.windowControl?.(action));
             return b;
           };
           wrap.append(
@@ -2462,7 +2462,7 @@ async function promptRemoteHost() {
     <label>Remote host for :${port}</label>
     <input id="h" value="${esc(currentHost)}" placeholder="myhost.corp.example.com" autofocus>
     <div class="hint">Leave empty to use local token (no SSH).</div>
-    <label>kirocrew binary path</label>
+    <label>junction binary path</label>
     <input id="b" value="${esc(currentBin)}" placeholder="${DEFAULT_REMOTE_BIN}">
     <label>Remote port <span style="font-weight:normal;opacity:0.6">(default: same as tab = ${port})</span></label>
     <input id="rp" value="${esc(currentRemotePort)}" placeholder="${port}">
@@ -2715,7 +2715,7 @@ function _psPpid(pid) {
 }
 
 /**
- * Best-effort force-stop of whatever holds `port`, scoped to KiroCrew processes
+ * Best-effort force-stop of whatever holds `port`, scoped to Junction processes
  * only, then VERIFY the port actually freed (see forceStopPort in gateway-stop.js).
  * Returns {killed, freed, survivors}: `freed === false` means the holder could
  * not be killed (uninterruptible-sleep wedge) and a respawn would just fail to
@@ -2733,7 +2733,7 @@ function forceStopGatewayPort(port) {
         isTrustedCommand: isTrustedWindowsGatewayCommand,
       }),
       sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
-      isKirocrew: isTrustedWindowsGatewayCommand,
+      isJunction: isTrustedWindowsGatewayCommand,
       failClosedOnProbeError: true,
       log: glog,
     });
@@ -3127,7 +3127,7 @@ async function showLoadingThenConnect(win, backendUrl = BACKEND_URL) {
     // A wedged/other gateway already holding this flavor's port is a distinct,
     // recoverable case: the spawn dies with "address already in use" and a plain
     // retry can't help (the holder is still there). Detect it and offer to
-    // force-stop the stuck KiroCrew process. Only meaningful for OUR own port.
+    // force-stop the stuck Junction process. Only meaningful for OUR own port.
     // Nothing was spawned in the client-only case, so it is classified before
     // the port-conflict probe — see classifyStartFailure for why the log tail
     // cannot be trusted to mean "a holder exists right now".
@@ -3185,14 +3185,14 @@ async function showLoadingThenConnect(win, backendUrl = BACKEND_URL) {
       title = `Junction — port ${PORT} already in use`;
       message = `Another Junction gateway is already using port ${PORT} (it may be wedged). `
         + `Force-stop it and retry, or quit. From a terminal you can also run: `
-        + `kirocrew stop --port ${PORT}`;
+        + `junction stop --port ${PORT}`;
     } else if (failedToStart) {
       title = "Junction — gateway failed to start";
       message = err.message;
     } else {
       title = "Junction — can't reach the gateway";
       message = "Could not connect to the Junction backend. Make sure "
-        + "'kirocrew gateway' is running, or check kirocrew doctor.";
+        + "'junction gateway' is running, or check junction doctor.";
     }
 
     // Loop so "Reveal Log" can re-show the dialog after opening Finder.
@@ -3406,7 +3406,7 @@ function renameCurrentWindow() {
 // Guide the user to grant macOS Screen Recording permission when it has been
 // explicitly denied — the snip tool cannot capture any frame without it. Opens
 // the exact Privacy pane. Note: the granted entity must be the packaged
-// KiroCrew.app, not the terminal that launched a dev build.
+// Junction.app, not the terminal that launched a dev build.
 function showScreenPermissionDialog() {
   const pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
   dialog
@@ -3486,9 +3486,9 @@ app.whenReady().then(async () => {
   if (LINUX_FRAME_DECISION) {
     glog(`linux frame decision: frameless=${LINUX_FRAME_DECISION.frameless} reason=${LINUX_FRAME_DECISION.reason}`);
   }
-  // Debug-only per-process metrics recorder. No-ops unless KIROCREW_DEBUG is set,
+  // Debug-only per-process metrics recorder. No-ops unless JUNCTION_DEBUG is set,
   // so a normal install pays nothing; when on, it writes a bounded rolling
-  // artifact next to the gateway log for `kirocrew desktop metrics` to read.
+  // artifact next to the gateway log for `junction desktop metrics` to read.
   try {
     desktopMetricsRecorder = createMetricsRecorder({
       dir: path.dirname(gatewayLogPath()),
@@ -3991,7 +3991,7 @@ app.whenReady().then(async () => {
   // highlighter activity that preceded it, on a normal install, with no env var
   // set ahead of time.
   //
-  // KIROCREW_DEBUG additionally logs each window as it arrives, for watching a
+  // JUNCTION_DEBUG additionally logs each window as it arrives, for watching a
   // live reproduction instead of reading a post-mortem. Checked per message so
   // toggling the variable needs no rebuild.
   ipcMain.on("pierre-perf", (_event, w) => {

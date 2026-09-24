@@ -1,7 +1,7 @@
 """Tests for the markdown memory read surface.
 
-Covers ``kirocrew memory show`` (the documented-but-previously-missing
-command) and ``kirocrew memory export --include-markdown``, plus the
+Covers ``junction memory show`` (the documented-but-previously-missing
+command) and ``junction memory export --include-markdown``, plus the
 ``MemoryStore`` readers behind them. The most important guard is that
 ``export`` WITHOUT the flag stays byte-identical to its previous shape.
 """
@@ -18,8 +18,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew import cli_commands
-from kiro_crew.memory import MemoryStore
+from junction import cli_commands
+from junction.memory import MemoryStore
 
 # ── Helpers ──
 
@@ -220,7 +220,7 @@ class TestReadRefusalSelAudit:
     suppressed by the same same-host actor the guard defends against."""
 
     def _recording_sel(self, monkeypatch: pytest.MonkeyPatch) -> list[dict]:
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         calls: list[dict] = []
 
@@ -284,7 +284,7 @@ class TestReadRefusalSelAudit:
     def test_audit_failure_never_breaks_the_read(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         def _boom() -> object:
             raise RuntimeError("sel unavailable")
@@ -315,7 +315,7 @@ class TestGuardedReadRobustness:
     def test_oversized_file_yields_empty_entry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import hooks
+        from junction import hooks
 
         ms = _store(tmp_path)
         ms.init()
@@ -339,7 +339,7 @@ class TestGuardedReadRobustness:
     def test_concurrent_rewrite_retries_to_consistent_version(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import memory as memory_mod
+        from junction import memory as memory_mod
 
         ms = _store(tmp_path)
         ms.init()
@@ -363,7 +363,7 @@ class TestGuardedReadRobustness:
     def test_file_changing_on_every_read_degrades_to_empty(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import memory as memory_mod
+        from junction import memory as memory_mod
 
         ms = _store(tmp_path)
         ms.init()
@@ -395,8 +395,8 @@ class TestUncWorkspaceGate:
     def _unc_store(self, monkeypatch: pytest.MonkeyPatch) -> "object":
         import types
 
-        from kiro_crew import memory as memory_mod
-        from kiro_crew.memory import MemoryStore
+        from junction import memory as memory_mod
+        from junction.memory import MemoryStore
 
         store = MemoryStore(workspace=Path("//evil-host/share/ws"))
         # Patch ONLY memory.py's view of os (its sole use is the gate's
@@ -408,7 +408,7 @@ class TestUncWorkspaceGate:
     def test_snapshot_refuses_unc_workspace_without_filesystem_touch(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import memory as memory_mod
+        from junction import memory as memory_mod
 
         ms = self._unc_store(monkeypatch)
 
@@ -426,7 +426,7 @@ class TestUncWorkspaceGate:
         assert "- prefers pytest" in ms.markdown_snapshot()["preferences"]["content"]
 
 
-# ── kirocrew memory show ──
+# ── junction memory show ──
 
 
 class TestMemoryShowCli:
@@ -509,7 +509,7 @@ class TestMemoryShowCli:
     def test_store_reads_where_the_consolidator_writes(self) -> None:
         """The read surface must anchor where the gateway's consolidator
         (the writer of this layer) writes: the bare MemoryStore default."""
-        from kiro_crew.memory import MemoryStore, workspace_dir
+        from junction.memory import MemoryStore, workspace_dir
 
         store = cli_commands._markdown_memory_store()
         writer = MemoryStore()
@@ -528,7 +528,7 @@ class TestMemoryShowCli:
         assert "\x1b" not in out and "pwned" not in out and "evil" in out
 
 
-# ── kirocrew memory export --include-markdown ──
+# ── junction memory export --include-markdown ──
 
 
 class TestAtomicMemoryWrites:
@@ -552,7 +552,7 @@ class TestAtomicMemoryWrites:
     def test_failed_replace_cleans_up_temp_file(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import atomic_write as atomic_write_mod
+        from junction import atomic_write as atomic_write_mod
 
         ms = _store(tmp_path)
         ms.init()
@@ -630,9 +630,7 @@ class TestStaleBaselineWriteGuard:
         ms.init()
         ms.write_preferences("# User Preferences\n\n- v1\n")
         baseline = ms.read_preferences()
-        wrote = ms.write_preferences(
-            "# User Preferences\n\n- merged\n", expected_baseline=baseline
-        )
+        wrote = ms.write_preferences("# User Preferences\n\n- merged\n", expected_baseline=baseline)
         assert wrote is True
         assert "- merged" in ms.read_preferences()
 
@@ -642,7 +640,10 @@ class TestStaleBaselineWriteGuard:
         ms.write_projects("# Active Projects\n\n- p1\n")
         baseline = ms.read_projects()
         ms.write_projects("# Active Projects\n\n- user edit\n")
-        assert ms.write_projects("# Active Projects\n\n- merged\n", expected_baseline=baseline) is False
+        assert (
+            ms.write_projects("# Active Projects\n\n- merged\n", expected_baseline=baseline)
+            is False
+        )
         assert "- user edit" in ms.read_projects()
         fresh = ms.read_projects()
         assert ms.write_projects("# Active Projects\n\n- merged\n", expected_baseline=fresh) is True
@@ -681,9 +682,7 @@ class TestLockFileSymlinkGuard:
         except (OSError, NotImplementedError):  # pragma: no cover - Windows CI
             pytest.skip("symlinks not available on this platform")
 
-    def test_planted_write_lock_symlink_fails_closed_target_intact(
-        self, tmp_path: Path
-    ) -> None:
+    def test_planted_write_lock_symlink_fails_closed_target_intact(self, tmp_path: Path) -> None:
         target = tmp_path / "victim.txt"
         target.write_text("precious", encoding="utf-8")
         ms = _store(tmp_path)
@@ -694,9 +693,7 @@ class TestLockFileSymlinkGuard:
             ms.write_preferences("# User Preferences\n\n- attack\n")
         assert target.read_text(encoding="utf-8") == "precious"
 
-    def test_planted_append_lock_symlink_fails_closed_target_intact(
-        self, tmp_path: Path
-    ) -> None:
+    def test_planted_append_lock_symlink_fails_closed_target_intact(self, tmp_path: Path) -> None:
         target = tmp_path / "victim.txt"
         target.write_text("precious", encoding="utf-8")
         ms = _store(tmp_path)
@@ -959,7 +956,7 @@ class TestMemoryImportMarkdownNotice:
 class TestMemoryCliWiring:
     def test_memory_show_arguments_parse(self) -> None:
         argv = [
-            "kirocrew",
+            "junction",
             "memory",
             "show",
             "history",
@@ -970,9 +967,9 @@ class TestMemoryCliWiring:
         ]
         with (
             patch.object(sys, "argv", argv),
-            patch("kiro_crew.cli_commands._memory_cmd") as mock_cmd,
+            patch("junction.cli_commands._memory_cmd") as mock_cmd,
         ):
-            from kiro_crew.cli import main
+            from junction.cli import main
 
             main()
         ns = mock_cmd.call_args[0][0]
@@ -985,10 +982,10 @@ class TestMemoryCliWiring:
 
     def test_memory_show_target_optional_defaults(self) -> None:
         with (
-            patch.object(sys, "argv", ["kirocrew", "memory", "show"]),
-            patch("kiro_crew.cli_commands._memory_cmd") as mock_cmd,
+            patch.object(sys, "argv", ["junction", "memory", "show"]),
+            patch("junction.cli_commands._memory_cmd") as mock_cmd,
         ):
-            from kiro_crew.cli import main
+            from junction.cli import main
 
             main()
         ns = mock_cmd.call_args[0][0]
@@ -996,10 +993,10 @@ class TestMemoryCliWiring:
 
     def test_memory_export_include_markdown_defaults_off(self) -> None:
         with (
-            patch.object(sys, "argv", ["kirocrew", "memory", "export"]),
-            patch("kiro_crew.cli_commands._memory_cmd") as mock_cmd,
+            patch.object(sys, "argv", ["junction", "memory", "export"]),
+            patch("junction.cli_commands._memory_cmd") as mock_cmd,
         ):
-            from kiro_crew.cli import main
+            from junction.cli import main
 
             main()
         assert mock_cmd.call_args[0][0].include_markdown is False

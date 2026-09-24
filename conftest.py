@@ -2,7 +2,7 @@
 
 ``test/conftest.py`` holds the bulk of the suite's isolation, but it only applies
 to ``test/``. ``[tool:pytest] testpaths`` also collects ``transfer`` and
-``src/kiro_crew/apps/builtins`` (~108 test modules that ship inside the package,
+``src/junction/apps/builtins`` (~108 test modules that ship inside the package,
 next to the code they cover), and those get no ``test/conftest.py`` fixtures at
 all -- only this file, plus that app's own ``tests/conftest.py`` where one exists.
 Anything that must hold for EVERY test therefore has to live here, at the
@@ -19,10 +19,10 @@ this" contract failed at least once:
 * **Services.** ``$XDG_CONFIG_HOME`` is redirected and the stdlib spawn funnels
   refuse a ``systemctl``/``launchctl`` invocation carrying a mutating verb, so no
   test can reconfigure or restart the operator's real gateway (issue #1722).
-* **The data home.** ``KIROCREW_HOME`` is pinned per test, and the ``~/.kiro``
+* **The data home.** ``JUNCTION_HOME`` is pinned per test, and the ``~/.kiro``
   paths that production binds at IMPORT time (which the env var cannot reach) are
   pinned with it. Without this, the ~108 test modules that ship inside the package
-  under ``src/kiro_crew/apps/builtins/*/tests/`` -- which see this conftest and no
+  under ``src/junction/apps/builtins/*/tests/`` -- which see this conftest and no
   other -- write the operator's live ``~/.kiro/crew`` the moment they touch
   ``config_dir()``.
 * **Credential environment.** Recognised fixed credentials and validated
@@ -31,7 +31,7 @@ this" contract failed at least once:
   worker.
 * **The agent-spec home.** ``kiro_agents_dir()`` is a LAZY resolver, so neither of
   the two above reaches it, and a test that reaches the spec write path rewrites
-  the machine-wide ``<kiro home>/agents/kirocrew.json`` -- the file that decides
+  the machine-wide ``<kiro home>/agents/junction.json`` -- the file that decides
   which MCP servers the operator's real agent has (issue #4912). The per-module
   override seams are pinned instead of ``KIRO_HOME``, which cannot be pinned
   without overriding ~35 tests' own ``Path.home()`` isolation.
@@ -59,7 +59,7 @@ imports made explicit first. The visible effect today is that isort now classifi
 that use it.
 
 Why this floor exists (issue #1722): a test asserting that a staged cutover can
-be *cancelled* rewrote the operator's real ``kirocrew-gateway.service`` drop-in
+be *cancelled* rewrote the operator's real ``junction-gateway.service`` drop-in
 to point at its own pytest temp dir. pytest deleted the temp dir at the end of
 the run; the drop-in survived, so systemd looped on ``203/EXEC`` — 548 failed
 starts over 25 minutes. The test never intended to touch the host: it called the
@@ -70,12 +70,12 @@ for each test to remember to stub.
 The fixtures below remove that "remember to" from the contract. None of them
 changes the behaviour of a test that already isolates itself correctly: every one
 sets a value a test can still override, and a test that sets its own
-``KIROCREW_HOME`` or its own temp dir keeps winning.
+``JUNCTION_HOME`` or its own temp dir keeps winning.
 
 Imports at MODULE level are stdlib + pytest only, on purpose: a rootdir conftest is
-imported before every collection, so pulling ``kiro_crew`` in here would make the
+imported before every collection, so pulling ``junction`` in here would make the
 whole suite depend on import-time side effects of the package under test. The
-fixtures that do need ``kiro_crew`` import it in their own body, which runs at test
+fixtures that do need ``junction`` import it in their own body, which runs at test
 setup -- by which point the test module has already imported the package anyway --
 and tolerate an ImportError so a partial checkout cannot break collection.
 """
@@ -140,7 +140,7 @@ _ROOT_HAS_REAL_SYMLINKS = _root_can_create_real_symlink()
 #:
 #: * ``systemd-run`` — in this codebase it is not a service-control tool at all.
 #:   ``sandbox`` wraps essentially EVERY subprocess in
-#:   ``systemd-run --user --scope --slice=kirocrew-agents.slice -p MemoryMax=…``
+#:   ``systemd-run --user --scope --slice=junction-agents.slice -p MemoryMax=…``
 #:   to apply cgroup resource limits, so denying it would refuse an ordinary
 #:   ``git config`` spawn. Its one service-control use (``restart_detached``)
 #:   passes ``systemctl restart`` as the wrapped command, which this guard
@@ -270,7 +270,7 @@ def _refuse(reason: str, argv: object) -> None:
         f"  argv: {argv!r}\n"
         f"This spawn must be stubbed. Depending on the code under test:\n"
         f"  - dev_fleet make-live: stub BOTH `_run_cmd` and `_dropin_path`\n"
-        f"  - kiro_crew.service.*: patch `service.<platform>.subprocess.run`\n"
+        f"  - junction.service.*: patch `service.<platform>.subprocess.run`\n"
         f"  - pod runtime: stub the runtime's `systemctl` / `launchctl` helper\n"
         f"Read-only queries (`systemctl show`, `cat`, `is-active`) are allowed and "
         f"need no stub.\n"
@@ -297,7 +297,7 @@ def _isolate_xdg_config_home(_xdg_config_root, monkeypatch):
     """Point ``$XDG_CONFIG_HOME`` at a tmp dir so no test writes a real unit file.
 
     ``dev_fleet._dropin_path()`` resolves the make-live systemd drop-in as
-    ``$XDG_CONFIG_HOME/systemd/user/kirocrew-gateway.service.d/make-live.conf``,
+    ``$XDG_CONFIG_HOME/systemd/user/junction-gateway.service.d/make-live.conf``,
     falling back to ``~/.config`` when the variable is unset — which is the
     default on most developer machines and in CI. So a test that reaches the
     cutover path without stubbing ``_dropin_path`` writes the operator's real
@@ -323,7 +323,7 @@ def _isolate_launchd_paths(_xdg_config_root, monkeypatch):
     module globals bound at IMPORT time from ``Path.home()``::
 
         PLIST_DIR    = ~/Library/LaunchAgents
-        PLIST_PATH   = PLIST_DIR / "dev.kirocrew.gateway.plist"
+        PLIST_PATH   = PLIST_DIR / "dev.junction.gateway.plist"
         LOG_DIR      = ~/Library/Logs/...        (+ STDOUT_LOG, STDERR_LOG)
         LIVE_PROGRAM = launchd_live_program()    (under ~/Library/Application Support)
 
@@ -332,7 +332,7 @@ def _isolate_launchd_paths(_xdg_config_root, monkeypatch):
     redirect above leaves the launchd side wide open.
 
     It is reachable today, not hypothetically. ``macos.install()`` calls
-    ``write_live_program(render_live_program(kirocrew_bin()))`` with no path
+    ``write_live_program(render_live_program(junction_bin()))`` with no path
     argument, so the launcher lands on the real ``LIVE_PROGRAM`` even in a test that
     carefully pinned every ``PLIST_*`` constant — which
     ``test_install_writes_plist_and_loads`` does. Raised in review of #1722.
@@ -355,11 +355,11 @@ def _isolate_launchd_paths(_xdg_config_root, monkeypatch):
     root = pathlib.Path(_xdg_config_root) / "launchd"
     launcher = root / "live-gateway"
     plist_dir = root / "LaunchAgents"
-    plist_path = plist_dir / "dev.kirocrew.gateway.plist"
+    plist_path = plist_dir / "dev.junction.gateway.plist"
     log_dir = root / "Logs"
 
     eager: dict[str, dict[str, object]] = {
-        "kiro_crew.service.macos": {
+        "junction.service.macos": {
             "PLIST_DIR": plist_dir,
             "PLIST_PATH": plist_path,
             "LOG_DIR": log_dir,
@@ -367,10 +367,10 @@ def _isolate_launchd_paths(_xdg_config_root, monkeypatch):
             "STDERR_LOG": log_dir / "gateway.err",
             "LIVE_PROGRAM": launcher,
         },
-        "kiro_crew.service.common": {"launchd_live_program": lambda: launcher},
+        "junction.service.common": {"launchd_live_program": lambda: launcher},
     }
     lazy: dict[str, dict[str, object]] = {
-        "kiro_crew.apps.builtins.dev_fleet.gateway_service": {
+        "junction.apps.builtins.dev_fleet.gateway_service": {
             "PLIST_PATH": plist_path,
             "launchd_live_program": lambda: launcher,
         },
@@ -396,7 +396,7 @@ def _isolate_launchd_paths(_xdg_config_root, monkeypatch):
 def _no_credential_env_residue():
     """Restore the credential env vars a test may have had INJECTED into it.
 
-    ``KiroCrewConfig.load_credentials()`` deliberately propagates every credential
+    ``JunctionConfig.load_credentials()`` deliberately propagates every credential
     it reads into ``os.environ`` with ``setdefault``, so a spawned child (sandboxed
     agent, MCP server, cron subprocess) inherits it through ``Popen``'s default
     ``env=os.environ.copy()``. Any test that points ``env_path()`` at a fabricated
@@ -418,7 +418,7 @@ def _no_credential_env_residue():
     shape. Two linear environment scans per test also catch a dynamic key that
     did not exist at setup, without masking an unrelated environment change.
     """
-    from kiro_crew.config.loader import _CREDENTIAL_KEYS, _JIRA_TOKEN_RE
+    from junction.config.loader import _CREDENTIAL_KEYS, _JIRA_TOKEN_RE
 
     fixed = frozenset(_CREDENTIAL_KEYS)
 
@@ -443,7 +443,7 @@ def _block_host_service_mutation(request, monkeypatch):
 
     Redirecting ``$XDG_CONFIG_HOME`` above stops a test from *writing* a real
     unit file, but not from *running* ``systemctl --user daemon-reload`` or
-    ``systemctl --user restart kirocrew-gateway.service``. Those restart the
+    ``systemctl --user restart junction-gateway.service``. Those restart the
     developer's live gateway even when the drop-in they read is pristine, so the
     second half of the floor has to be an execution guard.
 
@@ -883,7 +883,7 @@ def _no_leaked_telemetry_exporter():
     leaked = _live_exporter_threads() - before
     if not leaked:
         return
-    provider = sys.modules.get("kiro_crew.metrics.provider")
+    provider = sys.modules.get("junction.metrics.provider")
     if provider is not None:
         with contextlib.suppress(Exception):
             provider.reset_for_testing()
@@ -992,7 +992,7 @@ def _restore_logger_levels():
 
     A level is PROCESS-GLOBAL and HIERARCHICAL, which together are what make a leak here
     so hard to attribute: ``Logger.debug`` checks the EFFECTIVE level, so an explicit
-    level left on ``kiro_crew`` decides what every ``kiro_crew.*`` logger in the worker
+    level left on ``junction`` decides what every ``junction.*`` logger in the worker
     may emit, and it outranks the root level ``caplog.at_level()`` sets. The victim then
     sees ``caplog.text == ""`` -- not the wrong text, NOTHING -- from a test that passes
     alone, in a file that has nothing to do with the cause.
@@ -1001,7 +1001,7 @@ def _restore_logger_levels():
     test_options_post_failure_still_delivers_text`` asserts on a ``logger.debug`` line and
     reds whenever ``test_cli.py::TestCronCli::test_cli_argparse_cron_add_agent_flag``
     shares its worker -- an ARGPARSE test, in a file with no connection to Slack. It
-    drives the real ``cli.main()``, whose ``_setup_cli_logging`` pins ``kiro_crew`` at
+    drives the real ``cli.main()``, whose ``_setup_cli_logging`` pins ``junction`` at
     WARNING, exactly as production does once per process and never undoes. Test modules
     across the suite drive ``main()`` that way.
 
@@ -1023,7 +1023,7 @@ def _restore_logger_levels():
     back during teardown, re-attaching the setup phase's handler and dropping the one the
     teardown phase is capturing through.
 
-    The handlers ``_setup_cli_logging`` leaves on ``kiro_crew`` do accumulate -- each open
+    The handlers ``_setup_cli_logging`` leaves on ``junction`` do accumulate -- each open
     on a ``gateway.log`` under a ``tmp_path`` the next test deletes -- but that is a
     separate defect from this one, and it is not what empties ``caplog``.
     ``test_cli_logging.py``'s own ``_pristine_logging`` fixture is what absorbs it today,
@@ -1068,7 +1068,7 @@ def pytest_runtest_setup(item):
     OS sandbox backend" on a host whose sandbox works perfectly.
 
     This lived in ``test/conftest.py``, which the in-package app suites never load,
-    so the ~1490 tests under ``src/kiro_crew/apps/builtins/*/tests/`` had no warm
+    so the ~1490 tests under ``src/junction/apps/builtins/*/tests/`` had no warm
     cache at all -- 19 of them failed that way in a full run while every one passed
     when its own file was run alone. Whether an app test file happened to land on an
     xdist worker that had already run something under ``test/`` decided the verdict.
@@ -1094,7 +1094,7 @@ def pytest_runtest_setup(item):
     """
     global _probe_verdict, _probe_attempted
     try:
-        from kiro_crew import sandbox
+        from junction import sandbox
 
         if not _probe_attempted:
             _probe_attempted = True
@@ -1124,7 +1124,7 @@ def pytest_collection_modifyitems(config, items):
     job, so the Windows line holds for the tests that pass today.
 
     Lives HERE rather than in ``test/conftest.py`` because the list already names node
-    ids under ``src/kiro_crew/apps/builtins/auto_improvement/tests/``, and a hook rooted
+    ids under ``src/junction/apps/builtins/auto_improvement/tests/``, and a hook rooted
     at ``test/`` is never registered when only in-package tests are collected -- which is
     exactly what CI's reduced-scope Windows job does when a diff touches no path under
     ``test/``. Those entries are also absent from ``BACKEND_DESELECTS``, so they were
@@ -1190,7 +1190,7 @@ def _base_nodeid(nodeid: str) -> str:
 
 
 def platform_compat_or_none():
-    """``kiro_crew.platform_compat``, or ``None`` when it cannot be imported.
+    """``junction.platform_compat``, or ``None`` when it cannot be imported.
 
     Imported lazily so this rootdir conftest keeps its module-level imports to the
     stdlib: it is loaded before every collection, and a module-scope import of the
@@ -1198,7 +1198,7 @@ def platform_compat_or_none():
     side effects.
     """
     try:
-        from kiro_crew import platform_compat
+        from junction import platform_compat
     except ImportError:  # pragma: no cover - partial checkout
         return None
     return platform_compat
@@ -1274,8 +1274,8 @@ _TMP_ENV_VARS = ("TMPDIR", "TEMP", "TMP")
 #: suite's fixture audit exists to avoid (paid ~26.5k times). It is the escape hatch
 #: for the one question the session-scoped guard below cannot answer: a single stray
 #: directory in a 26k-test run names no culprit. Re-run the suspect subset with
-#: ``KIROCREW_TMP_PER_TEST=1`` and the residue's parent directory IS the test id.
-_TMP_PER_TEST_ENV = "KIROCREW_TMP_PER_TEST"
+#: ``JUNCTION_TMP_PER_TEST=1`` and the residue's parent directory IS the test id.
+_TMP_PER_TEST_ENV = "JUNCTION_TMP_PER_TEST"
 
 #: Names under the run's temp base that are NOT this suite's residue.
 #:
@@ -1286,7 +1286,7 @@ _TMP_PER_TEST_ENV = "KIROCREW_TMP_PER_TEST"
 #: * ``pytest-of-`` -- a NESTED pytest's own ``basetemp`` tree. Several tests spawn one,
 #:   and it resolves ``gettempdir()`` after the redirect has taken effect, so it computes
 #:   its basetemp inside ours. A child runner's bookkeeping, with its own retention.
-#: * ``kirocrew-computer-shots`` -- the computer-use screenshot spool, which production
+#: * ``junction-computer-shots`` -- the computer-use screenshot spool, which production
 #:   deliberately keeps under ``tempfile.gettempdir()`` as a persistent ring buffer
 #:   (pinned by ``test_computer_use_capture.py``). Long-lived BY DESIGN, so its presence
 #:   is the feature working, not a test leaking.
@@ -1295,7 +1295,7 @@ _TMP_PER_TEST_ENV = "KIROCREW_TMP_PER_TEST"
 #:   suite does not own and cannot register cleanup for.
 _TMP_RESIDUE_ALLOWED_PREFIXES: tuple[str, ...] = (
     "pytest-of-",
-    "kirocrew-computer-shots",
+    "junction-computer-shots",
     "playwright-",
     ".org.chromium.",
 )
@@ -1314,7 +1314,7 @@ _TMP_RESIDUE_ALLOWED_PREFIXES: tuple[str, ...] = (
 #: REPORTED either way. Set this to make it fatal -- in a burn-down branch, or in CI once
 #: the remaining set is empty. Same shape as ``windows-expected-failures.txt``: a known
 #: set, visible, with a way to hold the line once it is closed.
-_TMP_RESIDUE_STRICT_ENV = "KIROCREW_TMP_RESIDUE_STRICT"
+_TMP_RESIDUE_STRICT_ENV = "JUNCTION_TMP_RESIDUE_STRICT"
 
 
 def _redirect_tempfile_base(base: pathlib.Path) -> None:
@@ -1350,7 +1350,7 @@ def _remove_tree(path: pathlib.Path) -> bool:
     returns a filesystem-derived boolean rather than the hook's opinion.
     """
     try:
-        from kiro_crew import platform_compat as _pc
+        from junction import platform_compat as _pc
     except ImportError:  # pragma: no cover - partial checkout
         shutil.rmtree(path, ignore_errors=True)
         return not path.exists()
@@ -1378,7 +1378,7 @@ def _isolate_tempfile_base(tmp_path_factory):
     can both NAME it (residue is still a defect) and REMOVE it (so the accumulation stops
     regardless of whether anyone acts on the report).
 
-    The report WARNS by default and fails only under ``KIROCREW_TMP_RESIDUE_STRICT`` --
+    The report WARNS by default and fails only under ``JUNCTION_TMP_RESIDUE_STRICT`` --
     see ``_TMP_RESIDUE_STRICT_ENV`` for why that is a staged rollout and not a shrug.
 
     Under ``-n auto`` each xdist worker is its own process, so each gets its own
@@ -1508,7 +1508,7 @@ def _tmp_residue_report(base: pathlib.Path, leaked: list[str], *, per_test: bool
 def _isolate_tempfile_base_per_test(_isolate_tempfile_base, request):
     """Opt-in: give this test its own temp base so a leak names its own test.
 
-    Inert unless ``KIROCREW_TMP_PER_TEST`` is set, so the steady-state cost is one
+    Inert unless ``JUNCTION_TMP_PER_TEST`` is set, so the steady-state cost is one
     environment read per test. See ``_TMP_PER_TEST_ENV``.
 
     Named from the NODEID, not ``node.name``. The bare function name carries no module
@@ -1538,7 +1538,7 @@ def _isolation_root(tmp_path_factory):
 
     Named ``i`` rather than something descriptive to keep the paths short: Windows
     still caps a path at 260 characters unless long paths are enabled, and
-    everything a test writes under ``KIROCREW_HOME`` nests inside here.
+    everything a test writes under ``JUNCTION_HOME`` nests inside here.
     """
     return tmp_path_factory.mktemp("i")
 
@@ -1585,12 +1585,12 @@ _isolation_dirs.seq = 0  # type: ignore[attr-defined]
 
 
 @pytest.fixture(autouse=True)
-def _isolate_kirocrew_home(_isolation_dirs, monkeypatch):
-    """Pin ``KIROCREW_HOME`` to a per-test tmp dir, for EVERY testpath.
+def _isolate_junction_home(_isolation_dirs, monkeypatch):
+    """Pin ``JUNCTION_HOME`` to a per-test tmp dir, for EVERY testpath.
 
     This lives at the rootdir rather than in ``test/conftest.py`` because the leak it
     closes is worst in the testpaths that conftest does not reach. The ~108 test
-    modules under ``src/kiro_crew/apps/builtins/*/tests/`` ship inside the package and
+    modules under ``src/junction/apps/builtins/*/tests/`` ship inside the package and
     see only this file, so before this fixture existed here any of them that touched
     ``config_dir()`` resolved the operator's live data home -- and that resolution is
     not read-only: ``config_dir()`` CREATES the home and its marker on first use, and
@@ -1599,7 +1599,7 @@ def _isolate_kirocrew_home(_isolation_dirs, monkeypatch):
     other six had not, which is exactly the "remember to" contract this file exists to
     delete.
 
-    A test that sets its own ``KIROCREW_HOME`` still wins: ``monkeypatch.setenv``
+    A test that sets its own ``JUNCTION_HOME`` still wins: ``monkeypatch.setenv``
     applied later in setup overrides this, and reverts independently.
 
     ``config.paths._resolved_home`` is reset with it. ``config_dir()`` memoises the
@@ -1608,16 +1608,16 @@ def _isolate_kirocrew_home(_isolation_dirs, monkeypatch):
     test would otherwise leak into a later one. Resetting it also invalidates
     ``_config_dir_memo``, which is keyed on that global by identity.
 
-    ``KIROCREW_PROJECT_DIR`` is cleared for a different reason -- to match CI on a dev
+    ``JUNCTION_PROJECT_DIR`` is cleared for a different reason -- to match CI on a dev
     box. It is auto-set to the repo root when running from a checkout, so
     ``skills._project_skills_dir()`` resolves the repo's real ``skills/`` and a test
     driving ``_ensure_builtin_skills`` against a tmp dir sees live skills as a
     "source", flipping relocation behaviour: green in CI, red locally.
 
-    ``KIROCREW_BOUND_PORT`` is cleared because ``_export_bound_port`` writes it into
+    ``JUNCTION_BOUND_PORT`` is cleared because ``_export_bound_port`` writes it into
     the real process environment when a test boots a server, so a port exported by one
     test would leak into every later test's port resolution on that worker.
-    ``KIROCREW_DEV_MODE`` / ``KIROCREW_STRICT_ON_LOOP_PERSIST`` are cleared so a
+    ``JUNCTION_DEV_MODE`` / ``JUNCTION_STRICT_ON_LOOP_PERSIST`` are cleared so a
     developer who exports them does not flip the off-loop-IO guards strict for the
     whole suite.
 
@@ -1630,12 +1630,12 @@ def _isolate_kirocrew_home(_isolation_dirs, monkeypatch):
     reaches ``kiro_home()`` therefore isolates it itself, with whichever of the two
     levers it already uses.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(_isolation_dirs("kirocrew-home")))
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("KIROCREW_BOUND_PORT", raising=False)
-    monkeypatch.delenv("KIROCREW_DEV_MODE", raising=False)
-    monkeypatch.delenv("KIROCREW_STRICT_ON_LOOP_PERSIST", raising=False)
-    paths = sys.modules.get("kiro_crew.config.paths")
+    monkeypatch.setenv("JUNCTION_HOME", str(_isolation_dirs("junction-home")))
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_BOUND_PORT", raising=False)
+    monkeypatch.delenv("JUNCTION_DEV_MODE", raising=False)
+    monkeypatch.delenv("JUNCTION_STRICT_ON_LOOP_PERSIST", raising=False)
+    paths = sys.modules.get("junction.config.paths")
     if paths is not None:
         monkeypatch.setattr(paths, "_resolved_home", None, raising=False)
 
@@ -1668,13 +1668,13 @@ def _isolate_sel_default_dir(tmp_path_factory):
     writer, and the thread is not churned per test.
 
     Patches the ``_default_dir()`` accessor rather than a captured constant, because
-    the module resolves its default lazily so that importing ``kiro_crew.sel`` never
+    the module resolves its default lazily so that importing ``junction.sel`` never
     triggers the one-time data-home migration as an import side effect. Tests that
     manage their own ``SecurityEventLog`` (passing ``base_dir`` and resetting
     ``_instance``) are unaffected.
     """
     try:
-        from kiro_crew import sel as _sel
+        from junction import sel as _sel
     except ImportError:  # pragma: no cover - partial checkout
         yield
         return
@@ -1690,7 +1690,7 @@ def _isolate_sel_default_dir(tmp_path_factory):
         _sel.SecurityEventLog._instance = original_instance
 
 
-#: ``~/.kiro`` paths production binds at IMPORT time, which ``KIROCREW_HOME`` cannot
+#: ``~/.kiro`` paths production binds at IMPORT time, which ``JUNCTION_HOME`` cannot
 #: reach: the module captured an absolute path from ``Path.home()`` before any test
 #: set an environment variable, so the env override is read too late to matter.
 #:
@@ -1705,15 +1705,15 @@ def _isolate_sel_default_dir(tmp_path_factory):
 #: same-shaped tmp path keeps those assertions meaningful.
 #:
 #: ``test/test_host_isolation_floor.py`` ratchets this table against the
-#: ``Path.home()`` bindings ``src/kiro_crew`` actually has, so a new one cannot land
+#: ``Path.home()`` bindings ``src/junction`` actually has, so a new one cannot land
 #: unpinned.
 _SHARED_KIRO_PATHS: tuple[tuple[str, str, str], ...] = (
-    ("kiro_crew.agent", "_KIRO_MCP_JSON", ".kiro/settings/mcp.json"),
-    ("kiro_crew.agent", "_CC_MCP_JSON", ".claude.json"),
-    ("kiro_crew.agent", "_DEFAULT_KIRO_HOOKS_DIR", ".kiro/hooks"),
-    ("kiro_crew.learn", "_DEFAULT_DIR", ".kiro/crew"),
-    ("kiro_crew.apps.bridges", "_LEGACY_SHARED_MCP_PATH", ".kiro/settings/mcp.json"),
-    ("kiro_crew.dashboard.handlers.mcp", "_GLOBAL_MCP_JSON", ".kiro/settings/mcp.json"),
+    ("junction.agent", "_KIRO_MCP_JSON", ".kiro/settings/mcp.json"),
+    ("junction.agent", "_CC_MCP_JSON", ".claude.json"),
+    ("junction.agent", "_DEFAULT_KIRO_HOOKS_DIR", ".kiro/hooks"),
+    ("junction.learn", "_DEFAULT_DIR", ".kiro/crew"),
+    ("junction.apps.bridges", "_LEGACY_SHARED_MCP_PATH", ".kiro/settings/mcp.json"),
+    ("junction.dashboard.handlers.mcp", "_GLOBAL_MCP_JSON", ".kiro/settings/mcp.json"),
     # A DERIVED sibling (`_GLOBAL_MCP_JSON.with_suffix(".lock")`), and it has to move
     # WITH its json or the pair is worse than either alone: `_McpFileLockSync.__enter__`
     # creates `_GLOBAL_MCP_JSON.parent` and then touches `_MCP_LOCK_PATH`, so redirecting
@@ -1723,7 +1723,7 @@ _SHARED_KIRO_PATHS: tuple[tuple[str, str, str], ...] = (
     # because that directory was there, and on CI only because an earlier test had
     # leaked into it. This is the sibling-binding case the ratchet's own docstring says
     # it cannot see, which is why the set is enumerated here by hand.
-    ("kiro_crew.dashboard.handlers.mcp", "_MCP_LOCK_PATH", ".kiro/settings/mcp.lock"),
+    ("junction.dashboard.handlers.mcp", "_MCP_LOCK_PATH", ".kiro/settings/mcp.lock"),
 )
 
 
@@ -1775,8 +1775,8 @@ def _isolate_shared_kiro_paths(_isolation_dirs, monkeypatch):
 def _isolate_subagents_dir(_isolation_dirs, monkeypatch):
     """Pin the subagent registry dir to a tmp dir for the whole suite.
 
-    ``kiro_crew.subagent_persistence._SUBAGENTS_DIR`` is bound at import time to
-    ``config_dir() / "subagents"``, so the ``KIROCREW_HOME`` safety net above
+    ``junction.subagent_persistence._SUBAGENTS_DIR`` is bound at import time to
+    ``config_dir() / "subagents"``, so the ``JUNCTION_HOME`` safety net above
     cannot retroactively redirect it. Any test that calls ``SubagentManager.spawn``
     or ``create_agent_folder`` without isolating this global itself would write
     stub agent folders into the operator's real ``~/.kirocrew/subagents/``. On the
@@ -1785,7 +1785,7 @@ def _isolate_subagents_dir(_isolation_dirs, monkeypatch):
     Redirecting the module global gives every test an isolated, empty registry.
     """
     monkeypatch.setattr(
-        "kiro_crew.subagent_persistence._SUBAGENTS_DIR",
+        "junction.subagent_persistence._SUBAGENTS_DIR",
         _isolation_dirs("subagents"),
     )
 
@@ -1795,11 +1795,11 @@ def _isolate_subagents_dir(_isolation_dirs, monkeypatch):
 #: directory, so the hook production already offers "a caller (test/tooling)" is set
 #: by default instead of per test.
 _AGENT_SPEC_HOOKS: tuple[tuple[str, str], ...] = (
-    ("kiro_crew.agent", "KIRO_AGENTS_DIR"),
-    ("kiro_crew.agent_discovery", "_KIRO_AGENTS_DIR"),
-    ("kiro_crew.apps.bridges", "KIRO_AGENTS_DIR"),
-    ("kiro_crew.cli_doctor", "KIRO_AGENTS_DIR"),
-    ("kiro_crew.doctor_deadpath", "KIRO_AGENTS_DIR"),
+    ("junction.agent", "KIRO_AGENTS_DIR"),
+    ("junction.agent_discovery", "_KIRO_AGENTS_DIR"),
+    ("junction.apps.bridges", "KIRO_AGENTS_DIR"),
+    ("junction.cli_doctor", "KIRO_AGENTS_DIR"),
+    ("junction.doctor_deadpath", "KIRO_AGENTS_DIR"),
 )
 
 #: The real user home, captured at IMPORT -- before any test can patch
@@ -1845,17 +1845,17 @@ def _isolate_agent_spec_home(_agent_spec_seam_modules, _isolation_dirs, monkeypa
     ``~/.kiro`` bindings above. The agent specs are the file kiro-cli reads to learn
     which MCP servers exist, and ``kiro_agents_dir()`` is a LAZY resolver
     (``kiro_home()`` -> ``$KIRO_HOME`` or ``Path.home()/.kiro``), so neither
-    ``KIROCREW_HOME`` nor ``_SHARED_KIRO_PATHS`` reaches it -- the shared-path ratchet's
+    ``JUNCTION_HOME`` nor ``_SHARED_KIRO_PATHS`` reaches it -- the shared-path ratchet's
     own docstring records that lazy resolvers are outside its scope.
 
     Without this, any test reaching the write path (``rebuild_agent_config`` and the
     per-agent writers around it, ``apps.bridges._register_agents``) rewrites the
-    operator's machine-wide ``<kiro home>/agents/kirocrew.json``. Confirmed live
+    operator's machine-wide ``<kiro home>/agents/junction.json``. Confirmed live
     (#4912): a suite run inside a throwaway clone left every managed server's
     ``command`` pointing into that clone's venv and pinned the per-test data home into
     their ``env``, because ``_managed_mcp_env`` stamps the WRITER's paths. Both stop
     existing when the run ends, so afterwards every new session on the machine spawned
-    ``kirocrew-core`` from a deleted venv against a data home recreated empty ->
+    ``junction-core`` from a deleted venv against a data home recreated empty ->
     ``read_local_secret()`` returned "" -> every internal HTTP call failed
     ``internal_auth_mismatch`` (``received=absent``), killing ``spawn_run``,
     ``learn_add`` and ``cron_*`` while in-process tools kept working. A gateway restart
@@ -1863,7 +1863,7 @@ def _isolate_agent_spec_home(_agent_spec_seam_modules, _isolation_dirs, monkeypa
     intermittent and unfixable.
 
     ``KIRO_HOME`` is NOT the lever used here, deliberately -- see
-    ``_isolate_kirocrew_home`` for why pinning that variable is refused: ~35 tests
+    ``_isolate_junction_home`` for why pinning that variable is refused: ~35 tests
     isolate ``kiro_home()`` the other way round with
     ``patch("pathlib.Path.home", ...)``, and an env pin overrides their own isolation
     so they read an empty directory instead of the tree they just built. Pinning the
@@ -1902,7 +1902,7 @@ def _isolate_agent_spec_home(_agent_spec_seam_modules, _isolation_dirs, monkeypa
     """
     monkeypatch.delenv("KIRO_HOME", raising=False)
     root = _isolation_dirs("kiro-agents")
-    paths = sys.modules.get("kiro_crew.config.paths")
+    paths = sys.modules.get("junction.config.paths")
 
     def _pinned_agents_dir() -> pathlib.Path:
         """The per-test dir, unless this test redirected the home itself."""
@@ -1941,7 +1941,7 @@ def unpinned_agent_spec_home(_isolate_agent_spec_home, monkeypatch):
         mod = sys.modules.get(module)
         if mod is not None:
             monkeypatch.setattr(mod, attr, None, raising=False)
-    paths = sys.modules.get("kiro_crew.config.paths")
+    paths = sys.modules.get("junction.config.paths")
     if paths is not None:
         monkeypatch.setattr(paths, "_agents_dir_override", None)
     return _isolate_agent_spec_home
@@ -1964,23 +1964,23 @@ def _no_model_download(monkeypatch, _isolation_dirs):
     tests would pass/fail machine-dependently on hosts that ran the
     Ollama-era embeddings.
     """
-    monkeypatch.setenv("KIROCREW_SKIP_MODEL_DOWNLOAD", "1")
+    monkeypatch.setenv("JUNCTION_SKIP_MODEL_DOWNLOAD", "1")
     monkeypatch.setenv("OLLAMA_MODELS", str(_isolation_dirs("ollama-models")))
     # Force telemetry OFF for every test. `_consent_enabled` reads this env var BEFORE
     # the config flag, which is what makes it a reliable gate: ~15 tests patch
-    # `KiroCrewConfig.load` with a bare MagicMock, whose `telemetry.enabled` is TRUTHY,
+    # `JunctionConfig.load` with a bare MagicMock, whose `telemetry.enabled` is TRUTHY,
     # so a real recorder starts and `Path(cfg.local_dir)` resolves the mock to the
     # RELATIVE path `MagicMock/load().telemetry.local_dir/...` -- writing metrics and a
     # lock file into the repo root, plus a background reader thread that outlives the
     # test. Tests that exercise telemetry delete this var themselves (test/metrics/).
-    monkeypatch.setenv("KIROCREW_TELEMETRY", "0")
+    monkeypatch.setenv("JUNCTION_TELEMETRY", "0")
 
 
 @pytest.fixture(autouse=True)
 def _isolate_agent_state_sidecar(_isolation_dirs, monkeypatch):
     """Pin the agent_state sidecar to a tmp dir for the whole suite.
 
-    ``kiro_crew.agent_state`` stores per-agent bookkeeping (model_managed,
+    ``junction.agent_state`` stores per-agent bookkeeping (model_managed,
     cc_model) in ``~/.kirocrew/agent_model_state.json`` via ``config_dir()``.
     Tests that exercise the install / refresh / migration / PATCH paths would
     otherwise read and write the operator's real sidecar. Redirect
@@ -1988,7 +1988,7 @@ def _isolate_agent_state_sidecar(_isolation_dirs, monkeypatch):
     tmp dir so every test starts from empty state.
     """
     sidecar_root = _isolation_dirs("agent-state")
-    monkeypatch.setattr("kiro_crew.agent_state.config_dir", lambda: sidecar_root)
+    monkeypatch.setattr("junction.agent_state.config_dir", lambda: sidecar_root)
 
 
 # ── the repository checkout is host state too ─────────────────────────

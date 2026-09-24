@@ -23,8 +23,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-import kiro_crew.embeddings as embeddings_mod
-from kiro_crew.embeddings import (
+import junction.embeddings as embeddings_mod
+from junction.embeddings import (
     _DOWNLOAD_MAX_ATTEMPTS,
     LlamaCppEmbedder,
     ModelDownloadManager,
@@ -144,8 +144,8 @@ class TestPlatformLibsDirname:
     def test_supported_platforms(
         self, monkeypatch, platform_str: str, machine: str, expected: str
     ) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.sys.platform", platform_str)
-        monkeypatch.setattr("kiro_crew.embeddings.platform.machine", lambda: machine)
+        monkeypatch.setattr("junction.embeddings.sys.platform", platform_str)
+        monkeypatch.setattr("junction.embeddings.platform.machine", lambda: machine)
         assert _platform_libs_dirname() == expected
 
     @pytest.mark.parametrize(
@@ -161,8 +161,8 @@ class TestPlatformLibsDirname:
     def test_unsupported_combos_return_none(
         self, monkeypatch, platform_str: str, machine: str
     ) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.sys.platform", platform_str)
-        monkeypatch.setattr("kiro_crew.embeddings.platform.machine", lambda: machine)
+        monkeypatch.setattr("junction.embeddings.sys.platform", platform_str)
+        monkeypatch.setattr("junction.embeddings.platform.machine", lambda: machine)
         assert _platform_libs_dirname() is None
 
 
@@ -291,22 +291,22 @@ class TestBundledLinuxX86CpuGate:
 
 class TestModelPaths:
     def test_models_dir_under_config_dir(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
         assert models_dir() == tmp_path / "models"
         assert default_model_path() == tmp_path / "models" / "qwen3-embedding-0.6b.gguf"
 
     def test_model_file_absent_is_false(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
         assert model_file_present() is False
 
     def test_small_file_is_placeholder_not_present(self, tmp_path: Path, monkeypatch) -> None:
         """A <1MB file is a truncated/placeholder file, not a real model."""
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
         _write_model_file(default_model_path(), b"placeholder, not weights\n")
         assert model_file_present() is False
 
     def test_large_file_is_present(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
         _write_model_file(default_model_path())
         assert model_file_present() is True
 
@@ -329,7 +329,7 @@ class TestLlamaCppEmbedder:
 
     def test_embed_returns_vector(self, tmp_path: Path, monkeypatch) -> None:
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         # First embed never blocks: it kicks the background load and returns None.
         assert emb.embed("hello world") is None
@@ -342,7 +342,7 @@ class TestLlamaCppEmbedder:
     def test_embed_returns_none_when_model_file_missing(self, tmp_path: Path, monkeypatch) -> None:
         """No model file → None without ever constructing the Llama class."""
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = LlamaCppEmbedder(model_path=tmp_path / "missing.gguf")
         assert emb.embed("hello") is None
         assert fake_cls.init_attempts == 0
@@ -352,7 +352,7 @@ class TestLlamaCppEmbedder:
         self, tmp_path: Path, monkeypatch
     ) -> None:
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.embed_batch([]) is None
         assert emb.embed_batch(["", "   "]) is None
@@ -363,7 +363,7 @@ class TestLlamaCppEmbedder:
     ) -> None:
         fake_cls = _make_fake_llama_class()
         fake_cls.embed_error = RuntimeError("inference blew up")
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         assert emb.embed("hello") is None
@@ -372,14 +372,14 @@ class TestLlamaCppEmbedder:
         """Vector count mismatch (empty data) degrades to None, not a crash."""
         fake_cls = _make_fake_llama_class()
         fake_cls.response_override = {"data": []}
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         assert emb.embed("hello") is None
 
     def test_embed_truncates_pathological_input(self, tmp_path: Path, monkeypatch) -> None:
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         assert emb.embed("x" * 20_000) is not None
@@ -389,7 +389,7 @@ class TestLlamaCppEmbedder:
     def test_load_failure_sets_cooldown(self, tmp_path: Path, monkeypatch) -> None:
         """A failed load is not retried within the cooldown window."""
         fail_cls = _make_failing_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fail_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fail_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5) is False
         assert emb.embed("first") is None
@@ -401,7 +401,7 @@ class TestLlamaCppEmbedder:
 
     def test_cooldown_expiry_retries_load(self, tmp_path: Path, monkeypatch) -> None:
         fail_cls = _make_failing_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fail_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fail_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5) is False
         assert fail_cls.init_attempts == 1
@@ -417,7 +417,7 @@ class TestLlamaCppEmbedder:
         self, tmp_path: Path, monkeypatch
     ) -> None:
         """Unsupported platform (no Llama class) → None + cooldown, no crash."""
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: None)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: None)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5) is False
         assert emb.embed("hello") is None
@@ -425,7 +425,7 @@ class TestLlamaCppEmbedder:
 
     def test_close_unloads_and_resets_cooldown(self, tmp_path: Path, monkeypatch) -> None:
         fail_cls = _make_failing_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fail_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fail_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5) is False
         assert fail_cls.init_attempts == 1
@@ -436,7 +436,7 @@ class TestLlamaCppEmbedder:
 
     def test_close_unloads_loaded_model(self, tmp_path: Path, monkeypatch) -> None:
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         assert emb.embed("hello") is not None
@@ -453,7 +453,7 @@ class TestLlamaCppEmbedder:
     def test_concurrent_embeds_are_safe(self, tmp_path: Path, monkeypatch) -> None:
         """Lock-serialized embeds from many threads all succeed."""
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)  # load once, then race only inference
         results: list[list[float] | None] = [None] * 8
@@ -484,7 +484,7 @@ class TestLlamaCppEmbedder:
         threads, so running inference inline leaked one pool per caller.
         """
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         llm = fake_cls.instances[0]
@@ -523,7 +523,7 @@ class TestLlamaCppEmbedder:
     def test_close_stops_the_inference_thread(self, tmp_path: Path, monkeypatch) -> None:
         """close() releases the compute pool, which means ending its owner thread."""
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         assert emb.embed("hello") is not None
@@ -549,8 +549,8 @@ class TestLlamaCppEmbedder:
         consume the next worker's jobs nor eat that worker's future sentinel.
         """
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
-        monkeypatch.setattr("kiro_crew.embeddings._INFER_STOP_TIMEOUT_SECS", 0.0)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._INFER_STOP_TIMEOUT_SECS", 0.0)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         assert emb.embed("first") is not None
@@ -571,7 +571,7 @@ class TestLlamaCppEmbedder:
     def test_inference_error_propagates_from_the_worker(self, tmp_path: Path, monkeypatch) -> None:
         """A failure raised on the worker thread still degrades to None, not a hang."""
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = self._embedder(tmp_path)
         assert emb.wait_ready(timeout=5)
         fake_cls.embed_error = RuntimeError("ggml exploded")
@@ -632,14 +632,14 @@ class TestModelDownloadManager:
     @pytest.fixture(autouse=True)
     def _download_env(self, monkeypatch):
         """Allow the real download path (conftest sets the skip env globally)."""
-        monkeypatch.delenv("KIROCREW_SKIP_MODEL_DOWNLOAD", raising=False)
+        monkeypatch.delenv("JUNCTION_SKIP_MODEL_DOWNLOAD", raising=False)
 
         # Block real HTTP requests by default so a test that forgets to patch
         # urlopen can never touch the network.
         def _no_network(*args, **kwargs):
             raise urllib.error.URLError("blocked by test fixture")
 
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", _no_network)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", _no_network)
 
     def _mgr(self, tmp_path: Path) -> ModelDownloadManager:
         return ModelDownloadManager(target=tmp_path / "models" / "qwen3.gguf")
@@ -647,9 +647,9 @@ class TestModelDownloadManager:
     @pytest.mark.asyncio
     async def test_successful_download_installs_model(self, tmp_path: Path, monkeypatch) -> None:
         fake_urlopen, state = _fake_urlopen_factory()
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
         monkeypatch.setattr(
-            "kiro_crew.embeddings._GGUF_SHA256", hashlib.sha256(_model_bytes()).hexdigest()
+            "junction.embeddings._GGUF_SHA256", hashlib.sha256(_model_bytes()).hexdigest()
         )
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=1) is True
@@ -663,11 +663,11 @@ class TestModelDownloadManager:
 
     @pytest.mark.asyncio
     async def test_env_url_override_wins(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_EMBED_MODEL_URL", "https://mirror.example/custom.gguf")
+        monkeypatch.setenv("JUNCTION_EMBED_MODEL_URL", "https://mirror.example/custom.gguf")
         fake_urlopen, state = _fake_urlopen_factory()
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
         monkeypatch.setattr(
-            "kiro_crew.embeddings._GGUF_SHA256", hashlib.sha256(_model_bytes()).hexdigest()
+            "junction.embeddings._GGUF_SHA256", hashlib.sha256(_model_bytes()).hexdigest()
         )
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=1) is True
@@ -676,10 +676,10 @@ class TestModelDownloadManager:
     @pytest.mark.asyncio
     async def test_sha_mismatch_retries_then_fails(self, tmp_path: Path, monkeypatch) -> None:
         fake_urlopen, state = _fake_urlopen_factory()
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
-        monkeypatch.setattr("kiro_crew.embeddings._GGUF_SHA256", "0" * 64)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings._GGUF_SHA256", "0" * 64)
         sleep_mock = AsyncMock()
-        monkeypatch.setattr("kiro_crew.embeddings.asyncio.sleep", sleep_mock)
+        monkeypatch.setattr("junction.embeddings.asyncio.sleep", sleep_mock)
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=2) is False
         assert not mgr.target.exists()
@@ -704,8 +704,8 @@ class TestModelDownloadManager:
         """
         tiny = b"tiny placeholder"
         fake_urlopen, _state = _fake_urlopen_factory(payload=tiny)
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
-        monkeypatch.setattr("kiro_crew.embeddings._GGUF_SHA256", hashlib.sha256(tiny).hexdigest())
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings._GGUF_SHA256", hashlib.sha256(tiny).hexdigest())
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=1) is False
         assert not mgr.target.exists()
@@ -716,7 +716,7 @@ class TestModelDownloadManager:
     @pytest.mark.asyncio
     async def test_network_failure_reports_failed_status(self, tmp_path: Path, monkeypatch) -> None:
         fake_urlopen, _state = _fake_urlopen_factory(fail_rcs=[True])
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=1) is False
         assert mgr.status["step"] == "failed"
@@ -729,12 +729,12 @@ class TestModelDownloadManager:
     ) -> None:
         """attempts=2: first request fails, second succeeds after backoff."""
         fake_urlopen, state = _fake_urlopen_factory(fail_rcs=[True, False])
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
         monkeypatch.setattr(
-            "kiro_crew.embeddings._GGUF_SHA256", hashlib.sha256(_model_bytes()).hexdigest()
+            "junction.embeddings._GGUF_SHA256", hashlib.sha256(_model_bytes()).hexdigest()
         )
         sleep_mock = AsyncMock()
-        monkeypatch.setattr("kiro_crew.embeddings.asyncio.sleep", sleep_mock)
+        monkeypatch.setattr("junction.embeddings.asyncio.sleep", sleep_mock)
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=2) is True
         assert mgr.target.is_file()
@@ -748,9 +748,9 @@ class TestModelDownloadManager:
     async def test_env_skip_returns_false_without_network(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_SKIP_MODEL_DOWNLOAD", "1")
+        monkeypatch.setenv("JUNCTION_SKIP_MODEL_DOWNLOAD", "1")
         fake_urlopen, state = _fake_urlopen_factory()
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
         mgr = self._mgr(tmp_path)
         assert await mgr.ensure_model(attempts=3) is False
         assert state.calls == 0  # no network activity whatsoever
@@ -761,7 +761,7 @@ class TestModelDownloadManager:
         self, tmp_path: Path, monkeypatch
     ) -> None:
         fake_urlopen, state = _fake_urlopen_factory()
-        monkeypatch.setattr("kiro_crew.embeddings.urllib.request.urlopen", fake_urlopen)
+        monkeypatch.setattr("junction.embeddings.urllib.request.urlopen", fake_urlopen)
         mgr = self._mgr(tmp_path)
         _write_model_file(mgr.target)
         assert await mgr.ensure_model(attempts=1) is True
@@ -774,7 +774,7 @@ class TestModelDownloadManager:
     ) -> None:
         """A byte-identical blob in the legacy Ollama store skips the download."""
         digest = hashlib.sha256(_model_bytes()).hexdigest()
-        monkeypatch.setattr("kiro_crew.embeddings._GGUF_SHA256", digest)
+        monkeypatch.setattr("junction.embeddings._GGUF_SHA256", digest)
         blobs = tmp_path / "ollama" / "models" / "blobs"
         blobs.mkdir(parents=True)
         (blobs / f"sha256-{digest}").write_bytes(_model_bytes())
@@ -790,7 +790,7 @@ class TestModelDownloadManager:
     async def test_salvage_rejects_wrong_sha_blob(self, tmp_path: Path, monkeypatch) -> None:
         """A blob at the expected path with WRONG bytes is rejected (sha gate)."""
         digest = hashlib.sha256(_model_bytes()).hexdigest()
-        monkeypatch.setattr("kiro_crew.embeddings._GGUF_SHA256", digest)
+        monkeypatch.setattr("junction.embeddings._GGUF_SHA256", digest)
         blobs = tmp_path / "ollama" / "models" / "blobs"
         blobs.mkdir(parents=True)
         (blobs / f"sha256-{digest}").write_bytes(b"x" * _MODEL_SIZE)
@@ -833,7 +833,7 @@ class TestMakeSyncEmbedFn:
     @pytest.fixture()
     def fake_embedder(self, monkeypatch) -> _FakeSharedEmbedder:
         fake = _FakeSharedEmbedder()
-        monkeypatch.setattr("kiro_crew.embeddings.get_shared_embedder", lambda: fake)
+        monkeypatch.setattr("junction.embeddings.get_shared_embedder", lambda: fake)
         return fake
 
     def test_takes_no_args_and_returns_vector(self, fake_embedder) -> None:
@@ -885,21 +885,21 @@ class TestMakeSyncEmbedFn:
 class TestStartBackgroundModelDownload:
     @pytest.mark.asyncio
     async def test_returns_none_when_model_present(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
         _write_model_file(default_model_path())
         assert start_background_model_download() is None
         assert model_download_manager().status["step"] == "ready"
 
     @pytest.mark.asyncio
     async def test_returns_none_on_env_skip(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
-        monkeypatch.setenv("KIROCREW_SKIP_MODEL_DOWNLOAD", "1")
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_SKIP_MODEL_DOWNLOAD", "1")
         assert start_background_model_download() is None
 
     @pytest.mark.asyncio
     async def test_returns_task_when_download_needed(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.embeddings.config_dir", lambda: tmp_path)
-        monkeypatch.delenv("KIROCREW_SKIP_MODEL_DOWNLOAD", raising=False)
+        monkeypatch.setattr("junction.embeddings.config_dir", lambda: tmp_path)
+        monkeypatch.delenv("JUNCTION_SKIP_MODEL_DOWNLOAD", raising=False)
         mgr = model_download_manager()
         ensure_mock = AsyncMock(return_value=False)
         monkeypatch.setattr(mgr, "ensure_model", ensure_mock)
@@ -929,9 +929,9 @@ class TestSingletons:
 
     def test_reset_shared_embedder_closes_model(self, tmp_path: Path, monkeypatch) -> None:
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         model = _write_model_file(tmp_path / "model.gguf")
-        monkeypatch.setattr("kiro_crew.embeddings.default_model_path", lambda: model)
+        monkeypatch.setattr("junction.embeddings.default_model_path", lambda: model)
         emb = get_shared_embedder()
         assert emb.wait_ready(timeout=5)
         assert emb.embed("hello") is not None
@@ -1001,7 +1001,7 @@ class TestEmbedThreads:
     def test_threads_reach_the_llama_constructor(self, tmp_path: Path, monkeypatch) -> None:
         """BOTH pools are pinned, not only the batch pool that runs inference."""
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         monkeypatch.setattr(embeddings_mod, "_read_memory_config", lambda: {"embedding_threads": 3})
         emb = LlamaCppEmbedder(model_path=_write_model_file(tmp_path / "model.gguf"))
         assert emb.wait_ready(timeout=5)
@@ -1026,7 +1026,7 @@ class TestEmbedQueueTiming:
 
     def test_a_queued_embed_reports_wait_not_inference(self, tmp_path: Path, monkeypatch) -> None:
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = LlamaCppEmbedder(model_path=_write_model_file(tmp_path / "model.gguf"))
         assert emb.wait_ready(timeout=5)
 
@@ -1121,7 +1121,7 @@ class TestEmbedPriority:
         assertion would then measure scheduling rather than priority.
         """
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = LlamaCppEmbedder(model_path=_write_model_file(tmp_path / "model.gguf"))
         assert emb.wait_ready(timeout=5)
         order: list[str] = []
@@ -1242,7 +1242,7 @@ class TestEmbedPriority:
         then enqueued would wait on ``job.done`` forever.
         """
         fake_cls = _make_fake_llama_class()
-        monkeypatch.setattr("kiro_crew.embeddings._load_llama_class", lambda: fake_cls)
+        monkeypatch.setattr("junction.embeddings._load_llama_class", lambda: fake_cls)
         emb = LlamaCppEmbedder(model_path=_write_model_file(tmp_path / "model.gguf"))
         assert emb.wait_ready(timeout=5)
         llm = fake_cls.instances[0]

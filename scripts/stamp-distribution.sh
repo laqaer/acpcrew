@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Write src/kiro_crew/_build_info.py so a packaged build reports which install
+# Write src/junction/_build_info.py so a packaged build reports which install
 # path it came from in the usage beacon's `dist` field.
 #
-# WHY A GENERATED MODULE, not an env var: `KIROCREW_DISTRIBUTION` is inherited by
+# WHY A GENERATED MODULE, not an env var: `JUNCTION_DISTRIBUTION` is inherited by
 # every child process and settable by anyone with a shell, so a stray export
 # relabels that host's daily count. A module inside the package tree ships with
 # the artifact and a running install cannot change it. `beacon.distribution()`
@@ -29,7 +29,7 @@ case "$DIST" in
 esac
 
 if [ -z "$PKG_DIR" ]; then
-  PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/kiro_crew"
+  PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/junction"
 fi
 
 if [ ! -d "$PKG_DIR" ]; then

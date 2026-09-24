@@ -18,7 +18,7 @@ from types import SimpleNamespace
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.agent_discovery import (
+from junction.agent_discovery import (
     SCOPE_GLOBAL,
     SCOPE_PROJECT,
     AgentInfo,
@@ -34,7 +34,7 @@ from kiro_crew.agent_discovery import (
 # a negative "logged no warning" assertion must filter by logger: an unrelated
 # neighbour's asyncio "Task was destroyed" record otherwise lands in the window
 # and fails the assertion depending on how the suite is sharded.
-_DISCOVERY_LOGGER = "kiro_crew.agent_discovery"
+_DISCOVERY_LOGGER = "junction.agent_discovery"
 
 
 @pytest.fixture
@@ -142,7 +142,7 @@ class TestProjectScopeDiscovery:
     def test_sensitive_project_dir_yields_no_agents(self, tmp_path, monkeypatch):
         """A project path the security gate rejects must not be scanned at all."""
         monkeypatch.setattr(
-            "kiro_crew.agent_discovery.is_sensitive_path",
+            "junction.agent_discovery.is_sensitive_path",
             lambda p: str(p) == str(tmp_path / "secret"),
         )
         proj = tmp_path / "secret"
@@ -171,7 +171,7 @@ class TestProjectScopeDiscovery:
             return str(p) == str(secret)
 
         clear_list_agents_cache()
-        import kiro_crew.agent_discovery as ad
+        import junction.agent_discovery as ad
 
         original = ad.is_sensitive_path
         ad.is_sensitive_path = _sensitive
@@ -214,12 +214,12 @@ class TestProjectAgentNameCache:
         under the caller-supplied dir) before `project_agent_files` rejected
         sensitivity — probing a protected tree, and silently: no SEL denial.
         """
-        import kiro_crew.agent_discovery as ad
+        import junction.agent_discovery as ad
 
         secret = tmp_path / "secret"
         (_project_agents_dir(secret) / "a.json").write_text(json.dumps({"name": "a"}))
         monkeypatch.setattr(
-            "kiro_crew.agent_discovery.is_sensitive_path",
+            "junction.agent_discovery.is_sensitive_path",
             lambda p: str(p) == str(secret),
         )
         monkeypatch.setattr(
@@ -271,7 +271,7 @@ class TestProjectAgentNameCache:
         clear_project_agent_cache()
         assert project_agent_names(str(proj)) == frozenset({"a"})
 
-        import kiro_crew.agent_discovery as ad
+        import junction.agent_discovery as ad
 
         monkeypatch.setattr(
             ad, "_read_agent_spec", lambda p: pytest.fail("re-read a spec on a warm cache")
@@ -315,7 +315,7 @@ class TestListAgentsRobustness:
         "agent config" was slurped whole into memory during a cache warm. The
         read now goes through hooks.safe_read_file_bytes, whose cap refuses it.
         """
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "MAX_FILE_BYTES", 64)
         d = _agents_dir(fake_home)
@@ -491,7 +491,7 @@ class TestSpecModelCoercion:
         # Stub the seam at ``safe_context_call``: it is what ``_with_edition_agents``
         # funnels the platform lookup through, so this needs no platform context.
         monkeypatch.setattr(
-            "kiro_crew.platform.context.safe_context_call",
+            "junction.platform.context.safe_context_call",
             lambda *_a, **_kw: [
                 {"name": "edition-foreign", "model": {"id": "anthropic:claude-opus-4-8"}}
             ],
@@ -571,7 +571,7 @@ class TestSpecModelCoercion:
         d = tmp_path / "agents"
         d.mkdir()
         monkeypatch.setattr(
-            "kiro_crew.platform.context.safe_context_call",
+            "junction.platform.context.safe_context_call",
             lambda *_a, **_kw: [
                 {"name": {"id": "nope"}, "model": "auto"},
                 {"name": "usable", "model": "auto"},
@@ -648,11 +648,11 @@ class TestListAgentsDedup:
         assert a.package == "MyPkg"
         assert a.source == "package"
 
-    def test_aim_kirocrew_package_source(self, tmp_path: Path) -> None:
-        """A package-installed agent (e.g. KiroCrewAICapabilities) gets source='package'."""
+    def test_aim_junction_package_source(self, tmp_path: Path) -> None:
+        """A package-installed agent (e.g. JunctionAICapabilities) gets source='package'."""
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
-        (agents_dir / "KiroCrewAICapabilities-myskill.json").write_text(
+        (agents_dir / "JunctionAICapabilities-myskill.json").write_text(
             json.dumps({"name": "myskill", "model": "auto"}), encoding="utf-8"
         )
         agents = list_agents(agents_dir=agents_dir)
@@ -709,7 +709,7 @@ class TestListAgentsDedup:
         (agents_dir / "local-MyPkg-myagent.json").write_text(
             json.dumps({"name": "myagent", "model": "auto"}), encoding="utf-8"
         )
-        with caplog.at_level(logging.DEBUG, logger="kiro_crew.agent_discovery"):
+        with caplog.at_level(logging.DEBUG, logger="junction.agent_discovery"):
             agents = list_agents(agents_dir=agents_dir)
         dupes = [a for a in agents if a.name == "myagent"]
         assert len(dupes) == 1
@@ -738,7 +738,7 @@ class TestListAgentsDedup:
         (agents_dir / "BbbPkg-myagent.json").write_text(
             json.dumps({"name": "myagent", "model": "auto"}), encoding="utf-8"
         )
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.agent_discovery"):
+        with caplog.at_level(logging.WARNING, logger="junction.agent_discovery"):
             agents = list_agents(agents_dir=agents_dir)
         dupes = [a for a in agents if a.name == "myagent"]
         assert len(dupes) == 1

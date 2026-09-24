@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 from aiohttp import web
 
-from kiro_crew.dashboard.state import DashboardState
-from kiro_crew.history import ConversationLog
-from kiro_crew.kiro_prerequisite import KiroPrerequisiteService
-from kiro_crew.messaging.link import ChannelLink
+from junction.dashboard.state import DashboardState
+from junction.history import ConversationLog
+from junction.kiro_prerequisite import KiroPrerequisiteService
+from junction.messaging.link import ChannelLink
 
 #: Draining is a LOOP because a drained task may register another -- not because any
 #: current one does (``chat_slack`` has a single ``create_task``, and the backfill
@@ -166,7 +166,7 @@ def _make_state(tmp_path, **kwargs):
 
 def _make_app(state: DashboardState) -> web.Application:
     """Minimal aiohttp app with chat endpoints."""
-    from kiro_crew.dashboard.chat import (
+    from junction.dashboard.chat import (
         api_chat,
         api_chat_mode,
         api_chat_plan_action,
@@ -222,7 +222,7 @@ def _make_app(state: DashboardState) -> web.Application:
 
 def _make_app_with_agent_routes(state: DashboardState) -> web.Application:
     """Minimal aiohttp app with chat endpoints including agent and create routes."""
-    from kiro_crew.dashboard.chat import (
+    from junction.dashboard.chat import (
         api_chat_slot_agent,
         api_chat_slot_approve,
         api_chat_slot_create,
@@ -252,8 +252,8 @@ def _make_app_with_agent_routes(state: DashboardState) -> web.Application:
 
 def _make_folder_app(state: DashboardState) -> web.Application:
     """Minimal aiohttp app with folder endpoints."""
-    from kiro_crew.dashboard.chat import api_chat_slots
-    from kiro_crew.dashboard.chat_folders import (
+    from junction.dashboard.chat import api_chat_slots
+    from junction.dashboard.chat_folders import (
         api_chat_folder_create,
         api_chat_folder_delete,
         api_chat_folder_update,
@@ -276,7 +276,7 @@ def _make_folder_app(state: DashboardState) -> web.Application:
 
 def _make_tags_app(state: DashboardState) -> web.Application:
     """Minimal aiohttp app with chat_tags endpoints (vocabulary, columns, drop, slot tags)."""
-    from kiro_crew.dashboard.chat_tags import (
+    from junction.dashboard.chat_tags import (
         api_chat_slot_drop,
         api_chat_slot_tags,
         api_chat_tag_column_create,

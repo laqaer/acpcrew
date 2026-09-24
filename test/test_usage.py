@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.dashboard.handlers.usage."""
+"""Tests for junction.dashboard.handlers.usage."""
 
 from __future__ import annotations
 
@@ -14,8 +14,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-import kiro_crew.dashboard.handlers.usage as usage_mod
-from kiro_crew.dashboard.handlers.usage import (
+import junction.dashboard.handlers.usage as usage_mod
+from junction.dashboard.handlers.usage import (
     _cached_parse_sessions,
     _parse_sessions,
     _parse_token_history,
@@ -260,18 +260,18 @@ class TestGetUsageCache:
         mock_cache = {"credits_used": 42}
         with patch.dict(
             "sys.modules",
-            {"kiro_crew.dashboard.handlers.sessions": MagicMock(_usage_cache=mock_cache)},
+            {"junction.dashboard.handlers.sessions": MagicMock(_usage_cache=mock_cache)},
         ):
             assert get_usage_cache() == {"credits_used": 42}
 
     def test_empty_cache(self):
         with patch.dict(
-            "sys.modules", {"kiro_crew.dashboard.handlers.sessions": MagicMock(_usage_cache={})}
+            "sys.modules", {"junction.dashboard.handlers.sessions": MagicMock(_usage_cache={})}
         ):
             assert get_usage_cache() == {}
 
     def test_import_error(self):
-        with patch.dict("sys.modules", {"kiro_crew.dashboard.handlers.sessions": None}):
+        with patch.dict("sys.modules", {"junction.dashboard.handlers.sessions": None}):
             assert get_usage_cache() == {}
 
 
@@ -883,12 +883,12 @@ class TestBuildTokenRecordContextFields:
             "acp",
             datetime.now(timezone.utc),
             surface="dashboard",
-            agent="kirocrew",
+            agent="junction",
             context_used=44_000,
             context_window=1_000_000,
         )
         assert rec["surface"] == "dashboard"
-        assert rec["agent"] == "kirocrew"
+        assert rec["agent"] == "junction"
         assert rec["context_used"] == 44_000
         assert rec["context_window"] == 1_000_000
 
@@ -979,14 +979,14 @@ class TestBuildTokenRecordContextFields:
             self._event(),
             provider="acp",
             surface="dashboard",
-            agent="kirocrew",
+            agent="junction",
             context_used=44_000,
             context_window=1_000_000,
         )
         today = datetime.now().astimezone().strftime("%Y-%m-%d")
         record = json.loads((shard_dir / f"{today}.jsonl").read_text(encoding="utf-8").strip())
         assert record["surface"] == "dashboard"
-        assert record["agent"] == "kirocrew"
+        assert record["agent"] == "junction"
         assert record["context_used"] == 44_000
         assert record["context_window"] == 1_000_000
 
@@ -1173,14 +1173,14 @@ class TestReadEffectiveAgent:
     """The resolved agent, not the slot alias."""
 
     def test_reads_resolved_agent_off_client(self):
-        inner = type("C", (), {"_agent": "kirocrew"})()
-        assert read_effective_agent(inner) == "kirocrew"
+        inner = type("C", (), {"_agent": "junction"})()
+        assert read_effective_agent(inner) == "junction"
 
     def test_walks_nested_handle(self):
-        handle = type("H", (), {"_agent": "kirocrew-lite"})()
+        handle = type("H", (), {"_agent": "junction-lite"})()
         mid = type("SessionProvider", (), {"_handle": handle})()
         outer = type("P", (), {"client": mid})()
-        assert read_effective_agent(outer) == "kirocrew-lite"
+        assert read_effective_agent(outer) == "junction-lite"
 
     def test_blank_when_absent(self):
         assert read_effective_agent(object()) == ""
@@ -1196,10 +1196,10 @@ class TestReadEffectiveAgent:
     def test_reads_agent_off_the_runtime(self):
         # The session-provider shape: the agent is held only by the spawned CLI
         # runtime (runtime.py:273), reached via provider -> _handle -> _runtime.
-        runtime = type("Runtime", (), {"_agent": "kirocrew"})()
+        runtime = type("Runtime", (), {"_agent": "junction"})()
         handle = type("Handle", (), {"_runtime": runtime})()
         provider = type("SessionProvider", (), {"_handle": handle})()
-        assert read_effective_agent(provider) == "kirocrew"
+        assert read_effective_agent(provider) == "junction"
 
     def test_session_model_outranks_runtime_model(self):
         # _runtime is walked last so its process-level --model argument cannot

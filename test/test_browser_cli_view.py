@@ -9,8 +9,8 @@ from collections.abc import Iterator
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.browser_cli import view as mod
+from junction import platform_compat
+from junction.browser_cli import view as mod
 
 
 class FakeProc:

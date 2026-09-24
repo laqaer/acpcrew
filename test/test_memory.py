@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kiro_crew.memory import MemoryStore
+from junction.memory import MemoryStore
 
 
 class TestMemoryStore:
@@ -57,9 +57,9 @@ class TestMemoryStore:
 
     def test_projects(self, tmp_path):
         store = MemoryStore(workspace=tmp_path)
-        store.write_projects("Building KiroCrew agent")
+        store.write_projects("Building Junction agent")
         projects = store.read_projects()
-        assert "KiroCrew" in projects
+        assert "Junction" in projects
         assert "Updated:" in projects
 
     def test_daily_history(self, tmp_path):
@@ -146,7 +146,7 @@ class TestRecentHistoryCache:
     def test_write_projects_no_double_header(self, tmp_path):
         """BUG 6 regression: write_projects shouldn't double-wrap header."""
         store = MemoryStore(workspace=tmp_path)
-        store.write_projects("# Active Projects\n\nKiroCrew agent")
+        store.write_projects("# Active Projects\n\nJunction agent")
         content = store.read_projects()
         assert content.count("# Active Projects") == 1
 

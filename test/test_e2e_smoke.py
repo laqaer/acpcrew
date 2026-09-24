@@ -1,13 +1,13 @@
 """E2E smoke tests using ``spawn_feature_gateway`` harness.
 
-Phase 5 of the KiroCrew Testing & Release Plan. These tests spawn a real
+Phase 5 of the Junction Testing & Release Plan. These tests spawn a real
 gateway subprocess, hit its HTTP endpoints with the token from the READY
 line, and verify core functionality works end-to-end.
 
-Gated behind ``KIROCREW_E2E=1`` because they spawn a real gateway process
+Gated behind ``JUNCTION_E2E=1`` because they spawn a real gateway process
 (5-15s startup). CI runs them on a shared test fleet; local devs opt in.
 
-Requires: ``kiro_crew.testing.harness`` and composable
+Requires: ``junction.testing.harness`` and composable
 CLI flags.
 """
 
@@ -21,10 +21,10 @@ import urllib.request
 
 import pytest
 
-# Gate all tests behind KIROCREW_E2E so they don't slow down local pytest runs.
+# Gate all tests behind JUNCTION_E2E so they don't slow down local pytest runs.
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("KIROCREW_E2E"),
-    reason="E2E smoke tests. Set KIROCREW_E2E=1 to run.",
+    not os.environ.get("JUNCTION_E2E"),
+    reason="E2E smoke tests. Set JUNCTION_E2E=1 to run.",
 )
 
 
@@ -35,19 +35,19 @@ def gateway():
     No state cleanup between tests; each test must be tolerant of
     prior-test side effects, or use a fresh per-test gateway.
     """
-    from kiro_crew.testing import fake_acp_backend
-    from kiro_crew.testing.harness import spawn_feature_gateway
+    from junction.testing import fake_acp_backend
+    from junction.testing.harness import spawn_feature_gateway
 
-    previous = os.environ.get("KIROCREW_KIRO_BIN")
-    os.environ["KIROCREW_KIRO_BIN"] = str(fake_acp_backend.__file__)
+    previous = os.environ.get("JUNCTION_KIRO_BIN")
+    os.environ["JUNCTION_KIRO_BIN"] = str(fake_acp_backend.__file__)
     try:
         with spawn_feature_gateway(fixture="minimal", approval="reads") as handle:
             yield handle
     finally:
         if previous is None:
-            os.environ.pop("KIROCREW_KIRO_BIN", None)
+            os.environ.pop("JUNCTION_KIRO_BIN", None)
         else:
-            os.environ["KIROCREW_KIRO_BIN"] = previous
+            os.environ["JUNCTION_KIRO_BIN"] = previous
 
 
 _openers: dict[int, urllib.request.OpenerDirector] = {}
@@ -230,7 +230,7 @@ def test_session_search(gateway):
 # agent_message_chunk -> assembled assistant reply), fully offline.
 #
 # Seam: the gateway's provider already defaults to ``acp`` (the minimal fixture
-# omits ``agent.provider``), so pointing ``KIROCREW_KIRO_BIN`` at the fake makes
+# omits ``agent.provider``), so pointing ``JUNCTION_KIRO_BIN`` at the fake makes
 # a turn spawn the fake instead of a real ``kiro-cli`` -- no new provider enum,
 # no config-key override, nothing remotely selectable.
 
@@ -240,18 +240,18 @@ def acp_gateway(monkeypatch):
     """Gateway whose ``kiro-cli`` is the offline fake ACP backend.
 
     Function-scoped (separate from the module ``gateway``): only these tests
-    want the fake wired in, and it must not leak ``KIROCREW_KIRO_BIN`` into the
+    want the fake wired in, and it must not leak ``JUNCTION_KIRO_BIN`` into the
     control-plane gateway. ``monkeypatch`` restores the env on teardown.
     """
-    from kiro_crew.testing import fake_acp_backend
-    from kiro_crew.testing.harness import spawn_feature_gateway
+    from junction.testing import fake_acp_backend
+    from junction.testing.harness import spawn_feature_gateway
 
     # Execute the packaged fake itself so readiness probes and ACP turns use
     # the same deterministic backend rather than a test-only copy.
-    monkeypatch.setenv("KIROCREW_KIRO_BIN", str(fake_acp_backend.__file__))
+    monkeypatch.setenv("JUNCTION_KIRO_BIN", str(fake_acp_backend.__file__))
 
     with spawn_feature_gateway(fixture="minimal", approval="reads") as handle:
-        # The KIROCREW_KIRO_BIN seam only fires when the provider resolves to
+        # The JUNCTION_KIRO_BIN seam only fires when the provider resolves to
         # ``acp`` (the minimal fixture omits ``agent.provider``, which defaults
         # to acp). Fail fast with a clear message if that assumption ever
         # breaks, rather than surfacing it 60s later as a "no reply" timeout.
@@ -261,7 +261,7 @@ def acp_gateway(monkeypatch):
                 json.loads(cfg.read_text(encoding="utf-8")).get("agent", {}).get("provider", "acp")
             )
             assert provider == "acp", (
-                "acp_gateway needs provider=acp for the KIROCREW_KIRO_BIN seam; "
+                "acp_gateway needs provider=acp for the JUNCTION_KIRO_BIN seam; "
                 f"minimal fixture resolved provider={provider!r}"
             )
         yield handle
@@ -295,7 +295,7 @@ def test_chat_send_receives_reply(acp_gateway):
     _api_post(
         acp_gateway,
         "/api/chat?ws=1",
-        {"message": "ping", "slot": slot, "agent": "kirocrew"},
+        {"message": "ping", "slot": slot, "agent": "junction"},
     )
 
     reply = _await_assistant_reply(acp_gateway, slot)
@@ -320,7 +320,7 @@ def test_chat_tool_call_renders(acp_gateway):
     _api_post(
         acp_gateway,
         "/api/chat?ws=1",
-        {"message": "please [[TOOL]] run the demo", "slot": slot, "agent": "kirocrew"},
+        {"message": "please [[TOOL]] run the demo", "slot": slot, "agent": "junction"},
     )
 
     reply = _await_assistant_reply(acp_gateway, slot)

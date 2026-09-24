@@ -2,7 +2,7 @@
 
 Two surfaces are under test, and they exist for two different readers:
 
-1. :func:`kiro_crew.mcp_core.strict_identity_diagnosis` — the reader who just
+1. :func:`junction.mcp_core.strict_identity_diagnosis` — the reader who just
    had a tool refused. Every strict refusal already said WHAT was refused; none
    said why THIS install cannot answer "which session is calling", so there was
    no next step. The diagnosis is appended to the refusal text.
@@ -19,7 +19,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from kiro_crew import cli_doctor, mcp_core
+from junction import cli_doctor, mcp_core
 
 
 class TestStrictIdentityDiagnosis:
@@ -28,7 +28,7 @@ class TestStrictIdentityDiagnosis:
     def test_empty_when_identity_resolves(self, monkeypatch) -> None:
         """A caller appends this unconditionally, so a resolvable identity must
         produce nothing rather than a misleading explanation."""
-        monkeypatch.setenv("KIROCREW_SESSION_KEY", "dashboard:chat-7")
+        monkeypatch.setenv("JUNCTION_SESSION_KEY", "dashboard:chat-7")
         assert mcp_core.strict_identity_diagnosis() == ""
 
     def test_names_the_routing_gap_and_the_fix(self, monkeypatch) -> None:
@@ -36,11 +36,11 @@ class TestStrictIdentityDiagnosis:
         must name the server, the config key, and why the backend cannot supply
         an env identity — that last part is what stops a reader concluding their
         session is broken."""
-        monkeypatch.delenv("KIROCREW_SESSION_KEY", raising=False)
-        monkeypatch.delenv("KIROCREW_HOST_PID", raising=False)
+        monkeypatch.delenv("JUNCTION_SESSION_KEY", raising=False)
+        monkeypatch.delenv("JUNCTION_HOST_PID", raising=False)
         with patch.object(mcp_core, "current_caller", return_value=None):
-            out = mcp_core.strict_identity_diagnosis("kirocrew-dashboard")
-        assert "kirocrew-dashboard" in out
+            out = mcp_core.strict_identity_diagnosis("junction-dashboard")
+        assert "junction-dashboard" in out
         assert "mcp_gateway.stub_servers" in out
         assert "session-unbound" in out
         assert "doctor" in out
@@ -49,8 +49,8 @@ class TestStrictIdentityDiagnosis:
         """When the launcher DID declare a host pid the channel exists and the
         sidecar is what failed, so advising the operator to route the server
         would send them to the wrong place."""
-        monkeypatch.delenv("KIROCREW_SESSION_KEY", raising=False)
-        monkeypatch.setenv("KIROCREW_HOST_PID", "4242")
+        monkeypatch.delenv("JUNCTION_SESSION_KEY", raising=False)
+        monkeypatch.setenv("JUNCTION_HOST_PID", "4242")
         with (
             patch.object(mcp_core, "current_caller", return_value=None),
             patch.object(mcp_core, "_resolve_session_key_strict", return_value=""),
@@ -71,7 +71,7 @@ class TestRefusalsCarryTheDiagnosis:
     _MARKER = " [why: no identity channel]"
 
     def test_ledger_refusal_carries_it(self, monkeypatch) -> None:
-        from kiro_crew.mcp_tools import ledger
+        from junction.mcp_tools import ledger
 
         monkeypatch.setattr(mcp_core, "_resolve_session_key_strict", lambda: "")
         monkeypatch.setattr(mcp_core, "strict_identity_diagnosis", lambda *a: self._MARKER)
@@ -79,7 +79,7 @@ class TestRefusalsCarryTheDiagnosis:
         assert err.startswith("Error:") and self._MARKER in err
 
     def test_crew_ledger_refusal_carries_it(self, monkeypatch) -> None:
-        from kiro_crew.mcp_tools import apps
+        from junction.mcp_tools import apps
 
         monkeypatch.setattr(mcp_core, "_resolve_session_key_strict", lambda: "")
         monkeypatch.setattr(mcp_core, "strict_identity_diagnosis", lambda *a: self._MARKER)
@@ -122,7 +122,7 @@ class TestRefusalsCarryTheDiagnosis:
 
 
 class TestDoctorStrictIdentity:
-    """``kirocrew doctor`` answers the question without waiting for a refusal."""
+    """``junction doctor`` answers the question without waiting for a refusal."""
 
     class _Cfg:
         class _GW:
@@ -146,13 +146,13 @@ class TestDoctorStrictIdentity:
         cli_doctor._doctor_strict_identity(self._Cfg(["aws-mcp"]))
         out = capsys.readouterr().out
         assert "no identity channel" in out
-        assert "kirocrew-core" in out and "kirocrew-dashboard" in out
+        assert "junction-core" in out and "junction-dashboard" in out
         assert "monitor_start" in out and "session_ledger" in out
 
     def test_it_never_makes_doctor_exit_nonzero(self, monkeypatch, capsys) -> None:
         """The line is a NOTE, not a problem. ``stub_servers`` is empty by
         default, so appending to doctor's ``issues`` would make a stock install
-        exit 1 and break ``kirocrew doctor && kirocrew gateway`` — the failure
+        exit 1 and break ``junction doctor && junction gateway`` — the failure
         the speech-to-text section is written to avoid. Signature-enforced: the
         function takes no ``issues`` list at all, so it structurally cannot.
         """
@@ -177,7 +177,7 @@ class TestDoctorStrictIdentity:
         assert "broker" in out
 
     def test_skipped_where_the_env_channel_exists(self, monkeypatch, capsys) -> None:
-        """On Linux the sandbox launcher exports ``KIROCREW_HOST_PID``, so
+        """On Linux the sandbox launcher exports ``JUNCTION_HOST_PID``, so
         routing is not what decides whether strict identity resolves — warning
         there would be false."""
         monkeypatch.setattr(cli_doctor._plat, "system", lambda: "Linux")

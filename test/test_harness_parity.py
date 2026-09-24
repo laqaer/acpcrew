@@ -1,6 +1,6 @@
 """Structural pins for the harness-parity invariants.
 
-Kiro Crew drives one first-class harness, ``kiro-cli``, and adapts the others.
+Junction drives one first-class harness, ``kiro-cli``, and adapts the others.
 Each test here closes one invariant from
 ``docs/system-specs/modules/harness-parity.md`` by its id, so a change that
 degrades the Kiro path goes red here rather than at an operator's first message.
@@ -23,9 +23,9 @@ from dataclasses import fields
 
 import pytest
 
-from kiro_crew.acp import client as acp_client
-from kiro_crew.acp import runtime as acp_runtime
-from kiro_crew.acp.types import (
+from junction.acp import client as acp_client
+from junction.acp import runtime as acp_runtime
+from junction.acp.types import (
     ACP_BACKEND_AUTO,
     ACP_BACKEND_CLAUDE,
     ACP_BACKEND_KAS,
@@ -44,8 +44,8 @@ from kiro_crew.acp.types import (
     PROVIDER_LABEL_DEFAULT,
     PROVIDER_LABEL_KAS,
 )
-from kiro_crew.config.loader import AgentConfig, _normalize_acp_backend
-from kiro_crew.providers import acp as providers_acp
+from junction.config.loader import AgentConfig, _normalize_acp_backend
+from junction.providers import acp as providers_acp
 
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _GATE_PATH = os.path.join(_REPO_ROOT, "scripts", "check_harness_parity.py")
@@ -164,9 +164,9 @@ def test_steer_capability_declares_its_stamp() -> None:
     the guarantee has to live here instead: a defensive read cannot tell "this
     backend does not steer" from "this backend forgot the stamp".
     """
-    from kiro_crew.acp.session_provider import AcpSessionProvider  # noqa: F401
-    from kiro_crew.providers.acp import AcpProvider  # noqa: F401
-    from kiro_crew.providers.base import LLMProvider
+    from junction.acp.session_provider import AcpSessionProvider  # noqa: F401
+    from junction.providers.acp import AcpProvider  # noqa: F401
+    from junction.providers.base import LLMProvider
 
     def _walk(cls):
         for sub in cls.__subclasses__():
@@ -211,7 +211,7 @@ def test_is_kiro_cli_is_positive() -> None:
 
     assert ACP_BACKENDS_INTERNAL_SANDBOX == frozenset({ACP_BACKEND_KIRO}), (
         "only kiro-cli ships an internal OS sandbox; adding a member here waives "
-        "Kiro Crew's own seatbelt for that harness on macOS"
+        "Junction's own seatbelt for that harness on macOS"
     )
 
 
@@ -285,7 +285,11 @@ def test_every_known_backend_has_a_label() -> None:
         ACP_BACKEND_CLAUDE: PROVIDER_LABEL_CLAUDE,
         ACP_BACKEND_KAS: PROVIDER_LABEL_KAS,
         ACP_BACKEND_AUTO: PROVIDER_LABEL_AUTO,
-        **{backend: backend for backend in ACP_BACKENDS_SPEC_FAMILY if backend != ACP_BACKEND_CLAUDE},
+        **{
+            backend: backend
+            for backend in ACP_BACKENDS_SPEC_FAMILY
+            if backend != ACP_BACKEND_CLAUDE
+        },
     }
     assert set(labels) == set(ACP_BACKENDS_KNOWN), (
         "a known backend has no PROVIDER_LABEL_* of its own, so it would persist "

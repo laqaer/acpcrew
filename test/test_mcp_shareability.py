@@ -9,11 +9,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.mcp_gateway import hazards, shareability
-from kiro_crew.mcp_gateway import verdict_cache as vc
-from kiro_crew.mcp_gateway.hashing import ENV_SCRUB_PREFIXES
-from kiro_crew.mcp_gateway.record_json import finite_float
-from kiro_crew.mcp_gateway.shareability import ShareEvidence, Strength, assess
+from junction.mcp_gateway import hazards, shareability
+from junction.mcp_gateway import verdict_cache as vc
+from junction.mcp_gateway.hashing import ENV_SCRUB_PREFIXES
+from junction.mcp_gateway.record_json import finite_float
+from junction.mcp_gateway.shareability import ShareEvidence, Strength, assess
 
 
 def _ident(**over: object) -> vc.Identity:
@@ -177,7 +177,7 @@ class TestDisqualifiers:
     def test_a_session_bound_server_is_never_recommended(self) -> None:
         """The disqualifier is the identity mechanism, not the authorship.
 
-        ``kirocrew-cron`` is the real shape: one of ours, and still reading its
+        ``junction-cron`` is the real shape: one of ours, and still reading its
         channel identity from process env. The sibling test below pins the other
         half -- that being ours is NOT itself a disqualifier.
 
@@ -196,7 +196,7 @@ class TestDisqualifiers:
         """
         verdict = assess(
             ShareEvidence(
-                name="kirocrew-cron", session_bound_by_construction=True, probe_ok=True
+                name="junction-cron", session_bound_by_construction=True, probe_ok=True
             )
         )
         assert verdict.strength is Strength.DISQUALIFIED
@@ -204,7 +204,7 @@ class TestDisqualifiers:
         assert verdict.recommend_share is False
 
     def test_a_managed_server_that_consumes_the_caller_block_is_not_disqualified(self) -> None:
-        """Regression: ``kirocrew-core`` was disqualified for being ours.
+        """Regression: ``junction-core`` was disqualified for being ours.
 
         It advertises the caller-identity extension and resolves the session from
         the injected caller block, which is exactly the property that makes a
@@ -214,7 +214,7 @@ class TestDisqualifiers:
         """
         verdict = assess(
             ShareEvidence(
-                name="kirocrew-core",
+                name="junction-core",
                 session_bound_by_construction=False,
                 probe_ok=True,
                 capabilities={"experimental": {shareability.CALLER_IDENTITY_CAPABILITY: {}}},
@@ -512,7 +512,7 @@ class TestNoObjectionSplitsStubFromShare:
 class TestMeasurementCanEarnAVerdict:
     """The rung that keeps a third-party server from being stuck for ever.
 
-    ``kirocrew.caller-identity`` is our own extension and the MCP base protocol has
+    ``junction.caller-identity`` is our own extension and the MCP base protocol has
     no equivalent, so a third-party server cannot reach ``DECLARED`` no matter how
     well it behaves. Before this tier the pre-flight could only ever take a verdict
     away (``caller_sensitive_initialize``); provoking a server and finding NO
@@ -901,7 +901,7 @@ class TestNameCollisionDoesNotInheritEvidence:
         cache.flush()
 
     def test_a_stored_row_is_served_by_name(self, tmp_path, monkeypatch) -> None:
-        from kiro_crew.dashboard.handlers import mcp as handler
+        from junction.dashboard.handlers import mcp as handler
 
         self._write_row(tmp_path, "srv", _ident(command_args_hash="cmdA"))
         monkeypatch.setattr(handler, "records_dir", lambda *_a, **_k: tmp_path)
@@ -919,7 +919,7 @@ class TestNameCollisionDoesNotInheritEvidence:
         forced a size cap, an eviction policy, and a newest-wins rule on every
         reader. There is no history to sort through now.
         """
-        from kiro_crew.dashboard.handlers import mcp as handler
+        from junction.dashboard.handlers import mcp as handler
 
         cache = vc.VerdictCache(vc.cache_path(tmp_path))
         cache.put(
@@ -947,7 +947,7 @@ class TestNameCollisionDoesNotInheritEvidence:
         correct recommendation for every server an operator shares across agents,
         which is most of them. The row keys on the launch hash for that reason.
         """
-        from kiro_crew.mcp_gateway.hashing import hash_command
+        from junction.mcp_gateway.hashing import hash_command
 
         assert len({hash_command("/bin/a", ["--x"]) for _ in range(5)}) == 1
         assert len({hash_command("/bin/a", []), hash_command("/bin/b", [])}) == 2
@@ -971,9 +971,9 @@ class TestNoBlockingRecordIoOnTheLoop:
 
     #: Modules whose helpers own the record files and the binaries behind them.
     RECORD_MODULES = (
-        "kiro_crew.mcp_gateway.hazards",
-        "kiro_crew.mcp_gateway.verdict_cache",
-        "kiro_crew.mcp_gateway.evaluate",
+        "junction.mcp_gateway.hazards",
+        "junction.mcp_gateway.verdict_cache",
+        "junction.mcp_gateway.evaluate",
     )
 
     #: Primitives that make a helper blocking. Deliberately spelled as bare
@@ -1001,9 +1001,9 @@ class TestNoBlockingRecordIoOnTheLoop:
 
     #: (module, async function) pairs that reach the records.
     SITES = (
-        ("kiro_crew.dashboard.handlers.mcp", "api_mcp_gateway_servers"),
-        ("kiro_crew.dashboard.handlers.mcp", "_evaluate_shareability"),
-        ("kiro_crew.mcp_gateway.evaluate", "evaluate_new_servers"),
+        ("junction.dashboard.handlers.mcp", "api_mcp_gateway_servers"),
+        ("junction.dashboard.handlers.mcp", "_evaluate_shareability"),
+        ("junction.mcp_gateway.evaluate", "evaluate_new_servers"),
     )
 
     @classmethod
@@ -1052,7 +1052,7 @@ class TestNoBlockingRecordIoOnTheLoop:
                 continue
             # Methods drive the transitivity above but are not reported: a bare
             # method name is not unique to these modules, and matching one by
-            # name alone flagged ``KiroCrewConfig.load()`` — an unrelated loader
+            # name alone flagged ``JunctionConfig.load()`` — an unrelated loader
             # the whole codebase calls on the loop by design. What another module
             # can actually reach is a module-level entry point, so that is what
             # the caller scans for.
@@ -1089,7 +1089,7 @@ class TestNoBlockingRecordIoOnTheLoop:
         """
         import asyncio
 
-        from kiro_crew.mcp_gateway import evaluate
+        from junction.mcp_gateway import evaluate
 
         async def call_it() -> None:
             evaluate.identity_for(
@@ -1103,7 +1103,7 @@ class TestNoBlockingRecordIoOnTheLoop:
         """Startup counts too: a slow ledger would delay socket readiness."""
         import inspect
 
-        from kiro_crew.mcp_gateway import gatewayd
+        from junction.mcp_gateway import gatewayd
 
         src = inspect.getsource(gatewayd.run_gatewayd)
         line = next(ln for ln in src.splitlines() if "install_sink" in ln)
@@ -1125,13 +1125,13 @@ class TestNoBlockingRecordIoOnTheLoop:
         import ast
         import inspect
 
-        from kiro_crew.dashboard.handlers import mcp as handler
+        from junction.dashboard.handlers import mcp as handler
 
         tree = ast.parse(inspect.getsource(handler))
         banned = {
-            "kiro_crew.mcp_gateway.evaluate",
-            "kiro_crew.mcp_gateway.preflight",
-            "kiro_crew.mcp_gateway.stub",
+            "junction.mcp_gateway.evaluate",
+            "junction.mcp_gateway.preflight",
+            "junction.mcp_gateway.stub",
         }
         for node in tree.body:  # module scope only
             if isinstance(node, ast.ImportFrom) and node.module in banned:
@@ -1149,7 +1149,7 @@ class TestNoBlockingRecordIoOnTheLoop:
         import ast
         import inspect
 
-        from kiro_crew.mcp_gateway import evaluate, preflight, seed, verdict_cache
+        from junction.mcp_gateway import evaluate, preflight, seed, verdict_cache
 
         for mod in (shareability, hazards, preflight, verdict_cache, seed, evaluate):
             tree = ast.parse(inspect.getsource(mod))
@@ -1167,10 +1167,10 @@ class TestNoBlockingRecordIoOnTheLoop:
         """It takes the loaded state as arguments and opens nothing."""
         import inspect
 
-        from kiro_crew.dashboard.handlers import mcp as handler
+        from junction.dashboard.handlers import mcp as handler
 
         src = inspect.getsource(handler._assess_server)
-        for forbidden in ("load_cache", "load_ledger", "KiroCrewConfig", "open("):
+        for forbidden in ("load_cache", "load_ledger", "JunctionConfig", "open("):
             assert forbidden not in src, f"{forbidden} moved back into the row path"
         params = inspect.signature(handler._assess_server).parameters
         assert "preflight" in params, "preflight must be passed in, not looked up"
@@ -1180,7 +1180,7 @@ class TestNoBlockingRecordIoOnTheLoop:
         """One ``to_thread`` call, outside the row loop."""
         import inspect
 
-        from kiro_crew.dashboard.handlers import mcp as handler
+        from junction.dashboard.handlers import mcp as handler
 
         src = inspect.getsource(handler.api_mcp_gateway_servers)
         assert src.count("_load_shareability_state") == 1
@@ -1384,7 +1384,7 @@ class TestHazardInvalidation:
         ``PoolKey`` already carries the three fingerprints, which is what makes
         stamping free at a site that runs on the event loop.
         """
-        from kiro_crew.mcp_gateway import backend as backend_mod
+        from junction.mcp_gateway import backend as backend_mod
 
         src = inspect.getsource(backend_mod.Backend._record_hazard)
         assert "launch_identity" in src
@@ -1404,15 +1404,15 @@ class TestRecordsDirIsNotGatedOnABroker:
     """
 
     def test_unconfigured_socket_still_resolves_a_directory(self, monkeypatch, tmp_path) -> None:
-        from kiro_crew.mcp_gateway.rewriter import records_dir, runtime_dir
+        from junction.mcp_gateway.rewriter import records_dir, runtime_dir
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         assert records_dir("") == runtime_dir()
         assert records_dir("") == tmp_path / "mcp-gateway"
 
     def test_configured_socket_wins_so_writer_and_reader_agree(self, tmp_path) -> None:
         """gatewayd writes beside its real socket; the page must read there."""
-        from kiro_crew.mcp_gateway.rewriter import records_dir
+        from junction.mcp_gateway.rewriter import records_dir
 
         sock = tmp_path / "custom" / "gateway.sock"
         assert records_dir(str(sock)) == sock.parent
@@ -1425,9 +1425,9 @@ class TestRecordsDirIsNotGatedOnABroker:
         Branching on the Path instead of its string form would put the hazard
         ledger in whatever directory the process happened to start in.
         """
-        from kiro_crew.mcp_gateway.rewriter import records_dir, runtime_dir
+        from junction.mcp_gateway.rewriter import records_dir, runtime_dir
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         assert records_dir(Path("")) == runtime_dir()
         assert records_dir(None) == runtime_dir()  # type: ignore[arg-type]
         assert records_dir(".") == runtime_dir()
@@ -1436,16 +1436,16 @@ class TestRecordsDirIsNotGatedOnABroker:
         assert records_dir("gateway.sock") == Path(".")
 
     def test_the_default_socket_lives_in_that_same_directory(self, monkeypatch, tmp_path) -> None:
-        from kiro_crew.mcp_gateway.rewriter import default_socket_path, runtime_dir
+        from junction.mcp_gateway.rewriter import default_socket_path, runtime_dir
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         assert default_socket_path().parent == runtime_dir()
 
     def test_neither_reader_nor_trigger_short_circuits_on_an_empty_socket(self) -> None:
         """Ratchet: the early `if not socket_path: return` must not come back."""
         import inspect
 
-        from kiro_crew.dashboard.handlers import mcp as handler
+        from junction.dashboard.handlers import mcp as handler
 
         for fn in (handler._load_shareability_state, handler._evaluate_shareability):
             src = inspect.getsource(fn)
@@ -1485,7 +1485,7 @@ class TestBackendRecordsHazards:
         hazard means anything: two clients attached, so an unattributable frame
         could have reached the wrong one.
         """
-        from kiro_crew.mcp_gateway.backend import Backend
+        from junction.mcp_gateway.backend import Backend
 
         obj = object.__new__(Backend)
         obj.pool_key = SimpleNamespace(  # type: ignore[attr-defined]
@@ -1556,7 +1556,7 @@ class TestBackendRecordsHazards:
         """
         from pathlib import Path as _Path
 
-        import kiro_crew.mcp_gateway.backend as backend_mod
+        import junction.mcp_gateway.backend as backend_mod
 
         src = _Path(backend_mod.__file__).read_text(encoding="utf-8")
         assert src.count("self._record_hazard(") == 3, "expected exactly three hazard sites"

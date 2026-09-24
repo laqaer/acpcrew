@@ -19,12 +19,12 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import publish_provider, publish_sync
-from kiro_crew.artifacts import (
+from junction import publish_provider, publish_sync
+from junction.artifacts import (
     ArtifactPublication,
     ArtifactStore,
 )
-from kiro_crew.publish_provider import (
+from junction.publish_provider import (
     Capability,
     PublishError,
     PublishProvider,
@@ -261,7 +261,7 @@ async def test_publish_sets_publication(store, fake_client):
     assert pub is not None
     assert pub.artifact_id == "uuid-123"
     assert pub.last_pushed_sha256 == "sha-v1"
-    assert pub.last_synced_kirocrew_version == 1
+    assert pub.last_synced_junction_version == 1
     assert pub.version_map == {"1": 1}
     assert pub.published_by == "alice"
     # uploaded the rendered text content
@@ -303,7 +303,7 @@ async def test_publish_unavailable_when_provider_absent(store, fake_client):
 async def test_push_version_updates_sha_and_map(store, fake_client):
     store.create(name="Doc", content="v1", kind="text", slug="d")
     await publish_sync.publish("d")
-    # New KiroCrew version
+    # New Junction version
     store.update("d", content="v2 content", snapshot=True)
     await publish_sync.push_version(store.get("d"))
 
@@ -312,7 +312,7 @@ async def test_push_version_updates_sha_and_map(store, fake_client):
     assert uv[0]["expected_current_sha256"] == "sha-v1"  # the previous sha
     pub = store.get("d").publication
     assert pub.last_pushed_sha256 == "sha-v2"
-    assert pub.last_synced_kirocrew_version == 2
+    assert pub.last_synced_junction_version == 2
     assert pub.version_map == {"1": 1, "2": 2}
     assert pub.last_error == ""
 
@@ -320,9 +320,9 @@ async def test_push_version_updates_sha_and_map(store, fake_client):
 @pytest.mark.asyncio
 async def test_push_version_skips_already_synced_version(store, fake_client):
     store.create(name="Doc", content="x", kind="text", slug="d")
-    await publish_sync.publish("d")  # last_synced_kirocrew_version = 1
-    # No new KiroCrew version since publish → push is a no-op (we push exactly
-    # once per KiroCrew version to preserve the 1:1 invariant + idempotency).
+    await publish_sync.publish("d")  # last_synced_junction_version = 1
+    # No new Junction version since publish → push is a no-op (we push exactly
+    # once per Junction version to preserve the 1:1 invariant + idempotency).
     await publish_sync.push_version(store.get("d"))
     assert fake_client.called("upload_version") == []
     # force=True (re-publish path) pushes anyway.
@@ -336,7 +336,7 @@ async def test_push_version_re_pushes_widget_on_wrapper_revision_bump(store, fak
     store.create(name="Widget", content="<p>hi</p>", kind="widget", slug="w")
     await publish_sync.publish("w")
     art = store.get("w")
-    assert art.publication.last_synced_kirocrew_version == 1
+    assert art.publication.last_synced_junction_version == 1
     assert art.publication.wrapper_revision == publish_sync.WRAPPER_REVISION
 
     # Simulate a wrapper bump (CSP tightened) — revision goes up by 1.
@@ -438,7 +438,7 @@ async def test_republish_preserves_push_error(store, fake_client):
     # subsequent sharing update (which clears last_error). review-bot regression.
     store.create(name="Doc", content="v1", kind="text", slug="d")
     await publish_sync.publish("d")
-    store.update("d", content="v2", snapshot=True)  # new KiroCrew version
+    store.update("d", content="v2", snapshot=True)  # new Junction version
     fake_client.upload_version_response = {"error": "expected sha mismatch"}
     result = await publish_sync.publish("d", visibility="PUBLIC")
     assert "conflict" in result["last_error"].lower()
@@ -468,7 +468,7 @@ def test_publication_roundtrip(tmp_path):
         visibility="SHARED",
         shared_with=["carol"],
         last_pushed_sha256="abc",
-        last_synced_kirocrew_version=art.version,
+        last_synced_junction_version=art.version,
         version_map={"1": 1},
         published_by="alice",
     )
@@ -505,13 +505,13 @@ def test_tolerant_load_non_numeric_last_synced(tmp_path):
     raw["publication"] = {
         "artifact_id": "uuid-x",
         "view_url": "https://x/artifact/uuid-x",
-        "last_synced_kirocrew_version": "not-a-number",
+        "last_synced_junction_version": "not-a-number",
         "version_map": {"1": "also-bad"},
     }
     meta_path.write_text(json.dumps(raw))
     pub = store.get("d").publication
     assert pub is not None
-    assert pub.last_synced_kirocrew_version == 0
+    assert pub.last_synced_junction_version == 0
     assert pub.version_map == {}  # bad entries dropped
 
 
@@ -524,7 +524,7 @@ def test_clear_publication(tmp_path):
 
 
 def test_update_publication_unknown_field_rejected(tmp_path):
-    from kiro_crew.artifacts import ArtifactValidationError
+    from junction.artifacts import ArtifactValidationError
 
     store = ArtifactStore(root=tmp_path / "a")
     store.create(name="Doc", content="x", kind="text", slug="d")
@@ -534,7 +534,7 @@ def test_update_publication_unknown_field_rejected(tmp_path):
 
 
 def test_update_publication_requires_existing(tmp_path):
-    from kiro_crew.artifacts import ArtifactValidationError
+    from junction.artifacts import ArtifactValidationError
 
     store = ArtifactStore(root=tmp_path / "a")
     store.create(name="Doc", content="x", kind="text", slug="d")
@@ -719,7 +719,7 @@ async def test_refresh_flags_rollback(store, fake_client):
     art = store.create(name="Doc", content="hello", kind="text")
     await publish_sync.publish(art.slug, visibility="PRIVATE")
     # The remote bytes changed out-of-band AT THE SAME version (an external
-    # edit or rollback): the version still matches what KiroCrew published, but
+    # edit or rollback): the version still matches what Junction published, but
     # the sha no longer does. This is genuine drift to surface (a cloud-ahead
     # version is now a pullable edit, not drift — covered separately).
     fake_client.get_response = {
@@ -732,7 +732,7 @@ async def test_refresh_flags_rollback(store, fake_client):
     }
     refreshed = await publish_sync.refresh_publication(art.slug)
     assert refreshed.publication is not None
-    assert refreshed.publication.last_error.startswith("The remote copy changed outside Kiro Crew")
+    assert refreshed.publication.last_error.startswith("The remote copy changed outside Junction")
 
 
 @pytest.mark.asyncio
@@ -740,9 +740,9 @@ async def test_refresh_clears_drift_when_reconciled(store, fake_client):
     art = store.create(name="Doc", content="hello", kind="text")
     await publish_sync.publish(art.slug, visibility="PRIVATE")
     store.update_publication(
-        art.slug, last_error="The remote copy changed outside Kiro Crew: it is showing v9."
+        art.slug, last_error="The remote copy changed outside Junction: it is showing v9."
     )
-    # The remote now matches what KiroCrew published again → note clears.
+    # The remote now matches what Junction published again → note clears.
     fake_client.get_response = {
         "artifact": {
             "visibility": "PRIVATE",
@@ -770,7 +770,7 @@ async def test_refresh_clears_drift_written_before_the_brand_rename(store, fake_
     art = store.create(name="Doc", content="hello", kind="text")
     await publish_sync.publish(art.slug, visibility="PRIVATE")
     store.update_publication(
-        art.slug, last_error="The remote copy changed outside KiroCrew: it is showing v9."
+        art.slug, last_error="The remote copy changed outside Junction: it is showing v9."
     )
     fake_client.get_response = {
         "artifact": {
@@ -789,7 +789,7 @@ async def test_refresh_clears_drift_written_before_the_brand_rename(store, fake_
 
 import getpass  # noqa: E402
 
-from kiro_crew.artifacts import ForkMetadata  # noqa: E402
+from junction.artifacts import ForkMetadata  # noqa: E402
 
 
 def _remote_get(
@@ -819,7 +819,7 @@ def _track_publication(store, slug, *, sha="sha-v1", cloud_v=1):
         artifact_id="uuid-123",
         view_url="https://x/uuid-123",
         last_pushed_sha256=sha,
-        last_synced_kirocrew_version=1,
+        last_synced_junction_version=1,
         version_map={"1": cloud_v},
         auto_sync=True,
     )
@@ -836,7 +836,7 @@ async def test_pull_upstream_publication_pulls_when_ahead(store, fake_client, tm
     reloaded = store.get(art.slug)
     assert reloaded.content == "collab edit"
     assert reloaded.version == 2  # new local snapshot
-    assert reloaded.publication.last_synced_kirocrew_version == 2
+    assert reloaded.publication.last_synced_junction_version == 2
     assert reloaded.publication.version_map["2"] == 2
 
 
@@ -867,7 +867,7 @@ async def test_pull_upstream_no_conflict_appends_when_both_diverged(store, fake_
     assert reloaded.content == "their edit"  # cloud content is now current
     assert reloaded.version == 3  # appended on top of my v2
     assert store.get(art.slug, version=2).content == "my local edit"  # preserved in history
-    assert reloaded.publication.last_synced_kirocrew_version == 3
+    assert reloaded.publication.last_synced_junction_version == 3
     # Pull never pushes: the local edit was NOT uploaded over the upstream.
     assert fake_client.called("upload_version") == []
 
@@ -890,7 +890,7 @@ async def test_pull_upstream_checkpoints_live_dirty_before_pull(store, fake_clie
     assert reloaded.content == "collab edit"
     assert reloaded.version == 3  # v1 old, v2 checkpoint(working edit), v3 pulled
     assert store.get(art.slug, version=2).content == "unsaved working edit"  # preserved
-    assert reloaded.publication.last_synced_kirocrew_version == 3
+    assert reloaded.publication.last_synced_junction_version == 3
     # The checkpoint did NOT auto-publish the working edit (race defused).
     assert fake_client.called("upload_version") == []
 
@@ -932,7 +932,7 @@ async def test_pull_upstream_file_backed_writes_through_to_source_file(
     reloaded = store.get(art.slug)
     assert reloaded.content == "collab edit"
     assert reloaded.version == 2
-    assert reloaded.publication.last_synced_kirocrew_version == 2
+    assert reloaded.publication.last_synced_junction_version == 2
 
 
 @pytest.mark.asyncio
@@ -1259,12 +1259,12 @@ async def test_refresh_does_not_flag_upstream_ahead(store, fake_client):
 
 @pytest.mark.asyncio
 async def test_pull_upstream_widget_unwraps_and_stays_widget(store, fake_client, tmp_path):
-    """A KiroCrew-published widget pulled back is unwrapped from its standalone
+    """A Junction-published widget pulled back is unwrapped from its standalone
     document to the original inner fragment and STAYS a widget — so it remains
     inline-embeddable in chat (no html regression)."""
     art = store.create(name="W", content="<b>inner</b>", kind="widget")
     _track_publication(store, art.slug)
-    # The remote bytes are what KiroCrew uploads: the sentinel-wrapped doc.
+    # The remote bytes are what Junction uploads: the sentinel-wrapped doc.
     wrapped = publish_sync.wrap_widget_html("<b>collab edit</b>")
     fake_client.get_response = _remote_get(
         tmp_path, wrapped, version=2, sha="sha-v2", ctype="text/html"
@@ -1360,7 +1360,7 @@ async def test_push_snapshots_live_dirty_before_push_no_map_drift(store, fake_cl
     assert reloaded.content == "blue live edit"
     # The map keys on the version that was actually pushed, and that version's
     # content matches the remote it points at — invariant intact, no drift.
-    assert pub.last_synced_kirocrew_version == 2
+    assert pub.last_synced_junction_version == 2
     assert pub.version_map["2"] == fake_client.upload_version_response["versionNumber"]
     # No stale entry maps a prior version number whose bytes differ from what
     # was pushed (the pre-fix drift signature was version_map["1"] -> remote).

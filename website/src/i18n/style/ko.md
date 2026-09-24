@@ -45,7 +45,7 @@ half-width `.` `,` `?` `!` even between Hangul characters. Full-width
 - **Enumerated nouns are joined with `·`** (가운뎃점), not `、` and not `/`.
 - **No ideographic space (`U+3000`).** Layout is the stylesheet's job.
 - **Half-width stays inside code**: commands, paths, filenames and extensions
-  (`~/.kiro/crew`, `.ics`), identifiers and config keys
+  (`~/.junction`, `.ics`), identifiers and config keys
   (`pref.backend.framework`), version numbers (`v1.2.3`), numeric ranges, URLs,
   emails and token prefixes (`xoxb-`).
 
@@ -77,7 +77,7 @@ translation shows first.
   a numeral (`N개`) and a 하다/되다 conjugation on a Latin stem (`POST할 수 있습니다`)
   all bind the same way.
 - **A Latin run and the Hangul that follows it take a space** when that Hangul is
-  a noun rather than a 조사: `MCP 서버`, `Git 저장소`, `Kiro Crew 실행`. Never
+  a noun rather than a 조사: `MCP 서버`, `Git 저장소`, `Junction 실행`. Never
   `MCP서버`. A 단위명사 after a numeral is the documented exception and stays
   closed up (`3개`, `2번`).
 
@@ -106,7 +106,7 @@ Prefer restructuring over the parenthesis where the sentence allows it
 
 **A fragment must not OPEN with a 조사.** Where a component renders
 `<operand> <fragment>` it always puts a space between the two, so a value
-beginning with a particle draws it detached from its noun — `Kiro Crew 을(를)
+beginning with a particle draws it detached from its noun — `Junction 을(를)
 제거하고`. That is an orthography error, and the space is not the catalog's to
 remove. Omit the particle (`Issue Radar에서 제거하고`), or lead with an em dash
 where omission alone would be ambiguous (`— 게이트웨이 호스트에서 인증되지
@@ -147,7 +147,7 @@ three are checked only where the **English** carries the cue, so a legitimate
 ## §3 Do not translate
 
 Product names stay in Latin script. The list is in `glossary.json` under `dnt`:
-`KiroCrew` / `Kiro Crew`, `Kiro`, `Slack`, `Discord`, `MCP`, `GitHub`, `Playwright`, etc.
+`Junction` / `Junction`, `Kiro`, `Slack`, `Discord`, `MCP`, `GitHub`, `Playwright`, etc.
 
 Also stays in English: AWS service names, key legends (Enter, Shift, ⌘),
 `main`/`origin`/`HEAD`, paths, filenames, config keys, and `cron` (the syntax —

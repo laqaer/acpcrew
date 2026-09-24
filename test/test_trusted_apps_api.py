@@ -27,14 +27,14 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps.manager import (
+from junction.apps.manager import (
     APP_MANIFEST_FILENAME,
     _read_installed,
     _write_installed,
     install_app,
 )
-from kiro_crew.dashboard.handlers import security
-from kiro_crew.dashboard.handlers.security import (
+from junction.dashboard.handlers import security
+from junction.dashboard.handlers.security import (
     api_trusted_app_grant,
     api_trusted_app_revoke,
     api_trusted_apps_allow_all,
@@ -59,7 +59,7 @@ async def _noop_hook(name: str, record: dict, **_kw: object) -> dict:
     return {}
 
 # A POPULATED config.json with a syntax error (trailing comma after
-# max_subagents). Every distinctive value below is one ``KiroCrewConfig.load()``
+# max_subagents). Every distinctive value below is one ``JunctionConfig.load()``
 # would silently replace with a default — so a mutation that loaded this file and
 # saved it back would erase the model, the subagent cap, the external registry
 # and the dashboard settings. The regression assertion is byte-identity, not the
@@ -88,17 +88,17 @@ _CORRUPT_SENTINELS = (
 
 @pytest.fixture
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect KIROCREW_HOME so config.json + installed apps land in tmp."""
-    h = tmp_path / "kirocrew-home"
+    """Redirect JUNCTION_HOME so config.json + installed apps land in tmp."""
+    h = tmp_path / "junction-home"
     h.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(h))
+    monkeypatch.setenv("JUNCTION_HOME", str(h))
     return h
 
 
 @pytest.fixture
 def mock_sel():
     """Patch the late-bound ``_sel()`` so SEL audit calls are observable."""
-    with patch("kiro_crew.dashboard.handlers.security._sel") as m:
+    with patch("junction.dashboard.handlers.security._sel") as m:
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -115,7 +115,7 @@ def _install(
     body: str = "",
     source_repository: str = "",
 ) -> None:
-    """Install a minimal app record under the tmp KIROCREW_HOME.
+    """Install a minimal app record under the tmp JUNCTION_HOME.
 
     ``builtin=True`` marks the install builtin-OWNED (``source``/``origin`` ==
     ``builtin``), which is what ``manager.builtin_owns_installed`` checks. Combined
@@ -377,7 +377,7 @@ async def test_revoke_of_disabled_app_reports_not_disabled(home: Path, tmp_path:
 async def test_revoke_tears_down_ineffective_legacy_repository_grant(
     home: Path, tmp_path: Path, mock_sel
 ):
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     torn: list[str] = []
 
@@ -447,7 +447,7 @@ async def test_allow_all_rejects_unparseable_body_with_code(home: Path, mock_sel
 
 @pytest.mark.asyncio
 async def test_grant_admits_only_that_app(home: Path, tmp_path: Path, mock_sel):
-    from kiro_crew.apps.execution import app_execution_denied
+    from junction.apps.execution import app_execution_denied
 
     _install(tmp_path, _APP)
     _install(tmp_path, _OTHER)
@@ -496,7 +496,7 @@ def _drive(client: TestClient, op: str, name: str):
 async def test_mutation_on_corrupt_config_409s_without_clobbering(
     home: Path, tmp_path: Path, mock_sel, op: str
 ):
-    # REGRESSION: ``KiroCrewConfig.load()`` degrades an unparseable config.json to
+    # REGRESSION: ``JunctionConfig.load()`` degrades an unparseable config.json to
     # DEFAULTS. A blind load→mutate→save would therefore write those defaults over
     # a populated file and silently erase the model, the subagent cap, the external
     # registry and the dashboard settings — total config loss from a trailing
@@ -579,7 +579,7 @@ async def test_revoke_stops_the_backend_process_and_the_beacon(
     # backend process kept running with its app secret, its routes stayed proxied
     # and its crons stayed armed — i.e. third-party code the operator had just
     # un-trusted was still executing. The assertion is the PROCESS, not the flag.
-    from kiro_crew.apps import backend as appbackend
+    from junction.apps import backend as appbackend
 
     # This test spawns a REAL backend, and spawning goes through the sandbox. CI
     # runners have no backend for it (Linux ``unshare`` is EPERM in the container,
@@ -642,8 +642,8 @@ async def test_revoke_runs_the_full_teardown_in_order(home: Path, tmp_path: Path
     # Patch on apps.teardown, the module that LOOKS THESE UP: it binds them at
     # import so patching their defining modules would not affect the sequence
     # under test ("patch where it's used, not where it's defined").
-    import kiro_crew.apps.teardown as appteardown
-    from kiro_crew.apps.manager import AppResult
+    import junction.apps.teardown as appteardown
+    from junction.apps.manager import AppResult
 
     calls: list[str] = []
 
@@ -695,7 +695,7 @@ async def test_trust_withdrawal_refuses_before_teardown_when_startup_is_live(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Residual startup ownership leaves every runtime surface unchanged."""
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     calls: list[str] = []
 
@@ -745,7 +745,7 @@ async def test_revoke_fails_when_an_untracked_backend_is_still_listening(
     # (`lsof` unavailable, so adoption was skipped) survived the revoke while the
     # endpoint dropped the grant and answered 200. Third variant of the
     # "revocation that revokes nothing" defect this module exists to prevent.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     with (
         patch.object(appteardown, "stop_app_backend", lambda name: False),
@@ -774,7 +774,7 @@ async def test_revoke_succeeds_when_the_backend_was_merely_dead(
     # crashed also yields False. Treating that as a teardown failure would make the
     # grant unrevokable forever — refusing to withdraw a permission is worse than
     # the window it would close.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     with (
         patch.object(appteardown, "stop_app_backend", lambda name: False),
@@ -796,7 +796,7 @@ def test_unstopped_backend_port_only_answers_for_a_declared_fixed_port(
     # The probe must not guess. `port: auto` lived only in the tracking entry
     # `stop_app_backend` just dropped, so there is nothing left to observe and the
     # answer is "cannot tell" (None), never a fabricated port.
-    from kiro_crew.apps import backend as appbackend
+    from junction.apps import backend as appbackend
 
     _install(tmp_path, "auto-port-app", entry_point="main.py", port="auto")
     with patch.object(appbackend, "_port_is_listening", lambda port: True):
@@ -821,12 +821,12 @@ async def test_revoke_tears_down_even_when_metadata_says_disabled(
 ):
     # REGRESSION: teardown was gated on the PERSISTED `enabled` flag, but that flag
     # is metadata rather than evidence about the runtime. `manager.disable_app` is a
-    # pure metadata write, and `kirocrew app disable` calls it from a DIFFERENT
+    # pure metadata write, and `junction app disable` calls it from a DIFFERENT
     # PROCESS that cannot reach the gateway's backend child — so "recorded as
     # disabled" and "its code is running" are routinely both true. The gate
     # therefore skipped teardown for exactly the apps whose recorded state was
     # least trustworthy, and revoke answered 200 while third-party code kept going.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     torn: list[str] = []
 
@@ -877,7 +877,7 @@ async def test_blanket_off_sweeps_an_app_whose_metadata_says_disabled(
     # Same hazard on the falling edge: the candidate query filtered on `enabled`,
     # so an app the CLI had "disabled" while its backend kept running was excluded
     # from the sweep that exists to stop it.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     torn: list[str] = []
 
@@ -912,7 +912,7 @@ async def test_blanket_off_sweeps_an_app_whose_metadata_says_disabled(
 async def test_blanket_off_sweeps_legacy_repository_grant(
     home: Path, tmp_path: Path, mock_sel
 ):
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     torn: list[str] = []
 
@@ -979,7 +979,7 @@ async def test_revoke_probes_the_port_even_when_the_stop_reported_success(
     # only says "the process I was TRACKING is gone"; it says nothing about a
     # detached worker the app spawned itself, which keeps the declared fixed port
     # and keeps executing. Revoke then reported success over live code.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     probed: list[str] = []
 
@@ -1015,8 +1015,8 @@ async def test_blanket_off_sweeps_an_app_that_calls_itself_builtin(
     # out of the sweep that exists to stop it. `builtin_app_names()` is the only
     # forgery-proof source (it requires a SHIPPED app.json), and its own contract
     # says installed.json may narrow trust but never widen it.
-    import kiro_crew.apps.teardown as appteardown
-    from kiro_crew.apps.manager import _read_installed, _write_installed
+    import junction.apps.teardown as appteardown
+    from junction.apps.manager import _read_installed, _write_installed
 
     torn: list[str] = []
 
@@ -1057,8 +1057,8 @@ async def test_teardown_deregisters_even_when_the_app_calls_itself_self_managed(
     # skip the branch entirely, leaving its agents, skills, crons and MCP servers
     # registered after trust was withdrawn: the same "stale execution surface left
     # behind" defect the branch's own comment describes, through a different door.
-    import kiro_crew.apps.teardown as appteardown
-    from kiro_crew.apps.manager import _read_installed, _write_installed
+    import junction.apps.teardown as appteardown
+    from junction.apps.manager import _read_installed, _write_installed
 
     dereg: list[str] = []
 
@@ -1068,7 +1068,7 @@ async def test_teardown_deregisters_even_when_the_app_calls_itself_self_managed(
     # Forge the self-report the gate used to trust.
     meta.lifecycle = "app"
     _write_installed(_APP, meta)
-    from kiro_crew.apps.manager import INSTALLED_META_FILENAME, app_dir
+    from junction.apps.manager import INSTALLED_META_FILENAME, app_dir
 
     meta_path = app_dir(_APP) / INSTALLED_META_FILENAME
     raw = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -1097,7 +1097,7 @@ def test_unstopped_backend_port_prefers_the_gateway_recorded_port(
     # INSIDE the app directory — writable by any app trusted to run code. An app
     # could relabel its port (or claim `auto`) and hide from the liveness check that
     # decides whether revoke may report success. The gateway's own record wins.
-    from kiro_crew.apps import backend as appbackend
+    from junction.apps import backend as appbackend
 
     # The app declares `auto`, so the manifest path alone can observe nothing...
     _install(tmp_path, _APP, enabled=True, entry_point="main.py", port="auto")
@@ -1124,8 +1124,8 @@ async def test_disable_honors_the_resources_contract_but_revoke_does_not(
     # REVOKING TRUST is a security operation: `resources` lives in the app's own
     # installed.json, so honoring it there would hand a trusted app a switch for
     # evading its own teardown. Same teardown, opposite treatment of the same field.
-    import kiro_crew.apps.teardown as appteardown
-    from kiro_crew.apps.manager import INSTALLED_META_FILENAME, app_dir
+    import junction.apps.teardown as appteardown
+    from junction.apps.manager import INSTALLED_META_FILENAME, app_dir
 
     dereg: list[str] = []
 
@@ -1167,7 +1167,7 @@ async def test_teardown_runs_the_apps_own_on_disable_when_withdrawing_trust(
     # backend, returned 200, and left that helper executing after its permission to
     # execute had been withdrawn: revoke was WEAKER than a plain off-switch, which
     # is backwards.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     ran: list[tuple[str, int]] = []
 
@@ -1208,10 +1208,10 @@ async def test_a_disabled_apps_own_code_is_not_launched_by_an_ordinary_disable(
     #
     # Deliberately NOT asserted for the revoke path — see
     # test_a_revoke_always_runs_the_shutdown_code_even_when_disabled. A detached
-    # helper survives `kirocrew app disable` (metadata-only, cross-process) with no
+    # helper survives `junction app disable` (metadata-only, cross-process) with no
     # observed port, and `onDisable` is the only thing that can stop it, so a revoke
     # cannot afford to skip it.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     ran: list[str] = []
 
@@ -1261,12 +1261,12 @@ async def test_a_revoke_always_runs_the_shutdown_code_even_when_disabled(
     home: Path, tmp_path: Path
 ):
     # REGRESSION: gating the app's own shutdown code on `enabled or observed port`
-    # reopened a hole on the REVOKE path. `kirocrew app disable` is metadata-only and
+    # reopened a hole on the REVOKE path. `junction app disable` is metadata-only and
     # runs in another process, so `enabled` can read false while a helper the app
     # detached is still alive. That helper is not the tracked backend, so no port is
     # observed either — and `onDisable` is the only thing that knows how to stop it.
     # Skipping it left third-party code running after its permission was revoked.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     ran: list[str] = []
 
@@ -1312,7 +1312,7 @@ async def test_an_observed_port_overrides_a_disabled_flag(home: Path, tmp_path: 
     # `installed.json` is app-writable, so an app could mark itself disabled while its
     # backend keeps serving. An OBSERVED port therefore overrides the metadata and the
     # shutdown path runs anyway.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     ran: list[str] = []
 
@@ -1353,7 +1353,7 @@ async def test_a_failing_on_disable_warns_but_never_refuses_the_withdrawal(
     # any app a switch for blocking the withdrawal of its own trust — exit non-zero
     # and keep the grant. Same call as `hooks_shutdown`, for a sharper reason: a
     # warning the operator sees, and the rest of the teardown still runs.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _script(name, script, **kw):
         return {"output": "refusing to stop", "failed": True}
@@ -1397,7 +1397,7 @@ async def test_teardown_notes_are_scrubbed_of_exfiltration_urls(
     # disable handler happened to apply both passes on the way out via its own
     # `_redact_warning`, but the revoke handler returns `warnings` straight on its
     # 200 with no redaction, so this is the only place it happens for a revoke.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _script(name, script, **kw):
         return {
@@ -1443,7 +1443,7 @@ async def test_an_on_disable_that_raises_is_contained(home: Path, tmp_path: Path
     # The runner itself blowing up (not the script exiting non-zero) must not abort
     # the teardown either — same reasoning, and a teardown that stops halfway leaves
     # the app in a worse state than one that pushes through and reports.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _script(name, script, **kw):
         raise RuntimeError("sandbox unavailable")
@@ -1485,7 +1485,7 @@ async def test_a_failed_shutdown_hook_is_reported_without_blocking_the_revoke(
     # A failed shutdown hook means the app did not FLUSH — the backend stop and
     # deregistration still run, so the code does end up stopped. Refusing here would
     # make trust unrevokable for any app whose cleanup hook is simply broken.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _hook_fails(name: str, record: dict, **_kw: object) -> dict:
         return {"hooks_shutdown": "failed"}
@@ -1515,12 +1515,12 @@ async def test_grant_is_withdrawn_if_the_app_is_uninstalled_mid_write(
     home: Path, tmp_path: Path, mock_sel
 ):
     # REGRESSION: the grant path validated that the app exists, then wrote. The
-    # handler holds `app_lifecycle_lock(name)`, but `kirocrew app uninstall` runs in a
+    # handler holds `app_lifecycle_lock(name)`, but `junction app uninstall` runs in a
     # DIFFERENT PROCESS that no asyncio lock reaches — so the app could vanish
     # between the check and the write, leaving a grant over a name no app occupies.
     # Grants are name-keyed, so the next app installed under it would run its own
     # code with no consent prompt.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     real_get_app = appmanager.get_app
     calls: list[str] = []
@@ -1585,7 +1585,7 @@ async def test_revoke_of_a_builtin_name_leaves_the_builtin_enabled(
     # refuses builtins — see test 4), which is exactly the hand-edited-config
     # shape the un-validated revoke path exists to clean up.
     _install(tmp_path, _BUILTIN, enabled=True, builtin=True)
-    from kiro_crew.apps.execution import builtin_app_names
+    from junction.apps.execution import builtin_app_names
 
     assert _BUILTIN in builtin_app_names(), "fixture failed to make a real builtin"
     (home / "config.json").write_text(
@@ -1618,7 +1618,7 @@ async def test_grant_of_a_builtin_name_409s_and_persists_nothing(
     # inert while the builtin owned the slot — and went LIVE the moment a
     # third-party app claimed that name, inheriting a grant nobody made for it.
     _install(tmp_path, _BUILTIN, enabled=True, builtin=True)
-    from kiro_crew.apps.execution import builtin_app_names
+    from junction.apps.execution import builtin_app_names
 
     assert _BUILTIN in builtin_app_names()
 
@@ -1647,7 +1647,7 @@ async def test_refused_builtin_grant_is_not_inherited_by_a_later_takeover(
     # this app would execute on a grant the operator never made for it.
     # The POST's status is deliberately not asserted here — the load-bearing
     # assertion is the gate's verdict AFTER the takeover.
-    from kiro_crew.apps.execution import app_execution_denied, builtin_app_names
+    from junction.apps.execution import app_execution_denied, builtin_app_names
 
     _install(tmp_path, _BUILTIN, enabled=True, builtin=True)
     async with _client() as client:
@@ -1677,7 +1677,7 @@ _REG_ONLY_CLONE_TARGET = "https://clone.example.test/Owner/registry-only-app"
 @pytest.fixture
 def seeded_registry(monkeypatch: pytest.MonkeyPatch):
     """Seed the BUNDLED registry index in-process (never touches the network)."""
-    import kiro_crew.apps.registry as registry
+    import junction.apps.registry as registry
 
     monkeypatch.setattr(
         registry,
@@ -1696,7 +1696,7 @@ def seeded_registry(monkeypatch: pytest.MonkeyPatch):
     # HTTPS fetch (#4236) — and with a seed row present a failed lookup refuses
     # rather than falling back to the seed.
     monkeypatch.setattr(
-        "kiro_crew.apps.official_catalog.inventory_for_install",
+        "junction.apps.official_catalog.inventory_for_install",
         lambda name: None,
     )
     return _REG_ONLY
@@ -1711,7 +1711,7 @@ async def test_grant_accepts_a_registry_name_that_is_not_installed(
     # are themselves third-party code), so "no grant without an install, no
     # install without a grant" left the operator only the blanket
     # ``apps_allow_third_party`` this endpoint exists to avoid.
-    from kiro_crew.apps.manager import get_app
+    from junction.apps.manager import get_app
 
     assert get_app(_REG_ONLY) is None, "fixture must NOT install the app"
 
@@ -1728,7 +1728,7 @@ async def test_grant_accepts_a_registry_name_that_is_not_installed(
     assert _stored(home)["apps_trusted_repositories"] == {
         _REG_ONLY: _REG_ONLY_CLONE_TARGET
     }
-    from kiro_crew.apps.execution import app_execution_denied
+    from junction.apps.execution import app_execution_denied
 
     assert (
         app_execution_denied(
@@ -1747,7 +1747,7 @@ async def test_repository_grant_never_persists_embedded_clone_credentials(
     seeded_registry: str,
     monkeypatch: pytest.MonkeyPatch,
 ):
-    import kiro_crew.apps.registry as registry
+    import junction.apps.registry as registry
 
     secret = "SuperSecret"
     credentialed = f"HTTPS://User:{secret}@Clone.Example.test/Owner/registry-only-app.git"
@@ -1813,7 +1813,7 @@ async def test_legacy_registry_install_binds_grant_to_current_repository(
 
     current_repository = "https://clone.example.test/Owner/current-app"
     monkeypatch.setattr(
-        "kiro_crew.apps.registry.get_registry_app",
+        "junction.apps.registry.get_registry_app",
         lambda name: {"name": name, "gitUrl": f"{current_repository}.git"},
     )
 
@@ -1849,7 +1849,7 @@ async def test_legacy_unsupported_install_cannot_receive_repository_grant(
     home: Path, tmp_path: Path, mock_sel, source_url: str
 ):
     """Old ambiguous provenance is unknown until reinstalled from a safe URL."""
-    from kiro_crew.apps.manager import INSTALLED_META_FILENAME, app_dir
+    from junction.apps.manager import INSTALLED_META_FILENAME, app_dir
 
     _install(tmp_path, _APP)
     meta_path = app_dir(_APP) / INSTALLED_META_FILENAME
@@ -2018,7 +2018,7 @@ _INEFFECTIVE_ENTRIES = ["LD-App", "ld-app ", "ｌd-app", "..", "*"]
 async def test_snapshot_reports_unenforceable_entries_as_ineffective(
     home: Path, tmp_path: Path, mock_sel
 ):
-    from kiro_crew.apps.execution import app_execution_denied, trusted_app_names
+    from junction.apps.execution import app_execution_denied, trusted_app_names
 
     _install(tmp_path, _APP)
     (home / "config.json").write_text(
@@ -2071,7 +2071,7 @@ async def test_failed_cron_cleanup_does_not_report_a_successful_revoke(
     # warning let a contended store leave the app's scheduled commands ARMED while
     # the endpoint returned 200 and said the app was switched off: third-party code
     # still executing on a timer, with trust reported as revoked.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _busy_store(name: str, record: dict, **_kw: object) -> dict:
         return {"cron_cleanup": "failed: cron store busy — jobs may still be enabled"}
@@ -2116,7 +2116,7 @@ async def test_live_detached_startup_hook_does_not_report_successful_revoke(
     home: Path, tmp_path: Path, mock_sel
 ):
     """Residual startup code is a hard, retryable teardown failure."""
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _still_running(name: str, record: dict, **_kw: object) -> dict:
         return {
@@ -2149,7 +2149,7 @@ async def test_blanket_off_reports_apps_it_could_not_stop(home: Path, tmp_path: 
     # response carried only `stopped` — the operator could not tell that code they
     # had just un-trusted was STILL RUNNING. Same shape as the metadata-only revoke
     # this feature already had to fix, one layer up.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     async def _busy_store(name: str, record: dict, **_kw: object) -> dict:
         return {"cron_cleanup": "failed: cron store busy — jobs may still be enabled"}
@@ -2186,7 +2186,7 @@ def test_uninstall_reports_a_trust_grant_it_could_not_drop(home: Path, tmp_path:
     # ok=True, so the app vanished while its code-execution trust stayed on file and
     # reusable. The uninstall still succeeds (the files are gone either way) but it
     # must say so.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     _install(tmp_path, _APP, enabled=False)
 
@@ -2212,13 +2212,13 @@ def test_uninstall_reports_a_trust_grant_it_could_not_drop(home: Path, tmp_path:
 async def test_mutations_refuse_when_config_local_owns_the_trust_setting(
     home: Path, tmp_path: Path, mock_sel
 ):
-    # REGRESSION: KiroCrewConfig deep-merges config.local.json OVER config.json and
+    # REGRESSION: JunctionConfig deep-merges config.local.json OVER config.json and
     # save() STRIPS overlay-owned values from what it writes. So when the overlay
     # owns a trust setting, mutating config.json is doubly ineffective — and the old
     # code returned 200, telling the operator a grant was revoked while the overlay
     # re-admitted the app's code on the very next load. Third variant of
     # "revocation that revokes nothing". Refusing is the honest answer: the overlay
-    # is user-owned and Kiro Crew never writes it.
+    # is user-owned and Junction never writes it.
     (home / "config.local.json").write_text(
         json.dumps({"agent": {"apps_trusted": ["pinned-app"]}}), encoding="utf-8"
     )
@@ -2255,7 +2255,7 @@ async def test_refused_revoke_does_not_switch_the_app_off(
     )
     _install(tmp_path, _APP, enabled=True)
     with patch(
-        "kiro_crew.dashboard.handlers.security.teardown_app_runtime"
+        "junction.dashboard.handlers.security.teardown_app_runtime"
     ) as teardown:
         async with _client() as client:
             resp = await client.delete(f"/api/security/trusted-apps/{_APP}")
@@ -2280,7 +2280,7 @@ def test_uninstall_holds_the_shared_config_lock_across_the_grant_drop(
     # under that name next. Asserted structurally (the route acquires the shared
     # lock around the executor call) because reproducing the interleaving requires
     # winning a race.
-    from kiro_crew.apps import routes as approutes
+    from junction.apps import routes as approutes
 
     src = Path(approutes.__file__).read_text(encoding="utf-8")
     handler = src[src.index("async def handle_uninstall_app") :]
@@ -2296,7 +2296,7 @@ def test_uninstall_reports_an_overlay_owned_grant_it_cannot_drop(
     # Same hazard on the uninstall path: the grant is name-keyed, so one left in the
     # overlay would admit a DIFFERENT app installed under this name later. The
     # uninstall still succeeds (files are gone) but must SAY the grant survived.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.local.json").write_text(
         json.dumps(
@@ -2319,7 +2319,7 @@ def test_an_overlay_grant_for_another_app_does_not_block_this_uninstall(
     # The overlay refusal used to fire on the mere PRESENCE of `apps_trusted`,
     # regardless of which apps it named — so any operator who set it at all could
     # never uninstall ANY app. Scoped to a grant this app actually holds.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.local.json").write_text(
         json.dumps({"agent": {"apps_trusted": ["some-other-app"]}}), encoding="utf-8"
@@ -2340,7 +2340,7 @@ def test_uninstall_drops_the_base_grant_even_when_an_overlay_replaces_the_list(
     # sees no grant for <app>, and nothing is removed — leaving the BASE entry
     # behind. It is inert only while that overlay key stands; edit or drop the
     # key and a different app installed under this name inherits the grant.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     # Install before authoring the trust fixture. Installation legitimately
     # persists config and applies overlay ownership; doing it afterwards would
@@ -2384,7 +2384,7 @@ def test_uninstall_drops_the_base_grant_even_when_an_overlay_replaces_the_list(
 def test_uninstall_withdraws_a_grant_that_landed_during_the_delete(
     home: Path, tmp_path: Path
 ):
-    # The cross-process race GPT named: `kirocrew app uninstall` drops the (absent)
+    # The cross-process race GPT named: `junction app uninstall` drops the (absent)
     # grant, and only THEN deletes the files. In that gap the dashboard's grant
     # handler sees the app on disk, writes the grant, and its own post-write
     # existence re-check ALSO still sees the app — so every guard on both sides
@@ -2395,7 +2395,7 @@ def test_uninstall_withdraws_a_grant_that_landed_during_the_delete(
     # `rmtree`, which is exactly the window (after the first withdrawal, before the
     # files are gone). No cross-process lock is needed to close it — only the second
     # withdrawal AFTER the delete, which by ordering must run after that write.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.json").write_text(
         json.dumps({"agent": {"apps_trusted": [], "model": "sonnet"}}), encoding="utf-8"
@@ -2433,7 +2433,7 @@ def test_a_failed_delete_puts_the_trust_grant_back(home: Path, tmp_path: Path):
     # after a successful delete re-opens the hole the current ordering exists to
     # close, where a withdrawal that fails leaves the app GONE with its name still
     # armed and no app left to uninstall, so no retry can ever clear it.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.json").write_text(
         json.dumps(
@@ -2476,7 +2476,7 @@ def test_a_failed_delete_puts_the_trust_grant_back(home: Path, tmp_path: Path):
 def test_a_failed_delete_restores_explicit_local_grant_kind(
     home: Path, tmp_path: Path
 ):
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     _install(tmp_path, _APP, enabled=False)
     (home / "config.json").write_text(
@@ -2509,9 +2509,9 @@ def test_partial_delete_never_restores_grant_to_a_missing_or_replacement_app(
     home: Path, tmp_path: Path
 ):
     """Old consent cannot survive loss of the durable installed occupant."""
-    from kiro_crew.apps import manager as appmanager
-    from kiro_crew.apps.execution import app_execution_denied
-    from kiro_crew.config.loader import _invalidate_config_cache
+    from junction.apps import manager as appmanager
+    from junction.apps.execution import app_execution_denied
+    from junction.config.loader import _invalidate_config_cache
 
     _install(tmp_path, _APP, enabled=False)
     (home / "config.json").write_text(
@@ -2557,8 +2557,8 @@ def test_restore_postcheck_withdraws_grant_if_installed_occupant_changes(
     home: Path, tmp_path: Path
 ):
     """A replacement between the precheck and config write inherits nothing."""
-    from kiro_crew.apps import manager as appmanager
-    from kiro_crew.config.loader import _invalidate_config_cache
+    from junction.apps import manager as appmanager
+    from junction.config.loader import _invalidate_config_cache
 
     _install(tmp_path, _APP, enabled=False)
     (home / "config.json").write_text(
@@ -2606,7 +2606,7 @@ def test_restore_postcheck_withdraws_grant_if_installed_occupant_changes(
 def test_successful_uninstall_removes_explicit_local_grant_kind(
     home: Path, tmp_path: Path
 ):
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     _install(tmp_path, _APP, enabled=False)
     (home / "config.json").write_text(
@@ -2635,7 +2635,7 @@ def test_a_failed_delete_does_not_grant_an_app_that_had_no_grant(
     # The other half, and the one that would be a real vulnerability: restoring must
     # never CREATE a grant. An untrusted app whose uninstall fails must stay
     # untrusted, or a failed uninstall becomes a way to gain execution permission.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.json").write_text(
         json.dumps({"agent": {"apps_trusted": []}}), encoding="utf-8"
@@ -2656,12 +2656,12 @@ def test_a_failed_delete_does_not_grant_an_app_that_had_no_grant(
 def test_the_cli_trust_withdrawal_is_audited(home: Path, tmp_path: Path):
     # A permission boundary that moves silently is what SEL exists to make visible.
     # The dashboard revoke endpoint audits its own withdrawal, but this path runs
-    # from `kirocrew app uninstall`, so without this the grant could disappear with
+    # from `junction app uninstall`, so without this the grant could disappear with
     # nothing in the security event log to reconstruct the trust timeline from.
     #
     # Patched on `manager`, not via the `mock_sel` fixture: that one patches the
     # DASHBOARD handler's `_sel`, which this code path never touches.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.json").write_text(
         json.dumps(
@@ -2685,12 +2685,12 @@ def test_uninstall_writes_no_config_at_all_when_there_is_no_grant(
 ):
     # Bounds what the two withdrawals cost. `config.json` read-modify-write is
     # unlocked across processes REPO-WIDE (24 writers on the base branch, including
-    # `kirocrew config set`, whose own reader documents the shape), so every writer
+    # `junction config set`, whose own reader documents the shape), so every writer
     # carries some lost-update exposure. This asserts the trust-grant cleanup adds
     # NONE of it in the ordinary case: with no grant to withdraw, both calls read,
     # find nothing, and return WITHOUT writing. A write happens only when there is
     # actually an orphaned grant to remove — the case the withdrawal exists for.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.json").write_text(
         json.dumps({"agent": {"model": "sonnet"}}), encoding="utf-8"
@@ -2713,7 +2713,7 @@ def test_uninstall_reports_a_grant_it_could_not_withdraw_after_the_delete(
     # available (the files are already gone) and claiming plain success would hide a
     # live grant over a name nothing occupies, invisible in the app list because
     # there is no app left to list. So it must succeed AND say so.
-    from kiro_crew.apps import manager as appmanager
+    from junction.apps import manager as appmanager
 
     (home / "config.json").write_text(
         json.dumps({"agent": {"apps_trusted": []}}), encoding="utf-8"
@@ -2742,7 +2742,7 @@ def test_uninstall_reports_a_grant_it_could_not_withdraw_after_the_delete(
 async def test_grant_preserves_base_settings_shadowed_by_the_overlay(
     home: Path, tmp_path: Path, mock_sel
 ):
-    # The mutation used to run KiroCrewConfig.load() -> cfg.save(), and save()
+    # The mutation used to run JunctionConfig.load() -> cfg.save(), and save()
     # strips every value config.local.json also defines so overlay settings do not
     # leak into the base file. Routing a trust write through it rewrote the WHOLE
     # base document minus all overlay-owned keys, so granting one app trust
@@ -2752,7 +2752,7 @@ async def test_grant_preserves_base_settings_shadowed_by_the_overlay(
     # Install FIRST: `install_app` writes the whole config through the model, so
     # seeding before it would measure main's writer, not the trust endpoint.
     _install(tmp_path, _APP, enabled=False)
-    # Migration-complete on purpose: `KiroCrewConfig.load()` write-BACKS a legacy
+    # Migration-complete on purpose: `JunctionConfig.load()` write-BACKS a legacy
     # config (missing `agents`/`default_agent`), and that write-back is itself a
     # full model save. A minimal hand-written config would trip it and measure the
     # migration instead of the mutation under test.
@@ -2762,7 +2762,7 @@ async def test_grant_preserves_base_settings_shadowed_by_the_overlay(
                 "agent": {"model": "sonnet", "max_subagents": 3},
                 "agents": {
                     "default": {
-                        "kiro_agent": "kirocrew",
+                        "kiro_agent": "junction",
                         "workspace": "default",
                         "memory_store": "default",
                     }
@@ -2802,7 +2802,7 @@ async def test_uninstall_route_refuses_before_running_anything_destructive(
     # script, the backend stop and dependency cleanup. The refusal therefore
     # stranded a half-removed app and re-ran onUninstall on every retry. It is now
     # a precondition: nothing destructive may have run when it fires.
-    from kiro_crew.apps import routes as approutes
+    from junction.apps import routes as approutes
 
     (home / "config.local.json").write_text(
         json.dumps(
@@ -2850,13 +2850,13 @@ async def test_blanket_off_runs_shutdown_hooks_before_persisting_false(
     # therefore denied the app's own `on_shutdown` hook, so it was stopped without
     # ever being told to flush state or release resources. The sweep has to run
     # while trust still stands. Pinned by observing the config as the hook sees it.
-    import kiro_crew.apps.teardown as appteardown
+    import junction.apps.teardown as appteardown
 
     observed: list[bool] = []
 
     async def _on_app_disable(name: str, record: dict, **_kw: object) -> dict:
         # What a shutdown hook would see when the loader gates it.
-        from kiro_crew.apps.execution import third_party_execution_allowed
+        from junction.apps.execution import third_party_execution_allowed
 
         observed.append(third_party_execution_allowed())
         return {}
@@ -2897,8 +2897,8 @@ async def test_blanket_off_catches_an_app_enabled_during_the_sweep(
     # believed they had withdrawn. Per-app locks cannot cover it: there is no name to
     # lock for an app that was not enumerated. A second sweep after the write closes
     # it. Simulated by enabling a second app from inside the first app's teardown.
-    import kiro_crew.apps.teardown as appteardown
-    from kiro_crew.apps.manager import enable_app
+    import junction.apps.teardown as appteardown
+    from junction.apps.manager import enable_app
 
     late = "trust-late-app"
     _install(tmp_path, _APP, enabled=True)
@@ -2928,7 +2928,7 @@ async def test_blanket_off_catches_an_app_enabled_during_the_sweep(
 
     # The app that raced in must NOT be left enabled-and-running on withdrawn trust:
     # either it was stopped, or the response says it may still be executing.
-    from kiro_crew.apps.manager import get_app
+    from junction.apps.manager import get_app
 
     record = get_app(late) or {}
     accounted = late in body.get("stopped", []) or late in body.get("stillRunning", [])
@@ -2941,7 +2941,7 @@ async def test_blanket_off_catches_an_app_enabled_during_the_sweep(
 
 def test_blanket_flag_is_not_editable_through_the_generic_config_patch():
     # REGRESSION: `agent.apps_allow_third_party` was PATCHable through
-    # /api/config/kirocrew, and that path performs NO teardown — so flipping it off
+    # /api/config/junction, and that path performs NO teardown — so flipping it off
     # there withdrew trust on paper while every app it had admitted kept executing,
     # crons included, until a gateway restart. A dashboard card shipped against that
     # endpoint (#1414), which is how the hole became reachable from the UI.
@@ -2949,7 +2949,7 @@ def test_blanket_flag_is_not_editable_through_the_generic_config_patch():
     # The key is deliberately absent from the editable set so the ONLY writer is the
     # endpoint that runs the sweep, and the refusal names it rather than dead-ending
     # on "field not editable".
-    from kiro_crew.dashboard.handlers.core import (
+    from junction.dashboard.handlers.core import (
         _EDITABLE_CONFIG,
         _MOVED_CONFIG_FIELDS,
     )
@@ -2972,8 +2972,8 @@ async def test_grant_holds_the_app_lifecycle_lock_across_validate_and_write(
     # grant lands afterwards — leaving a grant on a name nothing owns, which is
     # exactly what lets a later app claiming that name run code unprompted.
     # Revoke already serializes this way; grant did not.
-    from kiro_crew.apps import manager as appmanager
-    from kiro_crew.dashboard.handlers import security as sec
+    from junction.apps import manager as appmanager
+    from junction.dashboard.handlers import security as sec
 
     _install(tmp_path, _APP, enabled=False)
     lock = appmanager.app_lifecycle_lock(_APP)
@@ -3032,7 +3032,7 @@ class TestDisablingAnAppStandsItsWorkersDownInTheRequest:
         # Ordering is the fix, not decoration: `onDisable` is third-party code and
         # stopping a backend waits on it, so a worker still holding authority while
         # those run keeps it for their whole duration.
-        import kiro_crew.apps.teardown as appteardown
+        import junction.apps.teardown as appteardown
 
         ran: list[str] = []
         stopped: list[str] = []
@@ -3069,7 +3069,7 @@ class TestDisablingAnAppStandsItsWorkersDownInTheRequest:
     ):
         # Revoke and the falling-edge sweep are the SECURITY paths; they must not be
         # weaker than an ordinary off-switch.
-        import kiro_crew.apps.teardown as appteardown
+        import junction.apps.teardown as appteardown
 
         ran: list[str] = []
         _install(tmp_path, _APP, enabled=True)
@@ -3092,7 +3092,7 @@ class TestDisablingAnAppStandsItsWorkersDownInTheRequest:
         self, home: Path, tmp_path: Path
     ):
         # Same contract as every other step here: push through and report.
-        import kiro_crew.apps.teardown as appteardown
+        import junction.apps.teardown as appteardown
 
         ran: list[str] = []
         stopped: list[str] = []
@@ -3117,7 +3117,7 @@ class TestDisablingAnAppStandsItsWorkersDownInTheRequest:
 
     @pytest.mark.asyncio
     async def test_an_app_with_no_hook_is_unaffected(self, home: Path, tmp_path: Path):
-        import kiro_crew.apps.teardown as appteardown
+        import junction.apps.teardown as appteardown
 
         stopped: list[str] = []
         _install(tmp_path, _APP, enabled=True)

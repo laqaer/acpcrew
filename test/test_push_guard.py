@@ -1,6 +1,6 @@
 """Tests for the prepare-pr push_guard.py stale-base detection.
 
-Verifies that the push_guard script (src/kiro_crew/builtin_skills/kirocrew-dev/
+Verifies that the push_guard script (src/junction/builtin_skills/junction-dev/
 prepare-pr/scripts/push_guard.py) correctly refuses to push when:
 - The branch has no common history with origin/<base> (orphan / disconnected)
 - The commit count exceeds --max-ahead (implausibly many commits for a PR)
@@ -31,9 +31,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PUSH_GUARD = str(
     REPO_ROOT
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "builtin_skills"
-    / "kirocrew-dev"
+    / "junction-dev"
     / "prepare-pr"
     / "scripts"
     / "push_guard.py"
@@ -1345,9 +1345,9 @@ class TestReplayFailClosed:
         scripts_dir = str(
             REPO_ROOT
             / "src"
-            / "kiro_crew"
+            / "junction"
             / "builtin_skills"
-            / "kirocrew-dev"
+            / "junction-dev"
             / "prepare-pr"
             / "scripts"
         )
@@ -1538,9 +1538,9 @@ class TestClassifyFetchError:
         scripts_dir = str(
             REPO_ROOT
             / "src"
-            / "kiro_crew"
+            / "junction"
             / "builtin_skills"
-            / "kirocrew-dev"
+            / "junction-dev"
             / "prepare-pr"
             / "scripts"
         )
@@ -1645,9 +1645,9 @@ class TestFetchDiagnosticIntegration:
         scripts_dir = str(
             REPO_ROOT
             / "src"
-            / "kiro_crew"
+            / "junction"
             / "builtin_skills"
-            / "kirocrew-dev"
+            / "junction-dev"
             / "prepare-pr"
             / "scripts"
         )

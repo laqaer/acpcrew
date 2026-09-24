@@ -10,8 +10,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.deploy import engine, handlers
-from kiro_crew.deploy import profiles as profiles_mod
+from junction.deploy import engine, handlers
+from junction.deploy import profiles as profiles_mod
 
 # On native Windows the deploy handlers hard-gate on ``os.name == "nt"`` (the
 # deploy scripts need a POSIX bash shell), so every handler test would receive
@@ -60,9 +60,9 @@ def _force_posix_shell(monkeypatch):
 @pytest.fixture(autouse=True)
 def _isolate_config(tmp_path: Path, monkeypatch):
     # Patch config_dir on all deploy submodules so paths resolve under tmp_path.
-    import kiro_crew.deploy as _deploy_pkg
-    from kiro_crew.deploy import pending as _pending_mod
-    from kiro_crew.deploy import profiles as _profiles_mod
+    import junction.deploy as _deploy_pkg
+    from junction.deploy import pending as _pending_mod
+    from junction.deploy import profiles as _profiles_mod
 
     monkeypatch.setattr(handlers, "config_dir", lambda: tmp_path)
     monkeypatch.setattr(_profiles_mod, "config_dir", lambda: tmp_path)
@@ -80,7 +80,7 @@ def _mock_base_stack(monkeypatch):
     override engine.run_aws in their body (monkeypatch is last-write-wins).
     """
     import json as _json
-    _base_outputs = _json.dumps([{"OutputKey": "BucketName", "OutputValue": "kirocrew-base-bucket"}])
+    _base_outputs = _json.dumps([{"OutputKey": "BucketName", "OutputValue": "junction-base-bucket"}])
     monkeypatch.setattr(engine, "run_aws", lambda *a, **kw: (0, _base_outputs, ""))
 
 
@@ -199,7 +199,7 @@ def test_deploy_info_finding_overridable(monkeypatch):
         captured["src_dir"] = src_dir
         captured["index"] = Path(src_dir, "index.html").read_text(encoding="utf-8")
         return {"site_id": site_id, "url": "https://d.cloudfront.net/", "reused": False,
-                "bucket": "kirocrew-web-x", "distribution_id": "D1", "status": "InProgress"}
+                "bucket": "junction-web-x", "distribution_id": "D1", "status": "InProgress"}
 
     monkeypatch.setattr(engine, "deploy", fake_deploy)
     # Without override_scan -> blocked
@@ -256,7 +256,7 @@ def test_deploy_rejects_local_dir_outside_allowed_roots(monkeypatch, tmp_path):
 
 def test_deploy_missing_artifact_404(monkeypatch):
     _set_profile(monkeypatch)
-    from kiro_crew.artifacts import ArtifactNotFoundError
+    from junction.artifacts import ArtifactNotFoundError
 
     def boom():
         return SimpleNamespace(get=lambda slug: (_ for _ in ()).throw(ArtifactNotFoundError("x")))
@@ -271,7 +271,7 @@ def test_deploy_missing_artifact_404(monkeypatch):
 
 def test_recall_preview_then_confirm(monkeypatch):
     _set_profile(monkeypatch)
-    site = {"bucket": "kirocrew-web-x", "distribution_id": "D1", "distribution_arn": "arn"}
+    site = {"bucket": "junction-web-x", "distribution_id": "D1", "distribution_arn": "arn"}
     monkeypatch.setattr(engine, "find_site_by_tag", lambda sid, p, r=None: site)
     # preview (no confirm)
     status, payload = _run(handlers._do_recall({"site_id": "s"}))
@@ -284,12 +284,12 @@ def test_recall_preview_then_confirm(monkeypatch):
 
 def test_destroy_preview_echoes_resources(monkeypatch):
     _set_profile(monkeypatch)
-    site = {"bucket": "kirocrew-web-x", "distribution_id": "D1"}
+    site = {"bucket": "junction-web-x", "distribution_id": "D1"}
     monkeypatch.setattr(engine, "find_site_by_tag", lambda sid, p, r=None: site)
     status, payload = _run(handlers._do_destroy({"site_id": "s"}))
     assert status == 200
     assert payload["requires_confirm"] is True and payload["destructive"] is True
-    assert "kirocrew-web-x" in payload["message"] and "D1" in payload["message"]
+    assert "junction-web-x" in payload["message"] and "D1" in payload["message"]
 
 
 def test_destroy_confirm_runs_engine(monkeypatch):
@@ -459,7 +459,7 @@ def test_teardown_persistent_manifest_unreachable_returns_502(monkeypatch):
     tombstoning (card retains Tear down button for retry)."""
     # F2 (r4): teardown validates metadata profile against the registry —
     # register the fake profile so these tests exercise the paths under test.
-    from kiro_crew.deploy import profiles as _profiles_mod
+    from junction.deploy import profiles as _profiles_mod
     monkeypatch.setattr(_profiles_mod, "load_registry", lambda: {
         "version": 2,
         "profiles": [{"name": "p", "region": "us-west-2"}],
@@ -667,7 +667,7 @@ def test_deploy_rejects_on_windows(monkeypatch):
     """_do_deploy returns 400 with clear message on Windows (os.name == 'nt')."""
     import asyncio
 
-    from kiro_crew.deploy import handlers
+    from junction.deploy import handlers
 
     class _NtNameOs:
         """Delegate everything to the real ``os`` except ``name``."""
@@ -694,13 +694,13 @@ def test_teardown_reaper_present_tombstones(monkeypatch):
     """Teardown proceeds (tombstones) when the reaper stack exists."""
     # F2 (r4): teardown validates metadata profile against the registry —
     # register the fake profile so these tests exercise the paths under test.
-    from kiro_crew.deploy import profiles as _profiles_mod
+    from junction.deploy import profiles as _profiles_mod
     monkeypatch.setattr(_profiles_mod, "load_registry", lambda: {
         "version": 2,
         "profiles": [{"name": "p", "region": "us-west-2"}],
         "default": "p",
     })
-    from kiro_crew.deploy import handlers
+    from junction.deploy import handlers
 
     # Mock _check_reaper_installed to return True
     monkeypatch.setattr(handlers, "_check_reaper_installed", lambda p, r: True)
@@ -727,7 +727,7 @@ def test_teardown_reaper_present_tombstones(monkeypatch):
             super().__init__(body={"confirm": True}, match_info={"slug": "test-slug"})
 
     # Patch _serialize to avoid import issues
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.artifacts._serialize",
+    monkeypatch.setattr("junction.dashboard.handlers.artifacts._serialize",
                         lambda a, include_content=False: {
                             "webapp_metadata": {"teardown": {}, "architecture": {}},
                         })
@@ -740,13 +740,13 @@ def test_teardown_reaper_absent_returns_409(monkeypatch):
     """Teardown returns 409 when the reaper stack is not installed."""
     # F2 (r4): teardown validates metadata profile against the registry —
     # register the fake profile so these tests exercise the paths under test.
-    from kiro_crew.deploy import profiles as _profiles_mod
+    from junction.deploy import profiles as _profiles_mod
     monkeypatch.setattr(_profiles_mod, "load_registry", lambda: {
         "version": 2,
         "profiles": [{"name": "p", "region": "us-west-2"}],
         "default": "p",
     })
-    from kiro_crew.deploy import handlers
+    from junction.deploy import handlers
 
     # Mock _check_reaper_installed to return False
     monkeypatch.setattr(handlers, "_check_reaper_installed", lambda p, r: False)
@@ -776,7 +776,7 @@ def test_teardown_reaper_absent_returns_409(monkeypatch):
 
 def test_do_deploy_local_dir_stages_public_dir(monkeypatch, tmp_path):
     """_do_deploy with local_dir correctly stages the directory for static deploy."""
-    from kiro_crew.deploy import engine, handlers
+    from junction.deploy import engine, handlers
 
     # Create a fullstack-layout dir: public/ + api/
     public = tmp_path / "myapp" / "public"
@@ -950,11 +950,11 @@ def test_deploy_manifest_written_to_base_stack_bucket(monkeypatch):
 
     def fake_deploy(site_id, src_dir, profile, region):
         return {"site_id": site_id, "url": "https://d.cloudfront.net/", "reused": False,
-                "bucket": "kirocrew-web-random123", "distribution_id": "D1", "status": "Deployed"}
+                "bucket": "junction-web-random123", "distribution_id": "D1", "status": "Deployed"}
 
     def fake_run_aws(cmd, profile, timeout=15):
         import json as _j
-        if "describe-stacks" in cmd and "kirocrew-deploy-base" in cmd:
+        if "describe-stacks" in cmd and "junction-deploy-base" in cmd:
             return (0, _j.dumps([
                 {"OutputKey": "BucketName", "OutputValue": "shared-base-bucket"},
                 {"OutputKey": "DistributionId", "OutputValue": "DXYZ"},
@@ -974,7 +974,7 @@ def test_deploy_manifest_written_to_base_stack_bucket(monkeypatch):
     assert len(s3_calls) == 1
     s3_dest = s3_calls[0][3]  # "s3://shared-base-bucket/mysite/.kirocrew-deploy.json"
     assert "shared-base-bucket" in s3_dest
-    assert "kirocrew-web-random123" not in s3_dest
+    assert "junction-web-random123" not in s3_dest
     assert "mysite/.kirocrew-deploy.json" in s3_dest
 
 
@@ -984,7 +984,7 @@ def test_deploy_manifest_includes_engine_arch_fields(monkeypatch, tmp_path):
     """F1: _do_deploy must write arch, bucket, distribution_id to the manifest."""
     _set_profile(monkeypatch, "p")
 
-    from kiro_crew.artifacts import ArtifactStore
+    from junction.artifacts import ArtifactStore
 
     store = ArtifactStore(tmp_path / "store")
     store.create(name="mywidget", content="<p>Hello</p>", kind="widget")
@@ -993,7 +993,7 @@ def test_deploy_manifest_includes_engine_arch_fields(monkeypatch, tmp_path):
     manifest_data: list = []
 
     def fake_deploy(site_id, src_dir, profile, region):
-        return {"site_id": site_id, "bucket": "kirocrew-web-abc123",
+        return {"site_id": site_id, "bucket": "junction-web-abc123",
                 "distribution_id": "E1234XYZ", "url": "https://d.cf.net/", "status": "Deployed"}
 
     def fake_run_aws(args, profile, timeout=30):
@@ -1020,7 +1020,7 @@ def test_deploy_manifest_includes_engine_arch_fields(monkeypatch, tmp_path):
     assert len(manifest_data) == 1
     man = manifest_data[0]
     assert man["arch"] == "engine"
-    assert man["bucket"] == "kirocrew-web-abc123"
+    assert man["bucket"] == "junction-web-abc123"
     assert man["distribution_id"] == "E1234XYZ"
 
 
@@ -1043,7 +1043,7 @@ def test_reaper_engine_arch_happy_path(monkeypatch):
     monkeypatch.setenv("DIST_ID", "ESHARED")
 
     reaper_path = str(Path(__file__).resolve().parent.parent /
-                      "src/kiro_crew/deploy/skills/artifact-deploy/scripts/reaper_lambda")
+                      "src/junction/deploy/skills/artifact-deploy/scripts/reaper_lambda")
     monkeypatch.syspath_prepend(reaper_path)
 
     # Force reimport
@@ -1059,10 +1059,10 @@ def test_reaper_engine_arch_happy_path(monkeypatch):
 
     # R19 F4: tag verification mocks — distribution and bucket tags match slug
     mock_cf.list_tags_for_resource.return_value = {
-        "Tags": {"Items": [{"Key": "kirocrew:site", "Value": "mysite"}]}
+        "Tags": {"Items": [{"Key": "junction:site", "Value": "mysite"}]}
     }
     mock_s3.get_bucket_tagging.return_value = {
-        "TagSet": [{"Key": "kirocrew:site", "Value": "mysite"}]
+        "TagSet": [{"Key": "junction:site", "Value": "mysite"}]
     }
 
     # Distribution is already disabled (Enabled=False)
@@ -1083,7 +1083,7 @@ def test_reaper_engine_arch_happy_path(monkeypatch):
     man = {
         "slug": "mysite",
         "arch": "engine",
-        "bucket": "kirocrew-web-mysite",
+        "bucket": "junction-web-mysite",
         "distribution_id": "E999",
         "expires_at": "2020-01-01T00:00:00Z",
         "persistent": False,
@@ -1095,7 +1095,7 @@ def test_reaper_engine_arch_happy_path(monkeypatch):
     mock_cf.delete_distribution.assert_called_once_with(Id="E999", IfMatch="etag1")
     # destructive S3 calls now pin ExpectedBucketOwner (from ACCOUNT_ID).
     mock_s3.delete_bucket.assert_called_once_with(
-        Bucket="kirocrew-web-mysite", ExpectedBucketOwner="123456789012"
+        Bucket="junction-web-mysite", ExpectedBucketOwner="123456789012"
     )
     mock_s3.delete_object.assert_called_once()
 
@@ -1123,7 +1123,7 @@ def test_reaper_engine_arch_distribution_not_disabled_retries(monkeypatch):
     monkeypatch.setenv("DIST_ID", "ESHARED")
 
     reaper_path = str(Path(__file__).resolve().parent.parent /
-                      "src/kiro_crew/deploy/skills/artifact-deploy/scripts/reaper_lambda")
+                      "src/junction/deploy/skills/artifact-deploy/scripts/reaper_lambda")
     monkeypatch.syspath_prepend(reaper_path)
 
     if "index" in sys.modules:
@@ -1139,7 +1139,7 @@ def test_reaper_engine_arch_distribution_not_disabled_retries(monkeypatch):
 
     # R19 F4: tag verification mocks — distribution tags match slug
     mock_cf.list_tags_for_resource.return_value = {
-        "Tags": {"Items": [{"Key": "kirocrew:site", "Value": "retrysite"}]}
+        "Tags": {"Items": [{"Key": "junction:site", "Value": "retrysite"}]}
     }
 
     # Distribution is disabled but delete fails with DistributionNotDisabled
@@ -1154,7 +1154,7 @@ def test_reaper_engine_arch_distribution_not_disabled_retries(monkeypatch):
     man = {
         "slug": "retrysite",
         "arch": "engine",
-        "bucket": "kirocrew-web-retrysite",
+        "bucket": "junction-web-retrysite",
         "distribution_id": "EXYZ",
         "expires_at": "2020-01-01T00:00:00Z",
         "persistent": False,
@@ -1221,7 +1221,7 @@ def test_ttl_hours_overflow_blocked(monkeypatch, tmp_path):
     """F4: ttl_hours > 8760 returns 400 BEFORE any engine call."""
     _set_profile(monkeypatch, "p")
 
-    from kiro_crew.artifacts import ArtifactStore
+    from junction.artifacts import ArtifactStore
 
     store = ArtifactStore(tmp_path / "store")
     store.create(name="myart", content="<p>test</p>", kind="widget")
@@ -1250,7 +1250,7 @@ def test_internal_secret_strips_confirm_enforces_preview():
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.token_auth import token_auth_middleware
+    from junction.dashboard.token_auth import token_auth_middleware
 
     _internal_secret = "test-secret-12345678"
 
@@ -1272,7 +1272,7 @@ def test_internal_secret_strips_confirm_enforces_preview():
 
         engine_called = []
 
-        import kiro_crew.deploy.engine as _eng
+        import junction.deploy.engine as _eng
         orig_deploy = _eng.deploy
 
         def _fake_deploy(*a, **kw):
@@ -1311,7 +1311,7 @@ def test_internal_secret_teardown_denied_403():
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.token_auth import token_auth_middleware
+    from junction.dashboard.token_auth import token_auth_middleware
 
     _internal_secret = "test-secret-12345678"
 
@@ -1373,8 +1373,8 @@ def test_scan_tree_unreadable_file_produces_finding(tmp_path):
 
 def test_migrated_builtin_cleans_hyphenated_name(tmp_path, monkeypatch):
     """Migration cleans up a 'deploy-web' legacy app install."""
-    from kiro_crew.apps import manager as mgr
-    from kiro_crew.apps.builtins import _MIGRATED_BUILTINS
+    from junction.apps import manager as mgr
+    from junction.apps.builtins import _MIGRATED_BUILTINS
 
     # Verify "deploy-web" is in the list
     assert "deploy-web" in _MIGRATED_BUILTINS
@@ -1534,7 +1534,7 @@ def test_internal_secret_profiles_post_denied():
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.token_auth import token_auth_middleware
+    from junction.dashboard.token_auth import token_auth_middleware
 
     _internal_secret = "test-secret-12345678"
 
@@ -1574,7 +1574,7 @@ def test_internal_secret_list_allowed():
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.token_auth import token_auth_middleware
+    from junction.dashboard.token_auth import token_auth_middleware
 
     _internal_secret = "test-secret-12345678"
 
@@ -1648,8 +1648,8 @@ def test_deploy_local_dir_staged_copy_cleaned(tmp_path, monkeypatch):
 
 def test_allowed_local_roots_no_bare_tmp(monkeypatch, tmp_path):
     """F2: _allowed_local_roots does NOT include bare /tmp."""
-    from kiro_crew.config.loader import KiroCrewConfig
-    monkeypatch.setattr(KiroCrewConfig, "load", lambda: type("C", (), {
+    from junction.config.loader import JunctionConfig
+    monkeypatch.setattr(JunctionConfig, "load", lambda: type("C", (), {
         "agent": type("A", (), {"subagent_cwd_allowed_roots": ["/home/testuser/workplace"]})()
     })())
     monkeypatch.setattr(handlers, "config_dir", lambda: tmp_path)

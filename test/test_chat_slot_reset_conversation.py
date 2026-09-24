@@ -34,8 +34,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.chat_handlers import api_chat_slot_reset_conversation
-from kiro_crew.dashboard.state import DashboardState, _ChatSlot
+from junction.dashboard.chat_handlers import api_chat_slot_reset_conversation
+from junction.dashboard.state import DashboardState, _ChatSlot
 
 OWNER = "acme-app"
 OTHER = "other-app"
@@ -156,7 +156,7 @@ class TestTheReplayParameter:
         """
         import inspect
 
-        from kiro_crew.dashboard import chat_handlers
+        from junction.dashboard import chat_handlers
 
         src = inspect.getsource(chat_handlers.api_chat_slot_reset_conversation)
         body_read = src.index("await request.json()")

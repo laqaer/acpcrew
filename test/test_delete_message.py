@@ -8,8 +8,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers.messaging import api_delete_message
-from kiro_crew.mcp_core import _call_tool
+from junction.dashboard.handlers.messaging import api_delete_message
+from junction.mcp_core import _call_tool
 
 # ── Endpoint tests ──
 
@@ -86,7 +86,7 @@ class TestDeleteMessageTool:
         assert "invalid" in result.lower() and "timestamp" in result.lower()
 
     def test_successful_delete(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"ok": True}
             result = _call_tool("delete_message", {"channel": "C0ABC123", "ts": "1780088134.952549"})
             assert "deleted" in result.lower()
@@ -95,7 +95,7 @@ class TestDeleteMessageTool:
             )
 
     def test_api_error(self):
-        with patch("kiro_crew.mcp_core._post") as mock_post:
+        with patch("junction.mcp_core._post") as mock_post:
             mock_post.return_value = {"error": "message_not_found"}
             result = _call_tool("delete_message", {"channel": "C0ABC123", "ts": "1780088134.952549"})
             assert "message_not_found" in result
@@ -103,7 +103,7 @@ class TestDeleteMessageTool:
     # ── Missing-required-arg handling (must NOT raise; would crash the MCP server) ──
     # delete_message read args["channel"]/args["ts"] by subscript with no schema,
     # so a call omitting either raised KeyError that propagated out of the stdio
-    # loop and killed the whole kirocrew-core server. It must return a clean error.
+    # loop and killed the whole junction-core server. It must return a clean error.
 
     def test_missing_ts_returns_error_not_raise(self):
         result = _call_tool("delete_message", {"channel": "C0ABC123"})
@@ -122,7 +122,7 @@ class TestDeleteMessageTool:
 
     def test_delete_message_has_validation_schema(self):
         # Guards against re-introducing the crash: the tool must be schema-gated.
-        from kiro_crew.validation import MCP_CORE_SCHEMAS
+        from junction.validation import MCP_CORE_SCHEMAS
 
         assert "delete_message" in MCP_CORE_SCHEMAS
         required = {f.name for f in MCP_CORE_SCHEMAS["delete_message"].fields if f.required}

@@ -15,8 +15,8 @@ private topology it wanted.
 
 from __future__ import annotations
 
-from kiro_crew.mcp_gateway.gatewayd import REGISTERED_CAPABILITIES
-from kiro_crew.mcp_gateway.stub import must_degrade_unshareable
+from junction.mcp_gateway.gatewayd import REGISTERED_CAPABILITIES
+from junction.mcp_gateway.stub import must_degrade_unshareable
 
 
 def test_current_daemon_advertises_the_attestation() -> None:

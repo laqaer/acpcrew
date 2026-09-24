@@ -51,7 +51,7 @@ function Write-Ok($msg) { Write-Host "  [ok] $msg" -ForegroundColor Green }
 function Write-Err($msg) { Write-Host "  [ERROR] $msg" -ForegroundColor Red }
 
 function Get-DataHome {
-    if ($env:KIROCREW_HOME) { return $env:KIROCREW_HOME }
+    if ($env:JUNCTION_HOME) { return $env:JUNCTION_HOME }
     # Never the legacy ~/.kirocrew: the one-time data-home migration deletes it,
     # so writing there would resurrect it on every build.
     return (Join-Path $env:USERPROFILE ".kiro\crew")
@@ -292,11 +292,11 @@ function Invoke-Frontend {
     # Stage into the package. The destination is CLEARED first: vite emits
     # content-hashed filenames, so copying over an existing bundle accumulates
     # stale assets that can then be served or packaged.
-    $staged = Join-Path $RepoRoot "src\kiro_crew\static\dist"
+    $staged = Join-Path $RepoRoot "src\junction\static\dist"
     Remove-PathForce $staged
-    New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot "src\kiro_crew\static") | Out-Null
+    New-Item -ItemType Directory -Force -Path (Join-Path $RepoRoot "src\junction\static") | Out-Null
     Copy-Item -Recurse -Path (Join-Path $RepoRoot "website\dist") -Destination $staged
-    Write-Ok "dashboard staged into src\kiro_crew\static\dist"
+    Write-Ok "dashboard staged into src\junction\static\dist"
 }
 
 function Invoke-Backend {
@@ -324,15 +324,15 @@ function Invoke-Backend {
     Invoke-Step $VenvPython @("-m", "pip", "install", "--upgrade", "pip", "setuptools", "wheel") `
         "pip install --upgrade pip setuptools wheel"
 
-    # KIROCREW_SKIP_FRONTEND: the frontend target already staged the dist, and
+    # JUNCTION_SKIP_FRONTEND: the frontend target already staged the dist, and
     # the editable install must not try to rebuild it.
-    $prev = $env:KIROCREW_SKIP_FRONTEND
-    $env:KIROCREW_SKIP_FRONTEND = "1"
+    $prev = $env:JUNCTION_SKIP_FRONTEND
+    $env:JUNCTION_SKIP_FRONTEND = "1"
     try {
         Invoke-Step $VenvPython @("-m", "pip", "install", "--prefer-binary", "-e", ".[dev]") `
             "pip install -e .[dev]"
     } finally {
-        $env:KIROCREW_SKIP_FRONTEND = $prev
+        $env:JUNCTION_SKIP_FRONTEND = $prev
     }
     # CI parity: also install the PEP 735 dev dependency-group (pins jsonschema
     # so the config-validation guard tests actually run). Needs pip >= 25.1 for
@@ -440,7 +440,7 @@ function Remove-PathForce($path) {
 
 function Invoke-Clean {
     Write-Step "removing build artifacts and caches"
-    foreach ($p in @("build", "dist", "src\kiro_crew\static\dist", "website\dist",
+    foreach ($p in @("build", "dist", "src\junction\static\dist", "website\dist",
                      "website\electron\backend-dist", "website\electron\dist",
                      ".pytest_cache", ".mypy_cache")) {
         Remove-PathForce (Join-Path $RepoRoot $p)

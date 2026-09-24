@@ -22,8 +22,8 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
-from kiro_crew.dashboard import chat_handlers
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard import chat_handlers
+from junction.dashboard.state import _ChatSlot
 
 
 @pytest.fixture()

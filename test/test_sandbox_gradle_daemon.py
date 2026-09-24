@@ -22,7 +22,7 @@ import types
 
 import pytest
 
-from kiro_crew.sandbox import _build_launcher_script
+from junction.sandbox import _build_launcher_script
 
 # ``_build_launcher_script`` calls POSIX-only ``os.getuid``/``os.getgid`` (the
 # namespace launcher is Linux-only), so building it raises AttributeError on

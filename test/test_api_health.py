@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.handlers import core as core_mod
+from junction.dashboard.handlers import core as core_mod
 
 
 def _probe_req(remote: str = "127.0.0.1", headers=None) -> web.Request:
@@ -26,7 +26,7 @@ async def test_health_returns_ok_with_identity() -> None:
     shell's cross-app instance guard: nightly and production apps share
     the data home and the gateway port, so the shell must be able to tell
     WHICH Junction-family gateway owns the port."""
-    from kiro_crew import __version__
+    from junction import __version__
 
     resp = await core_mod.api_health(_probe_req())
     assert resp.status == 200
@@ -63,7 +63,7 @@ async def test_rebound_loopback_health_omits_build_identity() -> None:
 async def test_direct_local_health_with_served_host_keeps_identity() -> None:
     """The desktop cross-app guard path (loopback + real served Host) still
     receives identity after the check_host gate was added."""
-    from kiro_crew import __version__
+    from junction import __version__
 
     req = _probe_req(headers={"Host": "127.0.0.1:5476"})
     req.app = {"allowed_origins": {"http://localhost:5476"}}
@@ -84,7 +84,7 @@ async def test_forwarded_loopback_health_omits_build_identity() -> None:
 @pytest.mark.asyncio
 async def test_live_alias_returns_ok() -> None:
     """/api/live is a liveness alias mirroring /api/health identity fields."""
-    from kiro_crew import __version__
+    from junction import __version__
 
     resp = await core_mod.api_live(_probe_req())
     assert resp.status == 200
@@ -185,7 +185,7 @@ async def test_ready_returns_503_when_sessions_missing() -> None:
 
 def test_probes_are_auth_bypassed() -> None:
     """Probe endpoints must be reachable without a token (rec #6)."""
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     for path in ("/api/health", "/api/live", "/api/ready"):
         assert path in ta._BYPASS_EXACT
@@ -199,7 +199,7 @@ async def test_public_probe_contract_frozen_minimal_anonymous_surface_and_status
     payloads, and the readiness status plus ``ready`` boolean. Readiness
     diagnostics are intentionally not frozen so internal checks can evolve.
     """
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     paths = ("/api/health", "/api/live", "/api/ready")
     assert all(path in ta._BYPASS_EXACT for path in paths)
@@ -229,7 +229,7 @@ async def test_public_probe_contract_frozen_minimal_anonymous_surface_and_status
     shutdown = asyncio.Event()
     shutdown.set()
     state.ready = True
-    with patch("kiro_crew.shutdown_event", shutdown):
+    with patch("junction.shutdown_event", shutdown):
         response = await core_mod.api_ready(serving)
         assert response.status == 503
         assert json.loads(response.body)["ready"] is False
@@ -242,7 +242,7 @@ async def test_public_probe_contract_frozen_minimal_anonymous_surface_and_status
 # readiness must reflect the ACTUAL lifecycle state, not just "subsystems wired".
 # The process-wide shutdown_event is the single trigger for graceful stop
 # (SIGTERM/SIGINT handler AND POST /api/shutdown both set it). api_ready does a
-# function-local `from kiro_crew import shutdown_event`, so patching the source
+# function-local `from junction import shutdown_event`, so patching the source
 # attribute swaps the event the handler observes.
 
 
@@ -256,7 +256,7 @@ async def test_ready_returns_503_during_shutdown() -> None:
     ev.set()  # a stop has been requested
     state = MagicMock()
     state.sessions = MagicMock()
-    with patch("kiro_crew.shutdown_event", ev):
+    with patch("junction.shutdown_event", ev):
         resp = await core_mod.api_ready(_req_with_state(state))
     assert resp.status == 503
     body = json.loads(resp.body)
@@ -273,7 +273,7 @@ async def test_ready_omits_shutdown_marker_while_serving() -> None:
     ev = asyncio.Event()  # never set → not shutting down
     state = MagicMock()
     state.sessions = MagicMock()
-    with patch("kiro_crew.shutdown_event", ev):
+    with patch("junction.shutdown_event", ev):
         resp = await core_mod.api_ready(_req_with_state(state))
     assert resp.status == 200
     body = json.loads(resp.body)
@@ -289,7 +289,7 @@ async def test_ready_shutdown_precedes_subsystem_state() -> None:
     ev = asyncio.Event()
     ev.set()
     # State missing AND shutting down: still 503, and the shutdown marker is set.
-    with patch("kiro_crew.shutdown_event", ev):
+    with patch("junction.shutdown_event", ev):
         resp = await core_mod.api_ready(_req_with_state(None))
     assert resp.status == 503
     body = json.loads(resp.body)
@@ -305,7 +305,7 @@ async def test_live_stays_200_during_shutdown() -> None:
     keeps a liveness-based supervisor from killing the process mid-drain."""
     ev = asyncio.Event()
     ev.set()
-    with patch("kiro_crew.shutdown_event", ev):
+    with patch("junction.shutdown_event", ev):
         resp = await core_mod.api_live(_probe_req())
     assert resp.status == 200
     body = json.loads(resp.body)
@@ -320,7 +320,7 @@ async def test_ready_recovers_when_shutdown_flag_cleared() -> None:
     ev = asyncio.Event()
     state = MagicMock()
     state.sessions = MagicMock()
-    with patch("kiro_crew.shutdown_event", ev):
+    with patch("junction.shutdown_event", ev):
         ev.set()
         draining = await core_mod.api_ready(_req_with_state(state))
         assert draining.status == 503
@@ -343,7 +343,7 @@ async def test_ready_recovers_when_shutdown_flag_cleared() -> None:
 
 
 def _host_barrier_app() -> web.Application:
-    from kiro_crew.dashboard import server as server_mod
+    from junction.dashboard import server as server_mod
 
     app = web.Application(
         middlewares=[server_mod._make_host_validation_middleware("dashboard_user")]
@@ -414,7 +414,7 @@ def test_both_servers_install_the_shared_host_barrier() -> None:
     the exemption independently."""
     import inspect
 
-    from kiro_crew.dashboard import server as server_mod
+    from junction.dashboard import server as server_mod
 
     dashboard_src = inspect.getsource(server_mod.start_dashboard)
     api_src = inspect.getsource(server_mod.start_api_server)
@@ -442,7 +442,7 @@ def test_every_middleware_denial_is_audited_off_the_loop() -> None:
     """
     import inspect
 
-    from kiro_crew.dashboard import server as server_mod
+    from junction.dashboard import server as server_mod
 
     helper = inspect.getsource(server_mod._audit_denied)
     assert (
@@ -489,7 +489,7 @@ def test_both_servers_warm_the_kiro_readiness_probe() -> None:
     """
     import inspect
 
-    from kiro_crew.dashboard import server as server_mod
+    from junction.dashboard import server as server_mod
 
     for func, name in (
         (server_mod.start_dashboard, "start_dashboard"),
@@ -528,13 +528,13 @@ async def test_ready_never_waits_on_the_kiro_cli_check() -> None:
 
 def test_api_server_resolves_bind_address_via_shared_helper() -> None:
     """Wiring pin for the container bind override: start_api_server must
-    resolve its TCP bind through bind_address_for (KIROCREW_BIND-aware,
+    resolve its TCP bind through bind_address_for (JUNCTION_BIND-aware,
     itself covered in test_dashboard_origin.py) rather than a hardcoded
     loopback literal — otherwise `gateway --slack-only` in the official
     image binds loopback and is unreachable through a published port."""
     import inspect
 
-    from kiro_crew.dashboard import server as server_mod
+    from junction.dashboard import server as server_mod
 
     src = inspect.getsource(server_mod.start_api_server)
     assert "bind_address_for(local_only)" in src

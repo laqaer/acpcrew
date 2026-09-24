@@ -30,11 +30,11 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.apps import bridges
-from kiro_crew.apps.cron_sdk import CronSDK, CronSyncOnLoopError
-from kiro_crew.cron import CronLoopSafetyError, CronService, CronStoreBusy
+from junction.apps import bridges
+from junction.apps.cron_sdk import CronSDK, CronSyncOnLoopError
+from junction.cron import CronLoopSafetyError, CronService, CronStoreBusy
 
-STRICT = "KIROCREW_STRICT_LOOP_SAFETY"
+STRICT = "JUNCTION_STRICT_LOOP_SAFETY"
 
 
 # ── Item 1: the sync SDK contract is preserved ──

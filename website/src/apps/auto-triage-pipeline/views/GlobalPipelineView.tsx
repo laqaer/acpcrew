@@ -34,7 +34,7 @@ import ItemSessionsTable from './ItemSessionsTable'
 // so the joined spelling is the real name of the repo and not the product name in
 // prose -- the slug exemption cannot see that here because the owner and the repo
 // are separate fields rather than one `owner/repo` string.
-const DEFAULT_REPO: RepoRef = { owner: 'kirodotdev', repo: 'KiroCrew' } // brand-ok: repo identifier
+const DEFAULT_REPO: RepoRef = { owner: 'kirodotdev', repo: 'Junction' } // brand-ok: repo identifier
 
 /** How often the open level refetches, in ms.
  *

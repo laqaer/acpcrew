@@ -125,7 +125,7 @@ export function createSkillsProvider(deps: SkillsProviderDeps): ResourceProvider
       const results: Result[] = []
       // Dedup by name: /api/skills can return the same skill more than once
       // when a shared package skills dir is enumerated by multiple source loaders
-      // (e.g. source "kirocrew" + "aim"). Keep the first occurrence.
+      // (e.g. source "junction" + "aim"). Keep the first occurrence.
       const seen = new Set<string>()
       for (const s of skills) {
         if (seen.has(s.name)) continue

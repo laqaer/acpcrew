@@ -94,7 +94,7 @@ provenance and is diagnosed rather than guessed.
 Imported conversations are persisted through `ConversationLog` under generated,
 closed destination keys. They enter the normal History list but do not create
 live dashboard slots, resume a foreign runtime, or reuse a foreign identifier as
-an executable KiroCrew session key. The normal ConversationLog metadata/message
+an executable Junction session key. The normal ConversationLog metadata/message
 schema, rotation, path sanitization, and retention behavior therefore remain
 authoritative.
 
@@ -242,7 +242,7 @@ no longer destroy older turns.
   `try/except`), invisible in CI. `_locked` now calls
   `_check_on_loop_persist_discipline(key)` on entry: if a running event loop is
   detected it either **raises `OnLoopPersistError`** (strict mode — on under
-  `KIROCREW_STRICT_ON_LOOP_PERSIST=1` or `KIROCREW_DEV_MODE`) so an un-offloaded
+  `JUNCTION_STRICT_ON_LOOP_PERSIST=1` or `JUNCTION_DEV_MODE`) so an un-offloaded
   call-site fails tests rather than losing data, or emits a **loud throttled
   warning** and proceeds via the single non-blocking safety-net acquire
   (default / production gateway, strict off — never a new hard failure in the

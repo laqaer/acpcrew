@@ -14,31 +14,31 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.config.loader import KiroCrewConfig
+from junction.config.loader import JunctionConfig
 
 
 @pytest.fixture()
 def cfg_file(tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    with patch("kiro_crew.config.loader.config_path", return_value=p):
+    with patch("junction.config.loader.config_path", return_value=p):
         yield p
 
 
 def test_link_previews_default_false():
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     assert cfg.dashboard.link_previews is False
 
 
 def test_link_previews_save_load(cfg_file):
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.dashboard.link_previews = True
     cfg.save()
 
     raw = json.loads(cfg_file.read_text(encoding="utf-8"))
     assert raw["dashboard"]["link_previews"] is True
 
-    cfg2 = KiroCrewConfig.load()
+    cfg2 = JunctionConfig.load()
     assert cfg2.dashboard.link_previews is True
 
 
@@ -47,13 +47,13 @@ def test_link_previews_load_from_existing(cfg_file):
         json.dumps({"dashboard": {"link_previews": True}}),
         encoding="utf-8",
     )
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     assert cfg.dashboard.link_previews is True
 
 
 def test_link_previews_absent_key_stays_false(cfg_file):
     cfg_file.write_text(json.dumps({"dashboard": {}}), encoding="utf-8")
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     assert cfg.dashboard.link_previews is False
 
 
@@ -65,25 +65,25 @@ def test_link_previews_non_bool_degrades_to_false(cfg_file):
             json.dumps({"dashboard": {"link_previews": bad}}),
             encoding="utf-8",
         )
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.link_previews is False, bad
 
 
 @pytest.fixture()
 def mock_sel():
     try:
-        import kiro_crew.dashboard.handlers  # noqa: F401
+        import junction.dashboard.handlers  # noqa: F401
     except ImportError:
         pytest.skip("dashboard handler deps not available locally")
     m = MagicMock()
     m.log_tool_invocation = MagicMock()
-    with patch("kiro_crew.dashboard.handlers.sel", return_value=m):
+    with patch("junction.dashboard.handlers.sel", return_value=m):
         yield m
 
 
 @pytest.fixture()
 def handler_app(cfg_file, mock_sel):
-    from kiro_crew.dashboard.handlers.files import api_dashboard_config
+    from junction.dashboard.handlers.files import api_dashboard_config
 
     app = web.Application()
     app.router.add_put("/api/dashboard/config", api_dashboard_config)
@@ -96,7 +96,7 @@ async def test_handler_put_link_previews_persists(handler_app, cfg_file):
     async with TestClient(TestServer(handler_app)) as client:
         resp = await client.put("/api/dashboard/config", json={"link_previews": True})
         assert resp.status == 200
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.link_previews is True
 
 
@@ -107,7 +107,7 @@ async def test_handler_put_link_previews_invalid(handler_app, cfg_file):
         assert resp.status == 400
         body = await resp.json()
         assert "boolean" in body["error"]
-        assert KiroCrewConfig.load().dashboard.link_previews is False
+        assert JunctionConfig.load().dashboard.link_previews is False
 
 
 @pytest.mark.asyncio
@@ -143,6 +143,6 @@ async def test_handler_put_round_trips_get_body(handler_app, cfg_file):
         body["quick_send"] = True
         resp = await client.put("/api/dashboard/config", json=body)
         assert resp.status == 200
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.quick_send is True
         assert cfg.dashboard.link_previews is False

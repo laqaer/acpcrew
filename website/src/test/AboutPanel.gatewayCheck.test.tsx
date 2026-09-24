@@ -80,7 +80,7 @@ describe('AboutPanel gateway update check', () => {
   })
 
   it('a check that could not run reports the failure, not "up to date"', async () => {
-    stubFetch({ check_status: 'failed', update_available: null, error_code: 'feed_unreachable', managed_by: 'kirocrew' })
+    stubFetch({ check_status: 'failed', update_available: null, error_code: 'feed_unreachable', managed_by: 'junction' })
     mountWeb()
     await pressCheck()
 
@@ -102,7 +102,7 @@ describe('AboutPanel gateway update check', () => {
   })
 
   it('reports up to date only when a comparison actually completed', async () => {
-    stubFetch({ check_status: 'succeeded', update_available: false, error_code: null, managed_by: 'kirocrew' })
+    stubFetch({ check_status: 'succeeded', update_available: false, error_code: null, managed_by: 'junction' })
     mountWeb()
     await pressCheck()
 
@@ -279,7 +279,7 @@ describe('AboutPanel gateway update check', () => {
       check_status: 'succeeded',
       update_available: true,
       error_code: null,
-      managed_by: 'kirocrew',
+      managed_by: 'junction',
       can_apply: false,
       channel: 'insider',
       latest_version: '0.1.3rc2',
@@ -326,7 +326,7 @@ describe('AboutPanel gateway update check', () => {
     stubFetch({
       check_status: 'succeeded',
       update_available: true,
-      managed_by: 'kirocrew',
+      managed_by: 'junction',
       can_apply: false,
       channel: 'stable',
       remediation: { kind: 'command', message: '', command },

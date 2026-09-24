@@ -23,7 +23,7 @@ superseded-by: []
 
 ## 1. Problem statement
 
-Kiro Crew's session transcript is a JSONL file that reads like an append-only log and
+Junction's session transcript is a JSONL file that reads like an append-only log and
 is not one. The hot write path rewrites a bounded window on every flush, and two
 paths can leave an already-recorded row reachable only from the archive directory.
 Verified on main `2a665e735` (2026-08-16); symbols are cited rather than line
@@ -31,7 +31,7 @@ numbers, because every line reference taken from a checkout 962 commits behind h
 moved.
 
 - **The hot path re-serializes the whole window to record a one-row state change.**
-  `src/kiro_crew/dashboard/chat_persistence.py::_save_slot_to_history` keeps a frozen
+  `src/junction/dashboard/chat_persistence.py::_save_slot_to_history` keeps a frozen
   prefix of `slot._disk_older_count` lines verbatim and rewrites the in-memory window.
   The module says so itself, twice, in capitals — "re-serializes the WHOLE in-memory
   window on every flush" — and sets
@@ -44,7 +44,7 @@ moved.
   archived with `reason="foreign-dedup"`; rewrite mode (`rewrite=True`, explicit
   `messages`, or `slot._pending_rewrite`) truncates the window tail, archiving the
   dropped lines through `_archive_dropped_lines`. Archives are then hard-deleted by
-  `src/kiro_crew/history.py::_cleanup_old_archives` after
+  `src/junction/history.py::_cleanup_old_archives` after
   `session.archive_retention_days` (default 30), so a row can become silently
   unrecoverable after a month.
 - **Other rewriting paths, for completeness.** `history.py::_maybe_rotate` drops the
@@ -73,17 +73,17 @@ DeepSeek Harness makes its session log the single source of truth and *derives* 
 model-visible message list from it on every turn. That is why resume, fork, replay,
 and compaction all reduce to one read there.
 
-Kiro Crew cannot do this, and this RFC does not attempt it. Each turn sends **one
-string**, built by `src/kiro_crew/context.py::ContextBuilder.build_message` (via
+Junction cannot do this, and this RFC does not attempt it. Each turn sends **one
+string**, built by `src/junction/context.py::ContextBuilder.build_message` (via
 `build_session_context`) and handed to `client.stream(full_message)` in
 `dashboard/chat_runner.py`. The model's actual conversation lives in kiro-cli's own
-native ACP session, reached through `session/load`. Kiro Crew's JSONL is a *parallel
+native ACP session, reached through `session/load`. Junction's JSONL is a *parallel
 durable transcript*, injected back only at session start, replay, and provider switch.
 Compaction likewise happens inside the provider —
-`src/kiro_crew/session.py::check_context_usage` → `_compact_session` sends kiro-cli an
-in-place `/compact` and watches its status; it mutates no Kiro Crew record.
+`src/junction/session.py::check_context_usage` → `_compact_session` sends kiro-cli an
+in-place `/compact` and watches its status; it mutates no Junction record.
 
-Adopting DSH's derivation model would mean Kiro Crew holding the message array and
+Adopting DSH's derivation model would mean Junction holding the message array and
 sending it in full every turn — giving up the incremental semantics of `session/load`
 and creating two authorities writing the same history. That is an architecture
 inversion, not a refactor.
@@ -143,7 +143,7 @@ consequences:
 `dashboard/chat_fork.py::api_chat_slot_fork` copies messages into a new slot file. DSH
 instead records a parent session id plus a seed length and reads through. Adopting
 that would save the copy and make the fork tree traceable, but it only solves the
-Kiro Crew half — kiro-cli's own session still has to be forked for real. Phased last
+Junction half — kiro-cli's own session still has to be forked for real. Phased last
 and separable; it is not required by the append-only goal.
 
 ## 4. Phases
@@ -187,7 +187,7 @@ Measurable, and to be asserted in tests rather than claimed in prose:
 ## 7. Alternatives considered
 
 1. **Adopt DSH's full model** — session log as sole truth, model history derived.
-   Rejected in §2: Kiro Crew does not own the model context, kiro-cli does.
+   Rejected in §2: Junction does not own the model context, kiro-cli does.
 2. **Leave the rewrite path and only fix the dedup drop.** Cheaper, and it removes one
    data-loss class, but it leaves the write amplification and leaves the transcript's
    semantics unstatable. Available as a fallback if S2 proves too invasive.
@@ -197,7 +197,7 @@ Measurable, and to be asserted in tests rather than claimed in prose:
    — load-bearing for support and for log-style debugging — for a property that
    appended revisions already deliver.
 4. **Event-source the whole subsystem** with a typed event enum in the style of DSH's
-   ~48 known session event types. Larger than the problem. Kiro Crew already has
+   ~48 known session event types. Larger than the problem. Junction already has
    role-typed rows (`history.py::_TOOL_ROLES` covering `tool`/`tool_call`/`tool_result`,
    alongside `user`, `assistant`, `system`, `error`, `notice`, `inject`, `subagent`) plus
    `chat_persistence.py::_TRANSIENT_ROLES` that are never persisted. The gap is

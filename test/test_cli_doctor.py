@@ -1,7 +1,7 @@
-"""Tests for the `kirocrew doctor` OS-aware fix hints.
+"""Tests for the `junction doctor` OS-aware fix hints.
 
 Guards _os_fix_hint: it returns the macOS Homebrew command on Darwin and the
-Linux/AL2023 guidance otherwise, so `kirocrew doctor` never prints a brew
+Linux/AL2023 guidance otherwise, so `junction doctor` never prints a brew
 command on Linux where there is no brew.
 """
 
@@ -16,11 +16,11 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew import cli_doctor
+from junction import cli_doctor
 
 
 class TestFixHint:
-    """OS-aware `kirocrew doctor` fix hints."""
+    """OS-aware `junction doctor` fix hints."""
 
     def test_os_fix_hint_macos_returns_brew(self, monkeypatch) -> None:
         monkeypatch.setattr(cli_doctor._plat, "system", lambda: "Darwin")
@@ -46,7 +46,7 @@ class TestFixHint:
 
 
 class TestDataHome:
-    """`kirocrew doctor` Data Home section — location + leftover legacy home."""
+    """`junction doctor` Data Home section — location + leftover legacy home."""
 
     def test_legacy_present_default_path_says_not_the_data_home(
         self, monkeypatch, tmp_path: Path, capsys
@@ -54,7 +54,7 @@ class TestDataHome:
         # A leftover top-level ~/.kirocrew on the default path is not the data
         # home — the doctor notes it as safe to delete, never as active state.
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)  # default-path case
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)  # default-path case
         home = tmp_path / ".kiro" / "crew"
         monkeypatch.setattr(cli_doctor, "config_dir", lambda: home)
         home.mkdir(parents=True)
@@ -71,13 +71,13 @@ class TestDataHome:
     def test_legacy_override_points_at_legacy_says_active_not_ignored(
         self, monkeypatch, tmp_path: Path, capsys
     ) -> None:
-        # KIROCREW_HOME=~/.kirocrew makes the legacy dir the ACTIVE home, not
+        # JUNCTION_HOME=~/.kirocrew makes the legacy dir the ACTIVE home, not
         # ignored debris — the doctor must not mislabel the home the process is
         # actually using (GPT 5.6 MEDIUM).
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
         legacy = tmp_path / cli_doctor.LEGACY_CONFIG_DIR_NAME
         legacy.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(legacy))
+        monkeypatch.setenv("JUNCTION_HOME", str(legacy))
         # config_dir() resolves to the override (== legacy) when set
         monkeypatch.setattr(cli_doctor, "config_dir", lambda: legacy.resolve())
 
@@ -96,7 +96,7 @@ class TestDataHome:
         # NOT tell the user it is safe to delete — that would remove their live
         # install.
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(cli_doctor, "config_dir", lambda: tmp_path / ".kiro" / "crew")
         legacy = tmp_path / cli_doctor.LEGACY_CONFIG_DIR_NAME
         (legacy / "venv" / "bin").mkdir(parents=True)
@@ -122,7 +122,7 @@ class TestDataHome:
 
 
 class TestPodSessionBus:
-    """`kirocrew doctor` Pods section — the systemd --user session bus.
+    """`junction doctor` Pods section — the systemd --user session bus.
 
     Pods are systemd --user units. A gateway started from a systemd SYSTEM unit
     inherits no login-session environment, and if the per-user instance is not
@@ -151,7 +151,7 @@ class TestPodSessionBus:
         # A container / CI runner / headless server has no per-user systemd
         # instance. That is an unavailable optional feature, not a broken
         # install, so it must NOT gate doctor's exit code — otherwise every
-        # such host is told its setup is broken (and `kirocrew doctor` starts
+        # such host is told its setup is broken (and `junction doctor` starts
         # exiting 1 in CI).
         sock = self._linux(monkeypatch, tmp_path, bus=False)
         issues: list[str] = ["pre-existing"]
@@ -261,7 +261,7 @@ class TestLingerProbe:
 
 
 class TestTrustRoot:
-    """`kirocrew doctor` reports whether session identities can be signed.
+    """`junction doctor` reports whether session identities can be signed.
 
     Publication reports the same failure, but only once a session is actually
     claimed; doctor answers without waiting for one. It must not, however, cry
@@ -381,7 +381,7 @@ class TestOomKillerProbe:
 
 
 class TestMemoryPressure:
-    """`kirocrew doctor` Memory Pressure section — freeze-preparedness verdict.
+    """`junction doctor` Memory Pressure section — freeze-preparedness verdict.
 
     A Linux host with zero swap AND no userspace OOM killer livelocks under
     sustained memory pressure (file-backed page thrashing) before the kernel
@@ -474,7 +474,7 @@ class TestMemoryPressure:
 
 
 class TestDoctorKas:
-    """`kirocrew doctor` KAS backend section — gated on acp_backend == kas."""
+    """`junction doctor` KAS backend section — gated on acp_backend == kas."""
 
     class _Cfg:
         def __init__(self, backend: str) -> None:
@@ -482,7 +482,7 @@ class TestDoctorKas:
 
     def _patch_cfg(self, monkeypatch, backend: str) -> None:
         monkeypatch.setattr(
-            cli_doctor.KiroCrewConfig, "load", classmethod(lambda cls: self._Cfg(backend))
+            cli_doctor.JunctionConfig, "load", classmethod(lambda cls: self._Cfg(backend))
         )
 
     def test_version_label_from_bundle_path(self) -> None:
@@ -501,7 +501,7 @@ class TestDoctorKas:
 
     def test_selected_but_assets_missing_appends_issue(self, monkeypatch, capsys) -> None:
         self._patch_cfg(monkeypatch, "kas")
-        from kiro_crew.acp import kas_assets, kas_auth
+        from junction.acp import kas_assets, kas_auth
 
         monkeypatch.setattr(kas_assets, "find_kas_node", lambda: None)
         monkeypatch.setattr(kas_assets, "find_kas_server_script", lambda: None)
@@ -521,7 +521,7 @@ class TestDoctorKas:
 
     def test_token_ok_prints_expiry_not_token(self, monkeypatch, capsys) -> None:
         self._patch_cfg(monkeypatch, "kas")
-        from kiro_crew.acp import kas_assets, kas_auth
+        from junction.acp import kas_assets, kas_auth
 
         monkeypatch.setattr(kas_assets, "find_kas_node", lambda: Path("/x/node"))
         monkeypatch.setattr(
@@ -544,7 +544,7 @@ class TestDoctorKas:
 
 
 class TestPathLauncherOwnership:
-    """`kirocrew doctor` names which install owns the `kirocrew` command.
+    """`junction doctor` names which install owns the `junction` command.
 
     A gateway deliberately never takes the name from another install's working
     launcher, so the two can diverge silently: the documented Linux pairing puts
@@ -553,11 +553,11 @@ class TestPathLauncherOwnership:
     """
 
     def test_matching_launcher_is_reported_clean(self, monkeypatch, tmp_path, capsys) -> None:
-        exe = tmp_path / "opt" / "bin" / "kirocrew"
+        exe = tmp_path / "opt" / "bin" / "junction"
         exe.parent.mkdir(parents=True)
         exe.write_text("")
         monkeypatch.setattr(cli_doctor.shutil, "which", lambda c, **kw: str(exe))
-        monkeypatch.setattr("kiro_crew.agent._resolve_kirocrew_bin", lambda: str(exe))
+        monkeypatch.setattr("junction.agent._resolve_junction_bin", lambda: str(exe))
 
         cli_doctor._doctor_path_launcher()
 
@@ -566,14 +566,14 @@ class TestPathLauncherOwnership:
         assert "different install" not in out
 
     def test_divergent_launcher_names_both_paths(self, monkeypatch, tmp_path, capsys) -> None:
-        wheel = tmp_path / "crew-venv" / "bin" / "kirocrew"
+        wheel = tmp_path / "crew-venv" / "bin" / "junction"
         wheel.parent.mkdir(parents=True)
         wheel.write_text("")
-        package = tmp_path / "opt" / "KiroCrew" / "kirocrew"  # brand-ok: real /opt path
+        package = tmp_path / "opt" / "Junction" / "junction"  # brand-ok: real /opt path
         package.parent.mkdir(parents=True)
         package.write_text("")
         monkeypatch.setattr(cli_doctor.shutil, "which", lambda c, **kw: str(wheel))
-        monkeypatch.setattr("kiro_crew.agent._resolve_kirocrew_bin", lambda: str(package))
+        monkeypatch.setattr("junction.agent._resolve_junction_bin", lambda: str(package))
 
         cli_doctor._doctor_path_launcher()
 
@@ -597,13 +597,13 @@ class TestPathLauncherOwnership:
         assert "⚠" not in out
 
     def test_unresolvable_install_does_not_cry_wolf(self, monkeypatch, tmp_path, capsys) -> None:
-        """A bare "kirocrew" sentinel is not a path, so there is nothing to
+        """A bare "junction" sentinel is not a path, so there is nothing to
         compare and no divergence to claim."""
-        found = tmp_path / "bin" / "kirocrew"
+        found = tmp_path / "bin" / "junction"
         found.parent.mkdir(parents=True)
         found.write_text("")
         monkeypatch.setattr(cli_doctor.shutil, "which", lambda c, **kw: str(found))
-        monkeypatch.setattr("kiro_crew.agent._resolve_kirocrew_bin", lambda: "kirocrew")
+        monkeypatch.setattr("junction.agent._resolve_junction_bin", lambda: "junction")
 
         cli_doctor._doctor_path_launcher()
 
@@ -612,7 +612,7 @@ class TestPathLauncherOwnership:
 
 
 class TestSourceCheckout:
-    """`kirocrew doctor` Source Checkout section — stale/off-branch source tree.
+    """`junction doctor` Source Checkout section — stale/off-branch source tree.
 
     Guards _doctor_source_checkout: an editable install parked on a stale
     feature branch runs old code (merged security fixes included) while every
@@ -1048,7 +1048,7 @@ class TestCliInstallerResidue:
 
 
 class TestEffectiveModelSection:
-    """`kirocrew doctor`'s Model section (#2559).
+    """`junction doctor`'s Model section (#2559).
 
     The four-tier model precedence is not visible from any single file, so a
     stale spec pin that outlived the setting which created it is otherwise only
@@ -1071,7 +1071,7 @@ class TestEffectiveModelSection:
         self._tmp = tmp_path
 
     def _agents_dir(self) -> Path:
-        from kiro_crew.config.paths import kiro_agents_dir
+        from junction.config.paths import kiro_agents_dir
 
         agents_dir = kiro_agents_dir()
         # Fail loudly rather than write into a real home if the override lapses.
@@ -1082,16 +1082,16 @@ class TestEffectiveModelSection:
         return agents_dir
 
     def _cfg(self, global_model: str):
-        from kiro_crew.config import KiroCrewConfig
+        from junction.config import JunctionConfig
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.agent.model = global_model
         return cfg
 
     def _install_spec(self, model: str | None) -> Path:
-        from kiro_crew.agent import AGENT_FILENAME
+        from junction.agent import AGENT_FILENAME
 
-        body: dict = {"name": "kirocrew"}
+        body: dict = {"name": "junction"}
         if model is not None:
             body["model"] = model
         spec = self._agents_dir() / AGENT_FILENAME
@@ -1109,7 +1109,7 @@ class TestEffectiveModelSection:
         out = capsys.readouterr().out
         assert "effective:   'claude-opus-4.8'" in out
         assert "decided by:  default spec pin" in out
-        assert "kirocrew agent reset-model" in out
+        assert "junction agent reset-model" in out
         # Advisory, not a setup failure: the state is legal and may be wanted.
         assert issues == []
 
@@ -1137,9 +1137,9 @@ class TestEffectiveModelSection:
         assert issues == []
 
     def test_tracking_state_is_reported(self, capsys) -> None:
-        from kiro_crew import agent_state
+        from junction import agent_state
 
-        agent_state.set_model_managed("kirocrew", False)
+        agent_state.set_model_managed("junction", False)
         self._install_spec("claude-opus-4.8")
         issues: list[str] = []
 
@@ -1154,7 +1154,7 @@ class TestEffectiveModelSection:
         assert "tracking:    not recorded" in capsys.readouterr().out
 
     def test_unreadable_spec_is_reported_not_swallowed(self, capsys) -> None:
-        from kiro_crew.agent import AGENT_FILENAME
+        from junction.agent import AGENT_FILENAME
 
         (self._agents_dir() / AGENT_FILENAME).write_text("{ not json", encoding="utf-8")
         issues: list[str] = []
@@ -1164,16 +1164,16 @@ class TestEffectiveModelSection:
         assert issues == ["agent spec unreadable"]
 
     def test_project_local_spec_is_flagged_as_shadowing(self, capsys) -> None:
-        """kiro-cli resolves <project>/.kiro/agents FIRST and Kiro Crew's own
+        """kiro-cli resolves <project>/.kiro/agents FIRST and Junction's own
         resolver never reads it, so that file can decide what actually runs while
-        every Kiro Crew surface reports something else."""
-        from kiro_crew.agent import AGENT_FILENAME
+        every Junction surface reports something else."""
+        from junction.agent import AGENT_FILENAME
 
         self._install_spec(None)
         project = self._tmp / "proj"
         (project / ".kiro" / "agents").mkdir(parents=True)
         (project / ".kiro" / "agents" / AGENT_FILENAME).write_text(
-            json.dumps({"name": "kirocrew", "model": "claude-opus-4.8"}), encoding="utf-8"
+            json.dumps({"name": "junction", "model": "claude-opus-4.8"}), encoding="utf-8"
         )
         issues: list[str] = []
 
@@ -1195,16 +1195,16 @@ class TestEffectiveModelSection:
 
     def _bind_custom_agent(self, cfg, name: str):
         """Point the default alias at a non-built-in kiro agent."""
-        from kiro_crew.config.loader import KiroCrewAgentConfig
+        from junction.config.loader import JunctionAgentConfig
 
         cfg.default_agent = "default"
-        cfg.agents["default"] = KiroCrewAgentConfig(kiro_agent=name)
+        cfg.agents["default"] = JunctionAgentConfig(kiro_agent=name)
         return cfg
 
     def test_a_bound_custom_agent_is_attributed_to_its_own_spec(self, capsys) -> None:
         """The default alias may bind a kiro agent other than the built-in one,
         and the resolver consults THAT spec's pin above the global (tier 2).
-        Reading kirocrew.json in both cases attributed the pin to the wrong file
+        Reading junction.json in both cases attributed the pin to the wrong file
         and printed a reset command for the wrong agent (#4911 review)."""
         self._install_spec(None)
         agents_dir = self._agents_dir()
@@ -1220,7 +1220,7 @@ class TestEffectiveModelSection:
         assert "effective:   'claude-opus-4.8'" in out
         assert "decided by:  bound agent pin ('custom-agent')" in out
         # The repair must name the agent that actually holds the pin.
-        assert "kirocrew agent reset-model --agent 'custom-agent'" in out
+        assert "junction agent reset-model --agent 'custom-agent'" in out
         # And the tier the resolver skipped for the built-in agent is shown here.
         assert "bound agent pin ('custom-agent'):" in out
         assert "out of date" not in out, "report must agree with the resolver"
@@ -1237,11 +1237,11 @@ class TestEffectiveModelSection:
         out = capsys.readouterr().out
         assert "bound agent pin" not in out
         assert "decided by:  default spec pin" in out
-        assert "kirocrew agent reset-model" in out
+        assert "junction agent reset-model" in out
         assert "--agent" not in out, "the built-in agent needs no --agent flag"
 
     def test_tracking_names_the_agent_it_describes(self, capsys) -> None:
-        from kiro_crew import agent_state
+        from junction import agent_state
 
         self._install_spec(None)
         agents_dir = self._agents_dir()
@@ -1294,13 +1294,13 @@ class TestEffectiveModelSection:
         assert "\\x1b" in out, "the value is still shown, just escaped"
 
     def test_control_sequences_in_a_project_spec_are_escaped(self, capsys) -> None:
-        from kiro_crew.agent import AGENT_FILENAME
+        from junction.agent import AGENT_FILENAME
 
         self._install_spec(None)
         project = self._tmp / "proj"
         (project / ".kiro" / "agents").mkdir(parents=True)
         (project / ".kiro" / "agents" / AGENT_FILENAME).write_text(
-            json.dumps({"name": "kirocrew", "model": "x\x1b[31mred"}), encoding="utf-8"
+            json.dumps({"name": "junction", "model": "x\x1b[31mred"}), encoding="utf-8"
         )
         issues: list[str] = []
 
@@ -1326,8 +1326,8 @@ class TestEffectiveModelSection:
         through that one reader instead of hand-rolling the checks is the point
         (#4911 review); a benign link is followed exactly as the resolver follows
         it, so the report cannot disagree with what will actually run."""
-        from kiro_crew import agent_discovery
-        from kiro_crew.agent import AGENT_FILENAME
+        from junction import agent_discovery
+        from junction.agent import AGENT_FILENAME
 
         agents_dir = self._agents_dir()
         target = self._tmp / "protected.json"
@@ -1402,11 +1402,11 @@ class TestEffectiveModelSection:
         assertion Windows-only-skipped, and what is under test is that the
         printer escapes what it is handed.
         """
-        hostile = Path("/tmp/proj/.kiro/agents/kirocrew\x1b[2J.json")
+        hostile = Path("/tmp/proj/.kiro/agents/junction\x1b[2J.json")
         self._install_spec(None)
         real_reader = cli_doctor._read_agent_spec
         monkeypatch.setattr(cli_doctor, "project_agent_files", lambda d: [hostile])
-        monkeypatch.setattr(cli_doctor, "project_agent_name", lambda p: "kirocrew")
+        monkeypatch.setattr(cli_doctor, "project_agent_name", lambda p: "junction")
         # Only the injected path is faked; the user-level spec still goes through
         # the real reader so the report's own self-check is not disturbed.
         monkeypatch.setattr(
@@ -1446,7 +1446,7 @@ class TestEffectiveModelSection:
 
 
 class TestWhatsAppSection:
-    """`kirocrew doctor`'s WhatsApp Integration section.
+    """`junction doctor`'s WhatsApp Integration section.
 
     WhatsApp is the only channel whose whole runtime hangs off an OPTIONAL wheel
     plus a locally stored credential, and neither absence produces an error the
@@ -1456,9 +1456,9 @@ class TestWhatsAppSection:
     """
 
     def _cfg(self, *, enabled: bool = True, groups: list | None = None):
-        from kiro_crew.config import KiroCrewConfig
+        from junction.config import JunctionConfig
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.whatsapp.enabled = enabled
         cfg.whatsapp.groups = groups if groups is not None else []
         return cfg
@@ -1473,11 +1473,11 @@ class TestWhatsAppSection:
 
     @staticmethod
     def _extra(monkeypatch, present: bool) -> None:
-        monkeypatch.setattr("kiro_crew.whatsapp.client.neonize_available", lambda: present)
+        monkeypatch.setattr("junction.whatsapp.client.neonize_available", lambda: present)
 
     @staticmethod
     def _pair(home: Path) -> Path:
-        from kiro_crew.whatsapp.client import default_db_path
+        from junction.whatsapp.client import default_db_path
 
         store = default_db_path(home)
         store.parent.mkdir(parents=True, exist_ok=True)
@@ -1513,7 +1513,7 @@ class TestWhatsAppSection:
         cli_doctor._doctor_whatsapp(self._cfg(), issues)
 
         out = capsys.readouterr().out
-        assert "kirocrew[whatsapp]" in out
+        assert "junction[whatsapp]" in out
         assert "whatsapp extra missing" in issues
 
     def test_an_installed_extra_and_a_paired_store_report_clean(
@@ -1536,7 +1536,7 @@ class TestWhatsAppSection:
         """Load-bearing split. Pairing is a QR scan served BY the running gateway,
         so a freshly enabled channel legitimately has no store yet. Counting that
         as an issue would exit 1 and break the documented
-        `kirocrew doctor && kirocrew gateway` chain at the one moment the operator
+        `junction doctor && junction gateway` chain at the one moment the operator
         has to start the gateway to make progress.
         """
         self._extra(monkeypatch, True)
@@ -1554,7 +1554,7 @@ class TestWhatsAppSection:
     ) -> None:
         """Doctor and the channel must resolve ONE path, or the report describes a
         store the gateway never touches."""
-        from kiro_crew.whatsapp.client import default_db_path
+        from junction.whatsapp.client import default_db_path
 
         self._extra(monkeypatch, True)
         issues: list[str] = []

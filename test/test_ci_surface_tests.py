@@ -76,10 +76,10 @@ _BACKEND_GUARDS = (
     "test/test_windows_signing_contract.py",
     "test/test_meetings_routes.py",
     # Under the third testpath root -- these were silently unscanned until
-    # src/kiro_crew/apps/builtins was added to _BACKEND_ROOTS.
-    "src/kiro_crew/apps/builtins/design_critique/tests/test_manifest.py",
-    "src/kiro_crew/apps/builtins/crew_companion/tests/test_manifest.py",
-    "src/kiro_crew/apps/builtins/ops_mission_control/tests/test_routes.py",
+    # src/junction/apps/builtins was added to _BACKEND_ROOTS.
+    "src/junction/apps/builtins/design_critique/tests/test_manifest.py",
+    "src/junction/apps/builtins/crew_companion/tests/test_manifest.py",
+    "src/junction/apps/builtins/ops_mission_control/tests/test_routes.py",
 )
 
 _FRONTEND_GUARDS = (
@@ -194,14 +194,14 @@ def test_unreadable_file_is_treated_as_cross_surface(selector, tmp_path) -> None
 def test_pure_backend_file_is_classified_single_surface(selector, tmp_path) -> None:
     """A file with no other-surface reference is skippable (the actual saving)."""
     pure = tmp_path / "test_pure.py"
-    pure.write_text("from kiro_crew import config\n\n\ndef test_x():\n    assert config\n")
+    pure.write_text("from junction import config\n\n\ndef test_x():\n    assert config\n")
     assert selector._is_cross_surface(pure, selector._BACKEND_FOREIGN) is False
 
 
 def test_frontend_escape_patterns_are_detected(selector, tmp_path) -> None:
     """Both escape styles must be caught -- the string form AND the segment form."""
     literal = tmp_path / "a.test.ts"
-    literal.write_text("import x from '../../../src/kiro_crew/connections/registry.json'\n")
+    literal.write_text("import x from '../../../src/junction/connections/registry.json'\n")
     assert selector._is_cross_surface(literal, selector._FRONTEND_FOREIGN) is True
 
     segments = tmp_path / "b.test.js"

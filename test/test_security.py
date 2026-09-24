@@ -15,8 +15,8 @@ from unittest import mock
 import pytest
 from oauth_url_corpus import OPERATOR_EXTENSION_OAUTH_URLS
 
-from kiro_crew import security
-from kiro_crew.security import (
+from junction import security
+from junction.security import (
     _SECRET_KEY_LEN,
     apply_resource_limits,
     audit_bash_command,
@@ -361,7 +361,7 @@ class TestRedactCredentials:
         assert len(warnings) == 0
 
     def test_preserves_git_output(self) -> None:
-        text = "Cloning into 'KiroCrew'...\nremote: Enumerating objects: 1234"
+        text = "Cloning into 'Junction'...\nremote: Enumerating objects: 1234"
         result, warnings = redact_credentials(text)
         assert result == text
 
@@ -656,7 +656,7 @@ class TestRedactCredentials:
         digest ever changes, this fails loudly here rather than silently disabling
         redaction of the link token in production.
         """
-        from kiro_crew.dashboard.token_auth import _sign
+        from junction.dashboard.token_auth import _sign
 
         for payload in (b'{"sub":"x"}', b"", b"a" * 4096):
             assert len(_sign(payload)) == 43, payload[:16]
@@ -674,8 +674,8 @@ class TestRedactCredentials:
         """
         import re
 
-        from kiro_crew.dashboard.token_auth import generate_token
-        from kiro_crew.security import _CREDENTIAL_PATTERNS
+        from junction.dashboard.token_auth import generate_token
+        from junction.security import _CREDENTIAL_PATTERNS
 
         floors = re.findall(r"eyJ\[A-Za-z0-9_-\]\{(\d+),\}", _CREDENTIAL_PATTERNS.pattern)
         assert len(floors) == 1, f"expected one bounded eyJ floor, got {floors}"
@@ -687,9 +687,7 @@ class TestRedactCredentials:
 
         # Derived worst case: the narrowest `sub` a caller could pass, with every
         # float claim at its shortest repr (an exactly-integral `time.time()`).
-        claims = json.loads(
-            base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4))
-        )
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
         # `gen` is normalised alongside `sub` because it mirrors the persisted
         # counter behind `revocation_gen.current_revocation_gen()`, LOADED FROM
         # DISK on first use. Left ambient, the
@@ -1132,15 +1130,11 @@ class TestSecretGateOrderIsCostOrdered:
         assert counts["entropy"] == 1, f"entropy should be reached: {counts}"
         assert counts["decode"] == 0, f"decode must run after entropy: {counts}"
 
-    def test_a_real_key_still_pays_for_every_gate(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_a_real_key_still_pays_for_every_gate(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # The pass-through case: a genuine key clears all gates, so every gate
         # runs exactly once. This is what proves the cheap gates are not
         # short-circuiting a real secret away from the expensive checks.
-        counts = self._counting_classify(
-            "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", monkeypatch
-        )
+        counts = self._counting_classify("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", monkeypatch)
         assert counts == {"entropy": 1, "decode": 1}
 
 
@@ -1159,7 +1153,7 @@ class TestSecretGateOrderIsVerdictNeutral:
     SOURCES = (
         "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
         "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4ifQ",
-        "src/kiro_crew/security/redaction/Handler2/Manager3/Factory4/Builder5x",
+        "src/junction/security/redaction/Handler2/Manager3/Factory4/Builder5x",
         "getUserAccountManagerFactory2BuilderHelperImpl3ServiceProvider4x",
         "0123456789abcdefABCDEF0123456789abcdefAB",
         "TheGatewayRestoredTheSessionAndReplayed12ToolCallsSeeSecurityPy",
@@ -1188,9 +1182,7 @@ class TestSecretGateOrderIsVerdictNeutral:
             return False
         return (
             security._vowel_ratio(token) <= security._SECRET_MAX_VOWEL_RATIO
-            and not security._lowercase_run_exceeds(
-                token, security._SECRET_MAX_LOWER_RUN
-            )
+            and not security._lowercase_run_exceeds(token, security._SECRET_MAX_LOWER_RUN)
             and security._shannon_entropy(token) >= security._SECRET_ENTROPY_MIN
             and not security._decodes_to_printable_text(token)
         )
@@ -1296,7 +1288,7 @@ class TestSandboxDeniedCommands:
 
     Command denial is no longer injected into the kiro-cli agent spec
     (``config/defaults.json`` no longer carries ``deniedCommands``); it is
-    enforced solely at KiroCrew's own ``hooks.py`` PreToolUse gate, whose
+    enforced solely at Junction's own ``hooks.py`` PreToolUse gate, whose
     decision function is ``security.is_denied`` (built-in regex tier + the
     always-on keystone controls for exfiltration / sensitive-path reads).  These
     tests therefore exercise the real gate directly.
@@ -1304,7 +1296,7 @@ class TestSandboxDeniedCommands:
 
     @staticmethod
     def _is_denied(cmd: str) -> bool:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         return is_denied(cmd) is not None
 
@@ -1394,18 +1386,18 @@ class TestKiroCliBundledDeniedCommands:
     Command denial is no longer injected into the kiro-cli agent spec — the
     bundled ``config/defaults.json`` no longer carries ``deniedCommands``.  The
     self-protection kill guard is now a ``BUILTIN_DENIED_RULES`` entry
-    (``self-protection-kill``) enforced at KiroCrew's own ``hooks.py`` PreToolUse
+    (``self-protection-kill``) enforced at Junction's own ``hooks.py`` PreToolUse
     gate, whose decision function is ``security.is_denied``.  These tests
     therefore exercise ``is_denied`` directly (tool-shape agnostic — the same
     gate runs regardless of whether the tool is ``execute_bash`` or ``shell``).
 
-    Regression tests for the ``kill``/``kirocrew`` pattern false positive,
+    Regression tests for the ``kill``/``junction`` pattern false positive,
     narrowed in two steps.
 
     Step 1 (word boundaries): the original pattern ``.*kill.*kiro.?crew.*``
     matched any command whose argv contained ``~/.kirocrew/skills/...``
     (because ``skills`` contains the substring ``kill``) followed by
-    ``kirocrew`` anywhere.  Anchoring the kill word on word boundaries
+    ``junction`` anywhere.  Anchoring the kill word on word boundaries
     stopped skill-dir paths from reading as ``kill``.
 
     Step 2 (command structure): boundaries still left the rule matching mere
@@ -1423,22 +1415,22 @@ class TestKiroCliBundledDeniedCommands:
 
     @staticmethod
     def _is_denied(cmd: str) -> bool:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         return is_denied(cmd) is not None
 
     # --- real kill attempts: blocked ---
 
-    def test_pkill_kirocrew_blocked(self) -> None:
-        assert self._is_denied("pkill kirocrew")
+    def test_pkill_junction_blocked(self) -> None:
+        assert self._is_denied("pkill junction")
 
-    def test_kill_kirocrew_pid_blocked(self) -> None:
-        assert self._is_denied("kill -9 $(pgrep kirocrew)")
+    def test_kill_junction_pid_blocked(self) -> None:
+        assert self._is_denied("kill -9 $(pgrep junction)")
 
-    def test_killall_kirocrew_blocked(self) -> None:
-        assert self._is_denied("sudo killall kirocrew")
+    def test_killall_junction_blocked(self) -> None:
+        assert self._is_denied("sudo killall junction")
 
-    def test_kill_kiro_crew_hyphenated_blocked(self) -> None:
+    def test_kill_junction_hyphenated_blocked(self) -> None:
         # The `.?` in the pattern covers an optional separator so agents can't
         # bypass with "kiro-crew".
         assert self._is_denied("pkill kiro-crew")
@@ -1446,55 +1438,55 @@ class TestKiroCliBundledDeniedCommands:
     def test_kill_pidof_substitution_blocked(self) -> None:
         # `pidof` resolves the name to a PID exactly as `pgrep` does, so a
         # resolver-name allowlist would have been a bypass.
-        assert self._is_denied("kill $(pidof kirocrew)")
+        assert self._is_denied("kill $(pidof junction)")
 
     def test_kill_pidfile_substitution_blocked(self) -> None:
-        assert self._is_denied("kill $(cat /var/run/kirocrew.pid)")
+        assert self._is_denied("kill $(cat /var/run/junction.pid)")
 
     def test_kill_backtick_substitution_blocked(self) -> None:
-        assert self._is_denied("kill `pgrep kirocrew`")
+        assert self._is_denied("kill `pgrep junction`")
 
     # --- skill-dir false positives: must be allowed ---
 
-    def test_skill_create_sh_kirocrew_domain_allowed(self) -> None:
+    def test_skill_create_sh_junction_domain_allowed(self) -> None:
         """The brazil-workspace skill scaffold must not be blocked."""
-        cmd = "/Users/user/.kirocrew/skills/brazil-workspace/create.sh --domain kirocrew"
+        cmd = "/Users/user/.kirocrew/skills/brazil-workspace/create.sh --domain junction"
         assert not self._is_denied(cmd)
 
     def test_skills_dir_listing_allowed(self) -> None:
         assert not self._is_denied("ls ~/.kirocrew/skills/")
 
-    def test_skill_run_with_kirocrew_arg_allowed(self) -> None:
-        cmd = "/Users/user/.kirocrew/skills/coder/run.sh kirocrew --dry-run"
+    def test_skill_run_with_junction_arg_allowed(self) -> None:
+        cmd = "/Users/user/.kirocrew/skills/coder/run.sh junction --dry-run"
         assert not self._is_denied(cmd)
 
     def test_bash_skill_script_allowed(self) -> None:
         assert not self._is_denied("bash ~/.kirocrew/skills/something.sh")
 
-    def test_cat_kirocrew_config_allowed(self) -> None:
+    def test_cat_junction_config_allowed(self) -> None:
         # "cat" has no "kill" word anywhere — must not match.
         assert not self._is_denied("cat ~/.kirocrew/config.json")
 
     # --- incidental-mention false positives: must be allowed ---
-    # A bare `kill` takes PIDs, so none of these can aim at a kirocrew process
+    # A bare `kill` takes PIDs, so none of these can aim at a junction process
     # by name; the product name is a FILE, a LOG PATH, or a COMMENT.
 
     def test_kill_bare_pid_allowed(self) -> None:
         assert not self._is_denied("kill 12345")
 
     def test_kill_pid_then_restore_config_file_allowed(self) -> None:
-        cmd = "kill 12345 && cp /tmp/bk/kirocrew.json ~/.kiro/agents/"
+        cmd = "kill 12345 && cp /tmp/bk/junction.json ~/.kiro/agents/"
         assert not self._is_denied(cmd)
 
     def test_kill_pid_then_diff_config_file_allowed(self) -> None:
-        cmd = "kill $PID; diff /tmp/bk/kirocrew.json ~/.kiro/agents/kirocrew.json"
+        cmd = "kill $PID; diff /tmp/bk/junction.json ~/.kiro/agents/junction.json"
         assert not self._is_denied(cmd)
 
     def test_kill_pid_with_trailing_comment_allowed(self) -> None:
-        assert not self._is_denied("kill $PID  # stop the stray kirocrew instance")
+        assert not self._is_denied("kill $PID  # stop the stray junction instance")
 
-    def test_kill_pid_piped_to_kirocrew_log_allowed(self) -> None:
-        assert not self._is_denied("kill 12345 | tee /tmp/kirocrew.log")
+    def test_kill_pid_piped_to_junction_log_allowed(self) -> None:
+        assert not self._is_denied("kill 12345 | tee /tmp/junction.log")
 
 
 class TestBuiltinDenyPatterns:
@@ -1508,14 +1500,14 @@ class TestBuiltinDenyPatterns:
 
     def test_allows_command_with_credential_in_path(self) -> None:
         """Commands in dirs like CredentialValidatorServiceCDK must not be blocked."""
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         cmd = "cd /home/user/src/CredentialValidatorServiceCDK && git status"
         assert is_denied(cmd) is None
 
     def test_allows_credential_in_package_name(self) -> None:
         """Package names containing 'credential' must not be blocked."""
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("ada credentials update --account 123") is None
         assert is_denied("credential-rotation-service build") is None
@@ -1532,18 +1524,18 @@ class TestBuiltinDenyPatterns:
         always-on keystone catches actual exfil), while a destructive
         ``delete-secret`` stays blocked.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("aws secretsmanager delete-secret --secret-id x") is not None
 
     def test_secret_exfil_still_blocked_by_keystone(self) -> None:
         """Dumping an AWS secret env var stays blocked (credential-exfil rule)."""
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("echo $AWS_SECRET_ACCESS_KEY") is not None
 
     def test_blocks_git_push(self) -> None:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         # ── Real publish invocations: must remain BLOCKED ──
         assert is_denied("git push origin main") is not None
@@ -1597,7 +1589,7 @@ class TestBuiltinDenyPatterns:
         ``test_blocks_git_push`` for the bypass-attempt cases that remain
         blocked because the embedded segment IS a real publish.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         # The original pain point: stash output piped into a filter.
         assert is_denied('git stash push -m "wip" 2>&1 | tail -3') is None
@@ -1626,7 +1618,7 @@ class TestBuiltinDenyPatterns:
         literal ` stash push` substring (with leading space) which this
         input lacks → outright deny on pass 1, no fall-through to pass 2.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         # Concrete bypass attempt — flagged by review-bot on rev 1.
         assert is_denied("git$(echo ' ')push origin main") is not None
@@ -1649,7 +1641,7 @@ class TestBuiltinDenyPatterns:
         The fix uses ``&(?!&)`` after ``&&`` in the alternation so ``&&``
         is consumed as a single token and a lone ``&`` is split on.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         # Core bypass.
         assert is_denied("git stash push & git push origin main") is not None
@@ -1684,7 +1676,7 @@ class TestBuiltinDenyPatterns:
         must fall through to the second glob and deny outright.  A ``break``
         regression would skip the second glob and falsely allow.
         """
-        import kiro_crew.security as security_module
+        import junction.security as security_module
 
         monkeypatch.setattr(security_module, "_DENY_EXCEPTIONS", {"*alpha*": ["* stash *"]})
         # Pass 1 sees:
@@ -1710,7 +1702,7 @@ class TestBuiltinDenyPatterns:
         approval prompt.  Anchoring ``push`` as the git subcommand fixes it
         while keeping real ``git push`` blocked.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("git commit -m 'fix: do not push secrets to remote'") is None
         assert (
@@ -1733,7 +1725,7 @@ class TestBuiltinDenyPatterns:
         "push" in an earlier chained segment never blocks a real
         feature-branch push, while chained protected pushes stay denied.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("git commit -m 'ready to push' && git push origin feature-x") is None
         assert is_denied("echo 'time to push' && git push origin my-feature") is None
@@ -1747,7 +1739,7 @@ class TestBuiltinDenyPatterns:
         names, grep patterns, config keys) must be ALLOWED — only an actual
         ``git push`` invocation is a publish.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("git log --grep push") is None
         assert is_denied("git config push.default current") is None
@@ -1765,14 +1757,14 @@ class TestBuiltinDenyPatterns:
         Covers the ssh symptom from the same thread: remote
         interactions starting with ``ssh xxxx`` were aborting.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("ssh dev-dsk 'cd /workplace && git status'") is None
         assert is_denied("ssh dev-dsk 'git commit -m \"address push-back from review\"'") is None
 
     def test_blocks_ssh_remote_real_git_push(self) -> None:
         """A real ``git push`` inside an ``ssh`` remote command stays BLOCKED."""
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("ssh host 'cd /repo && git push origin main'") is not None
 
@@ -1783,7 +1775,7 @@ class TestBuiltinDenyPatterns:
         revision only emitted SEL audit on the exception-granted path,
         leaving denials un-audited.
         """
-        import kiro_crew.security as security_module
+        import junction.security as security_module
 
         captured: list[tuple[str, str, str]] = []
 
@@ -1821,13 +1813,13 @@ class TestBuiltinDenyPatterns:
         ``aws cloudformation delete-stack`` invocation instead (see
         ``test_blocks_real_hyphenated_destructive_aws_cli``).
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("aws cloudformation delete-stack --stack-name foo") is not None
 
     def test_blocks_terminate_instance(self) -> None:
         """The real hyphenated EC2 terminate is blocked (underscore form retired)."""
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("aws ec2 terminate-instances --instance-ids i-123") is not None
 
@@ -1842,7 +1834,7 @@ class TestBuiltinDenyPatterns:
         scheduling destructive shell, so this was an exploitable gap on the
         cron command path.
         """
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("aws cloudformation delete-stack --stack-name prod") is not None
         assert is_denied("aws ec2 terminate-instances --instance-ids i-123") is not None
@@ -1856,7 +1848,7 @@ class TestBuiltinDenyPatterns:
     def test_allows_benign_aws_reads_after_deny_fix(self) -> None:
         """The hyphenated destructive patterns must not over-block benign
         AWS reads or package/command names that merely contain 'delete'/'credential'."""
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         # Read-only AWS operations stay allowed.
         assert is_denied("aws ec2 describe-instances") is None
@@ -1869,17 +1861,17 @@ class TestBuiltinDenyPatterns:
         assert is_denied("get-credentials --profile default") is None
 
     def test_allows_git_status(self) -> None:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("git status") is None
 
     def test_allows_git_log(self) -> None:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("git -P log --oneline -5") is None
 
     def test_allows_cr_command(self) -> None:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         assert is_denied("cr --summary 'Fix test discovery'") is None
 
@@ -1938,10 +1930,7 @@ class TestOAuthAuthorizationUrlRedaction:
         assert oauth_url_contains_credential(url) is True
 
     def test_userinfo_embedded_token_fails_closed(self) -> None:
-        url = (
-            f"https://{self.GITHUB_TOKEN}@api.notion.com/v1/oauth/authorize"
-            "?state=ok"
-        )
+        url = f"https://{self.GITHUB_TOKEN}@api.notion.com/v1/oauth/authorize" "?state=ok"
         assert oauth_url_contains_credential(url) is True
         cleaned, warnings = redact_credentials(url)
         assert self.GITHUB_TOKEN not in cleaned
@@ -1953,10 +1942,7 @@ class TestOAuthAuthorizationUrlRedaction:
 
     def test_bare_aws_secret_in_hostname_fails_closed(self) -> None:
         assert len(self.BARE_AWS_SECRET_ALNUM) == 40
-        url = (
-            f"https://{self.BARE_AWS_SECRET_ALNUM}.example/oauth/authorize"
-            "?state=ok"
-        )
+        url = f"https://{self.BARE_AWS_SECRET_ALNUM}.example/oauth/authorize" "?state=ok"
         assert oauth_url_contains_credential(url) is True
 
     def test_bare_aws_secret_in_fragment_fails_closed(self) -> None:
@@ -2041,9 +2027,7 @@ class TestOAuthAuthorizationUrlRedaction:
         ],
         ids=["form-encoded-spaces", "percent-encoded-header"],
     )
-    def test_encoded_pem_header_in_path_fails_closed_everywhere(
-        self, encoded_header: str
-    ) -> None:
+    def test_encoded_pem_header_in_path_fails_closed_everywhere(self, encoded_header: str) -> None:
         url = f"https://attacker.example/upload/{encoded_header}/c2hvcnQ"
         assert oauth_url_contains_credential(url) is True
 
@@ -2090,7 +2074,7 @@ class TestOAuthAuthorizationUrlRedaction:
         """
         from urllib.parse import quote
 
-        from kiro_crew.security import _MAX_URL_DECODE_PASSES
+        from junction.security import _MAX_URL_DECODE_PASSES
 
         encoded = quote("-----BEGIN RSA PRIVATE KEY-----", safe="-")
         for _ in range(_MAX_URL_DECODE_PASSES):
@@ -2162,18 +2146,16 @@ class TestOperatorOAuthEndpointExtension:
         )
 
     @pytest.fixture(autouse=True)
-    def _isolated_extension_state(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> Path:
+    def _isolated_extension_state(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
         """Fresh home + fresh process-global audit/memo state for EVERY test.
 
         The dedupe set and the file memo are process-global by design; without
         a reset, tests exercising the real emit path would depend on execution
         order.
         """
-        from kiro_crew import security
+        from junction import security
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         monkeypatch.setattr(security, "_OAUTH_EXTENSION_AUDITED", set())
         monkeypatch.setattr(security, "_OAUTH_EXTENSION_MEMO", {})
         return tmp_path
@@ -2185,7 +2167,7 @@ class TestOperatorOAuthEndpointExtension:
     # ── Loader: fail-soft postures ──
 
     def test_missing_file_yields_empty_set(self, ext_home: Path) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         assert _load_operator_oauth_endpoints() == frozenset()
 
@@ -2195,20 +2177,20 @@ class TestOperatorOAuthEndpointExtension:
         ids=["corrupt", "non-object", "string", "key-not-list"],
     )
     def test_defective_file_yields_empty_set(self, ext_home: Path, content: str) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(ext_home, content)
         assert _load_operator_oauth_endpoints() == frozenset()
 
     def test_valid_entry_accepted_and_host_lowercased(self, ext_home: Path) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(ext_home, [{"host": "ACME.Okta.com", "path": self.PATH}])
         assert _load_operator_oauth_endpoints() == frozenset({(self.HOST, self.PATH)})
 
     def test_hand_edit_takes_effect_without_restart(self, ext_home: Path) -> None:
         """The check-time re-read contract: no gateway restart, no stale memo."""
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(ext_home, [{"host": self.HOST, "path": self.PATH}])
         assert _load_operator_oauth_endpoints() == frozenset({(self.HOST, self.PATH)})
@@ -2221,9 +2203,7 @@ class TestOperatorOAuthEndpointExtension:
             ext_home / "oauth_endpoints.json",
             ns=(1_700_000_000_000_000_000, 1_700_000_000_000_000_000),
         )
-        assert _load_operator_oauth_endpoints() == frozenset(
-            {("other.idp.example", "/authorize")}
-        )
+        assert _load_operator_oauth_endpoints() == frozenset({("other.idp.example", "/authorize")})
 
         (ext_home / "oauth_endpoints.json").unlink()
         assert _load_operator_oauth_endpoints() == frozenset()
@@ -2270,7 +2250,7 @@ class TestOperatorOAuthEndpointExtension:
         ],
     )
     def test_hostile_host_skipped(self, ext_home: Path, host: str) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(ext_home, [{"host": host, "path": self.PATH}])
         assert _load_operator_oauth_endpoints() == frozenset()
@@ -2301,7 +2281,7 @@ class TestOperatorOAuthEndpointExtension:
         ],
     )
     def test_hostile_path_skipped(self, ext_home: Path, path: str) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(ext_home, [{"host": self.HOST, "path": path}])
         assert _load_operator_oauth_endpoints() == frozenset()
@@ -2318,13 +2298,13 @@ class TestOperatorOAuthEndpointExtension:
         ids=["string-entry", "int-host", "none-path", "missing-path", "empty-dict"],
     )
     def test_non_string_entry_skipped(self, ext_home: Path, entry: object) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(ext_home, [entry])
         assert _load_operator_oauth_endpoints() == frozenset()
 
     def test_one_bad_entry_does_not_poison_the_rest(self, ext_home: Path) -> None:
-        from kiro_crew.security import _load_operator_oauth_endpoints
+        from junction.security import _load_operator_oauth_endpoints
 
         self._write_extension(
             ext_home,
@@ -2333,7 +2313,7 @@ class TestOperatorOAuthEndpointExtension:
         assert _load_operator_oauth_endpoints() == frozenset({(self.HOST, self.PATH)})
 
     def test_entry_cap_bounds_both_acceptance_and_iteration(self, ext_home: Path) -> None:
-        from kiro_crew.security import (
+        from junction.security import (
             _ENDPOINT_EXTENSION_CAP,
             _load_operator_oauth_endpoints,
         )
@@ -2352,16 +2332,12 @@ class TestOperatorOAuthEndpointExtension:
         invalid_padding: list[dict] = [
             {"host": "*.invalid.example", "path": "/a"}
         ] * _ENDPOINT_EXTENSION_CAP
-        self._write_extension(
-            ext_home, invalid_padding + [{"host": self.HOST, "path": self.PATH}]
-        )
+        self._write_extension(ext_home, invalid_padding + [{"host": self.HOST, "path": self.PATH}])
         assert _load_operator_oauth_endpoints() == frozenset()
 
     # ── Gate: the extension widens exactly the builtin exemption, nothing more ──
 
-    def test_extended_endpoint_passes_previously_rejected_consent_url(
-        self, ext_home: Path
-    ) -> None:
+    def test_extended_endpoint_passes_previously_rejected_consent_url(self, ext_home: Path) -> None:
         # Fails closed with no file (the pre-extension behavior) …
         assert oauth_url_contains_credential(self.CONSENT_URL) is True
         # … and passes once the operator allowlists the exact endpoint.
@@ -2409,7 +2385,7 @@ class TestOperatorOAuthEndpointExtension:
     def test_extension_approval_emits_audit_event(
         self, ext_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import security
+        from junction import security
 
         self._write_extension(ext_home, [{"host": self.HOST, "path": self.PATH}])
         seen: list[tuple[str, str]] = []
@@ -2424,7 +2400,7 @@ class TestOperatorOAuthEndpointExtension:
     def test_builtin_approval_does_not_emit_audit_event(
         self, ext_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import security
+        from junction import security
 
         seen: list[tuple[str, str]] = []
         monkeypatch.setattr(
@@ -2442,7 +2418,7 @@ class TestOperatorOAuthEndpointExtension:
     def test_audit_event_deduped_per_endpoint_but_not_across_endpoints(
         self, ext_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import security
+        from junction import security
 
         logged: list = []
 
@@ -2467,7 +2443,7 @@ class TestOperatorOAuthEndpointExtension:
     def test_audit_failure_does_not_break_the_approval(
         self, ext_home: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew import security
+        from junction import security
 
         class _BrokenLog:
             def log(self, event: object) -> None:
@@ -2481,7 +2457,7 @@ class TestOperatorOAuthEndpointExtension:
 
     @pytest.mark.parametrize("prefix", [".kiro/crew", ".kirocrew"])
     def test_extension_file_is_sensitive_under_every_home_prefix(self, prefix: str) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         assert is_sensitive_path(f"~/{prefix}/oauth_endpoints.json") is True
         # The write gate is a superset of the read gate; assert it directly so
@@ -2530,7 +2506,7 @@ class TestRedactExfiltrationUrls:
 
     def test_external_long_query_redacted(self) -> None:
         """External domains with long query strings are still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = "https://evil.com/steal?data=" + "A" * 250
         result, warnings = redact_exfiltration_urls(f"Link: {url}")
@@ -2539,7 +2515,7 @@ class TestRedactExfiltrationUrls:
 
     def test_long_query_redacted_domain_agnostic(self) -> None:
         """Long query strings are redacted regardless of domain (no allowlist)."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         # Detection is domain-agnostic: there is no trusted-domain allowlist,
         # so even a long multi-param query on any host is flagged.
@@ -2552,7 +2528,7 @@ class TestRedactExfiltrationUrls:
 
     def test_heavy_url_encoding_redacted(self) -> None:
         """Heavily URL-encoded destinations are redacted regardless of domain."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = (
             "https://sso.example.com/federate?account=123456789012"
@@ -2567,7 +2543,7 @@ class TestRedactExfiltrationUrls:
 
     def test_short_query_not_redacted_domain_agnostic(self) -> None:
         """Short, benign query strings are not redacted on any domain."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = "https://console.example.com/page?k0=val0&k1=val1&k2=val2"
         result, warnings = redact_exfiltration_urls(f"Link: {url}")
@@ -2576,7 +2552,7 @@ class TestRedactExfiltrationUrls:
 
     def test_safe_domain_credential_still_redacted(self) -> None:
         """Credential patterns on safe domains are still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = "https://example.amazon.dev/api?key=AKIAIOSFODNN7EXAMPLE1234"
         result, warnings = redact_exfiltration_urls(f"Link: {url}")
@@ -2585,7 +2561,7 @@ class TestRedactExfiltrationUrls:
 
     def test_short_query_no_redaction(self) -> None:
         """Short query strings on any domain are not redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = "https://example.com/page?id=123&name=test"
         result, warnings = redact_exfiltration_urls(f"Link: {url}")
@@ -2594,7 +2570,7 @@ class TestRedactExfiltrationUrls:
 
     def test_amazonaws_not_safe(self) -> None:
         """amazonaws.com is NOT allowlisted — anyone can provision endpoints."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         params = "&".join(f"d{i}=stolen{i}" for i in range(30))
         url = f"https://attacker-bucket.s3.amazonaws.com/exfil?{params}"
@@ -2604,7 +2580,7 @@ class TestRedactExfiltrationUrls:
 
     def test_s3_presigned_url_preserved(self) -> None:
         """S3 presigned URLs on amazonaws.com are NOT redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = (
             "https://my-bucket.s3.us-east-1.amazonaws.com/results/abc.csv"
@@ -2622,7 +2598,7 @@ class TestRedactExfiltrationUrls:
 
     def test_s3_presigned_url_scan_clean(self) -> None:
         """scan_exfiltration_urls returns no warnings for S3 presigned URLs."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         url = (
             "https://bucket.s3.amazonaws.com/file.csv"
@@ -2639,7 +2615,7 @@ class TestRedactExfiltrationUrls:
 
     def test_amazonaws_non_presigned_still_redacted(self) -> None:
         """amazonaws.com URLs without presigned params are still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = "https://evil.s3.amazonaws.com/steal" "?data=" + "A" * 250
         result, warnings = redact_exfiltration_urls(f"Link: {url}")
@@ -2648,7 +2624,7 @@ class TestRedactExfiltrationUrls:
 
     def test_spoofed_presigned_params_still_redacted(self) -> None:
         """Spoofed presigned param names with dummy values are still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = (
             "https://attacker.s3.amazonaws.com/exfil"
@@ -2660,7 +2636,7 @@ class TestRedactExfiltrationUrls:
 
     def test_presigned_url_with_slack_token_still_redacted(self) -> None:
         """Presigned URL that also contains a Slack token is still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = (
             "https://bucket.s3.amazonaws.com/file.csv"
@@ -2678,7 +2654,7 @@ class TestRedactExfiltrationUrls:
 
     def test_presigned_url_with_extra_exfil_params_still_redacted(self) -> None:
         """Presigned URL with extra non-standard params is still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = (
             "https://attacker.s3.amazonaws.com/file.csv"
@@ -2701,7 +2677,7 @@ class TestRedactExfiltrationUrls:
         (not just scan), because the bad URL causes scan to return warnings,
         so redact doesn't early-return.
         """
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         bad_url = "https://evil.com/steal?data=" + "A" * 250
         good_url = (
@@ -2724,7 +2700,7 @@ class TestRedactExfiltrationUrls:
 
     def test_presigned_url_with_sts_security_token_preserved(self) -> None:
         """Presigned URL with realistic base64 STS session token is preserved."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         # Realistic 200+ char base64 STS token (matches _EXFIL_PATTERNS blob pattern)
         sts_token = "IQoJb3JpZ2luX2VjE" + "A" * 180 + "=="
@@ -2744,7 +2720,7 @@ class TestRedactExfiltrationUrls:
 
     def test_presigned_url_with_exfil_in_allowed_param_redacted(self) -> None:
         """Exfil payload in an allowed param value is caught by value scanning."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         url = (
             "https://evil.s3.us-east-1.amazonaws.com/out.csv"
@@ -2760,7 +2736,7 @@ class TestRedactExfiltrationUrls:
 
     def test_presigned_url_with_exfil_in_credential_scope_redacted(self) -> None:
         """Arbitrary data in credential scope is caught by structural validation."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         url = (
             "https://evil.s3.us-east-1.amazonaws.com/out.csv"
@@ -2776,7 +2752,7 @@ class TestRedactExfiltrationUrls:
 
     def test_presigned_url_with_fake_security_token_redacted(self) -> None:
         """Non-STS payload in Security-Token is caught by structural validation."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         url = (
             "https://evil.s3.us-east-1.amazonaws.com/out.csv"
@@ -2907,7 +2883,7 @@ class TestExfilExactHostExemption:
             self._hosts = hosts
 
         def redact(self, text: str) -> str:
-            from kiro_crew.security import redact
+            from junction.security import redact
 
             return redact(text)
 
@@ -2917,11 +2893,11 @@ class TestExfilExactHostExemption:
     def _install_exempt_hosts(self, hosts: "frozenset[str]") -> None:
         import dataclasses
 
-        from kiro_crew.config import KiroCrewConfig
-        from kiro_crew.platform.bootstrap import build_default_context
-        from kiro_crew.platform.context import set_context
+        from junction.config import JunctionConfig
+        from junction.platform.bootstrap import build_default_context
+        from junction.platform.context import set_context
 
-        base = build_default_context(KiroCrewConfig())
+        base = build_default_context(JunctionConfig())
         stub = self._StubCredentialPolicy(hosts)
         set_context(dataclasses.replace(base, credentials=stub))
 
@@ -2944,7 +2920,7 @@ class TestExfilExactHostExemption:
         Byte-identical to today: with no exemptions every host runs the
         heuristics, so a long base64 query is redacted regardless of host.
         """
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         url = self._long_nav_url("contoso.sharepoint.com")
         result, warnings = redact_exfiltration_urls(f"Doc: {url}")
@@ -2953,7 +2929,7 @@ class TestExfilExactHostExemption:
 
     def test_exempted_host_long_query_preserved(self) -> None:
         """An exact-member host's long base64 nav URL is NOT redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         url = self._long_nav_url("contoso.sharepoint.com")
@@ -2963,7 +2939,7 @@ class TestExfilExactHostExemption:
 
     def test_second_exempted_host_preserved(self) -> None:
         """A different exact-member host is also exempt (whole set honored)."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         url = self._long_nav_url("trusted.example.com")
@@ -2973,7 +2949,7 @@ class TestExfilExactHostExemption:
 
     def test_exempted_host_scan_clean(self) -> None:
         """scan_exfiltration_urls returns no warnings for an exempted host URL."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         url = self._long_nav_url("contoso.sharepoint.com")
@@ -2984,7 +2960,7 @@ class TestExfilExactHostExemption:
         emit, e.g. ``Contoso.SharePoint.com``) whose lowercase form is in the
         exempt set is NOT redacted. Guards against a case-sensitive ``in`` check
         that would wrongly redact a legitimate document pointer."""
-        from kiro_crew.security import redact_exfiltration_urls, scan_exfiltration_urls
+        from junction.security import redact_exfiltration_urls, scan_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         url = self._long_nav_url("Contoso.SharePoint.com")
@@ -2996,7 +2972,7 @@ class TestExfilExactHostExemption:
     def test_mixed_case_exempt_member_preserved(self) -> None:
         """Symmetric to the above: a mixed-case MEMBER of the exempt set still
         matches a lowercase host (both sides normalized to lowercase)."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         self._install_exempt_hosts(frozenset({"Contoso.SharePoint.com"}))
         url = self._long_nav_url("contoso.sharepoint.com")
@@ -3008,7 +2984,7 @@ class TestExfilExactHostExemption:
         """The heavy percent-encoding detector is NOT part of the exempted
         base64/length heuristics — a URL-encoded payload to an exempted host is
         still flagged and redacted."""
-        from kiro_crew.security import (
+        from junction.security import (
             _EXFIL_QUERY_MIN_LEN,
             redact_exfiltration_urls,
             scan_exfiltration_urls,
@@ -3026,7 +3002,7 @@ class TestExfilExactHostExemption:
 
     def test_non_exempted_tenant_still_redacted(self) -> None:
         """A non-member host is NOT exempt (exact match only, not suffix)."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         # Same registrable domain family, different subdomain — must NOT match.
@@ -3037,7 +3013,7 @@ class TestExfilExactHostExemption:
 
     def test_exempted_host_credential_query_still_redacted(self) -> None:
         """A hard AWS key in the QUERY on an exempted host is still redacted."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         url = "https://contoso.sharepoint.com/doc?key=AKIAIOSFODNN7EXAMPLE1234"
@@ -3049,7 +3025,7 @@ class TestExfilExactHostExemption:
         """BINDING: an exempted host with an AKIA key in the URL PATH is still
         redacted — the exemption narrows only the heuristics, never the
         unconditional path+query hard-credential floor."""
-        from kiro_crew.security import redact_exfiltration_urls, scan_exfiltration_urls
+        from junction.security import redact_exfiltration_urls, scan_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         url = "https://contoso.sharepoint.com/upload/AKIAIOSFODNN7EXAMPLE/report"
@@ -3067,7 +3043,7 @@ class TestExfilExactHostExemption:
         skipped for exempt hosts — decode-and-scan closes that gap)."""
         import base64
 
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         # An AWS key wrapped in base64 — the raw AKIA regex won't see it, and the
@@ -3083,7 +3059,7 @@ class TestExfilExactHostExemption:
         stays avoided."""
         import base64
 
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         # 60+ char base64 of plain readable text: trips the raw blob heuristic
@@ -3095,7 +3071,7 @@ class TestExfilExactHostExemption:
     def test_exempted_host_bare_secret_value_redacted(self) -> None:
         """A bare ``SecretAccessKey=<base64>`` value (no AKIA prefix) on an
         exempted host is redacted at the URL level, not silently skipped."""
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.security import redact_exfiltration_urls
 
         self._install_exempt_hosts(self._EXEMPT)
         secret = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
@@ -3118,17 +3094,17 @@ class TestExfilExactHostExemption:
         """
         import pytest as _pytest
 
-        from kiro_crew.config.loader import KiroCrewConfig
-        from kiro_crew.platform import context as context_mod
-        from kiro_crew.platform.context import reset_context
-        from kiro_crew.security import redact
+        from junction.config.loader import JunctionConfig
+        from junction.platform import context as context_mod
+        from junction.platform.context import reset_context
+        from junction.security import redact
 
         calls: list[str] = []
         real_current = context_mod.current_context
-        real_load = KiroCrewConfig.load
+        real_load = JunctionConfig.load
 
         with _pytest.MonkeyPatch.context() as mp:
-            mp.setenv("KIROCREW_PROFILE", "enterprise")
+            mp.setenv("JUNCTION_PROFILE", "enterprise")
             reset_context()
 
             def _spy_current():  # type: ignore[no-untyped-def]
@@ -3140,7 +3116,7 @@ class TestExfilExactHostExemption:
                 return real_load(*a, **k)
 
             mp.setattr(context_mod, "current_context", _spy_current)
-            mp.setattr(KiroCrewConfig, "load", _spy_load)
+            mp.setattr(JunctionConfig, "load", _spy_load)
             try:
                 # Redact many lines, as a stderr drain would.
                 for _ in range(25):
@@ -3157,16 +3133,16 @@ class TestExfilExactHostExemption:
         backend spawn in gatewayd died building its own log line)."""
         import dataclasses
 
-        from kiro_crew.config import KiroCrewConfig
-        from kiro_crew.platform.bootstrap import build_default_context
-        from kiro_crew.platform.context import PlatformCompositionError, set_context
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.config import JunctionConfig
+        from junction.platform.bootstrap import build_default_context
+        from junction.platform.context import PlatformCompositionError, set_context
+        from junction.security import redact_exfiltration_urls
 
         class _RaisingCredentialPolicy(self._StubCredentialPolicy):
             def exempt_exact_hosts(self) -> "frozenset[str]":
                 raise PlatformCompositionError("no companion")
 
-        base = build_default_context(KiroCrewConfig())
+        base = build_default_context(JunctionConfig())
         set_context(dataclasses.replace(base, credentials=_RaisingCredentialPolicy(frozenset())))
         url = self._long_nav_url("contoso.sharepoint.com")
         result, warnings = redact_exfiltration_urls(f"Doc: {url}")
@@ -3178,7 +3154,7 @@ class TestExfilExactHostExemption:
         non-standalone profile must not raise.
 
         ``gatewayd`` never installs a ``PlatformContext``; under
-        ``KIROCREW_PROFILE=enterprise`` ``current_context()`` fail-closes, and
+        ``JUNCTION_PROFILE=enterprise`` ``current_context()`` fail-closes, and
         the exempt-host lookup inside ``redact()`` used to propagate that error,
         killing every pooled MCP backend spawn while it built the spawn log
         line.  The lookup must degrade to the empty set (maximum redaction)
@@ -3186,15 +3162,15 @@ class TestExfilExactHostExemption:
         """
         import pytest as _pytest
 
-        from kiro_crew.platform.context import (
+        from junction.platform.context import (
             PlatformCompositionError,
             current_context,
             reset_context,
         )
-        from kiro_crew.security import redact
+        from junction.security import redact
 
         with _pytest.MonkeyPatch.context() as mp:
-            mp.setenv("KIROCREW_PROFILE", "enterprise")
+            mp.setenv("JUNCTION_PROFILE", "enterprise")
             reset_context()
             try:
                 # Precondition: the context itself still fail-closes (that
@@ -3219,16 +3195,16 @@ class TestExfilExactHostExemption:
         set = MORE redaction (the safe direction), never fewer exemptions."""
         import dataclasses
 
-        from kiro_crew.config import KiroCrewConfig
-        from kiro_crew.platform.bootstrap import build_default_context
-        from kiro_crew.platform.context import set_context
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.config import JunctionConfig
+        from junction.platform.bootstrap import build_default_context
+        from junction.platform.context import set_context
+        from junction.security import redact_exfiltration_urls
 
         class _BrokenCredentialPolicy(self._StubCredentialPolicy):
             def exempt_exact_hosts(self) -> "frozenset[str]":
                 raise RuntimeError("adapter broke")
 
-        base = build_default_context(KiroCrewConfig())
+        base = build_default_context(JunctionConfig())
         set_context(dataclasses.replace(base, credentials=_BrokenCredentialPolicy(frozenset())))
         url = self._long_nav_url("contoso.sharepoint.com")
         result, warnings = redact_exfiltration_urls(f"Doc: {url}")
@@ -3240,16 +3216,16 @@ class TestExfilExactHostExemption:
         the empty set via getattr rather than raising — full redaction stands."""
         import dataclasses
 
-        from kiro_crew.config import KiroCrewConfig
-        from kiro_crew.platform.bootstrap import build_default_context
-        from kiro_crew.platform.context import set_context
-        from kiro_crew.security import redact_exfiltration_urls
+        from junction.config import JunctionConfig
+        from junction.platform.bootstrap import build_default_context
+        from junction.platform.context import set_context
+        from junction.security import redact_exfiltration_urls
 
         class _LegacyCredentialPolicy:
             def redact(self, text: str) -> str:
                 return text
 
-        base = build_default_context(KiroCrewConfig())
+        base = build_default_context(JunctionConfig())
         set_context(dataclasses.replace(base, credentials=_LegacyCredentialPolicy()))
         url = self._long_nav_url("contoso.sharepoint.com")
         result, warnings = redact_exfiltration_urls(f"Doc: {url}")
@@ -3272,9 +3248,11 @@ class TestIsSensitivePath:
     def test_gnupg(self) -> None:
         assert is_sensitive_path("~/.gnupg/private-keys-v1.d") is True
 
-    def test_kirocrew_env(self) -> None:
+    def test_junction_env(self) -> None:
         # The data home moved to ~/.kiro/crew; the legacy ~/.kirocrew stays gated
         # (migration leaves a rollback copy that still holds real secret bytes).
+        assert is_sensitive_path("~/.junction/.env") is True
+        assert is_sensitive_path("~/.junction/security_policy.json") is True
         assert is_sensitive_path("~/.kiro/crew/.env") is True
         assert is_sensitive_path("~/.kirocrew/.env") is True
 
@@ -3473,13 +3451,13 @@ class TestHomeDirTargetsCache:
 
     @staticmethod
     def _clear() -> None:
-        from kiro_crew import security
+        from junction import security
 
         security._home_targets_cache.clear()
 
     def test_cached_result_matches_uncached(self, monkeypatch, tmp_path) -> None:
         """Caching must not change WHAT is considered sensitive."""
-        from kiro_crew.security import (
+        from junction.security import (
             _SENSITIVE_HOME_DIRS,
             _home_dir_targets,
             _home_dir_targets_uncached,
@@ -3511,7 +3489,7 @@ class TestHomeDirTargetsCache:
         failing the final assertion instead of degrading back into a timing
         race.
         """
-        from kiro_crew import security
+        from junction import security
 
         monkeypatch.setenv("HOME", str(tmp_path))
         self._clear()
@@ -3534,15 +3512,15 @@ class TestHomeDirTargetsCache:
         security._home_dir_targets(security._SENSITIVE_HOME_DIRS)
         assert len(calls) == 2
 
-    def test_kirocrew_home_change_is_not_deferred_by_ttl(self, monkeypatch, tmp_path) -> None:
-        """A changed KIROCREW_HOME must re-key immediately, not after the TTL.
+    def test_junction_home_change_is_not_deferred_by_ttl(self, monkeypatch, tmp_path) -> None:
+        """A changed JUNCTION_HOME must re-key immediately, not after the TTL.
 
         This is the security-relevant property: the keystone secrets live under
-        KIROCREW_HOME, so a stale target set built for the OLD home would stop
+        JUNCTION_HOME, so a stale target set built for the OLD home would stop
         gating them. The resolved roots are part of the cache key precisely so
         this cannot wait out ``_HOME_TARGETS_TTL_SECS``.
         """
-        from kiro_crew import security
+        from junction import security
 
         monkeypatch.setenv("HOME", str(tmp_path))
         home_a = tmp_path / "crew-a"
@@ -3551,9 +3529,9 @@ class TestHomeDirTargetsCache:
         home_b.mkdir()
         self._clear()
 
-        monkeypatch.setenv("KIROCREW_HOME", str(home_a))
+        monkeypatch.setenv("JUNCTION_HOME", str(home_a))
         targets_a = set(security._home_dir_targets(security._SENSITIVE_HOME_DIRS))
-        monkeypatch.setenv("KIROCREW_HOME", str(home_b))
+        monkeypatch.setenv("JUNCTION_HOME", str(home_b))
         targets_b = set(security._home_dir_targets(security._SENSITIVE_HOME_DIRS))
 
         # No sleep: the switch is visible on the very next call.
@@ -3606,7 +3584,7 @@ class TestHomeDirTargetsCache:
         that makes the race impossible: exactly one resolution per cache fill,
         and the builder receives those captured roots.
         """
-        from kiro_crew import security
+        from junction import security
 
         monkeypatch.setenv("HOME", str(tmp_path))
         self._clear()
@@ -3634,7 +3612,7 @@ class TestHomeDirTargetsCache:
 
     def test_expired_entry_is_rebuilt(self, monkeypatch, tmp_path) -> None:
         """Past the TTL the set is rebuilt, so filesystem changes are picked up."""
-        from kiro_crew import security
+        from junction import security
 
         monkeypatch.setenv("HOME", str(tmp_path))
         self._clear()
@@ -3655,12 +3633,12 @@ class TestHomeDirTargetsCache:
 
     def test_cache_dict_is_bounded(self, monkeypatch, tmp_path) -> None:
         """Churning the env key must not grow the cache without limit."""
-        from kiro_crew import security
+        from junction import security
 
         monkeypatch.setenv("HOME", str(tmp_path))
         self._clear()
         for i in range(200):
-            monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / f"h{i}"))
+            monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / f"h{i}"))
             security._home_dir_targets(security._SENSITIVE_HOME_DIRS)
         assert len(security._home_targets_cache) <= 33
 
@@ -3736,10 +3714,15 @@ class TestIsSensitiveBashCommand:
     def test_chained_relative_cd_resolves_against_prior_base(self) -> None:
         """Relative cd targets must join against the prior base_dir, not overwrite."""
         # cd ~/.kiro && cd crew → base should be ~/.kiro/crew, not bare "crew"
-        assert is_sensitive_bash_command("cd ~/.kiro && cd crew && cat token_signing.key") is not None
+        assert (
+            is_sensitive_bash_command("cd ~/.kiro && cd crew && cat token_signing.key") is not None
+        )
         assert is_sensitive_bash_command("cd ~ && cd .aws && cat credentials") is not None
         # Absolute cd resets the base entirely
-        assert is_sensitive_bash_command("cd /tmp && cd /home/user/.aws && cat credentials") is not None
+        assert (
+            is_sensitive_bash_command("cd /tmp && cd /home/user/.aws && cat credentials")
+            is not None
+        )
         # Benign chained cd is allowed
         assert is_sensitive_bash_command("cd ~/project && cd src && cat main.py") is None
 
@@ -3954,9 +3937,7 @@ class TestIsSensitiveBashCommand:
         entered $HOME.
         """
         assert (
-            is_sensitive_bash_command(
-                "__kc_subst=/tmp; cd $(printf %s ~); cat .aws/credentials"
-            )
+            is_sensitive_bash_command("__kc_subst=/tmp; cd $(printf %s ~); cat .aws/credentials")
             is not None
         )
 
@@ -4027,9 +4008,7 @@ class TestIsSensitiveBashCommand:
             is_sensitive_bash_command('cd "$(printf %s "$HOME/.kiro")/crew"; cat token_signing.key')
             is not None
         )
-        assert (
-            is_sensitive_bash_command('cd `printf %s "$HOME/.aws"`; cat credentials') is not None
-        )
+        assert is_sensitive_bash_command('cd `printf %s "$HOME/.aws"`; cat credentials') is not None
         assert (
             is_sensitive_bash_command('cd "$(printf %s $HOME)/.aws"; cat credentials') is not None
         )
@@ -4091,9 +4070,7 @@ class TestIsSensitiveBashCommand:
             )
             is not None
         )
-        assert (
-            is_sensitive_bash_command("cd ~/.aws; false && cd /tmp; cat credentials") is not None
-        )
+        assert is_sensitive_bash_command("cd ~/.aws; false && cd /tmp; cat credentials") is not None
         # Ordinary chained moves are unaffected.
         assert is_sensitive_bash_command("cd /tmp; cd /var/log; cat syslog") is None
         assert is_sensitive_bash_command("cd ~ && cd src && cat main.py") is None
@@ -4131,9 +4108,7 @@ class TestIsSensitiveBashCommand:
         still readable in the text.
         """
         assert (
-            is_sensitive_bash_command(
-                "X=x; D=${X:+$HOME/.kiro/crew}; cd $D; cat token_signing.key"
-            )
+            is_sensitive_bash_command("X=x; D=${X:+$HOME/.kiro/crew}; cd $D; cat token_signing.key")
             is not None
         )
         assert (
@@ -4162,7 +4137,7 @@ class TestIsSensitiveBashCommand:
         invariant is still worth holding — it is what keeps a command from naming
         this module's private sentinel at all.
         """
-        from kiro_crew.security import _SUBST_PLACEHOLDER_NAME, _SUBST_PLACEHOLDER_NAME_RE
+        from junction.security import _SUBST_PLACEHOLDER_NAME, _SUBST_PLACEHOLDER_NAME_RE
 
         assert _SUBST_PLACEHOLDER_NAME_RE.match(_SUBST_PLACEHOLDER_NAME)
         assert _SUBST_PLACEHOLDER_NAME_RE.match(f"{_SUBST_PLACEHOLDER_NAME}1")
@@ -4203,9 +4178,7 @@ class TestIsSensitiveBashCommand:
             is_sensitive_bash_command('cd "$(printf %s ~)/.kiro/crew" && cat token_signing.key')
             is not None
         )
-        assert (
-            is_sensitive_bash_command("cd $(printf %s ~)/.aws && cat credentials") is not None
-        )
+        assert is_sensitive_bash_command("cd $(printf %s ~)/.aws && cat credentials") is not None
         assert is_sensitive_bash_command("cd `printf %s ~`/.ssh && cat id_rsa") is not None
         assert is_sensitive_bash_command("cat $(printf %s ~)/.aws/credentials") is not None
         # Through a variable assigned from a substitution.
@@ -4390,7 +4363,7 @@ class TestIsSensitiveBashCommand:
     # each of these resolves to 169.254.169.254.
 
     def test_imds_shortform_encodings_blocked(self) -> None:
-        from kiro_crew.security import _check_imds_access, canonicalize_ip
+        from junction.security import _check_imds_access, canonicalize_ip
 
         # Each of these genuinely resolves to 169.254.169.254 via inet_aton.
         for host in ("169.254.43518", "169.16689662", "169.254.0xA9FE", "169.0xFEA9FE"):
@@ -4400,13 +4373,13 @@ class TestIsSensitiveBashCommand:
             assert is_sensitive_bash_command(cmd) is not None, host
 
     def test_imds_plainform_still_blocked(self) -> None:
-        from kiro_crew.security import _check_imds_access
+        from junction.security import _check_imds_access
 
         cmd = "curl http://169.254.169.254/latest/meta-data/"
         assert _check_imds_access(cmd) is not None
 
     def test_non_imds_shortform_not_overblocked(self) -> None:
-        from kiro_crew.security import _check_imds_access, canonicalize_ip
+        from junction.security import _check_imds_access, canonicalize_ip
 
         # 169.254.11207422 is an ILLEGAL inet_aton form (final part > 65535); it
         # does not resolve, so it must NOT be canonicalized to IMDS or flagged.
@@ -4551,7 +4524,9 @@ class TestChdirVerbSpellings:
         monotone precisely so that adding syntax cannot walk a denial back.
         """
         assert security.is_sensitive_bash_command("pushd ~/.aws; popd; cat credentials")
-        assert security.is_sensitive_bash_command("Push-Location ~/.aws; Pop-Location; cat credentials")
+        assert security.is_sensitive_bash_command(
+            "Push-Location ~/.aws; Pop-Location; cat credentials"
+        )
 
     def test_cmd_exe_drive_switch_is_not_the_target(self) -> None:
         """`cd /d <dir>` must track <dir>, via the candidate rule.
@@ -4559,7 +4534,7 @@ class TestChdirVerbSpellings:
         cmd.exe's only `cd` switch sits before the target and is forward-slash
         prefixed, so it does not look like a flag. It is NOT classified as one
         either: a single-letter absolute path is a real POSIX directory that can
-        be the crew home, and discarding it turned `KIROCREW_HOME=/d` plus
+        be the crew home, and discarding it turned `JUNCTION_HOME=/d` plus
         `cd /d; cat token_signing.key` from denied into allowed. Keeping every
         non-switch argument as a candidate reaches the real directory without
         having to decide which reading of `/d` was meant.
@@ -4678,10 +4653,10 @@ class TestChdirVerbSpellings:
             security.is_sensitive_bash_command("Set-Location -Path:/tmp; Get-Content notes.txt")
             is None
         )
+        assert security.is_sensitive_bash_command("cd -Path:~/project; cat main.py") is None
         assert (
-            security.is_sensitive_bash_command("cd -Path:~/project; cat main.py") is None
+            security.is_sensitive_bash_command("cd -ErrorAction:Stop /tmp; cat notes.txt") is None
         )
-        assert security.is_sensitive_bash_command("cd -ErrorAction:Stop /tmp; cat notes.txt") is None
         # A flag with no payload contributes no candidate at all.
         assert security._chdir_candidates(["-Force"]) == []
         assert security._chdir_candidates(["-Path:"]) == []
@@ -4805,7 +4780,7 @@ class TestNativeHomeEntryThenFencedRead:
     def test_lookalike_directory_names_are_not_fenced(self) -> None:
         """A name that merely STARTS like a fenced dir is a different directory."""
         assert security.is_sensitive_bash_command("cd ~; cat .awsome/config") is None
-        assert security.is_sensitive_bash_command("cd ~; cat .kirocrewnotes") is None
+        assert security.is_sensitive_bash_command("cd ~; cat .junctionnotes") is None
 
     def test_quoted_home_target(self) -> None:
         """cmd.exe and PowerShell both accept a quoted chdir target.
@@ -4817,9 +4792,7 @@ class TestNativeHomeEntryThenFencedRead:
         assert security.is_sensitive_bash_command(
             'cd /d "%USERPROFILE%" ' + self.AMP + " more .aws" + self.BS + "credentials"
         )
-        assert security.is_sensitive_bash_command(
-            'cd "~" ' + self.AMP + " cat .aws/credentials"
-        )
+        assert security.is_sensitive_bash_command('cd "~" ' + self.AMP + " cat .aws/credentials")
         assert security.is_sensitive_bash_command("cd '~' " + self.AMP + " cat .aws/credentials")
         assert security.is_sensitive_bash_command(
             'cd "%USERPROFILE%"; type .aws' + self.BS + "credentials"
@@ -4836,9 +4809,7 @@ class TestNativeHomeEntryThenFencedRead:
         assert security.is_sensitive_bash_command(
             "cd %USERPROFILE% " + self.AMP + " more<.aws" + self.BS + "credentials"
         )
-        assert security.is_sensitive_bash_command(
-            "cd ~ " + self.AMP + " more<.aws/credentials"
-        )
+        assert security.is_sensitive_bash_command("cd ~ " + self.AMP + " more<.aws/credentials")
         assert security.is_sensitive_bash_command("cd ~; cat >.aws/credentials")
         assert security.is_sensitive_bash_command("cd ~; {cat .aws/credentials;}")
 
@@ -5043,8 +5014,7 @@ class TestNativeHomeEntryThenFencedRead:
         """
         for tail in ("C:.aws" + self.BS + "credentials", "C:.ssh/id_rsa"):
             assert (
-                security.is_sensitive_bash_command("cd ~ " + self.AMP + " type " + tail)
-                is not None
+                security.is_sensitive_bash_command("cd ~ " + self.AMP + " type " + tail) is not None
             ), tail
 
     def test_drive_relative_benign_target_still_allowed(self) -> None:
@@ -5127,8 +5097,7 @@ class TestNativeHomeEntryThenFencedRead:
             "./project" + self.BS + ".." + self.BS + ".ssh/id_" + "rsa",
         ):
             assert (
-                security.is_sensitive_bash_command("cd ~ " + self.AMP + " type " + tail)
-                is not None
+                security.is_sensitive_bash_command("cd ~ " + self.AMP + " type " + tail) is not None
             ), tail
 
     def test_traversal_that_leaves_the_directory_is_not_this_scan(self) -> None:
@@ -5220,8 +5189,7 @@ class TestNativeHomeEntryThenFencedRead:
             ".config" + self.BS + "gcloud." + self.BS + "x",
         ):
             assert (
-                security.is_sensitive_bash_command("cd ~ " + self.AMP + " type " + tail)
-                is not None
+                security.is_sensitive_bash_command("cd ~ " + self.AMP + " type " + tail) is not None
             ), tail
 
     def test_dot_only_segments_keep_their_meaning(self) -> None:
@@ -5257,8 +5225,7 @@ class TestNativeHomeEntryThenFencedRead:
             "type '.aw's" + self.BS + "credentials",
         ):
             assert (
-                security.is_sensitive_bash_command("cd ~ " + self.AMP + " " + spelling)
-                is not None
+                security.is_sensitive_bash_command("cd ~ " + self.AMP + " " + spelling) is not None
             ), spelling
 
     def test_skipping_quotes_does_not_fuse_separate_arguments(self) -> None:
@@ -5286,13 +5253,7 @@ class TestNativeHomeEntryThenFencedRead:
         for spelling in (
             "cd ~ " + self.AMP + " type .aw" + self.BT + "s" + self.BS + "credentials",
             "c" + self.BT + "d ~ " + self.AMP + " type .aws" + self.BS + "credentials",
-            "cd %USER"
-            + self.BT
-            + "PROFILE% "
-            + self.AMP
-            + " type .aws"
-            + self.BS
-            + "credentials",
+            "cd %USER" + self.BT + "PROFILE% " + self.AMP + " type .aws" + self.BS + "credentials",
         ):
             assert security.is_sensitive_bash_command(spelling) is not None, spelling
 
@@ -5348,10 +5309,7 @@ class TestNativeHomeEntryThenFencedRead:
         # An operator still ends the run, which is what stops the scan reaching a
         # `~` that belongs to a different command. Here the shell is in /tmp, so
         # `.aws/credentials` resolves under /tmp and is not the fenced store.
-        assert (
-            security.is_sensitive_bash_command("cd /tmp ; echo ~ ; cat .aws/credentials")
-            is None
-        )
+        assert security.is_sensitive_bash_command("cd /tmp ; echo ~ ; cat .aws/credentials") is None
 
     def test_a_fenced_entry_containing_a_space(self) -> None:
         """Two fenced entries have a space in them, so a word cannot end at one."""
@@ -5442,13 +5400,13 @@ class TestWindowsPathShapes:
         # probe of a possibly-dead network target.
         from unittest.mock import patch
 
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         with patch.object(security.Path, "home", return_value=Path("C:\\Users\\u")):
             assert not security._is_path_like("Z:\\stale\\mapped\\drive")
             assert not security._is_path_like("\\\\dead-server\\share\\x")
 
     def test_cross_drive_forward_slash_token_stays_path_like(self) -> None:
-        # KIROCREW_HOME may legitimately live on another drive, and its
+        # JUNCTION_HOME may legitimately live on another drive, and its
         # keystone leaves are re-anchored there. A forward-slash spelling was
         # path-like via the generic "/" branch before drive shapes were
         # recognized -- the foreign-drive check must FALL THROUGH to it, not
@@ -5457,15 +5415,15 @@ class TestWindowsPathShapes:
         from unittest.mock import patch
 
         with patch.object(security.Path, "home", return_value=Path("C:\\Users\\u")):
-            assert security._is_path_like("D:/kirocrew/security_policy.json")
+            assert security._is_path_like("D:/junction/security_policy.json")
 
-    def test_kirocrew_home_drive_anchors_backslash_recognition(self, monkeypatch) -> None:
-        # A BACKSLASH spelling under a cross-drive KIROCREW_HOME must also be
+    def test_junction_home_drive_anchors_backslash_recognition(self, monkeypatch) -> None:
+        # A BACKSLASH spelling under a cross-drive JUNCTION_HOME must also be
         # recognized: the keystone leaves are re-anchored under that root, so
         # its drive is an anchor alongside the user home's.
         from unittest.mock import patch
 
-        monkeypatch.setenv("KIROCREW_HOME", "D:\\crew")
+        monkeypatch.setenv("JUNCTION_HOME", "D:\\crew")
         with patch.object(security.Path, "home", return_value=Path("C:\\Users\\u")):
             assert security._is_path_like("D:\\crew\\security_policy.json")
             # Drives matching NEITHER root stay unrecognized (no realpath probe).
@@ -5474,10 +5432,8 @@ class TestWindowsPathShapes:
     def test_unc_home_share_is_path_like(self, monkeypatch) -> None:
         from unittest.mock import patch
 
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
-        with patch.object(
-            security.Path, "home", return_value=Path("\\\\srv\\homes\\u")
-        ):
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
+        with patch.object(security.Path, "home", return_value=Path("\\\\srv\\homes\\u")):
             assert security._is_path_like("\\\\srv\\homes\\u\\.aws\\credentials")
             assert not security._is_path_like("\\\\other\\share\\x")
             # A share that merely extends the name past the segment boundary
@@ -5490,14 +5446,14 @@ class TestWindowsPathShapes:
         assert security._is_path_like("..\\x\\y")
 
     def test_drive_shapes_are_inert_on_posix_homes(self, monkeypatch) -> None:
-        # With a POSIX home and no drive-lettered KIROCREW_HOME, no anchor
+        # With a POSIX home and no drive-lettered JUNCTION_HOME, no anchor
         # root has a drive, so drive/UNC tokens are not path-like at all --
-        # no behavior change for POSIX workflows. (KIROCREW_HOME must be
+        # no behavior change for POSIX workflows. (JUNCTION_HOME must be
         # cleared: on Windows CI it is a drive-lettered path and a legitimate
         # anchor root.)
         from unittest.mock import patch
 
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         with patch.object(security.Path, "home", return_value=Path("/home/u")):
             assert not security._is_path_like("C:\\Users\\u\\.aws\\credentials")
             assert not security._is_path_like("\\\\server\\share\\x")
@@ -5561,8 +5517,7 @@ class TestWindowsPathShapes:
         # Adding a leaf must not fence the whole crew home: unrelated content in
         # the same native spelling stays writable.
         assert (
-            is_sensitive_bash_command('echo x > "C:\\Users\\u\\.kiro\\crew\\sessions.db"')
-            is None
+            is_sensitive_bash_command('echo x > "C:\\Users\\u\\.kiro\\crew\\sessions.db"') is None
         )
 
     def test_appdata_alias_of_fenced_store_is_blocked(self) -> None:
@@ -5618,25 +5573,18 @@ class TestWindowsPathShapes:
         for cmd in cmds:
             assert is_sensitive_bash_command(cmd) is not None, cmd
         # Other %LOCALAPPDATA% content stays allowed.
-        assert (
-            is_sensitive_bash_command('type "%LOCALAPPDATA%\\SomeApp\\config.json"')
-            is None
-        )
+        assert is_sensitive_bash_command('type "%LOCALAPPDATA%\\SomeApp\\config.json"') is None
         # The home-anchored native spelling of the Local store is fenced too
         # (via the _SENSITIVE_HOME_DIRS entry, not the alias branch).
         assert (
-            is_sensitive_bash_command(
-                "type 'C:\\Users\\u\\AppData\\Local\\kiro-cli\\data.sqlite3'"
-            )
+            is_sensitive_bash_command("type 'C:\\Users\\u\\AppData\\Local\\kiro-cli\\data.sqlite3'")
             is not None
         )
 
     def test_backslash_relative_traversal_is_blocked(self) -> None:
         assert is_sensitive_bash_command("type ..\\..\\.aws\\credentials") is not None
         assert (
-            is_sensitive_bash_command(
-                "type ..\\..\\AppData\\Roaming\\kiro-cli\\data.sqlite3"
-            )
+            is_sensitive_bash_command("type ..\\..\\AppData\\Roaming\\kiro-cli\\data.sqlite3")
             is not None
         )
         # The POSIX spelling keeps matching through the widened alternation.
@@ -5644,9 +5592,7 @@ class TestWindowsPathShapes:
 
     def test_benign_native_spellings_stay_allowed(self) -> None:
         assert is_sensitive_bash_command("type 'C:\\Users\\u\\project\\readme.md'") is None
-        assert (
-            is_sensitive_bash_command("python -c \"open(r'C:\\temp\\x.txt')\"") is None
-        )
+        assert is_sensitive_bash_command("python -c \"open(r'C:\\temp\\x.txt')\"") is None
 
     def test_down_up_traversal_reentry_is_blocked(self) -> None:
         # A same-level excursion (X\..) is a canonical no-op, so a spelling
@@ -5798,14 +5744,14 @@ class TestKiroAgentsDirWriteProtection:
         # the resolver at a per-test tmp dir, which has no home-relative tail to
         # compare. The claim under test is about the REAL default layout.
         monkeypatch.delenv("KIRO_HOME", raising=False)
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
-        from kiro_crew.config.paths import kiro_agents_dir
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
+        from junction.config.paths import kiro_agents_dir
 
         rel = kiro_agents_dir().relative_to(Path.home()).as_posix()
         assert security._KIRO_AGENTS_DIR == rel
 
     def test_file_edit_write_into_agents_dir_is_denied(self) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         home = str(Path.home())
         # Any filename (specs can be named anything), any depth, and the dir itself.
@@ -5822,7 +5768,7 @@ class TestKiroAgentsDirWriteProtection:
         assert is_sensitive_path("~/.kiro/agents") is False
 
     def test_sibling_dirs_are_not_over_blocked(self) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         # ``agents-backup`` shares a prefix but is a different directory.
         assert is_sensitive_write_path("~/.kiro/agents-backup/x.json") is False
@@ -5879,7 +5825,7 @@ class TestKiroAgentsDirWriteProtection:
         # which CANONICALIZES the destination: a relative target that resolves into
         # the fenced dir is refused regardless of spelling, and one that resolves
         # elsewhere is not over-blocked.
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         home = str(Path.home())
         # Relative target anchored at ~/.kiro resolves to ~/.kiro/agents/pwn.json.
@@ -5901,14 +5847,12 @@ class TestKiroAgentsDirWriteProtection:
         # over-blocked on the bash gate.
         assert is_sensitive_bash_command("cat ~/.kiro/agents-backup/foo.json") is None
 
-    def test_kiro_home_override_is_covered_on_the_tool_gate(
-        self, tmp_path, monkeypatch
-    ) -> None:
+    def test_kiro_home_override_is_covered_on_the_tool_gate(self, tmp_path, monkeypatch) -> None:
         # kiro_agents_dir() honours KIRO_HOME; the override moves the specs the
         # gateway execs, so the write gate must follow it (re-anchored the same way
-        # KIROCREW_HOME re-anchors the crew secrets). The default ~/.kiro/agents
+        # JUNCTION_HOME re-anchors the crew secrets). The default ~/.kiro/agents
         # stays covered regardless.
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         custom = tmp_path / "customkiro"
         monkeypatch.setenv("KIRO_HOME", str(custom))
@@ -5924,7 +5868,7 @@ class TestKiroAgentsDirWriteProtection:
         # The re-anchoring is keyed on the resolved KIRO_HOME, so clearing it must
         # invalidate the cached target set — otherwise a stale override would keep
         # fencing an unrelated path.
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         custom = tmp_path / "customkiro"
         monkeypatch.delenv("KIRO_HOME", raising=False)
@@ -5945,7 +5889,7 @@ class TestDeniedCommandsKeystone:
     """
 
     def test_keystone_path_is_sensitive(self) -> None:
-        from kiro_crew.security import is_sensitive_path
+        from junction.security import is_sensitive_path
 
         assert is_sensitive_path("~/.kirocrew/denied_commands.json") is True
 
@@ -6176,7 +6120,7 @@ class TestStreamRedactor:
 
     @staticmethod
     def _run(chunks):
-        from kiro_crew.security import StreamRedactor
+        from junction.security import StreamRedactor
 
         r = StreamRedactor()
         emits = [r.feed(c) for c in chunks]
@@ -6193,7 +6137,7 @@ class TestStreamRedactor:
         assert joined == "The access key is [REDACTED: credential]"
 
     def test_char_by_char_stream(self) -> None:
-        from kiro_crew.security import StreamRedactor
+        from junction.security import StreamRedactor
 
         r = StreamRedactor()
         out = "".join(r.feed(c) for c in "x AKIAIOSFODNN7EXAMPLE y") + r.flush()
@@ -6215,7 +6159,7 @@ class TestStreamRedactor:
         assert "REDACTED" in joined
 
     def test_reset_discards_buffer(self) -> None:
-        from kiro_crew.security import StreamRedactor
+        from junction.security import StreamRedactor
 
         r = StreamRedactor()
         assert r.feed("AKIA") == ""  # held
@@ -6223,7 +6167,7 @@ class TestStreamRedactor:
         assert r.flush() == ""  # nothing left after reset
 
     def test_flush_empty(self) -> None:
-        from kiro_crew.security import StreamRedactor
+        from junction.security import StreamRedactor
 
         assert StreamRedactor().flush() == ""
 
@@ -6231,7 +6175,7 @@ class TestStreamRedactor:
         """A pathologically long unbroken credential-class run does not grow the
         held buffer without bound: the excess beyond the cap is committed, and
         no content is lost across feed+flush."""
-        from kiro_crew.security import _STREAM_HOLDBACK_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_MAX, StreamRedactor
 
         r = StreamRedactor()
         blob = "a" * (_STREAM_HOLDBACK_MAX + 300)  # no terminator, all cred-class
@@ -6280,7 +6224,7 @@ class TestStreamRedactor:
         anchor) must stay authoritative: once the withheld tail exceeds it the
         redactor stops accumulating, so the retained buffer stays bounded.
         """
-        from kiro_crew.security import _STREAM_HOLDBACK_JWT_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_JWT_MAX, StreamRedactor
 
         r = StreamRedactor()
         r.feed("Authorization: Bearer ")
@@ -6303,7 +6247,7 @@ class TestStreamRedactor:
         default 512-char holdback would bisect a long terminal token, emitting the
         first (len-512) chars raw before flush() redacted only the held tail.
         """
-        from kiro_crew.security import _STREAM_HOLDBACK_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_MAX, StreamRedactor
 
         payload = "eyJ" + "A" * (_STREAM_HOLDBACK_MAX + 800)
         jwt = f"{payload}.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6"
@@ -6322,7 +6266,7 @@ class TestStreamRedactor:
         header.key.iv.ciphertext.tag) so it escalates the cap instead of bisecting
         the >512-char JWE at the 512 floor and leaking its raw head.
         """
-        from kiro_crew.security import _STREAM_HOLDBACK_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_MAX, StreamRedactor
 
         seg = "eyJ" + "A" * (_STREAM_HOLDBACK_MAX + 400)
         jwe = f"{seg}.QW5rZXk.aXY.Y2lwaGVydGV4dA.dGFn"  # 5 compact JWE segments
@@ -6342,7 +6286,7 @@ class TestStreamRedactor:
         head raw. `_BEARER_ANCHOR_PARTIAL_RE` now holds the whole anchor together
         and also escalates the cap.
         """
-        from kiro_crew.security import _STREAM_HOLDBACK_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_MAX, StreamRedactor
 
         token = "A1b2C3d4" * ((_STREAM_HOLDBACK_MAX + 400) // 8)  # opaque, no eyJ
         assert len(token) > _STREAM_HOLDBACK_MAX
@@ -6360,7 +6304,7 @@ class TestStreamRedactor:
         token's head raw). feed() redacts+emits the safe prefix, appends the tag,
         and DROPS the oversized tail.
         """
-        from kiro_crew.security import _STREAM_HOLDBACK_JWT_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_JWT_MAX, StreamRedactor
 
         jwt = "eyJ" + "A" * (_STREAM_HOLDBACK_JWT_MAX + 500) + ".eyJz.SflK"
         r = StreamRedactor()
@@ -6379,7 +6323,7 @@ class TestStreamRedactor:
         past the ceiling is still committed verbatim (bisected, no data loss),
         keeping the DoS bound intact without corrupting non-secret output.
         """
-        from kiro_crew.security import _STREAM_HOLDBACK_JWT_MAX, StreamRedactor
+        from junction.security import _STREAM_HOLDBACK_JWT_MAX, StreamRedactor
 
         blob = "a" * (_STREAM_HOLDBACK_JWT_MAX + 600)  # no eyJ / Bearer anchor
         r = StreamRedactor()
@@ -6396,12 +6340,12 @@ class TestScanMemoryImportGuard:
     def test_non_importerror_degrades_to_empty(self, monkeypatch) -> None:
         import builtins
 
-        from kiro_crew.security import scan_memory
+        from junction.security import scan_memory
 
         real_import = builtins.__import__
 
         def fake_import(name, *args, **kwargs):
-            if name == "kiro_crew.vector_memory" or name.endswith(".vector_memory"):
+            if name == "junction.vector_memory" or name.endswith(".vector_memory"):
                 raise OSError("simulated C-extension load failure")
             return real_import(name, *args, **kwargs)
 
@@ -6436,7 +6380,7 @@ class TestApplyResourceLimits:
         test worker itself)."""
         from unittest.mock import patch
 
-        from kiro_crew.security import _bias_child_oom_score
+        from junction.security import _bias_child_oom_score
 
         calls: dict = {}
 
@@ -6446,10 +6390,10 @@ class TestApplyResourceLimits:
             return 42
 
         with (
-            patch("kiro_crew.security.sys.platform", "linux"),
-            patch("kiro_crew.security.os.open", side_effect=fake_open),
-            patch("kiro_crew.security.os.write", return_value=4) as mwrite,
-            patch("kiro_crew.security.os.close") as mclose,
+            patch("junction.security.sys.platform", "linux"),
+            patch("junction.security.os.open", side_effect=fake_open),
+            patch("junction.security.os.write", return_value=4) as mwrite,
+            patch("junction.security.os.close") as mclose,
         ):
             _bias_child_oom_score()
         assert calls["path"] == "/proc/self/oom_score_adj"
@@ -6461,22 +6405,22 @@ class TestApplyResourceLimits:
         """A read-only /proc or containerized denial must never fail the spawn."""
         from unittest.mock import patch
 
-        from kiro_crew.security import _bias_child_oom_score
+        from junction.security import _bias_child_oom_score
 
         with (
-            patch("kiro_crew.security.sys.platform", "linux"),
-            patch("kiro_crew.security.os.open", side_effect=OSError("denied")),
+            patch("junction.security.sys.platform", "linux"),
+            patch("junction.security.os.open", side_effect=OSError("denied")),
         ):
             _bias_child_oom_score()  # must not raise
 
     def test_bias_helper_noop_off_linux(self) -> None:
         from unittest.mock import patch
 
-        from kiro_crew.security import _bias_child_oom_score
+        from junction.security import _bias_child_oom_score
 
         with (
-            patch("kiro_crew.security.sys.platform", "darwin"),
-            patch("kiro_crew.security.os.open") as mopen,
+            patch("junction.security.sys.platform", "darwin"),
+            patch("junction.security.os.open") as mopen,
         ):
             _bias_child_oom_score()
         mopen.assert_not_called()
@@ -6713,17 +6657,17 @@ class TestApplyResourceLimits:
 
     def test_none_resource_module_is_noop(self, monkeypatch) -> None:
         """On non-POSIX (resource is None) the helper returns a harmless no-op."""
-        import kiro_crew.security as sec
+        import junction.security as sec
 
         monkeypatch.setattr(sec, "_resource", None)
         fn = sec.apply_resource_limits({"resource_limits": {"max_processes": 1}})
         assert fn() is None
 
 
-class TestKiroCrewSlackAppCreateLink:
-    """Kiro Crew's OWN Slack app-create deep link survives the exfil redactor.
+class TestJunctionSlackAppCreateLink:
+    """Junction's OWN Slack app-create deep link survives the exfil redactor.
 
-    ``kirocrew manifest --url`` and ``GET /api/slack/manifest`` emit
+    ``junction manifest --url`` and ``GET /api/slack/manifest`` emit
     ``https://api.slack.com/apps?new_app=1&manifest_yaml=<encoded manifest>``.
     The encoded manifest is ~1.9 KB, so the aggregate query-length heuristic
     classified the whole link as exfiltration and the user was shown
@@ -6738,14 +6682,14 @@ class TestKiroCrewSlackAppCreateLink:
 
     def _payload(self, alias: str = "someone") -> str:
         """The deep-link payload as the REAL emitters build it."""
-        from kiro_crew import slack_manifest
+        from junction import slack_manifest
 
         return slack_manifest.render(alias, strip_comments=True)
 
     def _link(self, alias: str = "someone", **over: str) -> str:
         from urllib.parse import quote
 
-        from kiro_crew import slack_manifest
+        from junction import slack_manifest
 
         if not over:
             # Default case goes through the actual emitter, so a change to its
@@ -6771,8 +6715,8 @@ class TestKiroCrewSlackAppCreateLink:
         still green, which is the same "no test exercised the real URL" failure
         that hid the original bug.
         """
-        from kiro_crew import slack_manifest
-        from kiro_crew.security import redact_exfiltration_urls, scan_exfiltration_urls
+        from junction import slack_manifest
+        from junction.security import redact_exfiltration_urls, scan_exfiltration_urls
 
         url = slack_manifest.deep_link("someone")
         assert len(url.split("?", 1)[1]) >= 200  # premise: over the threshold
@@ -6781,7 +6725,7 @@ class TestKiroCrewSlackAppCreateLink:
 
     def test_manifest_link_is_not_redacted(self) -> None:
         """The real emitted link passes the general text scanner untouched."""
-        from kiro_crew.security import redact_exfiltration_urls, scan_exfiltration_urls
+        from junction.security import redact_exfiltration_urls, scan_exfiltration_urls
 
         url = self._link()
         assert len(url.split("?", 1)[1]) >= 200
@@ -6792,7 +6736,7 @@ class TestKiroCrewSlackAppCreateLink:
 
     def test_alias_shapes_accepted(self) -> None:
         """Any alias the emitters permit (alnum, hyphen, underscore) is accepted."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         for alias in ("a", "user99", "first-last", "with_underscore", "A1_b-2"):
             assert scan_exfiltration_urls(self._link(alias)) == [], alias
@@ -6809,8 +6753,8 @@ class TestKiroCrewSlackAppCreateLink:
         """
         from urllib.parse import quote
 
-        from kiro_crew import slack_manifest
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction import slack_manifest
+        from junction.security import scan_exfiltration_urls
 
         # Over ALIAS_MAX — the derived pattern refuses it, so no exemption.
         secret40 = "wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEYXY"
@@ -6818,10 +6762,7 @@ class TestKiroCrewSlackAppCreateLink:
         payload = slack_manifest.stripped_template().replace(
             slack_manifest.ALIAS_PLACEHOLDER, secret40
         )
-        url = (
-            "https://api.slack.com/apps?new_app=1&manifest_yaml="
-            + quote(payload, safe="")
-        )
+        url = "https://api.slack.com/apps?new_app=1&manifest_yaml=" + quote(payload, safe="")
         assert scan_exfiltration_urls(url) != []
 
         # Within ALIAS_MAX but a recognised credential shape — caught on the
@@ -6832,17 +6773,19 @@ class TestKiroCrewSlackAppCreateLink:
 
     def test_mismatched_aliases_redacted(self) -> None:
         """The manifest names the alias twice; they must be the SAME alias."""
-        from kiro_crew import slack_manifest
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction import slack_manifest
+        from junction.security import scan_exfiltration_urls
 
-        tampered = slack_manifest.stripped_template().replace(
-            slack_manifest.ALIAS_PLACEHOLDER, "real", 1
-        ).replace(slack_manifest.ALIAS_PLACEHOLDER, "other")
+        tampered = (
+            slack_manifest.stripped_template()
+            .replace(slack_manifest.ALIAS_PLACEHOLDER, "real", 1)
+            .replace(slack_manifest.ALIAS_PLACEHOLDER, "other")
+        )
         assert scan_exfiltration_urls(self._link(payload=tampered)) != []
 
     def test_arbitrary_payload_redacted(self) -> None:
         """A long payload that is not the template stays redacted."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         assert scan_exfiltration_urls(self._link(payload="x" * 900)) != []
 
@@ -6853,7 +6796,7 @@ class TestKiroCrewSlackAppCreateLink:
         selection, so the carve-out cannot shield a credential even at the
         approved endpoint.
         """
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         payload = self._payload("someone") + "\nAKIAIOSFODNN7EXAMPLE\n"
         warnings = scan_exfiltration_urls(self._link(payload=payload))
@@ -6862,19 +6805,19 @@ class TestKiroCrewSlackAppCreateLink:
 
     def test_extra_parameter_redacted(self) -> None:
         """An extra query parameter refuses the exemption (exact param set)."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         assert scan_exfiltration_urls(self._link(extra="&exfil=" + "z" * 300)) != []
 
     def test_tampered_new_app_redacted(self) -> None:
         """``new_app`` must be exactly ``1``."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         assert scan_exfiltration_urls(self._link(new_app="2")) != []
 
     def test_neighbouring_endpoints_redacted(self) -> None:
         """Only the exact https host+path is eligible — no scheme/host/path drift."""
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         assert scan_exfiltration_urls(self._link(scheme="http")) != []
         assert scan_exfiltration_urls(self._link(path="/apps2")) != []
@@ -6887,7 +6830,7 @@ class TestKiroCrewSlackAppCreateLink:
         Guards the documented invariant that query-length detection has no host
         allowlist: this carve-out keys on a validated payload, not on Slack.
         """
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         url = "https://api.slack.com/api/chat.postMessage?blob=" + "A" * 250
         assert scan_exfiltration_urls(url) != []
@@ -6898,7 +6841,7 @@ class TestKiroCrewSlackAppCreateLink:
         Failing closed matters more than the convenience: an install that cannot
         prove what its own manifest looks like must not exempt a 1.9 KB payload.
         """
-        import kiro_crew.security as sec
+        import junction.security as sec
 
         url = self._link()
         monkeypatch.setattr(sec, "_slack_manifest_re_slot", [None])
@@ -6936,7 +6879,7 @@ class TestDashboardLinkTokenAcrossHostForms:
     )
 
     def test_token_is_redacted_on_every_host_form(self) -> None:
-        from kiro_crew.security import redact_credentials
+        from junction.security import redact_credentials
 
         for host in self.HOST_FORMS:
             cleaned, _ = redact_credentials(f"http://{host}/?token={self._TOKEN}")
@@ -6954,7 +6897,7 @@ class TestDashboardLinkTokenAcrossHostForms:
         covers loopback links (the test above) rather than discovering later that
         redaction depended on the host pattern.
         """
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction.security import scan_exfiltration_urls
 
         assert scan_exfiltration_urls(f"http://localhost:7778/?token={self._TOKEN}") == []
         assert scan_exfiltration_urls(f"http://127.0.0.1:7778/?token={self._TOKEN}") != []
@@ -6982,14 +6925,14 @@ class TestCronStoreProtection:
         # Drift guard: a rename of the store or sidecar dir in cron.py /
         # cron_history.py without a matching entry here would silently
         # un-fence them.
-        from kiro_crew.security import _CREW_SECRET_LEAVES
+        from junction.security import _CREW_SECRET_LEAVES
 
         assert "crons.json" in _CREW_SECRET_LEAVES
         assert "cron-history" in _CREW_SECRET_LEAVES
 
     @pytest.mark.parametrize("prefix", [".kiro/crew", ".kirocrew"])
     def test_store_and_history_sensitive_under_every_home_prefix(self, prefix: str) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         assert is_sensitive_path(f"~/{prefix}/crons.json") is True
         assert is_sensitive_path(f"~/{prefix}/cron-history/_index.jsonl") is True
@@ -7012,7 +6955,7 @@ class TestCronStoreProtection:
             assert is_sensitive_bash_command(cmd) is not None, cmd
 
     def test_sibling_cron_names_are_not_over_blocked(self) -> None:
-        from kiro_crew.security import is_sensitive_path, is_sensitive_write_path
+        from junction.security import is_sensitive_path, is_sensitive_write_path
 
         # Shared-prefix names a shell might legitimately touch elsewhere.
         assert is_sensitive_path("~/projects/crontab.txt") is False

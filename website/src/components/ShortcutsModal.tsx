@@ -191,7 +191,7 @@ export function GlobalHotkeyRow() {
   if (!hotkey) return null
   return (
     <ShortcutRow
-      label={i18nT('components.shortcutsModal.show_or_focus_the_kiro_crew_window')}
+      label={i18nT('components.shortcutsModal.show_or_focus_the_junction_window')}
       keys={formatAcceleratorKeys(hotkey.accelerator, IS_MAC)}
     />
   )

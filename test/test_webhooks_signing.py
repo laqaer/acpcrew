@@ -22,8 +22,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew import webhooks
-from kiro_crew.dashboard.handlers import hooks as H
+from junction import webhooks
+from junction.dashboard.handlers import hooks as H
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +55,7 @@ def wired(tmp_path, monkeypatch):
     monkeypatch.setattr(H, "_HOOK_STORE_PATH", Path(tmp_path) / "hooks.json")
     monkeypatch.setattr(H, "_sel", lambda: MagicMock())
     monkeypatch.setattr(H, "_legacy_hook_token", lambda: "")
-    monkeypatch.setattr(H, "_installed_agent_names", lambda: {"kirocrew"})
+    monkeypatch.setattr(H, "_installed_agent_names", lambda: {"junction"})
     webhooks._reset_auth_throttle()
     webhooks._reset_signature_replay()
     yield Path(tmp_path)
@@ -626,7 +626,7 @@ class TestReadEndpointNeverLeaksTheSecret:
         req = make_mocked_request("POST", "/api/webhooks/tokens")
         req.app["state"] = MagicMock()
         req.json = AsyncMock(
-            return_value={"label": "Review Bot", "agent": "kirocrew"}
+            return_value={"label": "Review Bot", "agent": "junction"}
         )
         resp = await H.api_webhook_token_create(req)
         assert resp.status == 201
@@ -650,7 +650,7 @@ class TestReadEndpointNeverLeaksTheSecret:
             return_value={
                 "label": "CI runner",
                 "require_signature": False,
-                "agent": "kirocrew",
+                "agent": "junction",
             }
         )
         resp = await H.api_webhook_token_create(req)

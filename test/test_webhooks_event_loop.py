@@ -22,8 +22,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew import webhooks
-from kiro_crew.dashboard.handlers import hooks as hooks_handlers
+from junction import webhooks
+from junction.dashboard.handlers import hooks as hooks_handlers
 
 
 class _LoopGuard:
@@ -157,7 +157,7 @@ class TestManagementRoutesOffloadStoreIo:
         delete = _LoopGuard(webhooks.WebhookTokenStore.delete, "token_store.delete")
 
         req = MagicMock()
-        payload = {"label": "ci", "agent": "kirocrew"}
+        payload = {"label": "ci", "agent": "junction"}
 
         async def _json():
             return payload
@@ -167,7 +167,7 @@ class TestManagementRoutesOffloadStoreIo:
         req.match_info = {}
 
         with patch.object(webhooks.WebhookTokenStore, "create", create), \
-                patch.object(hooks_handlers, "_installed_agent_names", lambda: {"kirocrew"}), \
+                patch.object(hooks_handlers, "_installed_agent_names", lambda: {"junction"}), \
                 patch.object(hooks_handlers, "_sel", MagicMock()):
             resp = asyncio.run(hooks_handlers.api_webhook_token_create(req))
         assert resp.status == 201

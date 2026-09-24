@@ -1,19 +1,19 @@
 # Instances Module (multi-instance management over SSH tunnels)
 
-Lets a single Kiro Crew gateway (the **hub**) manage and switch between several
-**remote** Kiro Crew instances (dev hosts, EC2, home servers) over SSH **or AWS
+Lets a single Junction gateway (the **hub**) manage and switch between several
+**remote** Junction instances (dev hosts, EC2, home servers) over SSH **or AWS
 SSM Session Manager** tunnels, embedding each remote dashboard as an iframe pane
 below a switcher strip. Opt-in: off by default (`instances.enabled`). The transport is
 per-instance (`connection_method`) — see §13.
 
-> **Section numbers in this document are an API.** `src/kiro_crew/cloud/connect.py`
+> **Section numbers in this document are an API.** `src/junction/cloud/connect.py`
 > cites "instances.md §9" from two docstrings (the module docstring and
 > `ssm_proxy_ssh_host`). Do not renumber existing sections; append new material as
 > new trailing sections.
 
-Code: `src/kiro_crew/instances/` (registry, tunnel manager, port allocator, token
+Code: `src/junction/instances/` (registry, tunnel manager, port allocator, token
 mint, diagnostics, injection validation, run-marker) plus
-`src/kiro_crew/dashboard/handlers_instances.py` (control plane) and the frontend
+`src/junction/dashboard/handlers_instances.py` (control plane) and the frontend
 `InstanceTabBar` / `InstancesViewport` / `Settings → Instances` surfaces.
 
 ---
@@ -40,7 +40,7 @@ mint, diagnostics, injection validation, run-marker) plus
 
 ## 1. Overview
 
-A Kiro Crew gateway normally binds the dashboard to loopback only. The Instances
+A Junction gateway normally binds the dashboard to loopback only. The Instances
 feature lets the hub reach *other* gateways running on remote hosts by opening an
 SSH `-L` forward to each remote's loopback dashboard port, minting a short-lived
 dashboard token on the remote, and embedding the remote dashboard in an
@@ -70,12 +70,12 @@ destinations they actually use — see [Pinned crew chips](#pinned-crew-chips).
 ## 2. Enabling the feature
 
 ```bash
-kirocrew config set instances.enabled true
-kirocrew restart
+junction config set instances.enabled true
+junction restart
 ```
 
 Settings → Instances offers the same toggle (it PATCHes
-`instances.enabled` through `/api/config/kirocrew`) and then shows a
+`instances.enabled` through `/api/config/junction`) and then shows a
 "restart required" hint, because the flag is only consulted in the gateway's
 `on_startup` hook.
 
@@ -112,7 +112,7 @@ after startup and a restart is still pending.
  |  instances/ package                                                   |
  |   |- registry.py         ~/.kiro/crew/instances.json                  |
  |   |- port_allocator.py   free-loopback-port probe (base 7778)         |
- |   |- token_mint.py       ssh <host> kirocrew token -> JWT (never logged)|
+ |   |- token_mint.py       ssh <host> junction token -> JWT (never logged)|
  |   |- validation.py       injection-safe ssh_host / remote_bin guards  |
  |   |- run_marker.py       <home>/run/gateway-<port>.bin launcher hint  |
  |   |- ssh_tunnel_manager  supervised ssh -N -L, probe, self-heal, refresh|
@@ -121,7 +121,7 @@ after startup and a restart is still pending.
         | ssh -N [-C] -L 127.0.0.1:<local>:127.0.0.1:<remote> <ssh_host>
         v
  +--------------- Remote gateway (dev host / EC2 / home server) ---------+
- |  kirocrew gateway bound to 127.0.0.1:<remote_port> (registry default  |
+ |  junction gateway bound to 127.0.0.1:<remote_port> (registry default  |
  |  5476, the port a stock gateway binds)                                |
  +-----------------------------------------------------------------------+
 ```
@@ -132,10 +132,10 @@ Module responsibilities:
 |--------|----------------|
 | `registry.py` | Persistent list of configured instances (`~/.kiro/crew/instances.json`) + `last_active_id`. Light charset check on `ssh_host`/`remote_bin` (SSH) or `ssm_target`/`aws_profile`/`aws_region`/`ssm_run_as` (SSM) at add/update, per `connection_method`; every mutation re-reads the file and writes atomically, so a live gateway and a CLI edit cannot clobber each other. |
 | `port_allocator.py` | Probes for a free loopback port at or above `tunnel_base_port` (7778). The probe sets `SO_REUSEADDR` so a `TIME_WAIT` remnant from a just-closed forward is not a false "in use". |
-| `token_mint.py` | Runs `kirocrew token --ttl --port --embed-parent-port` on the remote over SSH (run-marker first, then a bin-candidate ladder) and parses the JWT out of the printed URL. Token is returned in memory only, **never logged**. |
+| `token_mint.py` | Runs `junction token --ttl --port --embed-parent-port` on the remote over SSH (run-marker first, then a bin-candidate ladder) and parses the JWT out of the printed URL. Token is returned in memory only, **never logged**. |
 | `ssm_token_mint.py` | The SSM sibling of `token_mint.py`: runs the same subcommand via `aws ssm send-command` through the launcher's `cloud.ssm` chokepoint, reusing the shared remote-command builders. Token in memory only, **never logged**. See §13. |
 | `validation.py` | The authoritative injection-safe guard on `ssh_host` / `remote_bin`, and on `ssm_target` / `aws_profile` / `aws_region` / `ssm_run_as`, applied immediately before any command line is built. See §11. |
-| `run_marker.py` | Records the running gateway's own `kirocrew` launcher (and pid) keyed by port, so a remote mint execs the same venv the live gateway runs from. Also backs zero-config client port discovery. See §12. |
+| `run_marker.py` | Records the running gateway's own `junction` launcher (and pid) keyed by port, so a remote mint execs the same venv the live gateway runs from. Also backs zero-config client port discovery. See §12. |
 | `ssh_tunnel_manager.py` | Supervises one tunnel child per instance — `ssh -N -L` or `aws ssm start-session` — with readiness wait, health probe, 2-tier self-heal, proactive token refresh, stored-token liveness probe, remote restart. One state machine, two transports. |
 | `diagnostics.py` | Dependency-ordered failure probes; reports the first broken link. `diagnose_instance` (SSH ladder) and `diagnose_instance_ssm` (SSM ladder). |
 | `handlers_instances.py` | Owner-only, enabled-gated, SEL-audited HTTP control plane. |
@@ -206,7 +206,7 @@ non-POSIX (§12). Treat a Windows hub as unverified.
    frontend mirrors the same 0.8 threshold from `token_ttl_remaining` and skips
    the *active* pane, so a reload never interrupts the pane in use.
 6. **Stored-token liveness probe.** A token can go stale while the tunnel stays
-   CONNECTED (a failed self-heal re-mint, or a remote `kirocrew restart` that
+   CONNECTED (a failed self-heal re-mint, or a remote `junction restart` that
    invalidates tokens). An iframe loaded with a stale token gets a
    server-rendered 403, so the SPA never boots to fire the reactive
    `mc-auth-expired` recovery. `connect` therefore probes
@@ -215,7 +215,7 @@ non-POSIX (§12). Treat a Windows hub as unverified.
    short of a 2xx forces a fresh mint, and if that mint also fails the response
    is a clean 502 rather than a token the gateway cannot stand behind.
 7. **Diagnose / restart.** `?diagnose=1` runs the probe ladder on demand;
-   `POST .../restart` runs `kirocrew restart` on the **remote** over SSH
+   `POST .../restart` runs `junction restart` on the **remote** over SSH
    (itself service-aware), after which the local probe detects the bounce and
    self-heals.
 
@@ -234,7 +234,7 @@ why it is down.
 
 ### 5.1 `instances.*` config keys
 
-Transport defaults and bounds live in `kiro_crew.instances.constants` and are
+Transport defaults and bounds live in `junction.instances.constants` and are
 referenced from `InstancesConfig`, so the documented values and runtime policy
 cannot drift.
 
@@ -245,16 +245,16 @@ cannot drift.
 | `instances.tunnel_base_port` | `7778` | First local loopback port the allocator hands out. Out-of-range values fall back to the default. |
 | `instances.ssh_compression` | `true` | Add `-C` to the tunnel argv. See §5.2. |
 | `instances.connect_timeout_secs` | unset (SSH `15.0`, SSM `25.0`) | How long (secs) to wait for the local forward port to accept connections before declaring a connect attempt failed. Hosts behind a ProxyCommand or jump host need longer (the proxy handshake runs before ssh begins the forward). An explicit value applies to both transports, including a value equal to either transport's default. Values below 1 fall back to the transport defaults; values above 120 are clamped to 120. |
-| `instances.mint_timeout_secs` | unset (SSH `30.0`, SSM `90.0`) | How long (secs) to wait for the remote `kirocrew token` mint before failing a connect. The mint rides the same ssh transport as the tunnel, so a host behind a ProxyCommand or jump host pays the proxy handshake here too (the connect flow spawns two proxy-bound ssh children: `connect_timeout_secs` budgets the first, this budgets the second). An explicit value applies to both transports, including a value equal to either transport's default — size it for the slowest transport in use. Values below 10 fall back to the transport defaults; values above 120 are clamped with a warning. |
+| `instances.mint_timeout_secs` | unset (SSH `30.0`, SSM `90.0`) | How long (secs) to wait for the remote `junction token` mint before failing a connect. The mint rides the same ssh transport as the tunnel, so a host behind a ProxyCommand or jump host pays the proxy handshake here too (the connect flow spawns two proxy-bound ssh children: `connect_timeout_secs` budgets the first, this budgets the second). An explicit value applies to both transports, including a value equal to either transport's default — size it for the slowest transport in use. Values below 10 fall back to the transport defaults; values above 120 are clamped with a warning. |
 | `instances.max_recovery_attempts` | `8` | Consecutive self-heal attempts before the tunnel is left disconnected. Below 1 falls back to the default; above `MAX_RECOVERY_ATTEMPTS_CEILING` (100) is clamped with a warning, so a pathological setting cannot turn bounded self-heal into a near-infinite retry loop. |
 | `instances.recover_backoff_max_secs` | `30.0` | Cap on the per-attempt backoff. Non-positive falls back to the default; above `RECOVER_BACKOFF_MAX_CEILING_SECS` (300) is clamped, bounding the worst-case wall-clock recovery window. |
 | `instances.probe_failure_threshold` | `3` | Consecutive health-probe failures before a non-forwarding tunnel is torn down. Below 1 falls back to the default. |
 
 ```bash
-kirocrew config set instances.warm_set_cap 3
-kirocrew config set instances.ssh_compression false
-kirocrew config set instances.connect_timeout_secs 45
-kirocrew config set instances.mint_timeout_secs 60
+junction config set instances.warm_set_cap 3
+junction config set instances.ssh_compression false
+junction config set instances.connect_timeout_secs 45
+junction config set instances.mint_timeout_secs 60
 ```
 
 Constants that are **not** user-configurable: the probe interval (30s), the token
@@ -489,7 +489,7 @@ what its own edit invalidated, and never reopens anything on the user's behalf.
 
 ## 8. Using it (step by step)
 
-1. **Enable** on the hub: `kirocrew config set instances.enabled true && kirocrew restart`
+1. **Enable** on the hub: `junction config set instances.enabled true && junction restart`
    (or the Settings → Instances toggle, then a restart).
 2. Open the dashboard and go to **Settings → Instances**. This panel is the
    control plane only; it does not embed remote dashboards.
@@ -499,7 +499,7 @@ what its own edit invalidated, and never reopens anything on the user's behalf.
    - *Remote port*: the port the remote gateway listens on. Instances may share
      it — the local forward port is allocated independently.
    - *Token TTL*: default `20h`.
-   - *Remote kirocrew path*: only needed when `kirocrew` lives somewhere
+   - *Remote junction path*: only needed when `junction` lives somewhere
      non-standard on the remote.
 4. Click **Connect**. The hub opens the tunnel and mints a token.
 5. **Switch** panes from the switcher dropdown in the top header (**Local**
@@ -567,7 +567,7 @@ clicked, since the menu has already closed by then.
 
 > Prerequisite: you can already `ssh <ssh_host>` non-interactively from the hub
 > (a valid key or cert in your `ssh-agent`, no password prompt), and the remote
-> has `kirocrew` installed with a gateway running on its loopback port.
+> has `junction` installed with a gateway running on its loopback port.
 
 ### Pinned crew chips
 
@@ -693,19 +693,19 @@ Host my-ec2
 
 Then add an instance with **SSH host / alias = `my-ec2`**. Prerequisites on the
 hub: a passphrase-less key (or an `ssh-agent` already holding it, since
-`BatchMode` will not prompt), and `kirocrew` installed with a gateway running on
+`BatchMode` will not prompt), and `junction` installed with a gateway running on
 the instance's loopback port.
 
 Simpler cases work without an alias: `ec2-user@10.0.1.5` and
 `ubuntu@ec2-1-2-3-4.compute-1.amazonaws.com` are both accepted `ssh_host`
 values, provided the matching key is the default identity or in the agent.
 
-**The cloud launcher registers instances here.** `kirocrew cloud launch`
+**The cloud launcher registers instances here.** `junction cloud launch`
 best-effort registers the box it created in this registry using the **native SSM
 transport** — `connection_method="ssm"` with the EC2 instance id as `ssm_target`,
 plus the launcher's `aws_profile`/`aws_region` (`cloud/connect.py:register_instance`).
 The dashboard then tunnels, refreshes tokens, and self-heals the box over SSM with
-no SSH key, no inbound port, and no hand-edited `~/.ssh/config`. `kirocrew cloud
+no SSH key, no inbound port, and no hand-edited `~/.ssh/config`. `junction cloud
 destroy` unregisters it (matched by `ssm_target`) after deletion confirms. This is
 why `cloud/connect.py` cites this section, and why its numbering must not move.
 The legacy `ssm_proxy_ssh_host` helper (registering the id as `ssh_host` behind an
@@ -790,7 +790,7 @@ whose current variable parts are all charset-bound literals.
 | "local port N was taken while connecting" | The allocator picked a port that something grabbed in the moment before `ssh` bound it. Retry. If it persists, stop whatever keeps taking ports in that range or move `instances.tunnel_base_port` to a quieter one. |
 | Instance keeps dropping | The health probe plus 2-tier self-heal retry over roughly a two-minute window (8 attempts, capped-exponential backoff). Tune `instances.max_recovery_attempts` / `recover_backoff_max_secs` / `probe_failure_threshold`; both recovery values are clamped so they cannot loop indefinitely. If self-heal gives up, diagnosis runs automatically. Check the remote gateway and SSH stability. |
 | A pane vanished from the warm set but its switcher entry is still there | It was LRU-evicted (warm set full). The tunnel is untouched: selecting the crew re-warms it. Raise `instances.warm_set_cap` if you want more panes resident. |
-| Every token mint fails on one remote, though its gateway is healthy | The remote's `~/.local/bin/kirocrew` probably points at an uninstalled checkout. See §12: the run-marker is what makes mint follow the *running* gateway's install. |
+| Every token mint fails on one remote, though its gateway is healthy | The remote's `~/.local/bin/junction` probably points at an uninstalled checkout. See §12: the run-marker is what makes mint follow the *running* gateway's install. |
 
 ---
 
@@ -845,14 +845,14 @@ segments are trusted module constants.
 ## 12. The gateway run-marker (`run_marker.py`)
 
 `instances/run_marker.py` writes and reads
-`<data-home>/run/gateway-<port>.bin` (the running gateway's own `kirocrew`
+`<data-home>/run/gateway-<port>.bin` (the running gateway's own `junction`
 launcher path) and `<data-home>/run/gateway-<port>.pid` (its pid). It has two
 unrelated consumers, and separating them is the point of the module.
 
 ### Consumer 1: remote token mint targets the running gateway's install
 
-Token mint SSHes to the remote and resolves `kirocrew` from a fixed PATH
-candidate list whose first entry is `$HOME/.local/bin/kirocrew`. When that
+Token mint SSHes to the remote and resolves `junction` from a fixed PATH
+candidate list whose first entry is `$HOME/.local/bin/junction`. When that
 launcher symlinks into an *uninstalled* checkout (no `.venv`), every mint fails
 even though the gateway itself is healthy, because the gateway runs from a
 different venv. Rebuilding and restarting the gateway does not fix mint, since
@@ -863,29 +863,30 @@ and reconnects.
 The fix: at startup the gateway records the absolute path to *its own* launcher,
 keyed by the port it serves. The mint shell snippet reads that marker first and,
 when it names an executable file, `exec`s it, so mint uses the same venv as the
-live gateway. The snippet probes three data homes in priority order, since the
-remote's non-interactive SSH shell usually does not export `KIROCREW_HOME`:
+live gateway. The snippet probes these data homes in priority order, since the
+remote's non-interactive SSH shell usually does not export `JUNCTION_HOME`:
 
-1. `$KIROCREW_HOME` when set and non-empty,
-2. `$HOME/<CONFIG_DIR_NAME>` (the current default, `.kiro/crew`),
-3. `$HOME/<LEGACY_CONFIG_DIR_NAME>` (`.kirocrew`, for a not-yet-migrated remote).
+1. `$JUNCTION_HOME` when set and non-empty,
+2. `$HOME/<CONFIG_DIR_NAME>` (the current default, `.junction`),
+3. `$HOME/<PRIOR_CONFIG_DIR_NAME>` (`.kiro/crew`, kept when `~/.junction` is absent),
+4. `$HOME/<LEGACY_CONFIG_DIR_NAME>` (`.kirocrew`, the older top-level home).
 
-Those two home segments are **interpolated from the shared
-`kiro_crew.config.paths` constants**, the same ones the marker *writer* derives
+Those home segments are **interpolated from the shared
+`junction.config.paths` constants**, the same ones the marker *writer* derives
 its default from, so reader and writer cannot drift apart on a future data-home
 rename. An absent or stale marker, or one that does not name an executable, falls
 through to the candidate search, so nothing regresses on an older remote. An
 explicit `remote_bin` is never overridden by the marker: it is the user's
 deliberate choice.
 
-`restart_remote()` resolves `kirocrew restart` through the same path, keyed by
+`restart_remote()` resolves `junction restart` through the same path, keyed by
 the instance's `remote_port`.
 
 The launcher path is derived from `sys.executable`'s sibling console script
-(`kirocrew`, or `kirocrew.exe` on Windows) and is deliberately **not** resolved
+(`junction`, or `junction.exe` on Windows) and is deliberately **not** resolved
 through symlinks, because the console script sits next to the possibly-symlinked
 interpreter in the venv's `bin/`, not next to the real interpreter. When no such
-script exists (a source-tree `python -m kiro_crew` launch) the marker is written
+script exists (a source-tree `python -m junction` launch) the marker is written
 **empty**: the mint clause requires a non-empty executable path so an empty
 marker is inert there, but the *filename* still matters to consumer 2.
 
@@ -895,7 +896,7 @@ The marker's filename advertises which port a gateway serves, so `marker_ports()
 lets a local client command (`token` / `status` / `logout` / `stop`, via
 `port_resolution.resolve_client_port`) find a gateway on a non-default port with no
 configuration. That path reads only the filename and ignores marker *contents*
-entirely. Resolution order is `--port`, then `KIROCREW_PORT`, then a port named
+entirely. Resolution order is `--port`, then `JUNCTION_PORT`, then a port named
 by `dashboard.url`, then the sole gateway-owned marker, then the default 5476.
 
 **A marker is not proof a gateway is there.** `clear_marker()` runs only on
@@ -909,7 +910,7 @@ does that in four fail-closed steps: the recorded pid must exist, must be among
 gateway by argv (defense in depth only, never the sole proof). Discovery is
 skipped outright on non-POSIX hosts, where no owner can be reported and the
 file-permission argument does not hold, so Windows users keep `--port` /
-`KIROCREW_PORT`. This module deliberately offers no bare "is something
+`JUNCTION_PORT`. This module deliberately offers no bare "is something
 listening" helper, so no caller can mistake reachability for identity.
 
 The live gateway prunes markers naming other ports on startup, EXCEPT any whose
@@ -1014,8 +1015,8 @@ port, no sshd and no distributed key — reachability is an IAM decision
 
 | Method | Tunnel command | Client prerequisites | Mint path |
 |--------|----------------|----------------------|-----------|
-| `ssh` (default) | `ssh -N -L 127.0.0.1:LP:127.0.0.1:RP <ssh_host>` | non-interactive SSH access | `ssh <host> kirocrew token` |
-| `ssm` | `aws ssm start-session --document-name AWS-StartPortForwardingSession --target <ssm_target> --parameters portNumber=RP,localPortNumber=LP` | AWS CLI + `session-manager-plugin`; `ssm:StartSession`, `ssm:SendCommand`, `ssm:GetCommandInvocation` | `aws ssm send-command` → `kirocrew token` |
+| `ssh` (default) | `ssh -N -L 127.0.0.1:LP:127.0.0.1:RP <ssh_host>` | non-interactive SSH access | `ssh <host> junction token` |
+| `ssm` | `aws ssm start-session --document-name AWS-StartPortForwardingSession --target <ssm_target> --parameters portNumber=RP,localPortNumber=LP` | AWS CLI + `session-manager-plugin`; `ssm:StartSession`, `ssm:SendCommand`, `ssm:GetCommandInvocation` | `aws ssm send-command` → `junction token` |
 
 Records are back-compatible: an `instances.json` written before this feature has
 no `connection_method` and loads as `"ssh"`.
@@ -1055,7 +1056,7 @@ Two SSM-specific behaviours:
   `session-manager-plugin` grandchild is what actually holds the forwarded port:
   `terminate()` on the `aws` wrapper alone orphans it and wedges the port. Doing
   this with raw `os.killpg`/`os.getpgid` would silently degrade to
-  wrapper-only termination on Windows, which Kiro Crew supports.
+  wrapper-only termination on Windows, which Junction supports.
 - **Readiness timeout.** `session-manager-plugin` completes a WebSocket handshake
   with the SSM service before binding, so the SSM transport uses a longer default
   connect timeout than a direct ssh TCP connect. An explicit caller-supplied
@@ -1084,7 +1085,7 @@ reasons so the copy never tells an SSM user to "check SSH access".
 Argv building and remote execution delegate to `cloud.ssm`
 (`build_port_forward_argv`, `run_command`) rather than duplicating them, so the
 two features cannot drift on the SSM document or parameter shape. Those calls run
-in the gateway process, which has no `KIROCREW_SESSION_KEY`, so the launcher's
+in the gateway process, which has no `JUNCTION_SESSION_KEY`, so the launcher's
 agent-session chokepoint does not apply; the `hooks.py` denied-command list gates
 agent *tool* calls and likewise does not gate the gateway's own children.
 
@@ -1110,7 +1111,7 @@ which is not an egress boundary.
 
 §9 documents reaching an SSM-only instance through an `~/.ssh/config`
 `ProxyCommand` — still valid as a manual option, and still `connection_method="ssh"`:
-the reachability lives in ssh config and Kiro Crew is unaware of it.
+the reachability lives in ssh config and Junction is unaware of it.
 `connection_method="ssm"` is the direct alternative, requiring neither sshd nor a
 key on the remote — and it is now what `cloud/connect.py`'s registry integration
 uses (`register_instance` sets `connection_method="ssm"`, `ssm_target=<instance-id>`).
@@ -1123,7 +1124,7 @@ The legacy `ssm_proxy_ssh_host` helper is kept for reference only.
 Copies one dashboard session from this instance to a connected peer. The user
 picks it from any session menu: **Send a copy to ▸ `<instance>`**.
 
-Code: `src/kiro_crew/dashboard/session_transfer.py` (bundle + importer),
+Code: `src/junction/dashboard/session_transfer.py` (bundle + importer),
 `SshTunnelManager.send_session_bundle` (delivery),
 `handlers_instances.api_instances_send_session` (control plane), and the frontend
 `SendToInstanceSubmenu` mounted inside the shared `SessionActionsMenu`.

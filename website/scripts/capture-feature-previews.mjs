@@ -29,7 +29,7 @@ mkdirSync(OUT, { recursive: true })
  * The Config tab's two viewers, which the `before` run has to render.
  *
  * Named here rather than in the shared stub because the shared stub's catch-all
- * answers anything path-matching `config` with `{}`, and `KiroCrewCfgTab` calls
+ * answers anything path-matching `config` with `{}`, and `JunctionCfgTab` calls
  * `Object.entries(cfg.agents)` — undefined under that default, which throws
  * inside the app-shell error boundary and leaves the whole page blank. Only a
  * harness that actually opens Config needs these, so the fixture lives with it.
@@ -40,27 +40,27 @@ mkdirSync(OUT, { recursive: true })
  * time and Playwright throws `Route is already handled!`.
  */
 const CONFIG_API = async (path, route) => {
-  if (path === '/api/config/kirocrew') {
+  if (path === '/api/config/junction') {
     await json(route, {
-      agents: { kirocrew: { kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default' } },
-      default_agent: 'kirocrew',
+      agents: { junction: { kiro_agent: 'junction', workspace: 'default', memory_store: 'default' } },
+      default_agent: 'junction',
       workspaces: { default: { path: '~/.kiro/crew/workspace' } },
       default_workspace: 'default',
       memory_stores: { default: { path: '~/.kiro/crew/workspace/memory' } },
       default_memory_store: 'default',
       agent: {
-        default_agent: 'kirocrew', provider: 'acp', model: 'auto',
+        default_agent: 'junction', provider: 'acp', model: 'auto',
         approval_mode: 'interactive', sandbox: 'auto', max_channels: 8,
         max_channel_agents: 4, enforce_denied_commands: 'always',
       },
-      session: { timeout_secs: 1800, pool_size: 2, pool_agent: 'kirocrew', pool_ttl_secs: 600 },
+      session: { timeout_secs: 1800, pool_size: 2, pool_agent: 'junction', pool_ttl_secs: 600 },
       memory: { embedding_provider: 'local' },
       auto_update: true,
     })
     return true
   }
   if (path === '/api/agent/config') {
-    await json(route, { name: 'kirocrew', mcpServers: {} })
+    await json(route, { name: 'junction', mcpServers: {} })
     return true
   }
   return false

@@ -12,9 +12,9 @@ vi.mock('../api/client', () => ({ api: mockApi }))
 import AgentSkillsEditor from '../components/AgentSkillsEditor'
 
 const CATALOG = [
-  { key: 'babysit', name: 'babysit', description: 'Monitor a PR', source: 'kirocrew' },
+  { key: 'babysit', name: 'babysit', description: 'Monitor a PR', source: 'junction' },
   { key: 'kiro-user/prepare-pr', name: 'prepare-pr', description: 'Ship a PR', source: 'kiro-user' },
-  { key: 'widgets', name: 'widgets', description: 'Render HTML', source: 'kirocrew' },
+  { key: 'widgets', name: 'widgets', description: 'Render HTML', source: 'junction' },
 ]
 
 function renderEditor(props: Partial<React.ComponentProps<typeof AgentSkillsEditor>> = {}) {

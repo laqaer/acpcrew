@@ -13,7 +13,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
-from kiro_crew.messaging.link import (
+from junction.messaging.link import (
     CHAT_TYPE_DIRECT,
     CHAT_TYPE_FORUM,
     DEFAULT_DM_SCOPE,
@@ -27,22 +27,22 @@ from kiro_crew.messaging.link import (
     rebind_conversation_location,
     should_rotate_generation,
 )
-from kiro_crew.session_map import ConversationOwnershipConflict
+from junction.session_map import ConversationOwnershipConflict
 
 
 class TestBuildDmSessionKey:
     def test_per_channel_peer_is_channel_first(self) -> None:
         assert (
-            build_dm_session_key("telegram", "kirocrew", "123")
-            == "telegram:kirocrew:direct:123"
+            build_dm_session_key("telegram", "junction", "123")
+            == "telegram:junction:direct:123"
         )
 
     def test_default_scope_is_per_channel_peer(self) -> None:
         assert DEFAULT_DM_SCOPE == DM_SCOPE_PER_CHANNEL_PEER
         assert build_dm_session_key(
-            "telegram", "kirocrew", "123"
+            "telegram", "junction", "123"
         ) == build_dm_session_key(
-            "telegram", "kirocrew", "123", dm_scope=DM_SCOPE_PER_CHANNEL_PEER
+            "telegram", "junction", "123", dm_scope=DM_SCOPE_PER_CHANNEL_PEER
         )
 
     def test_generation_zero_is_bare_bucket(self) -> None:
@@ -60,9 +60,9 @@ class TestBuildDmSessionKey:
         )
 
     def test_unified_collapses_channel_and_user(self) -> None:
-        a = build_dm_session_key("telegram", "kirocrew", "1", dm_scope=DM_SCOPE_UNIFIED)
-        b = build_dm_session_key("wecom", "kirocrew", "999", dm_scope=DM_SCOPE_UNIFIED)
-        assert a == b == "unified:kirocrew"
+        a = build_dm_session_key("telegram", "junction", "1", dm_scope=DM_SCOPE_UNIFIED)
+        b = build_dm_session_key("wecom", "junction", "999", dm_scope=DM_SCOPE_UNIFIED)
+        assert a == b == "unified:junction"
 
     def test_unified_with_generation(self) -> None:
         assert (
@@ -88,12 +88,12 @@ class TestBuildDmSessionKey:
         # keeps its FULL bucket regardless of dm_scope.
         key = build_dm_session_key(
             "telegram",
-            "kirocrew",
+            "junction",
             "-1001234567890:5",
             dm_scope=DM_SCOPE_UNIFIED,
             chat_type=CHAT_TYPE_FORUM,
         )
-        assert key == "telegram:kirocrew:forum:-1001234567890:5"
+        assert key == "telegram:junction:forum:-1001234567890:5"
         assert not key.startswith(f"{DM_SCOPE_UNIFIED}:")
 
     def test_unified_still_collapses_direct_dm(self) -> None:
@@ -102,12 +102,12 @@ class TestBuildDmSessionKey:
         assert (
             build_dm_session_key(
                 "telegram",
-                "kirocrew",
+                "junction",
                 "123",
                 dm_scope=DM_SCOPE_UNIFIED,
                 chat_type=CHAT_TYPE_DIRECT,
             )
-            == "unified:kirocrew"
+            == "unified:junction"
         )
 
 
@@ -173,8 +173,8 @@ _HERE = ChannelLink("discord", channel_id="c1")
 class TestBindOriginMirror:
     def test_an_unbound_conversation_is_bound_to_itself(self) -> None:
         sess = _Sessions()
-        assert bind_origin_mirror(sess, key="discord:kirocrew:direct:u1", location=_HERE) is True
-        assert sess.mirror_links == {"discord:kirocrew:direct:u1": _HERE}
+        assert bind_origin_mirror(sess, key="discord:junction:direct:u1", location=_HERE) is True
+        assert sess.mirror_links == {"discord:junction:direct:u1": _HERE}
 
     def test_the_steady_state_is_a_read(self) -> None:
         """The re-assert runs per turn, so the repeating path must not write.
@@ -246,8 +246,8 @@ class TestBindOriginMirror:
         dashboard replies into another user's chat.
         """
         sess = _Sessions()
-        assert bind_origin_mirror(sess, key="unified:kirocrew", location=_HERE) is False
-        assert bind_origin_mirror(sess, key="unified:kirocrew:gen4", location=_HERE) is False
+        assert bind_origin_mirror(sess, key="unified:junction", location=_HERE) is False
+        assert bind_origin_mirror(sess, key="unified:junction:gen4", location=_HERE) is False
         assert sess.mirror_links == {}
 
     def test_a_per_channel_bucket_under_the_same_config_is_bound(self) -> None:
@@ -257,7 +257,7 @@ class TestBindOriginMirror:
         """
         sess = _Sessions()
         assert (
-            bind_origin_mirror(sess, key="discord:kirocrew:group:t9", location=_HERE) is True
+            bind_origin_mirror(sess, key="discord:junction:group:t9", location=_HERE) is True
         )
 
     def test_an_opted_out_conversation_is_not_bound(self) -> None:
@@ -334,7 +334,7 @@ class _RebindSessions:
         return self.mirror_links.pop(key, None) is not None
 
 
-_KEY = "telegram:kirocrew:direct:7"
+_KEY = "telegram:junction:direct:7"
 
 
 class TestRebindConversationLocation:
@@ -431,7 +431,7 @@ class TestUnbindReasonVocabulary:
     """
 
     def test_the_vocabulary_is_closed_and_unambiguous(self) -> None:
-        from kiro_crew.messaging import link as link_mod
+        from junction.messaging import link as link_mod
 
         declared = [
             value
@@ -454,7 +454,7 @@ class TestUnbindReasonVocabulary:
         import ast
         from pathlib import Path
 
-        import kiro_crew
+        import junction
 
         binding_calls = {
             "clear_mirror_link",
@@ -480,7 +480,7 @@ class TestUnbindReasonVocabulary:
         planted = ast.parse('s.clear_mirror_link(key, reason="made_up")\n')
         assert len(_bare_reasons(planted)) == 1, "the scanner does not fire"
 
-        pkg = Path(kiro_crew.__file__).resolve().parent
+        pkg = Path(junction.__file__).resolve().parent
         offenders = [
             f"{path.relative_to(pkg)}:{line}"
             for path in pkg.rglob("*.py")

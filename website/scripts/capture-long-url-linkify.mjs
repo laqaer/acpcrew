@@ -34,7 +34,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/chat-long-url-linkify'
 const LABEL = process.argv[3] || 'after'
 const SLOT = 'chat-long-url-linkify'
-const PROJECT = '/home/user/workspace/KiroCrew'
+const PROJECT = '/home/user/workspace/Junction'
 
 mkdirSync(OUT, { recursive: true })
 
@@ -44,7 +44,7 @@ const slots = [{
   running: false,
   last_message: 'link ready',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: Math.floor(Date.now() / 1000),
@@ -63,7 +63,7 @@ const CONTENT = [
   '',
   `Prefill link (encoded): ${LONG_ENCODED}`,
   '',
-  'The renderer lives at /home/user/workspace/KiroCrew/website/src/components/MarkdownRenderer.tsx — a path, not a link.',
+  'The renderer lives at /home/user/workspace/Junction/website/src/components/MarkdownRenderer.tsx — a path, not a link.',
 ].join('\n')
 
 const detail = {

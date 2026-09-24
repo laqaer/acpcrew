@@ -153,7 +153,7 @@ vi.mock('../pages/chat/ChatSettings', () => ({
 }))
 vi.mock('../hooks/useBranding', () => ({ useBranding: () => ({ botName: 'Test', avatar: '' }) }))
 vi.mock('../hooks/useAgents', () => ({
-  useAgents: () => ({ agents: [{ name: 'kirocrew' }, { name: 'reviewer' }], defaultAgent: 'kirocrew' }),
+  useAgents: () => ({ agents: [{ name: 'junction' }, { name: 'reviewer' }], defaultAgent: 'junction' }),
 }))
 vi.mock('../hooks/useVoiceInput', () => ({
   useVoiceInput: () => ({ recording: false, transcribing: false, toggle: vi.fn() }),
@@ -586,7 +586,7 @@ describe('ChatPage renderMessage — role dispatch', () => {
   it('renders a sub-agent completion event as an outcome row, not a chat bubble', async () => {
     const content = [
       '[Subagent completion event]',
-      'Agent `53e3e5eb` (kirocrew) completed ✅',
+      'Agent `53e3e5eb` (junction) completed ✅',
       'Task: Add two short UI labels to the German catalog',
       '',
       'Added both keys and ran the parity check.',
@@ -869,7 +869,7 @@ describe('ChatPage URL prompt hand-off', () => {
    *  soon as it names the active slot, so the WRITE is what these tests read. */
   const prefillWrites = () =>
     setItemSpy.mock.calls
-      .filter(([k]) => k === 'kirocrew_prefill')
+      .filter(([k]) => k === 'junction_prefill')
       .map(([, v]) => JSON.parse(v as string) as { slotKey: string; prompt: string })
 
   it('moves a ?prefill= prompt into session storage and strips it from the URL', async () => {

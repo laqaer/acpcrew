@@ -29,7 +29,7 @@ import time
 
 import pytest
 
-from kiro_crew import platform_compat, sandbox
+from junction import platform_compat, sandbox
 
 _WINDOWS_ONLY = pytest.mark.skipif(
     not platform_compat.IS_WINDOWS, reason="Job objects are Windows-only"
@@ -267,7 +267,7 @@ class TestFinishSuspendedSpawn:
 
     def test_posix_applies_the_ceiling_and_never_resumes(self, monkeypatch) -> None:
         """CREATE_SUSPENDED is 0 on POSIX, so nothing may be resumed there."""
-        from kiro_crew.acp import client as acp_client
+        from junction.acp import client as acp_client
 
         calls: list[int] = []
         monkeypatch.setattr(acp_client.platform_compat, "IS_WINDOWS", False)
@@ -290,7 +290,7 @@ class TestFinishSuspendedSpawn:
         An alive-but-frozen child would otherwise masquerade as a running agent
         and hang the session on the ACP handshake with no diagnosis.
         """
-        from kiro_crew.acp import client as acp_client
+        from junction.acp import client as acp_client
 
         monkeypatch.setattr(acp_client.platform_compat, "IS_WINDOWS", True)
         self._claim_ownership(monkeypatch, acp_client)
@@ -314,7 +314,7 @@ class TestFinishSuspendedSpawn:
         FOREIGN process in front of this code, and the only acceptable outcome is
         that nothing happens to it.
         """
-        from kiro_crew.acp import client as acp_client
+        from junction.acp import client as acp_client
 
         ceilinged: list[int] = []
         monkeypatch.setattr(acp_client.platform_compat, "IS_WINDOWS", True)
@@ -335,7 +335,7 @@ class TestFinishSuspendedSpawn:
 
     def test_an_already_exited_child_does_not_raise(self, monkeypatch) -> None:
         """Nothing to unfreeze when the pid is gone; the handshake reports why."""
-        from kiro_crew.acp import client as acp_client
+        from junction.acp import client as acp_client
 
         monkeypatch.setattr(acp_client.platform_compat, "IS_WINDOWS", True)
         self._claim_ownership(monkeypatch, acp_client)
@@ -354,7 +354,7 @@ class TestFinishSuspendedSpawn:
         This is why the resume lives in a ``finally``: a raising ceiling must
         never leave the child frozen.
         """
-        from kiro_crew.acp import client as acp_client
+        from junction.acp import client as acp_client
 
         resumed: list[int] = []
         monkeypatch.setattr(acp_client.platform_compat, "IS_WINDOWS", True)

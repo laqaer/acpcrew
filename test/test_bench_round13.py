@@ -21,9 +21,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.eval.bench.datasets import _sha256_file
-from kiro_crew.eval.bench.run import compare_reports
-from kiro_crew.eval.bench.safepath import UnsafePathError
+from junction.eval.bench.datasets import _sha256_file
+from junction.eval.bench.run import compare_reports
+from junction.eval.bench.safepath import UnsafePathError
 
 
 def _hardlink_or_skip(alias: Path, target: Path) -> None:

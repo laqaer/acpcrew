@@ -20,8 +20,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.mcp_gateway import rewriter
-from kiro_crew.mcp_gateway.rewriter import (
+from junction.mcp_gateway import rewriter
+from junction.mcp_gateway.rewriter import (
     _FINGERPRINT_NAME,
     overlay_ready,
     rewrite_agents,
@@ -99,12 +99,12 @@ _AMBIENT_READ_ALLOWLIST = frozenset(
         # server is pooled at all. Read once per pass in rewrite_agents and
         # fingerprinted as "forward_declared_env" (see
         # test_forward_declared_env_change_invalidates).
-        ("forward_declared_env_enabled", "config-import:kiro_crew.config.loader"),
+        ("forward_declared_env_enabled", "config-import:junction.config.loader"),
         # Output-AFFECTING: decides which secret-prefixed keys are folded into
         # effective_env_hash and passed on stub argv. Read once per pass in
         # rewrite_agents and fingerprinted as "pool_identity_env" (see
         # test_pool_identity_env_change_invalidates).
-        ("pool_identity_env_keys", "config-import:kiro_crew.config.loader"),
+        ("pool_identity_env_keys", "config-import:junction.config.loader"),
     }
 )
 
@@ -116,21 +116,21 @@ _REWRITE_PASS_ROOTS = frozenset(
 
 
 def _module_config_names(tree: ast.Module) -> set[str]:
-    """Module-level names bound by importing from ``kiro_crew.config*``.
+    """Module-level names bound by importing from ``junction.config*``.
 
-    A module-scope ``from kiro_crew.config.x import Y`` followed by ``Y.load()``
+    A module-scope ``from junction.config.x import Y`` followed by ``Y.load()``
     inside a helper is a config read with no function-local import to detect,
     so the imported names themselves become detection targets.
     """
     names: set[str] = set()
     for node in tree.body:
         if isinstance(node, ast.ImportFrom):
-            if (node.module or "").startswith("kiro_crew.config"):
+            if (node.module or "").startswith("junction.config"):
                 for alias in node.names:
                     names.add(alias.asname or alias.name)
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.startswith("kiro_crew.config"):
+                if alias.name.startswith("junction.config"):
                     names.add((alias.asname or alias.name).split(".")[0])
     return names
 
@@ -208,11 +208,11 @@ def _ambient_reads(
             hits.add((func_name, f"os.environ:{key}"))
             consumed.add(id(node.value))
         elif isinstance(node, ast.ImportFrom):
-            if (node.module or "").startswith("kiro_crew.config"):
+            if (node.module or "").startswith("junction.config"):
                 hits.add((func_name, f"config-import:{node.module}"))
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                if alias.name.startswith("kiro_crew.config"):
+                if alias.name.startswith("junction.config"):
                     hits.add((func_name, f"config-import:{alias.name}"))
     # Second pass: reads the call-shaped pass above did not consume — a bare
     # ``os.environ`` (copy/iteration/membership), sys/platform attributes, and
@@ -958,7 +958,7 @@ def test_unresolved_bare_command_is_reprobed_and_install_invalidates(
     monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
     src = _mk_tree(tmp_path, n_agents=1, with_env=False)
     spec = json.loads((src / "agent-0.json").read_text())
-    spec["mcpServers"]["srv"]["command"] = "kirocrew-test-definitely-missing-cmd"
+    spec["mcpServers"]["srv"]["command"] = "junction-test-definitely-missing-cmd"
     (src / "agent-0.json").write_text(json.dumps(spec))
 
     _rewrite(tmp_path)
@@ -973,9 +973,9 @@ def test_unresolved_bare_command_is_reprobed_and_install_invalidates(
     # shutil.which resolves bare names only through PATHEXT, so the file
     # needs a .bat suffix there; the spec keeps declaring the bare name.
     exe_name = (
-        "kirocrew-test-definitely-missing-cmd.bat"
+        "junction-test-definitely-missing-cmd.bat"
         if os.name == "nt"
-        else "kirocrew-test-definitely-missing-cmd"
+        else "junction-test-definitely-missing-cmd"
     )
     exe = bin_dir / exe_name
     exe.write_text("#!/bin/sh\nexit 0\n")
@@ -1003,9 +1003,9 @@ def test_resolved_binary_removal_invalidates(
     bin_dir.mkdir()
     # .bat on Windows: shutil.which resolves bare names only through PATHEXT.
     exe_name = (
-        "kirocrew-test-vanishing-cmd.bat"
+        "junction-test-vanishing-cmd.bat"
         if os.name == "nt"
-        else "kirocrew-test-vanishing-cmd"
+        else "junction-test-vanishing-cmd"
     )
     exe = bin_dir / exe_name
     exe.write_text("#!/bin/sh\nexit 0\n")
@@ -1013,7 +1013,7 @@ def test_resolved_binary_removal_invalidates(
     monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
     src = _mk_tree(tmp_path, n_agents=1, with_env=False)
     spec = json.loads((src / "agent-0.json").read_text())
-    spec["mcpServers"]["srv"]["command"] = "kirocrew-test-vanishing-cmd"
+    spec["mcpServers"]["srv"]["command"] = "junction-test-vanishing-cmd"
     (src / "agent-0.json").write_text(json.dumps(spec))
 
     _rewrite(tmp_path)
@@ -1272,7 +1272,7 @@ def test_lockdown_failure_falls_through_to_full_rewrite(
     or otherwise unprotectable artifact must never be served from cache — the
     cache hit aborts and the full rewrite re-creates the artifact through its
     protect-before-content writers."""
-    from kiro_crew import platform_compat as _pc
+    from junction import platform_compat as _pc
 
     _mk_tree(tmp_path, n_agents=1)
     _rewrite(tmp_path)
@@ -1286,7 +1286,7 @@ def test_lockdown_failure_falls_through_to_full_rewrite(
         real(path)
 
     monkeypatch.setattr(
-        "kiro_crew.mcp_gateway.rewriter.platform_compat.restrict_to_owner", failing
+        "junction.mcp_gateway.rewriter.platform_compat.restrict_to_owner", failing
     )
     before = rewrite_counter["n"]
     _rewrite(tmp_path)
@@ -1306,7 +1306,7 @@ def test_fingerprint_carries_no_command_material(tmp_path: Path) -> None:
     data = json.loads(fp.read_text())
     assert set(data.keys()) == {"inputs", "outputs", "which"}
     # ...and none of it is in the fingerprint.
-    assert "KIROCREW_MCP_TARGET" not in fp.read_text()
+    assert "JUNCTION_MCP_TARGET" not in fp.read_text()
 
 
 def test_fingerprint_file_survives_prune_and_does_not_fake_overlay_ready(

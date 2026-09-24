@@ -8,9 +8,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 
-const { patchConfigMock, kirocrewConfigMock, modelsMock } = vi.hoisted(() => ({
+const { patchConfigMock, junctionConfigMock, modelsMock } = vi.hoisted(() => ({
   patchConfigMock: vi.fn(() => Promise.resolve({})),
-  kirocrewConfigMock: vi.fn(() =>
+  junctionConfigMock: vi.fn(() =>
     Promise.resolve({ agent: { model: 'auto', reasoning_effort: '' } })
   ),
   modelsMock: vi.fn(() =>
@@ -25,7 +25,7 @@ const { patchConfigMock, kirocrewConfigMock, modelsMock } = vi.hoisted(() => ({
 vi.mock('../api/client', () => ({
   api: {
     dashboardConfig: () => Promise.resolve({ restore_sessions: false, restore_window_minutes: 30, merge_queued_messages: false, widget_density: 'more' }),
-    kirocrewConfig: kirocrewConfigMock,
+    junctionConfig: junctionConfigMock,
     models: modelsMock,
     patchConfig: patchConfigMock,
     updateDashboardConfig: () => Promise.resolve({}),
@@ -42,7 +42,7 @@ function wrap(ui: React.ReactElement) {
 }
 
 const seed = (agent: Record<string, unknown>) =>
-  kirocrewConfigMock.mockImplementation(() => Promise.resolve({ agent }) as never)
+  junctionConfigMock.mockImplementation(() => Promise.resolve({ agent }) as never)
 
 /** Open a SettingsSelect by label and return its option nodes.
  *  Waits for the control to leave its loading-disabled state first — the

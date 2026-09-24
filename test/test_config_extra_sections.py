@@ -2,7 +2,7 @@
 
 An edition-contributed top-level section (written by a companion) must survive
 the ``load()`` -> ``to_dict()`` -> ``save()`` round-trip instead of being
-silently dropped. See ``KiroCrewConfig._extra_sections`` /
+silently dropped. See ``JunctionConfig._extra_sections`` /
 ``_KNOWN_CONFIG_SECTIONS`` in ``config/loader.py``.
 """
 
@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import json
 
-from kiro_crew.config import loader as L
-from kiro_crew.config.loader import _KNOWN_CONFIG_SECTIONS, KiroCrewConfig
+from junction.config import loader as L
+from junction.config.loader import _KNOWN_CONFIG_SECTIONS, JunctionConfig
 
 
 def test_known_sections_equals_emitted_sections():
@@ -21,7 +21,7 @@ def test_known_sections_equals_emitted_sections():
     capture yet dropped by to_dict() (lost on save()). A section emitted but NOT
     in _KNOWN would be captured as "unknown" and could round-trip a stale copy.
     """
-    emitted = set(KiroCrewConfig().to_dict().keys())
+    emitted = set(JunctionConfig().to_dict().keys())
     # to_dict() also stamps slack sub-keys / meta at save() time; compare only
     # the top-level section names it writes from to_dict() itself.
     assert emitted == set(_KNOWN_CONFIG_SECTIONS), (
@@ -40,14 +40,14 @@ def test_unknown_section_round_trips(tmp_path, monkeypatch):
     monkeypatch.setattr(L, "config_dir", lambda: tmp_path)
     monkeypatch.setattr(L, "config_local_path", lambda: tmp_path / "config.local.json")
 
-    cfg = KiroCrewConfig.load()
+    cfg = JunctionConfig.load()
     assert cfg._extra_sections.get("amazon") == {"midway_flags": "-o -s", "n": [1, 2]}
     assert cfg.to_dict().get("amazon") == {"midway_flags": "-o -s", "n": [1, 2]}
 
 
 def test_extra_sections_never_clobbers_a_known_section():
     """A stale/hostile capture of a known key must not overwrite the real one."""
-    c = KiroCrewConfig()
+    c = JunctionConfig()
     c._extra_sections = {"agent": {"MALICIOUS": True}, "amazon": {"ok": 1}}
     d = c.to_dict()
     assert "MALICIOUS" not in d["agent"]
@@ -55,7 +55,7 @@ def test_extra_sections_never_clobbers_a_known_section():
 
 
 def test_extra_sections_excluded_from_json_schema():
-    from kiro_crew.config import schema
+    from junction.config import schema
 
     assert not any("_extra_sections" in e.path for e in schema.SCHEMA_REGISTRY)
 
@@ -68,9 +68,9 @@ def test_api_config_response_omits_extra_sections():
     credential it holds. The masked view must drop `_extra_sections` entirely,
     while `to_dict()` (the save() path) still carries them.
     """
-    from kiro_crew.dashboard.handlers.core import _masked_config_dict
+    from junction.dashboard.handlers.core import _masked_config_dict
 
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg._extra_sections = {"amazon": {"api_token": "SECRET-should-not-leak", "flag": True}}
 
     # save()/round-trip path keeps it

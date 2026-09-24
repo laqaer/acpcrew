@@ -80,10 +80,10 @@ beforeEach(() => {
 describe('AgentsPage model rendering', () => {
   it('renders the list when one agent has an object model, keeping its siblings', async () => {
     mockApi.agentsInstalled.mockResolvedValue([
-      mkAgent('kirocrew', 'claude-opus-4.8'),
+      mkAgent('junction', 'claude-opus-4.8'),
       mkAgent('quickwork_acp_kiro', ACP_MODEL),
     ])
-    mockApi.agentDetail.mockResolvedValue({ ...mkAgent('kirocrew', 'claude-opus-4.8'), unmanaged_skills: [] })
+    mockApi.agentDetail.mockResolvedValue({ ...mkAgent('junction', 'claude-opus-4.8'), unmanaged_skills: [] })
 
     renderPage()
 
@@ -93,7 +93,7 @@ describe('AgentsPage model rendering', () => {
     // with the rest of the tab, because one bad child unmounts the whole tree.
     // getAllByText, not getByText — the auto-opened detail panel repeats the
     // selected agent's name and model alongside its list row.
-    expect(screen.getAllByText('kirocrew').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('junction').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('claude-opus-4.8').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('auto').length).toBeGreaterThanOrEqual(1)
   })

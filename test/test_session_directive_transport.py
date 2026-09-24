@@ -18,9 +18,9 @@ Each test here drives a REAL boundary end-to-end:
 
 import json
 
-from kiro_crew import session_directive as sd
-from kiro_crew.acp._dispatch import _build_tool_result_event, _mcp_content_text
-from kiro_crew.validation import build_tool_response, strip_hidden_unicode
+from junction import session_directive as sd
+from junction.acp._dispatch import _build_tool_result_event, _mcp_content_text
+from junction.validation import build_tool_response, strip_hidden_unicode
 
 DIRECTIVE_ARGS = {"questions": [{"question": "pick one"}]}
 
@@ -45,7 +45,7 @@ class TestSurvivesMcpResponseExit:
     def test_sentinel_is_pure_ascii(self):
         # A machine-facing framing token must not depend on characters that
         # sanitizers, Unicode normalizers or transports legitimately rewrite.
-        assert _encoded().isascii() or "[[KIROCREW_SESSION_DIRECTIVE]]" in _encoded()
+        assert _encoded().isascii() or "[[JUNCTION_SESSION_DIRECTIVE]]" in _encoded()
         assert strip_hidden_unicode(_encoded()) == _encoded()
 
 

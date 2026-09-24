@@ -80,7 +80,7 @@ describe('SecurityPanel floor-enforced rule lock', () => {
       headers: new Headers({ 'content-type': 'application/json' }),
     }))
     vi.spyOn(api, 'deniedCommands').mockResolvedValue(snapshot)
-    vi.spyOn(api, 'kirocrewConfig').mockResolvedValue({} as never)
+    vi.spyOn(api, 'junctionConfig').mockResolvedValue({} as never)
     vi.spyOn(api, 'tailnetStatus').mockResolvedValue({ state: 'disabled' } as never)
   })
   afterEach(() => {

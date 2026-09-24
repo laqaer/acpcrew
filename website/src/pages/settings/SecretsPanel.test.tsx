@@ -71,7 +71,7 @@ beforeEach(() => {
   calls = []
   listNames = []
   listShouldFail = false
-  localStorage.setItem('kiro_crew_token', 'test-token')
+  localStorage.setItem('junction_token', 'test-token')
   installFetch()
 })
 

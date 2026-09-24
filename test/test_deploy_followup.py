@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.deploy import handlers as h
-from kiro_crew.deploy import pricing
+from junction.deploy import handlers as h
+from junction.deploy import pricing
 
 _TPL_DIR = Path(h.__file__).parent / "skills" / "artifact-deploy" / "templates"
 
@@ -19,7 +19,7 @@ def _deploy_handler_source() -> str:
     move again without these source-text assertions silently passing against a
     file that no longer contains the code.
     """
-    from kiro_crew.mcp_tools import artifacts
+    from junction.mcp_tools import artifacts
 
     return Path(str(artifacts.__file__).replace(".pyc", ".py")).read_text(encoding="utf-8")
 

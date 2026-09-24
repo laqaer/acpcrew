@@ -31,7 +31,7 @@ Authorities cited:
   between Chinese characters is the clearest signal a string was machine
   translated and never read.
 - **Half-width is kept inside code**: commands, paths, filenames and extensions
-  (`~/.kiro/crew`, `.yaml`), identifiers and config keys
+  (`~/.junction`, `.yaml`), identifiers and config keys
   (`pref.backend.framework`), version numbers (`v1.2.3`), numeric ranges,
   URLs, emails and token prefixes (`xoxb-`).
 - **Wrapper follows the sentence, content keeps its script**:
@@ -104,7 +104,7 @@ a reviewer should check consistency but context may require variation.
 ## §3 Do not translate
 
 Product names stay in Latin script. The list is in `glossary.json` under `dnt`:
-`KiroCrew` / `Kiro Crew`, `Kiro`, `Slack`, `Discord`, `MCP`, `GitHub`, `Playwright`, etc.
+`Junction` / `Junction`, `Kiro`, `Slack`, `Discord`, `MCP`, `GitHub`, `Playwright`, etc.
 
 Also stays in English: AWS service names, key legends (Enter, Shift, ⌘),
 `main`/`origin`/`HEAD`, paths, filenames, config keys, and `cron` (the syntax —

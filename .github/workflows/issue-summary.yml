@@ -57,7 +57,7 @@
 #   of plain text on one issue, which a maintainer can delete.
 #
 # ONE COMMENT, EDITED IN PLACE. The comment carries a marker
-# (`<!-- kirocrew-issue-summary -->`); a re-run PATCHes the existing bot comment
+# (`<!-- junction-issue-summary -->`); a re-run PATCHes the existing bot comment
 # instead of appending, so `workflow_dispatch` rehearsals and retries never turn
 # the thread into a wall of bot posts.
 #
@@ -139,7 +139,7 @@ jobs:
         || (secrets.ISSUE_TRIAGE_BEDROCK_ROLE_ARN != '' && secrets.ISSUE_TRIAGE_BEDROCK_ROLE_ARN
         || secrets.SHIP_REPORT_BEDROCK_ROLE_ARN) }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || '' }}
-      MARKER: "<!-- kirocrew-issue-summary -->"
+      MARKER: "<!-- junction-issue-summary -->"
     steps:
       - name: Collect issue and duplicate candidates
         id: collect

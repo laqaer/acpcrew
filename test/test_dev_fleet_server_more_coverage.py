@@ -24,9 +24,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-import kiro_crew.apps.builtins.dev_fleet.server as mod
-from kiro_crew import platform_compat
-from kiro_crew.apps.builtins.dev_fleet import gateway_service
+import junction.apps.builtins.dev_fleet.server as mod
+from junction import platform_compat
+from junction.apps.builtins.dev_fleet import gateway_service
 
 
 # --------------------------------------------------------------------------
@@ -241,7 +241,7 @@ async def test_kill_tree_swallows_process_lookup_error(monkeypatch):
 async def test_start_run_records_spawn_failure(monkeypatch):
     _spawn_raises(monkeypatch, OSError("no fork"))
 
-    rid = await mod._start_run("provision", ["kirocrew", "pod", "up"])
+    rid = await mod._start_run("provision", ["junction", "pod", "up"])
     rec = await _drain_run(rid)
 
     assert rec["exit_code"] == -1
@@ -259,7 +259,7 @@ async def test_start_run_parses_step_markers_and_caps_output(monkeypatch, tmp_pa
     _spawn_returns(monkeypatch, _FakeProc(lines=lines, rc=0))
 
     rid = await mod._start_run(
-        "build", ["kirocrew", "pod", "provision"],
+        "build", ["junction", "pod", "provision"],
         cleanup_paths=[str(done), str(tmp_path / "absent")],
     )
     rec = await _drain_run(rid)
@@ -282,7 +282,7 @@ async def test_start_run_deadline_marks_timeout(monkeypatch):
     killed: list[int] = []
     monkeypatch.setattr(mod, "_kill_tree", AsyncMock(side_effect=killed.append))
 
-    rid = await mod._start_run("sync", ["kirocrew", "sync"])
+    rid = await mod._start_run("sync", ["junction", "sync"])
     rec = await _drain_run(rid)
 
     assert rec["status"] == "timeout"
@@ -302,7 +302,7 @@ async def test_start_run_stream_error_reaps_live_child(monkeypatch):
     # pid never reaches a real killpg on the host.
     monkeypatch.setattr(mod.platform_compat, "kill_process_tree_async", AsyncMock())
 
-    rid = await mod._start_run("sync", ["kirocrew", "sync"])
+    rid = await mod._start_run("sync", ["junction", "sync"])
     rec = await _drain_run(rid)
 
     assert rec["status"] == "done"
@@ -324,7 +324,7 @@ async def test_start_run_stream_error_tolerates_already_reaped_child(monkeypatch
     # pid never reaches a real killpg on the host.
     monkeypatch.setattr(mod.platform_compat, "kill_process_tree_async", AsyncMock())
 
-    rid = await mod._start_run("sync", ["kirocrew", "sync"])
+    rid = await mod._start_run("sync", ["junction", "sync"])
     rec = await _drain_run(rid)
 
     assert rec["output"] == ["[error] boom"]
@@ -687,10 +687,10 @@ def test_same_path_false_on_oserror(monkeypatch):
 
 
 def test_launchd_live_worktree_none_when_exec_is_not_a_venv_binary(monkeypatch, tmp_path):
-    """A launcher pointed at a system kirocrew names no worktree."""
+    """A launcher pointed at a system junction names no worktree."""
     script = tmp_path / "live-gateway"
     script.write_text(
-        "#!/bin/sh\nexec '/usr/bin/kirocrew' gateway\n", encoding="utf-8", newline="\n"
+        "#!/bin/sh\nexec '/usr/bin/junction' gateway\n", encoding="utf-8", newline="\n"
     )
     monkeypatch.setattr(
         gateway_service.LaunchdBackend, "live_program", staticmethod(lambda: script)
@@ -709,7 +709,7 @@ def test_launchd_live_worktree_none_without_exec_line(monkeypatch, tmp_path):
 
 def test_launchd_live_worktree_resolves_venv_grandparent(monkeypatch, tmp_path):
     checkout = tmp_path / "wt-feat"
-    exe = checkout / ".venv" / "bin" / "kirocrew"
+    exe = checkout / ".venv" / "bin" / "junction"
     script = tmp_path / "live-gateway"
     script.write_text(f"#!/bin/sh\nexec '{exe}' gateway\n", encoding="utf-8", newline="\n")
     monkeypatch.setattr(
@@ -744,8 +744,8 @@ async def test_live_worktree_path_falls_back_to_execstart(monkeypatch):
     # A fabricated, space-free path: the regex the product uses truncates at the
     # first space, so a tmp_path containing one would make this assert the wrong
     # thing on some runners.
-    checkout = Path("/opt/kirocrew-checkouts/co")
-    exe = checkout / ".venv" / "bin" / "kirocrew"
+    checkout = Path("/opt/junction-checkouts/co")
+    exe = checkout / ".venv" / "bin" / "junction"
     monkeypatch.setattr(mod.live_target, "read_target", lambda: None)
     monkeypatch.setattr(mod.sys, "platform", "linux")
     monkeypatch.setattr(mod.shutil, "which", lambda name: "/bin/systemctl")
@@ -962,7 +962,7 @@ async def test_restart_gateway_refuses_confined_status(monkeypatch):
     # specific reason the gateway cannot be restarted, plus the manual remedy.
     assert "user service" in out["error"]
     assert "not running" in out["error"]
-    assert "kirocrew restart" in out["error"]
+    assert "junction restart" in out["error"]
 
 
 @pytest.mark.asyncio

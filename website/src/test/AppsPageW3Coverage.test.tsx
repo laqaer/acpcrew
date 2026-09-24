@@ -132,7 +132,7 @@ const BUILTIN_OFF = {
   installedAt: '2026-06-01T00:00:00Z', origin: 'builtin', resources: 'gateway', lifecycle: 'locked',
   manifest: {
     name: 'pets', version: '1.0.0', displayName: 'Pets', description: 'A desk companion.',
-    author: 'kirocrew', tags: ['fun'], ui: { pages: [{ route: '/pets', label: 'Pets', icon: 'Cat' }] },
+    author: 'junction', tags: ['fun'], ui: { pages: [{ route: '/pets', label: 'Pets', icon: 'Cat' }] },
   },
 }
 
@@ -150,7 +150,7 @@ const SECRETARY = {
 
 const REGISTRY_APPS = [
   {
-    name: 'oncall-radar', displayName: 'Oncall Radar', author: 'kirocrew',
+    name: 'oncall-radar', displayName: 'Oncall Radar', author: 'junction',
     description: 'Oncall operations dashboard.', version: '2.0.0',
     tags: ['oncall'], installed: false, updateAvailable: false, provenance: 'core',
   },
@@ -171,7 +171,7 @@ const REGISTRY_APPS = [
  * that installs a built-in must also let the registry response carry it --
  * otherwise the fixture describes a response the real server cannot produce.
  */
-const builtinServerRow = (name: string, displayName: string, author = 'kirocrew') => ({
+const builtinServerRow = (name: string, displayName: string, author = 'junction') => ({
   name, displayName, author, description: 'A desk companion.', version: '1.0.0',
   tags: ['fun'], installed: true, updateAvailable: false,
   origin: 'builtin', lifecycle: 'locked', provenance: 'builtin', verified: true,
@@ -454,7 +454,7 @@ describe('AppsPage — uninstall dialog', () => {
     expect(within(dialog).getByText(/the downloaded source code will be removed/)).toBeInTheDocument()
   })
 
-  it('warns about a self-managed app whose resources live outside Kiro Crew', async () => {
+  it('warns about a self-managed app whose resources live outside Junction', async () => {
     listApps.mockResolvedValue([{ ...SECRETARY, origin: 'local', resources: 'app' }])
     const dialog = await openDialog()
     expect(within(dialog).getByText(/This is a self-managed app/)).toBeInTheDocument()
@@ -591,11 +591,11 @@ describe('AppsPage — editorial layer wiring', () => {
     listRegistry.mockResolvedValue({
       apps: [
         {
-          name: 'zeta-app', displayName: 'Zeta App', author: 'kirocrew', description: 'Later in the alphabet.',
+          name: 'zeta-app', displayName: 'Zeta App', author: 'junction', description: 'Later in the alphabet.',
           version: '1.0.0', tags: ['github'], installed: false, provenance: 'core',
         },
         {
-          name: 'zulu-utility', displayName: 'Zulu Utility', author: 'kirocrew', description: 'Fills the second row slot.',
+          name: 'zulu-utility', displayName: 'Zulu Utility', author: 'junction', description: 'Fills the second row slot.',
           version: '1.0.0', tags: ['github'], installed: false, provenance: 'core',
         },
         // Explore renders server rows, so the installed built-in reaches the
@@ -746,7 +746,7 @@ describe('AppsPage — sources rail', () => {
   it('counts built-ins, a stale registry, and the core registry separately', async () => {
     listRegistry.mockResolvedValue({
       apps: [
-        { name: 'core-app', displayName: 'Core App', author: 'kirocrew', description: 'From the core file.', version: '1.0.0', tags: ['github'], installed: false, provenance: 'core' },
+        { name: 'core-app', displayName: 'Core App', author: 'junction', description: 'From the core file.', version: '1.0.0', tags: ['github'], installed: false, provenance: 'core' },
         { name: 'ghost-app', displayName: 'Ghost App', author: 'someone', description: 'From a registry no longer configured.', version: '1.0.0', tags: ['github'], installed: false, _registry: 'ghost-registry', provenance: 'external' },
         // A built-in reaches the rail as a CATALOG row, not as client-side
         // synthesis, so the Built-in bucket needs one on the wire to count.
@@ -757,7 +757,7 @@ describe('AppsPage — sources rail', () => {
     await catalogReady()
     const rail = screen.getByText('SOURCES').parentElement as HTMLElement
     // Configured registry keeps its row at zero; the stale tag gets its own.
-    expect(within(rail).getByText('Built-in · kirocrew')).toBeInTheDocument()
+    expect(within(rail).getByText('Built-in · junction')).toBeInTheDocument()
     expect(within(rail).getByText('kirodotdev-labs')).toBeInTheDocument()
     expect(within(rail).getByText('ghost-registry')).toBeInTheDocument()
     expect(within(rail).getByText('Junction registry')).toBeInTheDocument()

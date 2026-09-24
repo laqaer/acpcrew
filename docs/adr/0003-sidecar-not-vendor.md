@@ -1,6 +1,6 @@
 # ADR 0003 — Sidecar, not vendor
 
-- Status: accepted
+- Status: accepted. The "operator installs the sidecar" consequence is superseded by [0007](0007-builtin-model-catalog.md). The do-not-vendor list below still holds.
 - Date: 2026-09-19
 - Execution: `bc-39bfeb15-ff12-4636-840a-217a97c555da`
 
@@ -33,10 +33,10 @@ Do not copy:
   bridges)
 
 Do not reimplement LiteLLM. Do not rewrite the router's secret-entry
-rules into `KIROCREW_HOME`.
+rules into `JUNCTION_HOME`.
 
 This cut's Python surface is health and status in
-`src/kiro_crew/model_router/`. Operator-install of the sidecar is M2.
+`src/junction/model_router/`. Operator-install of the sidecar is M2.
 
 ## Consequences
 

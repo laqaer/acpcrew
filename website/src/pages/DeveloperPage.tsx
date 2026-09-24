@@ -8,7 +8,7 @@ import TelemetryPanel from './TelemetryPanel'
 import SessionArchive from './SessionArchive'
 import LocalStorageDebug from './LocalStorageDebug'
 import { McpManagement } from './settings/McpManagement'
-import { KiroCrewCfgTab, AgentCfgTab } from './overview'
+import { JunctionCfgTab, AgentCfgTab } from './overview'
 import { FeaturePreviewsTab } from './developer/FeaturePreviewsTab'
 
 /**
@@ -66,7 +66,7 @@ export default function DeveloperPage() {
         )}
         {tab === 'config' && (
           <>
-            <KiroCrewCfgTab />
+            <JunctionCfgTab />
             <AgentCfgTab />
           </>
         )}

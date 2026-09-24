@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.secrets.migrate — plaintext .env → vault importer."""
+"""Tests for junction.secrets.migrate — plaintext .env → vault importer."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.secrets import SecretVault
-from kiro_crew.secrets.migrate import (
+from junction.secrets import SecretVault
+from junction.secrets.migrate import (
     MigrationConflictError,
     MigrationReport,
     format_report,
@@ -27,8 +27,8 @@ def _migrate(config_dir: Path, ep: Path, **kwargs):
     resolvers rather than passing paths.
     """
     with (
-        patch("kiro_crew.secrets.migrate.env_path", return_value=ep),
-        patch("kiro_crew.secrets.migrate.config_dir", return_value=config_dir),
+        patch("junction.secrets.migrate.env_path", return_value=ep),
+        patch("junction.secrets.migrate.config_dir", return_value=config_dir),
     ):
         return migrate_env_secrets(**kwargs)
 
@@ -148,7 +148,7 @@ def test_stale_plaintext_behind_secret_ref_not_queued(tmp_path: Path) -> None:
     config_dir = tmp_path / "config"
     # Pre-seed the vault with the authoritative secret, as a prior migration
     # would have left it.
-    from kiro_crew.secrets.migrate import migrate_env_secrets as _m  # noqa: F401
+    from junction.secrets.migrate import migrate_env_secrets as _m  # noqa: F401
 
     good_env = tmp_path / "good.env"
     good_env.write_text("JIRA_API_TOKEN=good-secret\n")
@@ -472,7 +472,7 @@ def test_lock_held_by_another_process_aborts_cleanly(tmp_path: Path, monkeypatch
 
     # Force the exclusive-lock acquire to fail, simulating another holder.
     monkeypatch.setattr(
-        "kiro_crew.secrets.migrate.platform_compat.try_acquire_lock",
+        "junction.secrets.migrate.platform_compat.try_acquire_lock",
         lambda fd, *, exclusive=False: False,
     )
 
@@ -515,7 +515,7 @@ def test_handle_secrets_reports_conflict_cleanly(tmp_path: Path, monkeypatch, ca
     concise stderr error with a nonzero exit — never an uncaught traceback."""
     import argparse
 
-    from kiro_crew import cli_commands
+    from junction import cli_commands
 
     monkeypatch.setattr(cli_commands, "config_dir", lambda: str(tmp_path / "config"))
 
@@ -540,7 +540,7 @@ def test_handle_secrets_reports_corrupt_vault_cleanly(tmp_path: Path, monkeypatc
     at the CLI as a concise stderr error with a nonzero exit, never a traceback."""
     import argparse
 
-    from kiro_crew import cli_commands
+    from junction import cli_commands
 
     monkeypatch.setattr(cli_commands, "config_dir", lambda: str(tmp_path / "config"))
 
@@ -669,7 +669,7 @@ def test_vault_entry_replaced_between_store_and_rewrite_aborts(tmp_path: Path, m
     .env rewrite, the importer must raise MigrationConflictError and leave the
     .env plaintext untouched — the original value must not be silently discarded
     while .env is rewritten to point at a now-different vault entry."""
-    from kiro_crew.secrets.vault import SecretValue
+    from junction.secrets.vault import SecretValue
 
     config_dir = tmp_path / "config"
     ep = tmp_path / ".env"
@@ -716,7 +716,7 @@ def test_vault_delete_during_held_lock_cannot_strand_plaintext(tmp_path: Path, m
     """
     from contextlib import contextmanager
 
-    from kiro_crew.secrets.vault import SecretVault
+    from junction.secrets.vault import SecretVault
 
     config_dir = tmp_path / "config"
     ep = tmp_path / ".env"
@@ -747,8 +747,8 @@ def test_vault_delete_during_held_lock_cannot_strand_plaintext(tmp_path: Path, m
         events.append("atomic_write")
         real_atomic(path, content, **kwargs)
 
-    import kiro_crew.atomic_write as _atomic_mod
-    import kiro_crew.secrets.migrate as _migrate_mod
+    import junction.atomic_write as _atomic_mod
+    import junction.secrets.migrate as _migrate_mod
 
     real_atomic = _atomic_mod.atomic_write
     monkeypatch.setattr(SecretVault, "hold_cross_process_lock", _tracking_hold)
@@ -792,7 +792,7 @@ def test_env_lock_path_is_inside_vault_dir(tmp_path: Path) -> None:
     unconfined agent can delete/replace the held lock inode and defeat
     serialisation. Inside .vault, every sandbox tier bind-mount-hides the dir.
     """
-    from kiro_crew.secrets.migrate import _env_lock_path
+    from junction.secrets.migrate import _env_lock_path
 
     ep = tmp_path / "config" / ".env"
     ep.parent.mkdir(parents=True, exist_ok=True)
@@ -817,7 +817,7 @@ def test_atomic_write_failure_rolls_back_vault_entries(tmp_path: Path, monkeypat
     def _boom(path, data, **kw):
         raise OSError("disk full")
 
-    monkeypatch.setattr("kiro_crew.secrets.migrate.atomic_write", _boom)
+    monkeypatch.setattr("junction.secrets.migrate.atomic_write", _boom)
 
     with pytest.raises(OSError):
         _migrate(config_dir, ep, dry_run=False)
@@ -893,7 +893,7 @@ def test_rollback_does_not_delete_concurrently_overwritten_vault_entry(
     def _boom(path, data, **kw):
         raise OSError("disk full")
 
-    monkeypatch.setattr("kiro_crew.secrets.migrate.atomic_write", _boom)
+    monkeypatch.setattr("junction.secrets.migrate.atomic_write", _boom)
 
     # Patch _compare_and_delete_sync to return False (simulating concurrent
     # overwrite detected: stored entry dict differs from expected_entry) and
@@ -998,7 +998,7 @@ def test_rollback_deletes_unchanged_vault_entry(
     def _boom(path, data, **kw):
         raise OSError("disk full")
 
-    monkeypatch.setattr("kiro_crew.secrets.migrate.atomic_write", _boom)
+    monkeypatch.setattr("junction.secrets.migrate.atomic_write", _boom)
 
     with pytest.raises(OSError):
         _migrate(config_dir_path, ep, dry_run=False)
@@ -1030,7 +1030,7 @@ def test_rollback_no_deadlock_under_concurrent_flock(
     def _boom(path, data, **kw):
         raise OSError("disk full")
 
-    monkeypatch.setattr("kiro_crew.secrets.migrate.atomic_write", _boom)
+    monkeypatch.setattr("junction.secrets.migrate.atomic_write", _boom)
 
     # Call the rollback path directly (no background worker): the fixed
     # _compare_and_delete_sync acquires the cross-process flock exactly once
@@ -1063,7 +1063,7 @@ def test_rollback_delete_failure_records_orphaned_key_and_propagates_error(
     def _boom(path, data, **kw):
         raise OSError("disk full")
 
-    monkeypatch.setattr("kiro_crew.secrets.migrate.atomic_write", _boom)
+    monkeypatch.setattr("junction.secrets.migrate.atomic_write", _boom)
 
     # Make _compare_and_delete_sync raise to simulate ENOSPC / I/O error.
     def _raise_enospc(self, name, expected):
@@ -1071,7 +1071,7 @@ def test_rollback_delete_failure_records_orphaned_key_and_propagates_error(
 
     monkeypatch.setattr(SecretVault, "_compare_and_delete_sync", _raise_enospc)
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.secrets.migrate"):
+    with caplog.at_level(logging.WARNING, logger="junction.secrets.migrate"):
         with pytest.raises(OSError, match="disk full"):
             _migrate(config_dir_path, ep, dry_run=False)
 
@@ -1081,5 +1081,5 @@ def test_rollback_delete_failure_records_orphaned_key_and_propagates_error(
         "JIRA_API_TOKEN" in str(m) for m in warning_msgs
     ), f"Expected WARNING naming orphaned key; got: {warning_msgs}"
     assert any(
-        "kirocrew secrets rm" in str(m) for m in warning_msgs
+        "junction secrets rm" in str(m) for m in warning_msgs
     ), "WARNING must mention cleanup command"

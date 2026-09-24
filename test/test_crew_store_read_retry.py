@@ -22,8 +22,8 @@ import json
 import pytest
 from windows_sim import read_sharing_violation
 
-from kiro_crew import atomic_write as aw
-from kiro_crew import platform_compat
+from junction import atomic_write as aw
+from junction import platform_compat
 
 
 @pytest.fixture(autouse=True)
@@ -106,8 +106,8 @@ class TestCrewStoreLoadSurvivesAContendedRead:
         tree while proving nothing. Reading bytes is part of the fix precisely
         because it puts the store on a path the existing simulator can fault.
         """
-        from kiro_crew import crew_chat
-        from kiro_crew.crew_chat import CrewStore
+        from junction import crew_chat
+        from junction.crew_chat import CrewStore
 
         seen: list[str] = []
         real = crew_chat.read_bytes_with_retry
@@ -130,7 +130,7 @@ class TestCrewStoreLoadSurvivesAContendedRead:
     def test_a_damaged_file_is_still_fatal(self, tmp_path, _windows) -> None:
         """The retry must not soften the guard that exists so a broken file is
         never read as an empty queue and saved back over the real one."""
-        from kiro_crew.crew_chat import CrewStore
+        from junction.crew_chat import CrewStore
 
         store = CrewStore.__new__(CrewStore)
         store.dir = tmp_path
@@ -140,7 +140,7 @@ class TestCrewStoreLoadSurvivesAContendedRead:
             store._load("queue.json")
 
     def test_a_missing_file_is_still_an_empty_queue(self, tmp_path, _windows) -> None:
-        from kiro_crew.crew_chat import CrewStore
+        from junction.crew_chat import CrewStore
 
         store = CrewStore.__new__(CrewStore)
         store.dir = tmp_path

@@ -187,7 +187,7 @@ export default function UpdateModal() {
         </div>
 
         <div className="px-4 py-3 text-sm text-text">
-          <p>{i18nT('components.updateModal.kirocrew')} {version && <span className="font-semibold">{version}</span>} {i18nT('components.updateModal.is_downloaded_and_ready_to_install')}</p>
+          <p>{i18nT('components.updateModal.junction')} {version && <span className="font-semibold">{version}</span>} {i18nT('components.updateModal.is_downloaded_and_ready_to_install')}</p>
           {notes && (
             <p className="mt-2 text-[13px] text-muted whitespace-pre-wrap max-h-40 overflow-auto">{notes}</p>
           )}

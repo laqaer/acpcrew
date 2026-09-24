@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from kiro_crew.cloud import aws
+from junction.cloud import aws
 
 
 class TestBuildArgv:
@@ -39,8 +39,8 @@ class TestBuildArgv:
 
         if _os.name == "nt":
             pytest.skip("fallback install dirs are POSIX literals; dead on Windows by design")
-        from kiro_crew import github_runner
-        from kiro_crew.deploy import engine
+        from junction import github_runner
+        from junction.deploy import engine
 
         fake_aws = tmp_path / "aws"
         fake_aws.write_text("#!/bin/sh\n")
@@ -207,11 +207,11 @@ class TestCheckedJson:
 
 class TestChokepointHumanActionGuard:
     """run_aws must refuse non-read-only calls from an agent session
-    (KIROCREW_SESSION_KEY set), covering mutations AND token-minting SSM calls
+    (JUNCTION_SESSION_KEY set), covering mutations AND token-minting SSM calls
     even when run_aws is imported directly, bypassing the shell denylist."""
 
     def test_readonly_calls_allowed_under_agent_session(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SESSION_KEY", "sess-1")
+        monkeypatch.setenv("JUNCTION_SESSION_KEY", "sess-1")
         monkeypatch.setattr(aws, "wrap_argv", lambda argv, mode: (argv, ""))
 
         class FakeProc:
@@ -232,18 +232,18 @@ class TestChokepointHumanActionGuard:
             assert rc == 0, f"read-only {readonly} should be allowed"
 
     def test_mutations_and_token_mint_refused_under_agent_session(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SESSION_KEY", "sess-1")
+        monkeypatch.setenv("JUNCTION_SESSION_KEY", "sess-1")
         monkeypatch.setattr(
             aws.subprocess, "Popen", lambda *a, **k: pytest.fail("must not spawn aws")
         )
         for sensitive in (
-            ["cloudformation", "delete-stack", "--stack-name", "kirocrew-x"],
+            ["cloudformation", "delete-stack", "--stack-name", "junction-x"],
             ["cloudformation", "deploy"],
             ["ec2", "terminate-instances", "--instance-ids", "i-1"],
             ["ec2", "stop-instances", "--instance-ids", "i-1"],
             ["ssm", "send-command", "--instance-ids", "i-1"],  # token mint path
             ["ssm", "start-session", "--target", "i-1"],
-            ["s3", "rm", "s3://kirocrew-src-x/y"],
+            ["s3", "rm", "s3://junction-src-x/y"],
         ):
             with pytest.raises(aws.CloudActionDenied):
                 aws.run_aws(sensitive)
@@ -251,7 +251,7 @@ class TestChokepointHumanActionGuard:
     def test_secret_reads_denied_under_agent_session(self, monkeypatch):
         # An EXACT allowlist (not a get-*/list-* prefix) must deny secret-bearing
         # reads even though they start with get-/list-.
-        monkeypatch.setenv("KIROCREW_SESSION_KEY", "sess-1")
+        monkeypatch.setenv("JUNCTION_SESSION_KEY", "sess-1")
         monkeypatch.setattr(
             aws.subprocess, "Popen", lambda *a, **k: pytest.fail("must not spawn aws")
         )
@@ -266,7 +266,7 @@ class TestChokepointHumanActionGuard:
                 aws.run_aws(secret_read)
 
     def test_all_allowed_without_session_key(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_SESSION_KEY", raising=False)
+        monkeypatch.delenv("JUNCTION_SESSION_KEY", raising=False)
         monkeypatch.setattr(aws, "wrap_argv", lambda argv, mode: (argv, ""))
 
         class FakeProc:

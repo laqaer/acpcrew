@@ -34,28 +34,28 @@ from typing import Any, Callable
 
 import pytest
 
-from kiro_crew.messaging.renderer import (
+from junction.messaging.renderer import (
     apply_options_cap,
     cap_choices,
     render_options_as_text,
     split_options_trailer,
 )
-from kiro_crew.messaging.transport import TransportCapabilities
+from junction.messaging.transport import TransportCapabilities
 
 #: channel_type -> the test class below that pins its enforcement.
 PINNED_WIDGET_CHANNELS = {"slack", "discord", "telegram", "teams", "webex"}
 
 
 def _wecom_renderer() -> Any:
-    from kiro_crew.wecom.renderer import WeComRenderer
-    from kiro_crew.wecom.transport import WECOM_CAPABILITIES
+    from junction.wecom.renderer import WeComRenderer
+    from junction.wecom.transport import WECOM_CAPABILITIES
 
     return WeComRenderer(object(), "rq1", "https://r", WECOM_CAPABILITIES)
 
 
 def _weixin_renderer() -> Any:
-    from kiro_crew.weixin.transport import WEIXIN_CAPABILITIES
-    from kiro_crew.weixin.turn_renderer import WeixinRenderer
+    from junction.weixin.transport import WEIXIN_CAPABILITIES
+    from junction.weixin.turn_renderer import WeixinRenderer
 
     return WeixinRenderer(
         object(), "peer", WEIXIN_CAPABILITIES, ctx_store=object(), account_id="acct"
@@ -63,15 +63,15 @@ def _weixin_renderer() -> Any:
 
 
 def _imessage_renderer() -> Any:
-    from kiro_crew.imessage.renderer import IMessageRenderer
-    from kiro_crew.imessage.transport import IMESSAGE_CAPABILITIES
+    from junction.imessage.renderer import IMessageRenderer
+    from junction.imessage.transport import IMESSAGE_CAPABILITIES
 
     return IMessageRenderer(object(), "+61400000000", IMESSAGE_CAPABILITIES)
 
 
 def _feishu_renderer() -> Any:
-    from kiro_crew.feishu.renderer import FeishuRenderer
-    from kiro_crew.feishu.transport import FEISHU_CAPABILITIES
+    from junction.feishu.renderer import FeishuRenderer
+    from junction.feishu.transport import FEISHU_CAPABILITIES
 
     return FeishuRenderer(object(), "om_msg", FEISHU_CAPABILITIES)
 
@@ -89,15 +89,15 @@ ZERO_WIDGET_RENDERERS: dict[str, Callable[[], Any]] = {
 
 
 def _all_channel_capabilities() -> dict[str, TransportCapabilities]:
-    from kiro_crew.discord.transport import DISCORD_CAPABILITIES
-    from kiro_crew.feishu.transport import FEISHU_CAPABILITIES
-    from kiro_crew.imessage.transport import IMESSAGE_CAPABILITIES
-    from kiro_crew.slack.transport import SLACK_CAPABILITIES
-    from kiro_crew.teams.transport import TEAMS_CAPABILITIES
-    from kiro_crew.telegram.transport import TELEGRAM_CAPABILITIES
-    from kiro_crew.webex.transport import WEBEX_CAPABILITIES
-    from kiro_crew.wecom.transport import WECOM_CAPABILITIES
-    from kiro_crew.weixin.transport import WEIXIN_CAPABILITIES
+    from junction.discord.transport import DISCORD_CAPABILITIES
+    from junction.feishu.transport import FEISHU_CAPABILITIES
+    from junction.imessage.transport import IMESSAGE_CAPABILITIES
+    from junction.slack.transport import SLACK_CAPABILITIES
+    from junction.teams.transport import TEAMS_CAPABILITIES
+    from junction.telegram.transport import TELEGRAM_CAPABILITIES
+    from junction.webex.transport import WEBEX_CAPABILITIES
+    from junction.wecom.transport import WECOM_CAPABILITIES
+    from junction.weixin.transport import WEIXIN_CAPABILITIES
 
     return {
         "slack": SLACK_CAPABILITIES,
@@ -198,7 +198,7 @@ class TestSharedHelper:
         # Regression (review round 2): overflow lands in the message BODY
         # where platforms parse mentions — unlike widget labels, which render
         # as plain text. A prompt-injected choice must not mass-notify.
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         out = format_overflow(["ping @everyone now", "or <!channel> maybe"], start=1)
         assert "@everyone" not in out
@@ -214,7 +214,7 @@ class TestSharedHelper:
         # already routes choices through the display redactor for exactly this
         # reason; the shared sink has to close the same hole for telegram and
         # discord, which have no display-state pass of their own.
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         split = "AKIA`" + "`IOSFODNN7EXAMPLE"
         out = format_overflow([f"Retry with {split}"], start=1)
@@ -227,7 +227,7 @@ class TestSharedHelper:
         # Both sanitisations transform the text; if the ZWSP went in first it
         # could split a key so the regex stops matching while the platform
         # still renders it whole. Pin the order with a choice that needs both.
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         out = format_overflow(["@everyone use AKIA*IOSFODNN7EXAMPLE*"], start=0)
         assert "@everyone" not in out
@@ -239,7 +239,7 @@ class TestSharedHelper:
         # same splitter property as ``**``, but it was missing from the
         # canonicaliser's delimiter run, so round 5's fix had a hole exactly
         # one delimiter family wide.
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         out = format_overflow(["Retry with AKIA||IOSFODNN7EXAMPLE||"], start=0)
         assert "IOSFODNN7EXAMPLE" not in out, (
@@ -253,7 +253,7 @@ class TestSharedHelper:
         # intact key with no click and no markup while every literal scan sees
         # it broken. Pre-existing in the display redactor; closed here because
         # this sink is what puts LLM-authored choice text into the body.
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         for name, ch in (
             ("ZWSP", "\u200b"),
@@ -267,7 +267,7 @@ class TestSharedHelper:
 
     def test_non_ascii_text_is_not_mangled(self) -> None:
         """The format-character filter must not touch visible non-ASCII text."""
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         out = format_overflow(["重新部署到主分支", "café — naïve"], start=0)
         assert out == "1. 重新部署到主分支\n2. café — naïve"
@@ -279,14 +279,14 @@ class TestSharedHelper:
         widen the canonical form with no rendering that matches it. This also
         keeps ordinary table-ish text intact.
         """
-        from kiro_crew.messaging.display_safety import canonicalize_display
+        from junction.messaging.display_safety import canonicalize_display
 
         assert canonicalize_display("a|b") == "a|b"
         assert canonicalize_display("a||b") == "ab"
 
     def test_clean_choices_are_untouched_by_the_redactor(self) -> None:
         """The sink must not mangle ordinary text — no false-positive damage."""
-        from kiro_crew.messaging.renderer import format_overflow
+        from junction.messaging.renderer import format_overflow
 
         out = format_overflow(["Rebase onto main", "Skip the `--force` flag"], start=2)
         assert out == "3. Rebase onto main\n4. Skip the `--force` flag"
@@ -387,7 +387,7 @@ class TestOnlyOneTrailerParseExists:
     def _hits(self, needle: str) -> set[str]:
         from pathlib import Path
 
-        import kiro_crew as pkg
+        import junction as pkg
 
         root = Path(pkg.__file__).parent
         found = set()
@@ -606,8 +606,8 @@ class TestSlackEnforcement:
         return [f"Choice {i}" for i in range(1, n + 1)]
 
     def test_widget_caps_at_declared_and_overflow_is_visible(self) -> None:
-        from kiro_crew.slack.format import build_options_blocks
-        from kiro_crew.slack.transport import SLACK_CAPABILITIES
+        from junction.slack.format import build_options_blocks
+        from junction.slack.transport import SLACK_CAPABILITIES
 
         n = SLACK_CAPABILITIES.max_buttons
         blocks = build_options_blocks(self._choices(n + 3))
@@ -621,7 +621,7 @@ class TestSlackEnforcement:
         assert f"{n + 3}. Choice {n + 3}" in text
 
     def test_under_cap_emits_no_overflow_block(self) -> None:
-        from kiro_crew.slack.format import build_options_blocks
+        from junction.slack.format import build_options_blocks
 
         blocks = build_options_blocks(self._choices(2))
         assert [b["type"] for b in blocks] == ["actions"]
@@ -630,8 +630,8 @@ class TestSlackEnforcement:
         # Regression (review round 1): a single [:2900] slice re-created the
         # silent data loss the cap exists to remove. Every overflow choice
         # must reach the wire, across as many context blocks as needed.
-        from kiro_crew.slack.format import build_options_blocks
-        from kiro_crew.slack.transport import SLACK_CAPABILITIES
+        from junction.slack.format import build_options_blocks
+        from junction.slack.transport import SLACK_CAPABILITIES
 
         n = SLACK_CAPABILITIES.max_buttons
         long = [f"Choice {i} " + "x" * 140 for i in range(1, n + 41)]
@@ -646,8 +646,8 @@ class TestSlackEnforcement:
         # 50-block message limit — the API rejects the WHOLE message and every
         # choice disappears. The block budget is capped and the tail drop is
         # VISIBLE (counted marker), never silent.
-        from kiro_crew.slack.format import build_options_blocks
-        from kiro_crew.slack.transport import SLACK_CAPABILITIES
+        from junction.slack.format import build_options_blocks
+        from junction.slack.transport import SLACK_CAPABILITIES
 
         n = SLACK_CAPABILITIES.max_buttons
         huge = [f"Choice {i} " + "x" * 140 for i in range(1, n + 201)]
@@ -663,8 +663,8 @@ class TestSlackEnforcement:
     def test_single_oversized_choice_truncates_with_visible_marker(self) -> None:
         # Regression (review round 4): one absurd >2900-char choice was
         # sliced with no signal. The cut must be visible.
-        from kiro_crew.slack.format import build_options_blocks
-        from kiro_crew.slack.transport import SLACK_CAPABILITIES
+        from junction.slack.format import build_options_blocks
+        from junction.slack.transport import SLACK_CAPABILITIES
 
         n = SLACK_CAPABILITIES.max_buttons
         choices = [f"Choice {i}" for i in range(1, n + 1)] + ["y" * 4000]
@@ -682,10 +682,10 @@ class TestTelegramEnforcement:
         # a near-limit pre-steer answer sealed past the transport cap.
         from test_telegram import FakeClient
 
-        from kiro_crew.messaging.renderer import STEER_CONSUMED, TEXT_CHUNK, OutputEvent
-        from kiro_crew.telegram.client import TELEGRAM_CHUNK_LIMIT
-        from kiro_crew.telegram.renderer import TelegramRenderer
-        from kiro_crew.telegram.transport import TELEGRAM_CAPABILITIES
+        from junction.messaging.renderer import STEER_CONSUMED, TEXT_CHUNK, OutputEvent
+        from junction.telegram.client import TELEGRAM_CHUNK_LIMIT
+        from junction.telegram.renderer import TelegramRenderer
+        from junction.telegram.transport import TELEGRAM_CAPABILITIES
 
         n = TELEGRAM_CAPABILITIES.max_buttons
         trailer = " | ".join(f"Choice number {i} with a long label" for i in range(1, n + 9))
@@ -711,9 +711,9 @@ class TestTelegramEnforcement:
     def test_keyboard_caps_at_declared_and_overflow_is_visible(self) -> None:
         from test_telegram import FakeClient
 
-        from kiro_crew.messaging.renderer import DONE, TEXT_CHUNK, OutputEvent
-        from kiro_crew.telegram.renderer import TelegramRenderer
-        from kiro_crew.telegram.transport import TELEGRAM_CAPABILITIES
+        from junction.messaging.renderer import DONE, TEXT_CHUNK, OutputEvent
+        from junction.telegram.renderer import TelegramRenderer
+        from junction.telegram.transport import TELEGRAM_CAPABILITIES
 
         n = TELEGRAM_CAPABILITIES.max_buttons
         trailer = " | ".join(f"Choice {i}" for i in range(1, n + 4))
@@ -742,8 +742,8 @@ class TestDiscordEnforcement:
         import pytest_asyncio  # noqa: F401  (asyncio runner parity with test_discord)
         from test_discord import FakeClient
 
-        from kiro_crew.discord.renderer import DiscordRenderer
-        from kiro_crew.discord.transport import DISCORD_CAPABILITIES
+        from junction.discord.renderer import DiscordRenderer
+        from junction.discord.transport import DISCORD_CAPABILITIES
 
         n = DISCORD_CAPABILITIES.max_buttons
         trailer = " | ".join(f"Choice {i}" for i in range(1, n + 4))
@@ -775,8 +775,8 @@ class TestDiscordEnforcement:
         import pytest_asyncio  # noqa: F401  (asyncio runner parity with test_discord)
         from test_discord import FakeClient
 
-        from kiro_crew.discord.renderer import DiscordRenderer
-        from kiro_crew.discord.transport import DISCORD_CAPABILITIES
+        from junction.discord.renderer import DiscordRenderer
+        from junction.discord.transport import DISCORD_CAPABILITIES
 
         n = DISCORD_CAPABILITIES.max_buttons
         leaked = "AKIA`" + "`IOSFODNN7EXAMPLE"
@@ -804,8 +804,8 @@ class TestTeamsEnforcement:
     """
 
     def test_chips_cap_at_declared_and_overflow_is_visible(self) -> None:
-        from kiro_crew.teams.renderer import TeamsRenderer
-        from kiro_crew.teams.transport import TEAMS_CAPABILITIES
+        from junction.teams.renderer import TeamsRenderer
+        from junction.teams.transport import TEAMS_CAPABILITIES
 
         n = TEAMS_CAPABILITIES.max_buttons
         trailer = " | ".join(f"Choice {i}" for i in range(1, n + 4))
@@ -849,8 +849,8 @@ class TestTeamsEnforcement:
 
     def test_an_overflow_credential_is_redacted_in_the_body(self) -> None:
         """Overflow lands in the message body, which Teams markdown-renders."""
-        from kiro_crew.teams.renderer import TeamsRenderer
-        from kiro_crew.teams.transport import TEAMS_CAPABILITIES
+        from junction.teams.renderer import TeamsRenderer
+        from junction.teams.transport import TEAMS_CAPABILITIES
 
         n = TEAMS_CAPABILITIES.max_buttons
         choices = [f"Choice {i}" for i in range(1, n + 1)] + ["AKIAIOSFODNN7EXAMPLE"]
@@ -900,12 +900,12 @@ class TestKeptChoicesAreDisplayRedacted:
 
     @staticmethod
     def _caps(max_buttons: int = 5):
-        from kiro_crew.messaging.transport import TransportCapabilities
+        from junction.messaging.transport import TransportCapabilities
 
         return TransportCapabilities(max_buttons=max_buttons)
 
     def test_a_credential_in_a_kept_label_is_redacted(self) -> None:
-        from kiro_crew.messaging.renderer import apply_options_cap
+        from junction.messaging.renderer import apply_options_cap
 
         key = "AKIA" + "IOSFODNN7EXAMPLE"
         _body, kept = apply_options_cap("pick one", [key, "plain"], self._caps())
@@ -916,7 +916,7 @@ class TestKeptChoicesAreDisplayRedacted:
     def test_a_markup_split_credential_is_caught_on_the_canonical_form(self) -> None:
         # The byte-level pass alone misses this: the contiguous key only exists once
         # the markup is flattened, which is exactly what display_safe does first.
-        from kiro_crew.messaging.renderer import apply_options_cap
+        from junction.messaging.renderer import apply_options_cap
 
         head, tail = "AKIA", "IOSFODNN7EXAMPLE"
         _body, kept = apply_options_cap("pick", [f"{head}**{tail}**"], self._caps())
@@ -927,7 +927,7 @@ class TestKeptChoicesAreDisplayRedacted:
     def test_mentions_in_a_kept_label_are_defanged(self) -> None:
         # Labels render as plain text, but the press echo puts the label back into a
         # message body — where the platform DOES parse mentions.
-        from kiro_crew.messaging.renderer import apply_options_cap
+        from junction.messaging.renderer import apply_options_cap
 
         _body, kept = apply_options_cap("pick", ["@everyone"], self._caps())
         assert kept[0] != "@everyone"
@@ -935,7 +935,7 @@ class TestKeptChoicesAreDisplayRedacted:
 
     def test_the_overflow_list_is_still_redacted_too(self) -> None:
         # The half that already worked, so a regression cannot trade one for the other.
-        from kiro_crew.messaging.renderer import apply_options_cap
+        from junction.messaging.renderer import apply_options_cap
 
         key = "AKIA" + "IOSFODNN7EXAMPLE"
         body, kept = apply_options_cap("pick", ["a", "b", key], self._caps(max_buttons=2))
@@ -947,7 +947,7 @@ class TestKeptChoicesAreDisplayRedacted:
         # everything, so a button-less channel gets every choice as a numbered line
         # through the same sanitising sink rather than losing the answers to a
         # question the agent just asked.
-        from kiro_crew.messaging.renderer import apply_options_cap
+        from junction.messaging.renderer import apply_options_cap
 
         key = "AKIA" + "IOSFODNN7EXAMPLE"
         body, kept = apply_options_cap("pick", [key], self._caps(max_buttons=0))
@@ -966,9 +966,9 @@ class TestWebexEnforcement:
         """
         from test_webex_renderer import FakeClient
 
-        from kiro_crew.messaging.renderer import DONE, TEXT_CHUNK, OutputEvent
-        from kiro_crew.webex.renderer import WebexRenderer
-        from kiro_crew.webex.transport import WEBEX_CAPABILITIES
+        from junction.messaging.renderer import DONE, TEXT_CHUNK, OutputEvent
+        from junction.webex.renderer import WebexRenderer
+        from junction.webex.transport import WEBEX_CAPABILITIES
 
         n = WEBEX_CAPABILITIES.max_buttons
         trailer = " | ".join(f"Choice {i}" for i in range(1, n + 4))
@@ -1012,9 +1012,9 @@ class TestWebexEnforcement:
         """
         from test_webex_renderer import FakeClient
 
-        from kiro_crew.messaging.renderer import DONE, TEXT_CHUNK, OutputEvent
-        from kiro_crew.webex.renderer import WebexRenderer
-        from kiro_crew.webex.transport import WEBEX_CAPABILITIES
+        from junction.messaging.renderer import DONE, TEXT_CHUNK, OutputEvent
+        from junction.webex.renderer import WebexRenderer
+        from junction.webex.transport import WEBEX_CAPABILITIES
 
         n = WEBEX_CAPABILITIES.max_buttons
         # One address on a kept (widget) choice and one past the cap, so the

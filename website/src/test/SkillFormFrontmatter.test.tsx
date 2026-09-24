@@ -15,7 +15,7 @@ describe('structured editor preserves unmodelled frontmatter', () => {
     'name: worktree-dev',
     'description: Develop in a worktree',
     'triggers: worktree, build gate',
-    'repo_scope: src/kiro_crew',
+    'repo_scope: src/junction',
     'inject_on_trigger: false',
     '---',
     '',
@@ -24,17 +24,17 @@ describe('structured editor preserves unmodelled frontmatter', () => {
   ].join('\n')
 
   it('round-trips repo_scope, which gates where the skill may match', () => {
-    const out = assembleSkillContent(parseSkillContent(RAW, 'kirocrew-dev/worktree-dev'))
-    expect(parseFrontmatter(out).meta.repo_scope).toBe('src/kiro_crew')
+    const out = assembleSkillContent(parseSkillContent(RAW, 'junction-dev/worktree-dev'))
+    expect(parseFrontmatter(out).meta.repo_scope).toBe('src/junction')
   })
 
   it('round-trips inject_on_trigger, so editing a description cannot re-enable injection', () => {
-    const out = assembleSkillContent(parseSkillContent(RAW, 'kirocrew-dev/worktree-dev'))
+    const out = assembleSkillContent(parseSkillContent(RAW, 'junction-dev/worktree-dev'))
     expect(parseFrontmatter(out).meta.inject_on_trigger).toBe('false')
   })
 
   it('still writes the keys the form owns', () => {
-    const data = parseSkillContent(RAW, 'kirocrew-dev/worktree-dev')
+    const data = parseSkillContent(RAW, 'junction-dev/worktree-dev')
     const meta = parseFrontmatter(assembleSkillContent({ ...data, description: 'Changed' })).meta
     expect(meta.name).toBe('worktree-dev')
     expect(meta.description).toBe('Changed')
@@ -42,7 +42,7 @@ describe('structured editor preserves unmodelled frontmatter', () => {
   })
 
   it('does not duplicate a managed key that also appears in extra', () => {
-    const data = parseSkillContent(RAW, 'kirocrew-dev/worktree-dev')
+    const data = parseSkillContent(RAW, 'junction-dev/worktree-dev')
     const out = assembleSkillContent({ ...data, extra: { ...data.extra, name: 'name: smuggled' } })
     expect(out.match(/^name:/gm)).toHaveLength(1)
     expect(parseFrontmatter(out).meta.name).toBe('worktree-dev')
@@ -109,7 +109,7 @@ describe('structured editor preserves unmodelled frontmatter', () => {
    */
   it('re-emits every unmodelled field byte-identically', () => {
     const blocks = [
-      'repo_scope: src/kiro_crew',
+      'repo_scope: src/junction',
       'inject_on_trigger: false',
       'indentless:\n- alpha\n- beta',
       'indented:\n  - one\n  - two',
@@ -139,12 +139,12 @@ describe('structured editor preserves unmodelled frontmatter', () => {
   })
 
   it('does not let a top-level comment corrupt an unmodelled scalar', () => {
-    const raw = ['---', 'name: s', 'repo_scope: src/kiro_crew', '# scoped on purpose', '---', '', '# Body'].join('\n')
+    const raw = ['---', 'name: s', 'repo_scope: src/junction', '# scoped on purpose', '---', '', '# Body'].join('\n')
     const out = assembleSkillContent(parseSkillContent(raw, 's'))
     const meta = parseFrontmatter(out).meta
-    expect(meta.repo_scope).toBe('src/kiro_crew')
+    expect(meta.repo_scope).toBe('src/junction')
     // Preserved verbatim, comment included, because nothing models this key.
-    expect(out).toContain('repo_scope: src/kiro_crew\n# scoped on purpose')
+    expect(out).toContain('repo_scope: src/junction\n# scoped on purpose')
   })
 
   it('leaves a skill with no frontmatter alone', () => {

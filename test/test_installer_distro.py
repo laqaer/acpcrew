@@ -142,7 +142,7 @@ def _run_cli_with_fake_env(
         # curl, uv, or interpreter can leak into cli.sh's ladder.
         "PATH": str(tools),
         "HOME": str(tmp_path / "home"),
-        "KIROCREW_HOME": str(tmp_path / "data-home"),
+        "JUNCTION_HOME": str(tmp_path / "data-home"),
     }
     argv = [str(tools / "sh"), str(CLI_SH), *(extra_args or [])]
     result = run_bounded(argv, env)
@@ -463,7 +463,7 @@ def test_cli_link_removal_never_reaches_a_symlinked_venv(tmp_path: Path) -> None
 def test_cli_reuses_a_recorded_managed_python_choice(tmp_path: Path) -> None:
     """A completed --managed-python install records its mode; a later run
     WITHOUT the flag must reuse it -- most importantly the re-run that
-    `kirocrew update` performs, which passes only --channel. Without the
+    `junction update` performs, which passes only --channel. Without the
     marker read, every update would silently flip a managed install back onto
     whatever system interpreter it finds."""
     data_home = tmp_path / "data-home"

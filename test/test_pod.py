@@ -16,12 +16,12 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.pod import cli as pod_cli
-from kiro_crew.pod import provision as prov
-from kiro_crew.pod import runtime as rt
-from kiro_crew.pod import unit as unit_mod
-from kiro_crew.pod.config import (
+from junction import platform_compat
+from junction.pod import cli as pod_cli
+from junction.pod import provision as prov
+from junction.pod import runtime as rt
+from junction.pod import unit as unit_mod
+from junction.pod.config import (
     DEFAULT_BASE_PORT,
     DEFAULT_LIVE_PORT,
     DEFAULT_UNIT_PREFIX,
@@ -62,14 +62,14 @@ def _fake_node_toolchain(monkeypatch: pytest.MonkeyPatch) -> None:
 def _isolate_pod_host_state(tmp_path_factory, monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep pod HOST state out of the developer's real home.
 
-    Two pod paths resolve through ``Path.home()`` rather than ``KIROCREW_HOME``, so
+    Two pod paths resolve through ``Path.home()`` rather than ``JUNCTION_HOME``, so
     conftest's safety net does not cover them, and both are written by ordinary
     test paths:
 
     ``unit.unit_path`` — a test reaching ``install_unit`` (via ``_up`` ->
     ``install_backend``, or the ``start_pod`` self-heal) rewrites the REAL
-    ``kirocrew-pod@.service`` with this test's tmpdir as
-    ``Environment=KIROCREW_POD_ROOT=``. Every later ``pod up`` on the host then dies
+    ``junction-pod@.service`` with this test's tmpdir as
+    ``Environment=JUNCTION_POD_ROOT=``. Every later ``pod up`` on the host then dies
     with "no pinned checkout", so running the suite breaks pods for everyone until
     someone re-runs ``pod install``. Observed on a real host.
 
@@ -111,7 +111,7 @@ def _cp(stdout: str = "", returncode: int = 0, stderr: str = "") -> subprocess.C
 
 
 def _ready_worktree(root: Path, name: str, *, venv: bool = True, dist: bool = True) -> Path:
-    """Build a flat kirocrew worktree checkout (repo root == worktree dir)."""
+    """Build a flat junction worktree checkout (repo root == worktree dir)."""
     co = root / name
     co.mkdir(parents=True, exist_ok=True)
     if venv:
@@ -122,34 +122,34 @@ def _ready_worktree(root: Path, name: str, *, venv: bool = True, dist: bool = Tr
         b.write_text("#!/bin/sh\n")
         b.chmod(0o755)
     if dist:
-        (co / "src" / "kiro_crew" / "static" / "dist").mkdir(parents=True, exist_ok=True)
+        (co / "src" / "junction" / "static" / "dist").mkdir(parents=True, exist_ok=True)
     return co
 
 
 class TestConfig:
     def test_defaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
         for k in list(os.environ):
-            if k.startswith("KIROCREW_POD_"):
+            if k.startswith("JUNCTION_POD_"):
                 monkeypatch.delenv(k, raising=False)
         c = PodConfig.load()
         assert c.base_port == DEFAULT_BASE_PORT
         assert c.live_port == DEFAULT_LIVE_PORT == 5476
-        assert c.unit_prefix == DEFAULT_UNIT_PREFIX == "kirocrew-pod"
+        assert c.unit_prefix == DEFAULT_UNIT_PREFIX == "junction-pod"
         # Git is the primary resolver — no fixed root/repo pinned by default.
         assert c.repo_hint is None
         assert c.worktrees_root is None
 
     def test_env_overrides_build_a_hermetic_plane(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_UNIT_PREFIX", "kirocrew-podtest")
-        monkeypatch.setenv("KIROCREW_POD_BASE_PORT", "7300")
-        monkeypatch.setenv("KIROCREW_POD_ROOT", "/tmp/podtest-root")
-        monkeypatch.setenv("KIROCREW_POD_LIVE_PORT", "9999")
+        monkeypatch.setenv("JUNCTION_POD_UNIT_PREFIX", "junction-podtest")
+        monkeypatch.setenv("JUNCTION_POD_BASE_PORT", "7300")
+        monkeypatch.setenv("JUNCTION_POD_ROOT", "/tmp/podtest-root")
+        monkeypatch.setenv("JUNCTION_POD_LIVE_PORT", "9999")
         c = PodConfig.load()
-        assert c.unit_prefix == "kirocrew-podtest"
+        assert c.unit_prefix == "junction-podtest"
         assert c.base_port == 7300
         assert c.pod_root == Path("/tmp/podtest-root")
         assert c.live_port == 9999
-        assert rt.pod_unit(c, "foo") == "kirocrew-podtest@foo.service"
+        assert rt.pod_unit(c, "foo") == "junction-podtest@foo.service"
 
 
 class TestPortDerivation:
@@ -171,7 +171,7 @@ class TestPortDerivation:
             assert cfg.base_port + 1 <= rt.derive_port(cfg, name) <= cfg.base_port + 199
 
     def test_pinned_port_wins(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         (tmp_path / "pinned.env").write_text("PORT='7999'\nSEED='/x'\n")
         assert rt.derive_port(c, "pinned") == 7999
@@ -192,14 +192,14 @@ class TestEnvFileAndPin:
     def test_write_merge_preserves_keys(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         rt.write_env_file(c, "x", {"CHECKOUT": "/a", "PORT": "7999"})
         rt.write_env_file(c, "x", {"SEED": "/s"})  # merge, don't clobber
         assert rt.read_env_file(c, "x") == {"CHECKOUT": "/a", "PORT": "7999", "SEED": "/s"}
 
     def test_pin_checkout(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         rt.pin_checkout(c, "x", Path("/abs/co"))
         assert rt.read_env_file(c, "x")["CHECKOUT"] == "/abs/co"
@@ -212,20 +212,20 @@ class TestWorktreeResolution:
     def test_git_worktrees_parses_porcelain(self, monkeypatch: pytest.MonkeyPatch) -> None:
         out = (
             "worktree /repo/main\nHEAD aaa\nbranch refs/heads/main\n\n"
-            "worktree /repo/kirocrew-wt-foo\nHEAD bbb\nbranch refs/heads/feat/foo\n\n"
+            "worktree /repo/junction-wt-foo\nHEAD bbb\nbranch refs/heads/feat/foo\n\n"
         )
         monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: _cp(stdout=out))
         wts = rt._git_worktrees(Path("/repo/main"))
         assert wts["main"] == Path("/repo/main")
-        assert wts["kirocrew-wt-foo"] == Path("/repo/kirocrew-wt-foo")
-        assert wts["feat/foo"] == Path("/repo/kirocrew-wt-foo")  # branch match
+        assert wts["junction-wt-foo"] == Path("/repo/junction-wt-foo")
+        assert wts["feat/foo"] == Path("/repo/junction-wt-foo")  # branch match
 
     def test_git_worktrees_empty_on_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(rt.subprocess, "run", lambda *a, **k: _cp(returncode=128))
         assert rt._git_worktrees(Path("/nope")) == {}
 
     def test_resolve_prefers_pin(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         co = tmp_path / "co"
         co.mkdir()
@@ -237,7 +237,7 @@ class TestWorktreeResolution:
     def test_resolve_via_git_basename_and_branch(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         monkeypatch.setattr(
             rt, "_git_worktrees", lambda ref: {"foo": Path("/x/foo"), "feat/bar": Path("/x/bar")}
@@ -246,15 +246,15 @@ class TestWorktreeResolution:
         assert rt.resolve_checkout(c, "bar", cwd=tmp_path) == Path("/x/bar")  # feat/<name>
 
     def test_resolve_root_fallback(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
-        monkeypatch.setenv("KIROCREW_POD_WORKTREES_ROOT", str(tmp_path / "wts"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_WORKTREES_ROOT", str(tmp_path / "wts"))
         c = PodConfig.load()
         (tmp_path / "wts" / "demo").mkdir(parents=True)
         monkeypatch.setattr(rt, "_git_worktrees", lambda ref: {})
         assert rt.resolve_checkout(c, "demo", cwd=tmp_path) == tmp_path / "wts" / "demo"
 
     def test_resolve_raises_teaching(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         monkeypatch.setattr(rt, "_git_worktrees", lambda ref: {})
         with pytest.raises(rt.PodError, match="git worktree add"):
@@ -263,7 +263,7 @@ class TestWorktreeResolution:
     def test_stale_pin_falls_through_to_git(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         rt.pin_checkout(c, "demo", tmp_path / "gone")  # pinned dir no longer exists
         (tmp_path / "real").mkdir()
@@ -286,7 +286,7 @@ class TestUnitRendering:
         teardown hook there deleted the HOME under the pod's own surviving
         subprocesses — and fired on the stop half of a Restart=, restarting the pod
         onto a wiped home. Reclamation belongs to `pod down` (runtime.stop_pod)."""
-        monkeypatch.setenv("KIROCREW_POD_ROOT", "/tmp/podtest-root")
+        monkeypatch.setenv("JUNCTION_POD_ROOT", "/tmp/podtest-root")
         txt = unit_mod.render_unit(PodConfig.load())
         directives = [
             ln.split("=", 1)[0]
@@ -301,36 +301,36 @@ class TestUnitRendering:
         assert "Restart=on-failure" in txt
 
     def test_env_block_pins_nondefaults(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", "/tmp/hermetic-pods")
-        monkeypatch.setenv("KIROCREW_POD_REPO", "/tmp/some-repo")
+        monkeypatch.setenv("JUNCTION_POD_ROOT", "/tmp/hermetic-pods")
+        monkeypatch.setenv("JUNCTION_POD_REPO", "/tmp/some-repo")
         txt = unit_mod.render_unit(PodConfig.load())
-        assert 'Environment="KIROCREW_POD_ROOT=/tmp/hermetic-pods"' in txt
-        assert 'Environment="KIROCREW_POD_REPO=/tmp/some-repo"' in txt
+        assert 'Environment="JUNCTION_POD_ROOT=/tmp/hermetic-pods"' in txt
+        assert 'Environment="JUNCTION_POD_REPO=/tmp/some-repo"' in txt
 
     def test_env_block_quotes_spaces(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", "/tmp/pod root")
+        monkeypatch.setenv("JUNCTION_POD_ROOT", "/tmp/pod root")
         cfg = PodConfig.load()
         txt = unit_mod.render_unit(cfg)
-        root_line = next(line for line in txt.splitlines() if "KIROCREW_POD_ROOT=" in line)
+        root_line = next(line for line in txt.splitlines() if "JUNCTION_POD_ROOT=" in line)
         assert root_line.startswith('Environment="')
         assert "pod root" in root_line
 
     def test_unit_path_uses_prefix(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_UNIT_PREFIX", "kirocrew-podtest")
-        assert unit_mod.unit_path(PodConfig.load()).name == "kirocrew-podtest@.service"
+        monkeypatch.setenv("JUNCTION_POD_UNIT_PREFIX", "junction-podtest")
+        assert unit_mod.unit_path(PodConfig.load()).name == "junction-podtest@.service"
 
 
 class TestBootGuardrails:
     def test_refuses_no_pinned_checkout(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         assert rt.boot(PodConfig.load(), "nope") == 3
 
     def test_refuses_missing_venv(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         co = tmp_path / "co"
         co.mkdir()
@@ -338,8 +338,8 @@ class TestBootGuardrails:
         assert rt.boot(c, "x") == 3
 
     def test_refuses_live_port(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         co = _ready_worktree(tmp_path, "x")
         rt.pin_checkout(c, "x", co)
@@ -387,7 +387,7 @@ class TestSeedSanitization:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         seed = self._write(tmp_path / "s", {"tunnel": {"enabled": True}})
-        monkeypatch.setattr("kiro_crew.security.is_sensitive_path", lambda p, base_dir=None: True)
+        monkeypatch.setattr("junction.security.is_sensitive_path", lambda p, base_dir=None: True)
         assert rt.sanitized_seed_config(seed) is None
 
     def test_forces_teams_off_and_keeps_its_app_id(self, tmp_path: Path) -> None:
@@ -421,10 +421,10 @@ class TestSeedSanitization:
         """
         import dataclasses
 
-        from kiro_crew.channels import builtin_channel_descriptors
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.channels import builtin_channel_descriptors
+        from junction.config.loader import JunctionConfig
 
-        section_fields = {f.name: f for f in dataclasses.fields(KiroCrewConfig)}
+        section_fields = {f.name: f for f in dataclasses.fields(JunctionConfig)}
         exempt: set[str] = set()
         ungated: list[str] = []
         for desc in builtin_channel_descriptors():
@@ -466,10 +466,10 @@ class TestPodEnvCredentialScrub:
         how ``MICROSOFT_APP_*`` survived. Pin it against the loader's roster.
 
         Two keys are kept deliberately: ``KIRO_API_KEY`` is the agent's own model
-        credential and a pod runs agent turns, and ``KIROCREW_OWNER_ID`` is the pod
+        credential and a pod runs agent turns, and ``JUNCTION_OWNER_ID`` is the pod
         dashboard's owner identity rather than a bot credential.
         """
-        from kiro_crew.config.loader import (
+        from junction.config.loader import (
             _CREDENTIAL_KEYS,
             CRED_KIRO_API_KEY,
             CRED_OWNER_ID,
@@ -518,9 +518,9 @@ class TestProvision:
         here would report a built Windows worktree as unbuilt."""
         got = prov.venv_bin(tmp_path)
         if platform_compat.IS_WINDOWS:
-            assert got == tmp_path / ".venv" / "Scripts" / "kirocrew.exe"
+            assert got == tmp_path / ".venv" / "Scripts" / "junction.exe"
         else:
-            assert got == tmp_path / ".venv" / "bin" / "kirocrew"
+            assert got == tmp_path / ".venv" / "bin" / "junction"
 
     def test_provision_venv_only_skips_build(self, tmp_path: Path) -> None:
         co = _ready_worktree(tmp_path, "be-only", venv=True, dist=False)
@@ -567,7 +567,7 @@ class TestProvisionBuildPaths:
         monkeypatch.setattr(prov, "_run", fake_run)
         assert prov.build_dist(co) is True
         # website/dist staged into the served static/dist.
-        assert (co / "src" / "kiro_crew" / "static" / "dist" / "index.html").is_file()
+        assert (co / "src" / "junction" / "static" / "dist" / "index.html").is_file()
 
     def test_build_dist_no_website_dir(self, tmp_path: Path) -> None:
         co = tmp_path / "wt"
@@ -722,9 +722,9 @@ class TestPodEnv:
         # AWS_* kept (agent turns need it); AWS_SESSION_TOKEN must survive.
         assert env.get("AWS_REGION") == "us-west-2"
         assert env.get("AWS_SESSION_TOKEN") == "sts-temp"
-        assert env["KIROCREW_PORT"] == "7999"
-        assert env["KIROCREW_HOME"].endswith("home")
-        assert env["KIROCREW_PROJECT_DIR"].endswith("co")
+        assert env["JUNCTION_PORT"] == "7999"
+        assert env["JUNCTION_HOME"].endswith("home")
+        assert env["JUNCTION_PROJECT_DIR"].endswith("co")
 
 
 class TestPodConfigWrite:
@@ -755,7 +755,7 @@ class TestPodConfigWrite:
     def test_a_failed_lockdown_publishes_no_config(self, tmp_path: Path, monkeypatch) -> None:
         """restrict_to_owner runs on the temp; a failure must not leave config.json."""
         monkeypatch.setattr(
-            "kiro_crew.atomic_write.platform_compat.restrict_to_owner",
+            "junction.atomic_write.platform_compat.restrict_to_owner",
             lambda path: (_ for _ in ()).throw(OSError("icacls: transient failure")),
         )
         home = tmp_path / "pod-home"
@@ -767,7 +767,7 @@ class TestPodConfigWrite:
 
 class TestCleanupHome:
     def test_removes_pod_dir(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         victim = c.home_dir("demo")
         victim.mkdir(parents=True)
@@ -778,7 +778,7 @@ class TestCleanupHome:
 
     def test_refuses_dotdot_escape(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         pods = tmp_path / "pods"
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(pods))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(pods))
         c = PodConfig.load()
         pods.mkdir(parents=True)
         sentinel = tmp_path / "DO_NOT_DELETE"  # lives in pod_root's PARENT
@@ -794,7 +794,7 @@ class TestCleanupHomeVerifies:
     "zero residue" over a directory still on disk."""
 
     def _held_home(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[PodConfig, Path]:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
@@ -925,7 +925,7 @@ class TestLinuxTeardownOrdering:
         unit_file = tmp_path / "pod@.service"
         unit_file.write_text("[Service]\nExecStart=/x\nExecStopPost=/y pod _cleanup %i\n")
         monkeypatch.setattr(rt.unit_mod, "unit_path", lambda c: unit_file)
-        monkeypatch.setattr(rt.unit_mod, "_kirocrew_argv", lambda: (sys.executable,))
+        monkeypatch.setattr(rt.unit_mod, "_junction_argv", lambda: (sys.executable,))
         issued: list[str] = []
 
         def _systemctl(*args: str, **kwargs: object) -> subprocess.CompletedProcess:
@@ -952,7 +952,7 @@ class TestLinuxTeardownOrdering:
             order.append(args[0])
             if args[0] == "show":
                 # systemd still has the destructive hook loaded.
-                return _cp(stdout="{ path=/usr/bin/kirocrew ; argv[]=pod _cleanup x }\n")
+                return _cp(stdout="{ path=/usr/bin/junction ; argv[]=pod _cleanup x }\n")
             return _cp()
 
         # The unit file on disk looks perfectly current — the old gate's signal.
@@ -1067,7 +1067,7 @@ class TestLinuxTeardownOrdering:
         real.mkdir()
         link = tmp_path / "linked-pods"
         link.symlink_to(real)
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(link))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(link))
         c = PodConfig.load()
         (c.home_dir("demo")).mkdir(parents=True)
         monkeypatch.setattr(rt, "systemctl", lambda *a, **k: _cp())
@@ -1083,15 +1083,15 @@ class TestLinuxTeardownOrdering:
     def test_a_failed_stop_leaves_a_possibly_live_pods_state_alone(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
-        (home / "kirocrew.db").write_text("live")
+        (home / "junction.db").write_text("live")
         monkeypatch.setattr(rt, "systemctl", lambda *a, **k: _cp(returncode=1, stderr="job failed"))
         cp = rt.stop_pod(c, "demo")
         assert cp.returncode != 0
-        assert (home / "kirocrew.db").read_text() == "live"
+        assert (home / "junction.db").read_text() == "live"
 
     def test_a_process_outliving_the_drain_blocks_the_delete_entirely(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -1100,11 +1100,11 @@ class TestLinuxTeardownOrdering:
         verification: the live writer recreates the directory in append mode right
         behind the delete, which lands after the check, so `down` reports zero
         residue over a HOME that comes back. Refuse to delete instead."""
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
-        (home / "kirocrew.db").write_text("a writer still has this")
+        (home / "junction.db").write_text("a writer still has this")
         deleted: list[str] = []
         monkeypatch.setattr(rt, "systemctl", lambda *a, **k: _cp())
         monkeypatch.setattr(rt, "cgroup_procs_file", lambda cc, n: tmp_path / "cgroup.procs")
@@ -1113,7 +1113,7 @@ class TestLinuxTeardownOrdering:
         cp = rt.stop_pod(c, "demo")
         assert cp.returncode != 0
         assert deleted == [], "must not delete a HOME a live process is still in"
-        assert (home / "kirocrew.db").read_text() == "a writer still has this"
+        assert (home / "junction.db").read_text() == "a writer still has this"
         assert str(home) in cp.stderr
         assert "NOT zero-residue" in cp.stderr
         # The pids that would not exit are the actionable part of the report.
@@ -1124,7 +1124,7 @@ class TestLinuxTeardownOrdering:
     ) -> None:
         """Drained cleanly, but the delete still did not take (permissions, or a
         writer outside the cgroup). The verification is what catches this."""
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
@@ -1147,7 +1147,7 @@ class TestTheUnitFileNeverOutlivesAFailedLoad:
     def _plane(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         unit_file = tmp_path / "pod@.service"
         monkeypatch.setattr(rt.unit_mod, "unit_path", lambda c: unit_file)
-        monkeypatch.setattr(rt.unit_mod, "_kirocrew_argv", lambda: (sys.executable,))
+        monkeypatch.setattr(rt.unit_mod, "_junction_argv", lambda: (sys.executable,))
         monkeypatch.setattr(rt, "require_backend", lambda: None)
         return unit_file
 
@@ -1265,7 +1265,7 @@ class TestOrphanHomes:
     macOS, which is why the residue accumulated invisibly on Linux."""
 
     def _plane(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PodConfig:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         for n in ("orphan", "running"):
             (c.pod_root / n).mkdir(parents=True)
@@ -1285,7 +1285,7 @@ class TestOrphanHomes:
         pod_cli._ls(c, argparse.Namespace(json=False))
         out = capsys.readouterr().out
         assert "1 orphaned pod HOME(s)" in out
-        assert "kirocrew pod down orphan" in out
+        assert "junction pod down orphan" in out
 
     def test_the_json_shape_stays_live_pods_only(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
@@ -1365,8 +1365,8 @@ class TestPrune:
     def _plane(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, orphans: tuple[str, ...]
     ) -> PodConfig:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         for n in orphans:
             (c.pod_root / n).mkdir(parents=True)
@@ -1729,7 +1729,7 @@ class TestOrphanSymlinkSafety:
     def test_orphan_homes_never_lists_a_symlink(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         (c.pod_root / "live").mkdir(parents=True)
         (c.pod_root / "alias").symlink_to(c.pod_root / "live")
@@ -1739,7 +1739,7 @@ class TestOrphanSymlinkSafety:
     def test_cleanup_home_refuses_to_follow_a_symlink(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         victim = c.pod_root / "live"
         victim.mkdir(parents=True)
@@ -1760,7 +1760,7 @@ class TestOrphanSymlinkSafety:
         real = tmp_path / "real-pods"
         real.mkdir()
         (tmp_path / "pods").symlink_to(real)  # unresolved != resolved spelling
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         (c.pod_root / "demo").mkdir()
         seen: list[Path] = []
@@ -1779,7 +1779,7 @@ class TestOrphanSymlinkSafety:
         target existence would report a clean reclaim while the link remains
         as residue the orphan scan (which skips symlinks) can never surface
         again. The verification must be lexists on the entry itself."""
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         c = PodConfig.load()
         entry = c.pod_root / "swapped"
         entry.mkdir(parents=True)  # a real dir at pre-check time
@@ -1809,8 +1809,8 @@ class TestDownSamplesStateUnderTheLock:
     ) -> None:
         import contextlib as _ctx
 
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         rt.pin_checkout(c, "demo", tmp_path / "co")
         order: list[str] = []
@@ -1843,8 +1843,8 @@ class TestDownReclaimsResidue:
     to work on a pod that is no longer running."""
 
     def _orphan(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[PodConfig, Path]:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
@@ -1873,14 +1873,14 @@ class TestDownReclaimsResidue:
         reports "unit not loaded" (rc 5). With no HOME to reclaim and the pod not
         running there is nothing at stake, so `pod down <name>` must stay the
         documented no-op rather than exiting 1."""
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         c = PodConfig.load()
         monkeypatch.setattr(rt, "is_active", lambda cc, n: False)
         monkeypatch.setattr(
             rt,
             "systemctl",
-            lambda *a, **k: _cp(returncode=5, stderr="Unit kirocrew-pod@demo.service not loaded."),
+            lambda *a, **k: _cp(returncode=5, stderr="Unit junction-pod@demo.service not loaded."),
         )
         monkeypatch.setattr(pod_cli, "_audit", lambda *a, **k: None)
         pod_cli._down(c, argparse.Namespace(name="demo"))  # must not SystemExit
@@ -1915,8 +1915,8 @@ class TestHostStateIsFenced:
     """A pod test must not be able to write the machine's own systemd unit.
 
     Found on a real host: a suite run rewrote `~/.config/systemd/user/
-    kirocrew-pod@.service` with a test's tmpdir as
-    `Environment=KIROCREW_POD_ROOT=`, after which every `pod up` died with "no
+    junction-pod@.service` with a test's tmpdir as
+    `Environment=JUNCTION_POD_ROOT=`, after which every `pod up` died with "no
     pinned checkout" until someone re-ran `pod install`. `unit_path` reads
     `Path.home()`, which no test patched, and `_up` -> `install_backend` ->
     `install_unit` reaches it. Asserting the PATH rather than the write keeps this
@@ -1950,8 +1950,8 @@ class TestRuntimeHelpers:
         self, cfg: PodConfig, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         out = (
-            "kirocrew-pod@alpha.service    loaded active running x\n"
-            "kirocrew-pod@beta-two.service loaded active running y\n"
+            "junction-pod@alpha.service    loaded active running x\n"
+            "junction-pod@beta-two.service loaded active running y\n"
             "unrelated.service             loaded active running z\n"
         )
         monkeypatch.setattr(rt, "systemctl", lambda *a, **k: _cp(stdout=out))
@@ -1997,7 +1997,7 @@ class TestRuntimeHelpers:
     def test_mint_token_reads_secret_and_posts(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
@@ -2019,7 +2019,7 @@ class TestRuntimeHelpers:
     def test_mint_token_no_secret_raises(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path))
         with pytest.raises(rt.PodError):
             rt.mint_token(PodConfig.load(), "ghost", "1h")
 
@@ -2145,9 +2145,9 @@ class TestUpVerb:
         ready: bool = True,
         dist: bool = True,
     ) -> PodConfig:
-        monkeypatch.setenv("KIROCREW_POD_WORKTREES_ROOT", str(tmp_path / "wts"))
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_WORKTREES_ROOT", str(tmp_path / "wts"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         # Force git resolution to miss so the root fallback resolves deterministically.
         monkeypatch.setattr(rt, "_git_worktrees", lambda ref: {})
         if ready:
@@ -2290,7 +2290,7 @@ class TestReviewRound1Fixes:
     def test_read_env_file_matched_quote_pair_only(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         c.pods_dir.mkdir(parents=True, exist_ok=True)
         # An inner apostrophe survives; only the one surrounding pair is stripped.
@@ -2298,7 +2298,7 @@ class TestReviewRound1Fixes:
         assert rt.read_env_file(c, "x")["CHECKOUT"] == "/a/o'brien"
 
     def test_mint_token_quotes_ttl(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path))
         c = PodConfig.load()
         home = c.home_dir("demo")
         home.mkdir(parents=True)
@@ -2330,7 +2330,7 @@ class TestReviewRound2Fix:
     def test_write_env_file_rejects_newline_value(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         with pytest.raises(rt.PodError):
             rt.write_env_file(c, "x", {"SEED": "/a/\nevil"})
@@ -2364,7 +2364,7 @@ class TestEnvFileConcurrentWrite:
         re-entering from one thread exercises the reentrant counter instead of the
         cross-writer exclusion this is about.
         """
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         rt.write_env_file(c, "demo", {"CHECKOUT": "/first", "APPROVAL": "reads"})
 
@@ -2405,7 +2405,7 @@ class TestEnvFileConcurrentWrite:
         only ``write_env_file`` took would leave the writes made inside it unexcluded.
         Holding the mutex here must therefore block a competing writer outright.
         """
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         rt.write_env_file(c, "demo", {"CHECKOUT": "/first"})
 
@@ -2447,7 +2447,7 @@ class TestEnvFileConcurrentWrite:
         same descriptor reads across the truncation and the halves do not match
         any generation that was ever valid.
         """
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path))
         c = PodConfig.load()
         # Enough keys that a spliced read is unambiguous rather than a near-miss.
         first = {"APPROVAL": "interactive", "CHECKOUT": "/a"}
@@ -2486,39 +2486,39 @@ class TestEnvFileConcurrentWrite:
 
 
 class TestUnitExecSelfHeal:
-    """The unit bakes an absolute kirocrew path; a pruned worktree leaves it
+    """The unit bakes an absolute junction path; a pruned worktree leaves it
     dangling and every start fails EXEC. unit_exec_ok detects that."""
 
     def _cfg_with_unit(self, tmp_path, monkeypatch, exec_line):
-        from kiro_crew.pod import unit as unit_mod
-        from kiro_crew.pod.config import PodConfig
+        from junction.pod import unit as unit_mod
+        from junction.pod.config import PodConfig
 
         monkeypatch.setattr(unit_mod, "unit_path", lambda cfg: tmp_path / "pod@.service")
         (tmp_path / "pod@.service").write_text(f"[Service]\n{exec_line}\nRestart=on-failure\n")
         return PodConfig.load()
 
     def test_dangling_binary_detected(self, tmp_path, monkeypatch):
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
         cfg = self._cfg_with_unit(
             tmp_path,
             monkeypatch,
-            f"ExecStart={(tmp_path / 'gone/.venv/bin/kirocrew').as_posix()} pod _run %i",
+            f"ExecStart={(tmp_path / 'gone/.venv/bin/junction').as_posix()} pod _run %i",
         )
         assert unit_mod.unit_exec_ok(cfg) is False
 
     def test_valid_binary_passes(self, tmp_path, monkeypatch):
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
-        exe = tmp_path / "kirocrew"
+        exe = tmp_path / "junction"
         exe.write_text("#!/bin/sh\n")
         exe.chmod(0o755)
         cfg = self._cfg_with_unit(tmp_path, monkeypatch, f"ExecStart={exe.as_posix()} pod _run %i")
         assert unit_mod.unit_exec_ok(cfg) is True
 
     def test_missing_unit_file_detected(self, tmp_path, monkeypatch):
-        from kiro_crew.pod import unit as unit_mod
-        from kiro_crew.pod.config import PodConfig
+        from junction.pod import unit as unit_mod
+        from junction.pod.config import PodConfig
 
         monkeypatch.setattr(unit_mod, "unit_path", lambda cfg: tmp_path / "absent@.service")
         assert unit_mod.unit_exec_ok(PodConfig.load()) is False
@@ -2528,9 +2528,9 @@ class TestUnitExecSelfHeal:
         whatever it installed. Without this, an older unit's ExecStopPost would go
         on racing the pod's own subprocesses (and wiping the HOME on the stop half
         of a Restart=) until someone reinstalled by hand."""
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
-        exe = tmp_path / "kirocrew"
+        exe = tmp_path / "junction"
         exe.write_text("#!/bin/sh\n")
         exe.chmod(0o755)
         cfg = self._cfg_with_unit(tmp_path, monkeypatch, f"ExecStart={exe.as_posix()} pod _run %i")
@@ -2542,30 +2542,30 @@ class TestUnitExecSelfHeal:
     def test_what_this_build_renders_is_current(self, cfg, monkeypatch, tmp_path):
         """Guard against the reverse failure: a check that flagged the CURRENT
         template would re-render and daemon-reload on every single `pod up`."""
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
         monkeypatch.setattr(unit_mod, "unit_path", lambda c: tmp_path / "pod@.service")
         # An executable that exists on every platform the suite runs on — a POSIX
         # path here made unit_exec_ok report "stale" on Windows.
-        monkeypatch.setattr(unit_mod, "_kirocrew_argv", lambda: (sys.executable,))
+        monkeypatch.setattr(unit_mod, "_junction_argv", lambda: (sys.executable,))
         unit_mod.install_unit(cfg)
         assert unit_mod.unit_is_current(cfg) is True
 
     def test_spaced_executable_is_quoted_and_current(self, cfg, monkeypatch, tmp_path):
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
-        exe = tmp_path / "venv with spaces" / "kirocrew"
+        exe = tmp_path / "venv with spaces" / "junction"
         exe.parent.mkdir()
         exe.write_text("#!/bin/sh\n")
         exe.chmod(0o755)
         monkeypatch.setattr(unit_mod, "unit_path", lambda c: tmp_path / "pod@.service")
-        monkeypatch.setattr(unit_mod, "_kirocrew_argv", lambda: (str(exe),))
+        monkeypatch.setattr(unit_mod, "_junction_argv", lambda: (str(exe),))
         rendered = unit_mod.install_unit(cfg).read_text()
         assert 'ExecStart="' in rendered
         assert unit_mod.unit_is_current(cfg) is True
 
     def test_malformed_execstart_is_stale(self, tmp_path, monkeypatch):
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
         cfg = self._cfg_with_unit(tmp_path, monkeypatch, 'ExecStart="unterminated')
         assert unit_mod.unit_exec_ok(cfg) is False
@@ -2584,12 +2584,12 @@ class TestUnitExecSelfHeal:
         assert steps == ["reinstall", "daemon-reload", "start"]
 
     def test_module_invocation_form_passes(self, tmp_path, monkeypatch):
-        from kiro_crew.pod import unit as unit_mod
+        from junction.pod import unit as unit_mod
 
         cfg = self._cfg_with_unit(
             tmp_path,
             monkeypatch,
-            "ExecStart=python3 -m kiro_crew pod _run %i",
+            "ExecStart=python3 -m junction pod _run %i",
         )
         assert unit_mod.unit_exec_ok(cfg) is True
 
@@ -2674,7 +2674,7 @@ class TestPlatformGuard:
 class TestSessionBus:
     """``systemctl --user`` needs the per-user systemd instance's bus pointers.
 
-    A process descended from a systemd SYSTEM unit — how ``kirocrew service
+    A process descended from a systemd SYSTEM unit — how ``junction service
     install`` runs the gateway — inherits no login-session environment, so
     neither ``XDG_RUNTIME_DIR`` nor ``DBUS_SESSION_BUS_ADDRESS`` is set and every
     pod verb died with "Failed to connect to bus: No medium found" even though
@@ -2835,7 +2835,7 @@ class TestBootTimeSettings:
     """``pod up --approval`` / ``--crons`` are persisted per pod and applied at boot.
 
     Neither can ride the unit file: both backends re-enter the pod as
-    ``kirocrew pod _run <name>`` with no flags. On systemd one template unit is
+    ``junction pod _run <name>`` with no flags. On systemd one template unit is
     shared by every instance, so it cannot carry per-pod flags; launchd writes a
     per-pod plist but still execs that same flagless argv. So they travel through
     the per-pod env file, exactly as ``SEED`` does.
@@ -2845,8 +2845,8 @@ class TestBootTimeSettings:
         self, root: Path, monkeypatch: pytest.MonkeyPatch, env: dict[str, str]
     ) -> list[str]:
         """Boot a ready pod with *env* merged into its env file; return the exec argv."""
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(root / "env"))
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(root / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(root / "env"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(root / "pods"))
         c = PodConfig.load()
         rt.pin_checkout(c, "x", _ready_worktree(root, "x"))
         if env:
@@ -2957,9 +2957,9 @@ class TestBootTimeSettings:
     def _prep_up(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, active: bool
     ) -> PodConfig:
-        monkeypatch.setenv("KIROCREW_POD_WORKTREES_ROOT", str(tmp_path / "wts"))
-        monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "env"))
+        monkeypatch.setenv("JUNCTION_POD_WORKTREES_ROOT", str(tmp_path / "wts"))
+        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+        monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "env"))
         monkeypatch.setattr(rt, "_git_worktrees", lambda ref: {})
         _ready_worktree(tmp_path / "wts", "demo")
         monkeypatch.setattr(rt, "derive_port", lambda cfg, n: 7811)

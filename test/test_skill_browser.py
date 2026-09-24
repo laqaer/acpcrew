@@ -4,7 +4,7 @@ Covers:
 - ``list_kiro_skills`` discovery of ``~/.kiro/skills/`` and workspace ``.kiro/skills/``
 - ``_resolve_loaded_by_agents`` glob-matching against installed agent JSONs
 - ``list_skill_tree`` / ``read_skill_file`` size + sensitive-path + escape guards
-- ``_resolve_skill_root`` cross-source resolution (kirocrew / kiro-user / aim)
+- ``_resolve_skill_root`` cross-source resolution (junction / kiro-user / aim)
 - ``GET /api/skills/<name>/tree`` and ``GET /api/skills/<name>/file`` end-to-end
 
 Tests use a tmp_path fake $HOME so we never touch the real filesystem.
@@ -19,7 +19,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers._shared import (
+from junction.dashboard.handlers._shared import (
     SKILL_FILE_MAX_BYTES,
     SKILL_TREE_MAX_ENTRIES,
     _agent_loads_skill,
@@ -44,12 +44,12 @@ from kiro_crew.dashboard.handlers._shared import (
 def fake_home(tmp_path, monkeypatch):
     """Pin $HOME to tmp_path so Path.home() returns a writable sandbox.
 
-    Also clears KIROCREW_HOME so ``skills_dir()`` resolves to
+    Also clears JUNCTION_HOME so ``skills_dir()`` resolves to
     ``<tmp>/.kiro/crew/skills`` rather than any value leaked from the
     surrounding build environment.
     """
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.delenv("KIROCREW_HOME", raising=False)
+    monkeypatch.delenv("JUNCTION_HOME", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     return tmp_path
 
@@ -418,7 +418,7 @@ class TestAnnotateSkillsWithAgents:
             for n in ("s1", "s2", "s3", "s4", "s5")
         ]
 
-        import kiro_crew.dashboard.handlers._shared as shared
+        import junction.dashboard.handlers._shared as shared
 
         calls = {"n": 0}
         real = shared._load_parsed_agents
@@ -483,8 +483,8 @@ class TestCollectSkillsBlocking:
         result = collect_skills_blocking(loader, package_skills, project_dir=None)
 
         by_key = {s["key"]: s for s in result}
-        # kirocrew source defaulted, package rows merged, kiro discovered.
-        assert by_key["mc"]["source"] == "kirocrew"
+        # junction source defaulted, package rows merged, kiro discovered.
+        assert by_key["mc"]["source"] == "junction"
         assert "package/aim-one" in by_key
         assert "kiro-user/kiro-one" in by_key
         # Every entry carries loaded_by_agents; the kiro skill matches loader.
@@ -621,7 +621,7 @@ class TestReadSkillFile:
 
 
 class TestResolveSkillRoot:
-    def test_kirocrew_skill(self, fake_home):
+    def test_junction_skill(self, fake_home):
         skill_dir = _write_skill(fake_home / ".kiro" / "crew" / "skills", "foo")
         state = MagicMock(_slots={})
         out = _resolve_skill_root("foo", state)
@@ -662,7 +662,7 @@ class TestResolveSkillRoot:
         out = _resolve_skill_root("kiro-user/linked", state)
         assert out == target_dir.resolve()
 
-    def test_nested_kirocrew_skill_resolves(self, fake_home):
+    def test_nested_junction_skill_resolves(self, fake_home):
         """Regression: category-keyed skills (``utils/multi-badger``,
         ``code/builder-toolbox``) live one level below the skills root.
         An over-strict symlink guard that required the candidate's parent
@@ -680,19 +680,19 @@ class TestResolveSkillRoot:
         out = _resolve_skill_root("kiro-user/cat/nested-one", state)
         assert out == skill_dir.resolve()
 
-    def test_kirocrew_skill_honors_kirocrew_home(self, tmp_path, monkeypatch):
-        """``_resolve_skill_root`` must resolve kirocrew skills under the
+    def test_junction_skill_honors_junction_home(self, tmp_path, monkeypatch):
+        """``_resolve_skill_root`` must resolve junction skills under the
         active config home (``skills_dir()``), not a hardcoded
-        ``~/.kiro/crew``.  An isolated dev gateway sets KIROCREW_HOME to a
+        ``~/.kiro/crew``.  An isolated dev gateway sets JUNCTION_HOME to a
         separate directory; the tree/file endpoints must follow it."""
         home_dir = tmp_path / "real-home"
         home_dir.mkdir()
         monkeypatch.setenv("HOME", str(home_dir))
         monkeypatch.setattr(Path, "home", lambda: home_dir)
 
-        # Isolated config home elsewhere, selected via KIROCREW_HOME.
+        # Isolated config home elsewhere, selected via JUNCTION_HOME.
         mc_home = tmp_path / "dev-home"
-        monkeypatch.setenv("KIROCREW_HOME", str(mc_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(mc_home))
         skill_dir = _write_skill(mc_home / "skills", "isolated-skill")
 
         state = MagicMock(_slots={})
@@ -745,7 +745,7 @@ class TestResolveSkillRoot:
 
 
 def _make_app(state):
-    from kiro_crew.dashboard.handlers import api_skill_file, api_skill_tree, api_skills
+    from junction.dashboard.handlers import api_skill_file, api_skill_tree, api_skills
 
     app = web.Application()
     app["state"] = state
@@ -828,7 +828,7 @@ class TestEndpoints:
         events.  Failed access (traversal/sensitive-path) is a probing signal."""
         _write_skill(fake_home / ".kiro" / "skills", "demo")
         sel_mock = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: sel_mock)
+        monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: sel_mock)
 
         state = MagicMock(_slots={}, context_builder=None)
         async with TestClient(TestServer(_make_app(state))) as client:
@@ -849,14 +849,14 @@ class TestEndpoints:
         """Route collision regression: a nested skill whose last path segment
         is literally ``tree`` (``utils/tree``) must reach the detail endpoint,
         not the tree browser.  The ``/-/`` separator keeps them distinct."""
-        from kiro_crew.dashboard.handlers import (
+        from junction.dashboard.handlers import (
             api_skill_detail,
             api_skill_file,
             api_skill_tree,
         )
-        from kiro_crew.skills import SkillsLoader
+        from junction.skills import SkillsLoader
 
-        # A real skill literally named ``utils/tree`` under the kirocrew root.
+        # A real skill literally named ``utils/tree`` under the junction root.
         _write_skill(fake_home / ".kiro" / "crew" / "skills", "utils/tree", description="edge")
 
         app = web.Application()
@@ -904,13 +904,13 @@ class TestApiSkillsAgentScoping:
         the same override in ``test_agent_template_skills.py``'s fixture.
         """
         monkeypatch.setattr(
-            "kiro_crew.agent_discovery._KIRO_AGENTS_DIR",
+            "junction.agent_discovery._KIRO_AGENTS_DIR",
             fake_home / ".kiro" / "agents",
         )
 
     @staticmethod
     def _state() -> MagicMock:
-        from kiro_crew.skills import SkillsLoader
+        from junction.skills import SkillsLoader
 
         # A real SkillsLoader, not a bare MagicMock: `_get_skills` treats
         # `hasattr(state, "_standalone_skills")` as "already built", but a
@@ -1084,7 +1084,7 @@ class TestSessionScopedSkillResolution:
         metadata. An app caller must therefore own that exact slot; a foreign,
         unscoped, missing, or absent slot key is indistinguishable from missing.
         """
-        from kiro_crew.dashboard.handlers import prompts
+        from junction.dashboard.handlers import prompts
 
         project = tmp_path / "foreign-project"
         _write_skill(
@@ -1154,8 +1154,8 @@ class TestSessionScopedSkillResolution:
         self, fake_home, tmp_path, monkeypatch
     ):
         """An owned slot without a project must not inherit another slot's project."""
-        from kiro_crew.dashboard.handlers import api_skill_detail, prompts
-        from kiro_crew.skills import SkillsLoader
+        from junction.dashboard.handlers import api_skill_detail, prompts
+        from junction.skills import SkillsLoader
 
         project = tmp_path / "foreign-project"
         _write_skill(project / ".kiro" / "skills", "foreign-skill")

@@ -13,9 +13,9 @@ import { renderWithProviders } from './helpers'
  * surfaced inline and the draft kept so the user can fix the typo.
  */
 
-const { patchConfigMock, kirocrewConfigMock } = vi.hoisted(() => ({
+const { patchConfigMock, junctionConfigMock } = vi.hoisted(() => ({
   patchConfigMock: vi.fn(() => Promise.resolve({})),
-  kirocrewConfigMock: vi.fn(() => Promise.resolve({})),
+  junctionConfigMock: vi.fn(() => Promise.resolve({})),
 }))
 
 vi.mock('../api/client', () => {
@@ -32,7 +32,7 @@ vi.mock('../api/client', () => {
   }
   return {
     api: {
-      kirocrewConfig: kirocrewConfigMock,
+      junctionConfig: junctionConfigMock,
       patchConfig: patchConfigMock,
       installTheme: vi.fn(() => Promise.resolve({ ok: true })),
     },
@@ -99,7 +99,7 @@ vi.mock('../hooks/useSessionPalette', () => ({
 import { DisplayPanel } from '../pages/settings/DisplayPanel'
 
 function seed(shell: string) {
-  kirocrewConfigMock.mockImplementation(() =>
+  junctionConfigMock.mockImplementation(() =>
     Promise.resolve({ dashboard: { terminal: { shell } } }),
   )
 }
@@ -184,7 +184,7 @@ describe('DisplayPanel → Terminal default shell', () => {
       stored = value
       return Promise.resolve({})
     }) as never)
-    kirocrewConfigMock.mockImplementation(() =>
+    junctionConfigMock.mockImplementation(() =>
       Promise.resolve({ dashboard: { terminal: { shell: stored } } }),
     )
     renderWithProviders(<DisplayPanel />)

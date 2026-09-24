@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 Three things every test needs:
 
@@ -33,9 +33,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps.builtins.meetings.backend import store
-from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
-from kiro_crew.apps.builtins.meetings.backend.routes import _common, register_routes
+from junction.apps.builtins.meetings.backend import store
+from junction.apps.builtins.meetings.backend.domain import session as sess
+from junction.apps.builtins.meetings.backend.routes import _common, register_routes
 
 
 @pytest.fixture(name="root")

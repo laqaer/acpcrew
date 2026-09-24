@@ -1,4 +1,4 @@
-"""Tests for the anonymous usage beacon (kiro_crew.beacon).
+"""Tests for the anonymous usage beacon (junction.beacon).
 
 Drives real production code — no reimplementation of the payload shape or the
 suppression rules in the test, so drift in either fails here.
@@ -21,8 +21,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew import beacon, platform_compat
-from kiro_crew.apps import install_receipt
+from junction import beacon, platform_compat
+from junction.apps import install_receipt
 
 # Captured before any fixture can monkeypatch the module attribute, so the
 # dedicated tests below can exercise the REAL implementation.
@@ -64,7 +64,7 @@ def _isolated_home(tmp_path, monkeypatch):
     The real CI environment sets CI=1, which would otherwise suppress every
     send and make the positive-path tests vacuous.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     monkeypatch.setattr(beacon, "config_dir", lambda: tmp_path)
     monkeypatch.setattr(beacon, "is_default_home", lambda: True)
     monkeypatch.setattr(beacon, "is_ci", lambda: False)
@@ -159,7 +159,7 @@ class TestInstallId:
 
         Regression test: a strict decode raises UnicodeDecodeError — a
         ValueError, NOT an OSError — so it escaped the handler and killed
-        `kirocrew telemetry status` outright.
+        `junction telemetry status` outright.
         """
         (_isolated_home / beacon.INSTALL_ID_FILE).write_bytes(b"\xff\xfe bad \x80")
         # status path: must report nothing rather than raise
@@ -232,7 +232,7 @@ class TestPayloadAllowlist:
             assert not hasattr(beacon, name), f"beacon.{name} should be deleted"
 
     def test_no_value_leaks_identity_or_paths(self, _isolated_home, monkeypatch):
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", "/Users/secret/my-private-repo")
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", "/Users/secret/my-private-repo")
         blob = json.dumps(beacon.payload("1.2.3"))
         for forbidden in ("secret", "my-private-repo", "/Users", "\\Users"):
             assert forbidden not in blob
@@ -349,7 +349,7 @@ class TestDistributionStamp:
     def test_generated_module_is_gitignored(self):
         """A committed stamp would mislabel every other build's beacon."""
         root = Path(__file__).resolve().parents[1]
-        assert "src/kiro_crew/_build_info.py" in (root / ".gitignore").read_text()
+        assert "src/junction/_build_info.py" in (root / ".gitignore").read_text()
 
 
 class TestVersionClamp:
@@ -452,7 +452,7 @@ class TestSuppression:
     def test_non_default_home_suppressed(self, _isolated_home, monkeypatch):
         monkeypatch.setattr(beacon, "is_default_home", lambda: False)
         ok, reason, _code = beacon.should_send(enabled=True, acked=True)
-        assert not ok and "KIROCREW_HOME" in reason
+        assert not ok and "JUNCTION_HOME" in reason
 
 
 class TestFirstEgressPrivacyGate:
@@ -586,24 +586,24 @@ class TestDefaultHomeDetection:
     def test_dev_home_is_not_default(self, monkeypatch, tmp_path):
         """is_default_home must NOT compare against config_dir().
 
-        config_dir() honors KIROCREW_HOME, so comparing the two would always
+        config_dir() honors JUNCTION_HOME, so comparing the two would always
         match and the dev-home/pod suppression would never fire. This test
         failed against exactly that bug during development.
         """
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "dev-home"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "dev-home"))
         assert beacon.is_default_home() is False
 
     def test_unset_home_is_default(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         assert beacon.is_default_home() is True
 
     def test_real_home_spelled_explicitly_is_default(self, monkeypatch):
         from pathlib import Path
 
-        from kiro_crew.config.paths import CONFIG_DIR_LEAF, KIRO_BASE_DIR_NAME
+        from junction.config.paths import CONFIG_DIR_LEAF, KIRO_BASE_DIR_NAME
 
         real = Path.home() / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF
-        monkeypatch.setenv("KIROCREW_HOME", str(real))
+        monkeypatch.setenv("JUNCTION_HOME", str(real))
         assert beacon.is_default_home() is True
 
 
@@ -689,7 +689,7 @@ class TestUrlAndTransport:
         Regression test: should_send() and payload() probe the filesystem, and
         they used to run OUTSIDE send()'s try, so a PermissionError from
         config_dir() escaped into the gateway's daemon thread (traceback on every
-        boot) and made `kirocrew telemetry status` crash — while the module
+        boot) and made `junction telemetry status` crash — while the module
         documents an in-memory fallback for exactly this case.
         """
 
@@ -711,7 +711,7 @@ class TestUrlAndTransport:
     def test_no_passwd_entry_is_silent(self, _isolated_home, monkeypatch):
         """Path.home() raises RuntimeError (not OSError) when the UID has no
         passwd entry — normal in a container. It must not escape either."""
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(beacon, "is_default_home", lambda: _REAL_IS_DEFAULT_HOME())
 
         def no_home():
@@ -821,7 +821,7 @@ class TestFailOpen:
         """
         import inspect
 
-        from kiro_crew.slack import gateway
+        from junction.slack import gateway
 
         src = inspect.getsource(gateway.run_gateway)
         assert "beacon.send" in src
@@ -852,8 +852,8 @@ class TestStatusOutput:
         )
         expected_optout = f"""  To opt out, choose one:
 
-    1. Kiro Crew CLI (recommended)
-       kirocrew telemetry disable
+    1. Junction CLI (recommended)
+       junction telemetry disable
 
     2. Environment variable (choose your shell)
        macOS / Linux
@@ -879,18 +879,18 @@ class TestTelemetryCliWrite:
         return argparse.Namespace(telemetry_action=action)
 
     def test_toggle_preserves_unrelated_config(self, _isolated_home, monkeypatch):
-        from kiro_crew.cli_commands import _telemetry
+        from junction.cli_commands import _telemetry
 
         cfg = _isolated_home / "config.json"
-        cfg.write_text(json.dumps({"slack": {"command": "kirocrew"}, "timezone": "UTC"}))
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        cfg.write_text(json.dumps({"slack": {"command": "junction"}, "timezone": "UTC"}))
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
         _telemetry(self._args("disable"))
         data = json.loads(cfg.read_text())
         assert data["telemetry"]["beacon_enabled"] is False
         # The user's own values must survive. (load() also performs a migration
         # write-back that fills in defaults for other keys — pre-existing
         # behavior, so assert the values we set, not the exact section shape.)
-        assert data["slack"]["command"] == "kirocrew", "must not drop other settings"
+        assert data["slack"]["command"] == "junction", "must not drop other settings"
         assert data["timezone"] == "UTC"
 
     @pytest.mark.parametrize(
@@ -903,11 +903,11 @@ class TestTelemetryCliWrite:
         write — silently destroying the file's contents AND printing success. A
         privacy toggle must never be a data-loss path.
         """
-        from kiro_crew.cli_commands import _telemetry
+        from junction.cli_commands import _telemetry
 
         cfg = _isolated_home / "config.json"
         cfg.write_text(raw)
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
 
         with pytest.raises(SystemExit) as exc:
             _telemetry(self._args("disable"))
@@ -931,12 +931,12 @@ class TestTelemetryCliWrite:
         import os
         import stat as _stat
 
-        from kiro_crew.cli_commands import _telemetry
+        from junction.cli_commands import _telemetry
 
         cfg = _isolated_home / "config.json"
         cfg.write_text(json.dumps({"slack": {"bot_token": "xoxb-secret"}}))
         os.chmod(cfg, 0o600)
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
 
         _telemetry(self._args("disable"))
 
@@ -954,12 +954,12 @@ class TestTelemetryCliWrite:
         """
         import os
 
-        from kiro_crew import cli_commands
+        from junction import cli_commands
 
         cfg = _isolated_home / "config.json"
         cfg.write_text(json.dumps({"slack": {"bot_token": "xoxb-secret"}}))
         os.chmod(cfg, 0o600)
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
 
         calls: list[str] = []
         real = cli_commands.platform_compat.restrict_to_owner
@@ -981,11 +981,11 @@ class TestTelemetryCliWrite:
         """A config.json this command creates must start owner-only."""
         import stat as _stat
 
-        from kiro_crew.cli_commands import _telemetry
+        from junction.cli_commands import _telemetry
 
         cfg = _isolated_home / "config.json"
         assert not cfg.exists()
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
 
         _telemetry(self._args("disable"))
 
@@ -1003,14 +1003,14 @@ class TestTelemetryCliWrite:
         writers are serialized by an advisory lock.
 
         Asserted at the call site rather than by simulating a failed write,
-        because ``KiroCrewConfig.load()`` performs its own migration write-back
+        because ``JunctionConfig.load()`` performs its own migration write-back
         that rewrites config.json independently of this code path.
         """
-        from kiro_crew import cli_commands
+        from junction import cli_commands
 
         cfg = _isolated_home / "config.json"
         cfg.write_text(json.dumps({"timezone": "UTC"}))
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
 
         calls: list[dict] = []
 
@@ -1039,20 +1039,20 @@ class TestTelemetryCliWrite:
         and then print success. The toggle writes BOTH sections, so each needs the
         same guard the whole-file check already applies.
 
-        ``KiroCrewConfig.load`` is stubbed out because it runs FIRST in
+        ``JunctionConfig.load`` is stubbed out because it runs FIRST in
         ``_telemetry`` and its own migration write-back already replaces a
         malformed section with defaults, so the guard would never see the bad
         value through a live load. Stubbing it reproduces the case the guard
         actually covers: the write-back did not persist (a read-only data home),
         leaving the malformed value on disk at read time.
         """
-        from kiro_crew import cli_commands
+        from junction import cli_commands
 
         cfg = _isolated_home / "config.json"
         original = json.dumps({"timezone": "UTC", section: value})
         cfg.write_text(original)
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
-        monkeypatch.setattr(cli_commands.KiroCrewConfig, "load", classmethod(lambda cls: MagicMock()))
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr(cli_commands.JunctionConfig, "load", classmethod(lambda cls: MagicMock()))
 
         with pytest.raises(SystemExit) as excinfo:
             cli_commands._telemetry(self._args("disable"))
@@ -1062,11 +1062,11 @@ class TestTelemetryCliWrite:
 
     def test_absent_sections_are_created(self, _isolated_home, monkeypatch):
         """Absent is not malformed: create both sections and record the choice."""
-        from kiro_crew.cli_commands import _telemetry
+        from junction.cli_commands import _telemetry
 
         cfg = _isolated_home / "config.json"
         cfg.write_text(json.dumps({"timezone": "UTC"}))
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg)
 
         _telemetry(self._args("disable"))
 
@@ -1089,8 +1089,8 @@ class TestSnapshotAndPortabilityRegistration:
     """
 
     def test_beacon_names_are_not_basename_filtered(self):
-        from kiro_crew.portability import EXPORT_EXCLUDE
-        from kiro_crew.snapshot import NEVER_SNAPSHOT_FILES
+        from junction.portability import EXPORT_EXCLUDE
+        from junction.snapshot import NEVER_SNAPSHOT_FILES
 
         for name in (beacon.INSTALL_ID_FILE, beacon.STAMP_FILE):
             assert name not in EXPORT_EXCLUDE, (
@@ -1106,14 +1106,14 @@ class TestSnapshotAndPortabilityRegistration:
         """Root-level export copies a fixed allowlist; beacon files aren't on it."""
         import inspect
 
-        from kiro_crew import portability
+        from junction import portability
 
         src = inspect.getsource(portability.create_export_zip)
         assert beacon.INSTALL_ID_FILE not in src
         assert beacon.STAMP_FILE not in src
 
     def test_snapshot_components_never_name_beacon_state(self):
-        from kiro_crew.snapshot import CORE_FILES
+        from junction.snapshot import CORE_FILES
 
         listed = {f for files in CORE_FILES.values() for f in files}
         assert beacon.INSTALL_ID_FILE not in listed
@@ -1123,7 +1123,7 @@ class TestSnapshotAndPortabilityRegistration:
         """A user file merely SHARING the name must not be filtered out."""
         from pathlib import PurePosixPath
 
-        from kiro_crew.portability import _is_excluded
+        from junction.portability import _is_excluded
 
         for rel in (
             f"workspace/proj/{beacon.INSTALL_ID_FILE}",
@@ -1134,7 +1134,7 @@ class TestSnapshotAndPortabilityRegistration:
 
 class TestConfigDefaults:
     def test_beacon_on_by_default_with_https_endpoint(self):
-        from kiro_crew.config.loader import TelemetryConfig
+        from junction.config.loader import TelemetryConfig
 
         cfg = TelemetryConfig()
         assert cfg.beacon_enabled is True
@@ -1153,7 +1153,7 @@ class TestConfigDefaults:
         The fixture already neutralizes the CI and data-home suppressions (both
         fire in the test environment for reasons unrelated to defaults).
         """
-        from kiro_crew.config.loader import TelemetryConfig
+        from junction.config.loader import TelemetryConfig
 
         cfg = TelemetryConfig()
         ok, reason, _code = beacon.should_send(enabled=cfg.beacon_enabled, acked=True)
@@ -1172,7 +1172,7 @@ class TestConfigDefaults:
         assert beacon.is_governance_pinned_off() is False
 
     def test_non_https_endpoint_is_cleared(self):
-        from kiro_crew.config.loader import TelemetryConfig
+        from junction.config.loader import TelemetryConfig
 
         assert TelemetryConfig(beacon_endpoint="http://insecure.invalid").beacon_endpoint == ""
 
@@ -1183,7 +1183,7 @@ class TestConfigDefaults:
         beacon_url's scheme check, then fails only inside urlopen — deep in the
         beacon thread. Reject it at config load instead.
         """
-        from kiro_crew.config.loader import TelemetryConfig
+        from junction.config.loader import TelemetryConfig
 
         for bad in (
             "https://exa mple.invalid",  # whitespace in host
@@ -1194,7 +1194,7 @@ class TestConfigDefaults:
 
     def test_local_metrics_switch_stays_off(self):
         """The beacon must not ride the local-only telemetry.enabled switch."""
-        from kiro_crew.config.loader import TelemetryConfig
+        from junction.config.loader import TelemetryConfig
 
         assert TelemetryConfig().enabled is False
 
@@ -1232,8 +1232,8 @@ class TestGovernancePin:
 
     def _install_policy(self, monkeypatch, doc):
         """Install ``doc`` as the boot-frozen ceiling for the duration of a test."""
-        from kiro_crew.platform import context as pc
-        from kiro_crew.platform.governance import parse_policy
+        from junction.platform import context as pc
+        from junction.platform.governance import parse_policy
 
         ceiling = parse_policy(doc) if doc is not None else None
 
@@ -1341,12 +1341,12 @@ class TestGovernancePin:
         ordinary permitted=False ``Decision``, not an exception — which is why the
         probe keys on ``layer``, not on ``permitted`` alone.
         """
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         monkeypatch.setattr(
             gp, "resolve_active_scope", lambda *a, **k: gp.deny_all_profile("_deny_all_unloaded:x")
         )
-        from kiro_crew.platform import context as pc
+        from junction.platform import context as pc
 
         class _Ctx:
             governance = None
@@ -1372,7 +1372,7 @@ class TestGovernancePin:
                 "capabilities": {"telemetry": {"enabled": False}},
             },
         )
-        from kiro_crew.platform.governance import parse_policy, resolve
+        from junction.platform.governance import parse_policy, resolve
 
         decision = resolve(
             parse_policy(
@@ -1404,8 +1404,8 @@ class TestGovernancePin:
         Asserted at the ``should_send`` boundary too, since the probe only matters
         if it actually suppresses.
         """
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.platform.governance import parse_policy
+        from junction.platform import governance_profiles as gp
+        from junction.platform.governance import parse_policy
 
         # A governed fleet whose profile resolution breaks mid-evaluation.
         monkeypatch.setattr(
@@ -1413,7 +1413,7 @@ class TestGovernancePin:
             "resolve_active_scope",
             lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
         )
-        from kiro_crew.platform import context as pc
+        from junction.platform import context as pc
 
         class _Ctx:
             governance = parse_policy({"version": 1, "boot": {"fail_closed": True}})
@@ -1434,7 +1434,7 @@ class TestGovernancePin:
         documented to propagate). That is still an unevaluable ceiling, so it must
         not permit the egress.
         """
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         monkeypatch.setattr(
             beacon,
@@ -1464,7 +1464,7 @@ class TestGovernancePin:
         )
         monkeypatch.setattr(beacon, "already_sent_today", lambda: False)
         fake = MagicMock()
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         monkeypatch.setattr(sel_mod, "sel", lambda: fake)
 
@@ -1499,7 +1499,7 @@ class TestGovernancePin:
             },
         )
         monkeypatch.setattr(beacon, "already_sent_today", lambda: False)
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         def _tools_for(action):
             fake = MagicMock()
@@ -1510,9 +1510,9 @@ class TestGovernancePin:
                 pass  # the CLI refusals exit(1) by design
             return [c[1].get("tool_name") for c in fake.log_governance_decision.call_args_list]
 
-        from kiro_crew.cli_commands import _telemetry
-        from kiro_crew.cli_config import _config_cmd
-        from kiro_crew.dashboard.handlers.core import _beacon_governance_pinned_off
+        from junction.cli_commands import _telemetry
+        from junction.cli_config import _config_cmd
+        from junction.dashboard.handlers.core import _beacon_governance_pinned_off
 
         assert _tools_for(lambda: beacon.send("https://e.invalid", "1.2.3", enabled=True, acked=True)) == [
             "beacon_send"
@@ -1552,7 +1552,7 @@ class TestGovernancePin:
             },
         )
         fake = MagicMock()
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         monkeypatch.setattr(sel_mod, "sel", lambda: fake)
 
@@ -1584,7 +1584,7 @@ class TestGovernancePin:
 
 
 class TestGenericConfigSetterIsGated:
-    """`kirocrew config set` is a FOURTH write path to telemetry.beacon_enabled.
+    """`junction config set` is a FOURTH write path to telemetry.beacon_enabled.
 
     The dashboard PATCH and `telemetry enable` are the obvious two, but the
     generic setter reaches the same key — and `--local` writes config.local.json,
@@ -1599,7 +1599,7 @@ class TestGenericConfigSetterIsGated:
         return argparse.Namespace(config_action="set", key=key, value=value, local=local, file=None)
 
     def _pin(self, monkeypatch, pinned):
-        from kiro_crew import beacon as beacon_mod
+        from junction import beacon as beacon_mod
 
         # **kwargs, not a bare lambda: the enforcement call sites pass
         # ``audit_tool=`` so the decision is SEL-audited, and a fixed-arity stub
@@ -1608,7 +1608,7 @@ class TestGenericConfigSetterIsGated:
 
     @pytest.mark.parametrize("local", [False, True])
     def test_enable_is_refused_under_a_pin(self, _isolated_home, monkeypatch, local):
-        from kiro_crew.cli_config import _config_cmd
+        from junction.cli_config import _config_cmd
 
         self._pin(monkeypatch, True)
         with pytest.raises(SystemExit) as exc:
@@ -1622,7 +1622,7 @@ class TestGenericConfigSetterIsGated:
 
     def test_disable_is_still_allowed_under_a_pin(self, _isolated_home, monkeypatch):
         """Tightest-wins: a narrower local choice composes with the ceiling."""
-        from kiro_crew.cli_config import _config_cmd
+        from junction.cli_config import _config_cmd
 
         self._pin(monkeypatch, True)
         _config_cmd(self._args("telemetry.beacon_enabled", "false"))
@@ -1630,7 +1630,7 @@ class TestGenericConfigSetterIsGated:
         assert data["telemetry"]["beacon_enabled"] is False
 
     def test_unpinned_host_can_still_enable(self, _isolated_home, monkeypatch):
-        from kiro_crew.cli_config import _config_cmd
+        from junction.cli_config import _config_cmd
 
         self._pin(monkeypatch, False)
         _config_cmd(self._args("telemetry.beacon_enabled", "true"))

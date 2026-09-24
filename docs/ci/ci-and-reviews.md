@@ -5,7 +5,7 @@ verdict. The source of truth is `.github/workflows/`; this doc explains the
 shape and the rationale.
 
 The `prepare-pr` skill
-(`src/kiro_crew/builtin_skills/kirocrew-dev/prepare-pr/SKILL.md`) is the agent
+(`src/junction/builtin_skills/junction-dev/prepare-pr/SKILL.md`) is the agent
 side of this: it drives a working tree to review-ready by working with these
 gates. Its phase flow, exit-code contract and PR-description contract live in
 that skill, not here. Its portability design is
@@ -92,10 +92,10 @@ Every job here is blocking.
 | Job | What it enforces |
 |---|---|
 | `scrub-lint` | `scripts/scrub-lint.sh --no-history`. Fails on any internal marker in this public tree, so a sync cannot reintroduce a coupling |
-| `vendor-manifest` | `scripts/verify_vendor_manifest.py`. Hashes every file under `src/kiro_crew/_vendor` against the committed `scripts/vendor_manifest.sha256` — the tree is excluded from semgrep and the AI reviewers' diff, so this checksum is its only content review. Always-on (not behind the `changes` path filter) |
+| `vendor-manifest` | `scripts/verify_vendor_manifest.py`. Hashes every file under `src/junction/_vendor` against the committed `scripts/vendor_manifest.sha256` — the tree is excluded from semgrep and the AI reviewers' diff, so this checksum is its only content review. Always-on (not behind the `changes` path filter) |
 | `backend-lint` | `isort --check-only`, `flake8`, `mypy` on Python 3.10 and 3.12, plus `scripts/check_black_formatting.py` — black enforced on every file outside `.github/black-baseline.txt`, which can only shrink — and `scripts/check_subprocess_encoding.py` (self-test first) — no text-mode subprocess call without an explicit `encoding=`, `**UTF8_TEXT`, or a `# subprocess-encoding: locale` marker, outside `.github/subprocess-encoding-baseline.txt`, which can only shrink |
 | `harness-parity` | `scripts/check_harness_parity.py`, self-test first. Fails on a newly added line that expresses "this is the Kiro harness" as the absence of another one — a shape that fails toward the permissive answer, so nothing else goes red. Diff-scoped; the whole-tree backlog is a non-failing report |
-| `loop-bound-locks` | `scripts/check_loop_bound_locks.py`, self-test first. Fails on any module-global `asyncio.Lock()`/`Event()`/`Queue()` declaration — those bind to the import-time (or first-use) event loop and raise `RuntimeError` when acquired from another loop (Python 3.10+). #4800 converted the tree to `kiro_crew.loop_lock.LoopBoundLock`; whole-tree, since the backlog is zero |
+| `loop-bound-locks` | `scripts/check_loop_bound_locks.py`, self-test first. Fails on any module-global `asyncio.Lock()`/`Event()`/`Queue()` declaration — those bind to the import-time (or first-use) event loop and raise `RuntimeError` when acquired from another loop (Python 3.10+). #4800 converted the tree to `junction.loop_lock.LoopBoundLock`; whole-tree, since the backlog is zero |
 | `backend-test` | 2 Python versions x 4 duration-balanced pytest-split shards (8 jobs), `-n auto` within each. Coverage only on 3.12 (3.10 passes `--no-cov` for a trace-free run) |
 | `backend-test-windows` | windows-latest, 4 shards, `--no-cov`, 180s per-test timeout. The backend supports Windows natively via `platform_compat`, and nothing else in CI holds that line |
 | `backend-test-macos` | macos-14, deliberately SCOPED (gateway, socketsec, platform-compat, pod and MCP-apps suites via a glob). A full macOS run needs its own exclusion burn-down first, and a job that is red on arrival trains people to ignore it |
@@ -163,9 +163,9 @@ Details worth knowing:
   a moving target measured at step time while the checked-out tree is a snapshot
   from job start, so anything landing on `main` in between would appear only on the
   base side and be charged to every PR in that window.
-- **The e2e gateway boots with `KIROCREW_STRICT_ON_LOOP_PERSIST=1`**, so an
+- **The e2e gateway boots with `JUNCTION_STRICT_ON_LOOP_PERSIST=1`**, so an
   un-offloaded session-JSONL mutator that enters the lock on the event loop raises
-  and fails the gate at PR time. `KIROCREW_E2E_REQUIRE=1` turns an
+  and fails the gate at PR time. `JUNCTION_E2E_REQUIRE=1` turns an
   environment-resolution miss into a hard failure, since a skipped suite would
   otherwise count as a pass having run zero browser specs. Details:
   [e2e-gate.md](e2e-gate.md).
@@ -175,15 +175,15 @@ Details worth knowing:
 PR-time proof only, no publishing.
 
 - **`build-wheel`** builds the frontend, stages it into the package, builds the
-  wheel, then `pip install dist/*.whl` and `kirocrew --version` as a smoke test.
+  wheel, then `pip install dist/*.whl` and `junction --version` as a smoke test.
 - **`build-desktop`** builds the Electron app unsigned on macos-15 and
   ubuntu-22.04 via `make desktop`, and uploads the artifacts.
 
 **Neither desktop lane ever RUNS the bundled backend.** `build-desktop` here and
-`build-desktop.yml` in the release lane both build the real `kirocrew-backend`
+`build-desktop.yml` in the release lane both build the real `junction-backend`
 tree via `packaging/build-desktop.sh` — which provisions a
 python-build-standalone interpreter and pip-installs the project into it — and
-then only upload the artifact. The wheel lane at least runs `kirocrew --version`.
+then only upload the artifact. The wheel lane at least runs `junction --version`.
 So a packaging change that breaks the packaged app (a layout change, a launcher
 rename, a dependency that fails to install into the bundled interpreter) passes
 every gate: the tests that cover packaged-app behavior monkeypatch `sys.frozen`
@@ -246,7 +246,7 @@ the three source files the container contract spans: the bind override in
 `dashboard/origin.py`, the probe Host-barrier exemption in `dashboard/server.py`,
 and the liveness payload in `dashboard/handlers/core.py`). It builds the image from
 a locally-built wheel and proves, across a real container boundary, that
-`KIROCREW_BIND=0.0.0.0` makes the gateway reachable from the host, that token auth
+`JUNCTION_BIND=0.0.0.0` makes the gateway reachable from the host, that token auth
 still guards the API on that non-loopback path, that `/api/health` works (the image
 HEALTHCHECK depends on it), that kiro-cli runs inside the image, and that channel
 credentials passed as container env are moved into the data home's `.env` and

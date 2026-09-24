@@ -31,23 +31,23 @@ import { useAgents } from '../hooks/useAgents'
 
 vi.mock('../api/client', () => ({
   api: {
-    kirocrewAgents: vi.fn(),
-    syncKirocrewAgents: vi.fn(),
+    junctionAgents: vi.fn(),
+    syncJunctionAgents: vi.fn(),
   },
 }))
 
 const { api } = await import('../api/client')
 const mockApi = api as unknown as {
-  kirocrewAgents: ReturnType<typeof vi.fn>
-  syncKirocrewAgents: ReturnType<typeof vi.fn>
+  junctionAgents: ReturnType<typeof vi.fn>
+  syncJunctionAgents: ReturnType<typeof vi.fn>
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockApi.syncKirocrewAgents.mockResolvedValue({})
-  mockApi.kirocrewAgents.mockResolvedValue({
-    agents: [{ name: 'kirocrew', scope: 'global' }],
-    default_agent: 'kirocrew',
+  mockApi.syncJunctionAgents.mockResolvedValue({})
+  mockApi.junctionAgents.mockResolvedValue({
+    agents: [{ name: 'junction', scope: 'global' }],
+    default_agent: 'junction',
   })
 })
 
@@ -59,18 +59,18 @@ describe('useAgents project scoping', () => {
       ({ dir }: { dir?: string }) => useAgents(0, 'chat-1', dir),
       { initialProps: { dir: undefined as string | undefined } },
     )
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(1))
 
-    mockApi.kirocrewAgents.mockResolvedValue({
+    mockApi.junctionAgents.mockResolvedValue({
       agents: [
-        { name: 'kirocrew', scope: 'global' },
+        { name: 'junction', scope: 'global' },
         { name: 'project-agent', scope: 'project' },
       ],
-      default_agent: 'kirocrew',
+      default_agent: 'junction',
     })
     rerender({ dir: '/repo/service' })
 
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(2))
   })
 
   it('surfaces the project-scoped agents once the project is set', async () => {
@@ -80,12 +80,12 @@ describe('useAgents project scoping', () => {
     )
     await waitFor(() => expect(result.current.agents).toHaveLength(1))
 
-    mockApi.kirocrewAgents.mockResolvedValue({
+    mockApi.junctionAgents.mockResolvedValue({
       agents: [
-        { name: 'kirocrew', scope: 'global' },
+        { name: 'junction', scope: 'global' },
         { name: 'project-agent', scope: 'project' },
       ],
-      default_agent: 'kirocrew',
+      default_agent: 'junction',
     })
     rerender({ dir: '/repo/service' })
 
@@ -98,10 +98,10 @@ describe('useAgents project scoping', () => {
       ({ dir }: { dir: string }) => useAgents(0, 'chat-1', dir),
       { initialProps: { dir: '/repo/one' } },
     )
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(1))
 
     rerender({ dir: '/repo/two' })
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(2))
   })
 
   it('still sends only the session key — the server derives project scope', async () => {
@@ -111,11 +111,11 @@ describe('useAgents project scoping', () => {
       ({ dir }: { dir: string }) => useAgents(0, 'chat-1', dir),
       { initialProps: { dir: '/repo/one' } },
     )
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(1))
     rerender({ dir: '/repo/two' })
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(2))
 
-    for (const call of mockApi.kirocrewAgents.mock.calls) {
+    for (const call of mockApi.junctionAgents.mock.calls) {
       expect(call).toEqual(['chat-1'])
     }
   })
@@ -130,14 +130,14 @@ describe('useAgents project scoping', () => {
     )
     await waitFor(() => expect(result.current.agents).toHaveLength(1))
 
-    mockApi.kirocrewAgents.mockImplementationOnce(
+    mockApi.junctionAgents.mockImplementationOnce(
       () => new Promise(res => { resolveSecond = res }),
     )
     rerender({ dir: '/repo/two' })
 
     expect(result.current.agents).toHaveLength(0)
 
-    resolveSecond({ agents: [{ name: 'two-agent', scope: 'project' }], default_agent: 'kirocrew' })
+    resolveSecond({ agents: [{ name: 'two-agent', scope: 'project' }], default_agent: 'junction' })
     await waitFor(() => expect(result.current.agents).toHaveLength(1))
     expect(result.current.agents[0].name).toBe('two-agent')
   })
@@ -149,7 +149,7 @@ describe('useAgents project scoping', () => {
     )
     await waitFor(() => expect(result.current.agents).toHaveLength(1))
 
-    mockApi.kirocrewAgents.mockImplementationOnce(() => new Promise(() => {}))
+    mockApi.junctionAgents.mockImplementationOnce(() => new Promise(() => {}))
     rerender({ trig: 1 })
 
     expect(result.current.agents).toHaveLength(1)
@@ -159,10 +159,10 @@ describe('useAgents project scoping', () => {
     // Surfaces with no slot context (Channels, Schedule) pass neither key nor
     // project; a re-render must not look like a scope change.
     const { rerender } = renderHook(() => useAgents(0))
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(1))
 
     rerender()
-    expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(1)
+    expect(mockApi.junctionAgents).toHaveBeenCalledTimes(1)
   })
   it('waits for the one-time sync even when the scope changes while it is in flight', async () => {
     // `/api/agents/sync` writes AIM-installed agents into config.json, and the
@@ -171,7 +171,7 @@ describe('useAgents project scoping', () => {
     // next scope change or a remount. Setting a project immediately after mount
     // is this fix's primary path, so that window must be closed.
     let resolveSync: (v: unknown) => void = () => {}
-    mockApi.syncKirocrewAgents.mockImplementationOnce(
+    mockApi.syncJunctionAgents.mockImplementationOnce(
       () => new Promise(res => { resolveSync = res }),
     )
 
@@ -181,21 +181,21 @@ describe('useAgents project scoping', () => {
     )
 
     rerender({ dir: '/repo/service' })
-    expect(mockApi.kirocrewAgents).not.toHaveBeenCalled()
+    expect(mockApi.junctionAgents).not.toHaveBeenCalled()
 
     resolveSync({})
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalled())
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
     // Once per mount, not once per scope.
-    expect(mockApi.syncKirocrewAgents).toHaveBeenCalledTimes(1)
+    expect(mockApi.syncJunctionAgents).toHaveBeenCalledTimes(1)
   })
 
   it('still fetches when the one-time sync fails', async () => {
     // A failed sync must not strand the roster: fall through and list whatever
     // config is already on disk.
-    mockApi.syncKirocrewAgents.mockRejectedValueOnce(new Error('sync unavailable'))
+    mockApi.syncJunctionAgents.mockRejectedValueOnce(new Error('sync unavailable'))
 
     renderHook(() => useAgents(0, 'chat-1', '/repo/one'))
 
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledWith('chat-1'))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledWith('chat-1'))
   })
 })

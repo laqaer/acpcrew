@@ -1,28 +1,28 @@
 #!/bin/sh
-# KiroCrew first-time setup script (public build)
+# Junction first-time setup script (public build)
 # Usage: source setup.sh   (bash or zsh), or: bash setup.sh
 #
-# Sets up KiroCrew using only public tooling:
+# Sets up Junction using only public tooling:
 #   1. Node.js (via ensure-node.sh)
 #   2. Optional tools (git-lfs, ffmpeg for voice)
 #   3. Agent backend: claude-agent-acp (npm i -g)
 #   4. Build frontend (npm/vite) + backend (pip)
 #   5. PATH config
-#   6. Agent config (kirocrew setup --agent-only)
+#   6. Agent config (junction setup --agent-only)
 
 # Resolve script directory (works in bash and zsh, sourced or executed)
 if [ -n "$BASH_SOURCE" ]; then
-    _kirocrew_dir="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
+    _junction_dir="$(cd "$(dirname "$BASH_SOURCE")" && pwd)"
 elif [ -n "$ZSH_VERSION" ]; then
-    _kirocrew_dir="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    _junction_dir="$(cd "$(dirname "${(%):-%x}")" && pwd)"
 else
-    _kirocrew_dir="$(pwd)"
+    _junction_dir="$(pwd)"
 fi
-cd "$_kirocrew_dir" || return 1
+cd "$_junction_dir" || return 1
 
 ACP_NPM_PKG="@agentclientprotocol/claude-agent-acp"
 
-echo "👻 KiroCrew Setup"
+echo "👻 Junction Setup"
 echo ""
 
 # ── Ensure PATH includes common install locations ──
@@ -63,8 +63,8 @@ echo ""
 echo "── Step 2: Dependencies ──"
 
 # Node.js (>= 22 required for the website build; 24 LTS recommended)
-if [ -x "$_kirocrew_dir/ensure-node.sh" ]; then
-    bash "$_kirocrew_dir/ensure-node.sh"
+if [ -x "$_junction_dir/ensure-node.sh" ]; then
+    bash "$_junction_dir/ensure-node.sh"
     # Re-source managers so newly-installed node lands on PATH
     export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
     [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -77,14 +77,26 @@ if [ -x "$_kirocrew_dir/ensure-node.sh" ]; then
     # Linux 2, whose glibc 2.26 cannot load the official builds -- ensure-node.sh
     # installs a private toolchain that neither nvm nor mise owns, so the
     # re-sourcing above cannot surface it. It records the directory it settled on;
-    # consume that marker the way the Makefile and kiro_crew.env.node_bin_dirs()
+    # consume that marker the way the Makefile and junction.env.node_bin_dirs()
     # already do. Without this the checks below miss the node just installed and
     # the frontend build plus the agent-backend install are skipped.
-    _nbd="$(cat "${KIROCREW_HOME:-$HOME/.kiro/crew}/node-bin-dir" 2>/dev/null || true)"
+    # Same choice as junction.config.paths._select_default_home.
+    if [ -n "${JUNCTION_HOME:-}" ]; then
+        _home="$JUNCTION_HOME"
+    elif [ -d "$HOME/.junction" ]; then
+        _home="$HOME/.junction"
+    elif [ -d "$HOME/.kiro/crew" ]; then
+        _home="$HOME/.kiro/crew"
+    elif [ -d "$HOME/.kirocrew" ]; then
+        _home="$HOME/.kirocrew"
+    else
+        _home="$HOME/.junction"
+    fi
+    _nbd="$(cat "$_home/node-bin-dir" 2>/dev/null || true)"
     if [ -n "$_nbd" ] && [ -x "$_nbd/node" ]; then
         export PATH="$_nbd:$PATH"
     fi
-    unset _nbd
+    unset _nbd _home
     if _check node; then
         echo "  ✅ node ($(which node))"
     else
@@ -155,20 +167,20 @@ echo ""
 
 echo "── Step 4: Build ──"
 
-# Frontend: vite emits to website/dist; stage into src/kiro_crew/static/dist
-if _check node && [ -d "$_kirocrew_dir/website" ]; then
+# Frontend: vite emits to website/dist; stage into src/junction/static/dist
+if _check node && [ -d "$_junction_dir/website" ]; then
     echo "→ Building frontend (website/)..."
-    if (cd "$_kirocrew_dir/website" \
+    if (cd "$_junction_dir/website" \
             && { [ -f package-lock.json ] && npm ci --no-audit --no-fund --loglevel=error \
                  || npm install --no-audit --no-fund --loglevel=error; } \
             && npm run build); then
-        _dist_src="$_kirocrew_dir/website/dist"
-        _dist_dst="$_kirocrew_dir/src/kiro_crew/static/dist"
+        _dist_src="$_junction_dir/website/dist"
+        _dist_dst="$_junction_dir/src/junction/static/dist"
         if [ -d "$_dist_src" ]; then
             rm -rf "$_dist_dst"
             mkdir -p "$(dirname "$_dist_dst")"
             cp -R "$_dist_src" "$_dist_dst"
-            echo "  ✅ Frontend built and staged → src/kiro_crew/static/dist"
+            echo "  ✅ Frontend built and staged → src/junction/static/dist"
         else
             echo "  ⚠️  website/dist not found after build — dashboard will use legacy fallback"
         fi
@@ -180,7 +192,7 @@ else
 fi
 
 # Backend: venv + pip install -e .
-_venv="$_kirocrew_dir/.venv"
+_venv="$_junction_dir/.venv"
 if [ ! -d "$_venv" ] || [ ! -x "$_venv/bin/python" ]; then
     echo "→ Creating virtual environment..."
     "$_py" -m venv "$_venv" || {
@@ -189,24 +201,24 @@ if [ ! -d "$_venv" ] || [ ! -x "$_venv/bin/python" ]; then
         return 1 2>/dev/null || exit 1
     }
 fi
-echo "→ Installing kirocrew (pip)..."
+echo "→ Installing junction (pip)..."
 "$_venv/bin/pip" install --upgrade pip setuptools wheel -q 2>/dev/null || true
-if KIROCREW_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_kirocrew_dir" -q; then
+if JUNCTION_SKIP_FRONTEND=1 "$_venv/bin/pip" install -e "$_junction_dir" -q; then
     echo "  ✅ Build succeeded"
     # Record install method for tooling that branches on it
-    echo "pip" > "$_kirocrew_dir/.install-method"
+    echo "pip" > "$_junction_dir/.install-method"
 else
     echo "  ❌ pip install failed"
     cd - > /dev/null 2>&1
     return 1 2>/dev/null || exit 1
 fi
-# Symlink CLI so `kirocrew` works on PATH
+# Symlink CLI so `junction` works on PATH
 mkdir -p "$HOME/.local/bin"
-ln -sf "$_venv/bin/kirocrew" "$HOME/.local/bin/kirocrew"
-if _check kirocrew; then
-    echo "  ✅ kirocrew command available ($(which kirocrew))"
+ln -sf "$_venv/bin/junction" "$HOME/.local/bin/junction"
+if _check junction; then
+    echo "  ✅ junction command available ($(which junction))"
 else
-    echo "  ✅ kirocrew symlinked → ~/.local/bin/kirocrew (restart shell or fix PATH in Step 5)"
+    echo "  ✅ junction symlinked → ~/.local/bin/junction (restart shell or fix PATH in Step 5)"
 fi
 echo ""
 
@@ -225,9 +237,9 @@ _add_to_rc() {
         echo "  ✅ Already in $_rc"
         return
     fi
-    # Remove any old KiroCrew PATH entry and replace with current
-    if grep -qF "KiroCrew" "$_rc" 2>/dev/null; then
-        sed -i.bak '/# KiroCrew/d;/KiroCrew.*bin/d;/\.local\/bin/d' "$_rc"
+    # Remove any old Junction PATH entry and replace with current
+    if grep -qF "Junction" "$_rc" 2>/dev/null; then
+        sed -i.bak '/# Junction/d;/Junction.*bin/d;/\.local\/bin/d' "$_rc"
         rm -f "${_rc}.bak"
     fi
     printf "→ Add ~/.local/bin to PATH permanently in %s? [Y/n] " "$_rc"
@@ -235,7 +247,7 @@ _add_to_rc() {
     case "${_answer:-Y}" in
         [Yy]*)
             echo "" >> "$_rc"
-            echo "# KiroCrew" >> "$_rc"
+            echo "# Junction" >> "$_rc"
             echo "$_path_line" >> "$_rc"
             echo "  ✅ Added to $_rc"
             ;;
@@ -250,15 +262,15 @@ echo ""
 
 echo "── Step 6: Agent Config ──"
 echo "→ Installing agent config..."
-KIROCREW_PROJECT_DIR="$_kirocrew_dir" kirocrew setup --agent-only \
-    || echo "  ⚠️  kirocrew setup --agent-only failed (run manually later)"
+JUNCTION_PROJECT_DIR="$_junction_dir" junction setup --agent-only \
+    || echo "  ⚠️  junction setup --agent-only failed (run manually later)"
 
 echo ""
 echo "👻 Setup complete!"
 echo ""
-echo "  kirocrew doctor     # verify everything"
-echo "  kirocrew gateway    # start dashboard + gateway"
-echo "  kirocrew chat       # interactive chat"
+echo "  junction doctor     # verify everything"
+echo "  junction gateway    # start dashboard + gateway"
+echo "  junction chat       # interactive chat"
 echo ""
 echo "  Optional — local vector memory (embeddings):"
 echo "    Install ollama (https://ollama.com), then: ollama pull qwen3-embedding:0.6b"

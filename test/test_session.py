@@ -10,10 +10,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.types import AcpPromptStats
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.messaging.link import ChannelLink
-from kiro_crew.session import (
+from junction.acp.types import AcpPromptStats
+from junction.config import JunctionConfig
+from junction.messaging.link import ChannelLink
+from junction.session import (
     _BG_BLIND_RECYCLE_PROMPTS,
     BACKGROUND_KEY,
     SessionManager,
@@ -22,7 +22,7 @@ from kiro_crew.session import (
 
 @pytest.fixture
 def cfg():
-    c = KiroCrewConfig()
+    c = JunctionConfig()
     c.session.timeout_secs = 2  # short for testing
     return c
 
@@ -511,7 +511,7 @@ class TestWorkflowPoolStateless:
     context and violating the pool's isolation guarantee."""
 
     def test_wf_pool_prefix_is_stateless(self):
-        from kiro_crew.session import _STATELESS_PREFIXES
+        from junction.session import _STATELESS_PREFIXES
 
         assert any("wf-pool:".startswith(p) for p in _STATELESS_PREFIXES)
         assert "wf-pool:run-1:0".startswith(
@@ -556,7 +556,7 @@ class TestHeartbeatStateless:
     @pytest.mark.asyncio
     async def test_heartbeat_key_skips_resume_lookup(self, cfg):
         """``_hb`` must NOT consult the session_map for a resume sid."""
-        from kiro_crew.session import HEARTBEAT_KEY
+        from junction.session import HEARTBEAT_KEY
 
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         mgr._session_map.get = MagicMock(return_value="stale-sid")  # type: ignore[method-assign]
@@ -1318,7 +1318,7 @@ class TestStopTurn:
         with patch.object(
             mgr, "get_or_create", new_callable=AsyncMock, side_effect=RuntimeError("boom")
         ):
-            with caplog.at_level(logging.DEBUG, logger="kiro_crew.session"):
+            with caplog.at_level(logging.DEBUG, logger="junction.session"):
                 await mgr._eager_respawn("key1")
 
         assert "Eager respawn failed" in caplog.text
@@ -1391,7 +1391,7 @@ class TestCompactCallback:
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         mgr.set_compact_callback(AsyncMock())
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr.set_compact_callback(AsyncMock())
 
         assert any("Compact callback already registered" in r.message for r in caplog.records)
@@ -1455,14 +1455,14 @@ class TestCompactCallback:
         # Only the outer cap is scaled: the inner status wait clamps to
         # _COMPACT_RESULT_WAIT_FLOOR_SECS (5s) — patch that too if a test
         # needs the inner wait itself to time out quickly.
-        monkeypatch.setattr("kiro_crew.session.COMPACT_WAIT_TIMEOUT_SECS", 0.1)
+        monkeypatch.setattr("junction.session.COMPACT_WAIT_TIMEOUT_SECS", 0.1)
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         # Hold the semaphore and never release -> simulates a long-running turn.
         provider, _, _ = await mgr.get_or_create("dashboard:chat-1")
         cb = AsyncMock()
         mgr.set_compact_callback(cb)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             await asyncio.wait_for(mgr._compact_session("dashboard:chat-1", 92.0), timeout=2)
 
         # Session survives, the live turn was not killed, and nothing was
@@ -1484,7 +1484,7 @@ class TestCompactCallback:
         cb = AsyncMock(side_effect=RuntimeError("boom"))
         mgr.set_compact_callback(cb)
 
-        with caplog.at_level(logging.ERROR, logger="kiro_crew.session"):
+        with caplog.at_level(logging.ERROR, logger="junction.session"):
             await mgr._compact_session("dashboard:chat-1", 95.0)
 
         cb.assert_awaited_once()
@@ -1554,7 +1554,7 @@ class TestRecordSuccessFailure:
     @pytest.mark.asyncio
     async def test_pool_size_clamping(self, cfg, caplog):
         cfg.session.pool_size = 999
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         assert any("exceeds max" in r.message for r in caplog.records)
         await mgr.close_all()
@@ -1827,7 +1827,7 @@ class TestRelease:
         mgr.release("A")  # caller 2's OWN legitimate finally, already run
         assert not session_2.semaphore.locked()
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr.release("A")  # caller 1's finally, arriving late on a stale key lookup
 
         assert "session was replaced" in caplog.text
@@ -1902,8 +1902,8 @@ class TestResetWithPid:
             patch("os.kill", side_effect=[None, None]),
             patch("os.killpg") as mock_killpg,
             patch("os.getpgid", return_value=12345),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
-            patch("kiro_crew.acp.client._get_start_time", return_value=None),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
+            patch("junction.acp.client._get_start_time", return_value=None),
         ):
             await mgr.reset("k1")
             mock_killpg.assert_called_once()
@@ -1923,8 +1923,8 @@ class TestResetWithPid:
 
         with (
             patch("os.kill", side_effect=ProcessLookupError),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
-            patch("kiro_crew.acp.client._get_start_time", return_value=None),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
+            patch("junction.acp.client._get_start_time", return_value=None),
         ):
             await mgr.reset("k1")
 
@@ -1943,10 +1943,10 @@ class TestResetWithPid:
 
         with (
             patch("os.kill", side_effect=ProcessLookupError),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[333]),
-            patch("kiro_crew.acp.client._get_start_time", return_value=3000),
-            patch("kiro_crew.acp.client._read_basename", return_value=b"node"),
-            patch("kiro_crew.acp.client._kill_escaped_children") as mock_sweep,
+            patch("junction.acp.client._get_child_pids", return_value=[333]),
+            patch("junction.acp.client._get_start_time", return_value=3000),
+            patch("junction.acp.client._read_basename", return_value=b"node"),
+            patch("junction.acp.client._kill_escaped_children") as mock_sweep,
         ):
             await mgr.reset("k1")
             mock_sweep.assert_called_once()
@@ -1976,7 +1976,7 @@ class TestReloadProviderFactory:
         mgr._warm_pool.put_nowait((mock_pool_p, "agent"))
 
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             patch.object(cfg, "create_provider_factory", return_value=_mock_provider_factory()),
         ):
             await mgr.reload_provider_factory()
@@ -1994,7 +1994,7 @@ class TestReloadProviderFactory:
         mgr.release("k1")
 
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             patch.object(cfg, "create_provider_factory", return_value=_mock_provider_factory()),
         ):
             await mgr.reload_provider_factory()
@@ -2011,7 +2011,7 @@ class TestReloadProviderFactory:
         provider.shutdown = AsyncMock(side_effect=OSError("dead"))
 
         with (
-            patch.object(KiroCrewConfig, "load", return_value=cfg),
+            patch.object(JunctionConfig, "load", return_value=cfg),
             patch.object(cfg, "create_provider_factory", return_value=_mock_provider_factory()),
         ):
             await mgr.reload_provider_factory()  # should not raise
@@ -2053,7 +2053,7 @@ class TestCheckContextUsage:
         would pin the test to one threshold and go stale the next time either
         number moves.
         """
-        from kiro_crew.config.loader import CONTEXT_WARN_MARGIN_PCT
+        from junction.config.loader import CONTEXT_WARN_MARGIN_PCT
 
         cfg.session.autocompact_pct = 90.0
         warn_at = 90.0 - CONTEXT_WARN_MARGIN_PCT
@@ -2061,10 +2061,10 @@ class TestCheckContextUsage:
         provider, _, _ = await mgr.get_or_create("k1")
         mgr.release("k1")
         provider.context_usage_pct = lambda: warn_at
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr.check_context_usage("k1", provider)
         assert any(
-            f"{warn_at:.0f}%" in r.message for r in caplog.records if r.name == "kiro_crew.session"
+            f"{warn_at:.0f}%" in r.message for r in caplog.records if r.name == "junction.session"
         )
         await mgr.close_all()
 
@@ -2075,7 +2075,7 @@ class TestCheckContextUsage:
         Pins the boundary from the other side: without this, a margin widened
         to cover the whole window would still satisfy the test above.
         """
-        from kiro_crew.config.loader import CONTEXT_WARN_MARGIN_PCT
+        from junction.config.loader import CONTEXT_WARN_MARGIN_PCT
 
         cfg.session.autocompact_pct = 90.0
         below = 90.0 - CONTEXT_WARN_MARGIN_PCT - 1.0
@@ -2083,7 +2083,7 @@ class TestCheckContextUsage:
         provider, _, _ = await mgr.get_or_create("k1")
         mgr.release("k1")
         provider.context_usage_pct = lambda: below
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr.check_context_usage("k1", provider)
         # Scoped to this logger: caplog captures the whole root hierarchy, so an
         # unrelated library record (asyncio's "Task was destroyed but it is
@@ -2092,7 +2092,7 @@ class TestCheckContextUsage:
         assert not [
             r
             for r in caplog.records
-            if r.levelno >= logging.WARNING and r.name == "kiro_crew.session"
+            if r.levelno >= logging.WARNING and r.name == "junction.session"
         ]
         await mgr.close_all()
 
@@ -2394,15 +2394,15 @@ class TestContextInfo:
         """AcpProvider path extracts model and agent from client."""
         from unittest.mock import MagicMock
 
-        from kiro_crew.providers.acp import AcpProvider
-        from kiro_crew.session import _Session
+        from junction.providers.acp import AcpProvider
+        from junction.session import _Session
 
         mock_provider = MagicMock(spec=AcpProvider)
         mock_provider.context_usage_pct = MagicMock(return_value=45.0)
         mock_provider.shutdown = AsyncMock()
         mock_provider.client = MagicMock()
         mock_provider.client._model = "sonnet-4"
-        mock_provider.client._agent = "kirocrew"
+        mock_provider.client._agent = "junction"
         mock_provider.client._session_id = None
 
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
@@ -2411,7 +2411,7 @@ class TestContextInfo:
         info = mgr.context_info()
         entry = info[0]
         assert entry["model"] == "sonnet-4"
-        assert entry["agent"] == "kirocrew"
+        assert entry["agent"] == "junction"
         assert entry["context_pct"] == 45.0
         await mgr.close_all()
 
@@ -2431,7 +2431,7 @@ class TestContextInfo:
         agent_file = tmp_path / "test-agent.json"
         agent_file.write_text(json.dumps({"name": "test-agent", "model": "opus-5"}))
 
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path):
+        with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path):
             result = SessionManager._resolve_agent_model("test-agent")
         assert result == "opus-5"
 
@@ -2453,7 +2453,7 @@ class TestContextInfo:
             json.dumps({"name": "foreign", "model": {"id": "anthropic:claude-opus-4-8"}})
         )
 
-        with patch("kiro_crew.agent.KIRO_AGENTS_DIR", tmp_path):
+        with patch("junction.agent.KIRO_AGENTS_DIR", tmp_path):
             result = SessionManager._resolve_agent_model("foreign")
         assert result == "auto"
         assert isinstance(result, str)
@@ -2508,16 +2508,16 @@ class TestWarmPoolInternals:
     @pytest.mark.asyncio
     async def test_claim_from_pool_matching_agent(self, cfg):
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
-        mgr._pool_agent = "kirocrew"
+        mgr._pool_agent = "junction"
         mock_p = AsyncMock()
         mgr._warm_pool.put_nowait((mock_p, 100.0))
-        result = mgr._claim_from_pool("kirocrew")
+        result = mgr._claim_from_pool("junction")
         assert result == (mock_p, 100.0)
 
     @pytest.mark.asyncio
     async def test_claim_from_pool_mismatched_agent(self, cfg):
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
-        mgr._pool_agent = "kirocrew"
+        mgr._pool_agent = "junction"
         mock_p = AsyncMock()
         mgr._warm_pool.put_nowait((mock_p, 100.0))
         result = mgr._claim_from_pool("different-agent")
@@ -2706,14 +2706,14 @@ class TestCleanupLoop:
 
         with (
             patch.object(mgr, "_expire_idle", new_callable=AsyncMock) as mock_expire,
-            patch("kiro_crew.session._cleanup_orphaned_mcp_servers", return_value=0),
-            patch("kiro_crew.session.cleanup_stale_sandbox_profiles", return_value=0),
-            patch("kiro_crew.session._collect_active_pids", return_value=({}, True)),
-            patch("kiro_crew.session._periodic_pid_sweep", return_value=([], [])),
-            patch("kiro_crew.session._kill_confirmed_and_writeback", return_value=0),
-            patch("kiro_crew.session.cleanup_orphaned_session_roots", return_value=0),
-            patch("kiro_crew.session.find_orphan_mcp_candidates", return_value=[]),
-            patch("kiro_crew.session.shutdown_event") as mock_event,
+            patch("junction.session._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session.cleanup_stale_sandbox_profiles", return_value=0),
+            patch("junction.session._collect_active_pids", return_value=({}, True)),
+            patch("junction.session._periodic_pid_sweep", return_value=([], [])),
+            patch("junction.session._kill_confirmed_and_writeback", return_value=0),
+            patch("junction.session.cleanup_orphaned_session_roots", return_value=0),
+            patch("junction.session.find_orphan_mcp_candidates", return_value=[]),
+            patch("junction.session.shutdown_event") as mock_event,
         ):
             # First wait_for returns TimeoutError (normal wakeup), second signals shutdown
             mock_event.is_set = lambda: mock_expire.await_count >= 1
@@ -2730,14 +2730,14 @@ class TestCleanupLoop:
 
         with (
             patch.object(mgr, "_expire_idle", new_callable=AsyncMock) as mock_expire,
-            patch("kiro_crew.session._cleanup_orphaned_mcp_servers", return_value=0),
-            patch("kiro_crew.session.cleanup_stale_sandbox_profiles", return_value=0),
-            patch("kiro_crew.session._collect_active_pids", return_value=({}, True)),
-            patch("kiro_crew.session._periodic_pid_sweep", return_value=([], [])),
-            patch("kiro_crew.session._kill_confirmed_and_writeback", return_value=0),
-            patch("kiro_crew.session.cleanup_orphaned_session_roots", return_value=0),
-            patch("kiro_crew.session.find_orphan_mcp_candidates", return_value=[]),
-            patch("kiro_crew.session.shutdown_event") as mock_event,
+            patch("junction.session._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session.cleanup_stale_sandbox_profiles", return_value=0),
+            patch("junction.session._collect_active_pids", return_value=({}, True)),
+            patch("junction.session._periodic_pid_sweep", return_value=([], [])),
+            patch("junction.session._kill_confirmed_and_writeback", return_value=0),
+            patch("junction.session.cleanup_orphaned_session_roots", return_value=0),
+            patch("junction.session.find_orphan_mcp_candidates", return_value=[]),
+            patch("junction.session.shutdown_event") as mock_event,
         ):
             call_count = [0]
 
@@ -2760,18 +2760,18 @@ class TestCleanupLoop:
 
         with (
             patch.object(mgr, "_expire_idle", new_callable=AsyncMock) as mock_expire,
-            patch("kiro_crew.session._cleanup_orphaned_mcp_servers", return_value=0),
-            patch("kiro_crew.session.cleanup_stale_sandbox_profiles", return_value=0),
-            patch("kiro_crew.session._collect_active_pids", return_value=({}, True)),
-            patch("kiro_crew.session._periodic_pid_sweep", return_value=([], [])),
-            patch("kiro_crew.session._kill_confirmed_and_writeback", return_value=0),
-            patch("kiro_crew.session.cleanup_orphaned_session_roots", return_value=0),
-            patch("kiro_crew.session.find_orphan_mcp_candidates", return_value=[]),
-            patch("kiro_crew.session.shutdown_event") as mock_event,
+            patch("junction.session._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session.cleanup_stale_sandbox_profiles", return_value=0),
+            patch("junction.session._collect_active_pids", return_value=({}, True)),
+            patch("junction.session._periodic_pid_sweep", return_value=([], [])),
+            patch("junction.session._kill_confirmed_and_writeback", return_value=0),
+            patch("junction.session.cleanup_orphaned_session_roots", return_value=0),
+            patch("junction.session.find_orphan_mcp_candidates", return_value=[]),
+            patch("junction.session.shutdown_event") as mock_event,
         ):
             mock_event.is_set = lambda: mock_expire.await_count >= 1
             mock_event.wait = AsyncMock(side_effect=asyncio.TimeoutError)
-            with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+            with caplog.at_level(logging.WARNING, logger="junction.session"):
                 await mgr._cleanup_loop()
 
         # Should clamp to 60
@@ -2783,7 +2783,7 @@ class TestCleanupLoop:
         cfg.session.timeout_secs = 120
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
 
-        with patch("kiro_crew.session.shutdown_event") as mock_event:
+        with patch("junction.session.shutdown_event") as mock_event:
             mock_event.is_set = lambda: True
             mock_event.wait = AsyncMock(return_value=None)
             # Should return immediately since shutdown is set
@@ -2810,20 +2810,20 @@ class TestCleanupLoop:
 
         with (
             patch.object(mgr, "_expire_idle", new_callable=AsyncMock),
-            patch("kiro_crew.session._cleanup_orphaned_mcp_servers", return_value=0),
+            patch("junction.session._cleanup_orphaned_mcp_servers", return_value=0),
             patch(
-                "kiro_crew.session.cleanup_stale_sandbox_profiles", side_effect=_fake_sweep
+                "junction.session.cleanup_stale_sandbox_profiles", side_effect=_fake_sweep
             ) as mock_sweep,
-            patch("kiro_crew.session._collect_active_pids", return_value=({}, True)),
-            patch("kiro_crew.session._periodic_pid_sweep", return_value=([], [])),
-            patch("kiro_crew.session._kill_confirmed_and_writeback", return_value=0),
-            patch("kiro_crew.session.cleanup_orphaned_session_roots", return_value=0),
-            patch("kiro_crew.session.find_orphan_mcp_candidates", return_value=[]),
-            patch("kiro_crew.session.shutdown_event") as mock_event,
+            patch("junction.session._collect_active_pids", return_value=({}, True)),
+            patch("junction.session._periodic_pid_sweep", return_value=([], [])),
+            patch("junction.session._kill_confirmed_and_writeback", return_value=0),
+            patch("junction.session.cleanup_orphaned_session_roots", return_value=0),
+            patch("junction.session.find_orphan_mcp_candidates", return_value=[]),
+            patch("junction.session.shutdown_event") as mock_event,
         ):
             mock_event.is_set = lambda: mock_sweep.call_count >= 1
             mock_event.wait = AsyncMock(side_effect=asyncio.TimeoutError)
-            with caplog.at_level(logging.INFO, logger="kiro_crew.session"):
+            with caplog.at_level(logging.INFO, logger="junction.session"):
                 await mgr._cleanup_loop()
 
         # Verify: sweep was called (production wiring)
@@ -3096,7 +3096,7 @@ class TestClaudeBackendCompaction:
 
         mgr.set_compact_callback(cb)
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             await mgr._compact_session("k1", 92.0)
 
         provider.compact.assert_awaited_once()
@@ -3115,8 +3115,8 @@ class TestClaudeBackendCompaction:
         mgr.set_compact_callback(cb)
 
         with (
-            patch("kiro_crew.session._is_claude_backend", return_value=True),
-            caplog.at_level(logging.ERROR, logger="kiro_crew.session"),
+            patch("junction.session._is_claude_backend", return_value=True),
+            caplog.at_level(logging.ERROR, logger="junction.session"),
         ):
             await mgr._compact_session("k1", 92.0)
 
@@ -3138,7 +3138,7 @@ class TestClaudeBackendCompaction:
         provider.context_usage_pct = lambda: 40.0
 
         with (
-            patch("kiro_crew.session._is_claude_backend", return_value=True),
+            patch("junction.session._is_claude_backend", return_value=True),
             patch.object(mgr, "_trigger_compaction") as mock_trigger,
         ):
             mgr.check_context_usage("k1", provider)
@@ -3155,7 +3155,7 @@ class TestClaudeBackendCompaction:
         provider, _, _ = await mgr.get_or_create("k1")
         mgr.release("k1")
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             # Simulate compact in progress.
             mgr._compacting.add("k1")
             try:
@@ -3195,7 +3195,7 @@ class TestClaudeBackendCompaction:
         healthy REPLACEMENT for a key whose OLD session is still being torn
         down, get_or_create must reuse the replacement — not exile it and
         cold-start a duplicate provider that would overwrite and leak it."""
-        from kiro_crew.session import FirstTurnState, _Session
+        from junction.session import FirstTurnState, _Session
 
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         old_provider, _, _ = await mgr.get_or_create("k1")
@@ -3371,7 +3371,7 @@ class TestKiroInPlaceCompaction:
         end_turn). The stream watcher must latch it so the blind drain never
         eats it — otherwise wait_for_compaction would stall to timeout and
         wrongly recycle a just-compacted healthy session."""
-        from kiro_crew.acp.types import EVENT_COMPACTION_STATUS, AcpEvent
+        from junction.acp.types import EVENT_COMPACTION_STATUS, AcpEvent
 
         mid = AcpEvent(kind=EVENT_COMPACTION_STATUS, text="completed", title="sum")
         mgr = SessionManager(
@@ -3533,7 +3533,7 @@ class TestKiroInPlaceCompaction:
         """If a racing cold-start replaced the entry while the in-place
         compact was still running, the failure recycle kills only the OLD
         session; the fresh replacement (and its session_map entry) survives."""
-        from kiro_crew.session import FirstTurnState, _Session
+        from junction.session import FirstTurnState, _Session
 
         gate = asyncio.Event()
 
@@ -3595,7 +3595,7 @@ class TestCompactFailureCooldown:
         mgr.release("k1")
         provider.compact = AsyncMock(side_effect=RuntimeError("boom"))
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             await mgr._compact_session("k1", 92.0)
 
         assert mgr._compact_cooldown_until.get("k1", 0.0) > time.monotonic()
@@ -3623,7 +3623,7 @@ class TestCompactFailureCooldown:
         # Pre-existing cooldown from an earlier failure.
         mgr._compact_cooldown_until["k1"] = time.monotonic() + 60.0
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             await mgr._compact_session("k1", 92.0)
 
         assert "k1" not in mgr._compact_cooldown_until
@@ -3669,10 +3669,10 @@ class TestCompactTimeout:
         mgr.set_compact_callback(cb)
 
         with (
-            patch("kiro_crew.session._is_claude_backend", return_value=True),
+            patch("junction.session._is_claude_backend", return_value=True),
             # Only the outer cap is scaled — see _COMPACT_RESULT_WAIT_FLOOR_SECS
             # note above if the inner wait must time out quickly.
-            patch("kiro_crew.session.COMPACT_WAIT_TIMEOUT_SECS", 0.05),
+            patch("junction.session.COMPACT_WAIT_TIMEOUT_SECS", 0.05),
         ):
             await mgr._compact_session("k1", 92.0)
 
@@ -3700,7 +3700,7 @@ class TestCompactCallbackSuccessFlag:
 
         mgr.set_compact_callback(cb)
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             await mgr._compact_session("k1", 92.0)
 
         assert calls == [("k1", 92.0, True)]
@@ -3775,8 +3775,8 @@ class TestCloseAllPersistence:
     async def test_close_all_persists_acp_session_ids(self, cfg):
         from unittest.mock import MagicMock
 
-        from kiro_crew.providers.acp import AcpProvider
-        from kiro_crew.session import _Session
+        from junction.providers.acp import AcpProvider
+        from junction.session import _Session
 
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         mock_provider = MagicMock(spec=AcpProvider)
@@ -3867,7 +3867,7 @@ class TestSetCompactCallback:
     def test_warns_on_replace(self, cfg, caplog):
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         mgr.set_compact_callback(AsyncMock())
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr.set_compact_callback(AsyncMock())
         assert any("already registered" in r.message for r in caplog.records)
 
@@ -3913,12 +3913,12 @@ class TestGetOrCreatePoolClaim:
 
     @pytest.mark.asyncio
     async def test_claims_from_pool_on_new_session(self, cfg):
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.providers.acp import AcpProvider
 
         cfg.session.pool_size = 1
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         mgr._pool_size = 1
-        mgr._pool_agent = "kirocrew"
+        mgr._pool_agent = "junction"
 
         # Pre-fill pool with a mock provider that looks like AcpProvider
         mock_pooled = AsyncMock(spec=AcpProvider)
@@ -3928,14 +3928,14 @@ class TestGetOrCreatePoolClaim:
         mock_pooled.is_process_alive = lambda: True
         mock_pooled.client = AsyncMock()
         mock_pooled.client._model = "claude-opus-4"
-        mock_pooled.client._agent = "kirocrew"
+        mock_pooled.client._agent = "junction"
         mock_pooled.client._session_id = None
         mock_pooled.client.rekey = lambda *a, **kw: None
         mock_pooled.client.resumed = False
 
         mgr._warm_pool.put_nowait((mock_pooled, time.monotonic()))
 
-        provider, is_new, _ = await mgr.get_or_create("dashboard:slot1", agent="kirocrew")
+        provider, is_new, _ = await mgr.get_or_create("dashboard:slot1", agent="junction")
         mgr.release("dashboard:slot1")
         assert provider is mock_pooled
         assert is_new is True
@@ -3948,14 +3948,14 @@ class TestGetOrCreatePoolClaim:
         path calls client.rekey(), whose reset makes the first turn-end
         check_context_usage read 0%/unknown instead of firing compaction on
         an empty conversation."""
-        from kiro_crew.acp.client import AcpClient
-        from kiro_crew.providers.acp import AcpProvider
+        from junction.acp.client import AcpClient
+        from junction.providers.acp import AcpProvider
 
         cfg.session.pool_size = 1
         cfg.session.autocompact_pct = 90.0
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         mgr._pool_size = 1
-        mgr._pool_agent = "kirocrew"
+        mgr._pool_agent = "junction"
 
         # Real (unstarted) AcpClient seeded with the PREVIOUS session's stats —
         # the exact leak shape from the issue: high confirmed pct, real counts.
@@ -3981,7 +3981,7 @@ class TestGetOrCreatePoolClaim:
 
         mgr._warm_pool.put_nowait((mock_pooled, time.monotonic()))
 
-        provider, is_new, _ = await mgr.get_or_create("dashboard:slot1", agent="kirocrew")
+        provider, is_new, _ = await mgr.get_or_create("dashboard:slot1", agent="junction")
         mgr.release("dashboard:slot1")
         assert provider is mock_pooled
 
@@ -4236,22 +4236,22 @@ class TestCleanupLoopResilience:
             if call_count == 1:
                 raise RuntimeError("simulated crash")
             # Force loop exit on second call
-            from kiro_crew import shutdown_event
+            from junction import shutdown_event
 
             shutdown_event.set()
 
-        import kiro_crew
+        import junction
 
-        kiro_crew.shutdown_event.clear()
+        junction.shutdown_event.clear()
         with (
             patch("asyncio.wait_for", side_effect=_fast_wait_for),
             patch.object(mgr, "_expire_idle", side_effect=_expire_then_stop),
-            patch("kiro_crew.session.find_orphan_mcp_candidates", return_value=[]),
+            patch("junction.session.find_orphan_mcp_candidates", return_value=[]),
         ):
             await asyncio.wait_for(mgr._cleanup_loop(), timeout=5)
 
         assert call_count >= 2
-        kiro_crew.shutdown_event.clear()
+        junction.shutdown_event.clear()
         await mgr.close_all()
 
     @pytest.mark.asyncio
@@ -4272,24 +4272,24 @@ class TestCleanupLoopResilience:
             return await real_wait_for(coro, timeout=timeout)
 
         async def _crash_and_stop(timeout):
-            from kiro_crew import shutdown_event
+            from junction import shutdown_event
 
             shutdown_event.set()
             raise ValueError("boom")
 
-        import kiro_crew
+        import junction
 
-        kiro_crew.shutdown_event.clear()
+        junction.shutdown_event.clear()
         with (
             patch("asyncio.wait_for", side_effect=_fast_wait_for),
             patch.object(mgr, "_expire_idle", side_effect=_crash_and_stop),
-            patch("kiro_crew.session.find_orphan_mcp_candidates", return_value=[]),
+            patch("junction.session.find_orphan_mcp_candidates", return_value=[]),
         ):
             with caplog.at_level(logging.ERROR):
                 await asyncio.wait_for(mgr._cleanup_loop(), timeout=5)
 
         assert "_expire_idle crashed" in caplog.text
-        kiro_crew.shutdown_event.clear()
+        junction.shutdown_event.clear()
         await mgr.close_all()
 
 
@@ -4315,7 +4315,7 @@ class TestGetBgSessionRecycle:
         sentinel = object()
         rt2.create_session = AsyncMock(return_value=sentinel)
 
-        with patch("kiro_crew.acp.runtime.AcpRuntime", side_effect=[rt2]):
+        with patch("junction.acp.runtime.AcpRuntime", side_effect=[rt2]):
             result = await mgr.get_bg_session()
 
         stale._is_stale.assert_awaited_once()
@@ -4342,7 +4342,7 @@ class TestGetBgSessionRecycle:
 
         # A live+reused runtime must not trigger a respawn.
         with patch(
-            "kiro_crew.acp.runtime.AcpRuntime",
+            "junction.acp.runtime.AcpRuntime",
             side_effect=AssertionError("should not respawn a live runtime"),
         ):
             result = await mgr.get_bg_session()
@@ -4401,10 +4401,10 @@ class TestOpenTaskSession:
         parent = "taskrunner:run1:runtime"
 
         p1, new1, res1 = await mgr.open_task_session(
-            parent, "taskrunner:run1:decompose", agent="kirocrew"
+            parent, "taskrunner:run1:decompose", agent="junction"
         )
         p2, new2, res2 = await mgr.open_task_session(
-            parent, "taskrunner:run1:task0", agent="kirocrew"
+            parent, "taskrunner:run1:task0", agent="junction"
         )
 
         # Exactly ONE factory-built runtime, adopted + reused for both steps.
@@ -4434,7 +4434,7 @@ class TestOpenTaskSession:
         parent = "taskrunner:run2:runtime"
         key = "taskrunner:run2:task0"
 
-        provider, is_new, _resumed = await mgr.open_task_session(parent, key, agent="kirocrew")
+        provider, is_new, _resumed = await mgr.open_task_session(parent, key, agent="junction")
 
         # Registered under the per-step key so reset/context helpers work by key.
         assert key in mgr._sessions
@@ -4447,7 +4447,7 @@ class TestOpenTaskSession:
 class TestLoadRecoveryHistoryReplay:
     """F2 load-recovery Phase 2: when a provider signals it fell back to a FRESH
     native session (the prior session's lock never cleared), get_or_create flags
-    the new slot for KiroCrew conversation_log replay on the first prompt so the
+    the new slot for Junction conversation_log replay on the first prompt so the
     slot is not context-free."""
 
     @staticmethod
@@ -4530,7 +4530,7 @@ class TestIneffectiveCompactionCooldown:
         provider.context_usage_pct = lambda: 40.0
         mgr._compact_cooldown_until["k1"] = time.monotonic() + 999
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             await mgr._compact_session("k1", 92.0)
 
         assert "k1" not in mgr._compact_cooldown_until
@@ -4586,7 +4586,7 @@ class TestIneffectiveCompactionCooldown:
         mgr._compact_pending_verdict["dashboard:chat-1"] = 92.0
         provider.context_usage_pct = lambda: 91.0  # >= autocompact_pct (90)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             mgr.check_context_usage("dashboard:chat-1", provider)
 
         assert "dashboard:chat-1" not in mgr._compact_pending_verdict
@@ -4626,7 +4626,7 @@ class TestIneffectiveCompactionCooldown:
         provider.compact = AsyncMock()
         provider.context_usage_pct = lambda: 92.0  # unchanged: stats never reset
 
-        with patch("kiro_crew.session._is_claude_backend", return_value=True):
+        with patch("junction.session._is_claude_backend", return_value=True):
             await mgr._compact_session("k1", 92.0)
 
         # Deferred, not damped: a successful compaction must not be punished.
@@ -4666,7 +4666,7 @@ class TestIneffectiveCompactionCooldown:
         cb = AsyncMock()
         mgr.set_compact_callback(cb)
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.session"):
+        with caplog.at_level(logging.WARNING, logger="junction.session"):
             await mgr._compact_session("dashboard:chat-1", 92.0)
 
         assert mgr._compact_cooldown_until.get("dashboard:chat-1", 0.0) > time.monotonic()
@@ -4694,8 +4694,8 @@ class TestIneffectiveCompactionCooldown:
         mgr.set_compact_callback(cb)
 
         with (
-            patch("kiro_crew.session._is_claude_backend", return_value=True),
-            caplog.at_level(logging.WARNING, logger="kiro_crew.session"),
+            patch("junction.session._is_claude_backend", return_value=True),
+            caplog.at_level(logging.WARNING, logger="junction.session"),
         ):
             await mgr._compact_session("k1", 92.0)
 
@@ -4714,7 +4714,7 @@ class TestIneffectiveCompactionCooldown:
         circuit breaker: when the stuck session's turns keep failing,
         ``record_failure`` trips at ``_CIRCUIT_BREAKER_THRESHOLD`` and the
         forced reset clears the cooldown along with the session."""
-        from kiro_crew.session import _CIRCUIT_BREAKER_THRESHOLD
+        from junction.session import _CIRCUIT_BREAKER_THRESHOLD
 
         mgr = SessionManager(cfg, provider_factory=self._inplace_factory(pct_after=91.0))
         await mgr.get_or_create("dashboard:chat-1")

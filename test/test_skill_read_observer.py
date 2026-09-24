@@ -14,8 +14,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.acp.client import _mentions_skill_file
-from kiro_crew.skill_usage import (
+from junction.acp.client import _mentions_skill_file
+from junction.skill_usage import (
     get_global_skill_read_observer,
     register_skill_read_observer,
     set_global_skill_read_observer,
@@ -81,7 +81,7 @@ class _FakeClient:
     """
 
     def __init__(self):
-        from kiro_crew.acp.client import AcpClient
+        from junction.acp.client import AcpClient
 
         self._skill_read_noted: set[str] = set()
         self._pending_skill_reads: dict[str, list[str]] = {}
@@ -152,7 +152,7 @@ class TestRegistrationIsNotRouteDependent:
     def test_both_server_entry_points_register(self):
         from pathlib import Path
 
-        import kiro_crew.dashboard.server as mod
+        import junction.dashboard.server as mod
 
         src = Path(mod.__file__).read_text(encoding="utf-8")
         for entry in ("async def start_dashboard(", "async def start_api_server("):
@@ -162,7 +162,7 @@ class TestRegistrationIsNotRouteDependent:
     def test_the_api_server_path_passes_the_task_runner_context(self):
         from pathlib import Path
 
-        import kiro_crew.dashboard.server as mod
+        import junction.dashboard.server as mod
 
         src = Path(mod.__file__).read_text(encoding="utf-8")
         assert 'getattr(task_runner, "_ctx", None)' in src
@@ -170,13 +170,13 @@ class TestRegistrationIsNotRouteDependent:
     def test_the_cli_entry_point_registers_without_importing_the_dashboard(self):
         from pathlib import Path
 
-        import kiro_crew.cli_server as mod
+        import junction.cli_server as mod
 
         src = Path(mod.__file__).read_text(encoding="utf-8")
         assert "register_skill_read_observer(ctx)" in src
         # The helper is homed in a leaf module, so no runtime needs to import
         # another surface just to register.
-        assert "from kiro_crew.dashboard.server import register" not in src
+        assert "from junction.dashboard.server import register" not in src
 
 
 class TestObserveSkillRead:

@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from kiro_crew.cron import (
+from junction.cron import (
     _TIMER_POLL_SECS,
     CronJob,
     CronSchedule,
@@ -397,7 +397,7 @@ class TestTimerRestoreOnLoad:
         svc = CronService(base_dir=tmp_path)
         svc._running = True
         with patch.object(svc, "_arm_timer"):
-            with caplog.at_level(logging.INFO, logger="kiro_crew.cron"):
+            with caplog.at_level(logging.INFO, logger="junction.cron"):
                 svc._load()
         assert "Restored 2 cron timer(s) from disk" in caplog.text
 
@@ -662,10 +662,10 @@ class TestFormatSchedule:
             time.tzset()
 
     def test_cron_expr_human_readable(self, monkeypatch) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         s = CronSchedule(kind="cron", cron_expr="0 22 * * 1-5")
@@ -674,7 +674,7 @@ class TestFormatSchedule:
         assert "10:00 PM" in result
 
     def test_cron_expr_with_timezone(self) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         s = CronSchedule(kind="cron", cron_expr="0 22 * * 1-5")
         result = format_schedule(s, tz_name="America/Los_Angeles")
@@ -684,10 +684,10 @@ class TestFormatSchedule:
         assert "Monday through Friday" in result
 
     def test_cron_expr_single_day(self, monkeypatch) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         s = CronSchedule(kind="cron", cron_expr="0 21 * * 5")
@@ -695,7 +695,7 @@ class TestFormatSchedule:
         assert "Friday" in result
 
     def test_single_digit_hour_with_timezone(self) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         # 03:00 in LA timezone = 3 AM local, no date boundary issue
         s = CronSchedule(kind="cron", cron_expr="0 3 * * *")
@@ -704,24 +704,24 @@ class TestFormatSchedule:
         assert "3:00 AM" in result
 
     def test_every_secs(self) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         s = CronSchedule(kind="every", every_secs=300)
         assert format_schedule(s) == "every 300s"
 
     def test_every_hours(self) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         s = CronSchedule(kind="every", every_secs=7200)
         assert format_schedule(s) == "every 2h"
 
     def test_at_timestamp_today(self, monkeypatch, _utc_tz) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         # Mock "now" to 2026-04-10, job at 3PM same day
         fake_now = datetime(2026, 4, 10, 12, 0, tzinfo=timezone.utc)
         # Mock only covers now() and fromtimestamp() — extend if format_schedule evolves.
-        monkeypatch.setattr("kiro_crew.cron.datetime", type("D", (datetime,), {
+        monkeypatch.setattr("junction.cron.datetime", type("D", (datetime,), {
             "now": classmethod(lambda cls, tz=None: fake_now),
             "fromtimestamp": staticmethod(lambda ts, tz=None: datetime.fromtimestamp(ts, tz)),
         }))
@@ -731,12 +731,12 @@ class TestFormatSchedule:
         assert "," not in result  # no date for today
 
     def test_at_timestamp_future_date(self, monkeypatch, _utc_tz) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         # Mock "now" to 2026-04-10, job on Apr 17
         fake_now = datetime(2026, 4, 10, 12, 0, tzinfo=timezone.utc)
         # Mock only covers now() and fromtimestamp() — extend if format_schedule evolves.
-        monkeypatch.setattr("kiro_crew.cron.datetime", type("D", (datetime,), {
+        monkeypatch.setattr("junction.cron.datetime", type("D", (datetime,), {
             "now": classmethod(lambda cls, tz=None: fake_now),
             "fromtimestamp": staticmethod(lambda ts, tz=None: datetime.fromtimestamp(ts, tz)),
         }))
@@ -745,16 +745,16 @@ class TestFormatSchedule:
         assert "Apr 17" in result
 
     def test_unknown_kind(self) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         s = CronSchedule(kind="unknown")
         assert format_schedule(s) == "unknown"
 
     def test_every_5_minutes(self, monkeypatch) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         s = CronSchedule(kind="cron", cron_expr="*/5 * * * *")
@@ -762,10 +762,10 @@ class TestFormatSchedule:
         assert "5 minutes" in result
 
     def test_invalid_timezone_falls_back(self, monkeypatch) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         s = CronSchedule(kind="cron", cron_expr="0 22 * * 1-5")
@@ -774,10 +774,10 @@ class TestFormatSchedule:
         assert "Monday through Friday" in result
 
     def test_config_timezone_fallback(self, monkeypatch) -> None:
-        from kiro_crew.cron import CronSchedule, format_schedule
+        from junction.cron import CronSchedule, format_schedule
 
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": "America/New_York"})()),
         )
         s = CronSchedule(kind="cron", cron_expr="0 22 * * 1-5")
@@ -851,7 +851,7 @@ class TestComputeNextRunTs:
 
     def test_cron_schedule(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         now = 1745000000.0  # 2025-04-18T18:13:20Z
@@ -922,7 +922,7 @@ class TestTimezoneScheduling:
 
     def test_job_tz_empty_returns_utc(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         job = CronJob(id="j1", name="t", message="m", timezone="")
@@ -951,7 +951,7 @@ class TestTimezoneScheduling:
     def test_compute_next_run_ts_no_timezone_stays_utc(self, monkeypatch) -> None:
         """Backward compat: no timezone means cron_expr evaluated as UTC."""
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         now = datetime(2025, 4, 18, 12, 0, tzinfo=timezone.utc).timestamp()
@@ -993,7 +993,7 @@ class TestTimezoneScheduling:
     def test_is_due_no_timezone_fires_at_utc(self, monkeypatch) -> None:
         """Backward compat: no timezone fires at UTC time."""
         monkeypatch.setattr(
-            "kiro_crew.cron.KiroCrewConfig.load",
+            "junction.cron.JunctionConfig.load",
             staticmethod(lambda: type("C", (), {"timezone": ""})()),
         )
         now = datetime(2025, 4, 18, 13, 0, tzinfo=timezone.utc).timestamp()

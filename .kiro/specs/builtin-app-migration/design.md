@@ -2,7 +2,7 @@
 
 ## Overview
 
-This feature implements a graceful two-phase migration mechanism for KiroCrew builtin apps being extracted to standalone packages. The design ensures users never experience a sudden loss of functionality — they receive advance warnings (Phase 1) and helpful guidance (Phase 2) throughout the transition.
+This feature implements a graceful two-phase migration mechanism for Junction builtin apps being extracted to standalone packages. The design ensures users never experience a sudden loss of functionality — they receive advance warnings (Phase 1) and helpful guidance (Phase 2) throughout the transition.
 
 The system leverages the existing `InstalledApp` metadata, `_BUILTIN_APPS` registration, and the dynamic app navigation system in the frontend to provide a seamless migration experience.
 
@@ -272,7 +272,7 @@ This means:
     "version": "1.0.0",
     "displayName": "Agent Worlds",
     "description": "...",
-    "author": "kirocrew",
+    "author": "junction",
     "tags": ["visualization"],
     "migratedTo": "registry:agent-worlds",  # Same name — standalone replaces builtin in-place
     "ui": { ... },

@@ -71,11 +71,11 @@ describe('AboutPanel disabled-update reasons', () => {
       channelSwitchable: false,
       disabled: 'externally-managed',
       managedBy: 'internal-registry',
-      updateCommand: 'pkgtool update kirocrew',
+      updateCommand: 'pkgtool update junction',
     })
     expect(await screen.findByText(/managed by internal-registry/i)).toBeTruthy()
     expect(screen.getByTestId('managed-update-command').textContent).toBe(
-      'pkgtool update kirocrew',
+      'pkgtool update junction',
     )
     // No channel surface: the switcher AND the read-only channel row both
     // describe a lane the marker's owner never reads.

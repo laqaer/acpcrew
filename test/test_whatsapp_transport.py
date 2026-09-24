@@ -13,9 +13,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.whatsapp.jids import OwnIdentity
-from kiro_crew.whatsapp.transport import WhatsAppTransport
+from junction.messaging.transport import InboundMessage
+from junction.whatsapp.jids import OwnIdentity
+from junction.whatsapp.transport import WhatsAppTransport
 
 OWN_JID = "447700900000@s.whatsapp.net"
 OWN_LID = "111222333@lid"
@@ -350,7 +350,7 @@ class TestGovernanceDenyStopsTheDownload:
     """
 
     async def _deny(self, monkeypatch):
-        import kiro_crew.messaging.dispatch as mod
+        import junction.messaging.dispatch as mod
 
         async def deny(_ct):
             return False
@@ -361,7 +361,7 @@ class TestGovernanceDenyStopsTheDownload:
         monkeypatch.setattr(mod, "channel_inbound_permitted", deny)
 
     async def test_a_denied_channel_never_reaches_the_fetch(self, harness, monkeypatch):
-        import kiro_crew.whatsapp.transport as mod
+        import junction.whatsapp.transport as mod
 
         calls = []
 
@@ -392,7 +392,7 @@ class TestGovernanceDenyStopsTheDownload:
         exemption keyed on it would admit a policy-denied media message whose
         caption happens to be `/stop`, and the download would already have run.
         """
-        import kiro_crew.whatsapp.transport as mod
+        import junction.whatsapp.transport as mod
 
         async def spy(*a, **kw):
             raise AssertionError("a denied channel must not download media")

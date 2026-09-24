@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.session_pid import (
+from junction.session_pid import (
     _kill_confirmed_and_writeback,
     _periodic_pid_sweep,
 )
@@ -31,7 +31,7 @@ _linux_only = pytest.mark.skipif(
 @pytest.fixture()
 def session_pid_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     p = tmp_path / "kiro_session_pids.txt"
-    monkeypatch.setattr("kiro_crew.session_pid._session_pid_file_path", lambda: p)
+    monkeypatch.setattr("junction.session_pid._session_pid_file_path", lambda: p)
     return p
 
 
@@ -41,7 +41,7 @@ def session_pid_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 class TestKillPidTree:
     def test_rejects_non_positive_pid(self) -> None:
         """pid <= 0 is catastrophic — must return immediately."""
-        from kiro_crew.session_pid import _kill_pid_tree
+        from junction.session_pid import _kill_pid_tree
 
         with patch("os.kill") as mock_kill:
             assert _kill_pid_tree(0) == (0, False)
@@ -49,7 +49,7 @@ class TestKillPidTree:
             mock_kill.assert_not_called()
 
     def test_returns_root_killed_true_on_success(self) -> None:
-        from kiro_crew.session_pid import _kill_pid_tree
+        from junction.session_pid import _kill_pid_tree
 
         kills: list[tuple[int, int]] = []
 
@@ -57,8 +57,8 @@ class TestKillPidTree:
             kills.append((pid, sig))
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
             patch("os.kill", side_effect=fake_kill),
         ):
             total, root_killed = _kill_pid_tree(99999)
@@ -68,11 +68,11 @@ class TestKillPidTree:
         assert (99999, signal.SIGKILL) in kills
 
     def test_returns_root_killed_false_when_not_kiro(self) -> None:
-        from kiro_crew.session_pid import _kill_pid_tree
+        from junction.session_pid import _kill_pid_tree
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=False),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=False),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
         ):
             total, root_killed = _kill_pid_tree(99999)
 
@@ -80,7 +80,7 @@ class TestKillPidTree:
         assert root_killed is False
 
     def test_kills_children_bottom_up(self) -> None:
-        from kiro_crew.session_pid import _kill_pid_tree
+        from junction.session_pid import _kill_pid_tree
 
         kills: list[int] = []
 
@@ -88,8 +88,8 @@ class TestKillPidTree:
             kills.append(pid)
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[100, 200]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.acp.client._get_child_pids", return_value=[100, 200]),
             patch("os.kill", side_effect=fake_kill),
         ):
             total, root_killed = _kill_pid_tree(50)
@@ -100,14 +100,14 @@ class TestKillPidTree:
         assert root_killed is True
 
     def test_handles_already_dead_root(self) -> None:
-        from kiro_crew.session_pid import _kill_pid_tree
+        from junction.session_pid import _kill_pid_tree
 
         def fake_kill(pid: int, sig: int) -> None:
             raise ProcessLookupError()
 
         with (
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
             patch("os.kill", side_effect=fake_kill),
         ):
             total, root_killed = _kill_pid_tree(99999)
@@ -121,7 +121,7 @@ class TestKillPidTree:
 
 class TestSweepPidEntries:
     def test_prunes_dead_pids(self) -> None:
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         def fake_kill(pid: int, sig: int) -> None:
             raise ProcessLookupError()
@@ -136,7 +136,7 @@ class TestSweepPidEntries:
         assert "1:99999" in dead
 
     def test_skips_tagged_entries_per_predicate(self) -> None:
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         killed, dead, _ = _sweep_pid_entries(
             ["1:99999"],
@@ -148,7 +148,7 @@ class TestSweepPidEntries:
         assert len(dead) == 0
 
     def test_skips_bare_entries_per_predicate(self) -> None:
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         killed, dead, _ = _sweep_pid_entries(
             ["99999"],
@@ -160,7 +160,7 @@ class TestSweepPidEntries:
         assert len(dead) == 0
 
     def test_prunes_invalid_entries(self) -> None:
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         killed, dead, _ = _sweep_pid_entries(
             ["not_a_pid", "abc:def"],
@@ -173,7 +173,7 @@ class TestSweepPidEntries:
 
     def test_rejects_non_positive_pids(self) -> None:
         """pid <= 0 is catastrophic for os.kill — must be pruned immediately."""
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         with patch("os.kill") as mock_kill:
             killed, dead, _ = _sweep_pid_entries(
@@ -190,7 +190,7 @@ class TestSweepPidEntries:
             mock_kill.assert_not_called()
 
     def test_skips_managed_pids(self) -> None:
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         def fake_kill(pid: int, sig: int) -> None:
             pass  # alive
@@ -207,14 +207,14 @@ class TestSweepPidEntries:
         assert len(dead) == 0
 
     def test_prunes_non_kiro_alive_pids(self) -> None:
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         def fake_kill(pid: int, sig: int) -> None:
             pass  # alive
 
         with (
             patch("os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=False),
+            patch("junction.session_pid._is_managed_agent_process", return_value=False),
         ):
             killed, dead, _ = _sweep_pid_entries(
                 ["1:99999"],
@@ -226,7 +226,7 @@ class TestSweepPidEntries:
 
     def test_permission_error_skips_entry(self) -> None:
         """PermissionError on liveness probe means alive but owned by another user — skip."""
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         def fake_kill(pid: int, sig: int) -> None:
             raise PermissionError()
@@ -243,13 +243,13 @@ class TestSweepPidEntries:
 
     def test_kills_alive_orphaned_kiro_pid(self) -> None:
         """Exercises the successful-kill branch: alive, not managed, is kiro."""
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         with (
             patch("os.kill"),  # signal-0 (alive) and SIGKILL both succeed
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
         ):
             killed, dead, _ = _sweep_pid_entries(
                 ["1:99999"],
@@ -262,7 +262,7 @@ class TestSweepPidEntries:
 
     def test_reprobe_prunes_when_root_not_killed_but_dead(self) -> None:
         """root_killed=False + re-probe ProcessLookupError → entry pruned."""
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         call_count = 0
 
@@ -275,9 +275,9 @@ class TestSweepPidEntries:
 
         with (
             patch("os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._kill_pid_tree", return_value=(1, False)),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._kill_pid_tree", return_value=(1, False)),
         ):
             killed, dead, _ = _sweep_pid_entries(
                 ["1:99999"],
@@ -290,13 +290,13 @@ class TestSweepPidEntries:
 
     def test_reprobe_keeps_entry_when_root_not_killed_and_alive(self) -> None:
         """root_killed=False + re-probe alive → entry kept for retry."""
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         with (
             patch("os.kill"),  # all probes succeed (alive)
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.session_pid._kill_pid_tree", return_value=(1, False)),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._kill_pid_tree", return_value=(1, False)),
         ):
             killed, dead, _ = _sweep_pid_entries(
                 ["1:99999"],
@@ -313,7 +313,7 @@ class TestSweepPidEntries:
 
 class TestWriteBackPidFile:
     def test_removes_killed_entries(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _write_back_pid_file
+        from junction.session_pid import _write_back_pid_file
 
         session_pid_file.write_text("1:100\n1:200\n1:300\n")
         _write_back_pid_file({"1:200"})
@@ -324,7 +324,7 @@ class TestWriteBackPidFile:
         assert "1:300" in content
 
     def test_empties_file_when_all_removed(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _write_back_pid_file
+        from junction.session_pid import _write_back_pid_file
 
         session_pid_file.write_text("1:100\n")
         _write_back_pid_file({"1:100"})
@@ -337,7 +337,7 @@ class TestWriteBackPidFile:
 
 class TestPeriodicPidSweep:
     def test_only_sweeps_own_gateway_entries(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         my_gw = os.getpid()
         other_gw = my_gw + 1  # guaranteed different from my_gw
@@ -355,7 +355,7 @@ class TestPeriodicPidSweep:
         assert candidates == []  # dead PIDs are not candidates
 
     def test_skips_active_pids(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         my_gw = os.getpid()
         session_pid_file.write_text(f"{my_gw}:99999\n")
@@ -370,7 +370,7 @@ class TestPeriodicPidSweep:
         assert 99999 not in candidates  # managed — not a candidate
 
     def test_skips_bare_entries(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         session_pid_file.write_text("99999\n")
 
@@ -382,7 +382,7 @@ class TestPeriodicPidSweep:
 
     def test_returns_candidates_for_orphaned_pids(self, session_pid_file: Path) -> None:
         """Alive, unmanaged, kiro-cli PIDs become candidates (not killed in phase 1)."""
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         my_gw = os.getpid()
         session_pid_file.write_text(f"{my_gw}:99999\n")
@@ -392,8 +392,8 @@ class TestPeriodicPidSweep:
 
         with (
             patch("os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
         ):
             killed_or_dead, candidates = _periodic_pid_sweep(my_gw, set())
 
@@ -406,13 +406,13 @@ class TestPeriodicPidSweep:
 
 class TestKillConfirmedAndWriteback:
     def test_kills_confirmed_and_prunes_entries(self, session_pid_file: Path) -> None:
-        from kiro_crew.session_pid import _kill_confirmed_and_writeback
+        from junction.session_pid import _kill_confirmed_and_writeback
 
         session_pid_file.write_text("1:99999\n1:88888\n")
 
         with (
-            patch("kiro_crew.session_pid._kill_pid_tree", return_value=(1, True)),
-            patch("kiro_crew.session_pid._write_back_pid_file") as mock_wb,
+            patch("junction.session_pid._kill_pid_tree", return_value=(1, True)),
+            patch("junction.session_pid._write_back_pid_file") as mock_wb,
         ):
             killed = _kill_confirmed_and_writeback(1, [99999], set())
 
@@ -422,12 +422,12 @@ class TestKillConfirmedAndWriteback:
 
     def test_keeps_entry_on_kill_failure(self, session_pid_file: Path) -> None:
         """root_killed=False and process still alive → entry not pruned."""
-        from kiro_crew.session_pid import _kill_confirmed_and_writeback
+        from junction.session_pid import _kill_confirmed_and_writeback
 
         with (
-            patch("kiro_crew.session_pid._kill_pid_tree", return_value=(0, False)),
+            patch("junction.session_pid._kill_pid_tree", return_value=(0, False)),
             patch("os.kill"),  # re-probe: still alive
-            patch("kiro_crew.session_pid._write_back_pid_file") as mock_wb,
+            patch("junction.session_pid._write_back_pid_file") as mock_wb,
         ):
             killed = _kill_confirmed_and_writeback(1, [99999], set())
 
@@ -436,9 +436,9 @@ class TestKillConfirmedAndWriteback:
         mock_wb.assert_not_called()
 
     def test_no_writeback_when_nothing_to_prune(self) -> None:
-        from kiro_crew.session_pid import _kill_confirmed_and_writeback
+        from junction.session_pid import _kill_confirmed_and_writeback
 
-        with patch("kiro_crew.session_pid._write_back_pid_file") as mock_wb:
+        with patch("junction.session_pid._write_back_pid_file") as mock_wb:
             killed = _kill_confirmed_and_writeback(1, [], set())
 
         assert killed == 0
@@ -467,9 +467,9 @@ class TestPeriodicSweepIntegration:
 
         with (
             patch("os.kill"),
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
         ):
             # Phase 1: identify candidates
             killed_or_dead, candidates = _periodic_pid_sweep(my_gw, set())
@@ -490,7 +490,7 @@ class TestPeriodicSweepIntegration:
     @pytest.mark.asyncio
     async def test_skip_sweep_when_pid_not_int(self) -> None:
         """_collect_active_pids returns ok=False when PID is not an int."""
-        from kiro_crew.session_pid import _collect_active_pids
+        from junction.session_pid import _collect_active_pids
 
         sess = self._make_session(pid="not_an_int")
         pids, ok = _collect_active_pids({"s1": sess})
@@ -500,7 +500,7 @@ class TestPeriodicSweepIntegration:
     @pytest.mark.asyncio
     async def test_phase2_safe_false_on_pid_extraction_failure(self) -> None:
         """_collect_active_pids returns ok=False when _pid attr missing."""
-        from kiro_crew.session_pid import _collect_active_pids
+        from junction.session_pid import _collect_active_pids
 
         sess = MagicMock()
         sess.provider.client = MagicMock(spec=[])  # no _pid attr
@@ -527,7 +527,7 @@ class TestPeriodicSweepIntegration:
         session_pid_file.write_text(f"{my_gw}:99999\n")
 
         with patch(
-            "kiro_crew.session_pid._periodic_pid_sweep",
+            "junction.session_pid._periodic_pid_sweep",
             side_effect=RuntimeError("boom"),
         ) as mock_sweep:
             try:
@@ -543,7 +543,7 @@ class TestProtectedPidSweepShield:
     and the periodic orphan sweep does not SIGKILL them mid-use."""
 
     def test_collect_active_pids_includes_protected(self) -> None:
-        from kiro_crew.session_pid import (
+        from junction.session_pid import (
             _collect_active_pids,
             register_protected_pid,
             unregister_protected_pid,
@@ -558,7 +558,7 @@ class TestProtectedPidSweepShield:
             unregister_protected_pid(424242)
 
     def test_unregister_removes_protection(self) -> None:
-        from kiro_crew.session_pid import (
+        from junction.session_pid import (
             _collect_active_pids,
             register_protected_pid,
             unregister_protected_pid,
@@ -579,7 +579,7 @@ class TestPidAgeSeconds:
     @_linux_only
     def test_young_pid_age_below_grace(self, tmp_path: Path) -> None:
         """A process started recently returns a small age value."""
-        from kiro_crew.session_pid import _pid_age_seconds
+        from junction.session_pid import _pid_age_seconds
 
         # Simulate a process that started 30 seconds ago.
         # We need: uptime, and starttime_ticks such that age = 30s.
@@ -614,7 +614,7 @@ class TestPidAgeSeconds:
     @_linux_only
     def test_old_pid_age_above_grace(self, tmp_path: Path) -> None:
         """A process started long ago returns a large age value."""
-        from kiro_crew.session_pid import _pid_age_seconds
+        from junction.session_pid import _pid_age_seconds
 
         clk_tck = os.sysconf("SC_CLK_TCK")
         uptime_seconds = 100000.0
@@ -639,7 +639,7 @@ class TestPidAgeSeconds:
 
     def test_proc_parse_failure_returns_none(self, tmp_path: Path) -> None:
         """/proc read failure → None (treat as young in caller)."""
-        from kiro_crew.session_pid import _pid_age_seconds
+        from junction.session_pid import _pid_age_seconds
 
         # No /proc/<pid>/stat file exists
         age = _pid_age_seconds(99999, proc_root=str(tmp_path))
@@ -648,7 +648,7 @@ class TestPidAgeSeconds:
     @_linux_only
     def test_comm_with_spaces_and_parens(self, tmp_path: Path) -> None:
         """comm field '(Web Content (Manager))' with spaces+parens parses correctly."""
-        from kiro_crew.session_pid import _pid_age_seconds
+        from junction.session_pid import _pid_age_seconds
 
         clk_tck = os.sysconf("SC_CLK_TCK")
         uptime_seconds = 50000.0
@@ -674,9 +674,9 @@ class TestPidAgeSeconds:
 
     def test_non_linux_returns_none(self) -> None:
         """On non-Linux, _pid_age_seconds returns None immediately."""
-        from kiro_crew.session_pid import _pid_age_seconds
+        from junction.session_pid import _pid_age_seconds
 
-        with patch("kiro_crew.session_pid.sys.platform", "darwin"):
+        with patch("junction.session_pid.sys.platform", "darwin"):
             assert _pid_age_seconds(1234) is None
 
 
@@ -689,42 +689,42 @@ class TestPidInSpawnGrace:
         The startup sweep SIGKILLed a live kiro-cli on macOS because this
         returned False unconditionally off-Linux (2026-07-29 repro).
         """
-        from kiro_crew.session_pid import _pid_in_spawn_grace
+        from junction.session_pid import _pid_in_spawn_grace
 
         with (
-            patch("kiro_crew.session_pid.sys.platform", "darwin"),
-            patch("kiro_crew.session_pid._pid_age_seconds", return_value=30.0),
+            patch("junction.session_pid.sys.platform", "darwin"),
+            patch("junction.session_pid._pid_age_seconds", return_value=30.0),
         ):
             assert _pid_in_spawn_grace(12345) is True
 
     def test_windows_returns_false(self) -> None:
         """Windows: no age source — grace not applicable, sweep proceeds."""
-        from kiro_crew.session_pid import _pid_in_spawn_grace
+        from junction.session_pid import _pid_in_spawn_grace
 
-        with patch("kiro_crew.session_pid.platform_compat.IS_WINDOWS", True):
+        with patch("junction.session_pid.platform_compat.IS_WINDOWS", True):
             assert _pid_in_spawn_grace(12345) is False
 
     @_linux_only
     def test_linux_young_pid_returns_true(self) -> None:
         """Linux + age < 120s → True (skip the kill)."""
-        from kiro_crew.session_pid import _pid_in_spawn_grace
+        from junction.session_pid import _pid_in_spawn_grace
 
-        with patch("kiro_crew.session_pid._pid_age_seconds", return_value=30.0):
+        with patch("junction.session_pid._pid_age_seconds", return_value=30.0):
             assert _pid_in_spawn_grace(12345) is True
 
     def test_linux_old_pid_returns_false(self) -> None:
         """Linux + age > 120s → False (proceed with kill)."""
-        from kiro_crew.session_pid import _pid_in_spawn_grace
+        from junction.session_pid import _pid_in_spawn_grace
 
-        with patch("kiro_crew.session_pid._pid_age_seconds", return_value=200.0):
+        with patch("junction.session_pid._pid_age_seconds", return_value=200.0):
             assert _pid_in_spawn_grace(12345) is False
 
     @_linux_only
     def test_linux_parse_failure_returns_true(self) -> None:
         """Linux + age=None (parse failure) → True (safe direction: skip kill)."""
-        from kiro_crew.session_pid import _pid_in_spawn_grace
+        from junction.session_pid import _pid_in_spawn_grace
 
-        with patch("kiro_crew.session_pid._pid_age_seconds", return_value=None):
+        with patch("junction.session_pid._pid_age_seconds", return_value=None):
             assert _pid_in_spawn_grace(12345) is True
 
 
@@ -733,15 +733,15 @@ class TestSweepGraceIntegration:
 
     def test_young_pid_not_selected_as_candidate(self, session_pid_file: Path) -> None:
         """A tracked PID younger than 120s is NOT selected as orphan candidate."""
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         my_gw = os.getpid()
         session_pid_file.write_text(f"{my_gw}:99999\n")
 
         with (
             patch("os.kill"),  # alive
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=True),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=True),
         ):
             killed_or_dead, candidates = _periodic_pid_sweep(my_gw, set())
 
@@ -750,15 +750,15 @@ class TestSweepGraceIntegration:
 
     def test_old_pid_selected_as_candidate(self, session_pid_file: Path) -> None:
         """A tracked PID older than 120s IS selected (regression guard)."""
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         my_gw = os.getpid()
         session_pid_file.write_text(f"{my_gw}:99999\n")
 
         with (
             patch("os.kill"),  # alive
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid._pid_in_spawn_grace", return_value=False),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid._pid_in_spawn_grace", return_value=False),
         ):
             killed_or_dead, candidates = _periodic_pid_sweep(my_gw, set())
 
@@ -766,7 +766,7 @@ class TestSweepGraceIntegration:
 
     def test_dead_pid_pruned_regardless_of_grace(self, session_pid_file: Path) -> None:
         """Dead PIDs are pruned (no /proc entry) — grace gate is never reached."""
-        from kiro_crew.session_pid import _periodic_pid_sweep
+        from junction.session_pid import _periodic_pid_sweep
 
         my_gw = os.getpid()
         session_pid_file.write_text(f"{my_gw}:99999\n")
@@ -788,15 +788,15 @@ class TestSweepGraceIntegration:
         previously non-Linux skipped grace entirely, which is the defect that
         let the sweep kill freshly-spawned backends.
         """
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         with (
             patch("os.kill"),  # alive
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid.sys.platform", "darwin"),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid.sys.platform", "darwin"),
             # Older than SWEEP_SPAWN_GRACE_SECONDS → grace does not protect it.
-            patch("kiro_crew.session_pid._pid_age_seconds", return_value=9999.0),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._pid_age_seconds", return_value=9999.0),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
         ):
             killed, dead, _ = _sweep_pid_entries(
                 ["1:99999"],
@@ -809,14 +809,14 @@ class TestSweepGraceIntegration:
 
     def test_non_linux_young_orphan_spared(self, session_pid_file: Path) -> None:
         """Regression: on macOS a YOUNG live agent PID must NOT be killed."""
-        from kiro_crew.session_pid import _sweep_pid_entries
+        from junction.session_pid import _sweep_pid_entries
 
         with (
             patch("os.kill"),  # alive
-            patch("kiro_crew.session_pid._is_managed_agent_process", return_value=True),
-            patch("kiro_crew.session_pid.sys.platform", "darwin"),
-            patch("kiro_crew.session_pid._pid_age_seconds", return_value=5.0),
-            patch("kiro_crew.acp.client._get_child_pids", return_value=[]),
+            patch("junction.session_pid._is_managed_agent_process", return_value=True),
+            patch("junction.session_pid.sys.platform", "darwin"),
+            patch("junction.session_pid._pid_age_seconds", return_value=5.0),
+            patch("junction.acp.client._get_child_pids", return_value=[]),
         ):
             killed, dead, _ = _sweep_pid_entries(
                 ["1:99999"],

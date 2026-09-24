@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-CONFIG_DIR = Path(__file__).resolve().parents[1] / "src" / "kiro_crew" / "config"
+CONFIG_DIR = Path(__file__).resolve().parents[1] / "src" / "junction" / "config"
 
 
 def test_orchestrator_prompt_binds_autopilot_name() -> None:

@@ -161,8 +161,8 @@ shows literally — the same trade-off inline file mentions make.
 
 | File | Role |
 |---|---|
-| `src/kiro_crew/dashboard/handlers/files.py` | `api_file_search` endpoint, fuzzy scorer, walk fallback |
-| `src/kiro_crew/dashboard/file_index.py` | `FileIndex`, `FileIndexRegistry` |
+| `src/junction/dashboard/handlers/files.py` | `api_file_search` endpoint, fuzzy scorer, walk fallback |
+| `src/junction/dashboard/file_index.py` | `FileIndex`, `FileIndexRegistry` |
 | `website/src/components/FilePickerMenu.tsx` | Picker UI, `kind` propagation, trailing-slash insertion |
 | `website/src/components/ChatInput.tsx` | Composer wiring, pending file/folder preview strip |
 | `website/src/utils/fileTokens.ts` | Attachment-marker owner: file AND dir token parse/serialize/resolve |

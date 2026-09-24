@@ -17,7 +17,7 @@ A buggy or malicious app with a valid app token can currently:
 - Spawn unlimited subagents, exhausting compute
 - Send notifications impersonating the system
 
-The app identity system (App Kit §6) provides authentication but not authorization. We need per-app sandboxing so one app cannot destroy another app's state or degrade the user's Kiro Crew experience.
+The app identity system (App Kit §6) provides authentication but not authorization. We need per-app sandboxing so one app cannot destroy another app's state or degrade the user's Junction experience.
 
 ---
 
@@ -99,7 +99,7 @@ App tokens already contain `"app": "mochi-pet"` in the HMAC payload. No token fo
 ### Backward Compatibility
 
 - Dashboard users (tokens without `app` field) bypass all app restrictions — full access as today.
-- Apps using legacy auth (`kirocrewSecret.ts` headers, no app identity) are treated as dashboard users — no restrictions. This is the correct fallback for old gateways.
+- Apps using legacy auth (`junctionSecret.ts` headers, no app identity) are treated as dashboard users — no restrictions. This is the correct fallback for old gateways.
 - Phase 2+ enforcement is opt-in per gateway version. Old gateways ignore the `app` field.
 
 ### SDK Impact

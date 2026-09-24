@@ -2243,7 +2243,7 @@ export const selectComposerBusy = (state: RootState, slot: string | null): boole
 
 /** Roles the continue scans walk past: they are not the conversation's floor.
  *  Mirrors `_is_interrupted` / `_has_conversation` in
- *  `src/kiro_crew/dashboard/chat_handlers.py`, which likewise only read
+ *  `src/junction/dashboard/chat_handlers.py`, which likewise only read
  *  `user` / `assistant` / `error` rows. Keep them in sync — these predicates
  *  decide whether to OFFER Continue and what to call it, those decide whether to
  *  authorize it and what to tell the model. */
@@ -2257,7 +2257,7 @@ const CONTINUE_SCAN_SKIP = new Set(['queued', 'tool_call', 'tool_result', 'injec
  * NOT limited to turns that visibly died, because a transcript cannot reliably
  * show that they did: a force-quit or force-exit runs no cleanup, so no error
  * row is ever written and a killed turn reads exactly like a finished one (see
- * ``_has_conversation`` in `src/kiro_crew/dashboard/chat_handlers.py`, which
+ * ``_has_conversation`` in `src/junction/dashboard/chat_handlers.py`, which
  * authorizes the press under the slot lock). Offering it on every idle slot
  * covers those invisible interruptions, and doubles as a plain "keep going"
  * nudge — the one thing an empty composer's dead send button could never do.
@@ -2331,7 +2331,7 @@ export const isStopEvent = (m: ChatMessage): boolean =>
  *
  * Gates the composer's Resume button (composed with `selectContinuable` in
  * ChatPage) and selects the continuation body handed to the model. Mirrors
- * `_is_interrupted` in `src/kiro_crew/dashboard/chat_handlers.py` — the two must
+ * `_is_interrupted` in `src/junction/dashboard/chat_handlers.py` — the two must
  * agree, or the button promises one thing and the agent is told another.
  *
  * A false result means "nothing in the transcript proves an interruption", never
@@ -3008,7 +3008,7 @@ const chatSlice = createSlice({
       const existing = subs[action.payload.id]
       if (existing?.status === 'pending') {
         existing.status = 'running'
-        existing.agent = action.payload.agent || existing.agent || 'kirocrew'
+        existing.agent = action.payload.agent || existing.agent || 'junction'
         // Only overwrite a known model with another known one — never clobber a
         // resolved id back to '' if a later frame omits it.
         if (action.payload.model) existing.model = action.payload.model
@@ -3019,7 +3019,7 @@ const chatSlice = createSlice({
         return
       }
       subs[safeKey(action.payload.id)] = {
-        id: action.payload.id, task: action.payload.task, agent: action.payload.agent || 'kirocrew',
+        id: action.payload.id, task: action.payload.task, agent: action.payload.agent || 'junction',
         model: action.payload.model || '',
         status: 'running', streaming: existing?.streaming || '', lastTool: '', startedAt: existing?.startedAt || Date.now(), elapsed: 0,
         toolCount: 0, stalled: false,
@@ -3169,7 +3169,7 @@ const chatSlice = createSlice({
         subs[action.payload.id] = {
           id: action.payload.id,
           task: action.payload.task || '',
-          agent: action.payload.agent || 'kirocrew',
+          agent: action.payload.agent || 'junction',
           model: action.payload.model || '',
           status: doneStatus,
           streaming: '',
@@ -3440,7 +3440,7 @@ const chatSlice = createSlice({
       if (existing?.status === 'done' || existing?.status === 'error') return
       const stalled = d.stalled ?? false
       subs[safeKey(d.id)] = {
-        id: d.id, task: d.task, agent: d.agent || 'kirocrew',
+        id: d.id, task: d.task, agent: d.agent || 'junction',
         // Prefer the snapshot's model; fall back to any id a live frame already
         // set, so a reconnect that omits it does not blank the pill.
         model: d.model || existing?.model || '',

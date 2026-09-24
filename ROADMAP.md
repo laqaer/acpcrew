@@ -1,8 +1,7 @@
 # Roadmap
 
-Identity freeze, bootstrap, model plane, then operator-install of the sidecar
-and a human-gated production site. Later renames are human-gated. No calendar
-estimates.
+Identity freeze, bootstrap, then a model catalog that starts with
+`junction up`. No calendar estimates.
 
 Frozen identity: [`WORKING_BRIEF.md`](WORKING_BRIEF.md). Lane map:
 [`docs/TASK_MAP.md`](docs/TASK_MAP.md). Agent loop:
@@ -39,13 +38,17 @@ catalog, role DAG, Settings pins. Unpinned roles stay `"auto"`.
 - Marketing site copy matches what the gateway does today.
 - Ship + maintain roadmaps and the agent-OS loop (no auto-merge).
 
-### M2 — operator-install of the model plane
+### M2 — built-in model catalog
 
-Operator installs the published Codex Router sidecar. Junction keeps
-observing it. Optional `openai_base_url` at the sidecar for agents that
-speak that wire. Namespaced catalog slugs become live wire ids. Secrets
-stay in the router's own entry path; Junction does not paste keys into chat.
-Issue [#22](https://github.com/laqaer/junction/issues/22).
+**Implemented in this checkout. Not on `main` until a human merges.**
+`junction up` binds a loopback catalog listener and serves `/health` and
+`/catalog`. Provider translation is not bundled. Completion routes answer
+`501` with `code` `model_router_no_forward`. `junction router` does not
+claim a sidecar injects keys. Secrets stay out of chat and out of the data
+home. A busy port is left to whatever already owns it.
+
+The test to run before marketing is
+[What a successful test looks like](docs/guides/install.md#what-a-successful-test-looks-like).
 
 ### M3 — production marketing site
 
@@ -70,14 +73,14 @@ Other names quoted in the same pass, also not purchased:
 `junction.dev` / `.app` / `.ai` / `.so` / `.run` and `usejunction.com` are
 taken. Agents must not buy a domain or change DNS.
 
-### M4 — human-gated identity leftovers
+### M4 — identity leftovers
 
-Each is a dedicated change, not an opportunistic string sweep:
-
-- Catalog-wide dashboard i18n (`{{productName}}` already binds new copy).
-- Package and data-home rename (`kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`,
-  Electron `productName`).
-- GitHub slug is `laqaer/junction`. Description and homepage are still unset.
+- Package import path is `junction`. Env is `JUNCTION_HOME`. A new install
+  uses `~/.junction`. An older data directory is still opened when the new
+  one is absent, and it stays on the security floor.
+- GitHub slug is `laqaer/junction`. Site is https://getjunction.dev.
+- Catalog-wide dashboard i18n (`{{productName}}` already binds new copy)
+  still has older path spellings in some locale strings.
 
 ### M5 — publish
 
@@ -118,11 +121,11 @@ Worth doing, not on the bootstrap PR:
 
 - Confirm a domain from the M3 table and attach it to `junction-site`
   ([#27](https://github.com/laqaer/junction/issues/27)).
-- Install the Codex Router sidecar on a real machine and prove M2
-  ([#22](https://github.com/laqaer/junction/issues/22)).
+- Provider translation is intentionally not bundled. Do not vendor another
+  product's router tree to get it.
 - Remaining dashboard catalog literals (`en.json` / locale values) in
   reviewable chunks ([#28](https://github.com/laqaer/junction/issues/28)).
-- Packaged user docs under `src/kiro_crew/docs/` still say the old CLI in
+- Packaged user docs under `src/junction/docs/` still say the old CLI in
   places; rewrite as a docs PR, not a silent sweep.
 - Create Cursor Automations for scout / implementer / reviewer, and mint
   the `agent-os/*` labels once ([#29](https://github.com/laqaer/junction/issues/29)).

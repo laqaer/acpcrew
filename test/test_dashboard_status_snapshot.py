@@ -8,12 +8,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.dashboard.state import DashboardState
+from junction.dashboard.state import DashboardState
 
 
 @pytest.fixture
 def state(monkeypatch, tmp_path):
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     crons = MagicMock()
     crons.list_jobs.return_value = [{"id": "j1"}, {"id": "j2"}]
     lessons = MagicMock()
@@ -123,7 +123,7 @@ class TestStatusSnapshot:
         to report a bug — or a stable user gets an affordance implying the build
         is expected to break.
         """
-        monkeypatch.setattr("kiro_crew.release_channel.__version__", version)
+        monkeypatch.setattr("junction.release_channel.__version__", version)
         assert state.status_snapshot()["release_channel"] == expected
 
     def test_release_channel_is_always_present(self, state: DashboardState) -> None:
@@ -161,7 +161,7 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
     """
 
     def test_the_shared_reader_carries_every_update_field(self) -> None:
-        from kiro_crew.dashboard.handlers.updates import status_update_fields
+        from junction.dashboard.handlers.updates import status_update_fields
 
         assert set(status_update_fields()) == {
             "update_available",
@@ -178,7 +178,7 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
         }
 
     def test_the_shared_reader_never_flattens_a_missing_verdict(self) -> None:
-        from kiro_crew.dashboard.handlers import updates
+        from junction.dashboard.handlers import updates
 
         original = dict(updates._update_info)
         try:
@@ -194,7 +194,7 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
         """The popup keys its per-version snooze/skip on this field, so an
         absent value must read as "" (no candidate), never as None or a stale
         non-string the cache happened to hold."""
-        from kiro_crew.dashboard.handlers import updates
+        from junction.dashboard.handlers import updates
 
         original = dict(updates._update_info)
         try:
@@ -213,8 +213,8 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
         /api/status, the WS status frame, and the SSE stream at once."""
         import inspect
 
-        from kiro_crew.dashboard.handlers.updates import status_update_fields
-        from kiro_crew.dashboard.state import DashboardState
+        from junction.dashboard.handlers.updates import status_update_fields
+        from junction.dashboard.state import DashboardState
 
         params = inspect.signature(DashboardState.status_snapshot).parameters
         missing = set(status_update_fields()) - set(params)
@@ -228,7 +228,7 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
     def test_ws_uses_the_shared_reader(self) -> None:
         import inspect
 
-        from kiro_crew.dashboard import ws
+        from junction.dashboard import ws
 
         source = inspect.getsource(ws)
         assert "status_update_fields()" in source, (
@@ -239,7 +239,7 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
     def test_system_api_uses_the_shared_reader(self) -> None:
         import inspect
 
-        from kiro_crew.dashboard import handlers_system
+        from junction.dashboard import handlers_system
 
         source = inspect.getsource(handlers_system)
         assert "status_update_fields()" in source
@@ -294,9 +294,9 @@ class TestAllStatusSnapshotCallersPassTheUpdateFields:
 
 def inspect_module_root() -> str:
     """The installed package root, so the walk follows the code under test."""
-    import kiro_crew
+    import junction
 
-    return str(pathlib.Path(kiro_crew.__file__).parent)
+    return str(pathlib.Path(junction.__file__).parent)
 
 
 def status_fields_of(updates_module) -> dict:
@@ -308,16 +308,16 @@ class TestBuildInfoResolution:
 
     Regression (dogfood 2026-07-06): an earlier revision resolved git_build_info()
     at state.py *module import*. Under systemd the entrypoint imports this module
-    BEFORE main() detects KIROCREW_PROJECT_DIR, so it resolved with no project dir
+    BEFORE main() detects JUNCTION_PROJECT_DIR, so it resolved with no project dir
     and lru_cache then pinned ("", "") for the process lifetime — the dropdown was
     always blank. The value is now recorded by the CLI gateway entrypoint (sync,
     pre-loop, post-detection) via set_build_info() and only read here.
     """
 
     def test_setter_flows_into_new_state(self, monkeypatch, tmp_path) -> None:
-        from kiro_crew.dashboard import state as state_mod
+        from junction.dashboard import state as state_mod
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state_mod.set_build_info(("beta-braveheart", "4f753ed0"))
         try:
             st = DashboardState(
@@ -331,9 +331,9 @@ class TestBuildInfoResolution:
             state_mod.set_build_info(("", ""))  # restore shared module global
 
     def test_default_is_empty_when_setter_never_called(self, monkeypatch, tmp_path) -> None:
-        from kiro_crew.dashboard import state as state_mod
+        from junction.dashboard import state as state_mod
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state_mod.set_build_info(("", ""))  # simulate non-git / not-yet-resolved
         st = DashboardState(
             sessions=MagicMock(count=0),

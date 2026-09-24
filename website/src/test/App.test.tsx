@@ -53,12 +53,12 @@ vi.mock('../pages/SystemPage', () => ({ default: () => <div data-testid="system-
 vi.mock('../pages/AgentsPage', () => ({ default: () => <div data-testid="agents-page">AgentsPage</div> }))
 vi.mock('../pages/ProjectsPage', () => ({ default: () => <div data-testid="projects-page">ProjectsPage</div> }))
 vi.mock('../pages/LogsPage', () => ({ default: () => <div data-testid="logs-page">LogsPage</div> }))
-vi.mock('../pages/KiroCrewAgentsPage', () => ({ default: () => <div data-testid="mc-agents-page">MCAgentsPage</div> }))
+vi.mock('../pages/JunctionAgentsPage', () => ({ default: () => <div data-testid="mc-agents-page">MCAgentsPage</div> }))
 vi.mock('../pages/CapabilitiesPage', () => ({ default: () => <div data-testid="capabilities-page">CapabilitiesPage</div> }))
 vi.mock('../pages/NotificationsPage', () => ({ default: () => <div data-testid="notifications-page">NotificationsPage</div> }))
 vi.mock('../pages/SchedulePage', () => ({ default: () => <div data-testid="schedule-page">SchedulePage</div> }))
 vi.mock('../hooks/useWebSocket', () => ({ useWebSocket: () => ({ subscribeLogs: () => {} }) }))
-vi.mock('../hooks/useAgents', () => ({ useAgents: vi.fn(() => ({ agents: [{ name: 'kirocrew' }, { name: 'reviewer' }, { name: 'oracle' }], defaultAgent: 'kirocrew' })) }))
+vi.mock('../hooks/useAgents', () => ({ useAgents: vi.fn(() => ({ agents: [{ name: 'junction' }, { name: 'reviewer' }, { name: 'oracle' }], defaultAgent: 'junction' })) }))
 vi.mock('../providers/context', () => ({ useProvider: () => ({ id: 'acp' }) }))
 vi.mock('../components/MarkdownRenderer', () => ({ default: ({ content }: { content: string }) => <span>{content}</span>, Lightbox: () => null }))
 vi.mock('../api/client', () => ({
@@ -95,7 +95,7 @@ vi.mock('../api/client', () => ({
       reason: 'ready',
       endpoint_configured: true,
       env_override: false,
-      env_var: 'KIROCREW_TELEMETRY_DISABLED',
+      env_var: 'JUNCTION_TELEMETRY_DISABLED',
     }),
     patchConfig: vi.fn().mockResolvedValue({}),
     createChatSlot: vi.fn().mockResolvedValue({ key: 'feature-slot', title: 'feature-slot', messages: 0, running: false }),
@@ -567,7 +567,7 @@ describe('App routing', () => {
 
   it('refetches the Apps nav when the gateway reconnects (post-update recovery)', async () => {
     // Regression for the empty-rail-after-update bug: the dashboard fetches
-    // /api/apps once on mount, and right after a `kirocrew update` restart that
+    // /api/apps once on mount, and right after a `junction update` restart that
     // first fetch can come back empty while the gateway is still warming. When
     // the WebSocket reconnects, the Apps nav must refetch and self-heal —
     // previously it stayed empty until a manual reload (Browse, lazy-fetched,
@@ -585,7 +585,7 @@ describe('App routing', () => {
     // Let the (empty) mount fetch settle; the app is absent.
     await waitFor(() => expect(screen.getByText('Sessions')).toBeInTheDocument())
     expect(screen.queryByText('Late App')).not.toBeInTheDocument()
-    // Simulate a `kirocrew update` restart: the WS connects, drops, reconnects.
+    // Simulate a `junction update` restart: the WS connects, drops, reconnects.
     // Only the reconnect (after a drop) refetches the Apps nav — the rail
     // self-heals without a manual reload.
     act(() => { store.dispatch(sseConnected()) })
@@ -1044,7 +1044,7 @@ describe('App routing', () => {
 
     // Entering the Web Preview's expand mode collapses the rail.
     act(() => {
-      window.dispatchEvent(new CustomEvent('kirocrew-preview-expand', { detail: { expanded: true } }))
+      window.dispatchEvent(new CustomEvent('junction-preview-expand', { detail: { expanded: true } }))
     })
     expect(within(nav).getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument()
 
@@ -1054,7 +1054,7 @@ describe('App routing', () => {
 
     // Leaving expand mode must not undo that explicit choice.
     act(() => {
-      window.dispatchEvent(new CustomEvent('kirocrew-preview-expand', { detail: { expanded: false } }))
+      window.dispatchEvent(new CustomEvent('junction-preview-expand', { detail: { expanded: false } }))
     })
     expect(within(nav).getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument()
     localStorage.removeItem('mc-nav')
@@ -1067,12 +1067,12 @@ describe('App routing', () => {
     expect(within(nav).getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument()
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('kirocrew-preview-expand', { detail: { expanded: true } }))
+      window.dispatchEvent(new CustomEvent('junction-preview-expand', { detail: { expanded: true } }))
     })
     expect(within(nav).getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument()
 
     act(() => {
-      window.dispatchEvent(new CustomEvent('kirocrew-preview-expand', { detail: { expanded: false } }))
+      window.dispatchEvent(new CustomEvent('junction-preview-expand', { detail: { expanded: false } }))
     })
     expect(within(nav).getByRole('button', { name: 'Collapse sidebar' })).toBeInTheDocument()
     // The auto-collapse is transient: it never writes the persisted preference.
@@ -1322,7 +1322,7 @@ describe('onCycleAgent keyboard shortcut', () => {
     const { api } = await import('../api/client')
     const { store } = await import('../store')
     // Set up the real singleton store state that onCycleAgent reads via store.getState()
-    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: false, agent: 'kirocrew' }] })
+    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: false, agent: 'junction' }] })
     store.dispatch({ type: 'chat/setActiveSlot', payload: 'slot-1' })
     renderWithProviders(<App />, { route: '/chat' })
     // The switch now rides performSlotSwitch (#5120), so the API call lands a
@@ -1360,7 +1360,7 @@ describe('onCycleAgent keyboard shortcut', () => {
     ;(api.chatSlotAgent as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new ApiError(400, REAL_FAILURE, JSON.stringify({ error: REAL_FAILURE })),
     )
-    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: true, agent: 'kirocrew' }] })
+    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: true, agent: 'junction' }] })
     store.dispatch({ type: 'chat/setActiveSlot', payload: 'slot-1' })
     renderWithProviders(<App />, { route: '/chat' })
 
@@ -1388,7 +1388,7 @@ describe('onCycleAgent keyboard shortcut', () => {
     try {
       const failure = new ApiError(400, REAL_FAILURE, JSON.stringify({ error: REAL_FAILURE }))
       ;(api.chatSlotAgent as ReturnType<typeof vi.fn>).mockRejectedValue(failure)
-      store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: true, agent: 'kirocrew' }] })
+      store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: true, agent: 'junction' }] })
       store.dispatch({ type: 'chat/setActiveSlot', payload: 'slot-1' })
       renderWithProviders(<App />, { route: '/chat' })
 
@@ -1431,7 +1431,7 @@ describe('onCycleAgent edge cases', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'A', code: 'KeyA', altKey: true, shiftKey: true, bubbles: true }))
     })
     expect(api.chatSlotAgent).not.toHaveBeenCalled()
-    useAgentsMock.mockReturnValue({ agents: [{ name: 'kirocrew' }, { name: 'reviewer' }, { name: 'oracle' }], defaultAgent: 'kirocrew' })
+    useAgentsMock.mockReturnValue({ agents: [{ name: 'junction' }, { name: 'reviewer' }, { name: 'oracle' }], defaultAgent: 'junction' })
   })
 })
 
@@ -1440,7 +1440,7 @@ describe('onCycleReasoningEffort keyboard shortcut (#5120)', () => {
     const { api } = await import('../api/client')
     const { store } = await import('../store')
     ;(api.chatSlotReasoningEffort as ReturnType<typeof vi.fn>).mockClear()
-    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: false, agent: 'kirocrew', reasoning_effort: 'max' }] })
+    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: false, agent: 'junction', reasoning_effort: 'max' }] })
     store.dispatch({ type: 'chat/setActiveSlot', payload: 'slot-1' })
     renderWithProviders(<App />, { route: '/chat' })
     // Two presses in one synchronous batch: the first pick is still in
@@ -1466,7 +1466,7 @@ describe('onCycleReasoningEffort keyboard shortcut (#5120)', () => {
     const { api } = await import('../api/client')
     const { store } = await import('../store')
     ;(api.chatSlotReasoningEffort as ReturnType<typeof vi.fn>).mockClear()
-    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: false, agent: 'kirocrew', reasoning_effort: 'low' }] })
+    store.dispatch({ type: 'dashboard/sseSlots', payload: [{ key: 'slot-1', messages: 0, running: false, agent: 'junction', reasoning_effort: 'low' }] })
     store.dispatch({ type: 'chat/setActiveSlot', payload: 'slot-1' })
     renderWithProviders(<App />, { route: '/chat' })
     await act(async () => {
@@ -1507,7 +1507,7 @@ describe('onCyclePrevAgent edge cases', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Z', code: 'KeyZ', altKey: true, shiftKey: true, bubbles: true }))
     })
     expect(api.chatSlotAgent).not.toHaveBeenCalled()
-    useAgentsMock.mockReturnValue({ agents: [{ name: 'kirocrew' }, { name: 'reviewer' }, { name: 'oracle' }], defaultAgent: 'kirocrew' })
+    useAgentsMock.mockReturnValue({ agents: [{ name: 'junction' }, { name: 'reviewer' }, { name: 'oracle' }], defaultAgent: 'junction' })
   })
 })
 
@@ -1588,7 +1588,7 @@ describe('onCycleApprovalMode and onCyclePrevAgent shortcuts', () => {
     await act(async () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Z', code: 'KeyZ', altKey: true, shiftKey: true, bubbles: true }))
     })
-    expect(api.chatSlotAgent).toHaveBeenCalledWith('slot-1', 'kirocrew')
+    expect(api.chatSlotAgent).toHaveBeenCalledWith('slot-1', 'junction')
   })
 
   it('cycles approval mode backward on Alt+Shift+V', async () => {

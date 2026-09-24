@@ -28,9 +28,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from spawn_test_helpers import strip_spawn_shim
 
-from kiro_crew import _spawn_exec_shim as shim
-from kiro_crew import sandbox
-from kiro_crew.sandbox import (
+from junction import _spawn_exec_shim as shim
+from junction import sandbox
+from junction.sandbox import (
     RLIMIT_PROFILE_BUILD,
     RLIMIT_PROFILE_NONE,
     RLIMIT_PROFILE_SESSION_HOST,
@@ -237,7 +237,7 @@ class TestCreateSubprocessLimited:
         with patch("asyncio.create_subprocess_exec", AsyncMock()):
             with pytest.raises(FileNotFoundError):
                 await create_subprocess_limited(
-                    "kirocrew-no-such-command", env={"PATH": "/nonexistent"}
+                    "junction-no-such-command", env={"PATH": "/nonexistent"}
                 )
 
     @pytest.mark.asyncio
@@ -369,7 +369,7 @@ class TestSyncLimitedSpawns:
     def test_missing_command_still_raises_filenotfound_at_the_spawn(self):
         with patch("subprocess.run"):
             with pytest.raises(FileNotFoundError):
-                run_limited(["kirocrew-no-such-command"], env={"PATH": "/nonexistent"})
+                run_limited(["junction-no-such-command"], env={"PATH": "/nonexistent"})
 
     def test_path_search_runs_inline_not_on_a_worker_thread(self):
         """A sync caller is already off the event loop, so a thread hop buys nothing."""

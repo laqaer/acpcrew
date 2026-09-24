@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`kiro_crew.artifacts` — the data layer."""
+"""Unit tests for :mod:`junction.artifacts` — the data layer."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.artifacts import (
+from junction.artifacts import (
     MAX_CONTENT_BYTES,
     MAX_VERSIONS,
     Artifact,
@@ -472,7 +472,7 @@ class TestDelete:
 class TestSecurity:
     def test_root_under_sensitive_path_refused(self, tmp_path: Path, monkeypatch) -> None:
         # Pretend the root path is sensitive
-        from kiro_crew import artifacts as art_mod
+        from junction import artifacts as art_mod
 
         monkeypatch.setattr(art_mod, "is_sensitive_path", lambda _p: True)
         with pytest.raises(ArtifactError):
@@ -493,7 +493,7 @@ class TestSecurity:
         # symlink expansion landing on a sensitive path), the snapshot read
         # must refuse rather than silently leak. Verify the gated helper is
         # actually on the read path.
-        from kiro_crew import artifacts as art_mod
+        from junction import artifacts as art_mod
 
         store.create(name="x", content="v1")
         # First update succeeds — is_sensitive_path() returns False normally.
@@ -619,7 +619,7 @@ class TestLifecycleEvents:
     def test_event_log_is_fifo_capped(self, store: ArtifactStore) -> None:
         # Cap is 500 (MAX_EVENTS_PER_ARTIFACT). Force-write 510 events to
         # confirm the oldest 10 get dropped.
-        from kiro_crew.artifacts import MAX_EVENTS_PER_ARTIFACT
+        from junction.artifacts import MAX_EVENTS_PER_ARTIFACT
 
         art = store.create(name="brd", content="# v1")
         for i in range(MAX_EVENTS_PER_ARTIFACT + 10):
@@ -812,7 +812,7 @@ class TestLivePointer:
         meta.source_path = str(sensitive)
         store._write_meta(meta)
         # Pretend the path is sensitive.
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         monkeypatch.setattr(
             artifacts_mod,
@@ -1002,7 +1002,7 @@ class TestSourcePathSecurityHardening:
         # Make is_sensitive_path return True only for the resolved path
         # (NOT the traversal string), simulating the real-world semantics
         # where the check inspects the canonical filesystem location.
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         resolved = str(sensitive.resolve())
         monkeypatch.setattr(
@@ -1023,7 +1023,7 @@ class TestSourcePathSecurityHardening:
         sensitive.write_text("PRIVATE", encoding="utf-8")
         link = tmp_path / "innocent.md"
         link.symlink_to(sensitive)
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         resolved = str(sensitive.resolve())
         monkeypatch.setattr(
@@ -1043,7 +1043,7 @@ class TestSourcePathSecurityHardening:
         # MAX_CONTENT_BYTES bound was silently exceeded for multi-byte text
         # — a 100-char string of 4-byte emoji would be 400 bytes after
         # encode() and bypass the cap.
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         # Use a small cap so the test runs fast.
         monkeypatch.setattr(artifacts_mod, "MAX_CONTENT_BYTES", 50)
@@ -1075,7 +1075,7 @@ class TestRoundThirteenFixes:
         # must stop at MAX_CONTENT_BYTES+1 — verified by mocking read_text
         # to fail loudly if anyone calls it (the new code uses open('rb')
         # + bounded read instead).
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         monkeypatch.setattr(artifacts_mod, "MAX_CONTENT_BYTES", 50)
         f = tmp_path / "big.txt"
@@ -1185,7 +1185,7 @@ class TestRecordImpression:
         assert store.get("x").content == "<div>orig</div>"
 
     def test_unknown_slug_raises(self, store):
-        from kiro_crew.artifacts import ArtifactNotFoundError
+        from junction.artifacts import ArtifactNotFoundError
 
         with pytest.raises(ArtifactNotFoundError):
             store.record_impression("no-such-thing", by="user")
@@ -1729,7 +1729,7 @@ class TestSourceRootBarrier:
         src = proj / ".aws" / "credentials"
         src.parent.mkdir(parents=True)
         src.write_text("SECRET", encoding="utf-8")
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         monkeypatch.setattr(artifacts_mod, "is_sensitive_path", lambda p: p == str(src.resolve()))
         assert home_store._try_read_source_path(str(src), str(proj)) is None
@@ -1795,7 +1795,7 @@ class TestSourceRootBarrier:
         monkeypatch.undo()
         assert src.read_text(encoding="utf-8") == "new body"
         # No staging litter left behind on this path either.
-        assert not list(src.parent.glob(".*kirocrew-*"))
+        assert not list(src.parent.glob(".*junction-*"))
 
     @pytest.mark.skipif(
         os.name == "nt",
@@ -1986,12 +1986,12 @@ class TestSourceRootBarrier:
 
         proj, src = project_file
         try:
-            os.setxattr(str(src), "user.kirocrew_test", b"keepme")
+            os.setxattr(str(src), "user.junction_test", b"keepme")
         except (AttributeError, OSError):
             pytest.skip("filesystem or platform has no xattr support")
         assert home_store._try_write_source_path(str(src), "new body", str(proj)) is True
         assert src.read_text(encoding="utf-8") == "new body"
-        assert os.getxattr(str(src), "user.kirocrew_test") == b"keepme"
+        assert os.getxattr(str(src), "user.junction_test") == b"keepme"
 
     def test_write_survives_a_platform_without_geteuid(
         self, home_store, project_file, monkeypatch
@@ -2147,7 +2147,7 @@ class TestSourceRootBarrier:
         """
         proj, src = project_file
         original = src.read_text(encoding="utf-8")
-        from kiro_crew import hooks as hooks_mod
+        from junction import hooks as hooks_mod
 
         real_write = hooks_mod.os.write
         calls = {"n": 0}
@@ -2170,7 +2170,7 @@ class TestSourceRootBarrier:
         monkeypatch.setattr(hooks_mod.os, "write", real_write)
         assert src.read_text(encoding="utf-8") == original
         # And no staging litter is left behind.
-        assert not list(src.parent.glob(".*kirocrew-tmp"))
+        assert not list(src.parent.glob(".*junction-tmp"))
 
     def test_refused_mirror_keeps_the_edit_and_demotes_to_copy(
         self, home_store, project_file, monkeypatch
@@ -2235,7 +2235,7 @@ class TestSourceRootBarrier:
         src.write_text(full, encoding="utf-8")
         # Force the bounded read to return a PREFIX, exactly as an oversized
         # file would, and prove the original survives intact.
-        from kiro_crew import artifacts as artifacts_mod
+        from junction import artifacts as artifacts_mod
 
         monkeypatch.setattr(artifacts_mod, "MAX_CONTENT_BYTES", 32)
         home_store.update("spec", snapshot=True)
@@ -2428,7 +2428,7 @@ class TestSourcePathLengthRejected:
             store.relocate("x", "/" + "a" * 600)
 
     def test_path_at_the_cap_is_accepted_unchanged(self, store: ArtifactStore) -> None:
-        from kiro_crew.artifacts import MAX_SOURCE_PATH_LEN
+        from junction.artifacts import MAX_SOURCE_PATH_LEN
 
         at_cap = "/" + "a" * (MAX_SOURCE_PATH_LEN - 1)
         art = store.create(name="X", content="c", slug="x", source_path=at_cap)
@@ -2446,13 +2446,13 @@ class TestAllowedRootsSingleProducer:
     def test_set_contains_home_data_home_and_configured_roots(
         self, home_store, tmp_path, monkeypatch
     ) -> None:
-        from kiro_crew.config.loader import KiroCrewConfig, PublishConfig
+        from junction.config.loader import JunctionConfig, PublishConfig
 
         extra = tmp_path / "shared"
         extra.mkdir()
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.publish = PublishConfig(relocate_roots=[str(extra)])
-        monkeypatch.setattr(KiroCrewConfig, "load", staticmethod(lambda: cfg))
+        monkeypatch.setattr(JunctionConfig, "load", staticmethod(lambda: cfg))
         roots = home_store.allowed_source_roots()
         assert Path.home().resolve() in roots
         assert (Path.home() / ".kiro" / "crew").resolve() in roots  # data home
@@ -2481,8 +2481,8 @@ class TestAllowedRootsSingleProducer:
         once in the store (inside ``allowed_source_roots``) and never in the
         handler, which must call the store instead.
         """
-        import kiro_crew.artifacts as artifacts_mod
-        import kiro_crew.dashboard.handlers.artifacts as handlers_mod
+        import junction.artifacts as artifacts_mod
+        import junction.dashboard.handlers.artifacts as handlers_mod
 
         store_src = Path(artifacts_mod.__file__).read_text(encoding="utf-8")
         handler_src = Path(handlers_mod.__file__).read_text(encoding="utf-8")

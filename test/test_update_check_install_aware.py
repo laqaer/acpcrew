@@ -21,9 +21,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from kiro_crew.dashboard.handlers import updates
-from kiro_crew.platform import update_capability, update_layout, update_provider
-from kiro_crew.platform.update_provider import CommandProvider, UpdateCheckResult
+from junction.dashboard.handlers import updates
+from junction.platform import update_capability, update_layout, update_provider
+from junction.platform.update_provider import CommandProvider, UpdateCheckResult
 
 # A well-formed manifest, shaped like the real feed document.
 _FEED_TEMPLATE = {
@@ -32,7 +32,7 @@ _FEED_TEMPLATE = {
     "key_id": "sha256:d3a83f0c",
     "pub_date": "2026-08-05T07:49:33Z",
     "python_requires": ">=3.10",
-    "schema": "kirocrew-cli-artifact-manifest-v1",
+    "schema": "junction-cli-artifact-manifest-v1",
     "sha256": "ea681adb",
     "signature": "V9MGrlYt",
     "version": "0.1.3rc2",
@@ -78,8 +78,8 @@ def _wheel_install(monkeypatch, tmp_path):
     A git checkout is opt-in per test (``_git_install``), because the interesting
     new behaviour is the layout that used to be skipped entirely.
     """
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
     (tmp_path / "channel").write_text("insider\n")
     monkeypatch.setattr(update_layout, "data_home", lambda: tmp_path)
     # Pin the packaging stamp rather than inheriting the ambient one: a checkout
@@ -174,17 +174,17 @@ class TestChannelResolution:
 
     def test_remediation_command_pins_https(self, monkeypatch):
         # The string is copied into a shell and runs an installer, and the base is
-        # overridable via KIROCREW_CDN_BASE. Without --proto '=https' an http://
+        # overridable via JUNCTION_CDN_BASE. Without --proto '=https' an http://
         # override yields a command that fetches a script in plaintext and
         # executes it — an on-path attacker could swap the installer. curl
         # refuses the scheme even when the override is plaintext.
-        monkeypatch.setenv("KIROCREW_CDN_BASE", "http://evil.example")
+        monkeypatch.setenv("JUNCTION_CDN_BASE", "http://evil.example")
         capability = update_capability.derive_capability(install_root="", dist="wheel")
         assert capability.remediation is not None
         assert "--proto '=https'" in capability.remediation["command"]
 
     def test_cdn_override_moves_check_and_command_together(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_CDN_BASE", "https://cdn.example/")
+        monkeypatch.setenv("JUNCTION_CDN_BASE", "https://cdn.example/")
         feed, artifact = updates._cdn_bases()
         assert feed == artifact == "https://cdn.example"
 
@@ -201,7 +201,7 @@ class TestWheelInstallCheck:
         assert info["check_status"] == "succeeded"
         assert info["error_code"] is None
         assert info["latest_version"] == "0.1.3rc2"
-        assert info["managed_by"] == "kirocrew"
+        assert info["managed_by"] == "junction"
         assert info["can_apply"] is False
         assert info["channel"] == "insider"
         assert "--channel insider" in updates.remediation_command(info)
@@ -220,7 +220,7 @@ class TestWheelInstallCheck:
         # `release_channel` at import, while `derive_capability` imports it inside the
         # call, so patching the module attribute reaches one and not the other. That
         # asymmetry is precisely the production race — two reads, two moments.
-        monkeypatch.setattr("kiro_crew.platform.update_layout.release_channel", lambda: "stable")
+        monkeypatch.setattr("junction.platform.update_layout.release_channel", lambda: "stable")
         _stub_feed(monkeypatch, body=_manifest(version="0.1.3rc2"))
         monkeypatch.setattr(updates, "_local_version", "0.1.2rc3")
         asyncio.run(updates._do_update_check())
@@ -286,7 +286,7 @@ class TestWheelInstallFailuresAreHonest:
         assert info["update_available"] is None
         # The install is still identified, so the UI can still tell the user HOW
         # to update even when it could not learn WHETHER to.
-        assert info["managed_by"] == "kirocrew"
+        assert info["managed_by"] == "junction"
         assert "--channel insider" in updates.remediation_command(info)
 
     def test_network_error(self, monkeypatch):
@@ -379,12 +379,12 @@ class TestGitCheckoutStillWorks:
     @pytest.fixture
     def _git_install(self, monkeypatch, tmp_path):
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         # These tests exercise the CHECK against a scripted git; the process
-        # running them does not load kiro_crew from tmp_path, so the provenance
+        # running them does not load junction from tmp_path, so the provenance
         # half of the git-lane gate is declared rather than derived.
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
         return tmp_path
@@ -435,7 +435,7 @@ class TestGitCheckoutStillWorks:
         assert "### 0.1.3rc2" in str(info["changes"])
         assert info["channel"] == ""
         # A checkout's remediation is the CLI command, not an installer re-run.
-        assert updates.remediation_command(info) == "kirocrew update"
+        assert updates.remediation_command(info) == "junction update"
         assert any("fetch" in c for c in calls)
 
     def test_commits_behind_with_an_unchanged_version_is_an_update(self, _git_install, monkeypatch):
@@ -749,7 +749,7 @@ class TestExternallyManagedInstalls:
         # owns the bytes, and reading the CLI feed here would compare against the
         # wrong release stream.
         _init_repo(tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         monkeypatch.setattr(update_capability, "distribution", lambda: "dmg")
 
         def _boom(url: str):  # pragma: no cover - must not be called
@@ -776,7 +776,7 @@ class TestExternallyManagedInstalls:
         info = updates.get_update_info()
         # One capability for both stamps: what a consumer acts on is who manages
         # the install, not which packaging label it happens to carry.
-        assert info["managed_by"] == "kirocrew"
+        assert info["managed_by"] == "junction"
         assert info["update_available"] is True
         assert info["check_status"] == "succeeded"
         assert "--channel insider" in updates.remediation_command(info)
@@ -852,7 +852,7 @@ class TestAutoApplyGuard:
 
     @staticmethod
     def _orchestrator():
-        from kiro_crew.slack.gateway import GatewayOrchestrator
+        from junction.slack.gateway import GatewayOrchestrator
 
         # __new__ without __init__: _check_for_updates only touches
         # dashboard_state and _auto_apply_update, and a real construction would
@@ -864,32 +864,32 @@ class TestAutoApplyGuard:
         return orch
 
     def _run(self, info: dict[str, object], *, auto_update: bool, dist: str = "wheel"):
-        import kiro_crew.dashboard.handlers as handlers
+        import junction.dashboard.handlers as handlers
 
         orch = self._orchestrator()
         cfg = MagicMock()
         cfg.auto_update = auto_update
-        from kiro_crew.platform.governance import UpdatePins
+        from junction.platform.governance import UpdatePins
 
         original = dict(handlers._update_info)
         try:
             handlers._update_info.clear()
             handlers._update_info.update(info)
             with patch.object(handlers, "_do_update_check", new_callable=AsyncMock):
-                with patch("kiro_crew.config.KiroCrewConfig.load", return_value=cfg):
+                with patch("junction.config.JunctionConfig.load", return_value=cfg):
                     with patch(
-                        "kiro_crew.platform.update_governance.update_required",
+                        "junction.platform.update_governance.update_required",
                         return_value=False,
                     ):
                         # The installer may only be driven for the `wheel` stamp,
                         # so the stamp is part of the case rather than whatever
                         # this test host happens to be built as.
-                        with patch("kiro_crew.slack.gateway.distribution", return_value=dist):
+                        with patch("junction.slack.gateway.distribution", return_value=dist):
                             # No commands in the policy pins, so resolve_provider
                             # returns None and the code falls through to the legacy
                             # path under test.
                             with patch(
-                                "kiro_crew.platform.governance.active_update_pins",
+                                "junction.platform.governance.active_update_pins",
                                 return_value=UpdatePins(),
                             ):
                                 asyncio.run(orch._check_for_updates())
@@ -903,7 +903,7 @@ class TestAutoApplyGuard:
             {
                 "update_available": True,
                 "can_apply": False,
-                "managed_by": "kirocrew",
+                "managed_by": "junction",
                 "remediation": {
                     "kind": "command",
                     "message": "Re-run the installer to upgrade.",
@@ -940,7 +940,7 @@ class TestAutoApplyGuard:
 
     def test_a_failed_check_does_not_claim_up_to_date(self, capsys):
         orch = self._run(
-            {"update_available": None, "error_code": "feed_unreachable", "managed_by": "kirocrew"},
+            {"update_available": None, "error_code": "feed_unreachable", "managed_by": "junction"},
             auto_update=True,
         )
         orch._auto_apply_update.assert_not_awaited()

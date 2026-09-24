@@ -20,15 +20,15 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-if "kiro_crew.slack.handler" not in sys.modules:
-    _stub = types.ModuleType("kiro_crew.slack.handler")
+if "junction.slack.handler" not in sys.modules:
+    _stub = types.ModuleType("junction.slack.handler")
     _stub.is_allowed_user = lambda uid: False  # type: ignore[attr-defined]
     _stub.is_tracked_channel = lambda cid: False  # type: ignore[attr-defined]
-    sys.modules["kiro_crew.slack.handler"] = _stub
+    sys.modules["junction.slack.handler"] = _stub
 
-from kiro_crew.cron import CronJob  # noqa: E402
-from kiro_crew.cron_script import ScriptContext  # noqa: E402
-from kiro_crew.dashboard.handlers import api_send_message  # noqa: E402
+from junction.cron import CronJob  # noqa: E402
+from junction.cron_script import ScriptContext  # noqa: E402
+from junction.dashboard.handlers import api_send_message  # noqa: E402
 
 JOB_ID = "job12345"
 
@@ -73,7 +73,7 @@ def _mid_plan_slot():
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.sel.sel") as m:
+    with patch("junction.sel.sel") as m:
         m.return_value = MagicMock()
         yield m.return_value
 
@@ -124,8 +124,8 @@ async def test_mid_plan_stage_window_queues_not_concurrent_turn(mock_sel):
     slot = _mid_plan_slot()
     state = _state_with_job(slot=slot)
     with (
-        patch("kiro_crew.dashboard.chat_runner._run_chat") as run_chat,
-        patch("kiro_crew.dashboard.turn_dispatch.spawn_guarded_turn") as spawn,
+        patch("junction.dashboard.chat_runner._run_chat") as run_chat,
+        patch("junction.dashboard.turn_dispatch.spawn_guarded_turn") as spawn,
     ):
         async with TestClient(TestServer(_make_app(state))) as c:
             resp = await c.post(
@@ -149,7 +149,7 @@ async def test_resolved_key_with_no_live_slot_falls_back_to_bell(mock_sel):
     it posts a notification."""
     state = _state_with_job(slot=None)
     with patch(
-        "kiro_crew.dashboard.handlers.messaging._rehydrate_slot_from_history", return_value=None
+        "junction.dashboard.handlers.messaging._rehydrate_slot_from_history", return_value=None
     ):
         async with TestClient(TestServer(_make_app(state))) as c:
             resp = await c.post(

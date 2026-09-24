@@ -3,13 +3,13 @@
  *
  * The Connections gallery is merged on main but held for a later release, so it
  * is reachable only when `connections_ui: true` is set in the running instance's
- * `$KIROCREW_HOME/config.json`. Config is read live, so no gateway restart is
+ * `$JUNCTION_HOME/config.json`. Config is read live, so no gateway restart is
  * needed.
  *
  * Chat needs the same answer as the gallery. A card-owned OAuth request is worth
  * hiding from chat only when the card that owns it is actually on screen; behind
  * a closed flag chat is still the user's only authorize prompt. Deriving both
- * from one predicate and one `['kirocrewConfig']` cache entry is what keeps them
+ * from one predicate and one `['junctionConfig']` cache entry is what keeps them
  * from disagreeing about whether Connections exists.
  */
 import { useQuery } from '@tanstack/react-query'
@@ -22,8 +22,8 @@ export function connectionsUiEnabled(config: unknown): boolean {
   return (config as Record<string, unknown> | undefined)?.[CONNECTIONS_UI_FLAG] === true
 }
 
-/** Live flag value, off the shared `['kirocrewConfig']` query cache. */
+/** Live flag value, off the shared `['junctionConfig']` query cache. */
 export function useConnectionsUiEnabled(): boolean {
-  const { data } = useQuery({ queryKey: ['kirocrewConfig'], queryFn: () => api.kirocrewConfig() })
+  const { data } = useQuery({ queryKey: ['junctionConfig'], queryFn: () => api.junctionConfig() })
   return connectionsUiEnabled(data)
 }

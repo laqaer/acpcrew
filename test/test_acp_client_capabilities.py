@@ -1,13 +1,13 @@
 """ACP `clientCapabilities` advertisement.
 
-Locks in what KiroCrew declares during the ACP `initialize` handshake, and that
+Locks in what Junction declares during the ACP `initialize` handshake, and that
 BOTH transports declare it. Before this, the key was omitted entirely, so the
 agent assumed the all-false default.
 """
 
 from pathlib import Path
 
-from kiro_crew.acp.types import ACP_CLIENT_CAPABILITIES
+from junction.acp.types import ACP_CLIENT_CAPABILITIES
 
 
 def test_elicitation_is_declared() -> None:
@@ -36,7 +36,7 @@ def test_both_acp_transports_send_capabilities() -> None:
     source because neither params dict is reachable without spawning a real
     agent subprocess.
     """
-    for rel in ("src/kiro_crew/acp/client.py", "src/kiro_crew/acp/runtime.py"):
+    for rel in ("src/junction/acp/client.py", "src/junction/acp/runtime.py"):
         src = Path(__file__).resolve().parents[1] / rel
         # encoding is explicit: read_text() defaults to the locale codec, which
         # is cp1252 on the Windows CI shards, and these files contain non-ASCII
@@ -51,11 +51,11 @@ def test_both_acp_transports_send_client_info_name() -> None:
     `clientInfo.name` (agent/acp/acp_agent.rs: `if let Some(info) =
     request.client_info`). A flat top-level `clientName` key is ignored, which
     leaves the session unnamed in telemetry (bucketed as "(none)" instead of
-    "kirocrew"). AcpRuntime previously sent the flat key; this locks in the
+    "junction"). AcpRuntime previously sent the flat key; this locks in the
     nested form on BOTH transports. Asserted on source because neither params
     dict is reachable without spawning a real agent subprocess.
     """
-    for rel in ("src/kiro_crew/acp/client.py", "src/kiro_crew/acp/runtime.py"):
+    for rel in ("src/junction/acp/client.py", "src/junction/acp/runtime.py"):
         src = Path(__file__).resolve().parents[1] / rel
         text = src.read_text(encoding="utf-8")
         assert '"clientInfo": {"name": CLIENT_NAME' in text, rel

@@ -12,9 +12,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew import github_runner
-from kiro_crew.dashboard.handlers import source_providers as source
-from kiro_crew.sandbox import spawn_shim_argv
+from junction import github_runner
+from junction.dashboard.handlers import source_providers as source
+from junction.sandbox import spawn_shim_argv
 
 
 @pytest.fixture(autouse=True)
@@ -28,7 +28,7 @@ def test_parse_github_pull_request() -> None:
     ref = source.parse_source_url("https://github.com/kirodotdev/KiroCrew/pull/58?tab=checks")
     assert ref.provider == "github"
     assert ref.owner == "kirodotdev"
-    assert ref.repo == "KiroCrew"
+    assert ref.repo == "Junction"
     assert ref.number == 58
     assert ref.url == "https://github.com/kirodotdev/KiroCrew/pull/58"
 
@@ -302,9 +302,9 @@ def test_provider_executable_rejects_agent_writable_tree(monkeypatch, tmp_path) 
     shim = project / "bin" / "gh"
     shim.write_text("#!/bin/sh\nexit 99\n")
     shim.chmod(0o755)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(project))
-    monkeypatch.setenv("KIROCREW_GH_BIN", str(shim))
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(project))
+    monkeypatch.setenv("JUNCTION_GH_BIN", str(shim))
 
     with pytest.raises(source.SourceProviderError, match="inside the agent-writable tree"):
         source._resolve_provider_executable("gh")
@@ -318,17 +318,17 @@ def test_provider_executable_candidates_append_path_hits(monkeypatch, tmp_path) 
     found = user_bin / "gh"
     found.write_text("#!/bin/sh\nexit 0\n")
     found.chmod(0o755)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setenv("PATH", f"{user_bin}:/usr/bin")
     monkeypatch.setattr(
         github_runner,
         "PROVIDER_EXECUTABLE_CANDIDATES",
-        {"gh": ("/usr/local/libexec/kirocrew/gh",), "glab": ("/usr/bin/glab",)},
+        {"gh": ("/usr/local/libexec/junction/gh",), "glab": ("/usr/bin/glab",)},
     )
 
     candidates = source.provider_executable_candidates("gh")
 
-    assert candidates[0] == "/usr/local/libexec/kirocrew/gh"
+    assert candidates[0] == "/usr/local/libexec/junction/gh"
     assert str(found) in candidates
 
 
@@ -338,7 +338,7 @@ def test_provider_executable_candidates_ignore_path_in_strict_mode(monkeypatch, 
     planted = user_bin / "gh"
     planted.write_text("#!/bin/sh\nexit 0\n")
     planted.chmod(0o755)
-    monkeypatch.setenv("KIROCREW_PROVIDER_BIN_STRICT", "1")
+    monkeypatch.setenv("JUNCTION_PROVIDER_BIN_STRICT", "1")
     monkeypatch.setenv("PATH", str(user_bin))
 
     assert (
@@ -348,13 +348,13 @@ def test_provider_executable_candidates_ignore_path_in_strict_mode(monkeypatch, 
 
 
 def test_provider_executable_not_found_gives_install_guidance(monkeypatch) -> None:
-    monkeypatch.delenv("KIROCREW_GH_BIN", raising=False)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_GH_BIN", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setenv("PATH", "")
     monkeypatch.setattr(
         github_runner,
         "PROVIDER_EXECUTABLE_CANDIDATES",
-        {"gh": ("/nonexistent-kirocrew/gh",), "glab": ("/nonexistent-kirocrew/glab",)},
+        {"gh": ("/nonexistent-junction/gh",), "glab": ("/nonexistent-junction/glab",)},
     )
 
     with pytest.raises(source.SourceProviderError) as excinfo:
@@ -365,19 +365,19 @@ def test_provider_executable_not_found_gives_install_guidance(monkeypatch) -> No
     assert "brew install gh" in message
     assert "gh auth login" in message
     assert "sudo cp" not in message
-    assert "KIROCREW_GH_BIN" in message
+    assert "JUNCTION_GH_BIN" in message
     assert "{executable}" not in message
 
 
 def test_provider_executable_strict_mode_asks_for_a_root_owned_copy(monkeypatch) -> None:
-    monkeypatch.delenv("KIROCREW_GH_BIN", raising=False)
-    monkeypatch.setenv("KIROCREW_PROVIDER_BIN_STRICT", "1")
+    monkeypatch.delenv("JUNCTION_GH_BIN", raising=False)
+    monkeypatch.setenv("JUNCTION_PROVIDER_BIN_STRICT", "1")
     monkeypatch.setattr(
         github_runner,
         "PROVIDER_EXECUTABLE_CANDIDATES",
         {
-            "gh": ("/usr/local/libexec/kirocrew/gh",),
-            "glab": ("/usr/local/libexec/kirocrew/glab",),
+            "gh": ("/usr/local/libexec/junction/gh",),
+            "glab": ("/usr/local/libexec/junction/glab",),
         },
     )
     monkeypatch.setattr(
@@ -390,13 +390,13 @@ def test_provider_executable_strict_mode_asks_for_a_root_owned_copy(monkeypatch)
         source._resolve_provider_executable("gh")
 
     message = str(excinfo.value)
-    assert "KIROCREW_PROVIDER_BIN_STRICT" in message
-    assert 'sudo cp "$(command -v gh)" /usr/local/libexec/kirocrew/gh' in message
+    assert "JUNCTION_PROVIDER_BIN_STRICT" in message
+    assert 'sudo cp "$(command -v gh)" /usr/local/libexec/junction/gh' in message
     assert "gh auth login" in message
 
 
 def test_provider_executable_rejects_relative_override(monkeypatch) -> None:
-    monkeypatch.setenv("KIROCREW_GH_BIN", "workspace/bin/gh")
+    monkeypatch.setenv("JUNCTION_GH_BIN", "workspace/bin/gh")
 
     with pytest.raises(source.SourceProviderError, match="path must be absolute"):
         source._resolve_provider_executable("gh")
@@ -415,9 +415,9 @@ def test_provider_executable_accepts_user_owned_install(monkeypatch, tmp_path) -
     executable = tmp_path / "gh"
     executable.write_text("#!/bin/sh\nexit 0\n")
     executable.chmod(0o755)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
-    monkeypatch.setenv("KIROCREW_GH_BIN", str(executable))
+    monkeypatch.setenv("JUNCTION_GH_BIN", str(executable))
 
     assert source._resolve_provider_executable("gh") == str(executable.resolve())
 
@@ -435,9 +435,9 @@ def test_provider_executable_accepts_symlinked_install(monkeypatch, tmp_path) ->
     bin_dir.mkdir()
     link = bin_dir / "gh"
     link.symlink_to(target)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
-    monkeypatch.setenv("KIROCREW_GH_BIN", str(link))
+    monkeypatch.setenv("JUNCTION_GH_BIN", str(link))
 
     assert source._resolve_provider_executable("gh") == str(target.resolve())
 
@@ -448,8 +448,8 @@ def test_provider_executable_strict_mode_rejects_user_owned_install(
     executable = tmp_path / "gh"
     executable.write_text("#!/bin/sh\nexit 0\n")
     executable.chmod(0o500)
-    monkeypatch.setenv("KIROCREW_PROVIDER_BIN_STRICT", "1")
-    monkeypatch.setenv("KIROCREW_GH_BIN", str(executable))
+    monkeypatch.setenv("JUNCTION_PROVIDER_BIN_STRICT", "1")
+    monkeypatch.setenv("JUNCTION_GH_BIN", str(executable))
 
     with pytest.raises(source.SourceProviderError, match="executable is not root-owned"):
         source._resolve_provider_executable("gh")
@@ -461,8 +461,8 @@ def test_provider_executable_strict_mode_rejects_symlink(monkeypatch, tmp_path) 
     target.chmod(0o500)
     link = tmp_path / "gh"
     link.symlink_to(target)
-    monkeypatch.setenv("KIROCREW_PROVIDER_BIN_STRICT", "1")
-    monkeypatch.setenv("KIROCREW_GH_BIN", str(link))
+    monkeypatch.setenv("JUNCTION_PROVIDER_BIN_STRICT", "1")
+    monkeypatch.setenv("JUNCTION_GH_BIN", str(link))
 
     with pytest.raises(source.SourceProviderError, match="canonical.*no symlinks"):
         source._resolve_provider_executable("gh")
@@ -475,7 +475,7 @@ def test_provider_executable_refuses_a_root_gateway(monkeypatch, tmp_path) -> No
     executable = tmp_path / "gh"
     executable.write_text("#!/bin/sh\nexit 0\n")
     executable.chmod(0o755)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
     monkeypatch.setattr(github_runner.os, "geteuid", lambda: 0)
 
@@ -491,7 +491,7 @@ def test_provider_executable_rejects_binary_owned_by_another_user(
     executable.chmod(0o755)
     real_stat = executable.stat()
     foreign_stat = github_runner.os.stat_result([*list(real_stat)[:4], 4242, *list(real_stat)[5:]])
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
     monkeypatch.setattr(github_runner, "path_parents", lambda _path: [])
     monkeypatch.setattr(github_runner.Path, "stat", lambda _path: foreign_stat)
@@ -504,7 +504,7 @@ def test_provider_executable_rejects_world_writable_binary(monkeypatch, tmp_path
     executable = tmp_path / "gh"
     executable.write_text("#!/bin/sh\nexit 0\n")
     executable.chmod(0o777)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
 
     with pytest.raises(ValueError, match="executable is world-writable"):
@@ -518,7 +518,7 @@ def test_provider_executable_rejects_world_writable_parent(monkeypatch, tmp_path
     executable.write_text("#!/bin/sh\nexit 0\n")
     executable.chmod(0o755)
     parent.chmod(0o777)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
     monkeypatch.setattr(github_runner, "path_parents", lambda _path: [parent])
 
@@ -539,7 +539,7 @@ def test_provider_executable_tolerates_a_sticky_world_writable_parent(
     executable.write_text("#!/bin/sh\nexit 0\n")
     executable.chmod(0o755)
     parent.chmod(0o1777)
-    monkeypatch.delenv("KIROCREW_PROVIDER_BIN_STRICT", raising=False)
+    monkeypatch.delenv("JUNCTION_PROVIDER_BIN_STRICT", raising=False)
     monkeypatch.setattr(github_runner, "agent_writable_roots", lambda: ())
     monkeypatch.setattr(github_runner, "path_parents", lambda _path: [parent])
 
@@ -566,7 +566,7 @@ def test_provider_executable_strict_mode_rejects_untrusted_ancestor(
             return root_executable_stat
         return real_stat(path)
 
-    monkeypatch.setenv("KIROCREW_PROVIDER_BIN_STRICT", "1")
+    monkeypatch.setenv("JUNCTION_PROVIDER_BIN_STRICT", "1")
     monkeypatch.setattr(github_runner, "path_parents", lambda _path: [parent])
     monkeypatch.setattr(github_runner.Path, "stat", fake_stat)
     monkeypatch.setattr(github_runner.os, "access", lambda _path, mode: mode == github_runner.os.X_OK)
@@ -3603,7 +3603,7 @@ async def test_gitlab_chip_state_precedence(monkeypatch, state, draft, expected)
 
 @pytest.mark.asyncio
 async def test_gitlab_allowlist_never_reads_config_on_the_event_loop(monkeypatch) -> None:
-    """KiroCrewConfig.load() stats/reads/parses config files, so it must only run
+    """JunctionConfig.load() stats/reads/parses config files, so it must only run
     in a worker thread; the sync accessor every URL parse uses is cache-only."""
     calls: list[str] = []
 
@@ -4675,7 +4675,7 @@ def _app(
 
 @pytest.mark.asyncio
 async def test_local_token_uses_configured_owner_subject(monkeypatch) -> None:
-    from kiro_crew.dashboard.handlers import core
+    from junction.dashboard.handlers import core
 
     generate = MagicMock(return_value="owner-token")
     audit = MagicMock()
@@ -4703,7 +4703,7 @@ async def test_local_token_uses_configured_owner_subject(monkeypatch) -> None:
 async def test_local_token_carries_embed_parent_port_claim(monkeypatch) -> None:
     """?embed_parent_port=<port> is baked into the token as a signed claim so the
     embedded remote can authorize that loopback parent origin in frame-ancestors."""
-    from kiro_crew.dashboard.handlers import core
+    from junction.dashboard.handlers import core
 
     generate = MagicMock(return_value="owner-token")
     monkeypatch.setattr(core, "generate_token", generate)
@@ -4729,7 +4729,7 @@ async def test_local_token_carries_embed_parent_port_claim(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_local_token_uses_local_owner_subject_without_configured_owner(monkeypatch) -> None:
-    from kiro_crew.dashboard.handlers import core
+    from junction.dashboard.handlers import core
 
     generate = MagicMock(return_value="local-token")
     audit = MagicMock()
@@ -5659,7 +5659,7 @@ def test_parse_github_issue_url() -> None:
     ref = source.parse_source_url("https://github.com/kirodotdev/KiroCrew/issues/58#issue-1")
     assert ref.provider == "github"
     assert ref.owner == "kirodotdev"
-    assert ref.repo == "KiroCrew"
+    assert ref.repo == "Junction"
     assert ref.number == 58
     assert ref.kind == "issue"
     assert ref.url == "https://github.com/kirodotdev/KiroCrew/issues/58"
@@ -7557,7 +7557,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         assert source._get_jira_auth("acme.atlassian.net") is None
 
     def test_matches_host_case_insensitively(self, monkeypatch):
@@ -7578,7 +7578,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {"JIRA_API_TOKEN": "secret123"}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         result = source._get_jira_auth("acme.atlassian.net")
         assert result == ("user@acme.com", "secret123")
 
@@ -7600,7 +7600,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {"JIRA_API_TOKEN": "pat-token"}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         result = source._get_jira_auth("jira.internal")
         assert result == ("", "pat-token")
 
@@ -7612,7 +7612,7 @@ class TestGetJiraAuth:
             def load(cls):
                 raise RuntimeError("corrupt config.json")
 
-        monkeypatch.setattr(source, "KiroCrewConfig", BrokenConfig)
+        monkeypatch.setattr(source, "JunctionConfig", BrokenConfig)
         with pytest.raises(ValueError, match="jira_config_error"):
             source._get_jira_auth("acme.atlassian.net")
 
@@ -7640,7 +7640,7 @@ class TestGetJiraAuth:
                     f"JIRA_TOKEN_{host_key}": "per-host-secret",
                 }
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         result = source._get_jira_auth("acme.atlassian.net")
         assert result == ("dev@acme.com", "per-host-secret")
 
@@ -7678,7 +7678,7 @@ class TestGetJiraAuth:
                 return {"JIRA_API_TOKEN": "seeded-global"}
 
         host_key = "acme.atlassian.net".encode().hex().upper()
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         monkeypatch.setattr(
             source,
             "_resolve_jira_token_from_vault",
@@ -7708,7 +7708,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {"JIRA_API_TOKEN": "env-token"}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         host_key = "acme.atlassian.net".encode().hex().upper()
         monkeypatch.setattr(
             source,
@@ -7738,7 +7738,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {"JIRA_API_TOKEN": "env-token"}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         monkeypatch.setattr(source, "_resolve_jira_token_from_vault", lambda name: "")
         monkeypatch.delenv("JIRA_API_TOKEN", raising=False)
         result = source._get_jira_auth("acme.atlassian.net")
@@ -7764,7 +7764,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         monkeypatch.setattr(
             source,
             "_resolve_jira_token_from_vault",
@@ -7803,7 +7803,7 @@ class TestGetJiraAuth:
                 # override directly from os.environ before the global vault.
                 return {"JIRA_API_TOKEN": "env-override"}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         # Stale global vault entry that must NOT win.
         monkeypatch.setattr(
             source,
@@ -7839,7 +7839,7 @@ class TestGetJiraAuth:
                 # load_credentials overlays the migrated secret:// ref here too.
                 return {"JIRA_API_TOKEN": "secret://JIRA_API_TOKEN"}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         monkeypatch.setattr(
             source,
             "_resolve_jira_token_from_vault",
@@ -7871,7 +7871,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         monkeypatch.setattr(source, "_resolve_jira_token_from_vault", lambda name: "")
         assert source._get_jira_auth("acme.atlassian.net") is None
 
@@ -7906,7 +7906,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {"JIRA_API_TOKEN": _ENV_FILE_TOKEN}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         # Per-host vault returns nothing; global vault has the rotated token.
         monkeypatch.setattr(
             source,
@@ -7956,7 +7956,7 @@ class TestGetJiraAuth:
             def load_credentials(self):
                 return {"JIRA_API_TOKEN": _OPERATOR_TOKEN}
 
-        monkeypatch.setattr(source, "KiroCrewConfig", FakeConfig)
+        monkeypatch.setattr(source, "JunctionConfig", FakeConfig)
         monkeypatch.setattr(
             source,
             "_resolve_jira_token_from_vault",
@@ -8212,7 +8212,7 @@ async def test_terminate_process_reaps_via_communicate_not_wait(monkeypatch):
     """``_terminate_process`` must route through the bounded, pipe-draining
     ``kill_and_reap`` -- a bare ``await proc.wait()`` here can hang the gateway
     task forever when the child is killed with a full pipe (#6005)."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     proc = _ReapProbe()
     tree_kills: "list[tuple[int, int]]" = []

@@ -21,7 +21,7 @@ import { handleBootRoute, json, makeFixedApi } from './lib/boot-api.mjs'
 import { serveDist } from './lib/serve-dist.mjs'
 
 const OUT = process.argv[2] || '/tmp/shots'
-const PROJECT = '/home/kirocrew/workspace'
+const PROJECT = '/home/junction/workspace'
 mkdirSync(OUT, { recursive: true })
 
 const { srv, base } = await serveDist()

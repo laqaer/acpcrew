@@ -1,6 +1,6 @@
 # ADR 0002 — Two planes, composed not dumped
 
-- Status: accepted
+- Status: accepted. The optional-sidecar model plane is superseded by [0007](0007-builtin-model-catalog.md). Two-plane composition still holds.
 - Date: 2026-09-19
 - Execution: `bc-39bfeb15-ff12-4636-840a-217a97c555da`
 
@@ -17,17 +17,17 @@ tray, tunnel, and agent-bridge surfaces this gateway already covers.
 Junction is two planes composed behind one CLI and dashboard:
 
 1. **Harness plane** — ACP runtime registry
-   (`src/kiro_crew/acp/runtimes.py`). Default `agent.acp_backend` is
+   (`src/junction/acp/runtimes.py`). Default `agent.acp_backend` is
    `auto`. `kiro-cli` is optional.
 2. **Model plane** — optional Codex Router sidecar on loopback (typically
    `:4202` + LiteLLM `:4200`), observed from
-   `src/kiro_crew/model_router/`.
+   `src/junction/model_router/`.
 
 Memory, cron, and skills stay on the Python gateway. If the sidecar is
 absent, the gateway still runs as an ACP control plane (degraded,
 documented).
 
-Do not dump Codex Router into `kiro_crew`. Do not re-land multi-ACP; it is
+Do not dump Codex Router into `junction`. Do not re-land multi-ACP; it is
 already on `main`.
 
 ## Consequences

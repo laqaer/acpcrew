@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import json
 
-from kiro_crew.agent import _normalize_mcp_server_keys
-from kiro_crew.mcp_utils import mcp_server_alias
+from junction.agent import _normalize_mcp_server_keys
+from junction.mcp_utils import mcp_server_alias
 
 
 class TestMcpServerAlias:
     def test_slash_free_name_unchanged(self):
-        for name in ("builder-mcp", "kirocrew-core", "slack-mcp", "andes-mcp"):
+        for name in ("builder-mcp", "junction-core", "slack-mcp", "andes-mcp"):
             assert mcp_server_alias(name) == name
 
     def test_npm_scoped_playwright(self):
@@ -42,7 +42,7 @@ class TestMcpServerAlias:
     def test_agent_reexports_same_callable(self):
         # agent.py re-exports the helper from mcp_utils for back-compat; the
         # handlers and agent must share one implementation.
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         assert agent_mod.mcp_server_alias is mcp_server_alias
 
@@ -181,10 +181,10 @@ class TestNormalizeMcpServerKeys:
 
 class TestSyncMcpToAgentSlashName:
     def test_enabling_slash_server_writes_alias_key_and_ref(self, tmp_path, monkeypatch):
-        import kiro_crew.dashboard.handlers.agents as agents_mod
-        from kiro_crew.dashboard.handlers import mcp as mcp_mod
+        import junction.dashboard.handlers.agents as agents_mod
+        from junction.dashboard.handlers import mcp as mcp_mod
 
-        agent_path = tmp_path / "kirocrew.json"
+        agent_path = tmp_path / "junction.json"
         agent_path.write_text(json.dumps({"mcpServers": {}, "tools": [], "allowedTools": []}))
         global_path = tmp_path / "global_mcp.json"
         global_path.write_text(
@@ -205,10 +205,10 @@ class TestSyncMcpToAgentSlashName:
         assert "@npm:@playwright/mcp" not in cfg["tools"]
 
     def test_removing_slash_server_strips_alias_and_legacy_refs(self, tmp_path, monkeypatch):
-        import kiro_crew.dashboard.handlers.agents as agents_mod
-        from kiro_crew.dashboard.handlers import mcp as mcp_mod
+        import junction.dashboard.handlers.agents as agents_mod
+        from junction.dashboard.handlers import mcp as mcp_mod
 
-        agent_path = tmp_path / "kirocrew.json"
+        agent_path = tmp_path / "junction.json"
         agent_path.write_text(
             json.dumps(
                 {

@@ -1,6 +1,6 @@
 # Tests
 
-KiroCrew uses pytest with pytest-asyncio for async tests. ~170 test files, 3000+ tests.
+Junction uses pytest with pytest-asyncio for async tests. ~170 test files, 3000+ tests.
 
 ## Running Tests
 

@@ -19,15 +19,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.history import ConversationLog
+from junction.history import ConversationLog
 
 _CHANNELS = [
-    ("telegram", "kiro_crew.telegram.transport_dispatch"),
-    ("teams", "kiro_crew.teams.transport_dispatch"),
-    ("webex", "kiro_crew.webex.transport_dispatch"),
-    ("wecom", "kiro_crew.wecom.transport_dispatch"),
-    ("weixin", "kiro_crew.weixin.transport_dispatch"),
-    ("discord", "kiro_crew.discord.transport_dispatch"),
+    ("telegram", "junction.telegram.transport_dispatch"),
+    ("teams", "junction.teams.transport_dispatch"),
+    ("webex", "junction.webex.transport_dispatch"),
+    ("wecom", "junction.wecom.transport_dispatch"),
+    ("weixin", "junction.weixin.transport_dispatch"),
+    ("discord", "junction.discord.transport_dispatch"),
 ]
 
 
@@ -51,9 +51,9 @@ def test_persist_turn_records_agent_in_session_metadata(channel, mod_name, tmp_p
 
     listed = log.list_sessions()
     assert listed, f"{channel}: _persist_turn should persist a session file"
-    assert listed[0].get("agent") == "sales-agent", (
-        f"{channel}: session metadata must carry the agent the turn ran under"
-    )
+    assert (
+        listed[0].get("agent") == "sales-agent"
+    ), f"{channel}: session metadata must carry the agent the turn ran under"
 
 
 @pytest.mark.parametrize("channel,mod_name", _CHANNELS)

@@ -30,8 +30,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps.builtins.auto_research import handlers as h
-from kiro_crew.apps.builtins.auto_research.handlers import (
+from junction.apps.builtins.auto_research import handlers as h
+from junction.apps.builtins.auto_research.handlers import (
     CampaignStatus,
     OnLoopDBError,
     _get_db,
@@ -47,11 +47,11 @@ def _isolate(tmp_path: Path):
     """Isolate DB and research dir per test (same shape as test_auto_research)."""
     with (
         patch(
-            "kiro_crew.apps.builtins.auto_research.handlers.DB_PATH",
+            "junction.apps.builtins.auto_research.handlers.DB_PATH",
             tmp_path / "test.db",
         ),
         patch(
-            "kiro_crew.apps.builtins.auto_research.handlers.RESEARCH_DIR",
+            "junction.apps.builtins.auto_research.handlers.RESEARCH_DIR",
             tmp_path / "research",
         ),
     ):
@@ -63,14 +63,14 @@ class TestOnLoopGuard:
 
     @pytest.mark.asyncio
     async def test_on_loop_get_db_raises_under_strict(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         with pytest.raises(OnLoopDBError):
             _get_db()
 
     def test_off_loop_get_db_allowed_under_strict(self, monkeypatch):
         """No running loop (worker thread / executor / CLI) is the sanctioned
         path — strict mode must not flag it."""
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "1")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "1")
         conn = _get_db()
         try:
             assert conn.execute("SELECT 1").fetchone()[0] == 1
@@ -81,7 +81,7 @@ class TestOnLoopGuard:
     async def test_on_loop_get_db_warns_in_production_mode(self, monkeypatch, caplog):
         """Strict off (production): the on-loop entry proceeds but logs loudly,
         so a mis-wired call-site is never silent."""
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "0")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "0")
         monkeypatch.setattr(h, "_on_loop_db_warn_last", 0.0)  # reset throttle window
         with caplog.at_level("WARNING", logger=h.logger.name):
             conn = _get_db()
@@ -90,7 +90,7 @@ class TestOnLoopGuard:
 
     @pytest.mark.asyncio
     async def test_on_loop_warning_is_throttled(self, monkeypatch, caplog):
-        monkeypatch.setenv("KIROCREW_STRICT_ON_LOOP_PERSIST", "0")
+        monkeypatch.setenv("JUNCTION_STRICT_ON_LOOP_PERSIST", "0")
         monkeypatch.setattr(h, "_on_loop_db_warn_last", 0.0)
         with caplog.at_level("WARNING", logger=h.logger.name):
             for _ in range(3):

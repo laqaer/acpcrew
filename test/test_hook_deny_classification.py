@@ -17,17 +17,17 @@ import dataclasses
 
 import pytest
 
-from kiro_crew.hooks import TOOL_DENY, HookManager
-from kiro_crew.platform import context as ctx_mod
-from kiro_crew.platform import governance_profiles as gp
-from kiro_crew.platform.bootstrap import build_default_context
-from kiro_crew.platform.governance import parse_policy
+from junction.hooks import TOOL_DENY, HookManager
+from junction.platform import context as ctx_mod
+from junction.platform import governance_profiles as gp
+from junction.platform.bootstrap import build_default_context
+from junction.platform.governance import parse_policy
 
 
 def _install(policy_body) -> None:
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
-    base = build_default_context(KiroCrewConfig.load())
+    base = build_default_context(JunctionConfig.load())
     ceiling = parse_policy(policy_body) if policy_body is not None else None
     ctx_mod.set_context(dataclasses.replace(base, governance=ceiling))
 

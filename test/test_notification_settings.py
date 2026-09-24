@@ -9,12 +9,12 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers.messaging import (
+from junction.dashboard.handlers.messaging import (
     api_notification_channel_settings,
     api_notification_channels,
 )
-from kiro_crew.dashboard.state import DashboardState
-from kiro_crew.notifications.settings import (
+from junction.dashboard.state import DashboardState
+from junction.notifications.settings import (
     PROTECTED_CHANNELS,
     ChannelSettings,
     ChannelSettingsError,
@@ -23,13 +23,13 @@ from kiro_crew.notifications.settings import (
 
 @pytest.fixture()
 def settings(monkeypatch, tmp_path) -> ChannelSettings:
-    monkeypatch.setattr("kiro_crew.notifications.settings.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.notifications.settings.config_dir", lambda: tmp_path)
     return ChannelSettings()
 
 
 def _make_state(monkeypatch, tmp_path) -> DashboardState:
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-    monkeypatch.setattr("kiro_crew.notifications.settings.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.notifications.settings.config_dir", lambda: tmp_path)
     return DashboardState(
         sessions=MagicMock(count=0),
         crons=MagicMock(),
@@ -41,7 +41,7 @@ def _make_state(monkeypatch, tmp_path) -> DashboardState:
 class TestChannelSettingsStore:
     def test_mute_persists_and_reloads(self, monkeypatch, tmp_path):
         monkeypatch.setattr(
-            "kiro_crew.notifications.settings.config_dir", lambda: tmp_path
+            "junction.notifications.settings.config_dir", lambda: tmp_path
         )
         s = ChannelSettings()
         s.update("system.heartbeat", muted=True)
@@ -75,7 +75,7 @@ class TestChannelSettingsStore:
 
     def test_corrupt_file_falls_back_to_defaults(self, monkeypatch, tmp_path):
         monkeypatch.setattr(
-            "kiro_crew.notifications.settings.config_dir", lambda: tmp_path
+            "junction.notifications.settings.config_dir", lambda: tmp_path
         )
         (tmp_path / "notification_settings.json").write_text("{not json", encoding="utf-8")
         s = ChannelSettings()
@@ -289,7 +289,7 @@ class TestReviewRegressions:
         def boom(*args, **kwargs):
             raise OSError("disk full")
 
-        monkeypatch.setattr("kiro_crew.notifications.settings.atomic_write", boom)
+        monkeypatch.setattr("junction.notifications.settings.atomic_write", boom)
         with pytest.raises(OSError):
             settings.update("a.b", muted=False)
         # Memory still reflects the last successfully persisted state
@@ -322,7 +322,7 @@ class TestReviewRegressions:
         """apply()/get() must not block on the writer lock: with the lock
         held (simulating a worker-thread update mid-write), reads and
         apply still complete."""
-        import kiro_crew.notifications.settings as mod
+        import junction.notifications.settings as mod
 
         settings.update("a.b", muted=True)
         with mod._lock:  # writer holds the lock across its file write

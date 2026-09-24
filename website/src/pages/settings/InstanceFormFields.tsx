@@ -520,18 +520,18 @@ export function InstanceFormFields({
         ) : null}
       </label>
       <label htmlFor={`${idPrefix}-remote-bin`} className="flex flex-col gap-1 text-[13px] text-muted sm:col-span-2">
-        {i18nT('pages.settings.instancesPanel.remote_kirocrew_path')} <span className="text-muted-strong">{i18nT('pages.settings.instancesPanel.optional')}</span>
+        {i18nT('pages.settings.instancesPanel.remote_junction_path')} <span className="text-muted-strong">{i18nT('pages.settings.instancesPanel.optional')}</span>
         <input
           id={`${idPrefix}-remote-bin`}
-          aria-label={i18nT('pages.settings.instancesPanel.remote_kirocrew_path')}
+          aria-label={i18nT('pages.settings.instancesPanel.remote_junction_path')}
           className={inputCls}
           value={values.remoteBin}
           onChange={e => set('remoteBin', e.target.value)}
-          placeholder={i18nT('pages.settings.instancesPanel.home_you_local_bin_kirocrew_leave_blank_for_stan')}
+          placeholder={i18nT('pages.settings.instancesPanel.home_you_local_bin_junction_leave_blank_for_stan')}
         />
         <span className="text-[12px] text-muted leading-snug">
-          {i18nT('pages.settings.instancesPanel.only_needed_if')} <code className="text-text">{i18nT('pages.settings.instancesPanel.kirocrew')}</code> {i18nT('pages.settings.instancesPanel.is_installed_somewhere_non_standard_on_the_remot')} <code className="text-text">{i18nT('pages.settings.instancesPanel.command_v_kirocrew')}</code>{' '}
-          {i18nT('pages.settings.instancesPanel.commonly')} <code className="text-text">{i18nT('pages.settings.instancesPanel.local_bin_kirocrew')}</code>{i18nT('pages.settings.instancesPanel.use_an_absolute_path_no')} <code className="text-text">~</code>).
+          {i18nT('pages.settings.instancesPanel.only_needed_if')} <code className="text-text">{i18nT('pages.settings.instancesPanel.junction')}</code> {i18nT('pages.settings.instancesPanel.is_installed_somewhere_non_standard_on_the_remot')} <code className="text-text">{i18nT('pages.settings.instancesPanel.command_v_junction')}</code>{' '}
+          {i18nT('pages.settings.instancesPanel.commonly')} <code className="text-text">{i18nT('pages.settings.instancesPanel.local_bin_junction')}</code>{i18nT('pages.settings.instancesPanel.use_an_absolute_path_no')} <code className="text-text">~</code>).
         </span>
       </label>
     </div>

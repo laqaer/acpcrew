@@ -1,5 +1,5 @@
-"""Unit tests for kiro_crew.platform_compat — the cross-platform shim that lets
-KiroCrew run natively on Windows alongside macOS/Linux.
+"""Unit tests for junction.platform_compat — the cross-platform shim that lets
+Junction run natively on Windows alongside macOS/Linux.
 
 These exercise the PURE / platform-dispatching surface, spawning a real process
 only where the contract IS an OS behavior (process-session semantics): the
@@ -29,7 +29,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import platform_compat as pc
+from junction import platform_compat as pc
 
 
 def _fake_windows_bins(monkeypatch):
@@ -63,8 +63,8 @@ class TestPlatformFlags:
 class TestReexecPythonModule:
     def test_windows_uses_space_free_argv0(self, monkeypatch):
         executable = (
-            r"C:\Users\alice\AppData\Local\Programs\KiroCrew Nightly"
-            r"\resources\backend-dist\kirocrew-backend\python.exe"
+            r"C:\Users\alice\AppData\Local\Programs\Junction Nightly"
+            r"\resources\backend-dist\junction-backend\python.exe"
         )
         calls = []
         monkeypatch.setattr(pc, "IS_WINDOWS", True)
@@ -73,19 +73,19 @@ class TestReexecPythonModule:
         monkeypatch.setenv("PYTHONUTF8", "0")
         monkeypatch.setenv("PYTHONIOENCODING", "cp1252")
 
-        pc.reexec_python_module("kiro_crew", ["gateway", "--port", "5476"])
+        pc.reexec_python_module("junction", ["gateway", "--port", "5476"])
 
         assert calls == [
             (
                 executable,
-                ["python.exe", "-m", "kiro_crew", "gateway", "--port", "5476"],
+                ["python.exe", "-m", "junction", "gateway", "--port", "5476"],
             )
         ]
         assert os.environ["PYTHONUTF8"] == "1"
         assert os.environ["PYTHONIOENCODING"] == "utf-8:backslashreplace"
 
     def test_posix_preserves_full_argv0_and_pins_utf8(self, monkeypatch):
-        executable = "/opt/Kiro Crew/bin/python3"
+        executable = "/opt/Junction/bin/python3"
         calls = []
         monkeypatch.setattr(pc, "IS_WINDOWS", False)
         monkeypatch.setattr(pc.sys, "executable", executable)
@@ -93,9 +93,9 @@ class TestReexecPythonModule:
         monkeypatch.setenv("PYTHONUTF8", "0")
         monkeypatch.setenv("PYTHONIOENCODING", "latin-1")
 
-        pc.reexec_python_module("kiro_crew", ["gateway"])
+        pc.reexec_python_module("junction", ["gateway"])
 
-        assert calls == [(executable, [executable, "-m", "kiro_crew", "gateway"])]
+        assert calls == [(executable, [executable, "-m", "junction", "gateway"])]
         assert os.environ["PYTHONUTF8"] == "1"
         assert os.environ["PYTHONIOENCODING"] == "utf-8:backslashreplace"
 
@@ -110,11 +110,11 @@ class TestReexecPythonModule:
         probe = tmp_path / "utf8_reexec_probe.py"
         probe.write_text(
             "import os\n"
-            "from kiro_crew.platform_compat import reexec_python_module\n"
-            "if os.environ.get('_KIROCREW_UTF8_REEXEC_PROBE') == '1':\n"
+            "from junction.platform_compat import reexec_python_module\n"
+            "if os.environ.get('_JUNCTION_UTF8_REEXEC_PROBE') == '1':\n"
             "    print('👻 restarted')\n"
             "else:\n"
-            "    os.environ['_KIROCREW_UTF8_REEXEC_PROBE'] = '1'\n"
+            "    os.environ['_JUNCTION_UTF8_REEXEC_PROBE'] = '1'\n"
             "    reexec_python_module('utf8_reexec_probe', [])\n",
             encoding="utf-8",
         )
@@ -634,13 +634,13 @@ class TestUtf8Console:
         pc.ensure_utf8_console()
 
     def test_emoji_print_does_not_raise_after_call(self, capsys):
-        # The bug this guards: KiroCrew prints non-ASCII glyphs everywhere, and on
+        # The bug this guards: Junction prints non-ASCII glyphs everywhere, and on
         # Windows cp1252 stdout that raised UnicodeEncodeError and killed the gateway.
         # After ensure_utf8_console(), a non-ASCII print must succeed on any platform.
         pc.ensure_utf8_console()
-        print("中文 KiroCrew 日本語")  # non-cp1252-encodable glyphs
+        print("中文 Junction 日本語")  # non-cp1252-encodable glyphs
         out = capsys.readouterr().out
-        assert "KiroCrew" in out
+        assert "Junction" in out
 
     def test_rewraps_cp1252_stream_so_emoji_log_record_survives(self, monkeypatch):
         # Regression for the gateway-worker UnicodeEncodeError: when the worker's
@@ -1170,7 +1170,7 @@ class TestProcessIdentityPosix:
         # and the needle comparison is case-sensitive -- "python" is not in
         # "Python". Production needles ("kiro-cli", "claude") appear verbatim in
         # the argv they guard, so only the test's choice of needle was fragile.
-        token = "kirocrew-procmatch-probe"
+        token = "junction-procmatch-probe"
         # Use a readiness pipe: the child signals after exec completes, so we
         # never race /proc/<pid>/cmdline population on a loaded runner.
         child = subprocess.Popen(
@@ -1255,7 +1255,7 @@ class TestProcessArgvMatchesExact:
             argv = [sleep_bin, "300"]
             child = subprocess.Popen(argv, start_new_session=True, stderr=subprocess.DEVNULL)
         else:
-            child, argv = self._spawn("kirocrew-argvexact-probe")
+            child, argv = self._spawn("junction-argvexact-probe")
         try:
             if pc.IS_POSIX:
                 # Exact match: retry briefly for slow /proc population on
@@ -2660,7 +2660,7 @@ class TestFindListeningPidsErrors:
         # Regression:. Windows netstat -ano prints IPv6 LISTEN rows
         # with proto column "TCP" (NOT "TCP6") and address form [::1]:<port>.
         # Before this fix `-p tcp` on the netstat argv dropped these entirely,
-        # so `kirocrew stop` / `kirocrew restart` silently no-op'd when the
+        # so `junction stop` / `junction restart` silently no-op'd when the
         # gateway bound v6. This canned blob mirrors what real Windows netstat
         # actually prints (verified on Windows 11 24H2 with an AF_INET6
         # loopback listener) — regression-guards without a Windows CI lane.
@@ -2852,7 +2852,7 @@ class TestKillAsyncVariants:
     variants.
 
     The async wrappers exist so async call sites can offload the blocking
-    Windows ``taskkill`` spawn to :func:`kiro_crew.executors.subprocess_executor`
+    Windows ``taskkill`` spawn to :func:`junction.executors.subprocess_executor`
     without stalling the event loop. The POSIX branch dispatches inline to the
     sync ``kill_pid`` / ``kill_process_tree`` (``os.kill`` / ``os.killpg`` are
     non-blocking, and preserving the same callable keeps existing tests that
@@ -2938,7 +2938,7 @@ class TestKillAsyncVariants:
         monkeypatch.setattr(pc.subprocess, "run", fake_run)
 
         # Patch the `subprocess_executor` name bound in the platform_compat
-        # module namespace (top-level `from kiro_crew.executors import ...`)
+        # module namespace (top-level `from junction.executors import ...`)
         # to return our sentinel.
         monkeypatch.setattr(pc, "subprocess_executor", lambda: sentinel)
 
@@ -3331,7 +3331,7 @@ def test_process_descendants_snapshots_a_new_session_grandchild():
     This is the case a bare ``killpg`` misses, so the walk that broadens a kill
     must be able to see it.
     """
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     if platform_compat.IS_WINDOWS:  # pragma: no cover - POSIX session semantics
         pytest.skip("POSIX session semantics")
@@ -3374,7 +3374,7 @@ def test_process_descendants_snapshots_a_new_session_grandchild():
 
 def test_process_descendants_is_best_effort_on_unreadable_table(monkeypatch):
     """Introspection failure must not raise into a caller's kill path."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     monkeypatch.setattr(
         platform_compat,
@@ -3390,7 +3390,7 @@ def test_process_descendants_is_best_effort_on_unreadable_table(monkeypatch):
 
 
 def test_process_descendants_refuses_reserved_pids():
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     assert platform_compat.process_descendants(1) == []
     assert platform_compat.process_descendants(0) == []
@@ -3402,7 +3402,7 @@ def test_parent_map_ignores_a_planted_ps_earlier_on_path(tmp_path, monkeypatch):
     The shim below would report a bogus tree (and could run any code) if the
     lookup honored PATH.
     """
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     if platform_compat.IS_WINDOWS:  # pragma: no cover - POSIX lookup
         pytest.skip("POSIX binary resolution")
@@ -3425,7 +3425,7 @@ def test_parent_map_ignores_a_planted_ps_earlier_on_path(tmp_path, monkeypatch):
 
 
 def test_trusted_system_bin_rejects_a_name_not_in_system_dirs(tmp_path, monkeypatch):
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     if platform_compat.IS_WINDOWS:  # pragma: no cover - POSIX lookup
         pytest.skip("POSIX binary resolution")
@@ -3441,7 +3441,7 @@ def test_trusted_system_bin_rejects_a_name_not_in_system_dirs(tmp_path, monkeypa
 def test_trusted_system_bin_dirs_are_not_limited_to_fhs():
     # A distribution may keep ps/lsof/systemd-run outside /usr/{s}bin; an
     # FHS-only pin resolves nothing at all there.
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     fhs = {"/usr/bin", "/bin", "/usr/sbin", "/sbin"}
     assert set(platform_compat._TRUSTED_SYSTEM_BIN_DIRS) - fhs
@@ -3449,7 +3449,7 @@ def test_trusted_system_bin_dirs_are_not_limited_to_fhs():
 
 def test_trusted_system_bin_resolves_outside_fhs(tmp_path, monkeypatch):
     # A tool reachable only through a non-FHS pinned directory still resolves.
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     if platform_compat.IS_WINDOWS:  # pragma: no cover - POSIX lookup
         pytest.skip("POSIX binary resolution")
@@ -3476,7 +3476,7 @@ def test_trusted_system_bin_resolves_outside_fhs(tmp_path, monkeypatch):
 )
 def test_parent_map_is_empty_when_no_trusted_ps_exists(monkeypatch):
     """No trusted binary must degrade to best-effort, never fall back to PATH."""
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     monkeypatch.setattr(platform_compat, "trusted_system_bin", lambda name: None)
     assert platform_compat._posix_process_parent_map() == {}
@@ -3666,7 +3666,7 @@ def _plant_on_path(tmp_path, monkeypatch, name):
 def _pin_warnings(caplog):
     """Only this module's records, so an unrelated warning cannot skew the count."""
 
-    return [r for r in caplog.records if r.name == "kiro_crew.platform_compat"]
+    return [r for r in caplog.records if r.name == "junction.platform_compat"]
 
 
 def test_a_tool_installed_outside_the_trusted_dirs_is_diagnosable(tmp_path, monkeypatch, caplog):
@@ -3674,14 +3674,14 @@ def test_a_tool_installed_outside_the_trusted_dirs_is_diagnosable(tmp_path, monk
 
     NixOS and Homebrew/conda prefixes keep a perfectly good ``lsof`` outside the
     system directories. The pin still refuses it, but without this line the
-    operator sees only ``kirocrew stop`` no-opping and a prompt to install a
+    operator sees only ``junction stop`` no-opping and a prompt to install a
     tool they already have.
     """
 
     monkeypatch.setattr(pc, "_UNPINNED_TOOL_PROBED", set())
     planted = _plant_on_path(tmp_path, monkeypatch, "definitely-not-a-system-tool")
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.platform_compat"):
+    with caplog.at_level(logging.WARNING, logger="junction.platform_compat"):
         assert pc.trusted_system_bin("definitely-not-a-system-tool") is None
 
     records = _pin_warnings(caplog)
@@ -3699,7 +3699,7 @@ def test_the_unpinned_tool_diagnostic_does_not_repeat(tmp_path, monkeypatch, cap
     monkeypatch.setattr(pc, "_UNPINNED_TOOL_PROBED", set())
     _plant_on_path(tmp_path, monkeypatch, "definitely-not-a-system-tool")
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.platform_compat"):
+    with caplog.at_level(logging.WARNING, logger="junction.platform_compat"):
         for _ in range(3):
             assert pc.trusted_system_bin("definitely-not-a-system-tool") is None
 
@@ -3716,7 +3716,7 @@ def test_a_genuinely_absent_tool_is_not_reported_as_misplaced(tmp_path, monkeypa
     monkeypatch.setattr(pc, "_UNPINNED_TOOL_PROBED", set())
     monkeypatch.setenv("PATH", str(tmp_path))
 
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.platform_compat"):
+    with caplog.at_level(logging.WARNING, logger="junction.platform_compat"):
         assert pc.trusted_system_bin("definitely-not-a-system-tool") is None
 
     assert _pin_warnings(caplog) == []
@@ -3774,7 +3774,7 @@ class TestIsBundledInterpreter:
             / "Contents"
             / "Resources"
             / "backend-dist"
-            / "kirocrew-backend-arm64"
+            / "junction-backend-arm64"
             / "bin"
             / "python3.12"
         )

@@ -41,7 +41,7 @@ export function useNativeNotification(botName: string, avatar: string) {
                 latestNotif?.approval_id ||
                 latestNotif?.job_id ||
                 latestNotif?.task_id ||
-                'kirocrew-notif',
+                'junction-notif',
             })
           } catch {
             /* unsupported platform */

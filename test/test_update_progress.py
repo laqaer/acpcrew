@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.state import DashboardState
+from junction.dashboard.state import DashboardState
 
 
 def _init_repo(path) -> None:
@@ -26,7 +26,7 @@ def _init_repo(path) -> None:
 
 def _make_state(monkeypatch, tmp_path) -> DashboardState:
     """Create a minimal DashboardState for testing."""
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     return DashboardState(
         sessions=MagicMock(count=0),
         crons=MagicMock(),
@@ -104,10 +104,10 @@ class TestUpdateEndpoints:
     @pytest.mark.asyncio
     async def test_simulate_walks_through_steps(self, monkeypatch, tmp_path) -> None:
         """Simulate endpoint broadcasts progress for each step."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.config_path", lambda: tmp_path / "c.json")
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.handlers.config_path", lambda: tmp_path / "c.json")
 
-        from kiro_crew.dashboard.handlers import api_update_simulate
+        from junction.dashboard.handlers import api_update_simulate
 
         state = _make_state(monkeypatch, tmp_path)
         steps_seen: list[str] = []
@@ -142,10 +142,10 @@ class TestUpdateEndpoints:
     @pytest.mark.asyncio
     async def test_simulate_fail_at(self, monkeypatch, tmp_path) -> None:
         """Simulate endpoint stops at fail_at step."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.config_path", lambda: tmp_path / "c.json")
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.handlers.config_path", lambda: tmp_path / "c.json")
 
-        from kiro_crew.dashboard.handlers import api_update_simulate
+        from junction.dashboard.handlers import api_update_simulate
 
         state = _make_state(monkeypatch, tmp_path)
         steps_seen: list[str] = []
@@ -176,10 +176,10 @@ class TestUpdateEndpoints:
     @pytest.mark.asyncio
     async def test_simulate_reject(self, monkeypatch, tmp_path) -> None:
         """Simulate endpoint returns 409 when reject=true."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.config_path", lambda: tmp_path / "c.json")
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.handlers.config_path", lambda: tmp_path / "c.json")
 
-        from kiro_crew.dashboard.handlers import api_update_simulate
+        from junction.dashboard.handlers import api_update_simulate
 
         state = _make_state(monkeypatch, tmp_path)
         app = web.Application()
@@ -196,9 +196,9 @@ class TestUpdateEndpoints:
     @pytest.mark.asyncio
     async def test_cancel_clears_progress(self, monkeypatch, tmp_path) -> None:
         """Cancel endpoint clears update progress."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
 
-        from kiro_crew.dashboard.handlers import api_update_cancel
+        from junction.dashboard.handlers import api_update_cancel
 
         state = _make_state(monkeypatch, tmp_path)
         state.push_update_progress("building", "Building…")
@@ -217,15 +217,15 @@ class TestUpdateEndpoints:
     @pytest.mark.asyncio
     async def test_update_apply_rejects_dirty_tree(self, monkeypatch, tmp_path) -> None:
         """Update apply returns 409 when working tree is dirty."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         _init_repo(tmp_path)  # must be a git checkout to reach the dirty check
         monkeypatch.setattr(
-            "kiro_crew.platform.update_capability.running_from_checkout",
+            "junction.platform.update_capability.running_from_checkout",
             lambda root, **kw: True,
         )
 
-        from kiro_crew.dashboard.handlers import api_update_apply
+        from junction.dashboard.handlers import api_update_apply
 
         state = _make_state(monkeypatch, tmp_path)
         app = web.Application()

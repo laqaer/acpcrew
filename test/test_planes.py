@@ -9,10 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.acp.types import ACP_BACKEND_AUTO, ACP_BACKEND_CURSOR
-from kiro_crew.cli_doctor import _doctor, _doctor_planes
-from kiro_crew.constants import CLI_BIN, PRODUCT_NAME
-from kiro_crew.planes import api_planes, harness_inventory, run_planes_command, snapshot_planes
+from junction.acp.types import ACP_BACKEND_AUTO, ACP_BACKEND_CURSOR
+from junction.cli_doctor import _doctor, _doctor_planes
+from junction.constants import CLI_BIN, PRODUCT_NAME
+from junction.planes import api_planes, harness_inventory, run_planes_command, snapshot_planes
 
 
 def test_harness_inventory_marks_kiro_optional() -> None:
@@ -49,6 +49,7 @@ def test_cli_planes_prints_human_copy_by_default(capsys: pytest.CaptureFixture[s
     out = capsys.readouterr().out
     assert "Junction planes" in out
     assert "never paste provider keys" in out
+    assert "sidecar injects" not in out
     assert "orchestration=economy" in out
     last = out.strip().splitlines()[-1]
     with pytest.raises(json.JSONDecodeError):
@@ -71,9 +72,10 @@ def test_doctor_planes_never_fails(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "Planes" in out
     assert "vendor CLI optional" in out
-    assert "sidecar optional" in out
+    assert "starts with junction up" in out
     assert "orchestration=economy" in out
     assert "never paste provider keys" in out
+    assert "sidecar injects" not in out
 
 
 def test_doctor_quick_skips_the_full_probe(capsys: pytest.CaptureFixture[str]) -> None:
@@ -102,7 +104,7 @@ async def test_api_planes_always_200() -> None:
 
 
 def test_human_planes_format_is_shared() -> None:
-    from kiro_crew.planes import format_human_planes
+    from junction.planes import format_human_planes
 
     snap = snapshot_planes(
         which=lambda _name: None, home=Path("/tmp"), router_port=9, gateway_port=9
@@ -110,13 +112,13 @@ def test_human_planes_format_is_shared() -> None:
     text = format_human_planes(snap, heading="Planes")
     assert text.startswith("Planes\n")
     assert "vendor CLI optional" in text
-    assert "sidecar optional" in text
+    assert "starts with junction up" in text
     assert "orchestration=economy" in text
     assert "never paste provider keys" in text
 
 
 def test_compose_banner_writes_the_given_stream() -> None:
-    from kiro_crew.planes import print_compose_banner
+    from junction.planes import print_compose_banner
 
     buf = io.StringIO()
     print_compose_banner(stream=buf)

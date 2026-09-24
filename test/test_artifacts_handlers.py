@@ -1,4 +1,4 @@
-"""Tests for :mod:`kiro_crew.dashboard.handlers.artifacts`.
+"""Tests for :mod:`junction.dashboard.handlers.artifacts`.
 
 Uses MagicMock requests (matching the test_dashboard_cron_channel.py pattern)
 plus a real :class:`ArtifactStore` rooted at a tmp dir for end-to-end coverage.
@@ -12,9 +12,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew import artifacts as art_mod
-from kiro_crew.artifacts import ArtifactStore
-from kiro_crew.dashboard.handlers.artifacts import (
+from junction import artifacts as art_mod
+from junction.artifacts import ArtifactStore
+from junction.dashboard.handlers.artifacts import (
     _MAX_BODY_BYTES,
     api_artifact_delete,
     api_artifact_detail,
@@ -82,7 +82,7 @@ def _request(
 @pytest.fixture
 def patch_restricted(monkeypatch):
     """Make _is_restricted_session read req.app['_restricted_session']."""
-    from kiro_crew.dashboard.handlers import artifacts as art_handlers
+    from junction.dashboard.handlers import artifacts as art_handlers
 
     def _stub(_state, req) -> bool:
         return req.app.get("_restricted_session", False)
@@ -95,7 +95,7 @@ def linkable_project(tmp_path: Path, monkeypatch):
     """A project directory whose files earn a LINK verdict on promote.
 
     ``POST /api/artifacts`` now classifies ``source_path`` (see
-    ``kiro_crew.artifact_source``): a disposable file is snapshotted and NO
+    ``junction.artifact_source``): a disposable file is snapshotted and NO
     pointer is stored, so dedup-by-``source_path`` only applies to linked files.
     Pytest's ``tmp_path`` lives under the system temp dir — itself a disposable
     root — so the temp-root seam is narrowed to ``tmp_path/tmp`` and the project
@@ -104,7 +104,7 @@ def linkable_project(tmp_path: Path, monkeypatch):
     Returns the project dir. Project-root discovery is stubbed to empty so the
     test never reads the developer's real ``recent_projects.json``.
     """
-    from kiro_crew import artifact_source
+    from junction import artifact_source
 
     (tmp_path / "tmp").mkdir()
     monkeypatch.setattr(artifact_source, "_tempdir", lambda: str(tmp_path / "tmp"))
@@ -116,7 +116,7 @@ def linkable_project(tmp_path: Path, monkeypatch):
 @pytest.fixture
 def disposable_file(tmp_path: Path, monkeypatch):
     """A file in a disposable root (temp dir), which must be COPIED not linked."""
-    from kiro_crew import artifact_source
+    from junction import artifact_source
 
     tmp = tmp_path / "tmp"
     tmp.mkdir()
@@ -483,7 +483,7 @@ class TestCreate:
         # branch as ArtifactAlreadyExistsError, returning a misleading 409. Now
         # the two are distinguished — duplicates are 409, all other store
         # errors are 500.
-        from kiro_crew.artifacts import ArtifactError
+        from junction.artifacts import ArtifactError
 
         def _boom(*_a, **_kw):
             raise ArtifactError("refusing to write sensitive path: ~/.aws/credentials")
@@ -582,7 +582,7 @@ class TestCreate:
         # FileTooLargeError is not an OSError subclass, so an oversized source
         # escaped the promotion read as an unhandled exception and surfaced as a
         # 500. It must come back as a refusal the caller can show.
-        from kiro_crew.dashboard.handlers import artifacts as _handlers
+        from junction.dashboard.handlers import artifacts as _handlers
 
         src = linkable_project / "big.md"
         src.write_text("plenty of bytes here", encoding="utf-8")
@@ -860,7 +860,7 @@ class TestPromoteVerdict:
         sensitive-path gate would let the response distinguish "this sensitive
         file is here" from "it is not". Both must look identical.
         """
-        from kiro_crew.dashboard.handlers import artifacts as art_handlers
+        from junction.dashboard.handlers import artifacts as art_handlers
 
         secret = tmp_path / "creds"
         secret.write_text("SECRET", encoding="utf-8")
@@ -923,7 +923,7 @@ class TestPromoteVerdict:
     ) -> None:
         # source_root is never read from the body — only the server-side
         # classifier can set it. Otherwise a caller could authorize any root.
-        from kiro_crew import artifact_source
+        from junction import artifact_source
 
         (tmp_path / "tmp").mkdir()
         monkeypatch.setattr(artifact_source, "_tempdir", lambda: str(tmp_path / "tmp"))
@@ -1088,7 +1088,7 @@ class TestDetail:
         self, isolated_store, patch_restricted, monkeypatch
     ) -> None:
         """The write is a permission decision, so it belongs in the SEL trail."""
-        from kiro_crew.dashboard.handlers import artifacts as art_handlers
+        from junction.dashboard.handlers import artifacts as art_handlers
 
         sel_stub = MagicMock()
         monkeypatch.setattr(art_handlers, "sel", lambda: sel_stub)
@@ -1110,7 +1110,7 @@ class TestDetail:
     ) -> None:
         """A withheld breadcrumb is still a decision — record it, mirroring
         the POST /events sibling, which audits its restricted-session denial."""
-        from kiro_crew.dashboard.handlers import artifacts as art_handlers
+        from junction.dashboard.handlers import artifacts as art_handlers
 
         sel_stub = MagicMock()
         monkeypatch.setattr(art_handlers, "sel", lambda: sel_stub)
@@ -1132,7 +1132,7 @@ class TestDetail:
         self, isolated_store, patch_restricted, monkeypatch
     ) -> None:
         """A plain page view makes no decision, so it must not add SEL noise."""
-        from kiro_crew.dashboard.handlers import artifacts as art_handlers
+        from junction.dashboard.handlers import artifacts as art_handlers
 
         sel_stub = MagicMock()
         monkeypatch.setattr(art_handlers, "sel", lambda: sel_stub)
@@ -1226,7 +1226,7 @@ class TestUpdate:
         # sensitive-path refusal from _write_text) used to escape the handler
         # and surface as an unhandled 500 with no audit trail. Now caught
         # explicitly and audited as an error.
-        from kiro_crew.artifacts import ArtifactError
+        from junction.artifacts import ArtifactError
 
         isolated_store.create(name="x", content="v1", slug="x")
 
@@ -1266,7 +1266,7 @@ class TestDelete:
         # Regression: a base ArtifactError raised by store.delete() (e.g. a
         # future store-level sensitive-path or filesystem refusal) used to
         # escape the handler and 500 silently. Now caught and audited.
-        from kiro_crew.artifacts import ArtifactError
+        from junction.artifacts import ArtifactError
 
         isolated_store.create(name="x", content="a", slug="x")
 
@@ -1329,7 +1329,7 @@ class TestRecordEvent:
     async def test_referenced_event_recorded_with_metadata(
         self, isolated_store, patch_restricted
     ) -> None:
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         resp = await api_artifact_record_event(
@@ -1360,7 +1360,7 @@ class TestRecordEvent:
     async def test_mcp_actor_inferred_from_internal_secret(
         self, isolated_store, patch_restricted
     ) -> None:
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         resp = await api_artifact_record_event(
@@ -1379,7 +1379,7 @@ class TestRecordEvent:
         # for non-chat-scoped requests. That literal isn't a real slot key
         # and would mislead the activity timeline if recorded — the handler
         # explicitly drops it. Same rule as the create/update endpoints.
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         resp = await api_artifact_record_event(
@@ -1395,7 +1395,7 @@ class TestRecordEvent:
 
     @pytest.mark.asyncio
     async def test_real_session_key_recorded(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         resp = await api_artifact_record_event(
@@ -1412,7 +1412,7 @@ class TestRecordEvent:
     async def test_rejects_content_mutating_event_types(
         self, isolated_store, patch_restricted
     ) -> None:
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         for bad_type in ("created", "edited", "iterated", "reverted"):
@@ -1426,7 +1426,7 @@ class TestRecordEvent:
 
     @pytest.mark.asyncio
     async def test_unknown_slug_returns_404(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         resp = await api_artifact_record_event(
             _request(
@@ -1441,7 +1441,7 @@ class TestRecordEvent:
         # Appending events mutates meta.json, so a restricted session must
         # be rejected with 403 like the other mutation endpoints — it must
         # not be able to flood an artifact's event log.
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         resp = await api_artifact_record_event(
@@ -1463,7 +1463,7 @@ class TestRecordEvent:
         # When the session already has a CUD event, the impression is
         # suppressed: the handler must return suppressed:true with a null
         # event, NOT a stale prior event echoed as if it were recorded.
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         isolated_store.update(
@@ -1494,7 +1494,7 @@ class TestRecordEvent:
         # the frontend sessionStorage debounce, so the same chat session
         # re-POSTs a `referenced` for the same impression. The store must
         # record it once — the second POST returns suppressed:true.
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         isolated_store.create(name="X", content="<div>x</div>", slug="x", kind="widget")
         body = {"type": "referenced", "metadata": {"message_ts": "1780036091.1", "widget_index": 0}}
@@ -1518,7 +1518,7 @@ class TestRecordEvent:
         # future refactor that accidentally routes referenced events
         # through update() (which DOES bump on content change) doesn't
         # silently turn impression-logging into a version-churn engine.
-        from kiro_crew.dashboard.handlers.artifacts import api_artifact_record_event
+        from junction.dashboard.handlers.artifacts import api_artifact_record_event
 
         art = isolated_store.create(name="X", content="<div>orig</div>", slug="x", kind="widget")
         original_version = art.version
@@ -1550,7 +1550,7 @@ class TestDenialAudit:
     def _capture_sel(self, monkeypatch):
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.handlers import artifacts as art_handlers
+        from junction.dashboard.handlers import artifacts as art_handlers
 
         sel_stub = MagicMock()
         monkeypatch.setattr(art_handlers, "sel", lambda: sel_stub)
@@ -1685,11 +1685,11 @@ class TestRelocate:
         target = extra / "doc.md"
         target.write_text("# shared")
         # Configure the extra root via publish.relocate_roots.
-        from kiro_crew.config.loader import KiroCrewConfig, PublishConfig
+        from junction.config.loader import JunctionConfig, PublishConfig
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.publish = PublishConfig(relocate_roots=[str(extra)])
-        monkeypatch.setattr(KiroCrewConfig, "load", staticmethod(lambda: cfg))
+        monkeypatch.setattr(JunctionConfig, "load", staticmethod(lambda: cfg))
         isolated_store.create(name="Doc", content="x", slug="doc", kind="markdown")
         resp = await api_artifact_relocate(
             _request(match={"slug": "doc"}, body={"source_path": str(target)})
@@ -1715,7 +1715,7 @@ class TestTeardown:
     @pytest.fixture(autouse=True)
     def patch_deploy_restricted(self, monkeypatch):
         """Patch _is_restricted_session at the import point used by deploy handlers."""
-        from kiro_crew.dashboard.handlers import _shared
+        from junction.dashboard.handlers import _shared
 
         def _stub(_state, req) -> bool:
             return req.app.get("_restricted_session", False)
@@ -1724,7 +1724,7 @@ class TestTeardown:
 
     @pytest.mark.asyncio
     async def test_restricted_session_denied(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy.handlers import _handle_teardown
 
         req = _request(match={"slug": "x"}, body={"confirm": True}, restricted=True)
         resp = await _handle_teardown(req)
@@ -1733,7 +1733,7 @@ class TestTeardown:
 
     @pytest.mark.asyncio
     async def test_missing_confirm_returns_400(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy.handlers import _handle_teardown
 
         req = _request(match={"slug": "x"}, body={})
         resp = await _handle_teardown(req)
@@ -1742,7 +1742,7 @@ class TestTeardown:
 
     @pytest.mark.asyncio
     async def test_confirm_false_returns_400(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy.handlers import _handle_teardown
 
         req = _request(match={"slug": "x"}, body={"confirm": False})
         resp = await _handle_teardown(req)
@@ -1750,7 +1750,7 @@ class TestTeardown:
 
     @pytest.mark.asyncio
     async def test_not_found_returns_404(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy.handlers import _handle_teardown
 
         req = _request(match={"slug": "nonexistent"}, body={"confirm": True})
         resp = await _handle_teardown(req)
@@ -1758,7 +1758,7 @@ class TestTeardown:
 
     @pytest.mark.asyncio
     async def test_success_includes_infra_note(self, isolated_store, patch_restricted) -> None:
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy.handlers import _handle_teardown
 
         # Create a webapp artifact to tear down
         isolated_store.create(
@@ -1779,9 +1779,9 @@ class TestTeardown:
     @pytest.mark.asyncio
     async def test_manifest_expiry_success(self, isolated_store, patch_restricted, monkeypatch) -> None:
         """When engine.run_aws succeeds, manifest field should be 'expired-now'."""
-        from kiro_crew.deploy import engine
-        from kiro_crew.deploy import profiles as profiles_mod
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy import engine
+        from junction.deploy import profiles as profiles_mod
+        from junction.deploy.handlers import _handle_teardown
 
         # Register the profile so _expire_manifest_best_effort passes the registry check.
         reg = profiles_mod.load_registry()
@@ -1839,8 +1839,8 @@ class TestTeardown:
         """When engine.run_aws fails, the reaper check cannot be confirmed —
         teardown must fail closed (409, NO tombstone) rather than expiring the
         manifest into the void (round-18: reaper-not-installed guard)."""
-        from kiro_crew.deploy import engine
-        from kiro_crew.deploy.handlers import _handle_teardown
+        from junction.deploy import engine
+        from junction.deploy.handlers import _handle_teardown
 
         isolated_store.create(
             name="Fail App", content="<h1>App</h1>", slug="fail-app", kind="webapp",
@@ -1857,7 +1857,7 @@ class TestTeardown:
         monkeypatch.setattr(engine, "run_aws", mock_run_aws)
         # F2 (r4): register the profile so this test exercises the
         # AWS-unreachable path, not the unregistered-profile 409.
-        from kiro_crew.deploy import profiles as _profiles_mod
+        from junction.deploy import profiles as _profiles_mod
         monkeypatch.setattr(_profiles_mod, "load_registry", lambda: {
             "version": 2,
             "profiles": [{"name": "bad-profile", "region": "us-west-2"}],
@@ -1957,7 +1957,7 @@ class TestSettleBlankEndpoint:
         no trace of it."""
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.handlers import artifacts as art_handlers
+        from junction.dashboard.handlers import artifacts as art_handlers
 
         sel_stub = MagicMock()
         monkeypatch.setattr(art_handlers, "sel", lambda: sel_stub)

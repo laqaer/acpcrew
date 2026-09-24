@@ -20,7 +20,7 @@ import { serveDist } from './lib/serve-dist.mjs'
 import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/browser-no-admin'
-const PROJECT = '/home/user/workspace/KiroCrew'
+const PROJECT = '/home/user/workspace/Junction'
 mkdirSync(OUT, { recursive: true })
 
 /** The single mutable fixture the panel reads, reassigned between reloads. */

@@ -16,7 +16,7 @@ The seams that are deliberately stubbed rather than driven, and why:
   subprocess returns instantly, so the sign of a real delta would be decided by
   scheduler noise. ``_time_once`` itself is driven through the fake ``_run``.
 * ``store.*`` directory helpers -- redirected into ``tmp_path`` so nothing is written
-  to the operator's Kiro Crew data home.
+  to the operator's Junction data home.
 """
 
 from __future__ import annotations
@@ -29,12 +29,12 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import security
-from kiro_crew.apps.builtins.auto_improvement.backend import clone_setup
-from kiro_crew.apps.builtins.auto_improvement.backend import profile_normalize as PN
-from kiro_crew.apps.builtins.auto_improvement.backend import store
-from kiro_crew.apps.builtins.auto_improvement.profiles.github_repo import profile as gh
-from kiro_crew.apps.builtins.auto_improvement.spine.contracts import TRACK_BUG, TRACK_PERF
+from junction import security
+from junction.apps.builtins.auto_improvement.backend import clone_setup
+from junction.apps.builtins.auto_improvement.backend import profile_normalize as PN
+from junction.apps.builtins.auto_improvement.backend import store
+from junction.apps.builtins.auto_improvement.profiles.github_repo import profile as gh
+from junction.apps.builtins.auto_improvement.spine.contracts import TRACK_BUG, TRACK_PERF
 
 # ── scaffolding ──────────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ def _isolate_home(tmp_path, monkeypatch):
     """Every store path lands in ``tmp_path``; nothing touches the real data home."""
     home = tmp_path / "kirohome"
     home.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     data = home / "data"
     data.mkdir(parents=True, exist_ok=True)
     for name in ("data_dir", "workspace_dir"):
@@ -1181,7 +1181,7 @@ def test_isolation_do_not_pollute_tolerates_unavailable_roots(tmp_path, monkeypa
         raise RuntimeError("no data dir")
 
     monkeypatch.setattr(store, "data_dir", _boom)
-    from kiro_crew.config import loader as cfg_loader
+    from junction.config import loader as cfg_loader
 
     monkeypatch.setattr(cfg_loader, "config_dir", _boom)
     iso = gh.RepoIsolation(clone_path=tmp_path / "c")
@@ -1356,7 +1356,7 @@ def test_profile_test_dir_follows_where_the_tests_really_are(
 
 def test_profile_propose_never_fabricates_a_mechanical_edit(tmp_path, monkeypatch):
     prof = _profile(tmp_path, monkeypatch)
-    from kiro_crew.apps.builtins.auto_improvement.spine.contracts import Candidate
+    from junction.apps.builtins.auto_improvement.spine.contracts import Candidate
 
     got = prof.propose(
         candidate=Candidate(kind=TRACK_BUG, target="src/pkg/mod.py"),

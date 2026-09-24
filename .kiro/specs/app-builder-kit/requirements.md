@@ -1,8 +1,8 @@
-# Requirements — Kiro Crew App Builder Kit
+# Requirements — Junction App Builder Kit
 
 ## Introduction
 
-The Kiro Crew dashboard frontend (`website/src/`) already exposes an `app-sdk/` that defines
+The Junction dashboard frontend (`website/src/`) already exposes an `app-sdk/` that defines
 the app contract (`AppApi`, `useAppApi`, `useTheme`, `useNavigate`, `useNotify`,
 `useAppEvents`, `useChatLauncher`, `ChatPanel`, `messageRenderers`, `protocol/`), with apps
 registered through `apps/builtinRegistry.ts`. However, UI building blocks are not

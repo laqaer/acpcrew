@@ -17,15 +17,15 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.knowledge.agent_source import (
+from junction.knowledge.agent_source import (
     add_agent_document,
     document_slug,
     ensure_agent_source,
     get_state,
 )
-from kiro_crew.knowledge.ingestion import IngestionPipeline
-from kiro_crew.knowledge.readers import FileReader
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction.knowledge.ingestion import IngestionPipeline
+from junction.knowledge.readers import FileReader
+from junction.knowledge.store import KnowledgeStore
 
 URI = "https://example.invalid/doc"
 OTHER_URI = "https://example.invalid/other"

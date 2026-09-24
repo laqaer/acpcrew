@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.dashboard.state import DashboardState
+from junction.dashboard.state import DashboardState
 
 
 @pytest.fixture(autouse=True)
@@ -30,7 +30,7 @@ def sync_event_loop():
 
 @pytest.fixture
 def state(monkeypatch, tmp_path):
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     return DashboardState(
         sessions=MagicMock(count=0),
         crons=MagicMock(),
@@ -266,7 +266,7 @@ class TestChatSlotStopState:
     """Tests for _ChatSlot._stop_state and _stopping property."""
 
     def test_stop_state_default_idle(self) -> None:
-        from kiro_crew.dashboard.state import _ChatSlot
+        from junction.dashboard.state import _ChatSlot
 
         slot = _ChatSlot("s1")
         assert slot._stop_state == "idle"
@@ -275,7 +275,7 @@ class TestChatSlotStopState:
         assert slot._native_subagent_output == {}
 
     def test_stopping_property_reflects_stop_state(self) -> None:
-        from kiro_crew.dashboard.state import _ChatSlot
+        from junction.dashboard.state import _ChatSlot
 
         slot = _ChatSlot("s1")
         slot._stop_state = "soft_pending"
@@ -286,7 +286,7 @@ class TestChatSlotStopState:
         assert slot._stopping is False
 
     def test_stopping_setter_compat(self) -> None:
-        from kiro_crew.dashboard.state import _ChatSlot
+        from junction.dashboard.state import _ChatSlot
 
         slot = _ChatSlot("s1")
         slot._stopping = True
@@ -295,7 +295,7 @@ class TestChatSlotStopState:
         assert slot._stop_state == "idle"
 
     def test_to_dict_includes_stop_state(self) -> None:
-        from kiro_crew.dashboard.state import _ChatSlot
+        from junction.dashboard.state import _ChatSlot
 
         slot = _ChatSlot("s1")
         d = slot.to_dict()
@@ -347,15 +347,15 @@ class TestCompactCallbackWiring:
         cb = self._captured_callback(state)
 
         with patch(
-            "kiro_crew.dashboard.state.deliver_channel_compaction_notice",
+            "junction.dashboard.state.deliver_channel_compaction_notice",
             new_callable=AsyncMock,
         ) as deliver:
             await cb("slack:1785370133.085469", 92.0, success=True)
-            await cb("discord:kirocrew:direct:u1", 93.0, success=False)
+            await cb("discord:junction:direct:u1", 93.0, success=False)
 
         assert [c.args[1] for c in deliver.await_args_list] == [
             "slack:1785370133.085469",
-            "discord:kirocrew:direct:u1",
+            "discord:junction:direct:u1",
         ]
         assert deliver.await_args_list[1].kwargs["success"] is False
         # The channel leg must not also write into an unrelated dashboard slot.
@@ -369,7 +369,7 @@ class TestCompactCallbackWiring:
         cb = self._captured_callback(state)
 
         with patch(
-            "kiro_crew.dashboard.state.deliver_channel_compaction_notice",
+            "junction.dashboard.state.deliver_channel_compaction_notice",
             new_callable=AsyncMock,
             side_effect=RuntimeError("transport exploded"),
         ):
@@ -432,7 +432,7 @@ class TestCompactCallbackWiring:
     async def test_callback_broadcast_runs_even_if_append_fails(
         self, state: DashboardState, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.dashboard.state import _ChatSlot
+        from junction.dashboard.state import _ChatSlot
 
         ws = MagicMock(closed=False)
         ws.send_str = AsyncMock()
@@ -469,20 +469,20 @@ class TestCompactCallbackWiring:
 
 def test_folder_breadcrumb_walks_full_ancestry(state):
     state._folders = [
-        {"id": "a", "name": "KiroCrew", "parent_id": ""},
+        {"id": "a", "name": "Junction", "parent_id": ""},
         {"id": "b", "name": "Backend", "parent_id": "a"},
         {"id": "c", "name": "auth-refactor", "parent_id": "b"},
     ]
-    assert state.folder_breadcrumb("c") == "KiroCrew › Backend › auth-refactor"
+    assert state.folder_breadcrumb("c") == "Junction › Backend › auth-refactor"
 
 
 def test_folder_breadcrumb_single_root(state):
-    state._folders = [{"id": "a", "name": "KiroCrew", "parent_id": ""}]
-    assert state.folder_breadcrumb("a") == "KiroCrew"
+    state._folders = [{"id": "a", "name": "Junction", "parent_id": ""}]
+    assert state.folder_breadcrumb("a") == "Junction"
 
 
 def test_folder_breadcrumb_empty_or_unknown_id(state):
-    state._folders = [{"id": "a", "name": "KiroCrew", "parent_id": ""}]
+    state._folders = [{"id": "a", "name": "Junction", "parent_id": ""}]
     assert state.folder_breadcrumb("") == ""
     assert state.folder_breadcrumb("missing") == ""
 
@@ -556,9 +556,9 @@ class TestOwnerSourceStatusTransport:
     async def test_websocket_initial_status_and_refresh_are_owner_only(
         self, monkeypatch, claims, owner_request
     ) -> None:
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard import ws_event_scope
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard import ws_event_scope
+        from junction.dashboard.handlers import source_providers
 
         # An app token only exists for an INSTALLED, enabled app, so that is the
         # world this test runs in. The connect path resolves enablement off-loop
@@ -672,7 +672,7 @@ class TestPeriodicCheckStatusRefresh:
     """
 
     def test_ttl_alias_matches_cache_ttl(self) -> None:
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard.handlers import source_providers
 
         assert source_providers.CHECK_STATUS_TTL_SECS == source_providers._CHECK_TTL_SECS
 
@@ -702,8 +702,8 @@ class TestPeriodicCheckStatusRefresh:
 
     @pytest.mark.asyncio
     async def test_owner_ws_loop_schedules_ttl_paced_refreshes(self, monkeypatch) -> None:
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard.handlers import source_providers
 
         url = "https://github.com/acme/repo/pull/248"
         state = MagicMock()
@@ -779,8 +779,8 @@ class TestPeriodicCheckStatusRefresh:
         """An operator adding or revoking a self-managed host changes which links
         are chips at all, and slot extraction is synchronous -- so the periodic
         loop must push explicitly instead of waiting for message activity."""
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard.handlers import source_providers
 
         state = MagicMock()
         state.owner_id = "U_OWNER"
@@ -859,7 +859,7 @@ class TestPeriodicCheckStatusRefresh:
         """The WS `slots` envelope is rebuilt key-by-key in `_broadcast`, so an
         unforwarded field is silently dropped — which would leave the client with
         no way to notice an allowlist change now that polling was removed."""
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard.handlers import source_providers
 
         sent: list[str] = []
 
@@ -896,8 +896,8 @@ class TestPeriodicCheckStatusRefresh:
         """Slot source-link extraction is synchronous and cannot load the
         allowlist, so a self-hosted MR chip would be missing from the very first
         sidebar push unless the snapshot is warmed first."""
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard.handlers import source_providers
 
         order: list[str] = []
         state = MagicMock()
@@ -959,8 +959,8 @@ class TestPeriodicCheckStatusRefresh:
 
     @pytest.mark.asyncio
     async def test_non_owner_ws_never_starts_refresh_loop(self, monkeypatch) -> None:
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard.handlers import source_providers
 
         state = MagicMock()
         state.owner_id = "U_OWNER"
@@ -1025,8 +1025,8 @@ class TestPeriodicCheckStatusRefresh:
         the driver must rotate which URLs it submits first so every chip is
         eventually refreshed instead of the same slot-order prefix winning
         every TTL (deterministic starvation of newer slots)."""
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard.handlers import source_providers
 
         urls = [
             "https://github.com/acme/repo/pull/1",
@@ -1104,8 +1104,8 @@ class TestPeriodicCheckStatusRefresh:
         """Findings #2: a single transient failure inside a refresh round must
         be logged and swallowed so the driver keeps running, rather than
         silently dying and reverting to the frozen-chip bug it fixes."""
-        from kiro_crew.dashboard import ws as dashboard_ws
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import ws as dashboard_ws
+        from junction.dashboard.handlers import source_providers
 
         url = "https://github.com/acme/repo/pull/248"
         state = MagicMock()
@@ -1202,7 +1202,7 @@ class TestTurnBoundarySourceStatus:
         assert state.source_link_urls_for_slot("nope") == []
 
     def test_turn_boundary_forces_refresh_for_owner(self, state: DashboardState, monkeypatch) -> None:
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard.handlers import source_providers
 
         slot = state.get_or_create_slot("chat-a")
         slot.append("assistant", "opened https://github.com/acme/repo/pull/7", broadcast=False)
@@ -1223,7 +1223,7 @@ class TestTurnBoundarySourceStatus:
     ) -> None:
         """Status is credential-backed and only owners render it, so a headless
         or non-owner gateway must not spawn provider subprocesses per turn."""
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard.handlers import source_providers
 
         slot = state.get_or_create_slot("chat-a")
         slot.append("assistant", "opened https://github.com/acme/repo/pull/7", broadcast=False)
@@ -1240,7 +1240,7 @@ class TestTurnBoundarySourceStatus:
     ) -> None:
         """A status refresh is best-effort telemetry; it must never be able to
         break the turn-completion path it hangs off."""
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard.handlers import source_providers
 
         slot = state.get_or_create_slot("chat-a")
         slot.append("assistant", "opened https://github.com/acme/repo/pull/7", broadcast=False)
@@ -1288,8 +1288,8 @@ class TestTurnBoundarySourceStatus:
         """
         from aiohttp import web
 
-        from kiro_crew.dashboard import server
-        from kiro_crew.dashboard.handlers import source_providers
+        from junction.dashboard import server
+        from junction.dashboard.handlers import source_providers
 
         source_providers._status_delta_sinks.clear()
         app = web.Application()

@@ -17,7 +17,7 @@
  * version that shipped without a section is deliberately absent, because a row
  * that cannot say anything is indistinguishable from a broken one. The running
  * build's release is the single exception: "what am I on?" is the question this
- * page is opened to answer. `kiro_crew/changelog.py` owns that rule.
+ * page is opened to answer. `junction/changelog.py` owns that rule.
  *
  * ## Why prereleases have no rows of their own
  *
@@ -36,7 +36,7 @@ import MarkdownRenderer from '../../components/MarkdownRenderer'
 import Clickable from '../../components/Clickable'
 import { i18nT } from '../../i18n/t'
 
-/** Mirrors `kiro_crew.changelog.Release`. */
+/** Mirrors `junction.changelog.Release`. */
 interface Release {
   version: string
   date: string

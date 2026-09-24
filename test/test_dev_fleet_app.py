@@ -21,12 +21,12 @@ import yarl
 from aiohttp import web  # noqa: F401  (used by builtin re-shell tests)
 from aiohttp.test_utils import TestClient, TestServer  # noqa: F401
 
-import kiro_crew.apps.builtins.dev_fleet.server as mod
-from kiro_crew import platform_compat
+import junction.apps.builtins.dev_fleet.server as mod
+from junction import platform_compat
 
 # These Dev Fleet make-live / cancel / sync / build tests assert POSIX-only
 # behaviour that has no Windows equivalent: os.geteuid, the ``.venv/bin`` layout
-# (vs ``.venv\\Scripts\\kirocrew.exe``), systemctl/launchctl service probing, and
+# (vs ``.venv\\Scripts\\junction.exe``), systemctl/launchctl service probing, and
 # ``/``-rooted trusted-binary paths. The production code is correct on Windows;
 # only these fixtures/assertions are POSIX-shaped, so they are skipped under the
 # reduced-scope backend CI that runs on Windows. See issue #2041.
@@ -48,7 +48,7 @@ def _venv_maps_to_the_synced_checkout():
     ``test_sync_refuses_a_venv_that_serves_another_checkout``, which patches it
     back to a refusal, and the logic behind it lives in ``test/test_dep_sync.py``.
     """
-    from kiro_crew import dep_sync
+    from junction import dep_sync
 
     with patch.object(dep_sync, "installed_package_origin", return_value="<stubbed>"), \
          patch.object(dep_sync, "venv_not_mapped_to", return_value=None):
@@ -57,52 +57,52 @@ def _venv_maps_to_the_synced_checkout():
 
 # --- worktree porcelain parsing ---
 def test_parse_worktree_porcelain_basic():
-    from kiro_crew.apps.builtins.dev_fleet.server import _parse_worktree_porcelain
+    from junction.apps.builtins.dev_fleet.server import _parse_worktree_porcelain
 
     raw = textwrap.dedent("""\
-        worktree /home/user/kirocrew
+        worktree /home/user/junction
         HEAD abc1234567890abcdef1234567890abcdef123456
         branch refs/heads/main
 
-        worktree /home/user/kirocrew-wt-feature-x
+        worktree /home/user/junction-wt-feature-x
         HEAD def4567890abcdef1234567890abcdef12345678
         branch refs/heads/feature-x
 
-        worktree /home/user/kirocrew-wt-detached
+        worktree /home/user/junction-wt-detached
         HEAD 1234567890abcdef1234567890abcdef12345678
         detached
 
     """)
     entries = _parse_worktree_porcelain(raw)
     assert len(entries) == 3
-    assert entries[0]["path"] == "/home/user/kirocrew"
+    assert entries[0]["path"] == "/home/user/junction"
     assert entries[0]["branch"] == "main"
-    assert entries[1]["path"] == "/home/user/kirocrew-wt-feature-x"
+    assert entries[1]["path"] == "/home/user/junction-wt-feature-x"
     assert entries[1]["branch"] == "feature-x"
     assert entries[2]["branch"] is None  # detached
 
 
 def test_parse_worktree_porcelain_empty():
-    from kiro_crew.apps.builtins.dev_fleet.server import _parse_worktree_porcelain
+    from junction.apps.builtins.dev_fleet.server import _parse_worktree_porcelain
 
     assert _parse_worktree_porcelain("") == []
 
 
 def test_parse_worktree_porcelain_captures_prunable():
     """`prunable` marks a record whose checkout directory is gone."""
-    from kiro_crew.apps.builtins.dev_fleet.server import _parse_worktree_porcelain
+    from junction.apps.builtins.dev_fleet.server import _parse_worktree_porcelain
 
     raw = textwrap.dedent("""\
-        worktree /home/user/kirocrew
+        worktree /home/user/junction
         HEAD abc1234567890abcdef1234567890abcdef123456
         branch refs/heads/main
 
-        worktree /home/user/kirocrew-wt-deleted
+        worktree /home/user/junction-wt-deleted
         HEAD def4567890abcdef1234567890abcdef12345678
         branch refs/heads/gone
         prunable gitdir file points to non-existent location
 
-        worktree /home/user/kirocrew-wt-bare-flag
+        worktree /home/user/junction-wt-bare-flag
         HEAD def4567890abcdef1234567890abcdef12345678
         detached
         prunable
@@ -123,18 +123,18 @@ async def test_discover_worktrees_drops_prunable():
     git keeps reporting the admin record until `git worktree prune` runs, so
     without this filter the ghost row survives every refresh.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     stdout = textwrap.dedent("""\
-        worktree /home/user/kirocrew
+        worktree /home/user/junction
         HEAD abc1234567890abcdef1234567890abcdef123456
         branch refs/heads/main
 
-        worktree /home/user/kirocrew-wt-alive
+        worktree /home/user/junction-wt-alive
         HEAD def4567890abcdef1234567890abcdef12345678
         branch refs/heads/alive
 
-        worktree /home/user/kirocrew-wt-deleted
+        worktree /home/user/junction-wt-deleted
         HEAD 1234567890abcdef1234567890abcdef12345678
         branch refs/heads/deleted
         prunable gitdir file points to non-existent location
@@ -143,7 +143,7 @@ async def test_discover_worktrees_drops_prunable():
     with patch.object(mod, "_run_cmd", new=AsyncMock(return_value=(0, stdout, ""))):
         entries = await mod._discover_worktrees()
     paths = [e["path"] for e in entries]
-    assert paths == ["/home/user/kirocrew", "/home/user/kirocrew-wt-alive"]
+    assert paths == ["/home/user/junction", "/home/user/junction-wt-alive"]
     assert entries[0]["is_main"] is True
     assert entries[1]["is_main"] is False
 
@@ -151,15 +151,15 @@ async def test_discover_worktrees_drops_prunable():
 @pytest.mark.asyncio
 async def test_discover_worktrees_keeps_prunable_main():
     """The primary checkout anchors is_main and is never filtered out."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     stdout = textwrap.dedent("""\
-        worktree /home/user/kirocrew
+        worktree /home/user/junction
         HEAD abc1234567890abcdef1234567890abcdef123456
         branch refs/heads/main
         prunable gitdir file points to non-existent location
 
-        worktree /home/user/kirocrew-wt-alive
+        worktree /home/user/junction-wt-alive
         HEAD def4567890abcdef1234567890abcdef12345678
         branch refs/heads/alive
 
@@ -167,14 +167,14 @@ async def test_discover_worktrees_keeps_prunable_main():
     with patch.object(mod, "_run_cmd", new=AsyncMock(return_value=(0, stdout, ""))):
         entries = await mod._discover_worktrees()
     assert [e["path"] for e in entries] == [
-        "/home/user/kirocrew", "/home/user/kirocrew-wt-alive",
+        "/home/user/junction", "/home/user/junction-wt-alive",
     ]
     assert entries[0]["is_main"] is True
 
 
 # --- PR status ---
 def test_pr_status_merged():
-    from kiro_crew.apps.builtins.dev_fleet.server import _is_pr_merged
+    from junction.apps.builtins.dev_fleet.server import _is_pr_merged
 
     assert _is_pr_merged({"state": "MERGED", "number": 42}) is True
     assert _is_pr_merged({"state": "OPEN", "number": 42}) is False
@@ -185,10 +185,10 @@ def test_pr_status_merged():
 # --- shipped detection (git cherry parsing) ---
 @pytest.mark.asyncio
 async def test_git_ahead_counts_plus_lines():
-    from kiro_crew.apps.builtins.dev_fleet.server import _git_ahead
+    from junction.apps.builtins.dev_fleet.server import _git_ahead
 
     cherry_output = "+ abc1234\n+ def5678\n- ghi9012\n"
-    with patch("kiro_crew.apps.builtins.dev_fleet.server._git", new_callable=AsyncMock) as mock_git:
+    with patch("junction.apps.builtins.dev_fleet.server._git", new_callable=AsyncMock) as mock_git:
         mock_git.return_value = cherry_output
         result = await _git_ahead("/fake/path")
     assert result == 2
@@ -196,9 +196,9 @@ async def test_git_ahead_counts_plus_lines():
 
 @pytest.mark.asyncio
 async def test_git_ahead_returns_none_on_failure():
-    from kiro_crew.apps.builtins.dev_fleet.server import _git_ahead
+    from junction.apps.builtins.dev_fleet.server import _git_ahead
 
-    with patch("kiro_crew.apps.builtins.dev_fleet.server._git", new_callable=AsyncMock) as mock_git:
+    with patch("junction.apps.builtins.dev_fleet.server._git", new_callable=AsyncMock) as mock_git:
         mock_git.return_value = None
         result = await _git_ahead("/fake/path")
     assert result is None
@@ -208,7 +208,7 @@ async def test_git_ahead_returns_none_on_failure():
 @pytest.mark.asyncio
 async def test_prunable_merged_clean():
     """PR merged + clean -> ok:true WITHOUT requiring ahead==0 (squash-safe)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_pr_status_cached", new_callable=AsyncMock, return_value={"state": "MERGED"}), \
          patch.object(mod, "_own_commits_count", new_callable=AsyncMock, return_value=3), \
@@ -228,7 +228,7 @@ async def test_prunable_merged_squash_sim():
     This is the core bug fix: old code would see ahead>0 and reject with
     'merged_new_commits'. New code does NOT check ahead at all.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_pr_status_cached", new_callable=AsyncMock, return_value={"state": "MERGED"}), \
          patch.object(mod, "_own_commits_count", new_callable=AsyncMock, return_value=5), \
@@ -243,7 +243,7 @@ async def test_prunable_merged_squash_sim():
 
 @pytest.mark.asyncio
 async def test_prunable_merged_dirty_rejected():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_pr_status_cached", new_callable=AsyncMock, return_value={"state": "MERGED"}), \
          patch.object(mod, "_own_commits_count", new_callable=AsyncMock, return_value=3), \
@@ -256,7 +256,7 @@ async def test_prunable_merged_dirty_rejected():
 
 @pytest.mark.asyncio
 async def test_prunable_active_unmerged():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_pr_status_cached", new_callable=AsyncMock, return_value={"state": "OPEN"}), \
          patch.object(mod, "_own_commits_count", new_callable=AsyncMock, return_value=5), \
@@ -271,7 +271,7 @@ async def test_prunable_active_unmerged():
 @pytest.mark.asyncio
 async def test_remove_refuses_when_branch_oid_diverged():
     """Squash-safe race guard: branch OID != PR headRefOid -> refuse removal."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     full_head = "a" * 40
     cache = AsyncMock(return_value={"state": "MERGED"})
@@ -294,7 +294,7 @@ async def test_remove_refuses_when_branch_oid_diverged():
 @pytest.mark.asyncio
 async def test_remove_succeeds_when_oid_matches():
     """Squash-safe race guard passes when OIDs match."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": "/fake/wt", "branch": "feat-x", "is_main": False}, None)), \
@@ -315,8 +315,8 @@ async def test_remove_succeeds_when_oid_matches():
 @pytest.mark.asyncio
 async def test_remove_proceeds_when_session_bus_absent():
     """When require_backend() raises PodBackendAbsent, removal proceeds."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
-    from kiro_crew.pod.runtime import PodBackendAbsent
+    import junction.apps.builtins.dev_fleet.server as mod
+    from junction.pod.runtime import PodBackendAbsent
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": "/fake/wt", "branch": "feat-x", "is_main": False}, None)), \
@@ -337,7 +337,7 @@ async def test_remove_proceeds_when_session_bus_absent():
 @pytest.mark.asyncio
 async def test_remove_refuses_operational_pod_error():
     """When require_backend() passes but active_names raises, removal is refused."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": "/fake/wt", "branch": "feat-x", "is_main": False}, None)), \
@@ -359,7 +359,7 @@ async def test_remove_refuses_operational_pod_error():
 @pytest.mark.asyncio
 async def test_remove_still_fails_on_non_pod_exceptions():
     """Non-PodError exceptions (e.g. OSError, TimeoutError) still refuse removal."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": "/fake/wt", "branch": "feat-x", "is_main": False}, None)), \
@@ -677,7 +677,7 @@ async def test_remove_names_the_home_it_cannot_reclaim(tmp_path, caplog):
     stays -- but at a level the operator sees, carrying the path and the verb
     that reclaims it.
     """
-    from kiro_crew.pod.runtime import PodBackendAbsent
+    from junction.pod.runtime import PodBackendAbsent
 
     with ExitStack() as stack:
         for cm in _remove_stubs(
@@ -867,7 +867,7 @@ def test_reclaim_falls_back_to_the_return_code_when_stderr_is_empty(tmp_path):
 # --- _upstream_remote fallback + override ---
 @pytest.mark.asyncio
 async def test_upstream_remote_fallback_to_origin():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._UPSTREAM_REMOTE = None
     with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(1, "", "not configured")):
@@ -878,12 +878,12 @@ async def test_upstream_remote_fallback_to_origin():
 
 @pytest.mark.asyncio
 async def test_upstream_remote_reads_config():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._UPSTREAM_REMOTE = None
-    with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "kirocrew\n", "")):
+    with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "junction\n", "")):
         result = await mod._upstream_remote()
-    assert result == "kirocrew"
+    assert result == "junction"
     mod._UPSTREAM_REMOTE = None
 
 
@@ -891,14 +891,14 @@ async def test_upstream_remote_reads_config():
 @pytest.mark.asyncio
 async def test_sync_script_emits_step_markers():
     """The generated sync script must print ::step::<idx>::<label> before each step."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._UPSTREAM_REMOTE = "origin"
     mod._SYNC_RID = None
     with patch.object(mod, "_git", new_callable=AsyncMock, return_value="main"), \
          patch.object(mod, "_venv_python", return_value=Path("/fake/.venv/bin/python")), \
          patch.object(mod, "_trusted_bin", side_effect=lambda n: f"/usr/bin/{n}"), \
-         patch("kiro_crew.apps.builtins.dev_fleet.server.sandboxed_spawn_argv",
+         patch("junction.apps.builtins.dev_fleet.server.sandboxed_spawn_argv",
                side_effect=lambda cmd, mode, env=None: (cmd, env or {}, None)), \
          patch.object(mod, "_start_run", new_callable=AsyncMock, return_value="run-123") as mock_start:
         async with mod._SYNC_LOCK:
@@ -914,7 +914,7 @@ async def test_sync_script_emits_step_markers():
 
 
 # --- Windows: a write-locked console script must not be handed to pip ---
-# The probe itself moved to kiro_crew.dep_sync with the substitute it feeds, and
+# The probe itself moved to junction.dep_sync with the substitute it feeds, and
 # its tests moved with it (test/test_dep_sync.py). What stays here is the sync's
 # use of the result: which install step gets built.
 
@@ -947,7 +947,7 @@ async def _run_sync(mod, locked):
     MAIN_REPO is pinned because the sync refuses outright when no checkout was
     discovered, and these tests are about the sync's own behaviour: leaving it
     ambient makes them pass or fail on whether the HOST running them happens to
-    sit in a Kiro Crew checkout. Assertions that quote the repo path must use
+    sit in a Junction checkout. Assertions that quote the repo path must use
     ``_SYNC_REPO`` rather than reading ``mod.MAIN_REPO``.
 
     The venv-origin guard is answered by the module's autouse fixture; a test
@@ -960,7 +960,7 @@ async def _run_sync(mod, locked):
          patch.object(mod, "_venv_python", return_value=Path("/fake/.venv/bin/python")), \
          patch.object(mod, "_trusted_bin", side_effect=lambda n: f"/usr/bin/{n}"), \
          patch.object(mod.dep_sync, "locked_console_scripts", return_value=locked), \
-         patch("kiro_crew.apps.builtins.dev_fleet.server.sandboxed_spawn_argv",
+         patch("junction.apps.builtins.dev_fleet.server.sandboxed_spawn_argv",
                side_effect=lambda cmd, mode, env=None: (cmd, env or {}, None)), \
          patch.object(mod, "_start_run", new_callable=AsyncMock, return_value="run-123") as mock_start:
         async with mod._SYNC_LOCK:
@@ -994,10 +994,10 @@ async def test_sync_substitutes_a_dependency_only_install_when_a_script_is_locke
     own console script. Refusing the whole sync instead left the single-checkout
     Windows layout — the ordinary one — with no working Pull+build at all.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
-    from kiro_crew import dep_sync
+    import junction.apps.builtins.dev_fleet.server as mod
+    from junction import dep_sync
 
-    result, script = await _run_sync(mod, [r"C:\repo\.venv\Scripts\kirocrew.exe"])
+    result, script = await _run_sync(mod, [r"C:\repo\.venv\Scripts\junction.exe"])
 
     assert result["ok"] is True
     # A run was started, so fetch and merge do happen.
@@ -1008,7 +1008,7 @@ async def test_sync_substitutes_a_dependency_only_install_when_a_script_is_locke
     flat = script.replace("\\", "")
     assert "dep_sync.py" in flat
     assert '"-e"' not in flat
-    # It must NOT be run as `-m kiro_crew...dep_sync`. That would import the
+    # It must NOT be run as `-m junction...dep_sync`. That would import the
     # module from the working tree after the merge has landed, pulling the whole
     # package __init__ chain with it, so a revision that raises the
     # `requires-python` floor with newer syntax would SyntaxError while being
@@ -1033,8 +1033,8 @@ async def test_sync_keeps_the_editable_reinstall_when_nothing_is_locked():
     cannot refresh a console script, so anywhere pip can do the whole job, it
     should.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
-    from kiro_crew import dep_sync
+    import junction.apps.builtins.dev_fleet.server as mod
+    from junction import dep_sync
 
     result, script = await _run_sync(mod, [])
 
@@ -1054,7 +1054,7 @@ async def test_every_step_gets_a_utf8_pin_in_its_environment():
     child) would still encode a non-ASCII checkout path with the codepage and
     die on it. The environment is the only channel that reaches a child.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     _, script = await _run_sync(mod, [])
 
@@ -1069,7 +1069,7 @@ async def test_every_step_gets_a_utf8_pin_in_its_environment():
 @pytest.mark.asyncio
 async def test_sync_runs_every_step_when_nothing_is_locked():
     """Control: an unlocked venv gets the full sync, reinstall included."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     result, script = await _run_sync(mod, [])
 
@@ -1080,7 +1080,7 @@ async def test_sync_runs_every_step_when_nothing_is_locked():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("locked", [[], [r"C:\repo\.venv\Scripts\kirocrew.exe"]],
+@pytest.mark.parametrize("locked", [[], [r"C:\repo\.venv\Scripts\junction.exe"]],
                          ids=["reinstall-branch", "substitute-branch"])
 async def test_sync_refuses_a_venv_that_serves_another_checkout(locked):
     """The refusal covers BOTH install paths, and refuses before either runs.
@@ -1093,8 +1093,8 @@ async def test_sync_refuses_a_venv_that_serves_another_checkout(locked):
     guarded one. Parametrized over both branches because that asymmetry is
     exactly the bug: a fix that only covers the one it was found on is not one.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
-    from kiro_crew import dep_sync
+    import junction.apps.builtins.dev_fleet.server as mod
+    from junction import dep_sync
 
     with patch.object(
         dep_sync,
@@ -1120,7 +1120,7 @@ async def test_sync_runner_pins_utf8_stdout_before_its_first_print():
     encodes with the process locale codepage — a mismatch that mangles or kills
     any non-ASCII print. Pinned before the step loop so no print predates it.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     _, script = await _run_sync(mod, [])
 
@@ -1165,7 +1165,7 @@ def test_pythonioencoding_saves_a_step_child_that_prints_a_non_ascii_path():
     import subprocess
     import sys as _sys
 
-    path = "C:\\Users\\\u9648\u660e\u4f2a\\KiroCrew"
+    path = "C:\\Users\\\u9648\u660e\u4f2a\\Junction"
     body = f"print({path!r}, flush=True)\n"
     codepage = {**os.environ, "PYTHONIOENCODING": "cp1252"}
 
@@ -1190,7 +1190,7 @@ def test_pythonioencoding_saves_a_step_child_that_prints_a_non_ascii_path():
 # --- repo owner/name parsing ---
 @pytest.mark.asyncio
 async def test_repo_owner_name_ssh():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._OWNER_REPO = None
     with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "git@github.com:kirodotdev/KiroCrew.git\n", "")):
@@ -1200,7 +1200,7 @@ async def test_repo_owner_name_ssh():
 
 @pytest.mark.asyncio
 async def test_repo_owner_name_https():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._OWNER_REPO = None
     with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "https://github.com/kirodotdev/KiroCrew.git\n", "")):
@@ -1211,7 +1211,7 @@ async def test_repo_owner_name_https():
 # --- _find_worktree ambiguity rejection ---
 @pytest.mark.asyncio
 async def test_find_worktree_ambiguous():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     wts = [
         {"path": "/a/feature-x", "is_main": False},
@@ -1225,7 +1225,7 @@ async def test_find_worktree_ambiguous():
 
 @pytest.mark.asyncio
 async def test_find_worktree_not_found():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_discover_worktrees", new_callable=AsyncMock, return_value=[]):
         result, err = await mod._find_worktree("nope")
@@ -1237,7 +1237,7 @@ async def test_find_worktree_not_found():
 @pytest.mark.asyncio
 async def test_worktree_remove_force_must_be_bool():
     """The /worktree/remove handler rejects non-boolean force."""
-    from kiro_crew.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
+    from junction.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
 
     # Build a mock request with non-bool force
     async def fake_json():
@@ -1247,7 +1247,7 @@ async def test_worktree_remove_force_must_be_bool():
     request.json = fake_json
     request.content_length = 100
 
-    with patch("kiro_crew.apps.builtins.dev_fleet.server._valid_worktree_names", new_callable=AsyncMock, return_value={"test-wt"}):
+    with patch("junction.apps.builtins.dev_fleet.server._valid_worktree_names", new_callable=AsyncMock, return_value={"test-wt"}):
         resp = await api_dev_fleet_worktree_remove(request)
     assert resp.status == 400
     body = json.loads(resp.body)
@@ -1259,7 +1259,7 @@ async def test_worktree_remove_force_must_be_bool():
 async def test_sync_returns_409_when_already_running():
     import asyncio
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     # Inject a fake running sync with a live task + process
     mod._SYNC_RID = "fake123"
@@ -1289,7 +1289,7 @@ async def test_sync_returns_409_when_already_running():
 
 # --- redaction ---
 def test_redact_applied():
-    from kiro_crew.apps.builtins.dev_fleet.server import _redact
+    from junction.apps.builtins.dev_fleet.server import _redact
 
     # Should not crash on normal strings
     assert _redact("hello world") == "hello world"
@@ -1302,13 +1302,13 @@ def test_redact_applied():
 @pytest.mark.asyncio
 async def test_disk_name_derivation_from_path():
     """_disk() derives worktree name from w['path']."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._DISK.update({"status": "idle", "total_mb": None, "per": {}})
 
     fake_worktrees = [
-        {"path": "/home/user/kirocrew", "is_main": True},
-        {"path": "/home/user/kirocrew-wt-feature-x", "is_main": False},
+        {"path": "/home/user/junction", "is_main": True},
+        {"path": "/home/user/junction-wt-feature-x", "is_main": False},
     ]
 
     with patch.object(mod, "_discover_worktrees", new_callable=AsyncMock, return_value=fake_worktrees), \
@@ -1323,13 +1323,13 @@ async def test_disk_name_derivation_from_path():
                 break
 
     assert mod._DISK["status"] == "done"
-    assert "kirocrew" in mod._DISK["per"] or "kirocrew-wt-feature-x" in mod._DISK["per"]
+    assert "junction" in mod._DISK["per"] or "junction-wt-feature-x" in mod._DISK["per"]
     assert mod._DISK["total_mb"] == 200
 
 
 # --- _build_pending (server-side truth for build-pending chip) ---
 def test_build_pending_false_when_dist_older():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     original_start = mod._START_EPOCH
     # Set start epoch far in the future so dist mtime is always older
@@ -1347,7 +1347,7 @@ def test_build_pending_true_when_dist_newer():
     import tempfile
     from pathlib import Path
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     # Create a temp dir to act as dist
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -1370,7 +1370,7 @@ def test_build_pending_false_when_dist_missing():
     import tempfile
     from pathlib import Path
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     original_start = mod._START_EPOCH
     mod._START_EPOCH = 0  # very old — would be pending IF dist existed
@@ -1408,7 +1408,7 @@ async def test_fleet_build_does_not_bake_run_pointers():
     pointers; this pins that there is only one owner, so a future edit cannot
     quietly reintroduce a second, staler one.
     """
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     mod._SYNC_RID = "test-rid-abc"
     try:
@@ -1433,7 +1433,7 @@ async def test_fleet_build_does_not_bake_run_pointers():
 
 @pytest.mark.asyncio
 async def test_fleet_includes_build_pending():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_discover_worktrees", new_callable=AsyncMock, return_value=[
         {"path": "/fake/main", "head": "abc1234", "branch": "main", "is_main": True}
@@ -1491,7 +1491,7 @@ def _fake_sel_capture(events):
 @pytest.mark.asyncio
 async def test_mutation_denied_emits_sel_event(monkeypatch):
     """A rejected worktree remove emits exactly one SEL event with outcome=denied."""
-    from kiro_crew.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
+    from junction.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
 
     events: list = []
     monkeypatch.setattr(mod, "_sel", lambda: _fake_sel_capture(events)())
@@ -1511,7 +1511,7 @@ async def test_mutation_denied_emits_sel_event(monkeypatch):
     request.can_read_body = True
 
     with patch(
-        "kiro_crew.apps.builtins.dev_fleet.server._valid_worktree_names",
+        "junction.apps.builtins.dev_fleet.server._valid_worktree_names",
         new_callable=AsyncMock, return_value={"other"},
     ):
         resp = await api_dev_fleet_worktree_remove(request)
@@ -1526,7 +1526,7 @@ async def test_mutation_denied_emits_sel_event(monkeypatch):
 @pytest.mark.asyncio
 async def test_mutation_success_emits_sel_event(monkeypatch):
     """A successful pod action emits exactly one SEL event with outcome=success."""
-    from kiro_crew.apps.builtins.dev_fleet.server import api_dev_fleet_pod_down
+    from junction.apps.builtins.dev_fleet.server import api_dev_fleet_pod_down
 
     events: list = []
     monkeypatch.setattr(mod, "_sel", lambda: _fake_sel_capture(events)())
@@ -1546,10 +1546,10 @@ async def test_mutation_success_emits_sel_event(monkeypatch):
     request.can_read_body = True
 
     with patch(
-        "kiro_crew.apps.builtins.dev_fleet.server._find_worktree",
+        "junction.apps.builtins.dev_fleet.server._find_worktree",
         new_callable=AsyncMock, return_value=({"name": "feature-x"}, None),
     ), patch(
-        "kiro_crew.apps.builtins.dev_fleet.server._pod_down",
+        "junction.apps.builtins.dev_fleet.server._pod_down",
         new_callable=AsyncMock, return_value={"ok": True},
     ):
         resp = await api_dev_fleet_pod_down(request)
@@ -1563,7 +1563,7 @@ async def test_mutation_success_emits_sel_event(monkeypatch):
 @pytest.mark.asyncio
 async def test_worktree_remove_non_string_name_is_400(monkeypatch):
     """A list-valued 'name' must be a 400, not a TypeError->500 (Codex R17 #2)."""
-    from kiro_crew.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
+    from junction.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
 
     monkeypatch.setattr(mod, "_sel", lambda: _fake_sel_capture([])())
 
@@ -1591,7 +1591,7 @@ async def test_worktree_remove_non_string_name_is_400(monkeypatch):
 async def test_mutation_ok_false_audited_as_denied(monkeypatch):
     """A refused operation reported as {"ok": false} with HTTP 200 must be
     audited as denied, never success (Codex R18 #1)."""
-    from kiro_crew.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
+    from junction.apps.builtins.dev_fleet.server import api_dev_fleet_worktree_remove
 
     events: list = []
     monkeypatch.setattr(mod, "_sel", lambda: _fake_sel_capture(events)())
@@ -1611,10 +1611,10 @@ async def test_mutation_ok_false_audited_as_denied(monkeypatch):
     request.can_read_body = True
 
     with patch(
-        "kiro_crew.apps.builtins.dev_fleet.server._valid_worktree_names",
+        "junction.apps.builtins.dev_fleet.server._valid_worktree_names",
         new_callable=AsyncMock, return_value={"feature-x"},
     ), patch(
-        "kiro_crew.apps.builtins.dev_fleet.server._worktree_remove",
+        "junction.apps.builtins.dev_fleet.server._worktree_remove",
         new_callable=AsyncMock,
         return_value={"ok": False, "error": "worktree is dirty"},
     ):
@@ -1628,7 +1628,7 @@ async def test_mutation_ok_false_audited_as_denied(monkeypatch):
 @pytest.mark.asyncio
 async def test_run_record_includes_started():
     """New run records carry a 'started' timestamp for FE reattach (Codex R18 #2)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     before = time.time()
     rid = await mod._start_run("test-label", ["true"])
@@ -1648,7 +1648,7 @@ async def test_run_record_includes_started():
 def test_escalation_cleanup_skips_symlinked_app_dir(tmp_path, monkeypatch):
     """A symlinked escalated app dir must never be followed/deleted — the
     link target lives outside the apps tree (Codex R19 #2)."""
-    import kiro_crew.apps.manager as mgr
+    import junction.apps.manager as mgr
 
     apps_root = tmp_path / "apps"
     apps_root.mkdir()
@@ -1677,11 +1677,11 @@ def test_escalation_cleanup_skips_symlinked_app_dir(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_pod_guard_rejects_foreign_pinned_checkout(monkeypatch, tmp_path):
     """A pod pinned to another repository's checkout must refuse the operation."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
-    ours = tmp_path / "repo-a" / "kirocrew-wt-feature"
+    ours = tmp_path / "repo-a" / "junction-wt-feature"
     ours.mkdir(parents=True)
-    foreign = tmp_path / "repo-b" / "kirocrew-wt-feature"
+    foreign = tmp_path / "repo-b" / "junction-wt-feature"
     foreign.mkdir(parents=True)
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
@@ -1689,7 +1689,7 @@ async def test_pod_guard_rejects_foreign_pinned_checkout(monkeypatch, tmp_path):
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict",
                       return_value=(True, str(foreign))):
-        err = await mod._pod_checkout_guard("kirocrew-wt-feature")
+        err = await mod._pod_checkout_guard("junction-wt-feature")
     assert err is not None
     assert "different checkout" in err
 
@@ -1697,9 +1697,9 @@ async def test_pod_guard_rejects_foreign_pinned_checkout(monkeypatch, tmp_path):
 @pytest.mark.asyncio
 async def test_pod_guard_allows_matching_or_unpinned(monkeypatch, tmp_path):
     """Matching pin or no pin at all proceeds."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
-    ours = tmp_path / "kirocrew-wt-feature"
+    ours = tmp_path / "junction-wt-feature"
     ours.mkdir()
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
@@ -1707,7 +1707,7 @@ async def test_pod_guard_allows_matching_or_unpinned(monkeypatch, tmp_path):
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict",
                       return_value=(True, str(ours))):
-        assert await mod._pod_checkout_guard("kirocrew-wt-feature") is None
+        assert await mod._pod_checkout_guard("junction-wt-feature") is None
 
     # No pin file + no active unit -> pod never booted -> allow
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
@@ -1715,22 +1715,22 @@ async def test_pod_guard_allows_matching_or_unpinned(monkeypatch, tmp_path):
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict", return_value=(False, None)), \
          patch.object(mod.rt, "active_names", return_value=set()):
-        assert await mod._pod_checkout_guard("kirocrew-wt-feature") is None
+        assert await mod._pod_checkout_guard("junction-wt-feature") is None
 
 
 @pytest.mark.asyncio
 async def test_pod_guard_fails_closed_on_pin_read_error(monkeypatch, tmp_path):
     """Cannot read the pin state -> refuse the pod operation."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
-    ours = tmp_path / "kirocrew-wt-feature"
+    ours = tmp_path / "junction-wt-feature"
     ours.mkdir()
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": str(ours)}, None)), \
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict", side_effect=OSError("boom")):
-        err = await mod._pod_checkout_guard("kirocrew-wt-feature")
+        err = await mod._pod_checkout_guard("junction-wt-feature")
     assert err is not None
     assert "cannot verify pod checkout pin" in err
 
@@ -1739,16 +1739,16 @@ async def test_pod_guard_fails_closed_on_pin_read_error(monkeypatch, tmp_path):
 async def test_pod_guard_denies_pin_file_without_checkout(monkeypatch, tmp_path):
     """A pin file that exists but has no verifiable CHECKOUT is ambiguous
     pod identity -> deny (Codex R23 #2)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
-    ours = tmp_path / "kirocrew-wt-feature"
+    ours = tmp_path / "junction-wt-feature"
     ours.mkdir()
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": str(ours)}, None)), \
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict", return_value=(True, None)):
-        err = await mod._pod_checkout_guard("kirocrew-wt-feature")
+        err = await mod._pod_checkout_guard("junction-wt-feature")
     assert err is not None
     assert "ambiguous pod identity" in err
 
@@ -1757,7 +1757,7 @@ async def test_pod_guard_denies_pin_file_without_checkout(monkeypatch, tmp_path)
 def test_read_pin_strict_propagates_read_errors(tmp_path):
     """_read_pin_strict must raise (not return empty) when the pin file
     exists but cannot be read."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     pods = tmp_path / "pods"
     pods.mkdir()
@@ -1784,7 +1784,7 @@ def test_read_pin_strict_propagates_read_errors(tmp_path):
 
 def test_escalation_cleanup_skips_symlinked_meta_file(tmp_path, monkeypatch):
     """A symlinked installed.json must never be read (Codex R23 #1)."""
-    import kiro_crew.apps.manager as mgr
+    import junction.apps.manager as mgr
 
     apps_root = tmp_path / "apps"
     apps_root.mkdir()
@@ -1810,7 +1810,7 @@ def test_escalation_cleanup_skips_symlinked_meta_file(tmp_path, monkeypatch):
 # --- credential-free build env + pin symlink hardening (Codex R24) ---
 def test_build_env_excludes_credentials(monkeypatch):
     """Build/CLI subprocess env must be allowlisted — gateway tokens excluded."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-secret")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "aws-secret")
@@ -1829,11 +1829,11 @@ def test_build_env_excludes_credentials(monkeypatch):
     assert "AWS_SECRET_ACCESS_KEY" not in env
 
     assert env["HOME"] == "/home/u"
-    assert env["KIROCREW_POD_REPO"] == mod.MAIN_REPO
+    assert env["JUNCTION_POD_REPO"] == mod.MAIN_REPO
 
     benv = mod._build_env()
     assert "SLACK_BOT_TOKEN" not in benv
-    assert "KIROCREW_POD_REPO" not in benv
+    assert "JUNCTION_POD_REPO" not in benv
 
     # The credential-bearing tier keeps the bare pinned path — git resolves its
     # own helpers (git-remote-https, credential helpers) through PATH.
@@ -1912,7 +1912,7 @@ def test_build_env_carries_systemroot_on_windows(monkeypatch):
 
 def test_read_pin_strict_rejects_symlinked_env(tmp_path):
     """A symlinked pin file must raise, never be read (Codex R24 #2)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     pods = tmp_path / "pods"
     pods.mkdir()
@@ -1934,7 +1934,7 @@ def test_read_pin_strict_rejects_symlinked_env(tmp_path):
 
 def test_read_pin_strict_rejects_escape(tmp_path):
     """A pin path resolving outside pods_dir must raise."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     pods = tmp_path / "pods"
     pods.mkdir()
@@ -1954,7 +1954,7 @@ def test_read_pin_strict_rejects_escape(tmp_path):
 @pytest.mark.asyncio
 async def test_completed_runs_are_evicted_beyond_cap():
     """Completed run records are bounded; running entries survive (Codex R28)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     async with mod._RUNS_LOCK:
         saved = dict(mod._RUNS)
@@ -1990,17 +1990,17 @@ async def test_completed_runs_are_evicted_beyond_cap():
 @pytest.mark.asyncio
 async def test_pod_guard_denies_active_unpinned_pod(tmp_path):
     """No pin + ACTIVE unit under the name = unattributable foreign pod -> deny."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
-    ours = tmp_path / "kirocrew-wt-feature"
+    ours = tmp_path / "junction-wt-feature"
     ours.mkdir()
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": str(ours)}, None)), \
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict", return_value=(False, None)), \
-         patch.object(mod.rt, "active_names", return_value={"kirocrew-wt-feature"}):
-        err = await mod._pod_checkout_guard("kirocrew-wt-feature")
+         patch.object(mod.rt, "active_names", return_value={"junction-wt-feature"}):
+        err = await mod._pod_checkout_guard("junction-wt-feature")
     assert err is not None
     assert "unattributable" in err
 
@@ -2010,12 +2010,12 @@ async def test_pod_guard_denies_active_unpinned_pod(tmp_path):
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_read_pin_strict", return_value=(False, None)), \
          patch.object(mod.rt, "active_names", return_value=set()):
-        assert await mod._pod_checkout_guard("kirocrew-wt-feature") is None
+        assert await mod._pod_checkout_guard("junction-wt-feature") is None
 
 
 def test_escalation_cleanup_keeps_dir_when_data_present(tmp_path, monkeypatch):
     """Non-empty data/ -> whole dir kept, no partial deletion (R29 #2)."""
-    import kiro_crew.apps.manager as mgr
+    import junction.apps.manager as mgr
 
     apps_root = tmp_path / "apps"
     apps_root.mkdir()
@@ -2037,7 +2037,7 @@ def test_escalation_cleanup_keeps_dir_when_data_present(tmp_path, monkeypatch):
 
 def test_escalation_cleanup_removes_empty_builtin_via_pinned_fd(tmp_path, monkeypatch):
     """No data/ -> dir removed through the pinned descriptor (R29 #2)."""
-    import kiro_crew.apps.manager as mgr
+    import junction.apps.manager as mgr
 
     apps_root = tmp_path / "apps"
     apps_root.mkdir()
@@ -2081,7 +2081,7 @@ async def test_run_cmd_pins_git_protocols(monkeypatch):
     """Every _run_cmd spawn env carries the full git neutralizer set so an
     ext:: origin / malicious fsmonitor / hooksPath / credential.helper /
     sshCommand from agent-writable .git/config is refused by git itself."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     captured = {}
 
@@ -2096,7 +2096,7 @@ async def test_run_cmd_pins_git_protocols(monkeypatch):
 
 
 def test_build_env_pins_git_protocols():
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     env = mod._build_env()
     _assert_git_neutralizers(env)
@@ -2159,7 +2159,7 @@ async def test_start_run_readline_overrun_kills_process_tree(monkeypatch):
     """When the output stream loop raises (e.g. a single line exceeding the
     64 KiB asyncio stream limit), the still-running subprocess tree is
     killed instead of being orphaned past its run record."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     killed: list[int] = []
 
@@ -2228,7 +2228,7 @@ async def test_sync_fetch_standard_merge_strict(monkeypatch):
     "standard" while the checkout-performing ff-merge (which executes
     repo-controlled smudge filters / merge drivers) runs "strict" with
     credential dirs hidden, like the pip/npm build steps."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     captured: list[tuple[list, str]] = []
 
@@ -2261,7 +2261,7 @@ async def test_sync_fetch_standard_merge_strict(monkeypatch):
 @pytest.mark.asyncio
 async def test_removal_refuses_when_commit_races_verdict():
     """A commit pushed after merge causes OID divergence -> refuse non-forced removal."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with patch.object(mod, "_find_worktree", new_callable=AsyncMock,
                       return_value=({"path": "/x/wt-feat", "branch": "feat-x",
@@ -2288,7 +2288,7 @@ async def test_removal_refuses_when_commit_races_verdict():
 async def test_owner_repo_failure_not_cached_forever():
     """A transient owner/repo lookup failure retries after the TTL instead
     of disabling PR status until gateway restart; success is cached."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     lookups = AsyncMock(side_effect=[None, "own/repo"])
     mod._OWNER_REPO = None
@@ -2314,7 +2314,7 @@ async def test_owner_repo_failure_not_cached_forever():
 def test_escalation_cleanup_fails_closed_without_dirfd(tmp_path, monkeypatch):
     """Platforms without dir_fd primitives cannot pin validation to the
     deletion, so cleanup must be skipped entirely (fail closed)."""
-    import kiro_crew.apps.manager as mgr
+    import junction.apps.manager as mgr
 
     apps_root = tmp_path / "apps"
     apps_root.mkdir()
@@ -2338,7 +2338,7 @@ def test_escalation_cleanup_swapped_entry_survives(tmp_path, monkeypatch):
     pinned inode."""
     import os as _os
 
-    import kiro_crew.apps.manager as mgr
+    import junction.apps.manager as mgr
 
     apps_root = tmp_path / "apps"
     apps_root.mkdir()
@@ -2382,7 +2382,7 @@ def _sign_request(secret: str, method: str, path: str, body: bytes = b"") -> dic
     body_hash = hashlib.sha256(body).hexdigest()
     msg = f"{ts}:{method}:{path}:{body_hash}"
     sig = _hmac_mod.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
-    return {"X-KiroCrew-Proxy": f"{ts}:{sig}"}
+    return {"X-Junction-Proxy": f"{ts}:{sig}"}
 
 
 def test_is_pr_merged():
@@ -2488,9 +2488,9 @@ async def test_discover_worktrees_sandbox_error_keeps_remedy():
         "available on this host, and the agent subprocess cannot be safely "
         "isolated. Probe detail: sandbox-exec probe failed (exit 71). This "
         "host's sandbox is NOT broken: the kernel reports this process is "
-        "already inside a macOS Seatbelt sandbox that KiroCrew did not create. "
+        "already inside a macOS Seatbelt sandbox that Junction did not create. "
         'Set {"sandbox": false} in ~/.kiro/settings/amazon-internal.json so '
-        "KiroCrew's own profile owns isolation, then restart the gateway."
+        "Junction's own profile owns isolation, then restart the gateway."
     )
     assert len(stderr) > 200, "fixture must exceed the old cap to be meaningful"
     with patch.object(mod, "_run_cmd", new=AsyncMock(return_value=(-1, "", stderr))):
@@ -2518,8 +2518,8 @@ async def test_discover_worktrees_missing_repo_raises_actionable_error(tmp_path)
 
     This used to return a silent [] — which the UI renders as the
     "No worktrees found" empty state. On packaged installs (where
-    KIROCREW_PROJECT_DIR points at the app bundle and discovery falls through
-    to the hardcoded ~/kirocrew) that empty state told users they had no
+    JUNCTION_PROJECT_DIR points at the app bundle and discovery falls through
+    to the hardcoded ~/junction) that empty state told users they had no
     worktrees when the app was simply looking at a path that does not exist.
     """
     missing = tmp_path / "does-not-exist"
@@ -2531,7 +2531,7 @@ async def test_discover_worktrees_missing_repo_raises_actionable_error(tmp_path)
             await mod._discover_worktrees()
     msg = str(exc.value)
     assert str(missing) in msg  # names the path it tried
-    assert "KIROCREW_DEVFLEET_REPO" in msg  # names the remedy
+    assert "JUNCTION_DEVFLEET_REPO" in msg  # names the remedy
 
 
 @pytest.mark.asyncio
@@ -2569,7 +2569,7 @@ async def test_discover_worktrees_unresolved_git_blames_host_not_repo(tmp_path):
     Issue #2530: this failure used to surface as "git worktree discovery
     failed in <repo>: no trusted executable for 'git' in <PATH>" — blaming a
     healthy checkout, echoing the whole trusted PATH into the UI, and never
-    naming KIROCREW_DEVFLEET_BIN_GIT, the override that is the actual remedy.
+    naming JUNCTION_DEVFLEET_BIN_GIT, the override that is the actual remedy.
     """
     repo = tmp_path / "repo"
     (repo / ".git").mkdir(parents=True)
@@ -2582,7 +2582,7 @@ async def test_discover_worktrees_unresolved_git_blames_host_not_repo(tmp_path):
             await mod._discover_worktrees()
     msg = str(exc.value)
     assert "'git'" in msg  # names the tool that could not be resolved
-    assert "KIROCREW_DEVFLEET_BIN_GIT" in msg  # names the remedy
+    assert "JUNCTION_DEVFLEET_BIN_GIT" in msg  # names the remedy
     assert mod._TRUSTED_PATH not in msg  # PATH stays in the log, not the UI
     assert "worktree discovery failed" not in msg  # not blamed on the repo
     assert str(repo) not in msg  # the checkout is not implicated at all
@@ -2617,16 +2617,16 @@ async def test_sync_unresolved_git_names_override_not_path(monkeypatch):
         res = await mod._sync()
     assert res["ok"] is False
     assert "'git'" in res["error"]
-    assert "KIROCREW_DEVFLEET_BIN_GIT" in res["error"]
+    assert "JUNCTION_DEVFLEET_BIN_GIT" in res["error"]
     assert mod._TRUSTED_PATH not in res["error"]
 
 
 def test_bin_override_var_derivation():
     """The advertised override var matches what _trusted_bin actually reads,
     including dash-to-underscore mapping for non-git tools."""
-    assert mod._bin_override_var("git") == "KIROCREW_DEVFLEET_BIN_GIT"
-    assert mod._bin_override_var("some-tool") == "KIROCREW_DEVFLEET_BIN_SOME_TOOL"
-    assert "KIROCREW_DEVFLEET_BIN_GIT" in mod._unresolved_tool_message("git")
+    assert mod._bin_override_var("git") == "JUNCTION_DEVFLEET_BIN_GIT"
+    assert mod._bin_override_var("some-tool") == "JUNCTION_DEVFLEET_BIN_SOME_TOOL"
+    assert "JUNCTION_DEVFLEET_BIN_GIT" in mod._unresolved_tool_message("git")
 
 
 # =============================================================================
@@ -2662,7 +2662,7 @@ async def test_hmac_invalid_signature_returns_401():
     with patch.object(mod, "_load_app_secret", return_value="secret"):
         async with TestClient(TestServer(app)) as client:
             ts = str(int(time.time()))
-            headers = {"X-KiroCrew-Proxy": f"{ts}:badbadbadbad"}
+            headers = {"X-Junction-Proxy": f"{ts}:badbadbadbad"}
             resp = await client.get("/api/fleet", headers=headers)
             assert resp.status == 401
             body = await resp.json()
@@ -2679,7 +2679,7 @@ async def test_hmac_expired_timestamp_returns_401():
             body_hash = hashlib.sha256(b"").hexdigest()
             msg = f"{old_ts}:GET:/api/fleet:{body_hash}"
             sig = _hmac_mod.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
-            headers = {"X-KiroCrew-Proxy": f"{old_ts}:{sig}"}
+            headers = {"X-Junction-Proxy": f"{old_ts}:{sig}"}
             resp = await client.get("/api/fleet", headers=headers)
             assert resp.status == 401
             body = await resp.json()
@@ -2790,9 +2790,9 @@ async def test_fleet_handler_missing_repo_returns_error_payload():
     empty fleet."""
     async def boom():
         raise RuntimeError(
-            "main checkout not found: /nope/kirocrew is missing or not a git "
-            "checkout. Set KIROCREW_DEVFLEET_REPO to your Kiro Crew checkout, "
-            "or clone it to ~/kirocrew."
+            "main checkout not found: /nope/junction is missing or not a git "
+            "checkout. Set JUNCTION_DEVFLEET_REPO to your Junction checkout, "
+            "or clone it to ~/junction."
         )
 
     with patch.object(mod, "_fleet_refresh", new=boom), \
@@ -2805,7 +2805,7 @@ async def test_fleet_handler_missing_repo_returns_error_payload():
             body = await resp.json()
             assert body["worktrees"] == []
             assert "main checkout not found" in body["error"]
-            assert "KIROCREW_DEVFLEET_REPO" in body["error"]
+            assert "JUNCTION_DEVFLEET_REPO" in body["error"]
 
 
 # =============================================================================
@@ -2814,20 +2814,20 @@ async def test_fleet_handler_missing_repo_returns_error_payload():
 
 
 def _make_checkout(root: Path) -> Path:
-    """Create a directory carrying every Kiro Crew checkout marker."""
+    """Create a directory carrying every Junction checkout marker."""
     (root / ".git").mkdir(parents=True)
-    (root / "src" / "kiro_crew").mkdir(parents=True)
+    (root / "src" / "junction").mkdir(parents=True)
     (root / "pyproject.toml").write_text("[project]\nname = 'kiro-crew'\n")
     return root
 
 
-def test_is_kirocrew_checkout_requires_every_marker(tmp_path):
+def test_is_junction_checkout_requires_every_marker(tmp_path):
     """A bare git repo is refused: adopting it would run Pull+Build inside it."""
     bare = tmp_path / "some-other-repo"
     (bare / ".git").mkdir(parents=True)
-    assert mod._is_kirocrew_checkout(str(bare)) is False
-    assert mod._is_kirocrew_checkout(str(_make_checkout(tmp_path / "kirocrew"))) is True
-    assert mod._is_kirocrew_checkout("") is False
+    assert mod._is_junction_checkout(str(bare)) is False
+    assert mod._is_junction_checkout(str(_make_checkout(tmp_path / "junction"))) is True
+    assert mod._is_junction_checkout("") is False
 
 
 def test_default_main_repo_returns_empty_when_nothing_is_found(monkeypatch):
@@ -2836,35 +2836,35 @@ def test_default_main_repo_returns_empty_when_nothing_is_found(monkeypatch):
     A synthesized default makes a first run report a missing checkout the user
     never chose, which reads as a broken app rather than an open question.
     """
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_own_source_checkout", return_value=None):
         assert mod._default_main_repo() == ""
 
 
-def test_default_main_repo_skips_a_project_dir_that_is_not_kirocrew(monkeypatch, tmp_path):
+def test_default_main_repo_skips_a_project_dir_that_is_not_junction(monkeypatch, tmp_path):
     """A project directory that is some other git repo is not adopted."""
     other = tmp_path / "other"
     (other / ".git").mkdir(parents=True)
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(other))
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(other))
     with patch.object(mod, "_own_source_checkout", return_value=None):
         assert mod._default_main_repo() == ""
 
 
 def test_default_main_repo_falls_back_to_the_running_checkout(monkeypatch, tmp_path):
     """A gateway running from source manages that source tree, unconfigured."""
-    own = _make_checkout(tmp_path / "kirocrew")
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    own = _make_checkout(tmp_path / "junction")
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_own_source_checkout", return_value=str(own)):
         assert mod._default_main_repo() == str(own)
 
 
 def test_discover_main_repo_honors_the_config_repo_path(monkeypatch):
     """``dev_fleet.repo_path`` is a supported alternative to the env var."""
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/opt/kc"}):
         assert mod._discover_main_repo() == "/opt/kc"
 
@@ -2872,17 +2872,17 @@ def test_discover_main_repo_honors_the_config_repo_path(monkeypatch):
 def test_discover_main_repo_takes_an_explicit_path_verbatim(monkeypatch):
     """A configured path is NOT marker-tested: a typo must surface as an error
     naming that path, not be silently swapped for a discovered checkout."""
-    monkeypatch.setenv("KIROCREW_DEVFLEET_REPO", "/typo/kirocrew")
+    monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/typo/junction")
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/opt/kc"}):
-        assert mod._discover_main_repo() == "/typo/kirocrew"
+        assert mod._discover_main_repo() == "/typo/junction"
 
 
 def test_discover_main_repo_finds_a_conventional_clone_location(monkeypatch, tmp_path):
     """A real checkout in a conventional location is found without configuration."""
     home = tmp_path / "home"
-    checkout = _make_checkout(home / "Repos" / "KiroCrew")  # brand-ok: clone dir name
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    checkout = _make_checkout(home / "Repos" / "Junction")  # brand-ok: clone dir name
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={}), \
          patch.object(mod, "_own_source_checkout", return_value=None), \
          patch.object(mod.Path, "home", staticmethod(lambda: home)):
@@ -2893,9 +2893,9 @@ def test_discover_main_repo_uses_the_filesystem_spelling(monkeypatch, tmp_path):
     """The returned path is spelled the way the directory is, not the way the
     probe list guesses — a case-variant does not match what git reports."""
     home = tmp_path / "home"
-    checkout = _make_checkout(home / "repos" / "KIROCREW")
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    checkout = _make_checkout(home / "repos" / "JUNCTION")
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={}), \
          patch.object(mod, "_own_source_checkout", return_value=None), \
          patch.object(mod.Path, "home", staticmethod(lambda: home)):
@@ -2903,11 +2903,11 @@ def test_discover_main_repo_uses_the_filesystem_spelling(monkeypatch, tmp_path):
 
 
 def test_discover_main_repo_ignores_an_unmarked_conventional_location(monkeypatch, tmp_path):
-    """An empty ~/kirocrew directory does not count as a checkout."""
+    """An empty ~/junction directory does not count as a checkout."""
     home = tmp_path / "home"
-    (home / "kirocrew").mkdir(parents=True)
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    (home / "junction").mkdir(parents=True)
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={}), \
          patch.object(mod, "_own_source_checkout", return_value=None), \
          patch.object(mod.Path, "home", staticmethod(lambda: home)):
@@ -2947,7 +2947,7 @@ async def test_fleet_handler_reports_needs_setup_without_an_error():
     ``needs_setup`` and NO ``error``, so the page asks where the checkout is
     instead of rendering a red banner against a path the user never chose."""
     async def unconfigured():
-        raise mod.RepoNotConfigured("no Kiro Crew checkout found to manage")
+        raise mod.RepoNotConfigured("no Junction checkout found to manage")
 
     with patch.object(mod, "_fleet_refresh", new=unconfigured), \
          patch.object(mod, "_fleet_cached", new=unconfigured):
@@ -2961,14 +2961,14 @@ async def test_fleet_handler_reports_needs_setup_without_an_error():
 
 
 @pytest.mark.asyncio
-async def test_discover_worktrees_refuses_a_configured_non_kirocrew_repo():
+async def test_discover_worktrees_refuses_a_configured_non_junction_repo():
     """A configured path that is a readable git repo but NOT this project is
     refused by name, never operated on. Tiers 1-2 skip the marker test at
     DISCOVERY so a typo is not silently replaced by a found checkout — that must
     not also mean the wrong tree gets `worktree remove` run inside it."""
     run = AsyncMock(return_value=(0, "worktree /some/other/repo\n", ""))
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: /some/other/repo ..."), \
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: /some/other/repo ..."), \
          patch.object(mod, "_run_cmd", new=run):
         with pytest.raises(mod.RepoUnreadable) as exc:
             await mod._discover_worktrees()
@@ -2976,11 +2976,11 @@ async def test_discover_worktrees_refuses_a_configured_non_kirocrew_repo():
     # happily, so the guard cannot rely on a non-zero exit.
     run.assert_not_awaited()
     assert "/some/other/repo" in str(exc.value)
-    assert "not a Kiro Crew checkout" in str(exc.value)
+    assert "not a Junction checkout" in str(exc.value)
 
 
 @pytest.mark.asyncio
-async def test_auto_prune_reaper_idles_for_a_configured_non_kirocrew_repo():
+async def test_auto_prune_reaper_idles_for_a_configured_non_junction_repo():
     """An enabled reaper must not run a cycle against an unusable checkout.
 
     MAIN_REPO is TRUTHY for a configured path that fails the marker test, so a
@@ -2992,7 +2992,7 @@ async def test_auto_prune_reaper_idles_for_a_configured_non_kirocrew_repo():
     prune = AsyncMock()
     sel = MagicMock()
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: ..."), \
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: ..."), \
          patch.object(mod, "_auto_prune_cfg", return_value=(True, 0.01)), \
          patch.object(mod, "_auto_prune_once", new=prune), \
          patch.object(mod, "_sel", return_value=sel), \
@@ -3005,22 +3005,22 @@ async def test_auto_prune_reaper_idles_for_a_configured_non_kirocrew_repo():
 
 
 @pytest.mark.asyncio
-async def test_sync_refuses_a_configured_non_kirocrew_repo():
+async def test_sync_refuses_a_configured_non_junction_repo():
     """The gate lives in the accessor, not the discovery funnel: sync and the
     refresher never pass through _discover_worktrees, and `pull --ff-only` plus
     `pip install -e` inside an unrelated repository is the worst outcome here."""
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: /some/other/repo ..."):
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: /some/other/repo ..."):
         res = await mod._sync_start_locked()
     assert res["ok"] is False
-    assert "not a Kiro Crew checkout" in res["error"]
+    assert "not a Junction checkout" in res["error"]
 
 
 @pytest.mark.asyncio
-async def test_status_refresher_idles_for_a_configured_non_kirocrew_repo():
+async def test_status_refresher_idles_for_a_configured_non_junction_repo():
     run = AsyncMock(return_value=(0, "", ""))
     with patch.object(mod, "MAIN_REPO", "/some/other/repo"), \
-         patch.object(mod, "_REPO_INVALID_MSG", "not a Kiro Crew checkout: /some/other/repo ..."), \
+         patch.object(mod, "_REPO_INVALID_MSG", "not a Junction checkout: /some/other/repo ..."), \
          patch.object(mod, "_run_cmd", new=run):
         await mod._status_refresher()
     # Returned without fetching: no git ran against the unrelated repository.
@@ -3044,10 +3044,10 @@ def test_repo_accessor_gates_both_unusable_states():
 
 @pytest.mark.asyncio
 async def test_discover_worktrees_proceeds_for_a_validated_checkout():
-    with patch.object(mod, "MAIN_REPO", "/good/kirocrew"), \
+    with patch.object(mod, "MAIN_REPO", "/good/junction"), \
          patch.object(mod, "_REPO_INVALID_MSG", None), \
          patch.object(mod, "_run_cmd", new=AsyncMock(
-             return_value=(0, "worktree /good/kirocrew\nbranch refs/heads/main\n", "")
+             return_value=(0, "worktree /good/junction\nbranch refs/heads/main\n", "")
          )):
         entries = await mod._discover_worktrees()
     assert entries and entries[0]["is_main"] is True
@@ -3058,7 +3058,7 @@ async def test_sync_refuses_without_a_repo():
     with patch.object(mod, "MAIN_REPO", ""):
         res = await mod._sync_start_locked()
     assert res["ok"] is False
-    assert "no Kiro Crew checkout" in res["error"]
+    assert "no Junction checkout" in res["error"]
 
 
 @pytest.mark.asyncio
@@ -3070,7 +3070,7 @@ async def test_unconfigured_repo_answers_a_coded_409_not_a_500():
     secret = "s" * 32
 
     async def boom(request):
-        raise mod.RepoNotConfigured("no Kiro Crew checkout found to manage")
+        raise mod.RepoNotConfigured("no Junction checkout found to manage")
 
     app = web.Application(middlewares=[mod.hmac_proxy_middleware])
     app.router.add_get("/api/prune-candidates", boom)
@@ -3125,13 +3125,13 @@ async def test_fleet_handler_still_reports_an_unreadable_repo_as_an_error():
 
 
 def test_repo_source_hint_names_the_env_var(monkeypatch):
-    monkeypatch.setenv("KIROCREW_DEVFLEET_REPO", "/typo/kirocrew")
-    assert "KIROCREW_DEVFLEET_REPO" in mod._repo_source_hint()
+    monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/typo/junction")
+    assert "JUNCTION_DEVFLEET_REPO" in mod._repo_source_hint()
     assert "config.json" not in mod._repo_source_hint()
 
 
 def test_repo_source_hint_names_the_config_key(monkeypatch):
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/typo/kc"}):
         hint = mod._repo_source_hint()
     assert "config.json" in hint
@@ -3139,10 +3139,10 @@ def test_repo_source_hint_names_the_config_key(monkeypatch):
 
 
 def test_repo_source_hint_offers_both_when_neither_is_set(monkeypatch):
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO", raising=False)
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={}):
         hint = mod._repo_source_hint()
-    assert "KIROCREW_DEVFLEET_REPO" in hint and "config.json" in hint
+    assert "JUNCTION_DEVFLEET_REPO" in hint and "config.json" in hint
 
 
 # =============================================================================
@@ -3205,36 +3205,36 @@ def test_create_app_returns_aiohttp_application():
 # ---- platform fixes discovered during pod QA of the builtin re-shell ----
 
 
-def test_backend_spawn_env_includes_kirocrew_home(monkeypatch):
+def test_backend_spawn_env_includes_junction_home(monkeypatch):
     """The app backend must resolve the SAME config home as the gateway:
-    minimal_env() strips KIROCREW_HOME, so spawn must re-inject it or the
+    minimal_env() strips JUNCTION_HOME, so spawn must re-inject it or the
     backend reads the wrong .app_secret and every proxied call 401s."""
-    import kiro_crew.apps.registry as registry
+    import junction.apps.registry as registry
 
-    monkeypatch.setenv("KIROCREW_HOME", "/tmp/some-pod-home")
-    env = registry.minimal_env(KIROCREW_HOME="/tmp/some-pod-home")
-    assert env["KIROCREW_HOME"] == "/tmp/some-pod-home"
+    monkeypatch.setenv("JUNCTION_HOME", "/tmp/some-pod-home")
+    env = registry.minimal_env(JUNCTION_HOME="/tmp/some-pod-home")
+    assert env["JUNCTION_HOME"] == "/tmp/some-pod-home"
     # And the bare strip behavior that motivated the fix:
-    assert "KIROCREW_HOME" not in registry.minimal_env()
+    assert "JUNCTION_HOME" not in registry.minimal_env()
 
 
 def test_backend_spawn_env_passes_project_dir(monkeypatch):
-    """KIROCREW_PROJECT_DIR is a platform var like KIROCREW_HOME — backends
+    """JUNCTION_PROJECT_DIR is a platform var like JUNCTION_HOME — backends
     (e.g. dev-fleet worktree discovery) need the gateway's source checkout."""
     import inspect
 
-    import kiro_crew.apps.backend as backend_mod
+    import junction.apps.backend as backend_mod
 
     src = inspect.getsource(backend_mod)
-    assert 'KIROCREW_HOME=str(config_dir())' in src
-    assert '"KIROCREW_PROJECT_DIR"' in src
+    assert 'JUNCTION_HOME=str(config_dir())' in src
+    assert '"JUNCTION_PROJECT_DIR"' in src
 
 
 def test_app_secret_loader_does_not_cache_empty(monkeypatch, tmp_path):
     """A missing secret must NOT be cached: it may be provisioned after the
     backend starts (install race). Empty-cache would 401 forever."""
     monkeypatch.setattr(mod, "_APP_SECRET", None)
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     assert mod._load_app_secret() == ""
     assert mod._APP_SECRET is None  # emptiness NOT latched
     sdir = tmp_path / "apps" / mod.APP_NAME
@@ -3412,22 +3412,22 @@ def _reset_shutdown_admission_state():
 
 def _mk_make_live_wt(tmp_path, *, venv: bool = False, dist: bool = False,
                      venv_exec: bool = True):
-    """Build a fake worktree dir with optional .venv/bin/kirocrew and built dist.
+    """Build a fake worktree dir with optional .venv/bin/junction and built dist.
 
-    When ``venv`` is set the fake ``.venv/bin/kirocrew`` is created **executable**
+    When ``venv`` is set the fake ``.venv/bin/junction`` is created **executable**
     (``venv_exec=True``, the realistic provisioned state that passes the make-live
     exec-bit gate); pass ``venv_exec=False`` to simulate a present-but-non-executable
     binary (the ``venv_not_executable`` case)."""
-    wt = tmp_path / "kirocrew-wt-feat"
+    wt = tmp_path / "junction-wt-feat"
     wt.mkdir(parents=True, exist_ok=True)
     if venv:
         vb = wt / ".venv" / "bin"
         vb.mkdir(parents=True, exist_ok=True)
-        kcbin = vb / "kirocrew"
+        kcbin = vb / "junction"
         kcbin.write_text("#!/bin/sh\n")
         kcbin.chmod(0o755 if venv_exec else 0o644)
     if dist:
-        dd = wt / "src" / "kiro_crew" / "static" / "dist"
+        dd = wt / "src" / "junction" / "static" / "dist"
         dd.mkdir(parents=True, exist_ok=True)
         (dd / "index.html").write_text("<html></html>")
     return wt
@@ -3537,7 +3537,7 @@ async def test_make_live_dry_run_plan(monkeypatch, tmp_path):
     plan = res["plan"]
     assert plan["mechanism"] == "live-target pointer"
     assert plan["pointer_path"] == str(ptr_dir / "live_target.json")
-    assert plan["exec"] == str(wt / ".venv" / "bin" / "kirocrew")
+    assert plan["exec"] == str(wt / ".venv" / "bin" / "junction")
     assert plan["restart"] == "automatic"
     assert plan["target"] == str(wt)
     # dry-run writes nothing: pointer file absent, no commands issued.
@@ -3574,7 +3574,7 @@ async def test_make_live_already_live(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_make_live_missing_venv(monkeypatch, tmp_path):
-    """No .venv/bin/kirocrew -> actionable Provision error."""
+    """No .venv/bin/junction -> actionable Provision error."""
     wt = _mk_make_live_wt(tmp_path, venv=False, dist=True)
     _stub_make_live(monkeypatch, wt)
     res = await mod._make_live(str(wt), dry_run=True)
@@ -3585,7 +3585,7 @@ async def test_make_live_missing_venv(monkeypatch, tmp_path):
 @pytest.mark.asyncio
 @_POSIX_ONLY
 async def test_make_live_venv_not_executable(monkeypatch, tmp_path):
-    """.venv/bin/kirocrew present but NOT executable -> a distinct, actionable
+    """.venv/bin/junction present but NOT executable -> a distinct, actionable
     error (missing_venv is for the not-a-file case). A non-executable binary
     would stop the live gateway but never start the replacement, so this MUST
     be refused before any cutover."""
@@ -3764,7 +3764,7 @@ async def test_live_worktree_path_reads_working_directory_with_spaces(monkeypatc
     """_live_worktree_path resolves via `systemctl show --property=
     WorkingDirectory --value`, which (unlike the ExecStart path= regex) is NOT
     truncated at spaces — so a checkout path containing a space resolves whole."""
-    spacey = "/home/u/my worktrees/kirocrew-wt-feat"
+    spacey = "/home/u/my worktrees/junction-wt-feat"
 
     async def fake_run_cmd(cmd, **kw):
         assert "--property=WorkingDirectory" in cmd and "--value" in cmd
@@ -3784,9 +3784,9 @@ async def test_live_worktree_path_reads_working_directory_with_spaces(monkeypatc
 @pytest.mark.asyncio
 async def test_live_worktree_path_falls_back_to_execstart(monkeypatch, tmp_path):
     """When WorkingDirectory is empty, fall back to parsing ExecStart's path=."""
-    checkout = tmp_path / "kirocrew-wt-feat"
+    checkout = tmp_path / "junction-wt-feat"
     (checkout / ".venv" / "bin").mkdir(parents=True)
-    exe = checkout / ".venv" / "bin" / "kirocrew"
+    exe = checkout / ".venv" / "bin" / "junction"
 
     async def fake_run_cmd(cmd, **kw):
         if "--property=WorkingDirectory" in cmd:
@@ -3812,14 +3812,14 @@ async def test_make_live_already_live_space_path(monkeypatch, tmp_path):
     contain spaces — the regression the WorkingDirectory switch fixes: the old
     ExecStart path= regex truncated at the space, never matched, and would let
     the same worktree be pointlessly re-cut over and over."""
-    wt = tmp_path / "my worktrees" / "kirocrew-wt-feat"
+    wt = tmp_path / "my worktrees" / "junction-wt-feat"
     wt.mkdir(parents=True)
     vb = wt / ".venv" / "bin"
     vb.mkdir(parents=True)
-    kc = vb / "kirocrew"
+    kc = vb / "junction"
     kc.write_text("#!/bin/sh\n")
     kc.chmod(0o755)
-    dd = wt / "src" / "kiro_crew" / "static" / "dist"
+    dd = wt / "src" / "junction" / "static" / "dist"
     dd.mkdir(parents=True)
     (dd / "index.html").write_text("<html></html>")
     _stub_make_live(monkeypatch, wt, live=str(wt.resolve()))
@@ -3842,9 +3842,9 @@ def test_in_pod_tristate(monkeypatch, tmp_path):
     """_in_pod is tri-state: True inside a pod home, False outside, and None
     when the config home cannot be resolved (fail-closed at the source — the
     previous fail-OPEN False would have let a pod cut the live gateway)."""
-    import kiro_crew.config.loader as cfg_loader
+    import junction.config.loader as cfg_loader
 
-    pod_home = tmp_path / ".kirocrew-pods" / "kirocrew-wt-x"
+    pod_home = tmp_path / ".kirocrew-pods" / "junction-wt-x"
     pod_home.mkdir(parents=True)
     monkeypatch.setattr(cfg_loader, "config_dir", lambda: pod_home)
     assert mod._in_pod() is True
@@ -3951,7 +3951,7 @@ async def test_live_user_unit_status_darwin_agent_not_indirected(monkeypatch, tm
     )
     monkeypatch.setattr(mod, "_run_cmd", AsyncMock(return_value=(0, "  pid = 7\n", "")))
     plist = tmp_path / "agent.plist"
-    plist.write_text("<string>/usr/local/bin/kirocrew</string>")
+    plist.write_text("<string>/usr/local/bin/junction</string>")
     monkeypatch.setattr(
         mod.gateway_service.LaunchdBackend, "plist_path", staticmethod(lambda: plist)
     )
@@ -3967,7 +3967,7 @@ async def test_live_user_unit_status_darwin_ok(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(mod, "_run_cmd", AsyncMock(return_value=(0, "  pid = 7\n", "")))
     link = tmp_path / "live-gateway"
-    link.write_text("#!/bin/sh\nexec '/usr/local/bin/kirocrew' \"$@\"\n")
+    link.write_text("#!/bin/sh\nexec '/usr/local/bin/junction' \"$@\"\n")
     plist = tmp_path / "agent.plist"
     plist.write_text(f"<string>{link}</string>")
     monkeypatch.setattr(
@@ -4038,7 +4038,7 @@ async def test_live_user_unit_status_ok_and_missing(monkeypatch):
     assert await mod._live_user_unit_status() == "ok"
 
     async def cat_missing(cmd, **kw):
-        return (1, "", "No files found for kirocrew-gateway.service.")
+        return (1, "", "No files found for junction-gateway.service.")
 
     monkeypatch.setattr(mod, "_run_cmd", cat_missing)
     assert await mod._live_user_unit_status() == "no_user_unit"
@@ -4068,13 +4068,13 @@ def test_sd_value_rejects_control_char_paths():
 async def test_make_live_escapes_special_char_worktree(monkeypatch, tmp_path):
     """A worktree path with a space yields a valid plan and a real cutover
     writes the resolved path into the pointer file correctly."""
-    name = 'kirocrew-wt feat'
+    name = 'junction-wt feat'
     wt = tmp_path / name
     (wt / ".venv" / "bin").mkdir(parents=True)
-    _kc = wt / ".venv" / "bin" / "kirocrew"
+    _kc = wt / ".venv" / "bin" / "junction"
     _kc.write_text("#!/bin/sh\n")
     _kc.chmod(0o755)
-    dd = wt / "src" / "kiro_crew" / "static" / "dist"
+    dd = wt / "src" / "junction" / "static" / "dist"
     dd.mkdir(parents=True)
     (dd / "index.html").write_text("<html></html>")
     ptr_dir = tmp_path / "ptr"
@@ -4089,7 +4089,7 @@ async def test_make_live_escapes_special_char_worktree(monkeypatch, tmp_path):
     assert res["ok"] is True
     plan = res["plan"]
     assert plan["mechanism"] == "live-target pointer"
-    assert plan["exec"] == str(wt / ".venv" / "bin" / "kirocrew")
+    assert plan["exec"] == str(wt / ".venv" / "bin" / "junction")
     # Real cutover writes the pointer with the resolved (space-containing) path.
     monkeypatch.setattr(mod, "_MAKE_LIVE_COMMITTED", False, raising=False)
     res2 = await mod._make_live(str(wt), dry_run=False)
@@ -4492,12 +4492,12 @@ async def test_live_worktree_path_prefers_pointer_over_service(monkeypatch, tmp_
     service definition ONCE THE GATEWAY IS RUNNING IT. A cutover writes the
     pointer without touching the definition, so the definition would report the
     stale install checkout."""
-    target_wt = tmp_path / "kirocrew-wt-new"
+    target_wt = tmp_path / "junction-wt-new"
     target_wt.mkdir(parents=True)
     (target_wt / ".venv" / "bin").mkdir(parents=True)
-    (target_wt / ".venv" / "bin" / "kirocrew").write_text("#!/bin/sh\n")
-    (target_wt / ".venv" / "bin" / "kirocrew").chmod(0o755)
-    (target_wt / "src" / "kiro_crew").mkdir(parents=True)
+    (target_wt / ".venv" / "bin" / "junction").write_text("#!/bin/sh\n")
+    (target_wt / ".venv" / "bin" / "junction").chmod(0o755)
+    (target_wt / "src" / "junction").mkdir(parents=True)
 
     # Write a real pointer file that points at target_wt.
     ptr_dir = tmp_path / "ptr"
@@ -4533,12 +4533,12 @@ async def test_live_worktree_path_reports_running_image_while_staged(monkeypatch
     """A staged pointer is NOT live: until the gateway restarts it is still
     executing the previous checkout, and reporting the pointer as live would
     tell the operator a cutover landed while old code serves real data."""
-    target_wt = tmp_path / "kirocrew-wt-new"
+    target_wt = tmp_path / "junction-wt-new"
     (target_wt / ".venv" / "bin").mkdir(parents=True)
-    (target_wt / ".venv" / "bin" / "kirocrew").write_text("#!/bin/sh\n")
-    (target_wt / ".venv" / "bin" / "kirocrew").chmod(0o755)
-    (target_wt / "src" / "kiro_crew").mkdir(parents=True)
-    running_wt = tmp_path / "kirocrew-running"
+    (target_wt / ".venv" / "bin" / "junction").write_text("#!/bin/sh\n")
+    (target_wt / ".venv" / "bin" / "junction").chmod(0o755)
+    (target_wt / "src" / "junction").mkdir(parents=True)
+    running_wt = tmp_path / "junction-running"
     running_wt.mkdir(parents=True)
 
     ptr_file = tmp_path / "ptr" / "live_target.json"
@@ -4563,11 +4563,11 @@ async def test_live_worktree_path_honours_pointer_when_checkout_unknown(monkeypa
     """A packaged install is not a checkout, so the running image cannot be
     compared. That is "cannot verify", not a mismatch: the pointer stays
     authoritative rather than the resolution collapsing to None."""
-    target_wt = tmp_path / "kirocrew-wt-new"
+    target_wt = tmp_path / "junction-wt-new"
     (target_wt / ".venv" / "bin").mkdir(parents=True)
-    (target_wt / ".venv" / "bin" / "kirocrew").write_text("#!/bin/sh\n")
-    (target_wt / ".venv" / "bin" / "kirocrew").chmod(0o755)
-    (target_wt / "src" / "kiro_crew").mkdir(parents=True)
+    (target_wt / ".venv" / "bin" / "junction").write_text("#!/bin/sh\n")
+    (target_wt / ".venv" / "bin" / "junction").chmod(0o755)
+    (target_wt / "src" / "junction").mkdir(parents=True)
 
     ptr_file = tmp_path / "ptr" / "live_target.json"
     ptr_file.parent.mkdir(parents=True)
@@ -4916,7 +4916,7 @@ async def test_cancel_invalid_target_is_a_refusal_not_a_crash(monkeypatch, tmp_p
     running, other, ptr = _stage_a_cutover(monkeypatch, tmp_path)
 
     def explode(_checkout):
-        raise mod.live_target.InvalidTarget("no src/kiro_crew in target")
+        raise mod.live_target.InvalidTarget("no src/junction in target")
 
     monkeypatch.setattr(mod.live_target, "write_target", explode)
 
@@ -5000,7 +5000,7 @@ async def test_loaded_but_inactive_user_unit_is_not_drivable(monkeypatch):
     assert "(user_unit_inactive)" not in reason
     # And it composes into the staged notice, which leads with the remedy.
     notice = mod._staged_notice("main", "user_unit_inactive")
-    assert notice.index("kirocrew restart") < notice.index("not running")
+    assert notice.index("junction restart") < notice.index("not running")
 
 
 @pytest.mark.asyncio
@@ -5020,7 +5020,7 @@ def test_running_checkout_resolves_this_checkout():
     which is what makes it authoritative where a service definition is not."""
     got = mod._running_checkout()
     assert got is not None
-    assert (got / "src" / "kiro_crew").is_dir()
+    assert (got / "src" / "junction").is_dir()
 
 
 @pytest.mark.asyncio
@@ -5323,7 +5323,7 @@ async def test_sync_stages_dist_on_a_stock_checkout(monkeypatch):
     """The staging step is part of the sync on a stock checkout.
 
     `npm run build` writes website/dist while the dashboard serves
-    src/kiro_crew/static/dist; without this step Pull+Build reports success and
+    src/junction/static/dist; without this step Pull+Build reports success and
     the gateway keeps serving the previous bundle.
     """
     monkeypatch.setattr(mod.frontend, "edition_configured", lambda: False)
@@ -5354,7 +5354,7 @@ async def test_sync_never_stages_dist_on_an_edition_checkout(monkeypatch):
     """An edition checkout must NOT have its dashboard rebuilt or staged over.
 
     The sync build runs under _build_env(), whose allowlist drops
-    KIROCREW_EDITION_DIR / KIROCREW_ALLOW_EDITION, so on an edition composition
+    JUNCTION_EDITION_DIR / JUNCTION_ALLOW_EDITION, so on an edition composition
     root `npm run build` compiles the STOCK SPA. Staging that would silently
     replace the edition dashboard with upstream's; leaving the shipped bundle in
     place is what frontend's own edition guards already do.
@@ -5505,7 +5505,7 @@ async def test_upstream_remote_rejects_option_injection(monkeypatch):
     async def fake_run(cmd, **kw):
         if "config" in cmd:
             return 0, "--exec=touch /tmp/pwned #", ""
-        return 0, "origin\nkirocrew\n", ""
+        return 0, "origin\njunction\n", ""
 
     monkeypatch.setattr(mod, "_UPSTREAM_REMOTE", None)
     monkeypatch.setattr(mod, "_run_cmd", fake_run)
@@ -5513,17 +5513,17 @@ async def test_upstream_remote_rejects_option_injection(monkeypatch):
 
     async def fake_run_valid(cmd, **kw):
         if "config" in cmd:
-            return 0, "kirocrew", ""
-        return 0, "origin\nkirocrew\n", ""
+            return 0, "junction", ""
+        return 0, "origin\njunction\n", ""
 
     monkeypatch.setattr(mod, "_UPSTREAM_REMOTE", None)
     monkeypatch.setattr(mod, "_run_cmd", fake_run_valid)
-    assert await mod._upstream_remote() == "kirocrew"
+    assert await mod._upstream_remote() == "junction"
 
     async def fake_run_unlisted(cmd, **kw):
         if "config" in cmd:
             return 0, "evil", ""
-        return 0, "origin\nkirocrew\n", ""
+        return 0, "origin\njunction\n", ""
 
     monkeypatch.setattr(mod, "_UPSTREAM_REMOTE", None)
     monkeypatch.setattr(mod, "_run_cmd", fake_run_unlisted)
@@ -5532,12 +5532,12 @@ async def test_upstream_remote_rejects_option_injection(monkeypatch):
 
 
 def test_find_cli_is_module_invocation_only():
-    """No filesystem resolution: a planted `kirocrew` shim must never become
-    the pod CLI. Always our interpreter + the RUNNABLE ``kiro_crew`` package
-    entry (its __main__), never ``kiro_crew.cli`` (no __main__ guard -> #220)."""
+    """No filesystem resolution: a planted `junction` shim must never become
+    the pod CLI. Always our interpreter + the RUNNABLE ``junction`` package
+    entry (its __main__), never ``junction.cli`` (no __main__ guard -> #220)."""
     import sys as _sys
 
-    assert mod._find_cli() == [_sys.executable, "-m", "kiro_crew"]
+    assert mod._find_cli() == [_sys.executable, "-m", "junction"]
 
     import subprocess as _sp
 
@@ -5623,7 +5623,7 @@ async def test_hmac_no_secret_always_denies(monkeypatch):
 
     monkeypatch.setattr(mod, "_load_app_secret", lambda: "")
     monkeypatch.setattr(mod, "_sel", lambda: FakeSel())
-    monkeypatch.setenv("KIROCREW_DEVFLEET_INSECURE", "1")
+    monkeypatch.setenv("JUNCTION_DEVFLEET_INSECURE", "1")
     app = mod.create_app()
     async with TestClient(TestServer(app)) as client:
         resp = await client.get("/api/fleet")
@@ -5646,10 +5646,10 @@ async def test_hmac_invalid_signature_denial_is_audited(monkeypatch):
     app = mod.create_app()
     async with TestClient(TestServer(app)) as client:
         r1 = await client.get("/api/fleet")  # missing header
-        r2 = await client.get("/api/fleet", headers={"X-KiroCrew-Proxy": "junk"})
+        r2 = await client.get("/api/fleet", headers={"X-Junction-Proxy": "junk"})
         ts = str(int(time.time()))
         r3 = await client.get(
-            "/api/fleet", headers={"X-KiroCrew-Proxy": f"{ts}:deadbeef"})
+            "/api/fleet", headers={"X-Junction-Proxy": f"{ts}:deadbeef"})
         assert (r1.status, r2.status, r3.status) == (401, 401, 401)
     assert len([e for e in events if e.get("outcome") == "denied"]) == 3
 
@@ -5706,7 +5706,7 @@ async def test_prunable_merged_unverified_when_oid_lookup_fails():
 def test_strict_sandbox_hides_gh_config():
     """.config/gh (the gh helper's token store) must be hidden from the
     strict tier where worktree-controlled code executes."""
-    import kiro_crew.sandbox as sandbox_mod
+    import junction.sandbox as sandbox_mod
 
     assert ".config/gh" in sandbox_mod._STRICT_DIRS
     assert ".config/gh" not in sandbox_mod._STANDARD_DIRS
@@ -5715,7 +5715,7 @@ def test_strict_sandbox_hides_gh_config():
 @_POSIX_ONLY
 def test_build_preexec_raises_nofile_ceiling(monkeypatch):
     """Build-class spawns get a 65536 NOFILE ceiling (default 1024 EMFILEs vite)."""
-    import kiro_crew.sandbox as sandbox_mod
+    import junction.sandbox as sandbox_mod
 
     monkeypatch.setattr(sandbox_mod, "_BUILD_RESOURCE_PREEXEC", sandbox_mod._UNSET)
     captured: dict = {}
@@ -5724,7 +5724,7 @@ def test_build_preexec_raises_nofile_ceiling(monkeypatch):
         captured.update((cfg or {}).get("resource_limits") or {})
         return lambda: None
 
-    monkeypatch.setattr("kiro_crew.security.apply_resource_limits", fake_apply)
+    monkeypatch.setattr("junction.security.apply_resource_limits", fake_apply)
     fn = sandbox_mod.build_resource_limit_preexec()
     assert fn is not None
     assert captured["max_open_files"] >= 65536
@@ -5734,11 +5734,11 @@ def test_build_preexec_raises_nofile_ceiling(monkeypatch):
 def test_build_preexec_tolerates_malformed_config(monkeypatch):
     """A junk operator value ("lots") must not raise — the spawn falls back
     to the ceiling instead of leaving Dev Fleet unable to start."""
-    import kiro_crew.sandbox as sandbox_mod
+    import junction.sandbox as sandbox_mod
 
     monkeypatch.setattr(sandbox_mod, "_BUILD_RESOURCE_PREEXEC", sandbox_mod._UNSET)
     monkeypatch.setattr(
-        "kiro_crew.config.loader._raw_config",
+        "junction.config.loader._raw_config",
         lambda: {"resource_limits": {"max_open_files": "lots"}},
     )
     captured: dict = {}
@@ -5747,21 +5747,21 @@ def test_build_preexec_tolerates_malformed_config(monkeypatch):
         captured.update((cfg or {}).get("resource_limits") or {})
         return lambda: None
 
-    monkeypatch.setattr("kiro_crew.security.apply_resource_limits", fake_apply)
+    monkeypatch.setattr("junction.security.apply_resource_limits", fake_apply)
     assert sandbox_mod.build_resource_limit_preexec() is not None
     assert captured["max_open_files"] == sandbox_mod._BUILD_NOFILE_CEILING
 
 
 def test_build_pending_dist_path_is_package_static_dist():
-    """The dist probe must resolve to kiro_crew/static/dist — the parent-chain
+    """The dist probe must resolve to junction/static/dist — the parent-chain
     silently broke when this module moved from dashboard/handlers/."""
     import pathlib
 
     root = pathlib.Path(mod.__file__).resolve().parents[3]
-    assert root.name == "kiro_crew"
+    assert root.name == "junction"
     assert mod._build_pending() in (True, False)
     probed = root / "static" / "dist"
-    assert probed.parts[-3:] == ("kiro_crew", "static", "dist")
+    assert probed.parts[-3:] == ("junction", "static", "dist")
 
 
 @pytest.mark.asyncio
@@ -5853,20 +5853,20 @@ async def test_sync_refuses_when_target_repo_has_no_venv(monkeypatch, tmp_path):
 
 def test_gateway_unit_resolves_pod_instance(monkeypatch, tmp_path):
     """Inside a pod HOME the restart target is the pod unit, never the live one."""
-    pod_home = tmp_path / ".kirocrew-pods" / "kirocrew-wt-feature"
+    pod_home = tmp_path / ".kirocrew-pods" / "junction-wt-feature"
     pod_home.mkdir(parents=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(pod_home))
-    from kiro_crew.config import loader as cfg_loader
+    monkeypatch.setenv("JUNCTION_HOME", str(pod_home))
+    from junction.config import loader as cfg_loader
     if hasattr(cfg_loader, "_config_dir_cache"):
         monkeypatch.setattr(cfg_loader, "_config_dir_cache", None, raising=False)
-    assert mod._gateway_unit_name() == "kirocrew-pod@kirocrew-wt-feature.service"
+    assert mod._gateway_unit_name() == "junction-pod@junction-wt-feature.service"
 
 
 def test_gateway_unit_resolves_live_outside_pods(monkeypatch, tmp_path):
     home = tmp_path / ".kirocrew"
     home.mkdir(parents=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
-    assert mod._gateway_unit_name() == "kirocrew-gateway.service"
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
+    assert mod._gateway_unit_name() == "junction-gateway.service"
 
 
 @pytest.mark.asyncio
@@ -6194,7 +6194,7 @@ async def test_fleet_payload_redacts_credentials_in_main_repo():
 
 @pytest.mark.asyncio
 async def test_fleet_payload_preserves_ordinary_main_repo_path():
-    ordinary = "/home/user/oss/KiroCrew"
+    ordinary = "/home/user/oss/Junction"
     with patch.object(mod, "_repo", return_value=ordinary):
         fleet = await _fleet_with(
             [{"path": "/repo", "branch": "main", "is_main": True}]
@@ -6292,10 +6292,10 @@ async def test_build_state_is_reported_even_where_pods_cannot_run(tmp_path):
     wt = tmp_path / "repo-wt-built"
     binp = wt / ".venv" / ("Scripts" if platform_compat.IS_WINDOWS else "bin")
     binp.mkdir(parents=True)
-    exe = binp / ("kirocrew.exe" if platform_compat.IS_WINDOWS else "kirocrew")
+    exe = binp / ("junction.exe" if platform_compat.IS_WINDOWS else "junction")
     exe.write_text("#!/bin/sh\n")
     exe.chmod(0o755)
-    (wt / "src" / "kiro_crew" / "static" / "dist").mkdir(parents=True)
+    (wt / "src" / "junction" / "static" / "dist").mkdir(parents=True)
 
     fleet = await _fleet_with(
         [
@@ -6319,18 +6319,18 @@ async def test_build_state_is_reported_even_where_pods_cannot_run(tmp_path):
 # =============================================================================
 # Regression: _find_cli must target a RUNNABLE entry point (issue #220)
 # =============================================================================
-def test_find_cli_targets_kiro_crew_package():
-    """_find_cli must invoke the ``kiro_crew`` package (its __main__), not
-    ``kiro_crew.cli`` — the latter has no __main__ guard and no-ops silently."""
+def test_find_cli_targets_junction_package():
+    """_find_cli must invoke the ``junction`` package (its __main__), not
+    ``junction.cli`` — the latter has no __main__ guard and no-ops silently."""
     import sys
 
-    assert mod._find_cli() == [sys.executable, "-m", "kiro_crew"]
+    assert mod._find_cli() == [sys.executable, "-m", "junction"]
 
 
-def test_kiro_crew_module_entry_actually_runs():
+def test_junction_module_entry_actually_runs():
     """The entry point _find_cli uses must actually run main() and emit output.
 
-    Guards the root cause of #220: ``python -m kiro_crew.cli`` imported the
+    Guards the root cause of #220: ``python -m junction.cli`` imported the
     module, ran no main(), and exited 0 with EMPTY output — so every pod op was
     a silent no-op reported as success. A runnable entry prints usage on --help.
     """
@@ -6338,7 +6338,7 @@ def test_kiro_crew_module_entry_actually_runs():
     import sys
 
     proc = subprocess.run(
-        [sys.executable, "-m", "kiro_crew", "--help"],
+        [sys.executable, "-m", "junction", "--help"],
         capture_output=True, text=True, timeout=90,
     )
     assert proc.returncode == 0
@@ -6355,8 +6355,8 @@ async def test_pod_down_fails_closed_when_still_active():
          patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "", "")), \
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_POD_AVAILABLE", True), \
-         patch.object(mod.rt, "active_names", return_value={"kirocrew-wt-x"}):
-        result = await mod._pod_down("kirocrew-wt-x")
+         patch.object(mod.rt, "active_names", return_value={"junction-wt-x"}):
+        result = await mod._pod_down("junction-wt-x")
     assert result["ok"] is False
     assert "still active" in result["error"]
 
@@ -6369,7 +6369,7 @@ async def test_pod_down_ok_when_unit_gone():
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_POD_AVAILABLE", True), \
          patch.object(mod.rt, "active_names", return_value=set()):
-        result = await mod._pod_down("kirocrew-wt-x")
+        result = await mod._pod_down("junction-wt-x")
     assert result["ok"] is True
     assert result["error"] is None
 
@@ -6382,7 +6382,7 @@ async def test_pod_down_fails_closed_when_verify_raises():
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_POD_AVAILABLE", True), \
          patch.object(mod.rt, "active_names", side_effect=RuntimeError("boom")):
-        result = await mod._pod_down("kirocrew-wt-x")
+        result = await mod._pod_down("junction-wt-x")
     assert result["ok"] is False
     assert "cannot verify pod shutdown" in result["error"]
 
@@ -6392,7 +6392,7 @@ async def test_pod_down_nonzero_rc_is_failure():
     """A non-zero CLI exit is surfaced as failure verbatim."""
     with patch.object(mod, "_pod_checkout_guard", new_callable=AsyncMock, return_value=None), \
          patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(1, "", "stop failed")):
-        result = await mod._pod_down("kirocrew-wt-x")
+        result = await mod._pod_down("junction-wt-x")
     assert result["ok"] is False
     assert "stop failed" in result["error"]
 
@@ -6479,7 +6479,7 @@ async def test_pod_up_fails_closed_when_not_active():
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_POD_AVAILABLE", True), \
          patch.object(mod.rt, "active_names", return_value=set()):
-        result = await mod._pod_up("kirocrew-wt-x")
+        result = await mod._pod_up("junction-wt-x")
     assert result["ok"] is False
     assert "not active after start" in result["error"]
 
@@ -6491,8 +6491,8 @@ async def test_pod_up_ok_when_active():
          patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, '{"port": 7999}', "")), \
          patch.object(mod, "_load_cfg", return_value=object()), \
          patch.object(mod, "_POD_AVAILABLE", True), \
-         patch.object(mod.rt, "active_names", return_value={"kirocrew-wt-x"}):
-        result = await mod._pod_up("kirocrew-wt-x")
+         patch.object(mod.rt, "active_names", return_value={"junction-wt-x"}):
+        result = await mod._pod_up("junction-wt-x")
     assert result["ok"] is True
     assert result["port"] == 7999
 
@@ -6872,22 +6872,22 @@ async def test_worktree_remove_refuses_when_pod_reactivates_before_mutation(rese
 def test_register_skills_creates_symlinks_for_bundled_skills(tmp_path, monkeypatch):
     """Enabling the dev-fleet app registers its bundled pod-e2e skill.
 
-    kirocrew-worktree-dev is deliberately NOT bundled here: the canonical copy
+    junction-worktree-dev is deliberately NOT bundled here: the canonical copy
     ships in the top-level ``skills/`` catalog (synced into every install), and
     a second app-bridged copy would drift and be loaded nondeterministically
     against it (PR #353 arbiter finding).
     """
-    from kiro_crew.apps.bridges import _register_skills
-    from kiro_crew.apps.manifest import AppManifest
+    from junction.apps.bridges import _register_skills
+    from junction.apps.manifest import AppManifest
 
     fake_config = tmp_path / "config"
     fake_config.mkdir()
     monkeypatch.setattr(
-        "kiro_crew.apps.bridges.config_dir", lambda: fake_config
+        "junction.apps.bridges.config_dir", lambda: fake_config
     )
 
     app_root = Path(__file__).resolve().parent.parent / (
-        "src/kiro_crew/apps/builtins/dev_fleet"
+        "src/junction/apps/builtins/dev_fleet"
     )
 
     manifest = AppManifest(
@@ -6905,7 +6905,7 @@ def test_register_skills_creates_symlinks_for_bundled_skills(tmp_path, monkeypat
     registered_names = {r.split("/")[-1] for r in registered}
     assert expected_skills <= registered_names
     # The stale bundled copy must stay deleted — the shipped catalog owns it.
-    assert not (app_root / "skills" / "kirocrew-worktree-dev").exists()
+    assert not (app_root / "skills" / "junction-worktree-dev").exists()
 
     # is_link_or_junction, not is_symlink: registration links with a directory junction
     # on Windows (an unprivileged account holds no SeCreateSymbolicLinkPrivilege)
@@ -6921,17 +6921,17 @@ def test_register_skills_creates_symlinks_for_bundled_skills(tmp_path, monkeypat
 
 def test_register_skills_tolerates_missing_feature_demo_recording(tmp_path, monkeypatch):
     """feature-demo-recording absence must not crash skill registration."""
-    from kiro_crew.apps.bridges import _register_skills
-    from kiro_crew.apps.manifest import AppManifest
+    from junction.apps.bridges import _register_skills
+    from junction.apps.manifest import AppManifest
 
     fake_config = tmp_path / "config"
     fake_config.mkdir()
     monkeypatch.setattr(
-        "kiro_crew.apps.bridges.config_dir", lambda: fake_config
+        "junction.apps.bridges.config_dir", lambda: fake_config
     )
 
     app_root = Path(__file__).resolve().parent.parent / (
-        "src/kiro_crew/apps/builtins/dev_fleet"
+        "src/junction/apps/builtins/dev_fleet"
     )
 
     manifest = AppManifest(
@@ -6939,7 +6939,7 @@ def test_register_skills_tolerates_missing_feature_demo_recording(tmp_path, monk
         version="1.0.0",
         skills=[
             "skills/pod-e2e",
-            "skills/kirocrew-worktree-dev",  # no longer bundled — must not crash
+            "skills/junction-worktree-dev",  # no longer bundled — must not crash
             "skills/feature-demo-recording",
         ],
     )
@@ -6949,7 +6949,7 @@ def test_register_skills_tolerates_missing_feature_demo_recording(tmp_path, monk
     registered_names = {r.split("/")[-1] for r in registered}
     assert "pod-e2e" in registered_names
     # Absent bundled dirs are tolerated, not registered.
-    assert "kirocrew-worktree-dev" not in registered_names
+    assert "junction-worktree-dev" not in registered_names
 
 
 @pytest.mark.asyncio
@@ -7000,7 +7000,7 @@ def test_own_checkout_path_resolves_this_worktree():
     own = mod._own_checkout_path()
     assert own is not None
     from pathlib import Path
-    assert (Path(own) / "src" / "kiro_crew").is_dir()
+    assert (Path(own) / "src" / "junction").is_dir()
 
 
 # =============================================================================
@@ -7009,14 +7009,14 @@ def test_own_checkout_path_resolves_this_worktree():
 
 
 def test_parse_step_marker_index_and_label():
-    from kiro_crew.apps.builtins.dev_fleet.server import _parse_step_marker
+    from junction.apps.builtins.dev_fleet.server import _parse_step_marker
 
     assert _parse_step_marker("::step::0::Pull") == (0, "Pull")
     assert _parse_step_marker("::step::3::pip install") == (3, "pip install")
 
 
 def test_parse_step_marker_non_marker_and_partial():
-    from kiro_crew.apps.builtins.dev_fleet.server import _parse_step_marker
+    from junction.apps.builtins.dev_fleet.server import _parse_step_marker
 
     assert _parse_step_marker("regular build output") == (None, None)
     assert _parse_step_marker("::step::") == (None, None)  # no index or label
@@ -7482,7 +7482,7 @@ def test_declared_platforms_all_resolve_to_a_real_sys_platform():
     so a declaration can claim a platform the gate rejects. `windows` was in
     exactly that state until the mapping row landed.
     """
-    from kiro_crew.apps.manifest import PlatformConfig
+    from junction.apps.manifest import PlatformConfig
 
     manifest = json.loads(
         (Path(mod.__file__).parent / "app.json").read_text(encoding="utf-8")
@@ -7565,7 +7565,7 @@ async def test_sync_builds_and_stages_under_one_lock_holder(monkeypatch, tmp_pat
 
 def test_kill_tree_reaps_a_descendant_that_escaped_the_process_group():
     """A new-session descendant is outside the group, so killpg alone misses it."""
-    from kiro_crew.apps.builtins.dev_fleet import server as dev
+    from junction.apps.builtins.dev_fleet import server as dev
 
     killed: list[int] = []
 
@@ -7588,7 +7588,7 @@ def test_kill_tree_enumerates_descendants_before_killing_anything():
     A kill reparents survivors to init and erases the PPID links, so a snapshot
     taken after the kill cannot see the processes that escaped.
     """
-    from kiro_crew.apps.builtins.dev_fleet import server as dev
+    from junction.apps.builtins.dev_fleet import server as dev
 
     events: list[str] = []
 
@@ -7609,7 +7609,7 @@ def test_kill_tree_enumerates_descendants_before_killing_anything():
 
 def test_kill_tree_survives_an_already_dead_descendant():
     """The group kill usually reaps descendants; a dead pid must not raise."""
-    from kiro_crew.apps.builtins.dev_fleet import server as dev
+    from junction.apps.builtins.dev_fleet import server as dev
 
     def _kill(pid, *a, **k):
         if pid == 222:
@@ -7690,7 +7690,7 @@ def test_serving_install_reason_names_both_installs_and_a_remedy(tmp_path):
     assert reason is not None
     # Both sides must be named — one path alone does not identify the mismatch.
     assert tmp_path.name in reason
-    assert "kiro_crew" in reason
+    assert "junction" in reason
     assert "Make live" in reason
     # Problem first, action before the paths: a warn banner that leads with two
     # absolute paths and buries the remedy at the end gets skimmed.
@@ -7793,7 +7793,7 @@ async def test_serving_install_reason_recomputes_when_the_checkout_set_changes(
 async def test_force_remove_refuses_dirty_unmerged_worktree():
     """Regression for #1554: force=True must NOT destroy a dirty tree whose PR
     is unmerged — that combination is unrecoverable data loss."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -7827,7 +7827,7 @@ async def test_force_remove_refuses_dirty_merged_worktree():
     even when the PR IS merged — containment proves commits are shipped but
     says nothing about working-tree edits. --force bypasses git's dirty check
     and would irrecoverably destroy uncommitted edits."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -7871,7 +7871,7 @@ async def test_ancestry_gate_skips_ref_delete_when_not_ancestor():
     """When cached PR status wrongly says MERGED but the branch OID is NOT an
     ancestor of the base branch AND containment also fails at the ref-delete
     gate, the ref must survive (fail-closed gate)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     git_calls: list[tuple] = []
 
@@ -7930,7 +7930,7 @@ async def test_ancestry_gate_skips_ref_delete_when_not_ancestor():
 @pytest.mark.asyncio
 async def test_ancestry_gate_allows_ref_delete_when_ancestor():
     """When PR is merged and branch OID IS an ancestor of base, ref IS deleted."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     git_calls: list[tuple] = []
     deleted_refs: list[str] = []
@@ -7988,7 +7988,7 @@ async def test_empty_branch_ref_survives_when_pr_not_merged():
     merged: an empty branch may simply not have been pushed yet, and the ref
     is the only local pointer to those commits (recoverable > irrecoverable).
     Regression test for kirodotdev#1554."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     deleted_refs: list[str] = []
 
@@ -8036,7 +8036,7 @@ async def test_removal_audit_log_emitted(caplog):
     """Successful removal emits a structured audit line with verdict fields."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8062,7 +8062,7 @@ async def test_removal_audit_log_emitted(caplog):
         patch.object(mod, "_POD_AVAILABLE", False),
         patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "", "")),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=False)
 
@@ -8082,7 +8082,7 @@ async def test_force_refuse_audit_log_emitted(caplog):
     """The dirty+unmerged force refusal also emits an audit line."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8102,7 +8102,7 @@ async def test_force_refuse_audit_log_emitted(caplog):
         ),
         patch.object(mod, "_own_commits_count", new_callable=AsyncMock, return_value=3),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8124,7 +8124,7 @@ async def test_force_remove_refuses_unknown_dirty_state(caplog):
     Previously fell through (fail-open)."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8144,7 +8144,7 @@ async def test_force_remove_refuses_unknown_dirty_state(caplog):
         ),
         patch.object(mod, "_own_commits_count", new_callable=AsyncMock, return_value=3),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8166,7 +8166,7 @@ async def test_force_remove_refuses_stale_merged_cache(caplog):
     — must refuse. Previously the guard was bypassed entirely."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8194,7 +8194,7 @@ async def test_force_remove_refuses_stale_merged_cache(caplog):
         # verdict_oid pin succeeds so we reach the fresh-MERGED gate
         patch.object(mod, "_git", new_callable=AsyncMock, return_value="abc123def456"),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8214,7 +8214,7 @@ async def test_force_remove_fresh_merged_refuses_dirty(caplog):
     says nothing about working-tree edits."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8245,7 +8245,7 @@ async def test_force_remove_fresh_merged_refuses_dirty(caplog):
         patch.object(mod, "_POD_AVAILABLE", False),
         patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "", "")),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8267,7 +8267,7 @@ async def test_force_remove_fresh_merged_refuses_unknown_dirty(caplog):
     action=refused_unverifiable_merged."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8298,7 +8298,7 @@ async def test_force_remove_fresh_merged_refuses_unknown_dirty(caplog):
         patch.object(mod, "_POD_AVAILABLE", False),
         patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "", "")),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8318,7 +8318,7 @@ async def test_force_remove_clean_merged_proceeds():
     """Control: force=True + dirty=False + MERGED → removal proceeds WITHOUT --force.
     Clean-tree force removals on merged branches proceed but drop --force so git's
     own dirty check guards the TOCTOU window (round-6 fix)."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     run_cmd_calls: list[list[str]] = []
 
@@ -8374,7 +8374,7 @@ async def test_squash_merge_ref_deletion():
     """Squash-merge regression: PR merged, ancestry check fails (squash merge),
     containment check passes → ref IS deleted. Previously squash-merged refs
     accumulated forever because ancestry is the only gate that passed."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     deleted_refs: list[str] = []
 
@@ -8451,7 +8451,7 @@ async def test_toctou_clean_unmerged_force_omits_git_force(caplog):
     'unmerged_clean_no_git_force' is emitted."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     captured_cmds: list[list[str]] = []
 
@@ -8523,7 +8523,7 @@ async def test_toctou_git_refusal_returns_error_with_audit(caplog):
     and emits the refused_dirty_at_removal audit line."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     async def _failing_run_cmd(cmd, **kwargs):
         if "worktree" in cmd and "remove" in cmd:
@@ -8553,7 +8553,7 @@ async def test_toctou_git_refusal_returns_error_with_audit(caplog):
         patch.object(mod, "_POD_AVAILABLE", False),
         patch.object(mod, "_run_cmd", new_callable=AsyncMock, side_effect=_failing_run_cmd),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8575,7 +8575,7 @@ async def test_containment_refuses_uncontained_fresh_head(caplog):
     force removal must be refused with refused_uncontained_fresh_head audit."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8609,7 +8609,7 @@ async def test_containment_refuses_uncontained_fresh_head(caplog):
         # Containment fails — new commits not in old PR head
         patch.object(mod, "_head_contained_in_pr", new_callable=AsyncMock, return_value=False),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8632,7 +8632,7 @@ async def test_containment_allows_when_contained():
 
     Pre-round-5 behavior was to allow this removal — the current contract
     refuses it to prevent irrecoverable loss of uncommitted edits."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8686,7 +8686,7 @@ async def test_containment_pin_falsy_refuses_unpinnable(caplog):
     skipped containment when pinned_oid was falsy."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8708,7 +8708,7 @@ async def test_containment_pin_falsy_refuses_unpinnable(caplog):
         # rev-parse fails → returns None (transient git lock contention)
         patch.object(mod, "_git", new_callable=AsyncMock, return_value=None),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8726,7 +8726,7 @@ async def test_containment_pin_empty_string_refuses_unpinnable(caplog):
     """Same as above but rev-parse returns empty string (another falsy form)."""
     import logging
 
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8748,7 +8748,7 @@ async def test_containment_pin_empty_string_refuses_unpinnable(caplog):
         # rev-parse returns empty string (another failure mode)
         patch.object(mod, "_git", new_callable=AsyncMock, return_value=""),
         patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"),
-        caplog.at_level(logging.INFO, logger="kiro_crew.apps.builtins.dev_fleet.server"),
+        caplog.at_level(logging.INFO, logger="junction.apps.builtins.dev_fleet.server"),
     ):
         result = await mod._worktree_remove("feat-x", force=True)
 
@@ -8763,7 +8763,7 @@ async def test_containment_pin_empty_string_refuses_unpinnable(caplog):
 async def test_dirty_unmerged_message_does_not_promise_force_override():
     """Message regression: the non-forced dirty refusal no longer says
     'use force to override' since force is also refused for dirty+unmerged."""
-    import kiro_crew.apps.builtins.dev_fleet.server as mod
+    import junction.apps.builtins.dev_fleet.server as mod
 
     with (
         patch.object(
@@ -8790,7 +8790,7 @@ async def test_dirty_unmerged_message_does_not_promise_force_override():
 # Foreground last-resort restart (issue #2566)
 # =============================================================================
 
-def _mk_kcbin(tmp_path: Path, name: str = "kirocrew") -> Path:
+def _mk_kcbin(tmp_path: Path, name: str = "junction") -> Path:
     """An executable file that passes ForegroundBackend's launcher validation."""
     d = tmp_path / "bin"
     d.mkdir(parents=True, exist_ok=True)
@@ -8805,7 +8805,7 @@ def _fg(tmp_path: Path, *, port: int = 7777, pid: int = 4242,
         ports: "list[int] | None" = None, pids: "dict[int, int] | None" = None,
         confined: "str | None" = None):
     """A ForegroundBackend wired to fakes. Returns (backend, spawned_argvs)."""
-    from kiro_crew.apps.builtins.dev_fleet import gateway_service as gs
+    from junction.apps.builtins.dev_fleet import gateway_service as gs
 
     spawned: list[list[str]] = []
 
@@ -8855,7 +8855,7 @@ async def test_foreground_backend_unavailable_cases(tmp_path):
 @pytest.mark.asyncio
 async def test_foreground_backend_binary_resolution(tmp_path):
     """ONLY the keystone-fenced marker launcher is trusted — no PATH fallback
-    (an agent can plant a `kirocrew` in ~/.local/bin); invalid recorded
+    (an agent can plant a `junction` in ~/.local/bin); invalid recorded
     launchers are refused rather than guessed around."""
     kc = _mk_kcbin(tmp_path)
     # Marker launcher used, verbatim.
@@ -8865,23 +8865,23 @@ async def test_foreground_backend_binary_resolution(tmp_path):
     # No recorded launcher (source-tree launch, empty marker): refuse — the
     # PATH fallback is deliberately absent.
     fg, spawned = _fg(tmp_path, launcher=None)
-    assert await fg.status() == "no_kirocrew_binary"
+    assert await fg.status() == "no_junction_binary"
     ok, err = await fg.restart_detached()
     assert not ok and "resolved" in err and spawned == []
-    # A launcher that is not basenamed kirocrew is refused even when executable
+    # A launcher that is not basenamed junction is refused even when executable
     # (the _own_console_script rule: exec the entry point it claims to be).
     impostor = _mk_kcbin(tmp_path / "i", name="systemctl")
     fg, _ = _fg(tmp_path, launcher=str(impostor))
-    assert await fg.status() == "no_kirocrew_binary"
+    assert await fg.status() == "no_junction_binary"
     # A non-executable launcher is refused: it could stop the gateway but never
     # start the replacement.
     limp = _mk_kcbin(tmp_path / "n")
     limp.chmod(0o644)
     fg, _ = _fg(tmp_path, launcher=str(limp))
-    assert await fg.status() == "no_kirocrew_binary"
+    assert await fg.status() == "no_junction_binary"
     # A relative recorded path is refused (never resolved against a cwd).
-    fg, _ = _fg(tmp_path, launcher="bin/kirocrew")
-    assert await fg.status() == "no_kirocrew_binary"
+    fg, _ = _fg(tmp_path, launcher="bin/junction")
+    assert await fg.status() == "no_junction_binary"
 
 
 @pytest.mark.asyncio
@@ -8898,12 +8898,12 @@ async def test_foreground_backend_refuses_when_confined(tmp_path):
 
 
 def test_default_confinement_detects_sandbox_marker(monkeypatch):
-    """KIROCREW_SANDBOX_ACTIVE — the launcher-exported in-sandbox marker — is
+    """JUNCTION_SANDBOX_ACTIVE — the launcher-exported in-sandbox marker — is
     detected as confinement (checked before the cgroup read, so this is
     deterministic on any host)."""
-    from kiro_crew.apps.builtins.dev_fleet import gateway_service as gs
+    from junction.apps.builtins.dev_fleet import gateway_service as gs
 
-    monkeypatch.setenv("KIROCREW_SANDBOX_ACTIVE", "1")
+    monkeypatch.setenv("JUNCTION_SANDBOX_ACTIVE", "1")
     reason = gs.default_confinement()
     assert reason is not None and "sandbox" in reason
 
@@ -8939,7 +8939,7 @@ async def test_foreground_spawn_failure_signals_nothing(tmp_path, monkeypatch):
 async def test_make_live_foreground_last_resort_cutover(monkeypatch, tmp_path):
     """When no manager is drivable but a single live foreground gateway exists,
     make-live finishes the cutover itself: pointer written, detached
-    `kirocrew restart` established, start_id (the pre-restart pid) returned,
+    `junction restart` established, start_id (the pre-restart pid) returned,
     and the committed latch set exactly as on a drivable host."""
     kc = _mk_kcbin(tmp_path)
     for status in ("no_systemd", "no_user_unit", "no_launchd", "no_agent"):
@@ -9115,7 +9115,7 @@ async def test_make_live_artifact_changed_before_lock_is_revalidated(
     _stub_make_live(monkeypatch, wt, pointer_dir=ptr_dir)
     monkeypatch.setattr(mod, "_MAKE_LIVE_COMMITTED", False)
 
-    kcbin = wt / ".venv" / "bin" / "kirocrew"
+    kcbin = wt / ".venv" / "bin" / "junction"
 
     # Wrap _MAKE_LIVE_LOCK so that entering the lock removes the binary,
     # simulating a concurrent rebuild that completes between the early probe

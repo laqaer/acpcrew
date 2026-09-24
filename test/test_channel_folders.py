@@ -18,10 +18,10 @@ from typing import Any
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.config.loader import config_path
-from kiro_crew.config.paths import config_dir
-from kiro_crew.dashboard import channel_folders, channel_slots, chat_folders
-from kiro_crew.dashboard.chat_utils import effective_session_key
+from junction.config.loader import config_path
+from junction.config.paths import config_dir
+from junction.dashboard import channel_folders, channel_slots, chat_folders
+from junction.dashboard.chat_utils import effective_session_key
 
 
 @pytest.fixture
@@ -73,7 +73,7 @@ class TestConfiguredFolderName:
         def boom() -> Any:
             raise OSError("config unreadable")
 
-        monkeypatch.setattr("kiro_crew.config.loader.KiroCrewConfig.load", staticmethod(boom))
+        monkeypatch.setattr("junction.config.loader.JunctionConfig.load", staticmethod(boom))
         assert channel_folders.configured_folder_name("discord") == ""
 
 
@@ -455,7 +455,7 @@ class TestCleanSessionFolder:
 
 
 class TestFilingOnSurface:
-    def _info(self, key: str = "discord:kirocrew:direct:U1") -> dict[str, Any]:
+    def _info(self, key: str = "discord:junction:direct:U1") -> dict[str, Any]:
         return {"key": key, "title": "", "modified": 0.0}
 
     @pytest.fixture(autouse=True)
@@ -545,7 +545,7 @@ class TestReconcilePassFiling:
     def test_reconcile_files_pending_channel_sessions(self, dashboard_state: Any) -> None:
         """The folder already exists — the settings save created it."""
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         fid = asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )
@@ -569,7 +569,7 @@ class TestReconcilePassFiling:
         put an fsync on the event loop and race a concurrent folder edit.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         dashboard_state.conversation_log = _FakeLog([key])
         dashboard_state.push_slots_update = lambda: None  # type: ignore[method-assign]
         writes: list[Any] = []
@@ -583,7 +583,7 @@ class TestReconcilePassFiling:
     def test_reconcile_creates_no_folder_when_every_channel_is_off(
         self, dashboard_state: Any
     ) -> None:
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         dashboard_state.conversation_log = _FakeLog([key])
         dashboard_state.push_slots_update = lambda: None  # type: ignore[method-assign]
 
@@ -606,8 +606,8 @@ class TestReconcilePassFiling:
         this feature claims to keep.
         """
         _write_config("discord", "Discord")
-        key_a = "discord:kirocrew:direct:UA"
-        key_b = "discord:kirocrew:direct:UB"
+        key_a = "discord:junction:direct:UA"
+        key_b = "discord:junction:direct:UB"
         fid = asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )
@@ -646,7 +646,7 @@ class TestReconcilePassFiling:
         the slot is published, the record already says where it was filed.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         fid = asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )
@@ -677,7 +677,7 @@ class TestReconcilePassFiling:
         own. Leave it unfiled and let a later pass retry.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         asyncio.run(channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord"))
         log = _FakeLog([key])
 
@@ -711,7 +711,7 @@ class TestReconcilePassFiling:
         test pass without ever reaching the re-check.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         asyncio.run(channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord"))
         log = _FakeLog([key])
         dashboard_state.conversation_log = log
@@ -751,7 +751,7 @@ class TestReconcilePassFiling:
         presence means first surface has already happened.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         fid = asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )
@@ -785,7 +785,7 @@ class TestReconcilePassFiling:
         method call.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         fid = asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )
@@ -818,7 +818,7 @@ class TestReconcilePassFiling:
         pass. Carrying the on-disk value forward makes that whole class of
         omission harmless rather than relying on every restore path being correct.
         """
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_persistence import _save_slot_to_history
 
         dashboard_state.push_slots_update = lambda: None  # type: ignore[method-assign]
         slot = dashboard_state.get_or_create_slot("chan2")
@@ -854,7 +854,7 @@ class TestReconcilePassFiling:
         ``test_a_move_to_the_top_level_survives_a_restart``, reached through the
         save path rather than the reconcile path.
         """
-        from kiro_crew.dashboard.chat_persistence import _save_slot_to_history
+        from junction.dashboard.chat_persistence import _save_slot_to_history
 
         dashboard_state.push_slots_update = lambda: None  # type: ignore[method-assign]
         slot = dashboard_state.get_or_create_slot("chan")
@@ -884,7 +884,7 @@ class TestReconcilePassFiling:
         ``channel_folder_filed`` marker is what distinguishes them.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         fid = asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )
@@ -913,7 +913,7 @@ class TestReconcilePassFiling:
         own, our merge must be skipped and the conversation surfaced unfiled.
         """
         _write_config("discord", "Discord")
-        key = "discord:kirocrew:direct:U1"
+        key = "discord:junction:direct:U1"
         asyncio.run(
             channel_folders.ensure_channel_folder(dashboard_state, "discord", "Discord")
         )

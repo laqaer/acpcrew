@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import web
 
-from kiro_crew.dashboard.refresh_tokens import REFRESH_COOKIE_PREFIX, refresh_cookie_name
-from kiro_crew.dashboard.token_auth import (
+from junction.dashboard.refresh_tokens import REFRESH_COOKIE_PREFIX, refresh_cookie_name
+from junction.dashboard.token_auth import (
     MAX_CONCURRENT_NONCES,
     MAX_SESSION_TTL_SECS,
     RevokedNonceStore,
@@ -46,10 +46,10 @@ def clear_nonces(tmp_path, monkeypatch):
     clears the nonce store. Uses _state.clear_all() (not revoke_all_sessions)
     so the gen isn't bumped between unrelated tests.
     """
-    import kiro_crew.dashboard.revocation_gen as _rg
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.revocation_gen as _rg
+    import junction.dashboard.token_auth as _ta
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     # Pin the memoized revocation generation to 0 (skips the lazy disk load)
     # so no persisted counter from a prior test or the real home leaks in.
     monkeypatch.setattr(_rg, "_gen", 0)
@@ -180,11 +180,11 @@ def test_try_consume_returns_true_once_then_false() -> None:
 
 def test_expired_token_rejected() -> None:
     """Token link window (5 min) expires — URL no longer valid."""
-    with patch("kiro_crew.dashboard.token_auth.time") as mock_time:
+    with patch("junction.dashboard.token_auth.time") as mock_time:
         mock_time.time.return_value = 1000.0
         token = generate_token("user6", ttl_seconds=3600)
     # Advance past the 5-minute link window
-    with patch("kiro_crew.dashboard.token_auth.time") as mock_time:
+    with patch("junction.dashboard.token_auth.time") as mock_time:
         mock_time.time.return_value = 1000.0 + 301
         valid, _, reason = validate_token(token)
     assert valid is False
@@ -193,11 +193,11 @@ def test_expired_token_rejected() -> None:
 
 def test_session_exp_still_valid_after_link_window() -> None:
     """Cookie-based access uses session_exp, not the link window."""
-    with patch("kiro_crew.dashboard.token_auth.time") as mock_time:
+    with patch("junction.dashboard.token_auth.time") as mock_time:
         mock_time.time.return_value = 1000.0
         token = generate_token("user6b", ttl_seconds=3600)
     # Past link window but within session TTL
-    with patch("kiro_crew.dashboard.token_auth.time") as mock_time:
+    with patch("junction.dashboard.token_auth.time") as mock_time:
         mock_time.time.return_value = 1000.0 + 301
         valid, uid, _ = validate_token(token, use_session_exp=True)
     assert valid is True
@@ -331,7 +331,7 @@ async def test_no_refresh_claim_survives_session_exchange() -> None:
     the exact ceiling the claim encodes."""
     import json as _json
 
-    from kiro_crew.dashboard.token_auth import _b64url_decode
+    from junction.dashboard.token_auth import _b64url_decode
 
     mw = token_auth_middleware()
     token = generate_token("qruser", ttl_seconds=300, extra={"no_refresh": "1"})
@@ -443,11 +443,11 @@ async def test_static_assets_bypass_auth(path: str) -> None:
 
 # -- Property 8a: CLI endpoints that self-authenticate must bypass the gate --
 #
-# These three carry NO dashboard token: the `kirocrew` CLI authenticates to them
+# These three carry NO dashboard token: the `junction` CLI authenticates to them
 # with loopback + the local secret in an X-Local-Secret header, and each handler
 # re-checks both itself. The middleware only honors X-Internal-Secret, so if one
 # of them is missing from _BYPASS_EXACT the middleware denies it 403 before the
-# handler ever runs — which is exactly how `kirocrew logout` broke.
+# handler ever runs — which is exactly how `junction logout` broke.
 
 _CLI_LOCAL_SECRET_PATHS = ("/api/token/local", "/api/shutdown", "/api/logout")
 
@@ -468,7 +468,7 @@ async def test_cli_local_secret_endpoints_bypass_auth(path: str) -> None:
 
 def test_cli_local_secret_endpoints_are_in_bypass_exact() -> None:
     """The set membership itself, independent of middleware behaviour."""
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     missing = [p for p in _CLI_LOCAL_SECRET_PATHS if p not in ta._BYPASS_EXACT]
     assert not missing, f"CLI local-secret endpoints missing from _BYPASS_EXACT: {missing}"
@@ -591,7 +591,7 @@ async def test_bare_app_path_is_spa_shell_request(path: str, method: str) -> Non
     SPA_FALLBACK_EXCLUDED_PREFIXES included '/apps/' wholesale, causing the
     spa_fallback middleware to re-raise HTTPNotFound instead of serving shell.
     """
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     req = _make_request(path=path, method=method)
     assert ta._is_spa_shell_request(
@@ -612,7 +612,7 @@ async def test_bare_app_path_is_spa_shell_request(path: str, method: str) -> Non
 def test_apps_sub_paths_are_not_spa_shell(path: str) -> None:
     """/apps/{name}/api/* and /apps/{name}/ui/* have real server-side handlers
     and must NOT be treated as SPA shell requests."""
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     req = _make_request(path=path, method="GET")
     assert not ta._is_spa_shell_request(
@@ -646,7 +646,7 @@ def test_apps_router_subpaths_are_spa_shell(path: str, method: str) -> None:
     shell. Pasting /apps/detail/task-runner into the address bar (or refreshing
     on it) returned 404; the routes worked only via in-app navigation.
     """
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     req = _make_request(path=path, method=method)
     assert ta._is_spa_shell_request(req), (
@@ -664,8 +664,8 @@ def test_apps_server_routes_are_excluded_from_shell() -> None:
     """
     import re as _re
 
-    import kiro_crew.apps.routes as ar
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.apps.routes as ar
+    import junction.dashboard.token_auth as ta
 
     source = open(ar.__file__, encoding="utf-8").read()
     # add_get("/path", h) / add_route("*", "/path", h) / add_post("/path", h)
@@ -706,7 +706,7 @@ def test_app_assets_paths_are_not_spa_shell(path: str) -> None:
     SPA_FALLBACK_EXCLUDED_PREFIXES, so the SVG requests were served index.html
     (HTML) and every <img> tripped its placeholder fallback.
     """
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     assert "/app-assets/" in ta.SPA_FALLBACK_EXCLUDED_PREFIXES
     req = _make_request(path=path, method="GET")
@@ -861,7 +861,7 @@ async def test_sessions_summarize_is_registered_internal_path() -> None:
 
     Drives the REAL _STRICT_INTERNAL_API_PATHS from server.py through the
     middleware so a future edit that drops the entry fails here."""
-    from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS
+    from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS
 
     assert "/api/sessions/summarize" in _STRICT_INTERNAL_API_PATHS
     secret = "test-secret-123"
@@ -891,7 +891,7 @@ async def test_knowledge_agent_document_is_registered_internal_path() -> None:
 
     Drives the REAL _STRICT_INTERNAL_API_PATHS from server.py through the
     middleware so a future edit that drops the entry fails here."""
-    from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS
+    from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS
 
     assert "/api/knowledge/agent-document" in _STRICT_INTERNAL_API_PATHS
     secret = "test-secret-123"
@@ -1017,7 +1017,7 @@ def test_cookie_auth_survives_nonce_store_wipe() -> None:
     restart. The LINK path still enforces the nonce. We model the restart by
     clearing ONLY the nonce store (gen untouched), not via revoke_all_sessions.
     """
-    from kiro_crew.dashboard.token_auth import _state
+    from junction.dashboard.token_auth import _state
 
     token = generate_token("user_cookie")
     _state.clear_all()  # simulate restart: in-memory nonce store re-initialized empty
@@ -1032,7 +1032,7 @@ def test_cookie_auth_survives_nonce_store_wipe() -> None:
 
 
 def test_revoke_all_sessions_kills_established_cookie() -> None:
-    """Explicit revoke (kirocrew logout) MUST end established cookie sessions.
+    """Explicit revoke (junction logout) MUST end established cookie sessions.
 
     Unlike a restart, revoke_all_sessions() bumps the persisted revocation
     generation, so a cookie minted before the revoke carries a stale gen and is
@@ -1058,11 +1058,11 @@ def test_signing_secret_persisted_across_loads(tmp_path, monkeypatch) -> None:
     the key and invalidated all outstanding tokens/cookies ("invalid
     signature"). The secret is now loaded-or-created from a 0600 key file.
     """
-    from kiro_crew.dashboard import token_auth as ta
+    from junction.dashboard import token_auth as ta
 
     monkeypatch.setattr(ta, "config_dir", lambda: tmp_path, raising=False)
     # First load creates the key file.
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     s1 = ta._load_or_create_secret()
     key_file = tmp_path / ta._SECRET_KEY_FILE
     assert key_file.exists()
@@ -1092,9 +1092,9 @@ def test_signing_secret_concurrent_first_init_converges(tmp_path, monkeypatch) -
     (``O_CREAT | O_EXCL`` + read-the-winner with bounded retry), so every racer
     returns the ONE key that is persisted on disk.
     """
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
     assert not key_file.exists()
 
@@ -1149,9 +1149,9 @@ def test_signing_secret_read_contention_retries_not_ephemeral(tmp_path, monkeypa
     """
     import pathlib
 
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
     persisted = b"K" * 48  # a valid, already-persisted key (>= 32 bytes)
     key_file.write_bytes(persisted)
@@ -1188,9 +1188,9 @@ def test_signing_secret_create_contention_retries_not_ephemeral(tmp_path, monkey
     """
     from windows_sim import open_sharing_violation
 
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
 
     # Fault the FIRST exclusive-create of the key file; the retry must succeed.
@@ -1218,9 +1218,9 @@ def test_signing_secret_binary_write_survives_windows_text_mode(tmp_path, monkey
     """
     from windows_sim import windows_text_mode_write
 
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
 
     # A deterministic 32-byte key that CONTAINS 0x0A (LF) at index 10, so a
@@ -1251,9 +1251,9 @@ def test_signing_secret_existing_file_never_overwritten(tmp_path, monkeypatch) -
     untouched, so restarts / sibling instances keep signing with the identical
     key.
     """
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
     original = b"K" * 48  # deterministic, >= 32 bytes
     key_file.write_bytes(original)
@@ -1288,9 +1288,9 @@ def test_signing_secret_write_failure_cleans_up_incomplete_file(tmp_path, monkey
     deleted) before degrading to an ephemeral secret, so the NEXT init can
     create a valid, persisted key.
     """
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
     assert not key_file.exists()
 
@@ -1351,9 +1351,9 @@ def test_signing_secret_incomplete_file_not_deleted_if_replaced(tmp_path, monkey
     subsequent create would leave. The cleanup's ``os.lstat`` identity check
     must see the mismatch and leave the sibling's key untouched.
     """
-    from kiro_crew.dashboard import token_secret as ts
+    from junction.dashboard import token_secret as ts
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     key_file = tmp_path / ts._SECRET_KEY_FILE
     sibling_key = b"S" * 48  # distinct, valid (>= 32 bytes)
 
@@ -1383,7 +1383,7 @@ def test_signing_secret_incomplete_file_not_deleted_if_replaced(tmp_path, monkey
 
 def test_evict_expired_removes_old_entries() -> None:
     """Verify evict_expired removes expired IP bindings, consumed tokens, and nonces."""
-    from kiro_crew.dashboard.token_auth import _state
+    from junction.dashboard.token_auth import _state
 
     # Generate a token and bind IP / mark consumed
     token = generate_token("evict_user")
@@ -1565,7 +1565,7 @@ def test_no_get_route_outside_shell_exclusions() -> None:
     import os
     import re as _re
 
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     server_path = os.path.join(os.path.dirname(ta.__file__), "server.py")
     source = open(server_path, encoding="utf-8").read()
@@ -1637,7 +1637,7 @@ async def test_invalid_token_shell_serve_emits_distinct_sel_outcome(monkeypatch)
     outcome so anomaly detection still flags credential-forgery probing on GET
     navigations. Pins the observability signal: fails if the outcome reverts
     to "ok"."""
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     calls: list[dict] = []
 
@@ -1711,7 +1711,7 @@ async def test_non_local_accepts_valid_token() -> None:
 )
 async def test_dashboard_url_host_selection(dashboard_url: str, expected_host: str) -> None:
     """!dashboard sends presigned link via DM, never in channel."""
-    from kiro_crew.slack.handler import _handle_slash_command
+    from junction.slack.handler import _handle_slash_command
 
     slack = MagicMock()
     slack.post_message = AsyncMock(return_value=None)
@@ -1725,15 +1725,15 @@ async def test_dashboard_url_host_selection(dashboard_url: str, expected_host: s
 
     expected_port = 8080 if dashboard_url else 5476
 
-    # Unset KIROCREW_PORT so parse_dashboard_url (which reads os.environ at
+    # Unset JUNCTION_PORT so parse_dashboard_url (which reads os.environ at
     # call time) uses the port from the URL or the hard-coded default.
     with (
-        patch("kiro_crew.slack.allowlist.KiroCrewConfig.load", return_value=mock_cfg),
-        patch("kiro_crew.dashboard.origin.socket.gethostname", return_value="myhostname"),
-        patch("kiro_crew.dashboard.origin.socket.gethostbyname", return_value="10.0.0.1"),
-        patch("kiro_crew.dashboard.origin.socket.getaddrinfo", side_effect=socket.gaierror),
-        patch.dict(os.environ, {}, KIROCREW_PORT=""),
-        patch("kiro_crew.slack.allowlist.sel") as mock_sel,
+        patch("junction.slack.allowlist.JunctionConfig.load", return_value=mock_cfg),
+        patch("junction.dashboard.origin.socket.gethostname", return_value="myhostname"),
+        patch("junction.dashboard.origin.socket.gethostbyname", return_value="10.0.0.1"),
+        patch("junction.dashboard.origin.socket.getaddrinfo", side_effect=socket.gaierror),
+        patch.dict(os.environ, {}, JUNCTION_PORT=""),
+        patch("junction.slack.allowlist.sel") as mock_sel,
     ):
         mock_sel.return_value.log_api_access = MagicMock()
         await _handle_slash_command(
@@ -1759,7 +1759,7 @@ async def test_api_logout_success_from_loopback() -> None:
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.handlers import api_logout
+    from junction.dashboard.handlers import api_logout
 
     app = web.Application()
     app["local_secret"] = "test-secret-123"
@@ -1787,7 +1787,7 @@ async def test_api_logout_rejects_non_loopback() -> None:
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.handlers import api_logout
+    from junction.dashboard.handlers import api_logout
 
     app = web.Application()
     app["local_secret"] = "test-secret-123"
@@ -1795,7 +1795,7 @@ async def test_api_logout_rejects_non_loopback() -> None:
 
     async with TestClient(TestServer(app)) as client:
         # Patch is_loopback to return False (simulating non-loopback request)
-        with patch("kiro_crew.dashboard.handlers.is_loopback", return_value=False):
+        with patch("junction.dashboard.handlers.is_loopback", return_value=False):
             resp = await client.post(
                 "/api/logout",
                 json={},
@@ -1812,7 +1812,7 @@ async def test_api_logout_rejects_invalid_secret() -> None:
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.handlers import api_logout
+    from junction.dashboard.handlers import api_logout
 
     app = web.Application()
     app["local_secret"] = "correct-secret"
@@ -1835,7 +1835,7 @@ async def test_api_logout_rejects_missing_secret() -> None:
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.handlers import api_logout
+    from junction.dashboard.handlers import api_logout
 
     app = web.Application()
     app["local_secret"] = "correct-secret"
@@ -1860,13 +1860,13 @@ async def test_api_logout_success_revokes_sessions() -> None:
     from aiohttp import web
     from aiohttp.test_utils import TestClient, TestServer
 
-    from kiro_crew.dashboard.handlers import api_logout
+    from junction.dashboard.handlers import api_logout
 
     app = web.Application()
     app["local_secret"] = "correct-secret"
     app.router.add_post("/api/logout", api_logout)
 
-    with patch("kiro_crew.dashboard.token_auth.revoke_all_sessions") as mock_revoke:
+    with patch("junction.dashboard.token_auth.revoke_all_sessions") as mock_revoke:
         async with TestClient(TestServer(app)) as client:
             resp = await client.post(
                 "/api/logout",
@@ -1883,7 +1883,7 @@ async def test_api_logout_success_revokes_sessions() -> None:
 @pytest.mark.parametrize("duration_arg, expected_ttl", [("", 3600), ("2h", 7200), ("30m", 1800)])
 async def test_dashboard_sel_log(duration_arg: str, expected_ttl: int) -> None:
     """!dashboard logs SEL with operation='slack.dashboard_token', caller, and ttl."""
-    from kiro_crew.slack.handler import _handle_slash_command
+    from junction.slack.handler import _handle_slash_command
 
     slack = MagicMock()
     slack.post_message = AsyncMock(return_value=None)
@@ -1898,10 +1898,10 @@ async def test_dashboard_sel_log(duration_arg: str, expected_ttl: int) -> None:
     cmd_text = f"!dashboard {duration_arg}".strip()
 
     with (
-        patch("kiro_crew.slack.allowlist.KiroCrewConfig.load", return_value=mock_cfg),
-        patch("kiro_crew.dashboard.origin.socket.gethostname", return_value="myhostname"),
-        patch("kiro_crew.dashboard.origin.socket.gethostbyname", return_value="10.0.0.1"),
-        patch("kiro_crew.slack.allowlist.sel") as mock_sel,
+        patch("junction.slack.allowlist.JunctionConfig.load", return_value=mock_cfg),
+        patch("junction.dashboard.origin.socket.gethostname", return_value="myhostname"),
+        patch("junction.dashboard.origin.socket.gethostbyname", return_value="10.0.0.1"),
+        patch("junction.slack.allowlist.sel") as mock_sel,
     ):
         mock_log = MagicMock()
         mock_sel.return_value.log_api_access = mock_log
@@ -2025,7 +2025,7 @@ def test_revoked_cookie_survives_store_reload(tmp_path) -> None:
     reloaded = RevokedNonceStore(state_path=tmp_path / "token_revoked_nonces.json")
     import json
 
-    from kiro_crew.dashboard.token_auth import _b64url_decode
+    from junction.dashboard.token_auth import _b64url_decode
 
     nonce = json.loads(_b64url_decode(token.split(".")[0]))["nonce"]
     assert reloaded.is_revoked(nonce) is True
@@ -2041,8 +2041,8 @@ def test_revoked_store_locks_the_file_down_to_its_owner(tmp_path, monkeypatch) -
     that applies an owner-only DACL there and raises when it cannot — the same
     one the app-token secret in this module and ``token_secret.py`` already use.
     """
-    from kiro_crew import platform_compat
-    from kiro_crew.dashboard import token_auth as token_auth_mod
+    from junction import platform_compat
+    from junction.dashboard import token_auth as token_auth_mod
 
     locked: list[tuple[str, int]] = []
     real_restrict = platform_compat.restrict_to_owner
@@ -2129,7 +2129,7 @@ def test_app_owns_path_boundaries() -> None:
     assert not _app_owns_path("foo", "/api/apps/foo-bar/config")
     # Unrelated dashboard endpoints are never owned.
     assert not _app_owns_path("foo", "/api/sessions")
-    assert not _app_owns_path("foo", "/api/config/kirocrew")
+    assert not _app_owns_path("foo", "/api/config/junction")
 
 
 def test_app_token_path_allowed_empty_name_denies() -> None:
@@ -2140,7 +2140,7 @@ def test_app_token_path_allowed_empty_name_denies() -> None:
 @pytest.mark.asyncio
 async def test_app_token_denied_on_unscoped_endpoint(monkeypatch) -> None:
     """The pentest scenario: an app token hitting /api/sessions must be 403."""
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     monkeypatch.setattr(_ta, "_app_api_allowlist", lambda name: ())
     mw = token_auth_middleware()
@@ -2152,7 +2152,7 @@ async def test_app_token_denied_on_unscoped_endpoint(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_app_token_allowed_on_own_namespace(monkeypatch) -> None:
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     monkeypatch.setattr(_ta, "_app_api_allowlist", lambda name: ())
     mw = token_auth_middleware()
@@ -2164,7 +2164,7 @@ async def test_app_token_allowed_on_own_namespace(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_app_token_allowed_on_declared_api(monkeypatch) -> None:
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     monkeypatch.setattr(_ta, "_app_api_allowlist", lambda name: ("/api/widgets/*",))
     mw = token_auth_middleware()
@@ -2189,7 +2189,7 @@ async def test_app_token_denied_on_mixed_internal_path(monkeypatch) -> None:
     """Escalation guard: an app token on a mixed_internal path (e.g. /api/chat)
     over loopback must NOT be silently treated as the dashboard user. Before the
     fix this branch never set request['app'] and granted unconditionally."""
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     monkeypatch.setattr(_ta, "_app_api_allowlist", lambda name: ())
     mw = token_auth_middleware(mixed_internal_paths=frozenset({"/api/chat"}))
@@ -2210,7 +2210,7 @@ async def test_app_token_denied_on_strict_internal_path(monkeypatch) -> None:
     /api/send-message over loopback (no secret header) must be scope-denied —
     otherwise a compromised app could send notifications impersonating the
     system (app-sandbox-roadmap threat)."""
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     monkeypatch.setattr(_ta, "_app_api_allowlist", lambda name: ())
     mw = token_auth_middleware(internal_paths=frozenset({"/api/send-message"}))
@@ -2250,7 +2250,7 @@ async def test_url_token_exchanged_for_distinct_session_cookie() -> None:
     # … and the two tokens carry different nonces (independent sessions).
     import json as _json
 
-    from kiro_crew.dashboard.token_auth import _b64url_decode
+    from junction.dashboard.token_auth import _b64url_decode
 
     url_nonce = _json.loads(_b64url_decode(url_token.split(".")[0]))["nonce"]
     cookie_nonce = _json.loads(_b64url_decode(cookie.value.split(".")[0]))["nonce"]
@@ -2261,7 +2261,7 @@ async def test_url_token_exchanged_for_distinct_session_cookie() -> None:
 async def test_exchanged_cookie_preserves_app_claim() -> None:
     """If an app token ever arrives via the URL flow, the exchanged cookie must
     keep the ``app`` claim so app-scope enforcement continues to apply."""
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     monkeypatch_allow = lambda name: ("/api/anything/*",)  # noqa: E731
     _ta._app_perms_cache.clear()
@@ -2375,7 +2375,7 @@ async def test_served_shell_is_auth_independent() -> None:
     boundary. This test fails if the served body becomes request-dependent or
     starts carrying credential/state markers.
     """
-    import kiro_crew.dashboard.handlers.core as core
+    import junction.dashboard.handlers.core as core
 
     # Unauthenticated cold-start request vs an "authenticated-looking" one
     # (cookies + remote set). index() must ignore request state entirely.
@@ -2413,7 +2413,7 @@ async def test_index_serves_guidance_when_bundle_missing(tmp_path, monkeypatch) 
     served unauthenticated). The legacy dashboard.html fallback was removed
     (security-review); dist/index.html is the sole shell source.
     """
-    import kiro_crew.dashboard.handlers.core as core
+    import junction.dashboard.handlers.core as core
 
     # Point the React build index at a non-existent location so index() falls
     # into the FileNotFoundError -> guidance-page branch.
@@ -2453,7 +2453,7 @@ async def test_index_caches_html_and_rerereads_only_on_rebuild(tmp_path, monkeyp
     AND for the review finding that a process-lifetime cache would pin a
     pre-rebuild shell after a Vite rebuild rewrote the hashed asset refs.
     """
-    import kiro_crew.dashboard.handlers.core as core
+    import junction.dashboard.handlers.core as core
 
     fake_index = tmp_path / "index.html"
     fake_index.write_text("<html>spa-shell-v1</html>", encoding="utf-8")
@@ -2503,7 +2503,7 @@ async def test_index_missing_bundle_not_cached_recovers_when_dist_appears(
     """A FileNotFoundError must NOT be cached: once the bundle appears on disk
     the next request should serve it (self-healing after a dev build).
     """
-    import kiro_crew.dashboard.handlers.core as core
+    import junction.dashboard.handlers.core as core
 
     fake_index = tmp_path / "index.html"
     # Do NOT create the file yet — first request should get the fallback.
@@ -2539,7 +2539,7 @@ def test_extract_numeric_claim_returns_float_session_exp() -> None:
     """session_exp is a float claim; the string-only extract_claims_from_token
     dropped it (api_auth_me always saw 0.0, disabling frontend refresh). The
     numeric extractor must return the real float."""
-    from kiro_crew.dashboard.token_auth import extract_numeric_claim
+    from junction.dashboard.token_auth import extract_numeric_claim
 
     tok = generate_token("alice", ttl_seconds=3600)
     exp = extract_numeric_claim(tok, "session_exp")
@@ -2547,13 +2547,13 @@ def test_extract_numeric_claim_returns_float_session_exp() -> None:
     assert exp > time.time()  # a real future epoch, not 0.0
 
     # The string extractor still drops it (documents why the numeric one exists).
-    from kiro_crew.dashboard.token_auth import extract_claims_from_token
+    from junction.dashboard.token_auth import extract_claims_from_token
 
     assert extract_claims_from_token(tok, ("session_exp",)) == {}
 
 
 def test_extract_numeric_claim_rejects_invalid_missing_and_bool() -> None:
-    from kiro_crew.dashboard.token_auth import extract_numeric_claim
+    from junction.dashboard.token_auth import extract_numeric_claim
 
     tok = generate_token("bob", ttl_seconds=3600)
     assert extract_numeric_claim("garbage.sig", "session_exp") is None  # invalid token
@@ -2569,7 +2569,7 @@ def test_cookie_session_mint_does_not_evict_link_nonce() -> None:
     rotation; if it registered nonces it would churn/evict the bounded 50-slot
     set and drop pending Slack-challenge links. Mint > the 50-slot bound and
     assert the link token still validates on the link path."""
-    from kiro_crew.dashboard.token_auth import MAX_CONCURRENT_NONCES, validate_token
+    from junction.dashboard.token_auth import MAX_CONCURRENT_NONCES, validate_token
 
     # A real one-time link token (registers a nonce, validated on the link path).
     link = generate_token("carol", ttl_seconds=3600)
@@ -2599,7 +2599,7 @@ def test_api_auth_refresh_mints_session_token_without_nonce_registration() -> No
     nonces). Asserts against the handler source so a revert is caught."""
     import inspect
 
-    from kiro_crew.dashboard.handlers.auth_refresh import api_auth_refresh
+    from junction.dashboard.handlers.auth_refresh import api_auth_refresh
 
     src = inspect.getsource(api_auth_refresh)
     assert "register_nonce=False" in src
@@ -2676,7 +2676,7 @@ def test_warm_auth_singletons_primes_both_off_loop(monkeypatch) -> None:
     """
     import asyncio
 
-    import kiro_crew.dashboard.token_auth as _ta
+    import junction.dashboard.token_auth as _ta
 
     calls = {"secret": 0, "store": 0}
     real_secret = _ta._get_secret
@@ -2713,7 +2713,7 @@ def test_middleware_factory_does_no_blocking_warmup() -> None:
     substring presence."""
     import inspect
 
-    from kiro_crew.dashboard.token_auth import (
+    from junction.dashboard.token_auth import (
         token_auth_middleware,
         warm_auth_singletons,
     )
@@ -2735,7 +2735,7 @@ def test_start_paths_warm_auth_singletons_off_loop() -> None:
     before the middleware chain is built."""
     import inspect
 
-    from kiro_crew.dashboard import server as _srv
+    from junction.dashboard import server as _srv
 
     for fn in (_srv.start_dashboard, _srv.start_api_server):
         src = inspect.getsource(fn)
@@ -2755,7 +2755,7 @@ def test_ambiguous_app_and_window_names_cannot_collide(tmp_path) -> None:
     has removes the class rather than handling it — this pins that, using the
     exact pair that was the counter-example.
     """
-    from kiro_crew.dashboard.server import discover_app_window_entries
+    from junction.dashboard.server import discover_app_window_entries
 
     root = tmp_path / "src" / "apps"
     (root / "foo").mkdir(parents=True)
@@ -2789,7 +2789,7 @@ def test_app_window_entries_register_route_and_exclusion(tmp_path) -> None:
     """
     from aiohttp import web
 
-    import kiro_crew.dashboard.token_auth as ta
+    import junction.dashboard.token_auth as ta
 
     # Fixture dist: one app with two windows, one unrelated non-html file.
     win = tmp_path / "src" / "apps" / "someapp"
@@ -2802,7 +2802,7 @@ def test_app_window_entries_register_route_and_exclusion(tmp_path) -> None:
     # construction: the previous form duplicated it, and duplicated it in the
     # OLD flat shape, so it kept passing after the scheme changed and asserted
     # nothing about what the gateway actually registers.
-    from kiro_crew.dashboard.server import (
+    from junction.dashboard.server import (
         _window_entry_handler,
         discover_app_window_entries,
     )
@@ -2843,7 +2843,7 @@ def test_app_window_entries_register_route_and_exclusion(tmp_path) -> None:
 
 
 def _tailnet_trust(**kw):
-    from kiro_crew.dashboard.tailnet import TailnetTrust
+    from junction.dashboard.tailnet import TailnetTrust
 
     defaults = dict(trust_identity=True, allowed_logins=("you@example.com",), pin_scope="node")
     defaults.update(kw)
@@ -2857,7 +2857,7 @@ def _whois_payload(login: str = "you@example.com", node: str = "phone.tail.ts.ne
 @pytest.fixture()
 def _tailnet_env(monkeypatch):
     """Clear the whois cache and hand back a patch hook for its result."""
-    from kiro_crew.dashboard import tailnet
+    from junction.dashboard import tailnet
 
     monkeypatch.setattr(tailnet, "IS_POSIX", True)
     tailnet._whois_cache.clear()
@@ -2890,7 +2890,7 @@ async def test_verified_peer_session_pins_to_identity_key(_tailnet_env) -> None:
     """A verified tailnet peer's session binds ts:node:<login>|<node>, not the
     tunnel's loopback address — and it is per-client, so posture must not
     report SHARED for it."""
-    from kiro_crew.dashboard import token_auth as _ta
+    from junction.dashboard import token_auth as _ta
 
     _tailnet_env(_whois_payload())
     mw = token_auth_middleware(tailnet_trust=_tailnet_trust())
@@ -2902,7 +2902,7 @@ async def test_verified_peer_session_pins_to_identity_key(_tailnet_env) -> None:
     key, _exp, proxied = _ta._state._peer_bindings[cookie.value]
     assert key == "ts:node:you@example.com|phone.tail.ts.net"
     assert proxied is False
-    from kiro_crew.dashboard.token_auth import proxied_pin_observed
+    from junction.dashboard.token_auth import proxied_pin_observed
 
     assert proxied_pin_observed() is False
 
@@ -2914,7 +2914,7 @@ async def test_node_scope_replay_from_another_node_denied_with_device_reason(
     """A node-pinned session replayed from a different node in the same tailnet
     is rejected, and the reason names DEVICE identity — a phone re-enrolling
     Tailscale must not surface as an unexplained 'IP mismatch'."""
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(_whois_payload(node="other-node.tail.ts.net"))
     mw = token_auth_middleware(tailnet_trust=_tailnet_trust())
@@ -2931,7 +2931,7 @@ async def test_node_scope_replay_from_another_node_denied_with_device_reason(
 async def test_login_scope_replay_from_another_node_is_accepted(_tailnet_env) -> None:
     """Under pin_scope login the same replay is accepted — the two scopes are
     separately pinned, so neither silently becomes the other."""
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(_whois_payload(node="other-node.tail.ts.net"))
     mw = token_auth_middleware(tailnet_trust=_tailnet_trust(pin_scope="login"))
@@ -2944,7 +2944,7 @@ async def test_login_scope_replay_from_another_node_is_accepted(_tailnet_env) ->
 
 @pytest.mark.asyncio
 async def test_login_scope_replay_with_different_login_is_denied(_tailnet_env) -> None:
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(_whois_payload(login="other@example.com"))
     mw = token_auth_middleware(
@@ -2979,7 +2979,7 @@ async def test_tagged_node_session_not_replayable_from_second_tagged_node(
     """allowed_logins containing 'tagged-devices' under pin_scope login must not
     let one tagged node replay another's session: the pin is forced to node
     scope for tagged nodes."""
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(_whois_payload(login="tagged-devices", node="ci-b.tail.ts.net"))
     mw = token_auth_middleware(
@@ -2998,7 +2998,7 @@ async def test_tagged_node_session_not_replayable_from_second_tagged_node(
 async def test_xff_injection_from_non_loopback_peer_gets_ip_pin(_tailnet_env) -> None:
     """A remote client spraying X-Forwarded-For never resolves a peer: the
     session pins to its real address and the daemon is never consulted."""
-    from kiro_crew.dashboard import token_auth as _ta
+    from junction.dashboard import token_auth as _ta
 
     whois = _tailnet_env(_whois_payload())
     mw = token_auth_middleware(tailnet_trust=_tailnet_trust())
@@ -3014,7 +3014,7 @@ async def test_xff_injection_from_non_loopback_peer_gets_ip_pin(_tailnet_env) ->
 async def test_daemon_failure_degrades_to_token_ip_path(_tailnet_env) -> None:
     """Daemon absent/down/timeout → request proceeds on today's token+IP path:
     fail-closed on identity, fail-open on availability."""
-    from kiro_crew.dashboard import token_auth as _ta
+    from junction.dashboard import token_auth as _ta
 
     _tailnet_env(None)  # every whois outcome collapses to None at this seam
     mw = token_auth_middleware(tailnet_trust=_tailnet_trust())
@@ -3031,8 +3031,8 @@ async def test_daemon_failure_degrades_to_token_ip_path(_tailnet_env) -> None:
 async def test_non_tailscale_tunnel_behaviour_is_unchanged(_tailnet_env) -> None:
     """Loopback peer + XFF with identity trust OFF: byte-for-byte today's
     behaviour — pin ip:127.0.0.1, posture SHARED, no daemon call."""
-    from kiro_crew.dashboard import token_auth as _ta
-    from kiro_crew.dashboard.token_auth import proxied_pin_observed
+    from junction.dashboard import token_auth as _ta
+    from junction.dashboard.token_auth import proxied_pin_observed
 
     whois = _tailnet_env(_whois_payload())
     mw = token_auth_middleware()  # tailnet_trust=None: every non-Tailscale setup
@@ -3094,7 +3094,7 @@ async def test_internal_mixed_path_enforces_the_peer_pin(_tailnet_env) -> None:
     """A node-pinned session replayed from another node against a mixed
     internal path (/api/spawn-style cookie auth) is denied — the internal
     branches must not skip the pin the main flow enforces."""
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(_whois_payload(node="other-node.tail.ts.net"))
     mw = token_auth_middleware(
@@ -3113,7 +3113,7 @@ async def test_internal_mixed_path_enforces_the_peer_pin(_tailnet_env) -> None:
 
 @pytest.mark.asyncio
 async def test_internal_mixed_path_accepts_the_matching_peer(_tailnet_env) -> None:
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(_whois_payload())
     mw = token_auth_middleware(
@@ -3136,7 +3136,7 @@ async def test_identity_pinned_session_with_daemon_down_names_unavailability(
     """A ts:-pinned session checked while NO peer resolves is denied with a
     reason naming the unverified identity — not 'device identity mismatch',
     which would tell the user their device changed when the daemon blipped."""
-    from kiro_crew.dashboard.token_auth import bind_token_peer
+    from junction.dashboard.token_auth import bind_token_peer
 
     _tailnet_env(None)  # daemon unreachable
     mw = token_auth_middleware(tailnet_trust=_tailnet_trust())
@@ -3154,7 +3154,7 @@ async def test_restart_first_use_repins_verified_peer_cookie(_tailnet_env) -> No
     """After a gateway restart the in-memory binding map is empty, so a
     surviving cookie is unbound. The first request carrying a VERIFIED peer
     identity re-claims the pin; a replay from another node is denied again."""
-    from kiro_crew.dashboard import token_auth as _ta
+    from junction.dashboard import token_auth as _ta
 
     set_whois = _tailnet_env
     set_whois(_whois_payload())
@@ -3181,7 +3181,7 @@ async def test_restart_repin_covers_internal_mixed_paths(_tailnet_env) -> None:
     """The first-use re-pin lives in the shared check, so an unbound cookie
     presented on a mixed internal route also claims the pin — a later replay
     from another node is denied there too."""
-    from kiro_crew.dashboard import token_auth as _ta
+    from junction.dashboard import token_auth as _ta
 
     set_whois = _tailnet_env
     set_whois(_whois_payload())
@@ -3209,7 +3209,7 @@ async def test_restart_unbound_cookie_without_peer_keeps_todays_semantics(
 ) -> None:
     """No verified peer (trust off): an unbound cookie stays unbound — the
     pre-identity restart behaviour is byte-for-byte preserved."""
-    from kiro_crew.dashboard import token_auth as _ta
+    from junction.dashboard import token_auth as _ta
 
     _tailnet_env(_whois_payload())
     mw = token_auth_middleware()  # trust off
@@ -3231,7 +3231,7 @@ def test_app_token_path_allowed_implicit_ws():
     Functional paths must still be declared, so the negative case is asserted
     alongside.
     """
-    from kiro_crew.dashboard.token_auth import app_token_path_allowed
+    from junction.dashboard.token_auth import app_token_path_allowed
 
     assert app_token_path_allowed("some-app", "/api/ws") is True
     assert app_token_path_allowed("some-app", "/api/status") is False

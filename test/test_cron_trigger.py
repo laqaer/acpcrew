@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.cron_trigger import trigger_cron_job
-from kiro_crew.mcp_cron import _call_tool_inner
+from junction.cron_trigger import trigger_cron_job
+from junction.mcp_cron import _call_tool_inner
 
 # ── Fixtures ──
 
@@ -221,9 +221,9 @@ class TestCronTriggerMCP:
 
     def test_trigger_success(self, mock_dashboard, monkeypatch):
         port, cfg_dir = mock_dashboard
-        monkeypatch.setenv("KIROCREW_HOME", str(cfg_dir))
-        from kiro_crew import mcp_cron
-        from kiro_crew.cron import CronService
+        monkeypatch.setenv("JUNCTION_HOME", str(cfg_dir))
+        from junction import mcp_cron
+        from junction.cron import CronService
 
         # The ownership gate reads the stored row, so the job has to exist and be
         # owned by this caller. It used to be reachable without either, because an
@@ -246,9 +246,9 @@ class TestCronTriggerMCP:
         assert "executing now" in result
 
     def test_trigger_invalid_id(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-        from kiro_crew import mcp_cron
-        from kiro_crew.config import loader
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+        from junction import mcp_cron
+        from junction.config import loader
         orig_port = loader.DASHBOARD_PORT
         loader.DASHBOARD_PORT = 19999
         try:
@@ -266,16 +266,16 @@ class TestCronTriggerCLI:
     """Tests for the CLI cron trigger subcommand."""
 
     def test_cli_subcommand_registered(self):
-        """kirocrew cron trigger is a recognized subcommand with job_id argument."""
+        """junction cron trigger is a recognized subcommand with job_id argument."""
         # Verify the handler accepts "trigger" action without crashing
         import argparse
 
-        from kiro_crew.cli_commands import _cron
+        from junction.cli_commands import _cron
         args = argparse.Namespace(cron_action="trigger", job_id="abc12345")
         # Will fail with connection error (no gateway) but proves the action is recognized
         from pathlib import Path
         from unittest.mock import patch as _patch
-        with _patch("kiro_crew.cli_commands.config_dir", return_value=Path("/tmp/nonexistent")):
+        with _patch("junction.cli_commands.config_dir", return_value=Path("/tmp/nonexistent")):
             _cron(args)
         # If we get here without "Usage:" being printed, the action was recognized
 
@@ -283,16 +283,16 @@ class TestCronTriggerCLI:
         """CLI trigger prints success message."""
         import argparse
 
-        from kiro_crew.cli_commands import _cron
+        from junction.cli_commands import _cron
 
         port, cfg_dir = mock_dashboard
         args = argparse.Namespace(cron_action="trigger", job_id="abc12345")
 
         from unittest.mock import patch as _patch
 
-        with _patch("kiro_crew.cli_commands.config_dir", return_value=cfg_dir), \
+        with _patch("junction.cli_commands.config_dir", return_value=cfg_dir), \
              _patch(
-                 "kiro_crew.cli_commands.resolve_client_port_ex",
+                 "junction.cli_commands.resolve_client_port_ex",
                  lambda _cli: (port, True),
              ):
             _cron(args)
@@ -305,19 +305,19 @@ class TestCronTriggerCLI:
         """CLI rejects malformed job IDs."""
         import argparse
 
-        from kiro_crew.cli_commands import _cron
+        from junction.cli_commands import _cron
 
         args = argparse.Namespace(cron_action="trigger", job_id="../evil")
 
         from pathlib import Path
         from unittest.mock import patch as _patch
 
-        from kiro_crew.config import loader
+        from junction.config import loader
 
         orig_port = loader.DASHBOARD_PORT
         loader.DASHBOARD_PORT = 19999
         try:
-            with _patch("kiro_crew.cli_commands.config_dir", return_value=Path("/tmp")):
+            with _patch("junction.cli_commands.config_dir", return_value=Path("/tmp")):
                 _cron(args)
         finally:
             loader.DASHBOARD_PORT = orig_port
@@ -333,13 +333,13 @@ class TestCronTriggerToolDefinition:
     """Verify cron_trigger appears in tool list with correct schema."""
 
     def test_tool_listed(self):
-        from kiro_crew.mcp_cron import _list_tools
+        from junction.mcp_cron import _list_tools
         tools = _list_tools()
         names = [t["name"] for t in tools]
         assert "cron_trigger" in names
 
     def test_tool_schema(self):
-        from kiro_crew.mcp_cron import _list_tools
+        from junction.mcp_cron import _list_tools
         tools = _list_tools()
         trigger = next(t for t in tools if t["name"] == "cron_trigger")
         assert "job_id" in trigger["inputSchema"]["properties"]

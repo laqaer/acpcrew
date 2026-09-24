@@ -22,14 +22,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from tmpdir_helpers import short_tmp_base
 
-from kiro_crew.dashboard.chat_runner import (
+from junction.dashboard.chat_runner import (
     _MAX_SNAPSHOT,
     _flush_file_changes,
     _safe_read_snapshot,
     _snapshot_write_target,
     _truncate_snapshot,
 )
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard.state import _ChatSlot
 
 
 @pytest.fixture
@@ -561,7 +561,7 @@ class TestStrReplaceFullBeforeReconstruction:
     def test_post_read_size_recheck_declines(self, tmp_path: Path, monkeypatch):
         """The stat() gate races with an external writer growing the file;
         the post-read length re-check keeps the substring scans bounded."""
-        import kiro_crew.dashboard.chat_runner as cr
+        import junction.dashboard.chat_runner as cr
 
         f = tmp_path / "grown.txt"
         f.write_text("NEW\n")  # passes the stat gate
@@ -641,7 +641,7 @@ class TestStrReplaceFullBeforeReconstruction:
         """Server review finding: the synchronous reconstruction read runs on
         the event loop — files past _MAX_RECONSTRUCT_BYTES decline and fall
         through to the fragment chain instead of stalling the loop."""
-        import kiro_crew.dashboard.chat_runner as cr
+        import junction.dashboard.chat_runner as cr
 
         f = tmp_path / "big.txt"
         f.write_text("payload NEW payload\n")

@@ -36,7 +36,7 @@ def main(argv: list[str]) -> int:
     # Import from the source tree so this runs in a build-only environment (the
     # CI lanes install `build` and the frontend toolchain, not the runtime deps).
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-    from kiro_crew.embeddings import _LIBS_DIR_NAME, _REQUIRED_VENDORED_LIBS
+    from junction.embeddings import _LIBS_DIR_NAME, _REQUIRED_VENDORED_LIBS
 
     try:
         wheel = next(iter(sorted(dist.glob("*.whl"))))
@@ -54,7 +54,7 @@ def main(argv: list[str]) -> int:
     failures: list[str] = []
     for plat, required in sorted(_REQUIRED_VENDORED_LIBS.items()):
         for name in required:
-            rel = f"kiro_crew/_vendor/{_LIBS_DIR_NAME}/{plat}/{name}"
+            rel = f"junction/_vendor/{_LIBS_DIR_NAME}/{plat}/{name}"
             if rel not in wheel_names:
                 failures.append(f"{wheel.name}: missing {rel}")
             if f"{prefix}/src/{rel}" not in sdist_names:

@@ -57,10 +57,10 @@ function invalidateRefreshQueries(qc: QueryClient): void {
   qc.invalidateQueries({ queryKey: ['sessions-usage'] })
   qc.invalidateQueries({ queryKey: ['agents-installed'] })
   qc.invalidateQueries({ queryKey: ['mcp-tools'] })
-  qc.invalidateQueries({ queryKey: ['kirocrew-agents'] })
+  qc.invalidateQueries({ queryKey: ['junction-agents'] })
   qc.invalidateQueries({ queryKey: ['default-agent'] })
   qc.invalidateQueries({ queryKey: ['workspaces'] })
-  qc.invalidateQueries({ queryKey: ['kirocrewConfig'] })
+  qc.invalidateQueries({ queryKey: ['junctionConfig'] })
 }
 
 /** Single multiplexed WebSocket replacing all SSE + polling connections. */
@@ -932,7 +932,7 @@ export function useWebSocket() {
                 // dirty one keeps its cached content; neither needs the eviction,
                 // and a genuine refetch 404s on its own because the artifact is
                 // gone server-side.
-                window.dispatchEvent(new CustomEvent('kirocrew:artifact-deleted', { detail: { slug } }))
+                window.dispatchEvent(new CustomEvent('junction:artifact-deleted', { detail: { slug } }))
               } else if (isArtifactEditing(slug)) {
                 // A human has an unsaved buffer open on this artifact. Refetching
                 // would move the editor's baseline while the buffer keeps the older
@@ -989,7 +989,7 @@ export function useWebSocket() {
               // Notification; an uncaught throw here kills the whole message
               // handler, so the native toast is best-effort.
               try {
-                new Notification(i18nT('hooks.useWebSocket.approval_required'), { body: data.tool || i18nT('hooks.useWebSocket.a_task_needs_your_decision'), tag: 'kirocrew-approval' })
+                new Notification(i18nT('hooks.useWebSocket.approval_required'), { body: data.tool || i18nT('hooks.useWebSocket.a_task_needs_your_decision'), tag: 'junction-approval' })
               } catch {
                 /* unsupported platform */
               }
@@ -1200,7 +1200,7 @@ export function useWebSocket() {
             // Re-broadcast BEFORE the store dispatches: ChatPage opens the Browser
             // panel from this event, and a reducer that throws on a malformed
             // payload must not also cost the panel its only signal.
-            window.dispatchEvent(new CustomEvent('kirocrew-tool-call', { detail: data }))
+            window.dispatchEvent(new CustomEvent('junction-tool-call', { detail: data }))
             dispatch(sseToolActivity({ ...data as { slot: string; tool: string; kind: string; purpose: string; input_preview: string; is_shell?: boolean }, auto: (data as Record<string, unknown>).auto === true, tool_call_id: (data as Record<string, unknown>).tool_call_id as string | undefined, is_update: (data as Record<string, unknown>).is_update === true, is_shell: (data as Record<string, unknown>).is_shell === true }))
             if (data.slot) {
               // A refinement (`is_update`) carries only the fields it refines,
@@ -1590,7 +1590,7 @@ export function useWebSocket() {
           case 'channel_closed':
           case 'channel_agent_joined':
           case 'channel_agent_left':
-            window.dispatchEvent(new CustomEvent('kirocrew-channel', { detail: { type, data } }))
+            window.dispatchEvent(new CustomEvent('junction-channel', { detail: { type, data } }))
             break
           case 'cron_history':
             window.dispatchEvent(new CustomEvent('cron_history', { detail: data }))
@@ -1641,7 +1641,7 @@ export function useWebSocket() {
             // screenshot-denying ceiling). Same window-event routing as above so
             // ComputerUseLiveView needs no Redux slice.
             window.dispatchEvent(
-              new CustomEvent('kirocrew-computer-use-frame', { detail: data }),
+              new CustomEvent('junction-computer-use-frame', { detail: data }),
             )
             break
         }

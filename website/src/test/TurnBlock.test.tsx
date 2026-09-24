@@ -171,8 +171,8 @@ describe('TurnBlock — renderable content stays visible in collapseAll mode', (
 describe('TurnBlock — spawn_run launch visibility', () => {
   const SPAWN_OUTPUT = [
     'Spawned 2 subagent(s). Results will arrive as completion events:',
-    '  1713e7d0 (kirocrew): read the specs',
-    '  5c15adde (kirocrew): read the code',
+    '  1713e7d0 (junction): read the specs',
+    '  5c15adde (junction): read the code',
   ].join('\n')
 
   const spawnItem = (idx: number): TurnItem => ({

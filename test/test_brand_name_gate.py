@@ -339,7 +339,7 @@ class TestScope:
         assert not gate.in_scope("node_modules/foo/README.md")
         assert not gate.in_scope("assets/banner.png")
         assert not gate.in_scope("scripts/check_brand_name.py")
-        assert not gate.in_scope("src/kiro_crew/_vendor/libggml-base.so.0")
+        assert not gate.in_scope("src/junction/_vendor/libggml-base.so.0")
         assert not gate.in_scope("website/electron/package.json")
         assert gate.in_scope("README.md")
 
@@ -350,7 +350,7 @@ class TestScope:
             "website/src/i18n/locales/de.json",
             "website/src/i18n/locales/zh-CN.json",
             "website/src/i18n/locales/en-XA.json",
-            "src/kiro_crew/data/tips_catalog.json",
+            "src/junction/data/tips_catalog.json",
         ):
             assert gate.in_scope(path), path
             assert not gate.enforced(path), path
@@ -360,17 +360,17 @@ class TestScope:
             "website/src/i18n/locales/en.json",
             "website/src/i18n/locales/en.manual.json",
             "website/src/i18n/glossary.json",
-            "src/kiro_crew/docs/skills.md",
+            "src/junction/docs/skills.md",
         ):
             assert gate.enforced(path), path
 
     def test_enforced_is_never_wider_than_in_scope(self) -> None:
         for path in (
             "website/package-lock.json",
-            "src/kiro_crew/_vendor/x.so.0",
+            "src/junction/_vendor/x.so.0",
             "website/electron/package.json",
             "website/src/i18n/locales/de.json",
-            "src/kiro_crew/data/tips_catalog.json",
+            "src/junction/data/tips_catalog.json",
         ):
             assert not (gate.enforced(path) and not gate.in_scope(path)), path
 

@@ -1,7 +1,7 @@
 """Invariants of the shared part-to-disk path.
 
 Every test here pins a property that a blocking review finding was filed
-against. `kiro_crew.dashboard.part_stream`'s docstring carries the ledger; this
+against. `junction.dashboard.part_stream`'s docstring carries the ledger; this
 file is the executable half of it, so a future refactor that reintroduces any of
 the seven defects fails here rather than in a review round.
 """
@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.dashboard import part_stream
-from kiro_crew.dashboard.part_stream import (
+from junction.dashboard import part_stream
+from junction.dashboard.part_stream import (
     PartContentMismatch,
     PartTooLarge,
     _TempSink,

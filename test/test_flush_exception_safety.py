@@ -32,8 +32,8 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
-from kiro_crew.dashboard import chat_runner
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard import chat_runner
+from junction.dashboard.state import _ChatSlot
 
 
 class _Boom(RuntimeError):
@@ -197,7 +197,7 @@ class TestSeam2FinishQueueCycle:
         with (
             patch.object(type(slot), "flush_deferred_notes", _raising_flush()),
             # _finish_queue_cycle fire-and-forgets generate_session_summary, which
-            # hands KiroCrewConfig.load to asyncio.to_thread -- a thread that would
+            # hands JunctionConfig.load to asyncio.to_thread -- a thread that would
             # outlive this test and read the operator's real config after teardown
             # has restored the data-home environment.
             patch.object(chat_runner, "generate_session_summary", new=AsyncMock()),
@@ -224,9 +224,9 @@ class TestSeam3StageLoopFinally:
     ):
         """A raise inside a ``finally`` skips the rest of it AND masks any
         in-flight exception, so this is the worst-placed of the three."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat import _stage_loop
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.chat_orchestrator.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat import _stage_loop
 
         state = MagicMock()
         state.broadcast_ws = MagicMock()
@@ -242,7 +242,7 @@ class TestSeam3StageLoopFinally:
         async def _noop(s, sl, msg, **kw):
             return None
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _noop)
+        monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _noop)
 
         with patch.object(type(slot), "flush_deferred_notes", _raising_flush()):
             await _stage_loop(state, slot, auto_run=True)
@@ -280,7 +280,7 @@ class TestSeam4BulkCleanup:
         key in ``archived``: data loss reported as success. The flush shares the
         archive-save's ``except`` arm instead, so the slot comes back with its
         note still held and the key is reported in ``failed``."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = self._stale(state, "stale-flush")
         _hold(slot, "held note")
@@ -303,7 +303,7 @@ class TestSeam4BulkCleanup:
     ):
         """The flush is inside the ``for name in stale_keys`` loop, so an
         unguarded raise also abandons every slot after the failing one."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         for key in ("stale-a", "stale-b", "stale-c"):
             self._stale(state, key)

@@ -65,8 +65,8 @@ describe("chooseRecoveryStrategy", () => {
 describe("classifyAdoptedGateway", () => {
   // Positive identification requires BOTH same-family health AND a local
   // LISTEN owner — anything less stays "none" (never-kill/never-respawn).
-  it("classifies a same-family kirocrew-owned holder as reused-local", () => {
-    assert.equal(classifyAdoptedGateway({ reason: "same-family", localOwner: "kirocrew" }), "reused-local");
+  it("classifies a same-family junction-owned holder as reused-local", () => {
+    assert.equal(classifyAdoptedGateway({ reason: "same-family", localOwner: "junction" }), "reused-local");
   });
 
   it("classifies a same-family service-owned holder as reused-service", () => {
@@ -80,7 +80,7 @@ describe("classifyAdoptedGateway", () => {
   });
 
   it("stays none without the same-family health identification", () => {
-    assert.equal(classifyAdoptedGateway({ reason: "healthy", localOwner: "kirocrew" }), "none");
+    assert.equal(classifyAdoptedGateway({ reason: "healthy", localOwner: "junction" }), "none");
     assert.equal(classifyAdoptedGateway({ reason: undefined, localOwner: "service" }), "none");
   });
 
@@ -88,7 +88,7 @@ describe("classifyAdoptedGateway", () => {
   // positively-identified local adoption gets the bounded strategy, an
   // unidentified one keeps the indefinite external reconnect.
   it("composes with chooseRecoveryStrategy end to end", () => {
-    const local = classifyAdoptedGateway({ reason: "same-family", localOwner: "kirocrew" });
+    const local = classifyAdoptedGateway({ reason: "same-family", localOwner: "junction" });
     assert.equal(chooseRecoveryStrategy({ gatewayOwnership: local }), "reconnect-bounded");
     const external = classifyAdoptedGateway({ reason: "same-family", localOwner: "none" });
     assert.equal(chooseRecoveryStrategy({ gatewayOwnership: external }), "reconnect");

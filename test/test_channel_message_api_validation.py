@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiohttp import web
 
-from kiro_crew.channel import ChannelManager
-from kiro_crew.dashboard.handlers_channel import api_channel_post
+from junction.channel import ChannelManager
+from junction.dashboard.handlers_channel import api_channel_post
 
 
 def _request(manager: ChannelManager, body: dict, channel_id: str) -> MagicMock:

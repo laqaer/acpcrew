@@ -6,7 +6,7 @@
       "session_expired": "Session expired.",
       "session_expired_sign_in_again": "Session expired. Run junction token in a terminal, then paste the URL into the banner at the top of this page to sign back in.",
       "stale_owner_session": "This session predates the configured owner. Sign in again.",
-      "stale_owner_session_sign_in_again": "This session predates the configured owner (it was signed in before KIROCREW_OWNER_ID was set). Run junction token in a terminal, then paste the URL into the banner at the top of this page to sign back in.",
+      "stale_owner_session_sign_in_again": "This session predates the configured owner (it was signed in before JUNCTION_OWNER_ID was set). Run junction token in a terminal, then paste the URL into the banner at the top of this page to sign back in.",
       "stream_ended_without_completion": "Stream ended without completion",
       "unexpected_server_response": "Unexpected server response"
     }
@@ -48,7 +48,7 @@
     "view_full_changelog": "▸ View Full Changelog",
     "star_us": "Star us",
     "report_issue": "Report issue",
-    "star_kirocrew_on_github": "Star {{productName}} on GitHub",
+    "star_junction_on_github": "Star {{productName}} on GitHub",
     "click_to_collapse_readouts": "click to collapse readouts",
     "click_to_expand_readouts": "click to expand readouts",
     "gateway_offline_reconnecting": "Gateway offline — reconnecting",
@@ -1268,13 +1268,13 @@
       "import_all_your_supported_work_or_handpick_what": "Import all your supported work or handpick what to bring over.",
       "import_complete": "Import complete",
       "import_selected": "Import selected",
-      "kiro_crew_found_agent_setup_on_this_gateway_host": "{{productName}} found agent setup on this gateway host. Select the sources to review.",
+      "junction_found_agent_setup_on_this_gateway_host": "{{productName}} found agent setup on this gateway host. Select the sources to review.",
       "review_import": "Review import",
-      "review_the_merge_before_kiro_crew_changes_local": "Review the merge before {{productName}} changes local setup.",
+      "review_the_merge_before_junction_changes_local": "Review the merge before {{productName}} changes local setup.",
       "select_items_to_import": "Select items to import",
       "the_gateway_returned_an_unexpected_error": "The gateway returned an unexpected error.",
       "the_import_did_not_finish_please_try_again": "The import did not finish. Please try again.",
-      "your_selected_setup_is_ready_in_kiro_crew": "Your selected setup is ready in {{productName}}."
+      "your_selected_setup_is_ready_in_junction": "Your selected setup is ready in {{productName}}."
     },
     "appHost": {
       "not_installed": "\"{{name}}\" is not installed"
@@ -1307,7 +1307,7 @@
         "all_apps": "All apps"
       },
       "installedAppCard": {
-        "app_cannot_be_opened_kirocrew_is_running_in_a_he": "App cannot be opened — {{productName}} is running in a headless environment.",
+        "app_cannot_be_opened_junction_is_running_in_a_he": "App cannot be opened — {{productName}} is running in a headless environment.",
         "collapse_details": "Collapse details",
         "disable": "Disable",
         "disabled": "Disabled",
@@ -1323,7 +1323,7 @@
       },
       "types": {
         "built_in": "Built-in",
-        "kirocrew_registry": "{{productName}} registry"
+        "junction_registry": "{{productName}} registry"
       },
       "categories": {
         "agents_automation": "Agents & Automation",
@@ -1490,7 +1490,7 @@
           "developer": "Developer",
           "explore": "Explore",
           "hooks": "Hooks",
-          "kirocrew_agents": "{{productName}} Agents",
+          "junction_agents": "{{productName}} Agents",
           "logs": "Logs",
           "pages": "Pages",
           "remote_crew": "Remote Crew",
@@ -1702,7 +1702,7 @@
       "due": "Due {{time}}",
       "issue_sections": "Issue sections",
       "issues": "Issues",
-      "kiro_crew_uses_your_local_provider_cli_to_load_i": "{{productName}} uses your local provider CLI to load issues.",
+      "junction_uses_your_local_provider_cli_to_load_i": "{{productName}} uses your local provider CLI to load issues.",
       "linked": "Linked",
       "loading_issue": "Loading issue",
       "locked": "Locked",
@@ -1757,7 +1757,7 @@
     "kiroPrerequisiteGate": {
       "agent_specs_missing": "Agent specs missing",
       "agent_specs_rejected": "Agent specs rejected",
-      "another_sandbox_already_confines_kiro_crew_so_it": "Another sandbox already confines {{productName}}, so its own sandbox cannot nest inside it. This host's sandbox is not broken.",
+      "another_sandbox_already_confines_junction_so_it": "Another sandbox already confines {{productName}}, so its own sandbox cannot nest inside it. This host's sandbox is not broken.",
       "copied": "Copied",
       "copy_command": "Copy command",
       "get_kiro_cli": "Optional: kiro-cli",
@@ -1770,24 +1770,24 @@
       "kiro_cli_is_required_on_the_gateway_host": "kiro-cli is optional on the {{platform}} gateway host.",
       "kiro_cli_s_reason": "Why it was refused",
       "kiro_cli_was_found_on_this_host": "Kiro CLI was found on this host.",
-      "kiro_cli_will_not_load_kiro_crew_s_agent_specs": "Kiro CLI will not load {{productName}}'s agent specs",
-      "kiro_crew_installs_the_agent_specs_kiro_cli_load": "{{productName}} installs the agent specs Kiro CLI loads before it can answer anything.",
-      "kiro_crew_isolates_the_agent_in_an_os_level_sand": "{{productName}} isolates the agent in an OS-level sandbox before it runs anything.",
-      "kiro_crew_s_agent_specs_are_not_installed": "{{productName}}'s agent specs are not installed",
-      "kiro_crew_writes_its_own_agent_specs_where_kiro": "{{productName}} writes its own agent specs where Kiro CLI reads them. Without them Kiro CLI cannot resolve the agent, so every message fails. Check again rewrites the specs and reports what went wrong.",
+      "kiro_cli_will_not_load_junction_s_agent_specs": "Kiro CLI will not load {{productName}}'s agent specs",
+      "junction_installs_the_agent_specs_kiro_cli_load": "{{productName}} installs the agent specs Kiro CLI loads before it can answer anything.",
+      "junction_isolates_the_agent_in_an_os_level_sand": "{{productName}} isolates the agent in an OS-level sandbox before it runs anything.",
+      "junction_s_agent_specs_are_not_installed": "{{productName}}'s agent specs are not installed",
+      "junction_writes_its_own_agent_specs_where_kiro": "{{productName}} writes its own agent specs where Kiro CLI reads them. Without them Kiro CLI cannot resolve the agent, so every message fails. Check again rewrites the specs and reports what went wrong.",
       "linux_sandbox_guide": "Linux sandbox guide",
       "missing": "Missing",
       "open_kiro_cli_setup": "Open Kiro CLI setup",
       "rejected": "Rejected",
-      "remedy_apparmor_service_install": "Install {{productName}} as a service. It also writes a narrow AppArmor profile (kirocrew-userns) that grants only the user-namespace permission, to the {{productName}} service alone — nothing else on the machine is loosened.",
+      "remedy_apparmor_service_install": "Install {{productName}} as a service. It also writes a narrow AppArmor profile (junction-userns) that grants only the user-namespace permission, to the {{productName}} service alone — nothing else on the machine is loosened.",
       "remedy_max_user_namespaces": "User namespace creation hit the per-user cap, which usually means user.max_user_namespaces is 0 on a hardened host. Raise it, and persist the value in /etc/sysctl.d/ so it survives a reboot.",
       "remedy_no_user_ns": "This kernel was built without user-namespace support (CONFIG_USER_NS), so there is no setting to change. A different kernel is the only fix.",
       "remedy_spec_rejected_rewrite": "Rewrite the specs from scratch on the gateway host. This discards {{productName}}'s own MCP tool selections and rebuilds them from defaults.",
       "remedy_spec_rejected_update": "Update {{productName}}. This is the fix when Kiro CLI has moved to a spec format this version does not know how to write.",
       "remedy_userns_denied": "The kernel refused to create the user namespace. On Debian-family hosts check this legacy knob, and persist the value in /etc/sysctl.d/ so it survives a reboot. Inside a container it is usually the container's own seccomp filter denying unshare, which is fixed with container run flags rather than host settings.",
-      "repair_rewrites_the_specs_kiro_crew_owns": "Check again asks Kiro CLI to load the specs again. It does not rewrite them, because overwriting a spec that is already on disk would discard any MCP tool access you have changed. If re-checking does not clear this, one of the two remedies below will.",
+      "repair_rewrites_the_specs_junction_owns": "Check again asks Kiro CLI to load the specs again. It does not rewrite them, because overwriting a spec that is already on disk would discard any MCP tool access you have changed. If re-checking does not clear this, one of the two remedies below will.",
       "required": "Required",
-      "run_kirocrew_doctor_on_the_gateway_host_for_a_ful": "Run this on the gateway host for a full prerequisite report, including which sandbox step failed.",
+      "run_junction_doctor_on_the_gateway_host_for_a_ful": "Run this on the gateway host for a full prerequisite report, including which sandbox step failed.",
       "sandbox_unavailable": "Sandbox unavailable",
       "sign_in_again_to_continue": "Sign in again to continue.",
       "sign_in_method_note": "Both open a browser to finish signing in. Pick the one that matches your plan — the sign-in page offers a personal Builder ID alongside organization SSO, and a Builder ID carries a smaller set of models.",
@@ -2287,7 +2287,7 @@
       "edit_agent_config_to_change_mapping": "{{path}} — edit the agent config file to change this mapping",
       "remove": "Remove {{name}}",
       "remove_skill": "Remove skill {{name}}",
-      "skills_this_agent_template_loads_written_as_skil": "Skills this agent template loads. Written as skill:// resources in the agent config, so kiro-cli loads them natively when the agent starts. An agent with no skills mapped falls back to the default behavior: the kirocrew agent sees the whole catalog, other agents see none."
+      "skills_this_agent_template_loads_written_as_skil": "Skills this agent template loads. Written as skill:// resources in the agent config, so kiro-cli loads them natively when the agent starts. An agent with no skills mapped falls back to the default behavior: the junction agent sees the whole catalog, other agents see none."
     },
     "artifactFolderDeleteDialog": {
       "artifact_one": "{{count}} artifact",
@@ -2626,7 +2626,7 @@
     "appsPage": {
       "action_failed": "Failed to {{action}} {{name}}",
       "all_apps": "All apps",
-      "built_in_kirocrew": "Built-in · kirocrew",
+      "built_in_junction": "Built-in · junction",
       "discover": "Discover",
       "failed_to_enable": "Failed to enable {{name}}",
       "failed_to_load_apps": "Failed to load apps",
@@ -2636,7 +2636,7 @@
       "find_apps_in_the_discover_tab_or_install_from_a": "Find apps in the Discover tab, or install from a local path via the sources gear above.",
       "hidden_you_can_re_enable_it_from_the_discover_ta": "Disabled. You can re-enable it from the Discover tab.",
       "keep_dependency": "Keep dependency {{name}}",
-      "kirocrew_registry": "{{productName}} registry",
+      "junction_registry": "{{productName}} registry",
       "library": "Library",
       "no_apps_installed_yet": "No apps installed yet",
       "removing": "Removing…",
@@ -3447,8 +3447,8 @@
       "restarting_completes_the_pending_cutover_boots": "Restarting completes the pending cutover: the gateway comes back up on \"{{staged}}\", not the current checkout. The dashboard will briefly disconnect and reconnect automatically. To back out instead, use Cancel staged cutover.",
       "no_checkout_found": "No {{productName}} checkout found",
       "no_checkout_found_help": "Dev Fleet manages the git worktrees of a {{productName}} source checkout. None was found in your project directory, in the checkout serving this dashboard, or in the usual clone locations.",
-      "no_checkout_found_env_example": "KIROCREW_DEVFLEET_REPO=/path/to/your/checkout",
-      "no_checkout_found_action": "Set the environment variable below, or add dev_fleet.repo_path to config.json in your {{productName}} data directory (~/.kiro/crew by default) to make it stick, then restart the gateway."
+      "no_checkout_found_env_example": "JUNCTION_DEVFLEET_REPO=/path/to/your/checkout",
+      "no_checkout_found_action": "Set the environment variable below, or add dev_fleet.repo_path to config.json in your {{productName}} data directory (~/.junction by default) to make it stick, then restart the gateway."
     },
     "developerPage": {
       "tabs": {
@@ -3519,7 +3519,7 @@
       "skills_inert_warning": "These skills can't fire on this configuration: {{skills}}. To save, switch to UserPromptSubmit or AgentSpawn without a command — or remove the skills.",
       "test_failed": "Test failed"
     },
-    "kiroCrewAgentsPage": {
+    "junctionAgentsPage": {
       "a_unique_identifier_for_this_workspace_agents_re": "A unique identifier for this workspace. Agents reference workspaces by name.",
       "agent_template_is_required": "Agent Template is required",
       "copy_the_contents_of_an_existing_workspace_into": "Copy the contents of an existing workspace into the new one. Leave as '— none —' to start fresh.",
@@ -3530,7 +3530,7 @@
       "failed_to_update_agent": "Failed to update agent",
       "name_is_required": "Name is required",
       "select_an_agent_template": "Select an agent template…",
-      "subdirectory_inside_kiro_crew_where_this_workspa": "Subdirectory inside ~/.kiro/crew where this workspace stores its data (chat history, lessons, projects). Each workspace gets its own isolated directory.",
+      "subdirectory_inside_junction_where_this_workspa": "Subdirectory inside ~/.junction where this workspace stores its data (chat history, lessons, projects). Each workspace gets its own isolated directory.",
       "workspace_name_is_required": "Workspace name is required"
     },
     "knowledge": {
@@ -3769,7 +3769,7 @@
         "agent_config_tip": "The {{process}} agent definition — prompt, tools, MCP servers, model settings. This is the execution layer config, separate from {{productName}}'s operational bindings.",
         "save": "Save"
       },
-      "kiroCrewCfgTab": {
+      "junctionCfgTab": {
         "inherited_provider": "inherited ({{provider}})",
         "ceiling_on_the_auto_sized_concurrent_subagent_co": "Ceiling on the auto-sized concurrent subagent count (only applies when Max Concurrent Subagents = 0). The host memory/CPU formula never exceeds this. Range 1–64. Default: 16.",
         "controls_how_many_subagents_can_run_concurrently": "Controls how many subagents can run concurrently and how many tool calls each subagent is allowed. Changes take effect on the next subagent spawn.",
@@ -3813,7 +3813,7 @@
       },
       "memoryGraphTab": {
         "all_count": "All ({{count}})",
-        "gpu_rendered_visualization_of_all_kirocrew_memor": "GPU-rendered visualization of all {{productName}} memory. Nodes are color-coded by type. Zoom in to reveal labels, click a node to inspect, use filters to focus.",
+        "gpu_rendered_visualization_of_all_junction_memor": "GPU-rendered visualization of all {{productName}} memory. Nodes are color-coded by type. Zoom in to reveal labels, click a node to inspect, use filters to focus.",
         "group_history_count": "History ({{count}})",
         "group_lessons_count": "Lessons ({{count}})",
         "group_preferences_count": "Preferences ({{count}})",
@@ -3907,7 +3907,7 @@
       },
       "displayTab": {
         "change_the_dashboard_font_family_persists_across": "Change the dashboard font family. Persists across sessions.",
-        "choose_a_color_palette_each_theme_supports_dark": "Choose a color palette. Each theme supports dark and light modes. Custom themes are stored in ~/.kiro/crew/themes/.",
+        "choose_a_color_palette_each_theme_supports_dark": "Choose a color palette. Each theme supports dark and light modes. Custom themes are stored in ~/.junction/themes/.",
         "mono": "Mono",
         "native_window_zoom_tip": "Native window zoom, the same setting as {{mod}}+ / {{mod}}−. Click the percentage to reset to 100%.",
         "new_theme": "+ New Theme",
@@ -4243,7 +4243,7 @@
         "no_matches_for_query": "No matches for “{{query}}”."
       },
       "slackPanel": {
-        "create_the_slack_app_from_the_manifest": "Create the Slack app from the pre-filled manifest below (Socket Mode and permissions\n            included, named KiroCrew-{{alias}}). Install it to your\n            workspace, then paste the bot token and app-level token here.",
+        "create_the_slack_app_from_the_manifest": "Create the Slack app from the pre-filled manifest below (Socket Mode and permissions\n            included, named Junction-{{alias}}). Install it to your\n            workspace, then paste the bot token and app-level token here.",
         "connected": "Connected",
         "copy_manifest_yaml": "Copy manifest YAML",
         "needs_setup": "Needs setup",
@@ -4490,7 +4490,7 @@
         "profile_unusable_which": "Affected: {{profiles}}.",
         "unknown_scopes_title": "Profile scopes not in this build",
         "unknown_scopes_tip": "These profiles name capability scopes this build does not register — typically scopes a companion edition adds, though a misspelled scope key lands here too. They are skipped and have no effect in this build.",
-        "disabling_all_built_in_denies_removes_kirocrew_s": "Disabling all built-in denies removes {{productName}}’s protection against destructive and credential-exfiltration commands. Some commands may stay blocked by independent defense-in-depth controls (sensitive paths, IMDS, git-publish).",
+        "disabling_all_built_in_denies_removes_junction_s": "Disabling all built-in denies removes {{productName}}’s protection against destructive and credential-exfiltration commands. Some commands may stay blocked by independent defense-in-depth controls (sensitive paths, IMDS, git-publish).",
         "enabled": "Enabled",
         "expand_category_rules": "Expand {{category}} rules",
         "hide_pattern": "Hide pattern",
@@ -4674,7 +4674,7 @@
       },
       "teamsPanel": {
         "active": "Active",
-        "jwt_required": "<strong>Microsoft Teams needs the PyJWT dependency.</strong> Inbound Bot Framework requests carry a signed token that has to be validated, so the channel refuses to start without it. Run <mono>pip install \"kirocrew[teams]\"</mono> in the environment that runs the gateway, then restart it.",
+        "jwt_required": "<strong>Microsoft Teams needs the PyJWT dependency.</strong> Inbound Bot Framework requests carry a signed token that has to be validated, so the channel refuses to start without it. Run <mono>pip install \"junction[teams]\"</mono> in the environment that runs the gateway, then restart it.",
         "microsoft_app_id": "Microsoft App ID",
         "needs_setup": "Needs setup",
         "not_active": "Not active",

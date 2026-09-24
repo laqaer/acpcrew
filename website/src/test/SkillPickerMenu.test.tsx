@@ -13,8 +13,8 @@ import SkillPickerMenu from '../components/SkillPickerMenu'
 
 const SKILLS = [
   { key: 'WorkforceEmploymentKnowledgeBase/oncall-handover', name: 'oncall-handover', description: 'Handover report', source: 'package' },
-  { key: 'ticket-pull', name: 'ticket-pull', description: 'Pull tickets', source: 'kirocrew' },
-  { key: 'grill', name: 'grill', description: 'Structured questioning', source: 'kirocrew' },
+  { key: 'ticket-pull', name: 'ticket-pull', description: 'Pull tickets', source: 'junction' },
+  { key: 'grill', name: 'grill', description: 'Structured questioning', source: 'junction' },
 ]
 
 /** Harness: gives the menu a real anchored element (it reads getBoundingClientRect)
@@ -86,7 +86,7 @@ describe('SkillPickerMenu', () => {
     expect(await screen.findByText('Structured questioning')).toBeInTheDocument()
   })
 
-  it('shows a source badge for non-kirocrew skills', async () => {
+  it('shows a source badge for non-junction skills', async () => {
     render(<Harness query="handover" open />)
     await screen.findByText('$oncall-handover')
     expect(screen.getByText('package')).toBeInTheDocument()
@@ -140,7 +140,7 @@ describe('SkillPickerMenu', () => {
 
   it('dedupes skills that share a leaf name', async () => {
     mockApi.skills.mockResolvedValue([
-      { key: 'kirocrew/grill', name: 'grill', description: 'local grill', source: 'kirocrew' },
+      { key: 'junction/grill', name: 'grill', description: 'local grill', source: 'junction' },
       { key: 'AIMPkg/grill', name: 'grill', description: 'aim grill', source: 'package' },
     ])
     render(<Harness query="grill" open />)

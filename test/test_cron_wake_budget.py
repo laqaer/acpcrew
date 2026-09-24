@@ -23,8 +23,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.client import AcpError
-from kiro_crew.cron import _JOB_TIMEOUT_SECS, CronJob, CronSchedule, CronService
+from junction.acp.client import AcpError
+from junction.cron import _JOB_TIMEOUT_SECS, CronJob, CronSchedule, CronService
 
 
 class TestWakeBudgetKnob:
@@ -136,7 +136,7 @@ def gw_and_cb() -> tuple[Any, Callable[[], Any], Callable[..., Any]]:
     Mirrors test_cron_acp_retry.py's fixture (uses __new__ to bypass
     __init__). Update both if GatewayOrchestrator gains required attributes.
     """
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     gw = GatewayOrchestrator.__new__(GatewayOrchestrator)
     gw.sessions = MagicMock()
@@ -203,14 +203,14 @@ class TestCronTransientRetry:
         gw, get_cb, capture_cron = gw_and_cb
         gw.sessions.get_or_create = get_or_create
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", side_effect=mock_stream),
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.stream_and_collect", side_effect=mock_stream),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
             patch(
-                "kiro_crew.slack.gateway.CronService.create",
+                "junction.slack.gateway.CronService.create",
                 new=AsyncMock(side_effect=capture_cron),
             ),
-            patch("kiro_crew.slack.gateway.transient_retry_delay", return_value=0.0),
+            patch("junction.slack.gateway.transient_retry_delay", return_value=0.0),
         ):
 
             async def _init_and_run() -> Any:
@@ -265,7 +265,7 @@ class TestCronTransientRetry:
         with pytest.raises(AcpError):
             self._run(gw_and_cb, job, get_or_create=dead_acquire, mock_stream=mock_stream)
         # 1 original + _CRON_TRANSIENT_RETRIES recursive attempts.
-        from kiro_crew.slack.gateway import _CRON_TRANSIENT_RETRIES
+        from junction.slack.gateway import _CRON_TRANSIENT_RETRIES
 
         assert acquire_calls == 1 + _CRON_TRANSIENT_RETRIES
         # Exactly ONE failure for the whole chain, not one per attempt.
@@ -338,14 +338,14 @@ class TestCronTransientRetry:
         gw.sessions.get_or_create = flaky_acquire
         job = _job("jt5")
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", side_effect=mock_stream),
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.stream_and_collect", side_effect=mock_stream),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
             patch(
-                "kiro_crew.slack.gateway.CronService.create",
+                "junction.slack.gateway.CronService.create",
                 new=AsyncMock(side_effect=capture_cron),
             ),
-            patch("kiro_crew.slack.gateway.transient_retry_delay", return_value=0.0),
+            patch("junction.slack.gateway.transient_retry_delay", return_value=0.0),
         ):
 
             async def _two_runs() -> tuple[Any, Any]:
@@ -384,14 +384,14 @@ class TestCronPostTokenResume:
     ) -> Any:
         gw, get_cb, capture_cron = gw_and_cb
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", side_effect=mock_stream),
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.stream_and_collect", side_effect=mock_stream),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
             patch(
-                "kiro_crew.slack.gateway.CronService.create",
+                "junction.slack.gateway.CronService.create",
                 new=AsyncMock(side_effect=capture_cron),
             ),
-            patch("kiro_crew.slack.gateway.transient_retry_delay", return_value=0.0),
+            patch("junction.slack.gateway.transient_retry_delay", return_value=0.0),
         ):
 
             async def _init_and_run() -> Any:
@@ -407,7 +407,7 @@ class TestCronPostTokenResume:
     ) -> None:
         """Transient after tokens: continuation resumes, partial preserved,
         record_success() runs and the failure counter is untouched."""
-        from kiro_crew.slack.gateway import _CRON_POSTTOKEN_CONTINUE_MSG
+        from junction.slack.gateway import _CRON_POSTTOKEN_CONTINUE_MSG
 
         calls: list[str] = []
 
@@ -519,7 +519,7 @@ class TestCronPostTokenResume:
         credits plus the continuation's — not only the continuation's, which a
         single post-turn read of the (carried-over) per-turn stats would see.
         """
-        from kiro_crew.acp.types import TurnUsage
+        from junction.acp.types import TurnUsage
 
         async def mock_stream(client: Any, message: str, **kw: Any) -> str:
             if not getattr(mock_stream, "_failed", False):
@@ -536,20 +536,20 @@ class TestCronPostTokenResume:
         job = _job("pt5")
         gw, get_cb, capture_cron = gw_and_cb
         with (
-            patch("kiro_crew.slack.gateway.stream_and_collect", side_effect=mock_stream),
-            patch("kiro_crew.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
-            patch("kiro_crew.slack.gateway.redact_credentials", return_value=("", False)),
+            patch("junction.slack.gateway.stream_and_collect", side_effect=mock_stream),
+            patch("junction.slack.gateway.redact_exfiltration_urls", return_value=("", False)),
+            patch("junction.slack.gateway.redact_credentials", return_value=("", False)),
             patch(
-                "kiro_crew.slack.gateway.CronService.create",
+                "junction.slack.gateway.CronService.create",
                 new=AsyncMock(side_effect=capture_cron),
             ),
-            patch("kiro_crew.slack.gateway.transient_retry_delay", return_value=0.0),
+            patch("junction.slack.gateway.transient_retry_delay", return_value=0.0),
             patch(
-                "kiro_crew.slack.gateway.provider_last_turn_usage",
+                "junction.slack.gateway.provider_last_turn_usage",
                 side_effect=[TurnUsage(credits=3.0), TurnUsage(credits=2.0)],
             ),
             patch(
-                "kiro_crew.slack.gateway.persist_token_record_async",
+                "junction.slack.gateway.persist_token_record_async",
                 side_effect=capture_persist,
             ),
         ):

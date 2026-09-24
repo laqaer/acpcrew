@@ -1,7 +1,7 @@
 """Coverage tests for the Code Review Sage backend HTTP handlers.
 
 The app ships its own suite next to the code
-(``src/kiro_crew/apps/builtins/code_review_sage/tests/``), but several handlers
+(``src/junction/apps/builtins/code_review_sage/tests/``), but several handlers
 were never exercised there: the repo-discovery pair (``repo-prs`` /
 ``review-repo``), the review-settings read/write path, namespace create/delete,
 the learnings view, the comment-posting background task, and the notification
@@ -9,7 +9,7 @@ helpers a finished run pushes to the bell feed.
 
 Harness matches the app suite's ``test_run_endpoints.py`` exactly: the routes
 module is loaded by file path (the app dir is hyphenated and cannot be imported
-as a package), ``KIROCREW_HOME`` is pointed at a per-test tmp dir so nothing
+as a package), ``JUNCTION_HOME`` is pointed at a per-test tmp dir so nothing
 touches the operator's real data root, and the handlers are driven with a
 minimal fake request rather than a live aiohttp client -- they only read
 ``request.method`` / ``request.query`` / ``request.match_info`` /
@@ -34,7 +34,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-_APP_ROOT = (Path(__file__).resolve().parent.parent / "src" / "kiro_crew" / "apps"
+_APP_ROOT = (Path(__file__).resolve().parent.parent / "src" / "junction" / "apps"
              / "builtins" / "code_review_sage")
 _ROUTES = _APP_ROOT / "backend" / "routes.py"
 if str(_APP_ROOT) not in sys.path:
@@ -109,11 +109,11 @@ class _SageRoutesBase(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
-        self._old_home = os.environ.get("KIROCREW_HOME")
-        os.environ["KIROCREW_HOME"] = self.tmp
+        self._old_home = os.environ.get("JUNCTION_HOME")
+        os.environ["JUNCTION_HOME"] = self.tmp
         # config_dir() memoizes the resolved data home for the process; reset it
-        # so this test's KIROCREW_HOME wins over whatever an earlier test cached.
-        import kiro_crew.config.paths as _paths
+        # so this test's JUNCTION_HOME wins over whatever an earlier test cached.
+        import junction.config.paths as _paths
         self._paths = _paths
         self._old_resolved = getattr(_paths, "_resolved_home", None)
         _paths._resolved_home = None
@@ -133,9 +133,9 @@ class _SageRoutesBase(unittest.IsolatedAsyncioTestCase):
         self.mod._CONSOLIDATING.clear()
         self._paths._resolved_home = self._old_resolved
         if self._old_home is None:
-            os.environ.pop("KIROCREW_HOME", None)
+            os.environ.pop("JUNCTION_HOME", None)
         else:
-            os.environ["KIROCREW_HOME"] = self._old_home
+            os.environ["JUNCTION_HOME"] = self._old_home
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def _cfg_path(self) -> Path:
@@ -597,7 +597,7 @@ class TestValidModel(_SageRoutesBase):
 
 class TestSettingsHandler(_SageRoutesBase):
     def _patch_audit(self):
-        return unittest.mock.patch("kiro_crew.sel.sel")
+        return unittest.mock.patch("junction.sel.sel")
 
     async def test_get_enumerates_models_efforts_and_namespaces(self):
         resp = await self.mod._handle_settings(_Req(method="GET"))
@@ -665,7 +665,7 @@ class TestSettingsHandler(_SageRoutesBase):
         self.assertEqual(outcome, "denied")
 
     async def test_audit_failure_never_breaks_the_response(self):
-        with unittest.mock.patch("kiro_crew.sel.sel", side_effect=RuntimeError("no sel")):
+        with unittest.mock.patch("junction.sel.sel", side_effect=RuntimeError("no sel")):
             resp = await self.mod._handle_settings(
                 _Req(method="PUT", body={"effort": ""}))
         self.assertEqual(resp.status, 200)
@@ -694,7 +694,7 @@ class TestSettingsHandler(_SageRoutesBase):
 
 class TestNamespacesHandler(_SageRoutesBase):
     def _patch_audit(self):
-        return unittest.mock.patch("kiro_crew.sel.sel")
+        return unittest.mock.patch("junction.sel.sel")
 
     async def test_get_lists_namespaces_with_counts_and_active_flags(self):
         learning.create_namespace("proj-a")

@@ -1,7 +1,7 @@
 # Babysit PR Watch
 
 Status: implemented (this PR)
-Owners: babysit builtin skill (`builtin_skills/kirocrew-dev/babysit/`), on the
+Owners: babysit builtin skill (`builtin_skills/junction-dev/babysit/`), on the
 interrupt controller in `irq.py` (see `agent-interrupt-controller.md`)
 
 ## 1. Problem
@@ -34,7 +34,7 @@ The babysit skill's decision table gains a watch-mode branch: `monitor_start`
 for phases where the agent acts most cycles, the watch cron for pure-wait
 phases, and an explicit composition pattern for switching between them.
 
-The generic half of that split now lives in `kiro_crew.irq`, the interrupt
+The generic half of that split now lives in `junction.irq`, the interrupt
 controller: state identity, masking, epoch resets, the coalescing window and
 the error backstop. This file is its first probe and owns only the two GitHub
 decisions — how to observe a pull request, and what counts as an anomaly. The
@@ -91,7 +91,7 @@ it cancelled around.
 
 ## 4. Mechanics
 
-- **Script home**: `builtin_skills/kirocrew-dev/babysit/scripts/pr_watch.py`,
+- **Script home**: `builtin_skills/junction-dev/babysit/scripts/pr_watch.py`,
   synced to the user's skills directory by the builtin-skills loader like
   every other bundled skill asset. It is a cron-only script: never imported
   by gateway code. Cron scripts must live under `<config_dir>/crons/`
@@ -106,7 +106,7 @@ it cancelled around.
   stats as the overflow uid and `resolve_gh`'s ownership walk would refuse
   ANY gh on the host. The gateway therefore pre-resolves gh with the full
   validation OUTSIDE the sandbox and hands the child
-  `_KIROCREW_GH_PREVALIDATED=<path>|<st_dev>:<st_ino>`; the child re-checks
+  `_JUNCTION_GH_PREVALIDATED=<path>|<st_dev>:<st_ino>`; the child re-checks
   what the namespace leaves intact (regular file, executable, not
   world-writable, outside the agent-writable tree) and pins the device:inode
   identity, so a binary swapped after the parent's check is refused. Hosts

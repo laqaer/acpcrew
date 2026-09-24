@@ -3,7 +3,7 @@
 ## Overview
 
 > **Using the app rather than changing it?** The operator's guide is
-> [`src/kiro_crew/apps/builtins/auto_improvement/docs/MANUAL.md`](../../../src/kiro_crew/apps/builtins/auto_improvement/docs/MANUAL.md).
+> [`src/junction/apps/builtins/auto_improvement/docs/MANUAL.md`](../../../src/junction/apps/builtins/auto_improvement/docs/MANUAL.md).
 > This spec describes internals.
 
 Auto-Improvement is an opt-in (`defaultEnabled: false`) built-in app that runs a
@@ -66,7 +66,7 @@ echoed back in `rejected` rather than silently dropped.
 ## PR status and the watcher verdict
 
 `backend/pr_checks.py` is an interpreter over
-`kiro_crew.dashboard.handlers.source_providers`, reusing the core's cached (30 s
+`junction.dashboard.handlers.source_providers`, reusing the core's cached (30 s
 TTL), request-coalescing, credential-redacting `gh`/`glab` reader rather than
 introducing a second GitHub client.
 
@@ -135,7 +135,7 @@ longer reach credentials outside the worktree — while keeping the path that wo
 Review asked repeatedly for the fallback to be deleted outright, each time citing the
 unattended Bash tool — and one instance of that concern was CORRECT and is now fixed: an
 exported `GITHUB_TOKEN` did reach the agent even after the spawn was sandboxed, because
-`kiro_crew.sandbox.scrub_env` covers `AWS_SECRET`/`SLACK_*`/`TELEGRAM_*` but not `GITHUB_*`.
+`junction.sandbox.scrub_env` covers `AWS_SECRET`/`SLACK_*`/`TELEGRAM_*` but not `GITHUB_*`.
 Measured on the author's host: the child printed the real token. The spawn now strips
 credential-*shaped* names (`*TOKEN*`, `*SECRET*`, `*PASSWORD*`, `*API_KEY*`, `*CREDENTIAL*`)
 after the sandbox builds the env, matching what the gate already did — the two places
@@ -410,7 +410,7 @@ rest of the filesystem read-only. Measured on the author's host: a strict-mode c
 So a candidate's own `conftest.py` or reproducing test — code the model wrote, executed by the
 gate — can modify same-user files outside the worktree.
 
-**What IS now closed: Kiro Crew's own control files.** The most consequential case was measured
+**What IS now closed: Junction's own control files.** The most consequential case was measured
 and fixed rather than merely documented — a strict-mode child appended to
 `~/.kiro/crew/.data-home-ready` and exited 0, corrupting the installation's own state. Those
 paths are `security.write_protected_home_paths()`, and that protection is enforced by the
@@ -428,7 +428,7 @@ by `os.path.isdir(target)`, so a file path is silently skipped (files go through
 `import platform` outright.
 
 **What remains open**: arbitrary same-user files elsewhere (`~/notes.txt`) are still writable.
-Closing that needs a general write-confinement primitive in `kiro_crew.sandbox`, which has none
+Closing that needs a general write-confinement primitive in `junction.sandbox`, which has none
 today — no read-only bind, no tmpfs overlay — and adding one changes the shared sandbox for
 every caller, so it belongs in its own PR. Review's alternative, failing closed at `profile._run`
 until then, would disable the entire bug track (no test could run at all). Raised by the GPT
@@ -856,7 +856,7 @@ committed-status rows record that, so an audit of "what did the bot land?" resol
 
 ## Storage
 
-Under `app_data_dir("auto-improvement")` (i.e. `$KIROCREW_HOME/apps/auto-improvement/data`):
+Under `app_data_dir("auto-improvement")` (i.e. `$JUNCTION_HOME/apps/auto-improvement/data`):
 
 ```
 config.json          run configuration
@@ -1025,7 +1025,7 @@ makes them dead weight rather than because they were missed:
 |---|---|
 | `proxy_auth.py`, `middleware.py` | the gateway authenticates same-origin requests; there is no proxy hop to sign |
 | `app.py`, `bin/` launcher | `register_routes(app)` mounts on the gateway's own aiohttp app — no second process, no port |
-| `config.py` | paths come from `store.py`, which reads the Kiro Crew data home |
+| `config.py` | paths come from `store.py`, which reads the Junction data home |
 
 One transport difference: the upstream served its MCP tools over HTTP on its own
 allocated port. A builtin has no port, and the app bridge deliberately SKIPS a
@@ -1038,7 +1038,7 @@ instead — `backend/mcp_server.py`, six read-only tools, all auto-approvable.
 Integration coverage (all endpoints, the UI, and a full loop against a real repo) is
 specified in [auto-improvement-test-plan](auto-improvement-test-plan.md).
 
-- `src/kiro_crew/apps/builtins/auto_improvement/tests/` — 439 tests covering verdict
+- `src/junction/apps/builtins/auto_improvement/tests/` — 439 tests covering verdict
   derivation, check summarization, provider-error degradation, PR-recipe protocol
   conformance, branch naming, draft-only policy, queue degradation, the audit-or-deny
   approval, MCP dispatch auditing, and evidence redaction. Not in default `testpaths`;

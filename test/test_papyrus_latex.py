@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 Every subprocess is mocked — no ``pdflatex``, ``tectonic`` or ``bibtex`` is ever
 invoked, so this suite runs on a host with no TeX installation.
@@ -33,8 +33,8 @@ from unittest import mock
 
 import pytest
 
-from kiro_crew import sandbox, security
-from kiro_crew.apps.builtins.papyrus.backend import latex, procio, store
+from junction import sandbox, security
+from junction.apps.builtins.papyrus.backend import latex, procio, store
 
 
 def _spawn_mode(wrap: mock.Mock) -> str:
@@ -543,10 +543,10 @@ class TestRunHelper:
             "~/.aws and ~/.ssh readable to an untrusted .tex"
         )
 
-    async def test_hides_kirocrews_own_trust_root_from_the_compiler(
+    async def test_hides_junctions_own_trust_root_from_the_compiler(
         self, project: Path
     ) -> None:
-        """Strict mode alone is NOT enough — it misses KiroCrew's own secrets.
+        """Strict mode alone is NOT enough — it misses Junction's own secrets.
 
         ``_STRICT_DIRS`` covers third-party credential locations plus
         ``~/.kiro/crew/.env``, but the gateway's ``.local_secret``,
@@ -932,7 +932,7 @@ class TestSensitivePathsFollowTheLiveDataHome:
     """`sensitive_home_dirs()` names paths relative to `$HOME`, so its `.kiro/crew/*`
     entries describe the DEFAULT data home.
 
-    With `KIROCREW_HOME` pointed elsewhere — a dev instance, a pod, an operator who
+    With `JUNCTION_HOME` pointed elsewhere — a dev instance, a pod, an operator who
     moved it — the real `sel_hmac.key`, `token_signing.key`, `.local_secret` and
     `security_policy.json` live somewhere that list never mentions. Nothing hid them, so
     a hostile `.tex` could `\\verbatiminput` any of them into the rendered PDF.
@@ -941,8 +941,8 @@ class TestSensitivePathsFollowTheLiveDataHome:
     def test_a_custom_data_home_is_covered(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "moved-home"))
-        from kiro_crew.config.loader import config_dir
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "moved-home"))
+        from junction.config.loader import config_dir
 
         data_home = str(config_dir())
         hidden = latex._sensitive_hidden_dirs()
@@ -964,7 +964,7 @@ class TestSensitivePathsFollowTheLiveDataHome:
     ) -> None:
         """Both anchors, not one instead of the other: the default location may still
         hold files from before the move, and hiding an absent path is free."""
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "moved-home"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "moved-home"))
         hidden = latex._sensitive_hidden_dirs()
         # Compared by BASENAME under the real home, not by a reconstructed path.
         # `sensitive_home_dirs()` returns POSIX-style relatives, so the default-anchored
@@ -978,7 +978,7 @@ class TestSensitivePathsFollowTheLiveDataHome:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """With no override the two anchors coincide, and the list must not double."""
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         hidden = latex._sensitive_hidden_dirs()
         assert len(hidden) == len(set(hidden))
 

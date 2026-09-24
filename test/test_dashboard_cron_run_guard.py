@@ -16,8 +16,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.cron import CronJob, CronSchedule
-from kiro_crew.dashboard.handlers.cron import api_cron_run
+from junction.cron import CronJob, CronSchedule
+from junction.dashboard.handlers.cron import api_cron_run
 
 
 def _make_job(job_id: str = "j1", name: str = "etl job") -> CronJob:
@@ -100,7 +100,7 @@ class TestApiCronRun:
     async def test_run_finds_job_absent_from_the_cache_only_snapshot(self) -> None:
         """A job created by another process must be runnable immediately.
 
-        `kirocrew cron add` and the MCP cron_add tool write crons.json from a
+        `junction cron add` and the MCP cron_add tool write crons.json from a
         separate process. The gateway's in-memory snapshot only picks that up on
         its timer tick, so resolving the id through the cache-only `list_jobs()`
         made this endpoint 404 for up to _TIMER_POLL_SECS after creation. The

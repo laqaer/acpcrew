@@ -10,7 +10,7 @@ import ResizeHandle from '../components/ResizeHandle'
 import { useColumnResize, type CollapseConfig } from '../hooks/useColumnResize'
 import { useIsMobile } from '../hooks/useIsMobile'
 import AgentSelector from '../components/AgentSelector'
-import type { KiroCrewAgent } from '../components/AgentSelector'
+import type { JunctionAgent } from '../components/AgentSelector'
 import ProjectDetailPage from './ProjectDetailPage'
 import {
   COLLAPSED_RAIL_WIDTH, MAX_RAIL_WIDTH, MIN_RAIL_WIDTH,
@@ -64,7 +64,7 @@ export default function ProjectsPage() {
   const [specText, setSpecText] = useState(() => sessionStorage.getItem('tr-spec') || '')
   const [yamlText, setYamlText] = useState(() => sessionStorage.getItem('tr-yaml') || '')
   const [agent, setAgent] = useState('')
-  const [agents, setAgents] = useState<KiroCrewAgent[]>([])
+  const [agents, setAgents] = useState<JunctionAgent[]>([])
   const [defaultAgentName, setDefaultAgentName] = useState('')
   // The user's explicit per-run workspace override. Starts empty and is only
   // populated when the user actually types — an untouched field means "no
@@ -160,7 +160,7 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     load()
-    api.kirocrewAgents().then(d => { setAgents(d.agents || []); setDefaultAgentName(d.default_agent || '') }).catch(() => {})
+    api.junctionAgents().then(d => { setAgents(d.agents || []); setDefaultAgentName(d.default_agent || '') }).catch(() => {})
     const iv = setInterval(load, 3000)
     return () => clearInterval(iv)
   }, [load, refreshTrigger])

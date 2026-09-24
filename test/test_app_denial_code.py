@@ -22,7 +22,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.apps.manager import AppResult
+from junction.apps.manager import AppResult
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,10 +37,10 @@ def _deny_third_party(monkeypatch) -> None:
     trusted-clone host allowlist, so a namespace carrying only the agent block
     fails with an AttributeError instead of reaching the denial under test.
     """
-    from kiro_crew.config import loader as cfg_loader
+    from junction.config import loader as cfg_loader
 
     monkeypatch.setattr(
-        cfg_loader.KiroCrewConfig,
+        cfg_loader.JunctionConfig,
         "load",
         classmethod(
             lambda cls: SimpleNamespace(
@@ -73,7 +73,7 @@ class TestAppResultSerializesCode:
 class TestEnableDenialCarriesCode:
     def test_enable_app_denial_is_identifiable(self, monkeypatch, tmp_path):
         _deny_third_party(monkeypatch)
-        from kiro_crew.apps import manager
+        from junction.apps import manager
 
         monkeypatch.setattr(manager, "config_dir", lambda: tmp_path)
         # A record must exist, or enable_app fails on "not installed" first and
@@ -104,7 +104,7 @@ class TestRegistryInstallDenialCarriesCode:
     @pytest.mark.asyncio
     async def test_registry_install_denial_is_identifiable(self, monkeypatch, tmp_path):
         _deny_third_party(monkeypatch)
-        from kiro_crew.apps import admission, registry
+        from junction.apps import admission, registry
 
         # `install_from_registry` runs `app_admission_denied()` BEFORE the execution
         # gate, and that reads the real `config_dir()/app_admission.json`. On a host
@@ -119,7 +119,7 @@ class TestRegistryInstallDenialCarriesCode:
         # uncached HTTPS fetch (#4236); pin "catalog reachable, app absent" so
         # the seeded row below is what resolves, deterministically.
         monkeypatch.setattr(
-            "kiro_crew.apps.official_catalog.inventory_for_install",
+            "junction.apps.official_catalog.inventory_for_install",
             lambda name: None,
         )
 
@@ -163,5 +163,5 @@ def test_denial_code_matches_the_open_command_route():
     place, this fails rather than leaving the affordance silently dead on the
     other paths.
     """
-    src = (_REPO_ROOT / "src/kiro_crew/apps/routes.py").read_text(encoding="utf-8")
+    src = (_REPO_ROOT / "src/junction/apps/routes.py").read_text(encoding="utf-8")
     assert f'"code": "{DENIAL_CODE}"' in src

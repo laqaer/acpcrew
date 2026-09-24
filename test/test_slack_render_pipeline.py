@@ -19,7 +19,7 @@ Two tiers, deliberately:
 
   STRUCTURAL tier -- :func:`test_no_module_converts_slack_markdown_directly`.
   An AST scan asserting that ``slack/format.py`` is the ONLY module in
-  ``kiro_crew`` that calls ``to_slack_mrkdwn``. This is what makes alignment a
+  ``junction`` that calls ``to_slack_mrkdwn``. This is what makes alignment a
   property of the code's shape rather than of whether an author remembered:
   a newly added egress path cannot render its own way without failing the build,
   which is precisely the guarantee a per-call-site convention cannot give.
@@ -54,7 +54,7 @@ import tokenize
 
 import pytest
 
-from kiro_crew.slack.format import (
+from junction.slack.format import (
     CONTINUATION,
     SLACK_MAX_TEXT,
     SLACK_MSG_LIMIT,
@@ -67,7 +67,7 @@ from kiro_crew.slack.format import (
 
 # The conversion primitive nobody outside format.py may call.
 _BANNED_FUNC = "to_slack_mrkdwn"
-_OWNER_MODULE = "kiro_crew/slack/format.py"
+_OWNER_MODULE = "junction/slack/format.py"
 
 # Trailing-comment marker that suppresses a single flagged call.
 _SUPPRESS = "render-ok"
@@ -91,13 +91,13 @@ def _fake_redactor(text: str) -> str:
 
 
 def _src_root() -> pathlib.Path:
-    """Locate the kiro_crew source tree (import-first, repo-path fallback)."""
+    """Locate the junction source tree (import-first, repo-path fallback)."""
     try:
-        import kiro_crew  # noqa: PLC0415
+        import junction  # noqa: PLC0415
 
-        return pathlib.Path(kiro_crew.__file__).resolve().parent
+        return pathlib.Path(junction.__file__).resolve().parent
     except Exception:
-        return pathlib.Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+        return pathlib.Path(__file__).resolve().parent.parent / "src" / "junction"
 
 
 def _aliases(tree: ast.Module) -> tuple[set[str], set[str]]:
@@ -173,7 +173,7 @@ def find_violations(source: str, path: str = "<source>") -> list[tuple[str, int,
 
 
 def collect_repo_violations() -> list[tuple[str, int, str]]:
-    """Scan every ``kiro_crew/**/*.py`` except the owning module."""
+    """Scan every ``junction/**/*.py`` except the owning module."""
     root = _src_root()
     base = root.parent
     out: list[tuple[str, int, str]] = []
@@ -208,7 +208,7 @@ def test_no_module_converts_slack_markdown_directly() -> None:
             f"  {path}:{lineno}  {name}(...)" for path, lineno, name in violations
         )
         raise AssertionError(
-            "to_slack_mrkdwn called outside kiro_crew/slack/format.py.\n\n"
+            "to_slack_mrkdwn called outside junction/slack/format.py.\n\n"
             "Neither redact-then-convert nor convert-then-redact is safe on its "
             "own (the ANSI strip reassembles split credentials; the 39,000-char "
             "self-truncation cuts them in half). Use render_for_slack() for a "
@@ -224,7 +224,7 @@ def test_no_module_converts_slack_markdown_directly() -> None:
 
 def test_detector_flags_a_bare_aliased_call() -> None:
     src = (
-        "from kiro_crew.slack.format import to_slack_mrkdwn as tsm\n"
+        "from junction.slack.format import to_slack_mrkdwn as tsm\n"
         "def f(t):\n"
         "    return tsm(t)\n"
     )
@@ -233,7 +233,7 @@ def test_detector_flags_a_bare_aliased_call() -> None:
 
 def test_detector_flags_a_module_attribute_call() -> None:
     src = (
-        "import kiro_crew.slack.format as fmt\n"
+        "import junction.slack.format as fmt\n"
         "def f(t):\n"
         "    return fmt.to_slack_mrkdwn(t)\n"
     )
@@ -248,7 +248,7 @@ def test_detector_ignores_same_named_method_on_other_objects() -> None:
 
 def test_detector_ignores_the_shared_helpers() -> None:
     src = (
-        "from kiro_crew.slack.format import render_for_slack\n"
+        "from junction.slack.format import render_for_slack\n"
         "def f(t):\n"
         "    return render_for_slack(t)\n"
     )
@@ -257,7 +257,7 @@ def test_detector_ignores_the_shared_helpers() -> None:
 
 def test_render_ok_comment_suppresses() -> None:
     src = (
-        "from kiro_crew.slack.format import to_slack_mrkdwn\n"
+        "from junction.slack.format import to_slack_mrkdwn\n"
         "def f(t):\n"
         "    return to_slack_mrkdwn(t)  # render-ok: no egress, formats a local preview\n"
     )
@@ -266,7 +266,7 @@ def test_render_ok_comment_suppresses() -> None:
 
 def test_render_ok_inside_a_string_does_not_suppress() -> None:
     src = (
-        "from kiro_crew.slack.format import to_slack_mrkdwn\n"
+        "from junction.slack.format import to_slack_mrkdwn\n"
         "def f():\n"
         '    return to_slack_mrkdwn("render-ok")\n'
     )
@@ -650,7 +650,7 @@ def test_default_redactor_is_the_platform_shim() -> None:
     An injectable redactor is only safe if the DEFAULT is the canonical one --
     otherwise a caller that omits it silently gets no redaction at all.
     """
-    import kiro_crew.slack.format as fmt
+    import junction.slack.format as fmt
 
     src = pathlib.Path(fmt.__file__).read_text(encoding="utf-8")
     assert src.count("redact_via_context") >= 2, (
@@ -782,7 +782,7 @@ class TestEmphasisDelimiterRedaction:
         hazard is not Slack-specific (Telegram and Discord collapse the same
         syntax), and the shared overflow sink needs the canonicaliser too.
         """
-        from kiro_crew.messaging import display_safety as fmt
+        from junction.messaging import display_safety as fmt
 
         classes = re.findall(r"\[\^((?:\\.|[^\]\\])*)\]", getattr(fmt, pattern_name).pattern)
         assert len(classes) == len(required), (

@@ -9,7 +9,7 @@
  * support, and — on macOS — still drives Squirrel.Mac underneath, so the proven
  * atomic bundle swap is unchanged. See docs/guides/windows-install.md and issue #598.
  *
- * The ONE KiroCrew-specific concern vs. a plain Electron app is unchanged: the
+ * The ONE Junction-specific concern vs. a plain Electron app is unchanged: the
  * bundled Python gateway is a long-running child process, so it MUST be stopped
  * gracefully BEFORE the app bundle is swapped — otherwise the swap races a live
  * child and can leave a half-replaced app. That is why autoInstallOnAppQuit is
@@ -23,7 +23,7 @@
  */
 
 // Default update feed host: updates.crew.kiro.dev, the pointer hostname of the
-// public distribution CDN (CloudFront + OAC over the kirocrew-updates bucket).
+// public distribution CDN (CloudFront + OAC over the junction-updates bucket).
 //
 // electron-updater's generic provider treats the configured URL as a DIRECTORY
 // and resolves <base>/latest-mac.yml (macOS) or <base>/latest-linux.yml (Linux)
@@ -101,9 +101,9 @@ const CHECK_COMMAND_MAX_CHARS = 512;
 /**
  * Is this install's update lifecycle owned by an external package manager?
  *
- * Lookup order: the `KIROCREW_EXTERNALLY_MANAGED` env var (a path to a marker
+ * Lookup order: the `JUNCTION_EXTERNALLY_MANAGED` env var (a path to a marker
  * file, or any other non-empty value to mark the install managed with no
- * metadata — the test-harness seam, mirroring `KIROCREW_UPDATE_FEED`), then
+ * metadata — the test-harness seam, mirroring `JUNCTION_UPDATE_FEED`), then
  * `<resourcesPath>/EXTERNALLY-MANAGED`. I/O-bearing and fully injectable, like
  * resolveLinuxInstall above.
  *
@@ -145,7 +145,7 @@ function readExternallyManaged({ env = process.env, resourcesPath = process.reso
         return "";
       }
     };
-    const override = (env && env.KIROCREW_EXTERNALLY_MANAGED) || "";
+    const override = (env && env.JUNCTION_EXTERNALLY_MANAGED) || "";
     if (override) {
       // A value that names a marker file reads it; any other non-empty value
       // (including a dangling path) marks the install managed with no metadata.
@@ -447,7 +447,7 @@ function shouldAutoOffer({ candidate, current, followedChannel, defaultChannel }
  * keeps the contract explicit and independent of that internal.
  *
  * Enforces HTTPS, with plain HTTP allowed ONLY for loopback so the local
- * update harness (KIROCREW_UPDATE_FEED=http://127.0.0.1:PORT/feed) works;
+ * update harness (JUNCTION_UPDATE_FEED=http://127.0.0.1:PORT/feed) works;
  * cleartext update metadata over a real network stays rejected.
  *
  * `variant` adds one path segment below the channel, which is how a Linux
@@ -481,7 +481,7 @@ function buildFeedBase({ base, channel, variant = "" }) {
  * user with no next step -- the card simply re-offers the same update after
  * relaunch (observed in the field on 0.1.2-nightly.20260729t073648). Reinstalling
  * over the top is the supported recovery and is non-destructive: user data lives
- * in the KiroCrew home directory, never inside the app bundle.
+ * in the Junction home directory, never inside the app bundle.
  *
  * Computed HERE rather than in the renderer because the renderer has no
  * trustworthy platform: getInfo()'s `platform` field is a display string that
@@ -513,14 +513,14 @@ function manualDownloadUrl(channel, osPlatform, osArch = process.arch, linuxForm
   // A published artifact FILENAME, not prose: the joined form is what
   // publish-linux.yml writes to the CDN, and the arch and extension are
   // interpolated because there are now six (arch, format) pairs to name.
-  const linuxFile = linuxArch ? `KiroCrew-${linuxArch}.${linuxExt}` : null; // brand-ok
+  const linuxFile = linuxArch ? `Junction-${linuxArch}.${linuxExt}` : null; // brand-ok
   // Windows ships x64 only. build-windows.yml has no arm64 leg, and Windows has
   // exactly one channel file whatever the arch (electron-updater appends an arch
   // suffix for linux alone), so a second arch means another entry in the same
   // latest.yml rather than another feed.
-  const windowsFile = { x64: "KiroCrew-Setup.exe" }[osArch];
+  const windowsFile = { x64: "Junction-Setup.exe" }[osArch];
   const file = osPlatform === "darwin"
-    ? "KiroCrew.dmg"
+    ? "Junction.dmg"
     : osPlatform === "linux"
       ? linuxFile || null
       : osPlatform === "win32"
@@ -742,7 +742,7 @@ function initAutoUpdate(deps) {
     nativeAutoUpdater = (() => {
       try { return require("electron").autoUpdater || null; } catch { return null; }
     })(),
-    feedBase = process.env.KIROCREW_UPDATE_FEED || DEFAULT_FEED_BASE,
+    feedBase = process.env.JUNCTION_UPDATE_FEED || DEFAULT_FEED_BASE,
     onUpdateState = null,
     log = console,
   } = deps;

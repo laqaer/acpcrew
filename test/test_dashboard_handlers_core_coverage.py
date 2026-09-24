@@ -8,7 +8,7 @@ the agent-settings PUT validators, the loopback-gated local endpoints
 Style follows ``test_api_health.py`` (direct handler calls against a
 ``MagicMock(spec=web.Request)``) and ``test_config_patch.py`` (real aiohttp
 ``TestClient`` when the handler needs a genuine request body or streaming
-response). Every write lands under the autouse-isolated ``KIROCREW_HOME``
+response). Every write lands under the autouse-isolated ``JUNCTION_HOME``
 from ``conftest.py``; nothing here touches the network or spawns a process.
 """
 
@@ -28,14 +28,14 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.config.loader import (
+from junction.config.loader import (
     MAX_SUBAGENTS_FIXED_FLOOR,
     SUBAGENT_AUTO_MAX_CEILING,
     SUBAGENT_MAX_TURNS_CEILING,
     config_path,
 )
-from kiro_crew.dashboard.handlers import core as core_mod
-from kiro_crew.sel import SelVerification as _SelVerification
+from junction.dashboard.handlers import core as core_mod
+from junction.sel import SelVerification as _SelVerification
 
 # ── shared helpers ───────────────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ def fake_sel(monkeypatch) -> MagicMock:
     package attribute is what the handler observes.
     """
     recorder = MagicMock()
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: recorder)
+    monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: recorder)
     return recorder
 
 
@@ -128,10 +128,10 @@ class TestPageAndAssets:
         """A configured avatar pointing at a credential path is 404, never served."""
         cfg = SimpleNamespace(dashboard=SimpleNamespace(avatar="/home/u/.ssh/id_rsa"))
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.KiroCrewConfig",
+            "junction.dashboard.handlers.JunctionConfig",
             SimpleNamespace(load=lambda: cfg),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_sensitive_path", lambda _p: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_sensitive_path", lambda _p: True)
         resp = await core_mod.logo(_req())
         assert resp.status == 404
 
@@ -141,12 +141,12 @@ class TestPageAndAssets:
         avatar.write_bytes(b"png")
         cfg = SimpleNamespace(dashboard=SimpleNamespace(avatar=str(avatar)))
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.KiroCrewConfig",
+            "junction.dashboard.handlers.JunctionConfig",
             SimpleNamespace(load=lambda: cfg),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_sensitive_path", lambda _p: False)
+        monkeypatch.setattr("junction.dashboard.handlers.is_sensitive_path", lambda _p: False)
         monkeypatch.setattr(
-            "kiro_crew.hooks.validate_file_path", lambda p: str(avatar) if p else None
+            "junction.hooks.validate_file_path", lambda p: str(avatar) if p else None
         )
         resp = await core_mod.logo(_req())
         assert isinstance(resp, web.FileResponse)
@@ -157,16 +157,16 @@ class TestPageAndAssets:
     ) -> None:
         """Nightly builds serve the night-sky logo so the in-app identity
         matches the nightly desktop shell."""
-        (tmp_path / "kirocrew-logo.png").write_bytes(b"day")
-        nightly = tmp_path / "kirocrew-logo-nightly.png"
+        (tmp_path / "junction-logo.png").write_bytes(b"day")
+        nightly = tmp_path / "junction-logo-nightly.png"
         nightly.write_bytes(b"night")
         cfg = SimpleNamespace(dashboard=SimpleNamespace(avatar=""))
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.KiroCrewConfig",
+            "junction.dashboard.handlers.JunctionConfig",
             SimpleNamespace(load=lambda: cfg),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.handlers._STATIC_DIR", tmp_path)
-        monkeypatch.setattr("kiro_crew.__version__", "9.9.9-nightly.20260812")
+        monkeypatch.setattr("junction.dashboard.handlers._STATIC_DIR", tmp_path)
+        monkeypatch.setattr("junction.__version__", "9.9.9-nightly.20260812")
         resp = await core_mod.logo(_req())
         assert isinstance(resp, web.FileResponse)
         assert os.path.realpath(resp._path) == os.path.realpath(nightly)
@@ -175,11 +175,11 @@ class TestPageAndAssets:
     async def test_logo_404_when_no_asset_exists(self, monkeypatch, tmp_path) -> None:
         cfg = SimpleNamespace(dashboard=SimpleNamespace(avatar=""))
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.KiroCrewConfig",
+            "junction.dashboard.handlers.JunctionConfig",
             SimpleNamespace(load=lambda: cfg),
         )
-        monkeypatch.setattr("kiro_crew.dashboard.handlers._STATIC_DIR", tmp_path / "empty")
-        monkeypatch.setattr("kiro_crew.__version__", "9.9.9")
+        monkeypatch.setattr("junction.dashboard.handlers._STATIC_DIR", tmp_path / "empty")
+        monkeypatch.setattr("junction.__version__", "9.9.9")
         resp = await core_mod.logo(_req())
         assert resp.status == 404
 
@@ -241,7 +241,7 @@ class TestSttProviders:
     def test_mlx_hidden_off_apple_silicon(self, monkeypatch) -> None:
         monkeypatch.setattr(core_mod, "_is_apple_silicon", lambda: False)
         monkeypatch.setattr(
-            "kiro_crew.apple_speech.availability",
+            "junction.apple_speech.availability",
             lambda: SimpleNamespace(ok=True),
         )
         providers = core_mod._stt_providers()
@@ -251,7 +251,7 @@ class TestSttProviders:
     def test_apple_hidden_when_framework_unavailable(self, monkeypatch) -> None:
         monkeypatch.setattr(core_mod, "_is_apple_silicon", lambda: True)
         monkeypatch.setattr(
-            "kiro_crew.apple_speech.availability",
+            "junction.apple_speech.availability",
             lambda: SimpleNamespace(ok=False),
         )
         providers = core_mod._stt_providers()
@@ -303,7 +303,7 @@ class TestSttPrereqCommands:
         monkeypatch.setattr(core_mod.os, "name", "posix")
         cmds = core_mod._stt_prereq_commands("transcribe")
         assert len(cmds) == 1
-        assert "kirocrew[voice]" in cmds[0]
+        assert "junction[voice]" in cmds[0]
         assert "-m pip install" in cmds[0]
         assert core_mod.shlex.quote(core_mod.sys.executable) in cmds[0]
 
@@ -323,7 +323,7 @@ class TestSttPrereqCommands:
         monkeypatch.setattr(core_mod.sys, "executable", "C:\\Program Files\\Python312\\python.exe")
         cmds = core_mod._stt_prereq_commands("transcribe")
         assert cmds == [
-            "& 'C:\\Program Files\\Python312\\python.exe' -m pip install kirocrew[voice]"
+            "& 'C:\\Program Files\\Python312\\python.exe' -m pip install junction[voice]"
         ]
         # Named properties the exact match locks in:
         assert '"' not in cmds[0]  # PS double quotes still expand $ and backtick
@@ -340,7 +340,7 @@ class TestSttPrereqCommands:
         monkeypatch.setattr(core_mod.os, "name", "nt")
         monkeypatch.setattr(core_mod.sys, "executable", "C:\\tools\\$python\\o'brien.exe")
         cmds = core_mod._stt_prereq_commands("transcribe")
-        assert cmds == ["& 'C:\\tools\\$python\\o''brien.exe' -m pip install kirocrew[voice]"]
+        assert cmds == ["& 'C:\\tools\\$python\\o''brien.exe' -m pip install junction[voice]"]
 
     def test_transcribe_prereq_without_install_channel_is_empty(self, monkeypatch) -> None:
         """When no install channel can make the extra importable (bundled
@@ -370,7 +370,7 @@ class TestSttPrereqCommands:
         monkeypatch.setattr(core_mod.shutil, "which", lambda _n: None)
         cmds = core_mod._stt_prereq_commands("transcribe")
         assert len(cmds) == 2
-        assert "kirocrew[voice]" in cmds[0]
+        assert "junction[voice]" in cmds[0]
         assert cmds[1] == "brew install ffmpeg"
 
     def test_darwin_lists_license_brew_and_packages(self, monkeypatch) -> None:
@@ -419,7 +419,7 @@ class TestSttPrereqCommands:
         scripts = tmp_path / "scripts"
         scripts.mkdir()
         (scripts / "build-ffmpeg.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
         cmds = core_mod._stt_prereq_commands()
         assert any("dnf install -y python3.11" in c for c in cmds)
         assert any("build-ffmpeg.sh" in c for c in cmds)
@@ -429,7 +429,7 @@ class TestSttPrereqCommands:
         monkeypatch.setattr(core_mod, "_is_al2023", lambda: False)
         monkeypatch.setattr(core_mod, "_find_suitable_python", lambda: "/usr/bin/python3")
         monkeypatch.setattr(core_mod.shutil, "which", lambda _n: None)
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
         cmds = core_mod._stt_prereq_commands()
         assert cmds == ["echo 'Build ffmpeg from source: https://ffmpeg.org/releases/'"]
 
@@ -518,7 +518,7 @@ class TestFindSuitablePython:
             captured["reject"] = reject
             return "/usr/bin/python3"
 
-        monkeypatch.setattr("kiro_crew.platform_compat.find_python_interpreter", _fake)
+        monkeypatch.setattr("junction.platform_compat.find_python_interpreter", _fake)
         assert core_mod._find_suitable_python() == "/usr/bin/python3"
         return captured["reject"]
 
@@ -1053,28 +1053,28 @@ def _multipart_req(field) -> web.Request:
 class TestSttTranscribe:
     @pytest.mark.asyncio
     async def test_unavailable_backend_is_503(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda *_a: False)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda *_a: False)
         resp = await core_mod.api_stt_transcribe(_req())
         assert resp.status == 503
         assert json.loads(resp.body)["error"] == "STT not available"
 
     @pytest.mark.asyncio
     async def test_missing_audio_field_is_400(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda *_a: True)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda *_a: True)
         resp = await core_mod.api_stt_transcribe(_multipart_req(None))
         assert resp.status == 400
         assert json.loads(resp.body)["error"] == "missing audio field"
 
     @pytest.mark.asyncio
     async def test_wrong_field_name_is_400(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda *_a: True)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda *_a: True)
         field = SimpleNamespace(name="video", filename="x.webm", read_chunk=AsyncMock())
         resp = await core_mod.api_stt_transcribe(_multipart_req(field))
         assert resp.status == 400
 
     @pytest.mark.asyncio
     async def test_oversized_upload_is_413(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda *_a: True)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda *_a: True)
         field = SimpleNamespace(
             name="audio",
             filename="recording.mp4",
@@ -1086,9 +1086,9 @@ class TestSttTranscribe:
 
     @pytest.mark.asyncio
     async def test_transcript_is_returned_and_redacted(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda *_a: True)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda *_a: True)
         monkeypatch.setattr(
-            "kiro_crew.transcribe.transcribe_audio",
+            "junction.transcribe.transcribe_audio",
             AsyncMock(return_value="hello from the meeting"),
         )
         field = SimpleNamespace(
@@ -1102,9 +1102,9 @@ class TestSttTranscribe:
 
     @pytest.mark.asyncio
     async def test_backend_failure_is_a_generic_500(self, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.transcribe.is_available", lambda *_a: True)
+        monkeypatch.setattr("junction.transcribe.is_available", lambda *_a: True)
         monkeypatch.setattr(
-            "kiro_crew.transcribe.transcribe_audio",
+            "junction.transcribe.transcribe_audio",
             AsyncMock(side_effect=RuntimeError("whisper exploded")),
         )
         field = SimpleNamespace(
@@ -1177,7 +1177,7 @@ class TestSecurityStats:
     @pytest.mark.asyncio
     async def test_counts_are_derived_from_the_posture_registry(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.security.build_denied_commands_snapshot_async",
+            "junction.dashboard.handlers.security.build_denied_commands_snapshot_async",
             AsyncMock(return_value={"effective_count": 42}),
         )
         monkeypatch.setattr(
@@ -1203,7 +1203,7 @@ class TestSecurityStats:
     async def test_denied_count_failure_degrades_to_zero(self, monkeypatch) -> None:
         """An unreadable denylist must not take the whole stats endpoint down."""
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.security.build_denied_commands_snapshot_async",
+            "junction.dashboard.handlers.security.build_denied_commands_snapshot_async",
             AsyncMock(side_effect=OSError("unreadable")),
         )
         monkeypatch.setattr(core_mod, "posture_counts_async", AsyncMock(return_value={}))
@@ -1212,24 +1212,24 @@ class TestSecurityStats:
         assert body["suspicious_patterns"] is None
 
 
-# ── Agent settings PUT (/api/config/kirocrew) ───────────────────────────
+# ── Agent settings PUT (/api/config/junction) ───────────────────────────
 
 
 def _agent_cfg_app() -> web.Application:
     app = web.Application()
-    app.router.add_route("*", "/api/config/kirocrew", core_mod.api_kirocrew_config)
+    app.router.add_route("*", "/api/config/junction", core_mod.api_junction_config)
     return app
 
 
 async def _put_agent(client, settings: dict):
-    return await client.put("/api/config/kirocrew", json={"agent": settings})
+    return await client.put("/api/config/junction", json={"agent": settings})
 
 
 class TestAgentSettingsPut:
     @pytest.mark.asyncio
     async def test_malformed_body_is_denied_and_audited(self, seeded_config, fake_sel) -> None:
         async with TestClient(TestServer(_agent_cfg_app())) as client:
-            resp = await client.put("/api/config/kirocrew", data=b"{{{")
+            resp = await client.put("/api/config/junction", data=b"{{{")
             assert resp.status == 400
             assert (await resp.json())["error"] == "invalid JSON"
         assert fake_sel.log_api_access.call_args.kwargs["outcome"] == "denied"
@@ -1237,7 +1237,7 @@ class TestAgentSettingsPut:
     @pytest.mark.asyncio
     async def test_missing_agent_object_is_denied(self, seeded_config, fake_sel) -> None:
         async with TestClient(TestServer(_agent_cfg_app())) as client:
-            resp = await client.put("/api/config/kirocrew", json={"agent": "nope"})
+            resp = await client.put("/api/config/junction", json={"agent": "nope"})
             assert resp.status == 400
             assert (await resp.json())["error"] == "agent must be an object"
 
@@ -1352,7 +1352,7 @@ class TestAgentSettingsPut:
         self, seeded_config, fake_sel, monkeypatch
     ) -> None:
         regen = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.agents._regen_conductor", regen)
+        monkeypatch.setattr("junction.dashboard.handlers.agents._regen_conductor", regen)
         async with TestClient(TestServer(_agent_cfg_app())) as client:
             resp = await _put_agent(client, {"conductor_skill": True})
             assert resp.status == 200
@@ -1364,7 +1364,7 @@ class TestAgentSettingsPut:
     async def test_conductor_disable_removes_the_skill_file(
         self, seeded_config, fake_sel, tmp_path
     ) -> None:
-        from kiro_crew.skills import SkillsLoader
+        from junction.skills import SkillsLoader
 
         skill = SkillsLoader()._dir / "conductor" / "SKILL.md"
         skill.parent.mkdir(parents=True, exist_ok=True)
@@ -1384,7 +1384,7 @@ class TestAgentSettingsPut:
             newline="\n",
         )
         async with TestClient(TestServer(_agent_cfg_app())) as client:
-            body = await (await client.get("/api/config/kirocrew")).json()
+            body = await (await client.get("/api/config/junction")).json()
         assert "some_edition" not in body
         assert "s3cret" not in json.dumps(body)
         assert "agent" in body
@@ -1428,7 +1428,7 @@ class TestAgentSettingsPutLockOffload:
         """The write path must call ``update_config_locked``, not a bare
         ``write_text`` / ``os.replace``.  Patching the helper to a spy lets us
         assert it was invoked while still allowing the real write to complete."""
-        import kiro_crew.config.loader as _loader
+        import junction.config.loader as _loader
 
         calls: list[str] = []
         _real = _loader.update_config_locked
@@ -1461,10 +1461,10 @@ class TestPatchGuards:
         """A dead end ("not editable") becomes a next step for fields whose
         side effects the generic write cannot reproduce."""
         app = web.Application()
-        app.router.add_patch("/api/config/kirocrew", core_mod.api_kirocrew_config_patch)
+        app.router.add_patch("/api/config/junction", core_mod.api_junction_config_patch)
         async with TestClient(TestServer(app)) as client:
             resp = await client.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "agent.apps_allow_third_party", "value": False},
             )
             assert resp.status == 400
@@ -1473,10 +1473,10 @@ class TestPatchGuards:
     @pytest.mark.asyncio
     async def test_unknown_field_is_refused(self, seeded_config, fake_sel) -> None:
         app = web.Application()
-        app.router.add_patch("/api/config/kirocrew", core_mod.api_kirocrew_config_patch)
+        app.router.add_patch("/api/config/junction", core_mod.api_junction_config_patch)
         async with TestClient(TestServer(app)) as client:
             resp = await client.patch(
-                "/api/config/kirocrew", json={"path": "agent.nope", "value": 1}
+                "/api/config/junction", json={"path": "agent.nope", "value": 1}
             )
             assert resp.status == 400
             assert (await resp.json())["error"] == "field not editable: agent.nope"
@@ -1487,14 +1487,14 @@ class TestFallbackModelPatch:
 
     def _app(self) -> web.Application:
         app = web.Application()
-        app.router.add_patch("/api/config/kirocrew", core_mod.api_kirocrew_config_patch)
+        app.router.add_patch("/api/config/junction", core_mod.api_junction_config_patch)
         return app
 
     @pytest.mark.asyncio
     async def test_accepts_a_model_id(self, seeded_config, fake_sel) -> None:
         async with TestClient(TestServer(self._app())) as client:
             resp = await client.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "agent.fallback_model", "value": "claude-opus-4.8"},
             )
             assert resp.status == 200
@@ -1508,7 +1508,7 @@ class TestFallbackModelPatch:
         # "auto" always allows — _validate_role_model's defer-to-default case.
         async with TestClient(TestServer(self._app())) as client:
             resp = await client.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "agent.fallback_model", "value": "auto"},
             )
             assert resp.status == 200
@@ -1517,7 +1517,7 @@ class TestFallbackModelPatch:
     async def test_accepts_empty_feature_off(self, seeded_config, fake_sel) -> None:
         async with TestClient(TestServer(self._app())) as client:
             resp = await client.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "agent.fallback_model", "value": ""},
             )
             assert resp.status == 200
@@ -1526,7 +1526,7 @@ class TestFallbackModelPatch:
     async def test_rejects_non_string(self, seeded_config, fake_sel) -> None:
         async with TestClient(TestServer(self._app())) as client:
             resp = await client.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "agent.fallback_model", "value": ["claude-opus-5"]},
             )
             assert resp.status == 400
@@ -1535,7 +1535,7 @@ class TestFallbackModelPatch:
     async def test_rejects_bad_grammar(self, seeded_config, fake_sel) -> None:
         async with TestClient(TestServer(self._app())) as client:
             resp = await client.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 json={"path": "agent.fallback_model", "value": "model; rm -rf /"},
             )
             assert resp.status == 400
@@ -1581,21 +1581,21 @@ class TestAdvertisedModelGuards:
 
     def test_provider_rejection_is_surfaced(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_handlers._model_rejected_reason",
+            "junction.dashboard.chat_handlers._model_rejected_reason",
             lambda _v, provider=None: "display-only key",
         )
         assert core_mod._validate_role_model("fable-5-1m", _req()) == "display-only key"
 
     def test_unknown_entitlement_does_not_accuse(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_handlers._model_rejected_reason",
+            "junction.dashboard.chat_handlers._model_rejected_reason",
             lambda _v, provider=None: None,
         )
         assert core_mod._validate_role_model("some-model", _req(app={})) is None
 
     def test_unentitled_model_lists_usable_alternatives(self, monkeypatch) -> None:
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_handlers._model_rejected_reason",
+            "junction.dashboard.chat_handlers._model_rejected_reason",
             lambda _v, provider=None: None,
         )
         state = SimpleNamespace(
@@ -1619,7 +1619,7 @@ class TestAdvertisedModelGuards:
 class TestLocalToken:
     @pytest.mark.asyncio
     async def test_non_loopback_is_refused(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: False)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: False)
         resp = await core_mod.api_token_local(_req(remote="203.0.113.9"))
         assert resp.status == 403
         assert json.loads(resp.body)["error"] == "loopback only"
@@ -1627,14 +1627,14 @@ class TestLocalToken:
 
     @pytest.mark.asyncio
     async def test_unconfigured_secret_is_503(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         resp = await core_mod.api_token_local(_req(app={}))
         assert resp.status == 503
         assert json.loads(resp.body)["error"] == "not available"
 
     @pytest.mark.asyncio
     async def test_wrong_secret_is_refused(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         resp = await core_mod.api_token_local(
             _req(app={"local_secret": "right"}, headers={"X-Local-Secret": "wrong"})
         )
@@ -1643,7 +1643,7 @@ class TestLocalToken:
 
     @pytest.mark.asyncio
     async def test_missing_secret_header_is_refused(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         resp = await core_mod.api_token_local(_req(app={"local_secret": "right"}))
         assert resp.status == 403
 
@@ -1651,7 +1651,7 @@ class TestLocalToken:
     async def test_issues_credential_with_requested_ttl_and_embed_claim(
         self, monkeypatch, fake_sel
     ) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         minted: dict = {}
 
         def _generate(owner, ttl_seconds=0, extra=None):
@@ -1673,7 +1673,7 @@ class TestLocalToken:
 
     @pytest.mark.asyncio
     async def test_bad_embed_port_is_dropped(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         minted: dict = {}
 
         def _generate(owner, ttl_seconds=0, extra=None):
@@ -1695,14 +1695,14 @@ class TestLocalToken:
 class TestLogout:
     @pytest.mark.asyncio
     async def test_non_loopback_is_refused(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: False)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: False)
         resp = await core_mod.api_logout(_req(remote="203.0.113.9"))
         assert resp.status == 403
         assert json.loads(resp.body)["error"] == "loopback only"
 
     @pytest.mark.asyncio
     async def test_wrong_secret_is_refused(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         resp = await core_mod.api_logout(
             _req(app={"local_secret": "right"}, headers={"X-Local-Secret": "wrong"})
         )
@@ -1714,12 +1714,12 @@ class TestLogout:
         self, monkeypatch, fake_sel
     ) -> None:
         """Fail-closed: an unpersisted revocation must never report success."""
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
 
         def _boom():
             raise OSError("read-only trust dir")
 
-        monkeypatch.setattr("kiro_crew.dashboard.token_auth.revoke_all_sessions", _boom)
+        monkeypatch.setattr("junction.dashboard.token_auth.revoke_all_sessions", _boom)
         resp = await core_mod.api_logout(
             _req(app={"local_secret": "right"}, headers={"X-Local-Secret": "right"})
         )
@@ -1730,9 +1730,9 @@ class TestLogout:
 
     @pytest.mark.asyncio
     async def test_successful_revocation_is_audited(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.handlers.is_loopback", lambda _r: True)
+        monkeypatch.setattr("junction.dashboard.handlers.is_loopback", lambda _r: True)
         revoke = MagicMock()
-        monkeypatch.setattr("kiro_crew.dashboard.token_auth.revoke_all_sessions", revoke)
+        monkeypatch.setattr("junction.dashboard.token_auth.revoke_all_sessions", revoke)
         resp = await core_mod.api_logout(
             _req(app={"local_secret": "right"}, headers={"X-Local-Secret": "right"})
         )
@@ -1746,7 +1746,7 @@ class TestAppSecretExchange:
     @pytest.fixture
     def app_sel(self, monkeypatch) -> MagicMock:
         recorder = MagicMock()
-        monkeypatch.setattr("kiro_crew.sel.sel", lambda: recorder)
+        monkeypatch.setattr("junction.sel.sel", lambda: recorder)
         return recorder
 
     @pytest.mark.asyncio
@@ -1758,7 +1758,7 @@ class TestAppSecretExchange:
 
     @pytest.mark.asyncio
     async def test_invalid_secret_is_refused(self, app_sel, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.token_auth.validate_app_secret", lambda *_a: False)
+        monkeypatch.setattr("junction.dashboard.token_auth.validate_app_secret", lambda *_a: False)
         resp = await core_mod.api_app_token(
             _req(match_info={"name": "meetings"}, headers={"X-App-Secret": "nope"})
         )
@@ -1767,14 +1767,14 @@ class TestAppSecretExchange:
 
     @pytest.mark.asyncio
     async def test_valid_secret_mints_an_app_scoped_credential(self, app_sel, monkeypatch) -> None:
-        monkeypatch.setattr("kiro_crew.dashboard.token_auth.validate_app_secret", lambda *_a: True)
+        monkeypatch.setattr("junction.dashboard.token_auth.validate_app_secret", lambda *_a: True)
         seen: dict = {}
 
         def _generate(name, app=None):
             seen.update({"name": name, "app": app})
             return "app-scoped-value"
 
-        monkeypatch.setattr("kiro_crew.dashboard.token_auth.generate_token", _generate)
+        monkeypatch.setattr("junction.dashboard.token_auth.generate_token", _generate)
         resp = await core_mod.api_app_token(
             _req(match_info={"name": "meetings"}, headers={"X-App-Secret": "ok"})
         )
@@ -1792,7 +1792,7 @@ class TestSessionAgentRoutes:
     @pytest.mark.asyncio
     async def test_list_returns_workspace_results(self, monkeypatch, fake_sel) -> None:
         monkeypatch.setattr(
-            "kiro_crew.session_workspace.list_results",
+            "junction.session_workspace.list_results",
             lambda _s: [{"agent_id": "a1", "bytes": 12}],
         )
         resp = await core_mod.api_session_agents_list(_req(match_info={"id": "s1"}))
@@ -1801,7 +1801,7 @@ class TestSessionAgentRoutes:
 
     @pytest.mark.asyncio
     async def test_missing_result_is_404(self, monkeypatch, fake_sel) -> None:
-        monkeypatch.setattr("kiro_crew.session_workspace.read_result", lambda *_a: "")
+        monkeypatch.setattr("junction.session_workspace.read_result", lambda *_a: "")
         resp = await core_mod.api_session_agent_result(
             _req(match_info={"id": "s1", "agent_id": "a1"})
         )
@@ -1811,7 +1811,7 @@ class TestSessionAgentRoutes:
     @pytest.mark.asyncio
     async def test_result_is_returned_after_redaction(self, monkeypatch, fake_sel) -> None:
         monkeypatch.setattr(
-            "kiro_crew.session_workspace.read_result", lambda *_a: "finished the audit"
+            "junction.session_workspace.read_result", lambda *_a: "finished the audit"
         )
         resp = await core_mod.api_session_agent_result(
             _req(match_info={"id": "s1", "agent_id": "a1"})
@@ -1825,7 +1825,7 @@ class TestSessionAgentRoutes:
     ) -> None:
         result = tmp_path / "agent-a1.md"
         result.write_text("partial output\n", encoding="utf-8", newline="\n")
-        monkeypatch.setattr("kiro_crew.session_workspace.result_path", lambda *_a: result)
+        monkeypatch.setattr("junction.session_workspace.result_path", lambda *_a: result)
 
         app = web.Application()
         app["state"] = SimpleNamespace(
@@ -1850,7 +1850,7 @@ class TestSessionAgentRoutes:
             raise ConnectionResetError("peer went away")
 
         monkeypatch.setattr(
-            "kiro_crew.session_workspace.result_path",
+            "junction.session_workspace.result_path",
             lambda *_a: SimpleNamespace(exists=lambda: True, read_text=_reset),
         )
         app = web.Application()

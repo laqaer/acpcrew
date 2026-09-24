@@ -11,10 +11,10 @@ drive the REAL assembly to prove the reported slice IS the user's text.
 
 from __future__ import annotations
 
-from kiro_crew.context import ContextBuilder
-from kiro_crew.hooks import HookResult
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.context import ContextBuilder
+from junction.hooks import HookResult
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 
 def _make_builder(tmp_path):

@@ -8,7 +8,7 @@ communicate via @mentions, and persist across sessions.
 
 ## Problem
 
-KiroCrew's subagent model is fire-and-forget: spawn a task, get a result,
+Junction's subagent model is fire-and-forget: spawn a task, get a result,
 done. There's no way for multiple agents to collaborate on a shared problem
 over time, see each other's progress, or coordinate through a human
 orchestrator.
@@ -135,11 +135,11 @@ restored as `done` and relaunched with fresh sessions.
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/kiro_crew/channel.py` | ~720 | Core data model, routing, persistence, agent execution loop |
-| `src/kiro_crew/dashboard/handlers_channel.py` | ~250 | REST API handlers with input validation |
+| `src/junction/channel.py` | ~720 | Core data model, routing, persistence, agent execution loop |
+| `src/junction/dashboard/handlers_channel.py` | ~250 | REST API handlers with input validation |
 | `frontend/src/pages/ChannelPage.tsx` | ~620 | Full UI with WebSocket, threads, @mention, approval |
 | `frontend/src/api/client.ts` | +15 | API methods (patch helper + 13 channel endpoints) |
-| `src/kiro_crew/dashboard/server.py` | +24 | Route registration |
+| `src/junction/dashboard/server.py` | +24 | Route registration |
 | `test/test_channel.py` | ~240 | 26 tests across 5 classes |
 
 ## Out-of-Plan Fixes (discovered during testing)

@@ -19,8 +19,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.effort import EFFORT_LEVELS
-from kiro_crew.validation import SPAWN_RUN_SCHEMA, ValidationError, validate_tool_args
+from junction.effort import EFFORT_LEVELS
+from junction.validation import SPAWN_RUN_SCHEMA, ValidationError, validate_tool_args
 
 # ``SubagentManager.spawn`` refuses -- registering no task -- while the host
 # looks short of memory, which is the runner's state, not this test's input.
@@ -29,7 +29,7 @@ pytestmark = pytest.mark.usefixtures("healthy_host_memory")
 
 def _run_tool(args: dict[str, Any]) -> tuple[list[dict], str]:
     """Run spawn_run and return (POSTed bodies, returned text)."""
-    from kiro_crew import mcp_core
+    from junction import mcp_core
 
     bodies: list[dict] = []
 
@@ -121,7 +121,7 @@ class TestUnsupportedModelReport:
         """SEL and callers test the FIRST line for the 'Error:' prefix
         (mcp_shared logs outcome='failed' iff result.startswith('Error:')),
         so a spawn where nothing started must not lead with the ℹ line."""
-        from kiro_crew import mcp_core
+        from junction import mcp_core
 
         def _reject_post(path: str, body: dict) -> dict:
             return {"error": "capacity reached"}
@@ -158,7 +158,7 @@ class TestApiSpawnHandler:
 
     @pytest.mark.asyncio
     async def test_value_reaches_spawn(self):
-        from kiro_crew.dashboard.handlers.messaging import api_spawn
+        from junction.dashboard.handlers.messaging import api_spawn
 
         request, mgr = self._request({"task": "x", "reasoning_effort": "xhigh"})
         await api_spawn(request)
@@ -166,7 +166,7 @@ class TestApiSpawnHandler:
 
     @pytest.mark.asyncio
     async def test_absent_value_reaches_spawn_as_empty(self):
-        from kiro_crew.dashboard.handlers.messaging import api_spawn
+        from junction.dashboard.handlers.messaging import api_spawn
 
         request, mgr = self._request({"task": "x"})
         await api_spawn(request)
@@ -174,7 +174,7 @@ class TestApiSpawnHandler:
 
     @pytest.mark.asyncio
     async def test_invalid_value_is_rejected_with_400(self):
-        from kiro_crew.dashboard.handlers.messaging import api_spawn
+        from junction.dashboard.handlers.messaging import api_spawn
 
         request, mgr = self._request({"task": "x", "reasoning_effort": "turbo"})
         resp = await api_spawn(request)
@@ -200,7 +200,7 @@ def _mock_ctx() -> MagicMock:
 
 
 def _mgr():
-    from kiro_crew.subagent import SubagentManager
+    from junction.subagent import SubagentManager
 
     return SubagentManager(sessions=_mock_sessions(), ctx_builder=_mock_ctx())
 
@@ -254,7 +254,7 @@ class TestRecordAndRetry:
 
     @pytest.mark.asyncio
     async def test_retry_re_spawns_at_the_same_effort(self):
-        from kiro_crew.dashboard.handlers.messaging import api_spawn_retry
+        from junction.dashboard.handlers.messaging import api_spawn_retry
 
         old = SimpleNamespace(
             id="a1",
@@ -291,9 +291,9 @@ class TestResolutionPrecedence:
     exactly as a role pin already does."""
 
     def _run(self, *, info_effort: str = "", role_efforts=None):
-        from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-        from kiro_crew.providers.base import EVENT_COMPLETE, LLMEvent
-        from kiro_crew.subagent import SubagentInfo, SubagentManager
+        from junction.config.loader import AgentConfig, JunctionConfig
+        from junction.providers.base import EVENT_COMPLETE, LLMEvent
+        from junction.subagent import SubagentInfo, SubagentManager
 
         sessions = MagicMock()
         sessions.get_pid = MagicMock(return_value=None)
@@ -317,7 +317,7 @@ class TestResolutionPrecedence:
 
         mock_client.stream = fake_stream
 
-        cfg = KiroCrewConfig(agent=AgentConfig(role_efforts=role_efforts or {}))
+        cfg = JunctionConfig(agent=AgentConfig(role_efforts=role_efforts or {}))
         runner = SubagentManager(sessions=sessions, ctx_builder=ctx_builder)
         shared = AsyncMock(
             side_effect=AssertionError("shared path taken despite an effort override")
@@ -331,7 +331,7 @@ class TestResolutionPrecedence:
         with (
             patch.object(runner, "_create_shared_session", shared),
             patch.object(runner, "_should_use_session_sharing", return_value=True),
-            patch("kiro_crew.config.loader.KiroCrewConfig.load", classmethod(lambda c: cfg)),
+            patch("junction.config.loader.JunctionConfig.load", classmethod(lambda c: cfg)),
         ):
             asyncio.run(runner._run_inner(info, "subagent:sub1"))
         return captured, shared

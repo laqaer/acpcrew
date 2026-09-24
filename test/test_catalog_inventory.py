@@ -13,8 +13,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.apps import official_catalog as oc
-from kiro_crew.apps import registry as reg
+from junction.apps import official_catalog as oc
+from junction.apps import registry as reg
 
 SHA = "a" * 40
 OTHER_SHA = "b" * 40
@@ -153,8 +153,8 @@ class TestInstallCoordinatesDoNotTrustTheCache:
     def test_the_cache_is_writable_by_the_agent(self):
         """The premise, asserted rather than assumed -- if this ever becomes False
         the reasoning below can be revisited, and the test says so out loud."""
-        from kiro_crew import security
-        from kiro_crew.config.loader import config_dir
+        from junction import security
+        from junction.config.loader import config_dir
 
         cache = config_dir() / "cache" / "official-catalog.json"
         assert security.is_sensitive_write_path(str(cache)) is False
@@ -1283,9 +1283,9 @@ class TestCandidatesRefuseBeforeAnyFallback:
             def load():
                 return _Cfg()
 
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
-        monkeypatch.setattr(loader, "KiroCrewConfig", _Cfg)
+        monkeypatch.setattr(loader, "JunctionConfig", _Cfg)
         # A markerless external row -- exactly the shape that reads as official.
         monkeypatch.setattr(
             reg,
@@ -1323,9 +1323,9 @@ class TestCandidatesRefuseBeforeAnyFallback:
             def load():
                 return _Cfg()
 
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
-        monkeypatch.setattr(loader, "KiroCrewConfig", _Cfg)
+        monkeypatch.setattr(loader, "JunctionConfig", _Cfg)
         monkeypatch.setattr(
             reg,
             "_read_external_registry_cache",
@@ -1459,26 +1459,26 @@ class TestRequestPathPatternsRejectATrailingNewline:
 
     @pytest.mark.parametrize("value", ["main\n", "refs/heads/main\n", "v1.0\n"])
     def test_ref_pattern_rejects_a_trailing_newline(self, value):
-        from kiro_crew.apps import routes
+        from junction.apps import routes
 
         assert not routes._SAFE_REF_RE.match(value)
 
     @pytest.mark.parametrize("value", ["icon.png\n", "assets/logo.svg\n"])
     def test_path_pattern_rejects_a_trailing_newline(self, value):
-        from kiro_crew.apps import routes
+        from junction.apps import routes
 
         assert not routes._SAFE_PATH_RE.match(value)
 
     @pytest.mark.parametrize("value", ["main", "refs/heads/main", "v1.0"])
     def test_ordinary_refs_still_pass(self, value):
         """Scope: tightening the anchor must not reject the values it exists to admit."""
-        from kiro_crew.apps import routes
+        from junction.apps import routes
 
         assert routes._SAFE_REF_RE.match(value)
 
     @pytest.mark.parametrize("value", ["icon.png", "assets/logo.svg"])
     def test_ordinary_paths_still_pass(self, value):
-        from kiro_crew.apps import routes
+        from junction.apps import routes
 
         assert routes._SAFE_PATH_RE.match(value)
 
@@ -1494,7 +1494,7 @@ class TestTrustBoundary:
         exactly what happened before this test existed.
         """
         rows = reg._apply_trust_fields(
-            [{"name": "demo-app", "_catalog": True, "_index_author": "Kiro Crew"}]
+            [{"name": "demo-app", "_catalog": True, "_index_author": "Junction"}]
         )
         assert rows[0]["verified"] is False
         assert rows[0]["provenance"] == "official"
@@ -1502,7 +1502,7 @@ class TestTrustBoundary:
     def test_a_seed_row_with_a_first_party_author_still_earns_the_badge(self):
         """The refusal above must be scoped to catalog rows, not a blanket change."""
         rows = reg._apply_trust_fields(
-            [{"name": "demo-app", "_index_author": "Kiro Crew"}]
+            [{"name": "demo-app", "_index_author": "Junction"}]
         )
         assert rows[0]["verified"] is True
 

@@ -1,36 +1,36 @@
-# API Reference — KiroCrew Gateway API & Client
+# API Reference — Junction Gateway API & Client
 
-Reference for the KiroCrew Gateway HTTP and WebSocket APIs, and how apps consume
+Reference for the Junction Gateway HTTP and WebSocket APIs, and how apps consume
 them.
 
 How you talk to the Gateway depends on where your code runs:
 
-- **Dashboard UI pages (TypeScript/React)** — use the `@kirocrew/app-sdk` hooks
+- **Dashboard UI pages (TypeScript/React)** — use the `@junction/app-sdk` hooks
   (`useAppApi`, `useAppEvents`, …). You do **not** `npm install` this package;
   the dashboard host provides it at runtime through its import map (the bare
-  specifier `@kirocrew/app-sdk` resolves to the host's vendored copy via
-  `window.__kirocrew_modules`). See
+  specifier `@junction/app-sdk` resolves to the host's vendored copy via
+  `window.__junction_modules`). See
   [getting-started.md](getting-started.md) and the [App SDK Hooks](#app-sdk-hooks)
   section below.
 - **Python apps / external CLI tools / services** — use the standalone
-  `kirocrew-client` package (`pip install kirocrew-client`). It is async
-  (`aiohttp`) and has no dependency on the KiroCrew main package. See the
+  `junction-client` package (`pip install junction-client`). It is async
+  (`aiohttp`) and has no dependency on the Junction main package. See the
   [Python Client](#python-client) section.
 - **Node.js / Electron apps** — call the Gateway REST/WS endpoints directly via
   `fetch()` / a WebSocket. The full endpoint list is in
   [Gateway REST API Endpoints](#gateway-rest-api-endpoints).
 
-There is no published TypeScript gateway-client npm package. The `kirocrew-client`
+There is no published TypeScript gateway-client npm package. The `junction-client`
 method names below describe the canonical Gateway API surface — the same
 endpoints any client (including raw `fetch`) talks to.
 
 ## App SDK Hooks (dashboard UI)
 
-Dashboard UI pages import permission-scoped hooks from `@kirocrew/app-sdk`,
+Dashboard UI pages import permission-scoped hooks from `@junction/app-sdk`,
 resolved at runtime via the host import map:
 
 ```tsx
-import { useAppApi, useAppEvents } from '@kirocrew/app-sdk'
+import { useAppApi, useAppEvents } from '@junction/app-sdk'
 
 function MyPage() {
   const api = useAppApi()        // permission-scoped GET/POST/PUT/PATCH/DELETE
@@ -72,11 +72,11 @@ website/src/app-sdk/protocol/
 
 ### Using it from an app
 
-Apps resolve `@kirocrew/app-sdk` through the host import map, the same way they get the hooks:
+Apps resolve `@junction/app-sdk` through the host import map, the same way they get the hooks:
 
 ```tsx
-import { parseOptions, extractSteeringAcks, deriveFollowUpOptions } from '@kirocrew/app-sdk'
-import type { ChatMessage, ParsedOptions } from '@kirocrew/app-sdk'
+import { parseOptions, extractSteeringAcks, deriveFollowUpOptions } from '@junction/app-sdk'
+import type { ChatMessage, ParsedOptions } from '@junction/app-sdk'
 
 function AgentTurn({ message }: { message: ChatMessage }) {
   // Strip the steer acknowledgement first, then the option marker: the text you render is
@@ -146,7 +146,7 @@ also that no other non-test source defines the markers a second time.
 the message's `role`, so you add a row type or replace one instead of forking the list.
 
 ```jsx
-import { ChatMessageList } from '@kirocrew/app-sdk'
+import { ChatMessageList } from '@junction/app-sdk'
 
 <ChatMessageList messages={messages} running={running} />
 ```
@@ -238,13 +238,13 @@ that genuinely needs live app state is supplied by the host as an entry.
 ## Gateway API Surface
 
 The sections below document the canonical Gateway API surface as exposed by the
-`kirocrew-client` Python package (see the [Python Client](#python-client)
+`junction-client` Python package (see the [Python Client](#python-client)
 section for the constructor and full method list). Method names are also a
 convenient way to refer to each endpoint — the same endpoints any client
 (including raw `fetch`) talks to.
 
 When `app_name` is set and no explicit auth is provided, the client auto-reads
-the app secret from `~/.kiro/crew/apps/{name}/.app_secret` and exchanges it
+the app secret from `~/.junction/apps/{name}/.app_secret` and exchanges it
 for a short-lived token via `POST /api/apps/{name}/token`.
 
 ### Authentication
@@ -314,13 +314,13 @@ WebSocket event types: `chat_chunk`, `chat_done`, `chat_message`, `chat_error`,
 | `pauseCron(id)` | `Promise<void>` | Pause without deleting |
 | `resumeCron(id)` | `Promise<void>` | Resume a paused job |
 
-#### Watching something without paying for a model call (`kiro_crew.irq`)
+#### Watching something without paying for a model call (`junction.irq`)
 
-> **Provisional surface.** `kiro_crew.irq` has exactly one probe today
+> **Provisional surface.** `junction.irq` has exactly one probe today
 > (`pr_watch`). The ~15 sibling pollers this abstraction was derived from
 > cannot migrate onto it yet, so a second real consumer has not yet tested the
 > contract. Treat the shapes below as subject to change until one has: build on
-> them, but expect `Observation` / `Tick` to gain fields, and pin the Kiro Crew
+> them, but expect `Observation` / `Tick` to gain fields, and pin the Junction
 > version your app was tested against.
 
 An app that needs to keep an eye on an external thing — a deploy, a ticket, a
@@ -328,7 +328,7 @@ queue depth — should not schedule an **agent** cron to go look. That spends a
 full model turn per check, and on a quiet subject every one of those turns says
 "nothing changed".
 
-Schedule a **script** cron instead and build it on `kiro_crew.irq`, the
+Schedule a **script** cron instead and build it on `junction.irq`, the
 interrupt controller. The script runs in a subprocess with no model call at
 all; a quiet tick is free. Only an unexpected observation raises a wake, and the
 wake is delivered into the session that armed the cron as a real agent turn.
@@ -345,7 +345,7 @@ and each failure looks like success.
 ```python
 import json
 
-from kiro_crew.irq import Observation, Probe, Severity, Tick, run
+from junction.irq import Observation, Probe, Severity, Tick, run
 
 
 class DeployProbe(Probe):
@@ -448,8 +448,8 @@ Rules:
 | `listMcpServers()` | `Promise<McpServerInfo[]>` | List registered MCP servers |
 | `registerMcpServer(def)` | `Promise<void>` | Register an MCP server (requires name + command) |
 | `removeMcpServer(name)` | `Promise<void>` | Remove an MCP server |
-| `registerAppMcp(name, entry)` | `Promise<void>` | Write MCP entry to `~/.kiro/crew/mcp.json` (Node.js only) |
-| `unregisterAppMcp(name)` | `Promise<void>` | Remove MCP entry from `~/.kiro/crew/mcp.json` (Node.js only) |
+| `registerAppMcp(name, entry)` | `Promise<void>` | Write MCP entry to `~/.junction/mcp.json` (Node.js only) |
+| `unregisterAppMcp(name)` | `Promise<void>` | Remove MCP entry from `~/.junction/mcp.json` (Node.js only) |
 
 ### Agent & Skill Installation (Node.js only)
 
@@ -457,7 +457,7 @@ Rules:
 |--------|---------|-------------|
 | `installAgentConfig(name, config)` | `void` | Install agent JSON to `~/.kiro/agents/` (merges mcpServers) |
 | `removeAgentConfig(name)` | `void` | Remove agent config |
-| `installSkill(name, srcDir)` | `void` | Copy skill directory to `~/.kiro/crew/skills/` |
+| `installSkill(name, srcDir)` | `void` | Copy skill directory to `~/.junction/skills/` |
 | `removeSkill(name)` | `void` | Remove skill directory |
 
 ### Agent Runtime
@@ -524,7 +524,7 @@ Returns `{ ok, appended, visibleDeferred, deliveryConditional, contextSkipped, p
 
 ### Proxy Authentication (Server-side)
 
-Verify that an incoming request was signed by the KiroCrew gateway reverse proxy. Use in app backends to authenticate proxied requests.
+Verify that an incoming request was signed by the Junction gateway reverse proxy. Use in app backends to authenticate proxied requests.
 
 | Function | Returns | Description |
 |----------|---------|-------------|
@@ -536,13 +536,13 @@ Options: `{ secret?: string, maxAgeSecs?: number }`
 
 ## Python Client
 
-Standalone async client using `aiohttp` — `pip install kirocrew-client`. Covers
+Standalone async client using `aiohttp` — `pip install junction-client`. Covers
 the full Gateway API surface documented above.
 
 ```python
-from kirocrew_client import KiroCrewClient
+from junction_client import JunctionClient
 
-async with KiroCrewClient(app_name="my-app") as mc:
+async with JunctionClient(app_name="my-app") as mc:
     ok = await mc.ping()
     slots = await mc.list_slots()
 ```
@@ -550,8 +550,8 @@ async with KiroCrewClient(app_name="my-app") as mc:
 ### Constructor
 
 ```python
-KiroCrewClient(
-    base_url="",              # default: http://localhost:{KIROCREW_PORT or 5476}
+JunctionClient(
+    base_url="",              # default: http://localhost:{JUNCTION_PORT or 5476}
     token="",                 # optional for localhost
     app_name="",              # for app-scoped storage & auto-auth
     timeout=30,               # request timeout seconds
@@ -633,10 +633,10 @@ canonical API-surface name used in the sections above:
 
 ## AppManifest
 
-Validate and serialize app.json manifests, via the `kirocrew-client` package.
+Validate and serialize app.json manifests, via the `junction-client` package.
 
 ```python
-from kirocrew_client import AppManifest
+from junction_client import AppManifest
 
 m = AppManifest.from_dict({"name": "my-app", "version": "1.0.0", ...})
 errors = m.validate()   # list[str] — empty if valid
@@ -648,9 +648,9 @@ data = m.to_dict()
 Manage app installation via the Gateway REST API.
 
 ```python
-from kirocrew_client import KiroCrewClient, AppLifecycle
+from junction_client import JunctionClient, AppLifecycle
 
-async with KiroCrewClient() as mc:
+async with JunctionClient() as mc:
     lifecycle = AppLifecycle(mc)
     await lifecycle.install("/path/to/my-app")
     await lifecycle.enable("my-app")
@@ -661,10 +661,10 @@ async with KiroCrewClient() as mc:
 
 ## GatewayManager
 
-Manage the KiroCrew Gateway process (start, stop, health check).
+Manage the Junction Gateway process (start, stop, health check).
 
 ```python
-from kirocrew_client import GatewayManager
+from junction_client import GatewayManager
 
 gm = GatewayManager(port=5476)
 await gm.start()
@@ -676,7 +676,7 @@ await gm.stop()
 
 ## Error Handling
 
-All `kirocrew-client` errors are `KiroCrewError` instances with `code`,
+All `junction-client` errors are `JunctionError` instances with `code`,
 `message`, `status`, `body`.
 
 | Code | Trigger | Retried? |
@@ -691,11 +691,11 @@ All `kirocrew-client` errors are `KiroCrewError` instances with `code`,
 | `WS_DISCONNECTED` | WebSocket not connected | No |
 
 ```python
-from kirocrew_client import KiroCrewError
+from junction_client import JunctionError
 
 try:
     await mc.send_message("slot-1", "hello")
-except KiroCrewError as e:
+except JunctionError as e:
     print(e.code, e.message, e.status)
 ```
 
@@ -703,7 +703,7 @@ except KiroCrewError as e:
 
 ## Gateway REST API Endpoints
 
-The `useAppApi()` hook and the `kirocrew-client` package wrap these Gateway
+The `useAppApi()` hook and the `junction-client` package wrap these Gateway
 endpoints. Apps can also call them directly via `fetch()`.
 
 ### App Management
@@ -730,26 +730,26 @@ endpoints. Apps can also call them directly via `fetch()`.
 
 ### Reverse Proxy Authentication
 
-The gateway signs each proxied request with `X-KiroCrew-Proxy: <timestamp>:<hmac-sha256>`. The
+The gateway signs each proxied request with `X-Junction-Proxy: <timestamp>:<hmac-sha256>`. The
 HMAC is computed over the message `timestamp:method:/api/path[?query]:sha256(body)` using the
 app secret as the key, where `sha256(body)` is the hex SHA-256 digest of the raw request body
 (an empty body hashes the empty byte string, `e3b0c442...`). Binding the body hash means a
 tampered body invalidates the signature. Backends verify with a constant-time comparison and
 reject requests whose timestamp is not within ±60s of now.
 
-Python app backends verify this with `kirocrew-client`:
+Python app backends verify this with `junction-client`:
 
 ```python
-from kirocrew_client import verify_proxy_request
+from junction_client import verify_proxy_request
 if not verify_proxy_request(request, 'my-app'): return Response(status=401)
 ```
 
 Node.js app backends can verify the signature directly: compute
 `HMAC-SHA256(timestamp:method:/api/path[?query]:sha256(body), app_secret)` and compare against
-the value in the `X-KiroCrew-Proxy` header (constant-time), rejecting stale timestamps.
+the value in the `X-Junction-Proxy` header (constant-time), rejecting stale timestamps.
 
 > **Breaking change (body-bound signature):** `verify_proxy_request` /
-> `verify_proxy_request_raw` in the `kirocrew-client` package MUST be regenerated in lockstep
+> `verify_proxy_request_raw` in the `junction-client` package MUST be regenerated in lockstep
 > to bind `sha256(body)` while keeping the constant-time compare and ±60s freshness. A gateway
 > that signs body-bound HMACs will fail verification against any deployed old verifier, so the
 > client release must ship together with this change.
@@ -761,7 +761,7 @@ an installed app is in dev mode the gateway serves its UI files with
 `Cache-Control: no-store` and watches the app's `ui/` directory; on any file
 change it broadcasts an `app_reload` WebSocket event and the dashboard reloads
 the app so edits appear immediately. The recommended setup symlinks
-`~/.kiro/crew/apps/<name>/ui/` to your source tree so the watcher sees edits at
+`~/.junction/apps/<name>/ui/` to your source tree so the watcher sees edits at
 the real files.
 
 **Contract surface:**
@@ -776,14 +776,14 @@ the real files.
 - **WebSocket event — `app_reload`**, payload `{"app": <name>, "ts": <float>}`.
   Re-dispatched to the frontend as the `mc:app-reload` window CustomEvent; the
   AppHost triggers a full page reload for the matching app.
-- **CLI — `kirocrew app dev <name> [--off]`**: toggles the flag out-of-process;
+- **CLI — `junction app dev <name> [--off]`**: toggles the flag out-of-process;
   the gateway watcher picks up the change within one poll interval, so no
   gateway restart is needed.
 
 **Cost model:** dev mode is off for essentially all gateways. The
 authoritative per-app state is the `installed.json` `dev` field above; to keep
 the steady-state cost negligible the gateway also maintains an **internal,
-unstable cache** (a small sentinel file under `~/.kiro/crew/apps/`, plus an
+unstable cache** (a small sentinel file under `~/.junction/apps/`, plus an
 in-memory mirror) listing the app names currently in dev mode. The watcher
 `stat()`s only that one file each second and walks a `ui/` tree solely for apps
 in the set — so a gateway with no dev apps pays one `stat()` per second and

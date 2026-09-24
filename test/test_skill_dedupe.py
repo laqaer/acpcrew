@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kiro_crew.skills_dedupe import (
+from junction.skills_dedupe import (
     VERDICT_DUP,
     VERDICT_NEW,
     VERDICT_UPDATE,

@@ -7,7 +7,7 @@ import re
 
 import pytest
 
-from kiro_crew.deploy import engine
+from junction.deploy import engine
 
 
 class FakeAWS:
@@ -84,7 +84,7 @@ def test_aws_bin_resolved_absolutely_from_extra_dirs(monkeypatch, tmp_path):
     # Isolate the provenance chokepoint (it has its own dedicated tests and its
     # verdict depends on host /tmp ownership): assert the resolver routes the
     # fallback hit through it and returns its canonical result.
-    from kiro_crew import github_runner
+    from junction import github_runner
 
     validated = []
 
@@ -132,7 +132,7 @@ def test_aws_bin_fallback_hit_failing_provenance_returns_bare_name(monkeypatch, 
     monkeypatch.setenv("PATH", str(empty_bin))
     monkeypatch.setattr(engine, "_AWS_BIN_DIRS", (str(tmp_path),))
 
-    from kiro_crew import github_runner
+    from junction import github_runner
 
     def _refuse(candidate):
         raise ValueError("planted shim")
@@ -154,8 +154,8 @@ def test_aws_bin_prefers_path_then_falls_back_to_bare_name(monkeypatch):
 
 def test_random_bucket_name_format():
     name = engine.random_bucket_name()
-    assert name.startswith("kirocrew-web-")
-    suffix = name[len("kirocrew-web-"):]
+    assert name.startswith("junction-web-")
+    suffix = name[len("junction-web-"):]
     assert re.fullmatch(r"[0-9a-f]{12}", suffix), name
     # No account id, opaque
     assert "123456789012" not in name
@@ -167,7 +167,7 @@ def test_first_deploy_full_flow_and_ordering(fake):
     result = engine.deploy("cr-dashboard", "/tmp/site", profile="p", region="us-west-2")
     assert result["reused"] is False
     assert result["url"] == "https://d111abc.cloudfront.net/"
-    assert result["bucket"].startswith("kirocrew-web-")
+    assert result["bucket"].startswith("junction-web-")
     assert result["distribution_id"] == "DIST123"
 
     acts = fake.actions()
@@ -204,7 +204,7 @@ def test_redeploy_is_idempotent_reuses_infra(monkeypatch):
     def fake_run(args, profile, timeout=30):  # noqa: ANN001
         if args[0] == "resourcegroupstaggingapi":
             return 0, json.dumps({"ResourceTagMappingList": [
-                {"ResourceARN": "arn:aws:s3:::kirocrew-web-deadbeef0001"},
+                {"ResourceARN": "arn:aws:s3:::junction-web-deadbeef0001"},
                 {"ResourceARN": "arn:aws:cloudfront::123456789012:distribution/DISTOLD"},
             ]}), ""
         return f(args, profile, timeout)
@@ -212,7 +212,7 @@ def test_redeploy_is_idempotent_reuses_infra(monkeypatch):
     monkeypatch.setattr(engine, "run_aws", fake_run)
     result = engine.deploy("existing", "/tmp/site", profile="p")
     assert result["reused"] is True
-    assert result["bucket"] == "kirocrew-web-deadbeef0001"
+    assert result["bucket"] == "junction-web-deadbeef0001"
     assert result["distribution_id"] == "DISTOLD"
     acts = f.actions()
     # Re-deploy must NOT create new infra — only sync + invalidate (+ status read).
@@ -266,11 +266,11 @@ def test_partial_deploy_recovery_reuses_bucket(fake, monkeypatch):
     monkeypatch.setattr(
         engine, "find_site_by_tag",
         lambda sid, p, region=engine.DEFAULT_REGION: {
-            "bucket": "kirocrew-web-deadbeef0000", "distribution_id": "", "distribution_arn": ""},
+            "bucket": "junction-web-deadbeef0000", "distribution_id": "", "distribution_arn": ""},
     )
     result = engine.deploy("cr-dash", "/tmp/site", profile="p", region="us-west-2")
     # Reused the tagged bucket; created the missing distribution (not a full reuse).
-    assert result["bucket"] == "kirocrew-web-deadbeef0000"
+    assert result["bucket"] == "junction-web-deadbeef0000"
     assert result["reused"] is False
     # No new bucket was allocated — the existing one was not orphaned.
     assert "s3api create-bucket" not in fake.actions()

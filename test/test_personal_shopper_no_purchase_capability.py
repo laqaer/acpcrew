@@ -13,7 +13,7 @@ ALLOWLIST rather than listing forbidden names:
    and ``attach`` are both on the auto-approve page-verb allowlist, so a shell
    grant means an injected advisor can click "Place Order" on the operator's
    logged-in store with no human in the loop.
-2. **Delegation to something holding a shell.** ``@kirocrew-core`` carries
+2. **Delegation to something holding a shell.** ``@junction-core`` carries
    ``spawn_run``, whose ``agent`` is validated against the installed TEMPLATES --
    so the advisor could bind a template that has ``execute_bash``. The browser
    auto-approve gate is agent-agnostic, so the subagent's ``attach``/``click``
@@ -44,7 +44,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ADVISOR = (
     ROOT
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "apps"
     / "builtins"
     / "personal_shopper"
@@ -64,7 +64,7 @@ ESCALATION_ROUTES = {
     "execute_bash": "a shell runs playwright-cli, whose click/attach auto-approve",
     "shell": "a shell runs playwright-cli, whose click/attach auto-approve",
     "@playwright-mcp": "a browser tool clicks the checkout control directly",
-    "@kirocrew-core": "spawn_run can bind an agent template that has execute_bash",
+    "@junction-core": "spawn_run can bind an agent template that has execute_bash",
     "fs_read": "reads the app's own store off disk, making the honesty claim prose-only",
     "grep": "reads the app's own store off disk, making the honesty claim prose-only",
     "glob": "locates the app's own store on disk, making the honesty claim prose-only",
@@ -105,9 +105,9 @@ def test_advisor_prompt_states_the_limit_as_a_capability() -> None:
 
 def test_escalation_routes_name_tools_that_really_exist() -> None:
     """Guard the guard: a typo in a route name would make its message unreachable."""
-    mochi = ROOT / "src/kiro_crew/apps/builtins/mochi/agents/mochi.json"
+    mochi = ROOT / "src/junction/apps/builtins/mochi/agents/mochi.json"
     mochi_tools = set(json.loads(mochi.read_text(encoding="utf-8"))["tools"])
     # mochi is the reference spec for how a fully-capable agent spells these.
     assert "execute_bash" in mochi_tools
-    assert "@kirocrew-core" in mochi_tools
+    assert "@junction-core" in mochi_tools
     assert not ALLOWED_TOOLS & set(ESCALATION_ROUTES), "a tool cannot be both allowed and an escalation route"

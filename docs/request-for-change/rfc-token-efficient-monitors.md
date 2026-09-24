@@ -18,7 +18,7 @@ superseded-by: []
 
 Replace babysit's repeated full-agent turns with a durable, typed monitor that
 checks external state before deciding whether the owning session needs to run.
-The agent calls one session-scoped MCP tool to create the monitor. Kiro Crew then
+The agent calls one session-scoped MCP tool to create the monitor. Junction then
 performs deterministic, inexpensive probes on schedule and wakes the session only
 when the observation is new and actionable.
 
@@ -35,7 +35,7 @@ babysit skill.
 
 ## Decision
 
-Kiro Crew will provide a structured, session-scoped monitor capability:
+Junction will provide a structured, session-scoped monitor capability:
 
 ```text
 monitor_watch(
@@ -84,7 +84,7 @@ context, but it cannot make unchanged polling free.
 
 The desired invariant is stricter:
 
-> If the monitored external state has not materially changed, Kiro Crew performs
+> If the monitored external state has not materially changed, Junction performs
 > no model turn.
 
 That requires the state comparison to happen before the model is invoked.
@@ -373,8 +373,8 @@ Suggested title: `feat: add durable monitor decisions`
 
 Primary areas:
 
-- `src/kiro_crew/monitoring/` for typed observations, outcomes, and pure policy;
-- `src/kiro_crew/autonudge.py` for optional versioned monitor persistence;
+- `src/junction/monitoring/` for typed observations, outcomes, and pure policy;
+- `src/junction/autonudge.py` for optional versioned monitor persistence;
 - `test/test_monitor_decision.py` and persistence compatibility tests;
 - the AutoNudge system specification.
 
@@ -638,7 +638,7 @@ invariants:
 
 ## Provenance
 
-This RFC was audited against Kiro Crew commit `6d3e30bbbd`. The current behavior
+This RFC was audited against Junction commit `6d3e30bbbd`. The current behavior
 is distributed across the babysit skill, AutoNudge service, MCP control tools,
 session directive applier, dashboard and channel delivery paths, and dashboard
 goal-loop components. The implementation PRs must update the relevant system

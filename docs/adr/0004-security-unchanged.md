@@ -45,7 +45,7 @@ Denied-command rule counts are not restated here;
 ## Consequences
 
 - Model-router health/status is observe-only. It does not punch the
-  keystone, log secrets, or store provider keys in `KIROCREW_HOME`
+  keystone, log secrets, or store provider keys in `JUNCTION_HOME`
   outside the router's own secret-entry rules.
 - Specs:
   [`../system-specs/modules/security.md`](../system-specs/modules/security.md),

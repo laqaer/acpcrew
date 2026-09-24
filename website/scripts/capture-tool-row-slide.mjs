@@ -44,7 +44,7 @@ const slots = [{
   running: true,
   last_message: 'The shared node_modules is largely root-owned.',
   messages: 5,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: now,

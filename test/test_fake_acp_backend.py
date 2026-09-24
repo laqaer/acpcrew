@@ -1,7 +1,7 @@
 """Unit tests for the packaged fake ACP backend.
 
-These run in the standard pytest suite (NOT gated behind ``KIROCREW_E2E``), so
-they give coverage on ``kiro_crew.testing.fake_acp_backend`` without spawning a
+These run in the standard pytest suite (NOT gated behind ``JUNCTION_E2E``), so
+they give coverage on ``junction.testing.fake_acp_backend`` without spawning a
 gateway. ``test_e2e_smoke.py`` exercises the fake end-to-end through a real
 gateway subprocess; this file locks the JSON-RPC frame shapes fast, in-process.
 """
@@ -16,7 +16,7 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.testing import fake_acp_backend as fake
+from junction.testing import fake_acp_backend as fake
 
 
 def _capture(monkeypatch) -> io.StringIO:
@@ -116,7 +116,7 @@ def test_tool_call_carries_the_purpose_arg_the_host_reads(monkeypatch):
     tool pill renders instead of the literal command line. The camelCase
     spelling is deliberate: kiro-cli emits it that way on a large share of calls,
     and reading only the snake_case key silently dropped the label."""
-    from kiro_crew.acp._dispatch import extract_tool_purpose
+    from junction.acp._dispatch import extract_tool_purpose
 
     buf = _capture(monkeypatch)
     fake._handle(_prompt(fake.TOOL_TRIGGER))

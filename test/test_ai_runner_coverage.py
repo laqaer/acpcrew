@@ -11,7 +11,7 @@ These tests drive the supervisor with INJECTED fakes at every blocking boundary:
 driver instead of the spine, a fake profile/ruler instead of a repository, and
 ``clone_setup.checkout_branch`` stubbed out. No agent binary, no provider, no network, no
 real ``git``, and an autouse guard that fails the test if anything reaches
-``subprocess``. Writes are confined to ``tmp_path`` (``KIROCREW_HOME``,
+``subprocess``. Writes are confined to ``tmp_path`` (``JUNCTION_HOME``,
 ``AUTO_IMPROVEMENT_SCRATCH`` and ``store.data_dir`` are all redirected there), and the
 worker threads the supervisor really does spawn are always joined before a test returns.
 
@@ -32,12 +32,12 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.apps.builtins.auto_improvement import profiles as profiles_mod
-from kiro_crew.apps.builtins.auto_improvement.backend import clone_setup
-from kiro_crew.apps.builtins.auto_improvement.backend import runner as R
-from kiro_crew.apps.builtins.auto_improvement.backend import store
-from kiro_crew.apps.builtins.auto_improvement.spine import agent_runner as agent_runner_mod
-from kiro_crew.apps.builtins.auto_improvement.spine import driver as driver_mod
+from junction.apps.builtins.auto_improvement import profiles as profiles_mod
+from junction.apps.builtins.auto_improvement.backend import clone_setup
+from junction.apps.builtins.auto_improvement.backend import runner as R
+from junction.apps.builtins.auto_improvement.backend import store
+from junction.apps.builtins.auto_improvement.spine import agent_runner as agent_runner_mod
+from junction.apps.builtins.auto_improvement.spine import driver as driver_mod
 
 WAIT_S = 10.0
 
@@ -161,7 +161,7 @@ def _isolated_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     data.mkdir(parents=True, exist_ok=True)
     home = tmp_path / "crew-home"
     home.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     monkeypatch.setenv("AUTO_IMPROVEMENT_SCRATCH", str(tmp_path / "scratch"))
     monkeypatch.setattr(store, "data_dir", lambda: data)
     return data
@@ -328,26 +328,26 @@ class TestCoercion:
 
 class TestRedactActivity:
     def test_recurses_into_nested_events(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr("kiro_crew.security.redact", lambda text: text.replace("s3cret", "***"))
+        monkeypatch.setattr("junction.security.redact", lambda text: text.replace("s3cret", "***"))
         out = R._redact_activity({"agent": {"detail": ["s3cret", 3, None]}, "n": 1})
         assert out == {"agent": {"detail": ["***", 3, None]}, "n": 1}
 
     def test_passthrough_for_non_text_scalars(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr("kiro_crew.security.redact", lambda text: text)
+        monkeypatch.setattr("junction.security.redact", lambda text: text)
         assert R._redact_activity(4.5) == 4.5
 
     def test_fails_closed_when_the_redactor_raises(self, monkeypatch: pytest.MonkeyPatch) -> None:
         def _boom(_text: str) -> str:
             raise RuntimeError("scanner down")
 
-        monkeypatch.setattr("kiro_crew.security.redact", _boom)
+        monkeypatch.setattr("junction.security.redact", _boom)
         assert R._redact_activity("aws_secret_access_key=abc") == R._UNSCANNED
         assert R._redact_activity({"k": "aws_secret_access_key=abc"}) == {"k": R._UNSCANNED}
 
     def test_fails_closed_for_a_bare_string_when_the_redactor_cannot_be_imported(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setitem(sys.modules, "kiro_crew.security", None)
+        monkeypatch.setitem(sys.modules, "junction.security", None)
         assert R._redact_activity("some-credential=abc") == R._UNSCANNED
 
     def test_import_failure_fails_OPEN_for_containers_known_defect(
@@ -368,7 +368,7 @@ class TestRedactActivity:
         A fix would recurse first and only substitute at the leaf, e.g. hoist the
         placeholder decision below the dict/list branches. Reported, not fixed.
         """
-        monkeypatch.setitem(sys.modules, "kiro_crew.security", None)
+        monkeypatch.setitem(sys.modules, "junction.security", None)
         served = R._redact_activity({"agent": {"detail": "some-credential=abc"}})
         assert served == {"agent": {"detail": "some-credential=abc"}}  # defect: unscanned
         assert R._redact_activity(["some-credential=abc"]) == ["some-credential=abc"]
@@ -391,10 +391,10 @@ class TestCredentialConfinement:
         assert R._unsandboxed_agent_accepted() is True
 
     def _sandbox(self, monkeypatch: pytest.MonkeyPatch, mode: Any) -> None:
-        from kiro_crew.config import KiroCrewConfig
+        from junction.config import JunctionConfig
 
         monkeypatch.setattr(
-            KiroCrewConfig, "load", staticmethod(lambda: SimpleNamespace(sandbox=mode))
+            JunctionConfig, "load", staticmethod(lambda: SimpleNamespace(sandbox=mode))
         )
 
     @pytest.mark.parametrize("mode", ["cc", "strict", "  STRICT  "])
@@ -414,12 +414,12 @@ class TestCredentialConfinement:
         assert "acceptUnsandboxedAgentRisk" in reason
 
     def test_unreadable_config_fails_closed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from kiro_crew.config import KiroCrewConfig
+        from junction.config import JunctionConfig
 
         def _boom() -> Any:
             raise OSError("config unreadable")
 
-        monkeypatch.setattr(KiroCrewConfig, "load", staticmethod(_boom))
+        monkeypatch.setattr(JunctionConfig, "load", staticmethod(_boom))
         assert R._credentials_are_unconfined() == (
             "the gateway sandbox setting could not be read (OSError)"
         )
@@ -455,7 +455,7 @@ class TestProgressSinks:
     def test_agent_activity_is_tagged_and_redacted(
         self, sup: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr("kiro_crew.security.redact", lambda text: text.replace("k3y", "***"))
+        monkeypatch.setattr("junction.security.redact", lambda text: text.replace("k3y", "***"))
         sup._on_agent_activity({"detail": "read the k3y"})
         entry = sup.status()["activity"][-1]
         assert entry["agent"] == {"detail": "read the ***"}
@@ -477,7 +477,7 @@ class TestProgressSinks:
         assert snapshot["activity"][-1]["error"] == "PermissionError: push is enabled"
 
     def test_fail_message_is_fail_closed(self, sup: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setitem(sys.modules, "kiro_crew.security", None)
+        monkeypatch.setitem(sys.modules, "junction.security", None)
         sup._fail(RuntimeError("aws_secret_access_key=abc"))
         assert sup.status()["error"] == f"RuntimeError: {R._UNSCANNED}"
 
@@ -686,7 +686,7 @@ class TestBuildDriver:
         self, sup: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """The wrapper is what serializes the ``checkout -B`` against the draft route."""
-        from kiro_crew.apps.builtins.auto_improvement.backend import commit as commit_mod
+        from junction.apps.builtins.auto_improvement.backend import commit as commit_mod
 
         held: list[bool] = []
         real_lock = commit_mod.clone_lock()

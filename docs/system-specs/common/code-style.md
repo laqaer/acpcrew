@@ -9,7 +9,7 @@ the second copy of it drifts silently.
 Before adding a constant, check the table for an existing owner. Module-level
 constants are `UPPER_SNAKE_CASE`; private ones are `_UPPER_SNAKE_CASE`.
 
-Paths below are relative to `src/kiro_crew/`.
+Paths below are relative to `src/junction/`.
 
 | Concern | Owning module | Notes |
 |---|---|---|
@@ -18,7 +18,7 @@ Paths below are relative to `src/kiro_crew/`.
 | ACP client timeouts | `acp/client.py` | `_INIT_TIMEOUT`, `_DEFAULT_PROMPT_TIMEOUT`, `_READ_TIMEOUT`, `_STALE_TURN_TIMEOUT`, `_TOOL_STALL_TIMEOUT`, `_WAIT_RESPONSE_MAX_TIMEOUT`, `_SEL_AUDIT_TIMEOUT_SECONDS`. |
 | MCP protocol version | `mcp_shared.py` | The `initialize` reply's `protocolVersion` for the managed stdio servers. `mcp_cron.py` / `mcp_core.py` do not carry their own copy. |
 | Credential keys | `config/loader.py` | `CRED_*` env-var names plus the `_CREDENTIAL_KEYS` tuple. |
-| Dashboard port | `config/loader.py` | `_DEFAULT_PORT` (5476) and `DASHBOARD_PORT` (honors `KIROCREW_PORT`). `dashboard/origin.py` imports `_DEFAULT_PORT` rather than restating it. |
+| Dashboard port | `config/loader.py` | `_DEFAULT_PORT` (5476) and `DASHBOARD_PORT` (honors `JUNCTION_PORT`). `dashboard/origin.py` imports `_DEFAULT_PORT` rather than restating it. |
 | Hook results and event names | `hooks.py` | `HOOK_PASSTHROUGH` / `HOOK_REPLY` / `HOOK_MODIFY` / `HOOK_INJECT_CONTEXT`, the tool verdicts `TOOL_ALLOW` / `TOOL_AUTO_APPROVE` / `TOOL_DENY`, and `HOOK_EVENT_*` / `HOOK_EVENTS`. |
 | Memory paths and dir names | `memory.py` | `WORKSPACE_DIR_NAME`, `MEMORY_DIR_NAME`, `HISTORY_DIR_NAME`, `PREFERENCES_FILE`, `PROJECTS_FILE`. |
 | Lesson limits | `learn.py` | `_LESSONS_FILE`, `_MAX_LESSONS_IN_CONTEXT`, `_MAX_LESSONS_TOTAL` (prune oldest past the total). |
@@ -35,8 +35,8 @@ Paths below are relative to `src/kiro_crew/`.
 | Embed cache | `embeddings.py` | `_EMBED_CACHE_MAX` (128 entries, keyed by text plus model id; the comment there carries the memory arithmetic). |
 | Bytecode-cache GC limits | `pycache_gc.py` | `PYCACHE_MAX_AGE_DAYS`, `PYCACHE_MAX_TOTAL_BYTES`, `PYCACHE_GC_INTERVAL_SECS` (the `<data home>/cache/pycache` TTL, size cap, and periodic-sweep cadence). |
 | Slack UX strings and pacing | `slack/handler.py` | `_THINKING`, `_CURSOR`, `_NO_RESPONSE`, `_STATUS_WORKING`, `_TRUNCATION_MARKER`, plus `_EDIT_INTERVAL`, `_APPROVAL_TIMEOUT`, `_SLACK_SECTION_TEXT_LIMIT`, the stall thresholds and the phase debounce. |
-| Cross-cutting shared constants | `constants.py` | `PRODUCT_NAME` (displayed name Junction), `CLI_BIN` / `CLI_CONSOLE_STEMS` (operator binary plus silent aliases), `KIROCREW_SPAWNED_ENV`, `ENV_TRUTHY`, `CHAT_TURN_TIMEOUT`, `COMPACT_WAIT_TIMEOUT_SECS` (one budget, shared by manual and automatic compaction), the `[OPTIONS:]` parse regexes, `DATA_WARNING`, `BANNER`. |
-| Model-router sidecar probe | `model_router/probe.py` | `DEFAULT_ROUTER_PORT` (4202), `DEFAULT_GATEWAY_PORT` (4200), `HEALTH_PATH`, `GATEWAY_HEALTH_PATH`, `PROBE_TIMEOUT_SECS`, loopback host, health JSON allowlist, machine-readable `CODE_*` values. |
+| Cross-cutting shared constants | `constants.py` | `PRODUCT_NAME` (displayed name Junction), `CLI_BIN` / `CLI_CONSOLE_STEMS` (operator binary plus silent aliases), `JUNCTION_SPAWNED_ENV`, `ENV_TRUTHY`, `CHAT_TURN_TIMEOUT`, `COMPACT_WAIT_TIMEOUT_SECS` (one budget, shared by manual and automatic compaction), the `[OPTIONS:]` parse regexes, `DATA_WARNING`, `BANNER`. |
+| Model catalog probe | `model_router/probe.py` | `DEFAULT_ROUTER_PORT` (4202), `DEFAULT_GATEWAY_PORT` (4200), `HEALTH_PATH`, `GATEWAY_HEALTH_PATH`, `PROBE_TIMEOUT_SECS`, loopback host, health JSON allowlist, machine-readable `CODE_*` values. |
 | Model-router catalog + role DAG | `model_router/catalog.py`, `model_router/routing.py` | `MODEL_ID_PATTERN` / `MODEL_ID_MAX_LEN`, `ROUTE_ROLE_KEYS`, `ROLE_COST_CLASS`, `ROLE_DAG_EDGES`, cost-class tokens. Catalog JSON is packaged data. |
 | Gateway shutdown budget | `gateway_shutdown_budget.py` | Gateway cooperative timeout, service-manager signal margin, and the derived systemd/launchd stop deadline. |
 | Process-wide shutdown signal | `__init__.py` | `shutdown_event`. Background loops `await shutdown_event.wait()` with a timeout instead of a plain `asyncio.sleep`, so they wake instantly on Ctrl-C. |
@@ -52,7 +52,7 @@ Other style rules:
 | Python version | >= 3.10; `from __future__ import annotations` for type hints |
 | Imports | `import logging` plus `logger = logging.getLogger(__name__)` |
 | Async | `asyncio` throughout; `async def` for all I/O |
-| Module-global asyncio primitives | Never a bare `asyncio.Lock()`/`Event()`/`Queue()` at module scope — it binds to the import-time (or first-use) loop and raises `RuntimeError` from any other loop (Python 3.10+). Use `kiro_crew.loop_lock.LoopBoundLock` for locks, or create the primitive inside the coroutine. CI enforces this (`loop-bound-locks` gate). |
+| Module-global asyncio primitives | Never a bare `asyncio.Lock()`/`Event()`/`Queue()` at module scope — it binds to the import-time (or first-use) loop and raises `RuntimeError` from any other loop (Python 3.10+). Use `junction.loop_lock.LoopBoundLock` for locks, or create the primitive inside the coroutine. CI enforces this (`loop-bound-locks` gate). |
 | Dataclasses | `@dataclass` for data containers |
 | Errors | Custom exceptions in `acp/client.py`; return error strings at tool boundaries. See [error-handling](error-handling.md). |
 
@@ -81,8 +81,8 @@ The blocking gates are black (baselined), the subprocess-encoding gate (baseline
 committing:
 
 ```bash
-python3 scripts/check_black_formatting.py && python3 scripts/check_subprocess_encoding.py && isort src/kiro_crew test
-flake8 src/kiro_crew test && mypy src/kiro_crew
+python3 scripts/check_black_formatting.py && python3 scripts/check_subprocess_encoding.py && isort src/junction test
+flake8 src/junction test && mypy src/junction
 python -m pytest
 ```
 
@@ -103,7 +103,7 @@ ever shrinks. Format what you touched with
 
 `setup.cfg` also sets `max_line_length = 100`, ignores E501 (after auto-formatting
 the only long lines left do not matter) and E203 (black's whitespace before `:`),
-and excludes `src/kiro_crew/_vendor` from flake8 entirely. mypy and isort exclude
+and excludes `src/junction/_vendor` from flake8 entirely. mypy and isort exclude
 it too. Never hand-edit vendored code, and never reformat it: the point is a clean
 diff against the upstream wheel at upgrade time.
 
@@ -124,7 +124,7 @@ judged as one call), behind the shrink-only
 
 For a child whose output encoding is knowable — `git`, `gh`, a Python
 interpreter we spawn running our own code — pin the decode with the shared
-definition in `kiro_crew.subprocess_utf8`: splat `**UTF8_TEXT` into the call
+definition in `junction.subprocess_utf8`: splat `**UTF8_TEXT` into the call
 (this keeps the call going through the module's own `subprocess` attribute, so
 tests that patch it by name keep intercepting — and it adds no new spawn
 primitive for `test_spawn_audit` to police). For a Python child, also pin the

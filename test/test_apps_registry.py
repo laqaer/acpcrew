@@ -35,14 +35,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.apps import registry
+from junction import platform_compat
+from junction.apps import registry
 
 
 @pytest.fixture(autouse=True)
 def _explicit_registry_execution_admission(monkeypatch):
     """These tests must reach admitted registry subprocess paths."""
-    monkeypatch.setattr("kiro_crew.apps.execution.third_party_execution_allowed", lambda: True)
+    monkeypatch.setattr("junction.apps.execution.third_party_execution_allowed", lambda: True)
 
 
 # A portable long-lived child: sleeps well past any test timeout without
@@ -208,7 +208,7 @@ def unsandboxed_spawn(monkeypatch):
     hosts. Autouse because the coupling is a property of the whole module, not of
     individual tests. Sandbox construction is covered by ``test_sandbox_*.py``.
     """
-    from kiro_crew import sandbox
+    from junction import sandbox
 
     monkeypatch.setattr(sandbox, "_allow_unsandboxed_exec", lambda: True)
 
@@ -587,7 +587,7 @@ async def test_install_persists_credential_free_source_provenance(monkeypatch, t
         # The manager callable contract remains one positional argument; the
         # safe server-resolved coordinate crosses the to_thread boundary in a
         # task-local context rather than in app-controlled manifest data.
-        from kiro_crew.apps.manager import _effective_source_repository
+        from junction.apps.manager import _effective_source_repository
 
         installed["source_repository"] = _effective_source_repository("")
         return MagicMock(ok=True, name="demoapp", message="done", error="")
@@ -620,7 +620,7 @@ async def test_registry_fresh_reinstall_checks_retained_startup_before_clone(
     )
     monkeypatch.setattr(registry, "get_app", lambda _name: None)
 
-    from kiro_crew.apps import hooks_integration
+    from junction.apps import hooks_integration
 
     cleanup_calls: list[tuple[str, bool]] = []
 
@@ -658,7 +658,7 @@ async def test_registry_fresh_reinstall_rechecks_retained_startup_before_replace
     )
     monkeypatch.setattr(registry, "get_app", lambda _name: None)
 
-    from kiro_crew.apps import hooks_integration
+    from junction.apps import hooks_integration
 
     cleanup_calls: list[tuple[str, bool]] = []
 
@@ -697,7 +697,7 @@ async def test_registry_reinstall_rechecks_retained_startup_before_replacement(
     )
     monkeypatch.setattr(registry, "get_app", lambda _name: {"name": "demoapp"})
 
-    from kiro_crew.apps import hooks_integration
+    from junction.apps import hooks_integration
 
     cleanup_calls: list[tuple[str, bool]] = []
 
@@ -2230,7 +2230,7 @@ class TestApplyTrustFields:
         entry = {
             "name": "evil-app",
             "_registry": "evil-registry",
-            "author": "KiroCrew",       # brand-ok: author-spoof fixture
+            "author": "Junction",       # brand-ok: author-spoof fixture
             "origin": "builtin",        # origin spoof
             "featured": True,           # spotlight self-flag
         }
@@ -2566,22 +2566,22 @@ class TestApplyTrustFields:
 
         assert "trustRepository" not in out
 
-    def test_core_kirocrew_index_author_is_verified(self):
+    def test_core_junction_index_author_is_verified(self):
         """``verified`` derives from the INDEX-declared author snapshot
         (``_index_author``, taken by ``list_registry`` pre-merge)."""
-        entry = {"name": "good-app", "_index_author": "KiroCrew"}  # brand-ok: author-spoof fixture
+        entry = {"name": "good-app", "_index_author": "Junction"}  # brand-ok: author-spoof fixture
         (out,) = registry._apply_trust_fields([entry])
         assert out["provenance"] == "official"
         assert out["verified"] is True
 
     def test_manifest_author_alone_never_mints_verified(self):
-        """A third-party core repo publishing ``"author": "kirocrew"`` in its
+        """A third-party core repo publishing ``"author": "junction"`` in its
         app.json gains nothing: the merged ``author`` display field is not
         consulted, only the pre-merge index snapshot is."""
-        entry = {"name": "sneaky", "author": "KiroCrew"}  # merged, no snapshot  # brand-ok: author-spoof fixture
+        entry = {"name": "sneaky", "author": "Junction"}  # merged, no snapshot  # brand-ok: author-spoof fixture
         (out,) = registry._apply_trust_fields([entry])
         assert out["verified"] is False
-        entry = {"name": "sneaky2", "author": "KiroCrew", "_index_author": "third-party"}  # brand-ok: author-spoof fixture
+        entry = {"name": "sneaky2", "author": "Junction", "_index_author": "third-party"}  # brand-ok: author-spoof fixture
         (out,) = registry._apply_trust_fields([entry])
         assert out["verified"] is False
 
@@ -2619,7 +2619,7 @@ class TestApplyTrustFields:
         assert out["provenance"] == "official"
 
     def test_index_author_snapshot_never_leaks_into_payload(self):
-        entry = {"name": "x", "_index_author": "KiroCrew"}  # brand-ok: author-spoof fixture
+        entry = {"name": "x", "_index_author": "Junction"}  # brand-ok: author-spoof fixture
         (out,) = registry._apply_trust_fields([entry])
         assert "_index_author" not in out
 
@@ -2628,18 +2628,18 @@ class TestApplyTrustFields:
         official published catalog state the org that way. A single-token-only
         comparison silently un-verified every first-party app whose index row
         spelled the org correctly."""
-        entry = {"name": "spec-builder", "_index_author": "Kiro Crew"}
+        entry = {"name": "spec-builder", "_index_author": "Junction"}
         (out,) = registry._apply_trust_fields([entry])
         assert out["verified"] is True
 
     @pytest.mark.parametrize(
         "spelling",
         [
-            "Ｋｉｒｏ　Ｃｒｅｗ",  # fullwidth, ideographic space
-            "kiro\u200bcrew",  # zero-width space
-            "Kiro\u00adCrew",  # soft hyphen
+            "Ｋｉｒｏ　Ｃｒｅｗ",  # fullwidth, ideographic space — previous catalog spelling
             "  kiro   crew  ",  # padded, doubled inner space
-            "KIROCREW",
+            "junc\u200btion",  # zero-width space inside the current token
+            "Junc\u00adtion",  # soft hyphen inside the current token
+            "JUNCTION",
         ],
     )
     def test_first_party_spelling_variants_still_verify(self, spelling):
@@ -2653,14 +2653,14 @@ class TestApplyTrustFields:
     def test_folding_does_not_grant_the_mark_to_an_external_row(self):
         """The fold widens the match, so pin the short-circuit that keeps it
         harmless: a tagged row is unverified BEFORE the author is consulted."""
-        entry = {"name": "app", "_registry": "labs", "_index_author": "Kiro Crew"}
+        entry = {"name": "app", "_registry": "labs", "_index_author": "Junction"}
         (out,) = registry._apply_trust_fields([entry])
         assert out["provenance"] == "external"
         assert out["verified"] is False
 
     def test_near_miss_author_is_not_verified(self):
         """Folding must not blur a DIFFERENT name into ours."""
-        for name in ("kiro crews", "kiro-crew", "kirocrew labs", "crew kiro"):
+        for name in ("kiro crews", "kiro-crew", "junction labs", "crew kiro"):
             entry = {"name": "app", "_index_author": name}
             (out,) = registry._apply_trust_fields([entry])
             assert out["verified"] is False, name
@@ -2676,17 +2676,17 @@ class TestApplyTrustFields:
     async def test_list_registry_stamps_trust_fields(self, monkeypatch):
         """End-to-end: every row returned by ``list_registry`` carries the
         server-computed fields; external spoofs and a manifest-published
-        ``author: "kirocrew"`` are all neutralized."""
-        core = {"name": "core-app", "author": "KiroCrew", "featured": 1}  # brand-ok: author-spoof fixture
+        ``author: "junction"`` are all neutralized."""
+        core = {"name": "core-app", "author": "Junction", "featured": 1}  # brand-ok: author-spoof fixture
         # Third-party core entry whose REPO manifest claims the first-party
         # author (index declares none) — must not mint the badge.
         sneaky = {"name": "sneaky-app"}
         # Index entry trying to pre-seed the internal snapshot key directly.
-        preseed = {"name": "preseed-app", "_index_author": "KiroCrew"}  # brand-ok: author-spoof fixture
+        preseed = {"name": "preseed-app", "_index_author": "Junction"}  # brand-ok: author-spoof fixture
         ext = {
             "name": "ext-app",
             "_registry": "labs",
-            "author": "KiroCrew",  # brand-ok: author-spoof fixture
+            "author": "Junction",  # brand-ok: author-spoof fixture
             "origin": "builtin",
             "featured": True,
         }
@@ -2700,7 +2700,7 @@ class TestApplyTrustFields:
         async def _fake_resolve(entry):
             # Simulate the app.json merge overwriting the display author.
             if entry["name"] == "sneaky-app":
-                return {**entry, "author": "KiroCrew"}  # brand-ok: author-spoof fixture
+                return {**entry, "author": "Junction"}  # brand-ok: author-spoof fixture
             return entry
 
         monkeypatch.setattr(registry, "_load_external_registries", _fake_external)
@@ -3112,7 +3112,7 @@ async def test_python_build_uses_the_running_interpreter_not_path_pip(tmp_path, 
     """A Python app must install into the interpreter that will IMPORT it.
 
     ``shutil.which("pip")`` resolves to whatever pip is first on PATH, which is
-    routinely NOT the gateway's: ``bin/kirocrew`` execs ``.venv/bin/kirocrew`` without
+    routinely NOT the gateway's: ``bin/junction`` execs ``.venv/bin/junction`` without
     putting the venv's ``bin/`` on PATH, and ``service_path()`` prepends
     ``~/.local/bin`` ahead of it.
 
@@ -3293,9 +3293,9 @@ class TestMergeManifestProjectsRegistryKeys:
     def test_index_author_snapshot_survives_the_merge(self):
         """``_apply_trust_fields`` runs AFTER the merge and consumes this key to
         decide the verified mark, so the projection has to carry it through."""
-        entry = {"name": "demo-app", "_index_author": "Kiro Crew"}
+        entry = {"name": "demo-app", "_index_author": "Junction"}
         out = registry._merge_manifest(entry, self.MANIFEST)
-        assert out["_index_author"] == "Kiro Crew"
+        assert out["_index_author"] == "Junction"
 
     def test_dark_icon_path_becomes_a_blob_url(self):
         """A raster icon cannot repaint from theme tokens, so an app may ship a

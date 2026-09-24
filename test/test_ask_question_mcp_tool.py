@@ -32,11 +32,11 @@ import asyncio
 
 import pytest
 
-import kiro_crew.mcp_core as mcp_core
-from kiro_crew import session_directive
-from kiro_crew.dashboard.session_directive_apply import apply_session_directive
-from kiro_crew.mcp_core import _call_tool, _call_tool_inner
-from kiro_crew.validation import ValidationError, validate_ask_user_question
+import junction.mcp_core as mcp_core
+from junction import session_directive
+from junction.dashboard.session_directive_apply import apply_session_directive
+from junction.mcp_core import _call_tool, _call_tool_inner
+from junction.validation import ValidationError, validate_ask_user_question
 
 QUESTIONS = [
     {

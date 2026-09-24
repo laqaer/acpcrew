@@ -28,10 +28,10 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.apps.builtins.auto_improvement.spine import driver as drv
-from kiro_crew.apps.builtins.auto_improvement.spine import ledger as L
-from kiro_crew.apps.builtins.auto_improvement.spine import push_policy as PP
-from kiro_crew.apps.builtins.auto_improvement.spine.contracts import (
+from junction.apps.builtins.auto_improvement.spine import driver as drv
+from junction.apps.builtins.auto_improvement.spine import ledger as L
+from junction.apps.builtins.auto_improvement.spine import push_policy as PP
+from junction.apps.builtins.auto_improvement.spine.contracts import (
     BUG_FAILED_BUILD,
     BUG_FILED,
     BUG_NOT_GREEN,
@@ -46,9 +46,9 @@ from kiro_crew.apps.builtins.auto_improvement.spine.contracts import (
     StageBreakdown,
     Verdict,
 )
-from kiro_crew.apps.builtins.auto_improvement.spine.keeper import DISCARD_NOISE, KEPT
-from kiro_crew.apps.builtins.auto_improvement.spine.pr_pipeline import CrOutcome
-from kiro_crew.apps.builtins.auto_improvement.spine.preflight import PreflightResult
+from junction.apps.builtins.auto_improvement.spine.keeper import DISCARD_NOISE, KEPT
+from junction.apps.builtins.auto_improvement.spine.pr_pipeline import CrOutcome
+from junction.apps.builtins.auto_improvement.spine.preflight import PreflightResult
 
 LOG = logging.getLogger("test.ai_spine_driver")
 
@@ -369,7 +369,7 @@ DIFF = "--- a/m.py\n+++ b/m.py\n@@ -1 +1 @@\n-old\n+new\n"
 @pytest.fixture(autouse=True)
 def _isolate_env(tmp_path, monkeypatch):
     """No real home, no inherited fan-out overrides, no leaked log handlers."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))
     for var in ("AUTO_IMPROVEMENT_WIDE", "AUTO_IMPROVEMENT_DEEP"):
         monkeypatch.delenv(var, raising=False)
     named = logging.getLogger("auto_improvement.driver")
@@ -653,7 +653,7 @@ def test_redact_commit_message_scrubs_and_returns_a_string(tmp_path):
 
 
 def test_redact_commit_message_fails_closed_to_a_fixed_subject(monkeypatch):
-    import kiro_crew.security as sec
+    import junction.security as sec
 
     monkeypatch.setattr(sec, "redact", lambda text: (_ for _ in ()).throw(RuntimeError("no")))
     assert drv.Driver._redact_commit_message("anything") == (

@@ -21,8 +21,8 @@ import types
 
 import pytest
 
-from kiro_crew.cron_script import Done, Report, Skip
-from kiro_crew.irq import (
+from junction.cron_script import Done, Report, Skip
+from junction.irq import (
     Observation,
     Probe,
     Severity,
@@ -51,7 +51,7 @@ def _settle() -> None:
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path, monkeypatch):
     """Point the kernel's state directory at a private tmp home."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     return tmp_path
 
 
@@ -494,7 +494,7 @@ def test_unwritable_state_delivers_instead_of_swallowing_the_window():
     carrying the warning. Without coalescing this hazard did not exist, so it
     arrived with the window."""
     probe = ScriptedProbe([Tick(epoch="e1", observations=[_wake("red:a", "A")], pending=9)])
-    import kiro_crew.irq as irq_mod
+    import junction.irq as irq_mod
 
     original = irq_mod.save_state
     try:
@@ -522,7 +522,7 @@ def test_partially_persisted_streak_still_alerts():
     permanently silent: every later tick reloads 1, reaches 2, and is neither
     == 1 nor >= the threshold. Repeats are the right degradation, because dedupe
     needs the same storage that just failed."""
-    import kiro_crew.irq as irq_mod
+    import junction.irq as irq_mod
 
     path = state_path("test-kind", "sub-1", "job-1")
     path.parent.mkdir(parents=True, exist_ok=True)

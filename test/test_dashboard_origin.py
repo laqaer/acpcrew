@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.dashboard.origin import (
+from junction.dashboard.origin import (
     bind_address_for,
     build_allowed_origins,
     build_dashboard_url,
@@ -21,7 +21,7 @@ from kiro_crew.dashboard.origin import (
 
 
 class TestBindAddressFor:
-    """KIROCREW_BIND overrides ONLY the TCP bind address (container support).
+    """JUNCTION_BIND overrides ONLY the TCP bind address (container support).
 
     The override must never touch local_only semantics (URLs, CSRF origin
     set, canonicalization) — those are covered by the existing suites; here
@@ -31,44 +31,44 @@ class TestBindAddressFor:
     """
 
     def test_default_is_loopback(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("KIROCREW_BIND", raising=False)
+        monkeypatch.delenv("JUNCTION_BIND", raising=False)
         assert bind_address_for(True) == "127.0.0.1"
 
     def test_local_only_false_binds_all(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("KIROCREW_BIND", raising=False)
+        monkeypatch.delenv("JUNCTION_BIND", raising=False)
         assert bind_address_for(False) == "0.0.0.0"
 
     def test_env_override_binds_all_interfaces(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_BIND", "0.0.0.0")
+        monkeypatch.setenv("JUNCTION_BIND", "0.0.0.0")
         assert bind_address_for(True) == "0.0.0.0"
 
     def test_env_override_specific_interface(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_BIND", "10.0.0.7")
+        monkeypatch.setenv("JUNCTION_BIND", "10.0.0.7")
         assert bind_address_for(True) == "10.0.0.7"
 
     def test_env_override_ipv6_any(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_BIND", "::")
+        monkeypatch.setenv("JUNCTION_BIND", "::")
         assert bind_address_for(True) == "::"
 
     def test_env_override_whitespace_stripped(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_BIND", " 0.0.0.0 ")
+        monkeypatch.setenv("JUNCTION_BIND", " 0.0.0.0 ")
         assert bind_address_for(True) == "0.0.0.0"
 
     def test_invalid_value_falls_back_to_loopback(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         # Fail-narrow: a typo must degrade to loopback, never widen exposure.
-        monkeypatch.setenv("KIROCREW_BIND", "all-interfaces-please")
+        monkeypatch.setenv("JUNCTION_BIND", "all-interfaces-please")
         assert bind_address_for(True) == "127.0.0.1"
 
     def test_hostname_rejected(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # Only IP literals: a hostname would resolve at bind time with
         # environment-dependent results; reject rather than guess.
-        monkeypatch.setenv("KIROCREW_BIND", "eth0.local")
+        monkeypatch.setenv("JUNCTION_BIND", "eth0.local")
         assert bind_address_for(True) == "127.0.0.1"
 
     def test_empty_value_is_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("KIROCREW_BIND", "")
+        monkeypatch.setenv("JUNCTION_BIND", "")
         assert bind_address_for(True) == "127.0.0.1"
 
     def test_override_does_not_touch_local_only_urls(
@@ -77,7 +77,7 @@ class TestBindAddressFor:
         # The override changes the TCP bind ONLY: URL building keeps
         # local_only semantics (no token requirement change here — auth
         # middleware is mounted unconditionally by the server paths).
-        monkeypatch.setenv("KIROCREW_BIND", "0.0.0.0")
+        monkeypatch.setenv("JUNCTION_BIND", "0.0.0.0")
         assert resolve_dashboard_host(True) == "localhost"
         origins = build_allowed_origins(5476, True)
         assert "http://localhost:5476" in origins
@@ -90,7 +90,7 @@ class TestProbePaths:
     Host-check-free surface and must be a deliberate, reviewed act."""
 
     def test_exact_membership(self) -> None:
-        from kiro_crew.dashboard.origin import PROBE_PATHS
+        from junction.dashboard.origin import PROBE_PATHS
 
         assert PROBE_PATHS == {"/api/health", "/api/live", "/api/ready"}
 
@@ -100,7 +100,7 @@ class TestBuildAllowedOrigins:
         origins = build_allowed_origins(5476, local_only=True)
         assert "http://127.0.0.1:5476" in origins
         assert "http://localhost:5476" in origins
-        assert "http://kirocrew.localhost:5476" in origins
+        assert "http://junction.localhost:5476" in origins
 
     def test_configured_host_adds_http_with_port(self) -> None:
         origins = build_allowed_origins(5476, local_only=True, configured_host="myhost")
@@ -113,9 +113,9 @@ class TestBuildAllowedOrigins:
 
     def test_dashboard_url_https_adds_origin(self) -> None:
         origins = build_allowed_origins(
-            5476, local_only=True, dashboard_url="https://kirocrew.local"
+            5476, local_only=True, dashboard_url="https://junction.local"
         )
-        assert "https://kirocrew.local" in origins
+        assert "https://junction.local" in origins
 
     def test_dashboard_url_http_with_port(self) -> None:
         origins = build_allowed_origins(5476, local_only=True, dashboard_url="http://myhost:8080")
@@ -132,31 +132,31 @@ class TestBuildAllowedOrigins:
             5476,
             local_only=True,
             configured_host="myhost",
-            dashboard_url="https://kirocrew.local",
+            dashboard_url="https://junction.local",
         )
         assert "http://myhost:5476" in origins
-        assert "https://kirocrew.local" in origins
+        assert "https://junction.local" in origins
         assert "http://localhost:5476" in origins
 
     def test_dashboard_url_strips_default_https_port(self) -> None:
         origins = build_allowed_origins(
-            5476, local_only=True, dashboard_url="https://kirocrew.local:443"
+            5476, local_only=True, dashboard_url="https://junction.local:443"
         )
-        assert "https://kirocrew.local" in origins
-        assert "https://kirocrew.local:443" not in origins
+        assert "https://junction.local" in origins
+        assert "https://junction.local:443" not in origins
 
     def test_dashboard_url_strips_default_http_port(self) -> None:
         origins = build_allowed_origins(
-            5476, local_only=True, dashboard_url="http://kirocrew.local:80"
+            5476, local_only=True, dashboard_url="http://junction.local:80"
         )
-        assert "http://kirocrew.local" in origins
-        assert "http://kirocrew.local:80" not in origins
+        assert "http://junction.local" in origins
+        assert "http://junction.local:80" not in origins
 
     def test_dashboard_url_keeps_non_default_port(self) -> None:
         origins = build_allowed_origins(
-            5476, local_only=True, dashboard_url="https://kirocrew.local:8443"
+            5476, local_only=True, dashboard_url="https://junction.local:8443"
         )
-        assert "https://kirocrew.local:8443" in origins
+        assert "https://junction.local:8443" in origins
 
     def test_dashboard_url_malformed_port_ignored(self) -> None:
         origins = build_allowed_origins(
@@ -175,7 +175,7 @@ class TestDashboardOrigin:
         assert dashboard_origin(None) == ""  # type: ignore[arg-type]
 
     def test_https_url(self) -> None:
-        assert dashboard_origin("https://kirocrew.local") == "https://kirocrew.local"
+        assert dashboard_origin("https://junction.local") == "https://junction.local"
 
     def test_bare_host_defaults_to_http(self) -> None:
         assert dashboard_origin("myhost:8080") == "http://myhost:8080"
@@ -216,7 +216,7 @@ class TestParseDashboardUrlMalformed:
 
     @pytest.fixture(autouse=True)
     def _clean_port_env(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_PORT", raising=False)
+        monkeypatch.delenv("JUNCTION_PORT", raising=False)
 
     def test_malformed_ipv6_falls_back_to_defaults(self) -> None:
         # urlparse("http://[::1") raises ValueError('Invalid IPv6 URL').
@@ -242,7 +242,7 @@ class TestParseDashboardUrlMalformed:
 # module's namespace, so patching "...origin.machine_hostname" is INERT here — it
 # rebinds origin's copy while format_dashboard_urls keeps calling urls'. Point at
 # the defining module so the patches actually take effect.
-_MOD = "kiro_crew.dashboard.urls"
+_MOD = "junction.dashboard.urls"
 
 
 class TestBuildDashboardUrl:
@@ -388,7 +388,7 @@ class TestCheckOriginLoopbackTrust:
         assert check_origin(request) is False
 
     def test_opted_in_loopback_port_trusted(self) -> None:
-        """A loopback port the operator added (via KIROCREW_ALLOWED_LOOPBACK_PORTS,
+        """A loopback port the operator added (via JUNCTION_ALLOWED_LOOPBACK_PORTS,
         folded into allowed_origins) is accepted — SSH-tunnel support, opt-in."""
         allowed = {
             "http://localhost:5476",
@@ -426,8 +426,8 @@ class TestCheckOriginLoopbackTrust:
         its WS to that same location.host, so Origin == Host. Trust it even though
         the port is not in allowed_origins."""
         request = self._make_request(
-            "http://kirocrew.localhost:7779",
-            host="kirocrew.localhost:7779",
+            "http://junction.localhost:7779",
+            host="junction.localhost:7779",
         )
         assert check_origin(request) is True
 
@@ -442,7 +442,7 @@ class TestCheckOriginLoopbackTrust:
         sends its own Origin while the Host is the gateway's — they differ, so the
         same-origin fallback must NOT trust it."""
         request = self._make_request(
-            "http://localhost:9999", host="kirocrew.localhost:7779"
+            "http://localhost:9999", host="junction.localhost:7779"
         )
         assert check_origin(request) is False
 
@@ -461,9 +461,9 @@ class TestCheckOriginLoopbackTrust:
 
 
 class TestAllowedLoopbackPortsEnv:
-    """KIROCREW_ALLOWED_LOOPBACK_PORTS opts specific loopback ports into the allowed set."""
+    """JUNCTION_ALLOWED_LOOPBACK_PORTS opts specific loopback ports into the allowed set."""
 
-    @patch.dict("os.environ", {"KIROCREW_ALLOWED_LOOPBACK_PORTS": "8777,9000"}, clear=True)
+    @patch.dict("os.environ", {"JUNCTION_ALLOWED_LOOPBACK_PORTS": "8777,9000"}, clear=True)
     def test_env_ports_added(self) -> None:
         origins = build_allowed_origins(7777, local_only=True)
         assert "http://localhost:8777" in origins
@@ -471,7 +471,7 @@ class TestAllowedLoopbackPortsEnv:
         assert "http://[::1]:8777" in origins
         assert "http://localhost:9000" in origins
 
-    @patch.dict("os.environ", {"KIROCREW_ALLOWED_LOOPBACK_PORTS": "notaport"}, clear=True)
+    @patch.dict("os.environ", {"JUNCTION_ALLOWED_LOOPBACK_PORTS": "notaport"}, clear=True)
     def test_non_numeric_ignored(self) -> None:
         origins = build_allowed_origins(7777, local_only=True)
         assert not any(":notaport" in o for o in origins)
@@ -489,7 +489,7 @@ class TestShouldCanonicalizeHost:
     def test_redirects_localhost_to_canonical_document_nav(self) -> None:
         assert should_canonicalize_host(
             "localhost:7777",
-            "kirocrew.localhost",
+            "junction.localhost",
             method="GET",
             sec_fetch_dest="document",
         )
@@ -501,8 +501,8 @@ class TestShouldCanonicalizeHost:
 
     def test_no_redirect_when_already_canonical(self) -> None:
         assert not should_canonicalize_host(
-            "kirocrew.localhost:7777",
-            "kirocrew.localhost",
+            "junction.localhost:7777",
+            "junction.localhost",
             method="GET",
             sec_fetch_dest="document",
         )
@@ -512,7 +512,7 @@ class TestShouldCanonicalizeHost:
         for dest in ("empty", "websocket", "script", "style", "image", None):
             assert not should_canonicalize_host(
                 "localhost:7777",
-                "kirocrew.localhost",
+                "junction.localhost",
                 method="GET",
                 sec_fetch_dest=dest,
             )
@@ -521,7 +521,7 @@ class TestShouldCanonicalizeHost:
         for method in ("POST", "PUT", "DELETE", "PATCH"):
             assert not should_canonicalize_host(
                 "localhost:7777",
-                "kirocrew.localhost",
+                "junction.localhost",
                 method=method,
                 sec_fetch_dest="document",
             )
@@ -529,8 +529,8 @@ class TestShouldCanonicalizeHost:
     def test_no_redirect_for_non_loopback_request_host(self) -> None:
         # A real hostname / reverse-proxy vhost is never canonicalized.
         assert not should_canonicalize_host(
-            "kirocrew.example.com:7777",
-            "kirocrew.localhost",
+            "junction.example.com:7777",
+            "junction.localhost",
             method="GET",
             sec_fetch_dest="document",
         )
@@ -538,28 +538,28 @@ class TestShouldCanonicalizeHost:
     def test_no_redirect_when_canonical_not_loopback(self) -> None:
         assert not should_canonicalize_host(
             "localhost:7777",
-            "kirocrew.example.com",
+            "junction.example.com",
             method="GET",
             sec_fetch_dest="document",
         )
 
     def test_host_without_port(self) -> None:
         assert should_canonicalize_host(
-            "localhost", "kirocrew.localhost", method="GET", sec_fetch_dest="document"
+            "localhost", "junction.localhost", method="GET", sec_fetch_dest="document"
         )
 
     def test_ipv6_loopback_bracket_host_redirected(self) -> None:
         # [::1]:7777 must parse to ::1 (not "[") and converge like other loopbacks.
         assert should_canonicalize_host(
             "[::1]:7777",
-            "kirocrew.localhost",
+            "junction.localhost",
             method="GET",
             sec_fetch_dest="document",
         )
 
     def test_ipv6_loopback_bracket_host_without_port(self) -> None:
         assert should_canonicalize_host(
-            "[::1]", "kirocrew.localhost", method="GET", sec_fetch_dest="document"
+            "[::1]", "junction.localhost", method="GET", sec_fetch_dest="document"
         )
 
 
@@ -587,12 +587,12 @@ class TestBuildHostCanonicalRedirect:
         from aiohttp import web
         from aiohttp.test_utils import TestClient, TestServer
 
-        from kiro_crew.dashboard.server import build_host_canonical_redirect
+        from junction.dashboard.server import build_host_canonical_redirect
 
         async def _ok(_request: web.Request) -> web.Response:
             return web.Response(text="ok")
 
-        app = web.Application(middlewares=[build_host_canonical_redirect("kirocrew.localhost")])
+        app = web.Application(middlewares=[build_host_canonical_redirect("junction.localhost")])
         app.router.add_get("/chat", _ok)
 
         async with TestClient(TestServer(app)) as client:
@@ -604,7 +604,7 @@ class TestBuildHostCanonicalRedirect:
             )
             assert resp.status == 302
             loc = urlsplit(resp.headers["Location"])
-            assert loc.hostname == "kirocrew.localhost"  # host converged
+            assert loc.hostname == "junction.localhost"  # host converged
             assert loc.port == 7777  # port preserved
             assert loc.path == "/chat"  # path preserved
             assert "token=abc123" in loc.query  # ?token= preserved
@@ -614,12 +614,12 @@ class TestBuildHostCanonicalRedirect:
         from aiohttp import web
         from aiohttp.test_utils import TestClient, TestServer
 
-        from kiro_crew.dashboard.server import build_host_canonical_redirect
+        from junction.dashboard.server import build_host_canonical_redirect
 
         async def _ok(_request: web.Request) -> web.Response:
             return web.Response(text="ok")
 
-        app = web.Application(middlewares=[build_host_canonical_redirect("kirocrew.localhost")])
+        app = web.Application(middlewares=[build_host_canonical_redirect("junction.localhost")])
         app.router.add_get("/api/x", _ok)
         app.router.add_post("/api/x", _ok)
 
@@ -646,7 +646,7 @@ class TestBuildHostCanonicalRedirect:
         from aiohttp import web
         from aiohttp.test_utils import TestClient, TestServer
 
-        from kiro_crew.dashboard.server import build_host_canonical_redirect
+        from junction.dashboard.server import build_host_canonical_redirect
 
         async def _ok(_request: web.Request) -> web.Response:
             return web.Response(text="ok")
@@ -668,16 +668,16 @@ class TestBuildAllowedHosts:
     same allowed_origins set the CSRF check uses."""
 
     def test_loopback_floor_always_present(self) -> None:
-        from kiro_crew.dashboard.origin import build_allowed_hosts
+        from junction.dashboard.origin import build_allowed_hosts
 
         hosts = build_allowed_hosts(set())
-        assert {"localhost", "127.0.0.1", "::1", "kirocrew.localhost"} <= hosts
+        assert {"localhost", "127.0.0.1", "::1", "junction.localhost"} <= hosts
 
     def test_hostnames_extracted_port_stripped(self) -> None:
-        from kiro_crew.dashboard.origin import build_allowed_hosts
+        from junction.dashboard.origin import build_allowed_hosts
 
         hosts = build_allowed_hosts(
-            {"http://myhost:8080", "https://kirocrew.example.com"}
+            {"http://myhost:8080", "https://junction.example.com"}
         )
         # Exact set-membership assertion (build_allowed_hosts returns a set of
         # bare hostnames, never host:port). Compare the whole derived set rather
@@ -688,13 +688,13 @@ class TestBuildAllowedHosts:
             "localhost",
             "127.0.0.1",
             "::1",
-            "kirocrew.localhost",
+            "junction.localhost",
             "myhost",  # port dropped from myhost:8080
-            "kirocrew.example.com",
+            "junction.example.com",
         }
 
     def test_ipv6_bracket_stripped(self) -> None:
-        from kiro_crew.dashboard.origin import build_allowed_hosts
+        from junction.dashboard.origin import build_allowed_hosts
 
         hosts = build_allowed_hosts({"http://[::1]:8777"})
         assert "::1" in hosts
@@ -717,7 +717,7 @@ class TestCheckHost:
         return request
 
     def test_spoofed_host_rejected(self) -> None:
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         req = self._make_request("evil.rebind.attacker.com")
         assert check_host(req) is False
@@ -725,52 +725,52 @@ class TestCheckHost:
     def test_spoofed_host_rejected_even_from_loopback_remote(self) -> None:
         """The rebinding connection IS loopback while Host is forged — loopback
         remote must NOT bypass the Host check (unlike check_origin)."""
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         req = self._make_request("attacker.com", remote="127.0.0.1")
         assert check_host(req) is False
 
     def test_localhost_host_accepted(self) -> None:
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         assert check_host(self._make_request("localhost:5476")) is True
 
     def test_loopback_ip_host_accepted(self) -> None:
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         assert check_host(self._make_request("127.0.0.1:5476")) is True
 
     def test_tunnel_port_host_accepted_port_independent(self) -> None:
         """SSH-tunnel local port (localhost:8777) still matches 'localhost'."""
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         assert check_host(self._make_request("localhost:8777")) is True
 
     def test_configured_remote_host_accepted(self) -> None:
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
-        allowed = {"http://localhost:5476", "https://kirocrew.example.com"}
-        req = self._make_request("kirocrew.example.com", allowed=allowed)
+        allowed = {"http://localhost:5476", "https://junction.example.com"}
+        req = self._make_request("junction.example.com", allowed=allowed)
         assert check_host(req) is True
 
     def test_missing_host_allowed_from_loopback(self) -> None:
         """No Host header from a loopback remote is local IPC (mcp-core, doctor)
         and is allowed; browsers always send Host so this is not a rebinding gap."""
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         assert check_host(self._make_request(None, remote="127.0.0.1")) is True
 
     def test_missing_host_denied_from_non_loopback(self) -> None:
         """Deny-by-default: a headerless request from a non-loopback remote is
         rejected rather than blanket-allowed (review-bot security-controls)."""
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         assert check_host(self._make_request(None, remote="10.0.0.5")) is False
 
     def test_empty_allowlist_denied(self) -> None:
         """Deny-by-default: a missing/empty allowed_origins must NOT bypass the
         Host check (review-bot security-controls, fail-open guard)."""
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         req = self._make_request("evil.com", allowed=set())
         assert check_host(req) is False
@@ -779,7 +779,7 @@ class TestCheckHost:
         """None allowlist (key never set / race) is a denial, not fail-open."""
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.origin import check_host
+        from junction.dashboard.origin import check_host
 
         request = MagicMock()
         request.headers = {"Host": "localhost:5476"}

@@ -68,13 +68,13 @@ import ast
 import re
 from pathlib import Path
 
-from kiro_crew.dashboard.server import (
+from junction.dashboard.server import (
     _MIXED_INTERNAL_API_PATHS,
     _STRICT_INTERNAL_API_PATHS,
 )
-from kiro_crew.dashboard.token_auth import _BYPASS_EXACT
+from junction.dashboard.token_auth import _BYPASS_EXACT
 
-_SRC = Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+_SRC = Path(__file__).resolve().parent.parent / "src" / "junction"
 _CORE = _SRC / "mcp_core.py"
 
 # The helpers that carry X-Internal-Secret. Defined in mcp_core; called either
@@ -608,7 +608,7 @@ class TestMcpCallSiteAuthCoverage:
         """
         mod = tmp_path / "kwshape.py"
         mod.write_text(
-            "from kiro_crew.mcp_core import _post\n"
+            "from junction.mcp_core import _post\n"
             "def go():\n"
             '    return _post(path="/api/kw-walker-probe", body={})\n',
             encoding="utf-8",

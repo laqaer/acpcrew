@@ -7,7 +7,7 @@ export type FontFamily = 'sans' | 'mono' | 'system' | 'opendyslexic'
 const FAMILIES: FontFamily[] = ['sans', 'mono', 'system', 'opendyslexic']
 // The two theme-able options read a role token an installed pack can fill, so a
 // pack's proportional face reaches Sans and its monospace face reaches Mono. An
-// unfilled token falls through to Kiro Crew's own stack, which is what leaves a
+// unfilled token falls through to Junction's own stack, which is what leaves a
 // colour-only pack (or a pack that ships just one role) on the built-in families.
 // System deliberately reads no token: the OS face is the one choice a theme must
 // never be able to take away.
@@ -24,7 +24,7 @@ const FAMILY_MAP: Record<FontFamily, string> = {
 }
 
 // Native zoom bridge exposed by electron/preload.js. Chromium's per-origin
-// zoom (what Cmd/Ctrl +/- changes) is the ONLY zoom mechanism in KiroCrew:
+// zoom (what Cmd/Ctrl +/- changes) is the ONLY zoom mechanism in Junction:
 // the desktop app exposes read/write access to it over IPC, and Chromium
 // itself persists the factor per-origin across launches. In a plain browser
 // the bridge is absent — a web page cannot drive the browser's native zoom —

@@ -5,9 +5,9 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from kiro_crew.dashboard.state import DashboardState, _ChatSlot
-from kiro_crew.history import ConversationLog
-from kiro_crew.messaging.link import ChannelLink
+from junction.dashboard.state import DashboardState, _ChatSlot
+from junction.history import ConversationLog
+from junction.messaging.link import ChannelLink
 
 # -- Helpers --
 
@@ -168,7 +168,7 @@ def _fake_transport(channel_type: str):
 class TestChannelNeutralSlotLinks:
     def _permit_channels(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.platform.governance_profiles.governance_permits",
+            "junction.platform.governance_profiles.governance_permits",
             lambda *args, **kwargs: SimpleNamespace(permitted=True),
         )
 

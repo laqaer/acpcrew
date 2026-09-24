@@ -17,7 +17,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.subagent import SubagentInfo, SubagentManager
+from junction.subagent import SubagentInfo, SubagentManager
 
 # ``SubagentManager.spawn`` refuses while the host looks short of memory, which
 # is the runner's state, not this test's input.
@@ -91,9 +91,9 @@ async def test_provenance_written_once_before_the_spawn_event() -> None:
         await orig_fire(kind, *args, **kwargs)
 
     with (
-        patch("kiro_crew.subagent.Stats"),
-        patch("kiro_crew.subagent.sel"),
-        patch("kiro_crew.subagent.update_state", side_effect=_spy_update),
+        patch("junction.subagent.Stats"),
+        patch("junction.subagent.sel"),
+        patch("junction.subagent.update_state", side_effect=_spy_update),
         patch.object(manager, "_fire_event", _spy_fire),
     ):
         await manager._run_inner(info, f"subagent:{info.id}")
@@ -160,9 +160,9 @@ async def test_provenance_write_retries_once_on_transient_failure() -> None:
         await orig_fire(kind, *args, **kwargs)
 
     with (
-        patch("kiro_crew.subagent.Stats"),
-        patch("kiro_crew.subagent.sel"),
-        patch("kiro_crew.subagent.update_state", side_effect=_flaky_update),
+        patch("junction.subagent.Stats"),
+        patch("junction.subagent.sel"),
+        patch("junction.subagent.update_state", side_effect=_flaky_update),
         patch.object(manager, "_fire_event", _spy_fire),
     ):
         await manager._run_inner(info, f"subagent:{info.id}")
@@ -213,9 +213,9 @@ async def test_provenance_write_retries_on_silently_skipped_merge() -> None:
         return True
 
     with (
-        patch("kiro_crew.subagent.Stats"),
-        patch("kiro_crew.subagent.sel"),
-        patch("kiro_crew.subagent.update_state", side_effect=_skippy_update),
+        patch("junction.subagent.Stats"),
+        patch("junction.subagent.sel"),
+        patch("junction.subagent.update_state", side_effect=_skippy_update),
     ):
         await manager._run_inner(info, f"subagent:{info.id}")
 
@@ -227,7 +227,7 @@ async def test_provenance_write_retries_on_silently_skipped_merge() -> None:
 def test_update_state_reports_write_vs_skip(tmp_path: object) -> None:
     """The return contract the retry depends on: True when the merge was
     written, False when it was skipped because state.json is unreadable."""
-    from kiro_crew.subagent_persistence import (
+    from junction.subagent_persistence import (
         create_agent_folder,
         read_state,
         update_state,

@@ -12,13 +12,13 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.messaging.driver import APPROVAL_AUTO
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.weixin.client import ContextTokenStore, TypingTicketCache
-from kiro_crew.weixin.commands import parse_command
-from kiro_crew.weixin.transport import WEIXIN_CAPABILITIES
-from kiro_crew.weixin.transport_dispatch import WeixinDispatcher
-from kiro_crew.weixin.turn_renderer import WeixinRenderer
+from junction.messaging.driver import APPROVAL_AUTO
+from junction.messaging.transport import InboundMessage
+from junction.weixin.client import ContextTokenStore, TypingTicketCache
+from junction.weixin.commands import parse_command
+from junction.weixin.transport import WEIXIN_CAPABILITIES
+from junction.weixin.transport_dispatch import WeixinDispatcher
+from junction.weixin.turn_renderer import WeixinRenderer
 
 
 # ── fakes ─────────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ class FakeProvider:
 
     async def stream(self, message):
         self.prompts.append(message)
-        from kiro_crew.messaging.driver import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.messaging.driver import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         yield FakeEvent(EVENT_TEXT_CHUNK, self.reply)
         yield FakeEvent(EVENT_COMPLETE)
@@ -175,7 +175,7 @@ class FakeCtxBuilder:
 
 class FakeCfg:
     class agent:
-        default_agent = "kirocrew"
+        default_agent = "junction"
         approval_mode = "auto"
 
     class messaging:
@@ -413,7 +413,7 @@ def test_a_mid_turn_attachment_is_refused_instead_of_ingested(tmp_path, monkeypa
     so this frame's cleanup deletes the temp file first. Refusing up front and
     asking for a resend is the only shape that never lies to the model.
     """
-    import kiro_crew.weixin.transport_dispatch as td
+    import junction.weixin.transport_dispatch as td
 
     async def _must_not_run(*_a, **_kw):
         raise AssertionError("attachments must not be ingested while a turn is live")
@@ -429,7 +429,7 @@ def test_a_mid_turn_attachment_is_refused_instead_of_ingested(tmp_path, monkeypa
 
 def test_a_mid_turn_caption_still_reaches_the_running_turn(tmp_path, monkeypatch):
     """Refusing the attachment must not also swallow the text beside it."""
-    import kiro_crew.weixin.transport_dispatch as td
+    import junction.weixin.transport_dispatch as td
 
     async def _must_not_run(*_a, **_kw):
         raise AssertionError("attachments must not be ingested while a turn is live")
@@ -460,7 +460,7 @@ def test_a_mid_turn_caption_still_reaches_the_running_turn(tmp_path, monkeypatch
 
 def test_a_media_only_mid_turn_message_ends_after_the_refusal(tmp_path, monkeypatch):
     """With no caption there is nothing to steer, so no turn is touched."""
-    import kiro_crew.weixin.transport_dispatch as td
+    import junction.weixin.transport_dispatch as td
 
     async def _must_not_run(*_a, **_kw):
         raise AssertionError("attachments must not be ingested while a turn is live")
@@ -483,8 +483,8 @@ def test_a_turn_starting_during_the_download_still_refuses_the_attachment(tmp_pa
     Without the recheck the already-downloaded path is inlined into a steer whose
     file this frame then deletes — the failure the first check exists to prevent.
     """
-    import kiro_crew.weixin.transport_dispatch as td
-    from kiro_crew.messaging.attachments import IngestResult
+    import junction.weixin.transport_dispatch as td
+    from junction.messaging.attachments import IngestResult
 
     shot = tmp_path / "shot.png"
     shot.write_bytes(b"\x89PNG\r\n\x1a\n")
@@ -531,7 +531,7 @@ def test_an_attachment_riding_a_command_is_named_not_dropped(tmp_path, monkeypat
     The command path runs no turn, so the object is not downloaded — but silence
     here would be the same failure this channel's media support removes.
     """
-    import kiro_crew.weixin.transport_dispatch as td
+    import junction.weixin.transport_dispatch as td
 
     async def _must_not_run(*_a, **_kw):
         raise AssertionError("a command message must not spend a CDN round trip")
@@ -555,8 +555,8 @@ def test_a_plain_command_says_nothing_about_attachments(tmp_path):
 
 def test_an_idle_session_still_ingests_the_attachment(tmp_path, monkeypatch):
     """The refusal is scoped to the busy path; the normal path is unchanged."""
-    import kiro_crew.weixin.transport_dispatch as td
-    from kiro_crew.messaging.attachments import IngestResult
+    import junction.weixin.transport_dispatch as td
+    from junction.messaging.attachments import IngestResult
 
     calls: list[list] = []
 
@@ -650,9 +650,9 @@ def test_parse_command_accepts_chinese_aliases():
     assert parse_command("just chatting") is None
 
 
-def test_dispatcher_agent_falls_back_to_kirocrew(tmp_path):
+def test_dispatcher_agent_falls_back_to_junction(tmp_path):
     d, _, _ = _make(tmp_path)
-    assert d._resolve_agent() == "kirocrew"
+    assert d._resolve_agent() == "junction"
 
 
 def test_governance_deny_drops_the_message_before_any_turn(tmp_path, monkeypatch):
@@ -661,7 +661,7 @@ def test_governance_deny_drops_the_message_before_any_turn(tmp_path, monkeypatch
     The startup gate only blocks CONNECTING, so without this per-message recheck
     an inbound DM would drive an unauthorized turn until the gateway restarted.
     """
-    import kiro_crew.messaging.dispatch as mod
+    import junction.messaging.dispatch as mod
 
     provider = FakeProvider()
     d, client, sessions = _make(tmp_path, provider=provider)
@@ -678,7 +678,7 @@ def test_governance_deny_drops_the_message_before_any_turn(tmp_path, monkeypatch
 
 
 def test_governance_permit_allows_the_turn(tmp_path, monkeypatch):
-    import kiro_crew.messaging.dispatch as mod
+    import junction.messaging.dispatch as mod
 
     provider = FakeProvider("allowed")
     d, client, _ = _make(tmp_path, provider=provider)
@@ -700,7 +700,7 @@ def test_pipeline_enforces_the_gate_even_if_a_channel_forgets(tmp_path, monkeypa
     denied channel_type must not start the renderer or acquire a session, so a
     future channel that forgets its early check still cannot run a turn.
     """
-    import kiro_crew.messaging.dispatch as mod
+    import junction.messaging.dispatch as mod
 
     provider = FakeProvider()
     d, client, sessions = _make(tmp_path, provider=provider)
@@ -725,9 +725,9 @@ def test_pipeline_enforces_the_gate_even_if_a_channel_forgets(tmp_path, monkeypa
         mod.drive_turn(
             mod.ChannelTurn(
                 channel_type="weixin",
-                session_key="weixin:kirocrew:direct:u1",
+                session_key="weixin:junction:direct:u1",
                 conversation_id="weixin:u1",
-                agent="kirocrew",
+                agent="junction",
                 user_text="should never run",
                 renderer=SpyRenderer(),
                 approval_mode=APPROVAL_AUTO,
@@ -762,7 +762,7 @@ def test_hard_threshold_forces_compaction(tmp_path):
 
 def test_tool_gate_denies_when_hooks_deny(tmp_path):
     """The security gate is wired: a hook DENY reaches the driver's tool_gate."""
-    from kiro_crew.hooks import TOOL_DENY
+    from junction.hooks import TOOL_DENY
 
     d, _, _ = _make(tmp_path)
 
@@ -778,7 +778,7 @@ def test_tool_gate_denies_when_hooks_deny(tmp_path):
     # assert the closure maps the hook result onto the driver's contract.
     captured: dict[str, Any] = {}
 
-    import kiro_crew.messaging.dispatch as mod
+    import junction.messaging.dispatch as mod
 
     real_driver = mod.TurnDriver
 
@@ -802,7 +802,7 @@ def test_tool_gate_denies_when_hooks_deny(tmp_path):
 def test_every_alias_in_the_weixin_spec_is_reachable():
     """A command that parses but is missing from help is a feature nobody finds;
     one listed but unreachable is a lie. Both derive from COMMANDS."""
-    from kiro_crew.weixin.commands import COMMANDS
+    from junction.weixin.commands import COMMANDS
 
     for spec in COMMANDS:
         assert parse_command(f"/{spec.name}") == spec.name
@@ -811,7 +811,7 @@ def test_every_alias_in_the_weixin_spec_is_reachable():
 
 
 def test_every_visible_weixin_command_appears_in_help():
-    from kiro_crew.weixin.commands import COMMANDS, build_help
+    from junction.weixin.commands import COMMANDS, build_help
 
     body = build_help()
     for spec in COMMANDS:
@@ -823,7 +823,7 @@ def test_every_visible_weixin_command_appears_in_help():
 def test_weixin_help_lists_no_link_command():
     """iLink is DM-only with no dashboard-mirror command, so advertising one
     would promise a capability this channel does not have."""
-    from kiro_crew.weixin.commands import build_help
+    from junction.weixin.commands import build_help
 
     assert "/link" not in build_help()
 

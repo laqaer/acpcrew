@@ -28,7 +28,7 @@ import inspect
 
 import pytest
 
-import kiro_crew.apps.builtins.dev_fleet.server as mod
+import junction.apps.builtins.dev_fleet.server as mod
 
 # The accessor is the ONLY function whose body may read the bare global: it IS
 # the guard. The startup hook's discovery/re-resolve runs on a local and writes
@@ -114,5 +114,5 @@ def test_repo_accessor_raises_on_unresolved_checkout(monkeypatch: pytest.MonkeyP
 
 
 def test_repo_accessor_returns_resolved_checkout(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(mod, "MAIN_REPO", "/somewhere/kirocrew")
-    assert mod._repo() == "/somewhere/kirocrew"
+    monkeypatch.setattr(mod, "MAIN_REPO", "/somewhere/junction")
+    assert mod._repo() == "/somewhere/junction"

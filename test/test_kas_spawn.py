@@ -19,15 +19,15 @@ When working on the backend, run it by hand instead::
 
     python - <<'EOF'
     import asyncio
-    from kiro_crew.acp.runtime import AcpRuntime
-    from kiro_crew.acp.types import ACP_BACKEND_KAS
+    from junction.acp.runtime import AcpRuntime
+    from junction.acp.types import ACP_BACKEND_KAS
 
     async def main():
         rt = AcpRuntime(work_dir="/tmp/kas-check", sandbox_mode="off",
                         acp_backend=ACP_BACKEND_KAS)
         await rt.spawn()                      # initialize against the real build
         print("loadSession:", rt._can_load_session)
-        await rt.create_session(cwd="/tmp/kas-check", agent="kirocrew")
+        await rt.create_session(cwd="/tmp/kas-check", agent="junction")
         await rt.kill()
     asyncio.run(main())
     EOF
@@ -48,9 +48,9 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.acp import kas_assets
-from kiro_crew.acp import session_handle as sh
-from kiro_crew.acp.kas_assets import (
+from junction.acp import kas_assets
+from junction.acp import session_handle as sh
+from junction.acp.kas_assets import (
     ENV_KAS_NODE,
     ENV_KAS_SCRIPT,
     KAS_NODE_FLAGS,
@@ -59,13 +59,13 @@ from kiro_crew.acp.kas_assets import (
     build_kas_argv,
     resolve_kas_entry,
 )
-from kiro_crew.acp.runtime import AcpRuntime
-from kiro_crew.acp.types import (
+from junction.acp.runtime import AcpRuntime
+from junction.acp.types import (
     ACP_BACKEND_KAS,
     ACP_CLIENT_CAPABILITIES,
     KAS_CLIENT_CAPABILITIES,
 )
-from kiro_crew.config.paths import kiro_agents_dir
+from junction.config.paths import kiro_agents_dir
 
 
 @pytest.fixture(autouse=True)
@@ -182,7 +182,7 @@ class TestSandboxClassification:
             sandbox_mode="off",
             acp_backend=ACP_BACKEND_KAS,
         )
-        with patch("kiro_crew.acp.runtime.wrap_argv", side_effect=fake_wrap):
+        with patch("junction.acp.runtime.wrap_argv", side_effect=fake_wrap):
             with pytest.raises(self._Abort):
                 await runtime.spawn()
         assert captured["is_kiro_cli"] is False
@@ -200,13 +200,13 @@ class TestSandboxClassification:
             return "/usr/bin/kiro-cli"
 
         monkeypatch.setattr(
-            "kiro_crew.acp.runtime._resolve_kiro_bin_for_spawn", fake_bin
+            "junction.acp.runtime._resolve_kiro_bin_for_spawn", fake_bin
         )
         monkeypatch.setattr(
-            "kiro_crew.acp.runtime.ensure_agent_materialized", lambda _agent: None
+            "junction.acp.runtime.ensure_agent_materialized", lambda _agent: None
         )
         runtime = AcpRuntime(work_dir=tmp_path / "sbx2", sandbox_mode="off")
-        with patch("kiro_crew.acp.runtime.wrap_argv", side_effect=fake_wrap):
+        with patch("junction.acp.runtime.wrap_argv", side_effect=fake_wrap):
             with pytest.raises(self._Abort):
                 await runtime.spawn()
         assert captured["is_kiro_cli"] is True
@@ -281,7 +281,7 @@ for line in sys.stdin:
 #: The one agent spec ``session/new`` projects onto KAS. Minimal on purpose: this
 #: file tests the SPAWN contract; the projection itself is covered elsewhere.
 _STUB_AGENT_SPEC = {
-    "name": "kirocrew",
+    "name": "junction",
     "description": "spawn-contract stub",
     "prompt": "You are a test agent.",
     "tools": [],
@@ -305,7 +305,7 @@ def kas_stub(tmp_path, monkeypatch):
     ``KIRO_HOME`` rather than patching ``Path.home()``: it is the documented override
     and it reaches the resolver this path uses. Note its scope caveat
     (``config/paths.py``) -- today only the agents directory follows it, so it moves
-    where kiro-cli WRITES without moving where Kiro Crew reads. That is enough here,
+    where kiro-cli WRITES without moving where Junction reads. That is enough here,
     because the agents directory is the whole dependency. The rootdir conftest does NOT
     pin it: the variable outranks ``Path.home()``, and many tests isolate this resolver
     by patching that instead.

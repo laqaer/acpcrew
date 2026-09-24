@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.acp.runtime import AcpRuntime
-from kiro_crew.acp.types import (
+from junction.acp.runtime import AcpRuntime
+from junction.acp.types import (
     ACP_BACKEND_KAS,
     METHOD_KAS_SESSION_DELETE,
     METHOD_SESSION_TERMINATE,

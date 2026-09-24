@@ -1,4 +1,4 @@
-"""Tests for the kirocrew.process.* observable instrument contract.
+"""Tests for the junction.process.* observable instrument contract.
 
 Three layers, mirroring the module's structure:
   * raw readers — real values on this platform, None (never a raise) when the
@@ -19,8 +19,8 @@ import pytest
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 
-from kiro_crew.metrics import process_gauges as pg
-from kiro_crew.metrics.schema import validate_name
+from junction.metrics import process_gauges as pg
+from junction.metrics.schema import validate_name
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -191,8 +191,8 @@ def test_observable_counters_survive_provider_rebuild(tmp_path):
     from opentelemetry.sdk.metrics import MeterProvider
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
-    from kiro_crew.dashboard.handlers.telemetry import _aggregate
-    from kiro_crew.metrics.local_exporter import JsonlMetricExporter
+    from junction.dashboard.handlers.telemetry import _aggregate
+    from junction.metrics.local_exporter import JsonlMetricExporter
 
     def run_provider(value: float) -> None:
         exporter = JsonlMetricExporter(tmp_path)
@@ -200,7 +200,7 @@ def test_observable_counters_survive_provider_rebuild(tmp_path):
         provider = MeterProvider(metric_readers=[reader])
         meter = provider.get_meter("cumulative-test")
         meter.create_observable_counter(
-            "kirocrew.process.cpu.seconds",
+            "junction.process.cpu.seconds",
             callbacks=[lambda options: iter([Observation(value)])],
             unit="s",
         )
@@ -219,7 +219,7 @@ def test_observable_counters_survive_provider_rebuild(tmp_path):
     run_provider(150.0)
 
     result = _aggregate(sorted(tmp_path.glob("metrics-*.jsonl")))
-    rows = [o for o in result["other"] if o["name"] == "kirocrew.process.cpu.seconds"]
+    rows = [o for o in result["other"] if o["name"] == "junction.process.cpu.seconds"]
     assert rows, "cpu.seconds missing from aggregation"
     # Window-relative per (PID, attrs) stream: baseline 100, max 150 → 50 of
     # in-window activity — never 100+150 summed across rebuilds, never
@@ -234,16 +234,16 @@ def test_observable_counters_survive_provider_rebuild(tmp_path):
 
 
 def _enable_telemetry(monkeypatch):
-    monkeypatch.setenv("KIROCREW_TELEMETRY", "1")
+    monkeypatch.setenv("JUNCTION_TELEMETRY", "1")
 
 
 def test_live_build_registers_process_gauges(monkeypatch):
-    from kiro_crew.metrics import provider as provider_mod
+    from junction.metrics import provider as provider_mod
 
     _enable_telemetry(monkeypatch)
     provider_mod.reset_for_testing()
     try:
-        with patch("kiro_crew.metrics.process_gauges.register_process_gauges") as register:
+        with patch("junction.metrics.process_gauges.register_process_gauges") as register:
             rec = provider_mod.get_recorder()
             assert rec.enabled
             register.assert_called_once()
@@ -252,13 +252,13 @@ def test_live_build_registers_process_gauges(monkeypatch):
 
 
 def test_gauge_registration_failure_keeps_telemetry_alive(monkeypatch):
-    from kiro_crew.metrics import provider as provider_mod
+    from junction.metrics import provider as provider_mod
 
     _enable_telemetry(monkeypatch)
     provider_mod.reset_for_testing()
     try:
         with patch(
-            "kiro_crew.metrics.process_gauges.register_process_gauges",
+            "junction.metrics.process_gauges.register_process_gauges",
             side_effect=RuntimeError("boom"),
         ):
             rec = provider_mod.get_recorder()

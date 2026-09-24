@@ -7,8 +7,8 @@ These exercise the acceptance criteria EB-1, EB-3, EB-4, EB-5, EB-7b from
 
 from __future__ import annotations
 
-from kiro_crew import mcp_core
-from kiro_crew.history import ConversationLog
+from junction import mcp_core
+from junction.history import ConversationLog
 
 # ── Pure helpers ──
 
@@ -89,7 +89,7 @@ class TestHelpers:
 
 
 def _seed_sessions(home):
-    """Create a sessions dir with a few transcripts under KIROCREW_HOME=home."""
+    """Create a sessions dir with a few transcripts under JUNCTION_HOME=home."""
     sessions = home / "sessions"
     sessions.mkdir(parents=True, exist_ok=True)
     cl = ConversationLog(base_dir=sessions)
@@ -104,20 +104,20 @@ def _seed_sessions(home):
 
 class TestSearchChatHistoryHandler:
     def test_basic_match_and_snippet(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner("search_chat_history", {"query": "redis"})
         assert "dashboard_chat-1" in out  # EB-1
         assert "<<<redis>>>" in out or "redis" in out  # EB-3
 
     def test_no_match_returns_message_not_error(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner("search_chat_history", {"query": "zzzznomatch"})
         assert "No matching conversations" in out  # EB-4
 
     def test_incognito_excluded(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner("search_chat_history", {"query": "redis"})
         assert "dashboard_chat-secret" not in out  # EB-5
@@ -128,7 +128,7 @@ class TestSearchChatHistoryHandler:
         # credential pattern (e.g. an AWS access key) in a matched message is
         # redacted in the returned snippet. (This is the same redaction every
         # external surface applies — not a stronger, URL-stripping guarantee.)
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         sessions = tmp_path / "sessions"
         sessions.mkdir(parents=True, exist_ok=True)
         cl = ConversationLog(base_dir=sessions)
@@ -142,7 +142,7 @@ class TestSearchChatHistoryHandler:
         assert "REDACTED" in out
 
     def test_get_chat_session_returns_transcript(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner("get_chat_session", {"session_key": "dashboard_chat-1"})
         assert "redis.timeout" in out
@@ -163,7 +163,7 @@ class TestSearchChatHistoryHandler:
         argument is permissive and would satisfy the inject assertion on its own
         while quietly admitting internal system rows into the transcript.
         """
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         cl = _seed_sessions(tmp_path)
         cl.append("dashboard_chat-1", "inject", "note breadcrumb: rotate the staging key")
         cl.append("dashboard_chat-1", "system", "internal marker, not for recall")
@@ -180,7 +180,7 @@ class TestSearchChatHistoryHandler:
         # readable conversations from search.
         import json
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         sessions = tmp_path / "sessions"
         sessions.mkdir(parents=True, exist_ok=True)
         legacy = sessions / "dashboard_chat-legacy.jsonl"
@@ -194,7 +194,7 @@ class TestSearchChatHistoryHandler:
         assert "dashboard_chat-legacy" in out
 
     def test_get_chat_session_refuses_incognito(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner(
             "get_chat_session", {"session_key": "dashboard_chat-secret"}
@@ -205,7 +205,7 @@ class TestSearchChatHistoryHandler:
 
 class TestDateFilter:
     def test_after_filter_excludes_old_sessions(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         # A future 'after' date should drop today's freshly-written sessions.
         out = mcp_core._call_tool_inner(
@@ -214,7 +214,7 @@ class TestDateFilter:
         assert "No matching conversations" in out  # EB-7
 
     def test_before_filter_excludes_recent_sessions(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         # A past 'before' date should drop today's sessions (modified now).
         out = mcp_core._call_tool_inner(
@@ -223,7 +223,7 @@ class TestDateFilter:
         assert "No matching conversations" in out  # EB-7
 
     def test_wide_window_includes_match(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner(
             "search_chat_history",
@@ -249,7 +249,7 @@ class TestWorkspaceScope:
         return cl
 
     def test_scoped_to_current_workspace_by_default(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         self._seed_two_workspaces(tmp_path)
         # Resolve caller identity to the alpha-workspace session.
         monkeypatch.setattr(mcp_core, "_resolve_session_key", lambda: "dashboard_chat-self")
@@ -258,7 +258,7 @@ class TestWorkspaceScope:
         assert "dashboard_chat-beta" not in out  # other workspace hidden
 
     def test_all_workspaces_opt_in(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         self._seed_two_workspaces(tmp_path)
         monkeypatch.setattr(mcp_core, "_resolve_session_key", lambda: "dashboard_chat-self")
         out = mcp_core._call_tool_inner(
@@ -270,7 +270,7 @@ class TestWorkspaceScope:
     def test_unresolvable_caller_scopes_to_default_not_all(self, tmp_path, monkeypatch):
         # Fail-closed: an unresolvable caller (no workspace) must NOT fail open to
         # every workspace. It scopes to the "default" bucket (unset workspace).
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         self._seed_two_workspaces(tmp_path)
         # Add an unset-workspace ("default" bucket) match.
         cl = ConversationLog(base_dir=tmp_path / "sessions")
@@ -284,7 +284,7 @@ class TestWorkspaceScope:
 
 class TestSessionKeySafety:
     def test_get_chat_session_rejects_traversal_key(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         for bad in ("../../etc/passwd", "x/..\\y", "a/../b"):
             out = mcp_core._call_tool_inner("get_chat_session", {"session_key": bad})
@@ -293,7 +293,7 @@ class TestSessionKeySafety:
     def test_get_chat_session_redacts_key_on_not_found(self, tmp_path, monkeypatch):
         # The not_found early return must never reflect the LLM-supplied key —
         # a crafted credential-bearing key must not appear in the output.
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner("get_chat_session", {"session_key": "AKIAIOSFODNN7EXAMPLE"})
         assert "AKIAIOSFODNN7EXAMPLE" not in out
@@ -314,14 +314,14 @@ class TestGetChatSessionWorkspaceGate:
         return cl
 
     def test_same_workspace_allowed(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         self._seed(tmp_path)
         monkeypatch.setattr(mcp_core, "_resolve_session_key", lambda: "dashboard_chat-self")
         out = mcp_core._call_tool_inner("get_chat_session", {"session_key": "dashboard_chat-alpha"})
         assert "secret alpha content" in out
 
     def test_cross_workspace_denied(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         self._seed(tmp_path)
         monkeypatch.setattr(mcp_core, "_resolve_session_key", lambda: "dashboard_chat-self")
         out = mcp_core._call_tool_inner("get_chat_session", {"session_key": "dashboard_chat-beta"})
@@ -329,7 +329,7 @@ class TestGetChatSessionWorkspaceGate:
         assert "secret beta content" not in out
 
     def test_cross_workspace_all_workspaces_opt_in(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         self._seed(tmp_path)
         monkeypatch.setattr(mcp_core, "_resolve_session_key", lambda: "dashboard_chat-self")
         out = mcp_core._call_tool_inner(
@@ -376,7 +376,7 @@ class TestPostMergeHardening:
 
     # An impossible calendar date must error, not silently return unfiltered.
     def test_impossible_date_errors(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         out = mcp_core._call_tool_inner(
             "search_chat_history", {"query": "redis", "before": "2026-02-30"}
@@ -386,7 +386,7 @@ class TestPostMergeHardening:
     # The not-found path must NOT echo the raw key (markdown injection);
     # it returns a fingerprint instead.
     def test_not_found_does_not_reflect_raw_key(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         _seed_sessions(tmp_path)
         payload = "click[here](mailto:attacker-example)"
         out = mcp_core._call_tool_inner("get_chat_session", {"session_key": payload})
@@ -396,7 +396,7 @@ class TestPostMergeHardening:
     # ".." as a substring (not a path component) must NOT be rejected, so
     # search and read agree on which keys are valid.
     def test_dotdot_substring_key_allowed(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         cl = ConversationLog(base_dir=tmp_path / "sessions")
         (tmp_path / "sessions").mkdir(parents=True, exist_ok=True)
         cl.append("dashboard_chat-2..3", "user", "redis notes here")
@@ -407,7 +407,7 @@ class TestPostMergeHardening:
     # Many high-score cross-workspace decoys must not starve a real
     # default-bucket caller match ranked below the old limit*3 window.
     def test_no_starvation_from_cross_workspace_decoys(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         sessions = tmp_path / "sessions"
         sessions.mkdir(parents=True, exist_ok=True)
         cl = ConversationLog(base_dir=sessions)

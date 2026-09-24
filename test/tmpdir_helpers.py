@@ -20,7 +20,7 @@ it has no random path component, and ``AF_UNIX`` is not in play there.
 
 from __future__ import annotations
 
-from kiro_crew import platform_compat
+from junction import platform_compat
 
 
 def short_tmp_base() -> str | None:

@@ -15,7 +15,7 @@ from chat_test_helpers import _make_app, _make_state
 @pytest.mark.asyncio
 async def test_resume_reconciles_stale_slot_from_disk(tmp_path, monkeypatch):
     """Resume of a live slot detects new on-disk messages and appends them."""
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     state = _make_state(tmp_path)
     log = state.conversation_log
 
@@ -57,7 +57,7 @@ async def test_resume_reconciles_stale_slot_from_disk(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_detail_reconciles_stale_slot_from_disk(tmp_path, monkeypatch):
     """Detail endpoint detects stale window and includes missing disk rows."""
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     state = _make_state(tmp_path)
     log = state.conversation_log
 
@@ -92,7 +92,7 @@ async def test_detail_reconciles_stale_slot_from_disk(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_reconcile_no_op_when_not_stale(tmp_path, monkeypatch):
     """Reconciliation is a no-op when disk and memory are in sync."""
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     state = _make_state(tmp_path)
     log = state.conversation_log
 
@@ -117,7 +117,7 @@ async def test_reconcile_no_op_when_not_stale(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_reconcile_preserves_disk_window_len(tmp_path, monkeypatch):
     """After reconciliation, _disk_window_len covers the full window."""
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     state = _make_state(tmp_path)
     log = state.conversation_log
 
@@ -145,7 +145,7 @@ async def test_reconcile_preserves_disk_window_len(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_reconcile_with_disk_older_count(tmp_path, monkeypatch):
     """Reconciliation works when slot has a non-zero _disk_older_count."""
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     state = _make_state(tmp_path)
     log = state.conversation_log
 

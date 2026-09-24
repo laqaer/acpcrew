@@ -35,7 +35,7 @@ export default function PortabilityTab() {
       a.href = url
       const cd = resp.headers.get('Content-Disposition') || ''
       const m = cd.match(/filename="?([^"]+)"?/)
-      a.download = m ? m[1] : 'kirocrew-export.zip'
+      a.download = m ? m[1] : 'junction-export.zip'
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -119,7 +119,7 @@ export default function PortabilityTab() {
       <Card>
         <CardTitle>{i18nT('pages.overview.portabilityTab.import_configuration')}</CardTitle>
         <p className="text-muted text-[13px] mb-3">
-          {i18nT('pages.overview.portabilityTab.upload_a_kirocrew_export_zip_to_restore_settings')}
+          {i18nT('pages.overview.portabilityTab.upload_a_junction_export_zip_to_restore_settings')}
         </p>
         <div className="flex items-center gap-3 flex-wrap">
           <label htmlFor="portability-import-file" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold font-body cursor-pointer bg-bg-elevated border border-border hover:border-accent transition-colors">

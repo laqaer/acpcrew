@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 The containment tests are the load-bearing ones. Every path this app builds from
 a request goes through ``safe_meeting_id`` + ``contain``, so a gap here is a
@@ -21,8 +21,8 @@ from meetings_helpers import (  # noqa: F401
     root_fixture,
 )
 
-from kiro_crew.apps.builtins.meetings.backend import constants as k
-from kiro_crew.apps.builtins.meetings.backend import store
+from junction.apps.builtins.meetings.backend import constants as k
+from junction.apps.builtins.meetings.backend import store
 
 
 class TestSafeMeetingId:
@@ -115,7 +115,7 @@ class TestContainment:
 class TestConfig:
     def test_defaults_seeded_on_fresh_root(self, tmp_path: Path):
         config = store.read_config(tmp_path / "fresh")
-        assert config["stt_provider"] == k.STT_PROVIDER_KIROCREW
+        assert config["stt_provider"] == k.STT_PROVIDER_JUNCTION
         assert config["task_provider"] == k.TASK_PROVIDER_LOCAL
         assert config["calendar"]["provider"] == k.CALENDAR_PROVIDER_NONE
         assert [a["id"] for a in config["meeting_agents"]] == ["note-taker", "sketch-artist"]
@@ -128,7 +128,7 @@ class TestConfig:
 
     def test_malformed_config_falls_back(self, root: Path):
         store.config_path(root).write_text("{not json")
-        assert store.read_config(root)["stt_provider"] == k.STT_PROVIDER_KIROCREW
+        assert store.read_config(root)["stt_provider"] == k.STT_PROVIDER_JUNCTION
 
     def test_non_object_config_falls_back(self, root: Path):
         store.config_path(root).write_text("[1, 2, 3]")

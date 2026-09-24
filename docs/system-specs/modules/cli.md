@@ -2,37 +2,37 @@
 
 ## Overview
 
-The CLI module (`kiro_crew/cli.py`) provides the `junction` command using stdlib `argparse`. Silent aliases `kirocrew` and `acpcrew` dispatch to the same entry.
+The CLI module (`junction/cli.py`) provides the `junction` command using stdlib `argparse`. Silent aliases `junction` and `acpcrew` dispatch to the same entry.
 
 ## Import Weight Contract
 
 `cli.py` is the shared dispatcher for every subcommand — including the
-long-lived MCP stdio servers (`kirocrew mcp-core` / `mcp-cron` /
+long-lived MCP stdio servers (`junction mcp-core` / `mcp-cron` /
 `mcp-computer`), which hold its module-scope imports resident for their whole
 lifetime. Its module scope therefore stays light: `cli_commands`,
 `cli_server` (which pulls `slack.gateway`) and `dashboard.state` (which pulls
 `vector_memory` → `numpy`) are imported inside the one `main()` dispatch
 branch that uses each name, never at module scope. Deferring them cuts a
-fresh `import kiro_crew.cli` from ~1.3 s / ~112 MB to ~0.5 s / ~54 MB, paid
+fresh `import junction.cli` from ~1.3 s / ~112 MB to ~0.5 s / ~54 MB, paid
 per CLI invocation and per MCP backend process.
 `test/test_cli_lazy_imports.py` ratchets the contract: after
-`import kiro_crew.cli` in a fresh interpreter, none of those modules may be
+`import junction.cli` in a fresh interpreter, none of those modules may be
 present in `sys.modules`, and every deferred dispatch import must resolve.
 
 The entry point itself is not negotiable: all invocation forms
-(`kirocrew <sub>`, `python -m kiro_crew <sub>`, and the frozen desktop
+(`junction <sub>`, `python -m junction <sub>`, and the frozen desktop
 binary) land in `cli.main()`, whose prelude runs `boot_platform()`
 (fail-closed for non-standalone profiles), sandbox env hygiene, and
-`KIROCREW_PROJECT_DIR` resolution before any dispatch.
+`JUNCTION_PROJECT_DIR` resolution before any dispatch.
 
 ## Source Checkout Launcher
 
-The POSIX wrappers at `bin/junction` and `bin/kirocrew` (identical scripts)
-resolve the invoked name before following symlinks, set `KIROCREW_PROJECT_DIR`
+The POSIX wrappers at `bin/junction` and `bin/junction` (identical scripts)
+resolve the invoked name before following symlinks, set `JUNCTION_PROJECT_DIR`
 to that checkout unless the caller already supplied one, and delegate to the
 matching `.venv/bin/<stem>` (trying the invoked name, then `junction`, then
 the silent aliases). The virtualenv entry point comes from the editable
-install created by the setup scripts, so it makes `src/kiro_crew` importable
+install created by the setup scripts, so it makes `src/junction` importable
 without adding the source tree to `PYTHONPATH`. Any caller-provided
 `PYTHONPATH` is inherited unchanged.
 
@@ -46,7 +46,7 @@ environment.
 manifest. This distribution trust boundary is independent of the runtime CLI
 and of macOS signing/notarization.
 
-- Schema: `kirocrew-cli-artifact-manifest-v1`.
+- Schema: `junction-cli-artifact-manifest-v1`.
 - Algorithm: `RSASSA_PKCS1_V1_5_SHA_256`.
 - Key identity: `sha256:` plus the lowercase SHA-256 digest of the public
   SubjectPublicKeyInfo DER bytes.
@@ -77,19 +77,19 @@ pinned, the repository's explicit `UNCONFIGURED` state therefore makes stock
 
 ## Project Directory Detection
 
-At startup, `main()` auto-detects the project root and sets `KIROCREW_PROJECT_DIR`:
+At startup, `main()` auto-detects the project root and sets `JUNCTION_PROJECT_DIR`:
 
-1. If `KIROCREW_PROJECT_DIR` env var is already set, use it
-2. Walk up from CWD looking for a directory with both `skills/` and `src/kiro_crew/` (`_PROJECT_MARKERS`). The project-level `agents/` dir was removed when agent config was consolidated into `src/kiro_crew/config/` (commit bbbc1f6e), so the marker no longer references it — a stale `agents/` requirement left detection (and the dashboard changelog) silently broken.
-3. Read saved path from `~/.kiro/crew/project_dir` (written by `kirocrew setup`); the saved path is re-validated against the same markers
+1. If `JUNCTION_PROJECT_DIR` env var is already set, use it
+2. Walk up from CWD looking for a directory with both `skills/` and `src/junction/` (`_PROJECT_MARKERS`). The project-level `agents/` dir was removed when agent config was consolidated into `src/junction/config/` (commit bbbc1f6e), so the marker no longer references it — a stale `agents/` requirement left detection (and the dashboard changelog) silently broken.
+3. Read saved path from `~/.kiro/crew/project_dir` (written by `junction setup`); the saved path is re-validated against the same markers
 
-This allows `kirocrew` to find project-level agent config and skills from any directory.
+This allows `junction` to find project-level agent config and skills from any directory.
 
 ## Commands
 
 ### Top-level help
 
-`kirocrew --help` (and a bare `kirocrew`, which prints the banner first) does NOT
+`junction --help` (and a bare `junction`, which prints the banner first) does NOT
 use argparse's own subcommand block. With ~40 commands that block is one flat
 list in registration order, so the four commands a new install needs — `setup`,
 `planes`, `up`, `doctor` — land in the middle of it, and the `{chat,doctor,gateway,…}`
@@ -115,7 +115,7 @@ choice blob makes the usage line unreadable.
 - Every user-facing command is registered with `cli_help.add_command(sub, name)`,
   which raises `KeyError` for a name that is in no section — a new command cannot
   be added without appearing in the help. The section summary becomes the
-  subparser's `description`, which is what `kirocrew <cmd> --help` prints, so the
+  subparser's `description`, which is what `junction <cmd> --help` prints, so the
   sentence is not duplicated. A caller may pass its own longer `description`
   (`bench` does).
 - Internal `mcp-*` servers call `sub.add_parser(name)` with no `help`, which keeps
@@ -123,7 +123,7 @@ choice blob makes the usage line unreadable.
   `invalid choice: 'x' (choose from …)` message: `cli_help.hide_internal_commands`
   swaps the subparsers action's `choices` for a live Mapping view over the same
   parser map that ITERATES only user-facing commands, in the help's section order.
-  Membership is unfiltered and `_name_parser_map` is untouched, so `kirocrew
+  Membership is unfiltered and `_name_parser_map` is untouched, so `junction
   mcp-core` still dispatches — the filter changes what argparse prints, never what
   it accepts. It must be installed after the last `add_parser` and before
   `parse_args`.
@@ -140,46 +140,46 @@ choice blob makes the usage line unreadable.
 | `junction gateway --slack-only` | Start without dashboard or SSH tunnel instructions |
 | `junction gateway --no-crons` | Start without cron scheduler (use when another instance handles crons) |
 | `junction setup` | Install agent config, save project dir, configure credentials |
-| `kirocrew setup --agent-only` | Only install agent config (skip credentials) |
-| `kirocrew setup --slack` | Run the guided Slack credential + slash-command setup (opt-in) |
-| `kirocrew setup --whatsapp` | Run the guided WhatsApp opt-in: report the optional `whatsapp` extra and the pairing state, then enable the channel (opt-in) |
+| `junction setup --agent-only` | Only install agent config (skip credentials) |
+| `junction setup --slack` | Run the guided Slack credential + slash-command setup (opt-in) |
+| `junction setup --whatsapp` | Run the guided WhatsApp opt-in: report the optional `whatsapp` extra and the pairing state, then enable the channel (opt-in) |
 | `junction doctor` | Verify this install; `--quick` is compose-only |
-| `kirocrew cron add/list/remove` | Manage cron jobs |
-| `kirocrew spawn run/list` | Manage background subagents |
-| `kirocrew app install/list/enable/disable/uninstall` | Manage App Kit apps. Uninstall preserves `apps/<name>/data/` by default. |
-| `kirocrew app uninstall NAME --purge-data` | Explicitly uninstall an app and permanently delete its app data. |
-| `kirocrew app dev <name> [--off]` | Toggle an installed app into/out of dev mode (no-store UI serving + live reload on file change). See [App Dev Mode](#app-dev-mode). |
-| `kirocrew learn add/list/remove` | Manage learned corrections |
-| `kirocrew run TASK.md` | Run an autonomous task from a spec file |
-| `kirocrew token` | Print a dashboard access URL with auth token |
-| `kirocrew logout` | Revoke all active dashboard sessions, refresh chains included |
-| `kirocrew manifest` | Generate Slack manifest with user alias auto-populated |
-| `kirocrew update` | Update to latest version (git fetch + hard reset to upstream + rebuild; a diverged checkout is refused — `--force` discards its local commits) |
-| `kirocrew status` | Show runtime stats from running gateway |
-| `kirocrew stop` | Stop a running gateway (service-aware: stops the systemd/launchd service if active, otherwise terminates the gateway found by a cross-platform port lookup — lsof on POSIX, netstat on Windows). Pass `--port N` to bypass the service short-circuit and target a specific gateway. |
-| `kirocrew restart` | Restart a running gateway (service-aware: restarts the systemd/launchd service if active, otherwise terminates the foreground gateway and respawns it detached). Pass `--port N` to bypass the service short-circuit and target a specific gateway. |
-| `kirocrew service install` | Install gateway as a system-level systemd service (Linux, requires sudo for `tee` + `systemctl` only) or launchd LaunchAgent (macOS, no sudo). Auto-restarts on crash, auto-starts on boot. |
-| `kirocrew service uninstall` | Stop and remove the systemd unit / launchd plist. |
-| `kirocrew service status` | Show service status (`systemctl status` or `launchctl list`). No sudo required. |
-| `kirocrew logs` | Tail gateway logs from the systemd journal, launchd stdout file, or `~/.kiro/crew/gateway.log`. |
-| `kirocrew logs -f` | Follow logs live (long-running tail). |
-| `kirocrew cloud launch/list/status/connect/stop/start/destroy/iam-policy/doctor` | Provision, connect to, and manage a KiroCrew EC2 instance in the user's AWS account. |
-| `kirocrew security events` | Show recent SEL audit events (`-n N` for count) |
-| `kirocrew security verify` | Verify SEL HMAC chain integrity |
-| `kirocrew snapshot` | Create a .tar.gz snapshot of all KiroCrew state |
-| `kirocrew snapshot --keep N` | Auto-prune to N most recent snapshots (default 7) |
-| `kirocrew snapshot --list` | List existing snapshots |
-| `kirocrew restore <file>` | Restore from a snapshot (auto-detects replace vs merge) |
-| `kirocrew restore <file> --mode replace\|merge` | Force restore mode; merge skips malformed incoming or local cron JSON with a file-specific warning |
-| `kirocrew restore <file> --components X,Y` | Selective component restore |
-| `kirocrew restore <file> --dry-run` | Preview restore without writing |
-| `kirocrew restore --list-components` | Show available component names |
-| `kirocrew snapshot --allow-unpinned-staging` | Stage by path name where a directory cannot be pinned by descriptor |
-| `kirocrew restore <file> --allow-unpinned-staging` | Same, for the restore side |
+| `junction cron add/list/remove` | Manage cron jobs |
+| `junction spawn run/list` | Manage background subagents |
+| `junction app install/list/enable/disable/uninstall` | Manage App Kit apps. Uninstall preserves `apps/<name>/data/` by default. |
+| `junction app uninstall NAME --purge-data` | Explicitly uninstall an app and permanently delete its app data. |
+| `junction app dev <name> [--off]` | Toggle an installed app into/out of dev mode (no-store UI serving + live reload on file change). See [App Dev Mode](#app-dev-mode). |
+| `junction learn add/list/remove` | Manage learned corrections |
+| `junction run TASK.md` | Run an autonomous task from a spec file |
+| `junction token` | Print a dashboard access URL with auth token |
+| `junction logout` | Revoke all active dashboard sessions, refresh chains included |
+| `junction manifest` | Generate Slack manifest with user alias auto-populated |
+| `junction update` | Update to latest version (git fetch + hard reset to upstream + rebuild; a diverged checkout is refused — `--force` discards its local commits) |
+| `junction status` | Show runtime stats from running gateway |
+| `junction stop` | Stop a running gateway (service-aware: stops the systemd/launchd service if active, otherwise terminates the gateway found by a cross-platform port lookup — lsof on POSIX, netstat on Windows). Pass `--port N` to bypass the service short-circuit and target a specific gateway. |
+| `junction restart` | Restart a running gateway (service-aware: restarts the systemd/launchd service if active, otherwise terminates the foreground gateway and respawns it detached). Pass `--port N` to bypass the service short-circuit and target a specific gateway. |
+| `junction service install` | Install gateway as a system-level systemd service (Linux, requires sudo for `tee` + `systemctl` only) or launchd LaunchAgent (macOS, no sudo). Auto-restarts on crash, auto-starts on boot. |
+| `junction service uninstall` | Stop and remove the systemd unit / launchd plist. |
+| `junction service status` | Show service status (`systemctl status` or `launchctl list`). No sudo required. |
+| `junction logs` | Tail gateway logs from the systemd journal, launchd stdout file, or `~/.kiro/crew/gateway.log`. |
+| `junction logs -f` | Follow logs live (long-running tail). |
+| `junction cloud launch/list/status/connect/stop/start/destroy/iam-policy/doctor` | Provision, connect to, and manage a Junction EC2 instance in the user's AWS account. |
+| `junction security events` | Show recent SEL audit events (`-n N` for count) |
+| `junction security verify` | Verify SEL HMAC chain integrity |
+| `junction snapshot` | Create a .tar.gz snapshot of all Junction state |
+| `junction snapshot --keep N` | Auto-prune to N most recent snapshots (default 7) |
+| `junction snapshot --list` | List existing snapshots |
+| `junction restore <file>` | Restore from a snapshot (auto-detects replace vs merge) |
+| `junction restore <file> --mode replace\|merge` | Force restore mode; merge skips malformed incoming or local cron JSON with a file-specific warning |
+| `junction restore <file> --components X,Y` | Selective component restore |
+| `junction restore <file> --dry-run` | Preview restore without writing |
+| `junction restore --list-components` | Show available component names |
+| `junction snapshot --allow-unpinned-staging` | Stage by path name where a directory cannot be pinned by descriptor |
+| `junction restore <file> --allow-unpinned-staging` | Same, for the restore side |
 
 ### Staging is descriptor-pinned, and refuses rather than degrading silently
 
-Snapshot and restore stage through `kiro_crew.pinned_fs`: the parent chain is resolved
+Snapshot and restore stage through `junction.pinned_fs`: the parent chain is resolved
 once, pinned component by component with `openat` + `O_NOFOLLOW`, and everything
 downstream is addressed through the descriptor already held. A validated path and the
 inode later opened are otherwise not the same thing, and anything running as the user
@@ -189,7 +189,7 @@ inode later opened are otherwise not the same thing, and anything running as the
 is unavailable there. The decision, recorded here rather than only in the pull request
 that made it: staging is **refused** on such a platform unless
 `--allow-unpinned-staging` is passed, and when it is, the archive's `MANIFEST.json`
-carries `"staging": "unpinned"` and `kirocrew restore --dry-run` prints that the
+carries `"staging": "unpinned"` and `junction restore --dry-run` prints that the
 archive was staged by name. The refusal is the default because a by-name walk is not a
 slightly weaker version of a pinned one; it is the mechanism whose failure closed two
 earlier attempts at this change. The flag is a permission for a platform that cannot
@@ -219,36 +219,36 @@ returned summary, with a logged warning. Snapshot and restore keep refusing, bec
 copy opens `O_NOFOLLOW` and the walk rejects links and reparse points — so what the import
 path gives up is ancestor-swap resistance, not link resistance.
 
-| `kirocrew config get [key]` | Print full config or a dot-path value |
-| `kirocrew config set <key> <val>` | Set a config value (auto type detection) |
-| `kirocrew config set --file <path>` | Replace config from a JSON file |
-| `kirocrew config edit` | Open config in `$EDITOR` |
-| `kirocrew memory list/search/stats/audit` | Inspect vector memory (entries, semantic search, counts, suspicious-content scan) |
-| `kirocrew memory show [preferences\|projects\|history]` | Read the markdown memory layer (all three when no target given); `--format md\|json`, `--since YYYY-MM-DD` for history |
-| `kirocrew memory export/import/migrate` | Export memory to JSON (`--include-markdown` adds the markdown layer), import it back, or migrate legacy markdown memory into the vector store |
-| `kirocrew policy show/validate/explain/profile` | Inspect the effective enterprise security policy, load-check it and all profiles, explain one tool/scope decision for a surface, or print a profile. `show` also summarizes the built-in denied-command catalog as grouped counts (`--ids` lists each category's rule ids), on every install regardless of whether an enterprise policy is active — the one place an agent can learn a class of work is hard-denied before planning around it. |
-| `kirocrew pod up/down/ls/status/token/url/logs/exec/install/provision` | Isolated worktree test gateways (**Linux `systemd --user` only** — every systemd-touching verb refuses with a one-line message on macOS/Windows). See `src/kiro_crew/pod/README.md`. |
-| `kirocrew knowledge dedup [--apply]` | Collapse cross-source duplicate knowledge documents (dry-run unless `--apply`) |
-| `kirocrew cron preview <script>` | Run a script cron locally with real MCP tools; notifications are captured and printed instead of delivered |
-| `kirocrew workspace create/update --dir <name>` | `--dir` is a directory NAME that must resolve to a **strict descendant of the data home** (`~` is expanded first); anything landing outside — and the home **root itself**, in any spelling — is refused with a SEL `denied` audit event. Containment, not an absolute-path ban: an absolute path *under* the home resolves where the relative form would and is accepted. The strict-descendant test is what closes the root case for tilde paths, since the per-call-site root-equality checks compare un-expanded `config_dir() / ws_dir`. Deliberately stricter than the dashboard's `POST /api/workspaces`, which accepts an absolute `dir` anywhere, screened by `is_sensitive_path`. |
-| `kirocrew computer doctor [--json]` | Report computer-use availability: platform support, the keystone primary-enable state, and the **advisory** macOS Accessibility / Screen Recording probe with a `responsible_hint`. See [Computer Use Commands](#computer-use-commands). |
-| `kirocrew computer apps` | List on-screen applications the accessibility layer can address (human-facing twin of the `computer_list_apps` MCP tool). Gated by the same chokepoint as `call` — refused while the feature is off or the session is unattended. |
-| `kirocrew computer call <tool> [k=v ...]` | Run ONE computer-use tool through the same gated chokepoint the agent uses, and print its reply (debug / reproduction) |
-| `kirocrew computer call --calls '[…]'` | Run a JSON array of tool calls in a SINGLE process, so `element_index` values from an earlier `computer_get_state` are still resolvable |
-| `kirocrew mcp-cron` | MCP server for cron tools (spawned by kiro-cli) |
-| `kirocrew mcp-core` | MCP server for spawn, learn, task tools (spawned by kiro-cli) |
-| `kirocrew mcp-computer` | MCP server for computer-use tools (spawned by kiro-cli; hidden — registered with no `help`, so it is in neither listing). A **thin shim** — it forwards to the gateway over loopback and does no accessibility work itself. |
-| `kirocrew --version` | Print version |
+| `junction config get [key]` | Print full config or a dot-path value |
+| `junction config set <key> <val>` | Set a config value (auto type detection) |
+| `junction config set --file <path>` | Replace config from a JSON file |
+| `junction config edit` | Open config in `$EDITOR` |
+| `junction memory list/search/stats/audit` | Inspect vector memory (entries, semantic search, counts, suspicious-content scan) |
+| `junction memory show [preferences\|projects\|history]` | Read the markdown memory layer (all three when no target given); `--format md\|json`, `--since YYYY-MM-DD` for history |
+| `junction memory export/import/migrate` | Export memory to JSON (`--include-markdown` adds the markdown layer), import it back, or migrate legacy markdown memory into the vector store |
+| `junction policy show/validate/explain/profile` | Inspect the effective enterprise security policy, load-check it and all profiles, explain one tool/scope decision for a surface, or print a profile. `show` also summarizes the built-in denied-command catalog as grouped counts (`--ids` lists each category's rule ids), on every install regardless of whether an enterprise policy is active — the one place an agent can learn a class of work is hard-denied before planning around it. |
+| `junction pod up/down/ls/status/token/url/logs/exec/install/provision` | Isolated worktree test gateways (**Linux `systemd --user` only** — every systemd-touching verb refuses with a one-line message on macOS/Windows). See `src/junction/pod/README.md`. |
+| `junction knowledge dedup [--apply]` | Collapse cross-source duplicate knowledge documents (dry-run unless `--apply`) |
+| `junction cron preview <script>` | Run a script cron locally with real MCP tools; notifications are captured and printed instead of delivered |
+| `junction workspace create/update --dir <name>` | `--dir` is a directory NAME that must resolve to a **strict descendant of the data home** (`~` is expanded first); anything landing outside — and the home **root itself**, in any spelling — is refused with a SEL `denied` audit event. Containment, not an absolute-path ban: an absolute path *under* the home resolves where the relative form would and is accepted. The strict-descendant test is what closes the root case for tilde paths, since the per-call-site root-equality checks compare un-expanded `config_dir() / ws_dir`. Deliberately stricter than the dashboard's `POST /api/workspaces`, which accepts an absolute `dir` anywhere, screened by `is_sensitive_path`. |
+| `junction computer doctor [--json]` | Report computer-use availability: platform support, the keystone primary-enable state, and the **advisory** macOS Accessibility / Screen Recording probe with a `responsible_hint`. See [Computer Use Commands](#computer-use-commands). |
+| `junction computer apps` | List on-screen applications the accessibility layer can address (human-facing twin of the `computer_list_apps` MCP tool). Gated by the same chokepoint as `call` — refused while the feature is off or the session is unattended. |
+| `junction computer call <tool> [k=v ...]` | Run ONE computer-use tool through the same gated chokepoint the agent uses, and print its reply (debug / reproduction) |
+| `junction computer call --calls '[…]'` | Run a JSON array of tool calls in a SINGLE process, so `element_index` values from an earlier `computer_get_state` are still resolvable |
+| `junction mcp-cron` | MCP server for cron tools (spawned by kiro-cli) |
+| `junction mcp-core` | MCP server for spawn, learn, task tools (spawned by kiro-cli) |
+| `junction mcp-computer` | MCP server for computer-use tools (spawned by kiro-cli; hidden — registered with no `help`, so it is in neither listing). A **thin shim** — it forwards to the gateway over loopback and does no accessibility work itself. |
+| `junction --version` | Print version |
 
 ## Token Command Output Streams
 
-`kirocrew token` has a **machine-readable stdout contract**: stdout carries only
+`junction token` has a **machine-readable stdout contract**: stdout carries only
 the dashboard URL(s), and every failure reason (invalid TTL, gateway not running,
 gateway unreachable, empty token) goes to **stderr**.
 
 The contract exists because stdout is parsed, not just read by a human. The
-remote-mint path (`kiro_crew.instances.token_mint.mint_remote_token`) runs
-`kirocrew token` on a remote host over SSH and regex-extracts the JWT from its
+remote-mint path (`junction.instances.token_mint.mint_remote_token`) runs
+`junction token` on a remote host over SSH and regex-extracts the JWT from its
 stdout. Error prose on stdout would both break the Unix convention and hide the
 reason from a caller that captures stderr.
 
@@ -263,20 +263,20 @@ exfiltration redactors run.
 
 ## Setup Command
 
-`kirocrew setup` performs:
+`junction setup` performs:
 
-1. Saves `KIROCREW_PROJECT_DIR` to `~/.kiro/crew/project_dir`
-2. Installs agent config to `~/.kiro/agents/kirocrew.json`
+1. Saves `JUNCTION_PROJECT_DIR` to `~/.kiro/crew/project_dir`
+2. Installs agent config to `~/.kiro/agents/junction.json`
 3. Prompts for Slack credentials and the slash-command name only when `--slack`
    is passed; the default wizard configures no messaging channels and prints a
    pointer to connect them later
-4. Offers to set up custom domain `kirocrew.localhost` (macOS/Linux)
+4. Offers to set up custom domain `junction.localhost` (macOS/Linux)
 
-The saved project dir enables running `kirocrew` from any directory.
+The saved project dir enables running `junction` from any directory.
 
 ### First-run Kiro CLI prerequisite onboarding
 
-KiroCrew exposes the same two-step readiness contract on every supported
+Junction exposes the same two-step readiness contract on every supported
 platform: an executable candidate must answer `kiro-cli --version`, then
 `kiro-cli whoami` must confirm authentication. Candidate discovery includes
 supported fixed locations in addition to inherited `PATH`; unusable candidates
@@ -293,7 +293,7 @@ from a different later installation.
   validated before any request is sent, and the chain is limited to three
   redirects. Responses are size-bounded and must match a release-pinned
   SHA-256 digest plus the platform-specific official installer marker. A
-  changed upstream script therefore fails closed until a KiroCrew release
+  changed upstream script therefore fails closed until a Junction release
   updates the pin; the manual official guide remains available. The exact
   validated bytes stay in memory and run through the fixed system interpreter's
   standard input. The installer receives a system-only `PATH` plus explicit
@@ -315,7 +315,7 @@ from a different later installation.
   Both are backend code constants rendered verbatim in a `<code>`, never catalog
   values, because a translated command cannot be typed. Both tiers are named
   because the browser portal the bare command opens presents a free Builder ID
-  as a peer of organization SSO; Kiro Crew does not detect which tier applies,
+  as a peer of organization SSO; Junction does not detect which tier applies,
   so the gate describes the choice and the user makes it. Sign-in completion is
   observed only through the read-only `kiro-cli whoami` probe.
 - Browser dashboard: the authenticated SPA gate operates on the **gateway
@@ -342,15 +342,15 @@ credentials or desktop-session IPC. They use the strict OS sandbox and
 additionally hide the configured data home, `~/.kiro/crew`, `~/.kirocrew`, and
 every known Kiro identity store. Any candidate that runs `--version` is eligible
 for `whoami` and device login — trust is "it runs, and it has a valid login",
-not install source, owner, or fixed path (KiroCrew is not the authority on where
+not install source, owner, or fixed path (Junction is not the authority on where
 Kiro CLI is installed, and its self-updater rewrites its own bytes as the user).
 Auth calls execute the user's installed binary IN PLACE, never a private copy of
 its bytes — a multi-call Kiro CLI resolves its sibling subcommand executable
 relative to its own path, so a copy strands it (see security.md).
 Sign-in itself is delegated to Kiro CLI: `login --use-device-flow` runs in the
-standard sandbox against the user's real home, with only the Kiro Crew data
+standard sandbox against the user's real home, with only the Junction data
 homes hidden, and the CLI writes its own credential store exactly as it does
-from a terminal. KiroCrew stages nothing and publishes nothing, so no staged
+from a terminal. Junction stages nothing and publishes nothing, so no staged
 state has to be reconciled after a failure, timeout, or cancellation. The
 credential-minimal temporary home populated only with Kiro identity JSON and
 SQLite files survives as an opt-in read-only mode — one that also hides
@@ -397,7 +397,7 @@ Sandbox launcher/profile preparation and cleanup are worker-thread operations
 and do not stall the asyncio gateway loop.
 
 Setup and ACP launch share the side-effect-free `kiro_cli` resolver on every OS.
-Status requests never publish a discovered path by mutating `KIROCREW_KIRO_BIN`.
+Status requests never publish a discovered path by mutating `JUNCTION_KIRO_BIN`.
 Both setup discovery and ACP launch enumerate the same candidates — inherited
 `PATH`, the interpreter Scripts directory, package-manager dirs (incl. the
 Windows Program Files `Kiro-Cli` tree and winget/scoop/user installs on `PATH`),
@@ -417,20 +417,20 @@ edit-resend, rewind), which rewrite persisted history up front.
 
 ### Custom Domain
 
-After credentials, `kirocrew setup` offers to add `127.0.0.1 kirocrew.localhost` to the system hosts file so the dashboard is accessible at `http://kirocrew.localhost:5476`:
+After credentials, `junction setup` offers to add `127.0.0.1 junction.localhost` to the system hosts file so the dashboard is accessible at `http://junction.localhost:5476`:
 
 - **macOS/Linux**: Uses `sudo tee -a /etc/hosts` for safe append
 
-Skipped if `kirocrew.localhost` is already present or user declines.
+Skipped if `junction.localhost` is already present or user declines.
 
 ## Cloud Command
 
-`kirocrew cloud` is a human installer/control-plane surface for running
-KiroCrew on the user's own AWS EC2 instance. Provisioning and teardown are not
-LLM-facing tools. AWS credentials are resolved by the AWS CLI; KiroCrew stores
+`junction cloud` is a human installer/control-plane surface for running
+Junction on the user's own AWS EC2 instance. Provisioning and teardown are not
+LLM-facing tools. AWS credentials are resolved by the AWS CLI; Junction stores
 only profile, region, and the most recent instance tag in `cloud.json`.
 
-`kirocrew cloud launch` runs a six-step wizard: check AWS reachability, explain
+`junction cloud launch` runs a six-step wizard: check AWS reachability, explain
 permissions, choose whether to keep an existing deployment or create a new one,
 choose an instance size when creating a new stack, deploy or resume the
 CloudFormation stack, sign in the remote `kiro-cli`, and open the dashboard
@@ -438,8 +438,8 @@ through SSM port forwarding. Launch is resume-safe by default: if `cloud.json`
 contains a `last_tag` whose stack still exists in the same saved profile/region,
 rerunning interactive `launch` offers to keep/resume that stack or create a new
 installation. If `cloud.json` is missing or stale, launch discovers existing
-`kirocrew-*` CloudFormation stacks with `cloudformation:ListStacks` and offers a
-choice to resume one or create a new installation. `kirocrew cloud launch --new`
+`junction-*` CloudFormation stacks with `cloudformation:ListStacks` and offers a
+choice to resume one or create a new installation. `junction cloud launch --new`
 is the explicit escape hatch for creating a separate new stack. `--yes` keeps a
 single or saved existing stack; if multiple unsaved stacks exist it fails closed
 instead of choosing one arbitrarily. For a new launch, the generated tag is
@@ -474,18 +474,18 @@ local browser URL. The temporary callback tunnel is closed after the sign-in
 poll completes. In headless local terminals, browser auto-open is skipped and
 the URL is printed for manual opening.
 
-`kirocrew cloud connect` mints a dashboard token over SSM, opens an
+`junction cloud connect` mints a dashboard token over SSM, opens an
 `AWS-StartPortForwardingSession`, waits for the local tunnel port to accept TCP
 connections, and opens or prints the local dashboard URL. If the tunnel port
 does not become reachable, the command reports failure, does not present the
 dashboard URL as usable, and does not keep a dead tunnel process open. If final
 dashboard opening fails during `cloud launch`, the instance remains running but
-launch returns non-zero and tells the user to rerun `kirocrew cloud connect`
+launch returns non-zero and tells the user to rerun `junction cloud connect`
 after fixing the local SSM tunnel issue.
 
 ## Config Command
 
-`kirocrew config` manages `~/.kiro/crew/config.json`:
+`junction config` manages `~/.kiro/crew/config.json`:
 
 - **get** — prints full effective config (with defaults resolved) or a single dot-path value
 - **set key value** — sets a value with auto type detection (bool/int/float/JSON/string). Rejects unknown leaf keys.
@@ -496,7 +496,7 @@ All write paths emit SEL audit events (`config_get`, `config_set`, `config_set_f
 
 ### Gateway Auto-Create
 
-`kirocrew gateway` creates `~/.kiro/crew/config.json` with defaults if the file doesn't exist. Does nothing if it already exists.
+`junction gateway` creates `~/.kiro/crew/config.json` with defaults if the file doesn't exist. Does nothing if it already exists.
 
 ## Verbosity
 
@@ -727,22 +727,34 @@ CLI compaction is blocking (single-user, acceptable).
 
 ## Entry Point
 
-`[project.scripts]` in `pyproject.toml` maps `junction`, `kirocrew`, and
-`acpcrew` → `kiro_crew._bootstrap:main`. `junction` is the primary CLI name;
-the other two are silent aliases. `setup.cfg` still lists `kirocrew`
+`[project.scripts]` in `pyproject.toml` maps `junction`, `junction`, and
+`acpcrew` → `junction._bootstrap:main`. `junction` is the primary CLI name;
+the other two are silent aliases. `setup.cfg` still lists `junction`
 for the same entry so older metadata readers keep resolving it.
 
-`junction stop` / `junction restart` classify a live server by console-script
-basename (`junction`, plus the silent aliases) and by server subcommand
-(`up`, `gateway`, `dashboard`, and the historical `start`). A process started
-with `junction up` is the same server as `junction gateway`.
+`junction stop` / `junction restart` classify a live server by the executable
+token's console-script basename (`junction`, plus the silent aliases) and by
+server subcommand (`up`, `gateway`, `dashboard`, and the historical `start`).
+Wrappers such as `sudo` and `env` are skipped. A later argument is not the
+program, so `grep -m junction gateway` is not a server. A process started
+with `junction up` is the same server as `junction gateway`. The module form
+`<python> -m junction <subcmd>` is classified separately and still requires
+a Python interpreter before `-m`.
 
-### Model-router sidecar
+### Model catalog
 
-`junction router status` probes the optional Codex Router model plane on
-loopback (`GET http://127.0.0.1:4202/health`, honoring `MODEL_ROUTER_PORT` /
-`CODEX_ROUTER_PORT`) and reports LiteLLM liveliness on `:4200`. An unreachable
-sidecar is degraded, not a CLI failure: the ACP gateway still runs.
+`junction up` starts a loopback catalog listener (default `127.0.0.1:4202`,
+honoring `MODEL_ROUTER_PORT` / `CODEX_ROUTER_PORT`) before the compose banner.
+`GET /health` and `GET /catalog` only. POST, PUT, and PATCH, including
+`/v1/chat/completions`, return 501
+`{"ok":false,"code":"model_router_no_forward"}`. A busy port is left alone.
+
+`junction router status` probes that listener
+(`GET http://127.0.0.1:4202/health`) and translation liveliness on `:4200`.
+The translation gateway is not bundled, so status stays `degraded` while
+only the catalog is up. That is not a CLI failure: the ACP gateway still
+runs. Human lines say `model plane:` and `never paste provider keys into
+chat.` They do not claim a sidecar injects keys.
 
 `junction router catalog` prints the namespaced model-choice snapshot
 (optional `--provider`, `--class economy|standard|capable`). `junction router
@@ -777,7 +789,7 @@ non-thread reaper, so the loop-starvation wedge this installer exists to prevent
 cannot occur. The function short-circuits on `hasattr(asyncio,
 "set_child_watcher")` — probed by capability, not `sys.version_info`, so a
 runtime that still ships the API keeps the mitigation. Without that guard the
-Linux pidfd branch raised `AttributeError` and `kirocrew gateway` died before
+Linux pidfd branch raised `AttributeError` and `junction gateway` died before
 binding its port, while every other subcommand kept working.
 
 ### Live-target bootstrap
@@ -787,38 +799,38 @@ attestation and before the `--seed` handler:
 
 ```python
 if args.command in _SERVE_COMMANDS:
-    from kiro_crew.service.live_target import maybe_reexec
+    from junction.service.live_target import maybe_reexec
     maybe_reexec(sys.argv[1:])
 ```
 
 `maybe_reexec` reads the live-target pointer (`config_dir() / "live_target.json"`)
 and, when it names a different checkout, `os.execve`s into that checkout's own
-`kirocrew` binary. This runs before anything is written to `$KIROCREW_HOME`,
+`junction` binary. This runs before anything is written to `$JUNCTION_HOME`,
 before the gateway lock is acquired, and before any socket is bound — so exec'ing
 away leaves nothing half-done. It is **fail-safe**: an absent, unreadable,
 malformed, or stale pointer (missing binary, same image already running, or
-`KIROCREW_LIVE_EXECED` marker already in env) causes the function to return, and
+`JUNCTION_LIVE_EXECED` marker already in env) causes the function to return, and
 the currently-installed build boots normally. A bad pointer can never leave the
 host with no gateway.
 
-Gateway only — a plain CLI invocation (`kirocrew doctor`, `kirocrew chat`, etc.)
+Gateway only — a plain CLI invocation (`junction doctor`, `junction chat`, etc.)
 keeps running the install the user typed, not a worktree someone made live.
 
 ## Environment Variables
 
 | Variable | Purpose |
 |----------|---------|
-| `KIROCREW_HOME` | Override config/data directory (default `~/.kiro/crew`) |
-| `KIROCREW_PORT` | Override dashboard port (default `5476`, validated as int at CLI startup) |
-| `KIROCREW_PROJECT_DIR` | Override agent config/skills directory |
-| `KIROCREW_WORKSPACE` | Override workspace root directory |
+| `JUNCTION_HOME` | Override config/data directory (default `~/.kiro/crew`) |
+| `JUNCTION_PORT` | Override dashboard port (default `5476`, validated as int at CLI startup) |
+| `JUNCTION_PROJECT_DIR` | Override agent config/skills directory |
+| `JUNCTION_WORKSPACE` | Override workspace root directory |
 
 For local dev:
-- **macOS/Linux**: `bin/junction` (POSIX shell wrapper; `bin/kirocrew` is the same script); `source setup.sh` adds `bin/` to PATH
+- **macOS/Linux**: `bin/junction` (POSIX shell wrapper; `bin/junction` is the same script); `source setup.sh` adds `bin/` to PATH
 
-The wrapper sets `KIROCREW_PROJECT_DIR` and routes to the right runtime based on install type:
+The wrapper sets `JUNCTION_PROJECT_DIR` and routes to the right runtime based on install type:
 
-- **One-liner install** (`install.sh` clones the repo into `~/.kirocrew-app/`): if a sibling `.venv/bin/kirocrew` exists, the wrapper execs it directly.
+- **One-liner install** (`install.sh` clones the repo into `~/.kirocrew-app/`): if a sibling `.venv/bin/junction` exists, the wrapper execs it directly.
 - **pip editable install** (`pip install -e .`): the console_scripts entry point resolves directly.
 
 ## Setup Scripts (First-Time Bootstrap)
@@ -835,8 +847,8 @@ The wrapper sets `KIROCREW_PROJECT_DIR` and routes to the right runtime based on
 5. Frontend build (`npm install && npm run build`)
 6. Backend build (`pip install -e .`)
 7. PATH setup + shell profile persistence
-8. `kirocrew setup --agent-only` (install kiro-cli agent config)
-9. Optional Slack credential configuration (`kirocrew setup --slack`)
+8. `junction setup --agent-only` (install kiro-cli agent config)
+9. Optional Slack credential configuration (`junction setup --slack`)
 
 Each step checks if the tool is already installed and skips if present.
 
@@ -846,22 +858,22 @@ Each step checks if the tool is already installed and skips if present.
 2. Project directory and git repo
 3. Agent config installed
 4. Config values (provider, model, approval mode, dashboard port)
-5. **MCP tools**: `@kirocrew-cron` and `@kirocrew-core` in `tools`, `allowedTools`, and `mcpServers` — auto-fixes missing entries
-6. **Global mcp.json**: kirocrew MCP servers present with valid binary paths — auto-fixes stale paths
+5. **MCP tools**: `@junction-cron` and `@junction-core` in `tools`, `allowedTools`, and `mcpServers` — auto-fixes missing entries
+6. **Global mcp.json**: junction MCP servers present with valid binary paths — auto-fixes stale paths
 7. **Python environment**: checks Python 3.9+ availability and dependency installation
 8. **Vector memory (in-process embeddings)**: vendored llama-cpp-python runtime importable, embedding model file present (downloads in background on gateway start; when absent, a light HTTPS-reachability probe of the resolved model URL runs); embeddings are always-on (`embeddings:  ✅ always-on`). On platforms with no vendored native libs (`_platform_libs_dirname()` returns None, e.g. darwin/x86_64 — Intel Macs or a Rosetta interpreter), the runtime line reports `⏹ unsupported platform … — memory uses keyword search` and is NOT counted as an issue (designed degradation per `embeddings.py`); only a load failure on a supported platform flags `embedding runtime`. When that failure is an INCOMPLETE shipped payload, doctor additionally names the absent files (`Missing native libs for <platform>: …`, from `embeddings.verify_vendored_libs()`) and says it is a packaging defect rather than an unsupported platform — the two are indistinguishable in ctypes' own `Shared library with base name 'llama' not found`, which reads as an architecture problem and misdirects diagnosis. When `LLAMA_CPP_LIB_PATH` is set, doctor reports THAT directory as the thing to check instead (mirroring the loader's exemption): the libs load from there, so blaming the bundled tree would send the operator to reinstall a package they are deliberately not loading from. A `faiss:` line reports whether the optional FAISS accelerator is importable — never an issue on any platform (episodic recall falls back to the stdlib cosine scan); when absent it suggests `pip install faiss-cpu`
-9. **Speech-to-Text (optional)**: whisper + ffmpeg presence when STT is enabled. On Windows these are reported as non-fatal `⚠️` notes (neither is a Kiro Crew dependency there, and STT ships enabled-by-default) so a healthy first install exits 0 and the guide's `kirocrew doctor && kirocrew gateway` chain proceeds; on macOS/Linux a missing binary still flags an issue. Fix hints are OS-aware (`brew` / `winget` / Linux)
+9. **Speech-to-Text (optional)**: whisper + ffmpeg presence when STT is enabled. On Windows these are reported as non-fatal `⚠️` notes (neither is a Junction dependency there, and STT ships enabled-by-default) so a healthy first install exits 0 and the guide's `junction doctor && junction gateway` chain proceeds; on macOS/Linux a missing binary still flags an issue. Fix hints are OS-aware (`brew` / `winget` / Linux)
 10. Slack credentials (optional)
-11. **Discord (optional)**: the channel's enabled flag, whether a bot token is present (never any part of its value), the three allow-lists, the privileged Message Content intent, the live connection, and the install URL. Blocking issues are enabled-without-a-token, an empty `discord.allowed_user_ids` (the transport fails closed, so every message is denied while it is empty), a thread or channel allow-list with Message Content OFF, and a reachable gateway whose Discord connection recorded a `connect_error`. The intent state comes from `discord/intent_probe.py`: one read-only `GET /oauth2/applications/@me` that decodes Discord's application-flags bitfield as a tri-state per intent PAIR (`enabled` / `limited` / `disabled`, since a limited grant still delivers the data) and degrades to `unknown` on any failure rather than aborting the report. Granted-but-unused Server Members / Presence intents are hardening notes, never issues. The install URL comes from `discord/install_url.py`, the OAuth-authorize analogue of Slack's app manifest: named permission bits OR'd to `309237711936` for a thread-capable install (the number [`discord-integration.md`](../../../src/kiro_crew/docs/discord-integration.md) publishes), and none at all for the recommended DM-only install
-12. **WhatsApp (optional)**: printed whether or not the channel is enabled, because a channel that is invisible in the preflight is the failure this section exists to catch. When enabled it reports the optional `neonize` extra, checked with `find_spec` and never imported (importing it loads a ~19 MB ctypes CDLL plus protobuf descriptors, and a health check must not initialize the subsystem it inspects, nor construct a client), and whether the linked-device session store exists at `<data home>/whatsapp/session.db`, resolved from the same expression the channel opens it with so the two can never describe different files. A missing extra IS an issue: the channel is enabled, cannot start, and the fix is one offline `pip install`. An absent store is a `⚠️` note and never an issue, because pairing is a QR scan served BY the running gateway, so failing here would break the documented `kirocrew doctor && kirocrew gateway` chain at the one moment the operator has to start the gateway to make progress. Group membership is not knowable offline, so the section reports the configured count and the gateway logs the unmatched JIDs on connect
+11. **Discord (optional)**: the channel's enabled flag, whether a bot token is present (never any part of its value), the three allow-lists, the privileged Message Content intent, the live connection, and the install URL. Blocking issues are enabled-without-a-token, an empty `discord.allowed_user_ids` (the transport fails closed, so every message is denied while it is empty), a thread or channel allow-list with Message Content OFF, and a reachable gateway whose Discord connection recorded a `connect_error`. The intent state comes from `discord/intent_probe.py`: one read-only `GET /oauth2/applications/@me` that decodes Discord's application-flags bitfield as a tri-state per intent PAIR (`enabled` / `limited` / `disabled`, since a limited grant still delivers the data) and degrades to `unknown` on any failure rather than aborting the report. Granted-but-unused Server Members / Presence intents are hardening notes, never issues. The install URL comes from `discord/install_url.py`, the OAuth-authorize analogue of Slack's app manifest: named permission bits OR'd to `309237711936` for a thread-capable install (the number [`discord-integration.md`](../../../src/junction/docs/discord-integration.md) publishes), and none at all for the recommended DM-only install
+12. **WhatsApp (optional)**: printed whether or not the channel is enabled, because a channel that is invisible in the preflight is the failure this section exists to catch. When enabled it reports the optional `neonize` extra, checked with `find_spec` and never imported (importing it loads a ~19 MB ctypes CDLL plus protobuf descriptors, and a health check must not initialize the subsystem it inspects, nor construct a client), and whether the linked-device session store exists at `<data home>/whatsapp/session.db`, resolved from the same expression the channel opens it with so the two can never describe different files. A missing extra IS an issue: the channel is enabled, cannot start, and the fix is one offline `pip install`. An absent store is a `⚠️` note and never an issue, because pairing is a QR scan served BY the running gateway, so failing here would break the documented `junction doctor && junction gateway` chain at the one moment the operator has to start the gateway to make progress. Group membership is not knowable offline, so the section reports the configured count and the gateway logs the unmatched JIDs on connect
 13. kiro-cli connectivity
 14. Gateway running status
 
 ## Update Command
 
-`kirocrew update` pulls the latest source and rebuilds:
+`junction update` pulls the latest source and rebuilds:
 
-1. `git fetch` + `git reset --hard origin/<branch>` from `KIROCREW_PROJECT_DIR`.
+1. `git fetch` + `git reset --hard origin/<branch>` from `JUNCTION_PROJECT_DIR`.
    The reset only runs for a FAST-FORWARDABLE checkout — behind its upstream
    and not ahead of it (`git rev-list --count --left-right
    HEAD...origin/<branch>` shows behind > 0, ahead = 0) — mirroring the
@@ -885,7 +897,7 @@ Each step checks if the tool is already installed and skips if present.
 
 ## Client Port Resolution
 
-`kirocrew token` / `status` / `logout` / `stop` / `restart` must find the port
+`junction token` / `status` / `logout` / `stop` / `restart` must find the port
 the gateway is actually bound to. `port_resolution.resolve_client_port()`
 (re-exported by `cli_server`) resolves it
 in this order, first hit wins. The MCP stdio servers (`mcp_core` /
@@ -895,14 +907,14 @@ loopback callback and a client CLI command always agree on which gateway they
 are talking to:
 
 1. An explicit `--port N` flag (`0` counts — the check is `is not None`).
-2. `KIROCREW_PORT`, when it parses as an int. Deliberately above the bound
-   export: an explicitly-set `KIROCREW_PORT` is how a caller retargets a
+2. `JUNCTION_PORT`, when it parses as an int. Deliberately above the bound
+   export: an explicitly-set `JUNCTION_PORT` is how a caller retargets a
    child at a DIFFERENT gateway — `pod exec` builds a client env with
-   `KIROCREW_PORT=<pod-port>` while the inherited `KIROCREW_BOUND_PORT`
+   `JUNCTION_PORT=<pod-port>` while the inherited `JUNCTION_BOUND_PORT`
    still names the spawning live gateway, and the bound value outranking it
    would walk pod `token`/`status`/`logout` into the live plane.
-   (`build_pod_env` additionally scrubs `KIROCREW_BOUND_PORT` outright.)
-3. `KIROCREW_BOUND_PORT`, when it parses as an int — the port the parent
+   (`build_pod_env` additionally scrubs `JUNCTION_BOUND_PORT` outright.)
+3. `JUNCTION_BOUND_PORT`, when it parses as an int — the port the parent
    gateway actually bound, exported once its TCP site is listening
    (`dashboard.server._export_bound_port`). Never persisted —
    `service_environment()` deliberately does not capture it.
@@ -912,7 +924,7 @@ are talking to:
    and only accepts the port when it was actually named.
 5. The sole **gateway-owned run-marker**. A running gateway records
    `<data-home>/run/gateway-<port>.bin` (see
-   `kiro_crew.instances.run_marker`, written for the SSH token-mint), so its
+   `junction.instances.run_marker`, written for the SSH token-mint), so its
    filename already advertises the port. A client with nothing configured reads
    the marker names — never the file contents — and uses that port. Two guards
    keep it from being a guess:
@@ -922,7 +934,7 @@ are talking to:
      `X-Local-Secret` to whatever answers, a bare "is something listening" probe
      would walk the local secret into that process. A command-line check is not
      enough either — argv is attacker-chosen, so a listener started as
-     `/tmp/kirocrew gateway` would pass it. `_gateway_owns_port()` therefore
+     `/tmp/junction gateway` would pass it. `_gateway_owns_port()` therefore
      requires three things, none sufficient alone:
      1. the pid recorded in `run/gateway-<port>.pid` (written `0600` inside the
         `0700` `run/` dir, which is on the `is_sensitive_path` floor, so neither
@@ -931,7 +943,7 @@ are talking to:
         (`platform_compat.find_listening_pids`), which is what makes a stale
         recorded pid harmless;
      3. that pid must be owned by the calling uid
-        (`platform_compat.process_owner_uid`) and look like a KiroCrew process.
+        (`platform_compat.process_owner_uid`) and look like a Junction process.
         The uid check is what closes pid *recycling* into a foreign user's
         process; argv is retained only as defense in depth.
 
@@ -942,19 +954,19 @@ are talking to:
      `.local_secret` under their own uid.
 
      **On non-POSIX platforms the step denies outright.** `process_owner_uid`
-     cannot report an owner on Windows, and a `KIROCREW_HOME` writable by another
+     cannot report an owner on Windows, and a `JUNCTION_HOME` writable by another
      user would let them replace both the marker and the sidecar with a forged
      listener — the file-permission argument that carries requirement 1 stops
      holding there. So discovery is skipped rather than approximated: Windows
-     users keep `--port` / `KIROCREW_PORT`, exactly where they were before this
+     users keep `--port` / `JUNCTION_PORT`, exactly where they were before this
      fallback existed, so nothing regresses.
    - **Ambiguity** — with several gateways up there is no basis to pick one, so
      the step refuses, prints the candidate ports and the `--port` /
-     `KIROCREW_PORT` hint to stderr, and falls through.
+     `JUNCTION_PORT` hint to stderr, and falls through.
 6. `_DEFAULT_PORT` (`5476`).
 
 Steps 3 and 5 are what make a single gateway started on a non-default port
-(`kirocrew gateway --port 6776`) reachable from a bare `kirocrew token` with
+(`junction gateway --port 6776`) reachable from a bare `junction token` with
 zero configuration; before it existed, the client hit a dead 5476 while the
 marker naming the live gateway sat unread. Config-load, URL-parse (including a
 non-string `dashboard.url`, which raises `TypeError` rather than `ValueError`),
@@ -967,7 +979,7 @@ child re-resolves independently, so without that the replacement could bind 5476
 while the parent waited on the discovered port.
 
 The marker is written for **every** dashboard-serving gateway, including a
-source-tree `python -m kiro_crew` launch with no console script beside
+source-tree `python -m junction` launch with no console script beside
 `sys.executable`: in that case the `.bin` file is written empty, which is inert
 for the token mint (its shell clause requires a non-empty executable path) but
 still advertises the port for discovery. The pid always goes to the separate
@@ -994,7 +1006,7 @@ that must not change, because the SPA's per-origin `localStorage` is keyed on it
 
 ## Stop Command
 
-`kirocrew stop [--port PORT]` stops a running gateway:
+`junction stop [--port PORT]` stops a running gateway:
 
 1. If a systemd/launchd service is active **and** the caller did not pass
    `--port` explicitly (see Service Management), stop it via the service
@@ -1004,7 +1016,7 @@ that must not change, because the SPA's per-origin `localStorage` is keyed on it
    target a non-default dev gateway): `platform_compat.find_listening_pids(port)`
    to find PIDs — `lsof -ti TCP:{port} -sTCP:LISTEN` on POSIX, `netstat -ano`
    parsing on Windows (there is no `lsof` there; this previously made
-   `kirocrew stop` a no-op on Windows). Both binaries are resolved through
+   `junction stop` a no-op on Windows). Both binaries are resolved through
    `platform_compat.trusted_system_bin()` — the fixed system directories, never
    `PATH`, which on a gateway can lead with same-uid-writable dirs — and a name
    that does not resolve there counts as absent rather than falling back.
@@ -1021,10 +1033,10 @@ that must not change, because the SPA's per-origin `localStorage` is keyed on it
    already has it to install it. That case carries SEL
    `reason=<tool>_outside_trusted_dirs`, distinct from `<tool>_not_found`, so
    the two are separable in the audit log.
-3. `platform_compat.process_command_line(pid)` to verify it's a KiroCrew process —
+3. `platform_compat.process_command_line(pid)` to verify it's a Junction process —
    `/proc/<pid>/cmdline` (Linux), `ps -o command=` (macOS), `Win32_Process.CommandLine`
-   via WMI (Windows). The Windows venv `kirocrew.exe` re-execs `python.exe`, so the
-   match is on the command line (`-m kiro_crew gateway` / `\Scripts\kirocrew.exe gateway`),
+   via WMI (Windows). The Windows venv `junction.exe` re-execs `python.exe`, so the
+   match is on the command line (`-m junction gateway` / `\Scripts\junction.exe gateway`),
    not the image name.
 4. Terminate each verified PID: `os.kill(SIGTERM)` on POSIX; `taskkill /T /F`
    (via `platform_compat.kill_process_tree`) on Windows so the gateway's detached
@@ -1035,12 +1047,12 @@ that must not change, because the SPA's per-origin `localStorage` is keyed on it
 
 ## Restart Command
 
-`kirocrew restart [--port PORT]` restarts a running gateway. Mirrors
+`junction restart [--port PORT]` restarts a running gateway. Mirrors
 `stop`'s service-aware structure:
 
 1. If a systemd/launchd service is active **and** the caller did not
    pass `--port` explicitly, ask the platform to restart it. On Linux:
-   `sudo systemctl restart kirocrew.service` (single
+   `sudo systemctl restart junction.service` (single
    atomic operation, smaller down-window than stop+start, and the
    supervisor stays in charge of the lifecycle the whole time). On
    macOS: `launchctl unload <plist>` + `launchctl load <plist>` (no
@@ -1059,51 +1071,51 @@ that must not change, because the SPA's per-origin `localStorage` is keyed on it
      in a `try / except SystemExit` so a TOCTOU race (gateway exits between
      the listener check and `_stop`'s own lookup → `_stop` calls
      `sys.exit(1)`) does not abort the restart before the spawn.
-   - Spawn a detached `kirocrew gateway` via `subprocess.Popen`, stdin set
+   - Spawn a detached `junction gateway` via `subprocess.Popen`, stdin set
      to `subprocess.DEVNULL`, and stdout + stderr redirected to
-     `~/.kiro/crew/gateway.log` (the same file the `kirocrew logs` command
+     `~/.kiro/crew/gateway.log` (the same file the `junction logs` command
      tails for foreground gateways). Detach is per-platform: POSIX uses
      `start_new_session=True`; Windows uses `creationflags=DETACHED_PROCESS
      | CREATE_NEW_PROCESS_GROUP` (there is no setsid) — both via
      `platform_compat`. The shell returns immediately and the user can
-     follow logs via `kirocrew logs -f`.
+     follow logs via `junction logs -f`.
 3. SEL audit event logged with `via=service` or `via=fork pid=<n>` so
    the audit trail distinguishes the two paths.
 
 ## Service Management
 
-`kirocrew service {install,uninstall,status}` registers the gateway
+`junction service {install,uninstall,status}` registers the gateway
 with the OS service manager so it survives SSH disconnects, restarts
-on crash, and starts on boot. Implemented in `src/kiro_crew/service/`.
+on crash, and starts on boot. Implemented in `src/junction/service/`.
 
 - **Linux** (`current_platform() == SYSTEMD`):
-  - Unit file: `/etc/systemd/system/kirocrew.service` (root-owned).
+  - Unit file: `/etc/systemd/system/junction.service` (root-owned).
   - Install: `sudo install` writes the unit, then `sudo systemctl
-    daemon-reload && sudo systemctl enable --now kirocrew.service`.
+    daemon-reload && sudo systemctl enable --now junction.service`.
     Privilege is resolved per call: already-root (euid 0) skips `sudo`
     entirely — required on minimal container / `root`-login images that
     ship no `sudo` binary — and a non-root caller with no `sudo` fails
     with a clear `ServiceInstallError` rather than an uncaught
     `FileNotFoundError`.
-  - The gateway runs as `User=$USER Group=$(id -gn)` — kirocrew
+  - The gateway runs as `User=$USER Group=$(id -gn)` — junction
     code never runs under sudo. Only `install` and `systemctl` invocations
     are elevated.
   - **Environment**: values are captured from the installer's environment
     into the unit's `Environment=` lines at install time
     (`service_environment()` in `service/common.py`) — this is how
-    `KIROCREW_PORT=5477 kirocrew service install` binds a non-default port.
-    The unit also reads `EnvironmentFile=-/etc/kirocrew/kirocrew.env`, an
+    `JUNCTION_PORT=5477 junction service install` binds a non-default port.
+    The unit also reads `EnvironmentFile=-/etc/junction/junction.env`, an
     operator-editable file the installer seeds create-if-absent (a reinstall
     never clobbers edits). systemd applies the file AFTER — and overriding —
     the baked `Environment=` lines, so editing it and running `sudo systemctl
-    restart kirocrew` changes a value (e.g. the port) without reinstalling.
-    Uninstall removes the file and its `/etc/kirocrew` directory.
+    restart junction` changes a value (e.g. the port) without reinstalling.
+    Uninstall removes the file and its `/etc/junction` directory.
   - **Credentials are deliberately NOT captured.** Both baked locations are
     world-readable — the unit lives in root-owned `/etc/systemd/system` and the
     override file is installed `0644` — so a model credential placed there
     would be readable by every local user on the host. `service_environment()`
     therefore carries no credential — its only installer-derived values are
-    `PATH`, `KIROCREW_KIRO_BIN` and `KIROCREW_PORT` (it also returns `HOME`,
+    `PATH`, `JUNCTION_KIRO_BIN` and `JUNCTION_PORT` (it also returns `HOME`,
     `LANG` and `LC_ALL`) — and a test pins the absence so a future "just
     propagate it" change fails.
     Consequence: a `KIRO_API_KEY` exported in the installing shell does not
@@ -1116,7 +1128,7 @@ on crash, and starts on boot. Implemented in `src/kiro_crew/service/`.
     is the supported home — `load_credentials()` reads every key from that file
     into the gateway environment at boot and forces `0600` on it first. The
     warning is diagnostic only: it is non-fatal by construction, since the unit
-    is already written and started by the time it runs. `kirocrew doctor` reports
+    is already written and started by the time it runs. `junction doctor` reports
     the same condition next to its `kiro login` line — the one output where the
     contradiction is visible, since that line runs `whoami` with the inherited
     environment and reports signed in. Doctor's report is gated on a service
@@ -1126,29 +1138,29 @@ on crash, and starts on boot. Implemented in `src/kiro_crew/service/`.
     never appended to doctor's `issues`, which is the exit-code channel — since
     that gate establishes a definition on disk, not that the serving gateway
     lacks a credential; a fall-back login store, or a stopped unit beside a
-    foreground `kirocrew gateway`, both leave the host healthy while the check
+    foreground `junction gateway`, both leave the host healthy while the check
     fires.
   - Boot survival via `WantedBy=multi-user.target` (no linger needed —
     that's a user-service concept; this is system-level).
   - Crash-loop safety: `StartLimitBurst=3 StartLimitIntervalSec=300`.
-  - Logs are read from the journal: `sudo journalctl -u kirocrew -f`,
+  - Logs are read from the journal: `sudo journalctl -u junction -f`,
     or unprivileged if the user is in `systemd-journal` / `adm`.
 - **macOS** (`current_platform() == LAUNCHD`):
-  - Plist: `~/Library/LaunchAgents/dev.kirocrew.gateway.plist`
+  - Plist: `~/Library/LaunchAgents/dev.junction.gateway.plist`
   - Install: `launchctl load -w <plist>`. `RunAtLoad=true` and
     `KeepAlive` ensure auto-start and crash recovery.
   - Stdout and stderr are written to
-    `~/Library/Logs/KiroCrew/gateway.{log,err}`.
+    `~/Library/Logs/Junction/gateway.{log,err}`.
 - **Other platforms**: install/uninstall return exit code 2 with a
   message pointing to manual setup.
 
-`kirocrew stop` is service-aware: if the service is active it calls
+`junction stop` is service-aware: if the service is active it calls
 the platform's stop instead of SIGTERM, so the manager does not
 immediately restart the gateway under us.
 
 ## Logs Command
 
-`kirocrew logs [-n LINES] [-f]` tails the gateway log from whichever
+`junction logs [-n LINES] [-f]` tails the gateway log from whichever
 source is most appropriate:
 
 1. systemd journal if the system service is installed on Linux. Tries
@@ -1209,12 +1221,12 @@ non-destructive way to apply it.
 
 ## Status Command
 
-`kirocrew status` queries the running gateway's `/api/status` endpoint
+`junction status` queries the running gateway's `/api/status` endpoint
 and prints uptime, sessions, messages, tool calls, subagents, crons, lessons.
 
 ## App Dev Mode
 
-`kirocrew app dev <name> [--off]` toggles an installed App Kit app into (or,
+`junction app dev <name> [--off]` toggles an installed App Kit app into (or,
 with `--off`, out of) **dev mode**, which speeds the app-UI edit loop by serving
 UI files uncached and live-reloading the dashboard on file change. The command
 writes the flag out-of-process; the running gateway's watcher picks it up within
@@ -1247,7 +1259,7 @@ contract — its path and format are internal and may change without notice.
 
 ## Computer Use Commands
 
-`kirocrew computer {doctor [--json] | apps | call}` — hand-rolled dispatch
+`junction computer {doctor [--json] | apps | call}` — hand-rolled dispatch
 mirroring `browser/cli.py` (see [computer-use.md](computer-use.md)).
 
 **`doctor`** reports, in order: whether the platform is supported (macOS today;
@@ -1300,7 +1312,7 @@ the MCP-first rule; `doctor` is a permission diagnostic rather than a capability
 so the rule does not bind it; and `call` adds no capability at all — it is a
 harness over the eleven existing MCP tools, and deliberately has **no** MCP twin,
 because a tool that runs other tools would let a model launder one per-call gate
-decision into many. There is deliberately **no** `kirocrew computer state <app>` —
+decision into many. There is deliberately **no** `junction computer state <app>` —
 that would be a second, CLI-shaped spelling of an LLM-facing capability and would
 have to be an MCP tool instead (it is: `computer_get_state`).
 
@@ -1310,18 +1322,18 @@ Four composable flags let an integration test or eval harness boot a gateway
 deterministically, with no model and no developer-machine state:
 
 ```bash
-kirocrew gateway --test-mode          # bundle: ephemeral port + json-ready + reads approval
-kirocrew gateway --port auto          # OS-assigned port, avoiding a collision with a real gateway
-kirocrew gateway --json-ready         # print KIROCREW_READY:{port,token,pid,home} once listening
-kirocrew gateway --approval reads     # auto-approve read-only tools
-kirocrew gateway --approval yolo      # auto-approve ALL tools
+junction gateway --test-mode          # bundle: ephemeral port + json-ready + reads approval
+junction gateway --port auto          # OS-assigned port, avoiding a collision with a real gateway
+junction gateway --json-ready         # print JUNCTION_READY:{port,token,pid,home} once listening
+junction gateway --approval reads     # auto-approve read-only tools
+junction gateway --approval yolo      # auto-approve ALL tools
 ```
 
 `--json-ready` is what makes the harness race-free: the caller waits for the
-`KIROCREW_READY` line instead of polling a port, and reads the token from it rather
+`JUNCTION_READY` line instead of polling a port, and reads the token from it rather
 than minting one.
 
-**`--approval yolo` refuses to start unless `KIROCREW_HOME` is explicitly set to a
+**`--approval yolo` refuses to start unless `JUNCTION_HOME` is explicitly set to a
 non-default path.** The flag disables every per-call approval, so pointing it at the
 real data home would let a test drive an operator's live sessions and credentials.
 The guard is a startup refusal rather than a warning because a warning in CI output

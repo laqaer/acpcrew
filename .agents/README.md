@@ -2,7 +2,7 @@
 
 Contributor and agent-OS skills for **this checkout**. They are not
 packaged. A skill that any shipped feature, tool, or packaged doc
-references must live in `src/kiro_crew/builtin_skills/`. Top-level
+references must live in `src/junction/builtin_skills/`. Top-level
 `skills/` is checkout-only and reaches no installed user.
 
 Product overlay: [`../JUNCTION.md`](../JUNCTION.md). Envelope:
@@ -12,7 +12,7 @@ Product overlay: [`../JUNCTION.md`](../JUNCTION.md). Envelope:
 |---|---|
 | [product-identity](skills/product-identity/SKILL.md) | Naming the product, CLI, tagline, or identifiers that stay. |
 | [acp-runtimes](skills/acp-runtimes/SKILL.md) | Touching the ACP runtime registry or `agent.acp_backend`. |
-| [model-router](skills/model-router/SKILL.md) | Observing the Codex Router sidecar; health/status. |
+| [model-router](skills/model-router/SKILL.md) | Built-in loopback catalog; health/status; no forwarding. |
 | [security-keystone](skills/security-keystone/SKILL.md) | Sensitive paths, governance, computer use, harness identity. |
 | [integration-owner](skills/integration-owner/SKILL.md) | Verifying the bootstrap cut; authority envelope. |
 | [marketing-site](skills/marketing-site/SKILL.md) | `site/` copy, motif, preview deploy. |

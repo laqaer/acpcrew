@@ -1,8 +1,8 @@
 """Tests for the prepare-pr project-profile mechanism.
 
 Covers:
-  * resolve_profile.py resolution order (config / kirocrew markers /
-    auto-detect / generic) and the bundled KiroCrew profile contents.
+  * resolve_profile.py resolution order (config / junction markers /
+    auto-detect / generic) and the bundled Junction profile contents.
   * pr_status.py readiness-context override (flag / env / default) and the
     positional-argument stripping that makes it work.
 
@@ -21,7 +21,7 @@ from pathlib import Path
 from skill_script_helpers import load_skill_script
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SKILL_DIR = REPO_ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr"
+SKILL_DIR = REPO_ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr"
 SCRIPTS_DIR = SKILL_DIR / "scripts"
 PROFILES_DIR = SKILL_DIR / "profiles"
 
@@ -93,14 +93,14 @@ def test_autodetect_reviewers_from_workflows(tmp_path):
     assert prof["reviewers"][0]["contract"].endswith("codex-review.yml")
 
 
-def test_kirocrew_markers_load_bundled_profile(tmp_path):
+def test_junction_markers_load_bundled_profile(tmp_path):
     (tmp_path / "AUTOSDE.yaml").write_text("rules: []\n")
     wf = tmp_path / ".github" / "workflows"
     wf.mkdir(parents=True)
     (wf / "codex-review.yml").write_text("name: codex\n")
     (wf / "claude-review.yml").write_text("name: claude\n")
     prof = resolve_profile.resolve(str(tmp_path))
-    assert prof["source"] == "kirocrew"
+    assert prof["source"] == "junction"
     assert prof["single_commit"] is True
     assert prof["base_branch"] == "main"
     assert prof["readiness"]["status_context"] == "PR Readiness"
@@ -137,7 +137,7 @@ def test_opus_profile_model_matches_the_ci_workflow():
     )
     ci_model = ci_models[0]
 
-    data = json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))
+    data = json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))
     local_model = next(r["model"] for r in data["reviewers"] if r["name"] == "opus")
 
     def _normalize(model_id: str) -> str:
@@ -223,7 +223,7 @@ def test_every_floor_gate_names_a_real_target():
     script turns a gate into a command-not-found, which reads as a defect in
     the branch under review rather than as rot in the floor.
     """
-    data = json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))
+    data = json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))
     gates = "\n".join(data["gates"])
 
     for rel in sorted(set(re.findall(r"\bscripts/[A-Za-z0-9_.-]+\.(?:py|sh)", gates))):
@@ -249,7 +249,7 @@ def test_ci_blocking_scans_are_covered_by_the_floor():
     record rather than an omission.
     """
     run_text = _ci_workflow_run_text()
-    data = json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))
+    data = json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))
     gates = "\n".join(data["gates"])
 
     exempt_scripts = {
@@ -275,7 +275,7 @@ def test_ci_blocking_scans_are_covered_by_the_floor():
     missing = sorted(s for s in invoked - exempt_scripts if s not in gates)
     assert not missing, (
         "ci.yml runs these scripts but the prepare-pr gate floor does not: "
-        f"{missing}. Add them to profiles/kirocrew.json gates[] in their "
+        f"{missing}. Add them to profiles/junction.json gates[] in their "
         "CI-exact form, or exempt them here with a reason."
     )
 
@@ -319,7 +319,7 @@ def test_ci_blocking_scans_are_covered_by_the_floor():
     )
     assert not tool_missing, (
         f"ci.yml runs these tools but the gate floor does not: {tool_missing}. "
-        "Add each to profiles/kirocrew.json gates[] in its CI-exact form, or "
+        "Add each to profiles/junction.json gates[] in its CI-exact form, or "
         "add it to exempt_tools here with the reason it is not a local gate."
     )
 
@@ -333,7 +333,7 @@ def test_test_gates_are_diff_scoped_and_carry_a_base_ref():
     than a missing gate. The runner fails closed on an empty base, so the floor's
     job is to always supply one.
     """
-    data = json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))
+    data = json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))
     gates = data["gates"]
 
     for surface in ("backend", "frontend"):
@@ -364,7 +364,7 @@ def test_scoped_frontend_gate_keeps_the_lanes_npm_test_used_to_carry():
     other two have to appear as gates in their own right or they vanish from the
     floor without anyone deciding that they should.
     """
-    data = json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))
+    data = json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))
     gates = "\n".join(data["gates"])
     for script in ("jscpd", "test:electron"):
         assert f"run {script}" in gates, (
@@ -409,7 +409,7 @@ def test_floor_typechecks_the_way_ci_does():
     ci.yml's Type check step spells it out too.
     """
     gates = "\n".join(
-        json.loads((PROFILES_DIR / "kirocrew.json").read_text(encoding="utf-8"))["gates"]
+        json.loads((PROFILES_DIR / "junction.json").read_text(encoding="utf-8"))["gates"]
     )
     assert "tsc -b" in gates, "the gate floor no longer type-checks with `tsc -b`"
     assert "run typecheck" not in gates, (
@@ -535,9 +535,9 @@ def test_gate_rationale_reference_exists_and_is_pointed_at():
         assert needle in body, f"gate-floor.md no longer covers {needle!r}"
 
 
-def test_bundled_kirocrew_profile_is_valid_json():
-    data = json.loads((PROFILES_DIR / "kirocrew.json").read_text())
-    assert data["name"] == "kirocrew"
+def test_bundled_junction_profile_is_valid_json():
+    data = json.loads((PROFILES_DIR / "junction.json").read_text())
+    assert data["name"] == "junction"
     # Every reviewer must carry a served model id (no bare gpt-5.6).
     for r in data["reviewers"]:
         assert r["model"] and r["model"] != "gpt-5.6"

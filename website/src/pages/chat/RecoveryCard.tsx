@@ -9,7 +9,7 @@ import { useLanguageGeneration } from '../../i18n/useLanguageGeneration'
 /**
  * The synthetic-continuation prefixes the gateway prepends when it recovers a
  * turn that ended early. Kept in sync with the constants in
- * `src/kiro_crew/dashboard/state.py` (REFUSAL_RECOVERY_PREFIX,
+ * `src/junction/dashboard/state.py` (REFUSAL_RECOVERY_PREFIX,
  * STALE_RECOVERY_PREFIX, TOOL_STALL_RECOVERY_PREFIX, CONN_RECOVERY_PREFIX,
  * BUSY_RECOVERY_PREFIX, POSTTOKEN_RECOVERY_PREFIX,
  * EMPTY_RESPONSE_RECOVERY_PREFIX, HOOK_CONTINUATION_RECOVERY_PREFIX,
@@ -83,7 +83,7 @@ const PREFIXES: ReadonlyArray<[RecoveryKind, string]> = [
   // It is an orchestration prompt asking for the consolidated write-up, so its
   // copy names the fan-out rather than reporting an interruption.
   // WIRE VALUE, not copy: matched byte-for-byte against SUBAGENT_SYNTHESIS_PREFIX
-  // in src/kiro_crew/dashboard/state.py and then sliced off, so no character of
+  // in src/junction/dashboard/state.py and then sliced off, so no character of
   // it reaches the screen. Translating it would stop the card rendering in that
   // locale — the failure the block comment above this table describes. Exempted
   // by shape (leading bracketed ALL-CAPS tag) in eslint.i18n.config.js.
@@ -321,7 +321,7 @@ export function parseRecoveryMessage(content: string): ParsedRecovery | null {
  * Structural provenance stamped on an `inject` row's `meta` by the gateway.
  *
  * Kept in sync with the `injectKind` values written at the append sites in
- * `src/kiro_crew/dashboard/chat_runner.py`, `dashboard/handlers/messaging.py`
+ * `src/junction/dashboard/chat_runner.py`, `dashboard/handlers/messaging.py`
  * and `slack/gateway.py`.
  *
  * Why this exists rather than more prefix matching: `meta` is persisted and

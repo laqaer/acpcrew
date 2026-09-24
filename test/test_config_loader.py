@@ -1,6 +1,6 @@
 """Property-based tests for config/loader.py.
 
-Tests the KiroCrewConfig loader validation logic using hypothesis
+Tests the JunctionConfig loader validation logic using hypothesis
 for property-based testing.
 """
 
@@ -20,13 +20,13 @@ import pytest
 from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 
-import kiro_crew.config.loader as loader_module
-from kiro_crew.config.loader import (
+import junction.config.loader as loader_module
+from junction.config.loader import (
     _HAS_JSONSCHEMA,
     AgentConfig,
     DashboardConfig,
-    KiroCrewAgentConfig,
-    KiroCrewConfig,
+    JunctionAgentConfig,
+    JunctionConfig,
     MemoryConfig,
     MemoryStoreConfig,
     ResolvedBindings,
@@ -43,7 +43,7 @@ from kiro_crew.config.loader import (
 )
 
 # Logger used by the loader module — needed for capturing warnings in tests
-logger = logging.getLogger("kiro_crew.config.loader")
+logger = logging.getLogger("junction.config.loader")
 
 # ---------------------------------------------------------------------------
 # Helpers / Strategies
@@ -69,8 +69,8 @@ _requires_jsonschema = pytest.mark.skipif(
 )
 
 
-def _load_from_dict(data: object) -> KiroCrewConfig:
-    """Write *data* to a temp config file and load via KiroCrewConfig.load()."""
+def _load_from_dict(data: object) -> JunctionConfig:
+    """Write *data* to a temp config file and load via JunctionConfig.load()."""
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".json",
@@ -84,15 +84,15 @@ def _load_from_dict(data: object) -> KiroCrewConfig:
 
     try:
         with unittest.mock.patch(
-            "kiro_crew.config.loader.config_path",
+            "junction.config.loader.config_path",
             return_value=tmp,
         ):
-            return KiroCrewConfig.load()
+            return JunctionConfig.load()
     finally:
         tmp.unlink(missing_ok=True)
 
 
-def _load_absent_config() -> KiroCrewConfig:
+def _load_absent_config() -> JunctionConfig:
     """Load with NEITHER config.json nor config.local.json present.
 
     This is the only path that reaches the dataclass field defaults, so it is
@@ -103,18 +103,18 @@ def _load_absent_config() -> KiroCrewConfig:
         missing_local = Path(d) / "config.local.json"
         with (
             unittest.mock.patch(
-                "kiro_crew.config.loader.config_path",
+                "junction.config.loader.config_path",
                 return_value=missing,
             ),
             unittest.mock.patch(
-                "kiro_crew.config.loader.config_local_path",
+                "junction.config.loader.config_local_path",
                 return_value=missing_local,
             ),
         ):
-            return KiroCrewConfig.load()
+            return JunctionConfig.load()
 
 
-def _load_from_raw_string(content: str) -> KiroCrewConfig:
+def _load_from_raw_string(content: str) -> JunctionConfig:
     """Write raw string content to a temp file and load."""
     with tempfile.NamedTemporaryFile(
         mode="w",
@@ -127,15 +127,15 @@ def _load_from_raw_string(content: str) -> KiroCrewConfig:
 
     try:
         with unittest.mock.patch(
-            "kiro_crew.config.loader.config_path",
+            "junction.config.loader.config_path",
             return_value=tmp,
         ):
-            return KiroCrewConfig.load()
+            return JunctionConfig.load()
     finally:
         tmp.unlink(missing_ok=True)
 
 
-def _load_from_dict_with_logs(data: object) -> tuple[KiroCrewConfig, list[str]]:
+def _load_from_dict_with_logs(data: object) -> tuple[JunctionConfig, list[str]]:
     """Load config and capture warning log messages."""
     with tempfile.NamedTemporaryFile(
         mode="w",
@@ -150,10 +150,10 @@ def _load_from_dict_with_logs(data: object) -> tuple[KiroCrewConfig, list[str]]:
 
     try:
         with unittest.mock.patch(
-            "kiro_crew.config.loader.config_path",
+            "junction.config.loader.config_path",
             return_value=tmp,
         ):
-            logger = logging.getLogger("kiro_crew.config.loader")
+            logger = logging.getLogger("junction.config.loader")
             messages: list[str] = []
             original_warning = logger.warning
 
@@ -165,15 +165,15 @@ def _load_from_dict_with_logs(data: object) -> tuple[KiroCrewConfig, list[str]]:
                 original_warning(msg, *args)
 
             with unittest.mock.patch.object(logger, "warning", capture_warning):
-                result = KiroCrewConfig.load()
+                result = JunctionConfig.load()
             return result, messages
     finally:
         tmp.unlink(missing_ok=True)
 
 
-def _default_config() -> KiroCrewConfig:
-    """Return a default KiroCrewConfig for comparison."""
-    return KiroCrewConfig()
+def _default_config() -> JunctionConfig:
+    """Return a default JunctionConfig for comparison."""
+    return JunctionConfig()
 
 
 def test_max_subagents_defaults_to_auto_sentinel() -> None:
@@ -182,10 +182,10 @@ def test_max_subagents_defaults_to_auto_sentinel() -> None:
     computed cap that never regresses below the legacy floor of 3. An explicit
     positive value is preserved verbatim.
     """
-    from kiro_crew.subagent import resolve_max_subagents
+    from junction.subagent import resolve_max_subagents
 
     # Bare dataclass default.
-    assert KiroCrewConfig().agent.max_subagents == 0
+    assert JunctionConfig().agent.max_subagents == 0
     # Hydrated-from-empty default (loader .get path).
     loaded = _load_from_dict({})
     assert loaded.agent.max_subagents == 0
@@ -198,7 +198,7 @@ def test_max_subagents_defaults_to_auto_sentinel() -> None:
 
 
 def test_sandbox_allow_unsandboxed_exec_loads_from_config() -> None:
-    assert KiroCrewConfig().agent.sandbox_allow_unsandboxed_exec is False
+    assert JunctionConfig().agent.sandbox_allow_unsandboxed_exec is False
     assert _load_from_dict({}).agent.sandbox_allow_unsandboxed_exec is False
     enabled = _load_from_dict({"agent": {"sandbox_allow_unsandboxed_exec": True}})
     assert enabled.agent.sandbox_allow_unsandboxed_exec is True
@@ -210,7 +210,7 @@ def test_max_stop_hook_nudges_loads_from_config_and_round_trips() -> None:
     Without the loader wiring, load() re-defaults it to 100 and save() then
     overwrites the operator's file value.
     """
-    assert KiroCrewConfig().agent.max_stop_hook_nudges == 100
+    assert JunctionConfig().agent.max_stop_hook_nudges == 100
     assert _load_from_dict({}).agent.max_stop_hook_nudges == 100
     pinned = _load_from_dict({"agent": {"max_stop_hook_nudges": 7}})
     assert pinned.agent.max_stop_hook_nudges == 7
@@ -226,13 +226,13 @@ def test_dashboard_tailscale_hydrates_and_survives_a_round_trip() -> None:
 
     ``DashboardConfig`` is built field-by-field in ``load()``, so a nested
     section that nobody wires up is silently dropped: the documented
-    ``kirocrew config set dashboard.tailscale.enabled true`` would land in
+    ``junction config set dashboard.tailscale.enabled true`` would land in
     config.json, read back as ``False``, and — because ``to_dict()`` re-serializes
     the default — be rewritten to ``false`` by the next unrelated ``save()``.
     That makes the whole feature inert while looking configured, so both halves
     are pinned here: hydration, and the round trip that would erase it.
     """
-    assert KiroCrewConfig().dashboard.tailscale.enabled is False
+    assert JunctionConfig().dashboard.tailscale.enabled is False
     assert _load_from_dict({}).dashboard.tailscale.enabled is False
 
     enabled = _load_from_dict({"dashboard": {"tailscale": {"enabled": True}}})
@@ -261,7 +261,7 @@ def test_sandbox_allow_unsandboxed_exec_default_is_platform_independent(monkeypa
     refusal into an unconfined spawn wherever no backend exists — which is every
     Windows host — so an agent-selected repo's ``include.path`` could reach
     ``~/.aws/credentials`` with no operator having declared anything. The
-    discoverable path to the opt-in is the ``kirocrew setup`` consent step
+    discoverable path to the opt-in is the ``junction setup`` consent step
     (``test_sandbox_unsandboxed_exec_consent.py``), not a platform default.
     """
     for plat in ("win32", "linux", "darwin"):
@@ -367,7 +367,7 @@ class TestMalformedConfigValuesNeverCrashLoad:
     """Round-2 hardening: several config parse sites coerced values with a bare
     .upper()/int()/list()/set()/.items() and no guard. jsonschema is optional
     (absent in the shipped runtime), so a hand-edited config.json with a wrongly
-    typed value reached the parse and crashed KiroCrewConfig.load() outright —
+    typed value reached the parse and crashed JunctionConfig.load() outright —
     bricking every caller. Each must now degrade to the default instead."""
 
     def test_non_string_log_level_falls_back(self):
@@ -447,9 +447,9 @@ _safe_name_st = st.text(
     max_size=15,
 )
 
-# Strategy for KiroCrewAgentConfig instances
-_kirocrew_agent_config_st = st.builds(
-    KiroCrewAgentConfig,
+# Strategy for JunctionAgentConfig instances
+_junction_agent_config_st = st.builds(
+    JunctionAgentConfig,
     kiro_agent=st.text(min_size=0, max_size=20),
     workspace=_safe_name_st,
     memory_store=_safe_name_st,
@@ -468,7 +468,7 @@ _memory_store_config_st = st.builds(
     embedding_provider=st.sampled_from(["", "none", "llama_cpp"]),
 )
 
-# Hypothesis strategy for generating valid KiroCrewConfig instances
+# Hypothesis strategy for generating valid JunctionConfig instances
 _agent_config_st = st.builds(
     AgentConfig,
     approval_mode=st.sampled_from(["auto", "interactive"]),
@@ -514,8 +514,8 @@ _dashboard_config_st = st.builds(
     url=st.text(min_size=0, max_size=50),
 )
 
-_kirocrew_config_st = st.builds(
-    KiroCrewConfig,
+_junction_config_st = st.builds(
+    JunctionConfig,
     agent=_agent_config_st,
     session=_session_config_st,
     memory=_memory_config_st,
@@ -524,7 +524,7 @@ _kirocrew_config_st = st.builds(
     hooks=st.just({}),
     agents=st.dictionaries(
         keys=_safe_name_st,
-        values=_kirocrew_agent_config_st,
+        values=_junction_agent_config_st,
         min_size=0,
         max_size=3,
     ),
@@ -555,15 +555,15 @@ _kirocrew_config_st = st.builds(
 class TestConfigLoaderProperties:
     """Property-based tests for the config loader validation logic."""
 
-    # Feature: config-schema, Property 6: KiroCrewConfig load/to_dict round-trip
-    @given(config=_kirocrew_config_st)
+    # Feature: config-schema, Property 6: JunctionConfig load/to_dict round-trip
+    @given(config=_junction_config_st)
     @settings(deadline=None)
     def test_load_to_dict_round_trip(
         self,
-        config: KiroCrewConfig,
+        config: JunctionConfig,
     ) -> None:
         """Calling to_dict() then load() from that dict must yield an
-        equivalent KiroCrewConfig instance.
+        equivalent JunctionConfig instance.
 
         **Validates: Requirements 2.4, 2.5, 9.4, 9.6**
         """
@@ -737,7 +737,7 @@ class TestConfigLoaderProperties:
         for k in extra_keys:
             assert k in warning_text, f"Key '{k}' not mentioned in warning: {warning_text}"
 
-    # Feature: config-schema, Property 12: load() always returns valid KiroCrewConfig
+    # Feature: config-schema, Property 12: load() always returns valid JunctionConfig
     @given(
         content=st.one_of(
             st.text(min_size=0, max_size=200),
@@ -754,14 +754,14 @@ class TestConfigLoaderProperties:
         self,
         content: str,
     ) -> None:
-        """For any input content, load() must return a KiroCrewConfig
+        """For any input content, load() must return a JunctionConfig
         instance without raising an exception.
 
         **Validates: Requirements 6.6**
         """
         result = _load_from_raw_string(content)
 
-        assert isinstance(result, KiroCrewConfig)
+        assert isinstance(result, JunctionConfig)
         assert isinstance(result.agent, AgentConfig)
         assert isinstance(result.session, SessionConfig)
         assert isinstance(result.memory, MemoryConfig)
@@ -791,7 +791,7 @@ class TestConfigLoaderProperties:
 
         **Validates: Requirements 8.2**
         """
-        from kiro_crew.config import schema as schema_mod
+        from junction.config import schema as schema_mod
 
         # Find and temporarily mark slack.command as deprecated
         target_entry = None
@@ -846,14 +846,14 @@ class TestAgentWorkspaceBindingsProperties:
         self,
         cls_idx: int,
     ) -> None:
-        """All fields of KiroCrewAgentConfig, WorkspaceConfig, and
+        """All fields of JunctionAgentConfig, WorkspaceConfig, and
         MemoryStoreConfig carry required metadata (label, help).
 
         **Validates: Requirements 1.1, 3.1, 5.1**
         """
         import dataclasses
 
-        classes = [KiroCrewAgentConfig, WorkspaceConfig, MemoryStoreConfig]
+        classes = [JunctionAgentConfig, WorkspaceConfig, MemoryStoreConfig]
         cls = classes[cls_idx]
 
         fields = dataclasses.fields(cls)
@@ -912,13 +912,13 @@ class TestAgentWorkspaceBindingsProperties:
                     assert result[name].dir == value.get("dir", "workspace")
 
     # Feature: agent-workspace-bindings, Property 10: Config serialization round-trip
-    @given(config=_kirocrew_config_st)
+    @given(config=_junction_config_st)
     @settings(deadline=None)
     def test_config_serialization_round_trip(
         self,
-        config: KiroCrewConfig,
+        config: JunctionConfig,
     ) -> None:
-        """For any valid KiroCrewConfig with agents/workspaces/stores,
+        """For any valid JunctionConfig with agents/workspaces/stores,
         to_dict() → load() produces an equivalent instance.
 
         **Validates: Requirements 9.4, 11.5**
@@ -984,11 +984,11 @@ class TestAgentWorkspaceBindingsProperties:
 
     # Feature: agent-workspace-bindings, Property 11: Serialization format correctness
     @pytest.mark.skipif(platform.system() == "Darwin", reason="Hypothesis flaky on macOS CI")
-    @given(config=_kirocrew_config_st)
+    @given(config=_junction_config_st)
     @settings(deadline=None)
     def test_serialization_format_correctness(
         self,
-        config: KiroCrewConfig,
+        config: JunctionConfig,
     ) -> None:
         """For any config, to_dict() output has agents as dict-of-dicts,
         workspaces values as dicts with dir key, memory_stores as
@@ -1127,9 +1127,9 @@ class TestAgentWorkspaceBindingsProperties:
 
         **Validates: Requirements 7.1, 7.2, 7.5**
         """
-        config = KiroCrewConfig(
+        config = JunctionConfig(
             agents={
-                agent_name: KiroCrewAgentConfig(
+                agent_name: JunctionAgentConfig(
                     kiro_agent=kiro_agent_name,
                     workspace=ws_name,
                     memory_store=store_name,
@@ -1188,9 +1188,9 @@ class TestAgentWorkspaceBindingsProperties:
         assume(missing_ws != fallback_ws_name)
         assume(missing_store != fallback_store_name)
 
-        config = KiroCrewConfig(
+        config = JunctionConfig(
             agents={
-                agent_name: KiroCrewAgentConfig(
+                agent_name: JunctionAgentConfig(
                     kiro_agent="some-agent",
                     workspace=missing_ws,
                     memory_store=missing_store,
@@ -1215,7 +1215,7 @@ class TestAgentWorkspaceBindingsProperties:
         agents_data=st.dictionaries(
             keys=_safe_name_st,
             values=st.builds(
-                KiroCrewAgentConfig,
+                JunctionAgentConfig,
                 kiro_agent=st.text(min_size=0, max_size=20),
                 workspace=st.just("default"),
                 memory_store=st.just("default"),
@@ -1232,7 +1232,7 @@ class TestAgentWorkspaceBindingsProperties:
     @settings(deadline=None)
     def test_kiro_agent_validation_warnings(
         self,
-        agents_data: dict[str, KiroCrewAgentConfig],
+        agents_data: dict[str, JunctionAgentConfig],
         installed: list[str],
     ) -> None:
         """For configs with kiro_agent values and mock installed agent
@@ -1241,7 +1241,7 @@ class TestAgentWorkspaceBindingsProperties:
 
         **Validates: Requirements 8.1, 8.2, 8.3**
         """
-        config = KiroCrewConfig(agents=agents_data)
+        config = JunctionConfig(agents=agents_data)
         installed_set = set(installed)
 
         # Capture warnings
@@ -1271,7 +1271,7 @@ class TestAgentWorkspaceBindingsProperties:
         for mc_name, mc_agent in agents_data.items():
             if not mc_agent.kiro_agent or mc_agent.kiro_agent in installed_set:
                 # Use precise prefix to avoid substring false positives
-                prefix = f"KiroCrew agent '{mc_name}' references"
+                prefix = f"Junction agent '{mc_name}' references"
                 matching = [m for m in log_messages if prefix in m]
                 assert len(matching) == 0, (
                     f"Unexpected warning for agent '{mc_name}' with "
@@ -1324,7 +1324,7 @@ class TestAgentWorkspaceBindingsProperties:
 
         try:
             with unittest.mock.patch(
-                "kiro_crew.config.loader.config_path",
+                "junction.config.loader.config_path",
                 return_value=tmp,
             ):
                 result = workspace_dir_for(ws_name)
@@ -1355,7 +1355,7 @@ class TestAgentWorkspaceBindingsProperties:
             keys=_safe_name_st,
             values=st.fixed_dictionaries(
                 {
-                    "kiro_agent": st.sampled_from(["kirocrew", "oncall-agent", "custom", ""]),
+                    "kiro_agent": st.sampled_from(["junction", "oncall-agent", "custom", ""]),
                     "workspace": _safe_name_st,
                     "memory_store": _safe_name_st,
                 },
@@ -1382,7 +1382,7 @@ class TestAgentWorkspaceBindingsProperties:
 
         for name, raw_entry in agents_data.items():
             parsed = cfg.agents[name]
-            assert isinstance(parsed, KiroCrewAgentConfig)
+            assert isinstance(parsed, JunctionAgentConfig)
             assert parsed.kiro_agent == raw_entry["kiro_agent"]
             assert parsed.workspace == raw_entry["workspace"]
             assert parsed.memory_store == raw_entry["memory_store"]
@@ -1434,7 +1434,7 @@ class TestAgentWorkspaceBindingsProperties:
 
         # Req 9.5: agent.default_agent is preserved as kiro agent name
         # in the migrated default agent
-        expected_kiro = legacy_default_agent if legacy_default_agent else "kirocrew"
+        expected_kiro = legacy_default_agent if legacy_default_agent else "junction"
         assert cfg.agents["default"].kiro_agent == expected_kiro
 
         # Req 9.2: Flat workspaces auto-migrated to structured format
@@ -1538,8 +1538,8 @@ class TestEdgeCases:
         assert result.workspace_dir == Path("my-workspace")
         # Resolves via migrated default agent → memory_store "default"
         assert result.memory_store_name == "default"
-        # Migrated default agent uses "kirocrew" as kiro_agent (no legacy value)
-        assert result.kiro_agent == "kirocrew"
+        # Migrated default agent uses "junction" as kiro_agent (no legacy value)
+        assert result.kiro_agent == "junction"
 
     def test_missing_workspaces_creates_default_entry(self) -> None:
         """Missing workspaces section creates default entry.
@@ -1729,7 +1729,7 @@ class TestMultiAgentOrchestrationProperties:
     ) -> None:
         """For any valid JSON config (including empty objects, configs with no
         agents key, configs with empty agents dict, and configs with missing
-        default_agent), loading via KiroCrewConfig.load() shall produce a config
+        default_agent), loading via JunctionConfig.load() shall produce a config
         where len(config.agents) >= 1 and config.default_agent names a key in
         config.agents.
 
@@ -1745,7 +1745,7 @@ class TestMultiAgentOrchestrationProperties:
             data = {
                 "agents": {
                     "myagent": {
-                        "kiro_agent": "kirocrew",
+                        "kiro_agent": "junction",
                         "workspace": "default",
                         "memory_store": "default",
                     }
@@ -1755,7 +1755,7 @@ class TestMultiAgentOrchestrationProperties:
             data = {
                 "agents": {
                     "coding": {
-                        "kiro_agent": "kirocrew",
+                        "kiro_agent": "junction",
                         "workspace": "default",
                         "memory_store": "default",
                     }
@@ -1884,10 +1884,10 @@ class TestMultiAgentOrchestrationProperties:
         cfg = _load_from_dict(data)
 
         # The legacy fallback would have used:
-        # - kiro_agent = agent.default_agent or "kirocrew"
+        # - kiro_agent = agent.default_agent or "junction"
         # - workspace = default_workspace → workspaces["default"].dir
         # - memory_store = default_memory_store
-        expected_kiro = legacy_kiro if legacy_kiro else "kirocrew"
+        expected_kiro = legacy_kiro if legacy_kiro else "junction"
 
         result = resolve_agent_bindings(cfg)
 
@@ -1921,15 +1921,15 @@ class TestMultiAgentOrchestrationProperties:
         kiro_agent_name: str,
         ws_dir: str,
     ) -> None:
-        """For any KiroCrewConfig with agents and a valid agent name, calling
+        """For any JunctionConfig with agents and a valid agent name, calling
         resolve_agent_bindings(config, agent_name) shall return correct
         workspace_dir and memory_store_name.
 
         **Validates: Requirements 1.1, 1.3, 2.1, 2.4**
         """
-        config = KiroCrewConfig(
+        config = JunctionConfig(
             agents={
-                agent_name: KiroCrewAgentConfig(
+                agent_name: JunctionAgentConfig(
                     kiro_agent=kiro_agent_name,
                     workspace=ws_name,
                     memory_store=store_name,
@@ -1948,7 +1948,7 @@ class TestMultiAgentOrchestrationProperties:
         assert result.memory_store_name == store_name
         assert result.kiro_agent == kiro_agent_name
 
-    # Feature: multi-agent-orchestration, Property 6: Non-KiroCrew agent names resolve via default agent
+    # Feature: multi-agent-orchestration, Property 6: Non-Junction agent names resolve via default agent
     @given(
         default_name=_safe_name_st,
         unknown_name=_safe_name_st,
@@ -1957,7 +1957,7 @@ class TestMultiAgentOrchestrationProperties:
         store_name=_safe_name_st,
     )
     @settings(deadline=None)
-    def test_non_kirocrew_agent_names_resolve_via_default(
+    def test_non_junction_agent_names_resolve_via_default(
         self,
         default_name: str,
         unknown_name: str,
@@ -1973,9 +1973,9 @@ class TestMultiAgentOrchestrationProperties:
         """
         assume(unknown_name != default_name)
 
-        config = KiroCrewConfig(
+        config = JunctionConfig(
             agents={
-                default_name: KiroCrewAgentConfig(
+                default_name: JunctionAgentConfig(
                     kiro_agent=kiro_agent_name,
                     workspace="default",
                     memory_store=store_name,
@@ -2040,15 +2040,15 @@ class TestMultiAgentMigrationEdgeCases:
 
         try:
             with unittest.mock.patch(
-                "kiro_crew.config.loader.config_path",
+                "junction.config.loader.config_path",
                 return_value=tmp,
             ):
-                cfg = KiroCrewConfig.load()
+                cfg = JunctionConfig.load()
 
                 # In-memory: default agent exists
                 assert "default" in cfg.agents
                 assert cfg.default_agent == "default"
-                assert cfg.agents["default"].kiro_agent == "kirocrew"
+                assert cfg.agents["default"].kiro_agent == "junction"
                 assert cfg.agents["default"].workspace == "default"
                 assert cfg.agents["default"].memory_store == "default"
 
@@ -2057,7 +2057,7 @@ class TestMultiAgentMigrationEdgeCases:
                 assert "agents" in on_disk
                 assert "default" in on_disk["agents"]
                 assert on_disk["default_agent"] == "default"
-                assert on_disk["agents"]["default"]["kiro_agent"] == "kirocrew"
+                assert on_disk["agents"]["default"]["kiro_agent"] == "junction"
         finally:
             tmp.unlink(missing_ok=True)
             # Clean up backup file
@@ -2075,7 +2075,7 @@ class TestMultiAgentMigrationEdgeCases:
         assert "default" in cfg.agents
         assert cfg.default_agent == "default"
         assert len(cfg.agents) == 1
-        assert cfg.agents["default"].kiro_agent == "kirocrew"
+        assert cfg.agents["default"].kiro_agent == "junction"
 
     def test_legacy_agent_default_agent_used_as_kiro_agent(self) -> None:
         """Legacy agent.default_agent value used as kiro_agent in migrated default.
@@ -2091,14 +2091,14 @@ class TestMultiAgentMigrationEdgeCases:
         assert cfg.agents["default"].kiro_agent == "oncall-agent"
 
     def test_setup_writes_default_agent(self) -> None:
-        """kirocrew setup creates config with default agent via
+        """junction setup creates config with default agent via
         _ensure_default_agent_in_config.
 
         **Validates: Requirement 6.7**
         """
         import tempfile
 
-        from kiro_crew.cli_chat import _ensure_default_agent_in_config
+        from junction.cli_chat import _ensure_default_agent_in_config
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_config = Path(tmpdir) / "config.json"
@@ -2107,11 +2107,11 @@ class TestMultiAgentMigrationEdgeCases:
 
             with (
                 unittest.mock.patch(
-                    "kiro_crew.config.loader.config_path",
+                    "junction.config.loader.config_path",
                     return_value=tmp_config,
                 ),
                 unittest.mock.patch(
-                    "kiro_crew.cli_chat.config_path",
+                    "junction.cli_chat.config_path",
                     return_value=tmp_config,
                 ),
             ):
@@ -2121,7 +2121,7 @@ class TestMultiAgentMigrationEdgeCases:
                 assert "agents" in on_disk
                 assert "default" in on_disk["agents"]
                 assert on_disk["default_agent"] == "default"
-                assert on_disk["agents"]["default"]["kiro_agent"] == "kirocrew"
+                assert on_disk["agents"]["default"]["kiro_agent"] == "junction"
                 assert on_disk["agents"]["default"]["workspace"] == "default"
                 assert on_disk["agents"]["default"]["memory_store"] == "default"
 
@@ -2130,10 +2130,10 @@ class TestMultiAgentMigrationEdgeCases:
 
         **Validates: Requirement 1.4**
         """
-        config = KiroCrewConfig(
+        config = JunctionConfig(
             agents={
-                "test": KiroCrewAgentConfig(
-                    kiro_agent="kirocrew",
+                "test": JunctionAgentConfig(
+                    kiro_agent="junction",
                     workspace="nonexistent",
                     memory_store="default",
                 ),
@@ -2155,10 +2155,10 @@ class TestMultiAgentMigrationEdgeCases:
 
         **Validates: Requirement 3.4**
         """
-        config = KiroCrewConfig(
+        config = JunctionConfig(
             agents={
-                "mydefault": KiroCrewAgentConfig(
-                    kiro_agent="kirocrew",
+                "mydefault": JunctionAgentConfig(
+                    kiro_agent="junction",
                     workspace="default",
                     memory_store="default",
                 ),
@@ -2172,12 +2172,12 @@ class TestMultiAgentMigrationEdgeCases:
 
         # Empty string agent_name → uses default_agent
         result = resolve_agent_bindings(config, agent_name="")
-        assert result.kiro_agent == "kirocrew"
+        assert result.kiro_agent == "junction"
         assert result.workspace_dir == Path("ws-dir")
 
         # None agent_name → uses default_agent
         result2 = resolve_agent_bindings(config, agent_name=None)
-        assert result2.kiro_agent == "kirocrew"
+        assert result2.kiro_agent == "junction"
         assert result2.workspace_dir == Path("ws-dir")
 
 
@@ -2187,8 +2187,8 @@ class TestReactionsEmptyStringFiltering:
     def test_empty_string_reaction_filtered(self, tmp_path: Path) -> None:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({"slack": {"reactions": {"done": "", "error": "boom"}}}))
-        with unittest.mock.patch("kiro_crew.config.loader.config_dir", return_value=tmp_path):
-            cfg = KiroCrewConfig.load()
+        with unittest.mock.patch("junction.config.loader.config_dir", return_value=tmp_path):
+            cfg = JunctionConfig.load()
         # Empty string should be dropped
         assert "done" not in cfg.slack.reactions
         # Non-empty value preserved
@@ -2201,8 +2201,8 @@ class TestReactionsNullSuppression:
     def test_null_reaction_preserved(self, tmp_path: Path) -> None:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({"slack": {"reactions": {"done": None, "error": "boom"}}}))
-        with unittest.mock.patch("kiro_crew.config.loader.config_dir", return_value=tmp_path):
-            cfg = KiroCrewConfig.load()
+        with unittest.mock.patch("junction.config.loader.config_dir", return_value=tmp_path):
+            cfg = JunctionConfig.load()
         # null should be preserved (distinct from absent key)
         assert "done" in cfg.slack.reactions
         assert cfg.slack.reactions["done"] is None
@@ -2215,8 +2215,8 @@ class TestReactionsNullSuppression:
         cfg_file.write_text(
             json.dumps({"slack": {"reactions": {"done": 42, "error": True, "tool": "ok"}}})
         )
-        with unittest.mock.patch("kiro_crew.config.loader.config_dir", return_value=tmp_path):
-            cfg = KiroCrewConfig.load()
+        with unittest.mock.patch("junction.config.loader.config_dir", return_value=tmp_path):
+            cfg = JunctionConfig.load()
         assert "done" not in cfg.slack.reactions
         assert "error" not in cfg.slack.reactions
         assert cfg.slack.reactions["tool"] == "ok"
@@ -2231,8 +2231,8 @@ class TestSttStreamingDefault:
     def test_missing_stt_key_loads_streaming_false(self, tmp_path: Path) -> None:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({}))
-        with unittest.mock.patch("kiro_crew.config.loader.config_dir", return_value=tmp_path):
-            cfg = KiroCrewConfig.load()
+        with unittest.mock.patch("junction.config.loader.config_dir", return_value=tmp_path):
+            cfg = JunctionConfig.load()
         assert cfg.stt.streaming is False
 
     def test_partial_stt_block_without_streaming_key_loads_false(self, tmp_path: Path) -> None:
@@ -2240,8 +2240,8 @@ class TestSttStreamingDefault:
         cfg_file.write_text(
             json.dumps({"stt": {"provider": "transcribe", "language_code": "en-US"}})
         )
-        with unittest.mock.patch("kiro_crew.config.loader.config_dir", return_value=tmp_path):
-            cfg = KiroCrewConfig.load()
+        with unittest.mock.patch("junction.config.loader.config_dir", return_value=tmp_path):
+            cfg = JunctionConfig.load()
         assert cfg.stt.streaming is False
 
 
@@ -2265,21 +2265,21 @@ class TestSoftStopBudget:
 
     def test_soft_stop_budget_too_low(self, caplog) -> None:
         """AgentConfig clamps soft_stop_budget_secs below 0.5 to 0.5 with a warning."""
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.config.loader"):
+        with caplog.at_level(logging.WARNING, logger="junction.config.loader"):
             cfg = AgentConfig(soft_stop_budget_secs=0.1)
         assert cfg.soft_stop_budget_secs == 0.5
         assert "out of range" in caplog.text
 
     def test_soft_stop_budget_too_high(self, caplog) -> None:
         """AgentConfig clamps soft_stop_budget_secs above 60.0 to 60.0 with a warning."""
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.config.loader"):
+        with caplog.at_level(logging.WARNING, logger="junction.config.loader"):
             cfg = AgentConfig(soft_stop_budget_secs=120.0)
         assert cfg.soft_stop_budget_secs == 60.0
         assert "out of range" in caplog.text
 
     def test_soft_stop_budget_appears_in_schema(self) -> None:
         """Generated config baseline includes soft_stop_budget_secs."""
-        from kiro_crew.config.schema import SCHEMA_REGISTRY
+        from junction.config.schema import SCHEMA_REGISTRY
 
         paths = [e.path for e in SCHEMA_REGISTRY]
         assert "agent.soft_stop_budget_secs" in paths
@@ -2431,9 +2431,9 @@ class TestWidgetDensityRoundTrip:
 
         cfg = _load_from_dict({"dashboard": {"widget_density": "less"}})
         cfg_file = tmp_path / "config.json"
-        with patch("kiro_crew.config.loader.config_path", return_value=cfg_file):
+        with patch("junction.config.loader.config_path", return_value=cfg_file):
             cfg.save()
-            loaded = KiroCrewConfig.load()
+            loaded = JunctionConfig.load()
         assert loaded.dashboard.widget_density == "less"
 
 
@@ -2465,9 +2465,9 @@ class TestArchiveRetentionDays:
 
         cfg = _load_from_dict({"session": {"archive_retention_days": 60}})
         cfg_file = tmp_path / "config.json"
-        with patch("kiro_crew.config.loader.config_path", return_value=cfg_file):
+        with patch("junction.config.loader.config_path", return_value=cfg_file):
             cfg.save()
-            loaded = KiroCrewConfig.load()
+            loaded = JunctionConfig.load()
         assert loaded.session.archive_retention_days == 60
 
     def test_schema_permits_null_sentinel(self) -> None:
@@ -2481,7 +2481,7 @@ class TestArchiveRetentionDays:
         checks the schema shape directly, so it fails everywhere if the
         ``nullable`` marker regresses, not only where jsonschema is installed.
         """
-        from kiro_crew.config.schema import JSON_SCHEMA
+        from junction.config.schema import JSON_SCHEMA
 
         node = JSON_SCHEMA["properties"]["session"]["properties"]["archive_retention_days"]
         assert (
@@ -2490,7 +2490,7 @@ class TestArchiveRetentionDays:
 
     def test_validation_preserves_null(self) -> None:
         """When jsonschema runs, ``null`` must survive validation (not be stripped)."""
-        from kiro_crew.config import validation
+        from junction.config import validation
 
         if not validation._HAS_JSONSCHEMA:
             pytest.skip("jsonschema not installed on this interpreter")
@@ -2505,7 +2505,7 @@ class TestConfigCache:
     @pytest.fixture(autouse=True)
     def _reset_cache(self):
         # Each test starts with a clean module-level cache and leaves one behind.
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         _invalidate_config_cache()
         yield
@@ -2514,7 +2514,7 @@ class TestConfigCache:
     # Canonical scaffold so the one-shot write-back migration (which calls
     # save() and would invalidate the cache mid-test) does not fire.
     _CANON = {
-        "agents": {"default": {"kiro_agent": "kirocrew"}},
+        "agents": {"default": {"kiro_agent": "junction"}},
         "default_agent": "default",
         "workspaces": {"default": {"dir": "~/workspace"}},
     }
@@ -2539,16 +2539,16 @@ class TestConfigCache:
             return real_validate(data)
 
         with (
-            patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
+            patch("junction.config.loader.config_path", return_value=cfg_file),
             patch(
-                "kiro_crew.config.loader.config_local_path",
+                "junction.config.loader.config_local_path",
                 return_value=tmp_path / "config.local.json",
             ),
-            patch("kiro_crew.config.loader._validate_config_data", _counting),
+            patch("junction.config.loader._validate_config_data", _counting),
         ):
-            KiroCrewConfig.load()
-            KiroCrewConfig.load()
-            KiroCrewConfig.load()
+            JunctionConfig.load()
+            JunctionConfig.load()
+            JunctionConfig.load()
         # Validated once; subsequent loads served from cache.
         assert calls["n"] == 1
 
@@ -2560,11 +2560,11 @@ class TestConfigCache:
         cfg_file = tmp_path / "config.json"
         local = tmp_path / "config.local.json"
         with (
-            patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
-            patch("kiro_crew.config.loader.config_local_path", return_value=local),
+            patch("junction.config.loader.config_path", return_value=cfg_file),
+            patch("junction.config.loader.config_local_path", return_value=local),
         ):
             self._write(cfg_file, {"agent": {"model": "model-a"}})
-            first = KiroCrewConfig.load()
+            first = JunctionConfig.load()
             assert first.agent.model == "model-a"
             # Rewrite with different content (model value differs in length, so
             # the size component of the fingerprint changes); also force a distinct
@@ -2572,7 +2572,7 @@ class TestConfigCache:
             self._write(cfg_file, {"agent": {"model": "model-bbbb"}})
             st = cfg_file.stat()
             _os.utime(cfg_file, ns=(st.st_atime_ns + 1_000_000_000, st.st_mtime_ns + 1_000_000_000))
-            second = KiroCrewConfig.load()
+            second = JunctionConfig.load()
         assert second.agent.model == "model-bbbb"
 
     def test_save_invalidates_cache(self, tmp_path: Path) -> None:
@@ -2582,15 +2582,15 @@ class TestConfigCache:
         cfg_file = tmp_path / "config.json"
         local = tmp_path / "config.local.json"
         with (
-            patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
-            patch("kiro_crew.config.loader.config_local_path", return_value=local),
+            patch("junction.config.loader.config_path", return_value=cfg_file),
+            patch("junction.config.loader.config_local_path", return_value=local),
         ):
             self._write(cfg_file, {"agent": {"yolo": False}})
-            cfg = KiroCrewConfig.load()
+            cfg = JunctionConfig.load()
             assert cfg.agent.dangerously_skip_permissions is False
             cfg.agent.dangerously_skip_permissions = True
             cfg.save()
-            reloaded = KiroCrewConfig.load()
+            reloaded = JunctionConfig.load()
         assert reloaded.agent.dangerously_skip_permissions is True
 
     def test_returned_config_is_independent(self, tmp_path: Path) -> None:
@@ -2601,16 +2601,16 @@ class TestConfigCache:
         cfg_file = tmp_path / "config.json"
         local = tmp_path / "config.local.json"
         with (
-            patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
-            patch("kiro_crew.config.loader.config_local_path", return_value=local),
+            patch("junction.config.loader.config_path", return_value=cfg_file),
+            patch("junction.config.loader.config_local_path", return_value=local),
         ):
             self._write(cfg_file, {"agent": {"model": "orig-model"}})
-            first = KiroCrewConfig.load()
+            first = JunctionConfig.load()
             assert first.agent.model == "orig-model"
             # In-place mutation, as settings handlers do.
-            first.agents["injected"] = KiroCrewAgentConfig(kiro_agent="x")
+            first.agents["injected"] = JunctionAgentConfig(kiro_agent="x")
             first.agent.model = "MUTATED"
-            second = KiroCrewConfig.load()
+            second = JunctionConfig.load()
         assert "injected" not in second.agents
         assert second.agent.model == "orig-model"
 
@@ -2643,19 +2643,19 @@ class TestConfigCache:
             return content
 
         with (
-            patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
-            patch("kiro_crew.config.loader.config_local_path", return_value=local),
+            patch("junction.config.loader.config_path", return_value=cfg_file),
+            patch("junction.config.loader.config_local_path", return_value=local),
             patch.object(Path, "read_text", _read_then_write),
         ):
-            first = KiroCrewConfig.load()  # reads v0, writer swaps to v1 mid-read
+            first = JunctionConfig.load()  # reads v0, writer swaps to v1 mid-read
             # First load returns the v0 it actually read (acceptable).
             assert first.agent.model == "v0"
         # Next load must re-read and see v1 — NOT serve stale v0 from a poisoned cache.
         with (
-            patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
-            patch("kiro_crew.config.loader.config_local_path", return_value=local),
+            patch("junction.config.loader.config_path", return_value=cfg_file),
+            patch("junction.config.loader.config_local_path", return_value=local),
         ):
-            second = KiroCrewConfig.load()
+            second = JunctionConfig.load()
         assert second.agent.model == "v1", "stale config served from poisoned cache"
 
 
@@ -2743,23 +2743,23 @@ class TestSecurityBoundClamping:
     """The loader clamps out-of-range resource-limit knobs read from disk."""
 
     def test_subagent_auto_max_clamped_to_ceiling(self) -> None:
-        from kiro_crew.config.loader import SUBAGENT_AUTO_MAX_CEILING
+        from junction.config.loader import SUBAGENT_AUTO_MAX_CEILING
 
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"agent": {"subagent_auto_max": 200}})
         assert cfg.agent.subagent_auto_max == SUBAGENT_AUTO_MAX_CEILING == 64
 
     def test_subagent_auto_max_floored_to_min(self) -> None:
         """A value below the auto-size floor (3) is clamped UP to 3 with a
         warning, mirroring the > ceiling clamp."""
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"agent": {"subagent_auto_max": 1}})
         assert cfg.agent.subagent_auto_max == 3
 
     def test_max_subagents_clamped_to_ceiling(self) -> None:
-        from kiro_crew.config.loader import SUBAGENT_AUTO_MAX_CEILING
+        from junction.config.loader import SUBAGENT_AUTO_MAX_CEILING
 
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"agent": {"max_subagents": 200}})
         assert cfg.agent.max_subagents == SUBAGENT_AUTO_MAX_CEILING == 64
 
@@ -2767,10 +2767,10 @@ class TestSecurityBoundClamping:
         """An explicit pin of 1 or 2 is normalized UP to the fixed-pin floor (3):
         a sub-3 pin would silently disable auto-sizing and run below the default.
         The auto sentinel (0) and in-range pins (>= 3) are left untouched."""
-        from kiro_crew.config.loader import MAX_SUBAGENTS_FIXED_FLOOR
+        from junction.config.loader import MAX_SUBAGENTS_FIXED_FLOOR
 
         assert MAX_SUBAGENTS_FIXED_FLOOR == 3
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             for pinned in (1, 2):
                 cfg = _load_from_dict({"agent": {"max_subagents": pinned}})
                 assert cfg.agent.max_subagents == 3
@@ -2780,16 +2780,16 @@ class TestSecurityBoundClamping:
             assert _load_from_dict({"agent": {"max_subagents": 8}}).agent.max_subagents == 8
 
     def test_subagent_max_turns_clamped_to_ceiling(self) -> None:
-        from kiro_crew.config.loader import SUBAGENT_MAX_TURNS_CEILING
+        from junction.config.loader import SUBAGENT_MAX_TURNS_CEILING
 
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"agent": {"subagent_max_turns": 99999}})
         assert cfg.agent.subagent_max_turns == SUBAGENT_MAX_TURNS_CEILING == 200
 
     def test_pool_size_clamped_to_max(self) -> None:
-        from kiro_crew.config.loader import POOL_SIZE_MAX
+        from junction.config.loader import POOL_SIZE_MAX
 
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"session": {"pool_size": 1000}})
         assert cfg.session.pool_size == POOL_SIZE_MAX == 10
 
@@ -2807,23 +2807,23 @@ class TestSecurityBoundClamping:
         """A value below the floor is clamped UP: a session-start budget under
         the backend's 30s OAuth authorization wait recreates the race the
         dedicated budget exists to prevent (issue #2946)."""
-        from kiro_crew.config.loader import SESSION_START_TIMEOUT_MIN
+        from junction.config.loader import SESSION_START_TIMEOUT_MIN
 
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"agent": {"session_start_timeout_secs": 10}})
         assert cfg.agent.session_start_timeout_secs == SESSION_START_TIMEOUT_MIN == 90
 
     def test_session_start_timeout_clamped_to_max(self) -> None:
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict({"agent": {"session_start_timeout_secs": 99999}})
-        from kiro_crew.config.loader import SESSION_START_TIMEOUT_MAX
+        from junction.config.loader import SESSION_START_TIMEOUT_MAX
 
         assert cfg.agent.session_start_timeout_secs == SESSION_START_TIMEOUT_MAX == 900
 
     def test_full_pentest_reproduction_clamped(self) -> None:
         """The exact tester payload is clamped, and to_dict() (what the GET API
         serializes) reports the clamped values, not the inflated ones."""
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             cfg = _load_from_dict(
                 {
                     "agent": {
@@ -2854,7 +2854,7 @@ class TestSecurityBoundClamping:
         dataclass with NO coercion at all, and ``subagent_auto_max``/
         ``pool_size`` were ``_safe_int``-coerced but without bounds -- all
         four let a numeric-string value bypass the declared ceiling entirely."""
-        from kiro_crew.config.loader import (
+        from junction.config.loader import (
             POOL_SIZE_MAX,
             SUBAGENT_AUTO_MAX_CEILING,
             SUBAGENT_MAX_TURNS_CEILING,
@@ -2913,7 +2913,7 @@ class TestSecurityBoundClamping:
         assert not (cfg.agent.subagent_max_turns > 999)  # must not raise TypeError
 
     def test_in_range_values_unchanged(self) -> None:
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event") as mock_event:
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event") as mock_event:
             cfg = _load_from_dict(
                 {
                     "agent": {
@@ -2931,7 +2931,7 @@ class TestSecurityBoundClamping:
         mock_event.assert_not_called()
 
     def test_boundary_values_not_clamped(self) -> None:
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event") as mock_event:
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event") as mock_event:
             cfg = _load_from_dict(
                 {
                     "agent": {"subagent_auto_max": 64, "subagent_max_turns": 200},
@@ -2944,14 +2944,14 @@ class TestSecurityBoundClamping:
         mock_event.assert_not_called()
 
     def test_clamp_logs_warning(self) -> None:
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event"):
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event"):
             _, logs = _load_from_dict_with_logs({"agent": {"subagent_auto_max": 200}})
         assert any(
             "subagent_auto_max" in m and "out of range" in m for m in logs
         ), f"expected clamp warning, got: {logs}"
 
     def test_clamp_emits_security_event(self) -> None:
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event") as mock_event:
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event") as mock_event:
             _load_from_dict({"agent": {"subagent_auto_max": 200}})
         mock_event.assert_called_once()
         args = mock_event.call_args.args
@@ -2963,10 +2963,10 @@ class TestSecurityBoundClamping:
         """The clamp skips non-int values, leaving them exactly as-is. Asserted
         against ``_clamp_security_bounds`` directly so the outcome is
         deterministic regardless of jsonschema availability."""
-        from kiro_crew.config.loader import _clamp_security_bounds
+        from junction.config.loader import _clamp_security_bounds
 
         data = {"agent": {"subagent_max_turns": "lots"}}
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event") as mock_event:
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event") as mock_event:
             _clamp_security_bounds(data)
         assert data["agent"]["subagent_max_turns"] == "lots"
         mock_event.assert_not_called()
@@ -2974,18 +2974,18 @@ class TestSecurityBoundClamping:
     def test_bool_value_not_clamped(self) -> None:
         """A JSON true/false (bool is an int subclass) is not a numeric bound
         value: the clamp leaves it untouched and fires no event."""
-        from kiro_crew.config.loader import _clamp_security_bounds
+        from junction.config.loader import _clamp_security_bounds
 
         data = {"agent": {"max_subagents": True}}
-        with unittest.mock.patch("kiro_crew.config.loader._log_config_clamp_event") as mock_event:
+        with unittest.mock.patch("junction.config.loader._log_config_clamp_event") as mock_event:
             _clamp_security_bounds(data)
         assert data["agent"]["max_subagents"] is True
         mock_event.assert_not_called()
 
     def test_log_config_clamp_event_is_best_effort(self) -> None:
-        from kiro_crew.config.loader import _log_config_clamp_event
+        from junction.config.loader import _log_config_clamp_event
 
-        with unittest.mock.patch("kiro_crew.sel.sel", side_effect=RuntimeError("SEL down")):
+        with unittest.mock.patch("junction.sel.sel", side_effect=RuntimeError("SEL down")):
             _log_config_clamp_event("agent.subagent_auto_max", 200, 64, 1, 64)
 
 
@@ -3000,13 +3000,13 @@ class TestAutocompactPctLoadClamp:
     """
 
     def test_above_range_clamped_to_max(self) -> None:
-        from kiro_crew.config.loader import AUTOCOMPACT_PCT_MAX
+        from junction.config.loader import AUTOCOMPACT_PCT_MAX
 
         cfg = _load_from_dict({"session": {"autocompact_pct": 500}})
         assert cfg.session.autocompact_pct == AUTOCOMPACT_PCT_MAX == 90.0
 
     def test_negative_clamped_to_min(self) -> None:
-        from kiro_crew.config.loader import AUTOCOMPACT_PCT_MIN
+        from junction.config.loader import AUTOCOMPACT_PCT_MIN
 
         cfg = _load_from_dict({"session": {"autocompact_pct": -10}})
         assert cfg.session.autocompact_pct == AUTOCOMPACT_PCT_MIN == 5.0
@@ -3024,7 +3024,7 @@ class TestAutocompactPctLoadClamp:
         """An omitted key takes the module default, not a clamp bound. Asserted
         against the constant rather than a literal so the two cannot drift: a
         ``load()`` fallback restated as its own literal still fails here."""
-        from kiro_crew.config.loader import DEFAULT_AUTOCOMPACT_PCT
+        from junction.config.loader import DEFAULT_AUTOCOMPACT_PCT
 
         cfg = _load_from_dict({})
         assert cfg.session.autocompact_pct == DEFAULT_AUTOCOMPACT_PCT
@@ -3034,8 +3034,8 @@ class TestAutocompactPctLoadClamp:
         ``session.autocompact_pct`` must BE the loader's clamp constants — the
         same objects, not two sets of literals that can drift apart (the drift
         is exactly how the load path lost the range in the first place)."""
-        from kiro_crew.config.loader import AUTOCOMPACT_PCT_MAX, AUTOCOMPACT_PCT_MIN
-        from kiro_crew.dashboard.handlers.core import _EDITABLE_CONFIG
+        from junction.config.loader import AUTOCOMPACT_PCT_MAX, AUTOCOMPACT_PCT_MIN
+        from junction.dashboard.handlers.core import _EDITABLE_CONFIG
 
         spec = _EDITABLE_CONFIG["session.autocompact_pct"]
         assert spec["type"] == "float"
@@ -3110,7 +3110,7 @@ class TestConfigWriteProtection:
     """config.json / config.local.json are WRITE-protected (reads allowed)."""
 
     def test_config_json_is_write_protected(self) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         # Data home moved to ~/.kiro/crew; the legacy ~/.kirocrew stays gated too.
         assert is_sensitive_write_path("~/.kiro/crew/config.json")
@@ -3119,7 +3119,7 @@ class TestConfigWriteProtection:
         assert is_sensitive_write_path(str(Path.home() / ".kirocrew" / "config.json"))
 
     def test_config_local_json_is_write_protected(self) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         assert is_sensitive_write_path("~/.kiro/crew/config.local.json")
         assert is_sensitive_write_path(str(Path.home() / ".kiro" / "crew" / "config.local.json"))
@@ -3127,7 +3127,7 @@ class TestConfigWriteProtection:
         assert is_sensitive_write_path(str(Path.home() / ".kirocrew" / "config.local.json"))
 
     def test_config_json_reads_still_allowed(self) -> None:
-        from kiro_crew.security import is_sensitive_bash_command, is_sensitive_path
+        from junction.security import is_sensitive_bash_command, is_sensitive_path
 
         assert is_sensitive_path("~/.kiro/crew/config.json") is False
         assert is_sensitive_bash_command("cat ~/.kiro/crew/config.json") is None
@@ -3135,14 +3135,14 @@ class TestConfigWriteProtection:
         assert is_sensitive_bash_command("cat ~/.kirocrew/config.json") is None
 
     def test_write_protection_superset_of_sensitive(self) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+        from junction.security import is_sensitive_write_path
 
         assert is_sensitive_write_path("~/.aws/credentials")
         assert is_sensitive_write_path("~/.kiro/crew/security_policy.json")
         assert is_sensitive_write_path("~/.kirocrew/security_policy.json")
 
-    def test_non_config_kirocrew_file_not_write_protected(self) -> None:
-        from kiro_crew.security import is_sensitive_write_path
+    def test_non_config_junction_file_not_write_protected(self) -> None:
+        from junction.security import is_sensitive_write_path
 
         assert is_sensitive_write_path("~/.kiro/crew/sessions.db") is False
         assert is_sensitive_write_path("~/.kirocrew/sessions.db") is False
@@ -3152,7 +3152,7 @@ class TestConfigEditToolBlocked:
     """The file-edit tool gate (HookManager.on_tool_call) denies edits to config."""
 
     def _hooks(self):
-        from kiro_crew.hooks import HookManager, HooksConfig
+        from junction.hooks import HookManager, HooksConfig
 
         return HookManager(HooksConfig())
 
@@ -3269,7 +3269,7 @@ class TestTelegramAllowedUserIdsGuard:
 
 class TestMessagingConfigValidation:
     def test_normalizes_bad_scope_mode_and_clamps_resets(self) -> None:
-        from kiro_crew.config.loader import MessagingConfig
+        from junction.config.loader import MessagingConfig
 
         c = MessagingConfig(
             dm_scope="bogus",
@@ -3283,7 +3283,7 @@ class TestMessagingConfigValidation:
         assert c.daily_reset_hour == -1
 
     def test_keeps_valid_values(self) -> None:
-        from kiro_crew.config.loader import MessagingConfig
+        from junction.config.loader import MessagingConfig
 
         c = MessagingConfig(
             dm_scope="unified",
@@ -3482,9 +3482,9 @@ class TestKnowledgeAutoIngest:
         assert cfg.knowledge.dedup_every_n_sweeps == 12
 
     def test_new_keys_are_dashboard_editable(self) -> None:
-        # A key absent from the allowlist is rejected by PATCH /api/config/kirocrew,
+        # A key absent from the allowlist is rejected by PATCH /api/config/junction,
         # so its toggle would render and then fail to save.
-        from kiro_crew.dashboard.handlers.core import _EDITABLE_CONFIG
+        from junction.dashboard.handlers.core import _EDITABLE_CONFIG
 
         for key in (
             "knowledge.auto_add_documents",
@@ -3596,7 +3596,7 @@ class TestKnowledgePoolIdleTtl:
     def test_integral_float_preserves_legacy_coercion(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
 
@@ -3606,7 +3606,7 @@ class TestKnowledgePoolIdleTtl:
     def test_non_integral_float_falls_back_to_default(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
 
@@ -3624,7 +3624,7 @@ class TestSaveRoundTripPreservesAllSections:
     lost it the first time the gateway started."""
 
     def test_to_dict_includes_previously_dropped_sections(self) -> None:
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         td = cfg.to_dict()
         for key in ("knowledge", "heartbeat", "snapshot_dir", "watchdog"):
             assert key in td, f"to_dict() dropped {key} — save() would delete it"
@@ -3647,8 +3647,8 @@ class TestSaveRoundTripPreservesAllSections:
             json.dump(cfg_data, f)
             tmp = Path(f.name)
         try:
-            with unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=tmp):
-                KiroCrewConfig.load()  # migration write-back save fires
+            with unittest.mock.patch("junction.config.loader.config_path", return_value=tmp):
+                JunctionConfig.load()  # migration write-back save fires
             after = json.loads(tmp.read_text(encoding="utf-8"))
             assert after.get("knowledge", {}).get("pool_idle_ttl_secs") == 0
             assert after.get("heartbeat", {}).get("default_deliver") == "dashboard"
@@ -3698,7 +3698,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
 
     def test_per_agent_watchdog_overrides_default_to_inherit(self) -> None:
         """An agent entry without overrides parses to 0 (inherit the global)."""
-        cfg = _load_from_dict({"agents": {"builder": {"kiro_agent": "kirocrew"}}})
+        cfg = _load_from_dict({"agents": {"builder": {"kiro_agent": "junction"}}})
         assert cfg.agents["builder"].watchdog_tool_stall_suspect_secs == 0.0
         assert cfg.agents["builder"].watchdog_tool_stall_hard_cap_secs == 0.0
 
@@ -3709,7 +3709,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
         negative value is clamped to 0 — never an instant-cancel window, never
         a crashed load. jsonschema is disabled so the raw values reach the
         _safe_float guards (with it enabled, validation strips them first)."""
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
 
@@ -3717,7 +3717,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
             {
                 "agents": {
                     "a": {
-                        "kiro_agent": "kirocrew",
+                        "kiro_agent": "junction",
                         "watchdog_tool_stall_suspect_secs": "junk",
                         "watchdog_tool_stall_hard_cap_secs": -5,
                     }
@@ -3752,7 +3752,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
         surface (Slack/cron — see _resolve_model_for_agent's surface
         convention) is covered by crew-namespace membership; a non-crew name
         (a kiro template) yields "" so no override can attach to it."""
-        import kiro_crew.providers.acp as acp_mod
+        import junction.providers.acp as acp_mod
 
         captured: list[dict] = []
 
@@ -3804,7 +3804,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
     def test_import_onboarded_string_false_falls_back_without_jsonschema(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
 
@@ -3815,7 +3815,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
     def test_invalid_import_onboarded_inherits_onboarded_without_jsonschema(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
 
@@ -3844,7 +3844,7 @@ class TestOrchestratorWatchdogThemeAreParsed:
 
 class TestMalformedConfigNeverBricksLoad:
     """load() must honor its documented "fall back to defaults, never raise"
-    contract for malformed-but-writable values reachable via `kirocrew config
+    contract for malformed-but-writable values reachable via `junction config
     set` (cli_config._parse_value returns the raw string, _dict_set accepts any
     existing key with no type/schema check). Pre-fix three classes crashed
     load() with an uncaught exception, and because `config get/set` and the
@@ -3885,7 +3885,7 @@ class TestMalformedConfigNeverBricksLoad:
     def test_numeric_strings_preserve_legacy_coercion_without_jsonschema(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
 
@@ -4125,7 +4125,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # snapshot from a sibling test would be read instead of the tmpdir under
         # test. Left cold on purpose — these tests run synchronously (no event
         # loop), where the lookup is allowed to build it lazily.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         loader._MATERIALIZED_AGENTS = frozenset()
         loader._MATERIALIZED_AGENTS_READY = False
@@ -4136,15 +4136,15 @@ class TestAppAgentDispatch(unittest.TestCase):
     tearDown = setUp
 
     def _config(self):
-        from kiro_crew.config.loader import (
-            KiroCrewAgentConfig,
-            KiroCrewConfig,
+        from junction.config.loader import (
+            JunctionAgentConfig,
+            JunctionConfig,
             MemoryStoreConfig,
             WorkspaceConfig,
         )
 
-        return KiroCrewConfig(
-            agents={"default": KiroCrewAgentConfig(kiro_agent="kirocrew")},
+        return JunctionConfig(
+            agents={"default": JunctionAgentConfig(kiro_agent="junction")},
             default_agent="default",
             workspaces={"default": WorkspaceConfig(dir="/tmp/ws")},
             default_workspace="default",
@@ -4162,9 +4162,9 @@ class TestAppAgentDispatch(unittest.TestCase):
     def test_app_agent_matched_by_name_field_dispatches_itself(self):
         # bridges._register_agents writes the NAMESPACED filename while the config
         # inside keeps the app's bare name, and app panels bind the slot to that
-        # bare name. Before this fix the bare name was not a KiroCrew alias, so it
+        # bare name. Before this fix the bare name was not a Junction alias, so it
         # fell through to default_agent and the DEFAULT agent answered.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
@@ -4178,18 +4178,18 @@ class TestAppAgentDispatch(unittest.TestCase):
         # `mochi--mochi` is not listed at all. Trusting the stem would hand
         # kiro-cli a name it cannot resolve, and it would fall back to its own
         # default silently -- the invisible mismatch this change exists to remove.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: d):
                 cfg = self._config()
                 assert loader.resolve_agent_bindings(cfg, "mochi").kiro_agent == "mochi"
-                assert loader.resolve_agent_bindings(cfg, "mochi--mochi").kiro_agent == "kirocrew"
+                assert loader.resolve_agent_bindings(cfg, "mochi--mochi").kiro_agent == "junction"
 
     def test_stem_is_used_when_no_name_is_declared(self):
         # With no `name` the stem is the only identifier, so it is trusted there.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"solo.json": {"description": "no name field"}})
@@ -4199,22 +4199,22 @@ class TestAppAgentDispatch(unittest.TestCase):
     def test_genuinely_unknown_agent_still_falls_back_to_default(self):
         # Unchanged behavior: a name nothing declares must NOT be passed through
         # to kiro-cli.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: d):
                 r = loader.resolve_agent_bindings(self._config(), agent_name="nope-xyz")
-        assert r.kiro_agent == "kirocrew"
+        assert r.kiro_agent == "junction"
 
     def test_alias_still_wins_over_materialized_file(self):
-        # A KiroCrew alias keeps full control of the binding (and the directory is
+        # A Junction alias keeps full control of the binding (and the directory is
         # not even scanned for it).
-        import kiro_crew.config.loader as loader
-        from kiro_crew.config.loader import KiroCrewAgentConfig
+        import junction.config.loader as loader
+        from junction.config.loader import JunctionAgentConfig
 
         cfg = self._config()
-        cfg.agents["mochi"] = KiroCrewAgentConfig(kiro_agent="explicitly-bound")
+        cfg.agents["mochi"] = JunctionAgentConfig(kiro_agent="explicitly-bound")
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: d):
@@ -4222,7 +4222,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         assert r.kiro_agent == "explicitly-bound"
 
     def test_non_object_json_in_agents_dir_is_skipped(self):
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = Path(td) / "agents"
@@ -4232,13 +4232,13 @@ class TestAppAgentDispatch(unittest.TestCase):
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: d):
                 cfg = self._config()
                 r = loader.resolve_agent_bindings(cfg, agent_name="mochi")
-                assert r.kiro_agent == "kirocrew"
+                assert r.kiro_agent == "junction"
                 # The FILENAME must not make an unparseable file dispatchable:
                 # kiro-cli could not load it and would fall back to its own
                 # default silently, which is the mismatch this change removes.
                 for stem in ("junk", "broken"):
                     assert (
-                        loader.resolve_agent_bindings(cfg, agent_name=stem).kiro_agent == "kirocrew"
+                        loader.resolve_agent_bindings(cfg, agent_name=stem).kiro_agent == "junction"
                     )
 
     def test_lookup_does_no_filesystem_io(self):
@@ -4246,7 +4246,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # resolve_agent_bindings) and an app agent takes it on EVERY turn, so it
         # must touch the filesystem zero times: no glob, no reads, not even a
         # stat. The snapshot is refreshed only off-loop.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
@@ -4264,7 +4264,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # Enabling an app writes its agent configs and then refreshes the
         # snapshot (bridges._register_agents), so a freshly registered app agent
         # dispatches immediately instead of after a gateway restart.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"other--other.json": {"name": "other"}})
@@ -4273,7 +4273,7 @@ class TestAppAgentDispatch(unittest.TestCase):
                 # Not registered yet -> falls back to the default.
                 assert (
                     loader.resolve_agent_bindings(self._config(), agent_name="mochi").kiro_agent
-                    == "kirocrew"
+                    == "junction"
                 )
                 (d / "mochi--mochi.json").write_text(
                     json.dumps({"name": "mochi"}), encoding="utf-8"
@@ -4290,8 +4290,8 @@ class TestAppAgentDispatch(unittest.TestCase):
         # (`evil.json` -> `~/.aws/credentials`) must not be read by a boot refresh.
         # Reads go through hooks.safe_read_file, and a refused path is skipped
         # without taking the rest of the directory down with it.
-        import kiro_crew.config.loader as loader
-        import kiro_crew.hooks as hooks_mod
+        import junction.config.loader as loader
+        import junction.hooks as hooks_mod
 
         real = hooks_mod.safe_read_file
         refused: list[str] = []
@@ -4312,8 +4312,8 @@ class TestAppAgentDispatch(unittest.TestCase):
                     loader.refresh_materialized_agents()
                     cfg = self._config()
                     # The refused entry contributes NOTHING — not even its stem.
-                    assert loader.resolve_agent_bindings(cfg, "stolen").kiro_agent == "kirocrew"
-                    assert loader.resolve_agent_bindings(cfg, "evil").kiro_agent == "kirocrew"
+                    assert loader.resolve_agent_bindings(cfg, "stolen").kiro_agent == "junction"
+                    assert loader.resolve_agent_bindings(cfg, "evil").kiro_agent == "junction"
                     # …and the rest of the directory still scans.
                     assert loader.resolve_agent_bindings(cfg, "good").kiro_agent == "good"
         assert refused, "the gate was never consulted for the planted entry"
@@ -4324,7 +4324,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # removal, would reinstall the deleted name — and the next turn would hand
         # kiro-cli a config that is gone. The interleaving is driven exactly:
         # a newer refresh completes from inside the older one's scan.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         def _older_scan_that_is_overtaken(_p):
             with unittest.mock.patch.object(
@@ -4341,7 +4341,7 @@ class TestAppAgentDispatch(unittest.TestCase):
 
         cfg = self._config()
         assert loader.resolve_agent_bindings(cfg, "kept").kiro_agent == "kept"
-        assert loader.resolve_agent_bindings(cfg, "deleted").kiro_agent == "kirocrew"
+        assert loader.resolve_agent_bindings(cfg, "deleted").kiro_agent == "junction"
 
     def test_substituting_an_alias_name_round_trips_to_the_same_agent(self):
         # The trap: storing the DEFAULT's physical `kiro_agent` when a request is
@@ -4349,12 +4349,12 @@ class TestAppAgentDispatch(unittest.TestCase):
         # value re-resolves as that alias and dispatches its target instead — the
         # advertised-vs-answering mismatch, reintroduced by the substitution meant
         # to prevent it. `resolved_alias` round-trips to the same bindings.
-        import kiro_crew.config.loader as loader
-        from kiro_crew.config.loader import KiroCrewAgentConfig
+        import junction.config.loader as loader
+        from junction.config.loader import JunctionAgentConfig
 
         cfg = self._config()
-        cfg.agents["default"] = KiroCrewAgentConfig(kiro_agent="worker")
-        cfg.agents["worker"] = KiroCrewAgentConfig(kiro_agent="other")
+        cfg.agents["default"] = JunctionAgentConfig(kiro_agent="worker")
+        cfg.agents["worker"] = JunctionAgentConfig(kiro_agent="other")
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"unrelated.json": {"name": "unrelated"}})
@@ -4376,7 +4376,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # it, the registration publishes, then the stale scan finishes and assigns.
         # A plain replace would drop the published name and un-dispatch a freshly
         # enabled app. Simulated by publishing from inside the scan.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         def _scan_that_races(_p):
             # Stands in for "the directory as it looked before the write".
@@ -4395,7 +4395,7 @@ class TestAppAgentDispatch(unittest.TestCase):
     def test_refresh_replaces_when_no_publish_intervened(self):
         # Without an intervening publish the refresh is authoritative, so removals
         # take effect — a union-always policy would make deleted agents immortal.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         loader.publish_materialized_agents({"gone"})
         assert loader.resolve_agent_bindings(self._config(), agent_name="gone").kiro_agent == "gone"
@@ -4407,7 +4407,7 @@ class TestAppAgentDispatch(unittest.TestCase):
 
         cfg = self._config()
         assert loader.resolve_agent_bindings(cfg, agent_name="kept").kiro_agent == "kept"
-        assert loader.resolve_agent_bindings(cfg, agent_name="gone").kiro_agent == "kirocrew"
+        assert loader.resolve_agent_bindings(cfg, agent_name="gone").kiro_agent == "junction"
 
     def test_publish_makes_names_dispatchable_with_no_filesystem_access(self):
         # _register_agents publishes what it just wrote BEFORE scheduling the
@@ -4415,7 +4415,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # created in that window is normalized to the default AND stored — the
         # slot would stay bound to the wrong agent. Publishing must therefore be
         # immediate and touch nothing on disk.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         def _explode(_p):
             raise AssertionError("publish must not scan the filesystem")
@@ -4430,10 +4430,10 @@ class TestAppAgentDispatch(unittest.TestCase):
             )
             # Unrelated names are unaffected — publishing adds, never asserts
             # completeness.
-            assert loader.resolve_agent_bindings(cfg, agent_name="nope").kiro_agent == "kirocrew"
+            assert loader.resolve_agent_bindings(cfg, agent_name="nope").kiro_agent == "junction"
 
     def test_publish_ignores_empty_input(self):
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         loader.publish_materialized_agents([])
         assert loader._MATERIALIZED_AGENTS_READY is False
@@ -4448,7 +4448,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         import asyncio
         import threading
 
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         scan_threads: list[int] = []
         real_scan = loader._scan_materialized_agents
@@ -4482,7 +4482,7 @@ class TestAppAgentDispatch(unittest.TestCase):
     def test_registration_refresh_runs_inline_without_a_loop(self):
         # In a synchronous context (CLI, the boot warm already on an executor)
         # there is no loop to protect, so the refresh happens immediately.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
@@ -4496,7 +4496,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # turn, so this is the safety net, not the expected path.
         import asyncio
 
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
@@ -4507,7 +4507,7 @@ class TestAppAgentDispatch(unittest.TestCase):
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: d):
                 with unittest.mock.patch.object(loader, "_MATERIALIZED_AGENTS", frozenset()):
                     with unittest.mock.patch.object(loader, "_MATERIALIZED_AGENTS_READY", False):
-                        assert asyncio.run(_on_loop()).kiro_agent == "kirocrew"
+                        assert asyncio.run(_on_loop()).kiro_agent == "junction"
 
     def _project_dir(self, tmp: Path, files: dict[str, dict]) -> Path:
         d = tmp / "repo" / ".kiro" / "agents"
@@ -4517,11 +4517,11 @@ class TestAppAgentDispatch(unittest.TestCase):
         return tmp / "repo"
 
     def test_project_agent_dispatches_itself(self):
-        # A project-local agent is resolvable by kiro-cli (Kiro Crew spawns it with
-        # the project dir as cwd) but is not a Kiro Crew alias, so without the
+        # A project-local agent is resolvable by kiro-cli (Junction spawns it with
+        # the project dir as cwd) but is not a Junction alias, so without the
         # project scope it fell through to default_agent and the DEFAULT agent
         # answered a session the user bound to the repo's own agent.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
@@ -4537,20 +4537,20 @@ class TestAppAgentDispatch(unittest.TestCase):
         # Without the project dir there is no second scope to search, so the same
         # agent must still fall back — the pre-existing contract for callers that
         # have no session context.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
             self._project_dir(Path(td), {"repobot.json": {"name": "repobot"}})
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: agents):
                 r = loader.resolve_agent_bindings(self._config(), agent_name="repobot")
-        assert r.kiro_agent == "kirocrew"
+        assert r.kiro_agent == "junction"
         assert r.requested_resolved is False
 
     def test_alias_still_wins_over_a_project_agent(self):
-        # An explicit Kiro Crew alias is authored config; it must not be displaced by
+        # An explicit Junction alias is authored config; it must not be displaced by
         # a file that happens to share its name.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
@@ -4559,12 +4559,12 @@ class TestAppAgentDispatch(unittest.TestCase):
                 r = loader.resolve_agent_bindings(
                     self._config(), agent_name="default", project_dir=str(proj)
                 )
-        assert r.kiro_agent == "kirocrew"
+        assert r.kiro_agent == "junction"
 
     def test_unknown_name_still_falls_back_with_a_project_dir(self):
         # The project scope widens where a name can be found; it must not make an
         # unknown name dispatchable.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
@@ -4573,13 +4573,13 @@ class TestAppAgentDispatch(unittest.TestCase):
                 r = loader.resolve_agent_bindings(
                     self._config(), agent_name="nope", project_dir=str(proj)
                 )
-        assert r.kiro_agent == "kirocrew"
+        assert r.kiro_agent == "junction"
         assert r.requested_resolved is False
 
     def test_user_level_hit_does_no_project_filesystem_io(self):
         # The hot path must stay filesystem-free: a name already in the snapshot
         # must not trigger the project probe, even when a project dir is supplied.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             d = self._agents_dir(Path(td), {"mochi--mochi.json": {"name": "mochi"}})
@@ -4602,8 +4602,8 @@ class TestAppAgentDispatch(unittest.TestCase):
         # would otherwise stall every turn of a project-bound session.
         import asyncio
 
-        import kiro_crew.agent_discovery as ad
-        import kiro_crew.config.loader as loader
+        import junction.agent_discovery as ad
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
@@ -4617,7 +4617,7 @@ class TestAppAgentDispatch(unittest.TestCase):
 
             with unittest.mock.patch.object(loader, "kiro_agents_dir", lambda: agents):
                 with unittest.mock.patch.object(loader, "_MATERIALIZED_AGENTS_READY", True):
-                    assert asyncio.run(_on_loop()).kiro_agent == "kirocrew"
+                    assert asyncio.run(_on_loop()).kiro_agent == "junction"
 
     def test_warming_off_loop_lets_the_loop_resolve_a_project_agent(self):
         # The shape the dashboard call sites use: warm through the discovery pool,
@@ -4625,8 +4625,8 @@ class TestAppAgentDispatch(unittest.TestCase):
         # project-bound session dispatches its own agent on the very first turn.
         import asyncio
 
-        import kiro_crew.agent_discovery as ad
-        import kiro_crew.config.loader as loader
+        import junction.agent_discovery as ad
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
@@ -4654,7 +4654,7 @@ class TestAppAgentDispatch(unittest.TestCase):
         # unrelated RuntimeError on newer runtimes) instead of seeing the error.
         # The offloaded half is deliberately NOT exercised here -- reproducing it
         # would hang the suite on the very runtime the bug affects.
-        import kiro_crew.config.loader as loader
+        import junction.config.loader as loader
 
         with self.assertRaises(StopIteration):
             loader.resolve_agent_bindings(unittest.mock.MagicMock(), "anything", None)
@@ -4663,8 +4663,8 @@ class TestAppAgentDispatch(unittest.TestCase):
         # kiro-cli cannot activate a name declared only in
         # <project>/.kiro/*.agent-spec.json, so resolution must NOT dispatch it --
         # otherwise the slot advertises an agent that fails at set_mode.
-        import kiro_crew.agent_discovery as ad
-        import kiro_crew.config.loader as loader
+        import junction.agent_discovery as ad
+        import junction.config.loader as loader
 
         with tempfile.TemporaryDirectory() as td:
             agents = self._agents_dir(Path(td), {})
@@ -4676,7 +4676,7 @@ class TestAppAgentDispatch(unittest.TestCase):
                 r = loader.resolve_agent_bindings(
                     self._config(), agent_name="legacy", project_dir=str(Path(td) / "repo")
                 )
-        assert r.kiro_agent == "kirocrew"
+        assert r.kiro_agent == "junction"
         assert r.requested_resolved is False
 
 
@@ -4737,7 +4737,7 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
         return {
             "agents": {
                 "default": {
-                    "kiro_agent": "kirocrew",
+                    "kiro_agent": "junction",
                     "workspace": "default",
                     "memory_store": "default",
                 }
@@ -4745,7 +4745,7 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
             "default_agent": "default",
         }
 
-    def _load(self, data: dict) -> tuple[KiroCrewConfig, dict, bool]:
+    def _load(self, data: dict) -> tuple[JunctionConfig, dict, bool]:
         """Load *data* from a temp file; return (cfg, on-disk json, migrated)."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(data, f)
@@ -4753,10 +4753,10 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
         bak = tmp.with_suffix(".json.bak")
         try:
             with unittest.mock.patch(
-                "kiro_crew.config.loader.config_path",
+                "junction.config.loader.config_path",
                 return_value=tmp,
             ):
-                cfg = KiroCrewConfig.load()
+                cfg = JunctionConfig.load()
             return (cfg, json.loads(tmp.read_text(encoding="utf-8")), bak.exists())
         finally:
             tmp.unlink(missing_ok=True)
@@ -4840,9 +4840,9 @@ def test_agent_triggers_load() -> None:
     cfg = _load_from_dict(
         {
             "agents": {
-                "oncall": {"kiro_agent": "kirocrew", "triggers": "incident, outage"},
-                "research": {"kiro_agent": "kirocrew", "description": "deep research crew"},
-                "weird": {"kiro_agent": "kirocrew", "triggers": 1},
+                "oncall": {"kiro_agent": "junction", "triggers": "incident, outage"},
+                "research": {"kiro_agent": "junction", "description": "deep research crew"},
+                "weird": {"kiro_agent": "junction", "triggers": 1},
             },
             "default_agent": "oncall",
             "workspaces": {"default": {"dir": "workspace"}},
@@ -4870,7 +4870,7 @@ class TestUpdateConfigLocked:
         """Control: interleaved RMW without the lock loses one update."""
         import threading
 
-        from kiro_crew.config.loader import read_config_for_update, write_config_atomically
+        from junction.config.loader import read_config_for_update, write_config_atomically
 
         cfg = tmp_path / "config.json"
         cfg.write_text(json.dumps({"counter": 0}))
@@ -4909,7 +4909,7 @@ class TestUpdateConfigLocked:
         """Deterministic interleave through update_config_locked preserves both keys."""
         import threading
 
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text(json.dumps({"counter": 0}))
@@ -4956,7 +4956,7 @@ class TestUpdateConfigLocked:
 
     def test_fail_closed_unreadable_config(self, tmp_path: Path) -> None:
         """A mutate over an unreadable config raises ConfigReadError; file untouched."""
-        from kiro_crew.config.loader import ConfigReadError, update_config_locked
+        from junction.config.loader import ConfigReadError, update_config_locked
 
         cfg = tmp_path / "config.json"
         corrupt_content = "not valid json {{{"
@@ -4976,7 +4976,7 @@ class TestUpdateConfigLocked:
         if platform.system() == "Windows":
             pytest.skip("POSIX mode test")
 
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text(json.dumps({"x": 1}))
@@ -4991,7 +4991,7 @@ class TestUpdateConfigLocked:
 
     def test_mutate_returning_none_skips_write(self, tmp_path: Path) -> None:
         """When mutate returns None, the file is not rewritten."""
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         original = json.dumps({"unchanged": True})
@@ -5008,7 +5008,7 @@ class TestUpdateConfigLocked:
 
     def test_lockfile_is_sidecar(self, tmp_path: Path) -> None:
         """The lockfile is a sidecar (.lock suffix), not the config itself."""
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text("{}")
@@ -5020,7 +5020,7 @@ class TestUpdateConfigLocked:
 
     def test_stamp_meta_default(self, tmp_path: Path) -> None:
         """With stamp_meta=True (default), a meta block is added."""
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text("{}")
@@ -5035,7 +5035,7 @@ class TestUpdateConfigLocked:
 
     def test_new_file_creation(self, tmp_path: Path) -> None:
         """update_config_locked works when the config file does not yet exist."""
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         # File does not exist yet
@@ -5047,7 +5047,7 @@ class TestUpdateConfigLocked:
 
     def test_on_corrupt_fail_is_default(self, tmp_path: Path) -> None:
         """Default on_corrupt='fail' raises ConfigReadError; file untouched."""
-        from kiro_crew.config.loader import ConfigReadError, update_config_locked
+        from junction.config.loader import ConfigReadError, update_config_locked
 
         cfg = tmp_path / "config.json"
         corrupt = "not json {{{"
@@ -5060,7 +5060,7 @@ class TestUpdateConfigLocked:
 
     def test_on_corrupt_reset_writes_from_empty(self, tmp_path: Path) -> None:
         """on_corrupt='reset' invokes mutate with {} and writes the result."""
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text("broken {{")
@@ -5078,7 +5078,7 @@ class TestUpdateConfigLocked:
             pytest.skip("POSIX mode test")
         import stat
 
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text("corrupt!")
@@ -5106,7 +5106,7 @@ class TestUpdateConfigLocked:
         """
         import threading
 
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text("corrupt file {{{")
@@ -5155,7 +5155,7 @@ class TestUpdateConfigLocked:
 
     def test_on_corrupt_reset_non_dict_file(self, tmp_path: Path) -> None:
         """on_corrupt='reset' also handles a file that is valid JSON but not a dict."""
-        from kiro_crew.config.loader import update_config_locked
+        from junction.config.loader import update_config_locked
 
         cfg = tmp_path / "config.json"
         cfg.write_text('"just a string"')
@@ -5182,12 +5182,12 @@ class TestMigrationBackupContainment:
     # load() take the migration write-back branch that writes the backup.
     _LEGACY = {"telegram": {"allow_forum": True}}
 
-    def _load_with(self, home: Path, cfg_file: Path) -> KiroCrewConfig:
+    def _load_with(self, home: Path, cfg_file: Path) -> JunctionConfig:
         with (
-            unittest.mock.patch("kiro_crew.config.loader.config_dir", return_value=home),
-            unittest.mock.patch("kiro_crew.config.loader.config_path", return_value=cfg_file),
+            unittest.mock.patch("junction.config.loader.config_dir", return_value=home),
+            unittest.mock.patch("junction.config.loader.config_path", return_value=cfg_file),
         ):
-            return KiroCrewConfig.load()
+            return JunctionConfig.load()
 
     def test_no_sibling_left_beside_a_redirected_config(self, tmp_path: Path) -> None:
         """A caller-owned directory gains nothing from a migrating load()."""
@@ -5251,7 +5251,7 @@ class TestMigrationBackupContainment:
         cfg_file.write_text(original, encoding="utf-8")
 
         with unittest.mock.patch(
-            "kiro_crew.config.loader.shutil.copy2",
+            "junction.config.loader.shutil.copy2",
             side_effect=OSError("backup target is read-only"),
         ):
             cfg = self._load_with(home, cfg_file)
@@ -5376,7 +5376,7 @@ class TestTransportThresholdConsistency:
         Leaving jsonschema installed here (as CI does) makes this pass against a
         hand-rolled clamp too, which is exactly the mistake that hides the bug.
         """
-        import kiro_crew.config.validation as validation
+        import junction.config.validation as validation
 
         monkeypatch.setattr(validation, "_HAS_JSONSCHEMA", False)
         payload: dict = {"soft_threshold_pct": 90.0}
@@ -5427,7 +5427,7 @@ class TestWeComSectionSurvivesLoad:
         missing = declared - set(_WECOM_FIELD_SAMPLES)
         assert not missing, (
             f"WeComConfig gained field(s) {sorted(missing)} with no sample here. Add one, "
-            "and check KiroCrewConfig.load() actually reads the key -- it enumerates them "
+            "and check JunctionConfig.load() actually reads the key -- it enumerates them "
             "by hand, so an omission silently discards the operator's value."
         )
         assert not set(_WECOM_FIELD_SAMPLES) - declared, "sample for a field that no longer exists"
@@ -5440,7 +5440,7 @@ class TestWeComSectionSurvivesLoad:
         default = getattr(loader_module.WeComConfig(), field_name)
         assert loaded != default, (
             f"wecom.{field_name} loaded as its default {default!r} despite being configured "
-            f"as {sample!r} -- KiroCrewConfig.load() is not reading the key"
+            f"as {sample!r} -- JunctionConfig.load() is not reading the key"
         )
 
     @pytest.mark.parametrize("junk", [None, 7, "zhangsan", {"a": 1}, True])

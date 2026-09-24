@@ -25,8 +25,8 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew import skills as skills_mod
-from kiro_crew.skills import (
+from junction import skills as skills_mod
+from junction.skills import (
     _PROVENANCE_MARKER,
     _ensure_builtin_skills,
     _record_builtin_provenance,
@@ -887,7 +887,7 @@ class TestStandaloneCliPathsSync:
     """Gateway-less async entry points must run the explicit sync seam.
 
     Construction-time sync skips itself on a running event loop; the gateway
-    compensates at startup, but standalone ``kirocrew run`` and the eval
+    compensates at startup, but standalone ``junction run`` and the eval
     runner have no gateway to own the sync and must call the seam themselves
     (off-loop, mirroring the gateway pattern).
     """
@@ -895,7 +895,7 @@ class TestStandaloneCliPathsSync:
     def test_run_task_uses_explicit_off_loop_sync(self) -> None:
         import inspect
 
-        from kiro_crew import cli_server
+        from junction import cli_server
 
         src = inspect.getsource(cli_server._run_task)
         assert "SkillsLoader(install_builtins=False)" in src
@@ -904,7 +904,7 @@ class TestStandaloneCliPathsSync:
     def test_eval_runner_uses_explicit_off_loop_sync(self) -> None:
         import inspect
 
-        from kiro_crew.eval import runner as eval_runner
+        from junction.eval import runner as eval_runner
 
         src = inspect.getsource(eval_runner)
         assert "install_builtins=False" in src

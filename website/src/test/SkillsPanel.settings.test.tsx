@@ -3,15 +3,15 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 
-const { patchConfigMock, kirocrewConfigMock } = vi.hoisted(() => ({
+const { patchConfigMock, junctionConfigMock } = vi.hoisted(() => ({
   patchConfigMock: vi.fn(() => Promise.resolve({})),
-  kirocrewConfigMock: vi.fn(() =>
+  junctionConfigMock: vi.fn(() =>
     Promise.resolve({ skills: { auto_create_from_sessions: false, approval_required: true } }),
   ),
 }))
 
 vi.mock('../api/client', () => ({
-  api: { kirocrewConfig: kirocrewConfigMock, patchConfig: patchConfigMock },
+  api: { junctionConfig: junctionConfigMock, patchConfig: patchConfigMock },
 }))
 
 import { SkillsPanel } from '../pages/settings/SkillsPanel'
@@ -24,8 +24,8 @@ function wrap(ui: React.ReactElement) {
 describe('SkillsPanel – auto-generate toggle', () => {
   beforeEach(() => {
     patchConfigMock.mockClear()
-    kirocrewConfigMock.mockClear()
-    kirocrewConfigMock.mockImplementation(() =>
+    junctionConfigMock.mockClear()
+    junctionConfigMock.mockImplementation(() =>
       Promise.resolve({ skills: { auto_create_from_sessions: false, approval_required: true } }),
     )
   })
@@ -33,13 +33,13 @@ describe('SkillsPanel – auto-generate toggle', () => {
   it('renders reflecting server state (auto-generate off by default)', async () => {
     wrap(<SkillsPanel />)
     expect(await screen.findByText('Auto-generate skills from sessions')).toBeInTheDocument()
-    await waitFor(() => expect(kirocrewConfigMock).toHaveBeenCalled())
+    await waitFor(() => expect(junctionConfigMock).toHaveBeenCalled())
   })
 
   it('PATCHes skills.auto_create_from_sessions=true when toggled on', async () => {
     wrap(<SkillsPanel />)
     const label = await screen.findByText('Auto-generate skills from sessions')
-    await waitFor(() => expect(kirocrewConfigMock).toHaveBeenCalled())
+    await waitFor(() => expect(junctionConfigMock).toHaveBeenCalled())
     fireEvent.click(label)
     await waitFor(() =>
       expect(patchConfigMock).toHaveBeenCalledWith('skills.auto_create_from_sessions', true),
@@ -51,7 +51,7 @@ describe('SkillsPanel – auto-generate toggle', () => {
     // With auto-create off, flipping approval must not fire a PATCH.
     const approval = await screen.findByText('Require approval before generated skills go live')
     fireEvent.click(approval)
-    await waitFor(() => expect(kirocrewConfigMock).toHaveBeenCalled())
+    await waitFor(() => expect(junctionConfigMock).toHaveBeenCalled())
     expect(patchConfigMock).not.toHaveBeenCalledWith('skills.approval_required', expect.anything())
   })
 })

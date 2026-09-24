@@ -9,7 +9,7 @@ import { gcOrphanedStorage, gcSessionStorage } from './storageGc'
  *     key.slice(prefix.length).split(':')[0]
  *
  * The `split(':')` half is load-bearing, not defensive: `useTouchedFiles`
- * writes a companion watermark key `kirocrew:touched-files:<slot>:toolClearedAt`
+ * writes a companion watermark key `junction:touched-files:<slot>:toolClearedAt`
  * alongside the list key, and both must resolve to the same session id.
  *
  * That makes the whole GC correct ONLY while slot keys are free of colons. The
@@ -28,7 +28,7 @@ import { gcOrphanedStorage, gcSessionStorage } from './storageGc'
  */
 
 const HEIGHTS = 'vc_heights_'
-const TOUCHED = 'kirocrew:touched-files:'
+const TOUCHED = 'junction:touched-files:'
 const PANEL_TABS = 'mc-panel-tabs:'
 const ACTIVITY = 'mc-activity-open:'
 

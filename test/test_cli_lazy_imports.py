@@ -3,18 +3,18 @@
 ``cli.py`` used to import ``cli_commands`` (~556 ms), ``cli_server`` (~549 ms,
 pulling ``slack.gateway``) and ``dashboard.state`` (pulling ``vector_memory``
 → ``numpy``, ~56 MB) at module scope, so every CLI invocation and — worse —
-every long-lived MCP stdio server (``kirocrew mcp-core`` / ``mcp-cron`` /
+every long-lived MCP stdio server (``junction mcp-core`` / ``mcp-cron`` /
 ``mcp-computer``) paid ~1.3 s and ~112 MB for subcommands that never run.
 Those imports were moved into the one ``main()`` dispatch branch that uses
-each name, cutting a fresh ``import kiro_crew.cli`` to ~0.5 s / ~54 MB.
+each name, cutting a fresh ``import junction.cli`` to ~0.5 s / ~54 MB.
 
 The tests here keep it that way:
 
-1. **Ratchet** — a fresh interpreter that imports ``kiro_crew.cli`` must not
+1. **Ratchet** — a fresh interpreter that imports ``junction.cli`` must not
    end up with any of the heavy modules in ``sys.modules``.  Without this, the
    next module-scope import silently undoes the win (the two historical
    ``# noqa: E402`` blocks show that already happened once).
-2. **Dispatch integrity** — every function-local ``from kiro_crew.* import``
+2. **Dispatch integrity** — every function-local ``from junction.* import``
    inside ``main()`` must resolve.  A typo in a moved import is otherwise only
    discovered at runtime by the user who runs that one subcommand.
 3. **Stdio servers still serve** — ``mcp-core`` / ``mcp-cron`` answer
@@ -42,29 +42,29 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import cli
-from kiro_crew.platform import PlatformCompositionError
+from junction import cli
+from junction.platform import PlatformCompositionError
 
 _SRC = Path(__file__).resolve().parent.parent / "src"
-_CLI_PY = _SRC / "kiro_crew" / "cli.py"
+_CLI_PY = _SRC / "junction" / "cli.py"
 
-#: Modules that must NOT load as a side effect of ``import kiro_crew.cli``.
+#: Modules that must NOT load as a side effect of ``import junction.cli``.
 #: Each entry names a measured cost: cli_commands/cli_server are the two
 #: deferred dispatch-table modules (~1.1 s combined), slack.gateway is
 #: cli_server's heaviest edge, dashboard.state → vector_memory → numpy is the
 #: ~56 MB RSS chain.
 _BANNED_AFTER_CLI_IMPORT = (
-    "kiro_crew.cli_commands",
-    "kiro_crew.cli_server",
-    "kiro_crew.slack.gateway",
-    "kiro_crew.dashboard.state",
-    "kiro_crew.vector_memory",
+    "junction.cli_commands",
+    "junction.cli_server",
+    "junction.slack.gateway",
+    "junction.dashboard.state",
+    "junction.vector_memory",
     "numpy",
 )
 
 
 def test_cli_import_does_not_load_heavy_modules() -> None:
-    """Ratchet: ``import kiro_crew.cli`` must stay free of the deferred modules.
+    """Ratchet: ``import junction.cli`` must stay free of the deferred modules.
 
     If this fails, a module-scope import (direct or transitive) reached one of
     the banned modules again — move it into the dispatch branch that needs it
@@ -72,7 +72,7 @@ def test_cli_import_does_not_load_heavy_modules() -> None:
     """
     code = (
         "import sys; "
-        "import kiro_crew.cli; "
+        "import junction.cli; "
         "banned = " + repr(list(_BANNED_AFTER_CLI_IMPORT)) + "; "
         "present = [m for m in banned if m in sys.modules]; "
         "print(repr(present))"
@@ -80,17 +80,17 @@ def test_cli_import_does_not_load_heavy_modules() -> None:
     res = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, timeout=120
     )
-    assert res.returncode == 0, f"import kiro_crew.cli failed:\n{res.stderr}"
+    assert res.returncode == 0, f"import junction.cli failed:\n{res.stderr}"
     present = ast.literal_eval(res.stdout.strip())
     assert present == [], (
-        f"module-scope import of kiro_crew.cli loaded deferred modules: {present}. "
+        f"module-scope import of junction.cli loaded deferred modules: {present}. "
         "A new (or moved-back) module-scope import reaches them — defer it into "
         "the main() dispatch branch that uses it (see issue #3504)."
     )
 
 
 def _local_imports_in_main() -> list[tuple[str, str]]:
-    """(module, name) for every function-local kiro_crew import inside main()."""
+    """(module, name) for every function-local junction import inside main()."""
     tree = ast.parse(_CLI_PY.read_text(encoding="utf-8"))
     main_fn = next(
         node
@@ -100,7 +100,7 @@ def _local_imports_in_main() -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for node in ast.walk(main_fn):
         if isinstance(node, ast.ImportFrom) and node.module and (
-            node.module == "kiro_crew" or node.module.startswith("kiro_crew.")
+            node.module == "junction" or node.module.startswith("junction.")
         ):
             for alias in node.names:
                 found.append((node.module, alias.name))
@@ -111,9 +111,9 @@ def test_main_contains_the_deferred_dispatch_imports() -> None:
     """The dispatch imports really are function-local (not silently hoisted back)."""
     local = _local_imports_in_main()
     modules = {mod for mod, _ in local}
-    assert "kiro_crew.cli_commands" in modules
-    assert "kiro_crew.cli_server" in modules
-    assert "kiro_crew.dashboard.state" in modules
+    assert "junction.cli_commands" in modules
+    assert "junction.cli_server" in modules
+    assert "junction.dashboard.state" in modules
     # Coherence check: the dispatch chain defers a substantial name set, not a remnant.
     assert len(local) >= 25, f"expected >=25 deferred imports in main(), found {len(local)}"
 
@@ -134,16 +134,16 @@ def test_every_deferred_dispatch_import_resolves(module: str, name: str) -> None
 
 
 def _stdio_roundtrip(subcommand: str, tmp_path: Path) -> list[str]:
-    """Start ``kirocrew <subcommand>`` over stdio; return the tools/list names."""
+    """Start ``junction <subcommand>`` over stdio; return the tools/list names."""
     proc = subprocess.Popen(
-        [sys.executable, "-m", "kiro_crew", subcommand],
+        [sys.executable, "-m", "junction", subcommand],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
         env={
             **os.environ,
-            "KIROCREW_HOME": str(tmp_path / "home"),
+            "JUNCTION_HOME": str(tmp_path / "home"),
         },
     )
     try:
@@ -199,11 +199,11 @@ def test_boot_platform_runs_before_mcp_core_dispatch(monkeypatch) -> None:
         cli, "boot_platform", lambda *_a, **_k: order.append("boot_platform")
     )
 
-    fake_mcp_core = types.ModuleType("kiro_crew.mcp_core")
+    fake_mcp_core = types.ModuleType("junction.mcp_core")
     fake_mcp_core.run_mcp_core_server = lambda: order.append("dispatch")  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "kiro_crew.mcp_core", fake_mcp_core)
+    monkeypatch.setitem(sys.modules, "junction.mcp_core", fake_mcp_core)
 
-    monkeypatch.setattr(cli.sys, "argv", ["kirocrew", "mcp-core"])
+    monkeypatch.setattr(cli.sys, "argv", ["junction", "mcp-core"])
     cli.main()
 
     assert order == ["boot_platform", "dispatch"]
@@ -218,11 +218,11 @@ def test_platform_composition_error_still_aborts_mcp_core(monkeypatch) -> None:
     monkeypatch.setattr(cli, "boot_platform", _raise)
 
     dispatched: list[bool] = []
-    fake_mcp_core = types.ModuleType("kiro_crew.mcp_core")
+    fake_mcp_core = types.ModuleType("junction.mcp_core")
     fake_mcp_core.run_mcp_core_server = lambda: dispatched.append(True)  # type: ignore[attr-defined]
-    monkeypatch.setitem(sys.modules, "kiro_crew.mcp_core", fake_mcp_core)
+    monkeypatch.setitem(sys.modules, "junction.mcp_core", fake_mcp_core)
 
-    monkeypatch.setattr(cli.sys, "argv", ["kirocrew", "mcp-core"])
+    monkeypatch.setattr(cli.sys, "argv", ["junction", "mcp-core"])
     with pytest.raises(PlatformCompositionError):
         cli.main()
     assert dispatched == [], "mcp-core dispatched despite a failed platform composition"

@@ -24,7 +24,7 @@ TurnUsage on EVENT_COMPLETE  ──►  chat_runner captures _turn_elapsed_ms /
                      AssistantMessage renders the stats line (showFooter only)
 ```
 
-## Backend (`src/kiro_crew/dashboard/chat_runner.py`)
+## Backend (`src/junction/dashboard/chat_runner.py`)
 
 - **Turn start stamp**: `_turn_t0 = time.monotonic()` is recorded immediately before the event-stream loop of each turn.
 - **Capture at `EVENT_COMPLETE`**: `_turn_elapsed_ms` prefers the provider-reported `TurnUsage.duration_ms` (claude_code fills it; kiro/acp reports 0) and falls back to local wall clock. `_turn_credits` is kiro-cli's per-turn `meteringUsage` sum; `_turn_cost_usd` is claude_code's API-reported cost; `_turn_model` is `read_turn_model(client)` (see Model attribution).

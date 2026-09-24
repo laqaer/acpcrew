@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 Every dispatch goes through the fake session manager from ``meetings_helpers`` —
 no test spawns a process or opens a socket.
@@ -22,9 +22,9 @@ from meetings_helpers import (  # noqa: F401
     root_fixture,
 )
 
-from kiro_crew.apps.builtins.meetings.backend import constants as k
-from kiro_crew.apps.builtins.meetings.backend import store
-from kiro_crew.apps.builtins.meetings.backend.domain import session as sess
+from junction.apps.builtins.meetings.backend import constants as k
+from junction.apps.builtins.meetings.backend import store
+from junction.apps.builtins.meetings.backend.domain import session as sess
 
 
 class TestNoiseFilter:
@@ -661,7 +661,7 @@ class TestDispatchThreadsGovernanceIdentity:
         import ast
         import inspect
 
-        from kiro_crew import llm_helpers
+        from junction import llm_helpers
 
         tree = ast.parse(inspect.getsource(llm_helpers))
         calls = [

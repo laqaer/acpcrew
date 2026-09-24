@@ -44,7 +44,7 @@
        flow (animations, transitions, interactions) — a still image cannot
        prove those.
      - Commit media to the PR branch under a top-level, ephemeral, never-packaged
-       dir `temp-screenshots/<feature>/` (never under docs/ or src/kiro_crew/**)
+       dir `temp-screenshots/<feature>/` (never under docs/ or src/junction/**)
        and embed with commit-SHA-pinned URLs so they survive branch deletion on
        merge and periodic cleanup:
        ![alt](https://github.com/<owner>/<repo>/raw/<sha>/temp-screenshots/<feature>/<name>.png)

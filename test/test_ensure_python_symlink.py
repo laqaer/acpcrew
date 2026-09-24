@@ -53,7 +53,7 @@ def _record_via_symlinked_python(tmp_path: Path) -> str:
 
     home = tmp_path / "home"
     env = dict(os.environ)
-    env["KIROCREW_HOME"] = str(home)
+    env["JUNCTION_HOME"] = str(home)
     # The symlinks must win the PATH search, but the script also shells out to
     # `mkdir`, so keep coreutils reachable.
     env["PATH"] = os.pathsep.join([str(fake_bin), "/usr/bin", "/bin"])

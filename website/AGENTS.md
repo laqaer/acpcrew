@@ -5,7 +5,7 @@ causes damage before a pointer could be read. Everything else is a link you MUST
 open before touching that area. The backend router is [`../AGENTS.md`](../AGENTS.md).
 
 React + TypeScript + Vite SPA for the Junction dashboard. Built assets go to
-`dist/` and are staged into `../src/kiro_crew/static/dist/` so the gateway serves
+`dist/` and are staged into `../src/junction/static/dist/` so the gateway serves
 them.
 
 ## Read before you touch
@@ -97,6 +97,6 @@ ones (e.g. `typeof Notification !== 'undefined'`).
   header; use `PanelSectionHeader`.
 - **`src/extensions.ts` is core-owned and must register nothing.** Core
   registrations belong in the seed maps.
-- **Edition composition is fail-closed:** it needs `KIROCREW_EDITION_DIR` **and**
-  `KIROCREW_ALLOW_EDITION=1`. Never set the latter in a release or publish job. A
+- **Edition composition is fail-closed:** it needs `JUNCTION_EDITION_DIR` **and**
+  `JUNCTION_ALLOW_EDITION=1`. Never set the latter in a release or publish job. A
   contaminated public wheel cannot be unpublished.

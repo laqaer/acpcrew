@@ -11,9 +11,9 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.acp.client import AcpError, _rejected_model_from_error
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST, EVENT_TEXT_CHUNK
-from kiro_crew.llm_helpers import run_bg_oneliner
+from junction.acp.client import AcpError, _rejected_model_from_error
+from junction.acp.types import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST, EVENT_TEXT_CHUNK
+from junction.llm_helpers import run_bg_oneliner
 
 
 class _FakeSession:
@@ -114,7 +114,7 @@ async def test_empty_model_does_not_override_session_default():
 @pytest.mark.asyncio
 async def test_permission_request_is_rejected_and_sel_logged(monkeypatch):
     logged: list = []
-    import kiro_crew.llm_helpers as mod
+    import junction.llm_helpers as mod
 
     def _fake_sel():
         return SimpleNamespace(log_tool_invocation=lambda **kw: logged.append(kw))
@@ -139,7 +139,7 @@ async def test_permission_denial_is_sel_logged_even_without_sel_source(monkeypat
     ``sel_source`` still produces a ``denied`` SEL event under the generic
     ``bg_oneliner`` source (backend-security-controls; Codex HIGH regression)."""
     logged: list = []
-    import kiro_crew.llm_helpers as mod
+    import junction.llm_helpers as mod
 
     def _fake_sel():
         return SimpleNamespace(log_tool_invocation=lambda **kw: logged.append(kw))
@@ -353,7 +353,7 @@ async def test_permission_denial_is_audited_even_if_reject_fails(monkeypatch):
     ``reject_tool`` transport failure cannot skip the audit (every permission
     decision must be logged; backend-security-controls)."""
     logged: list = []
-    import kiro_crew.llm_helpers as mod
+    import junction.llm_helpers as mod
 
     monkeypatch.setattr(
         mod,
@@ -378,7 +378,7 @@ async def test_permission_denial_is_audited_even_if_reject_fails(monkeypatch):
     assert sess.destroyed is True
 
 
-_USAGE_TARGET = "kiro_crew.dashboard.handlers.usage.persist_token_record_async"
+_USAGE_TARGET = "junction.dashboard.handlers.usage.persist_token_record_async"
 
 
 class _SubstitutingSession(_FakeSession):
@@ -455,7 +455,7 @@ async def test_the_turn_duration_reaches_the_row():
     # unambiguous and the assertion cannot drift on a fraction like 0.4.
     clock = iter([50.0, 50.25])
 
-    with patch("kiro_crew.llm_helpers.time", SimpleNamespace(monotonic=lambda: next(clock))):
+    with patch("junction.llm_helpers.time", SimpleNamespace(monotonic=lambda: next(clock))):
         with patch(_USAGE_TARGET) as persist:
             await run_bg_oneliner(_FakeSessions(sess), "p")
 

@@ -1,10 +1,10 @@
-"""Regression guard for issue #1050: module-scope ``kiro_crew.agent`` imports.
+"""Regression guard for issue #1050: module-scope ``junction.agent`` imports.
 
 The four modules below historically used function-local
-``from kiro_crew.agent import ...`` statements, several justified by
+``from junction.agent import ...`` statements, several justified by
 ``# circular import`` comments that misstated the real import graph
-(``kiro_crew.agent`` imports nothing from ``kiro_crew.dashboard.*`` or
-``kiro_crew.session``).  The imports were hoisted to module scope; these
+(``junction.agent`` imports nothing from ``junction.dashboard.*`` or
+``junction.session``).  The imports were hoisted to module scope; these
 tests keep them there and prove no cycle exists in either load order.
 
 Order-dependent cycles only surface in a fresh interpreter, not under a
@@ -19,17 +19,17 @@ from pathlib import Path
 _SRC = Path(__file__).resolve().parent.parent / "src"
 
 _HOISTED_MODULES = (
-    "kiro_crew.dashboard.handlers.agents",
-    "kiro_crew.dashboard.handlers.mcp",
-    "kiro_crew.dashboard.handlers.hooks",
-    "kiro_crew.session",
+    "junction.dashboard.handlers.agents",
+    "junction.dashboard.handlers.mcp",
+    "junction.dashboard.handlers.hooks",
+    "junction.session",
 )
 
 _HOISTED_FILES = (
-    "kiro_crew/dashboard/handlers/agents.py",
-    "kiro_crew/dashboard/handlers/mcp.py",
-    "kiro_crew/dashboard/handlers/hooks.py",
-    "kiro_crew/session.py",
+    "junction/dashboard/handlers/agents.py",
+    "junction/dashboard/handlers/mcp.py",
+    "junction/dashboard/handlers/hooks.py",
+    "junction/session.py",
 )
 
 
@@ -53,31 +53,31 @@ def test_hoisted_modules_import_together_fresh() -> None:
 
 
 def test_hoisted_modules_import_agent_first_fresh() -> None:
-    """Loading kiro_crew.agent BEFORE the handlers must also be cycle-free.
+    """Loading junction.agent BEFORE the handlers must also be cycle-free.
 
     A cycle between ``agent`` and these modules would be order-dependent:
     it can pass in one load order and raise ImportError in the other.
     """
     _fresh_import(
-        "; ".join(["import kiro_crew.agent"] + [f"import {m}" for m in _HOISTED_MODULES])
+        "; ".join(["import junction.agent"] + [f"import {m}" for m in _HOISTED_MODULES])
     )
 
 
 def test_no_function_local_agent_imports_remain() -> None:
-    """Ratchet: no function-local ``from kiro_crew.agent import`` in the four files.
+    """Ratchet: no function-local ``from junction.agent import`` in the four files.
 
     A reintroduced local import would silently undo the hoist and eventually
     re-grow the false ``# circular import`` folklore this fixed.  All three
-    repo spellings are covered: ``from kiro_crew.agent import X``,
-    ``import kiro_crew.agent``, and ``from kiro_crew import agent`` (the
+    repo spellings are covered: ``from junction.agent import X``,
+    ``import junction.agent``, and ``from junction import agent`` (the
     last matched on the bare ``agent`` name so sibling imports like
     ``agent_state`` don't trip it; comments are excluded from the match).
     """
     local_import = re.compile(
         r"^[ \t]+(?:"
-        r"from kiro_crew\.agent import"
-        r"|import kiro_crew\.agent\b"
-        r"|from kiro_crew import [^#\n]*\bagent\b"
+        r"from junction\.agent import"
+        r"|import junction\.agent\b"
+        r"|from junction import [^#\n]*\bagent\b"
         r")",
         re.MULTILINE,
     )
@@ -88,6 +88,6 @@ def test_no_function_local_agent_imports_remain() -> None:
         if hits:
             offenders[rel] = len(hits)
     assert not offenders, (
-        f"function-local kiro_crew.agent imports reintroduced: {offenders}; "
+        f"function-local junction.agent imports reintroduced: {offenders}; "
         f"import at module scope instead (no cycle exists — see issue #1050)"
     )

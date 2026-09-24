@@ -2,7 +2,7 @@
 
 Targets uncovered helper branches, pod-guard refusals, request-handler
 validation, the audit decorator's non-success paths, and the lifecycle
-hooks of ``kiro_crew.apps.builtins.dev_fleet.server``.
+hooks of ``junction.apps.builtins.dev_fleet.server``.
 
 Everything is injected: no real git, no real subprocess, no network, and no
 writes outside ``tmp_path``. Where the module reads its config home the
@@ -23,8 +23,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-import kiro_crew.apps.builtins.dev_fleet.server as mod
-from kiro_crew.apps.builtins.dev_fleet import gateway_service
+import junction.apps.builtins.dev_fleet.server as mod
+from junction.apps.builtins.dev_fleet import gateway_service
 
 # The launchd label derivation imports the pod launchd module for its label
 # prefix; on a host where that optional module is unavailable the function
@@ -114,7 +114,7 @@ def test_load_dev_fleet_cfg_overlay_wins(monkeypatch, tmp_path):
     (tmp_path / "config.local.json").write_text(
         json.dumps({"dev_fleet": {"a": 2, "b": 3}}), encoding="utf-8", newline="\n"
     )
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
 
     assert mod._load_dev_fleet_cfg() == {"a": 2, "keep": "yes", "b": 3}
 
@@ -125,7 +125,7 @@ def test_load_dev_fleet_cfg_ignores_unusable_files(monkeypatch, tmp_path):
     (tmp_path / "config.local.json").write_text(
         json.dumps({"dev_fleet": "nope"}), encoding="utf-8", newline="\n"
     )
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
 
     assert mod._load_dev_fleet_cfg() == {}
 
@@ -135,7 +135,7 @@ def test_load_dev_fleet_cfg_config_dir_failure_is_empty(monkeypatch):
     def _boom():
         raise RuntimeError("no home")
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", _boom)
+    monkeypatch.setattr("junction.config.loader.config_dir", _boom)
     assert mod._load_dev_fleet_cfg() == {}
 
 
@@ -156,7 +156,7 @@ def test_launchd_live_worktree_missing_launcher_is_none(monkeypatch, tmp_path):
     "script",
     [
         "#!/bin/sh\nexport FOO=1\n",  # no exec line at all
-        "#!/bin/sh\nexec '/usr/local/bin/kirocrew' gateway\n",  # not a venv binary
+        "#!/bin/sh\nexec '/usr/local/bin/junction' gateway\n",  # not a venv binary
     ],
 )
 def test_launchd_live_worktree_unusable_exec_is_none(monkeypatch, tmp_path, script):
@@ -171,8 +171,8 @@ def test_launchd_live_worktree_unusable_exec_is_none(monkeypatch, tmp_path, scri
 @_LAUNCHD_ONLY
 def test_launchd_live_worktree_resolves_checkout(monkeypatch, tmp_path):
     """A venv binary in the exec line resolves to its checkout grandparent."""
-    checkout = tmp_path / "kirocrew-wt-alpha"
-    kcbin = checkout / ".venv" / "bin" / "kirocrew"
+    checkout = tmp_path / "junction-wt-alpha"
+    kcbin = checkout / ".venv" / "bin" / "junction"
     kcbin.parent.mkdir(parents=True)
     kcbin.write_text("", encoding="utf-8", newline="\n")
     launcher = tmp_path / "live-gateway"
@@ -198,12 +198,12 @@ async def test_load_fallback_repos_collects_ancestor_remotes(monkeypatch):
         if "--is-ancestor" in cmd:
             return (0 if "fork/main" in cmd else 1), "", ""
         if "get-url" in cmd:
-            return 0, "git@github.com:someone/kirocrew.git\n", ""
+            return 0, "git@github.com:someone/junction.git\n", ""
         return 1, "", "unexpected"
 
     monkeypatch.setattr(mod, "_run_cmd", fake_run)
     await mod._load_fallback_repos()
-    assert mod._FALLBACK_REPOS == ["someone/kirocrew"]
+    assert mod._FALLBACK_REPOS == ["someone/junction"]
 
 
 @pytest.mark.asyncio
@@ -1679,10 +1679,10 @@ async def test_hmac_health_path_is_exempt(monkeypatch):
     ("headers", "secret", "reason"),
     [
         ({}, "", "no app secret configured"),
-        ({}, "s3cr3t", "missing X-KiroCrew-Proxy header"),
-        ({"X-KiroCrew-Proxy": "nocolon"}, "s3cr3t", "malformed X-KiroCrew-Proxy header"),
-        ({"X-KiroCrew-Proxy": "abc:sig"}, "s3cr3t", "invalid timestamp in proxy header"),
-        ({"X-KiroCrew-Proxy": "1:sig"}, "s3cr3t", "proxy signature expired"),
+        ({}, "s3cr3t", "missing X-Junction-Proxy header"),
+        ({"X-Junction-Proxy": "nocolon"}, "s3cr3t", "malformed X-Junction-Proxy header"),
+        ({"X-Junction-Proxy": "abc:sig"}, "s3cr3t", "invalid timestamp in proxy header"),
+        ({"X-Junction-Proxy": "1:sig"}, "s3cr3t", "proxy signature expired"),
     ],
 )
 async def test_hmac_denials(monkeypatch, headers, secret, reason):
@@ -1724,54 +1724,54 @@ async def test_hmac_denial_survives_audit_sink_failure(monkeypatch, caplog):
 # gateway identity helpers
 # --------------------------------------------------------------------------
 def test_gateway_unit_name_defaults_to_live_unit(monkeypatch, tmp_path):
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path / "home")
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path / "home")
     assert mod._gateway_unit_name() == mod._LIVE_GATEWAY_UNIT
 
 
 def test_gateway_unit_name_uses_pod_instance(monkeypatch, tmp_path):
     home = tmp_path / ".kirocrew-pods" / "feat"
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: home)
-    assert mod._gateway_unit_name() == "kirocrew-pod@feat.service"
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: home)
+    assert mod._gateway_unit_name() == "junction-pod@feat.service"
 
 
 def test_gateway_unit_name_falls_back_when_home_unresolvable(monkeypatch):
     def _boom():
         raise RuntimeError("no home")
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", _boom)
+    monkeypatch.setattr("junction.config.loader.config_dir", _boom)
     assert mod._gateway_unit_name() == mod._LIVE_GATEWAY_UNIT
 
 
 def test_gateway_label_defaults_to_live_agent(monkeypatch, tmp_path):
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path / "home")
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path / "home")
     assert mod._gateway_label() == mod._LIVE_GATEWAY_LABEL
 
 
 def test_gateway_label_uses_pod_agent(monkeypatch, tmp_path):
-    launchd = pytest.importorskip("kiro_crew.pod.launchd")
-    pod_config = pytest.importorskip("kiro_crew.pod.config")
+    launchd = pytest.importorskip("junction.pod.launchd")
+    pod_config = pytest.importorskip("junction.pod.config")
     home = tmp_path / ".kirocrew-pods" / "feat"
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: home)
-    monkeypatch.delenv("KIROCREW_POD_UNIT_PREFIX", raising=False)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: home)
+    monkeypatch.delenv("JUNCTION_POD_UNIT_PREFIX", raising=False)
     expected = f"{launchd.LABEL_PREFIX}.{pod_config.DEFAULT_UNIT_PREFIX}.feat"
     assert mod._gateway_label() == expected
 
 
 def test_gateway_label_honours_unit_prefix_override(monkeypatch, tmp_path):
-    launchd = pytest.importorskip("kiro_crew.pod.launchd")
+    launchd = pytest.importorskip("junction.pod.launchd")
     home = tmp_path / ".kirocrew-pods" / "feat"
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: home)
-    monkeypatch.setenv("KIROCREW_POD_UNIT_PREFIX", "altplane")
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: home)
+    monkeypatch.setenv("JUNCTION_POD_UNIT_PREFIX", "altplane")
     assert mod._gateway_label() == f"{launchd.LABEL_PREFIX}.altplane.feat"
 
 
 @pytest.mark.parametrize(
     ("home_parts", "expected"),
-    [((".kirocrew-pods", "feat"), True), (("home", "kirocrew"), False)],
+    [((".kirocrew-pods", "feat"), True), (("home", "junction"), False)],
 )
 def test_in_pod_detection(monkeypatch, tmp_path, home_parts, expected):
     monkeypatch.setattr(
-        "kiro_crew.config.loader.config_dir", lambda: tmp_path.joinpath(*home_parts)
+        "junction.config.loader.config_dir", lambda: tmp_path.joinpath(*home_parts)
     )
     assert mod._in_pod() is expected
 
@@ -1780,7 +1780,7 @@ def test_in_pod_is_none_when_home_unresolvable(monkeypatch):
     def _boom():
         raise RuntimeError("no home")
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", _boom)
+    monkeypatch.setattr("junction.config.loader.config_dir", _boom)
     assert mod._in_pod() is None
 
 
@@ -1831,7 +1831,7 @@ async def test_find_worktree_by_path_unknown_path(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_find_worktree_by_path_matches_known_worktree(monkeypatch, tmp_path):
-    wanted = tmp_path / "kirocrew-wt-alpha"
+    wanted = tmp_path / "junction-wt-alpha"
     wanted.mkdir()
     monkeypatch.setattr(
         mod, "_discover_worktrees",
@@ -2048,7 +2048,7 @@ def test_main_boots_platform_before_serving(monkeypatch):
         return SimpleNamespace()
 
     monkeypatch.setattr(mod, "boot_platform", _fake_boot)
-    monkeypatch.setattr(mod.KiroCrewConfig, "load", classmethod(lambda cls: SimpleNamespace()))
+    monkeypatch.setattr(mod.JunctionConfig, "load", classmethod(lambda cls: SimpleNamespace()))
     monkeypatch.setattr(mod, "create_app", lambda: calls.append("create_app") or MagicMock())
     monkeypatch.setattr(mod.web, "run_app", lambda *a, **k: calls.append("run_app"))
 
@@ -2063,14 +2063,14 @@ def test_main_fails_closed_when_platform_cannot_compose(monkeypatch):
     whose companion cannot compose must not fall through to serving the backend
     with no security overlay.
     """
-    from kiro_crew.platform.context import PlatformCompositionError
+    from junction.platform.context import PlatformCompositionError
 
     def _boom(_cfg):
         raise PlatformCompositionError("companion missing")
 
     served: list[str] = []
     monkeypatch.setattr(mod, "boot_platform", _boom)
-    monkeypatch.setattr(mod.KiroCrewConfig, "load", classmethod(lambda cls: SimpleNamespace()))
+    monkeypatch.setattr(mod.JunctionConfig, "load", classmethod(lambda cls: SimpleNamespace()))
     monkeypatch.setattr(mod, "create_app", lambda: served.append("create_app") or MagicMock())
     monkeypatch.setattr(mod.web, "run_app", lambda *a, **k: served.append("run_app"))
 

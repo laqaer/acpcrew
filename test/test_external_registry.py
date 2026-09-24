@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.apps.registry — External (federated) registry support."""
+"""Tests for junction.apps.registry — External (federated) registry support."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.apps.registry import (
+from junction.apps.registry import (
     _EXTERNAL_REGISTRY_CACHE_TTL,
     _clone_sandbox_mode,
     _external_registry_cache_path,
@@ -65,7 +65,7 @@ async def _bounded_off_loop(loop: asyncio.AbstractEventLoop, event: threading.Ev
 @pytest.fixture(autouse=True)
 def _explicit_registry_execution_admission(monkeypatch):
     """Registry tests exercise admitted installs unless they say otherwise."""
-    monkeypatch.setattr("kiro_crew.apps.execution.third_party_execution_allowed", lambda: True)
+    monkeypatch.setattr("junction.apps.execution.third_party_execution_allowed", lambda: True)
 
 
 @pytest.fixture(autouse=True)
@@ -80,7 +80,7 @@ def _catalog_absent(monkeypatch):
     answer overrides this by monkeypatching the same seam itself.
     """
     monkeypatch.setattr(
-        "kiro_crew.apps.official_catalog.inventory_for_install",
+        "junction.apps.official_catalog.inventory_for_install",
         lambda name: None,
     )
 
@@ -91,7 +91,7 @@ def cache_dir(tmp_path, monkeypatch):
     cache = tmp_path / "cache" / "app-manifests"
     cache.mkdir(parents=True)
     monkeypatch.setattr(
-        "kiro_crew.apps.registry._manifest_cache_dir",
+        "junction.apps.registry._manifest_cache_dir",
         lambda: cache,
     )
     return cache
@@ -186,7 +186,7 @@ class TestExternalRegistryCache:
     def test_unnamed_raw_legacy_cache_filename_is_removed_without_logging_secret(
         self, cache_dir, caplog
     ):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         secret = "LegacyFilenameSecret"
         raw = f"https://user:{secret}@git.example.com/org/apps.git"
@@ -217,7 +217,7 @@ class TestExternalRegistryCache:
             encoding="utf-8",
         )
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.apps.registry"):
+        with caplog.at_level(logging.WARNING, logger="junction.apps.registry"):
             assert _read_external_registry_cache("corp", ignore_ttl=True) == []
 
         assert secret not in caplog.text
@@ -302,12 +302,12 @@ class TestFetchExternalRegistryValidation:
         """Patch _sel_fn so tests don't abort on SEL unavailability."""
         mock_sel_instance = MagicMock()
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._sel_fn",
+            "junction.apps.registry._sel_fn",
             mock_sel_instance,
         )
         # Bypass OS-sandbox wrap — macOS 26 has no sandbox backend.
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.apps.registry.wrap_argv", lambda argv, **k: (list(argv), None)
         )
 
     @pytest.mark.asyncio
@@ -336,7 +336,7 @@ class TestFetchExternalRegistryValidation:
             )
             return None
 
-        monkeypatch.setattr("kiro_crew.apps.registry._git_fetch_branch", _fake_fetch)
+        monkeypatch.setattr("junction.apps.registry._git_fetch_branch", _fake_fetch)
         result = await _fetch_external_registry_index(raw_registry, "main")
 
         assert result is not None
@@ -401,7 +401,7 @@ class TestFetchExternalRegistryValidation:
 async def test_unnamed_credentialed_registry_cache_hit_and_stale_rows_are_public(
     cache_dir, monkeypatch, stale
 ):
-    from kiro_crew.apps import registry as reg
+    from junction.apps import registry as reg
 
     secret = "CachedRegistrySecret"
     raw_registry = f"https://user:{secret}@git.example.com/org/apps.git"
@@ -429,7 +429,7 @@ async def test_unnamed_credentialed_registry_cache_hit_and_stale_rows_are_public
 
 @pytest.mark.asyncio
 async def test_url_shaped_registry_name_is_credential_free_in_cached_rows(cache_dir, monkeypatch):
-    from kiro_crew.apps import registry as reg
+    from junction.apps import registry as reg
 
     secret = "RegistryNameSecret"
     raw_name = f"https://user:{secret}@registry.example/apps?token={secret}"
@@ -453,7 +453,7 @@ async def test_url_shaped_registry_name_is_credential_free_in_cached_rows(cache_
 
 
 def test_url_shaped_registry_name_still_rehydrates_exact_owner_transport(monkeypatch):
-    from kiro_crew.apps import registry as reg
+    from junction.apps import registry as reg
 
     raw_name = "https://name-user:name-secret@registry.example/apps"
     raw_repo = "https://repo-user:repo-secret@git.example.com/org/apps.git"
@@ -484,12 +484,12 @@ class TestFetchExternalRegistryParsing:
         """Patch _sel_fn so tests don't abort on SEL unavailability."""
         mock_sel_instance = MagicMock()
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._sel_fn",
+            "junction.apps.registry._sel_fn",
             mock_sel_instance,
         )
         # Bypass OS-sandbox wrap — macOS 26 has no sandbox backend.
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.wrap_argv", lambda argv, **k: (list(argv), None)
+            "junction.apps.registry.wrap_argv", lambda argv, **k: (list(argv), None)
         )
 
     @pytest.mark.asyncio
@@ -560,7 +560,7 @@ class TestLoadExternalRegistries:
         mock_config = MagicMock()
         mock_config.registries = []
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         result = await _load_external_registries()
@@ -579,7 +579,7 @@ class TestLoadExternalRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -601,7 +601,7 @@ class TestLoadExternalRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -631,11 +631,11 @@ class TestGetRegistryAppExternal:
         mock_config.registries = [mock_reg]
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [],  # empty core registry
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -648,11 +648,11 @@ class TestGetRegistryAppExternal:
         mock_config = MagicMock()
         mock_config.registries = []
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -673,11 +673,11 @@ class TestGetRegistryAppExternal:
         mock_config.registries = [mock_reg]
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [core_entry],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -706,11 +706,11 @@ class TestGetRegistryAppByRepoExternal:
         mock_config.registries = [mock_reg]
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [],  # empty core registry
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -730,11 +730,11 @@ class TestGetRegistryAppByRepoExternal:
         mock_config.registries = [mock_reg]
 
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [core_entry],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -745,11 +745,11 @@ class TestGetRegistryAppByRepoExternal:
         mock_config = MagicMock()
         mock_config.registries = []
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -836,13 +836,13 @@ class TestCloneSandboxMode:
 class TestKnownRegistryRepos:
     def test_includes_bundled_repos_when_no_external(self, cache_dir, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [{"name": "core", "repo": "CoreRepo"}],
         )
         mock_config = MagicMock()
         mock_config.registries = []
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         assert known_registry_repos() == {"CoreRepo"}
@@ -859,11 +859,11 @@ class TestKnownRegistryRepos:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [{"name": "core", "repo": "CoreRepo"}],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         repos = known_registry_repos()
@@ -884,18 +884,18 @@ class TestKnownRegistryRepos:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         assert "PCNRadar" in known_registry_repos()
 
     def test_fails_open_to_bundled_when_config_raises(self, cache_dir, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [{"name": "core", "repo": "CoreRepo"}],
         )
 
@@ -903,7 +903,7 @@ class TestKnownRegistryRepos:
             raise RuntimeError("config blew up")
 
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             _boom,
         )
         # Must not raise — the allowlist falls open to the bundled set.
@@ -926,7 +926,7 @@ class TestExternalRegistryRepos:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         # No bundled lookup here — helper returns ONLY external repos.
@@ -937,7 +937,7 @@ class TestExternalRegistryRepos:
             raise RuntimeError("config blew up")
 
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             _boom,
         )
         # Distinct from known_registry_repos: the helper falls open to EMPTY,
@@ -958,16 +958,16 @@ class TestRegistryInstallAdmission:
 
     @pytest.fixture()
     def reg_home(self, tmp_path, monkeypatch):
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         return home
 
     def _signed_manifest(self, name, secret, signer="acme"):
         import hashlib
         import hmac
 
-        from kiro_crew.apps.manifest import AppManifest
+        from junction.apps.manifest import AppManifest
 
         data = {
             "name": name,
@@ -985,7 +985,7 @@ class TestRegistryInstallAdmission:
 
     @pytest.mark.asyncio
     async def test_signed_app_admitted_under_require_signature(self, reg_home):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         secret = "s3cr3t"
         self._write_policy(
@@ -1000,7 +1000,7 @@ class TestRegistryInstallAdmission:
         manifest = self._signed_manifest("signed-reg", secret)
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "name": "signed-reg",
                     "repo": "https://example.com/SignedRepo.git",
@@ -1008,11 +1008,11 @@ class TestRegistryInstallAdmission:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=manifest),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=AsyncMock(return_value={"ok": False, "error": "stop-after-admission"}),
             ) as mock_build,
         ):
@@ -1024,7 +1024,7 @@ class TestRegistryInstallAdmission:
 
     @pytest.mark.asyncio
     async def test_unsigned_app_denied_under_require_signature(self, reg_home):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         self._write_policy(
             reg_home,
@@ -1037,7 +1037,7 @@ class TestRegistryInstallAdmission:
         )
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "name": "unsigned-reg",
                     "repo": "https://example.com/UnsignedRepo.git",
@@ -1045,11 +1045,11 @@ class TestRegistryInstallAdmission:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "unsigned-reg", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=AsyncMock(return_value={"ok": True, "pkg_dir": reg_home}),
             ) as mock_build,
         ):
@@ -1121,16 +1121,16 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         # Successful refetch returns a fresh index.
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(return_value=[{"name": "cool-app", "repo": "R"}]),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "cool-app"}]),
         )
 
@@ -1165,16 +1165,16 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         # Refetch fails (unreachable forge / network blip).
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(return_value=None),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "cool-app"}]),
         )
 
@@ -1209,15 +1209,15 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = [reg_a, reg_b]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(return_value=[{"name": "a1", "repo": "R"}]),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[]),
         )
 
@@ -1232,11 +1232,11 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = []
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[]),
         )
         result = await refresh_registries()
@@ -1256,15 +1256,15 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(return_value=["oops", {"name": "good", "repo": "R"}, 42]),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "good"}]),
         )
 
@@ -1298,11 +1298,11 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._fetch_external_registry_index",
+            "junction.apps.registry._fetch_external_registry_index",
             AsyncMock(
                 return_value=[
                     {"name": "good-app", "repo": "R"},
@@ -1316,7 +1316,7 @@ class TestRefreshRegistries:
             ),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.registry.list_registry",
+            "junction.apps.registry.list_registry",
             AsyncMock(return_value=[{"name": "good-app"}]),
         )
 
@@ -1340,12 +1340,12 @@ class TestRefreshRegistries:
         mock_config = MagicMock()
         mock_config.registries = [mock_reg]
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
         # list_registry must NOT be invoked on the not-found short-circuit.
         list_mock = AsyncMock(return_value=[])
-        monkeypatch.setattr("kiro_crew.apps.registry.list_registry", list_mock)
+        monkeypatch.setattr("junction.apps.registry.list_registry", list_mock)
 
         result = await refresh_registries(repo="https://github.com/nope/absent")
 
@@ -1358,7 +1358,7 @@ class TestRefreshRegistries:
     def test_manifest_cache_path_is_traversal_proof(self, cache_dir):
         # A hostile external-registry entry name must never resolve outside the
         # manifest cache dir (GPT 5.6 HIGH: `../../config` -> config.json unlink).
-        import kiro_crew.apps.registry as _reg  # module attr = the patched dir
+        import junction.apps.registry as _reg  # module attr = the patched dir
 
         cache_root = _reg._manifest_cache_dir().resolve()
         for hostile in ("../../config", "../../../etc/passwd", "a/b/c", "..%2F..%2Fconfig"):
@@ -1396,7 +1396,7 @@ class TestRefreshRegistries:
 class TestIsCloneHostTrusted:
     def _no_configured_hosts(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._configured_registry_hosts",
+            "junction.apps.registry._configured_registry_hosts",
             frozenset,
         )
 
@@ -1423,7 +1423,7 @@ class TestIsCloneHostTrusted:
         # trusted -- their deliberate trust decision (rebinding-proof: gated on
         # the hostname, not a resolvable IP).
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._configured_registry_hosts",
+            "junction.apps.registry._configured_registry_hosts",
             lambda: frozenset({"git.internal.example"}),
         )
         assert is_clone_host_trusted("https://git.internal.example/org/app") is True
@@ -1446,7 +1446,7 @@ class TestFetchGitBlobSsrfGate:
 
     @pytest.mark.asyncio
     async def test_untrusted_host_refused_without_spawning_git(self, tmp_path, monkeypatch):
-        from kiro_crew.apps import routes
+        from junction.apps import routes
 
         # A malicious external index resolved this repo to a loopback URL; the
         # caller threads that resolved clone URL in as ``git_url`` (the callee no
@@ -1482,7 +1482,7 @@ class TestInstallPathCredentialPosture:
 
     @pytest.mark.asyncio
     async def test_index_originated_install_propagates_credential_free_flag(self):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         captured = {}
 
@@ -1494,7 +1494,7 @@ class TestInstallPathCredentialPosture:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 # Entry carries the external-index provenance marker.
                 return_value={
                     "name": "acme-app",
@@ -1504,11 +1504,11 @@ class TestInstallPathCredentialPosture:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "acme-app", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
         ):
@@ -1518,7 +1518,7 @@ class TestInstallPathCredentialPosture:
 
     @pytest.mark.asyncio
     async def test_bundled_install_keeps_owner_credentials(self):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         captured = {}
 
@@ -1530,7 +1530,7 @@ class TestInstallPathCredentialPosture:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 # Bundled/curated entry — no ``_registry`` marker.
                 return_value={
                     "name": "bundled-app",
@@ -1539,11 +1539,11 @@ class TestInstallPathCredentialPosture:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "bundled-app", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
         ):
@@ -1555,7 +1555,7 @@ class TestInstallPathCredentialPosture:
     async def test_git_clone_or_pull_index_originated_uses_anonymous_env(self, tmp_path):
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         captured = {}
 
@@ -1575,8 +1575,8 @@ class TestInstallPathCredentialPosture:
 
         dest = tmp_path / "clone-dest"  # does not exist → fresh-clone path
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch.object(_asyncio, "create_subprocess_exec", new=_fake_exec),
         ):
             err = await reg._git_clone_or_pull(
@@ -1603,7 +1603,7 @@ class TestInstallPathCredentialPosture:
     async def test_git_clone_or_pull_owner_designated_uses_minimal_env(self, tmp_path):
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         captured = {}
 
@@ -1624,8 +1624,8 @@ class TestInstallPathCredentialPosture:
         url = "https://github.com/kirodotdev/bundled-app.git"
         dest = tmp_path / "clone-dest"
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch.object(_asyncio, "create_subprocess_exec", new=_fake_exec),
         ):
             err = await reg._git_clone_or_pull(url, "main", dest, [], index_originated=False)
@@ -1654,7 +1654,7 @@ class TestSameRepoCredentialCarveOut:
     @pytest.mark.asyncio
     async def test_same_repo_install_uses_owner_credentials(self):
         """Entry whose clone URL == registry config repo → credentialed install."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         captured = {}
 
@@ -1673,7 +1673,7 @@ class TestSameRepoCredentialCarveOut:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "name": "my-app",
                     "repo": "ssh://git.example.com/team/MyRegistry",
@@ -1684,15 +1684,15 @@ class TestSameRepoCredentialCarveOut:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "my-app", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.config.loader.KiroCrewConfig.load",
+                "junction.config.loader.JunctionConfig.load",
                 return_value=mock_config,
             ),
         ):
@@ -1704,7 +1704,7 @@ class TestSameRepoCredentialCarveOut:
     @pytest.mark.asyncio
     async def test_sibling_repo_same_host_stays_anonymous(self):
         """Entry pointing at a DIFFERENT repo on the same host → still anonymous."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         captured = {}
 
@@ -1723,7 +1723,7 @@ class TestSameRepoCredentialCarveOut:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 # repo points at a DIFFERENT package on the same host — the exact
                 # confused-deputy scenario the defense exists for.
                 return_value={
@@ -1735,15 +1735,15 @@ class TestSameRepoCredentialCarveOut:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "sibling-app", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.config.loader.KiroCrewConfig.load",
+                "junction.config.loader.JunctionConfig.load",
                 return_value=mock_config,
             ),
         ):
@@ -1755,7 +1755,7 @@ class TestSameRepoCredentialCarveOut:
     @pytest.mark.asyncio
     async def test_bundled_entry_unchanged_by_carve_out(self):
         """Bundled entry (no _registry marker) → still owner-designated."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         captured = {}
 
@@ -1770,7 +1770,7 @@ class TestSameRepoCredentialCarveOut:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "name": "bundled-app",
                     "repo": "https://github.com/kirodotdev/bundled-app.git",
@@ -1778,15 +1778,15 @@ class TestSameRepoCredentialCarveOut:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "bundled-app", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.config.loader.KiroCrewConfig.load",
+                "junction.config.loader.JunctionConfig.load",
                 return_value=mock_config,
             ),
         ):
@@ -1800,7 +1800,7 @@ class TestSameRepoCredentialCarveOut:
         """_fetch_app_manifest with owner_designated=True uses minimal_env."""
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         captured = {}
 
@@ -1819,11 +1819,11 @@ class TestSameRepoCredentialCarveOut:
             return _FakeProc()
 
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch.object(_asyncio, "create_subprocess_exec", new=_fake_exec),
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=MagicMock(is_file=MagicMock(return_value=False)),
             ),
         ):
@@ -1850,7 +1850,7 @@ class TestSameRepoCredentialCarveOut:
         """_fetch_app_manifest without owner_designated uses anonymous+strict."""
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         captured = {}
 
@@ -1869,11 +1869,11 @@ class TestSameRepoCredentialCarveOut:
             return _FakeProc()
 
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch.object(_asyncio, "create_subprocess_exec", new=_fake_exec),
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=MagicMock(is_file=MagicMock(return_value=False)),
             ),
         ):
@@ -1902,7 +1902,7 @@ class TestSameRepoCredentialCarveOut:
         test_git_clone_or_pull_owner_designated_uses_minimal_env test."""
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         captured = {}
 
@@ -1923,8 +1923,8 @@ class TestSameRepoCredentialCarveOut:
         url = "ssh://git.example.com/team/MyRegistry"
         dest = tmp_path / "clone-dest"
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch.object(_asyncio, "create_subprocess_exec", new=_fake_exec),
         ):
             err = await reg._git_clone_or_pull(url, "main", dest, [], index_originated=False)
@@ -1943,7 +1943,7 @@ class TestSameRepoCredentialCarveOut:
         Escalating from anonymous+strict to owner credentials is a
         permission decision; it must be auditable like the index fetch.
         """
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         sel = MagicMock()
         with patch.object(reg, "_sel_fn", return_value=sel):
@@ -1958,7 +1958,7 @@ class TestSameRepoCredentialCarveOut:
 
     def test_credential_grant_audit_is_best_effort(self):
         """A failing (or absent) SEL backend never breaks the clone path."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         broken = MagicMock()
         broken.log_api_access.side_effect = RuntimeError("sel down")
@@ -1969,7 +1969,7 @@ class TestSameRepoCredentialCarveOut:
 
     def test_is_owner_designated_repo_exact_match(self):
         """Predicate returns True only for byte-identical match to config repo."""
-        from kiro_crew.apps.registry import _is_owner_designated_repo
+        from junction.apps.registry import _is_owner_designated_repo
 
         mock_config = MagicMock()
         mock_config.registries = [
@@ -1995,7 +1995,7 @@ class TestSameRepoCredentialCarveOut:
             "repo": "https://github.com/kirodotdev/app.git",
         }
 
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=mock_config):
+        with patch("junction.config.loader.JunctionConfig.load", return_value=mock_config):
             assert _is_owner_designated_repo(entry_same) is True
             # Different repo on the same host → NOT owner-designated.
             assert _is_owner_designated_repo(entry_sibling) is False
@@ -2005,7 +2005,7 @@ class TestSameRepoCredentialCarveOut:
 
     def test_is_owner_designated_repo_no_normalization(self):
         """No URL normalization — trailing slash difference is NOT a match."""
-        from kiro_crew.apps.registry import _is_owner_designated_repo
+        from junction.apps.registry import _is_owner_designated_repo
 
         mock_config = MagicMock()
         mock_config.registries = [
@@ -2018,7 +2018,7 @@ class TestSameRepoCredentialCarveOut:
             "gitUrl": "ssh://git.example.com/team/Repo/",
             "_registry": "r",
         }
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=mock_config):
+        with patch("junction.config.loader.JunctionConfig.load", return_value=mock_config):
             assert _is_owner_designated_repo(entry) is False
 
 
@@ -2036,7 +2036,7 @@ class TestConfiguredBranchOverride:
         # anticipation of an eventual merge) must NOT win over the branch the
         # operator configured — the index was read from the configured branch,
         # so the declared one describes a state that does not exist there yet.
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         async def _fake_index(repo, branch):
             return [{"name": "eager-app", "subdirectory": "apps/eager", "branch": "main"}]
@@ -2048,7 +2048,7 @@ class TestConfiguredBranchOverride:
             repo = "https://github.com/acme/apps"
             branch = "develop"
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.apps.registry"):
+        with caplog.at_level(logging.WARNING, logger="junction.apps.registry"):
             entries = await reg._fetch_and_cache_external_registry(_Reg())
         assert entries[0]["branch"] == "develop"
         # The cached copy carries the override too — install reads the cache.
@@ -2066,7 +2066,7 @@ class TestConfiguredBranchOverride:
     ):
         # An entry omitting a branch still inherits the configured one, and no
         # divergence warning fires for it.
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         async def _fake_index(repo, branch):
             return [{"name": "plain-app", "subdirectory": "apps/plain"}]
@@ -2078,7 +2078,7 @@ class TestConfiguredBranchOverride:
             repo = "https://github.com/acme/apps"
             branch = "develop"
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.apps.registry"):
+        with caplog.at_level(logging.WARNING, logger="junction.apps.registry"):
             entries = await reg._fetch_and_cache_external_registry(_Reg())
         assert entries[0]["branch"] == "develop"
         assert not [r for r in caplog.records if "declares branch" in r.getMessage()]
@@ -2087,7 +2087,7 @@ class TestConfiguredBranchOverride:
     async def test_matching_declared_branch_does_not_warn(self, cache_dir, monkeypatch, caplog):
         # A declaration that AGREES with the configured branch is not a
         # divergence — the warning must fire only on a genuine mismatch.
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         async def _fake_index(repo, branch):
             return [{"name": "same-app", "subdirectory": "apps/same", "branch": "develop"}]
@@ -2099,7 +2099,7 @@ class TestConfiguredBranchOverride:
             repo = "https://github.com/acme/apps"
             branch = "develop"
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.apps.registry"):
+        with caplog.at_level(logging.WARNING, logger="junction.apps.registry"):
             entries = await reg._fetch_and_cache_external_registry(_Reg())
         assert entries[0]["branch"] == "develop"
         assert not [r for r in caplog.records if "declares branch" in r.getMessage()]
@@ -2110,7 +2110,7 @@ class TestConfiguredBranchOverride:
         # repository, about which the configured registry branch carries no
         # information. The override must not touch it (and must not warn) —
         # forcing reg.branch there would clone a ref the app repo may not have.
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         async def _fake_index(repo, branch):
             return [
@@ -2129,7 +2129,7 @@ class TestConfiguredBranchOverride:
             repo = "https://github.com/acme/apps"
             branch = "develop"
 
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.apps.registry"):
+        with caplog.at_level(logging.WARNING, logger="junction.apps.registry"):
             entries = await reg._fetch_and_cache_external_registry(_Reg())
         assert entries[0]["branch"] == "main"
         assert not [r for r in caplog.records if "declares branch" in r.getMessage()]
@@ -2139,7 +2139,7 @@ class TestConfiguredBranchOverride:
         # A cross-repo entry with no usable declared branch (absent or an
         # explicit JSON null) still inherits the configured branch, so None
         # can never flow to the clone coordinates.
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         async def _fake_index(repo, branch):
             return [
@@ -2168,7 +2168,7 @@ class TestConfiguredBranchOverride:
         # listing refresh (ignore_ttl), so the repair must happen at read time.
         from types import SimpleNamespace
 
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         reg._write_external_registry_cache(
             "acme",
@@ -2187,11 +2187,11 @@ class TestConfiguredBranchOverride:
             SimpleNamespace(name="acme", repo="https://github.com/acme/apps", branch="develop")
         ]
         monkeypatch.setattr(
-            "kiro_crew.apps.registry._load_registry_file",
+            "junction.apps.registry._load_registry_file",
             lambda: [],
         )
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
             lambda: mock_config,
         )
 
@@ -2207,13 +2207,13 @@ class TestConfiguredBranchOverride:
 
 class TestRegistrySubdirTraversalGate:
     def test_safe_subdirs_accepted(self):
-        from kiro_crew.apps.registry import _is_safe_registry_subdir
+        from junction.apps.registry import _is_safe_registry_subdir
 
         for ok in ["", None, "apps", "apps/widget", "a/b/c", ".config", "v2.0"]:
             assert _is_safe_registry_subdir(ok) is True, ok
 
     def test_unsafe_subdirs_rejected(self):
-        from kiro_crew.apps.registry import _is_safe_registry_subdir
+        from junction.apps.registry import _is_safe_registry_subdir
 
         for bad in [
             "/etc",
@@ -2234,7 +2234,7 @@ class TestRegistrySubdirTraversalGate:
     def test_contained_join_blocks_symlink_escape(self, tmp_path):
         import os
 
-        from kiro_crew.apps.registry import _contained_join
+        from junction.apps.registry import _contained_join
 
         root = tmp_path / "clone"
         root.mkdir()
@@ -2254,7 +2254,7 @@ class TestRegistrySubdirTraversalGate:
     async def test_fresh_fetch_drops_unsafe_subdir_entry(self, cache_dir, monkeypatch):
         # An index that lists an app with a traversing subdirectory must have
         # that entry dropped before it is cached or listed.
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         async def _fake_index(repo, branch):
             return [
@@ -2277,7 +2277,7 @@ class TestRegistrySubdirTraversalGate:
     def test_cache_read_drops_unsafe_subdir_entry(self, cache_dir):
         # Even a hand-tampered cache file with an absolute subdirectory is
         # filtered on read (the single read chokepoint).
-        from kiro_crew.apps.registry import (
+        from junction.apps.registry import (
             _read_external_registry_cache,
             _write_external_registry_cache,
         )
@@ -2299,7 +2299,7 @@ class TestRegistrySubdirTraversalGate:
         # symlink inside the clone), _contained_join refuses it at use time.
         import os
 
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "src"
         pkg_dir.mkdir()
@@ -2310,7 +2310,7 @@ class TestRegistrySubdirTraversalGate:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "name": "evil-app",
                     "repo": "https://github.com/acme/apps.git",
@@ -2320,11 +2320,11 @@ class TestRegistrySubdirTraversalGate:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value={"name": "evil-app", "version": "1.0.0"}),
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=AsyncMock(return_value={"ok": True, "pkg_dir": pkg_dir}),
             ),
         ):
@@ -2384,7 +2384,7 @@ class TestStaleCloneOriginVerification:
     async def test_mismatched_origin_discards_clone_and_reclones(self, tmp_path):
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app"
         (dest / ".git").mkdir(parents=True)  # looks like an existing clone
@@ -2392,14 +2392,14 @@ class TestStaleCloneOriginVerification:
         captured: dict = {}
         vetted_url = "ssh://git.example.com/team/MyRegistry"
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 side_effect=lambda a, mode="standard": (a, None),
             ),
             # cgroup_scope_argv wraps the argv on Linux (identity on macOS) —
             # pin it so the captured commands are platform-independent.
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
             patch.object(
                 _asyncio,
                 "create_subprocess_exec",
@@ -2420,7 +2420,7 @@ class TestStaleCloneOriginVerification:
     async def test_matching_origin_pulls_in_place(self, tmp_path):
         import asyncio as _asyncio
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app"
         (dest / ".git").mkdir(parents=True)
@@ -2428,14 +2428,14 @@ class TestStaleCloneOriginVerification:
         captured: dict = {}
         vetted_url = "ssh://git.example.com/team/MyRegistry"
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 side_effect=lambda a, mode="standard": (a, None),
             ),
             # cgroup_scope_argv wraps the argv on Linux (identity on macOS) —
             # pin it so the captured commands are platform-independent.
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
             patch.object(
                 _asyncio,
                 "create_subprocess_exec",
@@ -2509,20 +2509,20 @@ class TestManifestOriginGate:
         fake sees is the real command, platform-independently.
         """
         return (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=clone_dir),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.app_source_dir", return_value=clone_dir),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 side_effect=lambda a, mode="standard": (a, None),
             ),
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
-            patch("kiro_crew.apps.registry.create_subprocess_limited", new=spawn),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.create_subprocess_limited", new=spawn),
         )
 
     @pytest.mark.asyncio
     async def test_mismatched_origin_does_not_reuse_persisted_manifest(self, tmp_path):
         """A stale clone's app.json must never be handed to the admission gate."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = self._seed_stale_clone(tmp_path, "STALE")
         vetted_url = "ssh://git.example.com/team/NewRepo"
@@ -2544,7 +2544,7 @@ class TestManifestOriginGate:
     @pytest.mark.asyncio
     async def test_matching_origin_reuses_persisted_manifest(self, tmp_path):
         """The fast path still works when the clone really is that repo."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = self._seed_stale_clone(tmp_path, "CURRENT")
         vetted_url = "ssh://git.example.com/team/NewRepo"
@@ -2564,7 +2564,7 @@ class TestManifestOriginGate:
     @pytest.mark.asyncio
     async def test_unreadable_origin_fails_closed(self, tmp_path):
         """An origin that cannot be read is treated as a mismatch, not a match."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = self._seed_stale_clone(tmp_path, "STALE")
         vetted_url = "ssh://git.example.com/team/NewRepo"
@@ -2592,7 +2592,7 @@ class TestStaleCloneDeletionFailsClosed:
 
     @pytest.mark.asyncio
     async def test_surviving_stale_clone_aborts_the_install(self, tmp_path):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app"
         (dest / ".git").mkdir(parents=True)
@@ -2624,13 +2624,13 @@ class TestStaleCloneDeletionFailsClosed:
 
         log_lines: list = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 side_effect=lambda a, mode="standard": (a, None),
             ),
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
-            patch("kiro_crew.apps.registry.create_subprocess_limited", new=_spawn),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.create_subprocess_limited", new=_spawn),
             # rename fails (Windows lock / permissions)
             patch.object(Path, "rename", _failing_rename),
         ):
@@ -2656,7 +2656,7 @@ class TestOriginMismatchDeleteOrder:
     async def test_failed_reclone_preserves_old_checkout(self, tmp_path):
         """Origin mismatch + FAILED fresh clone → old checkout still present
         at dest, error dict returned."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -2688,14 +2688,14 @@ class TestOriginMismatchDeleteOrder:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
         ):
@@ -2723,7 +2723,7 @@ class TestOriginMismatchDeleteOrder:
     async def test_successful_reclone_replaces_checkout(self, tmp_path):
         """Origin mismatch + successful fresh clone → dest contains the new
         clone, moved-aside path deferred to pending_cleanup."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -2762,14 +2762,14 @@ class TestOriginMismatchDeleteOrder:
         log_lines: list[str] = []
         pending_cleanup: list[Path] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
         ):
@@ -2798,7 +2798,7 @@ class TestOriginMismatchDeleteOrder:
     async def test_move_aside_failure_returns_stale_clone_not_removed(self, tmp_path):
         """Move-aside failure (mock rename to raise) → stale_clone_not_removed
         error, mismatched clone never pulled/built."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -2833,10 +2833,10 @@ class TestOriginMismatchDeleteOrder:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=AsyncMock(return_value=_OriginProc()),
             ),
             patch.object(Path, "rename", _failing_rename),
@@ -2863,7 +2863,7 @@ class TestOriginMismatchDeleteOrder:
         dest (same preservation guarantee as the failure path)."""
         import asyncio as _asyncio
 
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -2901,15 +2901,15 @@ class TestOriginMismatchDeleteOrder:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
-            patch("kiro_crew.apps.registry._kill_process_group", new=AsyncMock()),
+            patch("junction.apps.registry._kill_process_group", new=AsyncMock()),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
         ):
@@ -2941,7 +2941,7 @@ class TestOriginMismatchDeleteOrder:
         Regression: prior to the try/finally guard, a spawn failure after
         move-aside would strand the old checkout under .stale-* permanently.
         """
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -2981,10 +2981,10 @@ class TestOriginMismatchDeleteOrder:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_subprocess_side_effect,
             ),
         ):
@@ -3016,7 +3016,7 @@ class TestOriginMismatchDeleteOrder:
         """
         import asyncio as _asyncio
 
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -3052,10 +3052,10 @@ class TestOriginMismatchDeleteOrder:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_subprocess_side_effect,
             ),
         ):
@@ -3087,7 +3087,7 @@ class TestOriginMismatchDeleteOrder:
         """
         import asyncio as _asyncio
 
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old-origin.example.com/app.git"
         new_url = "https://new-origin.example.com/app.git"
@@ -3147,14 +3147,14 @@ class TestOriginMismatchDeleteOrder:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_subprocess_side_effect,
             ),
             patch(
-                "kiro_crew.apps.registry._kill_process_group",
+                "junction.apps.registry._kill_process_group",
                 side_effect=_fake_kill_process_group,
             ),
         ):
@@ -3189,7 +3189,7 @@ class TestUnreadableOriginAbort:
     @pytest.mark.asyncio
     async def test_unreadable_origin_returns_error_without_destroying(self, tmp_path):
         """Checkout with unreadable origin → error, dest untouched."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         git_url = "https://example.com/app.git"
         dest = tmp_path / "app-sources" / "myapp"
@@ -3202,9 +3202,9 @@ class TestUnreadableOriginAbort:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=None),
             ),
         ):
@@ -3231,7 +3231,7 @@ class TestUnreadableOriginAbort:
     @pytest.mark.asyncio
     async def test_readable_different_origin_still_reclones(self, tmp_path):
         """Readable but different origin → move-aside/re-clone path (not blocked)."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old.example.com/app.git"
         new_url = "https://new.example.com/app.git"
@@ -3261,14 +3261,14 @@ class TestUnreadableOriginAbort:
         log_lines: list[str] = []
         pending_cleanup: list[Path] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
         ):
@@ -3299,7 +3299,7 @@ class TestBuildFailureRestoresOldCheckout:
     @pytest.mark.asyncio
     async def test_build_failure_restores_old_checkout(self, tmp_path):
         """Clone succeeds + build fails → old checkout restored at pkg_dir."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old.example.com/app.git"
         new_url = "https://new.example.com/app.git"
@@ -3336,14 +3336,14 @@ class TestBuildFailureRestoresOldCheckout:
         pending_cleanup: list[Path] = []
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
         ):
@@ -3379,7 +3379,7 @@ class TestBuildFailureRestoresOldCheckout:
         accumulation on the happy path)."""
         import shutil
 
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old.example.com/app.git"
         new_url = "https://new.example.com/app.git"
@@ -3412,14 +3412,14 @@ class TestBuildFailureRestoresOldCheckout:
         pending_cleanup: list[Path] = []
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
         ):
@@ -3458,7 +3458,7 @@ class TestRestoreCollision:
     async def test_undeletable_dest_moved_aside_before_restore(self, tmp_path):
         """rmtree(dest) fails → dest moved to .partial-*, then moved_aside
         restored to dest."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old.example.com/app.git"
         new_url = "https://new.example.com/app.git"
@@ -3504,14 +3504,14 @@ class TestRestoreCollision:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
             patch("shutil.rmtree", side_effect=_stubborn_rmtree),
@@ -3558,7 +3558,7 @@ class TestInstallScriptFailurePreservesStaleCheckout:
         (via its single-exit stamp) instead of deleting them (deferring to
         caller). The stamp lives on the wrapper so EVERY dict result carries
         it, refusals included, not only the ok path."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         stale_url = "https://old.example.com/app.git"
         new_url = "https://new.example.com/app.git"
@@ -3593,22 +3593,22 @@ class TestInstallScriptFailurePreservesStaleCheckout:
             return _SuccessProc()
 
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=stale_url),
             ),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
             patch(
-                "kiro_crew.apps.registry._run_app_build",
+                "junction.apps.registry._run_app_build",
                 new=AsyncMock(return_value={"ok": True}),
             ),
-            patch("kiro_crew.apps.registry._looks_like_git_url", return_value=True),
+            patch("junction.apps.registry._looks_like_git_url", return_value=True),
         ):
             result = await reg._clone_build_app(
                 new_url, "testapp", [], branch="main", index_originated=False
@@ -3638,7 +3638,7 @@ class TestInstallScriptFailurePreservesStaleCheckout:
         the same failure the test above drives, but with a SAME-REPOSITORY move, which
         must be put back rather than retained.
         """
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -3669,30 +3669,30 @@ class TestInstallScriptFailurePreservesStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 new=AsyncMock(return_value=_ScriptFailProc()),
             ),
             # The destination is derived from the app name in production
             # (`pkg_dir = app_source_dir(app_name)` is its only assignment), so the
             # test has to say where that is rather than relying on the result dict.
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -3726,7 +3726,7 @@ class TestInstallScriptFailurePreservesStaleCheckout:
         exactly the exits it exists for, and the suite was green because every existing
         test drove a failure that came AFTER an ok result carrying `pkg_dir`.
         """
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -3747,22 +3747,22 @@ class TestInstallScriptFailurePreservesStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -3777,7 +3777,7 @@ class TestInstallScriptFailurePreservesStaleCheckout:
         """`install_app` has already copied the files, so treating a failed receipt as
         "not durable" would leave installed files from the NEW version beside a source
         tree from the OLD one -- worse than either outcome."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -3806,24 +3806,24 @@ class TestInstallScriptFailurePreservesStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry.install_app", return_value=_Ok()),
-            patch("kiro_crew.apps.registry.set_app_provenance", side_effect=_boom),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.install_app", return_value=_Ok()),
+            patch("junction.apps.registry.set_app_provenance", side_effect=_boom),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -3837,7 +3837,7 @@ class TestInstallScriptFailurePreservesStaleCheckout:
     async def test_a_successful_install_is_not_rolled_back(self, tmp_path):
         """Scope guard for the `finally`: a durable success must keep the freshly
         fetched tree, and retain the old one as a sibling rather than restoring it."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -3863,28 +3863,28 @@ class TestInstallScriptFailurePreservesStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry.install_app", return_value=_Ok()),
-            patch("kiro_crew.apps.registry.set_app_provenance"),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.install_app", return_value=_Ok()),
+            patch("junction.apps.registry.set_app_provenance"),
             # Needed for the rollback destination to be observable at all: without it a
             # wrongly-triggered restore would land outside tmp_path and the assertions
             # below would pass for the wrong reason.
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -3898,7 +3898,7 @@ class TestInstallScriptFailurePreservesStaleCheckout:
     async def test_stale_not_cleaned_when_install_from_registry_fails(self, tmp_path):
         """Full install_from_registry flow: clone+build succeed but install
         script fails → stale checkout NOT deleted."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         stale_dir = tmp_path / "stale-checkout"
         stale_dir.mkdir()
@@ -3930,35 +3930,35 @@ class TestInstallScriptFailurePreservesStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry.app_admission_denied",
+                "junction.apps.registry.app_admission_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 new=AsyncMock(return_value=_ScriptFailProc()),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -3991,7 +3991,7 @@ class TestMoveCheckoutAsideCancellationSafety:
         to run to completion, a threading.Event confirms that on-disk state,
         and only THEN is the awaiting task cancelled -- never a wall-clock
         sleep racing the interleave."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4049,7 +4049,7 @@ class TestMoveCheckoutAsideCancellationSafety:
         the mtime, and does so without the window a separate utime call used
         to leave open — the aside's mtime must be fresh (close to now), not
         the checkout's original, possibly-old, mtime."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4079,7 +4079,7 @@ class TestMoveCheckoutAsideCancellationSafety:
         The handler now settles the worker future BEFORE inspecting ``aside``,
         so a rename that lands after the cancellation is undone (or the
         retained path is logged) -- never silently stranded."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4153,7 +4153,7 @@ class TestMoveCheckoutAsideCancellationSafety:
         re-raises once. So this ends deterministically with either the aside
         restored to dest OR the retained path named in the log -- never a
         silent strand. Event-gated; no wall-clock sleeps."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4223,7 +4223,7 @@ class TestMoveCheckoutAsideCancellationSafety:
         emits ``logger.warning`` with the exact retained path before re-raising,
         so the path survives the shutdown in the process log. This asserts the
         durable record specifically, not just the (also-discarded) log line."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4303,7 +4303,7 @@ class TestMoveAsideRefreshesMtimeBeforeRename:
         """The mtime refresh (``os.utime`` on ``dest``) is recorded strictly
         before ``dest`` is renamed aside. Fails against the pre-fix
         rename-then-utime ordering; passes with the refresh-then-rename fix."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4351,7 +4351,7 @@ class TestMoveAsideRefreshesMtimeBeforeRename:
         window), so a concurrent age-based sweep cannot delete it. The sweep's
         own age test is applied to the moved-aside dir to make the point
         concrete."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -4393,7 +4393,7 @@ class TestSubdirectoryEscapeRefusalNeverWritesOutsideCheckout:
         """A symlinked subdirectory that escapes containment must not cause
         any write outside the cloned checkout, even when the checkout
         pre-existed (update path)."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         app_source = tmp_path / "app-source"
         app_source.mkdir()
@@ -4435,7 +4435,7 @@ class TestSubdirectoryEscapeRefusalNeverWritesOutsideCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
@@ -4443,23 +4443,23 @@ class TestSubdirectoryEscapeRefusalNeverWritesOutsideCheckout:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 new=AsyncMock(return_value=_GitProc()),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -4481,14 +4481,14 @@ class TestUnpoisonRejectedCheckoutRevalidatesSubdirectoryAtWriteTime:
     already made. A build step or ``onInstall`` script — which runs with
     write access to the checkout between some of those gates — can replace
     the subdirectory with a symlink escaping the checkout after that earlier
-    check passed, and this cleanup runs unsandboxed as the Kiro Crew process.
+    check passed, and this cleanup runs unsandboxed as the Junction process.
     ``_unpoison_rejected_checkout`` must re-verify containment itself, at the
     point of the write, rather than relying on every call site to remember.
     """
 
     @pytest.mark.asyncio
     async def test_manifest_restore_skipped_when_subdirectory_escapes_at_write_time(self, tmp_path):
-        from kiro_crew.apps.registry import _unpoison_rejected_checkout
+        from junction.apps.registry import _unpoison_rejected_checkout
 
         pkg_dir = tmp_path / "app-source"
         pkg_dir.mkdir()
@@ -4522,7 +4522,7 @@ class TestUnpoisonRejectedCheckoutRevalidatesSubdirectoryAtWriteTime:
     async def test_manifest_restore_still_runs_when_subdirectory_stays_contained(self, tmp_path):
         """Control: a legitimate, still-contained subdirectory must still get
         its manifest restored — the new guard must not break the happy path."""
-        from kiro_crew.apps.registry import _unpoison_rejected_checkout
+        from junction.apps.registry import _unpoison_rejected_checkout
 
         pkg_dir = tmp_path / "app-source"
         sub = pkg_dir / "sub"
@@ -4553,7 +4553,7 @@ class TestUnpoisonRejectedCheckoutRevalidatesSubdirectoryAtWriteTime:
         directory while replacing just its ``app.json`` with a symlink
         escaping ``pkg_dir`` — that passed the old check and the raw write
         then followed the symlink outside the checkout."""
-        from kiro_crew.apps.registry import _unpoison_rejected_checkout
+        from junction.apps.registry import _unpoison_rejected_checkout
 
         pkg_dir = tmp_path / "app-source"
         sub = pkg_dir / "sub"
@@ -4592,7 +4592,7 @@ class TestUnpoisonRejectedCheckoutRevalidatesSubdirectoryAtWriteTime:
         ``if subdirectory`` and never ran when subdirectory=="", so a
         symlinked ``app.json`` at the checkout root was never re-checked
         before the write."""
-        from kiro_crew.apps.registry import _unpoison_rejected_checkout
+        from junction.apps.registry import _unpoison_rejected_checkout
 
         pkg_dir = tmp_path / "app-source"
         pkg_dir.mkdir()
@@ -4657,7 +4657,7 @@ class TestContainmentRefusalRestoreFromRespectsRestorableStale:
         """A non-restorable (origin-mismatch) pending stale must NOT be
         restored into pkg_dir when the freshly cloned repo's declared
         subdirectory fails containment."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         app_source = tmp_path / "app-source"
         app_source.mkdir()
@@ -4677,7 +4677,7 @@ class TestContainmentRefusalRestoreFromRespectsRestorableStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
@@ -4685,18 +4685,18 @@ class TestContainmentRefusalRestoreFromRespectsRestorableStale:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -4713,7 +4713,7 @@ class TestContainmentRefusalRestoreFromRespectsRestorableStale:
         """Control: a restorable (same-repository, branch-drift) pending
         stale IS still restored into pkg_dir on the same containment
         refusal — the fix must narrow, not remove, this path."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         app_source = tmp_path / "app-source"
         app_source.mkdir()
@@ -4733,7 +4733,7 @@ class TestContainmentRefusalRestoreFromRespectsRestorableStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
@@ -4741,18 +4741,18 @@ class TestContainmentRefusalRestoreFromRespectsRestorableStale:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -4794,7 +4794,7 @@ class TestIdentityMismatchPreBuildRestoreFromRespectsRestorableStale:
 
     @pytest.mark.asyncio
     async def test_non_restorable_stale_is_not_restored_on_identity_mismatch(self, tmp_path):
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
@@ -4802,12 +4802,12 @@ class TestIdentityMismatchPreBuildRestoreFromRespectsRestorableStale:
         (stale_dir / "someone-elses-repo.txt").write_text("not restorable", encoding="utf-8")
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=False),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await _clone_build_app("https://example.com/app.git", "testapp", [])
 
@@ -4821,7 +4821,7 @@ class TestIdentityMismatchPreBuildRestoreFromRespectsRestorableStale:
 
     @pytest.mark.asyncio
     async def test_restorable_stale_is_still_restored_on_identity_mismatch(self, tmp_path):
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
@@ -4829,12 +4829,12 @@ class TestIdentityMismatchPreBuildRestoreFromRespectsRestorableStale:
         (stale_dir / "my-work.txt").write_text("important", encoding="utf-8")
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=True),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await _clone_build_app("https://example.com/app.git", "testapp", [])
 
@@ -4866,7 +4866,7 @@ class TestIdentityMismatchPostBuildRestoreFromRespectsRestorableStale:
 
     @pytest.mark.asyncio
     async def test_non_restorable_stale_is_not_restored_on_identity_mismatch(self, tmp_path):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         app_source = tmp_path / "app-source"
         app_source.mkdir()
@@ -4885,22 +4885,22 @@ class TestIdentityMismatchPostBuildRestoreFromRespectsRestorableStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -4914,7 +4914,7 @@ class TestIdentityMismatchPostBuildRestoreFromRespectsRestorableStale:
 
     @pytest.mark.asyncio
     async def test_restorable_stale_is_still_restored_on_identity_mismatch(self, tmp_path):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         app_source = tmp_path / "app-source"
         app_source.mkdir()
@@ -4931,22 +4931,22 @@ class TestIdentityMismatchPostBuildRestoreFromRespectsRestorableStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -4982,7 +4982,7 @@ class TestAdmissionGatePreBuildRestoreFromRespectsRestorableStale:
 
     @pytest.mark.asyncio
     async def test_non_restorable_stale_is_not_restored_on_admission_denial(self, tmp_path):
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
@@ -4990,13 +4990,13 @@ class TestAdmissionGatePreBuildRestoreFromRespectsRestorableStale:
         (stale_dir / "someone-elses-repo.txt").write_text("not restorable", encoding="utf-8")
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=False),
             ),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value="unsigned"),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_admission_denied", return_value="unsigned"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await _clone_build_app("https://example.com/app.git", "testapp", [])
 
@@ -5010,7 +5010,7 @@ class TestAdmissionGatePreBuildRestoreFromRespectsRestorableStale:
 
     @pytest.mark.asyncio
     async def test_restorable_stale_is_still_restored_on_admission_denial(self, tmp_path):
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
@@ -5018,13 +5018,13 @@ class TestAdmissionGatePreBuildRestoreFromRespectsRestorableStale:
         (stale_dir / "my-work.txt").write_text("important", encoding="utf-8")
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=True),
             ),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value="unsigned"),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_admission_denied", return_value="unsigned"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await _clone_build_app("https://example.com/app.git", "testapp", [])
 
@@ -5052,7 +5052,7 @@ class TestSuccessPathRetainsStaleCheckout:
     async def test_success_retains_stale_checkout_and_logs_path(self, tmp_path):
         """A successful install from registry retains the .stale-* dir and
         names its path in the log output."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -5078,7 +5078,7 @@ class TestSuccessPathRetainsStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
@@ -5086,34 +5086,34 @@ class TestSuccessPathRetainsStaleCheckout:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry.app_admission_denied",
+                "junction.apps.registry.app_admission_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
             patch(
-                "kiro_crew.apps.manager.register_external_app",
+                "junction.apps.manager.register_external_app",
             ),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await reg.install_from_registry("testapp")
 
@@ -5144,7 +5144,7 @@ class TestRetainedAtReportingSkipsRestorableStale:
         """Branch-mismatch move-aside (restorable) + post-build install
         failure -> checkout restored to app_source_dir, and the returned log
         does not claim "Previous checkout retained at:" for it."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -5170,26 +5170,26 @@ class TestRetainedAtReportingSkipsRestorableStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry.install_app", return_value=_NotOk()),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.install_app", return_value=_NotOk()),
             # The `finally` restores to `app_source_dir(name)`, not to a key on
             # the failure dict (see _restore_moved_aside call site).
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -5210,7 +5210,7 @@ class TestRetainedAtReportingSkipsRestorableStale:
         """Origin-mismatch move-aside (non-restorable, a different repository)
         + the same post-build install failure -> the retained-at line is
         still present and the `.stale-*` dir survives on disk untouched."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -5237,24 +5237,24 @@ class TestRetainedAtReportingSkipsRestorableStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry.install_app", return_value=_NotOk()),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.install_app", return_value=_NotOk()),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -5283,10 +5283,10 @@ class TestRetainedAtReportingOnDurableSuccess:
 
     @pytest.mark.asyncio
     async def test_successful_reinstall_reports_retained_restorable_stale(self, tmp_path):
-        """A durably successful kirocrew-managed install whose build carried
+        """A durably successful junction-managed install whose build carried
         a restorable stale (branch drift, same repository) must still log
         "Previous checkout retained at" for it."""
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -5317,7 +5317,7 @@ class TestRetainedAtReportingOnDurableSuccess:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
@@ -5325,20 +5325,20 @@ class TestRetainedAtReportingOnDurableSuccess:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry.install_app", return_value=_Ok()),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.install_app", return_value=_Ok()),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -5355,7 +5355,7 @@ class TestStaleCheckoutSweep:
 
     def test_removes_aged_stale_dirs(self, tmp_path):
         """Dirs matching .stale-* older than retention are removed."""
-        from kiro_crew.apps.registry import _sweep_stale_checkouts_sync
+        from junction.apps.registry import _sweep_stale_checkouts_sync
 
         sources = tmp_path / "app-sources"
         sources.mkdir()
@@ -5372,7 +5372,7 @@ class TestStaleCheckoutSweep:
 
     def test_removes_aged_partial_dirs(self, tmp_path):
         """Dirs matching .partial-* older than retention are removed."""
-        from kiro_crew.apps.registry import _sweep_stale_checkouts_sync
+        from junction.apps.registry import _sweep_stale_checkouts_sync
 
         sources = tmp_path / "app-sources"
         sources.mkdir()
@@ -5387,7 +5387,7 @@ class TestStaleCheckoutSweep:
 
     def test_keeps_fresh_stale_dirs(self, tmp_path):
         """Dirs within the retention window are NOT removed."""
-        from kiro_crew.apps.registry import _sweep_stale_checkouts_sync
+        from junction.apps.registry import _sweep_stale_checkouts_sync
 
         sources = tmp_path / "app-sources"
         sources.mkdir()
@@ -5401,7 +5401,7 @@ class TestStaleCheckoutSweep:
 
     def test_ignores_non_matching_siblings(self, tmp_path):
         """Normal app dirs and unrelated names are never touched."""
-        from kiro_crew.apps.registry import _sweep_stale_checkouts_sync
+        from junction.apps.registry import _sweep_stale_checkouts_sync
 
         sources = tmp_path / "app-sources"
         sources.mkdir()
@@ -5424,7 +5424,7 @@ class TestStaleCheckoutSweep:
 
     def test_symlink_outside_sources_not_followed(self, tmp_path):
         """A symlink pointing outside app-sources is NOT followed/deleted."""
-        from kiro_crew.apps.registry import _sweep_stale_checkouts_sync
+        from junction.apps.registry import _sweep_stale_checkouts_sync
 
         sources = tmp_path / "app-sources"
         sources.mkdir()
@@ -5454,7 +5454,7 @@ class TestStaleCheckoutSweep:
 
     def test_nonexistent_sources_dir(self, tmp_path):
         """A missing app-sources directory returns empty (no crash)."""
-        from kiro_crew.apps.registry import _sweep_stale_checkouts_sync
+        from junction.apps.registry import _sweep_stale_checkouts_sync
 
         removed = _sweep_stale_checkouts_sync(tmp_path / "does-not-exist", time.time())
         assert removed == []
@@ -5463,7 +5463,7 @@ class TestStaleCheckoutSweep:
     async def test_async_sweep_called_at_install(self, tmp_path):
         """_sweep_stale_checkouts is called at the start of
         install_from_registry (integration coherence check)."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         sweep_called = []
 
@@ -5477,41 +5477,41 @@ class TestStaleCheckoutSweep:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry.app_admission_denied",
+                "junction.apps.registry.app_admission_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry._sweep_stale_checkouts",
+                "junction.apps.registry._sweep_stale_checkouts",
                 new=_tracking_sweep,
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await reg.install_from_registry("testapp")
 
@@ -5528,7 +5528,7 @@ class TestStaleCheckoutSweep:
         so a 30-day-old checkout renamed to .stale-* would be sweep-eligible
         on the very next install — defeating the retention promise.
         """
-        from kiro_crew.apps.registry import (
+        from junction.apps.registry import (
             _STALE_CHECKOUT_RETENTION_DAYS,
             _sweep_stale_checkouts_sync,
         )
@@ -5592,7 +5592,7 @@ class TestManifestBranchGate:
     async def test_branch_mismatch_skips_fast_path(self, tmp_path):
         """Persistent clone on branch A must NOT supply its manifest when
         the entry requests branch B."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_url = "https://example.com/target-app.git"
 
@@ -5625,20 +5625,20 @@ class TestManifestBranchGate:
 
         with (
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=clone_dir,
             ),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 lambda argv, **k: (list(argv), None),
             ),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_exec,
             ),
             patch("tempfile.mkdtemp", return_value=str(tmp_path / "throwaway")),
@@ -5666,7 +5666,7 @@ class TestManifestBranchGate:
     async def test_same_branch_serves_fast_path(self, tmp_path):
         """Persistent clone with matching origin AND branch still serves its
         local manifest (fast path preserved)."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         matching_url = "https://example.com/matching-app.git"
 
@@ -5698,19 +5698,19 @@ class TestManifestBranchGate:
 
         with (
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=clone_dir,
             ),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 side_effect=lambda a, mode="standard": (a, None),
             ),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_exec,
             ),
         ):
@@ -5731,7 +5731,7 @@ class TestManifestBranchGate:
     async def test_unreadable_branch_fails_closed(self, tmp_path):
         """If .git/HEAD is missing (detached or corrupt), the fast path is NOT
         used — fail closed to throwaway clone."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         matching_url = "https://example.com/target-app.git"
 
@@ -5760,20 +5760,20 @@ class TestManifestBranchGate:
 
         with (
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=clone_dir,
             ),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 lambda argv, **k: (list(argv), None),
             ),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_exec,
             ),
             patch("tempfile.mkdtemp", return_value=str(tmp_path / "throwaway")),
@@ -5800,7 +5800,7 @@ class TestManifestBranchGate:
     async def test_detached_head_fails_closed(self, tmp_path):
         """Detached HEAD (raw SHA in .git/HEAD) → fail closed, throwaway clone
         used even though origin matches."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         matching_url = "https://example.com/target-app.git"
 
@@ -5832,20 +5832,20 @@ class TestManifestBranchGate:
 
         with (
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=clone_dir,
             ),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 lambda argv, **k: (list(argv), None),
             ),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_exec,
             ),
             patch("tempfile.mkdtemp", return_value=str(tmp_path / "throwaway")),
@@ -5876,7 +5876,7 @@ class TestManifestBranchGate:
         Regression: before the fix, read_text("utf-8") raised
         UnicodeDecodeError which was not caught by the except-OSError handler.
         """
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         matching_url = "https://example.com/target-app.git"
 
@@ -5912,20 +5912,20 @@ class TestManifestBranchGate:
 
         with (
             patch(
-                "kiro_crew.apps.registry.app_source_dir",
+                "junction.apps.registry.app_source_dir",
                 return_value=clone_dir,
             ),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch(
-                "kiro_crew.apps.registry.wrap_argv",
+                "junction.apps.registry.wrap_argv",
                 lambda argv, **k: (list(argv), None),
             ),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_exec,
             ),
             patch("tempfile.mkdtemp", return_value=str(tmp_path / "throwaway")),
@@ -5976,7 +5976,7 @@ class TestCloneFailureDiagnostics:
         """index_originated=True + failed fresh clone → error carries the
         credential-posture explanation and the monorepo-recipe pointer; the
         machine slug is in ``code``."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         git_url = "https://forge.example.com/owner/private-sibling.git"
         dest = tmp_path / "app-sources" / "myapp"
@@ -5988,11 +5988,11 @@ class TestCloneFailureDiagnostics:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=self._fake_wrap_argv),
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=self._fake_wrap_argv),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
         ):
@@ -6028,7 +6028,7 @@ class TestCloneFailureDiagnostics:
         """index_originated=False + failed fresh clone → the bare
         ``git clone failed`` error, with NO credential-posture hint (the clone
         kept the ambient identity, so the hint would be wrong)."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         git_url = "https://forge.example.com/owner/app.git"
         dest = tmp_path / "app-sources" / "myapp"
@@ -6039,11 +6039,11 @@ class TestCloneFailureDiagnostics:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=self._fake_wrap_argv),
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=self._fake_wrap_argv),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
         ):
@@ -6103,7 +6103,7 @@ class TestDetachedHeadNeverMovedAside:
         """A tag-pinned (detached HEAD) checkout must not be moved aside just
         because the requested branch differs from the (unreadable) current
         state — it must fall through to the pull path instead."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         origin_url = "https://example.com/tag-pinned-app.git"
         dest = tmp_path / "app-sources" / "tag-pinned-app"
@@ -6126,18 +6126,18 @@ class TestDetachedHeadNeverMovedAside:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=origin_url),
             ),
         ):
@@ -6167,7 +6167,7 @@ class TestDetachedHeadNeverMovedAside:
     async def test_repeated_installs_detached_head_no_stale_accumulation(self, tmp_path):
         """Opus 4.8 tag-pinned case: repeated installs of a detached-HEAD
         checkout must never accumulate .stale-* siblings."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         origin_url = "https://example.com/tag-pinned-app.git"
         dest = tmp_path / "app-sources" / "tag-pinned-app"
@@ -6188,18 +6188,18 @@ class TestDetachedHeadNeverMovedAside:
         for _ in range(2):
             log_lines: list[str] = []
             with (
-                patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-                patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+                patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+                patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
                 patch(
-                    "kiro_crew.apps.registry.cgroup_scope_argv",
+                    "junction.apps.registry.cgroup_scope_argv",
                     side_effect=lambda a: a,
                 ),
                 patch(
-                    "kiro_crew.apps.registry.create_subprocess_limited",
+                    "junction.apps.registry.create_subprocess_limited",
                     side_effect=_fake_create_subprocess,
                 ),
                 patch(
-                    "kiro_crew.apps.registry._clone_origin_url",
+                    "junction.apps.registry._clone_origin_url",
                     new=AsyncMock(return_value=origin_url),
                 ),
             ):
@@ -6219,7 +6219,7 @@ class TestDetachedHeadNeverMovedAside:
     async def test_known_branch_mismatch_moves_aside_with_fresh_mtime(self, tmp_path):
         """Control: a CONCRETELY read differing branch still moves aside for
         re-clone with a refreshed mtime (existing PR behavior, unchanged)."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         origin_url = "https://example.com/branched-app.git"
         dest = tmp_path / "app-sources" / "branched-app"
@@ -6254,18 +6254,18 @@ class TestDetachedHeadNeverMovedAside:
         log_lines: list[str] = []
         pending_cleanup: list[Path] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.cgroup_scope_argv",
+                "junction.apps.registry.cgroup_scope_argv",
                 side_effect=lambda a: a,
             ),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=origin_url),
             ),
         ):
@@ -6300,7 +6300,7 @@ class TestOriginMismatchLogsBeforeMoveAside:
 
     @pytest.mark.asyncio
     async def test_origin_mismatch_logs_the_mismatched_origin(self, tmp_path):
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         existing_origin = "https://example.com/old-owner/app.git"
         requested_url = "https://example.com/new-owner/app.git"
@@ -6337,15 +6337,15 @@ class TestOriginMismatchLogsBeforeMoveAside:
         log_lines: list[str] = []
         pending_cleanup: list[Path] = []
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda a: a),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 side_effect=_fake_create_subprocess,
             ),
             patch(
-                "kiro_crew.apps.registry._clone_origin_url",
+                "junction.apps.registry._clone_origin_url",
                 new=AsyncMock(return_value=existing_origin),
             ),
         ):
@@ -6384,8 +6384,8 @@ class TestInstallFailureReportsStaleCheckout:
     async def test_install_app_not_ok_reports_stale_path(self, tmp_path):
         """install_app returning not-ok after a successful branch-mismatch
         move-aside + clone + build must still report the retained checkout."""
-        import kiro_crew.apps.registry as reg
-        from kiro_crew.apps.manager import AppResult
+        import junction.apps.registry as reg
+        from junction.apps.manager import AppResult
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -6411,43 +6411,43 @@ class TestInstallFailureReportsStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry.app_admission_denied",
+                "junction.apps.registry.app_admission_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.get_app", return_value=None),
             patch(
-                "kiro_crew.apps.registry.install_app",
+                "junction.apps.registry.install_app",
                 return_value=AppResult(ok=False, name="testapp", error="install script refused"),
             ),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await reg.install_from_registry("testapp")
 
@@ -6463,7 +6463,7 @@ class TestInstallFailureReportsStaleCheckout:
         """An exception raised AFTER a successful clone+build (e.g. during
         the install_app/update_app call) must still report the retained
         checkout via the outer except handler."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -6489,43 +6489,43 @@ class TestInstallFailureReportsStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry.app_admission_denied",
+                "junction.apps.registry.app_admission_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.get_app", return_value=None),
             patch(
-                "kiro_crew.apps.registry.install_app",
+                "junction.apps.registry.install_app",
                 side_effect=RuntimeError("boom"),
             ),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await reg.install_from_registry("testapp")
 
@@ -6542,7 +6542,7 @@ class TestInstallFailureReportsStaleCheckout:
         test_install_app_not_ok_reports_stale_path, which both bypass the
         script-execution code path entirely (their manifests carry no
         ``setup.onInstall``)."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -6577,43 +6577,43 @@ class TestInstallFailureReportsStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry.app_admission_denied",
+                "junction.apps.registry.app_admission_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
             patch(
-                "kiro_crew.apps.registry.create_subprocess_limited",
+                "junction.apps.registry.create_subprocess_limited",
                 new=AsyncMock(return_value=_TimeoutProc()),
             ),
-            patch("kiro_crew.apps.registry._kill_process_group", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry._kill_process_group", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await reg.install_from_registry("testapp")
 
@@ -6636,7 +6636,7 @@ class TestInstallFailureReportsStaleCheckout:
         any of the identity/admission gates that already call
         ``_unpoison_rejected_checkout`` — it must do the same.
         """
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -6667,7 +6667,7 @@ class TestInstallFailureReportsStaleCheckout:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={
                     "repo": "https://example.com/app.git",
                     "branch": "main",
@@ -6675,29 +6675,29 @@ class TestInstallFailureReportsStaleCheckout:
                 },
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
             patch(
-                "kiro_crew.apps.registry._clone_build_app",
+                "junction.apps.registry._clone_build_app",
                 new=_fake_clone_build,
             ),
             patch(
-                "kiro_crew.apps.registry.app_execution_denied",
+                "junction.apps.registry.app_execution_denied",
                 return_value=None,
             ),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await reg.install_from_registry("testapp")
 
@@ -6756,30 +6756,30 @@ class TestRefusalExitsReportRetainedStale:
 
         return (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://new.example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://new.example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.app_admission_denied", side_effect=_admission),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.app_admission_denied", side_effect=_admission),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry._looks_like_git_url", return_value=True),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry._looks_like_git_url", return_value=True),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         )
 
     async def _run_install(self, pkg_dir, first_patch, *, admission_denied=None):
         """Enter *first_patch* plus the shared install patches and run
         ``install_from_registry("testapp")``, returning its result."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         with contextlib.ExitStack() as stack:
             stack.enter_context(first_patch)
@@ -6802,7 +6802,7 @@ class TestRefusalExitsReportRetainedStale:
         result = await self._run_install(
             pkg_dir,
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_git_clone(stale_dir, restorable=False, cloned_name="wrong"),
             ),
         )
@@ -6829,7 +6829,7 @@ class TestRefusalExitsReportRetainedStale:
         result = await self._run_install(
             pkg_dir,
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 # Correct name → identity gate passes → the admission gate is
                 # the one that refuses.
                 new=self._make_fake_git_clone(stale_dir, restorable=False, cloned_name="testapp"),
@@ -6859,7 +6859,7 @@ class TestRefusalExitsReportRetainedStale:
         result = await self._run_install(
             pkg_dir,
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_git_clone(stale_dir, restorable=True, cloned_name="wrong"),
             ),
         )
@@ -6895,7 +6895,7 @@ class TestRefusalExitsReportRetainedStale:
             }
 
         result = await self._run_install(
-            pkg_dir, patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build)
+            pkg_dir, patch("junction.apps.registry._clone_build_app", new=_fake_clone_build)
         )
 
         assert result["ok"] is False
@@ -6928,7 +6928,7 @@ class TestRefusalExitsReportRetainedStale:
 
         result = await self._run_install(
             pkg_dir,
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
             admission_denied="signature required",
         )
 
@@ -6963,19 +6963,19 @@ class TestCloneBuildStampsPendingOnRefusal:
 
     @pytest.mark.asyncio
     async def test_non_restorable_refusal_dict_carries_pending_only(self, tmp_path):
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
         stale_dir.mkdir(parents=True)
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=False),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await _clone_build_app("https://new.example.com/app.git", "testapp", [])
 
@@ -6986,19 +6986,19 @@ class TestCloneBuildStampsPendingOnRefusal:
 
     @pytest.mark.asyncio
     async def test_restorable_refusal_dict_carries_both_lists(self, tmp_path):
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
         stale_dir.mkdir(parents=True)
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=True),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             result = await _clone_build_app("https://new.example.com/app.git", "testapp", [])
 
@@ -7043,7 +7043,7 @@ class TestCloneBuildExceptionPathReportsRetainedStale:
         """Origin-mismatch (non-restorable) move-aside + a build-step exception:
         the retained ``.stale-*`` path is named in ``log_lines`` before the
         exception propagates, and the dir survives on disk untouched."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -7054,9 +7054,9 @@ class TestCloneBuildExceptionPathReportsRetainedStale:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
             patch(
-                "kiro_crew.apps.registry._clone_build_app_locked",
+                "junction.apps.registry._clone_build_app_locked",
                 new=self._make_raising_locked(
                     stale_dir, restorable=False, exc=RuntimeError("build blew up")
                 ),
@@ -7080,7 +7080,7 @@ class TestCloneBuildExceptionPathReportsRetainedStale:
         """``CancelledError`` (the reported case) on the same path also names the
         retained non-restorable stale before propagating — the handler catches
         ``BaseException`` on purpose."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -7091,9 +7091,9 @@ class TestCloneBuildExceptionPathReportsRetainedStale:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
             patch(
-                "kiro_crew.apps.registry._clone_build_app_locked",
+                "junction.apps.registry._clone_build_app_locked",
                 new=self._make_raising_locked(
                     stale_dir, restorable=False, exc=asyncio.CancelledError()
                 ),
@@ -7112,7 +7112,7 @@ class TestCloneBuildExceptionPathReportsRetainedStale:
         """A restorable (same-origin) move-aside on the exception path is put
         back at ``pkg_dir`` and must NOT be reported as retained — restoring it
         deletes the ``.stale-*`` sibling, so naming it would be misleading."""
-        import kiro_crew.apps.registry as reg
+        import junction.apps.registry as reg
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -7123,9 +7123,9 @@ class TestCloneBuildExceptionPathReportsRetainedStale:
 
         log_lines: list[str] = []
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
             patch(
-                "kiro_crew.apps.registry._clone_build_app_locked",
+                "junction.apps.registry._clone_build_app_locked",
                 new=self._make_raising_locked(
                     stale_dir, restorable=True, exc=RuntimeError("build blew up")
                 ),
@@ -7161,7 +7161,7 @@ class TestProvenanceRaiseAfterDurableSuccessReportsRetainedStale:
 
     @pytest.mark.asyncio
     async def test_provenance_raise_reports_retained_restorable_stale(self, tmp_path):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         pkg_dir = tmp_path / "testapp"
         pkg_dir.mkdir()
@@ -7193,26 +7193,26 @@ class TestProvenanceRaiseAfterDurableSuccessReportsRetainedStale:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry.get_app", return_value=None),
-            patch("kiro_crew.apps.registry.install_app", return_value=_Ok()),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.set_app_provenance", side_effect=_boom),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.get_app", return_value=None),
+            patch("junction.apps.registry.install_app", return_value=_Ok()),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.set_app_provenance", side_effect=_boom),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -7240,7 +7240,7 @@ class TestFinallyOwnedReporterIsTheSoleSite:
     def test_exactly_one_reporter_call_in_install_from_registry(self):
         import inspect
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         source = inspect.getsource(reg.install_from_registry)
         calls = source.count("_report_retained_stale_checkouts(")
@@ -7271,7 +7271,7 @@ class TestRefusalOutcomeCarriesNoInternalTransactionKeys:
 
     @pytest.mark.asyncio
     async def test_build_refusal_outcome_is_json_serializable_and_scrubbed(self, tmp_path):
-        from kiro_crew.apps.registry import install_from_registry
+        from junction.apps.registry import install_from_registry
 
         app_sources = tmp_path / "app-sources"
         app_sources.mkdir()
@@ -7295,23 +7295,23 @@ class TestRefusalOutcomeCarriesNoInternalTransactionKeys:
 
         with (
             patch(
-                "kiro_crew.apps.registry.get_registry_app",
+                "junction.apps.registry.get_registry_app",
                 return_value={"repo": "https://example.com/app.git", "branch": "main"},
             ),
             patch(
-                "kiro_crew.apps.registry._entry_git_url",
+                "junction.apps.registry._entry_git_url",
                 return_value="https://example.com/app.git",
             ),
-            patch("kiro_crew.apps.registry._clone_build_app", new=_fake_clone_build),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=pkg_dir),
-            patch("kiro_crew.apps.registry.app_admission_denied", return_value=None),
-            patch("kiro_crew.apps.registry.app_execution_denied", return_value=None),
+            patch("junction.apps.registry._clone_build_app", new=_fake_clone_build),
+            patch("junction.apps.registry.app_source_dir", return_value=pkg_dir),
+            patch("junction.apps.registry.app_admission_denied", return_value=None),
+            patch("junction.apps.registry.app_execution_denied", return_value=None),
             patch(
-                "kiro_crew.apps.registry._fetch_app_manifest",
+                "junction.apps.registry._fetch_app_manifest",
                 new=AsyncMock(return_value=None),
             ),
-            patch("kiro_crew.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry._sweep_stale_checkouts", new=AsyncMock()),
+            patch("junction.apps.registry.sel"),
         ):
             result = await install_from_registry("testapp")
 
@@ -7348,7 +7348,7 @@ class TestReadCloneBranchBoundedRead:
         The bounded read now runs through ``hooks.safe_read_prefix`` (the
         symlink-containing primitive), so the boundedness proof is the ``n``
         argument that reader receives, not a ``builtins.open`` read size."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = tmp_path / "clone"
         (clone_dir / ".git").mkdir(parents=True)
@@ -7360,7 +7360,7 @@ class TestReadCloneBranchBoundedRead:
             encoding="utf-8",
         )
 
-        from kiro_crew import hooks
+        from junction import hooks
 
         real_prefix = hooks.safe_read_prefix
         limit_args: list[int] = []
@@ -7386,7 +7386,7 @@ class TestReadCloneBranchBoundedRead:
     def test_head_content_filling_the_bound_fails_closed(self, tmp_path):
         """A ``ref:`` line padded exactly to the byte bound is treated as
         malformed (possible mid-token truncation) and returns None."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = tmp_path / "clone"
         (clone_dir / ".git").mkdir(parents=True)
@@ -7400,7 +7400,7 @@ class TestReadCloneBranchBoundedRead:
     def test_normal_head_still_reads_the_branch(self, tmp_path):
         """Control: a well-formed short HEAD still resolves to its branch —
         the bound rejects only oversized/hostile content."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = tmp_path / "clone"
         (clone_dir / ".git").mkdir(parents=True)
@@ -7414,7 +7414,7 @@ class TestReadCloneBranchBoundedRead:
         """A ``.git/HEAD`` symlinked to a huge file is still bounded — the read
         follows the link but stops at the limit, and the oversized content
         fails closed."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone_dir = tmp_path / "clone"
         (clone_dir / ".git").mkdir(parents=True)
@@ -7441,8 +7441,8 @@ class TestReadCloneBranchBoundedRead:
         read, so the branch read fails closed to None and the secret bytes never
         leave the sensitive-path ceiling — even though a valid ``ref:`` line at
         the target would otherwise parse to a branch."""
-        from kiro_crew import hooks
-        from kiro_crew.apps import registry as reg
+        from junction import hooks
+        from junction.apps import registry as reg
 
         # A secret file that resolves to a *sensitive* path. Its content is a
         # perfectly valid HEAD line, so if the read followed the link it would
@@ -7482,8 +7482,8 @@ class TestReadCloneBranchBoundedRead:
         a path whose resolved target is sensitive, so EVERY call site (loose
         ref, ``packed-refs``, provenance HEAD) is contained, not just the
         branch read."""
-        from kiro_crew import hooks
-        from kiro_crew.apps import registry as reg
+        from junction import hooks
+        from junction.apps import registry as reg
 
         secret = tmp_path / "id_rsa"
         secret.write_text("PRIVATE KEY MATERIAL\n", encoding="utf-8")
@@ -7516,7 +7516,7 @@ class TestResolvedCloneCommitBoundedRead:
     """
 
     def test_oversized_head_fails_closed_without_unbounded_read(self, tmp_path):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone = tmp_path / "clone"
         (clone / ".git").mkdir(parents=True)
@@ -7525,7 +7525,7 @@ class TestResolvedCloneCommitBoundedRead:
         # single 40/64-char SHA line.
         head_file.write_text("f" * (2 * 1024 * 1024), encoding="utf-8")
 
-        from kiro_crew import hooks
+        from junction import hooks
 
         real_prefix = hooks.safe_read_prefix
         limit_args: list[int] = []
@@ -7548,7 +7548,7 @@ class TestResolvedCloneCommitBoundedRead:
         """``packed-refs`` is checkout-resident, so its read is bounded — an
         oversized file is not slurped whole. Asserted by counting the largest
         ``read(n)`` on that file: the unbounded original reads it all."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone = tmp_path / "clone"
         git_dir = clone / ".git"
@@ -7558,7 +7558,7 @@ class TestResolvedCloneCommitBoundedRead:
         # A multi-MiB packed-refs — far past the bound, no matching ref line.
         packed.write_text("x" * (4 * 1024 * 1024), encoding="utf-8")
 
-        from kiro_crew import hooks
+        from junction import hooks
 
         real_prefix = hooks.safe_read_prefix
         packed_read_args: list[int] = []
@@ -7586,7 +7586,7 @@ class TestResolvedCloneCommitBoundedRead:
     def test_normal_detached_head_still_resolves(self, tmp_path):
         """Control: a well-formed detached HEAD still yields its SHA — the
         bound rejects only oversized content."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         clone = tmp_path / "clone"
         (clone / ".git").mkdir(parents=True)
@@ -7611,7 +7611,7 @@ class TestCommitPinnedSkipsReconvergenceRead:
     async def test_pinned_install_never_calls_read_clone_branch(self, tmp_path):
         """With ``commit`` set, ``_read_clone_branch`` is never invoked even
         though a ``.git`` checkout on a DIFFERENT branch is present."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app-sources" / "pinned-app"
         (dest / ".git").mkdir(parents=True)
@@ -7642,9 +7642,9 @@ class TestCommitPinnedSkipsReconvergenceRead:
             # Origin verified identical so the origin gate passes and control
             # reaches the (now commit-gated) reconvergence block.
             patch.object(reg, "_clone_origin_url", new=AsyncMock(return_value=git_url)),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=dest),
+            patch("junction.apps.registry.app_source_dir", return_value=dest),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
         ):
@@ -7668,7 +7668,7 @@ class TestCommitPinnedSkipsReconvergenceRead:
     async def test_branch_tracking_install_does_call_read_clone_branch(self, tmp_path):
         """Control: with ``commit`` unset, the reconvergence read DOES run —
         proving the skip is specific to the pinned path, not a dead gate."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app-sources" / "tracking-app"
         (dest / ".git").mkdir(parents=True)
@@ -7684,9 +7684,9 @@ class TestCommitPinnedSkipsReconvergenceRead:
             # Origin verified identical (the check that precedes the
             # reconvergence read) so the branch path is actually reached.
             patch.object(reg, "_clone_origin_url", new=AsyncMock(return_value=git_url)),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=dest),
+            patch("junction.apps.registry.app_source_dir", return_value=dest),
             patch(
-                "kiro_crew.apps.registry.is_clone_host_trusted",
+                "junction.apps.registry.is_clone_host_trusted",
                 return_value=True,
             ),
         ):
@@ -7729,7 +7729,7 @@ class TestMoveAsideUtimeFailureUndoesRename:
         With the pre-rename refresh the failure fires before ``dest`` is moved,
         so there is nothing to undo — but the observable contract is unchanged:
         the checkout stays put and no aside is handed back."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -7739,7 +7739,7 @@ class TestMoveAsideUtimeFailureUndoesRename:
             raise OSError("timestamps not permitted on this filesystem")
 
         log_lines: list[str] = []
-        with patch("kiro_crew.apps.registry.os.utime", side_effect=_boom):
+        with patch("junction.apps.registry.os.utime", side_effect=_boom):
             aside = await reg._move_checkout_aside(dest, log_lines)
 
         # Fail closed: no aside path handed back.
@@ -7757,7 +7757,7 @@ class TestMoveAsideUtimeFailureUndoesRename:
         """End to end: a branch-drift install whose ``os.utime`` fails during
         move-aside refuses with ``stale_clone_not_removed`` and leaves the old
         checkout in place, rather than moving it aside with an expired mtime."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app-sources" / "drift-app"
         (dest / ".git").mkdir(parents=True)
@@ -7770,13 +7770,13 @@ class TestMoveAsideUtimeFailureUndoesRename:
             raise OSError("timestamps not permitted on this filesystem")
 
         with (
-            patch("kiro_crew.apps.registry.os.utime", side_effect=_boom),
+            patch("junction.apps.registry.os.utime", side_effect=_boom),
             # Origin verified identical → the origin gate does not move aside;
             # only the branch-drift reconvergence below does, which is where the
             # utime failure must fail the whole install closed.
             patch.object(reg, "_clone_origin_url", new=AsyncMock(return_value=git_url)),
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=dest),
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.app_source_dir", return_value=dest),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
         ):
             result = await reg._clone_build_app_locked(
                 git_url,
@@ -7847,7 +7847,7 @@ class TestBuildFailureRestoreRespectsRestorableStale:
         Fails at head 17372a70 (the loop renamed every aside back); passes
         after the restorable-membership gate.
         """
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-deadbeef"
@@ -7855,16 +7855,16 @@ class TestBuildFailureRestoreRespectsRestorableStale:
         (stale_dir / "someone-elses-repo.txt").write_text("refused origin", encoding="utf-8")
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=False),
             ),
             patch(
-                "kiro_crew.apps.registry._run_app_build",
+                "junction.apps.registry._run_app_build",
                 new=AsyncMock(return_value={"ok": False, "name": "testapp"}),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             log_lines: list[str] = []
             result = await _clone_build_app(
@@ -7896,7 +7896,7 @@ class TestBuildFailureRestoreRespectsRestorableStale:
         → the old checkout IS renamed back into the slot, with the existing
         "previous checkout restored" log line. Existing behaviour unchanged.
         """
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-cafef00d"
@@ -7904,16 +7904,16 @@ class TestBuildFailureRestoreRespectsRestorableStale:
         (stale_dir / "my-work.txt").write_text("important local edits", encoding="utf-8")
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=True),
             ),
             patch(
-                "kiro_crew.apps.registry._run_app_build",
+                "junction.apps.registry._run_app_build",
                 new=AsyncMock(return_value={"ok": False, "name": "testapp"}),
             ),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             log_lines: list[str] = []
             result = await _clone_build_app(
@@ -7941,8 +7941,8 @@ class TestBuildFailureRestoreRespectsRestorableStale:
         """Control: a RESTORABLE aside whose restore-rename raises OSError still
         reports the recovery hint and keeps the path in pending_cleanup so it is
         reported stranded (existing failure-path behaviour unchanged)."""
-        from kiro_crew.apps import registry as reg
-        from kiro_crew.apps.registry import _clone_build_app
+        from junction.apps import registry as reg
+        from junction.apps.registry import _clone_build_app
 
         app_source = tmp_path / "app-sources" / "testapp"
         stale_dir = tmp_path / "app-sources" / "testapp.stale-beefbeef"
@@ -7959,17 +7959,17 @@ class TestBuildFailureRestoreRespectsRestorableStale:
             return await real_to_thread(fn, *args, **kwargs)
 
         with (
-            patch("kiro_crew.apps.registry.app_source_dir", return_value=app_source),
+            patch("junction.apps.registry.app_source_dir", return_value=app_source),
             patch(
-                "kiro_crew.apps.registry._git_clone_or_pull",
+                "junction.apps.registry._git_clone_or_pull",
                 new=self._make_fake_clone(stale_dir, restorable=True),
             ),
             patch(
-                "kiro_crew.apps.registry._run_app_build",
+                "junction.apps.registry._run_app_build",
                 new=AsyncMock(return_value={"ok": False, "name": "testapp"}),
             ),
             patch.object(reg.asyncio, "to_thread", side_effect=_to_thread_fail_rename),
-            patch("kiro_crew.apps.registry.sel"),
+            patch("junction.apps.registry.sel"),
         ):
             log_lines: list[str] = []
             result = await _clone_build_app(
@@ -8010,7 +8010,7 @@ class TestMoveAsideUndoFailureReportsRetainedPath:
         None) and log a "Previous checkout retained at: <aside>" line naming
         that exact path — never a generic dest-only line that would leave the
         strand unreported."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -8039,7 +8039,7 @@ class TestMoveAsideUndoFailureReportsRetainedPath:
         failure fires while the checkout is still at ``dest`` — nothing is moved,
         nothing is stranded, and the honest report is the generic
         "Could not move aside ... at <dest>" line with no "retained at" line."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "testapp"
         dest.mkdir()
@@ -8101,7 +8101,7 @@ async def _run_index_clone_failure(tmp_path, output: bytes, *, index_originated:
     selects the confused-deputy (credential-free) posture path (True, default)
     vs the owner-designated path (False) whose only failure shape is the bare
     ``git clone failed`` body."""
-    from kiro_crew.apps import registry as reg
+    from junction.apps import registry as reg
 
     def _fake_wrap_argv(argv, mode="standard"):
         return argv, None
@@ -8111,10 +8111,10 @@ async def _run_index_clone_failure(tmp_path, output: bytes, *, index_originated:
 
     dest = tmp_path / "clone-dest"  # does not exist → fresh-clone path
     with (
-        patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-        patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
-        patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda c: c),
-        patch("kiro_crew.apps.registry.create_subprocess_limited", new=_fake_create),
+        patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+        patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+        patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda c: c),
+        patch("junction.apps.registry.create_subprocess_limited", new=_fake_create),
     ):
         result = await reg._git_clone_or_pull(
             "https://github.com/acme/private-sibling.git",
@@ -8243,7 +8243,7 @@ class TestIndexOriginatedCloneFailureHintIsGated:
         # `permission denied` auth marker fires ONLY on the SSH method-list
         # forms, never on a bare local-FS errno. This is the property the
         # end-to-end tests above exercise, asserted directly on the boolean.
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # Local FS errno forms — every one must fall open (not auth-shaped).
         assert (
@@ -8319,7 +8319,7 @@ class TestCloneLocaleIsPinnedForDeterministicClassifier:
     PROPERTY (the pin on the constructed env), not a real non-English git."""
 
     def test_anonymous_git_env_pins_locale_over_operator_lang(self, monkeypatch):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # Simulate a non-English operator host: LANG/LC_ALL are on os.environ
         # and pass through _SAFE_ENV_KEYS.
@@ -8341,7 +8341,7 @@ class TestCloneLocaleIsPinnedForDeterministicClassifier:
         # many other minimal_env subprocesses (pip installs, app backends, …),
         # and C.UTF-8 is invalid on macOS BSD libc. The operator's LANG/LC_ALL
         # pass through unchanged.
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         monkeypatch.setenv("LANG", "ja_JP.UTF-8")
         monkeypatch.setenv("LC_ALL", "ja_JP.UTF-8")
@@ -8351,7 +8351,7 @@ class TestCloneLocaleIsPinnedForDeterministicClassifier:
     def test_explicit_extra_still_overrides_the_pin(self, monkeypatch):
         # The pin is applied before *extra*, so an explicit caller override wins
         # (documented contract) — the pin is a default, not a lock.
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         env = reg.anonymous_git_env(LC_ALL="en_US.UTF-8")
         assert env["LC_ALL"] == "en_US.UTF-8"
@@ -8362,7 +8362,7 @@ class TestCloneLocaleIsPinnedForDeterministicClassifier:
         # credential-blocked clone is classified auth-shaped. A localized
         # (e.g. German) rendering of the same failure would NOT match — which is
         # exactly why the env must force English before the classifier runs.
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         english = "fatal: Authentication failed for 'https://github.com/acme/x.git/'"
         localized = "fatal: Authentifizierung fehlgeschlagen für 'https://github.com/acme/x.git/'"
@@ -8376,7 +8376,7 @@ class TestCloneLocaleIsPinnedForDeterministicClassifier:
         # and a credential-blocked index-originated clone keeps the posture hint
         # on a non-English host. Fails at 2db0acd4 (no pin: git would localize
         # and the hint would vanish); passes after.
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         captured: dict = {}
 
@@ -8393,10 +8393,10 @@ class TestCloneLocaleIsPinnedForDeterministicClassifier:
 
         dest = tmp_path / "clone-dest"
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
-            patch("kiro_crew.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
-            patch("kiro_crew.apps.registry.cgroup_scope_argv", side_effect=lambda c: c),
-            patch("kiro_crew.apps.registry.create_subprocess_limited", new=_fake_create),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.wrap_argv", side_effect=_fake_wrap_argv),
+            patch("junction.apps.registry.cgroup_scope_argv", side_effect=lambda c: c),
+            patch("junction.apps.registry.create_subprocess_limited", new=_fake_create),
         ):
             result = await reg._git_clone_or_pull(
                 "https://github.com/acme/private-sibling.git",
@@ -8423,7 +8423,7 @@ class TestCloneLocaleIsPlatformValid:
     reading non-ASCII git output raises ``UnicodeDecodeError`` — turning the
     diagnostic clone into a crash. The deterministic property is that the pinned
     value is platform-appropriate: ``en_US.UTF-8`` on Darwin, ``C.UTF-8``
-    elsewhere (mirroring :mod:`kiro_crew.service.common`)."""
+    elsewhere (mirroring :mod:`junction.service.common`)."""
 
     def test_pinned_locale_is_valid_for_the_running_platform(self):
         # The module-level constant, as resolved for THIS host, must be the
@@ -8431,7 +8431,7 @@ class TestCloneLocaleIsPlatformValid:
         # the hardcoded, BSD-libc-invalid "C.UTF-8"); passes after the split.
         import sys
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         expected = "en_US.UTF-8" if sys.platform == "darwin" else "C.UTF-8"
         assert reg._GIT_CLONE_LOCALE == expected
@@ -8448,7 +8448,7 @@ class TestCloneLocaleIsPlatformValid:
         import importlib
         import sys
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         try:
             monkeypatch.setattr(sys, "platform", "darwin")
@@ -8469,7 +8469,7 @@ class TestCloneLocaleIsPlatformValid:
         # carries the platform-appropriate locale, not a macOS-invalid one.
         import sys
 
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         env = reg.anonymous_git_env()
         expected = "en_US.UTF-8" if sys.platform == "darwin" else "C.UTF-8"
@@ -8487,7 +8487,7 @@ class TestSslMarkerIsAnchoredNotBareSubstring:
     _TLS_LABEL = "a TLS/SSL error occurred"
 
     def test_ssl_in_repo_url_is_not_labeled_a_tls_error(self):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # A not-found failure whose stderr echoes a repo URL containing "ssl"
         # (openssl) is NOT a TLS error and must NOT get the TLS label. Fails at
@@ -8498,7 +8498,7 @@ class TestSslMarkerIsAnchoredNotBareSubstring:
         assert label != self._TLS_LABEL
 
     def test_gnutls_in_repo_url_is_not_labeled_a_tls_error(self):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # A not-found failure whose stderr echoes a repo URL containing the
         # library name "gnutls" (github.com/gnutls/gnutls) is NOT a TLS error.
@@ -8510,7 +8510,7 @@ class TestSslMarkerIsAnchoredNotBareSubstring:
         assert label != self._TLS_LABEL
 
     def test_genuine_tls_errors_still_labeled(self):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # git/curl/(open|gnu)tls real TLS-error phrasings still map to the TLS
         # label so the classifier keeps recognizing genuine transport failures.
@@ -8528,7 +8528,7 @@ class TestSslMarkerIsAnchoredNotBareSubstring:
             assert reg._redacted_git_failure_class(stderr) == self._TLS_LABEL
 
     def test_no_bare_ssl_token_marker_remains(self):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # Every TLS-labeled marker is a multi-token phrase, never the bare token
         # "ssl" that would match a repo URL path segment.
@@ -8551,7 +8551,7 @@ class TestRefErrorMarkerPrecision:
     merely contains ``does not exist`` is not mislabeled a missing ref."""
 
     def test_non_ref_does_not_exist_is_not_labeled_a_ref_error(self):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # A pathspec/path error that contains "does not exist" but is NOT a git
         # ref error must NOT be classified as the requested-ref failure.
@@ -8561,7 +8561,7 @@ class TestRefErrorMarkerPrecision:
         assert label != "the requested ref does not exist"
 
     def test_git_ref_error_still_classified(self):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # git's actual missing-ref phrasing still maps to the ref label.
         assert (
@@ -8580,7 +8580,7 @@ class TestSiblingFailureShapesUseCodeNotError:
 
     @pytest.mark.asyncio
     async def test_destination_not_a_checkout_slug_in_code(self, tmp_path):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "app-source"
         dest.mkdir()
@@ -8603,10 +8603,10 @@ class TestSiblingFailureShapesUseCodeNotError:
 
     @pytest.mark.asyncio
     async def test_untrusted_clone_host_slug_in_code(self, tmp_path):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "clone-dest"
-        with patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=False):
+        with patch("junction.apps.registry.is_clone_host_trusted", return_value=False):
             result = await reg._git_clone_or_pull(
                 "https://169.254.169.254/internal.git",
                 "main",
@@ -8622,7 +8622,7 @@ class TestSiblingFailureShapesUseCodeNotError:
 
     @pytest.mark.asyncio
     async def test_existing_checkout_not_moved_aside_slug_in_code(self, tmp_path):
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         dest = tmp_path / "source"
         (dest / ".git").mkdir(parents=True)
@@ -8631,7 +8631,7 @@ class TestSiblingFailureShapesUseCodeNotError:
             raise AssertionError("a refused move-aside must not reach the fetch")
 
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch.object(reg, "_clone_origin_url", new=AsyncMock(return_value="https://x/y.git")),
             patch.object(reg, "_git_fetch_commit", new=_must_not_fetch),
             patch.object(reg, "_move_checkout_aside", new=AsyncMock(return_value=None)),
@@ -8648,13 +8648,13 @@ class TestSiblingFailureShapesUseCodeNotError:
     @pytest.mark.asyncio
     async def test_originally_swapped_shapes_still_use_code(self, tmp_path):
         """Control: the two shapes swapped in the base PR are unchanged."""
-        from kiro_crew.apps import registry as reg
+        from junction.apps import registry as reg
 
         # unreadable_clone_origin: origin remote unreadable, refuse in place.
         dest = tmp_path / "unreadable"
         (dest / ".git").mkdir(parents=True)
         with (
-            patch("kiro_crew.apps.registry.is_clone_host_trusted", return_value=True),
+            patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
             patch.object(reg, "_clone_origin_url", new=AsyncMock(return_value=None)),
         ):
             result = await reg._git_clone_or_pull("https://x/y.git", "main", dest, [], commit="")

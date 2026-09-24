@@ -5,7 +5,7 @@ description: "ACP runtime registry (harness plane). Use when changing agent.acp_
 
 # ACP runtimes — harness plane
 
-Registry: `src/kiro_crew/acp/runtimes.py`. Default `agent.acp_backend` is
+Registry: `src/junction/acp/runtimes.py`. Default `agent.acp_backend` is
 `auto`. `kiro-cli` is last in `AUTO_PREFERENCE` and is optional.
 
 Read first:

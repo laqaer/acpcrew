@@ -5,8 +5,9 @@ models. Combining this tree with Codex Router is two planes in one product,
 not a Node dump into Python.
 
 Decision records: [ADR 0002](docs/adr/0002-two-planes.md) (compose, do not
-dump) and [ADR 0003](docs/adr/0003-sidecar-not-vendor.md) (observe the
-sidecar; do not vendor it). Security invariants stay
+dump), [ADR 0003](docs/adr/0003-sidecar-not-vendor.md) (do not vendor
+another product's tree), and [ADR 0007](docs/adr/0007-builtin-model-catalog.md)
+(built-in catalog). Security invariants stay
 [ADR 0004](docs/adr/0004-security-unchanged.md). This cut is preview, not
 production: [ADR 0005](docs/adr/0005-preview-not-production.md).
 
@@ -22,12 +23,11 @@ flowchart TB
   Ui["junction CLI / dashboard"]
   Gw[Python gateway]
   subgraph Harness["Harness plane"]
-    Reg["ACP runtime registry<br/>src/kiro_crew/acp/runtimes.py"]
+    Reg["ACP runtime registry<br/>src/junction/acp/runtimes.py"]
   end
-  subgraph Model["Model plane (optional)"]
-    MR["observe + compose<br/>src/kiro_crew/model_router/"]
-    CR["Codex Router sidecar :4202"]
-    LL["LiteLLM :4200"]
+  subgraph Model["Model plane"]
+    MR["catalog listener<br/>src/junction/model_router/"]
+    CR["loopback :4202 /health /catalog"]
   end
   subgraph Home["Memory, cron, skills"]
     Mem[local data home]
@@ -36,18 +36,17 @@ flowchart TB
   Gw --> Reg
   Gw --> MR
   Gw --> Mem
-  MR -.-> CR --> LL
+  MR --> CR
 ```
 
 Operator → `junction` CLI / dashboard → Python gateway → **harness plane**
-(ACP registry) **and** **model plane** (optional Codex Router sidecar on
-loopback, typically `:4202` + LiteLLM `:4200`) **and** memory / cron /
-skills.
+(ACP registry) **and** **model plane** (built-in loopback catalog,
+typically `:4202`) **and** memory / cron / skills.
 
 ## Harness plane
 
 Already on `main`. `agent.acp_backend` defaults to `auto` via
-`src/kiro_crew/acp/runtimes.py`. Resolution preference is Cursor, Claude,
+`src/junction/acp/runtimes.py`. Resolution preference is Cursor, Claude,
 Codex, Kimi, DeepSeek Harness, Goose, Grok, Pi, Droid, then `kiro-cli`.
 Unknown values degrade to `auto`, not to `kiro-cli`.
 
@@ -62,11 +61,11 @@ rather than implying a hidden install.
 
 ## Model plane
 
-This cut **observes and composes**. Python health, the namespaced model-choice
-catalog, and the role DAG live in `src/kiro_crew/model_router/`. The sidecar
-is the published Codex Router (or a later, separately decided subset).
-Junction does not vendor the Node tree, copy tray / widget / Electron /
-public Cursor HTTPS tunnel / ACP agent bridges, or reimplement LiteLLM.
+`junction up` starts the catalog listener in `src/junction/model_router/`.
+Health, the namespaced model-choice catalog, and the role DAG live there.
+Junction does not vendor another product's tree, copy a tray / widget /
+Electron app / public HTTPS tunnel / ACP agent bridges, or reimplement a
+translation gateway.
 
 Catalog slugs (for example `kimi-oauth/k3`, `deepseek/deepseek-v4-pro`) are
 the model choices. Live-catalog providers such as GitHub Copilot ship as
@@ -76,28 +75,27 @@ cost classes (economy / standard / capable) so tokens buy the most work.
 Unpinned roles stay `"auto"` until an advertised set is known; operators
 may pin `agent.role_models.<role>`.
 
-If the sidecar is absent or unhealthy, the ACP gateway still runs. That
-degradation is documented, not silent. Spec:
+If the catalog listener is absent or unhealthy, the ACP gateway still runs.
+That degradation is documented, not silent. Spec:
 [`docs/system-specs/modules/model-router.md`](docs/system-specs/modules/model-router.md).
 
-Agents may optionally point `openai_base_url` at the model plane (M2).
 Junction never pastes provider keys into chat, never logs secrets, and
-never treats a capability URL as display copy.
+never treats a capability URL as display copy. Completion routes on the
+built-in listener are refused.
 
 ## Memory, cron, skills
 
 Unchanged in role: the gateway already owns cross-session memory, cron,
 and skills. The two-plane join does not relocate that state. Data home
-identifiers stay `KIROCREW_HOME` / `~/.kiro/crew` until a dedicated rename.
+identifiers are `JUNCTION_HOME` / `~/.junction` for a new install.
 
 ## Degradation
 
-| Sidecar | Gateway | Operator-visible |
+| Model plane | Gateway | Operator-visible |
 |---|---|---|
-| Healthy on loopback | Full: harness + model route | Health/status reports ready |
-| Installed, not running | Harness only | Degraded: model plane down |
-| Not installed | Harness only | Degraded: model plane absent |
-| Probe fails closed | Harness only | Degraded: unreachable, no secrets |
+| Catalog listener up | Harness + catalog | Degraded until a translation gateway answers `:4200` |
+| Listener down | Harness only | Model plane down; gateway still runs |
+| Probe fails | Harness only | Unreachable, no secrets |
 
 A missing model plane is not a gateway crash.
 
@@ -106,7 +104,7 @@ A missing model plane is not a gateway crash.
 CLI `junction up` (compose then serve; `junction gateway` is the same server),
 `junction planes`, `junction doctor --quick`, `junction doctor` (Planes
 section first), and `GET /api/planes` return one snapshot: harness inventory
-(auto preference; kiro-cli last and optional), model-sidecar health, and the
+(auto preference; kiro-cli last and optional), model-plane health, and the
 orchestration → planning → execution role DAG. They do not spawn agents, leave
 loopback, or change the Kiro harness path. Existing `junction router
 status|catalog|plan` routes stay the model-plane detail views. The JSON

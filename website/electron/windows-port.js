@@ -66,7 +66,7 @@ function windowsGatewayExecutablePaths(
   }
   const trusted = [normalized];
   if (
-    /^kirocrew\.exe$/i.test(path.win32.basename(normalized))
+    /^junction\.exe$/i.test(path.win32.basename(normalized))
     && /^scripts$/i.test(path.win32.basename(path.win32.dirname(normalized)))
   ) {
     // A distlib console launcher delegates to the venv interpreter. Source

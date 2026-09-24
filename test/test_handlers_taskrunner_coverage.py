@@ -2,7 +2,7 @@
 
 Focus: request validation, run-lifecycle state transitions, error responses and
 status codes for every endpoint in
-``kiro_crew.dashboard.handlers.taskrunner`` — plus the redaction applied to
+``junction.dashboard.handlers.taskrunner`` — plus the redaction applied to
 LLM-authored text on the status / plan / export surfaces.
 
 Everything is driven through ``make_mocked_request`` against a fake
@@ -23,8 +23,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.dashboard.handlers.taskrunner import (
+from junction.acp.types import EVENT_COMPLETE, EVENT_PERMISSION_REQUEST, EVENT_TEXT_CHUNK, AcpEvent
+from junction.dashboard.handlers.taskrunner import (
     _run_refine,
     api_taskrunner_cancel,
     api_taskrunner_delete,
@@ -47,7 +47,7 @@ from kiro_crew.dashboard.handlers.taskrunner import (
     api_taskrunner_update_plan,
     api_taskrunner_update_task,
 )
-from kiro_crew.taskrunner import Step, StepStatus, TaskRun
+from junction.taskrunner import Step, StepStatus, TaskRun
 
 # A URL whose oversized query payload trips the (domain-agnostic) exfiltration
 # scanner — see test_security.py::test_long_query_redacted_domain_agnostic.
@@ -59,7 +59,7 @@ _EXFIL_URL = "https://collector.example.com/ingest?data=" + "A" * 250
 @pytest.fixture(autouse=True)
 def _stub_sel():
     """No real security-event-log writes from any handler under test."""
-    with patch("kiro_crew.dashboard.handlers.taskrunner._sel") as sel:
+    with patch("junction.dashboard.handlers.taskrunner._sel") as sel:
         sel.return_value = MagicMock()
         yield sel
 
@@ -230,7 +230,7 @@ class TestStart:
         spec.write_text("# t", encoding="utf-8")
         runner = _runner(tmp_path)
         with patch(
-            "kiro_crew.dashboard.handlers.taskrunner.is_sensitive_path", return_value=True
+            "junction.dashboard.handlers.taskrunner.is_sensitive_path", return_value=True
         ):
             resp = await api_taskrunner_start(
                 _request(_state(runner), json_body={"spec": str(spec)})
@@ -618,7 +618,7 @@ class TestExportYaml:
             tasks=[Step(index=1, title="a", description="b")],
         )
         with patch(
-            "kiro_crew.dashboard.handlers.taskrunner.plan_to_yaml",
+            "junction.dashboard.handlers.taskrunner.plan_to_yaml",
             side_effect=RuntimeError("boom SECRET"),
         ):
             resp = await api_taskrunner_export_yaml(
@@ -682,7 +682,7 @@ class TestToChat:
         async def _noop(*_a: Any, **_kw: Any) -> None:
             return None
 
-        with patch("kiro_crew.dashboard.chat._run_chat", new=_noop):
+        with patch("junction.dashboard.chat._run_chat", new=_noop):
             yield
 
     @staticmethod
@@ -1090,7 +1090,7 @@ class TestRefineStart:
         async def _noop(*_a: Any, **_kw: Any) -> None:
             return None
 
-        with patch("kiro_crew.dashboard.handlers.taskrunner._run_refine", new=_noop):
+        with patch("junction.dashboard.handlers.taskrunner._run_refine", new=_noop):
             resp = await api_taskrunner_refine(
                 _request(state, json_body={"input": " build a thing "})
             )

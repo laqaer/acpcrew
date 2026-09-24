@@ -87,10 +87,10 @@ here, and opens the dashboard — all from your laptop.
 1. **One-time prep.** Install the AWS CLI and `session-manager-plugin` — on a bare
    machine the `cloud-install.sh` (macOS/Linux) or `install.ps1` (Windows)
    bootstrapper does this and hands off to the wizard. Verify prerequisites with
-   `kirocrew cloud doctor`. Attach the least-privilege policy printed by
-   `kirocrew cloud iam-policy` to the AWS profile you'll launch with.
-2. **Launch.** Run `kirocrew cloud launch` — interactive (size picker + confirm),
-   or non-interactive, e.g. `kirocrew cloud launch --size power --region us-west-2
+   `junction cloud doctor`. Attach the least-privilege policy printed by
+   `junction cloud iam-policy` to the AWS profile you'll launch with.
+2. **Launch.** Run `junction cloud launch` — interactive (size picker + confirm),
+   or non-interactive, e.g. `junction cloud launch --size power --region us-west-2
    --profile dev -y`. Useful flags: `--new` (a separate box instead of resuming
    your saved one) and `--keep-on-failure` (disable CloudFormation rollback to
    inspect a failed bootstrap).
@@ -104,7 +104,7 @@ here, and opens the dashboard — all from your laptop.
    hub afterwards opens its **own** managed SSM tunnel — allocating its own local
    port, with token refresh and startup auto-reconnect — independent of that
    one-shot launch tunnel. Re-running `launch` for the same box updates its record
-   in place; `kirocrew cloud destroy` removes both the box and this registration.
+   in place; `junction cloud destroy` removes both the box and this registration.
 
 For setting up a box you manage yourself (SSH or SSM, and the common EC2 gotchas),
 see [remote-crew-on-ec2.md](remote-crew-on-ec2.md).

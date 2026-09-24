@@ -429,7 +429,7 @@ export default function AppsPage() {
         // installed under that name — names an app this wheel does not ship. A
         // built-in has no install coordinates, so the generic Install card would
         // render a control that cannot work. Dropped until a
-        // `minClientVersion`-aware "needs a newer Kiro Crew" state exists to say
+        // `minClientVersion`-aware "needs a newer Junction" state exists to say
         // so honestly. This reads `apps` purely as INSTALL STATE, never as a
         // source of display copy.
         if (
@@ -535,14 +535,14 @@ export default function AppsPage() {
       else coreCount++
     }
     const rows: SourceRow[] = []
-    if (builtinCount > 0) rows.push({ name: '__builtin__', label: i18nT('pages.appsPage.built_in_kirocrew'), count: builtinCount, builtin: true })
+    if (builtinCount > 0) rows.push({ name: '__builtin__', label: i18nT('pages.appsPage.built_in_junction'), count: builtinCount, builtin: true })
     for (const reg of registriesData?.registries || []) {
       rows.push({ name: reg.repo, label: reg.name || reg.repo, count: counts.get(reg.name || reg.repo) || 0, builtin: false })
       counts.delete(reg.name || reg.repo)
     }
     // Registries present in entries but no longer configured (stale cache)
     for (const [name, count] of counts) rows.push({ name, label: name, count, builtin: false })
-    if (coreCount > 0) rows.push({ name: '__core__', label: i18nT('pages.appsPage.kirocrew_registry'), count: coreCount, builtin: true })
+    if (coreCount > 0) rows.push({ name: '__core__', label: i18nT('pages.appsPage.junction_registry'), count: coreCount, builtin: true })
     return rows
   }, [browseApps, registriesData])
 
@@ -889,7 +889,7 @@ export default function AppsPage() {
               <div className="text-[13px] text-text mb-4 space-y-1">
                 {uninstallTarget.resources === 'app' && !uninstallTarget.manifest?.setup?.onUninstall && uninstallTarget.origin !== 'registry' && (
                   <div className="bg-bg-elevated border border-border rounded-md px-2.5 py-2 text-[12px] text-muted mb-2">
-                    {i18nT('pages.appsPage.this_is_a_self_managed_app_only_kirocrew_metadat')}
+                    {i18nT('pages.appsPage.this_is_a_self_managed_app_only_junction_metadat')}
                   </div>
                 )}
                 {uninstallTarget.manifest?.setup?.onUninstall && (

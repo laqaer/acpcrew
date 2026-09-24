@@ -45,7 +45,7 @@ const PATH_APP = {
   manifest: {
     name: 'orchestrator-switch', version: '0.1.0', displayName: 'Orchestrator Switch',
     description: "Toggle Kiro Crew's orchestrator between the Claude Code companion and stock kiro-cli, restart the gateway to apply the flip, and see what is actually configured vs live.",
-    author: 'kirocrew-claude-companion', tags: ['developer-tools'],
+    author: 'junction-claude-companion', tags: ['developer-tools'],
     ui: { pages: [{ route: '/orchestrator-switch', label: 'Orchestrator Switch', icon: 'Boxes' }] },
   },
 }

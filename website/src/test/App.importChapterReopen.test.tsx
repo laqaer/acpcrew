@@ -52,7 +52,7 @@ vi.mock('../pages/SystemPage', () => ({ default: () => null }))
 vi.mock('../pages/AgentsPage', () => ({ default: () => null }))
 vi.mock('../pages/ProjectsPage', () => ({ default: () => null }))
 vi.mock('../pages/LogsPage', () => ({ default: () => null }))
-vi.mock('../pages/KiroCrewAgentsPage', () => ({ default: () => null }))
+vi.mock('../pages/JunctionAgentsPage', () => ({ default: () => null }))
 
 import { renderWithProviders } from './helpers'
 import App from '../App'

@@ -8,7 +8,7 @@ for a platform, whether a tampered download is rejected, and which remedy an
 enterprise-network failure prints — cannot be reviewed by reading either script.
 
 Everything here is hermetic. `node`, `npm` and `curl` are stubs on a PATH the
-test controls, `HOME` and `KIROCREW_HOME` point into `tmp_path`, and no test
+test controls, `HOME` and `JUNCTION_HOME` point into `tmp_path`, and no test
 reaches the network or writes outside its own temp dir.
 """
 
@@ -219,10 +219,10 @@ def _env(tmp_path: Path, stubs: Path, *, isolated: bool = False) -> dict[str, st
         "PATH": path,
         "HOME": str(home),
         "TMPDIR": str(tmpdir),
-        "KIROCREW_HOME": str(tmp_path / "datahome"),
+        "JUNCTION_HOME": str(tmp_path / "datahome"),
         # A stray ambient value would otherwise leak the developer's own
         # registry (or a CI runner's) into the assertions below.
-        "KIROCREW_NPM_REGISTRY": "",
+        "JUNCTION_NPM_REGISTRY": "",
     }
 
 
@@ -1082,7 +1082,7 @@ def test_a_registry_url_carrying_credentials_is_never_printed(tmp_path: Path, st
         stubs,
         "--version",
         "0.1.18",
-        extra_env={"KIROCREW_NPM_REGISTRY": f"https://bob:{secret}@npm.internal.example/"},
+        extra_env={"JUNCTION_NPM_REGISTRY": f"https://bob:{secret}@npm.internal.example/"},
     )
     assert result.returncode == EXIT_CODES["registry_auth"]
     combined = result.stdout + result.stderr
@@ -1157,7 +1157,7 @@ def test_a_credential_containing_an_at_sign_is_fully_redacted(tmp_path: Path, st
         stubs,
         "--version",
         "0.1.18",
-        extra_env={"KIROCREW_NPM_REGISTRY": registry},
+        extra_env={"JUNCTION_NPM_REGISTRY": registry},
     )
     assert result.returncode == EXIT_CODES["registry_auth"]
     combined = result.stdout + result.stderr
@@ -1434,7 +1434,7 @@ def test_a_query_string_credential_is_redacted(tmp_path: Path, stubs: Path) -> N
         stubs,
         "--version",
         "0.1.18",
-        extra_env={"KIROCREW_NPM_REGISTRY": registry},
+        extra_env={"JUNCTION_NPM_REGISTRY": registry},
     )
     assert result.returncode == EXIT_CODES["registry_auth"]
     log = (tmp_path / "datahome" / "playwright-cli" / "playwright-cli-install.log").read_text()
@@ -1444,14 +1444,14 @@ def test_a_query_string_credential_is_redacted(tmp_path: Path, stubs: Path) -> N
 
 
 def test_the_node_floor_matches_what_the_product_requires_of_this_cli() -> None:
-    """These installers provision the CLI that Kiro Crew's own browsing drives
+    """These installers provision the CLI that Junction's own browsing drives
     (`browser_cli/install.py`, added when browsing moved off the MCP proxy). If
     they accepted an older Node than the product does, they would install a tool
     that works at the shell and is then refused by the app -- the worst shape of
     failure, because the install SUCCEEDED. The scripts cannot import the constant,
     running as they do before any Python exists, so it is bound here instead.
     """
-    from kiro_crew.browser_cli.install import MIN_NODE_MAJOR as product_floor
+    from junction.browser_cli.install import MIN_NODE_MAJOR as product_floor
 
     sh = re.search(r"^MIN_NODE_MAJOR=(\d+)", INSTALLER_SH.read_text(), re.MULTILINE)
     ps1 = re.search(r"^\$MinNodeMajor = (\d+)", INSTALLER_PS1.read_text(), re.MULTILINE)
@@ -1485,7 +1485,7 @@ def test_a_second_question_mark_does_not_leave_the_credential_behind(
         stubs,
         "--version",
         "0.1.18",
-        extra_env={"KIROCREW_NPM_REGISTRY": registry},
+        extra_env={"JUNCTION_NPM_REGISTRY": registry},
     )
     assert result.returncode == EXIT_CODES["registry_auth"]
     log = (tmp_path / "datahome" / "playwright-cli" / "playwright-cli-install.log").read_text()
@@ -1882,8 +1882,8 @@ def test_the_windows_install_command_cannot_run_a_stale_local_script() -> None:
     NOT prevent the next statement, because the terminating error ends the pipeline
     rather than the command. `&&` is unavailable, since this targets PowerShell 5.1.
     """
-    import kiro_crew.browser_cli.install as install_mod
-    from kiro_crew.browser_cli.install import _standalone_install_command
+    import junction.browser_cli.install as install_mod
+    from junction.browser_cli.install import _standalone_install_command
 
     original = install_mod.os.name
     try:
@@ -2001,7 +2001,7 @@ def test_the_environment_route_still_accepts_a_credential(tmp_path: Path, stubs:
         "--version",
         "0.1.18",
         "--dry-run",
-        extra_env={"KIROCREW_NPM_REGISTRY": f"https://u:{secret}@npm.internal.example/"},
+        extra_env={"JUNCTION_NPM_REGISTRY": f"https://u:{secret}@npm.internal.example/"},
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert secret not in result.stdout + result.stderr
@@ -2285,7 +2285,7 @@ def test_a_credential_in_npms_own_output_is_scrubbed_from_log_and_tail(
         stubs,
         "--version",
         "0.1.18",
-        extra_env={"KIROCREW_NPM_REGISTRY": f"https://bob:{secret}@npm.internal.example/"},
+        extra_env={"JUNCTION_NPM_REGISTRY": f"https://bob:{secret}@npm.internal.example/"},
     )
     assert result.returncode == EXIT_CODES["registry_auth"]
     assert secret not in result.stdout + result.stderr
@@ -2580,7 +2580,7 @@ def test_the_dry_run_plan_redacts_every_url_it_prints(tmp_path: Path, stubs: Pat
             "PWCLI_FAKE_NODE_MAJOR": "16",
             # Both credentials now arrive by environment: as flags they would sit in
             # world-readable argv and be refused.
-            "KIROCREW_NPM_REGISTRY": "https://ru:reg-token-1@npm.internal.example/",
+            "JUNCTION_NPM_REGISTRY": "https://ru:reg-token-1@npm.internal.example/",
             "PLAYWRIGHT_DOWNLOAD_HOST": "https://du:cdn-token-3@cdn.internal.example/",
         },
     )
@@ -2619,7 +2619,7 @@ def test_a_log_that_cannot_be_scrubbed_is_discarded_not_printed(
         stubs,
         "--version",
         "0.1.18",
-        extra_env={"KIROCREW_NPM_REGISTRY": f"https://bob:{secret}@npm.internal.example/"},
+        extra_env={"JUNCTION_NPM_REGISTRY": f"https://bob:{secret}@npm.internal.example/"},
         isolated=True,
     )
     assert result.returncode == EXIT_CODES["registry_auth"]

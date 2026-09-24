@@ -7,14 +7,14 @@ opt-in already happened upstream, and a preference could neither grant the
 feature (with no stub there is no render or callback path) nor honestly withdraw
 it.
 
-What remains is ``KIROCREW_MCP_APPS`` as an absolute kill switch. These tests pin
+What remains is ``JUNCTION_MCP_APPS`` as an absolute kill switch. These tests pin
 that, and pin that a released config still carrying ``apps_enabled`` changes
 nothing in either direction.
 """
 
 import pytest
 
-from kiro_crew.mcp_gateway.backend import MCP_APPS_ENV_FLAG, _mcp_apps_enabled
+from junction.mcp_gateway.backend import MCP_APPS_ENV_FLAG, _mcp_apps_enabled
 
 
 @pytest.fixture(autouse=True)
@@ -56,11 +56,11 @@ def test_stored_config_key_is_honoured(monkeypatch, apps_enabled: bool) -> None:
     config already carrying it keeps its opt-out; absent defaults True, so only a
     value an operator actually wrote can withhold the feature.
     """
-    import kiro_crew.config.loader as loader
+    import junction.config.loader as loader
 
-    real = loader.KiroCrewConfig.load()
+    real = loader.JunctionConfig.load()
     monkeypatch.setattr(real.mcp_gateway, "apps_enabled", apps_enabled, raising=False)
-    monkeypatch.setattr(loader.KiroCrewConfig, "load", staticmethod(lambda: real))
+    monkeypatch.setattr(loader.JunctionConfig, "load", staticmethod(lambda: real))
 
     assert _mcp_apps_enabled() is apps_enabled
 
@@ -74,11 +74,11 @@ def test_stored_opt_out_beats_env_on(monkeypatch) -> None:
     after the operator had switched the feature off.
     """
     monkeypatch.setenv(MCP_APPS_ENV_FLAG, "1")
-    import kiro_crew.config.loader as loader
+    import junction.config.loader as loader
 
-    real = loader.KiroCrewConfig.load()
+    real = loader.JunctionConfig.load()
     monkeypatch.setattr(real.mcp_gateway, "apps_enabled", False, raising=False)
-    monkeypatch.setattr(loader.KiroCrewConfig, "load", staticmethod(lambda: real))
+    monkeypatch.setattr(loader.JunctionConfig, "load", staticmethod(lambda: real))
 
     assert _mcp_apps_enabled() is False
 
@@ -87,11 +87,11 @@ def test_unreadable_config_fails_closed(monkeypatch) -> None:
     """An unreadable config disables the feature rather than rendering on a
     guess: gatewayd cannot confirm the stored preference, and withholding an
     optional rendering feature is the low-harm outcome."""
-    import kiro_crew.config.loader as loader
+    import junction.config.loader as loader
 
     def _boom():
         raise RuntimeError("config unreadable")
 
-    monkeypatch.setattr(loader.KiroCrewConfig, "load", staticmethod(_boom))
+    monkeypatch.setattr(loader.JunctionConfig, "load", staticmethod(_boom))
 
     assert _mcp_apps_enabled() is False

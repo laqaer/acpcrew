@@ -56,7 +56,7 @@ const slots = [{
   running: false,
   last_message: 'Checking the top bar.',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: '/home/user/workspace/notes',
   folder_id: '',

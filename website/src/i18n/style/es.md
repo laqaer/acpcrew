@@ -33,7 +33,7 @@ Standard Latin spacing rules. No special handling required.
 ## 3. Do not translate
 
 Product names stay as-is. The list is in `glossary.json` under `dnt`. Do not translate or
-adapt: `KiroCrew` / `Kiro Crew`, `MCP`, `Slack`, `GitHub`, etc.
+adapt: `Junction` / `Junction`, `MCP`, `Slack`, `GitHub`, etc.
 
 Checked by `glossary.test.ts`.
 

@@ -6,7 +6,7 @@
 3. Non-blocking: ``api_side_turn`` returns before ``_run_side_turn`` finishes.
 4. Channel separation: side run_id never appears in main-channel payloads.
 5. Tool rejection: empty LLM output produces a visible fallback bubble.
-6. Agent resolution: the KiroCrew slot agent name (e.g. "default") is resolved
+6. Agent resolution: the Junction slot agent name (e.g. "default") is resolved
    to the real kiro-cli agent before get_or_create, so set_mode never rejects
    it with "Mode '<name>' not found".
 7. Streaming redaction: a credential split across streaming chunk boundaries is
@@ -25,19 +25,19 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_state
 
-from kiro_crew import context as context_module
-from kiro_crew.context import ContextBuilder
-from kiro_crew.dashboard.handlers.side import (
+from junction import context as context_module
+from junction.context import ContextBuilder
+from junction.dashboard.handlers.side import (
     _run_side_turn,
     api_side_close,
     api_side_open,
     api_side_turn,
 )
-from kiro_crew.dashboard.side_state import SideState
-from kiro_crew.kiro_prerequisite import KiroPrerequisiteService
-from kiro_crew.learn import LessonStore
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.dashboard.side_state import SideState
+from junction.kiro_prerequisite import KiroPrerequisiteService
+from junction.learn import LessonStore
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 _SIDE_QUESTION = "what is the difference between TCP and UDP?"
 _SIDE_ANSWER = "TCP is connection-oriented and UDP is not."
@@ -91,7 +91,7 @@ def _stub_run_side_turn(monkeypatch, *, answer: str = _SIDE_ANSWER):
         if slot._side is not None and slot._side.open:
             slot._side.append_assistant(answer)
 
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.side._run_side_turn", _fake_run)
+    monkeypatch.setattr("junction.dashboard.handlers.side._run_side_turn", _fake_run)
 
 
 #: What a frozen clock reads. Any fixed instant does; a recognisable one makes an
@@ -206,7 +206,7 @@ async def test_side_turn_returns_before_run_finishes(tmp_path, monkeypatch):
         started.set()
         await release.wait()
 
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.side._run_side_turn", _blocking)
+    monkeypatch.setattr("junction.dashboard.handlers.side._run_side_turn", _blocking)
     state = _make_state(tmp_path)
     state.get_or_create_slot("parent")
     app = _make_side_app(state)
@@ -275,7 +275,7 @@ async def test_side_turn_surfaces_the_actionable_auth_message(tmp_path, monkeypa
     AcpAuthRequired carries the actionable `kiro-cli login` text.
     """
 
-    from kiro_crew.acp.client import AcpAuthRequired
+    from junction.acp.client import AcpAuthRequired
 
     state = _make_state(tmp_path)
     parent = state.get_or_create_slot("parent")
@@ -294,7 +294,7 @@ async def test_side_turn_surfaces_the_actionable_auth_message(tmp_path, monkeypa
 
     broadcasts: list[dict] = []
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.broadcast_side_result",
+        "junction.dashboard.handlers.side.broadcast_side_result",
         lambda state, **kw: broadcasts.append(kw),
     )
 
@@ -313,7 +313,7 @@ async def test_side_run_id_never_leaks_to_main_channels(tmp_path, monkeypatch):
     side_release = asyncio.Event()
 
     async def _streaming(state, slot, run_id, question, *, is_first_turn):
-        from kiro_crew.dashboard.ws import broadcast_side_result
+        from junction.dashboard.ws import broadcast_side_result
 
         side_started.set()
         await side_release.wait()
@@ -325,7 +325,7 @@ async def test_side_run_id_never_leaks_to_main_channels(tmp_path, monkeypatch):
             content="answer",
         )
 
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.side._run_side_turn", _streaming)
+    monkeypatch.setattr("junction.dashboard.handlers.side._run_side_turn", _streaming)
     state = _make_state(tmp_path)
     events = _capture_broadcasts(state)
     state.get_or_create_slot("parent")
@@ -375,7 +375,7 @@ async def test_empty_llm_output_produces_visible_fallback(tmp_path, monkeypatch)
     state.sessions.get_or_create = _fake_get_or_create
     state.sessions.release = MagicMock()
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value=""),
     )
 
@@ -397,7 +397,7 @@ async def test_empty_llm_output_produces_visible_fallback(tmp_path, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_side_turn_resolves_slot_agent_to_kiro_agent(tmp_path, monkeypatch):
-    """slot.agent (a KiroCrew name like "default") is resolved to the real
+    """slot.agent (a Junction name like "default") is resolved to the real
     kiro-cli agent before get_or_create -> create_session -> set_mode.
 
     Regression: passing the raw slot name straight through made kiro-cli reject
@@ -424,21 +424,21 @@ async def test_side_turn_resolves_slot_agent_to_kiro_agent(tmp_path, monkeypatch
     state.sessions.release = MagicMock()
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.KiroCrewConfig.load",
+        "junction.dashboard.handlers.side.JunctionConfig.load",
         lambda: MagicMock(),
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.resolve_agent_bindings",
-        lambda cfg, agent, project_dir=None: MagicMock(kiro_agent="kirocrew"),
+        "junction.dashboard.handlers.side.resolve_agent_bindings",
+        lambda cfg, agent, project_dir=None: MagicMock(kiro_agent="junction"),
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value="ok"),
     )
 
     await _run_side_turn(state, parent, "run-1", "q", is_first_turn=True)
 
-    assert captured["agent"] == "kirocrew", (
+    assert captured["agent"] == "junction", (
         f"side turn passed an unresolved agent to get_or_create: " f"{captured.get('agent')!r}"
     )
 
@@ -472,15 +472,15 @@ async def test_side_turn_runs_in_the_slot_project_dir(tmp_path, monkeypatch):
     state.sessions.release = MagicMock()
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.KiroCrewConfig.load",
+        "junction.dashboard.handlers.side.JunctionConfig.load",
         lambda: MagicMock(),
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.resolve_agent_bindings",
-        lambda cfg, agent, project_dir=None: MagicMock(kiro_agent="kirocrew"),
+        "junction.dashboard.handlers.side.resolve_agent_bindings",
+        lambda cfg, agent, project_dir=None: MagicMock(kiro_agent="junction"),
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value="ok"),
     )
 
@@ -498,7 +498,7 @@ async def test_side_turn_agent_resolution_falls_back_on_error(tmp_path, monkeypa
     state = _make_state(tmp_path)
     _capture_broadcasts(state)
     parent = state.get_or_create_slot("parent")
-    parent.agent = "kirocrew"
+    parent.agent = "junction"
     parent._side = SideState(open=True, created_at="2026-01-01T00:00:00Z")
     parent._side.append_user("q")
     parent._side.last_run_id = "run-1"
@@ -516,16 +516,16 @@ async def test_side_turn_agent_resolution_falls_back_on_error(tmp_path, monkeypa
     def _boom(*_a, **_k):
         raise RuntimeError("config unavailable")
 
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.side.KiroCrewConfig.load", _boom)
+    monkeypatch.setattr("junction.dashboard.handlers.side.JunctionConfig.load", _boom)
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value="ok"),
     )
 
     await _run_side_turn(state, parent, "run-1", "q", is_first_turn=True)
 
     assert (
-        captured["agent"] == "kirocrew"
+        captured["agent"] == "junction"
     ), f"fallback did not use raw slot.agent: {captured.get('agent')!r}"
 
 
@@ -548,7 +548,7 @@ async def test_side_stream_redacts_credential_split_across_chunks(tmp_path, monk
     state = _make_state(tmp_path)
     events = _capture_broadcasts(state)
     parent = state.get_or_create_slot("parent")
-    parent.agent = "kirocrew"
+    parent.agent = "junction"
     parent._side = SideState(open=True, created_at="2026-01-01T00:00:00Z")
     parent._side.append_user("q")
     parent._side.last_run_id = "run-1"
@@ -568,7 +568,7 @@ async def test_side_stream_redacts_credential_split_across_chunks(tmp_path, monk
         on_chunk(f"IOSFODNN7EXAMPLE see {exfil_url} done")
         return f"here is a key AKIAIOSFODNN7EXAMPLE see {exfil_url} done"
 
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.side.stream_and_collect", _fake_stream)
+    monkeypatch.setattr("junction.dashboard.handlers.side.stream_and_collect", _fake_stream)
 
     await _run_side_turn(state, parent, "run-1", "q", is_first_turn=True)
 
@@ -653,19 +653,19 @@ async def test_side_turn_refuses_to_substitute_the_default_for_an_app_agent(
     async def _recover_fails(cfg, _slot, *, project=None):
         # Mirrors the real coroutine's contract: a recovery failure only logs and
         # hands back the still-cold bindings.
-        return MagicMock(kiro_agent="kirocrew", requested_resolved=False)
+        return MagicMock(kiro_agent="junction", requested_resolved=False)
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.KiroCrewConfig.load", lambda: MagicMock()
+        "junction.dashboard.handlers.side.JunctionConfig.load", lambda: MagicMock()
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.resolve_agent_bindings",
+        "junction.dashboard.handlers.side.resolve_agent_bindings",
         lambda cfg, agent, project_dir=None: MagicMock(
-            kiro_agent="kirocrew", requested_resolved=False
+            kiro_agent="junction", requested_resolved=False
         ),
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.refresh_materialized_agents",
+        "junction.dashboard.handlers.side.refresh_materialized_agents",
         lambda: warms.append(1),
         # raising=False so this asserts the CONTRACT rather than where the rescan
         # happens to live. Against a build that has no such rung the test still
@@ -674,12 +674,12 @@ async def test_side_turn_refuses_to_substitute_the_default_for_an_app_agent(
         raising=False,
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.chat_runner._recover_app_agent_binding",
+        "junction.dashboard.chat_runner._recover_app_agent_binding",
         _recover_fails,
         raising=False,
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value="ok"),
     )
 
@@ -721,26 +721,26 @@ async def test_side_turn_self_heals_a_cold_app_agent_and_then_dispatches_it(
     def _resolve(cfg, agent, project_dir=None):
         if warmed:
             return MagicMock(kiro_agent="notes--assistant", requested_resolved=True)
-        return MagicMock(kiro_agent="kirocrew", requested_resolved=False)
+        return MagicMock(kiro_agent="junction", requested_resolved=False)
 
     async def _recover(cfg, _slot, *, project=None):
         recovered.append(1)
-        return MagicMock(kiro_agent="kirocrew", requested_resolved=False)
+        return MagicMock(kiro_agent="junction", requested_resolved=False)
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.KiroCrewConfig.load", lambda: MagicMock()
+        "junction.dashboard.handlers.side.JunctionConfig.load", lambda: MagicMock()
     )
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.side.resolve_agent_bindings", _resolve)
+    monkeypatch.setattr("junction.dashboard.handlers.side.resolve_agent_bindings", _resolve)
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.refresh_materialized_agents",
+        "junction.dashboard.handlers.side.refresh_materialized_agents",
         lambda: warmed.append(1),
         raising=False,
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.chat_runner._recover_app_agent_binding", _recover, raising=False
+        "junction.dashboard.chat_runner._recover_app_agent_binding", _recover, raising=False
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value="ok"),
     )
 
@@ -776,16 +776,16 @@ async def test_side_turn_self_heal_is_scoped_to_app_slots(tmp_path, monkeypatch)
     warms: list[int] = []
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.KiroCrewConfig.load", lambda: MagicMock()
+        "junction.dashboard.handlers.side.JunctionConfig.load", lambda: MagicMock()
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.resolve_agent_bindings",
+        "junction.dashboard.handlers.side.resolve_agent_bindings",
         lambda cfg, agent, project_dir=None: MagicMock(
-            kiro_agent="kirocrew", requested_resolved=False
+            kiro_agent="junction", requested_resolved=False
         ),
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.refresh_materialized_agents",
+        "junction.dashboard.handlers.side.refresh_materialized_agents",
         lambda: warms.append(1),
         # raising=False so this asserts the CONTRACT rather than where the rescan
         # happens to live. Against a build that has no such rung the test still
@@ -794,12 +794,12 @@ async def test_side_turn_self_heal_is_scoped_to_app_slots(tmp_path, monkeypatch)
         raising=False,
     )
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.side.stream_and_collect",
+        "junction.dashboard.handlers.side.stream_and_collect",
         AsyncMock(return_value="ok"),
     )
 
     await _run_side_turn(state, slot, "run-1", "q", is_first_turn=True)
 
-    assert dispatched == ["kirocrew"], "a non-app slot stopped dispatching: %r" % (dispatched,)
+    assert dispatched == ["junction"], "a non-app slot stopped dispatching: %r" % (dispatched,)
     assert warms == [], "a non-app slot paid for the app-only snapshot rescan"
     assert not _side_errors(events), "a non-app slot was refused by the app-only guard"

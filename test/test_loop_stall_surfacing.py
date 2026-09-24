@@ -20,13 +20,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kiro_crew.config.loader import (
+from junction.config.loader import (
     LOOP_STALL_EXIT_AFTER_MAX,
     LOOP_STALL_EXIT_AFTER_MIN,
-    KiroCrewConfig,
+    JunctionConfig,
     _clamp_security_bounds,
 )
-from kiro_crew.dashboard.crash_dump_store import claim_dump_notification
+from junction.dashboard.crash_dump_store import claim_dump_notification
 
 
 def _dump(tmp_path: Path, name: str = "loopstall-20260803T000000Z.txt") -> Path:
@@ -56,7 +56,7 @@ class TestClaimDumpNotification:
 
     def test_marker_is_not_mistaken_for_a_dump(self, tmp_path) -> None:
         """The marker lives in the dumps dir; rotation must ignore it."""
-        from kiro_crew.dashboard.crash_dump_store import _list_dumps
+        from junction.dashboard.crash_dump_store import _list_dumps
 
         dump = _dump(tmp_path)
         claim_dump_notification(dump, tmp_path)
@@ -72,22 +72,22 @@ class TestClaimDumpNotification:
 
 class TestLoopStallBudgetConfig:
     def test_default_preserves_existing_behaviour(self) -> None:
-        assert KiroCrewConfig().dashboard.loop_stall_exit_after_secs == 25
+        assert JunctionConfig().dashboard.loop_stall_exit_after_secs == 25
 
     def test_configured_value_is_read(self, tmp_path, monkeypatch) -> None:
         import json
 
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         cfg_dir = tmp_path / "cfgdir"
         cfg_dir.mkdir()
         (cfg_dir / "config.json").write_text(
             json.dumps({"dashboard": {"loop_stall_exit_after_secs": 60}}), encoding="utf-8"
         )
-        monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: cfg_dir)
+        monkeypatch.setattr("junction.config.loader.config_dir", lambda: cfg_dir)
         _invalidate_config_cache()
         try:
-            assert KiroCrewConfig.load().dashboard.loop_stall_exit_after_secs == 60
+            assert JunctionConfig.load().dashboard.loop_stall_exit_after_secs == 60
         finally:
             _invalidate_config_cache()
 
@@ -104,10 +104,10 @@ class TestLoopStallBudgetConfig:
 
 class TestChatTurnCeilingConfig:
     def test_default_preserves_existing_behaviour(self) -> None:
-        assert KiroCrewConfig().agent.chat_turn_timeout_secs == 7200
+        assert JunctionConfig().agent.chat_turn_timeout_secs == 7200
 
     def test_out_of_range_values_are_clamped(self) -> None:
-        from kiro_crew.config.loader import CHAT_TURN_TIMEOUT_MAX, CHAT_TURN_TIMEOUT_MIN
+        from junction.config.loader import CHAT_TURN_TIMEOUT_MAX, CHAT_TURN_TIMEOUT_MIN
 
         data = {"agent": {"chat_turn_timeout_secs": 999999}}
         _clamp_security_bounds(data)

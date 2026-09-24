@@ -24,7 +24,7 @@ Both paths require a Slack workspace where you can install apps (see [Prerequisi
 ## Prerequisites
 
 - A **Slack workspace** where you have permission to install apps. If you don't have one, create a free workspace at <https://slack.com/get-started>. You can install your own apps in a workspace you own.
-- Python and Junction installed (`pip install kirocrew`), so you can run the `kirocrew` CLI.
+- Python and Junction installed (`pip install junction`), so you can run the `junction` CLI.
 
 > **Tip**: Use a personal or test workspace for your first run. You can always export the app manifest and recreate the app in another workspace later (see [Reusing the App in Another Workspace](#reusing-the-app-in-another-workspace)).
 
@@ -35,7 +35,7 @@ Both paths require a Slack workspace where you can install apps (see [Prerequisi
 ### Step 1. Generate the Manifest
 
 ```bash
-kirocrew manifest --url
+junction manifest --url
 ```
 
 This prints a one-click URL that opens Slack's "Create New App" page with all scopes, events, and permissions pre-filled:
@@ -57,13 +57,13 @@ https://api.slack.com/apps?new_app=1&manifest_yaml=...
 If the URL doesn't work, generate the raw YAML instead:
 
 ```bash
-kirocrew manifest -o ~/.kiro/crew/slack-manifest.yaml
+junction manifest -o ~/.junction/slack-manifest.yaml
 ```
 
 Then:
 1. Go to <https://api.slack.com/apps> → **Create New App** → **From a manifest**
 2. Select your workspace
-3. Paste the contents of `~/.kiro/crew/slack-manifest.yaml`
+3. Paste the contents of `~/.junction/slack-manifest.yaml`
 4. Click **Create**
 
 </details>
@@ -104,7 +104,7 @@ To find your Slack Member ID: open your workspace in Slack → click your profil
 
 ```bash
 junction doctor    # verify tokens and config
-junction up   # start KiroCrew
+junction up   # start Junction
 ```
 
 Open your workspace in Slack, find your app in the Apps section, and send it a DM. The app only lives in the workspace where you installed it.
@@ -120,7 +120,7 @@ Use this path if you want to configure each scope and event individually, or if 
 ### Step 1. Create the App
 
 1. Go to <https://api.slack.com/apps> → **Create New App** → **From scratch**
-2. Name: something unique (e.g. `kirocrew`). Generic names may conflict with existing apps in the same workspace
+2. Name: something unique (e.g. `junction`). Generic names may conflict with existing apps in the same workspace
 3. Workspace: **select your workspace**
 
 ### Step 2. Enable Socket Mode & Get App Token
@@ -191,16 +191,16 @@ and configure that token only in the integration that consumes it.
 
 | Field | Value |
 |-------|-------|
-| Command | `/kirocrew` |
+| Command | `/junction` |
 | Short Description | Dashboard access, allowlist, and channel tracking |
 | Usage Hint | `dashboard [duration] \| @user \| #channel` |
 
-The command name you choose here must match the `slack.command` value in `~/.kiro/crew/config.json` (default: `kirocrew`):
+The command name you choose here must match the `slack.command` value in `~/.junction/config.json` (default: `junction`):
 
 ```json
 {
   "slack": {
-    "command": "kirocrew"
+    "command": "junction"
   }
 }
 ```
@@ -233,7 +233,7 @@ the session Resume / End buttons.
 
 ### Step 10. Configure Junction
 
-Same as [Path A, Step 5](#step-5-configure-kirocrew).
+Same as [Path A, Step 5](#step-5-configure-junction).
 
 ### Step 11. Verify & Run
 
@@ -252,24 +252,24 @@ tokens from an older installation.
 If you prefer to configure tokens manually instead of using `junction setup`:
 
 ```bash
-mkdir -p ~/.kiro/crew
-cat > ~/.kiro/crew/.env << 'EOF'
+mkdir -p ~/.junction
+cat > ~/.junction/.env << 'EOF'
 SLACK_APP_TOKEN=xapp-your-app-token-here
 SLACK_BOT_TOKEN=xoxb-your-bot-token-here
-KIROCREW_OWNER_ID=your-slack-member-id
+JUNCTION_OWNER_ID=your-slack-member-id
 EOF
-chmod 600 ~/.kiro/crew/.env
+chmod 600 ~/.junction/.env
 ```
 
 ### Owner-Only Access
 
-Only the owner (`KIROCREW_OWNER_ID`) can interact with Junction via Slack.
+Only the owner (`JUNCTION_OWNER_ID`) can interact with Junction via Slack.
 Multi-user access is disabled at the authorization predicate itself, not by
 configuration: `is_allowed_user` resolves to an owner check, `is_open_channel`
 always returns false, and the channel-join allowlist prompt is a no-op. A
 `/<command> @user` invocation replies that multi-user access is disabled.
 
-> **Setting or changing `KIROCREW_OWNER_ID` invalidates existing dashboard
+> **Setting or changing `JUNCTION_OWNER_ID` invalidates existing dashboard
 > sessions.** The value is not just the Slack DM routing target — it is also the
 > dashboard's authorization principal and the subject baked into every dashboard
 > token at mint time. A dashboard session signed in before the value was set (or
@@ -339,8 +339,8 @@ Any of these work:
 ```
 !dashboard              # DM: 1-hour session (default)
 !dashboard 2h           # DM: 2-hour session
-/kirocrew dashboard     # Slash command: 1-hour session
-/kirocrew dashboard 30m # Slash command: 30-minute session
+/junction dashboard     # Slash command: 1-hour session
+/junction dashboard 30m # Slash command: 30-minute session
 ```
 
 Durations are `<N>h` or `<N>m` and are capped at **20 hours**; anything longer
@@ -363,11 +363,11 @@ instead of a link.
    `127.0.0.1`, so exempting it would be an auth bypass. The only loopback
    carve-out is a small set of internal API paths reserved for Junction's own
    processes (doctor, the MCP servers), and those additionally require a
-   matching `X-Internal-Secret` read from `~/.kiro/crew/.local_secret`
+   matching `X-Internal-Secret` read from `~/.junction/.local_secret`
 
 ### Dashboard URL Configuration
 
-Set `dashboard.url` in `~/.kiro/crew/config.json` to the host and port you reach
+Set `dashboard.url` in `~/.junction/config.json` to the host and port you reach
 the dashboard on:
 
 ```json
@@ -381,13 +381,13 @@ the dashboard on:
 From this single URL, Junction derives:
 - **Port** to bind on (8080 in this example)
 - **Allowed origins** for the CSRF / WebSocket checks
-- **Dashboard link hostname** for `!dashboard` and `/kirocrew dashboard`
+- **Dashboard link hostname** for `!dashboard` and `/junction dashboard`
 
 When omitted, it defaults to port 5476 and the `localhost` hostname.
 
 The gateway itself always binds loopback in this build: publishing it is your
-reverse proxy's or tunnel's job, not the gateway's. `KIROCREW_BIND` widens the
-bind address only (the container image sets `KIROCREW_BIND=0.0.0.0` so a
+reverse proxy's or tunnel's job, not the gateway's. `JUNCTION_BIND` widens the
+bind address only (the container image sets `JUNCTION_BIND=0.0.0.0` so a
 published `-p` port is reachable from the host) and changes nothing about token
 auth, which is mounted unconditionally on both server paths.
 
@@ -432,7 +432,7 @@ messages, and a **Resume** button. The same content backs the
 
 ### Slash Commands
 
-The slash command name is configurable via `slack.command` in config (default: `kirocrew`).
+The slash command name is configurable via `slack.command` in config (default: `junction`).
 
 | Command | Purpose |
 |---------|---------|
@@ -456,7 +456,7 @@ match falls through to it.
 
 ### Owner-Only Bang Commands
 
-These `!`-prefixed commands are restricted to `KIROCREW_OWNER_ID`.
+These `!`-prefixed commands are restricted to `JUNCTION_OWNER_ID`.
 
 | Command | Purpose |
 |---------|---------|
@@ -495,11 +495,11 @@ Dashboard tokens grant full session access, so treat them like passwords.
 | ✅ Do | ❌ Don't |
 |-------|----------|
 | Keep the dashboard behind your own tunnel or reverse proxy | Share dashboard URLs, which carry the token in `?token=` |
-| If a token is exposed, run `kirocrew logout` (ends all sessions, refresh chains included) and revoke at your tunnel or reverse-proxy auth layer | Paste tokens in Slack channels, shared docs, or wikis |
+| If a token is exposed, run `junction logout` (ends all sessions, refresh chains included) and revoke at your tunnel or reverse-proxy auth layer | Paste tokens in Slack channels, shared docs, or wikis |
 | Avoid showing the browser URL bar during screen shares | Leave dashboard links in screen-share recordings |
 | Leave the built-in `junction token` deny rules enabled | Trust an AI agent that asks to run `junction token` |
 
-`kirocrew logout` ends every issued session, not just in-memory state: it bumps
+`junction logout` ends every issued session, not just in-memory state: it bumps
 a persisted revocation generation that both access cookies and
 `mc_refresh_<port>` refresh tokens embed, so cookies handed out before the
 logout — refresh chains included — are rejected on their next request. See

@@ -1,6 +1,6 @@
 """Tests for posture-gated admission control.
 
-Covers :func:`kiro_crew.resource_status.admission_check` (critical refuses;
+Covers :func:`junction.resource_status.admission_check` (critical refuses;
 ample/tight/unknown admit; off-switch; fail-open), the cron scheduler's
 critical-posture deferral in ``_on_timer`` (deferred jobs are not marked
 failed, fire on recovery, one INFO per episode; manual triggers are never
@@ -22,13 +22,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import resource_status as rs
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.cron import CronService
+from junction import resource_status as rs
+from junction.config.loader import JunctionConfig
+from junction.cron import CronService
 
 
 def _cfg(pressure: float = 4.0, critical: float = 2.0, gate: bool = True) -> SimpleNamespace:
-    """Minimal stand-in for KiroCrewConfig exposing the gate's config surface."""
+    """Minimal stand-in for JunctionConfig exposing the gate's config surface."""
     return SimpleNamespace(
         agent=SimpleNamespace(
             resource_pressure_gb=pressure,
@@ -120,7 +120,7 @@ class TestAdmissionCheck:
         # An unreadable config must ADMIT (fail-open), never gate work on
         # default thresholds it could not actually read.
         monkeypatch.setattr(
-            rs.KiroCrewConfig,
+            rs.JunctionConfig,
             "load",
             MagicMock(side_effect=RuntimeError("config unreadable")),
         )
@@ -168,8 +168,8 @@ class TestCronAdmissionDeferral:
         job = svc._jobs[0]
         job.last_run_ts = time.time() - 120
 
-        with caplog.at_level(logging.INFO, logger="kiro_crew.cron"):
-            with patch("kiro_crew.cron.admission_check", return_value=_refused()):
+        with caplog.at_level(logging.INFO, logger="junction.cron"):
+            with patch("junction.cron.admission_check", return_value=_refused()):
                 await svc._on_timer()
                 await svc._on_timer()
 
@@ -185,15 +185,15 @@ class TestCronAdmissionDeferral:
         assert len(infos) == 1  # one INFO per episode, not per tick
 
         # Recovery: the same job fires on the next admitted tick.
-        with patch("kiro_crew.cron.admission_check", return_value=_admitted()):
+        with patch("junction.cron.admission_check", return_value=_admitted()):
             await svc._on_timer()
         await _wait_for(lambda: "gated" in executed)
 
         # A NEW critical episode logs its own INFO line.
         job.last_run_ts = time.time() - 120
         caplog.clear()
-        with caplog.at_level(logging.INFO, logger="kiro_crew.cron"):
-            with patch("kiro_crew.cron.admission_check", return_value=_refused()):
+        with caplog.at_level(logging.INFO, logger="junction.cron"):
+            with patch("junction.cron.admission_check", return_value=_refused()):
                 await svc._on_timer()
         assert any(
             "deferring" in r.getMessage()
@@ -214,7 +214,7 @@ class TestCronAdmissionDeferral:
         svc.add_job("manual", "msg", every_secs=3600)
         job_id = svc._jobs[0].id
 
-        with patch("kiro_crew.cron.admission_check", return_value=_refused()):
+        with patch("junction.cron.admission_check", return_value=_refused()):
             ran = await svc.run_job(job_id)
 
         assert ran is True
@@ -233,7 +233,7 @@ class TestCronAdmissionDeferral:
         svc.add_job("open", "msg", every_secs=60)
         svc._jobs[0].last_run_ts = time.time() - 120
 
-        with patch("kiro_crew.cron.admission_check", return_value=_admitted()):
+        with patch("junction.cron.admission_check", return_value=_admitted()):
             await svc._on_timer()
         await _wait_for(lambda: "open" in executed)
         await svc.stop()
@@ -244,7 +244,7 @@ class TestCronAdmissionDeferral:
 
 class TestSpawnAdmissionGate:
     def _mgr(self):
-        from kiro_crew.subagent import SubagentManager
+        from junction.subagent import SubagentManager
 
         return SubagentManager(
             sessions=MagicMock(),
@@ -257,11 +257,11 @@ class TestSpawnAdmissionGate:
         """spawn() returns a done SubagentInfo with a retry-later error."""
         mgr = self._mgr()
         with patch(
-            "kiro_crew.subagent.check_memory_available", return_value=(True, 8.0)
-        ), patch("kiro_crew.subagent.KiroCrewConfig") as mock_cfg, patch(
-            "kiro_crew.subagent.cached_admission_check", return_value=_refused()
+            "junction.subagent.check_memory_available", return_value=(True, 8.0)
+        ), patch("junction.subagent.JunctionConfig") as mock_cfg, patch(
+            "junction.subagent.cached_admission_check", return_value=_refused()
         ), patch(
-            "kiro_crew.subagent.sel"
+            "junction.subagent.sel"
         ) as mock_sel:
             mock_cfg.load.return_value.agent.spawn_min_memory_gb = 4.0
             mock_sel.return_value.log_tool_invocation = MagicMock()
@@ -280,13 +280,13 @@ class TestSpawnAdmissionGate:
         """An admitted decision falls through to the next guard (cwd here)."""
         mgr = self._mgr()
         with patch(
-            "kiro_crew.subagent.check_memory_available", return_value=(True, 8.0)
-        ), patch("kiro_crew.subagent.KiroCrewConfig") as mock_cfg, patch(
-            "kiro_crew.subagent.cached_admission_check", return_value=_admitted()
+            "junction.subagent.check_memory_available", return_value=(True, 8.0)
+        ), patch("junction.subagent.JunctionConfig") as mock_cfg, patch(
+            "junction.subagent.cached_admission_check", return_value=_admitted()
         ), patch(
-            "kiro_crew.subagent.validate_cwd", return_value=("", "not allowed")
+            "junction.subagent.validate_cwd", return_value=("", "not allowed")
         ), patch(
-            "kiro_crew.subagent.sel"
+            "junction.subagent.sel"
         ) as mock_sel:
             mock_cfg.load.return_value.agent.spawn_min_memory_gb = 4.0
             mock_cfg.load.return_value.agent.subagent_cwd_allowed_roots = []
@@ -303,14 +303,14 @@ class TestSpawnAdmissionGate:
 # ── config key ───────────────────────────────────────────────────────────────
 
 
-def _load_from_dict(data: dict, tmp_path: Path) -> KiroCrewConfig:
+def _load_from_dict(data: dict, tmp_path: Path) -> JunctionConfig:
     """Write *data* to a config file under *tmp_path* and load it."""
     tmp = tmp_path / "config.json"
     tmp.write_text(json.dumps(data))
     with unittest.mock.patch(
-        "kiro_crew.config.loader.config_path", return_value=tmp
+        "junction.config.loader.config_path", return_value=tmp
     ):
-        return KiroCrewConfig.load()
+        return JunctionConfig.load()
 
 
 class TestAdmissionGateConfig:
@@ -402,7 +402,7 @@ class TestCronExprPassthrough:
             svc._executing.add(job.id)  # simulate a manual run claiming it
             return _admitted()
 
-        with patch("kiro_crew.cron.admission_check", side_effect=claiming_check):
+        with patch("junction.cron.admission_check", side_effect=claiming_check):
             await svc._on_timer()
         assert executed == []  # revalidated away, no duplicate
         svc._executing.discard(job.id)
@@ -431,7 +431,7 @@ class TestCronExprPassthrough:
             job.last_run_ts = time.time()  # manual run ran to completion
             return _admitted()
 
-        with patch("kiro_crew.cron.admission_check", side_effect=completing_check):
+        with patch("junction.cron.admission_check", side_effect=completing_check):
             await svc._on_timer()
         await asyncio.sleep(0.05)
         assert executed == []  # not re-fired against the stale snapshot
@@ -458,7 +458,7 @@ class TestCronExprPassthrough:
             job.message = "new-message"
             return _admitted()
 
-        with patch("kiro_crew.cron.admission_check", side_effect=editing_check):
+        with patch("junction.cron.admission_check", side_effect=editing_check):
             await svc._on_timer()
         await _wait_for(lambda: len(executed) == 1)
         assert executed == ["new-message"]
@@ -481,8 +481,8 @@ class TestCronExprPassthrough:
         svc.add_job("expr-job", "msg", cron_expr="* * * * *")
 
         with (
-            patch("kiro_crew.cron.admission_check", return_value=_refused()),
-            patch("kiro_crew.cron.cron_expr_matches", return_value=True),
+            patch("junction.cron.admission_check", return_value=_refused()),
+            patch("junction.cron.cron_expr_matches", return_value=True),
         ):
             await svc._on_timer()
         await _wait_for(lambda: "expr-job" in executed)
@@ -507,8 +507,8 @@ class TestCronExprPassthrough:
         interval_job.last_run_ts = time.time() - 120
 
         with (
-            patch("kiro_crew.cron.admission_check", return_value=_refused()),
-            patch("kiro_crew.cron.cron_expr_matches", return_value=True),
+            patch("junction.cron.admission_check", return_value=_refused()),
+            patch("junction.cron.cron_expr_matches", return_value=True),
         ):
             await svc._on_timer()
         await _wait_for(lambda: "expr" in executed)
@@ -516,7 +516,7 @@ class TestCronExprPassthrough:
         assert interval_job.last_status is None  # untouched: still due
 
         # Recovery: the deferred interval job fires on its own.
-        with patch("kiro_crew.cron.admission_check", return_value=_admitted()):
+        with patch("junction.cron.admission_check", return_value=_admitted()):
             await svc._on_timer()
         await _wait_for(lambda: "interval" in executed)
         await svc.stop()
@@ -529,7 +529,7 @@ class TestCronExprPassthrough:
         # at zero delay — a busy loop of scans and admission probes on a host
         # already under memory pressure. During an episode the re-arm delay
         # is floored at the poll cadence.
-        from kiro_crew.cron import _TIMER_POLL_SECS
+        from junction.cron import _TIMER_POLL_SECS
 
         svc = CronService(base_dir=tmp_path, on_job=AsyncMock())
         await svc.start()
@@ -538,12 +538,12 @@ class TestCronExprPassthrough:
 
         assert svc._effective_delay() < 1.0  # overdue: due immediately
 
-        with patch("kiro_crew.cron.admission_check", return_value=_refused()):
+        with patch("junction.cron.admission_check", return_value=_refused()):
             await svc._on_timer()  # opens the episode, defers the job
         assert svc._admission_deferring is True
         assert svc._effective_delay() == _TIMER_POLL_SECS  # floored
 
-        with patch("kiro_crew.cron.admission_check", return_value=_admitted()):
+        with patch("junction.cron.admission_check", return_value=_admitted()):
             await svc._on_timer()  # recovery closes the episode
         assert svc._admission_deferring is False
         await svc.stop()
@@ -566,7 +566,7 @@ class TestCronExprPassthrough:
         job = svc._jobs[0]
         job.last_run_ts = time.time() - 120
 
-        from kiro_crew.cron import CronSchedule
+        from junction.cron import CronSchedule
 
         def editing_check(cfg: object | None = None):
             job.schedule = CronSchedule(kind="cron", cron_expr="* * * * *")
@@ -574,8 +574,8 @@ class TestCronExprPassthrough:
             return _refused()
 
         with (
-            patch("kiro_crew.cron.admission_check", side_effect=editing_check),
-            patch("kiro_crew.cron.cron_expr_matches", return_value=True),
+            patch("junction.cron.admission_check", side_effect=editing_check),
+            patch("junction.cron.cron_expr_matches", return_value=True),
         ):
             await svc._on_timer()
         await _wait_for(lambda: "morph" in executed)  # fired, not deferred
@@ -590,7 +590,7 @@ class TestCronExprPassthrough:
         # duplicate completion injection and wave/orchestration counters
         # double-count the failure. Exercises the REAL spawn path (no stubs)
         # so both potential announce sites are live.
-        from kiro_crew.subagent import SubagentManager
+        from junction.subagent import SubagentManager
 
         announced: list = []
 
@@ -616,11 +616,11 @@ class TestCronExprPassthrough:
         mgr._emit_queue_depth = MagicMock()
 
         with patch(
-            "kiro_crew.subagent.check_memory_available", return_value=(True, 8.0)
-        ), patch("kiro_crew.subagent.KiroCrewConfig") as mock_cfg, patch(
-            "kiro_crew.subagent.cached_admission_check", return_value=_refused()
+            "junction.subagent.check_memory_available", return_value=(True, 8.0)
+        ), patch("junction.subagent.JunctionConfig") as mock_cfg, patch(
+            "junction.subagent.cached_admission_check", return_value=_refused()
         ), patch(
-            "kiro_crew.subagent.sel"
+            "junction.subagent.sel"
         ) as mock_sel:
             mock_cfg.load.return_value.agent.spawn_min_memory_gb = 4.0
             mock_sel.return_value.log_tool_invocation = MagicMock()
@@ -653,17 +653,17 @@ class TestCronExprPassthrough:
         job = svc._jobs[0]
         job.last_run_ts = time.time() - 7200
 
-        with patch("kiro_crew.cron.admission_check", return_value=_refused()):
+        with patch("junction.cron.admission_check", return_value=_refused()):
             await svc._on_timer()
         assert executed == []  # deferred
 
         # Manual run during the episode completes the work.
-        with patch("kiro_crew.cron.admission_check", return_value=_refused()):
+        with patch("junction.cron.admission_check", return_value=_refused()):
             assert await svc.run_job(job.id) is True
         await _wait_for(lambda: executed == ["interval"])
         job.last_run_ts = time.time()  # manual run marked it
 
-        with patch("kiro_crew.cron.admission_check", return_value=_admitted()):
+        with patch("junction.cron.admission_check", return_value=_admitted()):
             await svc._on_timer()
         await asyncio.sleep(0.1)
         assert executed == ["interval"]  # no replay

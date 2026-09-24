@@ -9,7 +9,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import api_workspaces_create, api_workspaces_update
+from junction.dashboard.handlers import api_workspaces_create, api_workspaces_update
 
 
 def _make_app() -> web.Application:
@@ -21,7 +21,7 @@ def _make_app() -> web.Application:
 
 @pytest.fixture()
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.sel") as m:
+    with patch("junction.dashboard.handlers.sel") as m:
         m.return_value = MagicMock()
         yield m.return_value
 
@@ -36,14 +36,14 @@ def cfg_env(tmp_path, monkeypatch):
         "workspaces": {"default": {"dir": "workspace"}}
     }))
     monkeypatch.setattr(
-        "kiro_crew.config.loader.config_path", lambda: cfg_file
+        "junction.config.loader.config_path", lambda: cfg_file
     )
     monkeypatch.setattr(
-        "kiro_crew.config.loader.config_dir", lambda: cfg_dir
+        "junction.config.loader.config_dir", lambda: cfg_dir
     )
     # Also patch the local import in handlers
     monkeypatch.setattr(
-        "kiro_crew.dashboard.handlers.config_dir", lambda: cfg_dir
+        "junction.dashboard.handlers.config_dir", lambda: cfg_dir
     )
     return cfg_dir
 

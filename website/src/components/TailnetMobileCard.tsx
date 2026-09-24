@@ -228,7 +228,7 @@ function writeInviteExpanded(expanded: boolean): void {
  *
  * **`published: null` is not `false`.** An undeterminable serve state arrives as
  * the `occupied` step, so the card renders the manual command (see the
- * `occupied` branch below, which prints `kirocrew tailnet up`) instead of a
+ * `occupied` branch below, which prints `junction tailnet up`) instead of a
  * publish button that would overwrite a mount it could not identify.
  *
  * **Setup is one explicit mutation, even across a gateway restart.** The click
@@ -435,7 +435,7 @@ export function TailnetMobileCard() {
               to read. */}
           {step === 'occupied' ? (
             <p className="mt-2 text-muted">
-              <code className="select-all">kirocrew tailnet up</code>
+              <code className="select-all">junction tailnet up</code>
             </p>
           ) : null}
 

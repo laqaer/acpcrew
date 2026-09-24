@@ -4,7 +4,7 @@ function literalLoopbackUrl(backendUrl) {
   try {
     const url = new URL(backendUrl);
     if (url.protocol !== "http:") return "";
-    if (url.hostname === "localhost" || url.hostname === "kirocrew.localhost") {
+    if (url.hostname === "localhost" || url.hostname === "junction.localhost") {
       url.hostname = "127.0.0.1";
     }
     if (url.hostname !== "127.0.0.1") return "";

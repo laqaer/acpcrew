@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.apps import routes
+from junction.apps import routes
 
 
 class _FakeRequest:

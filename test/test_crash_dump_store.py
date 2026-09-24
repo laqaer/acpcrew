@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.dashboard import crash_dump_store
-from kiro_crew.dashboard.crash_dump_store import (
+from junction.dashboard import crash_dump_store
+from junction.dashboard.crash_dump_store import (
     DUMP_PREFIX,
     DUMP_SUFFIX,
     dump_age_seconds,
@@ -98,7 +98,7 @@ def _create_header_only_dump(
     pid_line = f"# PID: 12345 @ {domain}\n" if domain else "# PID: 12345\n"
     p = dumps_dir / name
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T010000Z\n"
+        "# Junction loop-stall crash dump — opened 20260717T010000Z\n"
         + pid_line
         + "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -110,16 +110,16 @@ def _create_stacked_dump(dumps_dir: Path, name: str) -> Path:
     """Create a dump file with real stack content (simulating a wedge)."""
     p = dumps_dir / name
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T020000Z\n"
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"
         f"# PID: 12345 @ {crash_dump_store._pid_domain()}\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
         "Thread 0x00007f1234 (most recent call first):\n"
         '  File "/usr/lib/python3.12/socket.py", line 704, in close\n'
         "    self._real_close()\n"
-        '  File "/home/user/.kirocrew/src/kiro_crew/acp/client.py", line 312, in _teardown\n'
+        '  File "/home/user/.kirocrew/src/junction/acp/client.py", line 312, in _teardown\n'
         "    self._sock.close()\n"
-        '  File "/home/user/.kirocrew/src/kiro_crew/dashboard/server.py", line 800, in _cleanup\n'
+        '  File "/home/user/.kirocrew/src/junction/dashboard/server.py", line 800, in _cleanup\n'
         "    await self._teardown()\n"
     )
     return p
@@ -172,7 +172,7 @@ def test_open_dump_file_creates_file(dumps_dir: Path) -> None:
         assert files[0].name.endswith(DUMP_SUFFIX)
         # Header should be written
         content = files[0].read_text(encoding="utf-8")
-        assert "KiroCrew loop-stall crash dump" in content
+        assert "Junction loop-stall crash dump" in content
         assert "PID:" in content
 
 
@@ -258,13 +258,13 @@ def _create_multi_thread_dump(dumps_dir: Path, name: str, *, idle_workers: int =
         "Thread 0x00007f0000beef (most recent call first):\n"
         '  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 166 in submit\n'
         '  File "/usr/lib/python3.12/asyncio/base_events.py", line 867 in run_in_executor\n'
-        '  File "/home/user/.kirocrew/src/kiro_crew/dashboard/server.py", line 246 in _should_prevent_sleep\n'
+        '  File "/home/user/.kirocrew/src/junction/dashboard/server.py", line 246 in _should_prevent_sleep\n'
         '  File "/usr/lib/python3.12/asyncio/base_events.py", line 645 in run_forever\n'
-        '  File "/home/user/.kirocrew/src/kiro_crew/cli.py", line 2046 in main\n'
+        '  File "/home/user/.kirocrew/src/junction/cli.py", line 2046 in main\n'
     )
     p = dumps_dir / name
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -286,7 +286,7 @@ def test_dump_first_stack_lines_surfaces_wedged_thread(dumps_dir: Path) -> None:
     lines = dump_first_stack_lines(p, max_lines=8)
     body = "\n".join(lines)
     assert lines[0] == "Timeout (0:00:25)!"
-    assert "_should_prevent_sleep" in body  # the wedged thread's Kiro Crew frame
+    assert "_should_prevent_sleep" in body  # the wedged thread's Junction frame
     assert "queue.py" not in body  # no idle-worker frames
 
 
@@ -294,12 +294,12 @@ def test_dump_first_stack_lines_prefers_current_thread_marker(dumps_dir: Path) -
     """A block explicitly marked ``Current thread`` wins over positional choice."""
     p = dumps_dir / f"{DUMP_PREFIX}20260717T010000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
         "Current thread 0x00007f00000001 (most recent call first):\n"
-        '  File "/home/user/.kirocrew/src/kiro_crew/dashboard/state.py", line 100 in _flush\n'
+        '  File "/home/user/.kirocrew/src/junction/dashboard/state.py", line 100 in _flush\n'
         "Thread 0x00007f00000002 (most recent call first):\n"
         '  File "/usr/lib/python3.12/queue.py", line 171 in get\n'
     )
@@ -312,7 +312,7 @@ def test_dump_first_stack_lines_fallback_without_thread_headers(dumps_dir: Path)
     """Unrecognizable content degrades to the raw top-of-file lines."""
     p = dumps_dir / f"{DUMP_PREFIX}20260717T010000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -352,7 +352,7 @@ def test_dump_age_never_negative_with_future_mtime(dumps_dir: Path) -> None:
 
 def test_watchdog_dump_file_param_custom_callback(dumps_dir: Path) -> None:
     """Verify custom dump callback is invoked when dump_file is set (wiring only)."""
-    from kiro_crew.dashboard.loop_watchdog import LoopStallWatchdog
+    from junction.dashboard.loop_watchdog import LoopStallWatchdog
 
     class _Clock:
         def __init__(self) -> None:
@@ -391,7 +391,7 @@ def test_watchdog_dump_file_default_dump(dumps_dir: Path) -> None:
     NO custom dump callback, beat, advance past stall_after, call check(), flush,
     and assert the file contains thread-stack markers from faulthandler.
     """
-    from kiro_crew.dashboard.loop_watchdog import LoopStallWatchdog
+    from junction.dashboard.loop_watchdog import LoopStallWatchdog
 
     class _Clock:
         def __init__(self) -> None:
@@ -571,7 +571,7 @@ def test_dump_file_fd_survives_dropping_last_python_reference(dumps_dir: Path) -
 
 def test_dump_replay_lines_basic(dumps_dir: Path) -> None:
     """Replay reads all stack lines within limits."""
-    from kiro_crew.dashboard.crash_dump_store import dump_replay_lines
+    from junction.dashboard.crash_dump_store import dump_replay_lines
 
     p = _create_stacked_dump(dumps_dir, f"{DUMP_PREFIX}20260717T030000Z{DUMP_SUFFIX}")
     lines, truncated = dump_replay_lines(p)
@@ -582,7 +582,7 @@ def test_dump_replay_lines_basic(dumps_dir: Path) -> None:
 
 def test_dump_replay_lines_truncates_by_line_count(dumps_dir: Path) -> None:
     """Replay truncates at max_lines."""
-    from kiro_crew.dashboard.crash_dump_store import dump_replay_lines
+    from junction.dashboard.crash_dump_store import dump_replay_lines
 
     p = _create_stacked_dump(dumps_dir, f"{DUMP_PREFIX}20260717T030000Z{DUMP_SUFFIX}")
     lines, truncated = dump_replay_lines(p, max_lines=2)
@@ -592,7 +592,7 @@ def test_dump_replay_lines_truncates_by_line_count(dumps_dir: Path) -> None:
 
 def test_dump_replay_lines_truncates_by_bytes(dumps_dir: Path) -> None:
     """Replay truncates at max_bytes."""
-    from kiro_crew.dashboard.crash_dump_store import dump_replay_lines
+    from junction.dashboard.crash_dump_store import dump_replay_lines
 
     p = _create_stacked_dump(dumps_dir, f"{DUMP_PREFIX}20260717T030000Z{DUMP_SUFFIX}")
     lines, truncated = dump_replay_lines(p, max_bytes=50)
@@ -603,7 +603,7 @@ def test_dump_replay_lines_truncates_by_bytes(dumps_dir: Path) -> None:
 
 def test_dump_replay_lines_header_only(dumps_dir: Path) -> None:
     """Replay returns empty for header-only dumps."""
-    from kiro_crew.dashboard.crash_dump_store import dump_replay_lines
+    from junction.dashboard.crash_dump_store import dump_replay_lines
 
     p = _create_header_only_dump(dumps_dir, f"{DUMP_PREFIX}20260717T030000Z{DUMP_SUFFIX}")
     lines, truncated = dump_replay_lines(p)
@@ -619,7 +619,7 @@ def test_dump_replay_lines_wedged_thread_survives_truncation(dumps_dir: Path) ->
     showed only ``Queue.get`` workers plus ``[truncated]`` — omitting the one
     stack that explains the stall (observed on the 2026-08-09 stall dumps).
     """
-    from kiro_crew.dashboard.crash_dump_store import dump_replay_lines
+    from junction.dashboard.crash_dump_store import dump_replay_lines
 
     # 40 idle workers x 4 lines >> the 12-line cap below; main thread is last.
     p = _create_multi_thread_dump(
@@ -639,7 +639,7 @@ def test_dump_replay_lines_wedged_thread_survives_truncation(dumps_dir: Path) ->
 
 def test_startup_crash_dump_replay_logs_stacks(dumps_dir: Path, caplog: pytest.LogCaptureFixture) -> None:
     """Verify that the journal replay logic logs dump content at WARNING."""
-    from kiro_crew.dashboard.crash_dump_store import (
+    from junction.dashboard.crash_dump_store import (
         dump_replay_lines,
         newest_dump_with_stacks,
     )
@@ -702,7 +702,7 @@ def test_sweep_keeps_own_pid_file(dumps_dir: Path) -> None:
     # injected liveness check lies about it.
     p = dumps_dir / f"{DUMP_PREFIX}20260717T030000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T030000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T030000Z\n"  # brand-ok: mirrors production dump header
         f"# PID: {os.getpid()} @ {crash_dump_store._pid_domain()}\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -758,7 +758,7 @@ def test_open_dump_file_header_records_pid_domain(dumps_dir: Path) -> None:
 def test_sweep_keeps_header_only_dump_without_pid_line(dumps_dir: Path) -> None:
     # No parseable PID — cannot attribute the file, so leave it alone.
     p = dumps_dir / f"{DUMP_PREFIX}20260717T040000Z{DUMP_SUFFIX}"
-    p.write_text("# KiroCrew loop-stall crash dump — opened 20260717T040000Z\n\n")  # brand-ok: mirrors production dump header
+    p.write_text("# Junction loop-stall crash dump — opened 20260717T040000Z\n\n")  # brand-ok: mirrors production dump header
     removed = sweep_stale_dumps(dumps_dir, is_pid_alive=_dead_pid)
     assert removed == 0
     assert p.exists()
@@ -771,7 +771,7 @@ def test_sweep_treats_oversized_pid_as_unparseable(dumps_dir: Path) -> None:
     for name, digits in (("20260717T050000Z", "9" * 5000), ("20260717T060000Z", str(2**31))):
         p = dumps_dir / f"{DUMP_PREFIX}{name}{DUMP_SUFFIX}"
         p.write_text(
-            "# KiroCrew loop-stall crash dump — opened 20260717T050000Z\n"  # brand-ok: mirrors production dump header
+            "# Junction loop-stall crash dump — opened 20260717T050000Z\n"  # brand-ok: mirrors production dump header
             f"# PID: {digits}\n"
             "\n"
         )
@@ -818,7 +818,7 @@ def test_sweep_reads_only_a_bounded_prefix(dumps_dir: Path) -> None:
     # from its leading bytes alone and never load the whole thing.
     p = dumps_dir / f"{DUMP_PREFIX}20260717T080000Z{DUMP_SUFFIX}"
     with p.open("w") as f:
-        f.write("# KiroCrew loop-stall crash dump — opened 20260717T080000Z\n")  # brand-ok: mirrors production dump header
+        f.write("# Junction loop-stall crash dump — opened 20260717T080000Z\n")  # brand-ok: mirrors production dump header
         f.write("# PID: 1\n\n")
         f.write("x" * (1024 * 1024))  # single long line, no newlines
     removed = sweep_stale_dumps(dumps_dir, is_pid_alive=_dead_pid)
@@ -947,7 +947,7 @@ def test_owner_alive_detects_pid_reuse_via_start_id(dumps_dir: Path) -> None:
     reused_pid = os.getppid()
     p = dumps_dir / f"{DUMP_PREFIX}20260717T110000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# KiroCrew loop-stall crash dump — opened 20260717T110000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T110000Z\n"  # brand-ok: mirrors production dump header
         f"# PID: {reused_pid} @ {crash_dump_store._pid_domain()} start=fabricated-mismatch\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"

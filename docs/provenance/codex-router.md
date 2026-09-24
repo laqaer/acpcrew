@@ -41,14 +41,14 @@ Codex Router also ships:
 
 Those agent bridges overlap this checkout's ACP runtime registry. They
 are a second way to drive the same clients. Junction does not copy them.
-Harness docking stays in `src/kiro_crew/acp/runtimes.py`.
+Harness docking stays in `src/junction/acp/runtimes.py`.
 
 Do not copy tray, widget, Electron, or the HTTPS tunnel. Do not
 reimplement LiteLLM. ADR: [0003](../adr/0003-sidecar-not-vendor.md).
 
 ## This cut
 
-Python health, catalog, and role routing in `src/kiro_crew/model_router/`.
-Observe and compose. Catalog JSON copies slugs and labels only (MIT
-registry metadata, no credentials, no endpoints). Operator-install of the
-sidecar is M2.
+`junction up` serves loopback health and the shipped catalog from
+`src/junction/model_router/`. Catalog JSON copies slugs and labels only
+(MIT registry metadata, no credentials, no endpoints). Provider
+translation is not bundled. Junction does not vendor the Node tree.

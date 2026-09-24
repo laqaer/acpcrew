@@ -1,4 +1,4 @@
-"""Branch coverage for :mod:`kiro_crew.onboarding_import` helpers.
+"""Branch coverage for :mod:`junction.onboarding_import` helpers.
 
 Focuses on the malformed-input, partial-import and refusal paths that the
 behavioural suite in ``test_onboarding_import.py`` does not reach: config
@@ -38,7 +38,7 @@ _POSIX_FS_ONLY = pytest.mark.skipif(
 
 
 def _api() -> ModuleType:
-    return importlib.import_module("kiro_crew.onboarding_import")
+    return importlib.import_module("junction.onboarding_import")
 
 
 def _scan(tmp_path: Path, source_id: str = "hermes") -> Any:
@@ -199,13 +199,13 @@ class TestScalarHelpers:
         "raw, expected",
         [
             (5, ""),
-            ("kirocrew-core", ""),
+            ("junction-core", ""),
             # The joined spelling is load-bearing here, not prose: rejection is
             # `name.casefold() in _managed_mcp_names()`, so this case is what proves
             # a managed name survives case-folding. Rewording it would delete the
             # only coverage of that branch. The marker must sit on the offending
             # line itself -- the gate scans per line, not per block.
-            ("KiroCrew-Cron", ""),  # brand-ok
+            ("Junction-Cron", ""),  # brand-ok
             ("..", ""),
             ("a" * 129, ""),
             ("plain", "plain"),
@@ -371,7 +371,7 @@ class TestConfigProjection:
 
         api._add_mcp_configs(
             scan,
-            [{"mcpServers": {"kirocrew-core": {"command": "x"}, "..": {"command": "y"}}}],
+            [{"mcpServers": {"junction-core": {"command": "x"}, "..": {"command": "y"}}}],
         )
 
         assert _reasons(scan) >= {"managed_server_excluded", "invalid_server_name"}
@@ -1640,7 +1640,7 @@ class TestMcpWriter:
         def reserved(**_kwargs: Any) -> set[str]:
             return {"srv"}
 
-        module = importlib.import_module("kiro_crew.mcp_discovery")
+        module = importlib.import_module("junction.mcp_discovery")
         monkeypatch.setattr(module, "configured_mcp_aliases", reserved)
 
         outcome = api._write_mcp(item, tmp_path, tmp_path / "home", strategy=api.STRATEGY_OVERWRITE)

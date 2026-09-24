@@ -292,8 +292,8 @@ class TestCrossPlatform:
 
     def test_excludes_vendor_and_compat_module(self):
         wf = _read("cross-platform.yml")
-        assert ":(exclude)src/kiro_crew/_vendor/**" in wf
-        assert ":(exclude)src/kiro_crew/platform_compat.py" in wf
+        assert ":(exclude)src/junction/_vendor/**" in wf
+        assert ":(exclude)src/junction/platform_compat.py" in wf
 
     def test_has_escape_hatch_label(self):
         assert "posix-only-approved" in _read("cross-platform.yml")
@@ -315,7 +315,7 @@ class TestPrScope:
 
     def test_excludes_vendor_and_screenshots(self):
         wf = _read("pr-scope.yml")
-        assert ":(exclude)src/kiro_crew/_vendor/**" in wf
+        assert ":(exclude)src/junction/_vendor/**" in wf
         assert ":(exclude)temp-screenshots/**" in wf
 
 

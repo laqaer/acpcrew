@@ -164,7 +164,7 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('sends the user to Kiro CLI setup instead of installing anything', async () => {
-    // Kiro Crew does not install Kiro CLI. A missing CLI must offer a link to
+    // Junction does not install Kiro CLI. A missing CLI must offer a link to
     // Kiro's own setup page and NO install action of any kind, so there is
     // nothing for the user to press that would download and run a script.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({ platform: 'Windows' }))
@@ -218,7 +218,7 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('exposes no way to start a sign-in from the dashboard', async () => {
-    // Kiro Crew does not authenticate for the user: there is no device-flow
+    // Junction does not authenticate for the user: there is no device-flow
     // trigger, no sign-in URL, and no device code surfaced anywhere.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({ installed: true }))
 
@@ -337,7 +337,7 @@ describe('KiroPrerequisiteGate', () => {
       ready: false,
       initial_setup_complete: true,
       repair_required: true,
-      missing_agent_specs: ['kirocrew.json', 'kirocrew-lite.json'],
+      missing_agent_specs: ['junction.json', 'junction-lite.json'],
     }))
 
     renderWithProviders(
@@ -347,14 +347,14 @@ describe('KiroPrerequisiteGate', () => {
     expect(await screen.findByText("Junction's agent specs are not installed")).toBeInTheDocument()
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
     // Names the actual files, so the user can see what to look for on disk.
-    expect(screen.getByText(/kirocrew\.json/)).toBeInTheDocument()
-    expect(screen.getByText(/kirocrew-lite\.json/)).toBeInTheDocument()
+    expect(screen.getByText(/junction\.json/)).toBeInTheDocument()
+    expect(screen.getByText(/junction-lite\.json/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Check again' })).toBeEnabled()
   })
 
   it('gates on a spec that is PRESENT but which kiro-cli refuses', async () => {
     // The gap the missing-specs card cannot cover: statting the file says it is
-    // there, while kiro-cli drops it from its agent table, so Kiro Crew's agent
+    // there, while kiro-cli drops it from its agent table, so Junction's agent
     // silently becomes kiro-cli's default one with none of its MCP servers.
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(status({
       installed: true,
@@ -363,9 +363,9 @@ describe('KiroPrerequisiteGate', () => {
       initial_setup_complete: true,
       repair_required: true,
       missing_agent_specs: [],
-      rejected_agent_specs: ['kirocrew.json'],
+      rejected_agent_specs: ['junction.json'],
       agent_spec_rejection_detail:
-        'Error: Json supplied at /home/u/.kiro/agents/kirocrew.json is invalid: '
+        'Error: Json supplied at /home/u/.kiro/agents/junction.json is invalid: '
         + 'data did not match any variant of untagged enum Repr',
     }))
 
@@ -379,7 +379,7 @@ describe('KiroPrerequisiteGate', () => {
     expect(screen.queryByText('Dashboard loaded')).not.toBeInTheDocument()
     // Exact match on the list entry: the reason below also contains the filename
     // as part of a full path, so a loose regex matches both nodes.
-    expect(screen.getByText('kirocrew.json')).toBeInTheDocument()
+    expect(screen.getByText('junction.json')).toBeInTheDocument()
     // kiro-cli's own words are what make the report actionable, so they are
     // surfaced verbatim rather than replaced with our own paraphrase.
     expect(screen.getByText(/data did not match any variant/)).toBeInTheDocument()
@@ -396,7 +396,7 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      rejected_agent_specs: ['kirocrew.json'],
+      rejected_agent_specs: ['junction.json'],
     }))
 
     renderWithProviders(
@@ -424,8 +424,8 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
-      rejected_agent_specs: ['kirocrew-lite.json'],
+      missing_agent_specs: ['junction.json'],
+      rejected_agent_specs: ['junction-lite.json'],
     }))
 
     renderWithProviders(
@@ -448,7 +448,7 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
+      missing_agent_specs: ['junction.json'],
     }))
 
     renderWithProviders(
@@ -467,7 +467,7 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
+      missing_agent_specs: ['junction.json'],
       agent_spec_repair_error: 'FileNotFoundError: no shipped defaults.json',
     }))
 
@@ -489,7 +489,7 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
+      missing_agent_specs: ['junction.json'],
     }))
     vi.mocked(api.repairKiroPrerequisiteSpecs).mockResolvedValue(status({
       installed: true,
@@ -522,13 +522,13 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
+      missing_agent_specs: ['junction.json'],
     }))
     vi.mocked(api.repairKiroPrerequisiteSpecs).mockResolvedValue(status({
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
+      missing_agent_specs: ['junction.json'],
       agent_spec_repair_error: 'FileNotFoundError: no shipped defaults.json',
     }))
 
@@ -550,7 +550,7 @@ describe('KiroPrerequisiteGate', () => {
       installed: true,
       authenticated: true,
       initial_setup_complete: true,
-      missing_agent_specs: ['kirocrew.json'],
+      missing_agent_specs: ['junction.json'],
     }))
     vi.mocked(api.repairKiroPrerequisiteSpecs).mockRejectedValue(
       new ApiError(403, 'dashboard owner required'),
@@ -786,7 +786,7 @@ describe('KiroPrerequisiteGate', () => {
     // so the gate would render full-screen setup-branded chrome at a user who has
     // completed setup. The client remembers first-run completion locally, so a
     // returning user gets the dashboard plus a reauth banner instead.
-    localStorage.setItem('kirocrew:kiro-setup-complete', '1')
+    localStorage.setItem('junction:kiro-setup-complete', '1')
     vi.mocked(api.kiroPrerequisite).mockRejectedValue(new ApiError(500, 'Probe failed'))
 
     renderWithProviders(
@@ -802,7 +802,7 @@ describe('KiroPrerequisiteGate', () => {
     // An unreachable status check is not evidence the CLI is broken, and the
     // turn reports the truth either way — so a returning user keeps a clean,
     // fully usable dashboard rather than a "could not check" banner.
-    localStorage.setItem('kirocrew:kiro-setup-complete', '1')
+    localStorage.setItem('junction:kiro-setup-complete', '1')
     vi.mocked(api.kiroPrerequisite).mockResolvedValue(
       null as unknown as KiroPrerequisiteStatus,
     )
@@ -845,7 +845,7 @@ describe('KiroPrerequisiteGate', () => {
 
     expect(await screen.findByText('Dashboard loaded')).toBeInTheDocument()
     await waitFor(() =>
-      expect(localStorage.getItem('kirocrew:kiro-setup-complete')).toBe('1'),
+      expect(localStorage.getItem('junction:kiro-setup-complete')).toBe('1'),
     )
   })
 

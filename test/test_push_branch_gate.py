@@ -1,6 +1,6 @@
 """Tests for the git-publish branch gate (feature-branch allow, protected deny).
 
-Covers the always-on Python gate in ``kiro_crew.security`` and its kiro-cli
+Covers the always-on Python gate in ``junction.security`` and its kiro-cli
 ``defaults.json`` mirror:
 
 * ``_is_git_publish`` — a PURE detector ("is this a git publish?"), incl.
@@ -12,7 +12,7 @@ Covers the always-on Python gate in ``kiro_crew.security`` and its kiro-cli
 * ``is_denied`` — the enforcement point: denial reason for a blocked publish,
   ``push_allowed`` SEL audit for an allowed one (final-outcome only).
 
-KiroCrew protects the git default branch names only (enumerated at line 9
+Junction protects the git default branch names only (enumerated at line 9
 above); it has no ``beta-braveheart``/``develop``/``prod`` integration branch
 nor a ``release/*`` namespace, so those names are ordinary feature branches here.
 """
@@ -23,8 +23,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from kiro_crew import security
-from kiro_crew.security import (
+from junction import security
+from junction.security import (
     _is_git_publish,
     _is_push_to_protected_branch,
     _schedule_push_allow_audit,
@@ -53,7 +53,7 @@ class TestIsPushToProtectedBranch:
         assert _is_push_to_protected_branch(f"{PUSH} origin master") is True
 
     def test_nondefault_integration_branches_not_protected(self) -> None:
-        """KiroCrew protects only git defaults; other integration branch names
+        """Junction protects only git defaults; other integration branch names
         are ordinary feature branches here and stay pushable."""
         assert _is_push_to_protected_branch(f"{PUSH} origin beta-integration") is False
         assert _is_push_to_protected_branch(f"{PUSH} origin develop") is False
@@ -339,7 +339,7 @@ class TestGitPushEnforcement:
 
 
 class TestDefaultsJsonPushRegexes:
-    """Git-publish enforcement at the KiroCrew hooks gate (``is_denied``).
+    """Git-publish enforcement at the Junction hooks gate (``is_denied``).
 
     Denied commands are no longer injected into the kiro-cli agent config's
     ``deniedCommands`` (that injection path is retired); the git-publish

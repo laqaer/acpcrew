@@ -11,7 +11,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import api_project_git_log, api_project_git_status
+from junction.dashboard.handlers import api_project_git_log, api_project_git_status
 
 
 class _Slot:
@@ -39,7 +39,7 @@ def passthrough_sandbox(monkeypatch):
     covered by test_sandbox*/test_spawn_audit; these tests exercise the git
     parsing, so they pass argv through unchanged (the worktree tests' pattern).
     """
-    from kiro_crew.dashboard.handlers import files as files_mod
+    from junction.dashboard.handlers import files as files_mod
 
     monkeypatch.setattr(
         files_mod, "sandboxed_spawn_argv",
@@ -49,7 +49,7 @@ def passthrough_sandbox(monkeypatch):
 
 @pytest.fixture()
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.sel") as m:
+    with patch("junction.dashboard.handlers.sel") as m:
         m.return_value = MagicMock()
         yield m.return_value
 
@@ -312,7 +312,7 @@ class TestVanishedDirectory:
     async def test_dir_removed_between_check_and_spawn_returns_no_data(self, repo, mock_sel, monkeypatch):
         """TOCTOU: the project dir can vanish after the isdir gate and before
         the git spawn. The endpoint must answer degraded, never 500."""
-        from kiro_crew.dashboard.handlers import files as files_mod
+        from junction.dashboard.handlers import files as files_mod
 
         real_isdir = os.path.isdir
 

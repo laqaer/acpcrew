@@ -24,8 +24,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.history import ConversationLog
-from kiro_crew.vector_memory import _HAS_FAISS, _HAS_NUMPY, VectorMemoryStore
+from junction.history import ConversationLog
+from junction.vector_memory import _HAS_FAISS, _HAS_NUMPY, VectorMemoryStore
 
 
 def _fake_embed(dim: int):
@@ -220,7 +220,7 @@ class TestLastAccessedDebounce:
 
 class TestLessonsSingleQuery:
     def _builder(self, tmp_path: Path):
-        from kiro_crew.context import ContextBuilder, LessonStore, MemoryStore, SkillsLoader
+        from junction.context import ContextBuilder, LessonStore, MemoryStore, SkillsLoader
 
         return ContextBuilder(
             memory=MemoryStore(workspace=tmp_path / "ws"),
@@ -230,7 +230,7 @@ class TestLessonsSingleQuery:
 
     def test_lessons_probe_query_is_gone(self, tmp_path: Path) -> None:
         """get_lessons() is no longer used as an emptiness probe."""
-        from kiro_crew.context import ContextBuilder
+        from junction.context import ContextBuilder
 
         vector_store = MagicMock()
         vector_store.get_lessons_context.return_value = (
@@ -261,8 +261,8 @@ class TestLessonsSingleQuery:
         empty would let it speak for a live vector store and re-inject rows that
         were deleted from it.
         """
-        from kiro_crew.context import ContextBuilder
-        from kiro_crew.learn import Lesson, LessonStore
+        from junction.context import ContextBuilder
+        from junction.learn import Lesson, LessonStore
 
         lessons = LessonStore(base_dir=tmp_path)
         lessons.save(Lesson(ts="1", rule="never force push to mainline", category="knowledge"))

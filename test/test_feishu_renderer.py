@@ -1,11 +1,11 @@
-"""Tests for kiro_crew.feishu.renderer (FeishuRenderer, Layer 2b)."""
+"""Tests for junction.feishu.renderer (FeishuRenderer, Layer 2b)."""
 
 from __future__ import annotations
 
 import pytest
 
-from kiro_crew.feishu.renderer import FeishuRenderer
-from kiro_crew.messaging.transport import TransportCapabilities
+from junction.feishu.renderer import FeishuRenderer
+from junction.messaging.transport import TransportCapabilities
 
 
 class FakeClient:

@@ -22,33 +22,33 @@ If you run Junction as a systemd service (see
 protected secrets file:
 
 ```ini
-# /etc/systemd/system/kirocrew.service.d/secrets.conf
+# /etc/systemd/system/junction.service.d/secrets.conf
 [Service]
-EnvironmentFile=/etc/kirocrew/secrets.env
+EnvironmentFile=/etc/junction/secrets.env
 ```
 
 Create the secrets file with owner-only access:
 
 ```bash
-sudo install -m 600 /dev/null /etc/kirocrew/secrets.env
+sudo install -m 600 /dev/null /etc/junction/secrets.env
 # Use an editor or redirect from a non-history source to avoid
 # leaving the token in shell history:
-sudo sh -c 'read -rp "Secret: " val && printf "MY_MCP_SECRET=%s\n" "$val" >> /etc/kirocrew/secrets.env'
+sudo sh -c 'read -rp "Secret: " val && printf "MY_MCP_SECRET=%s\n" "$val" >> /etc/junction/secrets.env'
 ```
 
 Then reload and restart:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl restart kirocrew
+sudo systemctl restart junction
 ```
 
 The variables are visible to the gateway process and its MCP server
-children.  The file itself (`/etc/kirocrew/secrets.env`) is owned by root
+children.  The file itself (`/etc/junction/secrets.env`) is owned by root
 with mode `0600`, so the agent cannot read it via filesystem access.
 
 **Required:** after adding a secret, you **must** also add its key name to
-`_AGENT_DENIED_ENV_KEYS` in `src/kiro_crew/sandbox.py` to prevent the
+`_AGENT_DENIED_ENV_KEYS` in `src/junction/sandbox.py` to prevent the
 agent subprocess from inheriting it.  Without this step, the variable
 propagates through `AcpClient._spawn()` and a prompt-injected agent can
 read it from its own environment.
@@ -73,7 +73,7 @@ the agent (running as your user) cannot read it:
       "command": "sh",
       "args": [
         "-c",
-        "set -a; . /etc/kirocrew/mcp-secrets.env; set +a; exec my-mcp-server --stdio"
+        "set -a; . /etc/junction/mcp-secrets.env; set +a; exec my-mcp-server --stdio"
       ]
     }
   }
@@ -85,15 +85,15 @@ the agent (running as your user) cannot read it:
 | Fragment | Purpose |
 |---|---|
 | `set -a` | Auto-export every variable assigned after this point. |
-| `. /etc/kirocrew/mcp-secrets.env` | Source secrets from a root-owned file. |
+| `. /etc/junction/mcp-secrets.env` | Source secrets from a root-owned file. |
 | `set +a` | Stop auto-exporting (keeps the child env minimal). |
 | `exec …` | Replace the shell with the actual server process. |
 
 Create the secrets file with root ownership:
 
 ```bash
-sudo install -m 600 /dev/null /etc/kirocrew/mcp-secrets.env
-sudo sh -c 'read -rp "Secret: " val && printf "MY_MCP_SECRET=%s\n" "$val" >> /etc/kirocrew/mcp-secrets.env'
+sudo install -m 600 /dev/null /etc/junction/mcp-secrets.env
+sudo sh -c 'read -rp "Secret: " val && printf "MY_MCP_SECRET=%s\n" "$val" >> /etc/junction/mcp-secrets.env'
 ```
 
 The gateway process (running as root under systemd) can read the file.
@@ -117,13 +117,13 @@ unit), so they cannot read the root-owned file.
 - **Do not** put secrets as plain string values inside `mcp.json` — the
   file has no access controls beyond POSIX permissions and is easy to
   accidentally commit or share.
-- **Do not** add custom keys to `~/.kiro/crew/.env` expecting them to be
+- **Do not** add custom keys to `~/.junction/.env` expecting them to be
   agent-isolated — the gateway loads them and propagates them to all child
   processes including the agent.  A warning is logged, but the key still
   reaches the process tree.  Use the vault once available.
 - **Do not** store MCP secrets in user-readable paths — a file at
-  `~/.kiro/crew/mcp-secrets.env` or `~/.kiro/.env` is accessible to the
-  agent via filesystem reads.  Use root-owned paths (`/etc/kirocrew/`)
+  `~/.junction/mcp-secrets.env` or `~/.kiro/.env` is accessible to the
+  agent via filesystem reads.  Use root-owned paths (`/etc/junction/`)
   or wait for the encrypted vault.
 
 ---
@@ -165,11 +165,11 @@ are left untouched because their consumers still read the literal `.env` value:
 
 ```bash
 # Dry run (default): report what WOULD migrate, change nothing.
-kirocrew secrets import
+junction secrets import
 
 # Apply: store the Jira token(s) in the vault and rewrite each .env line
 # to a secret:// reference.
-kirocrew secrets import --apply
+junction secrets import --apply
 ```
 
 The importer reads only the data-home `.env` (there is no `--file` option, so a
@@ -195,5 +195,5 @@ to the legacy `.env` / environment value.  Per host it looks up the vault
 secret `JIRA_TOKEN_<HEX>` (the hex-encoded host name); for a single configured
 host it also accepts the global `JIRA_API_TOKEN` vault secret.  If neither vault
 entry exists it uses the same `.env` value it always has, so existing setups
-keep working without change — run `kirocrew secrets import --apply` to move the
+keep working without change — run `junction secrets import --apply` to move the
 Jira token into the vault when you are ready.

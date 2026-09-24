@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.cron import CronSchedule
-from kiro_crew.mcp_cron import _call_tool
-from kiro_crew.validation import (
+from junction.cron import CronSchedule
+from junction.mcp_cron import _call_tool
+from junction.validation import (
     CRON_ADD_SCHEMA,
     MCP_CRON_SCHEMAS,
     ValidationError,
@@ -29,7 +29,7 @@ def _cron_caller_is_named(named_cron_caller):
 
 class TestCronAddThreadTs:
     def test_add_with_thread_ts(self, tmp_path: Path) -> None:
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc_cls:
+        with patch("junction.mcp_cron.CronService") as mock_svc_cls:
             mock_svc = mock_svc_cls.return_value
             mock_job = type(
                 "Job",
@@ -63,7 +63,7 @@ class TestCronAddThreadTs:
             assert "abc" in result
 
     def test_add_without_thread_ts(self, tmp_path: Path) -> None:
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc_cls:
+        with patch("junction.mcp_cron.CronService") as mock_svc_cls:
             mock_svc = mock_svc_cls.return_value
             mock_job = type(
                 "Job",
@@ -93,7 +93,7 @@ class TestCronAddThreadTs:
 
 class TestCronUpdateThreadTs:
     def test_update_sets_thread_ts(self, tmp_path: Path, named_cron_caller: str) -> None:
-        with patch("kiro_crew.mcp_cron.CronService") as mock_svc_cls:
+        with patch("junction.mcp_cron.CronService") as mock_svc_cls:
             mock_svc = mock_svc_cls.return_value
             fake_job = MagicMock()
             fake_job.id = "abc"

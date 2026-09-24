@@ -1,11 +1,23 @@
 #!/bin/bash
 # Install the demo app to the data home's apps/ dir so the full pipeline can be tested.
-# Run this once, then navigate to /apps/demo-app in the KiroCrew dashboard.
+# Run this once, then navigate to /apps/demo-app in the Junction dashboard.
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_SOURCE="$SCRIPT_DIR/../website/public/apps/demo-app"
-APP_DEST="${KIROCREW_HOME:-$HOME/.kiro/crew}/apps/demo-app"
+# Same choice as junction.config.paths._select_default_home.
+if [ -n "${JUNCTION_HOME:-}" ]; then
+    _home="$JUNCTION_HOME"
+elif [ -d "$HOME/.junction" ]; then
+    _home="$HOME/.junction"
+elif [ -d "$HOME/.kiro/crew" ]; then
+    _home="$HOME/.kiro/crew"
+elif [ -d "$HOME/.kirocrew" ]; then
+    _home="$HOME/.kirocrew"
+else
+    _home="$HOME/.junction"
+fi
+APP_DEST="$_home/apps/demo-app"
 
 if [ -d "$APP_DEST" ]; then
     echo "Demo app already installed at $APP_DEST"
@@ -30,7 +42,7 @@ cat > "$APP_DEST/installed.json" << 'EOF'
 EOF
 
 echo "✓ Demo app installed to $APP_DEST"
-echo "  Navigate to /apps/demo-app in the KiroCrew dashboard to test."
+echo "  Navigate to /apps/demo-app in the Junction dashboard to test."
 echo ""
 echo "  The app will:"
 echo "  - Load dynamically via import('/apps/demo-app/ui/index.mjs')"

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from tmpdir_helpers import short_tmp_base
 
-from kiro_crew import platform_compat
+from junction import platform_compat
 
 
 class TestShortTmpBase:

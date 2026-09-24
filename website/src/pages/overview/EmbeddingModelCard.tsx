@@ -259,7 +259,7 @@ export default function EmbeddingModelCard() {
                 <Trans
                   i18nKey="pages.overview.embedModel.err_env_override_with_ref"
                   components={{
-                    settingRef: <SettingRef kind="env" configKey="KIROCREW_EMBED_MODEL_PATH" valuePlaceholder="path" envIntent="unset" />,
+                    settingRef: <SettingRef kind="env" configKey="JUNCTION_EMBED_MODEL_PATH" valuePlaceholder="path" envIntent="unset" />,
                   }}
                 />
               ) : (

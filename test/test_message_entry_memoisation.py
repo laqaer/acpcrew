@@ -29,8 +29,8 @@ import threading
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.dashboard import chat_persistence
-from kiro_crew.dashboard.chat_persistence import (
+from junction.dashboard import chat_persistence
+from junction.dashboard.chat_persistence import (
     _build_message_entry,
     _build_message_entry_uncached,
     _entry_cache,
@@ -320,9 +320,9 @@ def test_a_window_longer_than_the_bound_bypasses_the_cache(
 ) -> None:
     """Such a window evicts itself before the next save reaches it, so routing it
     through the cache would pay the hashing cost for a guaranteed 0% hit rate."""
-    from kiro_crew.dashboard.chat import _save_slot_to_history
+    from junction.dashboard.chat import _save_slot_to_history
 
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     monkeypatch.setattr(chat_persistence, "_ENTRY_CACHE_MAX", 3)
     state = _make_state(tmp_path)
     slot = state.get_or_create_slot("s1")
@@ -341,9 +341,9 @@ def test_a_window_within_the_bound_still_uses_the_cache(
 ) -> None:
     """Control for the bypass: without this, the test above would pass even if
     the cache were never populated by a save at all."""
-    from kiro_crew.dashboard.chat import _save_slot_to_history
+    from junction.dashboard.chat import _save_slot_to_history
 
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     monkeypatch.setattr(chat_persistence, "_ENTRY_CACHE_MAX", 100)
     state = _make_state(tmp_path)
     slot = state.get_or_create_slot("s1")
@@ -446,9 +446,9 @@ def test_a_window_past_the_byte_ceiling_bypasses_the_cache(
     under the per-entry cap, so neither of the other two bypasses can account for
     an empty cache here.
     """
-    from kiro_crew.dashboard.chat import _save_slot_to_history
+    from junction.dashboard.chat import _save_slot_to_history
 
-    monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
     monkeypatch.setattr(chat_persistence, "_ENTRY_CACHE_MAX", 100)
     monkeypatch.setattr(chat_persistence, "_ENTRY_CACHE_MAX_BYTES", 1000)
     state = _make_state(tmp_path)

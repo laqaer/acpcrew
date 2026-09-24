@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.feishu.transport_dispatch (FeishuDispatcher)."""
+"""Tests for junction.feishu.transport_dispatch (FeishuDispatcher)."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.feishu.client import LarkInbound
-from kiro_crew.feishu.transport_dispatch import FeishuDispatcher
-from kiro_crew.messaging.link import (
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
+from junction.feishu.client import LarkInbound
+from junction.feishu.transport_dispatch import FeishuDispatcher
+from junction.messaging.link import (
     CHAT_TYPE_DIRECT,
     CHAT_TYPE_FORUM,
     build_dm_session_key,
@@ -286,7 +286,7 @@ class TestTurn:
             FakeCtx(),
             FakeClient(),
             conv_log=conv,
-            cfg=_cfg(default_agent="kirocrew"),
+            cfg=_cfg(default_agent="junction"),
             agent="my-custom-agent",
         )
 
@@ -299,12 +299,12 @@ class TestTurn:
         assert set(conv.agents) == {"my-custom-agent"}
 
     @pytest.mark.asyncio
-    async def test_agent_resolves_to_kirocrew_when_unset(self) -> None:
+    async def test_agent_resolves_to_junction_when_unset(self) -> None:
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
         sessions = FakeSessions(provider)
         d = _dispatcher(sessions, FakeCtx(), FakeClient(), cfg=_cfg(default_agent=""))
         await d.handle_message(_inbound("hi"))
-        assert sessions.last_agent == "kirocrew"
+        assert sessions.last_agent == "junction"
 
     @pytest.mark.asyncio
     async def test_cold_start_failure_finalizes_renderer(self) -> None:
@@ -512,7 +512,7 @@ class TestTurn:
         async def _capture(turn, **kwargs):
             captured.append(turn)
 
-        monkeypatch.setattr("kiro_crew.feishu.transport_dispatch.drive_turn", _capture)
+        monkeypatch.setattr("junction.feishu.transport_dispatch.drive_turn", _capture)
 
         sessions = FakeSessions(FakeProvider([]), ctx_pct=10.0)
         d = _dispatcher(sessions, FakeCtx(), FakeClient())
@@ -522,7 +522,7 @@ class TestTurn:
         predicate = captured[0].auto_approve_session
         assert callable(predicate), "grant must be a predicate, not a captured value"
 
-        import kiro_crew.feishu.transport_dispatch as mod
+        import junction.feishu.transport_dispatch as mod
 
         monkeypatch.setattr(mod, "safety_override", lambda: SimpleNamespace(is_active=lambda: True))
         assert predicate() is True
@@ -547,7 +547,7 @@ class TestTurn:
         async def _capture(turn, **kwargs):
             captured.append(turn)
 
-        monkeypatch.setattr("kiro_crew.feishu.transport_dispatch.drive_turn", _capture)
+        monkeypatch.setattr("junction.feishu.transport_dispatch.drive_turn", _capture)
 
         sessions = FakeSessions(FakeProvider([]), ctx_pct=10.0)
         d = _dispatcher(sessions, FakeCtx(), FakeClient())
@@ -940,7 +940,7 @@ class TestRestartSeeding:
         route = d._route(dm)
         bucket = build_dm_session_key(
             "feishu",
-            "kirocrew",
+            "junction",
             route[1],
             gen=0,
             dm_scope="per-channel-peer",

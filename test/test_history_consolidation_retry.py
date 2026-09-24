@@ -17,13 +17,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import history as history_mod
-from kiro_crew.dashboard.chat_persistence import (
+from junction import history as history_mod
+from junction.dashboard.chat_persistence import (
     _rehydrate_slot_from_history,
     _save_slot_to_history,
 )
-from kiro_crew.dashboard.state import DashboardState
-from kiro_crew.history import (
+from junction.dashboard.state import DashboardState
+from junction.history import (
     _CONSOLIDATION_BACKOFF_BASE_SECS,
     _CONSOLIDATION_MAX_ATTEMPTS,
     ConversationLog,
@@ -442,7 +442,7 @@ class TestHostileMetadataDoesNotBreakTheGate:
         self, tmp_path
     ):
         """The gate runs inside a request handler — a raise there is a 500."""
-        from kiro_crew.dashboard.handlers.memory import api_memory_consolidate
+        from junction.dashboard.handlers.memory import api_memory_consolidate
 
         log = _seed_log(tmp_path)
         _plant_raw_meta(log, KEY, '"consolidation_attempts": 1e309')
@@ -997,7 +997,7 @@ class TestForeignWritersCannotEraseTheAccounting:
     ):
         """The save rebuilds the whole metadata line from the slot's own state."""
         monkeypatch.setattr(
-            "kiro_crew.dashboard.state.config_dir", lambda: tmp_path
+            "junction.dashboard.state.config_dir", lambda: tmp_path
         )
         log = ConversationLog(base_dir=tmp_path)
         log.init()
@@ -1035,7 +1035,7 @@ class TestForeignWritersCannotEraseTheAccounting:
     ):
         """Preserving unowned keys must not make the slot's own state unclearable."""
         monkeypatch.setattr(
-            "kiro_crew.dashboard.state.config_dir", lambda: tmp_path
+            "junction.dashboard.state.config_dir", lambda: tmp_path
         )
         log = ConversationLog(base_dir=tmp_path)
         log.init()
@@ -1090,7 +1090,7 @@ class TestAnEditedTranscriptEarnsAFreshBudget:
         for a span whose wait has already elapsed (so eligibility turns purely on
         the budget), positive for one still serving it.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         log = ConversationLog(base_dir=tmp_path)
         log.init()
         log.append("dashboard:chat1", "user", "ask")
@@ -1497,7 +1497,7 @@ class TestEveryEntryPointRespectsTheAccounting:
 
     @pytest.mark.asyncio
     async def test_manual_dashboard_trigger_refuses_inside_the_backoff(self, tmp_path):
-        from kiro_crew.dashboard.handlers.memory import api_memory_consolidate
+        from junction.dashboard.handlers.memory import api_memory_consolidate
 
         log = _seed_log(tmp_path)
         c = _make_consolidator(log)
@@ -1537,7 +1537,7 @@ class TestTheManualTriggerClaimsAtomically:
 
     @pytest.mark.asyncio
     async def test_concurrent_triggers_dispatch_only_once(self, tmp_path):
-        from kiro_crew.dashboard.handlers.memory import api_memory_consolidate
+        from junction.dashboard.handlers.memory import api_memory_consolidate
 
         log = _seed_log(tmp_path)
         c = _make_consolidator(log)
@@ -1566,7 +1566,7 @@ class TestTheManualTriggerClaimsAtomically:
     @pytest.mark.asyncio
     async def test_a_refused_trigger_releases_its_claim(self, tmp_path):
         """A 429 must not leave the key claimed, or the span is wedged forever."""
-        from kiro_crew.dashboard.handlers.memory import api_memory_consolidate
+        from junction.dashboard.handlers.memory import api_memory_consolidate
 
         log = _seed_log(tmp_path)
         c = _make_consolidator(log)

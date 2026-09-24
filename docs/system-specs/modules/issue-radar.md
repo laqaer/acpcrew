@@ -6,7 +6,7 @@ Issue Radar is an opt-in (`defaultEnabled: false`) built-in app for tracked-item
 and change-request triage across THREE providers — GitHub, GitLab and Azure
 DevOps (see [Providers](#providers)). It connects one or more repos via the
 user's own vendor CLI session (`gh`, `glab` or `az` — no OAuth app, no PAT held
-by Kiro Crew) and provides a 3-column workbench: browse/filter issues (work
+by Junction) and provides a 3-column workbench: browse/filter issues (work
 items on Azure DevOps), view AI-summarized detail + timeline, apply triage
 actions (label, close/reopen), and record per-issue investigation findings
 in a local ledger. A parallel PULL REQUESTS section reuses the same shape —
@@ -46,7 +46,7 @@ provider cannot be registered while the gate silently keeps comparing three.
 | Assignees | a set, capped at 10 | a set (Free keeps only the first) | exactly ONE (`System.AssignedTo`); more than one is REFUSED |
 
 **Every provider is reached by shelling out to its vendor CLI as a raw REST
-passthrough, and Kiro Crew stores NO credential of its own.** `gh api`, `glab api`
+passthrough, and Junction stores NO credential of its own.** `gh api`, `glab api`
 and `az devops invoke` are each the vendor's own generic REST verb, so the client
 modules speak the provider's REST API directly while the CLI owns the token — an
 authenticated `gh`/`glab` session, an `az login` session, or `AZURE_DEVOPS_EXT_PAT`.
@@ -162,7 +162,7 @@ for the same reason.** GitHub Enterprise Server and Azure DevOps Server are both
 unsupported because neither has a credential path this app's transport can use. For
 Azure the reason is concrete: the `azure-devops` CLI extension does not support
 Azure DevOps Server at all, so a CLI-passthrough client cannot serve it. Supporting
-it would mean raw REST plus a credential Kiro Crew stores itself, which is exactly
+it would mean raw REST plus a credential Junction stores itself, which is exactly
 the posture stated above. Both providers are therefore listed in
 `_PINNED_HOSTS`, and `azure_client._resolve_host` refuses every host but
 `dev.azure.com` — including an EMPTY one, rather than defaulting, so a call site
@@ -194,7 +194,7 @@ wrapped in `_require_enabled` (returns 403 when the app is disabled).
 | GET | `/me` | Current `gh` login |
 | GET/PUT | `/settings` | Per-repo triage settings. The PUT replaces the whole document, so it carries the `revision` it read and is refused with **409** if the stored revision has moved — otherwise a stale tab would erase a label appended meanwhile |
 | POST | `/settings/role` | APPEND one label to a triage-label role, under the config lock. Exists because the PUT replaces the whole document, so a client read-modify-write only serializes itself — two dashboard tabs would each read the same settings and the later full replacement would drop the other's label |
-| GET | `/issue-ai` | AI summary + suggested labels (kirocrew-lite) |
+| GET | `/issue-ai` | AI summary + suggested labels (junction-lite) |
 | GET | `/pulls` | List open/closed PRs (cached, `poll=1` probe-gated as for `/issues`; `first_page=1` (open only) takes the progressive first-paint fast path — see First Paint; rows enriched with diff size + check tally via one GraphQL call and merge readiness via a second, lean one run CONCURRENTLY, each topped up by number for rows outside its `first:100` window). Rows whose enrichment failed carry `null` (unknown, not zero) and are deliberately NOT written to the cache, so the next read retries |
 | GET | `/pulls/search` | PRs matching a per-person filter, resolved server-side by GitHub search (escapes the list's page cap). Paginates only as far as its own cap and reports `truncated` so the UI says "newest N" rather than implying completeness |
 | GET | `/pull` | Full PR detail + conversation (issue timeline merged with inline review comments) + automated checks on the head commit. Cache-first with a short server-side TTL (`PR_DETAIL_CACHE_TTL_SEC`), so a plain GET self-refreshes and no caller has to pass `refresh=1` to stay current |
@@ -218,7 +218,7 @@ wrapped in `_require_enabled` (returns 403 when the app is disabled).
 
 ## Recording findings
 
-The Investigate / Review buttons open a KiroCrew chat session seeded with a
+The Investigate / Review buttons open a Junction chat session seeded with a
 triage prompt. When the agent concludes it writes its verdict back into the
 item's investigation record — that is what puts a verdict + summary on the
 issue's card instead of leaving it in chat scrollback.
@@ -227,7 +227,7 @@ That write goes through the **`issue_radar_record_investigation` MCP tool**, not
 a raw HTTP call. An agent session holds no dashboard credential:
 
 - the access cookie is `httpOnly`, so the frontend cannot hand it to the agent;
-- `KIROCREW_INTERNAL_SECRET` is stripped from agent env by
+- `JUNCTION_INTERNAL_SECRET` is stripped from agent env by
   `sandbox._AGENT_DENIED_ENV_KEYS`;
 - `.local_secret` — needed for the `GET /api/token/local` bootstrap — is on the
   `security.py` sensitive-path denylist, for tool reads and for the shell forms.
@@ -236,7 +236,7 @@ So a direct `PUT /api/apps/issue-radar/investigation` from the agent is refused
 with `403 {"error": "Token required"}`. It used to be exactly what the seed
 prompt asked for, which meant no investigation ever recorded findings and the
 card's verdict/summary render path was unreachable. The tool runs in the
-`kirocrew-core` MCP server, which holds the internal secret legitimately, so the
+`junction-core` MCP server, which holds the internal secret legitimately, so the
 route is listed in `_MIXED_INTERNAL_API_PATHS` — the full path only, never the
 `/api/apps/issue-radar` prefix, which would also admit the forge-write routes
 (`/labels/apply`, `/issue/state`) to any internal-secret holder.
@@ -810,9 +810,9 @@ the parent RUN and needs its id.
 ## Security Controls
 
 - **Spawn hardening**: All `gh` calls funnel through `_gh_run`, a thin wrapper
-  over the shared hardened runner (`kiro_crew.github_runner.run_gh`), which
+  over the shared hardened runner (`junction.github_runner.run_gh`), which
   resolves a canonical `gh` via `github_runner.resolve_gh`
-  (`KIROCREW_ISSUE_RADAR_GH` override, then `KIROCREW_GH_BIN`, then the
+  (`JUNCTION_ISSUE_RADAR_GH` override, then `JUNCTION_GH_BIN`, then the
   well-known install dirs, then the ambient `PATH`) and validates it (and every
   parent) with `github_runner.validate_provider_executable`. The default policy
   accepts the user's OWN install (Homebrew/asdf/`~/.local/bin`) and refuses only
@@ -820,7 +820,7 @@ the parent RUN and needs its id.
   account, a world-writable one (a world-writable *directory* is tolerated only
   when sticky, where the owner check still decides), or one inside the
   agent-writable project/workspace tree. A gateway running as root is refused
-  outright in both modes. `KIROCREW_PROVIDER_BIN_STRICT=1` restores the
+  outright in both modes. `JUNCTION_PROVIDER_BIN_STRICT=1` restores the
   historical root-owned, symlink-free requirement. The runner passes a minimal
   env (`github_runner.gh_env` — the safe-key base plus gh-scoped
   auth/network/TLS vars, with ambient ssh-agent/git-ssh identity stripped; no
@@ -834,8 +834,8 @@ the parent RUN and needs its id.
   and `azure_client._az_run` mirror `_gh_run`: one function every spawn passes
   through, argv[0] replaced with the validated canonical binary (resolved through
   the shared `source_providers.provider_executable_candidates` +
-  `_validate_provider_executable` policy, with `KIROCREW_ISSUE_RADAR_GLAB` /
-  `KIROCREW_ISSUE_RADAR_AZ` as the override), a list argv rather than `shell=True`,
+  `_validate_provider_executable` policy, with `JUNCTION_ISSUE_RADAR_GLAB` /
+  `JUNCTION_ISSUE_RADAR_AZ` as the override), a list argv rather than `shell=True`,
   and a minimal environment instead of the gateway's. `_az_env` passes only az's own
   auth roots (`AZURE_CONFIG_DIR`, `AZURE_EXTENSION_DIR`) plus proxy/TLS vars, and
   forwards `AZURE_DEVOPS_EXT_PAT` **only** for the pinned cloud host — it is a single
@@ -1170,7 +1170,7 @@ the list, the filters, the selected item — is untouched.
   check is answered from POSIX ownership (`st_uid` + the group/other write bits)
   or, on Windows, from the object's ACL — see
   `github_runner.check_provider_path_component_windows` and
-  `kiro_crew.windows_acl`. An **elevated** Windows gateway is refused for the same
+  `junction.windows_acl`. An **elevated** Windows gateway is refused for the same
   reason a root POSIX one is: its children would be elevated too, which makes the
   ownership walk vacuous.
 - **Azure DevOps is POSIX only (macOS/Linux).** `azure_client._az_bin` refuses
@@ -1180,7 +1180,7 @@ the list, the filters, the selected item — is untouched.
   other two: nothing here has been exercised against `az` on Windows, and the
   shared candidate table carries no well-known-directory entries for `az`, so the
   only Windows resolution path would be the untested override. Use WSL to run the
-  Kiro Crew gateway against Azure DevOps.
+  Junction gateway against Azure DevOps.
 - An authenticated CLI for each provider you actually connect: `gh`, `glab`, or
   `az` with the `azure-devops` extension (`az extension add --name azure-devops`)
   and an `az login` session or `AZURE_DEVOPS_EXT_PAT`. **None of the three is a
@@ -1190,11 +1190,11 @@ the list, the filters, the selected item — is untouched.
   provider (`reason: "not_installed"`), not an install-time refusal.
 - Any CLI the user can run from their terminal is accepted: the well-known dirs
   (`/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, `/home/linuxbrew/…`, the
-  managed `libexec/kirocrew` dirs, and on Windows the `GitHub CLI` subdirectory
+  managed `libexec/junction` dirs, and on Windows the `GitHub CLI` subdirectory
   of each Program Files root) are searched first, then `PATH`. No `sudo`
-  copy is required. Override with `KIROCREW_ISSUE_RADAR_GH` /
-  `KIROCREW_ISSUE_RADAR_GLAB` / `KIROCREW_ISSUE_RADAR_AZ`; harden with
-  `KIROCREW_PROVIDER_BIN_STRICT=1`. All three executables carry the same
+  copy is required. Override with `JUNCTION_ISSUE_RADAR_GH` /
+  `JUNCTION_ISSUE_RADAR_GLAB` / `JUNCTION_ISSUE_RADAR_AZ`; harden with
+  `JUNCTION_PROVIDER_BIN_STRICT=1`. All three executables carry the same
   well-known-directory entries (`github_runner.PROVIDER_EXECUTABLE_CANDIDATES`),
   so strict mode resolves a packaged `/usr/bin/az` exactly as it does `gh`; what
   strict mode hides is any install reachable only through `PATH`, which is what

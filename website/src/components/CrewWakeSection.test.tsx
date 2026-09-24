@@ -41,7 +41,7 @@ function wrap(node: ReactNode) {
 
 const JOB = {
   id: 'j1', name: 'gh-autofix-dispatcher', message: 'go', enabled: true,
-  schedule: 'every 15m', last_status: 'ok', agent: 'kirocrew-autofix',
+  schedule: 'every 15m', last_status: 'ok', agent: 'junction-autofix',
   last_run_ts: Math.floor(Date.now() / 1000) - 240,
   next_run_ts: Math.floor(Date.now() / 1000) + 660,
 }
@@ -56,7 +56,7 @@ afterEach(cleanup)
 describe('CrewWakeSection', () => {
   it('lists a cron bound to this crew', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText('gh-autofix-dispatcher')).toBeTruthy()
     expect(screen.getByText('every 15m')).toBeTruthy()
     expect(screen.getAllByTestId('wake-row')).toHaveLength(1)
@@ -64,7 +64,7 @@ describe('CrewWakeSection', () => {
 
   it('shows the empty state when nothing is bound to this crew', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
-    wrap(<CrewWakeSection crew="kirocrew-research" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-research" isDefaultCrew={false} />)
     expect(await screen.findByText(/No schedules run this crew automatically/i)).toBeTruthy()
     expect(screen.queryAllByTestId('wake-row')).toHaveLength(0)
   })
@@ -75,21 +75,21 @@ describe('CrewWakeSection', () => {
     expect(await screen.findByText('start a day')).toBeTruthy()
 
     cleanup()
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     await screen.findByText(/No schedules run this crew automatically/i)
     expect(screen.queryAllByTestId('wake-row')).toHaveLength(0)
   })
 
   it('pauses a running job through the cron API', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     fireEvent.click(await screen.findByLabelText(/Pause gh-autofix-dispatcher/))
     await waitFor(() => expect(H.toggleCron).toHaveBeenCalledWith('j1', false))
   })
 
   it('resumes a paused job and reports it as paused', async () => {
     H.crons.mockResolvedValue({ jobs: [{ ...JOB, enabled: false, next_run_ts: null }] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText('paused')).toBeTruthy()
     fireEvent.click(screen.getByLabelText(/Resume gh-autofix-dispatcher/))
     await waitFor(() => expect(H.toggleCron).toHaveBeenCalledWith('j1', true))
@@ -97,14 +97,14 @@ describe('CrewWakeSection', () => {
 
   it('runs a job now', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     fireEvent.click(await screen.findByLabelText(/Run gh-autofix-dispatcher now/))
     await waitFor(() => expect(H.runCron).toHaveBeenCalledWith('j1'))
   })
 
   it('refuses to run a paused job, matching the Schedule page', async () => {
     H.crons.mockResolvedValue({ jobs: [{ ...JOB, enabled: false, next_run_ts: null }] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     const run = await screen.findByLabelText(/Run gh-autofix-dispatcher now/)
     expect((run as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(run)
@@ -113,7 +113,7 @@ describe('CrewWakeSection', () => {
 
   it('sends the reader to the Schedule page, which owns creation and editing', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     fireEvent.click(await screen.findByRole('button', { name: 'Open Schedule' }))
     expect(H.navigate).toHaveBeenCalledWith('/schedule')
   })
@@ -133,7 +133,7 @@ describe('CrewWakeSection', () => {
   it('surfaces a failed pause instead of swallowing it', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
     H.toggleCron.mockResolvedValue({ error: 'cron store busy, please retry' })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     fireEvent.click(await screen.findByLabelText(/Pause gh-autofix-dispatcher/))
     expect(await screen.findByRole('alert')).toHaveTextContent(/cron store busy/)
   })
@@ -141,9 +141,9 @@ describe('CrewWakeSection', () => {
   // `agent_sequence` wins over `agent` at run time, so the crews it names own the
   // job and an empty `agent` on it must not read as "the default crew".
   it('attributes a sequence job to the crews it names, not to the default crew', async () => {
-    const seq = { ...JOB, id: 'q1', name: 'nightly-chain', agent: '', agent_sequence: ['ops-triage', 'kirocrew-autofix'] }
+    const seq = { ...JOB, id: 'q1', name: 'nightly-chain', agent: '', agent_sequence: ['ops-triage', 'junction-autofix'] }
     H.crons.mockResolvedValue({ jobs: [seq] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText('nightly-chain')).toBeTruthy()
 
     cleanup()
@@ -154,9 +154,9 @@ describe('CrewWakeSection', () => {
   // The gateway takes the sequence path only at `len(agents) > 1`, so a
   // one-element sequence resolves through `agent_id` like any other job.
   it('resolves a one-element sequence through the bound agent, not the sequence', async () => {
-    const one = { ...JOB, id: 'q2', name: 'single-chain', agent: 'kirocrew-autofix', agent_sequence: ['ops-triage'] }
+    const one = { ...JOB, id: 'q2', name: 'single-chain', agent: 'junction-autofix', agent_sequence: ['ops-triage'] }
     H.crons.mockResolvedValue({ jobs: [one] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText('single-chain')).toBeTruthy()
 
     cleanup()
@@ -168,21 +168,21 @@ describe('CrewWakeSection', () => {
     H.crons.mockResolvedValue({ jobs: [
       { ...JOB, id: 'x1', name: 'stale-script', script: '~/.kiro/crew/crons/p.py:run' },
     ] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText(/No schedules run this crew automatically/i)).toBeTruthy()
   })
 
   // Absence of an answer and an answer of "none" must not render the same.
   it('says the answer is unknown when the fetch fails, not that nothing wakes it', async () => {
     H.crons.mockRejectedValue(new Error('gateway down'))
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByRole('alert')).toHaveTextContent(/what wakes it is unknown/i)
     expect(screen.queryByText(/No schedules run this crew automatically/i)).toBeNull()
   })
 
   it('reports a job that is running right now', async () => {
     H.crons.mockResolvedValue({ jobs: [{ ...JOB, is_running: true }] })
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText('running')).toBeTruthy()
     expect((await screen.findByLabelText(/Run gh-autofix-dispatcher now/) as HTMLButtonElement).disabled).toBe(true)
   })
@@ -190,7 +190,7 @@ describe('CrewWakeSection', () => {
   it('surfaces a thrown pause failure too', async () => {
     H.crons.mockResolvedValue({ jobs: [JOB] })
     H.toggleCron.mockRejectedValue(new Error('network down'))
-    wrap(<CrewWakeSection crew="kirocrew-autofix" isDefaultCrew={false} />)
+    wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     fireEvent.click(await screen.findByLabelText(/Pause gh-autofix-dispatcher/))
     expect(await screen.findByRole('alert')).toHaveTextContent(/network down/)
   })

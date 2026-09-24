@@ -25,8 +25,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.acp.client import AcpAuthRequired
-from kiro_crew.dashboard.chat_runner import _run_chat, _start_next_queued_turn
+from junction.acp.client import AcpAuthRequired
+from junction.dashboard.chat_runner import _run_chat, _start_next_queued_turn
 
 
 @pytest.mark.asyncio

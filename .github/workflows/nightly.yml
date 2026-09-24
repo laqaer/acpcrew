@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          sparse-checkout: src/kiro_crew/__init__.py
+          sparse-checkout: src/junction/__init__.py
 
       - name: Compute version
         id: stamp
@@ -55,7 +55,7 @@ jobs:
           STAMP_DATE="${STAMP:0:8}"       # YYYYMMDD (desktop)
           STAMP_TIME="${STAMP:8:6}"       # HHMMSS   (both)
           STAMP_FULL="${STAMP:0:14}"      # YYYYMMDDHHMMSS (wheel .dev<N>)
-          BASE=$(grep -m1 '__version__' src/kiro_crew/__init__.py | sed -E 's/.*= *"([^"]+)".*/\1/')
+          BASE=$(grep -m1 '__version__' src/junction/__init__.py | sed -E 's/.*= *"([^"]+)".*/\1/')
           # Desktop/Squirrel needs semver; the pip wheel needs PEP 440. Emit both:
           #   nightly_version (semver):  <base>-nightly.<YYYYMMDD>t<HHMMSS> -> Electron app + S3 build path
           #   wheel_version   (PEP 440): <base>.dev<YYYYMMDDHHMMSS>      -> pip wheel, unique per RUN

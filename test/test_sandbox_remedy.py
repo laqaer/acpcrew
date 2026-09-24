@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-import kiro_crew.sandbox as sb
+import junction.sandbox as sb
 
 
 @pytest.fixture(autouse=True)
@@ -27,13 +27,13 @@ def _clean_probe_state(monkeypatch) -> Any:
     and replaces a planted verdict with the real host's one. Joining (rather than
     sleeping) makes that deterministic.
 
-    Clears ``KIROCREW_SANDBOX_ACTIVE`` to prevent the "already inside sandbox"
+    Clears ``JUNCTION_SANDBOX_ACTIVE`` to prevent the "already inside sandbox"
     passthrough from short-circuiting tests on sandboxed hosts.
     """
-    monkeypatch.delenv("KIROCREW_SANDBOX_ACTIVE", raising=False)
+    monkeypatch.delenv("JUNCTION_SANDBOX_ACTIVE", raising=False)
     monkeypatch.setattr(
         sb, "_KIRO_INTERNAL_SETTINGS_PATH",
-        "/nonexistent/kirocrew-test/amazon-internal.json",
+        "/nonexistent/junction-test/amazon-internal.json",
     )
     _join_warm_thread()
     sb.reset_backend()
@@ -214,7 +214,7 @@ class TestGuidanceProse:
 
     def test_apparmor_guidance_names_the_command_that_fixes_it(self) -> None:
         guidance = sb._linux_remedy_guidance(sb.REMEDY_APPARMOR_USERNS)
-        assert "kirocrew service install" in guidance
+        assert "junction service install" in guidance
         # Naming the sysctl WITHOUT warning against setting it to 0 would invite
         # disabling a kernel-wide protection to satisfy one application.
         assert "Do NOT set the sysctl to 0" in guidance
@@ -229,7 +229,7 @@ class TestGuidanceProse:
         """
         guidance = sb._linux_remedy_guidance(sb.REMEDY_APPARMOR_USERNS)
         assert "cannot fix that" in guidance
-        assert "aa-exec -p kirocrew-userns -- kirocrew gateway" not in guidance
+        assert "aa-exec -p junction-userns -- junction gateway" not in guidance
 
     def test_every_token_has_guidance(self) -> None:
         for token in (
@@ -383,4 +383,4 @@ class TestWrapArgvWiring:
 
         assert caught.value.kind == "transient"
         assert caught.value.remedy == ""
-        assert "kirocrew service install" not in str(caught.value)
+        assert "junction service install" not in str(caught.value)

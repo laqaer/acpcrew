@@ -47,12 +47,12 @@ const now = Math.floor(Date.now() / 1000)
 const slots = [
   {
     key: ACTIVE, title: '搜索按钮窄屏错位问题', running: true, messages: 4,
-    agent: 'default', project_dir: '/home/z/KiroCrew-clone',
+    agent: 'default', project_dir: '/home/z/Junction-clone',
     modified: now, last_ts: '2026-08-17T00:10:00Z', folder_id: '',
     last_message: 'Reading the row anatomy.',
   },
   {
-    key: 'chat-long', running: false, messages: 12, agent: 'kirocrew',
+    key: 'chat-long', running: false, messages: 12, agent: 'junction',
     // Long enough to prove the headline truncates instead of wrapping — this row
     // was 80px tall under the two-line clamp and is 60px now, like every other.
     title: '会话行排版按 4px 网格重构，并统一状态行的八个分支与状态槽的垂直定位',
@@ -89,7 +89,7 @@ const slots = [
     // `text-[11px]` and inherits the meta line's 10px: an 11px chip inside a 12px
     // line box overflows it, which would put the line — and every edge below it —
     // back off the grid. Asserted below rather than eyeballed.
-    key: 'chat-mode', running: false, messages: 5, agent: 'kirocrew', mode: 'orchestrator',
+    key: 'chat-mode', running: false, messages: 5, agent: 'junction', mode: 'orchestrator',
     title: '自动驾驶模式的会话', modified: now - 2400, last_ts: '2026-08-16T23:30:00Z',
     folder_id: '', last_message: 'Queued three follow-ups.',
   },

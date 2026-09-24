@@ -39,9 +39,9 @@ const slots = [{
   running: true,
   last_message: 'Reading ChatFooter.tsx…',
   messages: 1,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
-  project: '/home/user/workspace/kirocrew',
+  project: '/home/user/workspace/junction',
   folder_id: '',
   modified: Math.floor(Date.now() / 1000),
   source_links: [],
@@ -53,7 +53,7 @@ const detail = {
   has_more: false,
   total: 1,
   queue: [],
-  project: '/home/user/workspace/kirocrew',
+  project: '/home/user/workspace/junction',
   messages: [
     {
       role: 'user',

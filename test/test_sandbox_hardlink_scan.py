@@ -24,7 +24,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.sandbox import _build_launcher_script
+from junction.sandbox import _build_launcher_script
 
 _BLOCK_START = "_protected_inodes = set()"
 _BLOCK_END = "os.execvp(argv[0], argv)"

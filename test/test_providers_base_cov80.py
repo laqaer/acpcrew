@@ -14,8 +14,8 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK
-from kiro_crew.providers.base import LLMEvent, LLMProvider
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+from junction.providers.base import LLMEvent, LLMProvider
 
 
 class _MinimalProvider(LLMProvider):

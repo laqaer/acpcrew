@@ -5,7 +5,7 @@ posture without paying for ``/api/telemetry/startup``, which parses every metric
 shard in the window to aggregate percentiles.
 
 Its contract is that ``enabled`` is the EFFECTIVE state, not the stored flag:
-``KIROCREW_TELEMETRY`` overrides ``telemetry.enabled`` inside the collector, so a
+``JUNCTION_TELEMETRY`` overrides ``telemetry.enabled`` inside the collector, so a
 switch reading back the config value alone would sit on "off" while metrics were
 being written. ``env_pinned`` and ``overlay_override`` name the two cases where
 the config file is not what decides, so the panel can disable the control instead
@@ -23,7 +23,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 
 def _make_app() -> web.Application:
-    from kiro_crew.dashboard.handlers import api_collection_status
+    from junction.dashboard.handlers import api_collection_status
 
     app = web.Application()
     app.router.add_get("/api/telemetry/collection", api_collection_status)
@@ -33,8 +33,8 @@ def _make_app() -> web.Application:
 @pytest.fixture(autouse=True)
 def _home(tmp_path, monkeypatch):
     """Isolated data home, and no ambient env pin from the developer's shell."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-    monkeypatch.delenv("KIROCREW_TELEMETRY", raising=False)
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+    monkeypatch.delenv("JUNCTION_TELEMETRY", raising=False)
     return tmp_path
 
 
@@ -82,17 +82,17 @@ class TestCollectionStatusEndpoint:
         # The collector resolves the env var over the config flag, so a switch
         # showing "off" here would deny collection that is actually happening.
         _write_config(_home, {"enabled": False})
-        monkeypatch.setenv("KIROCREW_TELEMETRY", "1")
+        monkeypatch.setenv("JUNCTION_TELEMETRY", "1")
         async with TestClient(TestServer(_make_app())) as c:
             body = await _get(c)
         assert body["enabled"] is True
         assert body["env_pinned"] is True
-        assert body["env_var"] == "KIROCREW_TELEMETRY"
+        assert body["env_var"] == "JUNCTION_TELEMETRY"
 
     @pytest.mark.asyncio
     async def test_env_var_off_beats_a_true_config(self, _home, monkeypatch) -> None:
         _write_config(_home, {"enabled": True})
-        monkeypatch.setenv("KIROCREW_TELEMETRY", "off")
+        monkeypatch.setenv("JUNCTION_TELEMETRY", "off")
         async with TestClient(TestServer(_make_app())) as c:
             body = await _get(c)
         assert body["enabled"] is False
@@ -133,7 +133,7 @@ class TestCollectionStatusEndpoint:
         # A diagnostic must never 500, and it must fail toward "off" so the UI
         # never claims collection is on when that cannot be proven.
         with patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load", side_effect=OSError("boom")
+            "junction.config.loader.JunctionConfig.load", side_effect=OSError("boom")
         ):
             async with TestClient(TestServer(_make_app())) as c:
                 body = await _get(c)

@@ -3,7 +3,7 @@ import type { Artifact } from '../types'
 /**
  * The document types a person may choose from the artifact page's type control.
  *
- * Mirrors `USER_SELECTABLE_KINDS` in `src/kiro_crew/artifacts.py`, which the API
+ * Mirrors `USER_SELECTABLE_KINDS` in `src/junction/artifacts.py`, which the API
  * enforces — this list only decides what the UI offers. Keep the two in step.
  *
  * Deliberately the same set as `isEditableKind`: `widget` and `html` render in a

@@ -6,8 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
-from kiro_crew import cli_help
-from kiro_crew.constants import CLI_BIN, PRODUCT_NAME, SITE_URL
+from junction import cli_help
+from junction.constants import CLI_BIN, PRODUCT_NAME, SITE_URL
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -60,7 +60,7 @@ def test_cli_help_is_junction() -> None:
 
 
 def test_packaged_getting_started_is_junction() -> None:
-    gs = (_REPO_ROOT / "src/kiro_crew/docs/getting-started.md").read_text(encoding="utf-8")
+    gs = (_REPO_ROOT / "src/junction/docs/getting-started.md").read_text(encoding="utf-8")
     plain = gs.replace("`", "")
     assert "Junction" in plain
     assert "vendor agent CLI is optional" in plain
@@ -90,21 +90,21 @@ def test_public_install_guides_are_junction() -> None:
     assert "ghost family" not in windows
     assert "junction up" in windows
     assert "ghcr.io/kirodotdev" not in docker
-    assert "ghcr.io/laqaer/kirocrew" in docker
+    assert "ghcr.io/laqaer/junction" in docker
     assert "ghcr.io/kirodotdev" not in compose
-    assert "ghcr.io/laqaer/kirocrew:stable" in compose
+    assert "ghcr.io/laqaer/junction:stable" in compose
     assert "container_name: junction" in compose
-    ec2 = (_REPO_ROOT / "src/kiro_crew/cloud/templates/kirocrew-ec2.yaml").read_text(
+    ec2 = (_REPO_ROOT / "src/junction/cloud/templates/junction-ec2.yaml").read_text(
         encoding="utf-8"
     )
     assert "https://github.com/laqaer/junction.git" in ec2
     assert "kirodotdev/KiroCrew" not in ec2
     assert "scripts/get-junction.sh" in install
     assert "minimal_install.sh" in install
-    gs = (_REPO_ROOT / "src/kiro_crew/docs/getting-started.md").read_text(encoding="utf-8")
+    gs = (_REPO_ROOT / "src/junction/docs/getting-started.md").read_text(encoding="utf-8")
     assert "scripts/get-junction.sh" in gs
     assert "```bash\ngit clone https://github.com/laqaer/junction.git" in gs
-    packaged = (_REPO_ROOT / "src/kiro_crew/docs/index.md").read_text(encoding="utf-8")
+    packaged = (_REPO_ROOT / "src/junction/docs/index.md").read_text(encoding="utf-8")
     assert "A vendor agent CLI is optional" in packaged
     assert "kiro-cli is optional" not in packaged.split("## Core Capabilities", 1)[0]
 
@@ -114,7 +114,7 @@ def test_operator_install_script_is_junction(tmp_path: Path) -> None:
     text = script.read_text(encoding="utf-8")
     assert text.startswith("#!/bin/sh\n")
     assert "laqaer/junction" in text
-    assert "*laqaer/junction*|*laqaer/acpcrew*" in text
+    assert "*myrmitis/junction*|*laqaer/junction*|*laqaer/acpcrew*" in text
     assert "minimal_install.sh" in text
     assert "Kiro Crew" not in text
     assert "KiroCrew" not in text  # brand-ok: asserting the concatenated token is absent
@@ -213,7 +213,7 @@ def test_ownership_and_banner_are_junction() -> None:
     assert "Kiro Crew" not in banner
     assert notice.lstrip().startswith("Junction")
     assert "this fork" not in notice.lower()
-    wrapper = (_REPO_ROOT / "bin" / "kirocrew").read_text(encoding="utf-8")
+    wrapper = (_REPO_ROOT / "bin" / "junction").read_text(encoding="utf-8")
     junction_wrapper = (_REPO_ROOT / "bin" / "junction").read_text(encoding="utf-8")
     assert wrapper == junction_wrapper
     assert "Junction virtual environment not found" in wrapper

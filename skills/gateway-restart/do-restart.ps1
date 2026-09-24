@@ -1,9 +1,9 @@
 # Delayed gateway restart for Windows — run as a detached process via Start-Process.
 # The sleep gives the calling session time to finish responding.
 # Usage (from agent):
-#   Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "<path>\do-restart.ps1", "-KirocrewBin", "<resolved-path-to-kirocrew.exe>"
+#   Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "<path>\do-restart.ps1", "-JunctionBin", "<resolved-path-to-junction.exe>"
 param(
-    [string]$KirocrewBin = "kirocrew",
+    [string]$JunctionBin = "junction",
     [int]$DelaySec = 10,
     [string]$LogFile = ""
 )
@@ -11,11 +11,11 @@ param(
 Start-Sleep -Seconds $DelaySec
 
 # Resolve the binary — if a path was provided, verify it exists; otherwise fall back to PATH.
-if ($KirocrewBin -ne "kirocrew" -and (Test-Path $KirocrewBin)) {
-    $bin = $KirocrewBin
+if ($JunctionBin -ne "junction" -and (Test-Path $JunctionBin)) {
+    $bin = $JunctionBin
 } else {
-    $found = Get-Command kirocrew -ErrorAction SilentlyContinue
-    if ($found) { $bin = $found.Source } else { $bin = $KirocrewBin }
+    $found = Get-Command junction -ErrorAction SilentlyContinue
+    if ($found) { $bin = $found.Source } else { $bin = $JunctionBin }
 }
 
 # Execute the restart, capturing any errors.
@@ -28,6 +28,6 @@ try {
     # Last resort: try via python module
     $venvPython = Join-Path (Split-Path (Split-Path $bin)) "python.exe"
     if (Test-Path $venvPython) {
-        & $venvPython -m kiro_crew.cli restart 2>&1 | Out-Null
+        & $venvPython -m junction.cli restart 2>&1 | Out-Null
     }
 }

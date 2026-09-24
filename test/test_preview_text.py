@@ -10,8 +10,8 @@ text without rendering it; both producers must apply it.
 
 from __future__ import annotations
 
-from kiro_crew.dashboard.state import _ChatSlot
-from kiro_crew.preview_text import strip_markdown_preview
+from junction.dashboard.state import _ChatSlot
+from junction.preview_text import strip_markdown_preview
 
 
 class TestStripMarkdownPreview:
@@ -130,7 +130,7 @@ class TestHistoryLastMessagePreviewStripsMarkdown:
     def test_archived_preview_is_plain_text(self, tmp_path):
         import json
 
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         log = ConversationLog(base_dir=tmp_path)
         log.init()

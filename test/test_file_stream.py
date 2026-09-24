@@ -16,8 +16,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import api_file_stream
-from kiro_crew.dashboard.handlers.files import (
+from junction.dashboard.handlers import api_file_stream
+from junction.dashboard.handlers.files import (
     _parse_range_header,
     _resolve_project_relative,
     _sniff_media_type,
@@ -32,8 +32,8 @@ def _make_app() -> web.Application:
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.sel.sel") as m, \
-         patch("kiro_crew.dashboard.handlers.files.is_sensitive_path", return_value=False):
+    with patch("junction.sel.sel") as m, \
+         patch("junction.dashboard.handlers.files.is_sensitive_path", return_value=False):
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -92,7 +92,7 @@ def test_parse_range_rejects_malformed_and_unsatisfiable():
 async def test_full_body_200_with_accept_ranges(tmp_path, mock_sel):
     f = tmp_path / "demo.mp4"
     f.write_bytes(_MP4_BYTES)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 200
@@ -106,7 +106,7 @@ async def test_full_body_200_with_accept_ranges(tmp_path, mock_sel):
 async def test_range_request_returns_206_partial(tmp_path, mock_sel):
     f = tmp_path / "demo.mp4"
     f.write_bytes(_MP4_BYTES)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(
                 f"/api/file-stream?path={f}", headers={"Range": "bytes=10-49"}
@@ -121,7 +121,7 @@ async def test_range_request_returns_206_partial(tmp_path, mock_sel):
 async def test_suffix_range_serves_file_tail(tmp_path, mock_sel):
     f = tmp_path / "note.wav"
     f.write_bytes(_WAV_BYTES)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(
                 f"/api/file-stream?path={f}", headers={"Range": "bytes=-16"}
@@ -134,7 +134,7 @@ async def test_suffix_range_serves_file_tail(tmp_path, mock_sel):
 async def test_unsatisfiable_range_416_with_star_size(tmp_path, mock_sel):
     f = tmp_path / "demo.mp4"
     f.write_bytes(_MP4_BYTES)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(
                 f"/api/file-stream?path={f}",
@@ -152,7 +152,7 @@ async def test_unsatisfiable_range_416_with_star_size(tmp_path, mock_sel):
 async def test_non_media_content_refused_415(tmp_path, mock_sel):
     f = tmp_path / "fake.mp4"  # extension claims video, bytes are a zip
     f.write_bytes(b"PK\x03\x04" + b"\x00" * 64)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 415
@@ -161,7 +161,7 @@ async def test_non_media_content_refused_415(tmp_path, mock_sel):
 
 @pytest.mark.asyncio
 async def test_invalid_path_400(mock_sel):
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=None):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=None):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/file-stream?path=../../etc/passwd")
             assert resp.status == 400
@@ -188,8 +188,8 @@ async def test_resolve_serves_relative_path_from_project_dir(tmp_path, mock_sel,
     (tmp_path / "media").mkdir()
     f = tmp_path / "media" / "demo.mp4"
     f.write_bytes(_MP4_BYTES)
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", side_effect=lambda p: p):
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+    with patch("junction.dashboard.handlers._validate_dashboard_path", side_effect=lambda p: p):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/file-stream?path=media/demo.mp4&resolve=1")
             assert resp.status == 200
@@ -198,7 +198,7 @@ async def test_resolve_serves_relative_path_from_project_dir(tmp_path, mock_sel,
 
 @pytest.mark.asyncio
 async def test_resolve_refuses_escape_outside_project(tmp_path, mock_sel, monkeypatch):
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
     async with TestClient(TestServer(_make_app())) as client:
         resp = await client.get("/api/file-stream?path=../etc/passwd&resolve=1")
         assert resp.status == 400
@@ -207,7 +207,7 @@ async def test_resolve_refuses_escape_outside_project(tmp_path, mock_sel, monkey
 
 @pytest.mark.asyncio
 async def test_resolve_without_project_dir_refused(mock_sel, monkeypatch):
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     async with TestClient(TestServer(_make_app())) as client:
         resp = await client.get("/api/file-stream?path=media/demo.mp4&resolve=1")
         assert resp.status == 400
@@ -223,8 +223,8 @@ async def test_text_credentials_behind_forged_magic_refused(tmp_path, mock_sel):
     forged media prefix must not become retrievable through file-stream."""
     f = tmp_path / "secrets.mp3"
     f.write_bytes(b"ID3" + b"AKIA_FAKE_CREDENTIAL_TEXT\n" * 10)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
-         patch("kiro_crew.dashboard.handlers.files.redact", side_effect=lambda t: "[REDACTED]"):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+         patch("junction.dashboard.handlers.files.redact", side_effect=lambda t: "[REDACTED]"):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 400
@@ -242,8 +242,8 @@ async def test_invalid_utf8_magic_cannot_skip_the_scan(tmp_path, mock_sel):
     def _flag_credentials(text: str) -> str:
         return text.replace("AKIA_FAKE_CREDENTIAL_TEXT", "[REDACTED]")
 
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
-         patch("kiro_crew.dashboard.handlers.files.redact", side_effect=_flag_credentials):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+         patch("junction.dashboard.handlers.files.redact", side_effect=_flag_credentials):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 400
@@ -257,7 +257,7 @@ async def test_clean_text_behind_media_magic_still_serves(tmp_path, mock_sel):
     playback of unusual-but-clean files."""
     f = tmp_path / "odd.mp3"
     f.write_bytes(b"ID3" + b"just plain notes\n" * 5)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 200
@@ -269,8 +269,8 @@ async def test_binary_media_is_not_affected_by_the_probe(tmp_path, mock_sel):
     it unchanged, so the full body still round-trips."""
     f = tmp_path / "demo.mp4"
     f.write_bytes(_MP4_BYTES)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
-         patch("kiro_crew.dashboard.handlers.files.redact", side_effect=lambda t: t):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+         patch("junction.dashboard.handlers.files.redact", side_effect=lambda t: t):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 200
@@ -284,8 +284,8 @@ async def test_sensitive_path_403(tmp_path, mock_sel):
     # The shared open-and-check prefix reads this module's import-time
     # is_sensitive_path alias -- one binding for one guard -- so the patch
     # targets the files module, the same seam every other endpoint's tests use.
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
-         patch("kiro_crew.dashboard.handlers.files.is_sensitive_path", return_value=True):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+         patch("junction.dashboard.handlers.files.is_sensitive_path", return_value=True):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 403
@@ -295,7 +295,7 @@ async def test_sensitive_path_403(tmp_path, mock_sel):
 @pytest.mark.asyncio
 async def test_missing_file_404(tmp_path, mock_sel):
     missing = tmp_path / "gone.mp4"
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(missing)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(missing)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={missing}")
             assert resp.status == 404
@@ -310,7 +310,7 @@ async def test_symlink_refused_403(tmp_path, mock_sel):
     real.write_bytes(_MP4_BYTES)
     link = tmp_path / "link.mp4"
     link.symlink_to(real)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(link)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(link)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={link}")
             assert resp.status == 403
@@ -322,8 +322,8 @@ async def test_oversize_file_413_via_fstat_not_read(tmp_path, mock_sel):
     """The cap must come from fstat, never from materializing the file."""
     f = tmp_path / "big.mp4"
     f.write_bytes(_MP4_BYTES)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
-         patch("kiro_crew.dashboard.handlers.files._STREAM_MAX_BYTES", 10):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+         patch("junction.dashboard.handlers.files._STREAM_MAX_BYTES", 10):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 413
@@ -336,7 +336,7 @@ async def test_range_streaming_is_chunked(tmp_path, mock_sel):
     payload = b"\x00\x00\x00\x20ftypisom" + os.urandom(300 * 1024)
     f = tmp_path / "long.mp4"
     f.write_bytes(payload)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-stream?path={f}")
             assert resp.status == 200
@@ -352,10 +352,10 @@ def test_resolve_passes_windows_absolute_shapes_unaltered(monkeypatch):
     result contacts the named host (SMB round-trip) BEFORE any validation.
     They must reach the validator unchanged -- its network-path gate sits
     ahead of its own realpath."""
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", "/proj")
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", "/proj")
     unc = "\\\\evil-host\\share\\x.mp4"
     with patch(
-        "kiro_crew.dashboard.handlers.files.os.path.realpath",
+        "junction.dashboard.handlers.files.os.path.realpath",
         side_effect=AssertionError("realpath must not run on this shape"),
     ):
         assert _resolve_project_relative(unc) == (unc, None)
@@ -375,7 +375,7 @@ async def test_allow_decision_logged_before_prepare(tmp_path, mock_sel):
     f.write_bytes(_MP4_BYTES)
     import contextlib
 
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
          patch.object(web.StreamResponse, "prepare", side_effect=ConnectionResetError):
         async with TestClient(TestServer(_make_app())) as client:
             with contextlib.suppress(Exception):

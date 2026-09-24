@@ -97,7 +97,7 @@ export function Architecture() {
       </FadeUp>
       <FadeUp delay={0.1}>
         <p className="text-[#6d6458] dark:text-[#a39b90] text-lg mb-12 max-w-[40rem]">
-          Junction docks ACP agents and routes their models. The model sidecar is optional. If it is absent, the gateway still works.
+          Junction docks ACP agents. junction up starts a loopback model catalog. The agent uses the models it already serves. If the catalog is down, the gateway still works.
         </p>
       </FadeUp>
       <StaggerIn className="grid md:grid-cols-2 gap-px bg-[#e4a54a]/25 mb-14">

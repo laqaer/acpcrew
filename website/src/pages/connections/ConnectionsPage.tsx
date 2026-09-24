@@ -258,7 +258,7 @@ export function connectionStateFor(
   }
   if (locallyWaiting || awaitingConsent || oauth?.oauthUrl) return 'waiting-for-approval'
   // The status probe carries no OAuth token — kiro-cli owns token custody and
-  // Kiro Crew stores no credential — so a remote OAuth server answers it with 401
+  // Junction stores no credential — so a remote OAuth server answers it with 401
   // and the gateway reports `needs_auth`. Two very different situations produce
   // that identical answer: a server nobody has authorized, and a server
   // authorized OUTSIDE the dashboard, which the runtime calls fine and which
@@ -816,15 +816,15 @@ export default function ConnectionsPage({ servicesEnabled = false }: { servicesE
       await api.mcpCustomUpdate(existing.name, { ...stored.spec, url: provider.mcp_url })
       // Editing a spec deliberately preserves the disabled flag ("editing is
       // not consent to run") — but Reconnect IS consent, so re-enable the
-      // KiroCrew-managed scope. mcpToggle would write the GLOBAL mcp.json
-      // (creating an empty stub for kirocrew-scoped names), so use the
-      // scope-preserving apply instead: kirocrew on, every observed global
+      // Junction-managed scope. mcpToggle would write the GLOBAL mcp.json
+      // (creating an empty stub for junction-scoped names), so use the
+      // scope-preserving apply instead: junction on, every observed global
       // scope passed through unchanged (the backend defaults kiroGlobal to
       // false when omitted).
       if (!existing.enabled) {
-        const reenable: McpApplyChange = { name: existing.name, kirocrew: true }
+        const reenable: McpApplyChange = { name: existing.name, junction: true }
         for (const [scope, present] of Object.entries(existing.presence ?? {})) {
-          if (scope !== 'kirocrew' && scope.endsWith('Global')) reenable[scope as `${string}Global`] = !!present
+          if (scope !== 'junction' && scope.endsWith('Global')) reenable[scope as `${string}Global`] = !!present
         }
         await api.mcpApply([reenable])
       }

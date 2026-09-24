@@ -11,8 +11,8 @@ from typing import Any
 import pytest
 from aiohttp.test_utils import make_mocked_request
 
-import kiro_crew.config.loader as loader
-import kiro_crew.dashboard.handlers.messaging as mod
+import junction.config.loader as loader
+import junction.dashboard.handlers.messaging as mod
 
 
 def test_save_denies_non_loopback(monkeypatch) -> None:
@@ -135,7 +135,7 @@ class TestSave:
         def _boom(*_a, **_k):
             raise OSError("disk full during config write")
 
-        import kiro_crew.agent as _agent
+        import junction.agent as _agent
 
         monkeypatch.setattr(_agent, "_atomic_json_write", _boom)
         try:
@@ -219,7 +219,7 @@ class TestSave:
         monkeypatch.setattr(mod, "is_direct_local_request", lambda req: True)
         monkeypatch.setattr(mod, "_validate_webex_token", lambda tok: None)
 
-        import kiro_crew.agent as _agent
+        import junction.agent as _agent
 
         def _boom(*a, **k):
             raise OSError("disk full")
@@ -270,7 +270,7 @@ class TestSave:
         # Plant the credential ONLY in os.environ, not in .env.
         monkeypatch.setenv("WEBEX_BOT_TOKEN", "env-only-tok")
 
-        import kiro_crew.agent as _agent
+        import junction.agent as _agent
 
         def _boom(*a, **k):
             raise OSError("disk full")
@@ -451,18 +451,18 @@ class TestSaveLoadRoundTrip:
         import json
         import os
 
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         (tmp_path / "config.json").write_text(json.dumps({"webex": webex}))
-        old = os.environ.get("KIROCREW_HOME")
-        os.environ["KIROCREW_HOME"] = str(tmp_path)
+        old = os.environ.get("JUNCTION_HOME")
+        os.environ["JUNCTION_HOME"] = str(tmp_path)
         try:
-            return KiroCrewConfig.load().webex
+            return JunctionConfig.load().webex
         finally:
             if old is None:
-                os.environ.pop("KIROCREW_HOME", None)
+                os.environ.pop("JUNCTION_HOME", None)
             else:
-                os.environ["KIROCREW_HOME"] = old
+                os.environ["JUNCTION_HOME"] = old
 
     def test_every_webex_field_survives_a_reload(self, tmp_path: Path) -> None:
         stored = {
@@ -490,7 +490,7 @@ class TestSaveLoadRoundTrip:
         """
         import dataclasses
 
-        from kiro_crew.config.loader import WebexConfig
+        from junction.config.loader import WebexConfig
 
         defaults = WebexConfig()
         # A value that differs from the default for each field's own type.

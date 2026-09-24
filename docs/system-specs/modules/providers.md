@@ -1,6 +1,6 @@
 ## LLM Provider Abstraction
 
-KiroCrew's public core drove a single LLM backend: `kiro-cli` over ACP. **This
+Junction's public core drove a single LLM backend: `kiro-cli` over ACP. **This
 fork (acpcrew)** keeps `agent.provider` fixed to `acp` and selects the *harness*
 at `agent.acp_backend` (`auto` by default: Cursor, Claude, Codex, DeepSeek
 Harness, Pi, and the other ACP stdio agents). The `LLMProvider` interface is
@@ -104,7 +104,7 @@ glue or a provider selector (see the repo-root `CLAUDE.md`).
 **MCP Tool Search** (kiro backend only — see https://kiro.dev/docs/cli/mcp/tool-search/): loads MCP tool specs on demand ("search-and-call") instead of sending every tool definition each turn, keeping the context window clear when many MCP servers are configured. Gated by the `agent.tool_search` config toggle (default **on**; auto-surfaces as a Settings toggle since the schema is generated from the dataclass).
 - Applied via the **same** workspace `cli.json` overlay used for effort (`<work_dir>/.kiro/settings/cli.json`), written deterministically before every spawn and on each restart by `_write_tool_search_overlay` (called from `AcpProvider.__init__` and `start()`). When enabled it writes the flat keys `toolSearch.enabled=true` plus `toolSearch.minPct`/`toolSearch.minTokens`, taken from `agent.tool_search_min_pct` / `agent.tool_search_min_tokens` (defaults `5` / `50000`, mirroring kiro-cli's own thresholds; clamped to 0-100 and >= 0, non-numeric falls back to the default); when disabled it writes `toolSearch.enabled=false` and drops both thresholds.
 - **Why the thresholds are not forced to 0:** deferral costs a round-trip — a deferred tool's spec is absent from the model's tool list, so the first direct call fails with `A tool with the name '<name>' does not exist` and has to be recovered with `tool_search`. That only pays once the specs are genuinely large, which is what the thresholds express (kiro-cli defers when EITHER is exceeded). An earlier build hard-coded both to `0`, imposing the round-trip on every install including ones far below the threshold. Setting both to `0` still restores unconditional deferral for operators who want it. The thresholds are written **explicitly** rather than omitted, so a machine carrying the old forced zeros is actually migrated instead of silently keeping them.
-- Writing both `true` and `false` makes the KiroCrew toggle authoritative over any value in the user's global `~/.kiro/settings/cli.json`. The write is merge-safe with the effort `chat.modelDefaults` keys in the same file.
+- Writing both `true` and `false` makes the Junction toggle authoritative over any value in the user's global `~/.kiro/settings/cli.json`. The write is merge-safe with the effort `chat.modelDefaults` keys in the same file.
 - **claude backend** — no-op. Tool Search is a kiro-cli feature; `_apply_tool_search_overlay` returns early for the claude backend and when no toggle value was threaded in (`tool_search is None`).
 
 - **Resume guard:** `session/load` (resume) is only attempted when the prior session transcript exists on disk (`~/.kiro/sessions/cli/<sid>.json`). A stale persisted sid with no transcript falls back to `session/new`, preventing a fresh conversation from replaying old turns (which inflated base context).
@@ -124,7 +124,7 @@ glue or a provider selector (see the repo-root `CLAUDE.md`).
 - `agent.provider` is fixed to `"acp"` (enum `["acp"]`); there is no provider to choose.
 - `create_provider_factory()` returns a `Callable` that creates the kiro-cli `AcpProvider`.
 
-An agent spec's model is consumed by kiro-cli before Kiro Crew reaches
+An agent spec's model is consumed by kiro-cli before Junction reaches
 `session/new`, so the live-session entitlement guard cannot diagnose a wrong
 wire spelling at spawn time. Agent create/update validate a pin before
 persisting it: they reuse the role-model validator for advertised ids and
@@ -137,7 +137,7 @@ discoverable user- and project-scoped spec.
 ### MCP Server Registration
 
 MCP servers are passed directly in the `session/new` params. The two managed
-servers (`kirocrew-core`, `kirocrew-cron` — see `agent.py:_MANAGED_MCP_SERVERS`)
+servers (`junction-core`, `junction-cron` — see `agent.py:_MANAGED_MCP_SERVERS`)
 are always present; user-configured servers from the agent config are merged in.
 
 ### SessionManager (`session.py`)
@@ -169,8 +169,8 @@ A transient 5xx that arrives *after* the turn already emitted output (the `_turn
 
 ### Installation
 
-KiroCrew drives `kiro-cli` over ACP — install it per its own docs, ensure it is
-on `PATH`, and run `kiro-cli login`. `kirocrew doctor` reports its status.
+Junction drives `kiro-cli` over ACP — install it per its own docs, ensure it is
+on `PATH`, and run `kiro-cli login`. `junction doctor` reports its status.
 
 
 ## AcpProvider: shared-runtime startup

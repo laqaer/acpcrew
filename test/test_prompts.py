@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from chat_test_helpers import _make_ready_kiro_prerequisite
 
-from kiro_crew.dashboard.chat import _expand_prompt_mention, _run_chat
-from kiro_crew.dashboard.handlers import (
+from junction.dashboard.chat import _expand_prompt_mention, _run_chat
+from junction.dashboard.handlers import (
     _extract_sop_description,
     _list_aim_prompts,
     api_prompt_detail,
@@ -25,9 +25,9 @@ from kiro_crew.dashboard.handlers import (
 def _isolate_home(tmp_path, monkeypatch):
     """All tests get an isolated $HOME and no project dir."""
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setattr("kiro_crew.agent._project_dir", lambda: None)
+    monkeypatch.setattr("junction.agent._project_dir", lambda: None)
     # Clear prompt cache between tests
-    import kiro_crew.dashboard.handlers as h
+    import junction.dashboard.handlers as h
     h._prompt_cache = None
     h._prompt_cache_ts = 0
 
@@ -42,7 +42,7 @@ def aim_dir(tmp_path, monkeypatch):
     """
     base = tmp_path / "prompt_pkgs"
     base.mkdir()
-    from kiro_crew.platform.defaults import DefaultPromptSourceProvider
+    from junction.platform.defaults import DefaultPromptSourceProvider
 
     monkeypatch.setattr(
         DefaultPromptSourceProvider,
@@ -56,17 +56,17 @@ def aim_dir(tmp_path, monkeypatch):
 def mock_sel(monkeypatch):
     """Patch sel() in both chat and handlers modules."""
     m = MagicMock()
-    monkeypatch.setattr("kiro_crew.dashboard.chat.sel", lambda: m)
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: m)
+    monkeypatch.setattr("junction.dashboard.chat.sel", lambda: m)
+    monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: m)
     return m
 
 
 @pytest.fixture()
 def block_sensitive(monkeypatch):
     """Make is_sensitive_path return True everywhere."""
-    monkeypatch.setattr("kiro_crew.dashboard.chat_runner.is_sensitive_path", lambda p: True)
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.is_sensitive_path", lambda p: True)
-    monkeypatch.setattr("kiro_crew.hooks.is_sensitive_path", lambda p: True)
+    monkeypatch.setattr("junction.dashboard.chat_runner.is_sensitive_path", lambda p: True)
+    monkeypatch.setattr("junction.dashboard.handlers.is_sensitive_path", lambda p: True)
+    monkeypatch.setattr("junction.hooks.is_sensitive_path", lambda p: True)
 
 
 # ── Helpers ──
@@ -107,7 +107,7 @@ class _Slot:
     def __init__(self):
         self.messages = []
         self.key = "t"
-        self.agent = "kirocrew"
+        self.agent = "junction"
         self.model = None
         self._queue = []
         self._stop_generation = 0
@@ -211,7 +211,7 @@ class TestListAimPrompts:
 
     def test_discovers_local_project_prompts(self, tmp_path, monkeypatch):
         proj = tmp_path / "proj"
-        monkeypatch.setattr("kiro_crew.agent._project_dir", lambda: proj)
+        monkeypatch.setattr("junction.agent._project_dir", lambda: proj)
         d = proj / ".kiro" / "prompts"
         d.mkdir(parents=True)
         (d / "local.md").write_text("# L\n")
@@ -222,7 +222,7 @@ class TestListAimPrompts:
 
     def test_no_roots_lists_no_package_sops(self, monkeypatch):
         # Default seam ([], the OSS behavior) → no package SOPs discovered.
-        from kiro_crew.platform.defaults import DefaultPromptSourceProvider
+        from junction.platform.defaults import DefaultPromptSourceProvider
 
         monkeypatch.setattr(
             DefaultPromptSourceProvider, "prompt_source_roots", lambda self: []
@@ -245,7 +245,7 @@ class TestListAimPrompts:
         pkg.mkdir(parents=True)
         (pkg / "evil.sop.md").symlink_to(secret)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.is_sensitive_path",
+            "junction.dashboard.handlers.is_sensitive_path",
             lambda p: "secrets" in p,
         )
         assert _list_aim_prompts() == []
@@ -290,7 +290,7 @@ class TestExpandPromptMention:
 
     def test_list_error_returns_original(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers._find_prompt",
+            "junction.dashboard.handlers._find_prompt",
             lambda n: (_ for _ in ()).throw(PermissionError),
         )
         msg, status = _expand_prompt_mention("@x", _State(), _Slot())
@@ -389,7 +389,7 @@ class TestRunChatPrompts:
                 return
             await original_run_chat(state, slot, msg, **kw)
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_runner._run_chat", _mock_run_chat)
+        monkeypatch.setattr("junction.dashboard.chat_runner._run_chat", _mock_run_chat)
         asyncio.run(_mock_run_chat(s, sl, "/prompts get agent-sop:review"))
         assert any("Loaded prompt" in m[1] for m in sl.messages)
         assert "Do review." in captured.get("expanded", "")
@@ -417,7 +417,7 @@ class TestRunChatPrompts:
         """Prompt discovered but blocked at read time by chat-level check."""
         _aim_pkg(aim_dir, "Pkg-1.0", "1", {"secret": "# S"})
         # Only patch chat-level check so prompt is discovered but blocked at read
-        monkeypatch.setattr("kiro_crew.dashboard.chat_runner.is_sensitive_path", lambda p: True)
+        monkeypatch.setattr("junction.dashboard.chat_runner.is_sensitive_path", lambda p: True)
         s, sl = _ss()
         asyncio.run(_run_chat(s, sl, "/prompts get agent-sop:secret"))
         assert any("blocked" in m[1].lower() for m in sl.messages)
@@ -426,10 +426,10 @@ class TestRunChatPrompts:
     def test_at_prompt_blocked(self, aim_dir, mock_sel, monkeypatch):
         """@mention prompt blocked at read time by chat-level check."""
         _aim_pkg(aim_dir, "Pkg-1.0", "1", {"secret": "# S"})
-        monkeypatch.setattr("kiro_crew.dashboard.chat_runner.is_sensitive_path", lambda p: True)
+        monkeypatch.setattr("junction.dashboard.chat_runner.is_sensitive_path", lambda p: True)
         # @prompt path runs after session acquisition — needs full mock
         captured = []
-        slot = MagicMock(key="t", agent="kirocrew", model=None, _trust=False, _queue=[])
+        slot = MagicMock(key="t", agent="junction", model=None, _trust=False, _queue=[])
         slot.append = lambda r, t, c: captured.append((r, t, c))
         slot._pending_subagent_failures = []
         state = MagicMock(_hook_store=None, _yolo=False)

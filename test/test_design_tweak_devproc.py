@@ -17,8 +17,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest  # noqa: F401 (collection marker)
 
-from kiro_crew.apps.builtins.design_tweak.backend import server
-from kiro_crew.platform_compat import IS_POSIX
+from junction.apps.builtins.design_tweak.backend import server
+from junction.platform_compat import IS_POSIX
 
 # `os.getpgid` does not exist on Windows, so `patch("os.getpgid")` raises
 # AttributeError there rather than exercising anything. The production code
@@ -71,9 +71,9 @@ class TestChildEnv:
 
     def test_strips_proxy_secret(self):
         """If leaked, untrusted project code forges signed API calls to this backend."""
-        with patch.dict(os.environ, {"KIROCREW_PROXY_SECRET": "s3cr3t", "HOME": "/h"}):
+        with patch.dict(os.environ, {"JUNCTION_PROXY_SECRET": "s3cr3t", "HOME": "/h"}):
             env = server._child_env(Path("/opt/homebrew/bin"))
-        assert "KIROCREW_PROXY_SECRET" not in env
+        assert "JUNCTION_PROXY_SECRET" not in env
 
     def test_strips_port(self):
         """PORT collides with this backend's socket -- dev server gets EADDRINUSE."""
@@ -105,12 +105,12 @@ class TestChildEnv:
             env = server._child_env(Path("/usr/bin"))
         assert "GIT_SSH" not in env
 
-    def test_strips_all_kirocrew_prefixed(self):
+    def test_strips_all_junction_prefixed(self):
         """Forward-compatible prefix strip catches vars added later upstream."""
         injected = {
-            "KIROCREW_HOME": "/home/u/.kiro/crew",
-            "KIROCREW_APP_PORT": "9999",
-            "KIROCREW_PROJECT_DIR": "/proj",
+            "JUNCTION_HOME": "/home/u/.kiro/crew",
+            "JUNCTION_APP_PORT": "9999",
+            "JUNCTION_PROJECT_DIR": "/proj",
             "KIRO_CREW_SOMETHING": "v",
         }
         with patch.dict(os.environ, injected):

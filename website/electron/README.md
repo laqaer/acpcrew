@@ -1,8 +1,8 @@
-# KiroCrew Desktop (Electron)
+# Junction Desktop (Electron)
 
-Desktop shell for the Kiro Crew web dashboard on macOS, Linux, and Windows
+Desktop shell for the Junction web dashboard on macOS, Linux, and Windows
 (Windows is in preview — see the build note below). It automatically starts
-`kirocrew gateway` and connects to `localhost:5476`.
+`junction gateway` and connects to `localhost:5476`.
 
 ## Quick Start
 
@@ -18,7 +18,7 @@ The app will:
    (`/api/ready` 200) — a gateway draining after `/api/shutdown` still answers
    `/api/status`, so it is never adopted; the app waits for the port to clear
    and spawns fresh instead
-2. Launch `kirocrew gateway` when needed
+2. Launch `junction gateway` when needed
 3. Show a loading screen while the backend boots. A live bundled backend gets an
    extended Windows cold-start window; a child that actually exits still fails
    immediately with its launch-log cause.
@@ -48,11 +48,11 @@ cd electron
 npm install
 npx electron-builder --mac --dir
 APP_DIR=$([ "$(uname -m)" = "arm64" ] && echo "dist/mac-arm64" || echo "dist/mac")
-sudo rm -rf /Applications/KiroCrew.app
-sudo cp -R "$APP_DIR/KiroCrew.app" /Applications/KiroCrew.app
+sudo rm -rf /Applications/Junction.app
+sudo cp -R "$APP_DIR/Junction.app" /Applications/Junction.app
 ```
 
-Launch via Spotlight (Cmd+Space → "KiroCrew"), Dock, or `open /Applications/KiroCrew.app`.
+Launch via Spotlight (Cmd+Space → "Junction"), Dock, or `open /Applications/Junction.app`.
 Right-click the Dock icon → Options → Keep in Dock to pin it.
 
 ## Build `.dmg`
@@ -93,10 +93,10 @@ Notes:
   build produces a working unsigned installer. (Setting only some of the five
   variables is treated as a misconfiguration and fails the build.)
 - The result is an assisted (non-one-click, per-user) NSIS installer,
-  `KiroCrew Setup <version>.exe` (nightly builds:
-  `KiroCrew Nightly Setup <version>.exe`), in `website/electron/dist/`.
+  `Junction Setup <version>.exe` (nightly builds:
+  `Junction Nightly Setup <version>.exe`), in `website/electron/dist/`.
 - The pinned electron-builder NSIS template is patched during `npm install` to
-  expose Kiro Crew's staged-payload publish hook. On a normal same-volume
+  expose Junction's staged-payload publish hook. On a normal same-volume
   per-user install it renames the large `resources` / `locales` trees into place
   and copies only the small root remainder; per-machine installs keep the
   upstream copy path so files inherit the Program Files ACL. Cross-volume or
@@ -105,7 +105,7 @@ Notes:
   bytecode for the measured gateway import closure, so first launch consumes
   build-time caches rather than generating thousands of files under Defender.
 - The native welcome/finish sidebar and the header used on intermediate pages
-  carry the Kiro Crew logo and ghost artwork. The standard NSIS controls and
+  carry the Junction logo and ghost artwork. The standard NSIS controls and
   localized instructions remain native. Page boundaries use a short Win32
   alpha-blended cross-fade that follows the system client-area animation setting;
   extraction itself stays on the native progress page without timer-driven art.
@@ -121,23 +121,23 @@ After pulling new code and rebuilding (`npm run build`):
 # Rebuild and reinstall the desktop app
 cd electron && npx electron-builder --mac --dir
 APP_DIR=$([ "$(uname -m)" = "arm64" ] && echo "dist/mac-arm64" || echo "dist/mac")
-sudo rm -rf /Applications/KiroCrew.app
-sudo cp -R "$APP_DIR/KiroCrew.app" /Applications/KiroCrew.app
+sudo rm -rf /Applications/Junction.app
+sudo cp -R "$APP_DIR/Junction.app" /Applications/Junction.app
 
 # Restart the gateway (if using Launch Agent)
-launchctl stop dev.kirocrew.gateway
-launchctl start dev.kirocrew.gateway
+launchctl stop dev.junction.gateway
+launchctl start dev.junction.gateway
 ```
 
 ## Uninstall
 
 ```bash
 # Remove the desktop app
-sudo rm -rf /Applications/KiroCrew.app
+sudo rm -rf /Applications/Junction.app
 
 # Remove the Launch Agent (if configured from main README)
-launchctl unload ~/Library/LaunchAgents/dev.kirocrew.gateway.plist 2>/dev/null
-rm -f ~/Library/LaunchAgents/dev.kirocrew.gateway.plist
+launchctl unload ~/Library/LaunchAgents/dev.junction.gateway.plist 2>/dev/null
+rm -f ~/Library/LaunchAgents/dev.junction.gateway.plist
 ```
 
 ## Remote Tunnel Mode (Headless CDE)
@@ -154,7 +154,7 @@ via SSH instead of reading the local `.local_secret`.
    ```
    Or use a macOS LaunchAgent (see `../../docs/guides/assets/`).
 
-2. `kirocrew` installed on the remote host. The default auto-discovers across common
+2. `junction` installed on the remote host. The default auto-discovers across common
    install layouts — no configuration needed unless you installed somewhere unusual.
 
 ### Configure
@@ -165,14 +165,14 @@ Remote host settings are **per-port** — each tab can have its own remote host
 
 1. The modal shows which port it's configuring (e.g. "Remote host for :5476")
 2. Enter your remote host's hostname or SSH config alias (e.g. `myhost.example.com` or `clouddesk`)
-3. Leave the binary path at the default unless you installed kirocrew somewhere
+3. Leave the binary path at the default unless you installed junction somewhere
    unusual. The default tries, in order:
-   - `~/.toolbox/bin/kirocrew` (toolbox install — recommended)
-   - `~/.local/bin/kirocrew` (install.sh / source install)
-   - `~/.kirocrew-app/.venv/bin/kirocrew` (one-liner installer venv)
+   - `~/.toolbox/bin/junction` (toolbox install — recommended)
+   - `~/.local/bin/junction` (install.sh / source install)
+   - `~/.kirocrew-app/.venv/bin/junction` (one-liner installer venv)
 4. Optionally set a **Remote port** if the gateway port on the remote host differs
    from the local tab port (default: same as tab port)
-5. Optionally set a **Remote PATH** if kirocrew needs additional directories
+5. Optionally set a **Remote PATH** if junction needs additional directories
    (default: `~/.toolbox/bin:/usr/bin:/bin`)
 6. Click Save. Leave hostname empty to clear (use local token for that port).
 
@@ -180,16 +180,16 @@ Remote host settings are **per-port** — each tab can have its own remote host
 - Tab 1 on `:5476` — local gateway, no remote host needed
 - Tab 2 on `:7778` — SSH tunnel to another host, remote host configured
 
-The app will SSH into the configured remote host and run `kirocrew token` on
+The app will SSH into the configured remote host and run `junction token` on
 each launch to get a fresh JWT — no manual paste required.
 
 ### Token flow (per tab)
 
 ```
-1. Try local ~/.kiro/crew/.local_secret → /api/token/local on the tab's port
+1. Try local ~/.junction/.local_secret → /api/token/local on the tab's port
    (with a temporary ~/.kirocrew read fallback during one-time migration)
 2. If remote host configured for this port:
-   SSH: export PATH=<remotePath> KIROCREW_PORT=<port>; <bin> token
+   SSH: export PATH=<remotePath> JUNCTION_PORT=<port>; <bin> token
 3. Fallback: show manual token prompt
 ```
 
@@ -210,14 +210,14 @@ automatically. Names are stored in `remoteHosts[port].defaultName`.
 ### Config file
 
 Settings are persisted via `electron-store` in
-`~/Library/Application Support/KiroCrew/config.json`:
+`~/Library/Application Support/Junction/config.json`:
 
 ```json
 {
   "remoteHosts": {
     "5476": {
       "host": "myhost.example.com",
-      "binPath": "~/.toolbox/bin/kirocrew",
+      "binPath": "~/.toolbox/bin/junction",
       "remotePort": "",
       "remotePath": "",
       "defaultName": "Cloud"
@@ -234,10 +234,10 @@ Open via **Tab menu → Open Config File** or tray menu.
 | Issue | Fix |
 |-------|-----|
 | "SSH token fetch failed" | Check `ssh YOUR_HOST` works from Terminal |
-| "kirocrew binary not found in any of …" | Install kirocrew (`pip install kirocrew`), or set a custom path |
+| "junction binary not found in any of …" | Install junction (`pip install junction`), or set a custom path |
 | "command not found: kiro-cli" | Set Remote PATH to include `~/.toolbox/bin` (default does this) |
 | "command not found: dirname" | Remote PATH missing `/usr/bin` — reset to default or add it |
-| Token fetched but 403 | Gateway may need restart — `ssh host systemctl --user restart kirocrew` |
+| Token fetched but 403 | Gateway may need restart — `ssh host systemctl --user restart junction` |
 | Wrong tab refreshed | Focus the target tab first (use Tab menu, not tray) |
 
 ## Notes
