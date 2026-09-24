@@ -205,7 +205,7 @@ class TestScalarHelpers:
             # a managed name survives case-folding. Rewording it would delete the
             # only coverage of that branch. The marker must sit on the offending
             # line itself -- the gate scans per line, not per block.
-            ("Junction-Cron", ""),  # brand-ok
+            ("Junction-Cron", ""),
             ("..", ""),
             ("a" * 129, ""),
             ("plain", "plain"),

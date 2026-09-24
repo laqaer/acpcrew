@@ -43,7 +43,7 @@ def narrate_mod():
     path_before = list(sys.path)
     had_pathcheck = "_pathcheck" in sys.modules
     try:
-        yield load_skill_script("kc_video_narrate_aws_probe", _REFS / "narrate.py")
+        yield load_skill_script("jn_video_narrate_aws_probe", _REFS / "narrate.py")
     finally:
         sys.path[:] = path_before
         if not had_pathcheck:
@@ -52,8 +52,8 @@ def narrate_mod():
 
 class TestDepsSpeechProbe:
     def test_check_speech_probes_resolved_binary(self, monkeypatch):
-        deps = load_skill_script("kc_video_deps_aws_probe", _REFS / "deps.py")
-        monkeypatch.delenv("KC_VIDEO_PIPER_MODEL", raising=False)
+        deps = load_skill_script("jn_video_deps_aws_probe", _REFS / "deps.py")
+        monkeypatch.delenv("JUNCTION_VIDEO_PIPER_MODEL", raising=False)
         monkeypatch.setattr(deps, "resolve_aws_bin", lambda: _RESOLVED)
         probed: list[str] = []
         monkeypatch.setattr(shutil, "which", _recording_which(probed))
@@ -70,12 +70,12 @@ class TestDepsSpeechProbe:
         # ImportError, which is the standalone-interpreter environment the
         # doctor must keep diagnosing instead of crashing on import.
         monkeypatch.setitem(sys.modules, "junction.deploy.engine", None)
-        deps = load_skill_script("kc_video_deps_aws_fallback", _REFS / "deps.py")
+        deps = load_skill_script("jn_video_deps_aws_fallback", _REFS / "deps.py")
         assert deps.resolve_aws_bin() == "aws"
 
         # And the degraded probe is a WORKING bare-name PATH lookup: the
         # doctor's speech check stays green when plain "aws" is on PATH.
-        monkeypatch.delenv("KC_VIDEO_PIPER_MODEL", raising=False)
+        monkeypatch.delenv("JUNCTION_VIDEO_PIPER_MODEL", raising=False)
         probed: list[str] = []
 
         def bare_which(name: str, *args: object, **kwargs: object) -> str | None:

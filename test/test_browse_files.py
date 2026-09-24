@@ -92,7 +92,7 @@ class TestBrowseFiles:
 
     @pytest.mark.asyncio
     async def test_build_artifact_dirs_skipped(self, tmp_path, mock_sel):
-        for d in ["node_modules", "__pycache__", ".cache", "build", "dist", ".next", ".kirocrew"]:
+        for d in ["node_modules", "__pycache__", ".cache", "build", "dist", ".next", ".junction"]:
             (tmp_path / d).mkdir()
         (tmp_path / "src").mkdir()
         async with TestClient(TestServer(_make_app())) as client:

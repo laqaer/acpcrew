@@ -233,8 +233,8 @@ def test_ledger_root_is_behind_the_agent_file_gate():
     from junction.security import is_sensitive_path
 
     home = Path.home()
-    assert is_sensitive_path(str(home / ".kiro/crew/ledger/chat-1-abc12345/state.json"))
-    assert is_sensitive_path(str(home / ".kirocrew/ledger/x-deadbeef/state.json"))
+    assert is_sensitive_path(str(home / ".junction/ledger/chat-1-abc12345/state.json"))
+    assert is_sensitive_path(str(home / ".junction/ledger/x-deadbeef/state.json"))
 
 
 def test_coerce_preserves_unknown_fields():

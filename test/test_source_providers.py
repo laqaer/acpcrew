@@ -25,12 +25,12 @@ def _mock_source_sel(monkeypatch):
 
 
 def test_parse_github_pull_request() -> None:
-    ref = source.parse_source_url("https://github.com/kirodotdev/KiroCrew/pull/58?tab=checks")
+    ref = source.parse_source_url("https://github.com/laqaer/junction/pull/58?tab=checks")
     assert ref.provider == "github"
-    assert ref.owner == "kirodotdev"
-    assert ref.repo == "Junction"
+    assert ref.owner == "laqaer"
+    assert ref.repo == "junction"
     assert ref.number == 58
-    assert ref.url == "https://github.com/kirodotdev/KiroCrew/pull/58"
+    assert ref.url == "https://github.com/laqaer/junction/pull/58"
 
 
 def test_github_check_active_status_is_pending_even_with_success_conclusion() -> None:
@@ -5656,13 +5656,13 @@ def _clear_issue_cache():
 
 
 def test_parse_github_issue_url() -> None:
-    ref = source.parse_source_url("https://github.com/kirodotdev/KiroCrew/issues/58#issue-1")
+    ref = source.parse_source_url("https://github.com/laqaer/junction/issues/58#issue-1")
     assert ref.provider == "github"
-    assert ref.owner == "kirodotdev"
-    assert ref.repo == "Junction"
+    assert ref.owner == "laqaer"
+    assert ref.repo == "junction"
     assert ref.number == 58
     assert ref.kind == "issue"
-    assert ref.url == "https://github.com/kirodotdev/KiroCrew/issues/58"
+    assert ref.url == "https://github.com/laqaer/junction/issues/58"
 
 
 def test_parse_github_pull_request_still_reports_change_kind() -> None:

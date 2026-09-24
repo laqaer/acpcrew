@@ -790,7 +790,7 @@ class TestListCompletions:
         assert terminal._list_completions(str(tmp_path / "nope"), "", False, 100) == ([], False)
 
     def test_sensitive_directory_yields_nothing(self, tmp_path):
-        # ~/.kiro/crew/profiles is trust-root metadata: enumerating it would
+        # ~/.junction/profiles is trust-root metadata: enumerating it would
         # disclose profile/policy filenames.
         (tmp_path / "leak").mkdir()
         with _sensitive(always=True):
@@ -816,7 +816,7 @@ class TestListCompletions:
 
 class TestSensitiveEntryGate:
     """Vetting the DIRECTORY is not enough: an allowed directory can hold
-    protected children (``~/.kiro/crew`` holds ``security_policy.json``,
+    protected children (``~/.junction`` holds ``security_policy.json``,
     ``profiles/``), so every entry is classified before it is returned.
 
     These call ``_list_vetted_completions`` so the patched predicate is exercised

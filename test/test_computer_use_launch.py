@@ -60,7 +60,7 @@ def fake_computer_backend(tmp_path, monkeypatch):
 
     ``JUNCTION_HOME`` is redirected first: the dispatcher refuses everything before
     reaching a driver unless the keystone says enabled, and a developer's real
-    ``~/.kiro/crew`` must never decide a test's outcome.
+    ``~/.junction`` must never decide a test's outcome.
     """
     monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     (tmp_path / "computer_use.json").write_text(json.dumps({"enabled": True}), encoding="utf-8")
@@ -1598,7 +1598,7 @@ class TestLaunchDispatch:
             AppRef(
                 name="Innocuous",
                 pid=4109,
-                bundle_id="dev.kiro.crew.dashboard",
+                bundle_id="dev.junction.dashboard",
                 window_id=8809,
                 window_title="Dashboard",
             ),
@@ -1619,7 +1619,7 @@ class TestLaunchDispatch:
         ``extra_denied_apps``. A pre-spawn check that knew only the DISPLAY name
         (``notepad``) matched neither that nor a bundle-id rule, so the denied app
         started and was refused only once it was running. Verified against that
-        revision: with ``extra_denied_apps: ["dev.junction.fake.draw"]`` the launch
+        revision: with ``extra_denied_apps: ["com.example.fake.draw"]`` the launch
         succeeded.
 
         The empty ``apps`` list is the assertion that matters: the fake moves a
@@ -1627,7 +1627,7 @@ class TestLaunchDispatch:
         preceded the spawn rather than following it.
         """
         (tmp_path / "computer_use.json").write_text(
-            json.dumps({"enabled": True, "extra_denied_apps": ["dev.junction.fake.draw"]}),
+            json.dumps({"enabled": True, "extra_denied_apps": ["com.example.fake.draw"]}),
             encoding="utf-8",
         )
         out = _launch("Fake Draw")
@@ -1647,8 +1647,8 @@ class TestLaunchDispatch:
         (pre-existing, fail-closed) behaviour on an allow-list written in a spelling the
         caller did not type; this pins the resolved check alone.
         """
-        who = LaunchIdentity(display="Fake Draw", key="dev.junction.fake.draw")
-        for spelling in ("fake draw", "dev.junction.fake.draw"):
+        who = LaunchIdentity(display="Fake Draw", key="com.example.fake.draw")
+        for spelling in ("fake draw", "com.example.fake.draw"):
             cfg = policy.PolicyConfig(allowed_apps=(spelling,))
             assert tools._launch_refusal(who, cfg) is None, f"allowed_apps={spelling!r} refused"
         # The positive control: an allow-list naming a DIFFERENT app still refuses, so

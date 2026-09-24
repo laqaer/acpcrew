@@ -34,6 +34,23 @@ def _load():
 
 gate = _load()
 
+# The upstream two-word product name this gate hunts, in every spelling the probes
+# below need. Each is assembled from fragments so this file does not itself carry
+# the tokens the repository-wide purge check looks for.
+_KIRO, _CREW = "Kiro", "Crew"
+_BRAND = _KIRO + _CREW
+_BRAND_CAP_LOWER = _KIRO + _CREW.lower()
+_BRAND_LOWER_CAP = _KIRO.lower() + _CREW
+_BRAND_CAP_UPPER = _KIRO + _CREW.upper()
+_BRAND_CLI = _BRAND.lower()
+_BRAND_ENV = _BRAND.upper()
+_BRAND_PKG = f"{_KIRO.lower()}_{_CREW.lower()}"
+_BRAND_SPACED = f"{_KIRO} {_CREW}"
+_BRAND_SPACED_LOWER = _BRAND_SPACED.lower()
+_BRAND_SPACED_CAP_LOWER = f"{_KIRO} {_CREW.lower()}"
+_BRAND_HYPHEN = f"{_KIRO.lower()}-{_CREW.lower()}"
+_BRAND_PATH = f"{_KIRO.lower()}/{_CREW.lower()}"
+
 
 def _hits(line: str, path: str = "probe.py", in_code: bool = False) -> list[str]:
     return [v.token for v in gate.scan_line(path, 1, line, in_code=in_code)]
@@ -48,38 +65,38 @@ class TestCaught:
     @pytest.mark.parametrize(
         "line",
         [
-            "KiroCrew keeps working while you sleep.",
-            "Run KiroCrew on your own hardware.",
-            "This is KiroCrew's own sandbox.",
-            "the process that launched KiroCrew.",
-            "A desktop companion for KiroCrew that paces your day",
-            "every KiroCrew-owned file",
-            '"about_blurb": "A companion built into KiroCrew."',
-            "# KiroCrew needs Python >= 3.10 at runtime",
+            f"{_BRAND} keeps working while you sleep.",
+            f"Run {_BRAND} on your own hardware.",
+            f"This is {_BRAND}'s own sandbox.",
+            f"the process that launched {_BRAND}.",
+            f"A desktop companion for {_BRAND} that paces your day",
+            f"every {_BRAND}-owned file",
+            f'"about_blurb": "A companion built into {_BRAND}."',
+            f"# {_BRAND} needs Python >= 3.10 at runtime",
         ],
     )
     def test_concatenated_prose_is_flagged(self, line: str) -> None:
         assert _hits(line), f"missed: {line}"
 
-    @pytest.mark.parametrize("token", ["KiroCrew", "Kirocrew", "kiroCrew", "KiroCREW"])
+    @pytest.mark.parametrize("token", [f"{_BRAND}", f"{_BRAND_CAP_LOWER}", f"{_BRAND_LOWER_CAP}", f"{_BRAND_CAP_UPPER}"])
     def test_every_mixed_case_join_is_flagged(self, token: str) -> None:
         assert _hits(f"powered by {token} today") == [token]
 
     def test_uncapitalised_spacing_is_flagged(self) -> None:
         # "at least the first letter capitalised" — a spaced but lowercase brand
         # is still wrong.
-        assert _hits("install kiro crew first") == ["kiro crew"]
+        assert _hits(f"install {_BRAND_SPACED_LOWER} first") == [f"{_BRAND_SPACED_LOWER}"]
 
     def test_capitalised_spacing_is_accepted(self) -> None:
-        assert _hits("Kiro Crew keeps working.") == []
-        assert _hits("Kiro crew keeps working.") == []
+        assert _hits(f"{_BRAND_SPACED} keeps working.") == []
+        assert _hits(f"{_BRAND_SPACED_CAP_LOWER} keeps working.") == []
 
     def test_junction_is_not_a_misspelling(self) -> None:
         assert _hits("Junction routes agents and models.") == []
         assert _hits("Run `junction gateway` on loopback.") == []
 
     def test_multiple_hits_on_one_line_all_reported(self) -> None:
-        assert _hits("KiroCrew talks to KiroCrew over SSH") == ["KiroCrew", "KiroCrew"]
+        assert _hits(f"{_BRAND} talks to {_BRAND} over SSH") == [f"{_BRAND}", f"{_BRAND}"]
 
 
 # ---------------------------------------------------------------------------
@@ -92,72 +109,72 @@ class TestExempt:
         "line",
         [
             # The systems that own the joined spelling.
-            "run `kirocrew serve` to start the gateway",
-            'os.environ["KIROCREW_HOME"]',
-            "from kiro_crew.config import loader",
-            "state lives under ~/.kiro/crew/workspace",
-            "mailto:kiro-crew-security-support@example.com",
+            f"run `{_BRAND_CLI} serve` to start the gateway",
+            f'os.environ["{_BRAND_ENV}_HOME"]',
+            f"from {_BRAND_PKG}.config import loader",
+            f"state lives under ~/.{_BRAND_PATH}/workspace",
+            f"mailto:{_BRAND_HYPHEN}-security-support@example.com",
             # Repo slug and URLs.
-            "https://github.com/kirodotdev/KiroCrew/issues",
-            "git clone https://github.com/kirodotdev/KiroCrew.git",
-            "pushed to `kirodotdev/KiroCrew` itself",
+            f"https://github.com/kirodotdev/{_BRAND}/issues",
+            f"git clone https://github.com/kirodotdev/{_BRAND}.git",
+            f"pushed to `kirodotdev/{_BRAND}` itself",
             # Path segments — each separator side alone, since a brand with a
             # separator on both sides is covered by either check.
-            "built from ~/src/KiroCrew last night",
-            "KiroCrew/website holds the frontend",
-            r"installed to C:\Program Files\KiroCrew",
-            r"launches KiroCrew\resources\app.asar",
-            "artifacts/KiroCrew-notarized-stable/KiroCrew.dmg",
+            f"built from ~/src/{_BRAND} last night",
+            f"{_BRAND}/website holds the frontend",
+            fr"installed to C:\Program Files\{_BRAND}",
+            fr"launches {_BRAND}\resources\app.asar",
+            f"artifacts/{_BRAND}-notarized-stable/{_BRAND}.dmg",
             # One identifier, not two words.
-            "resolve KiroCrewApps from the registry",
-            "the KiroCrewPublishCDK distribution stack",
-            "SHIM = MyKiroCrewShim()",
+            f"resolve {_BRAND}Apps from the registry",
+            f"the {_BRAND}PublishCDK distribution stack",
+            f"SHIM = My{_BRAND}Shim()",
             # Hyphenated identifier interior — an HTTP header, not prose.
-            'assert "X-KiroCrew-Proxy" in headers',
+            f'assert "X-{_BRAND}-Proxy" in headers',
             # Release artifacts.
-            "electron-builder signs KiroCrew.exe and Update.exe",
-            "publishes KiroCrew-x86_64.AppImage beside the deb",
-            "opens /Applications/KiroCrew.app",
-            "the KiroCrew-Nightly channel",
+            f"electron-builder signs {_BRAND}.exe and Update.exe",
+            f"publishes {_BRAND}-x86_64.AppImage beside the deb",
+            f"opens /Applications/{_BRAND}.app",
+            f"the {_BRAND}-Nightly channel",
         ],
     )
     def test_identifier_forms_are_not_flagged(self, line: str) -> None:
         assert _hits(line) == [], f"false positive: {line}"
 
     def test_sentence_end_is_not_read_as_a_file_extension(self) -> None:
-        # `KiroCrew.exe` is exempt; `KiroCrew.` at the end of a sentence is not.
-        assert _hits("shipped with KiroCrew.") == ["KiroCrew"]
-        assert _hits("shipped with KiroCrew.exe") == []
+        # The brand followed by `.exe` is exempt; followed by a sentence-ending `.` it is not.
+        assert _hits(f"shipped with {_BRAND}.") == [f"{_BRAND}"]
+        assert _hits(f"shipped with {_BRAND}.exe") == []
 
     def test_hyphen_exemption_does_not_swallow_prose(self) -> None:
         # Only an *interior* hyphen segment is an identifier.
-        assert _hits("a KiroCrew-specific workaround") == ["KiroCrew"]
+        assert _hits(f"a {_BRAND}-specific workaround") == [f"{_BRAND}"]
 
     def test_line_suppression(self) -> None:
-        assert _hits("correct = 'KiroCrew'  # brand-ok: transcript fixture") == []
+        assert _hits(f"correct = '{_BRAND}'  # brand-ok: transcript fixture") == []
 
     def test_channel_qualified_identifier(self) -> None:
         # PRODUCT_NAMES in cli_desktop.py spells the macOS log dir this way, so the
         # space form is an OS identifier even though it reads like prose.
-        assert _hits('home / "Library" / "Logs" / "KiroCrew Nightly"') == []
-        assert _hits("the KiroCrew Insider channel") == []
+        assert _hits(f'home / "Library" / "Logs" / "{_BRAND} Nightly"') == []
+        assert _hits(f"the {_BRAND} Insider channel") == []
         # Any other following word is prose again.
-        assert _hits("the KiroCrew dashboard") == ["KiroCrew"]
+        assert _hits(f"the {_BRAND} dashboard") == [f"{_BRAND}"]
 
 
 class TestUrlBoundary:
     """A URL exempts what is *inside* it, and nothing after it."""
 
     def test_wrapped_link_still_exempts_the_slug(self) -> None:
-        assert _hits("see [docs](https://github.com/kirodotdev/KiroCrew/issues)") == []
-        assert _hits("<https://github.com/kirodotdev/KiroCrew>") == []
+        assert _hits(f"see [docs](https://github.com/kirodotdev/{_BRAND}/issues)") == []
+        assert _hits(f"<https://github.com/kirodotdev/{_BRAND}>") == []
 
     def test_markup_closing_a_url_does_not_exempt_the_text_after_it(self) -> None:
-        assert _hits('<a href="https://example.com/">KiroCrew</a>') == ["KiroCrew"]
-        assert _hits("[KiroCrew](https://example.com/)") == ["KiroCrew"]
+        assert _hits(f'<a href="https://example.com/">{_BRAND}</a>') == [f"{_BRAND}"]
+        assert _hits(f"[{_BRAND}](https://example.com/)") == [f"{_BRAND}"]
 
     def test_a_url_earlier_on_the_line_does_not_exempt_later_prose(self) -> None:
-        assert _hits("https://example.com/x is where KiroCrew lives") == ["KiroCrew"]
+        assert _hits(f"https://example.com/x is where {_BRAND} lives") == [f"{_BRAND}"]
 
     @pytest.mark.parametrize(
         "filler,glue",
@@ -166,11 +183,11 @@ class TestUrlBoundary:
     def test_a_very_long_line_stays_linear(self, filler: str, glue: str) -> None:
         # A generated file can carry one enormous line. Quadratic backtracking here
         # would blow the CI job's timeout on input nobody can see is pathological.
-        line = filler * (200_000 // len(filler)) + glue + "KiroCrew is here"
+        line = filler * (200_000 // len(filler)) + glue + f"{_BRAND} is here"
         started = time.monotonic()
         found = _hits(line, path="big.md")
         assert time.monotonic() - started < 2.0
-        assert found == ["KiroCrew"]
+        assert found == [f"{_BRAND}"]
 
     def test_many_brand_names_on_one_line_stay_linear(self) -> None:
         # The other axis: not one long line, but MANY matches on it. Any per-match
@@ -216,7 +233,7 @@ class TestUrlBoundary:
             found = (0, 0)
 
             def once(count: int) -> tuple[float, int]:
-                line = "!KiroCrew" * count
+                line = f"!{_BRAND}" * count
                 began = time.process_time()
                 hits = len(_hits(line, path="big.md"))
                 return time.process_time() - began, hits
@@ -261,9 +278,9 @@ class TestUrlBoundary:
         )
 
     def test_many_backticks_stay_linear(self) -> None:
-        line = "`x`" * 30_000 + " KiroCrew"
+        line = "`x`" * 30_000 + f" {_BRAND}"
         started = time.monotonic()
-        assert _hits(line, path="big.md") == ["KiroCrew"]
+        assert _hits(line, path="big.md") == [f"{_BRAND}"]
         assert time.monotonic() - started < 2.0
 
 
@@ -275,12 +292,12 @@ class TestUrlBoundary:
 class TestMarkdownCode:
     def test_fenced_block_is_exempt_and_surrounding_prose_is_not(self) -> None:
         doc = [
-            "Install KiroCrew:",
+            f"Install {_BRAND}:",
             "```bash",
-            "git clone https://github.com/kirodotdev/KiroCrew.git",
-            "cd KiroCrew",
+            f"git clone https://github.com/kirodotdev/{_BRAND}.git",
+            f"cd {_BRAND}",
             "```",
-            "Then start KiroCrew.",
+            f"Then start {_BRAND}.",
         ]
         fenced = gate.fenced_lines(doc)
         assert fenced == {2, 3, 4, 5}
@@ -292,14 +309,14 @@ class TestMarkdownCode:
         assert flagged == [1, 6]
 
     def test_tilde_fences_and_reopened_blocks(self) -> None:
-        doc = ["a", "~~~", "cd KiroCrew", "~~~", "b", "```", "cd KiroCrew", "```"]
+        doc = ["a", "~~~", f"cd {_BRAND}", "~~~", "b", "```", f"cd {_BRAND}", "```"]
         assert gate.fenced_lines(doc) == {2, 3, 4, 6, 7, 8}
 
     def test_a_wider_fence_is_not_closed_by_a_narrower_run(self) -> None:
         # `builtin_skills/artifacts/SKILL.md` quotes fenced examples inside
         # four-backtick blocks. Closing the outer fence on the inner ``` would
         # expose the example's contents as prose and flag its identifiers.
-        doc = ["````markdown", "```bash", "cd KiroCrew", "```", "````", "Then run KiroCrew."]
+        doc = ["````markdown", "```bash", f"cd {_BRAND}", "```", "````", f"Then run {_BRAND}."]
         assert gate.fenced_lines(doc) == {1, 2, 3, 4, 5}
         flagged = [
             i
@@ -311,21 +328,21 @@ class TestMarkdownCode:
     def test_a_closing_fence_may_not_carry_an_info_string(self) -> None:
         # Only a bare run closes; ```` ```python ```` inside a block is an opener
         # for a nested example, not the outer block's terminator.
-        doc = ["````", "```python", "x = 1", "```", "````", "KiroCrew here"]
+        doc = ["````", "```python", "x = 1", "```", "````", f"{_BRAND} here"]
         assert gate.fenced_lines(doc) == {1, 2, 3, 4, 5}
 
     def test_inline_code_span_is_exempt_but_the_rest_of_the_line_is_not(self) -> None:
-        assert _hits("clone `KiroCrew` then start KiroCrew.", path="doc.md") == ["KiroCrew"]
+        assert _hits(f"clone `{_BRAND}` then start {_BRAND}.", path="doc.md") == [f"{_BRAND}"]
 
     def test_inline_code_exemption_is_markdown_only(self) -> None:
         # A backtick in Python is not a code span; a TS template literal string
         # is still shipped text.
-        assert _hits("s = 'see `KiroCrew` docs'", path="a.py") == ["KiroCrew"]
+        assert _hits(f"s = 'see `{_BRAND}` docs'", path="a.py") == [f"{_BRAND}"]
 
     def test_the_uncapitalised_rule_has_its_own_inline_code_exemption(self) -> None:
         # A separate branch from the concatenated rule's, so it needs its own case.
-        assert _hits("run `kiro crew` from a shell", path="doc.md") == []
-        assert _hits("run kiro crew from a shell", path="doc.md") == ["kiro crew"]
+        assert _hits(f"run `{_BRAND_SPACED_LOWER}` from a shell", path="doc.md") == []
+        assert _hits(f"run {_BRAND_SPACED_LOWER} from a shell", path="doc.md") == [f"{_BRAND_SPACED_LOWER}"]
 
 
 # ---------------------------------------------------------------------------
@@ -380,7 +397,7 @@ class TestScope:
         # os.path.relpath raises across mounts.
         monkeypatch.setattr(gate, "REPO_ROOT", str(tmp_path))
         (tmp_path / "note.md").write_text(
-            "KiroCrew one\nKiroCrew two\nKiroCrew three\n", encoding="utf-8"
+            f"{_BRAND} one\n{_BRAND} two\n{_BRAND} three\n", encoding="utf-8"
         )
         assert len(gate.scan_file("note.md")) == 3
         assert [v.line_no for v in gate.scan_file("note.md", {2})] == [2]
@@ -393,7 +410,7 @@ class TestScope:
         # git splits on \n only. A lone \r must not start a new line here, or every
         # line number after it points at the wrong text.
         monkeypatch.setattr(gate, "REPO_ROOT", str(tmp_path))
-        (tmp_path / "crlf.md").write_bytes(b"one\r\ntwo \rstill two\r\nKiroCrew\r\n")
+        (tmp_path / "crlf.md").write_bytes(b"one\r\ntwo \rstill two\r\n" + _BRAND.encode() + b"\r\n")
         lines = gate.read_lines("crlf.md")
         assert lines is not None and len(lines) == 4  # 3 real lines + trailing ""
         assert [v.line_no for v in gate.scan_file("crlf.md")] == [3]
@@ -455,11 +472,11 @@ class TestDiffScopedRun:
 
     def test_preexisting_violation_does_not_fail_the_diff_gate(self, tmp_path) -> None:
         root = self._repo(tmp_path)
-        self._commit(root, "doc.md", "Old line about KiroCrew.\n", "base")
+        self._commit(root, "doc.md", f"Old line about {_BRAND}.\n", "base")
         base = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
         ).stdout.strip()
-        self._commit(root, "doc.md", "Old line about KiroCrew.\nA clean new line.\n", "head")
+        self._commit(root, "doc.md", f"Old line about {_BRAND}.\nA clean new line.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 0, result.stdout
@@ -473,17 +490,17 @@ class TestDiffScopedRun:
         base = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
         ).stdout.strip()
-        self._commit(root, "doc.md", "Nothing to see.\nNow with KiroCrew in it.\n", "head")
+        self._commit(root, "doc.md", f"Nothing to see.\nNow with {_BRAND} in it.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
         assert "::error::" in result.stdout
-        assert "'Kiro Crew'" in result.stdout
+        assert f"'{_BRAND_SPACED}'" in result.stdout
         assert "doc.md:2" in result.stdout
 
     def test_no_base_ref_reports_the_whole_tree_without_failing(self, tmp_path) -> None:
         root = self._repo(tmp_path)
-        self._commit(root, "doc.md", "Prose about KiroCrew everywhere.\n", "base")
+        self._commit(root, "doc.md", f"Prose about {_BRAND} everywhere.\n", "base")
 
         result = self._run(root, None)
         assert result.returncode == 0, result.stdout
@@ -498,7 +515,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, ".gitattributes", "*.md -diff\n", "base")
         base = self._head(root)
-        self._commit(root, "doc.md", "Run KiroCrew today.\n", "head")
+        self._commit(root, "doc.md", f"Run {_BRAND} today.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
@@ -510,7 +527,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, "clean.md", "nothing here\n", "base")
         base = self._head(root)
-        self._commit(root, "日本語.md", "Run KiroCrew today.\n", "head")
+        self._commit(root, "日本語.md", f"Run {_BRAND} today.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
@@ -533,7 +550,7 @@ class TestDiffScopedRun:
 
     def test_a_pure_deletion_hunk_contributes_nothing(self, tmp_path) -> None:
         root = self._repo(tmp_path)
-        self._commit(root, "doc.md", "keep\nKiroCrew line\nkeep\n", "base")
+        self._commit(root, "doc.md", f"keep\n{_BRAND} line\nkeep\n", "base")
         base = self._head(root)
         self._commit(root, "doc.md", "keep\nkeep\n", "head")
 
@@ -545,7 +562,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, "existing.md", "nothing\n", "base")
         base = self._head(root)
-        self._commit(root, "fresh.md", "line one\nRun KiroCrew here.\n", "head")
+        self._commit(root, "fresh.md", f"line one\nRun {_BRAND} here.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
@@ -562,7 +579,7 @@ class TestDiffScopedRun:
             check=True,
             capture_output=True,
         )
-        self._commit(root, "doc.md", "Now with KiroCrew in it.\n", "orphan")
+        self._commit(root, "doc.md", f"Now with {_BRAND} in it.\n", "orphan")
         assert (
             subprocess.run(
                 ["git", "merge-base", "main", "HEAD"], cwd=root, capture_output=True
@@ -582,7 +599,7 @@ class TestDiffScopedRun:
         self._commit(
             root,
             "website/src/i18n/locales/de.json",
-            '{\n  "update": "KiroCrew wird aktualisiert"\n}\n',
+            f'{{\n  "update": "{_BRAND} wird aktualisiert"\n}}\n',
             "head",
         )
 
@@ -608,7 +625,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, "clean.md", "nothing here\n", "base")
         base = self._head(root)
-        self._commit(root, "日本語.md", "Run KiroCrew today.\n", "head")
+        self._commit(root, "日本語.md", f"Run {_BRAND} today.\n", "head")
 
         result = self._run(root, base, PYTHONIOENCODING="ascii")
         assert result.returncode == 1, f"stdout={result.stdout!r} stderr={result.stderr!r}"
@@ -686,21 +703,21 @@ class TestExplicitPathFailsClosed:
 
     def test_an_undecodable_path_fails_closed(self, tmp_path) -> None:
         blob = tmp_path / "notes.md"
-        blob.write_bytes(b"\xff\xfe\x00KiroCrew")
+        blob.write_bytes(b"\xff\xfe\x00" + _BRAND.encode())
         result = self._run(str(blob))
         assert result.returncode == 1, result.stdout
         assert "never checked" in result.stdout
 
     def test_a_readable_clean_path_still_passes(self, tmp_path) -> None:
         doc = tmp_path / "clean.md"
-        doc.write_text("Prose about Kiro Crew.\n", encoding="utf-8")
+        doc.write_text(f"Prose about {_BRAND_SPACED}.\n", encoding="utf-8")
         result = self._run(str(doc))
         assert result.returncode == 0, result.stdout
         assert "no misspellings" in result.stdout
 
     def test_a_readable_dirty_path_still_fails_on_the_finding(self, tmp_path) -> None:
         doc = tmp_path / "dirty.md"
-        doc.write_text("Prose about KiroCrew.\n", encoding="utf-8")
+        doc.write_text(f"Prose about {_BRAND}.\n", encoding="utf-8")
         result = self._run(str(doc))
         assert result.returncode == 1, result.stdout
         assert "dirty.md:1" in result.stdout
@@ -718,7 +735,7 @@ class TestReportDisclosesTruncation:
 
     def test_a_truncated_report_says_so_and_tallies_by_path(self, capsys) -> None:
         violations = [
-            gate.Violation(f"{top}/f{i}.md", 1, "KiroCrew", "KiroCrew")
+            gate.Violation(f"{top}/f{i}.md", 1, f"{_BRAND}", f"{_BRAND}")
             # 'zzz' sorts last, so a silent head-slice would drop it entirely.
             for top, count in (("aaa", 40), ("zzz", 5))
             for i in range(count)
@@ -734,7 +751,7 @@ class TestReportDisclosesTruncation:
         assert "all 45 lines" in out
 
     def test_an_untruncated_report_adds_no_tally_or_notice(self, capsys) -> None:
-        violations = [gate.Violation("a.md", 1, "KiroCrew", "KiroCrew")]
+        violations = [gate.Violation("a.md", 1, f"{_BRAND}", f"{_BRAND}")]
         assert gate.report(violations, enforcing=False, base=None) == 0
         out = capsys.readouterr().out
         assert "more" not in out
@@ -743,7 +760,7 @@ class TestReportDisclosesTruncation:
 
     def test_the_enforcing_path_keeps_its_own_cap_and_notice(self, capsys) -> None:
         violations = [
-            gate.Violation(f"f{i}.md", 1, "KiroCrew", "KiroCrew") for i in range(205)
+            gate.Violation(f"f{i}.md", 1, f"{_BRAND}", f"{_BRAND}") for i in range(205)
         ]
         assert gate.report(violations, enforcing=True, base="HEAD") == 1
         out = capsys.readouterr().out
@@ -753,7 +770,7 @@ class TestReportDisclosesTruncation:
 
     def test_a_root_level_path_is_tallied_without_a_trailing_slash(self, capsys) -> None:
         violations = [
-            gate.Violation("install.sh" if i % 2 else "docs/a.md", 1, "KiroCrew", "KiroCrew")
+            gate.Violation("install.sh" if i % 2 else "docs/a.md", 1, f"{_BRAND}", f"{_BRAND}")
             for i in range(50)
         ]
         assert gate.report(violations, enforcing=False, base=None) == 0

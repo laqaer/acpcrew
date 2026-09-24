@@ -52,7 +52,7 @@ class TestContextMatches:
 
     def test_regex_complex_pattern(self):
         assert _context_matches(
-            r"github\.com/kirodotdev/KiroCrew|fix CI|ship it",
+            r"github\.com/laqaer/junction|fix CI|ship it",
             "regex",
             "Can you fix CI on this branch?",
         )

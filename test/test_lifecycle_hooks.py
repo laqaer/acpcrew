@@ -103,7 +103,7 @@ class TestLifecycleHookOrdering:
         work_dir = tmp_path / uuid.uuid4().hex
         work_dir.mkdir()
         # dispatch_startup → _build_context → app_dir(name)/"data".mkdir() resolves
-        # against config_dir() == ~/.kirocrew unless JUNCTION_HOME is isolated. Each
+        # against config_dir() == ~/.junction unless JUNCTION_HOME is isolated. Each
         # generated name would otherwise leak a real apps/<name>/data/ dir (one per
         # hypothesis example → thousands over a dev's test history). Pin it to tmp.
         monkeypatch.setenv("JUNCTION_HOME", str(work_dir))

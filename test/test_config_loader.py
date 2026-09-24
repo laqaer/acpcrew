@@ -3112,40 +3112,31 @@ class TestConfigWriteProtection:
     def test_config_json_is_write_protected(self) -> None:
         from junction.security import is_sensitive_write_path
 
-        # Data home moved to ~/.kiro/crew; the legacy ~/.kirocrew stays gated too.
-        assert is_sensitive_write_path("~/.kiro/crew/config.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kiro" / "crew" / "config.json"))
-        assert is_sensitive_write_path("~/.kirocrew/config.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kirocrew" / "config.json"))
+        assert is_sensitive_write_path("~/.junction/config.json")
+        assert is_sensitive_write_path(str(Path.home() / ".junction" / "config.json"))
 
     def test_config_local_json_is_write_protected(self) -> None:
         from junction.security import is_sensitive_write_path
 
-        assert is_sensitive_write_path("~/.kiro/crew/config.local.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kiro" / "crew" / "config.local.json"))
-        assert is_sensitive_write_path("~/.kirocrew/config.local.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kirocrew" / "config.local.json"))
+        assert is_sensitive_write_path("~/.junction/config.local.json")
+        assert is_sensitive_write_path(str(Path.home() / ".junction" / "config.local.json"))
 
     def test_config_json_reads_still_allowed(self) -> None:
         from junction.security import is_sensitive_bash_command, is_sensitive_path
 
-        assert is_sensitive_path("~/.kiro/crew/config.json") is False
-        assert is_sensitive_bash_command("cat ~/.kiro/crew/config.json") is None
-        assert is_sensitive_path("~/.kirocrew/config.json") is False
-        assert is_sensitive_bash_command("cat ~/.kirocrew/config.json") is None
+        assert is_sensitive_path("~/.junction/config.json") is False
+        assert is_sensitive_bash_command("cat ~/.junction/config.json") is None
 
     def test_write_protection_superset_of_sensitive(self) -> None:
         from junction.security import is_sensitive_write_path
 
         assert is_sensitive_write_path("~/.aws/credentials")
-        assert is_sensitive_write_path("~/.kiro/crew/security_policy.json")
-        assert is_sensitive_write_path("~/.kirocrew/security_policy.json")
+        assert is_sensitive_write_path("~/.junction/security_policy.json")
 
     def test_non_config_junction_file_not_write_protected(self) -> None:
         from junction.security import is_sensitive_write_path
 
-        assert is_sensitive_write_path("~/.kiro/crew/sessions.db") is False
-        assert is_sensitive_write_path("~/.kirocrew/sessions.db") is False
+        assert is_sensitive_write_path("~/.junction/sessions.db") is False
 
 
 class TestConfigEditToolBlocked:
@@ -3160,7 +3151,7 @@ class TestConfigEditToolBlocked:
         result = self._hooks().on_tool_call(
             "Editing config.json",
             tool_kind="edit",
-            raw_params={"path": "~/.kirocrew/config.json"},
+            raw_params={"path": "~/.junction/config.json"},
         )
         assert result.action == "deny"
         assert "write-protected config" in (result.reason or "")
@@ -3169,7 +3160,7 @@ class TestConfigEditToolBlocked:
         result = self._hooks().on_tool_call(
             "config.json",
             tool_kind="read",
-            raw_params={"path": "~/.kirocrew/config.json"},
+            raw_params={"path": "~/.junction/config.json"},
         )
         assert result.action != "deny"
 
@@ -3177,7 +3168,7 @@ class TestConfigEditToolBlocked:
         result = self._hooks().on_tool_call(
             "Editing notes.md",
             tool_kind="edit",
-            raw_params={"path": "~/.kirocrew/workspace/notes.md"},
+            raw_params={"path": "~/.junction/workspace/notes.md"},
         )
         assert result.action != "deny"
 
@@ -4767,7 +4758,7 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
 
         Widening here would admit a cwd the operator deliberately excluded.
         """
-        ghost = str(Path(tempfile.gettempdir()) / "kc-no-such-root-9f3a")
+        ghost = str(Path(tempfile.gettempdir()) / "jn-no-such-root-9f3a")
         data = self._agents() | {"agent": {"subagent_cwd_allowed_roots": [ghost]}}
         cfg, on_disk, migrated = self._load(data)
 
@@ -4782,7 +4773,7 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
         caller, and load() is reached from the async spawn path. Nothing stats
         the configured roots today; this guards against reintroducing it.
         """
-        ghost = str(Path(tempfile.gettempdir()) / "kc-no-such-root-9f3a")
+        ghost = str(Path(tempfile.gettempdir()) / "jn-no-such-root-9f3a")
         data = self._agents() | {"agent": {"subagent_cwd_allowed_roots": [ghost]}}
         real_isdir = os.path.isdir
 

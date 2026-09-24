@@ -301,7 +301,7 @@ class TestThePicker:
         await d.handle_message(_inbound("/sessions"))
 
         data = _press(client.cards[0], 0)
-        assert set(data) == {"kc", "nonce", "index"}
+        assert set(data) == {"jn", "nonce", "index"}
         assert "dashboard" not in str(data)
 
     @pytest.mark.asyncio
@@ -654,7 +654,7 @@ class TestAClickInAResumedConversation:
                 _inbound(
                     "",
                     value={
-                        "kc": KIND_APPROVAL,
+                        "jn": KIND_APPROVAL,
                         "rid": "1",
                         "nonce": "n1",
                         "decision": DECISION_APPROVE,
@@ -692,7 +692,7 @@ class TestAClickInAResumedConversation:
         await d._handle_card_action(
             _inbound(
                 "",
-                value={"kc": KIND_OPTION, "nonce": "n9", "index": "0", "label": "ship it"},
+                value={"jn": KIND_OPTION, "nonce": "n9", "index": "0", "label": "ship it"},
             )
         )
 
@@ -720,7 +720,7 @@ class TestAClickInAResumedConversation:
                 _inbound(
                     "",
                     value={
-                        "kc": KIND_APPROVAL,
+                        "jn": KIND_APPROVAL,
                         "rid": "1",
                         "nonce": "n1",
                         "decision": DECISION_DENY,

@@ -549,10 +549,10 @@ class TestRunHelper:
         """Strict mode alone is NOT enough — it misses Junction's own secrets.
 
         ``_STRICT_DIRS`` covers third-party credential locations plus
-        ``~/.kiro/crew/.env``, but the gateway's ``.local_secret``,
+        ``~/.junction/.env``, but the gateway's ``.local_secret``,
         ``sel_hmac.key``, ``security_policy.json`` and ``profiles/`` sit beside it
         and are NOT in that list. TeX reads files, so
-        ``\\verbatiminput{~/.kiro/crew/.local_secret}`` would typeset the gateway's
+        ``\\verbatiminput{~/.junction/.local_secret}`` would typeset the gateway's
         own callback credential into the PDF.
 
         Asserted against the LIVE floor rather than a hardcoded sample, so a path
@@ -929,7 +929,7 @@ class TestCapturedOutputIsBounded:
 
 
 class TestSensitivePathsFollowTheLiveDataHome:
-    """`sensitive_home_dirs()` names paths relative to `$HOME`, so its `.kiro/crew/*`
+    """`sensitive_home_dirs()` names paths relative to `$HOME`, so its `.junction/*`
     entries describe the DEFAULT data home.
 
     With `JUNCTION_HOME` pointed elsewhere — a dev instance, a pod, an operator who

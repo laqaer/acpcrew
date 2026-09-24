@@ -161,7 +161,7 @@ def _run(
             "CHANNEL": channel,
             "VERSION": version,
             "OVERRIDE": override,
-            "GITHUB_REPOSITORY": "kirodotdev/KiroCrew",
+            "GITHUB_REPOSITORY": "laqaer/junction",
             "GH_TOKEN": "shim",
             "GH_SHIM_MODE": "fail" if gh == "fail" else "ok",
             "GH_SHIM_OUT": MATCHING_RUN if gh == "match" else "",

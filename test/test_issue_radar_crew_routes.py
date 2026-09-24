@@ -59,7 +59,7 @@ from junction.apps.builtins.issue_radar.backend import (
 )
 
 BASE = "/api/apps/issue-radar"
-OWNER, REPO = "kirodotdev", "Junction"  # brand-ok: the repository name
+OWNER, REPO = "laqaer", "junction"
 
 #: The contract, as a table. Also the inventory the registrar is checked against.
 CREW_ROUTES: tuple[tuple[str, str], ...] = (

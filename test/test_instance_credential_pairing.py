@@ -331,7 +331,7 @@ class TestEveryToolGetsTheExplanation:
         # A genuine permission denial carries the same body; explaining it as a
         # credential desync would send that user after a bug they do not have.
         out = self._body(b'{"error": "Forbidden"}')
-        assert "wrong Kiro Crew instance" not in out["error"]
+        assert "wrong Junction instance" not in out["error"]
         assert out["error"] == "Forbidden"
 
     def test_learn_add_surfaces_the_rewritten_message(self) -> None:
@@ -487,13 +487,13 @@ class TestTheSharedHelperOwnsThePairing:
 
         with mock.patch.dict(os.environ, {}, clear=True):
             with mock.patch.object(
-                review_driver.store, "crew_home", return_value=Path("/nonexistent")
+                review_driver.store, "data_home", return_value=Path("/nonexistent")
             ):
                 assert review_driver._candidate_ports() == []
 
         with mock.patch.dict(os.environ, {"JUNCTION_PORT": "7811"}, clear=True):
             with mock.patch.object(
-                review_driver.store, "crew_home", return_value=Path("/nonexistent")
+                review_driver.store, "data_home", return_value=Path("/nonexistent")
             ):
                 assert review_driver._candidate_ports() == [7811]
 
@@ -507,7 +507,7 @@ class TestTheSharedHelperOwnsThePairing:
             clear=True,
         ):
             with mock.patch.object(
-                review_driver.store, "crew_home", return_value=Path("/nonexistent")
+                review_driver.store, "data_home", return_value=Path("/nonexistent")
             ):
                 assert review_driver._candidate_ports() == [7899, 5476]
 

@@ -420,7 +420,7 @@ class TestPdfPathIsContained:
     `pdf_path` looked derived-and-therefore-safe — the stem comes from the configured
     main file and the suffix is a literal — but the result is a name inside the project
     tree, and only `safe_child` resolves symlinks. A repo shipping
-    `main.pdf -> ~/.kiro/crew/.local_secret` had that file served verbatim by the
+    `main.pdf -> ~/.junction/.local_secret` had that file served verbatim by the
     `/pdf` route, which renders it inline in the browser.
     """
 

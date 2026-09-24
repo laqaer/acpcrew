@@ -6,7 +6,7 @@ F1: an EMPTY profile name must never reach ``aws configure set`` —
     ``POST {"name":"","create":true}`` would silently rewrite the user's
     DEFAULT AWS profile. Both layers must reject empty explicitly.
 
-F2: the ``.kirocrew-deploy.json`` control manifest lives beside published
+F2: the ``.junction-deploy.json`` control manifest lives beside published
     site content in a CloudFront origin bucket — without an explicit Deny it
     is world-readable through the distribution (leaks local username +
     bucket/distribution/OAC ids). Both bucket policies (engine per-site +
@@ -78,7 +78,7 @@ class TestF2ManifestNotPublic:
         deny = denies[0]
         assert deny["Principal"] == {"Service": "cloudfront.amazonaws.com"}
         res = deny["Resource"]
-        assert any(r.endswith("/*/.kirocrew-deploy.json") for r in res), (
+        assert any(r.endswith("/*/.junction-deploy.json") for r in res), (
             "Deny must cover the per-slug control manifest key")
         assert any("/_quarantine/" in r for r in res), (
             "Deny must cover the quarantine prefix")
@@ -97,5 +97,5 @@ class TestF2ManifestNotPublic:
         idx = BASE_STACK.index("DenyCloudFrontControlManifests")
         block = BASE_STACK[idx:idx + 600]
         assert "Effect: Deny" in block
-        assert "/*/.kirocrew-deploy.json" in block
+        assert "/*/.junction-deploy.json" in block
         assert "/_quarantine/*" in block

@@ -31,7 +31,7 @@ def env(tmp_path: Path, monkeypatch):
     (app_dir / "public" / "css").mkdir(parents=True)
     (app_dir / "public" / "index.html").write_text("<html>terrace</html>")
     (app_dir / "public" / "css" / "app.css").write_text("body{}")
-    (app_dir / "public" / ".kirocrew-deploy.json").write_text("{}")
+    (app_dir / "public" / ".junction-deploy.json").write_text("{}")
     (app_dir / "api" / "secret").mkdir(parents=True)
     (app_dir / "api" / "secret" / "keys.py").write_text("SECRET = 1")
     monkeypatch.setattr(wp, "_allowed_local_roots", lambda: [ws.resolve()])
@@ -159,7 +159,7 @@ class TestPreviewServe:
         with pytest.raises(web.HTTPNotFound):
             await wp.serve_artifact_app_file(
                 _req({"slug": "terrace-app", "token": token,
-                      "path": ".kirocrew-deploy.json"}))
+                      "path": ".junction-deploy.json"}))
 
     @pytest.mark.asyncio
     async def test_symlink_escape_blocked(self, env, tmp_path) -> None:

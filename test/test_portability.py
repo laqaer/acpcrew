@@ -24,8 +24,8 @@ from junction.portability import (
 
 @pytest.fixture
 def fake_junction_home(tmp_path):
-    """Create a realistic ~/.kirocrew directory structure for testing."""
-    mc = tmp_path / ".kirocrew"
+    """Create a realistic ~/.junction directory structure for testing."""
+    mc = tmp_path / ".junction"
     mc.mkdir()
 
     # config.json
@@ -706,7 +706,7 @@ def _import_names(zip_path, tmp_path, mode="merge"):
 
 
 def test_import_drops_cron_command_that_would_run_arbitrary_shell(tmp_path):
-    # SEC KC-11: a cron ``command`` runs via ``sh -c`` outside the ACP hook flow.
+    # A cron ``command`` runs via ``sh -c`` outside the ACP hook flow.
     # The import path wrote crons.json verbatim, so a crafted "backup" scheduled
     # arbitrary execution. It must now be dropped by the same storage-time guard
     # cron_add uses, while benign jobs survive.
@@ -728,7 +728,7 @@ def test_import_drops_cron_command_that_would_run_arbitrary_shell(tmp_path):
 
 
 def test_import_drops_cron_command_reading_credentials(tmp_path):
-    # SEC KC-11: credential-exfil commands are caught by the same guard.
+    # Credential-exfil commands are caught by the same guard.
     z = _make_cron_import_zip(
         tmp_path / "exfil.zip",
         [

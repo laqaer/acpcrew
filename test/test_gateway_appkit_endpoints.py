@@ -3469,7 +3469,7 @@ class TestUninstallAppSourcesCleanup:
         """Uninstalling a registry app removes its workspace."""
         self._create_app("reg-app", origin="registry", source="registry:reg-app")
         # Simulate the per-app source clone directory (generic git clone layout:
-        # ~/.kirocrew/app-sources/{name}/ holding a checked-out repo).
+        # ~/.junction/app-sources/{name}/ holding a checked-out repo).
         ws_dir = self._home / "app-sources" / "reg-app"
         (ws_dir / ".git").mkdir(parents=True)
         (ws_dir / "package.json").write_text('{"name": "reg-app"}')

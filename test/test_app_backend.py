@@ -1463,7 +1463,7 @@ def test_devfleet_repo_env_wins_repo_discovery(monkeypatch, tmp_path):
     proj = tmp_path / "proj"
     (proj / ".git").mkdir(parents=True)
     (proj / "src" / "junction").mkdir(parents=True)
-    (proj / "pyproject.toml").write_text("[project]\nname = 'kiro-crew'\n")
+    (proj / "pyproject.toml").write_text("[project]\nname = 'junction'\n")
     monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/opt/checkouts/junction")
     monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
     assert dfmod._default_main_repo() == "/opt/checkouts/junction"

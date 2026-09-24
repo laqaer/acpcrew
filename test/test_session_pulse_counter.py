@@ -17,7 +17,7 @@ from junction.dashboard import session_pulse_counter as spc
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path, monkeypatch: pytest.MonkeyPatch):
     # Point the counter's config_dir at a throwaway dir so tests never touch the
-    # real ~/.kiro/crew state.
+    # real ~/.junction state.
     monkeypatch.setattr(spc, "config_dir", lambda: tmp_path)
     return tmp_path
 

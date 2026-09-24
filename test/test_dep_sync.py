@@ -21,8 +21,7 @@ import pytest
 
 from junction import dep_sync
 
-_SETUP_CFG = textwrap.dedent(
-    """
+_SETUP_CFG = textwrap.dedent("""
     [options]
     python_requires = >=3.10
     install_requires =
@@ -33,8 +32,7 @@ _SETUP_CFG = textwrap.dedent(
     [options.extras_require]
     voice =
         boto3>=1.34,<2
-    """
-).strip()
+    """).strip()
 
 
 @pytest.fixture
@@ -68,9 +66,9 @@ def _origin_inside(target_py):
 
 def test_normalize_folds_the_spellings_pep503_treats_as_one():
     """The folding matters only through `rejected_specs`, so it is tested here."""
-    assert dep_sync.normalize("Kiro_Crew") == "kiro-crew"
+    assert dep_sync.normalize("Acme_Widgets") == "acme-widgets"
     assert dep_sync.normalize("JUNCTION") == "junction"
-    assert dep_sync.normalize("kiro.crew") == "kiro-crew"
+    assert dep_sync.normalize("acme.widgets") == "acme-widgets"
 
 
 def test_declared_requirements_reads_install_requires_and_drops_comments(repo):
@@ -329,12 +327,10 @@ def test_rejected_specs_refuses_paths_archives_and_the_project_itself():
     for hostile in [".", "./local", "/abs/path", r"C:\pkgs\x", "file:./x", "x.whl", "-e"]:
         assert dep_sync.rejected_specs([hostile]), hostile
 
-    # Only spellings PEP 503 actually folds onto this project's name. `junction`
-    # normalizes to `kiro-crew`, which is a DIFFERENT distribution, so it is not
-    # claimed here.
+    # Only spellings PEP 503 actually folds onto this project's name.
     for spelling in [
         "junction",
-        "Junction",  # brand-ok: a PEP 503 spelling of the distribution name
+        "Junction",
         "JUNCTION",
         "junction>=1",
     ]:

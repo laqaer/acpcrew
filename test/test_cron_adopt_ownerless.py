@@ -339,8 +339,7 @@ class TestAdoptIsDeniedFromBash:
         [
             "junction cron adopt abc123 --session-of chat-3",
             "junction cron adopt abc123 --release",
-            "kiro-crew cron adopt abc123 --session-of dashboard:chat-3",
-            "kiro.crew cron adopt abc123 --session-of dashboard:chat-3",
+            "junction cron adopt abc123 --session-of dashboard:chat-3",
             "cd /tmp && junction cron  adopt abc123 --session-of chat-3",
             "JUNCTION_HOME=/tmp junction cron adopt abc123 --session-of chat-3",
             # The module spelling, which is how the CLI is invoked from a venv.

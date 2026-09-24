@@ -1708,9 +1708,7 @@ class TestBodyLimits:
 
 class TestStartupHook:
     @pytest.mark.asyncio
-    async def test_startup_seeds_the_data_dir_and_loads_the_dictionary(self, tmp_path: Path):
-        from junction.apps.builtins.meetings.backend.domain import session as sess
-
+    async def test_startup_seeds_the_data_dir(self, tmp_path: Path):
         fresh = tmp_path / "unseeded"
         app = make_app(fresh)
         app["state"] = None
@@ -1720,9 +1718,25 @@ class TestStartupHook:
                 assert (await client.get(f"{BASE}/config")).status == 200
         assert (fresh / k.DICTIONARY_FILE).is_file()
         assert (fresh / "meetings").is_dir()
-        # The seeded dictionary carries at least one term, so a fresh install
-        # already corrects the product's own name.
-        assert sess.shared_dictionary().terms
+
+    @pytest.mark.asyncio
+    async def test_startup_loads_an_existing_dictionary_without_reseeding(self, tmp_path: Path):
+        """A user's dictionary survives startup and is what transcription corrects with."""
+        from junction.apps.builtins.meetings.backend.domain import session as sess
+
+        root = tmp_path / "seeded"
+        root.mkdir()
+        # A term no other test loads, so a stale shared dictionary cannot pass this.
+        user_dictionary = '[[term]]\ncorrect = "Quokkabase"\naliases = ["quokka base"]\n'
+        (root / k.DICTIONARY_FILE).write_text(user_dictionary, encoding="utf-8")
+        app = make_app(root)
+        app["state"] = None
+        with pytest.MonkeyPatch.context() as patcher:
+            patcher.setattr(_common, "is_app_enabled", lambda _n: True)
+            async with client_for(app) as client:
+                assert (await client.get(f"{BASE}/config")).status == 200
+        assert (root / k.DICTIONARY_FILE).read_text(encoding="utf-8") == user_dictionary
+        assert sess.shared_dictionary().correct("we use quokka base") == "we use Quokkabase"
 
 
 class TestActiveMeetingHolder:
@@ -1760,9 +1774,9 @@ class TestFiledRefIsSanitized:
         from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
         ref = task_routes._normalize_filed_ref(
-            {"id": "KC-1", "url": "javascript:alert(document.cookie)"}
+            {"id": "JN-1", "url": "javascript:alert(document.cookie)"}
         )
-        assert ref == {"id": "KC-1"}
+        assert ref == {"id": "JN-1"}
 
     @pytest.mark.parametrize(
         "url",
@@ -1780,7 +1794,7 @@ class TestFiledRefIsSanitized:
     def test_every_non_http_scheme_is_refused(self, url: str) -> None:
         from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
-        ref = task_routes._normalize_filed_ref({"id": "KC-2", "url": url})
+        ref = task_routes._normalize_filed_ref({"id": "JN-2", "url": url})
         assert ref is not None
         assert "url" not in ref, f"{url!r} should not be rendered as a link"
 
@@ -1788,13 +1802,13 @@ class TestFiledRefIsSanitized:
     def test_absolute_http_urls_are_kept(self, url: str) -> None:
         from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
-        ref = task_routes._normalize_filed_ref({"id": "KC-3", "url": url})
-        assert ref == {"id": "KC-3", "url": url}
+        ref = task_routes._normalize_filed_ref({"id": "JN-3", "url": url})
+        assert ref == {"id": "JN-3", "url": url}
 
     def test_a_non_dict_ref_is_dropped(self) -> None:
         from junction.apps.builtins.meetings.backend.routes import tasks as task_routes
 
-        assert task_routes._normalize_filed_ref("KC-4") is None
+        assert task_routes._normalize_filed_ref("JN-4") is None
         assert task_routes._normalize_filed_ref(None) is None
 
     def test_normalize_task_routes_filed_ref_through_the_gate(self) -> None:

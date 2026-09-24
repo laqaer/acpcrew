@@ -51,7 +51,7 @@ def _make_job(job_id="abc123", name="test-cron"):
 def _isolate_snapshot_file(tmp_path, monkeypatch):
     """Point the snapshot sidecar at tmp_path — same isolation as
     test_context_bar_reopen, so a stray entry in the developer's real
-    ~/.kiro/crew/context_snapshots.json cannot change what we observe."""
+    ~/.junction/context_snapshots.json cannot change what we observe."""
     monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
 
 

@@ -7,7 +7,7 @@ because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
 Three things every test needs:
 
 * ``root`` — a tmp data dir, threaded through ``store``'s ``root=`` parameter so
-  no test ever touches the real ``~/.kiro/crew/apps/meetings``.
+  no test ever touches the real ``~/.junction/apps/meetings``.
 * ``app`` — an aiohttp Application with only this app's routes registered, the
   enable gate stubbed open, and the data root override stashed on the app.
 * ``FakeSessionManager`` — records dispatches instead of running them. No test

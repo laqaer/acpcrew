@@ -64,7 +64,7 @@ def _make_script_job(**overrides):
         name="script-job",
         message="CR-123",
         schedule=CronSchedule(kind="every", every_secs=60),
-        script="~/.kirocrew/crons/monitor.py:run",
+        script="~/.junction/crons/monitor.py:run",
     )
     defaults.update(overrides)
     return CronJob(**defaults)
@@ -2622,7 +2622,7 @@ class TestACancellationAtTheClaimAwaitKeepsItsOneShot:
     async def test_script_cancellation_retains_only_the_run_that_never_started(
         self, tmp_path, grant_claim, expect_retained
     ):
-        svc, created = self._one_shot(tmp_path, script="~/.kirocrew/crons/monitor.py:run")
+        svc, created = self._one_shot(tmp_path, script="~/.junction/crons/monitor.py:run")
         gw = _make_gw()
 
         with patch(

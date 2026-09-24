@@ -178,17 +178,17 @@ def test_manual_credit_outside_block_not_re_added(credit):
 @pytest.mark.parametrize(
     "repo_link",
     [
-        'See <a href="https://github.com/kirodotdev/KiroCrew/releases">releases</a>.',
-        "docs at https://github.com/kirodotdev/KiroCrew/",  # trailing slash on a repo
-        "https://github.com/kirodotdev/KiroCrew#install",  # repo + fragment
+        'See <a href="https://github.com/laqaer/junction/releases">releases</a>.',
+        "docs at https://github.com/laqaer/junction/",  # trailing slash on a repo
+        "https://github.com/laqaer/junction#install",  # repo + fragment
     ],
 )
 def test_repo_and_deep_links_are_not_treated_as_contributors(repo_link):
     # A deeper path (repo, releases, ...) must never be read as a profile, or a
     # real new contributor named like the repo owner would be wrongly skipped.
     text = f"## Contributors\n\n{repo_link}\n\n{_entry('amy', 'Amy')}\n\ntail\n"
-    out, added = uc.add_contributors(text, [{"login": "kirodotdev", "name": "Kiro"}])
-    assert added == ["kirodotdev"]
+    out, added = uc.add_contributors(text, [{"login": "laqaer", "name": "Laqaer"}])
+    assert added == ["laqaer"]
 
 
 def test_optout_login_never_added_even_when_absent():

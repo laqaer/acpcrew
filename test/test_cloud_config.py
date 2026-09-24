@@ -14,12 +14,12 @@ class TestCloudConfig:
 
     def test_roundtrip(self, tmp_path):
         p = tmp_path / "cloud.json"
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-abc")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-abc")
         cfg.save(p)
         loaded = CloudConfig.load(p)
         assert loaded.profile == "dev"
         assert loaded.region == "us-west-2"
-        assert loaded.last_tag == "kc-abc"
+        assert loaded.last_tag == "jn-abc"
 
     def test_over_long_last_tag_sanitized_to_empty(self, tmp_path):
         # A 52-63 char last_tag must be sanitized to "" on load — NOT carried

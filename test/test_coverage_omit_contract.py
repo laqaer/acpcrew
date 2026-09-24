@@ -263,7 +263,7 @@ def test_every_capability_guarded_suite_runs_in_the_sandbox_job() -> None:
 
     Fixing the instance is not enough -- the job's list is hand-maintained, and it had
     already rotted once: nine guarded suites skipped in every shard and appeared in no
-    sandbox lane, so 85 assertions (the ~/.kiro/crew keystone among them) executed nowhere
+    sandbox lane, so 85 assertions (the ~/.junction keystone among them) executed nowhere
     while CI stayed green. A new guarded file recreates that silently, which is precisely
     the shape a ratchet is for.
     """

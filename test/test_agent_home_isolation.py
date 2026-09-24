@@ -151,7 +151,7 @@ def test_under_system_tmp_answers_on_the_call_time_root():
 
     root = Path(tempfile.gettempdir()).resolve()
     assert _under_system_tmp(root)
-    assert _under_system_tmp(root / "kc-task-1234" / "repo" / "src")
+    assert _under_system_tmp(root / "jn-task-1234" / "repo" / "src")
     assert not _under_system_tmp(Path("/durable-install/Junction").resolve())
 
 
@@ -258,7 +258,7 @@ def test_agent_home_inside_own_data_home_is_private(monkeypatch, tmp_path):
     from junction import agent
     from junction.config.paths import isolated_agents_dir
 
-    own_home = tmp_path / "wt" / ".kirocrew-dev"
+    own_home = tmp_path / "wt" / ".junction-dev"
     own_home.mkdir(parents=True)
     agents = isolated_agents_dir(own_home)
 
@@ -345,7 +345,7 @@ def test_declines_from_a_clone_under_the_temp_dir(monkeypatch, tmp_path):
     shared = tmp_path / "agents"
     shared.mkdir()
     (shared / agent.AGENT_FILENAME).write_text("{}", encoding="utf-8")
-    with tempfile.TemporaryDirectory(prefix="kc-clone-") as scratch_name:
+    with tempfile.TemporaryDirectory(prefix="jn-clone-") as scratch_name:
         clone = Path(scratch_name) / "repo"
         (clone / "src" / "junction").mkdir(parents=True)
         (clone / ".git").mkdir()  # a DIRECTORY -> ordinary clone, not a worktree
@@ -370,7 +370,7 @@ def test_does_not_decline_from_a_temp_clone_when_no_spec_exists(monkeypatch, tmp
 
     monkeypatch.delenv("KIRO_HOME", raising=False)
     monkeypatch.delenv("JUNCTION_HOME", raising=False)
-    with tempfile.TemporaryDirectory(prefix="kc-clone-") as scratch_name:
+    with tempfile.TemporaryDirectory(prefix="jn-clone-") as scratch_name:
         clone = Path(scratch_name) / "repo"
         (clone / "src" / "junction").mkdir(parents=True)
         (clone / ".git").mkdir()
@@ -401,7 +401,7 @@ def test_does_not_decline_from_an_appimage_runtime_mount(monkeypatch, tmp_path):
     monkeypatch.delenv("KIRO_HOME", raising=False)
     monkeypatch.delenv("JUNCTION_HOME", raising=False)
     monkeypatch.delenv("APPDIR", raising=False)  # env-free child: `.mount_` is the signal
-    with tempfile.TemporaryDirectory(prefix="kc-appimage-") as scratch_name:
+    with tempfile.TemporaryDirectory(prefix="jn-appimage-") as scratch_name:
         mount = Path(scratch_name) / ".mount_KiroXk3Qm9"
         (mount / "usr" / "lib" / "junction").mkdir(parents=True)
         monkeypatch.setattr(agent, "__file__", str(mount / "usr" / "lib" / "junction" / "agent.py"))
@@ -417,7 +417,7 @@ def test_under_system_tmp_covers_posix_tmp_when_tmpdir_points_elsewhere(monkeypa
     """The macOS shape: ``$TMPDIR`` is per-user, so ``/tmp`` needs its own arm.
 
     launchd sets ``$TMPDIR`` to ``/var/folders/.../T``, so ``gettempdir()`` does
-    not contain ``/tmp`` there — and ``/tmp/kc-fix-XXXX`` is the literal clone
+    not contain ``/tmp`` there — and ``/tmp/jn-fix-XXXX`` is the literal clone
     path #4781 reports. Simulated by pointing ``gettempdir()`` away from
     ``/tmp``, which is what the platform difference amounts to.
 
@@ -434,7 +434,7 @@ def test_under_system_tmp_covers_posix_tmp_when_tmpdir_points_elsewhere(monkeypa
 
     monkeypatch.setattr(_tempfile, "gettempdir", lambda: str(tmp_path / "T"))
 
-    assert paths_mod._under_system_tmp(Path("/tmp/kc-fix-4781/repo/src")) is True
+    assert paths_mod._under_system_tmp(Path("/tmp/jn-fix-4781/repo/src")) is True
     # And the configured root still answers, so neither arm shadows the other.
     assert paths_mod._under_system_tmp(tmp_path / "T" / "scratch") is True
     assert paths_mod._under_system_tmp(Path("/var/tmp/durable")) is False
@@ -461,7 +461,7 @@ def test_under_system_tmp_omits_the_posix_literal_off_posix(monkeypatch, tmp_pat
     if drive_tmp == (tmp_path / "T").resolve() or drive_tmp in (tmp_path / "T").resolve().parents:
         pytest.skip("this host's %TEMP% is itself under the drive-anchored /tmp")
 
-    assert paths_mod._under_system_tmp(drive_tmp / "kc-fix-4781" / "repo") is False
+    assert paths_mod._under_system_tmp(drive_tmp / "jn-fix-4781" / "repo") is False
     # The configured root is still the one root every platform keeps.
     assert paths_mod._under_system_tmp(tmp_path / "T" / "scratch") is True
 

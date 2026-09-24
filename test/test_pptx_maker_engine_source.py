@@ -268,7 +268,7 @@ class TestDownloadVerification:
             return mock.Mock(open=mock.Mock(side_effect=urllib.error.URLError("stop")))
 
         with mock.patch.object(engine_source.urllib.request, "build_opener", spy):
-            engine_source.download_archive(Path("/tmp/kc-unused-engine.tar.gz"))
+            engine_source.download_archive(Path("/tmp/jn-unused-engine.tar.gz"))
         https = [h for h in captured if isinstance(h, engine_source.urllib.request.HTTPSHandler)]
         assert https, "an HTTPSHandler carrying the SSL context must be installed"
         assert getattr(https[0], "_context", None) is not None

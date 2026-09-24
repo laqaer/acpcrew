@@ -2374,7 +2374,7 @@ class TestOwnerOnlyDaclPredicate:
 
 
 class TestRestrictToOwner:
-    """Fail-loud owner-only lockdown used by every ~/.kirocrew secret writer.
+    """Fail-loud owner-only lockdown used by every ~/.junction secret writer.
 
     The review finding was that the earlier
     ``if IS_POSIX: os.chmod(...)`` guard left Windows with NO per-file owner-only

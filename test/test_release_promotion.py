@@ -22,7 +22,7 @@ SOURCE_VERSION = "1.2.3-insider.4"
 SOURCE_TAG = f"v{SOURCE_VERSION}"
 BASE_VERSION = "1.2.3"
 RUN_ID = 12345
-IMAGE = "ghcr.io/kirodotdev/junction"
+IMAGE = "ghcr.io/laqaer/junction"
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
 
 
@@ -222,7 +222,7 @@ def _mock_resolver_api(
         raise AssertionError(f"unexpected GitHub API endpoint: {endpoint}")
 
     def fake_download(repository: str, artifact_id: int, destination: Path) -> None:
-        assert repository == "kirodotdev/KiroCrew"
+        assert repository == "laqaer/junction"
         assert artifact_id == 99
         destination.write_bytes(archive.read_bytes())
 
@@ -252,7 +252,7 @@ def test_matching_recorded_archive_digest_promotes_candidate(
     _mock_resolver_api(monkeypatch, source_archive, artifact)
 
     manifest, selected = promotion.resolve_candidate(
-        repository="kirodotdev/KiroCrew",
+        repository="laqaer/junction",
         source_sha=SOURCE_SHA,
         base_version=BASE_VERSION,
         output_dir=tmp_path / "resolved",
@@ -275,7 +275,7 @@ def test_mismatched_recorded_archive_digest_aborts_promotion(
 
     with pytest.raises(promotion.PromotionError, match="archive digest mismatch"):
         promotion.resolve_candidate(
-            repository="kirodotdev/KiroCrew",
+            repository="laqaer/junction",
             source_sha=SOURCE_SHA,
             base_version=BASE_VERSION,
             output_dir=tmp_path / "resolved",
@@ -294,7 +294,7 @@ def test_missing_recorded_archive_digest_aborts_promotion(
 
     with pytest.raises(promotion.PromotionError, match="artifact.digest must be"):
         promotion.resolve_candidate(
-            repository="kirodotdev/KiroCrew",
+            repository="laqaer/junction",
             source_sha=SOURCE_SHA,
             base_version=BASE_VERSION,
             output_dir=tmp_path / "resolved",

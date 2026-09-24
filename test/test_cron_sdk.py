@@ -575,13 +575,13 @@ class TestCronVettingDenyPath:
     def test_add_job_rejects_malicious_script(self, tmp_path, monkeypatch) -> None:
         """A script whose body fails vetting raises and creates no job.
 
-        Uses a real script under the sanctioned ``~/.kirocrew/crons/`` dir (so
+        Uses a real script under the sanctioned ``~/.junction/crons/`` dir (so
         ``resolve_script_path`` succeeds) whose body references a credential
         path, so ``_vet_script_file`` returns an error and add_job hits the
         script deny branch.
         """
         monkeypatch.setenv("HOME", str(tmp_path))
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         evil = crons_dir / "evil.py"
         evil.write_text(
@@ -598,7 +598,7 @@ class TestCronVettingDenyPath:
             _run(sdk.add_job(
                 name="exfil",
                 message="",
-                script="~/.kirocrew/crons/evil.py:run",
+                script="~/.junction/crons/evil.py:run",
                 cron_expr="* * * * *",
             ))
 
@@ -608,7 +608,7 @@ class TestCronVettingDenyPath:
     def test_add_job_rejects_script_outside_sanctioned_dir(
         self, tmp_path, monkeypatch
     ) -> None:
-        """A script path outside ~/.kirocrew/crons/ is denied (resolve raises).
+        """A script path outside ~/.junction/crons/ is denied (resolve raises).
 
         ``resolve_script_path`` raises ``PermissionError``/``FileNotFoundError``
         for paths outside the sanctioned dir; add_job must convert that into a
@@ -616,7 +616,7 @@ class TestCronVettingDenyPath:
         propagate unaudited.
         """
         monkeypatch.setenv("HOME", str(tmp_path))
-        (tmp_path / ".kirocrew" / "crons").mkdir(parents=True)
+        (tmp_path / ".junction" / "crons").mkdir(parents=True)
 
         svc = MockCronService()
         sdk = CronSDK("evil-app", svc)

@@ -1,6 +1,6 @@
 """Tests for crash-dump store — rotation, newest-dump detection, doctor surfacing.
 
-Uses injected temp directories to avoid touching the real ~/.kirocrew/logs/.
+Uses injected temp directories to avoid touching the real ~/.junction/logs/.
 Follows the same injectable-dependency pattern as test_loop_watchdog.py.
 """
 
@@ -117,9 +117,9 @@ def _create_stacked_dump(dumps_dir: Path, name: str) -> Path:
         "Thread 0x00007f1234 (most recent call first):\n"
         '  File "/usr/lib/python3.12/socket.py", line 704, in close\n'
         "    self._real_close()\n"
-        '  File "/home/user/.kirocrew/src/junction/acp/client.py", line 312, in _teardown\n'
+        '  File "/home/user/.junction/src/junction/acp/client.py", line 312, in _teardown\n'
         "    self._sock.close()\n"
-        '  File "/home/user/.kirocrew/src/junction/dashboard/server.py", line 800, in _cleanup\n'
+        '  File "/home/user/.junction/src/junction/dashboard/server.py", line 800, in _cleanup\n'
         "    await self._teardown()\n"
     )
     return p
@@ -258,13 +258,13 @@ def _create_multi_thread_dump(dumps_dir: Path, name: str, *, idle_workers: int =
         "Thread 0x00007f0000beef (most recent call first):\n"
         '  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 166 in submit\n'
         '  File "/usr/lib/python3.12/asyncio/base_events.py", line 867 in run_in_executor\n'
-        '  File "/home/user/.kirocrew/src/junction/dashboard/server.py", line 246 in _should_prevent_sleep\n'
+        '  File "/home/user/.junction/src/junction/dashboard/server.py", line 246 in _should_prevent_sleep\n'
         '  File "/usr/lib/python3.12/asyncio/base_events.py", line 645 in run_forever\n'
-        '  File "/home/user/.kirocrew/src/junction/cli.py", line 2046 in main\n'
+        '  File "/home/user/.junction/src/junction/cli.py", line 2046 in main\n'
     )
     p = dumps_dir / name
     p.write_text(
-        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -294,12 +294,12 @@ def test_dump_first_stack_lines_prefers_current_thread_marker(dumps_dir: Path) -
     """A block explicitly marked ``Current thread`` wins over positional choice."""
     p = dumps_dir / f"{DUMP_PREFIX}20260717T010000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
         "Current thread 0x00007f00000001 (most recent call first):\n"
-        '  File "/home/user/.kirocrew/src/junction/dashboard/state.py", line 100 in _flush\n'
+        '  File "/home/user/.junction/src/junction/dashboard/state.py", line 100 in _flush\n'
         "Thread 0x00007f00000002 (most recent call first):\n"
         '  File "/usr/lib/python3.12/queue.py", line 171 in get\n'
     )
@@ -312,7 +312,7 @@ def test_dump_first_stack_lines_fallback_without_thread_headers(dumps_dir: Path)
     """Unrecognizable content degrades to the raw top-of-file lines."""
     p = dumps_dir / f"{DUMP_PREFIX}20260717T010000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T020000Z\n"
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -702,7 +702,7 @@ def test_sweep_keeps_own_pid_file(dumps_dir: Path) -> None:
     # injected liveness check lies about it.
     p = dumps_dir / f"{DUMP_PREFIX}20260717T030000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# Junction loop-stall crash dump — opened 20260717T030000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T030000Z\n"
         f"# PID: {os.getpid()} @ {crash_dump_store._pid_domain()}\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -758,7 +758,7 @@ def test_open_dump_file_header_records_pid_domain(dumps_dir: Path) -> None:
 def test_sweep_keeps_header_only_dump_without_pid_line(dumps_dir: Path) -> None:
     # No parseable PID — cannot attribute the file, so leave it alone.
     p = dumps_dir / f"{DUMP_PREFIX}20260717T040000Z{DUMP_SUFFIX}"
-    p.write_text("# Junction loop-stall crash dump — opened 20260717T040000Z\n\n")  # brand-ok: mirrors production dump header
+    p.write_text("# Junction loop-stall crash dump — opened 20260717T040000Z\n\n")
     removed = sweep_stale_dumps(dumps_dir, is_pid_alive=_dead_pid)
     assert removed == 0
     assert p.exists()
@@ -771,7 +771,7 @@ def test_sweep_treats_oversized_pid_as_unparseable(dumps_dir: Path) -> None:
     for name, digits in (("20260717T050000Z", "9" * 5000), ("20260717T060000Z", str(2**31))):
         p = dumps_dir / f"{DUMP_PREFIX}{name}{DUMP_SUFFIX}"
         p.write_text(
-            "# Junction loop-stall crash dump — opened 20260717T050000Z\n"  # brand-ok: mirrors production dump header
+            "# Junction loop-stall crash dump — opened 20260717T050000Z\n"
             f"# PID: {digits}\n"
             "\n"
         )
@@ -818,7 +818,7 @@ def test_sweep_reads_only_a_bounded_prefix(dumps_dir: Path) -> None:
     # from its leading bytes alone and never load the whole thing.
     p = dumps_dir / f"{DUMP_PREFIX}20260717T080000Z{DUMP_SUFFIX}"
     with p.open("w") as f:
-        f.write("# Junction loop-stall crash dump — opened 20260717T080000Z\n")  # brand-ok: mirrors production dump header
+        f.write("# Junction loop-stall crash dump — opened 20260717T080000Z\n")
         f.write("# PID: 1\n\n")
         f.write("x" * (1024 * 1024))  # single long line, no newlines
     removed = sweep_stale_dumps(dumps_dir, is_pid_alive=_dead_pid)
@@ -947,7 +947,7 @@ def test_owner_alive_detects_pid_reuse_via_start_id(dumps_dir: Path) -> None:
     reused_pid = os.getppid()
     p = dumps_dir / f"{DUMP_PREFIX}20260717T110000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# Junction loop-stall crash dump — opened 20260717T110000Z\n"  # brand-ok: mirrors production dump header
+        "# Junction loop-stall crash dump — opened 20260717T110000Z\n"
         f"# PID: {reused_pid} @ {crash_dump_store._pid_domain()} start=fabricated-mismatch\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"

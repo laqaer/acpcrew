@@ -42,7 +42,7 @@ from junction.apps.builtins.issue_radar.backend import (
     store,
 )
 
-OWNER, REPO = "kirodotdev", "Junction"  # brand-ok: the repository name
+OWNER, REPO = "laqaer", "junction"
 BASE = "/api/apps/issue-radar"
 
 

@@ -250,7 +250,7 @@ def test_ensure_junction_on_path_is_noop_on_windows(tmp_path, monkeypatch):
     bin_dir = tmp_path / "localbin"
 
     # Even with a resolvable target, Windows returns None and creates nothing.
-    with patch.object(agent, "_resolve_junction_bin", return_value=str(tmp_path / "kc")):
+    with patch.object(agent, "_resolve_junction_bin", return_value=str(tmp_path / "junction")):
         assert agent.ensure_junction_on_path(bin_dir=bin_dir) is None
     assert not bin_dir.exists()
 
@@ -738,7 +738,7 @@ def test_first_run_no_global_mcp(tmp_path, monkeypatch):
 # The first-run marker-guarded purge (clean_stale_managed_mcp) covers the
 # GLOBAL ~/.kiro/settings/mcp.json.  purge_deleted_proxy_from_config covers
 # the assembled agent config on EVERY rebuild, because an entry can be
-# re-injected from ~/.kiro/crew/mcp.json by the merge passes.
+# re-injected from ~/.junction/mcp.json by the merge passes.
 # --------------------------------------------------------------------------
 
 
@@ -802,7 +802,7 @@ def test_rebuild_purge_drops_reinjected_entry_on_second_rebuild():
     assert "playwright-mcp" in removed_1
     assert "playwright-mcp" not in base_config["mcpServers"]
 
-    # Simulate re-injection from ~/.kiro/crew/mcp.json on next rebuild.
+    # Simulate re-injection from ~/.junction/mcp.json on next rebuild.
     base_config["mcpServers"]["playwright-mcp"] = {
         "command": "junction",
         "args": ["mcp-playwright-proxy"],
@@ -860,7 +860,7 @@ def test_launcher_whose_venv_is_gone_is_not_usable(tmp_path):
     survives while its `.venv` is deleted, so the file is readable and executable
     but fails at run time. Publishing it as the machine-wide `junction` writes a
     command that is broken the moment it is written."""
-    root = tmp_path / "kc-work-dir"
+    root = tmp_path / "jn-work-dir"
     launcher = root / "bin" / "junction"
     launcher.parent.mkdir(parents=True)
     launcher.write_text('#!/bin/sh\nexec "$(dirname "$0")/../.venv/bin/python" -m junction "$@"\n')

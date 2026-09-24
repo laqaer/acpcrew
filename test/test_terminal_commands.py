@@ -814,7 +814,7 @@ class TestCompleteOrchestration:
         run = AsyncMock()
         with patch.object(tc, "_resolve_and_vet", return_value=(("/usr/bin/gh", ("x", 1, 2)), None)), \
              patch.object(tc, "_run_probe", run):
-            entries, reason = await tc.complete(["gh"], "", "/home/u/.kiro/crew")
+            entries, reason = await tc.complete(["gh"], "", "/home/u/.junction")
         assert (entries, reason) == ([], "sensitive_path")
         run.assert_not_awaited()
 

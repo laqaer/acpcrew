@@ -58,8 +58,7 @@ class TestTitleIsDenied:
     def test_the_process_name_alone_denies_an_unbundled_binary(self) -> None:
         """The Linux/Windows drivers may only ever learn a process name, so the
         name-substring row has to fire on its own."""
-        # brand-ok: the joined spelling is the `name_substrings` row under test.
-        app = AppRef(name="Junction Helper", pid=11, bundle_id="com.unrelated.host")  # brand-ok
+        app = AppRef(name="Junction Helper", pid=11, bundle_id="com.unrelated.host")
         rule = policy.denied_rule_for(app)
         assert rule is not None
         assert rule.category == policy.CATEGORY_JUNCTION_SELF
@@ -71,8 +70,7 @@ class TestTitleIsDenied:
             name="Google Chrome",
             pid=9,
             bundle_id="com.google.Chrome",
-            # brand-ok: the joined spelling is the `title_substrings` row under test.
-            window_title="Junction dashboard",  # brand-ok
+            window_title="Junction dashboard",
         )
         rule = policy.denied_rule_for(app)
         assert rule is not None
@@ -110,8 +108,7 @@ class TestOperatorPatterns:
     def test_the_builtin_floor_beats_the_allow_list(self) -> None:
         """An operator must not be able to allow-list past the floor."""
         cfg = PolicyConfig(allowed_apps=("junction",))
-        # brand-ok: joined spelling, matching the operator entry on the line above.
-        app = AppRef(name="Junction", pid=2, bundle_id="dev.kiro.crew")  # brand-ok
+        app = AppRef(name="Junction", pid=2, bundle_id="dev.junction.desktop")
         refusal = policy.check_app(app, cfg)
         assert refusal is not None
         # The BUILT-IN reason, not either operator-list reason.

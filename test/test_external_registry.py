@@ -1534,7 +1534,7 @@ class TestInstallPathCredentialPosture:
                 # Bundled/curated entry — no ``_registry`` marker.
                 return_value={
                     "name": "bundled-app",
-                    "repo": "https://github.com/kirodotdev/bundled-app.git",
+                    "repo": "https://github.com/laqaer/bundled-app.git",
                     "branch": "main",
                 },
             ),
@@ -1621,7 +1621,7 @@ class TestInstallPathCredentialPosture:
             captured["env"] = kwargs.get("env")
             return _FakeProc()
 
-        url = "https://github.com/kirodotdev/bundled-app.git"
+        url = "https://github.com/laqaer/bundled-app.git"
         dest = tmp_path / "clone-dest"
         with (
             patch("junction.apps.registry.is_clone_host_trusted", return_value=True),
@@ -1773,7 +1773,7 @@ class TestSameRepoCredentialCarveOut:
                 "junction.apps.registry.get_registry_app",
                 return_value={
                     "name": "bundled-app",
-                    "repo": "https://github.com/kirodotdev/bundled-app.git",
+                    "repo": "https://github.com/laqaer/bundled-app.git",
                     "branch": "main",
                 },
             ),
@@ -1992,7 +1992,7 @@ class TestSameRepoCredentialCarveOut:
         }
         entry_bundled = {
             "name": "app",
-            "repo": "https://github.com/kirodotdev/app.git",
+            "repo": "https://github.com/laqaer/app.git",
         }
 
         with patch("junction.config.loader.JunctionConfig.load", return_value=mock_config):

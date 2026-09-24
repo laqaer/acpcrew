@@ -158,7 +158,7 @@ def test_strip_python_env_covers_pycache_prefix(monkeypatch):
     growth bug. The keep-side matters equally: the gateway's own sandboxed
     Python children must keep writing bytecode outside the signed bundle.
     """
-    monkeypatch.setenv("PYTHONPYCACHEPREFIX", "/home/x/.kiro/crew/cache/pycache")
+    monkeypatch.setenv("PYTHONPYCACHEPREFIX", "/home/x/.junction/cache/pycache")
     stripped = sb._sandbox_env_scrub_keys("standard", True)
     kept = sb._sandbox_env_scrub_keys("standard", False)
     assert "PYTHONPYCACHEPREFIX" in stripped

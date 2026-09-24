@@ -139,7 +139,7 @@ class TestChildEnv:
             "JUNCTION_APP_DATA_DIR",
             "JUNCTION_PROJECT_DIR",
             "JUNCTION_DEVFLEET_BIN_GIT",
-            "KIRO_CREW_ANYTHING",
+            "JUNCTION_ANYTHING",
         ],
     )
     def test_junction_capability_vars_stripped(self, monkeypatch, tmp_path, name):
@@ -252,7 +252,7 @@ class TestValidRoot:
         assert server._valid_root(str(d)) is None
 
     def test_sensitive_path_floor_rejected(self, tmp_path, monkeypatch):
-        """The shared floor blocks the crew home even though it is an ordinary dir."""
+        """The shared floor blocks the data home even though it is an ordinary dir."""
         monkeypatch.setattr(server, "is_sensitive_path", lambda p: True)
         assert server._valid_root(str(tmp_path)) is None
 
@@ -1215,68 +1215,73 @@ class TestJunctionInternalTreesAreNeverServed:
     """Registering `~` must not expose Junction's OWN secrets.
 
     This is the hole the earlier denylist left open. `is_sensitive_path()` gates
-    only the enumerated LEAVES under the crew home, so `is_sensitive_path(
-    "~/.kiro/crew")` is False and everything unlisted under it was servable —
-    including `<crew home>/apps/<app>/.app_secret`, the proxy-auth HMAC credential
-    shared by every app backend, and `<crew home>/history/*.jsonl` chat
+    only the enumerated LEAVES under the data home, so `is_sensitive_path(
+    "~/.junction")` is False and everything unlisted under it was servable —
+    including `<data home>/apps/<app>/.app_secret`, the proxy-auth HMAC credential
+    shared by every app backend, and `<data home>/history/*.jsonl` chat
     transcripts. Registering `~` is explicitly a supported choice (a site at
     `~/index.html`), and the preview is same-origin with the project's scripts.
     """
 
-    def test_app_secret_under_the_crew_home_is_refused(self, tmp_path, monkeypatch):
+    def test_app_secret_under_the_data_home_is_refused(self, tmp_path, monkeypatch):
         """The exact reported path: `~` as root, fetch the proxy-auth credential."""
         home = tmp_path / "home"
-        secret = home / ".kiro" / "crew" / "apps" / "design-tweak"
+        secret = home / ".junction" / "apps" / "design-tweak"
         secret.mkdir(parents=True)
         (secret / ".app_secret").write_text("hmac-credential-value")
         (home / "index.html").write_text("<h1>site</h1>")
 
-        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(home / ".kiro"),))
+        monkeypatch.setattr(
+            server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(home / ".junction"),)
+        )
 
         code, _ctype, body = server._static_response(
-            str(home), "/.kiro/crew/apps/design-tweak/.app_secret", "/p/"
+            str(home), "/.junction/apps/design-tweak/.app_secret", "/p/"
         )
         assert code == 403
         assert b"hmac-credential-value" not in body
 
-    def test_chat_transcripts_under_the_crew_home_are_refused(self, tmp_path, monkeypatch):
+    def test_chat_transcripts_under_the_data_home_are_refused(self, tmp_path, monkeypatch):
         home = tmp_path / "home"
-        hist = home / ".kiro" / "crew" / "history"
+        hist = home / ".junction" / "history"
         hist.mkdir(parents=True)
         (hist / "2026-08-03.jsonl").write_text('{"role":"user","content":"private"}')
 
-        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(home / ".kiro"),))
+        monkeypatch.setattr(
+            server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(home / ".junction"),)
+        )
 
         code, _ctype, body = server._static_response(
-            str(home), "/.kiro/crew/history/2026-08-03.jsonl", "/p/"
+            str(home), "/.junction/history/2026-08-03.jsonl", "/p/"
         )
         assert code == 403
         assert b"private" not in body
 
-    def test_the_legacy_data_home_is_refused_too(self, tmp_path, monkeypatch):
+    def test_the_kiro_cli_home_is_refused_too(self, tmp_path, monkeypatch):
+        """kiro-cli's own `~/.kiro` holds its auth store, so it is a refused tree too."""
         home = tmp_path / "home"
-        legacy = home / ".kirocrew"
-        legacy.mkdir(parents=True)
-        (legacy / ".env").write_text("SLACK_BOT_TOKEN=xoxb-secret")
+        kiro = home / ".kiro"
+        kiro.mkdir(parents=True)
+        (kiro / "auth.json").write_text('{"token": "kiro-secret"}')
 
-        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(legacy),))
+        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(kiro),))
 
-        code, _ctype, body = server._static_response(str(home), "/.kirocrew/.env", "/p/")
+        code, _ctype, body = server._static_response(str(home), "/.kiro/auth.json", "/p/")
         assert code == 403
-        assert b"xoxb-secret" not in body
+        assert b"kiro-secret" not in body
 
     @requires_symlinks
-    def test_a_symlink_into_the_crew_home_is_refused(self, tmp_path, monkeypatch):
+    def test_a_symlink_into_the_data_home_is_refused(self, tmp_path, monkeypatch):
         """The check realpaths, so a link inside the project cannot launder it."""
         home = tmp_path / "home"
-        crew = home / ".kiro" / "crew"
-        crew.mkdir(parents=True)
-        (crew / "sel_hmac.key").write_text("signing-key")
+        data_home = home / ".junction"
+        data_home.mkdir(parents=True)
+        (data_home / "sel_hmac.key").write_text("signing-key")
         proj = tmp_path / "site"
         proj.mkdir()
-        (proj / "shortcut").symlink_to(crew)
+        (proj / "shortcut").symlink_to(data_home)
 
-        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(home / ".kiro"),))
+        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(data_home),))
 
         code, _ctype, body = server._static_response(str(proj), "/shortcut/sel_hmac.key", "/p/")
         assert code == 403
@@ -1328,16 +1333,16 @@ class TestEntryPointCannotLaunderASecret:
         assert code != 200
 
     @requires_symlinks
-    def test_entry_symlinked_into_the_crew_home_is_not_served(self, tmp_path, monkeypatch):
+    def test_entry_symlinked_into_the_data_home_is_not_served(self, tmp_path, monkeypatch):
         home = tmp_path / "home"
-        crew = home / ".kiro" / "crew"
-        crew.mkdir(parents=True)
-        (crew / "sel_hmac.key").write_text("signing-key")
+        data_home = home / ".junction"
+        data_home.mkdir(parents=True)
+        (data_home / "sel_hmac.key").write_text("signing-key")
         root = tmp_path / "site"
         root.mkdir()
-        (root / "index.html").symlink_to(crew / "sel_hmac.key")
+        (root / "index.html").symlink_to(data_home / "sel_hmac.key")
 
-        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(home / ".kiro"),))
+        monkeypatch.setattr(server, "_JUNCTION_INTERNAL_DIRS", (os.path.realpath(data_home),))
 
         code, _ctype, body = server._static_response(str(root), "/", "/p/")
         assert b"signing-key" not in body
@@ -1705,10 +1710,10 @@ class TestStaticPreviewIsSizeBounded:
 
 class TestDataHomeDefault:
     def test_default_home_is_junction(self, tmp_path, monkeypatch):
-        """With no env override the data dir lands under ~/.kiro/crew.
+        """With no env override the data dir lands under ~/.junction.
 
-        The pre-move `~/.kirocrew` home is dead; loading a fresh copy of the
-        module proves the fallback, rather than asserting on source text.
+        Loading a fresh copy of the module proves the fallback, rather than
+        asserting on source text.
         """
         for var in ("JUNCTION_APP_DATA_DIR", "JUNCTION_APP_DATA", "JUNCTION_HOME"):
             monkeypatch.delenv(var, raising=False)
@@ -1722,9 +1727,8 @@ class TestDataHomeDefault:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
 
-        expected = (tmp_path / ".kiro" / "crew" / "apps" / mod.APP_NAME / "data").resolve()
+        expected = (tmp_path / ".junction" / "apps" / mod.APP_NAME / "data").resolve()
         assert mod.DATA_DIR == expected
-        assert ".kirocrew" not in str(mod.DATA_DIR)
 
 
 class TestDevProxyStripsCredentials:
@@ -3481,8 +3485,8 @@ class TestThreadRedactionOnRead:
         assert server._summarize(req2)["thread"] == []
 
 
-class TestCustomCrewHomeIsRefused:
-    """A relocated crew home must be refused as a whole tree.
+class TestCustomDataHomeIsRefused:
+    """A relocated data home must be refused as a whole tree.
 
     `DATA_DIR` only covers THIS app's subtree, so with a custom home the rest of
     it — the chat transcripts under `history/`, `sessions.db`, the governance
@@ -3492,14 +3496,32 @@ class TestCustomCrewHomeIsRefused:
     the two filenames we happened to think of.
     """
 
-    def test_default_home_is_covered_by_the_kiro_entry(self):
-        home = Path(os.path.realpath(os.path.expanduser("~")))
-        assert server._is_junction_internal(home / ".kiro" / "crew" / "history" / "x.jsonl")
+    def test_default_home_is_covered(self, tmp_path, monkeypatch):
+        """With no JUNCTION_HOME, the whole default `~/.junction` tree is refused.
 
-    def test_the_resolved_crew_home_is_listed(self):
+        The tuple is built at import time from the environment, so a fresh copy
+        of the module is loaded under an unset JUNCTION_HOME rather than reading
+        the one the suite pins.
+        """
+        for var in ("JUNCTION_APP_DATA_DIR", "JUNCTION_APP_DATA", "JUNCTION_HOME"):
+            monkeypatch.delenv(var, raising=False)
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setattr(os.path, "expanduser", lambda p: p.replace("~", str(tmp_path), 1))
+
+        spec = importlib.util.spec_from_file_location(
+            "_design_tweak_server_default_home_probe", server.__file__
+        )
+        assert spec and spec.loader
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        home = Path(os.path.realpath(tmp_path))
+        assert mod._is_junction_internal(home / ".junction" / "history" / "x.jsonl")
+
+    def test_the_resolved_data_home_is_listed(self):
         """Structural: the resolution must land in the tuple, not hold by accident."""
         listed = {os.path.realpath(p) for p in server._JUNCTION_INTERNAL_DIRS}
-        assert os.path.realpath(server._CREW_HOME) in listed
+        assert os.path.realpath(server._DATA_HOME) in listed
 
     def test_a_sibling_of_the_home_is_not_over_blocked(self):
         """Separator-aware: `~/.kiro-backup` is a user directory, not ours."""
@@ -3514,7 +3536,7 @@ class TestCustomCrewHomeIsRefused:
         """
         import importlib
 
-        relocated = tmp_path / "relocated-crew"
+        relocated = tmp_path / "relocated-home"
         (relocated / "history").mkdir(parents=True)
         monkeypatch.setenv("JUNCTION_HOME", str(relocated))
         monkeypatch.delenv("JUNCTION_APP_DATA_DIR", raising=False)

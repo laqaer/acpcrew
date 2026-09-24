@@ -19,10 +19,10 @@ import pytest
 
 from junction import platform_compat
 from junction.apps.builtins.mochi.settings import (
+    BUILTIN_PACKS,
     MAX_PET_NAME_LEN,
     MODE_ACTIVE,
     MODE_QUIET,
-    PACK_GHOST,
     PACK_MOCHI,
     SELF_INSTANCE,
     load_settings,
@@ -111,13 +111,14 @@ class TestActiveAppearance:
         """
         assert load_settings(tmp_path)["activeAppearance"] == PACK_MOCHI
 
-    def test_both_built_ins_are_accepted(self, tmp_path: Path) -> None:
-        for pack in (PACK_GHOST, PACK_MOCHI):
+    def test_every_built_in_is_accepted(self, tmp_path: Path) -> None:
+        assert PACK_MOCHI in BUILTIN_PACKS
+        for pack in BUILTIN_PACKS:
             assert save_settings(tmp_path, {"activeAppearance": pack})["activeAppearance"] == pack
 
     def test_switching_is_allowed(self, tmp_path: Path) -> None:
         """Reversible by design — right-click > Avatars, or the settings page."""
-        save_settings(tmp_path, {"activeAppearance": PACK_GHOST})
+        save_settings(tmp_path, {"activeAppearance": "some-imported-pack"})
         assert (
             save_settings(tmp_path, {"activeAppearance": PACK_MOCHI})["activeAppearance"]
             == PACK_MOCHI
@@ -130,7 +131,7 @@ class TestActiveAppearance:
 
     def test_clearing_normalizes_to_the_default_pack(self, tmp_path: Path) -> None:
         """Empty must resolve HERE, not at every read site."""
-        save_settings(tmp_path, {"activeAppearance": PACK_GHOST})
+        save_settings(tmp_path, {"activeAppearance": "some-imported-pack"})
         for cleared in ("", None):
             assert (
                 save_settings(tmp_path, {"activeAppearance": cleared})["activeAppearance"]
@@ -143,26 +144,30 @@ class TestActiveAppearance:
 
     def test_migrates_a_legacy_avatar_key(self, tmp_path: Path) -> None:
         """A config from the two-key era folds into the single key."""
-        settings_path(tmp_path).write_text('{"avatar": "ghost"}')
-        assert load_settings(tmp_path)["activeAppearance"] == PACK_GHOST
+        settings_path(tmp_path).write_text('{"avatar": "mochi"}')
+        assert load_settings(tmp_path)["activeAppearance"] == PACK_MOCHI
 
     def test_migrates_a_legacy_empty_appearance(self, tmp_path: Path) -> None:
         """`activeAppearance: ""` used to mean "whatever avatar says"."""
-        settings_path(tmp_path).write_text('{"avatar": "ghost", "activeAppearance": ""}')
-        assert load_settings(tmp_path)["activeAppearance"] == PACK_GHOST
+        settings_path(tmp_path).write_text('{"avatar": "mochi", "activeAppearance": ""}')
+        assert load_settings(tmp_path)["activeAppearance"] == PACK_MOCHI
 
     def test_an_explicit_pack_beats_a_stale_avatar(self, tmp_path: Path) -> None:
         """A user who chose a custom pack must not be dragged back to a built-in."""
-        settings_path(tmp_path).write_text('{"avatar": "ghost", "activeAppearance": "my-own-pack"}')
+        settings_path(tmp_path).write_text('{"avatar": "mochi", "activeAppearance": "my-own-pack"}')
         assert load_settings(tmp_path)["activeAppearance"] == "my-own-pack"
 
-    def test_an_unknown_legacy_avatar_falls_back_to_the_default(self, tmp_path: Path) -> None:
-        settings_path(tmp_path).write_text('{"avatar": "dragon"}')
+    @pytest.mark.parametrize("avatar", ["dragon", "ghost"])
+    def test_an_unknown_legacy_avatar_falls_back_to_the_default(
+        self, tmp_path: Path, avatar: str
+    ) -> None:
+        """An avatar with no pack (including the retired ghost) lands on the cat."""
+        settings_path(tmp_path).write_text(json.dumps({"avatar": avatar}))
         assert load_settings(tmp_path)["activeAppearance"] == PACK_MOCHI
 
     def test_the_avatar_key_is_not_persisted(self, tmp_path: Path) -> None:
         """One concept, one key: the old one must not survive a round trip."""
-        settings_path(tmp_path).write_text('{"avatar": "ghost"}')
+        settings_path(tmp_path).write_text('{"avatar": "mochi"}')
         assert "avatar" not in load_settings(tmp_path)
 
 

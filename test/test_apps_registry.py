@@ -2230,7 +2230,7 @@ class TestApplyTrustFields:
         entry = {
             "name": "evil-app",
             "_registry": "evil-registry",
-            "author": "Junction",       # brand-ok: author-spoof fixture
+            "author": "Junction",
             "origin": "builtin",        # origin spoof
             "featured": True,           # spotlight self-flag
         }
@@ -2569,7 +2569,7 @@ class TestApplyTrustFields:
     def test_core_junction_index_author_is_verified(self):
         """``verified`` derives from the INDEX-declared author snapshot
         (``_index_author``, taken by ``list_registry`` pre-merge)."""
-        entry = {"name": "good-app", "_index_author": "Junction"}  # brand-ok: author-spoof fixture
+        entry = {"name": "good-app", "_index_author": "Junction"}
         (out,) = registry._apply_trust_fields([entry])
         assert out["provenance"] == "official"
         assert out["verified"] is True
@@ -2578,10 +2578,10 @@ class TestApplyTrustFields:
         """A third-party core repo publishing ``"author": "junction"`` in its
         app.json gains nothing: the merged ``author`` display field is not
         consulted, only the pre-merge index snapshot is."""
-        entry = {"name": "sneaky", "author": "Junction"}  # merged, no snapshot  # brand-ok: author-spoof fixture
+        entry = {"name": "sneaky", "author": "Junction"}  # merged, no snapshot
         (out,) = registry._apply_trust_fields([entry])
         assert out["verified"] is False
-        entry = {"name": "sneaky2", "author": "Junction", "_index_author": "third-party"}  # brand-ok: author-spoof fixture
+        entry = {"name": "sneaky2", "author": "Junction", "_index_author": "third-party"}
         (out,) = registry._apply_trust_fields([entry])
         assert out["verified"] is False
 
@@ -2619,7 +2619,7 @@ class TestApplyTrustFields:
         assert out["provenance"] == "official"
 
     def test_index_author_snapshot_never_leaks_into_payload(self):
-        entry = {"name": "x", "_index_author": "Junction"}  # brand-ok: author-spoof fixture
+        entry = {"name": "x", "_index_author": "Junction"}
         (out,) = registry._apply_trust_fields([entry])
         assert "_index_author" not in out
 
@@ -2635,8 +2635,8 @@ class TestApplyTrustFields:
     @pytest.mark.parametrize(
         "spelling",
         [
-            "Ｋｉｒｏ　Ｃｒｅｗ",  # fullwidth, ideographic space — previous catalog spelling
-            "  kiro   crew  ",  # padded, doubled inner space
+            "Ｊｕｎｃｔｉｏｎ",  # fullwidth
+            "\u3000 junction  ",  # padded, ideographic and ASCII spaces
             "junc\u200btion",  # zero-width space inside the current token
             "Junc\u00adtion",  # soft hyphen inside the current token
             "JUNCTION",
@@ -2660,7 +2660,7 @@ class TestApplyTrustFields:
 
     def test_near_miss_author_is_not_verified(self):
         """Folding must not blur a DIFFERENT name into ours."""
-        for name in ("kiro crews", "kiro-crew", "junction labs", "crew kiro"):
+        for name in ("junctions", "jun ction", "junction labs", "noitcnuj"):
             entry = {"name": "app", "_index_author": name}
             (out,) = registry._apply_trust_fields([entry])
             assert out["verified"] is False, name
@@ -2677,16 +2677,16 @@ class TestApplyTrustFields:
         """End-to-end: every row returned by ``list_registry`` carries the
         server-computed fields; external spoofs and a manifest-published
         ``author: "junction"`` are all neutralized."""
-        core = {"name": "core-app", "author": "Junction", "featured": 1}  # brand-ok: author-spoof fixture
+        core = {"name": "core-app", "author": "Junction", "featured": 1}
         # Third-party core entry whose REPO manifest claims the first-party
         # author (index declares none) — must not mint the badge.
         sneaky = {"name": "sneaky-app"}
         # Index entry trying to pre-seed the internal snapshot key directly.
-        preseed = {"name": "preseed-app", "_index_author": "Junction"}  # brand-ok: author-spoof fixture
+        preseed = {"name": "preseed-app", "_index_author": "Junction"}
         ext = {
             "name": "ext-app",
             "_registry": "labs",
-            "author": "Junction",  # brand-ok: author-spoof fixture
+            "author": "Junction",
             "origin": "builtin",
             "featured": True,
         }
@@ -2700,7 +2700,7 @@ class TestApplyTrustFields:
         async def _fake_resolve(entry):
             # Simulate the app.json merge overwriting the display author.
             if entry["name"] == "sneaky-app":
-                return {**entry, "author": "Junction"}  # brand-ok: author-spoof fixture
+                return {**entry, "author": "Junction"}
             return entry
 
         monkeypatch.setattr(registry, "_load_external_registries", _fake_external)

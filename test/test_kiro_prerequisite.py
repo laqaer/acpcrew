@@ -380,9 +380,9 @@ class TestKiroPrerequisiteHelpers:
         # bypass any more: it is a runnable packaged entry point, so the
         # ordinary in-place path launches it. The test-mode marker grants no
         # launch privilege, so the result must not depend on it.
-        import junction.testing as kc_testing
+        import junction.testing as jn_testing
 
-        fake = Path(kc_testing.__file__).with_name("fake_acp_backend.py")
+        fake = Path(jn_testing.__file__).with_name("fake_acp_backend.py")
         assert fake.is_file(), "packaged fake ACP backend is missing"
 
         without_marker = prerequisite_module.snapshot_trusted_acp_executable(
@@ -937,10 +937,7 @@ class TestKiroPrerequisiteWorkflow:
             home = kwargs["env"]["HOME"]
             whoami_homes.append(home)
             assert home == str(tmp_path)
-            assert kwargs["extra_hidden_dirs"] == (
-                str(tmp_path / ".kiro" / "crew"),
-                str(tmp_path / ".kirocrew"),
-            )
+            assert kwargs["extra_hidden_dirs"] == (str(tmp_path / ".junction"),)
             return ProcessResult(ok=False)
 
         service = KiroPrerequisiteService(
@@ -1243,7 +1240,7 @@ class TestKiroPrerequisiteWorkflow:
 
         probe.assert_not_awaited()
         assert live.read_bytes() == original
-        staging = tmp_path / ".kiro" / "crew-auth-staging"
+        staging = tmp_path / ".kiro" / "junction-auth-staging"
         assert list(staging.glob("auth-*")) == []
 
     @staticmethod
@@ -1501,11 +1498,11 @@ class TestKiroPrerequisiteWorkflow:
                 timeout_secs=1,
             )
         assert token.read_text(encoding="utf-8") == '{"accessToken":"original"}'
-        staging = tmp_path / ".kiro" / "crew-auth-staging"
+        staging = tmp_path / ".kiro" / "junction-auth-staging"
         assert list(staging.glob("auth-*")) == []
 
     @pytest.mark.asyncio
-    async def test_probe_has_paired_audit_events_and_hides_crew_homes(
+    async def test_probe_has_paired_audit_events_and_hides_the_data_home(
         self,
         tmp_path: Path,
     ) -> None:
@@ -1548,8 +1545,7 @@ class TestKiroPrerequisiteWorkflow:
             if call[1] == ["--version"]:
                 assert runtime.kwargs[index]["sandbox_mode"] == "strict"
                 assert runtime.kwargs[index]["extra_hidden_dirs"] == (
-                    str(tmp_path / ".kiro" / "crew"),
-                    str(tmp_path / ".kirocrew"),
+                    str(tmp_path / ".junction"),
                     str(tmp_path / ".aws" / "sso" / "cache"),
                     str(tmp_path / ".local" / "share" / "kiro-cli"),
                     str(tmp_path / ".local" / "share" / "amazon-q"),

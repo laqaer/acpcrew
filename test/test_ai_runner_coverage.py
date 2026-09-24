@@ -159,7 +159,7 @@ def _isolated_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """
     data = tmp_path / "app-data"
     data.mkdir(parents=True, exist_ok=True)
-    home = tmp_path / "crew-home"
+    home = tmp_path / "data-home"
     home.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("JUNCTION_HOME", str(home))
     monkeypatch.setenv("AUTO_IMPROVEMENT_SCRATCH", str(tmp_path / "scratch"))

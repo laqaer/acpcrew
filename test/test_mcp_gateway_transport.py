@@ -85,9 +85,9 @@ def test_windows_address_is_deterministic_and_path_scoped(
     machine-global pipe namespace.
     """
     monkeypatch.setattr(pc, "IS_WINDOWS", True)
-    a1 = transport.resolve_address("/home/alice/.kiro/crew/mcp-gateway/gateway.sock")
-    a2 = transport.resolve_address("/home/alice/.kiro/crew/mcp-gateway/gateway.sock")
-    b = transport.resolve_address("/home/bob/.kiro/crew/mcp-gateway/gateway.sock")
+    a1 = transport.resolve_address("/home/alice/.junction/mcp-gateway/gateway.sock")
+    a2 = transport.resolve_address("/home/alice/.junction/mcp-gateway/gateway.sock")
+    b = transport.resolve_address("/home/bob/.junction/mcp-gateway/gateway.sock")
     assert a1 == a2
     assert a1 != b
 
@@ -127,7 +127,7 @@ def test_windows_address_folds_case_natively() -> None:
     ``os.path.normcase`` does the folding."""
     upper = transport.resolve_address(r"C:\Users\Foo\.kiro\crew\gateway.sock")
     lower = transport.resolve_address(r"c:\users\foo\.kiro\crew\gateway.sock")
-    slashes = transport.resolve_address("C:/Users/Foo/.kiro/crew/gateway.sock")
+    slashes = transport.resolve_address("C:/Users/Foo/.junction/gateway.sock")
     assert upper == lower == slashes
 
 
@@ -219,7 +219,7 @@ def sock_dir(tmp_path: Path) -> Iterator[Path]:
     that actually bind a socket need this; the ones asserting path arithmetic
     (``lock_path_for``, ``resolve_address``) are unaffected and keep ``tmp_path``.
     """
-    base = Path(tempfile.mkdtemp(prefix="kcs-", dir="/tmp"))
+    base = Path(tempfile.mkdtemp(prefix="jns-", dir="/tmp"))
     try:
         yield base
     finally:

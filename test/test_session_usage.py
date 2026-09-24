@@ -34,7 +34,7 @@ SAMPLE_USAGE_WITH_BONUS = (
     "Estimated Usage | resets on 2026-08-01 | KIRO PRO+\n"
     "Bonus Credits:\n"
     "   Welcome bonus - 500.00/500 used (13 days left)\n"
-    "   Amb-Kiro-crew-test - 185.84/2000 used (153 days left)\n"
+    "   Amb-Junction-test - 185.84/2000 used (153 days left)\n"
     "Credits (635.58 of 2000 covered in plan)\n"
     "Overages: Disabled\n"
 )
@@ -95,7 +95,7 @@ class TestParseUsage:
         assert _parse_usage(SAMPLE_USAGE_WITH_BONUS)["bonus_credits"] == [
             {"name": "Welcome bonus", "used": 500.0, "total": 500.0, "days_left": 13},
             {
-                "name": "Amb-Kiro-crew-test",
+                "name": "Amb-Junction-test",
                 "used": 185.84,
                 "total": 2000.0,
                 "days_left": 153,

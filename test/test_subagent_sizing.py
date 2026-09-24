@@ -23,7 +23,7 @@ pytestmark = pytest.mark.usefixtures("healthy_host_memory")
 
 @pytest.fixture(autouse=True)
 def _no_learned_cost(monkeypatch):
-    """Isolate from the machine's learned-cost store (~/.kirocrew/subagents/
+    """Isolate from the machine's learned-cost store (~/.junction/subagents/
     cost_samples.jsonl). compute_max_subagents prefers read_learned_cost over
     the cfg fallback, so on a dev box with a populated store these tests would
     read the real mem_gb/cpu_cores instead of the per-case fallback costs and

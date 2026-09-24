@@ -96,7 +96,7 @@ def _pin_default_config(monkeypatch) -> None:
     """Make ``_doctor()``'s config read hermetic for doctor tests.
 
     ``_doctor()`` calls the real ``JunctionConfig.load()`` / ``load_credentials()``,
-    which read the shared ``~/.kirocrew`` config at runtime. ``JunctionConfig.save()``
+    which read the shared ``~/.junction`` config at runtime. ``JunctionConfig.save()``
     writes that same shared path non-atomically, so under ``pytest -n auto`` a
     concurrent worker's config write races these reads: a polluted/foreign config
     flips a check and ``_doctor()`` exits 1. xdist worker interleaving differs per
@@ -1812,7 +1812,7 @@ class TestLogout:
 
     def test_logout_connection_error(self, tmp_path, monkeypatch):
         """Connection error means gateway not running."""
-        secret_file = tmp_path / ".kirocrew" / ".local_secret"
+        secret_file = tmp_path / ".junction" / ".local_secret"
         secret_file.parent.mkdir(parents=True, exist_ok=True)
         secret_file.write_text("test-secret")
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
@@ -1832,7 +1832,7 @@ class TestLogout:
 
     def test_logout_error_response(self, tmp_path, monkeypatch):
         """Error response from gateway is handled."""
-        secret_file = tmp_path / ".kirocrew" / ".local_secret"
+        secret_file = tmp_path / ".junction" / ".local_secret"
         secret_file.parent.mkdir(parents=True, exist_ok=True)
         secret_file.write_text("test-secret")
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
@@ -1991,7 +1991,7 @@ class TestIsJunctionProcess:
         with patch("junction.cli_server.platform_compat.IS_WINDOWS", True):
             with self._cmdline(
                 r'"C:\Program Files\Python312\python.exe" '
-                r'"D:\U\.kirocrew\.venv\Scripts\junction.exe" gateway --no-open'
+                r'"D:\U\.junction\.venv\Scripts\junction.exe" gateway --no-open'
             ):
                 assert _is_junction_process(1234) is True
             with self._cmdline(r"C:\Python312\python.exe -m junction gateway"):
@@ -2055,7 +2055,6 @@ class TestArgsLookLikeJunction:
             # Primary CLI stem + compose-then-serve verb.
             "/usr/local/bin/junction up",
             "/usr/local/bin/junction gateway",
-            "acpcrew up",
             "python3 -m junction up",
             # Wrappers are not the program; the executable after them still is.
             "sudo -E /usr/local/bin/junction gateway",
@@ -3557,7 +3556,7 @@ class TestDoctorMcpTools:
         issues: list[str] = []
         fail_err = (
             "no response\n"
-            "stderr: Directory isn't within a workspace: '/home/u/.kirocrew-app' "
+            "stderr: Directory isn't within a workspace: '/home/u/.junction-app' "
             "(Amazon::Brazil::Cli::FindupException)"
         )
         with self._mock_probe(
@@ -4102,7 +4101,7 @@ class TestConfigDirOverride:
         read_secret.assert_called_once_with(5476)
 
     def test_setup_slack_tokens_writes_to_config_dir(self, tmp_path, monkeypatch):
-        """_setup_slack_tokens writes .env to config_dir(), not ~/.kirocrew."""
+        """_setup_slack_tokens writes .env to config_dir(), not a hardcoded home path."""
         monkeypatch.setattr("junction.cli_setup.env_path", lambda: tmp_path / ".env")
 
         from junction.cli_setup import _setup_slack_tokens
@@ -4755,7 +4754,7 @@ class TestDoctorEmbeddings:
         out = capsys.readouterr().out
         assert "/opt/my-gpu-llama" in out
         assert "Missing native libs" not in out
-        assert "reinstall Kiro Crew" not in out
+        assert "reinstall Junction" not in out
 
     def test_doctor_does_not_mistake_the_loaders_own_setdefault_for_an_override(
         self, tmp_path, capsys, monkeypatch
@@ -5662,9 +5661,8 @@ class TestTokenCommand:
 class TestBannerBranding:
     """The ASCII banners must spell the product's real name.
 
-    All three were figlet-`small` renderings of "KiroClaw"/"KiroClaw Cloud" — a
-    pre-rename name that reached users on `junction` with no args, in the chat
-    REPL, and at the top of every `junction cloud` run.
+    They are figlet-`small` renderings that reach users on `junction` with no
+    args, in the chat REPL, and at the top of every `junction cloud` run.
     """
 
     def _letters(self, banner: str) -> str:
@@ -5675,8 +5673,13 @@ class TestBannerBranding:
         from junction.cli import BANNER
         from junction.constants import PRODUCT_NAME
 
-        # figlet 'small' renders "Junction" with `_||_\__\__` in the last letter row.
-        assert "_||_\\__\\__" in BANNER, "banner does not render 'Junction'"
+        # figlet 'small' renders "Junction" with this last letter row: the `n`
+        # (`_||_`), a single `c` (`\__|`), then the `t` (`\__|`).
+        assert " \\__/ \\_,_|_||_\\__|\\__|_\\___/_||_|" in BANNER, (
+            "banner does not render 'Junction'"
+        )
+        # A doubled `c` (`\__\__`) spells "Juncction".
+        assert "_||_\\__\\__" not in BANNER, "banner renders a doubled 'c'"
         assert PRODUCT_NAME in BANNER
         assert "models you want" in BANNER
         assert "|__ ___" not in BANNER, "banner still renders 'Claw'"
@@ -5710,18 +5713,18 @@ class TestBannerBranding:
     def test_cloud_banner_is_junction_cloud(self):
         from junction.cloud.ui import BANNER
 
-        assert "-_)" in BANNER, "cloud banner does not render 'Crew'"
+        assert "_(_)___ _ _" in BANNER, "cloud banner does not render 'Junction'"
         assert "|__ ___" not in BANNER, "cloud banner still renders 'Claw'"
         # The 'Cloud' half must survive the edit.
         assert "\\___/\\_,_\\__,_|" in BANNER
 
-    def test_no_kiroclaw_spelling_anywhere_in_banners(self):
+    def test_no_banner_spells_claw(self):
         from junction.cloud.ui import BANNER as CLOUD
         from junction.constants import BANNER as MAIN
 
         CHAT = MAIN
 
-        # The 'Cl' of Claw is `/ __| |` + `(__| / _`; Crew is `/ __|_ _` + `(__| '_/`.
+        # The 'Cl' of Claw is `/ __| |` + `(__| / _`.
         for name, b in (("cli", MAIN), ("cli_chat", CHAT), ("cloud", CLOUD)):
             assert "(__| / _`" not in b, f"{name} banner still spells Claw"
 

@@ -5811,7 +5811,7 @@ class TestToolPurposeExtraction:
             "sessionUpdate": "tool_call",
             "toolCallId": "tc-purpose",
             "kind": "execute",
-            "title": "Running: node kc-shot.mjs",
+            "title": "Running: node jn-shot.mjs",
             "rawInput": raw_input,
         }
 
@@ -5819,7 +5819,7 @@ class TestToolPurposeExtraction:
         from junction.acp._dispatch import _build_tool_call_event
 
         event = _build_tool_call_event(
-            self._update({"command": "node kc-shot.mjs", "__tool_use_purpose": "check harness"}),
+            self._update({"command": "node jn-shot.mjs", "__tool_use_purpose": "check harness"}),
             None,
         )
         assert event.tool_purpose == "check harness"
@@ -5828,7 +5828,7 @@ class TestToolPurposeExtraction:
         from junction.acp._dispatch import _build_tool_call_event
 
         event = _build_tool_call_event(
-            self._update({"command": "node kc-shot.mjs", "__toolUsePurpose": "check harness"}),
+            self._update({"command": "node jn-shot.mjs", "__toolUsePurpose": "check harness"}),
             None,
         )
         assert event.tool_purpose == "check harness"
@@ -5836,7 +5836,7 @@ class TestToolPurposeExtraction:
     def test_no_purpose_key_yields_empty(self):
         from junction.acp._dispatch import _build_tool_call_event
 
-        event = _build_tool_call_event(self._update({"command": "node kc-shot.mjs"}), None)
+        event = _build_tool_call_event(self._update({"command": "node jn-shot.mjs"}), None)
         assert event.tool_purpose == ""
 
     def test_blank_and_non_string_values_ignored(self):

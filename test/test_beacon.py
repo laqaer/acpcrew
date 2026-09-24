@@ -600,9 +600,9 @@ class TestDefaultHomeDetection:
     def test_real_home_spelled_explicitly_is_default(self, monkeypatch):
         from pathlib import Path
 
-        from junction.config.paths import CONFIG_DIR_LEAF, KIRO_BASE_DIR_NAME
+        from junction.config.paths import CONFIG_DIR_NAME
 
-        real = Path.home() / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF
+        real = Path.home() / CONFIG_DIR_NAME
         monkeypatch.setenv("JUNCTION_HOME", str(real))
         assert beacon.is_default_home() is True
 

@@ -423,7 +423,7 @@ class TestAgentRegistration:
         # An app-controlled agent name carrying a path separator (a Windows
         # backslash escape here) must be refused before it becomes a filesystem
         # path — otherwise atomic_write could overwrite an arbitrary JSON file
-        # outside the agents dir (e.g. ~/.kiro/crew/config.json).
+        # outside the agents dir (e.g. ~/.junction/config.json).
         src = _make_app_source(tmp_path, agents=["agents/evil.json"])
         (src / "agents").mkdir(exist_ok=True)
         (src / "agents" / "evil.json").write_text(
@@ -462,7 +462,7 @@ class TestSkillRegistration:
         assert len(registered) == 1
         assert "test-app/my-skill" in registered
 
-        # A link exists under ~/.kiro/crew/skills/test-app/my-skill: a symlink on
+        # A link exists under ~/.junction/skills/test-app/my-skill: a symlink on
         # POSIX, a directory junction on non-admin Windows (both resolve through).
         skill_link = app_env["home"] / "skills" / "test-app" / "my-skill"
         assert platform_compat.is_link_or_junction(skill_link)
@@ -2475,7 +2475,7 @@ class TestCronServiceBridge:
                 "cron_expr": "",
                 "agent": "",
                 "message": "",
-                "command": "python3 ~/.kirocrew/apps/test-app/scripts/collect.py",
+                "command": "python3 ~/.junction/apps/test-app/scripts/collect.py",
                 "script": "",
                 "app": "test-app",
                 "agent_sequence": [],
@@ -2501,7 +2501,7 @@ class TestCronServiceBridge:
             every_secs=60,
             cron_expr="",
             agent="",
-            command="python3 ~/.kirocrew/apps/test-app/scripts/collect.py",
+            command="python3 ~/.junction/apps/test-app/scripts/collect.py",
             script="",
             agent_sequence=None,
             env=None,
@@ -2538,7 +2538,7 @@ class TestCronServiceBridge:
         mock_sdk.add_job_if_absent_async.assert_not_called()
 
     def test_rejects_invalid_script_path(self, tmp_path, app_env, monkeypatch):
-        """Scripts outside ~/.kirocrew/crons/ are rejected at registration."""
+        """Scripts outside ~/.junction/crons/ are rejected at registration."""
         from unittest.mock import MagicMock, patch
 
         from junction.apps.bridges import register_app_crons_with_service

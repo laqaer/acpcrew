@@ -32,7 +32,7 @@ def _proc(stdout: str = "", *, returncode: int = 0, stderr: str = ""):
     return mock.Mock(returncode=returncode, stdout=stdout, stderr=stderr)
 
 
-def _comment_row(comment_id, body, *, actor="kiro-crew", created="2026-08-08T18:02:00Z"):
+def _comment_row(comment_id, body, *, actor="junction-bot", created="2026-08-08T18:02:00Z"):
     """One row in the shape ``_normalize_timeline_event`` emits for a comment."""
     return {
         "kind": "comment", "id": comment_id, "actor": actor,
@@ -169,7 +169,7 @@ class TimelineCommentFieldsTest(unittest.TestCase):
     """``id`` and ``updated_at`` must survive normalization — both load-bearing."""
 
     RAW = {
-        "event": "commented", "id": 9001, "user": {"login": "kiro-crew"},
+        "event": "commented", "id": 9001, "user": {"login": "junction-bot"},
         "created_at": "2026-08-08T18:02:00Z", "updated_at": "2026-08-08T20:44:12Z",
         "body": f"progress\n\n{MARKER}", "author_association": "MEMBER",
     }
@@ -220,7 +220,7 @@ class FindCrewClaimTest(unittest.TestCase):
         self.assertEqual(gh.find_crew_claim(rows), [{
             "comment_id": 9001, "crew_id": "c_7f3a", "phase": "implementing",
             "pr": 2271, "updated": "2026-08-08T20:44:12Z",
-            "actor": "kiro-crew", "created_at": "2026-08-08T18:02:00Z",
+            "actor": "junction-bot", "created_at": "2026-08-08T18:02:00Z",
         }])
 
     def test_a_row_with_no_marker_is_skipped(self):

@@ -439,7 +439,7 @@ class TestIngressSaturation:
         tasks = self._saturate(c)
         try:
             act = _msg_activity(text="")
-            act["value"] = {"kc": "kc_approval", "rid": "1", "nonce": "n", "decision": "approve"}
+            act["value"] = {"jn": "jn_approval", "rid": "1", "nonce": "n", "decision": "approve"}
             await c.on_activity(_FakeRequest({"Authorization": "Bearer ok"}, act))
             await asyncio.sleep(0)
             assert len(seen) == 1

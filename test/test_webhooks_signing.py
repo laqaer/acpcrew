@@ -177,7 +177,7 @@ class TestSigningSecretStorage:
 
 
 class TestVerifySignatureHelper:
-    SECRET = "kc_whs_unit-test-secret"
+    SECRET = "jn_whs_unit-test-secret"
 
     def test_accepts_a_correct_signature(self):
         now = 1_800_000_000.0
@@ -248,7 +248,7 @@ class TestVerifySignatureHelper:
         body = b'{"message":"hi"}'
         good = webhooks.sign_payload(self.SECRET, int(now), body)
         assert webhooks.verify_signature(
-            secret="kc_whs_other", timestamp=str(int(now)), signature=good, body=body,
+            secret="jn_whs_other", timestamp=str(int(now)), signature=good, body=body,
             now=now,
         ) == webhooks.SIG_ERR_MISMATCH
         assert webhooks.verify_signature(
@@ -506,7 +506,7 @@ class TestSignedRequests:
         store.path.write_text(json.dumps(data), encoding="utf-8")
         assert store.entry_for(entry["id"])["require_signature"] is True
 
-        resp = await _call(_hook_request(PROBE_BODY, bearer=raw, secret="kc_whs_guess"))
+        resp = await _call(_hook_request(PROBE_BODY, bearer=raw, secret="jn_whs_guess"))
         assert resp.status == 401
         assert (await _payload(resp))["error"] == webhooks.SIG_ERR_NO_SECRET
 
@@ -682,7 +682,7 @@ class TestReplaySetIsThreadSafe:
     agent turn — the exact duplicate the replay set exists to prevent.
     """
 
-    SECRET = "kc_whs_concurrency-test"
+    SECRET = "jn_whs_concurrency-test"
 
     def test_a_future_dated_signature_cannot_be_replayed_while_still_valid(self):
         """The entry must outlive the window that would still accept it.

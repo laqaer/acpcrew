@@ -8,7 +8,7 @@ checkout the gateway executes:
 - The loop guard is airtight: two independent mechanisms (env marker + realpath
   comparison) prevent infinite exec chains.
 - The env set up by the exec carries the right identity into the child.
-- The ``live_target.json`` leaf is keystone-fenced under both crew-home prefixes
+- The ``live_target.json`` leaf is keystone-fenced under every data-home prefix
   in the security module (a ratchet test that fails loudly if dropped).
 """
 
@@ -586,14 +586,13 @@ class TestMaybeReexec:
 class TestSecurityRatchet:
     """The pointer file is keystone-fenced — a security property, not an impl detail."""
 
-    def test_live_target_json_in_sensitive_home_dirs_both_prefixes(self):
-        """live_target.json must be protected under both crew-home prefixes."""
+    def test_live_target_json_in_sensitive_home_dirs_every_prefix(self):
+        """live_target.json must be protected under every data-home prefix."""
         from junction import security
 
         dirs = security.sensitive_home_dirs()
-        prefixes = security.crew_home_prefixes()
-        # Must be at least .kiro/crew and .junction
-        assert len(prefixes) >= 2
+        prefixes = security.data_home_prefixes()
+        assert ".junction" in prefixes
         for prefix in prefixes:
             expected = f"{prefix}/{_FILENAME}"
             assert expected in dirs, (

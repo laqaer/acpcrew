@@ -78,7 +78,7 @@ class TestLaunchSubnetFlag:
     def test_subnet_with_existing_stack_fails_under_yes(self, monkeypatch, capsys):
         # Non-interactive: an explicitly requested pin that would be silently
         # ignored must exit early, not warn-and-proceed into the wrong network.
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         monkeypatch.setattr(wizard.CloudConfig, "load", classmethod(lambda cls, *a: cfg))
         monkeypatch.setattr(
             wizard.iam,
@@ -148,7 +148,7 @@ class TestLaunchSubnetFlag:
 
 class TestLaunchResume:
     def test_resumes_existing_saved_stack_without_deploy(self, monkeypatch, capsys):
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         calls = _patch_post_launch(monkeypatch)
         save_calls: list[str] = []
 
@@ -162,7 +162,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "junction-kc-old",
+                "stack_name": "junction-jn-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "public_dns": "",
@@ -190,16 +190,16 @@ class TestLaunchResume:
         # last_tag before the deploy confirmed: if the saved tag points at a
         # FAILED / no-instance stack, `launch` must NOT resume it (aborting at
         # "instance not ready") — it must fall through to a fresh new launch.
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-broken")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-broken")
         _patch_post_launch(monkeypatch)
 
         # The stale saved stack exists but is ROLLBACK_COMPLETE with no instance.
         def fake_describe(tag, *_a, **_k):
-            if tag == "kc-broken":
+            if tag == "jn-broken":
                 return {
                     "tag": tag,
                     "exists": True,
-                    "stack_name": "junction-kc-broken",
+                    "stack_name": "junction-jn-broken",
                     "stack_status": "ROLLBACK_COMPLETE",
                     "instance_id": "",
                     "region": "us-west-2",
@@ -219,7 +219,7 @@ class TestLaunchResume:
         monkeypatch.setattr(ec2, "list_stacks", lambda *_a, **_k: [])  # no other stacks
         monkeypatch.setattr(wizard.CloudConfig, "load", classmethod(lambda cls, *a: cfg))
         monkeypatch.setattr(wizard.CloudConfig, "save", lambda self, *a: None)
-        monkeypatch.setattr(wizard, "_new_tag", lambda: "kc-fresh")
+        monkeypatch.setattr(wizard, "_new_tag", lambda: "jn-fresh")
         deployed: list[str] = []
 
         def fake_deploy(**kw):
@@ -236,13 +236,13 @@ class TestLaunchResume:
 
         wizard.launch(profile="dev", region="us-west-2", assume_yes=True)
         # A brand-new launch happened (broken tag ignored), not a resume.
-        assert deployed == ["kc-fresh"]
+        assert deployed == ["jn-fresh"]
 
     def test_resume_starts_a_stopped_instance_before_ssm(self, monkeypatch, capsys):
         # `launch` after `cloud stop`: the resumed instance is STOPPED, so the
         # wizard must start it and wait for SSM Online before sign-in/tunnel
         # (which are all over SSM and would otherwise fail).
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         _patch_post_launch(monkeypatch)
         monkeypatch.setattr(wizard.CloudConfig, "load", classmethod(lambda cls, *a: cfg))
         monkeypatch.setattr(wizard.CloudConfig, "save", lambda self, *a: None)
@@ -252,7 +252,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "junction-kc-old",
+                "stack_name": "junction-jn-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "region": "us-west-2",
@@ -277,7 +277,7 @@ class TestLaunchResume:
     def test_resume_of_terminated_instance_fails_clean(self, monkeypatch, capsys):
         # A saved stack whose instance is terminated can't be resumed — fail with
         # a clear message pointing at --new, not an opaque SSM error.
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         _patch_post_launch(monkeypatch)
         monkeypatch.setattr(wizard.CloudConfig, "load", classmethod(lambda cls, *a: cfg))
         monkeypatch.setattr(wizard.CloudConfig, "save", lambda self, *a: None)
@@ -287,7 +287,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "junction-kc-old",
+                "stack_name": "junction-jn-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "region": "us-west-2",
@@ -311,7 +311,7 @@ class TestLaunchResume:
     def test_hold_tunnel_false_closes_and_returns(self, monkeypatch, capsys):
         # Embedded in `junction setup`, the wizard must NOT block on the
         # tunnel child — it closes it and returns so setup can finish.
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         _patch_post_launch(monkeypatch)
 
         class _LiveProc:
@@ -352,7 +352,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "junction-kc-old",
+                "stack_name": "junction-jn-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "public_dns": "",
@@ -367,7 +367,7 @@ class TestLaunchResume:
         assert "reopen anytime" in capsys.readouterr().out
 
     def test_missing_saved_stack_falls_back_to_new_launch(self, monkeypatch):
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         calls = _patch_post_launch(monkeypatch)
         save_calls: list[tuple[str, str, str]] = []
         deploy_calls: list[str] = []
@@ -378,7 +378,7 @@ class TestLaunchResume:
             "save",
             lambda self, *a: save_calls.append((self.profile, self.region, self.last_tag)),
         )
-        monkeypatch.setattr(wizard, "_new_tag", lambda: "kc-new")
+        monkeypatch.setattr(wizard, "_new_tag", lambda: "jn-new")
         monkeypatch.setattr(ec2, "describe", lambda *_a, **_k: {"exists": False})
         monkeypatch.setattr(ec2, "list_stacks", lambda *_a, **_k: [])
 
@@ -386,7 +386,7 @@ class TestLaunchResume:
             deploy_calls.append(tag)
             return ec2.DeployResult(
                 tag=tag,
-                stack_name="junction-kc-new",
+                stack_name="junction-jn-new",
                 region=region,
                 instance_id="i-new",
                 status="CREATE_COMPLETE",
@@ -395,20 +395,20 @@ class TestLaunchResume:
         monkeypatch.setattr(ec2, "deploy", fake_deploy)
 
         assert wizard.launch(profile="dev", region="us-west-2", assume_yes=True) == 0
-        assert deploy_calls == ["kc-new"]
+        assert deploy_calls == ["jn-new"]
         assert calls["login"] and all(
             x == "i-new" for x in calls["login"]
         )  # sign-in + verify both check i-new
-        assert save_calls == [("dev", "us-west-2", "kc-new")]
+        assert save_calls == [("dev", "us-west-2", "jn-new")]
 
     def test_force_new_ignores_existing_saved_stack(self, monkeypatch):
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         calls = _patch_post_launch(monkeypatch)
         deploy_calls: list[str] = []
 
         monkeypatch.setattr(wizard.CloudConfig, "load", classmethod(lambda cls, *a: cfg))
         monkeypatch.setattr(wizard.CloudConfig, "save", lambda self, *a: None)
-        monkeypatch.setattr(wizard, "_new_tag", lambda: "kc-new")
+        monkeypatch.setattr(wizard, "_new_tag", lambda: "jn-new")
         monkeypatch.setattr(
             ec2,
             "describe",
@@ -419,7 +419,7 @@ class TestLaunchResume:
             deploy_calls.append(tag)
             return ec2.DeployResult(
                 tag=tag,
-                stack_name="junction-kc-new",
+                stack_name="junction-jn-new",
                 region=region,
                 instance_id="i-new",
                 status="CREATE_COMPLETE",
@@ -430,7 +430,7 @@ class TestLaunchResume:
         assert (
             wizard.launch(profile="dev", region="us-west-2", assume_yes=True, force_new=True) == 0
         )
-        assert deploy_calls == ["kc-new"]
+        assert deploy_calls == ["jn-new"]
         assert calls["login"] and all(
             x == "i-new" for x in calls["login"]
         )  # sign-in + verify both check i-new
@@ -449,7 +449,7 @@ class TestLaunchResume:
             "save",
             lambda self, *a: save_calls.append((self.profile, self.region, self.last_tag)),
         )
-        monkeypatch.setattr(wizard, "_new_tag", lambda: "kc-new")
+        monkeypatch.setattr(wizard, "_new_tag", lambda: "jn-new")
         monkeypatch.setattr(ec2, "list_stacks", lambda *_a, **_k: [])
         monkeypatch.setattr(ec2, "get_stack_failures", lambda *_a, **_k: [])
         monkeypatch.setattr(ec2, "deploy", lambda **_k: (_ for _ in ()).throw(aws.AWSError("no")))
@@ -471,13 +471,13 @@ class TestLaunchResume:
             "save",
             lambda self, *a: save_calls.append((self.profile, self.region, self.last_tag)),
         )
-        monkeypatch.setattr(wizard, "_new_tag", lambda: "kc-new")
+        monkeypatch.setattr(wizard, "_new_tag", lambda: "jn-new")
         monkeypatch.setattr(ec2, "list_stacks", lambda *_a, **_k: [])
 
         def fake_deploy(**_k):
             return ec2.DeployResult(
-                tag="kc-new",
-                stack_name="junction-kc-new",
+                tag="jn-new",
+                stack_name="junction-jn-new",
                 region="us-west-2",
                 instance_id="i-abc",
                 status="CREATE_COMPLETE",
@@ -486,7 +486,7 @@ class TestLaunchResume:
         monkeypatch.setattr(wizard, "_deploy_with_progress", lambda **_k: fake_deploy())
 
         wizard.launch(profile="dev", region="us-west-2", assume_yes=True)
-        assert ("dev", "us-west-2", "kc-new") in save_calls
+        assert ("dev", "us-west-2", "jn-new") in save_calls
 
     def test_discovers_single_stack_when_local_tag_missing(self, monkeypatch, capsys):
         cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="")
@@ -504,8 +504,8 @@ class TestLaunchResume:
             "list_stacks",
             lambda *_a, **_k: [
                 {
-                    "tag": "kc-found",
-                    "stack_name": "junction-kc-found",
+                    "tag": "jn-found",
+                    "stack_name": "junction-jn-found",
                     "stack_status": "CREATE_COMPLETE",
                 }
             ],
@@ -516,7 +516,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "junction-kc-found",
+                "stack_name": "junction-jn-found",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-found",
                 "region": "us-west-2",
@@ -532,11 +532,11 @@ class TestLaunchResume:
         assert calls["login"] and all(
             x == "i-found" for x in calls["login"]
         )  # sign-in + verify both check i-found
-        assert save_calls == [("dev", "us-west-2", "kc-found")]
+        assert save_calls == [("dev", "us-west-2", "jn-found")]
         assert "Resuming existing CloudFormation stack" in capsys.readouterr().out
 
     def test_interactive_existing_stack_can_create_new_installation(self, monkeypatch, capsys):
-        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
+        cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="jn-old")
         calls = _patch_post_launch(monkeypatch)
         save_calls: list[tuple[str, str, str]] = []
         deploy_calls: list[str] = []
@@ -548,13 +548,13 @@ class TestLaunchResume:
             "save",
             lambda self, *a: save_calls.append((self.profile, self.region, self.last_tag)),
         )
-        monkeypatch.setattr(wizard, "_new_tag", lambda: "kc-new")
+        monkeypatch.setattr(wizard, "_new_tag", lambda: "jn-new")
         monkeypatch.setattr(
             ec2,
             "describe",
             lambda tag, *_a, **_k: {
                 "tag": tag,
-                "exists": tag == "kc-old",
+                "exists": tag == "jn-old",
                 "stack_name": f"junction-{tag}",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
@@ -570,7 +570,7 @@ class TestLaunchResume:
             deploy_calls.append(tag)
             return ec2.DeployResult(
                 tag=tag,
-                stack_name="junction-kc-new",
+                stack_name="junction-jn-new",
                 region=region,
                 instance_id="i-new",
                 status="CREATE_COMPLETE",
@@ -580,11 +580,11 @@ class TestLaunchResume:
         monkeypatch.setattr(ec2, "deploy", fake_deploy)
 
         assert wizard.launch(profile="dev", region="us-west-2", size_key="balanced") == 0
-        assert deploy_calls == ["kc-new"]
+        assert deploy_calls == ["jn-new"]
         assert calls["login"] and all(
             x == "i-new" for x in calls["login"]
         )  # sign-in + verify both check i-new
-        assert save_calls == [("dev", "us-west-2", "kc-new")]
+        assert save_calls == [("dev", "us-west-2", "jn-new")]
         assert choices[0][0] == "Existing Junction cloud deployment"
         assert choices[0][1][0][0] == "Keep and resume existing"
         assert choices[0][1][1][0] == "Create a new installation"
@@ -606,8 +606,8 @@ class TestLaunchResume:
             ec2,
             "list_stacks",
             lambda *_a, **_k: [
-                {"tag": "kc-a", "stack_name": "junction-kc-a"},
-                {"tag": "kc-b", "stack_name": "junction-kc-b"},
+                {"tag": "jn-a", "stack_name": "junction-jn-a"},
+                {"tag": "jn-b", "stack_name": "junction-jn-b"},
             ],
         )
         monkeypatch.setattr(
@@ -636,15 +636,15 @@ class TestLaunchResume:
 
         assert wizard.launch(profile="dev", region="us-west-2") == 0
         assert calls["login"] and all(
-            x == "i-kc-b" for x in calls["login"]
-        )  # sign-in + verify both check i-kc-b
-        assert save_calls == [("dev", "us-west-2", "kc-b")]
+            x == "i-jn-b" for x in calls["login"]
+        )  # sign-in + verify both check i-jn-b
+        assert save_calls == [("dev", "us-west-2", "jn-b")]
         assert choices == [
             (
                 "Existing Junction cloud deployments",
                 [
-                    ("Keep kc-a", "junction-kc-a"),
-                    ("Keep kc-b", "junction-kc-b"),
+                    ("Keep jn-a", "junction-jn-a"),
+                    ("Keep jn-b", "junction-jn-b"),
                     ("Create a new installation", "Leaves existing AWS stacks untouched."),
                 ],
             )
@@ -658,8 +658,8 @@ class TestLaunchResume:
             ec2,
             "list_stacks",
             lambda *_a, **_k: [
-                {"tag": "kc-a", "stack_name": "junction-kc-a"},
-                {"tag": "kc-b", "stack_name": "junction-kc-b"},
+                {"tag": "jn-a", "stack_name": "junction-jn-a"},
+                {"tag": "jn-b", "stack_name": "junction-jn-b"},
             ],
         )
         monkeypatch.setattr(
@@ -671,7 +671,7 @@ class TestLaunchResume:
         assert wizard.launch(profile="dev", region="us-west-2", assume_yes=True) == 1
         out = capsys.readouterr().out
         assert "multiple existing Junction cloud stacks found" in out
-        assert "kc-a" in out and "kc-b" in out
+        assert "jn-a" in out and "jn-b" in out
 
 
 class TestSessionManagerPluginPrereq:
@@ -738,7 +738,7 @@ class TestDeployProgressInterrupt:
 
         with pytest.raises(KeyboardInterrupt):
             wizard._deploy_with_progress(
-                tag="kc-1", tier=wizard.sizes.default_tier(), profile="dev", region="us-east-1"
+                tag="jn-1", tier=wizard.sizes.default_tier(), profile="dev", region="us-east-1"
             )
         assert proc.terminated is True
 
@@ -783,7 +783,7 @@ class TestDeployProgressInterrupt:
 
         with pytest.raises(RuntimeError, match="transient poll failure"):
             wizard._deploy_with_progress(
-                tag="kc-1", tier=wizard.sizes.default_tier(), profile="dev", region="us-east-1"
+                tag="jn-1", tier=wizard.sizes.default_tier(), profile="dev", region="us-east-1"
             )
         assert proc.terminated is True
 

@@ -19,14 +19,14 @@ class TestFixShellProfiles:
         cli = _load_cli()
         zshrc = tmp_path / ".zshrc"
         zshrc.write_text(
-            'export PATH="$HOME/.kirocrew-app/.venv/bin:$PATH"\n'
+            'export PATH="$HOME/.junction-app/.venv/bin:$PATH"\n'
             'export PATH="$HOME/.toolbox/bin:$PATH"\n'
             'alias ll="ls -la"\n'
         )
         with patch.object(Path, "home", return_value=tmp_path):
             cli._fix_shell_profiles()
         content = zshrc.read_text(encoding="utf-8")
-        assert ".kirocrew-app" not in content
+        assert ".junction-app" not in content
         assert ".toolbox" in content
         assert "alias ll" in content
 

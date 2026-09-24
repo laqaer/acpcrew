@@ -259,11 +259,11 @@ class TestFindingsAreRedactedBeforePersisting(unittest.TestCase):
         captured, _ = self._call(
             verdict="bug",
             root_cause="off-by-one in _parse_item_number",
-            summary="See https://github.com/kirodotdev/KiroCrew/issues/1039 for the thread.",
+            summary="See https://github.com/laqaer/junction/issues/1039 for the thread.",
         )
         findings = captured["body"]["findings"]
         assert findings["root_cause"] == "off-by-one in _parse_item_number"
-        assert "github.com/kirodotdev/KiroCrew/issues/1039" in findings["summary"]
+        assert "github.com/laqaer/junction/issues/1039" in findings["summary"]
 
 
 class TestMiddlewareDecision:

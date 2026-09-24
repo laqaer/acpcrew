@@ -42,7 +42,7 @@ def clear_nonces(tmp_path, monkeypatch):
     """Isolate token state per test.
 
     Points config_dir at a tmp dir so the persisted revocation-generation file
-    is not written to the real ~/.kirocrew, resets the in-process gen to 0, and
+    is not written to the real ~/.junction, resets the in-process gen to 0, and
     clears the nonce store. Uses _state.clear_all() (not revoke_all_sessions)
     so the gen isn't bumped between unrelated tests.
     """

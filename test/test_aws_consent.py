@@ -119,18 +119,18 @@ class TestGrantIsOnTheKeystoneFloor:
     def test_leaf_is_fenced_for_read_and_write(self):
         from junction.config.loader import aws_consent_path
         from junction.security import (
-            _CREW_SECRET_LEAVES,
+            _DATA_HOME_SECRET_LEAVES,
             is_sensitive_bash_command,
             is_sensitive_path,
         )
 
-        assert "aws_service_consent.json" in _CREW_SECRET_LEAVES
+        assert "aws_service_consent.json" in _DATA_HOME_SECRET_LEAVES
         assert aws_consent_path().name == "aws_service_consent.json"
-        assert is_sensitive_path("~/.kiro/crew/aws_service_consent.json") is True
+        assert is_sensitive_path("~/.junction/aws_service_consent.json") is True
         for command in (
-            "cat ~/.kiro/crew/aws_service_consent.json",
-            "echo x > ~/.kiro/crew/aws_service_consent.json",
-            "tee ~/.kiro/crew/aws_service_consent.json",
+            "cat ~/.junction/aws_service_consent.json",
+            "echo x > ~/.junction/aws_service_consent.json",
+            "tee ~/.junction/aws_service_consent.json",
         ):
             assert is_sensitive_bash_command(command)
 

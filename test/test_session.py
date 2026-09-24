@@ -2695,7 +2695,7 @@ class TestCleanupLoop:
     each sweep has its own tests in its own module. Leaving a sweep unstubbed
     (notably ``find_orphan_mcp_candidates``, a full process-table scan, and
     ``cleanup_orphaned_session_roots``, which reads the operator's real
-    ``~/.kirocrew`` PID file) made each test take ~10-20s of wall-clock and
+    ``~/.junction`` PID file) made each test take ~10-20s of wall-clock and
     probe live system state — both banned by testing-conventions.md.
     """
 

@@ -143,7 +143,7 @@ class Runner:
             "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}",
             "FIXTURES": str(self.fixtures),
             "GH_TOKEN": "stub",
-            "REPO": "kirodotdev/KiroCrew",
+            "REPO": "laqaer/junction",
             "GITHUB_OUTPUT": str(self.outputs_file),
             "GITHUB_STEP_SUMMARY": str(self.summary),
             "MODEL_IDS": "test.model",
@@ -390,9 +390,9 @@ def test_channel_answer_cannot_forge_a_workflow_command(runner: Runner) -> None:
 
 
 def test_channel_answer_is_never_interpolated_into_the_shell(runner: Runner) -> None:
-    body = _form_body('Stable"; touch /tmp/kc-triage-pwned; #')
+    body = _form_body('Stable"; touch /tmp/jn-triage-pwned; #')
     assert runner.channel(body=body) is None
-    assert not Path("/tmp/kc-triage-pwned").exists()
+    assert not Path("/tmp/jn-triage-pwned").exists()
 
 
 def test_model_cannot_select_a_channel_label(runner: Runner) -> None:

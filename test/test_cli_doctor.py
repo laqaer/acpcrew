@@ -46,78 +46,17 @@ class TestFixHint:
 
 
 class TestDataHome:
-    """`junction doctor` Data Home section — location + leftover legacy home."""
+    """`junction doctor` Data Home section — the resolved location."""
 
-    def test_legacy_present_default_path_says_not_the_data_home(
-        self, monkeypatch, tmp_path: Path, capsys
-    ) -> None:
-        # A leftover top-level ~/.kirocrew on the default path is not the data
-        # home — the doctor notes it as safe to delete, never as active state.
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        monkeypatch.delenv("JUNCTION_HOME", raising=False)  # default-path case
-        home = tmp_path / ".kiro" / "crew"
+    def test_reports_the_resolved_home(self, monkeypatch, tmp_path: Path, capsys) -> None:
+        home = tmp_path / ".junction"
         monkeypatch.setattr(cli_doctor, "config_dir", lambda: home)
-        home.mkdir(parents=True)
-        legacy = tmp_path / cli_doctor.LEGACY_CONFIG_DIR_NAME
-        legacy.mkdir()
-        (legacy / "config.json").write_text("{}", encoding="utf-8")
-
-        cli_doctor._doctor_data_home()
-
-        out = capsys.readouterr().out
-        assert "not the data home" in out
-        assert "ACTIVE" not in out
-
-    def test_legacy_override_points_at_legacy_says_active_not_ignored(
-        self, monkeypatch, tmp_path: Path, capsys
-    ) -> None:
-        # JUNCTION_HOME=~/.kirocrew makes the legacy dir the ACTIVE home, not
-        # ignored debris — the doctor must not mislabel the home the process is
-        # actually using (GPT 5.6 MEDIUM).
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        legacy = tmp_path / cli_doctor.LEGACY_CONFIG_DIR_NAME
-        legacy.mkdir()
-        monkeypatch.setenv("JUNCTION_HOME", str(legacy))
-        # config_dir() resolves to the override (== legacy) when set
-        monkeypatch.setattr(cli_doctor, "config_dir", lambda: legacy.resolve())
-
-        cli_doctor._doctor_data_home()
-
-        out = capsys.readouterr().out
-        assert "ACTIVE data home" in out
-        assert "IGNORED" not in out
-        assert "will retry on next cold start" not in out
-
-    def test_legacy_with_venv_is_never_advised_deletable(
-        self, monkeypatch, tmp_path: Path, capsys
-    ) -> None:
-        # An older wheel install could nest its managed venv inside ~/.kirocrew,
-        # so the leftover dir may hold the running interpreter. The doctor must
-        # NOT tell the user it is safe to delete — that would remove their live
-        # install.
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        monkeypatch.delenv("JUNCTION_HOME", raising=False)
-        monkeypatch.setattr(cli_doctor, "config_dir", lambda: tmp_path / ".kiro" / "crew")
-        legacy = tmp_path / cli_doctor.LEGACY_CONFIG_DIR_NAME
-        (legacy / "venv" / "bin").mkdir(parents=True)
-
-        cli_doctor._doctor_data_home()
-
-        out = capsys.readouterr().out
-        assert "Do NOT delete" in out
-        assert "virtual environment" in out and "venv" in out
-        assert "safe to delete" not in out
-
-    def test_no_legacy_stays_quiet(self, monkeypatch, tmp_path: Path, capsys) -> None:
-        # Fresh install: only the location line, no leftover-legacy nag.
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        monkeypatch.setattr(cli_doctor, "config_dir", lambda: tmp_path / ".kiro" / "crew")
 
         cli_doctor._doctor_data_home()
 
         out = capsys.readouterr().out
         assert "Data Home" in out
-        assert "legacy:" not in out
+        assert str(home) in out
         assert "rm -rf" not in out
 
 
@@ -569,7 +508,7 @@ class TestPathLauncherOwnership:
         wheel = tmp_path / "crew-venv" / "bin" / "junction"
         wheel.parent.mkdir(parents=True)
         wheel.write_text("")
-        package = tmp_path / "opt" / "Junction" / "junction"  # brand-ok: real /opt path
+        package = tmp_path / "opt" / "Junction" / "junction"
         package.parent.mkdir(parents=True)
         package.write_text("")
         monkeypatch.setattr(cli_doctor.shutil, "which", lambda c, **kw: str(wheel))
@@ -899,7 +838,7 @@ class TestSourceCheckout:
 class TestCliInstallerResidue:
     """Detection of leftover kiro-cli auto-update installers in the temp dir.
 
-    kiro-cli checks for updates on every process start, and Crew spawns a fresh
+    kiro-cli checks for updates on every process start, and Junction spawns a fresh
     kiro-cli per session. On Windows the running binary cannot be replaced, so
     each check leaves an installer behind that is never cleaned up (upstream
     kirodotdev/Kiro#10970). These guard the doctor surface that makes the

@@ -822,7 +822,7 @@ class TestMigrateFromMarkdown:
     """The legacy markdown/JSONL importer, driven entirely off a tmp_path home."""
 
     def _home(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-        home = tmp_path / "crew-home"
+        home = tmp_path / "data-home"
         (home / "workspace" / "memory").mkdir(parents=True)
         monkeypatch.setattr(vm, "config_dir", lambda: home)
         return home

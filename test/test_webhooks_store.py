@@ -149,7 +149,7 @@ class TestTokenPersistence:
 class TestTokenVerification:
     def test_unknown_token_rejected(self, store):
         store.create("Review Bot")
-        assert store.verify("kc_whk_nope") is None
+        assert store.verify("jn_whk_nope") is None
         assert store.verify("") is None
 
     def test_per_token_revoke_leaves_others_working(self, store):
@@ -184,7 +184,7 @@ class TestTokenVerification:
         stamped = store.public_entries()[0]["last_used_at"]
         assert stamped is not None and stamped >= before
         # A second, non-matching verification must not move the stamp.
-        store.verify("kc_whk_wrong")
+        store.verify("jn_whk_wrong")
         assert store.public_entries()[0]["last_used_at"] == stamped
 
     def test_stamp_used_ignores_unknown_id(self, store):
@@ -529,7 +529,7 @@ class TestCrossOsPermissions:
         from junction import security
 
         home = pathlib.Path.home()
-        store_dir = home / ".kiro/crew" / webhooks.SECRETS_DIRNAME
+        store_dir = home / ".junction" / webhooks.SECRETS_DIRNAME
 
         targets = [
             store_dir,                                     # the directory itself
@@ -639,7 +639,7 @@ class TestCredentialStoreIsOffTheAgentFileFloor:
 
         assert is_sensitive_path(str(webhooks.WebhookTokenStore().path))
 
-    def test_it_is_registered_as_a_crew_secret_directory(self):
+    def test_it_is_registered_as_a_data_home_secret_directory(self):
         """The whole credential directory is on the agent file floor.
 
         Registered as a DIRECTORY rather than a filename so the store's mkstemp
@@ -649,7 +649,7 @@ class TestCredentialStoreIsOffTheAgentFileFloor:
         """
         from junction import security
 
-        assert webhooks.SECRETS_DIRNAME in security._CREW_SECRET_LEAVES
+        assert webhooks.SECRETS_DIRNAME in security._DATA_HOME_SECRET_LEAVES
 
     def test_the_store_itself_still_works(self, tmp_path):
         """The gate must not break the legitimate reader/writer."""

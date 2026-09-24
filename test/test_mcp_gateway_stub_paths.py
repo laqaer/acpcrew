@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from junction.mcp_gateway.stub import (
-    _crew_home,
+    _data_home,
     _default_socket_path,
     _fallback_log_path,
 )
@@ -35,9 +35,20 @@ def test_junction_home_wins_when_set(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
-    assert _crew_home() == tmp_path
+    assert _data_home() == tmp_path
     assert _default_socket_path() == str(tmp_path / "junction-mcp-gateway.sock")
     assert _fallback_log_path() == tmp_path / "logs" / "stub_fallback.jsonl"
+
+
+def test_default_home_is_junction_under_the_user_home(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Without JUNCTION_HOME the stub resolves the same ``~/.junction`` the
+    gateway uses, so both sides agree on where the socket lives."""
+    monkeypatch.delenv("JUNCTION_HOME", raising=False)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+    assert _data_home() == tmp_path / ".junction"
+    assert _default_socket_path() == str(tmp_path / ".junction" / "junction-mcp-gateway.sock")
 
 
 def test_home_is_absolute_without_any_home_env(
@@ -46,7 +57,7 @@ def test_home_is_absolute_without_any_home_env(
     """The regression. With HOME unset the old expression yielded ``Path("")``,
     making every derived path relative to whatever cwd the stub inherited."""
     _clear_home_env(monkeypatch)
-    assert _crew_home().is_absolute(), "data home must never be cwd-relative"
+    assert _data_home().is_absolute(), "data home must never be cwd-relative"
 
 
 def test_socket_default_is_absolute_without_any_home_env(
@@ -84,7 +95,7 @@ def test_unresolvable_home_degrades_instead_of_raising(
     monkeypatch.setattr(Path, "home", staticmethod(_no_home))
 
     # Must not raise, and must still yield a usable path.
-    assert _crew_home().parts, "a degraded home must still be a usable path"
+    assert _data_home().parts, "a degraded home must still be a usable path"
     assert _default_socket_path().endswith("junction-mcp-gateway.sock")
     assert _fallback_log_path().name == "stub_fallback.jsonl"
 

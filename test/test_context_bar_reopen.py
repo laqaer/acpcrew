@@ -39,7 +39,7 @@ def _isolate_snapshot_file(tmp_path, monkeypatch):
     """Point the snapshot sidecar at tmp_path for every test in this module.
 
     Without this, ensure_context_snapshots_loaded() reads the developer's real
-    ~/.kiro/crew/context_snapshots.json and a stray entry there would change
+    ~/.junction/context_snapshots.json and a stray entry there would change
     what these tests observe.
     """
     monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)

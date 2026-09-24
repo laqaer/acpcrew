@@ -998,7 +998,7 @@ class TestWheelUpdateCommandPropagatesDownloadFailure:
         assert "set -e" in cmd
         # curl's status is consumed by an assignment that `set -e` can abort on,
         # so its output is never piped straight into sh.
-        assert '_kc_body="$(curl' in cmd
+        assert '_jn_body="$(curl' in cmd
         assert "curl" not in cmd.split("|", 1)[1], "curl must not sit inside the pipeline"
 
     @_needs_posix_shell
@@ -1194,7 +1194,7 @@ class TestInstallerNeverLandsOnDisk:
             return_value=("https://f", "https://cdn.invalid"),
         ):
             cmd = wheel_update_command("stable")
-        assert 'test -n "$_kc_body"' in cmd
+        assert 'test -n "$_jn_body"' in cmd
 
     @_needs_posix_shell
     def test_download_failure_still_fails_the_command(self, tmp_path) -> None:

@@ -327,7 +327,7 @@ def _make_script_job(**overrides):
         name="script-job",
         message="CR-123",
         schedule=CronSchedule(kind="every", every_secs=60),
-        script="~/.kirocrew/crons/monitor.py:run",
+        script="~/.junction/crons/monitor.py:run",
     )
     defaults.update(overrides)
     return CronJob(**defaults)
@@ -426,7 +426,7 @@ class TestGatewayDoneRemovalAudit:
             "done-oneshot",
             "ping",
             every_secs=60,
-            script="~/.kirocrew/crons/monitor.py:run",
+            script="~/.junction/crons/monitor.py:run",
         )
         gw = _make_gw()
         result, _ = await _run_done_callback(gw, job, real_svc=svc)
@@ -446,7 +446,7 @@ class TestGatewayDoneRemovalAudit:
             "ping",
             every_secs=60,
             delete_after_run=True,
-            script="~/.kirocrew/crons/monitor.py:run",
+            script="~/.junction/crons/monitor.py:run",
         )
         gw = _make_gw()
         result, _ = await _run_done_callback(gw, job, real_svc=svc)

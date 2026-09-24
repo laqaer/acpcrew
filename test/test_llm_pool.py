@@ -26,21 +26,19 @@ from junction.knowledge.llm_pool import (
 
 @pytest.fixture(autouse=True)
 def _config_dir_tracks_patched_home(monkeypatch):
-    """Keep ``llm_pool.config_dir()`` pointed at ``<patched home>/.kirocrew``.
+    """Keep ``llm_pool.config_dir()`` pointed at ``<patched home>/.junction``.
 
-    The data home moved from ``~/.kirocrew`` to ``~/.kiro/crew`` (``config_dir()``),
-    and ``_read_config`` now reads ``config_dir()/config.json`` rather than
-    ``Path.home()/".kirocrew"/"config.json"``. These tests patch
+    ``_read_config`` reads ``config_dir()/config.json``. These tests patch
     ``llm_pool.Path.home`` per-test and write ``config.json`` under
-    ``<home>/.kirocrew`` — but ``config_dir()`` reads ``JUNCTION_HOME`` (pinned to
+    ``<home>/.junction`` — but ``config_dir()`` reads ``JUNCTION_HOME`` (pinned to
     a *different* tmp dir by the conftest ``_isolate_junction_home`` fixture), so
     without this redirect the config would never be found. Redirect
-    ``config_dir`` to ``Path.home()/".kirocrew"`` (evaluated lazily, so it tracks
-    whatever ``Path.home()`` each test patches), preserving the existing
-    ``.kirocrew/config.json`` layout the tests build.
+    ``config_dir`` to ``Path.home()/".junction"`` (evaluated lazily, so it tracks
+    whatever ``Path.home()`` each test patches), keeping the
+    ``.junction/config.json`` layout the tests build authoritative.
     """
     monkeypatch.setattr(
-        "junction.knowledge.llm_pool.config_dir", lambda: Path.home() / ".kirocrew"
+        "junction.knowledge.llm_pool.config_dir", lambda: Path.home() / ".junction"
     )
 
 # ---------------------------------------------------------------------------
@@ -337,21 +335,21 @@ class TestProviderDetection:
             assert _get_provider_type() == "acp"
 
     def test_reads_claude_code_from_config(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"provider": "claude_code"}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _get_provider_type() == "claude_code"
 
     def test_reads_acp_from_config(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"provider": "acp"}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _get_provider_type() == "acp"
 
     def test_handles_malformed_config(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text("not json")
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -374,7 +372,7 @@ class TestSandboxMode:
             assert _get_sandbox_mode() == "auto"
 
     def test_reads_sandbox_from_config(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"sandbox": "off"}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -383,7 +381,7 @@ class TestSandboxMode:
     def test_unparseable_config_defaults_auto(self, tmp_path):
         # A file that isn't valid JSON parses to {} → sandbox UNSET → the
         # intended default "auto" (OS-level isolation engaged).
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text("not json")
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -393,7 +391,7 @@ class TestSandboxMode:
         """A PRESENT but unrecognised value is a config error → fail SECURE to
         'auto' (never silently unsandboxed). Distinct from an absent value, which
         takes the intended 'off' default."""
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"sandbox": "bogus"}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -401,7 +399,7 @@ class TestSandboxMode:
 
     @pytest.mark.parametrize("mode", ["auto", "standard", "strict", "cc", "off"])
     def test_all_valid_modes_pass_through(self, mode, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text(json.dumps({"agent": {"sandbox": mode}}))
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -426,21 +424,21 @@ class TestReadConfig:
             assert _read_config() == {}
 
     def test_reads_dict(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"provider": "claude_code"}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _read_config() == {"agent": {"provider": "claude_code"}}
 
     def test_malformed_returns_empty(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text("not json")
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _read_config() == {}
 
     def test_non_dict_json_returns_empty(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text("[1, 2, 3]")
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -475,7 +473,7 @@ class TestReadConfig:
     def test_read_config_coerces_non_dict_sections(self, tmp_path):
         """``_read_config`` normalises non-dict ``agent``/``knowledge`` to ``{}``
         so downstream ``.get(...).get(...)`` chains are always dict-safe."""
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": "acp", "knowledge": 7}')
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -486,7 +484,7 @@ class TestReadConfig:
     @pytest.mark.asyncio
     async def test_start_passes_configured_sandbox_to_client(self, tmp_path):
         """AcpWorker.start wires the configured sandbox mode into AcpClient."""
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"sandbox": "off"}}')
         mock_client = AsyncMock()
@@ -519,7 +517,7 @@ class TestReadConfig:
 class TestLLMPoolStart:
     @pytest.mark.asyncio
     async def test_start_creates_workers(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"provider": "acp"}}')
 
@@ -544,7 +542,7 @@ class TestLLMPoolStart:
 
     @pytest.mark.asyncio
     async def test_start_idempotent(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"provider": "acp"}}')
 
@@ -574,7 +572,7 @@ class TestLLMPoolStart:
 class TestLLMPoolContextManager:
     @pytest.mark.asyncio
     async def test_async_context_manager(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"agent": {"provider": "acp"}}')
 
@@ -932,21 +930,21 @@ class TestIdleTtlConfig:
             assert _get_idle_ttl() == DEFAULT_IDLE_TTL_SECS == 300.0
 
     def test_reads_value_from_config(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"knowledge": {"pool_idle_ttl_secs": 60}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _get_idle_ttl() == 60.0
 
     def test_zero_disables(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"knowledge": {"pool_idle_ttl_secs": 0}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _get_idle_ttl() == 0.0
 
     def test_negative_falls_back_to_default(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"knowledge": {"pool_idle_ttl_secs": -5}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
@@ -954,14 +952,14 @@ class TestIdleTtlConfig:
 
     def test_bool_falls_back_to_default(self, tmp_path):
         # JSON ``true`` is an int subclass in Python; must not read as 1s TTL.
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"knowledge": {"pool_idle_ttl_secs": true}}')
         with patch("pathlib.Path.home", return_value=tmp_path):
             assert _get_idle_ttl() == DEFAULT_IDLE_TTL_SECS
 
     def test_string_falls_back_to_default(self, tmp_path):
-        config = tmp_path / ".kirocrew" / "config.json"
+        config = tmp_path / ".junction" / "config.json"
         config.parent.mkdir(parents=True)
         config.write_text('{"knowledge": {"pool_idle_ttl_secs": "600"}}')
         with patch("pathlib.Path.home", return_value=tmp_path):

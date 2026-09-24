@@ -1884,7 +1884,7 @@ class TestBootSkillReconcile:
 # Platform defect: the gateway proxy (handle_app_api_proxy) resolves an app's
 # backend three ways — the third being a fallback that derives a loopback base
 # URL from a manifest's mcpServers entry (self-managed apps whose backend is a
-# separate loopback process, e.g. the Crew Companion desktop app on :7778).
+# separate loopback process, e.g. the Companion desktop app on :7778).
 # register_builtin_apps() used to write a .app_secret ONLY when
 # backend.entryPoint was present, so a builtin declaring only mcpServers
 # resolved a backend fine but was refused a secret — and every proxied request

@@ -404,10 +404,10 @@ class TestValidateToolArgs:
 
     def test_cron_add_still_accepts_posix_script_path(self):
         result = validate_tool_args(
-            {"name": "p", "script": "~/.kiro/crew/crons/job.py:run", "every": 300},
+            {"name": "p", "script": "~/.junction/crons/job.py:run", "every": 300},
             CRON_ADD_SCHEMA,
         )
-        assert result["script"] == "~/.kiro/crew/crons/job.py:run"
+        assert result["script"] == "~/.junction/crons/job.py:run"
 
     def test_cron_add_script_without_func_rejected(self):
         with pytest.raises(ValidationError, match="invalid format"):

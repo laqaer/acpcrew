@@ -239,12 +239,14 @@ class TestNonGitProjectsLink:
     ) -> None:
         """`$HOME` is never a project root, and `.kiro` is why this matters.
 
-        Junction's own data home is ``~/.kiro/crew``, so ``~/.kiro`` exists for
-        every user. Treating that as a marker would make the whole home
-        directory a project and turn a loose ``~/notes.md`` into a LIVE link
-        whose artifact edits overwrite the original file.
+        kiro-cli, the harness Junction drives, keeps its own home at
+        ``~/.kiro``, so that directory exists for nearly every user. Treating it
+        as a marker would make the whole home directory a project and turn a
+        loose ``~/notes.md`` into a LIVE link whose artifact edits overwrite the
+        original file.
         """
-        (fake_home / ".kiro" / "crew").mkdir(parents=True, exist_ok=True)
+        (fake_home / ".kiro" / "agents").mkdir(parents=True, exist_ok=True)
+        (fake_home / ".junction").mkdir(parents=True, exist_ok=True)
         assert project_root_marker(str(fake_home)) is None
         assert is_verifiable_root(str(fake_home)) is False
         # And a loose file directly in home is a COPY, not a link.

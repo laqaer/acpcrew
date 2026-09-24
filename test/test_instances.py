@@ -386,11 +386,7 @@ class TestTokenMint:
             build_remote_token_command("", ttl="20h", port=99999)
 
     def test_token_command_prefers_run_marker_for_port(self):
-        from junction.config.paths import (
-            CONFIG_DIR_NAME,
-            LEGACY_CONFIG_DIR_NAME,
-            PRIOR_CONFIG_DIR_NAME,
-        )
+        from junction.config.paths import CONFIG_DIR_NAME
         from junction.instances.token_mint import (
             build_candidate_command,
             build_remote_token_command,
@@ -398,23 +394,21 @@ class TestTokenMint:
 
         # empty remote_bin + port -> run-marker clause runs BEFORE the candidate
         # ladder, keyed by the same port, and execs the recorded launcher. The
-        # marker is probed under each candidate data home (JUNCTION_HOME override,
-        # the current default, the previous home, then the older top-level home)
-        # so a remote whose non-interactive SSH shell doesn't export JUNCTION_HOME
-        # still hits the marker. The home segments are asserted via the SHARED
-        # config.paths constants (not re-hardcoded literals) so that
-        # re-hardcoding — the read/write desync this fix closes — fails this
+        # marker is probed under the JUNCTION_HOME override first, then the
+        # default data home, so a remote whose non-interactive SSH shell doesn't
+        # export JUNCTION_HOME still hits the marker. The home segment is asserted
+        # via the SHARED config.paths constant (not a re-hardcoded literal) so
+        # that re-hardcoding — the read/write desync this guards — fails this
         # test loudly at PR time.
+        override_marker = '"${JUNCTION_HOME:+$JUNCTION_HOME/run/gateway-7879.bin}"'
         default_marker = f'"$HOME/{CONFIG_DIR_NAME}/run/gateway-7879.bin"'
-        prior_marker = f'"$HOME/{PRIOR_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
-        legacy_marker = f'"$HOME/{LEGACY_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
         cmd = build_remote_token_command("", ttl="20h", port=7879)
-        assert '"${JUNCTION_HOME:+$JUNCTION_HOME/run/gateway-7879.bin}"' in cmd
+        assert override_marker in cmd
         assert default_marker in cmd
-        assert prior_marker in cmd
-        assert legacy_marker in cmd
-        # current home, then the previous home, then the older top-level home
-        assert cmd.index(default_marker) < cmd.index(prior_marker) < cmd.index(legacy_marker)
+        # the override, then the default home
+        assert cmd.index(override_marker) < cmd.index(default_marker)
+        marker_loop = cmd[cmd.index("for __mk in ") : cmd.index("; do")]
+        assert marker_loop.count("/run/gateway-7879.bin") == 2
         assert 'exec "$__kb" token --ttl 20h --port 7879;' in cmd
         assert cmd.index("for __mk in ") < cmd.index("for b in ")  # marker tried first
         # it still falls through to the candidate ladder (older remotes/no marker)
@@ -1226,7 +1220,7 @@ class TestSshTunnelMultiplexing:
     down.
     """
 
-    _HOST = "kc-test-multiplex-host"
+    _HOST = "jn-test-multiplex-host"
 
     #: A user config that enables multiplexing for the instance host.
     _ADVERSARIAL_CONFIG = """\

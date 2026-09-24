@@ -1,7 +1,7 @@
 """Tests for the auto-triage-pipeline read-only fold.
 
 Every test builds its OWN fixtures under tmp_path. Nothing here reads real data
-under ~/.kirocrew: a fold test that depended on the live trail would pass or fail
+under ~/.junction: a fold test that depended on the live trail would pass or fail
 on today's pipeline state, not on the fold's logic, so it would not be a test.
 
 The assertions below are written to pin the REASON each guard exists, not merely a

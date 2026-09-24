@@ -88,36 +88,33 @@ class TestIsSensitive:
         assert server._is_sensitive(Path("/home/otheruser/.aws/credentials")) is True
 
     def test_junction_is_sensitive(self, tmp_tree):
-        assert server._is_sensitive(tmp_tree / ".kirocrew" / ".env") is True
+        assert server._is_sensitive(tmp_tree / ".junction" / ".env") is True
 
-    def test_crew_home_nonsafe_file_is_sensitive(self, tmp_tree):
-        # config.json (Slack tokens) is NOT a safe subdir → blocked under both
-        # crew-home spellings.
-        assert server._is_sensitive(tmp_tree / ".kiro" / "crew" / "config.json") is True
-        assert server._is_sensitive(tmp_tree / ".kirocrew" / "config.json") is True
+    def test_data_home_nonsafe_file_is_sensitive(self, tmp_tree):
+        # config.json (Slack tokens) is NOT a safe subdir → blocked.
+        assert server._is_sensitive(tmp_tree / ".junction" / "config.json") is True
 
-    def test_crew_home_marker_match_is_case_insensitive(self, tmp_tree):
+    def test_data_home_marker_match_is_case_insensitive(self, tmp_tree):
         # SECURITY regression: on a case-INSENSITIVE filesystem (macOS/Windows)
-        # ~/.KIRO/crew/config.json opens the same inode as ~/.kiro/crew but
+        # ~/.JUNCTION/config.json opens the same inode as ~/.junction but
         # Path.resolve() keeps the typed case. A case-SENSITIVE marker match would
-        # let the uppercase path slip past deny-by-default and leak the crew
+        # let the uppercase path slip past deny-by-default and leak the data
         # home's non-keystone files (config.json Slack tokens, sessions, PII).
-        # _crew_home_index must casefold both sides so all spellings are blocked.
+        # _data_home_index must casefold both sides so all spellings are blocked.
         for variant in (
-            tmp_tree / ".KIRO" / "crew" / "config.json",
-            tmp_tree / ".kiro" / "CREW" / "config.json",
-            tmp_tree / ".KiRo" / "CrEw" / "sessions" / "s.json",
             tmp_tree / ".JUNCTION" / "config.json",
+            tmp_tree / ".Junction" / "sessions" / "s.json",
+            tmp_tree / ".JuNcTiOn" / "sessions" / "s.json",
         ):
             assert server._is_sensitive(variant) is True, variant
 
-    def test_crew_home_safe_subdir_still_allowed(self, tmp_tree):
+    def test_data_home_safe_subdir_still_allowed(self, tmp_tree):
         # The fix must not over-block: a genuine safe subdir stays accessible.
-        assert server._is_sensitive(tmp_tree / ".kiro" / "crew" / "workspace" / "a.txt") is False
+        assert server._is_sensitive(tmp_tree / ".junction" / "workspace" / "a.txt") is False
 
-    def test_crew_home_root_detection_case_insensitive(self, tmp_tree):
-        assert server._is_crew_home_root(tmp_tree / ".KIRO" / "crew") is True
-        assert server._is_crew_home_root(tmp_tree / ".kiro" / "crew") is True
+    def test_data_home_root_detection_case_insensitive(self, tmp_tree):
+        assert server._is_data_home_root(tmp_tree / ".JUNCTION") is True
+        assert server._is_data_home_root(tmp_tree / ".junction") is True
 
     def test_regular_file_not_sensitive(self, tmp_tree):
         assert server._is_sensitive(tmp_tree / "file.txt") is False
@@ -545,14 +542,14 @@ class TestHTTPHandler:
 class TestJunctionGranularSensitive:
     """Regression tests for .junction granular sensitive path policy.
 
-    .kirocrew/workspace/, uploads/, skills/, artifacts/ etc. should be accessible.
-    .kirocrew/config.json, sessions/, *.key should be blocked.
+    .junction/workspace/, uploads/, skills/, artifacts/ etc. should be accessible.
+    .junction/config.json, sessions/, *.key should be blocked.
     """
 
     @pytest.fixture(autouse=True)
     def junction_tree(self, tmp_tree):
         """Create a .junction directory structure for testing."""
-        mc = tmp_tree / ".kirocrew"
+        mc = tmp_tree / ".junction"
         mc.mkdir()
         # Safe subdirs
         (mc / "workspace").mkdir()
@@ -584,59 +581,59 @@ class TestJunctionGranularSensitive:
         return tmp_tree
 
     def test_workspace_notes_accessible(self, tmp_tree):
-        """User notes under .kirocrew/workspace/ should be readable."""
-        p = server._safe_path(str(tmp_tree / ".kirocrew" / "workspace" / "notes" / "update.md"))
+        """User notes under .junction/workspace/ should be readable."""
+        p = server._safe_path(str(tmp_tree / ".junction" / "workspace" / "notes" / "update.md"))
         assert p.exists()
 
     def test_uploads_accessible(self, tmp_tree):
         """Uploaded images should be accessible."""
-        p = server._safe_path(str(tmp_tree / ".kirocrew" / "uploads" / "image.png"))
+        p = server._safe_path(str(tmp_tree / ".junction" / "uploads" / "image.png"))
         assert p.exists()
 
     def test_skills_accessible(self, tmp_tree):
         """Skills directory should be accessible."""
-        p = server._safe_path(str(tmp_tree / ".kirocrew" / "skills" / "my-skill" / "SKILL.md"))
+        p = server._safe_path(str(tmp_tree / ".junction" / "skills" / "my-skill" / "SKILL.md"))
         assert p.exists()
 
     def test_artifacts_accessible(self, tmp_tree):
         """Artifacts should be accessible."""
-        p = server._safe_path(str(tmp_tree / ".kirocrew" / "artifacts" / "data.json"))
+        p = server._safe_path(str(tmp_tree / ".junction" / "artifacts" / "data.json"))
         assert p.exists()
 
     def test_config_json_blocked(self, tmp_tree):
         """config.json contains tokens — must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "config.json"))
+            server._safe_path(str(tmp_tree / ".junction" / "config.json"))
         assert exc_info.value.status == 403
 
     def test_key_files_blocked(self, tmp_tree):
         """Signing keys must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "sel_hmac.key"))
+            server._safe_path(str(tmp_tree / ".junction" / "sel_hmac.key"))
         assert exc_info.value.status == 403
 
     def test_sessions_blocked(self, tmp_tree):
         """Sessions directory (auth tokens) must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "sessions" / "sess-001.json"))
+            server._safe_path(str(tmp_tree / ".junction" / "sessions" / "sess-001.json"))
         assert exc_info.value.status == 403
 
     def test_memory_db_blocked(self, tmp_tree):
         """memory.db contains full conversation transcripts — must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "memory.db"))
+            server._safe_path(str(tmp_tree / ".junction" / "memory.db"))
         assert exc_info.value.status == 403
 
     def test_junction_root_listing_blocked_by_safe_path(self, tmp_tree):
-        """Listing .kirocrew/ root is blocked at _safe_path level (deny-by-default).
+        """Listing .junction/ root is blocked at _safe_path level (deny-by-default).
         Tree/complete handlers use _junction_safe_children() instead."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew"))
+            server._safe_path(str(tmp_tree / ".junction"))
         assert exc_info.value.status == 403
 
     def test_junction_safe_children_returns_only_safe_subdirs(self, tmp_tree):
         """_junction_safe_children() exposes only allowlisted dirs."""
-        mc = tmp_tree / ".kirocrew"
+        mc = tmp_tree / ".junction"
         entries = server._junction_safe_children(mc)
         names = {e["name"] for e in entries}
         # Only dirs in _JUNCTION_SAFE_SUBDIRS should appear
@@ -649,7 +646,7 @@ class TestJunctionGranularSensitive:
         assert "config.json" not in names
 
     # ── Governance trust-root keystone (fork-only additions) ──
-    # ~/.kirocrew/security_policy.json, profiles/, admission_policy.json are
+    # ~/.junction/security_policy.json, profiles/, admission_policy.json are
     # the governance ceiling's trust root. The granular branch alone must
     # block them (is_sensitive_path is mocked to SENSITIVE_DIRS parts in this
     # suite) — "profiles" must stay OUT of _JUNCTION_SAFE_SUBDIRS.
@@ -657,24 +654,24 @@ class TestJunctionGranularSensitive:
     def test_security_policy_blocked(self, tmp_tree):
         """The governance security ceiling must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "security_policy.json"))
+            server._safe_path(str(tmp_tree / ".junction" / "security_policy.json"))
         assert exc_info.value.status == 403
 
     def test_admission_policy_blocked(self, tmp_tree):
         """The signed-plugin admission policy must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "admission_policy.json"))
+            server._safe_path(str(tmp_tree / ".junction" / "admission_policy.json"))
         assert exc_info.value.status == 403
 
     def test_governance_profile_blocked(self, tmp_tree):
         """Governance profiles (per-surface ceilings) must be blocked."""
         with pytest.raises(server.PathError) as exc_info:
-            server._safe_path(str(tmp_tree / ".kirocrew" / "profiles" / "default.json"))
+            server._safe_path(str(tmp_tree / ".junction" / "profiles" / "default.json"))
         assert exc_info.value.status == 403
 
     def test_profiles_not_in_safe_children_or_listing(self, tmp_tree):
         """'profiles' never appears in safe-children output or root listings."""
-        mc = tmp_tree / ".kirocrew"
+        mc = tmp_tree / ".junction"
         assert "profiles" not in server._JUNCTION_SAFE_SUBDIRS
         child_names = {e["name"] for e in server._junction_safe_children(mc)}
         assert "profiles" not in child_names
@@ -688,7 +685,7 @@ class TestJunctionGranularSensitive:
 class TestAutoSdeRound1Findings:
     """Regression tests for review-bot round-1 findings on the granular policy.
 
-    #15 security-controls: listing .kirocrew/ root must not leak sensitive
+    #15 security-controls: listing .junction/ root must not leak sensitive
         entry NAMES (config.json, *.key, memory.db, sessions/).
     #17 rg allowlist side-effect: searching a root OUTSIDE .junction must not
         restrict results to .junction safe subdirs (non-negated globs
@@ -700,7 +697,7 @@ class TestAutoSdeRound1Findings:
 
     @pytest.fixture(autouse=True)
     def junction_tree(self, tmp_tree):
-        mc = tmp_tree / ".kirocrew"
+        mc = tmp_tree / ".junction"
         mc.mkdir()
         (mc / "workspace").mkdir()
         (mc / "workspace" / "note.md").write_text("needle in workspace\n")
@@ -716,7 +713,7 @@ class TestAutoSdeRound1Findings:
     def test_root_listing_hides_sensitive_names(self, tmp_tree):
         """#15: /tree of .junction root shows ONLY safe subdirs — no
         config.json / *.key / sessions / memory.db names."""
-        entries, _ = server._list_dir(tmp_tree / ".kirocrew", depth=1)
+        entries, _ = server._list_dir(tmp_tree / ".junction", depth=1)
         names = {e["name"] for e in entries}
         assert "workspace" in names
         for leaked in ("config.json", "sel_hmac.key", "sessions", "memory.db"):
@@ -735,14 +732,13 @@ class TestAutoSdeRound1Findings:
         """#15/defense: .junction root files (config.json) never appear in
         search results even when the walk passes through .junction."""
         results = server._search_python(tmp_tree, "token123", "", "")
-        assert results == [], f".kirocrew root file content leaked: {results}"
+        assert results == [], f".junction root file content leaked: {results}"
 
     def test_rg_glob_set_has_no_nonnegated_junction_globs(self, tmp_tree):
         """#17: the rg command for an outside-root search contains only
-        NEGATED crew-home globs (a non-negated glob would allowlist-restrict
-        the entire search). The data home spans two prefixes — the current
-        ~/.kiro/crew and the pre-move legacy ~/.kirocrew — so both variants
-        must appear and both must be negated."""
+        NEGATED data-home globs (a non-negated glob would allowlist-restrict
+        the entire search). The data home has one prefix, ~/.junction, so
+        exactly one data-home glob appears and it is negated."""
         captured: dict = {}
 
         def fake_wrap(cmd):
@@ -757,15 +753,12 @@ class TestAutoSdeRound1Findings:
         cmd = captured.get("cmd")
         assert cmd, "wrap_argv never called — _search_rg did not build an rg command"
         globs = [cmd[i + 1] for i, a in enumerate(cmd[:-1]) if a == "--glob"]
-        crew_globs = [g for g in globs if ".kiro/crew" in g or ".kirocrew" in g]
-        assert crew_globs == [
-            "!**/.kiro/crew/**",
-            "!**/.kirocrew/**",
-        ], crew_globs
-        assert all(g.startswith("!") for g in crew_globs)
+        data_home_globs = [g for g in globs if ".junction" in g]
+        assert data_home_globs == ["!**/.junction/**"], data_home_globs
+        assert all(g.startswith("!") for g in data_home_globs)
 
     def test_rg_no_junction_globs_when_root_inside_safe_subdir(self, tmp_tree):
-        """#17: searching inside .kirocrew/workspace adds no .junction globs
+        """#17: searching inside .junction/workspace adds no .junction globs
         (path gate already validated the subtree)."""
         captured: dict = {}
 
@@ -775,13 +768,13 @@ class TestAutoSdeRound1Findings:
 
         with patch.object(server, "wrap_argv", side_effect=fake_wrap):
             try:
-                server._search_rg(tmp_tree / ".kirocrew" / "workspace", "needle", "", "")
+                server._search_rg(tmp_tree / ".junction" / "workspace", "needle", "", "")
             except Exception:
                 pass
         cmd = captured.get("cmd")
         assert cmd, "wrap_argv never called — _search_rg did not build an rg command"
         globs = [cmd[i + 1] for i, a in enumerate(cmd[:-1]) if a == "--glob"]
-        assert not any(".kirocrew" in g for g in globs), globs
+        assert not any(".junction" in g for g in globs), globs
 
     def test_app_is_read_only_get_routes_only(self):
         """#16: the file explorer exposes no write verbs — every dispatch
@@ -800,7 +793,7 @@ class TestAutoSdeRound1Findings:
         import tempfile
 
         with tempfile.TemporaryDirectory() as attacker_dir:
-            fake_mc = Path(attacker_dir) / ".kirocrew"
+            fake_mc = Path(attacker_dir) / ".junction"
             fake_mc.mkdir()
             (fake_mc / "workspace").mkdir()
             (fake_mc / "workspace" / "stolen.md").write_text("secret data")
@@ -813,10 +806,10 @@ class TestAutoSdeRound1Findings:
             assert exc_info.value.status == 403
 
             # Test 2: exercise the _h_tree special-case branch directly —
-            # _expand + name==".kirocrew" + is_dir() all pass, but
+            # _expand + name==".junction" + is_dir() all pass, but
             # ALLOWED_ROOTS gate must still block.
             expanded = server._expand(str(fake_mc))
-            assert expanded.name == ".kirocrew"
+            assert expanded.name == ".junction"
             assert expanded.is_dir()
             # The handler's ALLOWED_ROOTS check:
             assert not any(

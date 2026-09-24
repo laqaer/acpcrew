@@ -1,7 +1,7 @@
 """Guard: a skill another packaged skill points at must itself be packaged.
 
 `_ensure_builtin_skills` copies `src/junction/builtin_skills/` into a user's
-`~/.kiro/crew/skills/`, on every distribution. Top-level `skills/` is reachable
+`~/.junction/skills/`, on every distribution. Top-level `skills/` is reachable
 only through `_project_skills_dir()`, which reads `JUNCTION_PROJECT_DIR` — a
 repo checkout and the desktop bundle set it, a `pip install` from the wheel or
 sdist does not. A skill that lives only there is therefore invisible to a pip

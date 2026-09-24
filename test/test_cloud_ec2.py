@@ -1338,17 +1338,17 @@ class TestStatusAndList:
             captured["action"] = action
             return {
                 "StackSummaries": [
-                    {"StackName": "junction-kc-b", "StackStatus": "CREATE_COMPLETE"},
+                    {"StackName": "junction-jn-b", "StackStatus": "CREATE_COMPLETE"},
                     {"StackName": "other", "StackStatus": "CREATE_COMPLETE"},
-                    {"StackName": "junction-kc-a", "StackStatus": "UPDATE_COMPLETE"},
+                    {"StackName": "junction-jn-a", "StackStatus": "UPDATE_COMPLETE"},
                 ]
             }
 
         monkeypatch.setattr(aws, "checked_json", fake_json)
         rows = ec2.list_stacks("dev", "us-east-1")
         assert rows == [
-            {"tag": "kc-a", "stack_name": "junction-kc-a", "stack_status": "UPDATE_COMPLETE"},
-            {"tag": "kc-b", "stack_name": "junction-kc-b", "stack_status": "CREATE_COMPLETE"},
+            {"tag": "jn-a", "stack_name": "junction-jn-a", "stack_status": "UPDATE_COMPLETE"},
+            {"tag": "jn-b", "stack_name": "junction-jn-b", "stack_status": "CREATE_COMPLETE"},
         ]
         assert captured["action"] == "cloudformation:ListStacks"
         assert "list-stacks" in captured["args"]

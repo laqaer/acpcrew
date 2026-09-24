@@ -46,7 +46,7 @@ def mock_sel():
 @pytest.fixture
 def upload_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect ``_UPLOAD_DIR`` to a per-test tmp path so uploads don't
-    pollute the real ``~/.kirocrew/uploads/`` and don't race other tests."""
+    pollute the real ``~/.junction/uploads/`` and don't race other tests."""
     target = tmp_path / "uploads"
     monkeypatch.setattr(
         "junction.dashboard.handlers.files._UPLOAD_DIR",

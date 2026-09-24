@@ -25,7 +25,7 @@ def dictionary(tmp_path: Path) -> DomainDictionary:
     path = tmp_path / "dictionary.toml"
     path.write_text(
         '[[term]]\ncorrect = "DynamoDB"\naliases = ["dynamo db", "dynamo d b"]\n'
-        '\n[[term]]\ncorrect = "Junction"\naliases = ["kiro crew", "kiro-crew"]\n'  # brand-ok
+        '\n[[term]]\ncorrect = "Junction"\naliases = ["junk shun", "junk-shun"]\n'
     )
     d = DomainDictionary()
     d.load(path)
@@ -43,7 +43,7 @@ class TestMatching:
         assert dictionary.correct("Dynamo DB is fast") == "DynamoDB is fast"
 
     def test_multiple_corrections_in_one_line(self, dictionary):
-        phrase = "kiro crew uses dynamo db"  # brand-ok
+        phrase = "junk shun uses dynamo db"
         assert dictionary.correct(phrase) == "Junction uses DynamoDB"
 
     def test_word_boundaries_respected(self, dictionary):
@@ -176,7 +176,7 @@ class TestMutation:
     def test_remove_term(self, dictionary):
         assert dictionary.remove_term("DynamoDB") is True
         assert dictionary.correct("dynamo db") == "dynamo db"
-        assert dictionary.correct("kiro crew") == "Junction"  # brand-ok
+        assert dictionary.correct("junk shun") == "Junction"
 
     def test_remove_missing_returns_false(self, dictionary):
         assert dictionary.remove_term("Nope") is False

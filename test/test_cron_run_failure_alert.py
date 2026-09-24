@@ -1,8 +1,7 @@
 """A failed script/command cron must tell the user WHY, not only the log.
 
-Regression cover for kirodotdev/KiroCrew#4157: the script and command cron
-branches signal failure by mutating the job and returning normally, so they
-never reached the message path's failure alert. The reason lived in the gateway
+The script and command cron branches signal failure by mutating the job and
+returning normally, so they never reached the message path's failure alert. The reason lived in the gateway
 log and in a dashboard field nobody reads while waiting for a notification that
 never comes -- a job dying on the same environmental ``RuntimeError`` every fire
 looked idle rather than broken.
@@ -19,11 +18,8 @@ import pytest
 from junction.cron import CronJob, CronSchedule
 from junction.slack.gateway import _FAILURE_REMINDER_SECS
 
-# The reason from the issue: a startup guard raising before the script body runs.
-CONFLICT = (
-    "data-home conflict: completion marker present at /home/u/.kiro/crew but a "
-    "non-empty legacy home /home/u/.kirocrew also exists"
-)
+# An environmental startup guard raising before the script body runs.
+CONFLICT = "data-home conflict: /home/u/.junction is already owned by another gateway (pid 4242)"
 
 
 def _make_gw():
@@ -62,7 +58,7 @@ def _script_job(**overrides):
         name="monitor-keep-75",
         message="",
         schedule=CronSchedule(kind="every", every_secs=60),
-        script="~/.kiro/crew/crons/monitor.py:run",
+        script="~/.junction/crons/monitor.py:run",
         channel="C123",
     )
     defaults.update(overrides)

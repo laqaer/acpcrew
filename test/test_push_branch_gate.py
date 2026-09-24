@@ -41,7 +41,7 @@ class TestIsPushToProtectedBranch:
     def test_feature_branch_allowed(self) -> None:
         assert _is_push_to_protected_branch(f"{PUSH} github my-feature-branch") is False
         assert _is_push_to_protected_branch(f"{PUSH} -u origin fix/relax-git-rule") is False
-        assert _is_push_to_protected_branch(f"{PUSH} origin feat/welcome-kiro-ghost") is False
+        assert _is_push_to_protected_branch(f"{PUSH} origin feat/welcome-mochi") is False
 
     def test_refspec_to_feature_allowed(self) -> None:
         assert _is_push_to_protected_branch(f"{PUSH} github feature:my-feature") is False

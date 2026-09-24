@@ -1729,7 +1729,7 @@ def test_gateway_unit_name_defaults_to_live_unit(monkeypatch, tmp_path):
 
 
 def test_gateway_unit_name_uses_pod_instance(monkeypatch, tmp_path):
-    home = tmp_path / ".kirocrew-pods" / "feat"
+    home = tmp_path / ".junction-pods" / "feat"
     monkeypatch.setattr("junction.config.loader.config_dir", lambda: home)
     assert mod._gateway_unit_name() == "junction-pod@feat.service"
 
@@ -1750,7 +1750,7 @@ def test_gateway_label_defaults_to_live_agent(monkeypatch, tmp_path):
 def test_gateway_label_uses_pod_agent(monkeypatch, tmp_path):
     launchd = pytest.importorskip("junction.pod.launchd")
     pod_config = pytest.importorskip("junction.pod.config")
-    home = tmp_path / ".kirocrew-pods" / "feat"
+    home = tmp_path / ".junction-pods" / "feat"
     monkeypatch.setattr("junction.config.loader.config_dir", lambda: home)
     monkeypatch.delenv("JUNCTION_POD_UNIT_PREFIX", raising=False)
     expected = f"{launchd.LABEL_PREFIX}.{pod_config.DEFAULT_UNIT_PREFIX}.feat"
@@ -1759,7 +1759,7 @@ def test_gateway_label_uses_pod_agent(monkeypatch, tmp_path):
 
 def test_gateway_label_honours_unit_prefix_override(monkeypatch, tmp_path):
     launchd = pytest.importorskip("junction.pod.launchd")
-    home = tmp_path / ".kirocrew-pods" / "feat"
+    home = tmp_path / ".junction-pods" / "feat"
     monkeypatch.setattr("junction.config.loader.config_dir", lambda: home)
     monkeypatch.setenv("JUNCTION_POD_UNIT_PREFIX", "altplane")
     assert mod._gateway_label() == f"{launchd.LABEL_PREFIX}.altplane.feat"
@@ -1767,7 +1767,7 @@ def test_gateway_label_honours_unit_prefix_override(monkeypatch, tmp_path):
 
 @pytest.mark.parametrize(
     ("home_parts", "expected"),
-    [((".kirocrew-pods", "feat"), True), (("home", "junction"), False)],
+    [((".junction-pods", "feat"), True), (("home", "junction"), False)],
 )
 def test_in_pod_detection(monkeypatch, tmp_path, home_parts, expected):
     monkeypatch.setattr(

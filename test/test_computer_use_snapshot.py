@@ -303,7 +303,7 @@ class TestRendering:
     def test_app_list_rendering(self, fake):
         text = render.render_apps(fake.apps)
         assert "3 application(s)" in text
-        assert "dev.junction.fake.files" in text
+        assert "com.example.fake.files" in text
         assert "pid 4101" in text
 
     def test_empty_app_list_says_so(self):
@@ -1120,7 +1120,7 @@ class TestASuppressedScreenshotAlwaysSaysSoWhy:
 
         # The keystone primary enable, in an isolated home — the dispatcher refuses
         # everything before rendering otherwise, and a developer's real
-        # ``~/.kiro/crew`` must never decide this test's outcome.
+        # ``~/.junction`` must never decide this test's outcome.
         monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         (tmp_path / "computer_use.json").write_text(json.dumps({"enabled": True}), encoding="utf-8")
 

@@ -598,7 +598,7 @@ class TestConfigRestoreFields:
         """save() then load() preserves restore fields."""
         from junction.config.loader import DashboardConfig, JunctionConfig
 
-        cfg_file = tmp_path / ".kirocrew" / "config.json"
+        cfg_file = tmp_path / ".junction" / "config.json"
         monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
 
         cfg = JunctionConfig(

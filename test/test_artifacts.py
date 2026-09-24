@@ -1667,14 +1667,14 @@ def home_store(tmp_path: Path, monkeypatch) -> ArtifactStore:
     The default ``store`` fixture is rooted at ``tmp_path/artifacts``, so its
     data-home root is ``tmp_path`` — which would make every path in the test
     tree "already allowed" and hide the barrier under test. Nesting the store
-    under a fake home (mirroring production's ``~/.kiro/crew/artifacts``) leaves
+    under a fake home (mirroring production's ``~/.junction/artifacts``) leaves
     the rest of ``tmp_path`` genuinely outside every default root, standing in
     for ``/workplace/...``.
     """
     home = tmp_path / "home"
-    (home / ".kiro" / "crew").mkdir(parents=True)
+    (home / ".junction").mkdir(parents=True)
     monkeypatch.setattr("pathlib.Path.home", classmethod(lambda cls: home))
-    return ArtifactStore(root=home / ".kiro" / "crew" / "artifacts")
+    return ArtifactStore(root=home / ".junction" / "artifacts")
 
 
 @pytest.fixture
@@ -2131,7 +2131,7 @@ class TestSourceRootBarrier:
         O_EXCL, so an existing lookalike survives untouched.
         """
         proj, src = project_file
-        decoy = src.parent / f".{src.name}.kirocrew-tmp"
+        decoy = src.parent / f".{src.name}.junction-tmp"
         decoy.write_text("someone else's data", encoding="utf-8")
         assert home_store._try_write_source_path(str(src), "new body", str(proj)) is True
         assert src.read_text(encoding="utf-8") == "new body"
@@ -2455,7 +2455,7 @@ class TestAllowedRootsSingleProducer:
         monkeypatch.setattr(JunctionConfig, "load", staticmethod(lambda: cfg))
         roots = home_store.allowed_source_roots()
         assert Path.home().resolve() in roots
-        assert (Path.home() / ".kiro" / "crew").resolve() in roots  # data home
+        assert (Path.home() / ".junction").resolve() in roots  # data home
         assert extra.resolve() in roots
         # source_root only widens when supplied AND still verifiable. A bare
         # directory is not: meta.json is agent-writable, so an unverified root

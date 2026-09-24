@@ -476,8 +476,8 @@ class TestWorkspaceDirContainmentMessage:
         """The root is refused whether written absolute OR as a tilde path.
 
         Regression: the per-call-site "cannot use config root" checks compare
-        ``config_dir() / ws_dir`` WITHOUT expanding ``~``, so `~/.kiro/crew`
-        became `<home>/~/.kiro/crew` there — unequal to the root, so it slipped
+        ``config_dir() / ws_dir`` WITHOUT expanding ``~``, so `~/.junction`
+        became `<home>/~/.junction` there — unequal to the root, so it slipped
         through while the plain absolute form was refused. Containment is now a
         STRICT descendant test, decided in the one place that expands.
         """
@@ -541,12 +541,12 @@ class TestWorkspaceDirContainmentMessage:
         ``profiles/locked.json``.
 
         Uses the REAL default home shape because ``is_sensitive_path()`` matches
-        the literal ``~/.kiro/crew`` / ``~/.kirocrew`` prefixes rather than
+        the literal ``~/.junction`` prefix rather than
         ``config_dir()``, so a tmp_path home would not exercise the gate at all.
         """
         from junction import cli_commands as cc
 
-        home = Path.home() / ".kiro" / "crew"
+        home = Path.home() / ".junction"
         monkeypatch.setattr(cc, "config_dir", lambda: home)
         assert cc._ws_dir_resolves_inside_home(keystone) is False
 
@@ -555,7 +555,7 @@ class TestWorkspaceDirContainmentMessage:
         """The keystone screen must not block legitimate workspace dirs."""
         from junction import cli_commands as cc
 
-        home = Path.home() / ".kiro" / "crew"
+        home = Path.home() / ".junction"
         monkeypatch.setattr(cc, "config_dir", lambda: home)
         assert cc._ws_dir_resolves_inside_home(ok_dir) is True
 

@@ -316,7 +316,7 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
         from junction.security import is_sensitive_path
         from junction.teams.service_urls import STORE_DIRNAME, STORE_FILENAME
 
-        for prefix in (".kiro/crew", ".kirocrew"):
+        for prefix in (".junction",):
             path = Path.home() / prefix / STORE_DIRNAME / STORE_FILENAME
             assert is_sensitive_path(str(path)), f"{prefix} not covered"
 
@@ -334,7 +334,7 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
 
         assert store.path().parent.name == "routing"
         # And the same layout under a real home is what the leaf covers.
-        assert is_sensitive_path(str(Path.home() / ".kiro/crew" / store.path().parent.name))
+        assert is_sensitive_path(str(Path.home() / ".junction" / store.path().parent.name))
 
     def test_the_atomic_write_temp_sibling_is_covered_too(self) -> None:
         """The DIRECTORY is registered, not the file, and this is why.
@@ -349,20 +349,20 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
         from junction.security import is_sensitive_path
         from junction.teams.service_urls import STORE_DIRNAME
 
-        temp = Path.home() / ".kiro/crew" / STORE_DIRNAME / "tmpAb3Kd9Zq.tmp"
+        temp = Path.home() / ".junction" / STORE_DIRNAME / "tmpAb3Kd9Zq.tmp"
         assert is_sensitive_path(str(temp))
 
     def test_a_shell_write_to_the_store_is_refused(self) -> None:
         from junction.security import is_sensitive_bash_command
         from junction.teams.service_urls import STORE_DIRNAME, STORE_FILENAME
 
-        target = f"~/.kiro/crew/{STORE_DIRNAME}/{STORE_FILENAME}"
+        target = f"~/.junction/{STORE_DIRNAME}/{STORE_FILENAME}"
         for command in (
             f"cat {target}",
             f"echo '{{}}' > {target}",
             f"tee {target}",
             # The temp sibling the rename would publish.
-            f"echo '{{}}' > ~/.kiro/crew/{STORE_DIRNAME}/tmpAb3Kd9Zq.tmp",
+            f"echo '{{}}' > ~/.junction/{STORE_DIRNAME}/tmpAb3Kd9Zq.tmp",
         ):
             assert is_sensitive_bash_command(command) is not None, command
 

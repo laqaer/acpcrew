@@ -1321,7 +1321,7 @@ class TestKeystoneOnRealPath:
             "code",
             session_key="cli_chat",
             tool_kind="edit",
-            raw_params={"path": "~/.kirocrew/security_policy.json"},
+            raw_params={"path": "~/.junction/security_policy.json"},
         )
         assert r.action == TOOL_DENY
         assert "sensitive path" in r.reason.lower()

@@ -228,7 +228,7 @@ class TestClientInstallOnEnableIsAdvisory:
         return {
             "name": name,
             "manifest": {
-                "setup": {"onEnable": 'open "$HOME/Applications/Crew Companion.app"'},
+                "setup": {"onEnable": 'open "$HOME/Applications/Companion.app"'},
                 "platform": {
                     "os": os_list if os_list is not None else ["macos"],
                     "installMode": "client",

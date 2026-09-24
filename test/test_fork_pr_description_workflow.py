@@ -136,7 +136,7 @@ def _evaluate(tmp_path: Path, body: str, draft: bool) -> dict[str, str]:
             "PR_BODY": body,
             "PR_DRAFT": "true" if draft else "false",
             "GITHUB_OUTPUT": str(output),
-            "GITHUB_REPOSITORY": "kirodotdev/KiroCrew",
+            "GITHUB_REPOSITORY": "laqaer/junction",
         }
     )
     proc = subprocess.run(
@@ -377,7 +377,7 @@ def _publish(
     env.update(
         {
             "GH_TOKEN": "x",
-            "REPO": "kirodotdev/KiroCrew",
+            "REPO": "laqaer/junction",
             "HEAD": "deadbeef",
             "PR_NUMBER": pr_number,
             "CONCLUSION": "failure",
@@ -408,7 +408,7 @@ def test_the_check_run_is_published_against_the_pr_head(tmp_path: Path) -> None:
 
     args, proc = _publish(tmp_path, [])
     assert proc.returncode == 0, proc.stderr
-    assert "repos/kirodotdev/KiroCrew/check-runs" in args
+    assert "repos/laqaer/junction/check-runs" in args
     assert "head_sha=deadbeef" in args
     assert "name=Fork PR Description" in args
     assert "conclusion=failure" in args
@@ -434,7 +434,7 @@ def test_my_own_row_is_patched_not_duplicated(tmp_path: Path) -> None:
     args, proc = _publish(tmp_path, [("fork-pr-description:5528", "424242")])
     assert proc.returncode == 0, proc.stderr
     assert "PATCH" in args
-    assert "repos/kirodotdev/KiroCrew/check-runs/424242" in args
+    assert "repos/laqaer/junction/check-runs/424242" in args
     assert "POST" not in args
 
 

@@ -64,7 +64,7 @@ FAKE_VALUES = {
     "github.event.pull_request.head.sha": "b" * 40,
     "github.event.pull_request.base.ref": "main",
     "github.event.pull_request.number": "(local run - no PR yet)",
-    "github.repository": "kirodotdev/KiroCrew",
+    "github.repository": "laqaer/junction",
     "runner.temp": "/tmp/stage",
 }
 

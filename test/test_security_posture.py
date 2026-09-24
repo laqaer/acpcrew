@@ -307,22 +307,22 @@ class TestDisclosureContract:
 
 
 class TestSensitivePathClassification:
-    def test_crew_owned_paths_are_labelled_as_trust_roots(self, snapshot):
+    def test_junction_owned_paths_are_labelled_as_trust_roots(self, snapshot):
         control = next(c for c in snapshot["controls"] if c["key"] == "sensitive_paths")
         by_label = {i["label"]: i["detail"] for i in control["items"]}
-        assert "trust root" in by_label["~/.kiro/crew/security_policy.json"]
+        assert "trust root" in by_label["~/.junction/security_policy.json"]
         assert "Third-party" in by_label["~/.aws"]
 
     def test_classification_is_a_path_boundary_match(self, monkeypatch):
-        # A sibling that merely shares a string prefix with a crew home must not be
+        # A sibling that merely shares a string prefix with the data home must not be
         # mislabelled as ours.
         monkeypatch.setattr(
-            security, "sensitive_home_dirs", lambda: (".kirocrew-notes/x", ".kiro/crew/.env")
+            security, "sensitive_home_dirs", lambda: (".junction-notes/x", ".junction/.env")
         )
         items = security_posture._sensitive_path_items()
         by_label = {i.label: i.detail for i in items}
-        assert "Third-party" in by_label["~/.kirocrew-notes/x"]
-        assert "trust root" in by_label["~/.kiro/crew/.env"]
+        assert "Third-party" in by_label["~/.junction-notes/x"]
+        assert "trust root" in by_label["~/.junction/.env"]
 
 
 class TestFailureIsolation:

@@ -132,7 +132,7 @@ def _run_json(name: str, *, status: str, conclusion: str) -> str:
         {
             "workflow_runs": [
                 {
-                    "head_repository": {"full_name": "kirodotdev/KiroCrew"},
+                    "head_repository": {"full_name": "laqaer/junction"},
                     "head_branch": "feat/x",
                     "path": (
                         "dynamic/github-code-scanning/codeql"
@@ -169,10 +169,10 @@ class Runner:
             "FIXTURES": str(self.fixtures),
             "RUNNER_TEMP": str(self.temp),
             "GITHUB_OUTPUT": str(self.output),
-            "REPO": "kirodotdev/KiroCrew",
+            "REPO": "laqaer/junction",
             "PR": "2650",
             "SHA": "a686d96a83859a73eb93b322de04b21bdea5f093",
-            "HEAD_REPO": "kirodotdev/KiroCrew",
+            "HEAD_REPO": "laqaer/junction",
             "HEAD_REF": "feat/x",
             "DRAFT": "false",
             "FORK": "false",

@@ -1107,7 +1107,7 @@ def test_tr_u_27_logout_revokes_access_cookie(tmp_path, monkeypatch):
     from junction.dashboard.token_auth import generate_token, validate_token
 
     # Isolate BOTH the refresh store and the token_auth revoked-nonce store to
-    # tmp dirs so nothing touches the real ~/.kirocrew.
+    # tmp dirs so nothing touches the real ~/.junction.
     monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     monkeypatch.setattr(rg, "_gen", 0)
     monkeypatch.setattr(ta, "_revoked_store_singleton", None)

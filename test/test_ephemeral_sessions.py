@@ -882,25 +882,23 @@ class TestSessionSlotRecovery:
 
     @pytest.fixture(autouse=True)
     def _persisted_history_dir_tracks_patched_home(self, monkeypatch):
-        """Point ``_shared.config_dir()`` at ``<patched home>/.kirocrew``.
+        """Point ``_shared.config_dir()`` at ``<patched home>/.junction``.
 
-        The data home moved from ``~/.kirocrew`` to ``~/.kiro/crew``
-        (``config_dir()``); ``_session_has_persisted_history`` now probes
-        ``config_dir()/sessions`` rather than ``Path.home()/".kirocrew"/"sessions"``.
+        ``_session_has_persisted_history`` probes ``config_dir()/sessions``.
         Each test here patches ``Path.home()`` and seeds JSONL under
-        ``<home>/.kirocrew/sessions``, but ``config_dir()`` reads ``JUNCTION_HOME``
+        ``<home>/.junction/sessions``, but ``config_dir()`` reads ``JUNCTION_HOME``
         (a different tmp dir pinned by conftest), so redirect ``_shared``'s
-        ``config_dir`` to ``Path.home()/".kirocrew"`` (lazy, tracks the per-test
+        ``config_dir`` to ``Path.home()/".junction"`` (lazy, tracks the per-test
         ``Path.home`` patch) to keep the seeded layout authoritative. Applied
         first so a test's own patches still win.
         """
         monkeypatch.setattr(
             "junction.dashboard.handlers._shared.config_dir",
-            lambda: Path.home() / ".kirocrew",
+            lambda: Path.home() / ".junction",
         )
 
     def _write_sessions_jsonl(self, tmp_path, stem: str) -> None:
-        sess_dir = tmp_path / ".kirocrew" / "sessions"
+        sess_dir = tmp_path / ".junction" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         (sess_dir / f"{stem}.jsonl").write_text(
             '{"_type": "metadata", "created_at": "2026-01-01T00:00:00"}\n',
@@ -1013,7 +1011,7 @@ class TestSessionSlotRecovery:
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         state = _make_state(tmp_path)
         # Empty sessions dir so the path-exists check is meaningful.
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
 
         async with TestClient(TestServer(_make_app(state))) as client:
             resp = await client.post(
@@ -1035,12 +1033,12 @@ class TestSessionSlotRecovery:
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         state = _make_state(tmp_path)
-        sess_dir = tmp_path / ".kirocrew" / "sessions"
+        sess_dir = tmp_path / ".junction" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         # Seed files at each resolved traversal target so the guard — NOT the
         # missing-file fallback — is what rejects each request.
-        # "../escape" → sess_dir/../escape.jsonl → ~/.kirocrew/escape.jsonl
-        (tmp_path / ".kirocrew" / "escape.jsonl").write_text("{}\n")
+        # "../escape" → sess_dir/../escape.jsonl → ~/.junction/escape.jsonl
+        (tmp_path / ".junction" / "escape.jsonl").write_text("{}\n")
         # "a/b" → sess_dir/a/b.jsonl
         sub = sess_dir / "a"
         sub.mkdir(parents=True, exist_ok=True)
@@ -1068,7 +1066,7 @@ class TestSessionSlotRecovery:
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         state = _make_state(tmp_path)
         # Create an empty sessions dir so the path-exists check is meaningful.
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
 
         async with TestClient(TestServer(_make_app(state))) as client:
             resp = await client.post(
@@ -1091,13 +1089,13 @@ class TestSessionSlotRecovery:
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         state = _make_state(tmp_path)
-        sess_dir = tmp_path / ".kirocrew" / "sessions"
+        sess_dir = tmp_path / ".junction" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
 
         # Seed files at every resolved traversal target so that the guard —
         # NOT the missing-file fallback — is what rejects each request.
-        # "../escape" → sess_dir/../escape.jsonl → ~/.kirocrew/escape.jsonl
-        (tmp_path / ".kirocrew" / "escape.jsonl").write_text("{}\n")
+        # "../escape" → sess_dir/../escape.jsonl → ~/.junction/escape.jsonl
+        (tmp_path / ".junction" / "escape.jsonl").write_text("{}\n")
         # ".hidden" → sess_dir/.hidden.jsonl
         (sess_dir / ".hidden.jsonl").write_text("{}\n")
         # "a/b" → sess_dir/a/b.jsonl
@@ -1156,7 +1154,7 @@ class TestSessionSlotRecovery:
         assert _session_has_persisted_history("a\\b") is False
         assert _session_has_persisted_history("bad\x00key") is False
 
-        sess_dir = tmp_path / ".kirocrew" / "sessions"
+        sess_dir = tmp_path / ".junction" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         (sess_dir / "1776000000.123456.jsonl").write_text("{}\n")
         assert _session_has_persisted_history("1776000000.123456") is True
@@ -1310,7 +1308,7 @@ class TestSessionSlotRecovery:
         state = _make_state(tmp_path)
         # Empty sessions dir: no JSONL fallback is possible, so the allow can
         # only come from the bare-thread_ts namespace recognition.
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
 
         with patch("junction.dashboard.handlers.cron._sel") as mock_sel:
             async with TestClient(TestServer(_make_app(state))) as client:
@@ -1337,7 +1335,7 @@ class TestSessionSlotRecovery:
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         state = _make_state(tmp_path)
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
 
         async with TestClient(TestServer(_make_app(state))) as client:
             resp = await client.post(
@@ -1360,7 +1358,7 @@ class TestSessionSlotRecovery:
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         monkeypatch.setattr("pathlib.Path.home", lambda: tmp_path)
         state = _make_state(tmp_path)
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
 
         # Arabic-Indic digits forming "١٧٨١٢١٥٨٦٤.٤٨٧٨٤٩" — \d would match this,
         # [0-9] does not.
@@ -1755,14 +1753,14 @@ class TestLessonsDeleteGate:
     @pytest.fixture(autouse=True)
     def _persisted_history_dir_tracks_patched_home(self, monkeypatch):
         """Same redirect as TestSessionSlotRecovery: keep the seeded
-        ``<home>/.kirocrew/sessions`` layout authoritative for the probe."""
+        ``<home>/.junction/sessions`` layout authoritative for the probe."""
         monkeypatch.setattr(
             "junction.dashboard.handlers._shared.config_dir",
-            lambda: Path.home() / ".kirocrew",
+            lambda: Path.home() / ".junction",
         )
 
     def _write_sessions_jsonl(self, tmp_path, stem: str, *, memory_mode=None) -> None:
-        sess_dir = tmp_path / ".kirocrew" / "sessions"
+        sess_dir = tmp_path / ".junction" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         meta = {"_type": "metadata", "created_at": "2026-01-01T00:00:00"}
         if memory_mode:
@@ -1797,7 +1795,7 @@ class TestLessonsDeleteGate:
     async def test_delete_rejected_for_unknown_session(self, tmp_path, monkeypatch):
         """Core regression: a forged/unknown key must NOT delete lessons."""
         state = self._deletable_state(tmp_path, monkeypatch)
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
         async with TestClient(TestServer(_make_app(state))) as client:
             resp = await client.delete(
                 "/api/lessons",
@@ -1812,7 +1810,7 @@ class TestLessonsDeleteGate:
     @pytest.mark.asyncio
     async def test_delete_rejects_forged_cron_key_without_jsonl(self, tmp_path, monkeypatch):
         state = self._deletable_state(tmp_path, monkeypatch)
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
         async with TestClient(TestServer(_make_app(state))) as client:
             resp = await client.delete(
                 "/api/lessons",
@@ -2088,7 +2086,7 @@ class TestMemoryRoutesSessionGate:
     def _persisted_history_dir_tracks_patched_home(self, monkeypatch):
         monkeypatch.setattr(
             "junction.dashboard.handlers._shared.config_dir",
-            lambda: Path.home() / ".kirocrew",
+            lambda: Path.home() / ".junction",
         )
 
     def _memory_state(self, tmp_path, monkeypatch):
@@ -2163,7 +2161,7 @@ class TestMemoryRoutesSessionGate:
     ):
         """Core regression: a forged/unknown key must NOT mutate memory."""
         state, store = self._memory_state(tmp_path, monkeypatch)
-        (tmp_path / ".kirocrew" / "sessions").mkdir(parents=True, exist_ok=True)
+        (tmp_path / ".junction" / "sessions").mkdir(parents=True, exist_ok=True)
         async with TestClient(TestServer(self._make_memory_app(state))) as client:
             resp = await self._call(
                 client, route, {"X-Session-Key": "dashboard:forged-slot"}
@@ -2233,7 +2231,7 @@ class TestMemoryRoutesSessionGate:
         persisted memory_mode marker is the only remaining evidence once the
         slot is evicted, and memory writes block every private mode."""
         state, store = self._memory_state(tmp_path, monkeypatch)
-        sess_dir = tmp_path / ".kirocrew" / "sessions"
+        sess_dir = tmp_path / ".junction" / "sessions"
         sess_dir.mkdir(parents=True, exist_ok=True)
         meta = {
             "_type": "metadata",

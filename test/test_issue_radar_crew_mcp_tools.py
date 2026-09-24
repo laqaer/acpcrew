@@ -588,7 +588,7 @@ class TestPublicStringsAreSanitizedOnTheWayIn(unittest.TestCase):
 
     def test_the_junction_home_collapses_before_the_user_home(self):
         # Longest-first ordering: scrubbing the home first would leave
-        # "<home>/.kiro/crew/..." — still this machine's directory layout.
+        # "<home>/.junction/..." — still this machine's directory layout.
         from junction.config.loader import config_dir
 
         captured, _ = _record(

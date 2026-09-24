@@ -40,7 +40,7 @@ import pytest
 
 from junction.apps.builtins.issue_radar.backend import crew_store as cs
 
-OWNER, REPO = "kirodotdev", "Junction"  # brand-ok: the repository name
+OWNER, REPO = "laqaer", "junction"
 
 
 def _crew(root, name="Andromeda", **spec):

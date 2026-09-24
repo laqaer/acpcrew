@@ -610,7 +610,7 @@ async def test_import_failures_do_not_expose_private_details(
 async def test_state_failure_is_generic_and_credential_free(monkeypatch) -> None:
     module = _handler_module()
     audit = _AuditLog()
-    private_detail = "/Users/alice/.kiro/crew/config.json"
+    private_detail = "/Users/alice/.junction/config.json"
 
     def fail_load():
         raise OSError(private_detail)
@@ -718,7 +718,7 @@ async def test_apply_forwards_each_recognized_strategy(monkeypatch, strategy) ->
 async def test_apply_response_never_leaks_restore_or_rename_paths(monkeypatch) -> None:
     """Restore paths are filesystem details and must not cross into the browser."""
     module = _handler_module()
-    secret_path = "/Users/alice/private/.kiro/crew/imports/replaced/20260728T000000Z"
+    secret_path = "/Users/alice/private/.junction/imports/replaced/20260728T000000Z"
 
     monkeypatch.setattr(
         module,

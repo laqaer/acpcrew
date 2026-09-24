@@ -8999,7 +8999,7 @@ class TestPythonStageLoop:
         under ``config_dir() / "sessions" / slot.key``. The orchestrator imports
         ``config_dir`` into its own namespace, so patching only the ``chat`` /
         ``state`` namespaces leaves results writing to the live
-        ``~/.kirocrew/sessions/`` dir, and parallel (xdist) runs then race on the
+        ``~/.junction/sessions/`` dir, and parallel (xdist) runs then race on the
         shared fixed ``loop-test`` key. Patching all three namespaces to a unique
         ``tmp_path`` isolates every test in this class.
         """

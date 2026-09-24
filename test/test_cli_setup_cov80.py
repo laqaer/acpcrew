@@ -30,7 +30,7 @@ from junction.cli_setup import (
     _setup_whatsapp,
 )
 
-_STALE = 'export PATH="$HOME/.kirocrew-app/bin:$PATH"\n'
+_STALE = 'export PATH="$HOME/.junction-app/bin:$PATH"\n'
 
 
 @pytest.fixture()
@@ -59,7 +59,7 @@ class TestFixShellProfiles:
     def test_a_marker_line_without_path_is_left_alone(self, home: Path) -> None:
         """The match is marker AND ``PATH`` — a bare mention must not be deleted."""
         bashrc = home / ".bashrc"
-        original = "# see ~/.kirocrew-app for notes\nexport EDITOR=vi\n"
+        original = "# see ~/.junction-app for notes\nexport EDITOR=vi\n"
         bashrc.write_text(original, encoding="utf-8")
 
         _fix_shell_profiles()

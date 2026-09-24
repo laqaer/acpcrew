@@ -1287,7 +1287,7 @@ class TestForgeReferenceSearch:
         log.append(
             "url_only",
             "assistant",
-            "opened https://github.com/kirodotdev/KiroCrew/pull/4411 for app sync",
+            "opened https://github.com/laqaer/junction/pull/4411 for app sync",
         )
         log.append("hash_form", "assistant", "babysitting PR #4411 to green")
         log.append("prose_form", "assistant", "rebased pr 4411 onto main")
@@ -1308,9 +1308,9 @@ class TestForgeReferenceSearch:
             "PR 4411",
             "pr4411",
             "pull/4411",
-            "https://github.com/kirodotdev/KiroCrew/pull/4411",
-            "https://github.com/kirodotdev/KiroCrew/pull/4411/files",
-            "kirodotdev/KiroCrew#4411",
+            "https://github.com/laqaer/junction/pull/4411",
+            "https://github.com/laqaer/junction/pull/4411/files",
+            "laqaer/junction#4411",
             "(#4411)",
             "#4411.",
         ],
@@ -1420,12 +1420,12 @@ class TestForgeReferenceSearch:
         all.
         """
         log = ConversationLog(base_dir=tmp_path)
-        log.append("named_repo", "assistant", "kirodotdev/junction#4411 needed a rebase")
+        log.append("named_repo", "assistant", "laqaer/junction#4411 needed a rebase")
         log.append("other_repo", "assistant", "looked at #4411 in the vendor tree")
 
         keys = [
             s["key"]
-            for s in log.search_sessions("https://github.com/kirodotdev/junction/pull/4411", 10)
+            for s in log.search_sessions("https://github.com/laqaer/junction/pull/4411", 10)
         ]
 
         assert keys[0] == "named_repo", keys
@@ -1433,10 +1433,10 @@ class TestForgeReferenceSearch:
     def test_a_sigil_captured_repo_also_ranks(self, tmp_path):
         """The repo slug is captured from `owner/repo#N` too, not only from a URL."""
         log = ConversationLog(base_dir=tmp_path)
-        log.append("named_repo", "assistant", "kirodotdev/junction#4411 needed a rebase")
+        log.append("named_repo", "assistant", "laqaer/junction#4411 needed a rebase")
         log.append("other_repo", "assistant", "looked at #4411 in the vendor tree")
 
-        keys = [s["key"] for s in log.search_sessions("kirodotdev/junction#4411", 10)]
+        keys = [s["key"] for s in log.search_sessions("laqaer/junction#4411", 10)]
 
         assert keys[0] == "named_repo", keys
 
@@ -1747,9 +1747,9 @@ class TestForgeReferenceSearch:
             "pulls/4411",
             "issues/42",
             "merge_requests/12",
-            "kirodotdev/junction#4411",
+            "laqaer/junction#4411",
             "junction2#4411",
-            "https://github.com/kirodotdev/junction/pull/4411",
+            "https://github.com/laqaer/junction/pull/4411",
             "https://gitlab.com/grp/proj/-/merge_requests/12",
         ],
     )

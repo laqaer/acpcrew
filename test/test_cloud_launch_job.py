@@ -163,7 +163,7 @@ class TestRunLaunch:
         out = lj.run_launch(job, s, eng)
         assert out.status == lj.DONE
         assert out.instance_id == "i-0abc123456789def0"
-        assert out.tag.startswith("kc-")
+        assert out.tag.startswith("jn-")
         assert all(st.state == lj.STEP_DONE for st in out.steps)
         assert out.signin_detected is True
         assert [c[0] for c in eng.calls] == ["preflight", "provision", "begin_signin", "register"]
@@ -397,8 +397,8 @@ class TestRealEngineGatewayPort:
         le, seen = self._engine(monkeypatch)
         eng = le.RealLaunchEngine()
 
-        eng.provision(tag="kc-1", size_key="balanced", profile="", region="us-east-1")
-        eng.register(instance_id="i-0abc", tag="kc-1", profile="", region="us-east-1")
+        eng.provision(tag="jn-1", size_key="balanced", profile="", region="us-east-1")
+        eng.register(instance_id="i-0abc", tag="jn-1", profile="", region="us-east-1")
 
         # Neither end may pass an override: the stack's DashboardPort default
         # and register_instance's remote_port default name the SAME port (the
@@ -489,12 +489,12 @@ class TestRealEngineRegistration:
 
         with pytest.raises(RuntimeError) as err:
             le.RealLaunchEngine().register(
-                instance_id="i-0abc", tag="kc-3f9a", profile="", region="us-east-1"
+                instance_id="i-0abc", tag="jn-3f9a", profile="", region="us-east-1"
             )
 
         # The instance exists and is billing, so the message must name it.
         assert "i-0abc" in str(err.value)
-        assert "kc-3f9a" in str(err.value)
+        assert "jn-3f9a" in str(err.value)
         assert "billing" in str(err.value)
 
     def test_a_successful_registration_returns_quietly(self, monkeypatch):
@@ -503,7 +503,7 @@ class TestRealEngineRegistration:
         monkeypatch.setattr(le.connect_mod, "register_instance", lambda *a, **k: "inst-7")
 
         le.RealLaunchEngine().register(
-            instance_id="i-0abc", tag="kc-3f9a", profile="", region="us-east-1"
+            instance_id="i-0abc", tag="jn-3f9a", profile="", region="us-east-1"
         )
 
 

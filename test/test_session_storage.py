@@ -954,27 +954,10 @@ class TestSharedStoreRefusal:
         # at an empty dir so this asserts the guard and not the developer's machine.
         monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
         # Pin the default home rather than clearing the memo. Clearing it makes the
-        # next data_home() RE-RESOLVE, which on a real machine initializes or
-        # migrates the operator's actual data home — and leaves that resolution
+        # next data_home() RE-RESOLVE, which on a real machine initializes the
+        # operator's actual data home — and leaves that resolution
         # memoized for every later test in the same worker.
         monkeypatch.setattr(paths, "_resolved_home", paths._default_home())
-        monkeypatch.setattr(paths, "_config_dir_memo", None)
-
-        assert session_storage.reclaim_block_reason() == ""
-
-    def test_a_pre_migration_legacy_home_is_not_isolation(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """An install that has not migrated yet must still be able to reclaim.
-
-        The legacy home is a DEFAULT, not an isolated instance; treating it as one
-        refused every pre-migration install — including the machine this feature
-        was measured on.
-        """
-        monkeypatch.delenv("JUNCTION_HOME", raising=False)
-        monkeypatch.delenv("KIRO_HOME", raising=False)
-        monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
-        monkeypatch.setattr(paths, "_resolved_home", paths.legacy_home())
         monkeypatch.setattr(paths, "_config_dir_memo", None)
 
         assert session_storage.reclaim_block_reason() == ""

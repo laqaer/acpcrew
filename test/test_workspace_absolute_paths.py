@@ -29,7 +29,7 @@ def mock_sel():
 @pytest.fixture()
 def cfg_env(tmp_path, monkeypatch):
     """Set up a clean config dir with a default workspace."""
-    cfg_dir = tmp_path / ".kirocrew"
+    cfg_dir = tmp_path / ".junction"
     cfg_dir.mkdir()
     cfg_file = cfg_dir / "config.json"
     cfg_file.write_text(json.dumps({

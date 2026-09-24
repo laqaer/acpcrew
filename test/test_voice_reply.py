@@ -252,7 +252,7 @@ _FAKE_AWS_CLI = "aws.exe" if os.name == "nt" else "/usr/bin/aws"
 _SANDBOX_REMEDY = (
     "No OS-level sandbox backend is available on this host. If this host "
     "genuinely lacks a sandbox backend, set "
-    "agent.sandbox_allow_unsandboxed_exec=true in ~/.kiro/crew/config.json."
+    "agent.sandbox_allow_unsandboxed_exec=true in ~/.junction/config.json."
 )
 
 

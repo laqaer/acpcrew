@@ -491,25 +491,25 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.ec2, "wait_for_delete", lambda *a, **k: True)
         monkeypatch.setattr(hc.ec2, "describe", lambda *a, **k: {"instance_id": "i-0abc"})
 
-        st = _req("POST", "/api/cloud/kc-3f9a/stop?profile=dev&region=us-east-1",
-                  state=_state(tmp_path), match_info={"tag": "kc-3f9a"})
+        st = _req("POST", "/api/cloud/jn-3f9a/stop?profile=dev&region=us-east-1",
+                  state=_state(tmp_path), match_info={"tag": "jn-3f9a"})
         r1 = await hc.api_cloud_stop(st)
         assert r1.status == 200
-        assert seen["stop"] == {"tag": "kc-3f9a", "profile": "dev", "region": "us-east-1", "kw": {}}
+        assert seen["stop"] == {"tag": "jn-3f9a", "profile": "dev", "region": "us-east-1", "kw": {}}
 
         r2 = await hc.api_cloud_start(
-            _req("POST", "/api/cloud/kc-7b21/start", state=_state(tmp_path),
-                 match_info={"tag": "kc-7b21"})
+            _req("POST", "/api/cloud/jn-7b21/start", state=_state(tmp_path),
+                 match_info={"tag": "jn-7b21"})
         )
         assert r2.status == 200
-        assert seen["start"]["tag"] == "kc-7b21"
+        assert seen["start"]["tag"] == "jn-7b21"
 
         r3 = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-7b21", state=_state(tmp_path),
-                 match_info={"tag": "kc-7b21"})
+            _req("DELETE", "/api/cloud/jn-7b21", state=_state(tmp_path),
+                 match_info={"tag": "jn-7b21"})
         )
         assert r3.status == 200
-        assert seen["destroy"]["tag"] == "kc-7b21"
+        assert seen["destroy"]["tag"] == "jn-7b21"
         assert seen["destroy"]["kw"].get("wait") is False
 
     async def test_destroy_cleans_up_local_state_after_deletion_confirms(
@@ -537,14 +537,14 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", _delete_source)
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a?instance_id=i-0abc123456789def0",
-                 state=_state(tmp_path), match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a?instance_id=i-0abc123456789def0",
+                 state=_state(tmp_path), match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
         assert _body(resp)["cleanup"] == "pending"  # the request only acks the delete
         assert calls["unregistered"] == "i-0abc123456789def0"
-        assert calls["source"] == "kc-3f9a"
+        assert calls["source"] == "jn-3f9a"
 
     async def test_destroy_keeps_local_state_when_deletion_does_not_confirm(
         self, tmp_path, monkeypatch
@@ -566,8 +566,8 @@ class TestInstanceMutations:
         )
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a?instance_id=i-0abc", state=_state(tmp_path),
-                 match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a?instance_id=i-0abc", state=_state(tmp_path),
+                 match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
@@ -593,8 +593,8 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a", state=_state(tmp_path),
-                 match_info={"tag": "kc-3f9a"})  # no instance_id
+            _req("DELETE", "/api/cloud/jn-3f9a", state=_state(tmp_path),
+                 match_info={"tag": "jn-3f9a"})  # no instance_id
         )
 
         assert resp.status == 200
@@ -638,8 +638,8 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a?instance_id=i-someone-elses",
-                 state=_state(tmp_path), match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a?instance_id=i-someone-elses",
+                 state=_state(tmp_path), match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
@@ -660,8 +660,8 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-9", state=_state(tmp_path),
-                 match_info={"tag": "kc-9"})  # no instance_id -> forces the lookup
+            _req("DELETE", "/api/cloud/jn-9", state=_state(tmp_path),
+                 match_info={"tag": "jn-9"})  # no instance_id -> forces the lookup
         )
 
         assert resp.status == 200
@@ -676,12 +676,12 @@ class TestInstanceMutations:
         calls = {}
         state = _state(tmp_path)
         job = state.cloud_launch_store.create(profile="", region="us-east-1", size_key="balanced")
-        job.tag = "kc-3f9a"
+        job.tag = "jn-3f9a"
         job.instance_id = "i-fromjob"
         state.cloud_launch_store.save(job)
 
         def _gone(*a, **k):
-            raise hc.AWSError("Stack with id junction-kc-3f9a does not exist")
+            raise hc.AWSError("Stack with id junction-jn-3f9a does not exist")
 
         monkeypatch.setattr(hc.ec2, "describe", _gone)
         monkeypatch.setattr(hc.ec2, "destroy", lambda tag, p, r, **kw: {"destroyed": True})
@@ -693,7 +693,7 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a", state=state, match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a", state=state, match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
@@ -708,6 +708,6 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.ec2, "describe", lambda *a, **k: {"instance_id": "i-0abc"})
         monkeypatch.setattr(hc.ec2, "destroy", _boom)
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-1/", state=_state(tmp_path), match_info={"tag": "kc-1"})
+            _req("DELETE", "/api/cloud/jn-1/", state=_state(tmp_path), match_info={"tag": "jn-1"})
         )
         assert resp.status == 403

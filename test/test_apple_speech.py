@@ -343,7 +343,7 @@ class TestHelperBuild:
     def test_helper_lives_behind_the_sensitive_path_fence(self):
         """The gateway EXECUTES the compiled helper, so its directory must not be
         agent-writable — otherwise "the agent can write a file" becomes "the agent
-        can run code as the gateway". `run` is on `_CREW_SECRET_LEAVES`; `cache` is
+        can run code as the gateway". `run` is on `_DATA_HOME_SECRET_LEAVES`; `cache` is
         not, which is what made the original location a privilege escalation."""
         from junction.security import is_sensitive_path
 

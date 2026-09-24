@@ -20,7 +20,7 @@ from junction.acp.session_handle import WatchdogSettings
 def _isolate_config_dir(tmp_path, monkeypatch):
     """Point config_dir() at a throwaway dir so SessionManager's SessionMap
     writes to a per-test ``session_map.json`` instead of the real
-    ``~/.kirocrew/session_map.json``.
+    ``~/.junction/session_map.json``.
 
     Without this, every test reuses key ``"test-key"``: a pool-claim test
     persists a ``claude_code`` session_map entry (which ``SessionMap.get``
@@ -28,7 +28,7 @@ def _isolate_config_dir(tmp_path, monkeypatch):
     the same key then sees a truthy ``resume_sid`` and bypasses the warm
     pool — making ``assert provider is pooled`` fail nondeterministically
     under xdist. Isolating config_dir also stops the suite from polluting
-    the developer's real ``~/.kirocrew``.
+    the developer's real ``~/.junction``.
     """
     monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "junction_home"))
 
@@ -65,7 +65,7 @@ def _make_manager(pool_size: int = 2, pool_agent: str = "junction", pool_ttl_sec
     cfg = _make_cfg(pool_size, pool_agent, pool_ttl_secs)
     factory = MagicMock(side_effect=lambda *a, **kw: _make_provider())
     with patch(
-        "junction.session.default_project_dir", return_value="/home/user/.kirocrew/workspace"
+        "junction.session.default_project_dir", return_value="/home/user/.junction/workspace"
     ):
         mgr = SessionManager(cfg, provider_factory=factory)
     return mgr, factory
@@ -1226,7 +1226,7 @@ class TestPoolCwd:
         provider, is_new, _ = await mgr.get_or_create(
             "test-key",
             agent="junction",
-            cwd="/home/user/.kirocrew/workspace",  # same as _pool_cwd
+            cwd="/home/user/.junction/workspace",  # same as _pool_cwd
         )
 
         assert provider is pooled
@@ -1263,7 +1263,7 @@ class TestPoolCwd:
         await mgr._fill_warm_pool()
 
         factory.assert_called_once()
-        assert factory.call_args.kwargs.get("cwd") == "/home/user/.kirocrew/workspace"
+        assert factory.call_args.kwargs.get("cwd") == "/home/user/.junction/workspace"
 
     @pytest.mark.asyncio
     async def test_fill_warm_pool_passes_none_when_pool_cwd_empty(self):

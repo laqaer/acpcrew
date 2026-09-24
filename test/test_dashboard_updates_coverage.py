@@ -1329,7 +1329,7 @@ class TestUpdateInfoAccessors:
         # The invariant is that the DOWNLOAD's failure fails the command.
         # A pipe fed from an already-checked variable preserves that; only a
         # bare `curl … | sh` would report just sh's status.
-        assert '_kc_body="$(curl' in command, "curl must not feed sh directly"
+        assert '_jn_body="$(curl' in command, "curl must not feed sh directly"
 
 
 class TestExternallyManagedCheck:

@@ -183,7 +183,7 @@ class TestWheelUpdateCommand:
 
         cmd = wheel_update_command("nightly")
         assert "--channel nightly" in cmd
-        assert "https://download.crew.kiro.dev/cli.sh" in cmd
+        assert "https://download.getjunction.dev/cli.sh" in cmd
         assert "--proto '=https'" in cmd
 
     def test_cdn_override(self, monkeypatch, tmp_path) -> None:

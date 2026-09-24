@@ -262,7 +262,7 @@ class TestReaperOACPending:
         # Manifest was deleted
         mock_s3.delete_object.assert_called_once()
         call_args = mock_s3.delete_object.call_args
-        assert "test-app/.kirocrew-deploy.json" in str(call_args)
+        assert "test-app/.junction-deploy.json" in str(call_args)
 
     def test_oac_pending_still_in_use_retains(self):
         """Second sweep with oac_pending but OAC still InUse -> stays reaping."""
