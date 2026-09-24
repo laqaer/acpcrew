@@ -6,7 +6,7 @@ Persistent conversation history with provenance tracking and LLM-driven consolid
 
 ## ConversationLog (`history.py`)
 
-Per-thread JSONL files at `~/.kiro/crew/sessions/{safe_key}.jsonl`. First line is metadata, subsequent lines are messages with `role`, `content`, `ts`, `tools`, `source_thread`, `source_user`. A writer can also supply `cls` (presentation class) and `mid` — persisted as `meta.mid`, the same field shape the dashboard slot save writes, so a dual-write injector's durable copy carries the SAME delivery identity as its in-memory window copy and a bounded slot-detail read reconciles the two as one message instead of re-appending the injection. A row appended without an id carries no `meta` at all (the pre-id shape readers keep an id-less fallback for; existing transcripts are never migrated).
+Per-thread JSONL files at `~/.junction/sessions/{safe_key}.jsonl`. First line is metadata, subsequent lines are messages with `role`, `content`, `ts`, `tools`, `source_thread`, `source_user`. A writer can also supply `cls` (presentation class) and `mid` — persisted as `meta.mid`, the same field shape the dashboard slot save writes, so a dual-write injector's durable copy carries the SAME delivery identity as its in-memory window copy and a bounded slot-detail read reconciles the two as one message instead of re-appending the injection. A row appended without an id carries no `meta` at all (the pre-id shape readers keep an id-less fallback for; existing transcripts are never migrated).
 
 - Append-only for LLM cache efficiency
 - Rotation at 2MB (keeps metadata + last 200 messages, atomic write)
@@ -351,8 +351,7 @@ no longer destroy older turns.
     fold is exact, not ambiguous, and is likewise silent.)
   - **Successor identity, landed on the save side.** The **creation-time
     per-message uuid** (`meta.mid`, minted by `_ChatSlot.append`, persisted by
-    the save, carried onto durable copies — the successor identity tracked by
-    [issue #381](https://github.com/kirodotdev/KiroCrew/issues/381)) is now the
+    the save, carried onto durable copies) is now the
     fold's pass-0 identity, so for stamped lines identity is *exact* rather
     than inferred. The bounded timestamp-first heuristic above is thereby
     **demoted to a legacy fallback** for un-stamped lines: pre-id transcripts
@@ -391,7 +390,7 @@ no longer destroy older turns.
 Lines that ARE intentionally dropped (rotation, compaction, history edits) are
 archived instead of being permanently deleted:
 
-- **Archive location**: `~/.kiro/crew/sessions/archive/{key}__{YYYYMMDD-HHMMSS}.jsonl`,
+- **Archive location**: `~/.junction/sessions/archive/{key}__{YYYYMMDD-HHMMSS}.jsonl`,
   where the separator is `ARCHIVE_SEGMENT_DELIMITER`. It is `__` rather than a dot
   because session keys legitimately contain dots (a Slack `thread_ts`), which a
   right-most-dot parse would attribute to the wrong session.

@@ -349,7 +349,7 @@ class AppStorage:
     """App-scoped persistent key-value storage.
 
     Backed by files in the app's data directory:
-    ~/.kirocrew/apps/{app_name}/data/kv/{key}.json
+    ~/.junction/apps/{app_name}/data/kv/{key}.json
 
     Keys are validated to prevent path traversal.
     Values are JSON-serializable dicts or strings.

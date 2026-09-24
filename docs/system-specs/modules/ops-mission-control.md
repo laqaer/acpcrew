@@ -686,8 +686,8 @@ we assign.
 
 ### 4. Keystone secret path (security)
 
-`ops_mission_control_secrets.json` on the crew home, registered in
-`security._CREW_SECRET_LEAVES`. That places it on the shared **read+write**
+`ops_mission_control_secrets.json` on the data home, registered in
+`security._DATA_HOME_SECRET_LEAVES`. That places it on the shared **read+write**
 sensitive-path floor, so the agent's own file tools (`is_sensitive_path`) and shell
 forms (`is_sensitive_bash_command` — `cat`, `>`, `tee`, `tar -C`/`unzip -d`) can
 neither read nor overwrite it.
@@ -698,7 +698,7 @@ former is writable by any auto-approved agent shell. The authenticated dashboard
 PUT handler is the only writer and opens the path directly, bypassing the gate, so
 Settings still works.
 
-`test_security.py` asserts `SECRETS_FILENAME in security._CREW_SECRET_LEAVES`, so a
+`test_security.py` asserts `SECRETS_FILENAME in security._DATA_HOME_SECRET_LEAVES`, so a
 rename that forgets the registration fails the build rather than silently dropping
 the protection.
 
@@ -1060,7 +1060,7 @@ throughout. Asserted through `authorize_action` — the decision that actually r
 shell. So a prompt-injected agent could mint the dashboard token, PUT `mode=act` with a rule
 matching a signal, and unlock a provider write the operator never granted. Found in review.
 
-They now live in `ops_mission_control_policy.json` on the `security._CREW_SECRET_LEAVES` floor
+They now live in `ops_mission_control_policy.json` on the `security._DATA_HOME_SECRET_LEAVES` floor
 (`backend/policy_store.py`), exactly like the provider secrets — the agent can neither read nor
 overwrite it. The authenticated dashboard PUT is the sole writer and opens the path directly.
 The keystone is read ONLY from itself; a test pins the policy path onto `is_sensitive_path` and
@@ -1070,10 +1070,10 @@ the filename equal to the fence entry.
 `junction token`, which reads the sensitive-path-fenced `.local_secret` in a SUBPROCESS the
 tool-call fence does not cover, and prints a URL that authenticates every gateway route —
 including this PUT. So the ceiling is only as strong as the deny-command rule that blocks the
-mint. That rule (`credential-exfil-junction-token`) matched `.*junction.*token` but not the
-identical `python -m junction token` module form, which was a way for a prompt-injected agent
-to raise its own ceiling. Broadened to `.*kiro[-_]?crew.*token` (both the console script and the
-module path); a test pins both forms blocked and benign mentions allowed. This is a generic
+mint. That rule (`credential-exfil-junction-token`) blocks the console script, and the argv
+floor behind it also blocks the identical `python -m junction token` module form, which would
+otherwise be a way for a prompt-injected agent to raise its own ceiling; a test pins both forms
+blocked and benign mentions allowed. This is a generic
 security-control fix, not an ops one — every authenticated route shared the exposure — so it
 lives in `security.BUILTIN_DENIED_RULES`, not in this app.
 
@@ -1106,7 +1106,7 @@ still allowed — the verb is what the rule blocks, not the import.
 
 Obfuscation is where this matcher meets its limit, and the fix draws the line honestly rather
 than pretending to close it. `\bjunction\b` misses a name assembled at runtime —
-`__import__('kiro'+'_crew')`, `importlib.import_module(name)`, `exec(base64.b64decode(...))` — so
+`__import__('junc'+'tion')`, `importlib.import_module(name)`, `exec(base64.b64decode(...))` — so
 an inline-program payload combining an interpreter with any of a NARROW list of dynamic-exec
 primitives (`__import__(`, `importlib`, `exec(`, `eval(`, `compile(`, `b64decode`, `marshal`,
 `getattr(`) is treated as opaque and denied: "I cannot tell what this imports" is the fail-closed
@@ -2655,7 +2655,7 @@ channel the operator cannot mute.
 
 **In-process, and therefore both HTTP guards replicated.** `POST
 /api/notifications/push` is unreachable here, twice over. It authenticates with an app
-token whose secret lives at `~/.kiro/crew/apps/<name>/.app_secret`, and
+token whose secret lives at `~/.junction/apps/<name>/.app_secret`, and
 `register_builtin_apps` writes that file only for a manifest declaring
 `backend.entryPoint`; this app declares `backend.routes`, so no secret exists (verified
 on disk — `dev-fleet`/`file-explorer`/`workflows` have one, this app does not). And even
@@ -2834,12 +2834,12 @@ returns to paused after a disable→enable cycle.
 ## On-disk layout
 
 ```
-<crew_home>/apps/ops-mission-control/data/
+<data_home>/apps/ops-mission-control/data/
 ├── config.json            # NON-SECRET only (served unauthenticated)
 ├── incidents/index.json   # dispatch index — {incident_id: Incident}
 ├── incidents/<id>.md      # postmortem, written when the incident CLOSES (0o600)
 └── ledger.jsonl           # append-only LedgerEntry stream
-<crew_home>/ops_mission_control_secrets.json   # KEYSTONE (see contract 4)
+<data_home>/ops_mission_control_secrets.json   # KEYSTONE (see contract 4)
 ```
 
 All writes go through `atomic_write`. File locking goes through
@@ -2942,7 +2942,7 @@ review time, not to simulate the platform.
   (verified: `code_review_sage` has the same latent gap). `builtin_skills/**/*` is
   packaged (`setup.cfg`) and `_ensure_builtin_skills` copytrees it into every
   install, which is the only path that reaches end users. The cron prompts
-  reference `~/.kiro/crew/skills/ops-mission-control/sops/<name>.md` accordingly.
+  reference `~/.junction/skills/ops-mission-control/sops/<name>.md` accordingly.
 
   **Every SOP names the credentialed tool, not a token recipe.** The SKILL and all six SOPs
   told the agent to call HTTP endpoints and never said how to authenticate. An

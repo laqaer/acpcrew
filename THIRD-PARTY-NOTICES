@@ -10390,6 +10390,22 @@ The following fonts are bundled with the frontend as static assets under
 the dashboard first-class typography and accessibility support without an
 external font-server dependency.
 
+### Overpass and Overpass Mono
+
+- License: SIL Open Font License 1.1
+- Copyright 2021 The Overpass Project Authors
+- Source repository: https://github.com/RedHatOfficial/Overpass
+- Distribution used: the `@fontsource-variable/overpass` and
+  `@fontsource-variable/overpass-mono` 5.3.0 packages (variable `wght` axis,
+  split into Unicode-range subsets)
+- License text: `website/public/fonts/overpass/OFL.txt` (also bundled with the
+  marketing site under `site/public/fonts/overpass/OFL.txt`)
+- Bundled files (`website/public/fonts/overpass/`):
+    - `overpass-{latin,latin-ext,cyrillic,cyrillic-ext,vietnamese}-wght-{normal,italic}.woff2`
+    - `overpass-mono-{latin,latin-ext,cyrillic,cyrillic-ext,vietnamese}-wght-normal.woff2`
+- The Junction wordmark and the lettering in `assets/brand` and
+  `packaging/installer-assets` are outlines drawn from these fonts.
+
 ### OpenDyslexic
 
 - License: SIL Open Font License 1.1

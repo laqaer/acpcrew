@@ -130,7 +130,7 @@ Run a dev gateway alongside production without data or port conflicts:
 ./dev-seed.sh
 
 # Start the dev backend (port 6777, isolated data)
-JUNCTION_HOME=.kirocrew-dev JUNCTION_PORT=6777 junction up
+JUNCTION_HOME=.junction-dev JUNCTION_PORT=6777 junction up
 ```
 
 Browse at `http://localhost:6777`. The backend serves the built frontend assets directly.
@@ -151,7 +151,7 @@ for instant hot-reload without rebuilding:
 
 ```bash
 # Terminal 1 — start the backend
-JUNCTION_HOME=.kirocrew-dev JUNCTION_PORT=6777 junction up
+JUNCTION_HOME=.junction-dev JUNCTION_PORT=6777 junction up
 
 # Terminal 2 — start the frontend dev server (hot-reloads .tsx changes)
 cd website
@@ -159,7 +159,7 @@ JUNCTION_PORT=6777 npm run dev
 # → Vite starts at http://localhost:3000, proxies /api/* to backend on port 6777
 
 # Terminal 3 — generate an auth token
-JUNCTION_HOME=.kirocrew-dev JUNCTION_PORT=6777 junction token
+JUNCTION_HOME=.junction-dev JUNCTION_PORT=6777 junction token
 # → Outputs: http://localhost:6777?token=eyJ...
 
 # Open in browser — replace :6777 with :3000:

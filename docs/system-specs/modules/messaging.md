@@ -3340,7 +3340,7 @@ would let the redelivery through as a phantom operator command.
 **The session store is on the sensitive keystone.** `<data home>/whatsapp/` holds
 whatsmeow's device keys, which are the entire credential: anything that reads them
 can act as the operator on WhatsApp with no second factor. It is a
-`_CREW_SECRET_LEAVES` entry, classified as the DIRECTORY so the SQLite WAL and SHM
+`_DATA_HOME_SECRET_LEAVES` entry, classified as the DIRECTORY so the SQLite WAL and SHM
 sidecars are covered too, and the path is pinned to the default: `whatsapp.db_path`
 is inert, because the protection is a path match and an operator-supplied location
 would carry the credential out from behind it.

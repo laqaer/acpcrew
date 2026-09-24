@@ -22,12 +22,12 @@ superseded-by: []
   hand.
 * A **Project** is a named, declarative bundle of context sources: a small
   credential-free manifest stored in a Git repo (or S3 prefix), attached to any
-  session by name, synced across Crew installs by plain `git pull`, and
+  session by name, synced across Junction installs by plain `git pull`, and
   searchable as one federated surface.
 * This is a **core primitive**, not a bookmark list. A Project answers *where
   the work items come from* and gives the agent the whole picture: sessions
   map to projects (many sessions per project) with a project view and
-  one-click session creation from a project; Crew artifacts, the knowledge
+  one-click session creation from a project; Junction artifacts, the knowledge
   graph, steering, skills, MCP servers, agent crew, and workflows all scope to
   the project.
 * Source types are **pluggable**: every entry in the manifest is handled by a
@@ -36,7 +36,7 @@ superseded-by: []
   anything else ship as providers — adding a source type never changes the
   manifest format or the sync engine.
 * **Shareability is the load-bearing requirement.** A Project must be usable
-  from any Crew instance and any workspace: clone it on a second machine, a
+  from any Junction instance and any workspace: clone it on a second machine, a
   teammate's install, or attach it from a different workspace on the same
   install, and the same picture materializes. Every feature in this document
   passes one test — *can it be expressed as synced bundle data plus locally
@@ -74,8 +74,8 @@ Verified at `5cd92ff99`:
   one directory, but nothing groups the many sessions working the same body of
   work, no view lists them together, and artifacts, knowledge, and memory have
   no project scope at all.
-* **Work items are invisible to Crew.** The tickets and issues a session
-  exists to advance live in Jira/Linear/GitHub/GitLab; nothing in Crew names
+* **Work items are invisible to Junction.** The tickets and issues a session
+  exists to advance live in Jira/Linear/GitHub/GitLab; nothing in Junction names
   where a session's work comes from, so the agent never sees the whole
   picture — it sees one directory and one conversation.
 
@@ -95,7 +95,7 @@ to a new *install* (a second machine, a teammate) is manual times every source.
 4. **Attachable to any session** — dashboard, Slack, cron, subagent — injecting
    a compact project brief and setting the slot's project directory from the
    bundle's primary repo.
-5. **Shareable across Crew instances and workspaces** — the key requirement.
+5. **Shareable across Junction instances and workspaces** — the key requirement.
    Synced across installs by cloning/pulling the manifest, with every install
    resolving the same sources against its own credentials; attachable from any
    workspace on an install, because a project belongs to no workspace.
@@ -104,7 +104,7 @@ to a new *install* (a second machine, a teammate) is manual times every source.
 7. **Sessions map to projects** — many sessions per project: a project view
    listing them, one-click session creation from a project, and auto-tagging
    of sessions to the project they are working.
-8. **Project-scoped surfaces**: Crew artifacts, the knowledge graph, and the
+8. **Project-scoped surfaces**: Junction artifacts, the knowledge graph, and the
    project's agent context (crew, skills, MCP servers, steering, workflows)
    all attach to the project, so any session on it inherits the same working
    picture.
@@ -136,7 +136,7 @@ Lives at the root of the project's git repo (or S3 prefix). Declarative and
 credential-free:
 
 ```yaml
-apiVersion: crew.kiro/v1
+apiVersion: junction.dev/v1
 kind: Project
 name: payments-platform
 description: The payments platform team's working context.
@@ -241,7 +241,7 @@ Provider tiers:
    the only provider P0 needs.
 2. **First-party providers**: Jira, Linear, Notion, Confluence, Datadog,
    ServiceNow, and forge work items (GitHub/GitLab issues and PRs, distinct
-   from the `repo` clone provider) — shipped with Crew but structurally
+   from the `repo` clone provider) — shipped with Junction but structurally
    identical to any other provider; none is special to the engine. Board-level
    entries (a Jira "space", a Linear team) and item-level pins (one ticket)
    are both just provider config — `items:` narrows scope, it does not change
@@ -259,7 +259,7 @@ never change when a source type is added; that is the point of the seam.
 
 ### Materialized state — local only
 
-Per install, under `~/.kiro/crew/projects/<name>/`:
+Per install, under `~/.junction/projects/<name>/`:
 
 ```
 manifest/          # the cloned project repo (or S3 sync)
@@ -285,7 +285,7 @@ S3 backend).
 
 Git is primary: manifests are exactly the small, human-reviewed text git is
 for. S3 serves environments where a git remote is awkward. Backend is
-per-project: `crew project add <git-url>` vs `crew project add s3://…`.
+per-project: `junction project add <git-url>` vs `junction project add s3://…`.
 
 ### Sharing model — instances, workspaces, people
 
@@ -293,14 +293,14 @@ Shareability is a requirement, not an emergent property, and it has three
 distinct dimensions:
 
 1. **Across instances** (the same person on two machines, or a fresh install):
-   `crew project add <url>` on the second instance materializes the same
+   `junction project add <url>` on the second instance materializes the same
    picture — sources, pinned docs, knowledge (rebuilt from recipes), agent
    context (behind that install's own trust grant). Nothing needs exporting
    from the first instance because nothing authoritative lives outside the
    bundle.
 2. **Across workspaces on one install**: a project belongs to **no
    workspace**. Materialized state lives at the install level
-   (`~/.kiro/crew/projects/<name>/`), so two workspaces attaching the same
+   (`~/.junction/projects/<name>/`), so two workspaces attaching the same
    project share one clone set, one cache, one built knowledge graph — no
    duplication, no divergence. The workspace keeps owning memory and
    preferences; the project supplies the subject-of-work to whichever
@@ -370,7 +370,7 @@ JQL slice, or pinned individual items via `items:`.
 
 ### Project artifacts
 
-Crew artifacts (the artifact library) gain a project scope:
+Junction artifacts (the artifact library) gain a project scope:
 
 * **Attach**: an artifact produced in a project-attached session is tagged to
   the project by default; any artifact can be attached manually. The project
@@ -382,7 +382,7 @@ Crew artifacts (the artifact library) gain a project scope:
   work item (this mockup belongs to PAY-1234). The mapping is a lightweight
   index (`links.yaml`) in the project repo, so it syncs; the artifact content
   itself stays in the local library unless deliberately pinned into the repo.
-  Whether Crew also writes the link back to the external item (an attachment
+  Whether Junction also writes the link back to the external item (an attachment
   or comment on the Jira ticket) is an open question (write-back scope).
 
 ### Project knowledge graph
@@ -414,7 +414,7 @@ credential-adjacent sits behind the per-install trust grant.
 
 ### Sync model
 
-* `crew project sync <name>` = pull manifest, then refresh sources: fetch
+* `junction project sync <name>` = pull manifest, then refresh sources: fetch
   clones, refresh caches past TTL, rebuild KBs whose recipe hash changed
   (hashes in `state.json`).
 * Auto-sync via a script cron per project (no LLM): pull + refresh on an
@@ -427,7 +427,7 @@ credential-adjacent sits behind the per-install trust grant.
 
 ## Migration plan
 
-* **P0 — manifest + repos + pinned docs + session mapping.** `crew project
+* **P0 — manifest + repos + pinned docs + session mapping.** `junction project
   add/list/sync`, git backend, attach-to-session, project brief injection,
   primary-repo → slot project dir, the session→project field, a minimal
   project view (sessions + sources + health) behind a Projects entry in the
@@ -505,7 +505,7 @@ An install that never creates a project sees no new behavior.
    merge-hostile. Recipes are tiny and deterministic enough.
 3. **Per-source bookmarks with no bundle.** Rejected: the value is the bundle —
    one name that brings repos + board + docs + KB together, portable as a unit.
-4. **A Crew-hosted registry service.** Deferred: git/S3 give sharing,
+4. **A Junction-hosted registry service.** Deferred: git/S3 give sharing,
    versioning, and permissions for free with zero new infrastructure.
 
 ## Open questions

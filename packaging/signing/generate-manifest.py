@@ -42,7 +42,7 @@ import sys
 
 # Fallback identifier prefix when the app bundle's own CFBundleIdentifier
 # cannot be read (never expected for a real electron-builder output).
-APP_ID = "com.amazon.kiro.crew"
+APP_ID = "dev.junction.desktop"
 
 _ENTITLEMENTS = {"entitlements_path": "SIGNING_METADATA/Entitlements.entitlements"}
 

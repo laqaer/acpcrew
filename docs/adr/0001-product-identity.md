@@ -11,7 +11,7 @@ in the README, the marketing site, CLI help, and the dashboard default bot
 name. Junction is the product of this checkout.
 
 Criteria: one-word CLI; works for **both** “which agent” and “which model”;
-local-first; not a clone of Crew / Router / Codex; searchable; low trademark
+local-first; not a clone of the upstream gateway / Router / Codex; searchable; low trademark
 collision.
 
 ## Decision
@@ -47,7 +47,7 @@ The product name is **Junction**.
 | Portico | Gateway | `portico` | Few | Gateway ≠ two planes |
 | Switchboard | Classic routing | `switchboard` | Dated, long | Reject |
 | Codex Router | Accurate to one plane | — | Their 3.7k-star product | Never |
-| acpcrew / the previous product name | Left behind | — | Operator asked to leave both | Never |
+| Earlier working titles | Left behind | — | Operator asked to leave them | Never |
 | **Junction** | Meeting of agent plane + model plane | `junction` | Minor (git-junction, road signs); no category killer | **Winner** |
 
 Junction names the join: ACP harnesses on one side, model routing on the other.
@@ -57,9 +57,9 @@ Hearth was the runner-up (home/memory) and lost because it is silent on routing.
 
 - User-facing overlay this cut: README, `site/`, CLI, dashboard
   `DEFAULT_PRODUCT_NAME` / `bot_name`, brand gate.
-- Brand gate still forbids the concatenated upstream brand token in newly
-  added prose. Junction is accepted. Security paths and the optional
-  kiro-cli harness keep their own spellings.
+- The brand gate (`scripts/check_brand_name.py`) rejects the upstream
+  product's name on newly added lines. Junction is accepted. The optional
+  kiro-cli harness keeps its own spellings (`kiro-cli`, `~/.kiro`).
 - Hardcoded catalog descriptions stay a follow-up issue.
 - Chartroom remains an internal nod only, not a public name.
 

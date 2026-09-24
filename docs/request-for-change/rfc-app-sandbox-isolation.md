@@ -58,7 +58,7 @@ Each mutable resource gets an `owner_app` field. Apps can only modify resources 
 | Lessons | App lessons stored in `app:{name}:` namespace. App cannot read/write global lessons. Global lessons remain read-only for apps. |
 | Memory | App can only search memory from its own slots. Memory consolidation scoped to app's sessions. |
 | Chat history | App can only read history of its own slots. |
-| App storage | Already directory-isolated (`~/.kirocrew/apps/{name}/data/`). Add token-level check: app token can only access its own `name` in `/api/apps/{name}/config`. |
+| App storage | Already directory-isolated (`~/.junction/apps/{name}/data/`). Add token-level check: app token can only access its own `name` in `/api/apps/{name}/config`. |
 | Gateway config | Apps cannot modify gateway config (`/api/config/*`). Read-only access to non-sensitive fields only. |
 
 ### Phase 4 — Quotas & Rate Limiting

@@ -18,11 +18,10 @@ Read first: [`../../../JUNCTION.md`](../../../JUNCTION.md),
 - Not the product: Codex Router, Hearth, Relay, Rudder.
 - Do not present Junction as a public fork in README, site, CLI help, or
   prompts.
-- Brand gate is diff-scoped: do not write concatenated `KiroCrew` in new
-  prose.
-- The Python package is `junction`. Environment variables are `JUNCTION_*`.
-  A process still copies a previous `KIROCREW_*` value when the new name is
-  unset, so an existing data home keeps loading. The security deny list still
-  matches the previous command spelling and `~/.kirocrew`.
+- Brand gate is diff-scoped: do not write the upstream product's name in new
+  prose, code, comments, or fixtures.
+- The Python package is `junction`. Environment variables are `JUNCTION_*`,
+  and there is no other prefix. The CLI is `junction` only. The data home is
+  `~/.junction`, overridden by `JUNCTION_HOME`; there is exactly one.
   GitHub slug is `laqaer/junction`.
 - Do not edit `CHANGELOG.md` on a feature PR.

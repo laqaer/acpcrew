@@ -189,9 +189,8 @@ Episodic ranking multiplies similarity by `math.exp(-0.03 * days_old)`
 half-life of about 23 days. The score is then rounded to four decimals
 (`src/junction/vector_memory.py:1565`), so once a memory is roughly a year old a
 typical score underflows to `0.0000` and the sort order is gone with it.
-Retrieval benchmarking with the harness in
-[#2123](https://github.com/kirodotdev/KiroCrew/pull/2123) measures turn-level
-recall far below session-level recall over a 293-day corpus.
+Retrieval benchmarking measures turn-level recall far below session-level
+recall over a 293-day corpus.
 
 Put those two facts next to each other and the result is uncomfortable. An
 agent's old mistakes are forgotten by construction, right at the point where

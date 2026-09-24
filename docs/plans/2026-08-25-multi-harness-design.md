@@ -34,6 +34,6 @@ Unknown values degrade to `auto`, not a vendor CLI.
 
 ## Non-goals (this cut)
 
-- Full rebrand of the Python package (`junction`) or `~/.kiro/crew` paths
+- Renaming the Python package (`junction`) or moving the data home (`~/.junction`)
 - Teaching spec-family agents vendor-only extensions (`_session/steer`, session sharing)
 - Wiring a third-party identity fabric into the gateway

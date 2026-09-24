@@ -15,7 +15,7 @@ on the Junction repository.
 ## Repository
 
 ```
-https://github.com/kirodotdev/KiroCrew
+https://github.com/laqaer/junction
 ```
 
 ## Shell safety (READ FIRST)
@@ -66,7 +66,7 @@ Search existing issues to avoid duplicates. Derive plain keywords yourself (a
 few alphanumeric words) — do not paste raw user text:
 
 ```bash
-gh issue list --repo kirodotdev/KiroCrew \
+gh issue list --repo laqaer/junction \
   --search "your derived keywords" --state open --limit 10
 ```
 
@@ -99,7 +99,7 @@ Show the draft to the user for confirmation before submitting.
 submit time, so labels added later are picked up without editing this skill:
 
 ```bash
-gh label list --repo kirodotdev/KiroCrew --limit 100
+gh label list --repo laqaer/junction --limit 100
 ```
 
 Choose from what that command returns:
@@ -141,7 +141,7 @@ Present all three and let the user choose:
 Build a GitHub new-issue URL with query params:
 
 ```
-https://github.com/kirodotdev/KiroCrew/issues/new?title=URL_ENCODED_TITLE&body=URL_ENCODED_BODY&labels=URL_ENCODED_LABELS
+https://github.com/laqaer/junction/issues/new?title=URL_ENCODED_TITLE&body=URL_ENCODED_BODY&labels=URL_ENCODED_LABELS
 ```
 
 `labels=` takes the comma-separated names chosen in step 5. **Percent-encode each
@@ -157,7 +157,7 @@ warn the user it may be truncated and recommend Option 2.
 
 Show the formatted title and body in a code block the user can copy into
 the GitHub new issue form at:
-`https://github.com/kirodotdev/KiroCrew/issues/new`
+`https://github.com/laqaer/junction/issues/new`
 
 **Option 3: Direct creation via `gh` CLI**
 
@@ -165,16 +165,16 @@ If the user prefers, create it directly. Do **not** hand-write the title/body
 into the shell — use your file-writing tool to drop them into `mktemp` files,
 then reference those files (see **Shell safety** above):
 
-1. `BODY_FILE=$(mktemp -t kc-issue-body.XXXXXX.md)` — then write the confirmed
+1. `BODY_FILE=$(mktemp -t jn-issue-body.XXXXXX.md)` — then write the confirmed
    markdown body into it with your file-writing tool.
-2. `TITLE_FILE=$(mktemp -t kc-issue-title.XXXXXX.txt)` — then write the
+2. `TITLE_FILE=$(mktemp -t jn-issue-title.XXXXXX.txt)` — then write the
    confirmed title into it with your file-writing tool.
 3. Create the issue, loading both from files so no untrusted text is parsed by
    the shell:
 
 ```bash
 TITLE="$(cat "$TITLE_FILE")"
-gh issue create --repo kirodotdev/KiroCrew \
+gh issue create --repo laqaer/junction \
   --title "$TITLE" \
   --body-file "$BODY_FILE" \
   --label '<type label>' \

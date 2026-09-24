@@ -412,7 +412,7 @@ gate — can modify same-user files outside the worktree.
 
 **What IS now closed: Junction's own control files.** The most consequential case was measured
 and fixed rather than merely documented — a strict-mode child appended to
-`~/.kiro/crew/.data-home-ready` and exited 0, corrupting the installation's own state. Those
+`~/.junction/.data-home-ready` and exited 0, corrupting the installation's own state. Those
 paths are `security.write_protected_home_paths()`, and that protection is enforced by the
 platform HOOK layer, which a sandboxed subprocess never passes through — so it was inert for
 exactly the code that most needs it. `_run` now passes the PARENT directory of each

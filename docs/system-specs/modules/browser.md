@@ -172,7 +172,7 @@ permissions.
 answers a tokenless handshake by asking the human to approve the connection in the
 browser. Setting `PLAYWRIGHT_MCP_EXTENSION_TOKEN` removes that one click and
 nothing else, so it is opt-in and absent by default. `browser_cli/token.py` stores
-it owner-only behind `security._CREW_SECRET_LEAVES` — the agent inherits it through
+it owner-only behind `security._DATA_HOME_SECRET_LEAVES` — the agent inherits it through
 the environment and can never open the file — and no status surface returns the
 value, only whether one exists.
 

@@ -16,7 +16,7 @@ agent loads only the one it needs.
 | [providers.md](providers.md) | The `LLMProvider` interface and the KiroACP-only provider surface. |
 | [model-router.md](model-router.md) | Built-in loopback catalog (`junction up`), role DAG (orchestration → planning → execution), no secrets, no provider forwarding, degraded if the listener is down. |
 | [harness-parity.md](harness-parity.md) | The invariants keeping the Kiro harness first-class while other harnesses are adapted, and the test pinning each. |
-| [kas-backend.md](kas-backend.md) | The second, adapted ACP backend: how Crew selects and adapts it (the `kas_wire` seam, harness-parity, ABC defaults) and the deferred hooks / transport / `/clear` items. Crew-side only. |
+| [kas-backend.md](kas-backend.md) | The second, adapted ACP backend: how Junction selects and adapts it (the `kas_wire` seam, harness-parity, ABC defaults) and the deferred hooks / transport / `/clear` items. Crew-side only. |
 | [session.md](session.md) | Sessions, slots, session keys, the warm pool, and PID tracking. |
 | [history.md](history.md) | Conversation persistence, JSONL rotation, and transcript search. |
 | [session-summary.md](session-summary.md) | Intent-level session summaries: the sidecar cache, extraction, and the turn-end pass. |

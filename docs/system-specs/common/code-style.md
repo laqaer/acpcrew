@@ -35,14 +35,14 @@ Paths below are relative to `src/junction/`.
 | Embed cache | `embeddings.py` | `_EMBED_CACHE_MAX` (128 entries, keyed by text plus model id; the comment there carries the memory arithmetic). |
 | Bytecode-cache GC limits | `pycache_gc.py` | `PYCACHE_MAX_AGE_DAYS`, `PYCACHE_MAX_TOTAL_BYTES`, `PYCACHE_GC_INTERVAL_SECS` (the `<data home>/cache/pycache` TTL, size cap, and periodic-sweep cadence). |
 | Slack UX strings and pacing | `slack/handler.py` | `_THINKING`, `_CURSOR`, `_NO_RESPONSE`, `_STATUS_WORKING`, `_TRUNCATION_MARKER`, plus `_EDIT_INTERVAL`, `_APPROVAL_TIMEOUT`, `_SLACK_SECTION_TEXT_LIMIT`, the stall thresholds and the phase debounce. |
-| Cross-cutting shared constants | `constants.py` | `PRODUCT_NAME` (displayed name Junction), `CLI_BIN` / `CLI_CONSOLE_STEMS` (operator binary plus silent aliases), `JUNCTION_SPAWNED_ENV`, `ENV_TRUTHY`, `CHAT_TURN_TIMEOUT`, `COMPACT_WAIT_TIMEOUT_SECS` (one budget, shared by manual and automatic compaction), the `[OPTIONS:]` parse regexes, `DATA_WARNING`, `BANNER`. |
+| Cross-cutting shared constants | `constants.py` | `PRODUCT_NAME` (displayed name Junction), `CLI_BIN` / `CLI_CONSOLE_STEMS` (the operator binary; `junction` is the only console script), `JUNCTION_SPAWNED_ENV`, `ENV_TRUTHY`, `CHAT_TURN_TIMEOUT`, `COMPACT_WAIT_TIMEOUT_SECS` (one budget, shared by manual and automatic compaction), the `[OPTIONS:]` parse regexes, `DATA_WARNING`, `BANNER`. |
 | Model catalog probe | `model_router/probe.py` | `DEFAULT_ROUTER_PORT` (4202), `DEFAULT_GATEWAY_PORT` (4200), `HEALTH_PATH`, `GATEWAY_HEALTH_PATH`, `PROBE_TIMEOUT_SECS`, loopback host, health JSON allowlist, machine-readable `CODE_*` values. |
 | Model-router catalog + role DAG | `model_router/catalog.py`, `model_router/routing.py` | `MODEL_ID_PATTERN` / `MODEL_ID_MAX_LEN`, `ROUTE_ROLE_KEYS`, `ROLE_COST_CLASS`, `ROLE_DAG_EDGES`, cost-class tokens. Catalog JSON is packaged data. |
 | Gateway shutdown budget | `gateway_shutdown_budget.py` | Gateway cooperative timeout, service-manager signal margin, and the derived systemd/launchd stop deadline. |
 | Process-wide shutdown signal | `__init__.py` | `shutdown_event`. Background loops `await shutdown_event.wait()` with a timeout instead of a plain `asyncio.sleep`, so they wake instantly on Ctrl-C. |
 | Base agent config | `config/defaults.json` | `tools`, `allowedTools`, `resources`, `hooks`, model. Packaged as package data, so editing it needs no code change. |
 | Managed MCP server specs | `agent.py` | `_MANAGED_MCP_SERVERS`: which servers are auto-registered and refreshed while preserving user customizations. |
-| Built-in skills | `builtin_skills/<name>/SKILL.md` | Frontmatter (`always`, `triggers`, `dir`) is the skill's own contract. This is the only tree copied into a user's `~/.kiro/crew/skills/`. |
+| Built-in skills | `builtin_skills/<name>/SKILL.md` | Frontmatter (`always`, `triggers`, `dir`) is the skill's own contract. This is the only tree copied into a user's `~/.junction/skills/`. |
 
 Other style rules:
 

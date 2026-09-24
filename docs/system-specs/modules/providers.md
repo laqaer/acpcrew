@@ -1,7 +1,6 @@
 ## LLM Provider Abstraction
 
-Junction's public core drove a single LLM backend: `kiro-cli` over ACP. **This
-fork (acpcrew)** keeps `agent.provider` fixed to `acp` and selects the *harness*
+Junction keeps `agent.provider` fixed to `acp` and selects the *harness*
 at `agent.acp_backend` (`auto` by default: Cursor, Claude, Codex, DeepSeek
 Harness, Pi, and the other ACP stdio agents). The `LLMProvider` interface is
 retained as a thin seam. kiro-cli is optional.

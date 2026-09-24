@@ -335,7 +335,7 @@ order, and the order is load-bearing:
    session, so they would otherwise outlive the gateway).
 6. Concurrently: cancel subagents, close all sessions, close WebSocket
    connections and then the dashboard runner, close each channel client, and
-   cancel background tasks (model download, home migration, update check).
+   cancel background tasks (model download, update check).
 
 ## Memory lifecycle
 
@@ -629,9 +629,8 @@ there is no optional embedding service to stand up.
 ## Data home
 
 Persistent state lives under `~/.junction/` (override with `JUNCTION_HOME`).
-The root nests under kiro-cli's own `~/.kiro/` so every Kiro-family app shares
-one directory a user can secure; a legacy `~/.kirocrew` is migrated
-automatically. Selected entries:
+It is the one data home: a single directory a user can secure, separate from
+kiro-cli's own `~/.kiro/`. Selected entries:
 
 ```
 ~/.junction/

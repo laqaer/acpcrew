@@ -50,10 +50,10 @@ fi
 
 if [ -d "$DEST/.git" ]; then
   remote=$(git -C "$DEST" remote get-url origin)
-  # Current slug, plus the previous GitHub locations. A transfer leaves the
+  # Current slug, plus the previous GitHub location. A transfer leaves the
   # old URL as a redirect; refusing it would block an upgrade.
   case "$remote" in
-    *myrmitis/junction*|*laqaer/junction*|*laqaer/acpcrew*) ;;
+    *myrmitis/junction*|*laqaer/junction*) ;;
     *)
       echo "refusing: $DEST is not a checkout of $REPO" >&2
       exit 1

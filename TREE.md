@@ -27,9 +27,8 @@ is last in that list and optional. Set a concrete id to pin.
 }
 ```
 
-CLI: `junction`. A new install stores state in `~/.junction`. An older data
-directory is still opened when that path is absent. Package import path is
-`junction`. `JUNCTION_HOME` overrides the data home.
+CLI: `junction`. State lives in `~/.junction`, the one data home. Package
+import path is `junction`. `JUNCTION_HOME` overrides the data home.
 
 Registry: `src/junction/acp/runtimes.py`. Two-plane thesis:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). Model catalog and role DAG:

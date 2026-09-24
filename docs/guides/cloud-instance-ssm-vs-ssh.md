@@ -107,7 +107,7 @@ here, and opens the dashboard — all from your laptop.
    in place; `junction cloud destroy` removes both the box and this registration.
 
 For setting up a box you manage yourself (SSH or SSM, and the common EC2 gotchas),
-see [remote-crew-on-ec2.md](remote-crew-on-ec2.md).
+see [remote-instance-on-ec2.md](remote-instance-on-ec2.md).
 
 ## What you see in Settings → Instances
 

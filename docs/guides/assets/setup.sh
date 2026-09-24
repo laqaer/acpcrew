@@ -35,8 +35,8 @@ USER_UNIT_DIR="$HOME/.config/systemd/user"
 mkdir -p "$USER_UNIT_DIR"
 NODE_VERSION=$(node --version 2>/dev/null || basename "$(ls -d "$HOME"/.nvm/versions/node/v* 2>/dev/null | tail -1)")
 
-# Resolve junction first, then silent aliases
-JUNCTION_BIN="$(command -v junction 2>/dev/null || command -v junction 2>/dev/null || command -v acpcrew 2>/dev/null)" \
+# Resolve the junction binary on PATH
+JUNCTION_BIN="$(command -v junction 2>/dev/null)" \
   || { echo "❌ junction not found in PATH"; exit 1; }
 echo "  Binary: $JUNCTION_BIN"
 

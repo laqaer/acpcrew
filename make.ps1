@@ -1,4 +1,4 @@
-# Kiro Crew - Windows build targets (pip + npm/vite + pytest).
+# Junction - Windows build targets (pip + npm/vite + pytest).
 #
 # The Windows counterpart of the Makefile: same target names, same artifacts.
 # It exists because `make` is not part of a Windows install (Git Bash ships no
@@ -52,9 +52,7 @@ function Write-Err($msg) { Write-Host "  [ERROR] $msg" -ForegroundColor Red }
 
 function Get-DataHome {
     if ($env:JUNCTION_HOME) { return $env:JUNCTION_HOME }
-    # Never the legacy ~/.kirocrew: the one-time data-home migration deletes it,
-    # so writing there would resurrect it on every build.
-    return (Join-Path $env:USERPROFILE ".kiro\crew")
+    return (Join-Path $env:USERPROFILE ".junction")
 }
 
 # Fail the target the way make does -- stop at the first failing command rather

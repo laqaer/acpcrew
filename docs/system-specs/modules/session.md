@@ -326,7 +326,7 @@ After a hard kill, `_eager_respawn(key)` calls `get_or_create(key)` in a backgro
 ## Session Resume (SessionMap)
 
 Persistent mapping of `session_key → kiro_session_id` stored at
-`~/.kiro/crew/session_map.json`. Enables `session/load` to restore full
+`~/.junction/session_map.json`. Enables `session/load` to restore full
 kiro-cli conversation history when a session is recycled.
 
 **Only long-lived conversational sessions are mapped.** Stateless sessions
@@ -801,7 +801,7 @@ This addresses user complaints about Junction overwriting customizations on non-
 - **Mtime-based**: skips unchanged files for efficiency
 - **Merge semantics**: union of existing + bundled patterns (never removes agent's own)
 - **Targets**: both `execute_bash` and `shell` tool settings
-- **Config**: set via `~/.kiro/crew/config.json` or Dashboard Config Summary
+- **Config**: set via `~/.junction/config.json` or Dashboard Config Summary
 
 ## Orphaned MCP Server Cleanup
 

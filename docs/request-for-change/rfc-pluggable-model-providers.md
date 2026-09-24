@@ -20,9 +20,8 @@ superseded-by: []
   direction can be settled on its own merits.
 - Author: ptias
 - Created: 2026-08-07
-- Related: issue [#1693](https://github.com/kirodotdev/KiroCrew/issues/1693)
-  (the original request), `docs/system-specs/modules/providers.md` (records the
-  current single-provider constraint)
+- Related: `docs/system-specs/modules/providers.md` (records the current
+  single-provider constraint)
 
 ## Summary
 

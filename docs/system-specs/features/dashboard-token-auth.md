@@ -438,7 +438,7 @@ The `--slack-only` gateway starts `start_api_server()` instead of
 internal_paths=_STRICT_INTERNAL_API_PATHS,
 mixed_internal_paths=_MIXED_INTERNAL_API_PATHS, spa_shell_handler=None) →
 sel_audit_middleware`. It generates and persists the same
-`~/.kiro/crew/.local_secret` (or the explicit `JUNCTION_HOME`), sets
+`~/.junction/.local_secret` (or the explicit `JUNCTION_HOME`), sets
 `app["local_secret"]`, and builds
 `app["allowed_origins"]`. `spa_shell_handler=None` because there is no UI — a
 request with no token is denied outright. Every in-repo caller (mcp-core, cron)
@@ -458,7 +458,7 @@ same-uid process can read `.local_secret`), but the session identity in
 `X-Session-Key` is entirely client-declared — a same-uid process could claim
 any session's key. To close that gap, both server entrypoints additionally
 bind a `web.UnixSite` on the **same** `AppRunner` at
-`dashboard_socket_path(port)` (`~/.kiro/crew/dashboard-<port>.sock`,
+`dashboard_socket_path(port)` (`~/.junction/dashboard-<port>.sock`,
 port-suffixed so multi-instance homes don't collide; see
 `server._start_unix_site`). Windows and any bind failure degrade to TCP-only
 — today's behavior — after one log line. The socket file is unlinked

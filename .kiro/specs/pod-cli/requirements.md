@@ -10,7 +10,7 @@ its **own** `JUNCTION_HOME` (isolated DB / sessions / memory), **no Slack tunnel
 
 It lets a contributor exercise a worktree's full stack — the backend `/api/*`
 **and** the SPA bundle the gateway serves on the same port — **without touching
-their live gateway or the shared `~/.kirocrew` data**.
+their live gateway or the shared `~/.junction` data**.
 
 This is the *test line* (multi-active, burn-on-evict); it is orthogonal to the
 *live line* (a single gateway serving real data on the canonical port `5476`) and
@@ -66,7 +66,7 @@ me clearly that this is the worktree build failing — not the pod tool.
 
 ### NFR-1 — Isolation (safety-critical)
 - A pod MUST run its own `JUNCTION_HOME`; it MUST NOT read or write the live
-  `~/.kirocrew`.
+  `~/.junction`.
 - A pod MUST NOT bind the live port (`5476`) under any derivation or pin.
 - A pod MUST NOT be reachable off-loopback: it binds `127.0.0.1` only.
 

@@ -73,7 +73,7 @@ Reqs 1/3/4/5/6 without the module; only the typed rich preview (Req 2.2) is gate
   - _Requirements: 6.1, 6.2, 6.3_
 
 - [ ] 6. Document the portable AI-SDK mapping
-  - Write the intercept → render → resume mapping table naming the Kiro-Crew-specific parts
+  - Write the intercept → render → resume mapping table naming the Junction-specific parts
     (`on_tool_call`, `approveChatSlot`) vs the portable shape, and the AI-SDK resume seam
     (`addToolResult` / continued stream).
   - State explicitly that the `UIToolInvocation` union is a state model, not a transport

@@ -478,7 +478,7 @@ Writers: `apps/routes.py::handle_uninstall_app`, `_deregister_crons_with_retry`,
 
 ## 11. Dependencies are reference-counted, and only sole ownership is removable
 
-`~/.kiro/crew/dependency-ledger.json` records which apps caused which capability
+`~/.junction/dependency-ledger.json` records which apps caused which capability
 dependency to be resolved. Uninstall classifies each dependency the manifest
 declares into one of three buckets, and the bucket alone decides what happens:
 

@@ -17,8 +17,8 @@ this checkout.
 
 The Python gateway, dashboard, memory, cron, skills, MCP, governance, and
 the keystone. The package is `junction`, the environment prefix is
-`JUNCTION_`, and a new data home is `~/.junction`. An existing
-`~/.kiro/crew` or `~/.kirocrew` is kept when `~/.junction` is absent.
+`JUNCTION_`, and the data home is `~/.junction` (overridden by
+`JUNCTION_HOME`). There is exactly one data home.
 
 `kiro-cli` remains a selectable ACP backend and is **not** required.
 

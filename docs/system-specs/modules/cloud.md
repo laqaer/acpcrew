@@ -364,9 +364,9 @@ exits non-zero.
   **non-recursively** and skips gitlink directories: `git ls-files` lists a
   submodule as a single directory entry, and a recursive `tar.add` on it would
   package the submodule's untracked/gitignored files — so we never let tar walk
-  a directory for us. On top of that, both paths run the denylist (`.kirocrew*`,
-  `.aws`, `.ssh`, `.gnupg`, `.env*`, `*.pem`/`*.key`/`*.p12`, credential
-  filenames) and drop a custom-named `JUNCTION_HOME` (incl. nested) under the
+  a directory for us. On top of that, both paths run the denylist (`.kiro`,
+  `.junction`, `.junction-dev`, `.aws`, `.ssh`, `.gnupg`, `.env*`,
+  `*.pem`/`*.key`/`*.p12`, credential filenames) and drop a custom-named `JUNCTION_HOME` (incl. nested) under the
   repo. `redact_token()` strips JWTs before any log line.
 
 ## Bootstrappers

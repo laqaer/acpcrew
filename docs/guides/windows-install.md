@@ -114,7 +114,7 @@ does **not** need a config edit before the first chat.
 This is deliberately not a Windows-wide bypass. Scripts, hooks, third-party ACP
 backends and other commands without a proven internal sandbox still fail closed.
 To run those paths without an OS sandbox, explicitly opt in at
-`%USERPROFILE%\.kiro\crew\config.json`:
+`%USERPROFILE%\.junction\config.json`:
 
 ```json
 { "agent": { "sandbox_allow_unsandboxed_exec": true } }
@@ -179,7 +179,7 @@ The not-yet items are tracked as Windows feature-parity follow-ups.
 
 ## Secret-at-rest posture on Windows
 
-Files under `%USERPROFILE%\.kiro\crew` that hold auth material — the token
+Files under `%USERPROFILE%\.junction` that hold auth material — the token
 signing key, refresh-token state, per-app secrets, snapshot tarballs, and the
 cron internal-secret temp file — are locked down to the current user via an
 owner-only NTFS DACL (inheritance stripped, `S-1-3-4:F` = Owner Rights full
@@ -220,8 +220,7 @@ The pass covers the `.db`, its `-wal`/`-shm` sidecars, and `memory.faiss` /
 `VectorMemoryStore.init()` calls `make_owner_only_dir` on the parent first, so
 everything SQLite and FAISS create from then on inherits owner-only access on
 both platforms. The per-file pass is for what already exists — a restored
-backup, a home migration, a manual edit, or simply an install predating this
-lockdown. It therefore runs on **every** init rather than only when init created
+backup, a manual edit, or simply an install predating this lockdown. It therefore runs on **every** init rather than only when init created
 the files: gating on creation would leave every pre-existing install permanently
 readable, which is most of them.
 
@@ -261,10 +260,9 @@ root cause of the concurrent-memory-append data loss). The shim instead spins
 on the non-blocking code (`LK_NBLCK`), with two behaviors by context. On the
 asyncio **event-loop thread** the acquire is single-shot — a spin-sleep there
 would freeze chat/heartbeat, so it takes the lock if free and otherwise fails
-immediately. **Off the loop** (cron, home migration, app backends) it polls up
-to a generous `_WIN_LOCK_TIMEOUT_SECS` ceiling — long enough to wait out a
-legitimately long holder such as a data-home migration, rather than racing it,
-yet bounded so a truly stuck/permission-denied fd still fails. Either way, if
+immediately. **Off the loop** (cron, app backends) it polls up to a generous
+`_WIN_LOCK_TIMEOUT_SECS` ceiling — longer than any legitimate hold, so it waits
+out a long holder rather than racing it, yet bounded so a truly stuck/permission-denied fd still fails. Either way, if
 the lock cannot be taken the acquire **fails closed**: it raises rather than
 entering the critical section unserialized, since proceeding lock-less is the
 exact fail-open that loses writes. Non-blocking `try_acquire_lock` already used

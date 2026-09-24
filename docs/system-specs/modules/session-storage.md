@@ -116,9 +116,6 @@ outright. Two things about how it decides:
   inside it. A default-location test would pass the arrangement where sharing is
   least visible: two isolated instances pointed at one *custom* `KIRO_HOME` see
   neither the default store nor each other's maps.
-- The **legacy pre-migration home counts as a default**, not as isolation. An
-  install that has not yet migrated legitimately resolves to `~/.kirocrew`, and
-  treating that as an isolated instance refused every such install.
 - The refusal is **symmetric**. A default instance is also blocked when a
   discoverable co-tenant shares its store: a pod isolates `JUNCTION_HOME` but
   deliberately not `KIRO_HOME`, so each pod home under the pod root reads the

@@ -9,36 +9,9 @@ data to migrate). Track each item here; delete the code and its row together.
 > migration if removed early). Grouping them keeps the "is it safe to delete
 > yet?" decision in one place.
 
-## Legacy `~/.kirocrew` security-path spelling
+## Pending removals
 
-The one-time `~/.kirocrew` → `~/.kiro/crew` data-home migration has been removed
-(its module, the resolver's migrate branch, its tests, and its row here are
-gone). One piece was **deliberately kept**, conservatively diverging from the
-"delete the code and its row together" rule above: the `.kirocrew`
-**security-path spelling** still gates credentials in any leftover legacy home.
-
-**Remove after:** confirming no supported machine can still have a `~/.kirocrew`
-on disk — i.e. every legacy home has already been removed by its owner. Because
-nothing migrates or deletes `~/.kirocrew` any more, a legacy home persists until
-the user removes it, so this is stricter than a "post-launch" cutoff. Removing
-the spelling while any legacy home could persist would un-gate real credentials
-(`.env`, `token_signing.key`, `security_policy.json`, …).
-
-**What to delete then:** the `.kirocrew` spelling in `src/junction/security.py`
-(`_CREW_HOME_PREFIXES`, the `sensitive-file-read-cat-junction-env` rule, and its
-`test/fixtures/denied_commands_golden.json` entry). Keep `.kiro/crew`. The
-`junction ... token` credential-exfil rule (`.*junction.*token`) matches the CLI
-*name*, not the path — leave it.
-
-**Do NOT confuse with (these stay — permanent, not migration scaffolding):**
-- the `~/.kiro/crew` resolution itself, the `JUNCTION_HOME` override, and the
-  security keystone for `~/.kiro/crew`;
-- `legacy_home()` / `LEGACY_CONFIG_DIR_NAME` — still consumed by autonudge, seed,
-  session storage, and other legacy-path readers, independent of the removed
-  migration;
-- the recovery breadcrumb (`_write_recovery_breadcrumb`,
-  `RECOVERY_BREADCRUMB_NAME`) — it points at the **current** home and lives
-  outside `~/.kiro/` specifically to survive a Kiro-family uninstaller wiping
-  `~/.kiro/`, so it is a permanent diagnostic, not a signpost for the legacy
-  move. (Its message string still names `~/.kirocrew` only as the file's own
-  location; that is cosmetic.)
+None. Junction has exactly one data home, `~/.junction` (overridden by
+`JUNCTION_HOME`), and carries no migration code, no fallback to another
+directory, and no older data-home spellings on the security floor. Add a
+section here when new migration-only code lands.

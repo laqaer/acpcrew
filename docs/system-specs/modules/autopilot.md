@@ -38,7 +38,7 @@ is Autopilot") so the model recognizes user references to *autopilot* /
 | `dashboard/state.py` | `_ChatSlot` plan state and the `mode` / `surface` wire fields |
 | `config/prompt-orchestrator.md` | System prompt: plan format, stage execution, delegation, escalation |
 | `slack/gateway.py` | `_subagent_done` orchestration guard: per-task failures, per-stage rounds, escalation text |
-| `session_workspace.py` | `~/.kiro/crew/sessions/<id>/` layout for sub-agent result files |
+| `session_workspace.py` | `~/.junction/sessions/<id>/` layout for sub-agent result files |
 | `conductor_skill.py` | Always-on delegation skill (`agent.conductor_skill`, default `false`); independent of Autopilot |
 | `website/src/pages/chat/AssistantMessage.tsx` | `parseOptions` turns `[OPTION: …]` into buttons and sets `isPlan` |
 | `website/src/pages/ChatPage.tsx` | Routes a plan-option click to `api.planAction()` |
@@ -196,7 +196,7 @@ rounds already exist, and for each stage index:
    `auto_run_subagent_timeout`.
 7. `_capture_stage_result` concatenates the assistant messages back to this
    stage's separator and writes
-   `~/.kiro/crew/sessions/<slot>/stage_<n>_result.md`; the path is recorded on
+   `~/.junction/sessions/<slot>/stage_<n>_result.md`; the path is recorded on
    the tracker. Redaction is re-applied here even though both upstream sources
    are already clean, because this writes a NEW file outside the history log's
    own redaction pass (redaction is idempotent, so the common case is a no-op).
@@ -312,7 +312,7 @@ the subagent module: see `subagent.md`.
 ## Prompt Selection
 
 `agent._prompt_path(mode="orchestrator")` (`agent.py:567`) resolves the
-orchestrator prompt in order: `~/.kiro/crew/prompt-orchestrator.md`, then
+orchestrator prompt in order: `~/.junction/prompt-orchestrator.md`, then
 `<project>/agents/prompt-orchestrator.md`, then the bundled
 `src/junction/config/prompt-orchestrator.md`; it falls back to the normal
 prompt if none exists. `ContextBuilder` passes the slot's mode through on the

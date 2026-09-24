@@ -77,7 +77,7 @@ turns validation failures into 4xx.
 
 ## Data
 
-All under `app_data_dir("meetings")` (`~/.kiro/crew/apps/meetings/data/`):
+All under `app_data_dir("meetings")` (`~/.junction/apps/meetings/data/`):
 
 ```
 config.json                      app config (agents, providers, presets)

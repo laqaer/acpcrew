@@ -125,7 +125,7 @@ class TestAppDataDir:
         mc = JunctionClient(app_name="my-tool")
         d = mc.get_app_data_dir()
         assert "my-tool" in str(d)
-        # The current data home, not the pre-move ~/.kirocrew. Compared as a
-        # Path so the assertion holds on Windows separators too.
-        assert str(Path.home() / ".kiro" / "crew") in str(d)
+        # The default data home, ~/.junction. Compared as a Path so the
+        # assertion holds on Windows separators too.
+        assert str(Path.home() / ".junction") in str(d)
         assert "apps" in str(d)

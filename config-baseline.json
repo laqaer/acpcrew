@@ -2219,7 +2219,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Extra Skill Paths",
-      "help": "Additional directories to scan for skills. Supports ~ expansion. Skills from extra_paths are read-only (trigger matching + loading). Local ~/.kiro/crew/skills/ takes precedence for duplicate names.",
+      "help": "Additional directories to scan for skills. Supports ~ expansion. Skills from extra_paths are read-only (trigger matching + loading). Local ~/.junction/skills/ takes precedence for duplicate names.",
       "hasChildren": true,
       "enumValues": null,
       "defaultValue": []
@@ -2389,7 +2389,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Enabled",
-      "help": "Main switch for Junction metrics telemetry. Off by default: metric call sites are no-ops and nothing is written. When on, a local-first JSONL sink under ~/.kiro/crew/metrics is enabled (no network egress).",
+      "help": "Main switch for Junction metrics telemetry. Off by default: metric call sites are no-ops and nothing is written. When on, a local-first JSONL sink under ~/.junction/metrics is enabled (no network egress).",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false
@@ -2403,7 +2403,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Local Metrics Dir",
-      "help": "Directory for local JSONL metric shards. Empty = ~/.kiro/crew/metrics. Supports ~ expansion.",
+      "help": "Directory for local JSONL metric shards. Empty = ~/.junction/metrics. Supports ~ expansion.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -3116,7 +3116,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Response Spill Threshold",
-      "help": "Tool-call responses larger than this (bytes) have their text content written to ~/.kiro/crew/mcp_spill/ and truncated inline to 16 KiB + a file path marker. Default 256 KiB. Set 0 to disable spilling. Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
+      "help": "Tool-call responses larger than this (bytes) have their text content written to ~/.junction/mcp_spill/ and truncated inline to 16 KiB + a file path marker. Default 256 KiB. Set 0 to disable spilling. Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": 262144
@@ -3813,7 +3813,7 @@
         "artifacts"
       ],
       "label": "Artifact Relocate Roots",
-      "help": "Extra absolute filesystem roots an artifact may be relocated into, beyond your home directory. Empty = home-only (the secure default). The sensitive-path denylist (~/.aws, ~/.ssh, ~/.kiro/crew, …) still applies inside every allowed root.",
+      "help": "Extra absolute filesystem roots an artifact may be relocated into, beyond your home directory. Empty = home-only (the secure default). The sensitive-path denylist (~/.aws, ~/.ssh, ~/.junction, …) still applies inside every allowed root.",
       "hasChildren": true,
       "enumValues": null,
       "defaultValue": []
@@ -7084,7 +7084,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Snapshot Directory",
-      "help": "Directory for junction snapshot output. Defaults to ~/.kiro/crew/snapshots if empty.",
+      "help": "Directory for junction snapshot output. Defaults to ~/.junction/snapshots if empty.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""

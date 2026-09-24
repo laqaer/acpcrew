@@ -15,7 +15,7 @@
 # resolved, see _resolve — is recorded in "<data-home>/python-bin" so
 # non-interactive callers (make) can use it without re-running a version
 # manager. The data home matches junction.config.paths._select_default_home:
-# ~/.junction on a new install, otherwise an existing ~/.kiro/crew or ~/.kirocrew.
+# JUNCTION_HOME when set, otherwise ~/.junction.
 
 MIN_MAJOR=3
 MIN_MINOR=10
@@ -82,18 +82,6 @@ _resolve() {
 _select_data_home() {
     if [ -n "${JUNCTION_HOME:-}" ]; then
         printf '%s\n' "$JUNCTION_HOME"
-        return
-    fi
-    if [ -d "$HOME/.junction" ]; then
-        printf '%s\n' "$HOME/.junction"
-        return
-    fi
-    if [ -d "$HOME/.kiro/crew" ]; then
-        printf '%s\n' "$HOME/.kiro/crew"
-        return
-    fi
-    if [ -d "$HOME/.kirocrew" ]; then
-        printf '%s\n' "$HOME/.kirocrew"
         return
     fi
     printf '%s\n' "$HOME/.junction"

@@ -137,8 +137,8 @@ Same local-token flow the dashboard already exposes, scoped to the isolated HOME
 |---|---|---|
 | `JUNCTION_POD_REPO` | invoking cwd | repo git is queried from to resolve worktree names |
 | `JUNCTION_POD_WORKTREES_ROOT` | (unset) | optional `name→path` fallback root (hermetic test planes) |
-| `JUNCTION_POD_ROOT` | `~/.kirocrew-pods` | isolated pod HOMEs (nuked on stop) |
-| `JUNCTION_POD_ENV_DIR` | `~/.kirocrew/pods` | per-pod `CHECKOUT=`/`PORT=`/`SEED=` files |
+| `JUNCTION_POD_ROOT` | `~/.junction-pods` | isolated pod HOMEs (nuked on stop) |
+| `JUNCTION_POD_ENV_DIR` | `~/.junction/pods` | per-pod `CHECKOUT=`/`PORT=`/`SEED=` files |
 | `JUNCTION_POD_BASE_PORT` | `7810` | port derivation base |
 | `JUNCTION_POD_LIVE_PORT` | `5476` | the port a pod must never bind |
 | `JUNCTION_POD_UNIT_PREFIX` | `junction-pod` | systemd unit prefix |

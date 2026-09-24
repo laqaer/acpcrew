@@ -2,8 +2,11 @@
 # ──────────────────────────────────────────────────────────────────────
 # Junction CLI installer (channel / wheel based).
 #
-#   curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
-#   curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel nightly
+#   curl -fsSL https://download.getjunction.dev/cli.sh | sh
+#   curl -fsSL https://download.getjunction.dev/cli.sh | sh -s -- --channel nightly
+#
+# The getjunction.dev distribution hosts are not provisioned yet; until they
+# are, set JUNCTION_CDN_BASE to a distribution you host.
 #
 # Installs the prebuilt `junction` wheel for a release channel. It resolves the
 # channel feed, verifies its RSA-SHA256 signature against the public key pinned
@@ -41,8 +44,8 @@ unset PYTHONPATH PYTHONHOME
 # (latest-cli.json), ARTIFACT_BASE serves the bytes (wheels, SHA256SUMS).
 # Both are aliases of the same distribution today; --cdn / JUNCTION_CDN_BASE
 # overrides BOTH (test / alternate-CDN escape hatch).
-FEED_BASE="${JUNCTION_CDN_BASE:-https://updates.crew.kiro.dev}"
-ARTIFACT_BASE="${JUNCTION_CDN_BASE:-https://download.crew.kiro.dev}"
+FEED_BASE="${JUNCTION_CDN_BASE:-https://updates.getjunction.dev}"
+ARTIFACT_BASE="${JUNCTION_CDN_BASE:-https://download.getjunction.dev}"
 CHANNEL="${JUNCTION_CHANNEL:-stable}"
 PIN_VERSION=""
 # Three states: "" = undecided (fall back to the persisted python-mode marker,
@@ -91,8 +94,8 @@ while [ $# -gt 0 ]; do
       cat <<'EOF'
 Junction CLI installer (channel / wheel based).
 
-  curl -fsSL https://download.crew.kiro.dev/cli.sh | sh
-  curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel nightly
+  curl -fsSL https://download.getjunction.dev/cli.sh | sh
+  curl -fsSL https://download.getjunction.dev/cli.sh | sh -s -- --channel nightly
 
 Installs the prebuilt `junction` wheel for a release channel: resolves the
 channel feed, verifies its signature against the installer-pinned public key,
@@ -126,24 +129,11 @@ ARTIFACT_BASE="${ARTIFACT_BASE%/}"
 
 err() { echo "junction-install: $*" >&2; exit 1; }
 
-# Same choice as junction.config.paths._select_default_home. A new install
-# uses ~/.junction. When that directory is absent, an existing previous data
-# directory is kept so this installer does not start a second home.
+# Same choice as junction.config.paths._select_default_home: JUNCTION_HOME
+# when set, otherwise the one data home, ~/.junction.
 _select_data_home() {
   if [ -n "${JUNCTION_HOME:-}" ]; then
     printf '%s\n' "$JUNCTION_HOME"
-    return
-  fi
-  if [ -d "$HOME/.junction" ]; then
-    printf '%s\n' "$HOME/.junction"
-    return
-  fi
-  if [ -d "$HOME/.kiro/crew" ]; then
-    printf '%s\n' "$HOME/.kiro/crew"
-    return
-  fi
-  if [ -d "$HOME/.kirocrew" ]; then
-    printf '%s\n' "$HOME/.kirocrew"
     return
   fi
   printf '%s\n' "$HOME/.junction"

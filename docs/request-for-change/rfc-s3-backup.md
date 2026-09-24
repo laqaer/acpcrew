@@ -71,7 +71,7 @@ enough that full-bundle-per-run beats incremental.
 
 **P2 — one component ships a reference to state no component ships.**
 `CORE_FILES["config"]`:144 carries `session_map.json`, the join to kiro-cli
-sessions living outside the crew home (`session_transfer.py:16`), while neither
+sessions living outside the data home (`session_transfer.py:16`), while neither
 side of what it points at is staged; a `session_map` entry is load-bearing for
 storage reclamation (`state.py:3207`). The dashboard path takes the opposite
 position (`portability.py:54`). This RFC asserts no runtime consequence — M2

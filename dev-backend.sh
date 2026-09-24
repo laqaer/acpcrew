@@ -5,7 +5,7 @@
 #
 # Usage: ./dev-backend.sh
 #   - Runs on port 6777 (dev port, separate from production on 5476)
-#   - Uses .kirocrew-dev/ as data directory (isolated from ~/.kiro/crew/)
+#   - Uses .junction-dev/ as data directory (isolated from ~/.junction/)
 #   - Ctrl+C to stop, re-run to pick up changes
 set -e
 
@@ -27,7 +27,7 @@ if [ ! -x "$RUNTIME_PYTHON" ]; then
 fi
 
 export PYTHONPATH="$SCRIPT_DIR/src"
-export JUNCTION_HOME="${JUNCTION_HOME:-.kirocrew-dev}"
+export JUNCTION_HOME="${JUNCTION_HOME:-.junction-dev}"
 # Absolutize: config_dir() resolves this against each process's CWD, and MCP
 # subprocesses (mcp-core/mcp-cron) are spawned with session-workspace CWDs —
 # a relative HOME makes them create empty config dirs with no .local_secret,

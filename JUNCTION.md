@@ -44,9 +44,24 @@ Site: https://getjunction.dev
 ## Implementation identifiers
 
 `junction`, `JUNCTION_HOME`, `~/.junction`, Electron `productName` Junction.
-GitHub slug is `laqaer/junction`. A new install uses `~/.junction`. When
-that directory is absent, an existing `~/.kiro/crew` or `~/.kirocrew` is kept.
-The brand gate still forbids the concatenated upstream brand token in new prose.
+GitHub slug is `laqaer/junction`. The data home is `~/.junction` (override:
+`JUNCTION_HOME`); there is no fallback to another product's directory, no
+legacy env prefix, and no CLI alias besides `junction`.
+
+## Visual identity
+
+- **Mark:** a "J" whose stem throws a track switch: the letter, and a route
+  splitting off a trunk line. Round caps; white on a signal-blue plate.
+- **Palette ("Interchange"):** signal blue `#1f55ec` (plate, light accent) and
+  `#5c8dff` (dark accent) on asphalt `#0b0e13` / paper `#f4f6f9`. The dashboard's
+  factory theme slug is `junction`.
+- **Type:** Overpass (signage heritage) and Overpass Mono, bundled; no font CDN.
+- **Motif:** wayfinding: route lines with 45°/90° bends, interchange rings,
+  signage plates. No mascot.
+- **Source of truth:** [`assets/brand/build.py`](assets/brand/build.py)
+  generates the mark, glyph, wordmark, lockups, README banner, app icons
+  (`.png`/`.ico`/`.icns`, nightly variant), tray template, PWA icons, the
+  gateway's `/logo.png`, and the DMG/NSIS installer art.
 
 ## Security and harness (do not weaken)
 

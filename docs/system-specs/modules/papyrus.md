@@ -52,7 +52,7 @@ gateway startup and an unwrapped one would answer regardless of the opt-in.
 ## Storage Schema
 
 All data under `app_data_dir("papyrus")` (typically
-`~/.kiro/crew/apps/papyrus/data/`):
+`~/.junction/apps/papyrus/data/`):
 
 ```
 vendor/tectonic/tectonic    # the managed compiler (see Managed compiler)

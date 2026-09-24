@@ -105,10 +105,10 @@ my-app/
 
 ```
 "message": "FIRST (self-heal, run these bash commands silently):
-  (1) Skill symlink: if ~/.kiro/crew/skills/MY-SKILL/SKILL.md does not exist,
-      run: ln -sfn ~/.kiro/crew/apps/MY-APP/skills/MY-SKILL ~/.kiro/crew/skills/MY-SKILL
-  (2) State dir: mkdir -p ~/.kiro/crew/workspace/MY-APP && [ -f ~/.kiro/crew/workspace/MY-APP/state.json ] || echo '{}' > ~/.kiro/crew/workspace/MY-APP/state.json
-  (3) Config for UI: mkdir -p ~/.kiro/crew/apps/MY-APP/data && [ -f ~/.kiro/crew/apps/MY-APP/data/config.json ] || echo '{...resolved paths...}' > ~/.kiro/crew/apps/MY-APP/data/config.json
+  (1) Skill symlink: if ~/.junction/skills/MY-SKILL/SKILL.md does not exist,
+      run: ln -sfn ~/.junction/apps/MY-APP/skills/MY-SKILL ~/.junction/skills/MY-SKILL
+  (2) State dir: mkdir -p ~/.junction/workspace/MY-APP && [ -f ~/.junction/workspace/MY-APP/state.json ] || echo '{}' > ~/.junction/workspace/MY-APP/state.json
+  (3) Config for UI: mkdir -p ~/.junction/apps/MY-APP/data && [ -f ~/.junction/apps/MY-APP/data/config.json ] || echo '{...resolved paths...}' > ~/.junction/apps/MY-APP/data/config.json
   THEN do the actual work..."
 ```
 
@@ -266,7 +266,7 @@ export default function MyApp() {
 
 ```javascript
 // After _configReady resolves and you know the app path:
-const appJsonPath = '/Users/.../.kiro/crew/apps/my-app/app.json'
+const appJsonPath = '/Users/.../.junction/apps/my-app/app.json'
 fetch('/api/file-read?path=' + encodeURIComponent(appJsonPath))
   .then(r => r.ok ? r.text() : null)
   .then(t => { if (t) APP_VERSION = JSON.parse(t).version })
@@ -458,7 +458,7 @@ Updates are automatic via semver diff — bump `version` in `app.json`, push to 
 ```json
 {
   "name": "my-app-update-check",
-  "message": "Fetch remote app.json via git archive, compare version to installed. Write result to ~/.kiro/crew/workspace/my-app/update-status.json. Always silent.",
+  "message": "Fetch remote app.json via git archive, compare version to installed. Write result to ~/.junction/workspace/my-app/update-status.json. Always silent.",
   "every": 86400,
   "silent": true,
   "persistent_session": false
@@ -476,7 +476,7 @@ Add to `app.json` crons array:
 ```json
 {
   "name": "my-app-update-check",
-  "message": "Check if a newer version of MY-APP is available. READ-ONLY. Steps: (1) Remote version: run `git archive --remote=https://github.com/<org>/my-app main app.json | tar -xO` from $HOME. Parse 'version'. (2) Installed version: read ~/.kiro/crew/apps/my-app/app.json. (3) Compare semver. Write ONLY to ~/.kiro/crew/workspace/my-app/update-status.json: {checked:true, installedVersion, remoteVersion, updateAvailable:bool, checkedAt:ISO}. Silent.",
+  "message": "Check if a newer version of MY-APP is available. READ-ONLY. Steps: (1) Remote version: run `git archive --remote=https://github.com/<org>/my-app main app.json | tar -xO` from $HOME. Parse 'version'. (2) Installed version: read ~/.junction/apps/my-app/app.json. (3) Compare semver. Write ONLY to ~/.junction/workspace/my-app/update-status.json: {checked:true, installedVersion, remoteVersion, updateAvailable:bool, checkedAt:ISO}. Silent.",
   "every": 86400,
   "silent": true,
   "persistent_session": false
@@ -557,10 +557,10 @@ The `data/` directory contains runtime config (`config.json`) with resolved path
 
 ## Git Workflow for Installed Apps
 
-The installed app at `~/.kiro/crew/apps/MY-APP/` IS a git repo with origin pointing to the source repository. You can commit and push directly from there:
+The installed app at `~/.junction/apps/MY-APP/` IS a git repo with origin pointing to the source repository. You can commit and push directly from there:
 
 ```bash
-cd ~/.kiro/crew/apps/my-app && git add -A && git commit -m "message" && git push origin main
+cd ~/.junction/apps/my-app && git add -A && git commit -m "message" && git push origin main
 ```
 
 No separate workspace needed. The installed app IS the workspace.
@@ -570,7 +570,7 @@ No separate workspace needed. The installed app IS the workspace.
 | Pitfall | Cause | Fix |
 |---------|-------|-----|
 | "no visual interface" in sidebar | Missing `ui.entry` or wrong extension | Use `.mjs` ESM with default export |
-| Skills don't load after install | Scanner only checks flat `~/.kiro/crew/skills/<name>/SKILL.md` | Self-heal symlink in cron |
+| Skills don't load after install | Scanner only checks flat `~/.junction/skills/<name>/SKILL.md` | Self-heal symlink in cron |
 | UI shows stale data after app.json change | Browser caches manifest API response | Hard refresh |
 | `onInstall` doesn't run | Junction lifecycle hook bug | Don't depend on it — self-heal instead |
 | SSE overwrites React state | `/api/file-watch` fires immediately on connect | Use polling instead |
@@ -623,10 +623,10 @@ process — but the contract DIFFERS from builtins (`auto_research` etc.):
   broadcast `app_reload` and the dashboard hot-swaps the app in ~1s. The flag
   lives in `installed.json` and toggles live.
 - To edit in your source tree, symlink the installed UI dir to source:
-  `mv ~/.kiro/crew/apps/<n>/ui ~/.kiro/crew/apps/<n>/ui.bak && ln -s <src>/ui ~/.kiro/crew/apps/<n>/ui`
+  `mv ~/.junction/apps/<n>/ui ~/.junction/apps/<n>/ui.bak && ln -s <src>/ui ~/.junction/apps/<n>/ui`
   (serving containment check and the dev watcher both follow symlinks).
   On native Windows use a directory junction instead (PowerShell):
-  `Rename-Item "$env:USERPROFILE\.kiro\crew\apps\<n>\ui" ui.bak; New-Item -ItemType Junction -Path "$env:USERPROFILE\.kiro\crew\apps\<n>\ui" -Target "<src>\ui"`
+  `Rename-Item "$env:USERPROFILE\.junction\apps\<n>\ui" ui.bak; New-Item -ItemType Junction -Path "$env:USERPROFILE\.junction\apps\<n>\ui" -Target "<src>\ui"`
   (`pathlib` resolves junctions the same way, so serving and the watcher work;
   the lifecycle clobber below applies identically — junctions are also never
   preserved by the install/update safe-copy).
@@ -635,10 +635,10 @@ process — but the contract DIFFERS from builtins (`auto_research` etc.):
   installed dir with a DELIBERATE symlink-stripping safe-copy (security: blocks
   `ui -> ~/.docker` style serving). Your symlink is silently replaced by a
   frozen snapshot: hot reload stops, UI goes stale, no error. Symptom:
-  `ls -l ~/.kiro/crew/apps/<n>/ui` shows a real dir, not a link. Fix: re-create
+  `ls -l ~/.junction/apps/<n>/ui` shows a real dir, not a link. Fix: re-create
   the symlink after ANY install/update, and re-check dev mode is still on.
 - Same clobber applies to locally-edited SHIPPED skills: installed skill files
-  under `~/.kiro/crew/skills/` re-sync from the Junction package on update —
+  under `~/.junction/skills/` re-sync from the Junction package on update —
   durable skill changes must land in the repo (`skills/` in the Junction source).
 - Validate `.mjs` before relying on a reload: `node --check ui/index.mjs` —
   a parse error surfaces only as "Failed to load <App>: Unexpected token".

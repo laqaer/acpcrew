@@ -1,4 +1,4 @@
-# Root-cause analysis: `~/.kiro/crew/cache/pycache/` unbounded growth (#3176)
+# Root-cause analysis: `~/.junction/cache/pycache/` unbounded growth (#3176)
 
 > Archive document — written at fix time. Current behavior lives in
 > [security](../../../../system-specs/modules/security.md) (env scrub) and
@@ -6,7 +6,7 @@
 
 ## Symptom
 
-`~/.kiro/crew/cache/pycache/` mirrors absolute filesystem paths as `.pyc`
+`~/.junction/cache/pycache/` mirrors absolute filesystem paths as `.pyc`
 caches and grows without bound: ~80 GB on the reporter's machine, and after a
 manual wipe it regrew to **8.1 GB / 435,324 files within half a day** under
 heavy use with frequent subagent spawns. The bulk was a path-for-path mirror

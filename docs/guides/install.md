@@ -225,18 +225,13 @@ folded in by the custom `BuildWithFrontend` build step in
 dashboard's changelog view works on a wheel install with no source tree.
 
 The pip install name is **`junction`**; the import package is `junction`;
-the user-facing CLI is **`junction`**. Silent aliases `acpcrew` and `junction`
-dispatch to the same entry.
-
-Installed console scripts:
+the user-facing CLI is **`junction`**, the only console script:
 
 | Command | Entry point |
 |---------|-------------|
 | `junction` | `junction._bootstrap:main` |
-| `acpcrew` | `junction._bootstrap:main` |
-| `junction` | `junction._bootstrap:main` |
 
-`pyproject.toml`'s `[project.scripts]` declares all three. Because a `[project]`
+`pyproject.toml`'s `[project.scripts]` declares it. Because a `[project]`
 table exists, setuptools reads the entry points from there and ignores
 `setup.cfg`'s `console_scripts`.
 
@@ -537,18 +532,9 @@ it.
 
 ### The data home is `~/.junction`
 
-A new install stores its data in `~/.junction`. Override that location with
-`JUNCTION_HOME`.
-
-When `~/.junction` does not exist yet and an older data directory is already
-on the machine, Junction keeps using that directory instead of starting empty:
-
-1. `~/.kiro/crew`, if that directory is present
-2. otherwise `~/.kirocrew`, if that directory is present
-
-Nothing is copied and nothing is deleted. Set `JUNCTION_HOME` before the first
-launch when you want a different directory. Those older paths stay on the
-sensitive-path deny list because they can still hold credentials.
+Junction stores its data in `~/.junction`. Override that location with
+`JUNCTION_HOME`; set it before the first launch when you want a different
+directory. There is no other data directory and no fallback.
 
 ## Verify the install
 
@@ -941,7 +927,7 @@ Remove the editable install and the build artifacts:
 
 ```bash
 # Chained so a failed `cd` (wrong path) can never run `rm -rf` in your current directory:
-cd /path/to/acpcrew \
+cd /path/to/junction \
   && pip uninstall junction \
   && rm -rf .venv build dist   # editable install, local venv, and build outputs
 ```
@@ -1065,8 +1051,7 @@ For reference, the data home structure and what each uninstall path touches:
 the application install directory and its shortcuts. It never removes the data
 home. Each signed Windows installer must pass an install,
 create-sentinel-under-`~/.junction`, uninstall, verify-sentinel smoke test
-before release. An older directory Junction is still using (`~/.kiro/crew` or
-`~/.kirocrew`) is also outside the application install directory.
+before release.
 
 ## Next steps
 

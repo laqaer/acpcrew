@@ -110,7 +110,7 @@ after startup and a restart is still pending.
  |  dashboard/handlers_instances.py                                      |
  |            |                                                          |
  |  instances/ package                                                   |
- |   |- registry.py         ~/.kiro/crew/instances.json                  |
+ |   |- registry.py         ~/.junction/instances.json                  |
  |   |- port_allocator.py   free-loopback-port probe (base 7778)         |
  |   |- token_mint.py       ssh <host> junction token -> JWT (never logged)|
  |   |- validation.py       injection-safe ssh_host / remote_bin guards  |
@@ -130,7 +130,7 @@ Module responsibilities:
 
 | Module | Responsibility |
 |--------|----------------|
-| `registry.py` | Persistent list of configured instances (`~/.kiro/crew/instances.json`) + `last_active_id`. Light charset check on `ssh_host`/`remote_bin` (SSH) or `ssm_target`/`aws_profile`/`aws_region`/`ssm_run_as` (SSM) at add/update, per `connection_method`; every mutation re-reads the file and writes atomically, so a live gateway and a CLI edit cannot clobber each other. |
+| `registry.py` | Persistent list of configured instances (`~/.junction/instances.json`) + `last_active_id`. Light charset check on `ssh_host`/`remote_bin` (SSH) or `ssm_target`/`aws_profile`/`aws_region`/`ssm_run_as` (SSM) at add/update, per `connection_method`; every mutation re-reads the file and writes atomically, so a live gateway and a CLI edit cannot clobber each other. |
 | `port_allocator.py` | Probes for a free loopback port at or above `tunnel_base_port` (7778). The probe sets `SO_REUSEADDR` so a `TIME_WAIT` remnant from a just-closed forward is not a false "in use". |
 | `token_mint.py` | Runs `junction token --ttl --port --embed-parent-port` on the remote over SSH (run-marker first, then a bin-candidate ladder) and parses the JWT out of the printed URL. Token is returned in memory only, **never logged**. |
 | `ssm_token_mint.py` | The SSM sibling of `token_mint.py`: runs the same subcommand via `aws ssm send-command` through the launcher's `cloud.ssm` chokepoint, reusing the shared remote-command builders. Token in memory only, **never logged**. See §13. |
@@ -281,7 +281,7 @@ to gain).
 
 ### 5.3 Registry file
 
-`~/.kiro/crew/instances.json`, one record per instance:
+`~/.junction/instances.json`, one record per instance:
 
 ```
 id, name, ssh_host, remote_port (default 5476), local_port (0 = unallocated),
@@ -714,7 +714,7 @@ used by the managed path.
 
 ### Provisioning from the dashboard (`/api/cloud/*`)
 
-The Remote Crew settings page can create an EC2 crew in the user's own AWS
+The Remote Instances settings page can create an EC2 instance in the user's own AWS
 account without dropping to the CLI. `dashboard/handlers_cloud.py` exposes the
 launcher behind the same owner-only guard as `/api/instances/*`: an
 authenticated owner (`request["user"]`), non-Slack, POSIX only, `403` otherwise.
@@ -867,13 +867,11 @@ live gateway. The snippet probes these data homes in priority order, since the
 remote's non-interactive SSH shell usually does not export `JUNCTION_HOME`:
 
 1. `$JUNCTION_HOME` when set and non-empty,
-2. `$HOME/<CONFIG_DIR_NAME>` (the current default, `.junction`),
-3. `$HOME/<PRIOR_CONFIG_DIR_NAME>` (`.kiro/crew`, kept when `~/.junction` is absent),
-4. `$HOME/<LEGACY_CONFIG_DIR_NAME>` (`.kirocrew`, the older top-level home).
+2. `$HOME/<CONFIG_DIR_NAME>` (the default, `.junction`).
 
-Those home segments are **interpolated from the shared
-`junction.config.paths` constants**, the same ones the marker *writer* derives
-its default from, so reader and writer cannot drift apart on a future data-home
+The default home segment is **interpolated from the shared
+`junction.config.paths.CONFIG_DIR_NAME` constant**, the same one the marker
+*writer* derives its default from, so reader and writer cannot drift apart on a future data-home
 rename. An absent or stale marker, or one that does not name an executable, falls
 through to the candidate search, so nothing regresses on an older remote. An
 explicit `remote_bin` is never overridden by the marker: it is the user's
@@ -1145,7 +1143,7 @@ sanctioned way to reach a peer. Nothing here opens a socket.
 
 The transcript above is only the **display** copy (*Layer A*). The context the
 model actually holds — the compaction/turn state, keyed by a kiro-cli session id
-— lives in a **second store outside the crew home**:
+— lives in a **second store outside the data home**:
 `kiro_sessions_dir()/<sid>.json` + `<sid>.jsonl`, joined to a slot through
 `session_map.json`. Call it *Layer B*.
 

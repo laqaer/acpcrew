@@ -35,7 +35,7 @@ fleet manages. It is resolved in this order, first hit wins:
 | 2 | `dev_fleet.repo_path` in `config.json` / `config.local.json` | no — taken verbatim |
 | 3 | `JUNCTION_PROJECT_DIR` | yes |
 | 4 | the checkout this gateway is executing from (`src/junction` layout walk) | yes |
-| 5 | conventional clone locations under `$HOME` (`junction`, `Junction`, `kiro-crew` directly and under `Repos`, `repos`, `src`, `Projects`, `projects`, `dev`, `git`, `code`, `workplace`) | yes |
+| 5 | conventional clone locations under `$HOME` (`junction`, matched case-insensitively, directly and under `Repos`, `repos`, `src`, `Projects`, `projects`, `dev`, `git`, `code`, `workplace`) | yes |
 
 Tier 5 matches directory names case-insensitively against each parent's own listing rather than joining the guessed spellings, so the resolved path is spelled the way the filesystem spells it. A blind join succeeds against a differently-cased directory on a case-insensitive filesystem (macOS) and yields a path that does not match the ones git reports for the same tree.
 
@@ -480,8 +480,7 @@ re-shows the failure. Server-side dismissal is deliberately out of scope here.
 
 Dev Fleet's two slowest actions — **Restart Gateway** and **Sync (Pull+Build)** —
 narrate their progress so users don't read them as hung and fire them again. A
-duplicate Restart Gateway causes a second real ~10s gateway outage
-([issue #639](https://github.com/kirodotdev/KiroCrew/issues/639)).
+duplicate Restart Gateway causes a second real ~10s gateway outage.
 
 ### Restart identity handshake
 
@@ -650,14 +649,14 @@ in `go.mod`), and `pyenv`/`rbenv` shims.
 ### Pointer file
 
 Location: `config_dir() / "live_target.json"` (inside the active data home,
-typically `~/.kiro/crew/live_target.json`). Contents:
+typically `~/.junction/live_target.json`). Contents:
 
 ```json
 {"checkout": "/absolute/path/to/worktree"}
 ```
 
 Written atomically (temp file + `os.replace`) with mode `0o600`. The file is
-**keystone-fenced** (in `_CREW_SECRET_LEAVES`) so agent tools can neither read
+**keystone-fenced** (in `_DATA_HOME_SECRET_LEAVES`) so agent tools can neither read
 nor write it — only the human-driven dashboard cutover action writes it, and
 the gateway's startup reader (`live_target.maybe_reexec`) opens it directly
 rather than through the gate.
@@ -980,7 +979,7 @@ project-dir mechanism reaches only some: `_project_skills_dir()` reads
 the wheel or sdist does not — and neither does the desktop bundle, whose builder
 stages no top-level `skills/` tree.
 
-Skills are registered as symlinks into `~/.kiro/crew/skills/` via the app bridge at
+Skills are registered as symlinks into `~/.junction/skills/` via the app bridge at
 two lifecycle points:
 
 1. **On enable** — `register_app()` in `bridges.py` creates namespaced + flat symlinks

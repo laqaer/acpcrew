@@ -30,7 +30,7 @@ Code citations below were measured on main `622ada48` (2026-07-29).
 
 ### Current state
 
-A subagent run's durable footprint is three files under `~/.kiro/crew/subagents/{id}/`: a `state.json` progress record, a plain-text `result.txt`, and a `tombstone.json` on exit (`src/junction/subagent_persistence.py:4-6`).
+A subagent run's durable footprint is three files under `~/.junction/subagents/{id}/`: a `state.json` progress record, a plain-text `result.txt`, and a `tombstone.json` on exit (`src/junction/subagent_persistence.py:4-6`).
 
 The single enforcement point for non-resumability is one tuple entry. `"subagent:"` is a member of `_STATELESS_PREFIXES` (`src/junction/session.py:261-275`), which makes `get_or_create` skip the session-map lookup for the run's key (`session.py:2073-2075`), never persist a sid mapping (`session.py:2294-2306`), never arm ACP `session/load`, and bypass the warm pool (`session.py:2093-2099`). Everything else follows:
 
@@ -94,7 +94,7 @@ flowchart LR
 
 ### The record store is separate from chat history
 
-Records are written by a dedicated `ConversationLog` rooted at `~/.kiro/crew/subagent_records/`, keyed by the bare run id.
+Records are written by a dedicated `ConversationLog` rooted at `~/.junction/subagent_records/`, keyed by the bare run id.
 
 Two placement decisions, both load-bearing:
 
@@ -183,7 +183,7 @@ The resume upgrade assumes a sid created as an extra session on a **parent's** r
 
 ### Phase 1: Record store (backend only)
 
-- New `ConversationLog` at `~/.kiro/crew/subagent_records/`, keyed by run id, with an explicit archive `retention_days` and a per-base-dir prune throttle.
+- New `ConversationLog` at `~/.junction/subagent_records/`, keyed by run id, with an explicit archive `retention_days` and a per-base-dir prune throttle.
 - Single buffered writer per record with a bounded buffer and a dropped-row count; `tools` passthrough on `append_off_loop`; three metadata writes (creation, session-established, terminal); redact-at-write, fail-closed per row.
 - Teach `testing/fake_acp_backend.py` to exercise resume **plumbing**: advertise `loadSession: true`, persist `~/.kiro/sessions/cli/{sid}.json` + `.jsonl` on `session/new`, answer `session/load` with `modes`, handle `session/terminate`, and be able to **refuse** a load so branch 2 is testable. The fake proves wiring only — it cannot substitute for Phase 0's real-kiro-cli verdict.
 - `result.txt` / `state.json` / `tombstone.json` and every existing `/api/spawn` response shape unchanged.

@@ -1,11 +1,11 @@
 # ======================================================================
 #  Junction — Windows setup (cloud mode)
 # ======================================================================
-#  This is the CLOUD path: Kiro Crew runs on an EC2 Linux instance in YOUR OWN
+#  This is the CLOUD path: Junction runs on an EC2 Linux instance in YOUR OWN
 #  AWS account and this machine is the thin client. Use it when you want the
 #  gateway always-on and off your laptop.
 #
-#  It is NOT the only Windows option. Kiro Crew also builds and runs natively
+#  It is NOT the only Windows option. Junction also builds and runs natively
 #  on Windows from source (`.\make.ps1 build`, then `junction gateway`) — see
 #  docs/guides/windows-install.md, which is the supported default and covers
 #  the per-feature limits.

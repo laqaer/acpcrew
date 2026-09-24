@@ -9,10 +9,10 @@ default and first-class path stays `kiro-cli`. `agent.provider` remains `"acp"`
 **Scope.** This documents the Junction-side integration only. The second backend
 is not open source; its wire shapes, storage, auth, and process internals are
 not described here. Where its on-the-wire signals differ from `kiro-cli`'s, the
-difference is absorbed in one Crew module (below), which is the only place that
+difference is absorbed in one Junction module (below), which is the only place that
 needs editing if that backend changes.
 
-## How Crew runs it
+## How Junction runs it
 
 - It goes through the existing `AcpRuntime` (one process, multiplexed sessions)
   via the established backend seam — no new runtime subclass, just a spawn-argv

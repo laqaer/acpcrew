@@ -351,9 +351,9 @@ MyAppRepo/
 
 There are two listing surfaces, and they take different paths:
 
-**The official App Store catalog** lives in its own repository,
-[KiroCrewApps](https://github.com/kirodotdev/KiroCrewApps) — not in this
-repo. Since the catalog became the store's inventory, publishing an entry there
+**The official App Store catalog** lives in its own repository, the Junction
+app registry — not in this repo. That repository is not published yet, so until
+it is, this path is not open to outside authors. Since the catalog became the store's inventory, publishing an entry there
 is what makes your app appear in the store *and installable*, with **no Junction
 release involved**. You author a `git` source (URL + a branch or tag; the
 publish pipeline resolves and pins the exact commit) plus a category, and open a
@@ -393,9 +393,9 @@ The seed (and any federated registry index) uses this row shape:
 | `detectInstalled` | | Shell command that exits 0 when the app is already present on the machine (for self-managed apps). It runs sandboxed with a 5s timeout. |
 | `featured` | | Curator flag for the Discover editorial layer. `true` marks the app featured; a number both marks it and orders the slots (lower first). It lives on the registry entry, not in `app.json`, and is honored only for core-registry entries: a `featured` flag from an external registry is ignored, so adding a registry cannot seize the spotlight. With nothing flagged, the store falls back to a deterministic pick (apps with hero art first, then verified publishers, then name). |
 
-To reach the official store, open the pull request on **KiroCrewApps** (add your
-entry to `catalog/official-registry.json` there; run its `tools/validate.py`
-first). A seed change in the Junction repo follows the normal contribution flow
+To reach the official store, open the pull request on **the Junction app
+registry** once it is published (add your entry to
+`catalog/official-registry.json` there; run its `tools/validate.py` first). A seed change in the Junction repo follows the normal contribution flow
 and ships with the next release.
 
 ## 11. Federated external registries
@@ -575,4 +575,4 @@ useful to Junction users.
 | Ship an update | Bump `version`, push |
 
 Bugs and feature requests: [GitHub
-issues](https://github.com/kirodotdev/KiroCrew/issues).
+issues](https://github.com/laqaer/junction/issues).

@@ -14,7 +14,7 @@ superseded-by: []
 # RFC: Tool-Derived Diff Cards — structured diffs as the primary file-change display
 
 - Status: in-progress — the dashboard promotion and the runtime-selected
-  prompt rule ship with [#5012](https://github.com/kirodotdev/KiroCrew/pull/5012);
+  prompt rule have shipped;
   the messaging `OutputEvent` extension (§3.3) is unstarted.
 - Author: zezhexu
 - Created: 2026-08-21
@@ -189,7 +189,7 @@ exact-string pin.
 
 | Risk | Mitigation |
 |---|---|
-| Older installs with a user prompt override (`~/.kiro/crew/prompt.md`) keep the old mandate | Harmless: double display, not data loss. The critical-rules block is code and updates everywhere immediately. |
+| Older installs with a user prompt override (`~/.junction/prompt.md`) keep the old mandate | Harmless: double display, not data loss. The critical-rules block is code and updates everywhere immediately. |
 | A model misjudges the tool-vs-shell clause on the dashboard | Runtime selection is server-side; only the tool-vs-shell distinction rides on model judgment, and its failure mode is a duplicate diff, not a missing one. Channel surfaces keep the unconditional mandate. |
 | `tool_kind` mislabeled by a provider → missed promotion | Fail-safe: the row still renders as today's collapsible ToolCallLine; nothing is lost. |
 | A giant diff dominates the transcript | Over-cap diffs render the summary chip (filename, −N/+M, expands details) instead of the full card. |

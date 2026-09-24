@@ -512,7 +512,7 @@ to end just one browser's session, sign out in that browser
 > ⚠️ **Prompt injection risk**: an attacker can hide instructions in a webpage or
 > document that trick your agent into running `junction token` and exfiltrating
 > the output. Junction ships built-in denied-command rules covering that mint,
-> including nested shell payloads and the `kiro-crew` spelling, enforced at the
+> including nested shell payloads, enforced at the
 > PreToolUse gate (`hooks.py`) rather than injected into any agent config file.
 > They are on by default; leave them on. See
 > [../architecture/security-deep-dive.md](../architecture/security-deep-dive.md).

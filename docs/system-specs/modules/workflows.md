@@ -550,7 +550,7 @@ swallowed, because a bad subscriber must not break a run.
 
 `WorkflowRunStore` persists **one self-contained JSON file per run** at
 `<workflows dir>/runs/<run_id>.json`. The directory resolves from a `workflows.dir`
-config key when present, else `<config_dir>/workflows` (so `~/.kiro/crew/workflows`
+config key when present, else `<config_dir>/workflows` (so `~/.junction/workflows`
 by default, honoring `JUNCTION_HOME`).
 
 > Open question: `default_workflows_dir()` reads `cfg.workflows.dir` defensively

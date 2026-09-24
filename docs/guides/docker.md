@@ -99,12 +99,12 @@ browser. The image ships no text editor, so edit those from the host —
 copy the file out, change it, copy it back, restart:
 
 ```
-docker cp junction:/home/junction/.kiro/crew/config.json .
+docker cp junction:/home/junction/.junction/config.json .
 # edit config.json locally, then:
-docker cp config.json junction:/home/junction/.kiro/crew/config.json
+docker cp config.json junction:/home/junction/.junction/config.json
 # docker cp writes the file root-owned; hand it back to the gateway user
 # (uid 1000) or the dashboard can never save settings again:
-docker exec -u 0 junction chown junction:junction /home/junction/.kiro/crew/config.json
+docker exec -u 0 junction chown junction:junction /home/junction/.junction/config.json
 docker restart junction
 ```
 

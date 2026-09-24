@@ -32,7 +32,7 @@ appears in the Apps library ready to be switched on rather than enabling itself.
 
 ## State Layout
 
-Rooted at `MD_NOTEBOOK_HOME`, defaulting to `~/.kiro/crew/workspace/md-notebook/`:
+Rooted at `MD_NOTEBOOK_HOME`, defaulting to `~/.junction/workspace/md-notebook/`:
 
 | Path | Contents |
 | --- | --- |

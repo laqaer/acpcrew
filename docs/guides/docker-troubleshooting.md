@@ -180,7 +180,7 @@ entrypoint emits this as one long line — wrapped here to read:
 
 ```
 [entrypoint] First run: NO inner sandbox backend under this runtime's seccomp
-policy. Seeded /home/junction/.kiro/crew/config.json with sandbox=auto: agent
+policy. Seeded /home/junction/.junction/config.json with sandbox=auto: agent
 command execution is DISABLED (fail-closed) until you choose one of: (a) permit
 user namespaces (--security-opt seccomp=<profile permitting unshare/clone>) and
 restart to get the inner sandbox, or (b) restart with -e
@@ -211,7 +211,7 @@ table.
 The short version: the sandbox needs `unshare(CLONE_NEWUSER)` and
 `unshare(CLONE_NEWNS)`, which Docker's default seccomp profile blocks, so
 the probe fails closed and agent execution stays disabled until you choose.
-Prefer [Option A — the shipped seccomp profile](docker.md#option-a--kiro-crew-seccomp-profile-recommended);
+Prefer [Option A — the shipped seccomp profile](docker.md#option-a--junction-seccomp-profile-recommended);
 fall back to [Option B](docker.md#option-b--explicit-unsandboxed-consent)
 only where you cannot set seccomp at all (managed Kubernetes, some Docker
 Desktop setups).
@@ -305,13 +305,13 @@ bad edit:
 # Keep the original under a name no later recovery can clobber, then let the
 # gateway seed defaults on restart:
 docker exec junction sh -c \
-  'mv /home/junction/.kiro/crew/config.json \
-      "/home/junction/.kiro/crew/config.json.broken.$(date +%Y%m%d-%H%M%S)"'
+  'mv /home/junction/.junction/config.json \
+      "/home/junction/.junction/config.json.broken.$(date +%Y%m%d-%H%M%S)"'
 docker restart junction
 
 # Read the saved copies on the host to recover your settings:
-docker exec junction ls /home/junction/.kiro/crew/config.json.broken.*
-docker cp junction:/home/junction/.kiro/crew/config.json.broken.<stamp> .
+docker exec junction ls /home/junction/.junction/config.json.broken.*
+docker cp junction:/home/junction/.junction/config.json.broken.<stamp> .
 ```
 
 A plain `.broken` suffix would be overwritten the second time you did this,
@@ -417,14 +417,14 @@ Skills are files, not packages: the built-in set is synced from the wheel to
 List what the container actually has:
 
 ```bash
-docker exec junction ls /home/junction/.kiro/crew/skills
+docker exec junction ls /home/junction/.junction/skills
 ```
 
 To add your own, write it into that directory and restart:
 
 ```bash
-docker cp ./my-skill junction:/home/junction/.kiro/crew/skills/my-skill
-docker exec -u 0 junction chown -R junction:junction /home/junction/.kiro/crew/skills/my-skill
+docker cp ./my-skill junction:/home/junction/.junction/skills/my-skill
+docker exec -u 0 junction chown -R junction:junction /home/junction/.junction/skills/my-skill
 docker restart junction
 ```
 
@@ -469,10 +469,10 @@ retry does not accumulate files — only a hard kill mid-download (OOM,
 `docker kill`) can strand one. Check before clearing anything:
 
 ```bash
-docker exec junction ls -la /home/junction/.kiro/crew/models
+docker exec junction ls -la /home/junction/.junction/models
 # Strays are dot-prefixed and end in .tmp; the real model files are not.
 # -mmin +60 is what makes this safe: it skips a download still in flight.
-docker exec junction find /home/junction/.kiro/crew/models \
+docker exec junction find /home/junction/.junction/models \
   -maxdepth 1 -name '.*.tmp' -mmin +60 -delete
 ```
 

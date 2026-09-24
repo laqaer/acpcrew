@@ -99,7 +99,7 @@ monkeypatch.setattr("junction.dashboard.handlers.sessions._SHUTDOWN_TIMEOUT_SECS
 A test that drives a periodic/maintenance loop (e.g. `SessionManager.
 _cleanup_loop`) pins the loop's *wiring* — which operations run, with what
 args, and when. Stub **all** of them: any sweep left unstubbed runs for real
-against the dev machine (process-table scans, `~/.kiro/crew` PID files), which
+against the dev machine (process-table scans, `~/.junction` PID files), which
 violates the isolation rules below and costs seconds per test (an unstubbed
 `find_orphan_mcp_candidates` alone added ~9s to every `TestCleanupLoop`
 test). The sweep's own behavior belongs in its own module's tests.
@@ -203,12 +203,12 @@ which testpath asked for the workers.
 ## Rules
 
 - Tests MUST NOT spawn real kiro-cli processes
-- Tests MUST NOT depend on `~/.kiro/crew/` existing
+- Tests MUST NOT depend on `~/.junction/` existing
 - Tests MUST NOT write into the operator's real data dir. `JUNCTION_HOME` is pinned
   per test by the rootdir conftest, which is what makes `config_dir()` safe — and it
-  needs to be, because resolving it is **not a read**: it creates the home and its
-  marker on first use, and can run the one-time `~/.kirocrew` → `~/.kiro/crew`
-  migration as a side effect.
+  needs to be, because resolving it is **not a read**: it creates the home on first
+  use and, on the default path, writes the `~/.junction.breadcrumb` pointer into the
+  real user home as a side effect.
 
   Two kinds of path escape that env var, and both need their own pin:
 
@@ -219,7 +219,7 @@ which testpath asked for the workers.
      (`_isolate_subagents_dir`, …). Paths that instead call `config_dir()` lazily on
      each use (e.g. `agent_state`) already honor `JUNCTION_HOME`. A test that spawns
      subagents without isolating the import-time global leaks stub folders into
-     `~/.kiro/crew/subagents/`, which a running gateway then sweeps as orphans on its
+     `~/.junction/subagents/`, which a running gateway then sweeps as orphans on its
      next restart.
   2. **Bound at import time from `Path.home()`** — `~/.kiro` is *kiro-cli's* home,
      machine-wide and shared with the real installed agent, so it is a separate
@@ -380,7 +380,7 @@ which testpath asked for the workers.
   ```
 
   The rootdir conftest contains the *class* as well: `tempfile`'s base is redirected
-  per run to `<platform temp>/kc-pytest-<user>-<pid>`, which the run removes at the end,
+  per run to `<platform temp>/jn-pytest-<user>-<pid>`, which the run removes at the end,
   so an unregistered directory no longer accumulates in the shared temp root forever.
   Residue there is still **reported** — relocation is not absolution.
 
@@ -429,7 +429,7 @@ which testpath asked for the workers.
 
   ```bash
   JUNCTION_TMP_PER_TEST=1 pytest src/junction/apps/builtins/<app>/tests -n0 -q
-  # AssertionError: 1 temporary entry outlived this run under /tmp/kc-pytest-you-951504:
+  # AssertionError: 1 temporary entry outlived this run under /tmp/jn-pytest-you-951504:
   #     test_provider_listing_never_contains_a_token/tmpw2kvty2z
   ```
 

@@ -81,17 +81,7 @@ if [ -x "$_junction_dir/ensure-node.sh" ]; then
     # already do. Without this the checks below miss the node just installed and
     # the frontend build plus the agent-backend install are skipped.
     # Same choice as junction.config.paths._select_default_home.
-    if [ -n "${JUNCTION_HOME:-}" ]; then
-        _home="$JUNCTION_HOME"
-    elif [ -d "$HOME/.junction" ]; then
-        _home="$HOME/.junction"
-    elif [ -d "$HOME/.kiro/crew" ]; then
-        _home="$HOME/.kiro/crew"
-    elif [ -d "$HOME/.kirocrew" ]; then
-        _home="$HOME/.kirocrew"
-    else
-        _home="$HOME/.junction"
-    fi
+    _home="${JUNCTION_HOME:-$HOME/.junction}"
     _nbd="$(cat "$_home/node-bin-dir" 2>/dev/null || true)"
     if [ -n "$_nbd" ] && [ -x "$_nbd/node" ]; then
         export PATH="$_nbd:$PATH"

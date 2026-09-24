@@ -180,7 +180,7 @@ The portable shape is three steps; the table names what an adopter substitutes.
 | Resume | apply the decision to the same invocation | `resolveApproval(request_id, action)` | `addToolResult({ toolCallId, output })` + continued stream |
 
 **Explicit boundary (Req 5.3):** the *enforcement* (`on_tool_call`) and the *transport*
-(`resolveApproval` / `approveChatSlot`) are Kiro-Crew-specific — an adopter swaps in their own. The *portable*
+(`resolveApproval` / `approveChatSlot`) are Junction-specific — an adopter swaps in their own. The *portable*
 part is: intercept before execute, render a card from the invocation state, resume the
 same invocation on decision. **The AI-SDK `UIToolInvocation` union is reused as a state
 model, not a transport claim (Req 5.4)** — Junction's chat transport is markdown +

@@ -47,7 +47,7 @@ Provide a graceful migration mechanism for Junction builtin apps when they are e
 
 #### Acceptance Criteria
 
-1. WHEN the Gateway starts, THE Gateway SHALL scan the `~/.kirocrew/apps/` directory for apps with `origin=builtin`
+1. WHEN the Gateway starts, THE Gateway SHALL scan the `~/.junction/apps/` directory for apps with `origin=builtin`
 2. WHEN an app with `origin=builtin` exists on disk but is not in the `_BUILTIN_APPS` list, THE Gateway SHALL mark it as an Orphaned_Builtin
 3. WHEN listing apps, THE Gateway API SHALL include an `orphaned: true` field in the response data for Orphaned_Builtin entries
 4. WHEN an Orphaned_Builtin is detected, THE Gateway SHALL preserve its `installed.json` and `data/` directory without modification
@@ -91,8 +91,8 @@ Provide a graceful migration mechanism for Junction builtin apps when they are e
 
 #### Acceptance Criteria
 
-1. THE Gateway SHALL ensure the Orphaned_Builtin's `~/.kirocrew/apps/{name}/data/` directory remains unchanged throughout the entire migration process
-2. WHEN the standalone version is installed, THE Standalone_App SHALL use the same app name as the builtin it replaces, ensuring it accesses the same `~/.kirocrew/apps/{name}/data/` directory path
+1. THE Gateway SHALL ensure the Orphaned_Builtin's `~/.junction/apps/{name}/data/` directory remains unchanged throughout the entire migration process
+2. WHEN the standalone version is installed, THE Standalone_App SHALL use the same app name as the builtin it replaces, ensuring it accesses the same `~/.junction/apps/{name}/data/` directory path
 3. WHEN cleaning up the old entry, THE Gateway SHALL only remove `installed.json` and `app.json`, preserving the `data/` directory
 4. THE `migratedTo` field SHALL reference the same app name as the builtin (format: `"registry:{same-name}"`), ensuring data directory path identity without symlinks
 

@@ -152,10 +152,15 @@ notarized/<channel>/<version>/      stapled, Gatekeeper-verified archive
 
 The **distribution bucket** is private with BLOCK_ALL and served only through
 CloudFront with Origin Access Control. Two advertised hostnames alias the same
-distribution: `updates.crew.kiro.dev` for pointers and
-`download.crew.kiro.dev` for artifact bytes. Splitting the URL classes across
+distribution: `updates.getjunction.dev` for pointers and
+`download.getjunction.dev` for artifact bytes. Splitting the URL classes across
 hostnames means future protective policy on the byte surface can never touch the
 availability-critical feed path.
+
+> **Not provisioned yet.** Junction owns both hostnames, but neither serves a
+> distribution today. Until one does, the channel installer and the in-app
+> updater reach no feed by default; set `JUNCTION_CDN_BASE` to a distribution
+> you host (it replaces both bases) to exercise the channel path.
 
 ```
 cli/<channel>/<version>/junction-<version>-py3-none-any.whl   immutable
@@ -223,7 +228,7 @@ stable) moves only after the version tag and its attestation exist. GHCR needs
 no AWS credentials: the push authenticates with the workflow's own
 `GITHUB_TOKEN`, so this lane also works on forks.
 
-The GHCR package is public, so `docker pull ghcr.io/kirodotdev/junction:stable`
+The GHCR package is public, so `docker pull ghcr.io/laqaer/junction:stable`
 works with no login. That is not automatic: GHCR creates every package private
 and inherits only *access permissions* from the linked repository, never
 visibility — a public repo does not imply a pullable image, and the flip is
@@ -231,8 +236,8 @@ one-way (a public package cannot be made private again). Both canonical callers
 pass `require_public_access: true`, which arms the logged-out-pull gate proving
 anonymous consumers can resolve the image; a visibility regression fails the
 lane instead of shipping an unpullable tag. The input itself still defaults to
-`false` and the step is scoped to `kirodotdev`, so forks keep private packages
-and authenticate with a token carrying `read:packages`.
+`false` and the step is scoped to the canonical repository owner, so forks keep
+private packages and authenticate with a token carrying `read:packages`.
 
 ### GitHub Releases
 
@@ -257,7 +262,7 @@ PyPI is not a supported path. `publish-cli.yml` builds a **private static PEP 50
 index** per channel under `feed/<channel>/simple/` and installs go through it:
 
 ```bash
-pip install --pre junction --extra-index-url https://updates.crew.kiro.dev/feed/insider/simple/
+pip install --pre junction --extra-index-url https://updates.getjunction.dev/feed/insider/simple/
 ```
 
 `--extra-index-url` (not `--index-url`) is deliberate: the channel index carries
@@ -459,7 +464,7 @@ signed with a non-exportable RSA KMS key:
   "sha256": "<wheel digest>",
   "signature": "<base64 RSA signature over canonical JSON without this field>",
   "version": "0.2.0",
-  "wheel_url": "https://download.crew.kiro.dev/cli/insider/0.2.0/junction-0.2.0-py3-none-any.whl"
+  "wheel_url": "https://download.getjunction.dev/cli/insider/0.2.0/junction-0.2.0-py3-none-any.whl"
 }
 ```
 
@@ -510,12 +515,12 @@ since publishing is not a regression for it.
 
 ```bash
 # install, or move to another channel
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel {nightly|insider|stable}
+curl -fsSL https://download.getjunction.dev/cli.sh | sh -s -- --channel {nightly|insider|stable}
 ```
 
 The installer resolves the channel feed, verifies it as described above,
 installs with `pipx` when available (otherwise a managed venv beside the data
-home), and records the channel in `~/.kiro/crew/channel`. Default channel is
+home), and records the channel in `~/.junction/channel`. Default channel is
 `stable`; `JUNCTION_CHANNEL` overrides it, and `--version` pins an exact wheel
 through the immutable `cli/<channel>/<version>/cli-manifest.json` instead of the
 mutable feed. This download path is separate from the source install
@@ -587,7 +592,7 @@ reintroduced.
 The client resolves `{feedBase}/{channel}/` as a **directory** (the trailing
 slash matters: without it `new URL("latest-mac.yml", base)` replaces the last
 segment and resolves the wrong channel) and the library appends the platform
-filename. The feed base defaults to `https://updates.crew.kiro.dev/feed` and is
+filename. The feed base defaults to `https://updates.getjunction.dev/feed` and is
 overridable through `JUNCTION_UPDATE_FEED`, which enforces HTTPS except on
 loopback so the local harness works. The yml lives on the pointer host while
 `files[].url` entries are absolute byte-host URLs; electron-updater's
@@ -601,13 +606,13 @@ electron-updater string-compares it and a hex value fails every download:
 ```yaml
 version: 0.1.0-nightly.20260721t061155
 files:
-  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
+  - url: https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
     sha512: '<base64>'
     size: 123456789
-  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.dmg
+  - url: https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.dmg
     sha512: '<base64>'
     size: 234567890
-path: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
+path: https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
 sha512: '<base64>'
 releaseDate: '2026-07-21T06:22:13Z'
 ```
@@ -839,8 +844,8 @@ Manual spot-check of a channel after a release:
 
 ```bash
 CH=stable
-BYTES=https://download.crew.kiro.dev
-PTR=https://updates.crew.kiro.dev
+BYTES=https://download.getjunction.dev
+PTR=https://updates.getjunction.dev
 
 curl -fsSI "$BYTES/desktop/$CH/latest/Junction.dmg" | head -1
 curl -fsSI "$BYTES/desktop/$CH/latest/Junction-x86_64.AppImage" | head -1

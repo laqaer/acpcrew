@@ -76,7 +76,7 @@ with a one-line message pointing at `./dev-backend.sh` — it does not crash, an
 `pod install` writes no unit file. `pod url` works anywhere (pure computation).
 
 Port derivation: `base + (cksum(name) % 199) + 1` (base `7810` → `7811..8009`).
-Override with `PORT=` in `~/.kiro/crew/pods/<name>.env`.
+Override with `PORT=` in `~/.junction/pods/<name>.env`.
 
 See `src/junction/pod/README.md` for the full reference.
 
@@ -275,9 +275,9 @@ LLM-generated UI components (widgets, HTML, markdown, SVG, JSON, text).
 | `junction workspace delete NAME` | Delete workspace |
 
 **On the CLI**, `--dir` must resolve to a **strict descendant** of
-`$JUNCTION_HOME` (default `~/.kiro/crew`): anything landing outside — `/tmp/x`,
+`$JUNCTION_HOME` (default `~/.junction`): anything landing outside — `/tmp/x`,
 `../x`, `~/x` — is refused with a SEL `denied` audit event, and so is the data
-home **root itself** (in any spelling: absolute, `~/.kiro/crew`, `.`, or empty),
+home **root itself** (in any spelling: absolute, `~/.junction`, `.`, or empty),
 since a workspace there would put agent-writable memory on top of `config.json`
 and `.env`. The test is containment, not "is it absolute": an absolute path
 landing *under* the home is accepted, since it resolves where the relative form
@@ -393,7 +393,7 @@ resolved by the `aws` CLI and never stored by Junction. All verbs accept
 
 ## Computer Use (Desktop Automation)
 
-Default-OFF behind a keystone enable (`~/.kiro/crew/computer_use.json`, **not**
+Default-OFF behind a keystone enable (`~/.junction/computer_use.json`, **not**
 `config.json`). macOS only. These are human debug/diagnostic twins of the
 `computer_*` MCP tools — the agent uses the MCP tools, not these.
 
@@ -453,10 +453,10 @@ Default-OFF behind a keystone enable (`~/.kiro/crew/computer_use.json`, **not**
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `JUNCTION_HOME` | Override config/data directory | `~/.kiro/crew` |
+| `JUNCTION_HOME` | Override config/data directory | `~/.junction` |
 | `JUNCTION_PORT` | Override dashboard port | `5476` |
 | `JUNCTION_PROJECT_DIR` | Override agent config/skills directory | Auto-detected |
 | `JUNCTION_POD_REPO` | Repo to resolve worktree names from | invoking cwd |
-| `JUNCTION_POD_ROOT` | Isolated pod HOMEs (nuked on stop) | `~/.kirocrew-pods` |
+| `JUNCTION_POD_ROOT` | Isolated pod HOMEs (nuked on stop) | `~/.junction-pods` |
 | `JUNCTION_POD_BASE_PORT` | Port derivation base | `7810` |
 | `JUNCTION_POD_LIVE_PORT` | Port a pod must never bind | `5476` |

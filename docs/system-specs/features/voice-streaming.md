@@ -55,7 +55,7 @@ The DOM event pattern avoids prop drilling between `ChatPage` (where send lives)
 
 ## Voice Configuration
 
-Stored in `~/.kiro/crew/config.json` under `voice_reply`:
+Stored in `~/.junction/config.json` under `voice_reply`:
 
 | Setting | Default | Range |
 |---------|---------|-------|

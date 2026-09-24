@@ -117,7 +117,7 @@ class SubagentInfo:
     started: float        # time.time() at spawn
     done: bool            # True when finished (success or error)
     result: str           # LLM response text (trimmed to completion_keep for the event)
-    result_path: str      # ~/.kiro/crew/subagents/<id>/result.txt (full transcript)
+    result_path: str      # ~/.junction/subagents/<id>/result.txt (full transcript)
     result_truncated: bool  # completion copy dropped content → event carries summary+path
     error: str            # error message if failed
     elapsed: float        # seconds from start to completion (set in _run finally)
@@ -201,7 +201,7 @@ Event kinds are NOT the discriminator: the same `EVENT_SUBAGENT_LIST` also reach
 Why the exclusion exists: `_kiro.dev/subagent/list_update` carries no `sessionId`, so the runtime broadcasts it to *every* session queue, and under `agent.session_sharing` one roster notification lands on every co-tenant subagent's stream. Counting it as activity refreshed `last_activity` for a whole batch of wedged subagents at the same instant and cleared their badge, so the badge flapped and the reported `idle_secs` measured time since an unrelated agent's roster churn (`#4841`; the plateau measured in `#2854`).
 
 Per sweep, for an agent that has actually started (`turns > 0` or a live `_pid`) and is **not** blocked on a human approval prompt (`_awaiting_approval`):
-- `idle > _stall_idle_secs` and not already flagged → consult liveness (below), and unless the verdict clears it, set `info.stalled = True`, emit `subagent_stalled {stalled: true, idle_secs}` (surface-only; the card shows a "no activity" warning), and append a record of the slow command to `~/.kiro/crew/subagents/slow_commands.jsonl` for later analysis.
+- `idle > _stall_idle_secs` and not already flagged → consult liveness (below), and unless the verdict clears it, set `info.stalled = True`, emit `subagent_stalled {stalled: true, idle_secs}` (surface-only; the card shows a "no activity" warning), and append a record of the slow command to `~/.junction/subagents/slow_commands.jsonl` for later analysis.
 - Detection is **surface-only**: `_maybe_flag_stall` never terminates the agent. A genuinely-hung subagent is closed by the user from the UX (per-row stop → `spawnDelete` → `SubagentManager.cancel(agent_id)`, or header Stop-all). The wall-clock reaper at `_TIMEOUT_SECS` remains the only automatic terminator; a `DEAD` liveness verdict deliberately does **not** escalate to a kill, because that would be a change to reap semantics rather than to the signal.
 
 #### Liveness attribution (why idle time alone is not the detector)
@@ -338,7 +338,7 @@ own stage synthesis).
 The gateway sets the `JUNCTION_SESSION_KEY` env var when spawning kiro-cli,
 and `mcp_core.py` reads it via `os.environ.get()`. If the env var is missing
 (e.g. older gateway), it falls back to reading
-`~/.kiro/crew/session_pid_{getppid()}.txt` for backward compatibility. The
+`~/.junction/session_pid_{getppid()}.txt` for backward compatibility. The
 session key flows through the `/api/spawn` endpoint as `parent_session`.
 
 ## Scale Plumbing (60-100 concurrent agents)
@@ -473,10 +473,10 @@ them in the same turn.
 
 ## Orphan Recovery & Tombstoning
 
-Folder-per-agent persistence at `~/.kiro/crew/subagents/{id}/`:
+Folder-per-agent persistence at `~/.junction/subagents/{id}/`:
 
 ```
-~/.kiro/crew/subagents/{id}/
+~/.junction/subagents/{id}/
   state.json      # {task, parent_session_key, started, pid}
   result.txt      # full result text (written on completion)
   tombstone.json  # {error, elapsed, timestamp} (written on failure/orphan)
@@ -484,7 +484,7 @@ Folder-per-agent persistence at `~/.kiro/crew/subagents/{id}/`:
 
 ### Gateway Restart Reconciliation
 
-On startup, `SubagentManager` scans `~/.kiro/crew/subagents/` and reconciles:
+On startup, `SubagentManager` scans `~/.junction/subagents/` and reconciles:
 
 1. **PID alive** → kill process group, deliver result if available, tombstone if not
 2. **PID dead + result.txt exists** → deliver result to parent session
@@ -511,7 +511,7 @@ carries a **summary + the `result_path`** whenever the completion copy was
 truncated (`result_truncated`) or in orchestrator mode, so the parent reads the
 full transcript on demand instead of re-running the subagent.
 
-The full transcript stays in `~/.kiro/crew/subagents/<id>/result.txt` for a
+The full transcript stays in `~/.junction/subagents/<id>/result.txt` for a
 **retention grace window** after delivery — on success the folder is *not*
 deleted immediately; `mark_delivered` writes a `cause="delivered"` tombstone and
 the reaper prunes it after `agent.subagent_result_ttl_secs` (default 3600s / 1h).

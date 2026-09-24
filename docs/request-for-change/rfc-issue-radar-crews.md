@@ -133,7 +133,7 @@ Two gates must be treated differently from today's behaviour:
   notification preference, not a fetch switch.
 
 AutoNudge remains armed as the backstop for the case the watcher cannot see: the
-crew simply stopped. Its state is persisted (`~/.kiro/crew/autonudge.json`), it
+crew simply stopped. Its state is persisted (`~/.junction/autonudge.json`), it
 re-arms its timers on gateway start (`autonudge.py:456`), and its fire path
 rehydrates a non-resident slot before giving up (`gateway.py:3202`).
 
@@ -599,7 +599,7 @@ Everything quantitative in this document, and where it came from.
 |---|---|---|
 | Auto-fixable share of recent issues | 3/40 (7.5%) | 10-agent audit of 40 of the 50 latest issues |
 | Duplicate share | 15/40 (37.5%) | same |
-| Marginal credits per 1k context, opus-5 | 0.154 | regression over `~/.kiro/crew/usage/tokens/*.jsonl`, n=1,416 |
+| Marginal credits per 1k context, opus-5 | 0.154 | regression over `~/.junction/usage/tokens/*.jsonl`, n=1,416 |
 | `context_window`, opus-5 | 1,000,000 | same shards, n=2,271 |
 | Busiest real session, 2026-08-08 | 79 turns / 1,005 credits | same shards |
 | Brief size | 25,781 chars ≈ 6.4k tokens | `crew_brief.md` |

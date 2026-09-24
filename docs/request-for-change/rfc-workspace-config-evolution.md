@@ -27,7 +27,7 @@ superseded-by: []
 Junction's configuration and memory systems have grown organically. Several pain points have emerged:
 
 1. **Ad-hoc config parsing** — `workspaces`, `default_workspace`, `slack.*` are parsed outside the dataclass hierarchy in `JunctionConfig.load()`. No validation, no schema, no discoverability for the dashboard.
-2. **Global memory** — `VectorMemoryStore` uses a single `memory.db` + `memory.faiss` at `~/.kirocrew/`. Users working across multiple projects (oncall vs. feature work vs. personal) get cross-contaminated context. The parked `feat/workspace-scoped-vector-memory` branch prototyped per-workspace stores but depends on a proper config foundation.
+2. **Global memory** — `VectorMemoryStore` uses a single `memory.db` + `memory.faiss` at `~/.junction/`. Users working across multiple projects (oncall vs. feature work vs. personal) get cross-contaminated context. The parked `feat/workspace-scoped-vector-memory` branch prototyped per-workspace stores but depends on a proper config foundation.
 3. **No plugin system** — memory backends are hardcoded (SQLite+FAISS local, in-process llama.cpp embeddings). No way to swap in remote vector DBs, different embedding providers, or team-shared memory without code changes.
 
 These three problems are coupled: named memory stores need config to declare them, and plugins need config to declare and configure backends. Solving them in the wrong order creates rework.
@@ -287,7 +287,7 @@ Store resolution at session start:
 
 Migration strategy:
 - Existing global `memory.db` becomes the `default` store
-- Store directory: `~/.kirocrew/memory_stores/{store_name}/` (new stores) or `~/.kirocrew/` (default store, backward compat)
+- Store directory: `~/.junction/memory_stores/{store_name}/` (new stores) or `~/.junction/` (default store, backward compat)
 - No data migration needed for existing users — `default` store points to existing files
 - New stores start empty
 
