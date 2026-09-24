@@ -3190,7 +3190,7 @@ async def api_browse_dirs(request: web.Request) -> web.Response:
     if is_sensitive_path(base):
         _sel().log_api_access(caller=caller, operation="browse_dirs", outcome="denied", resources=base, error="sensitive path")
         return web.json_response({"error": "Access denied"}, status=403)
-    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".junction", ".kiro", ".aim"}
+    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".junction", ".kiro"}
     dirs = await asyncio.to_thread(_browse_dirs_sync, base, skip)
     _sel().log_api_access(caller=caller, operation="browse_dirs", outcome="allowed", resources=base)
     return web.json_response({"path": base, "parent": os.path.dirname(base), "dirs": dirs})
@@ -3450,7 +3450,7 @@ async def api_browse_files(request: web.Request) -> web.Response:
     if is_sensitive_path(base):
         _sel().log_api_access(caller=caller, operation="browse_files", outcome="denied", resources=base, error="sensitive path")
         return web.json_response({"error": "Access denied"}, status=403)
-    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".junction", ".kiro", ".aim", "build", "dist", ".next"}
+    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".junction", ".kiro", "build", "dist", ".next"}
     dirs, files = await asyncio.to_thread(_browse_files_sync, base, skip)
     _sel().log_api_access(caller=caller, operation="browse_files", outcome="allowed", resources=base)
     return web.json_response({"path": base, "parent": os.path.dirname(base), "dirs": dirs, "files": files})
