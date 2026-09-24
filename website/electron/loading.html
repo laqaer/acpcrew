@@ -6,12 +6,20 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --accent: #e4a54a;
-      --backdrop: #0c0d12;
-      --ink: #ffffff;
-      --ink-status: #ffffff;
-      --title-shadow: 0 6px 34px rgba(0,0,0,0.30);
+      /* The plate paints in the user's theme accent (?accent=); Junction's
+         signal blue until a theme has reported one. */
+      --accent: #5c8dff;
+      /* The plate is the accent deepened a quarter toward the backdrop: a
+         dark-mode accent is tuned to be READ on asphalt, which makes it too pale
+         to carry a white glyph itself. */
+      --plate: color-mix(in srgb, var(--accent) 75%, #0b0e13);
+      --backdrop: #0b0e13;
+      --glyph: #ffffff;
+      --ink: #f3f6fa;
+      --ink-status: #8591a3;
       --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      /* Sized on both axes so a short window keeps the wordmark clear of the plate. */
+      --mark: min(24vw, 24vh, 132px);
     }
     html, body { height: 100%; }
     body {
@@ -24,38 +32,49 @@
     #stage {
       position: fixed; inset: 0; overflow: hidden;
       background:
-        radial-gradient(circle at 50% 42%,
-          color-mix(in srgb, var(--accent) 55%, #0c0d12 45%),
-          var(--backdrop) 72%);
+        radial-gradient(circle at 50% 40%,
+          color-mix(in srgb, var(--accent) 16%, var(--backdrop)),
+          var(--backdrop) 62%);
       opacity: 1; transition: opacity 0.5s ease;
       will-change: opacity;
     }
     #stage.gone { opacity: 0; }
+    /* A route line crosses the stage behind the plate: the trunk the mark
+       branches from. */
+    #route {
+      position: absolute; left: 0; right: 0; top: 40%; height: 2px;
+      transform: translateY(-50%);
+      background: linear-gradient(90deg,
+        transparent 8%,
+        color-mix(in srgb, var(--accent) 45%, transparent) 38%,
+        color-mix(in srgb, var(--accent) 45%, transparent) 62%,
+        transparent 92%);
+    }
     #mark {
-      position: absolute; left: 50%; top: 42%;
+      position: absolute; left: 50%; top: 40%;
       transform: translate(-50%, -50%);
-      width: min(28vw, 180px); height: min(28vw, 180px);
-      opacity: 0.92;
+      width: var(--mark); height: var(--mark);
+      filter: drop-shadow(0 14px 32px rgba(0,0,0,0.35));
     }
     #mark svg { width: 100%; height: 100%; display: block; }
     #title {
-      position: absolute; left: 50%; top: 58%;
-      transform: translate(-50%, -50%) translateY(10px) scale(0.96);
+      position: absolute; left: 50%; top: calc(40% + var(--mark) / 2 + 28px);
+      transform: translate(-50%, 0) translateY(10px) scale(0.96);
       opacity: 0; z-index: 60;
-      font-family: var(--font-body);
-      font-size: 66px; font-weight: 600; letter-spacing: -0.01em;
-      color: var(--ink); text-shadow: var(--title-shadow);
+      width: min(52vw, 42vh, 300px);
+      color: var(--ink);
       transition: opacity 0.5s ease, transform 0.55s cubic-bezier(.2,1,.3,1);
-      white-space: nowrap;
     }
-    #title.show { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+    #title svg { width: 100%; height: auto; display: block; }
+    #title.show { opacity: 1; transform: translate(-50%, 0) translateY(0) scale(1); }
     #status {
       position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
       display: inline-flex; align-items: center; gap: 9px; z-index: 50;
       font-family: var(--font-body);
-      font-size: 14px; font-weight: 600; color: var(--ink-status);
+      font-size: 13px; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-status);
+      white-space: nowrap;
     }
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-status); animation: pulse 1s ease-in-out infinite; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
     @keyframes pulse { 0%,100% { opacity: .4; transform: scale(.8);} 50% { opacity: 1; transform: scale(1);} }
     @media (prefers-reduced-motion: reduce) {
       .dot { animation: none; }
@@ -65,30 +84,33 @@
 </head>
 <body>
   <div id="stage">
-    <!-- junction-track-mark: M10 6v7.5c0 2.8 2.2 5 6 5 — shared with installer art -->
+    <div id="route" aria-hidden="true"></div>
+    <!-- junction-mark: the J glyph (M34 13v25a11 11 0 0 1-22 0) is shared with
+         the installer art and the marketing site; assets/brand/build.py owns it. -->
     <div id="mark" aria-hidden="true">
-      <svg viewBox="0 0 32 32">
-        <rect width="32" height="32" rx="8" fill="color-mix(in srgb, var(--accent) 22%, transparent)"/>
-        <path d="M10 6v7.5c0 2.8 2.2 5 6 5h0c3.8 0 6-2.2 6-5V6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color: var(--ink)"/>
-        <path d="M16 18.5V26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color: var(--ink)"/>
-        <circle cx="10" cy="6" r="2.1" fill="currentColor" style="color: var(--ink)"/>
-        <circle cx="22" cy="6" r="2.1" fill="currentColor" style="color: var(--ink)"/>
-        <circle cx="16" cy="26" r="2.1" fill="currentColor" style="color: var(--ink)"/>
+      <svg viewBox="0 0 64 64">
+        <rect x="2" y="2" width="60" height="60" rx="15" fill="var(--plate)"/>
+        <path d="M34 13v25a11 11 0 0 1-22 0" fill="none" stroke="var(--glyph)" stroke-width="7" stroke-linecap="round"/>
+        <path d="M34 36c0-11 16-10 16-21v-2" fill="none" stroke="var(--glyph)" stroke-width="7" stroke-linecap="round"/>
       </svg>
     </div>
-    <div id="title">Junction</div>
+    <div id="title" role="img" aria-label="Junction">
+      <svg viewBox="0 -1400 8288 1440" aria-hidden="true"><path fill="currentColor" d="M495.2 24Q345 24 218.6 -61.9Q92.2 -147.8 24 -300L275.2 -415.6Q317 -339.4 368.7 -296.5Q420.4 -253.6 495.6 -253.6Q532.8 -253.6 567 -264.7Q601.2 -275.8 628.5 -303.4Q655.8 -331 671.9 -380.5Q688 -430 688 -506.8V-1400H977.2V-490.4Q977.2 -339.8 933.1 -240.2Q889 -140.6 816.9 -82.7Q744.8 -24.8 660.6 -0.4Q576.4 24 495.2 24Z M1609.6 24Q1444.6 24 1349.9 -80.4Q1255.2 -184.8 1255.2 -368V-1022H1530V-481.2Q1530 -352 1569.8 -296.2Q1609.6 -240.4 1700.4 -240.4Q1797.4 -240.4 1842.1 -297.8Q1886.8 -355.2 1886.8 -477.2V-1022H2161.6V0H1886.8V-94.8Q1841 -36.6 1769.9 -6.3Q1698.8 24 1609.6 24Z M2458.2 0V-1022H2733V-926Q2782.4 -986.2 2851.6 -1016.1Q2920.8 -1046 3009.8 -1046Q3176.6 -1046 3270.6 -942.7Q3364.6 -839.4 3364.6 -653.6V0H3089.8V-541.2Q3089.8 -669.4 3049.9 -725.7Q3010 -782 2919.4 -782Q2823.2 -782 2778.1 -724.7Q2733 -667.4 2733 -545.2V0Z M4069.6 24Q3924.8 24 3819.4 -40.9Q3714 -105.8 3656.6 -225.7Q3599.2 -345.6 3599.2 -510Q3599.2 -673.8 3657.2 -794.2Q3715.2 -914.6 3821.3 -980.3Q3927.4 -1046 4071.2 -1046Q4238.4 -1046 4348.4 -968.2Q4458.4 -890.4 4507.6 -737.6L4246 -650.4Q4221.8 -714 4177.5 -748.6Q4133.2 -783.2 4074.8 -783.2Q3986.8 -783.2 3932.4 -708Q3878 -632.8 3878 -510Q3878 -388 3931 -313.6Q3984 -239.2 4070.4 -239.2Q4133.8 -239.2 4179.1 -276.4Q4224.4 -313.6 4248 -386.4L4509.2 -310Q4461 -143.2 4350.2 -59.6Q4239.4 24 4069.6 24Z M5052.8 24Q4925.4 24 4862.7 -44.6Q4800 -113.2 4800 -250.4V-780.4H4656.4V-1022H4800V-1313.6L5073.2 -1444V-1022H5298V-780.4H5073.2V-290.8Q5073.2 -252.2 5090.7 -232.7Q5108.2 -213.2 5144.8 -213.2Q5220.4 -213.2 5310.4 -256L5279.2 -22Q5231.8 0.4 5176.1 12.2Q5120.4 24 5052.8 24Z M5537.2 0V-1022H5812V0ZM5674.4 -1131.2Q5609.4 -1131.2 5562.3 -1178.3Q5515.2 -1225.4 5515.2 -1290.4Q5515.2 -1355 5561.5 -1401.1Q5607.8 -1447.2 5674.4 -1447.2Q5743 -1447.2 5788.5 -1401.9Q5834 -1356.6 5834 -1290.4Q5834 -1223.8 5787.7 -1177.5Q5741.4 -1131.2 5674.4 -1131.2Z M6527.8 24Q6309.8 24 6184 -118.7Q6058.2 -261.4 6058.2 -510Q6058.2 -674.2 6115.6 -794.6Q6173 -915 6278.5 -980.5Q6384 -1046 6527.8 -1046Q6671 -1046 6775.7 -980.7Q6880.4 -915.4 6937.3 -795.4Q6994.2 -675.4 6994.2 -510.4Q6994.2 -344.6 6938 -224.9Q6881.8 -105.2 6777.1 -40.6Q6672.4 24 6527.8 24ZM6527.8 -240.4Q6620 -240.4 6670.3 -311.1Q6720.6 -381.8 6720.6 -510.4Q6720.6 -639.2 6669.5 -710.6Q6618.4 -782 6527.8 -782Q6437 -782 6385.2 -709.5Q6333.4 -637 6333.4 -510Q6333.4 -383.8 6385.2 -312.1Q6437 -240.4 6527.8 -240.4Z M7238.2 0V-1022H7513V-926Q7562.4 -986.2 7631.6 -1016.1Q7700.8 -1046 7789.8 -1046Q7956.6 -1046 8050.6 -942.7Q8144.6 -839.4 8144.6 -653.6V0H7869.8V-541.2Q7869.8 -669.4 7829.9 -725.7Q7790 -782 7699.4 -782Q7603.2 -782 7558.1 -724.7Q7513 -667.4 7513 -545.2V0Z"/></svg>
+    </div>
     <div id="status"><span class="dot"></span><span id="statusText">Starting gateway&hellip;</span></div>
   </div>
   <script>
   (function () {
     "use strict";
-    var accent = "#e4a54a";
+    var accent = "#5c8dff";
     try {
       var q = new URLSearchParams(location.search).get("accent");
       if (q && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(q)) accent = q;
     } catch (e) {}
     document.documentElement.style.setProperty("--accent", accent);
 
+    // The glyph sits ON the plate, so it is white unless the plate is too pale
+    // to carry it at 3:1 (a graphic, not text), as a light custom accent can be.
     (function () {
       function toRgb(h) {
         h = h.replace("#", "");
@@ -101,16 +123,11 @@
       }
       function ratio(a, b) { var hi = Math.max(a,b), lo = Math.min(a,b); return (hi+0.05)/(lo+0.05); }
       try {
-        var rgb = toRgb(accent);
-        var white = lum([255, 255, 255]);
-        var dark  = "rgb(12,13,18)";
-        var centreLum = lum([0,1,2].map(function (i) { return Math.round(rgb[i]*0.55 + 12*0.45); }));
-        var accentLum = lum(rgb);
-        var root = document.documentElement.style;
-        root.setProperty("--ink",        ratio(white, centreLum) < 3.0 ? dark : "#ffffff");
-        root.setProperty("--ink-status", ratio(white, accentLum) < 4.5 ? dark : "#ffffff");
-        root.setProperty("--title-shadow",
-          ratio(white, centreLum) < 3.0 ? "0 2px 12px rgba(0,0,0,0.10)" : "0 6px 34px rgba(0,0,0,0.30)");
+        var asphaltRgb = [11, 14, 19];
+        var plate = toRgb(accent).map(function (v, i) { return Math.round(v * 0.75 + asphaltRgb[i] * 0.25); });
+        var plateLum = lum(plate);
+        document.documentElement.style.setProperty(
+          "--glyph", ratio(lum([255, 255, 255]), plateLum) >= 3 ? "#ffffff" : "#0b0e13");
       } catch (e) {}
     })();
 
@@ -119,11 +136,11 @@
     var title = document.getElementById("title");
     var statusText = document.getElementById("statusText");
     var ready = false, resolved = false, finished = false, startedAt = performance.now();
-    var latestStatus = "Starting gateway\u2026";
+    var latestStatus = "Starting gateway…";
 
     function markReady() {
       ready = true;
-      latestStatus = "Connected \u2713";
+      latestStatus = "Connected ✓";
       statusText.textContent = latestStatus;
       maybeResolve();
     }
