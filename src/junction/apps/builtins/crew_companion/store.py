@@ -103,9 +103,9 @@ class Config:
     #: Kept for parity with the desktop app's payload. The dashboard page formats
     #: in the dashboard's own language, so this is not used for display.
     language: str = "English"
-    #: Which appearance pack the companion is wearing. The built-in ghost's id when
+    #: Which appearance pack the companion is wearing. The built-in pet's id when
     #: unset, so a deleted pack degrades to the default rather than to no art.
-    active_appearance: str = "kiro-ghost"
+    active_appearance: str = "default-mochi"
     #: Where the user last left the companion on screen, in display coordinates.
     #:
     #: Persisted because a companion that returns to a default corner every restart
@@ -114,13 +114,9 @@ class Config:
     #: renderer resolves to its own default placement rather than 0,0.
     pet_x: int | None = None
     pet_y: int | None = None
-    #: The dress-up prop worn on the built-in ghost, by id.
-    #:
-    #: The gallery writes it (nested, as ``kiro.accessory``) and the overlay reads
-    #: it back on every load. It was accepted and thrown away: picking a prop
-    #: applied it to the live React state, so it looked saved until the next
-    #: restart put the ghost back to bare. The desktop app kept it in the same
-    #: place, `kiro.accessory`, defaulting to 'none'.
+    #: A dress-up prop id, persisted nested as ``kiro.accessory``. The dashboard
+    #: no longer offers props, but the field still round-trips so a config
+    #: written by an older build loads and saves unchanged.
     accessory: str = "none"
     #: Colour presets the user saved themselves, in the renderer's own shape.
     #:
@@ -830,7 +826,7 @@ def _config_from_dict(raw: Any) -> Config:
         active_appearance=(
             section["activeAppearance"]
             if isinstance(section.get("activeAppearance"), str) and section["activeAppearance"]
-            else "kiro-ghost"
+            else "default-mochi"
         ),
         pet_x=_coord(section.get("petX")),
         pet_y=_coord(section.get("petY")),

@@ -7455,7 +7455,7 @@
       "deny": "Refuser",
       "failed": "échec",
       "idle": "Inactif",
-      "kiro_is_working": "kiro travaille…",
+      "agent_is_working": "L’agent travaille…",
       "loading_thread": "Chargement du fil…",
       "message": "Message {{name}}",
       "message_sent": "Message envoyé",

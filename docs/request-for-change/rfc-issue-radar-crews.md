@@ -440,23 +440,17 @@ fixtures via `scripts/lib/issue-radar-crews-fixtures.mjs`.
 
 ## 12. Identity
 
-**Avatars are Kiro ghosts.** The 24×28 bitmap already exists
-(`hooks/sceneText.ts:145` `KIRO_GHOST_PIXELS`), as does an 8-entry outfit table
-that differentiates ghosts by hat, glasses and cape rather than body colour
-(`scenes/GhostScene.tsx:36`), and a canvas renderer for it
-(`useSceneInteraction.tsx:20` `MiniGhost`). The outfit is selected by a djb2 hash
-of the avatar seed — the same technique `WateringHoleScene.tsx:92` already uses to
-keep an agent's species stable.
-
-DiceBear `pixel-art` (`components/CrewAvatar.tsx`) is deliberately *not* reused:
-it is already the visual language of the agent-template roster, and a crew must not
-look like an agent definition. Ghost art is also brand-correct and needs no new
-asset — which matters, because `AUTOSDE.yaml`'s `use-lucide-icons` rule blocks new
-inline `<svg viewBox>` in any `.tsx` file including tests. Canvas is exempt and
-already precedented.
+**Avatars are route plates.** `lib/routePlateAvatar.ts` draws a signage tile in
+one of eight transit-line colours carrying a white route diagram (a trunk with
+45°/90° bends, up to two branches, an interchange ring or station dot), all drawn
+from one seeded stream, so a seed always yields the same plate. Issue Radar renders
+it through `components/CrewPlate.tsx`; the agent roster uses the same generator
+through `components/CrewAvatar.tsx`. The generator emits SVG as a string and the
+components render it as a data-URI `<img>`, which keeps `AUTOSDE.yaml`'s
+`use-lucide-icons` rule (no inline `<svg viewBox>` in a `.tsx` file) satisfied.
 
 `avatar_seed` is stored **separately from `name`**, so renaming a crew keeps its
-face. An explicit `avatar_variant` pins one outfit.
+plate. An explicit `avatar_variant` pins one line colour.
 
 **Names are galaxies**, 24 of them, no two sharing their first two letters so a log
 line is unambiguous at a glance:

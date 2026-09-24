@@ -7455,7 +7455,7 @@
       "deny": "Recusar",
       "failed": "falhou",
       "idle": "Inativo",
-      "kiro_is_working": "kiro está trabalhando…",
+      "agent_is_working": "O agente está trabalhando…",
       "loading_thread": "Carregando thread…",
       "message": "Mensagem {{name}}",
       "message_sent": "Mensagem enviada",

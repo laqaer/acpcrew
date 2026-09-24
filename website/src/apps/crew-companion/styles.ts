@@ -1,5 +1,5 @@
 /**
- * Scoped styles for the Crew Companion page. Injected once via `<style>{CC_CSS}</style>`,
+ * Scoped styles for the Companion page. Injected once via `<style>{CC_CSS}</style>`,
  * exactly as file-explorer injects FE_CSS. All colours are dashboard CSS variables,
  * never hardcoded, so the page follows every theme. Interactive state is driven off
  * aria attributes (`aria-checked`, `aria-pressed`) so the visual and the accessible
@@ -10,6 +10,7 @@ export const CC_CSS = `
 .cc-head-top { display:flex; align-items:center; gap:10px; }
 .cc-turn-off { flex-shrink:0; }
 .cc-h1 { margin:0; font-size:18px; font-weight:650; }
+.cc-head-mark { width:22px; height:22px; color:var(--accent); flex-shrink:0; }
 .cc-sub { font-size:13px; color:var(--muted); line-height:1.5; margin:6px 0 0; }
 
 .cc-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-top:16px; }
@@ -65,7 +66,7 @@ export const CC_CSS = `
 
 /* Offline state — shown when the desktop pet is not running */
 .cc-offline { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:36px 24px; margin-top:16px; text-align:center; }
-.cc-offline-ghost { width:46px; height:46px; color:var(--accent); opacity:.6; margin:0 auto 12px; display:block; }
+.cc-offline-mark { width:46px; height:46px; color:var(--accent); opacity:.6; margin:0 auto 12px; display:block; }
 .cc-offline-title { font-size:15px; font-weight:650; color:var(--text-strong); margin-bottom:6px; }
 .cc-offline-body { font-size:13px; color:var(--muted); max-width:430px; margin:0 auto 18px; line-height:1.5; }
 .cc-cta { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600; background:var(--accent); color:var(--accent-fg,#fff); border:none; border-radius:9px; padding:9px 18px; cursor:pointer; }

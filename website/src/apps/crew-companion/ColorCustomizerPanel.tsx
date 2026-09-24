@@ -13,16 +13,9 @@ import { toDataUri } from './animationResolver'
 import { i18nT } from '../../i18n/t'
 import { petBridge } from './petBridge'
 import { useImeGuard } from '../../hooks/useImeGuard'
-
-/**
- * The built-in pack's id, canonical in the backend (appearances.py `DEFAULT_PACK`).
- * This panel previously used a stale `DEFAULT_PACK` literal — the same bug
- * GalleryPanel fixed: recolors saved under an id no pack has, so the renderer
- * (which reloads by `kiro-ghost`) never saw them and the customization
- * silently vanished on the next reload.
- */
-const DEFAULT_PACK = 'kiro-ghost'
-
+// Recolours are saved under the built-in's own id, the one the renderer reloads by;
+// under any other id the customization would silently vanish on the next reload.
+import { BUILTIN_PACK } from './builtinPet'
 
 const api = petBridge
 
@@ -126,7 +119,7 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
   useEffect(() => {
     (async () => {
       const [saved, customs] = await Promise.all([
-        api?.presetsGetColorMap?.(DEFAULT_PACK),
+        api?.presetsGetColorMap?.(BUILTIN_PACK),
         api?.presetsLoadCustom?.(),
       ])
       if (saved && Object.keys(saved).length > 0) setColorMap(saved)
@@ -141,13 +134,13 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
   const applyPreset = useCallback((preset: CatPreset) => {
     setColorMap(preset.colorMap)
     setActivePresetId(preset.id)
-    api?.gallerySetColorMap?.(DEFAULT_PACK, preset.colorMap)
+    api?.gallerySetColorMap?.(BUILTIN_PACK, preset.colorMap)
   }, [])
 
   const handleColorChange = useCallback((sourceColor: string, targetColor: string) => {
     setColorMap(prev => {
       const next = { ...prev, [sourceColor]: targetColor }
-      api?.gallerySetColorMap?.(DEFAULT_PACK, next)
+      api?.gallerySetColorMap?.(BUILTIN_PACK, next)
       return next
     })
     setActivePresetId(null)
@@ -156,7 +149,7 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
   const handleReset = useCallback(async () => {
     setColorMap({})
     setActivePresetId(null)
-    await api?.gallerySetColorMap?.(DEFAULT_PACK, {})
+    await api?.gallerySetColorMap?.(BUILTIN_PACK, {})
   }, [])
 
   const handleSaveAsPreset = useCallback(async () => {

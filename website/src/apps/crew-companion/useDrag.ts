@@ -172,14 +172,14 @@ export function useDrag(
       if (!dragging.current) return
       resetStuckTimer()
       // Only treat it as a drag once the pointer has moved past a small threshold —
-      // otherwise a plain click would flash the "held" pose and jump the ghost.
+      // otherwise a plain click would flash the "held" pose and jump the pet.
       if (!dragEnteredRef.current) {
         const dx = e.clientX - dragStartPt.current.x
         const dy = e.clientY - dragStartPt.current.y
         if (Math.hypot(dx, dy) < 6) return
         dragEnteredRef.current = true
         setIsDragging(true)  // now show the leaning "held" pose
-        // Switch to grab-by-tip so the ghost hangs from the cursor at its grip point.
+        // Switch to grab-by-tip so the pet hangs from the cursor at its grip point.
         dragOffset.current = optionsRef.current.getGrip()
       }
       if (!dragPollingStarted.current) {

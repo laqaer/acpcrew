@@ -193,7 +193,7 @@ describe('resolve — state fallback chain', () => {
   it('missing content for a mapped file resolves to the empty svg body', () => {
     const manifest = makeManifest()
     // idle points at a file that isn't in the content map.
-    manifest.states = { idle: 'ghost.svg' }
+    manifest.states = { idle: 'cat.svg' }
     const r = new AnimationResolver(manifest, {})
     expect(r.resolve('idle', 'neutral').uri).toBe(toDataUri(''))
   })

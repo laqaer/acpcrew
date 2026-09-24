@@ -1,5 +1,5 @@
 /**
- * Same-origin fetch helpers for the Crew Companion gateway proxy.
+ * Same-origin fetch helpers for the Companion gateway proxy.
  *
  * Deliberately low-level: the page tries several candidate proxy paths (see
  * constants.ts) and remembers which one worked, so the path-fallback logic lives

@@ -7247,7 +7247,7 @@
       "deny": "거부",
       "failed": "실패",
       "idle": "유휴",
-      "kiro_is_working": "kiro가 작업 중…",
+      "agent_is_working": "에이전트가 작업 중…",
       "loading_thread": "스레드 불러오는 중…",
       "message": "{{name}}에게 메시지",
       "message_sent": "메시지를 보냈습니다",

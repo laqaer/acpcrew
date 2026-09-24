@@ -7247,7 +7247,7 @@
       "deny": "拒绝",
       "failed": "失败",
       "idle": "空闲",
-      "kiro_is_working": "kiro 正在工作…",
+      "agent_is_working": "代理正在工作…",
       "loading_thread": "加载话题…",
       "message": "消息 {{name}}",
       "message_sent": "消息已发送",

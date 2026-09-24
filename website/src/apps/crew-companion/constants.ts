@@ -1,5 +1,5 @@
 /**
- * Static configuration for the Crew Companion builtin page.
+ * Static configuration for the Companion builtin page.
  *
  * The backend runs IN-PROCESS inside the gateway (see
  * `src/junction/apps/builtins/crew_companion/backend/routes.py`), so these are

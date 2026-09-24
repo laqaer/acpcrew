@@ -7,8 +7,8 @@
  * variable names onto the dashboard tokens — so every other window follows all ~36 themes,
  * and only the panel ignored the user's colour choice.
  *
- * So the values here are CSS custom properties, not hex. Each carries the
- * `kiro-dark` fallback as its default, which matters twice: before the dashboard
+ * So the values here are CSS custom properties, not hex. Each carries the default
+ * `junction-dark` value as its fallback, which matters twice: before the dashboard
  * stylesheet loads, and permanently if the gateway is unreachable.
  *
  * TRADEOFF, stated plainly: following an arbitrary user theme means the panel's
@@ -82,22 +82,22 @@ export interface PanelSkin {
 
 /**
  * The live skin. Junction's variable names first, this app's older aliases second,
- * `kiro-dark` literals last (ink + copper factory default).
+ * `junction-dark` literals last (asphalt + signal-blue factory default).
  */
 export const THEME_SKIN: PanelSkin = {
-  card: 'var(--card, var(--bg-elevated, #14151c))',
-  ink: 'var(--card-fg, var(--text, #e4e4e7))',
-  muted: 'var(--muted, #7f7f88)',
-  faint: 'var(--muted, #7f7f88)',
-  row: 'var(--bg-hover, var(--bg-input, #1e2029))',
-  hairline: 'var(--border, #27272a)',
-  accent: 'var(--accent, #e4a54a)',
-  accentText: 'var(--cc-accent-text, var(--card-fg, var(--text, #e4e4e7)))',
-  accentSoft: 'var(--accent-subtle, rgba(228,165,74,0.16))',
-  accentInk: 'var(--accent, #e4a54a)',
-  onAccent: 'var(--accent-fg, #ffffff)',
-  okSoft: 'var(--ok-subtle, rgba(0,133,67,0.18))',
-  okInk: 'var(--ok, #008543)',
+  card: 'var(--card, var(--bg-elevated, #11151c))',
+  ink: 'var(--card-fg, var(--text, #d8dee7))',
+  muted: 'var(--muted, #8591a3)',
+  faint: 'var(--muted, #8591a3)',
+  row: 'var(--bg-hover, var(--bg-input, #1d232e))',
+  hairline: 'var(--border, #232a35)',
+  accent: 'var(--accent, #5c8dff)',
+  accentText: 'var(--cc-accent-text, var(--card-fg, var(--text, #d8dee7)))',
+  accentSoft: 'var(--accent-subtle, rgba(92,141,255,0.15))',
+  accentInk: 'var(--accent, #5c8dff)',
+  onAccent: 'var(--accent-fg, #06112b)',
+  okSoft: 'var(--ok-subtle, rgba(47,191,113,0.13))',
+  okInk: 'var(--ok, #2fbf71)',
   shadow: 'var(--cc-panel-shadow)',
   radius: 16,
   rowRadius: 11,

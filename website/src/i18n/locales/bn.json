@@ -7351,7 +7351,7 @@
       "deny": "প্রত্যাখ্যান",
       "failed": "ব্যর্থ",
       "idle": "নিষ্ক্রিয়",
-      "kiro_is_working": "kiro কাজ করছে…",
+      "agent_is_working": "এজেন্ট কাজ করছে…",
       "loading_thread": "থ্রেড লোড হচ্ছে…",
       "message": "{{name}}-কে বার্তা",
       "message_sent": "মেসেজ পাঠানো হয়েছে",

@@ -605,7 +605,7 @@ WebSocket with backoff reconnect plus a regex that stripped tool-use markup from
 the stream; all of it is gone.
 
 The slot is created on first open, its key is remembered per paper in
-`localStorage` (`kc:papyrus:slot:<project>`), and silent context naming the paper
+`localStorage` (`jn:papyrus:slot:<project>`), and silent context naming the paper
 and its main document is injected via `api.chatSlotContext` — the
 `papyrus-writing` skill supplies the rest. Stale slot keys are pruned whenever the
 project list lands, because a name reused after a delete would otherwise

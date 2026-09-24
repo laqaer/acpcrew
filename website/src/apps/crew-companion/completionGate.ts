@@ -23,7 +23,7 @@
  *    recovered from history first (the `verify` path).
  *
  *  - THE COMPANION CELEBRATING ITS OWN TIMERS. The pet runs its own housekeeping
- *    background agent. If its completions notified, the ghost would cheer for its
+ *    background agent. If its completions notified, the pet would cheer for its
  *    own internal work all day, so those slots are excluded outright.
  *
  * Ported adaptations (see also STEP notes below):

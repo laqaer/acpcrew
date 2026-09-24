@@ -32,7 +32,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { resolveActivePackId } from '../../builtinPacks'
+import { BUILTIN_MOCHI_ID, resolveActivePackId } from '../../builtinPacks'
 import { PackEditor } from './PackEditor'
 import { PetdexImporter } from './PetdexImporter'
 import { SpriteImporter, type SpritePrefillInput } from './SpriteImporter'
@@ -334,10 +334,10 @@ function AnimThumbnail({ content, format, size = 64, spriteConfig, colorMap, fli
   spriteConfig?: SpriteConfig | null
   colorMap?: ColorMap | null
   /**
-   * Mirror the art. ONE prop for every format: this used to be read straight off
-   * `spriteConfig` inside the sprite branch, so a mirrored SVG or Lottie pack
-   * (the built-in Kiro Ghost) faced the wrong way in the gallery while the pet
-   * — which has always XOR'd a pack-level baseline — faced the right way.
+   * Mirror the art. ONE prop for every format, rather than read off
+   * `spriteConfig` inside the sprite branch: otherwise a mirrored SVG or Lottie
+   * pack faces the wrong way in the gallery while the pet — which XORs a
+   * pack-level baseline — faces the right way.
    */
   flipX?: boolean
 }) {
@@ -372,7 +372,7 @@ function AnimThumbnail({ content, format, size = 64, spriteConfig, colorMap, fli
   }
   // Reaching here means the slot had NO usable art, which draws as an empty box
   // indistinguishable from a slot the pack legitimately omits. That ambiguity is
-  // what made "the ghost shows nothing" undiagnosable, so say which it is.
+  // what makes "the pack shows nothing" undiagnosable, so say which it is.
   // eslint-disable-next-line no-console
   console.warn('[mochi] animation thumbnail has no usable art', {
     format,
@@ -601,6 +601,13 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
 export const GalleryPanel: React.FC = () => {
   const [packs, setPacks] = useState<PackMeta[]>([])
   const [activePackId, setActivePackId] = useState<string>('')
+  /**
+   * The pack the gallery marks as in use. The configured id when a listed pack
+   * answers to it; otherwise the default cat, which is what the pet renders for an
+   * id with no readable art (a deleted pack, or one this build does not ship).
+   */
+  const shownActiveId =
+    packs.length > 0 && !packs.some((p) => p.id === activePackId) ? BUILTIN_MOCHI_ID : activePackId
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null)
   const [detail, setDetail] = useState<PackDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -926,7 +933,7 @@ export const GalleryPanel: React.FC = () => {
               <PackCard
                 key={pack.id}
                 pack={pack}
-                isActive={pack.id === activePackId}
+                isActive={pack.id === shownActiveId}
                 isSelected={pack.id === selectedPackId}
                 onClick={() => handleCardClick(pack.id)}
                 thumbnailContent={thumbs[pack.id]}
@@ -944,7 +951,7 @@ export const GalleryPanel: React.FC = () => {
       {detail && selectedPackId && (
         <DetailPanel
           detail={detail}
-          isActive={detail.meta.id === activePackId}
+          isActive={detail.meta.id === shownActiveId}
           onClose={() => { setSelectedPackId(null); setDetail(null) }}
           onApply={handleApply}
           onExport={handleExport}

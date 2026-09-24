@@ -35,15 +35,12 @@ describe('make-your-own save routing', () => {
     expect(src).not.toMatch(/id:\s*asNew\s*\?\s*crypto\.randomUUID\(\)\s*:/)
   })
 
-  it('draws the current avatar in the breathing exercise, not a hardcoded ghost', () => {
+  it('draws the current avatar in the breathing exercise, not a fixed drawing', () => {
     // The breathing overlay renders in panel.tsx (a window layer), so it can and should
-    // follow the picked appearance. It used to import the built-in kiro_idle.svg
-    // directly, which showed the default ghost even under a custom pack.
+    // follow the picked appearance: a direct import of the built-in art would show the
+    // default cat even under a custom pack.
     const src = readFileSync('src/apps/crew-companion/BreathingOverlay.tsx', 'utf8')
     expect(src).toMatch(/import\s*\{[^}]*\bPetAvatar\b[^}]*\}/)
-    // No import of, or reference to, the hardcoded built-in asset. Scoped to real
-    // statements (import / src=) so the historical note in a comment does not match.
-    expect(src).not.toMatch(/import\s+\w+\s+from\s+['"][^'"]*kiro_idle/)
-    expect(src).not.toMatch(/\bghostIdleUrl\b(?!`)/)
+    expect(src).not.toMatch(/from\s+['"][^'"]*(?:builtinPet|assets\/)/)
   })
 })

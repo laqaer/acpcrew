@@ -33,8 +33,8 @@ const SWAP_B_MS = 800
 
 /** The default icon pool, used by every theme that registers no artwork.
  *
- *  Track/switch marks, not a mascot. The loader is a product-wide surface, so
- *  it must not carry another product's ghost. A theme that wants its own
+ *  Track/switch marks: the loader is a product-wide surface, so its default
+ *  artwork is wayfinding rather than a character. A theme that wants its own
  *  artwork overrides this through the `themeBranding` seam. */
 const DEFAULT_ICONS: ComponentType[] = [
   GitMerge,
@@ -110,7 +110,7 @@ function useThemeSlug(): string {
  *  whole loader, or just the artwork the default carousel cycles through:
  *    1. `loader`      — the theme's own component, rendered instead of everything
  *    2. `loaderIcons` — the stock carousel, cycling the theme's artwork
- *    3. the default pool (the mascot poses)
+ *    3. the default pool (the track marks above)
  *  An empty registered pool is ignored rather than rendering nothing. */
 export function resolveLoader(slug: string):
   | { kind: 'custom'; Component: ComponentType }

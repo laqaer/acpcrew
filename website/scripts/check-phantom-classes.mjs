@@ -133,7 +133,7 @@ const oracleWords = (words) =>
 const CSS_DECL = /(?:^|\s)[a-zA-Z-]+:\s/
 
 /** Markup, not a class list: an attribute assignment or an element open tag.
- *  `kiroGhostAvatar.ts` builds SVG in a template literal, so `stroke-width="20`
+ *  `routePlateAvatar.ts` builds SVG in a template literal, so `stroke-width="20`
  *  arrives looking exactly like a candidate class. No class list ever contains
  *  `="`. */
 const MARKUP = /="|<[A-Za-z]/

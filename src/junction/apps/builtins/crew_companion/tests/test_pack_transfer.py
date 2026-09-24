@@ -226,8 +226,8 @@ def test_import_never_collides_with_the_builtin_id(store):
     bundle = {
         "kind": "crew-companion-pack",
         "version": 1,
-        "id": "kiro-ghost",
-        "manifest": {"meta": {"id": "kiro-ghost", "name": "Fake"}, "states": {"idle": "idle.svg"}},
+        "id": "default-mochi",
+        "manifest": {"meta": {"id": "default-mochi", "name": "Fake"}, "states": {"idle": "idle.svg"}},
         "files": {"idle.svg": "<svg/>"},
     }
     assert pack_transfer.import_bundle(store, bundle)["ok"] is False
@@ -492,7 +492,7 @@ def test_the_builtin_cannot_be_exported(store):
     Found live: exporting it produced a bundle with no files, which then failed to
     import with a confusing "no art in it". Refusing here names the real reason.
     """
-    assert pack_transfer.export_bundle(store, "kiro-ghost") is None
+    assert pack_transfer.export_bundle(store, "default-mochi") is None
 
 
 def test_a_custom_pack_round_trips_through_a_bundle(store):

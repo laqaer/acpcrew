@@ -32,7 +32,7 @@ describe('celebrate hop replays on every completion', () => {
     anim = activeAnimFor({ state: 'done', mood: 'happy' })
     rerender(<PetAvatar size={128} state={'done'} mood={'happy'} anim={anim} animEpoch={1} />)
     const nDone1 = animSpan(container)
-    expect(nDone1.className).toContain('kg-anim-celebrate')
+    expect(nDone1.className).toContain('pet-anim-celebrate')
     expect(nDone1).not.toBe(nIdle) // remounted → keyframes play
 
     // 2.4s later the state resets to idle but the happy mood (and so celebrate) lingers.
@@ -40,7 +40,7 @@ describe('celebrate hop replays on every completion', () => {
     anim = activeAnimFor({ state: 'idle', mood: 'happy' })
     rerender(<PetAvatar size={128} state={'idle'} mood={'happy'} anim={anim} animEpoch={1} />)
     const nHold = animSpan(container)
-    expect(nHold.className).toContain('kg-anim-celebrate')
+    expect(nHold.className).toContain('pet-anim-celebrate')
     expect(nHold).toBe(nDone1) // same epoch, same motion → no spurious restart
 
     // A SECOND completion while still in celebrate-continuity. Same motion name, but a
@@ -48,7 +48,7 @@ describe('celebrate hop replays on every completion', () => {
     anim = activeAnimFor({ state: 'done', mood: 'happy' })
     rerender(<PetAvatar size={128} state={'done'} mood={'happy'} anim={anim} animEpoch={2} />)
     const nDone2 = animSpan(container)
-    expect(nDone2.className).toContain('kg-anim-celebrate')
+    expect(nDone2.className).toContain('pet-anim-celebrate')
     expect(nDone2).not.toBe(nHold) // the fix: repeat celebration replays
   })
 })

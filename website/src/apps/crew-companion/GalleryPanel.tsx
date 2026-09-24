@@ -9,7 +9,7 @@
  * - Card click expands detail panel (animation thumbnails grid + state labels)
  * - Apply / Export buttons
  * - Custom pack Edit / Delete buttons
- * - Import Pack button (from .kiropack.zip)
+ * - Import Pack button (from an exported pack bundle)
  * - Listens to gallery:active-changed and gallery:packs-changed broadcasts
  */
 import { ChevronDown, MoreHorizontal, Plus, X } from 'lucide-react'
@@ -18,30 +18,19 @@ import type { PackMeta } from './appearanceTypes'
 import { REQUIRED_STATES, STATUS_STATES, RANDOM_STATES, LEGACY_STATES, ALL_MOODS } from './appearanceTypes'
 import { toDataUri } from './animationResolver'
 import { applySvgColorMap, type ColorMap } from './colorCustomizer'
-import { ghostPoseForKey } from './ghostEyes'
-import { GhostEyeOverlay } from './GhostEyeOverlay'
 import { LottieRenderer } from './LottieRenderer'
 import { SpriteRenderer } from './SpriteRenderer'
 import { PackEditor } from './PackEditor'
 import { SpriteImporter } from './SpriteImporter'
 import { buildSpritePackData, firstFramePreview } from './petdexImport'
 import { ColorCustomizerPanel } from './ColorCustomizerPanel'
-import { GHOST_ACCESSORIES, type GhostAccessory } from './ghostAccessories'
 import { i18nT } from '../../i18n/t'
-// The built-in ghost's body art. Bundled with the frontend and imported as a URL
-// by the bundler — the SAME asset PetAvatar renders — so the gallery card and the
-// live companion can never show a different ghost.
-import ghostIdleUrl from './assets/kiro_idle.svg'
+// The built-in cat's art, bundled with the frontend — the SAME strings PetAvatar
+// renders — so the gallery card and the live companion can never show a different
+// cat.
+import { BUILTIN_PACK, builtinAnimations, builtinArt } from './builtinPet'
 
 const api = galleryApi
-
-/**
- * The built-in pack's id, canonical in the backend (appearances.py `DEFAULT_PACK`)
- * and in PetAvatar. This file previously used a stale `'default-kiro'` literal that
- * matches no real pack, which both broke the built-in's active-highlight/colour
- * wiring and made `appearances/detail?id=default-kiro` 400 (no such pack).
- */
-const DEFAULT_PACK = 'kiro-ghost'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -432,35 +421,22 @@ const S = {
 
 // ── Helper: render animation thumbnail ─────────────────────────────────────
 
-function AnimThumbnail({ content, format, size = 64, spriteConfig, colorMap, eyePose }: {
+function AnimThumbnail({ content, format, size = 64, spriteConfig, colorMap }: {
   content: string
   format: 'svg' | 'lottie' | 'sprite'
   size?: number
   spriteConfig?: SpriteMeta | null
   colorMap?: ColorMap | null
-  /** Set for the built-in ghost only: its body SVGs are eyeless because the live
-   *  pet draws the eyes as an overlay, so a raw thumbnail renders a blank face.
-   *  Pass the pose whose eye positions this state uses. */
-  eyePose?: string
 }) {
   if (format === 'svg' && content) {
     const processed = colorMap && Object.keys(colorMap).length > 0
       ? applySvgColorMap(content, colorMap) : content
-    const img = (
+    return (
       <img
         src={toDataUri(processed)}
         alt=""
         style={{ ...S.animThumb, width: size, height: size }}
       />
-    )
-    if (!eyePose) return img
-    // The eye percentages are relative to the same letterboxed square the pet
-    // uses, so they land correctly at any size as long as object-fit is contain.
-    return (
-      <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-        {img}
-        <GhostEyeOverlay pose={eyePose} size={size} />
-      </div>
     )
   }
   if (format === 'lottie' && content) {
@@ -496,43 +472,22 @@ function AnimThumbnail({ content, format, size = 64, spriteConfig, colorMap, eye
   )
 }
 
-// ── Helper: built-in ghost thumbnail ───────────────────────────────────────
+// ── Helper: built-in thumbnail ─────────────────────────────────────────────
 
 /**
- * The built-in "Kiro" pack's card art.
+ * The built-in cat's card art.
  *
- * The built-in ghost is NOT a file the backend can serve — its body is bundled with
- * the frontend and its detail payload comes back with empty `animations`, so the
- * generic thumbnail path had nothing to draw and fell back to a placeholder. This
- * renders the bundled body exactly the way PetAvatar does: the same `kiro_idle.svg`
- * asset, the user's colour map applied to its text when present, and the eyes drawn
- * as a separate overlay (the body is deliberately eyeless). That keeps the gallery
- * card and the live companion in lock-step.
+ * The built-in is NOT a file the backend can serve — its art is bundled with the
+ * frontend, and its detail payload comes back without `animations`. This renders
+ * the bundled resting body exactly the way PetAvatar does, with the user's colour
+ * map applied, which keeps the gallery card and the live companion in lock-step.
  */
 function BuiltinThumbnail({ size, colorMap }: { size: number; colorMap?: ColorMap | null }) {
-  // The SVG is a bundler URL, so a colour map has to be applied to its fetched text.
-  // With no map we point straight at the URL — the same branch PetAvatar takes.
-  const [recolouredUri, setRecolouredUri] = useState<string | null>(null)
-  useEffect(() => {
-    if (!colorMap || Object.keys(colorMap).length === 0) { setRecolouredUri(null); return }
-    let alive = true
-    fetch(ghostIdleUrl)
-      .then((r) => r.text())
-      .then((raw) => { if (alive) setRecolouredUri(toDataUri(applySvgColorMap(raw, colorMap))) })
-      .catch(() => {})
-    return () => { alive = false }
+  const src = React.useMemo(() => {
+    const raw = builtinArt('idle')
+    return toDataUri(colorMap && Object.keys(colorMap).length > 0 ? applySvgColorMap(raw, colorMap) : raw)
   }, [colorMap])
-
-  return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <img
-        src={recolouredUri ?? ghostIdleUrl}
-        alt=""
-        style={{ ...S.thumbnail, width: size, height: size }}
-      />
-      <GhostEyeOverlay pose="primary" size={size} />
-    </div>
-  )
+  return <img src={src} alt="" style={{ ...S.thumbnail, width: size, height: size }} />
 }
 
 // ── Pack Card ──────────────────────────────────────────────────────────────
@@ -562,12 +517,11 @@ function PackCard({ pack, isActive, isSelected, onClick, onManage, thumbnailCont
           }}
         ><MoreHorizontal size={13} className="lucide-inline" aria-hidden="true" /></button>
       )}
-      {pack.id === DEFAULT_PACK ? (
-        // Built-in ghost: bundled art, drawn like the live companion (see above).
+      {pack.id === BUILTIN_PACK ? (
+        // Built-in cat: bundled art, drawn like the live companion (see above).
         <BuiltinThumbnail size={80} colorMap={colorMap} />
       ) : thumbnailContent ? (
-        // Custom packs bake their own eyes in and are never recoloured through the
-        // built-in colour map, so no eye overlay or colour map here.
+        // Custom packs are never recoloured through the built-in colour map.
         <AnimThumbnail content={thumbnailContent} format={entryFormat(pack)} size={80} spriteConfig={spriteConfig} />
       ) : (
         // A pack whose idle art could not be read: a neutral, empty thumbnail box —
@@ -724,23 +678,8 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
   const { meta, animations } = detail
   const sc = detail.sprite
   const [showColorCustomizer, setShowColorCustomizer] = useState(false)
-  const isDefaultKiro = meta.id === DEFAULT_PACK
-  const thumbColorMap = isDefaultKiro ? colorMap : null
-
-  // Dress-up selection, read from and written back to config so the pet overlay
-  // (a separate window) picks the change up via the config:updated broadcast.
-  const [accessory, setAccessory] = useState<GhostAccessory>('none')
-  useEffect(() => {
-    if (!isDefaultKiro) return
-    api?.getCrewCompanionConfig?.().then((c) => {
-      // Nested, matching what this panel WRITES two hundred lines below and what
-      // the overlay reads. Reading a flat `accessory` here meant the picker always
-      // opened on "none" however the ghost was actually dressed — the write went
-      // one place and the read looked in another.
-      const worn = (c as { kiro?: { accessory?: unknown } })?.kiro?.accessory
-      if (typeof worn === 'string') setAccessory(worn as GhostAccessory)
-    }).catch(() => {})
-  }, [isDefaultKiro])
+  const isBuiltin = meta.id === BUILTIN_PACK
+  const thumbColorMap = isBuiltin ? colorMap : null
 
   const stateEntries = REQUIRED_STATES.map((s) => ({
     key: s,
@@ -796,7 +735,7 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
         </div>
 
         {/* Color customize toggle — pill button below header */}
-        {isDefaultKiro && (
+        {isBuiltin && (
           <button
             onClick={() => setShowColorCustomizer(!showColorCustomizer)}
             style={{
@@ -815,7 +754,7 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
         )}
 
         {/* Color customizer panel with slide animation */}
-        {isDefaultKiro && animations.idle && (
+        {isBuiltin && animations.idle && (
           <div style={{
             maxHeight: showColorCustomizer ? 2000 : 0,
             opacity: showColorCustomizer ? 1 : 0,
@@ -826,43 +765,13 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
           </div>
         )}
 
-        {/* Dress up — moved here from the pet's click menu. Only the default
-            ghost has props; custom packs bring their own art. */}
-        {isDefaultKiro && (
-          <>
-            <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.gallery.dressUp')}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-              {GHOST_ACCESSORIES.map((acc) => {
-                const active = accessory === acc.id
-                return (
-                  <button
-                    key={acc.id}
-                    onClick={() => {
-                      setAccessory(acc.id)
-                      api?.updateConfig?.({ kiro: { accessory: acc.id } })
-                    }}
-                    style={{
-                      font: '600 12px -apple-system, BlinkMacSystemFont, sans-serif',
-                      padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
-                      border: `1.5px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                      background: active ? 'var(--accent-subtle, var(--bg-hover))' : 'transparent',
-                      color: 'var(--text)',
-                    }}
-                  >{i18nT(acc.labelKey)}</button>
-                )
-              })}
-            </div>
-          </>
-        )}
-
         {/* Required */}
         <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.gallery.states')}</div>
         <div style={S.animGrid}>
           {stateEntries.map(({ key, label, anim }) => (
             <div key={key} style={S.animCell}>
               {anim ? (
-                <AnimThumbnail content={entryContent(anim)} format={entryFormat(anim)} spriteConfig={sc} colorMap={thumbColorMap}
-                  eyePose={isDefaultKiro ? ghostPoseForKey(key) : undefined} />
+                <AnimThumbnail content={entryContent(anim)} format={entryFormat(anim)} spriteConfig={sc} colorMap={thumbColorMap} />
               ) : (
                 <div style={{ ...S.animThumb, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 11 }}>—</div>
               )}
@@ -881,8 +790,7 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
               {entries.map(({ key, label, anim }) => (
                 <div key={key} style={S.animCell}>
                   {anim ? (
-                    <AnimThumbnail content={entryContent(anim)} format={entryFormat(anim)} spriteConfig={sc} colorMap={thumbColorMap}
-                  eyePose={isDefaultKiro ? ghostPoseForKey(key) : undefined} />
+                    <AnimThumbnail content={entryContent(anim)} format={entryFormat(anim)} spriteConfig={sc} colorMap={thumbColorMap} />
                   ) : (
                     <div style={{ ...S.animThumb, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 11 }}>—</div>
                   )}
@@ -934,6 +842,13 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
 export const GalleryPanel: React.FC = () => {
   const [packs, setPacks] = useState<PackMeta[]>([])
   const [activePackId, setActivePackId] = useState<string>('')
+  /**
+   * The pack the gallery marks as in use. The configured id when a listed pack
+   * answers to it; otherwise the built-in cat, which is what the companion renders
+   * for an id with no readable art (a deleted pack, or one this build does not ship).
+   */
+  const shownActiveId =
+    packs.length > 0 && !packs.some((p) => p.id === activePackId) ? BUILTIN_PACK : activePackId
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null)
   const [detail, setDetail] = useState<PackDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -950,7 +865,7 @@ export const GalleryPanel: React.FC = () => {
   // Thumbnail content cache: packId → SVG/Lottie content for the thumbnail
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
   const [spriteConfigs, setSpriteConfigs] = useState<Record<string, SpriteMeta>>({})
-  // Color map for the built-in ghost's thumbnail
+  // Color map for the built-in cat's thumbnail
   const [crewCompanionColorMap, setCrewCompanionColorMap] = useState<ColorMap | null>(null)
   // ── Data fetching ──────────────────────────────────────────────────────
 
@@ -982,15 +897,13 @@ export const GalleryPanel: React.FC = () => {
   const fetchActiveId = useCallback(async () => {
     try {
       const cfg = await api.getCrewCompanionConfig()
-      setActivePackId(cfg?.activeAppearance || DEFAULT_PACK)
+      setActivePackId(cfg?.activeAppearance || BUILTIN_PACK)
       if (typeof cfg?.language === 'string') setLang(cfg.language)
-      // Load colorMap for the built-in ghost's thumbnail. Keyed by the real pack id
-      // (kiro-ghost); the old `'default-kiro'` matched no pack, so the detail lookup
-      // behind this returned 400 on every gallery open.
-      const cm = await api?.presetsGetColorMap?.(DEFAULT_PACK)
+      // Load colorMap for the built-in cat's thumbnail, keyed by the built-in's id.
+      const cm = await api?.presetsGetColorMap?.(BUILTIN_PACK)
       setCrewCompanionColorMap(cm && Object.keys(cm).length > 0 ? cm : null)
     } catch {
-      setActivePackId(DEFAULT_PACK)
+      setActivePackId(BUILTIN_PACK)
     }
   }, [])
 
@@ -1018,15 +931,15 @@ export const GalleryPanel: React.FC = () => {
     const offPacks = api?.onGalleryPacksChanged?.(() => {
       fetchPacks()
     })
-    // Listen for color map changes to update the built-in ghost's thumbnail
+    // Listen for color map changes to update the built-in cat's thumbnail
     const offColor = api.onColorMapChanged?.((data: { packId: string; colorMap: Record<string, string> }) => {
-      if (data.packId === DEFAULT_PACK) {
+      if (data.packId === BUILTIN_PACK) {
         setCrewCompanionColorMap(data.colorMap && Object.keys(data.colorMap).length > 0 ? data.colorMap : null)
       }
     })
     // Listen for config changes (language, theme) broadcast from settings save
-    const offConfig = api.onConfigUpdated?.((kiro?: { language?: string }) => {
-      if (kiro?.language && kiro.language !== lang) setLang(kiro.language)
+    const offConfig = api.onConfigUpdated?.((cfg?: { language?: string }) => {
+      if (cfg?.language && cfg.language !== lang) setLang(cfg.language)
     })
     return () => {
       offActive?.()
@@ -1050,7 +963,12 @@ export const GalleryPanel: React.FC = () => {
     try {
       const d = await api.galleryGetPackDetail(packId)
       if (!d) { setDetail(null); return }
-      setDetail({ meta: d.meta as PackMeta, animations: d.animations ?? {}, sprite: d.sprite })
+      // The built-in's art is bundled rather than served, so its slots are filled
+      // in here from the same strings the live pet draws.
+      const animations = packId === BUILTIN_PACK
+        ? { ...builtinAnimations(), ...(d.animations ?? {}) }
+        : d.animations ?? {}
+      setDetail({ meta: d.meta as PackMeta, animations, sprite: d.sprite })
     } catch (err) {
       setError(errorText(err) || i18nT('apps.crewCompanion.gallery.loadDetailFailed'))
       setDetail(null)
@@ -1120,12 +1038,12 @@ export const GalleryPanel: React.FC = () => {
         // first is safe in every failure order — if the delete then fails, the
         // active pack is the built-in and the doomed pack simply still exists.
         // gallerySetActive also broadcasts the change to the overlay window.
-        const switched = await api.gallerySetActive?.(DEFAULT_PACK)
+        const switched = await api.gallerySetActive?.(BUILTIN_PACK)
         if (!switched?.ok) {
           setError(i18nT('apps.crewCompanion.gallery.deleteFailed'))
           return
         }
-        setActivePackId(DEFAULT_PACK)
+        setActivePackId(BUILTIN_PACK)
       }
       const result = await api.galleryDelete(detail.meta.id)
       if (!result) {
@@ -1324,7 +1242,7 @@ export const GalleryPanel: React.FC = () => {
               <PackCard
                 key={pack.id}
                 pack={pack}
-                isActive={pack.id === activePackId}
+                isActive={pack.id === shownActiveId}
                 isSelected={pack.id === selectedPackId}
                 onClick={() => applyPack(pack.id)}
                 onManage={pack.type === 'custom' ? () => handleCardClick(pack.id) : undefined}
@@ -1376,7 +1294,7 @@ export const GalleryPanel: React.FC = () => {
       {detail && selectedPackId && (
         <DetailPanel
           detail={detail}
-          isActive={detail.meta.id === activePackId}
+          isActive={detail.meta.id === shownActiveId}
           onClose={() => { setSelectedPackId(null); setDetail(null) }}
           onApply={handleApply}
           onExport={handleExport}

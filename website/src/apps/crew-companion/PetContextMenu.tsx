@@ -27,8 +27,8 @@ export function PetContextMenu({ x, y, onClose }: Props) {
       // belong in a preferences column.
       { label: i18nT('apps.crewCompanion.menu.change_avatar'), action: 'gallery' },
       { separator: true },
-      // Quit names the APP, not the pet: "Quit Kiro" read as dismissing the
-      // character rather than closing Crew Companion.
+      // Quit names the APP, not the pet: "Quit <pet name>" would read as
+      // dismissing the character rather than closing the Companion app.
       { label: i18nT('apps.crewCompanion.menu.quit'), action: 'quit', danger: true },
     ]
     // Removed deliberately:

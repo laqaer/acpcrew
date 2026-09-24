@@ -107,10 +107,10 @@ describe('mochiApi config shape', () => {
 
   it('drops keys the builtin does not own instead of posting them', async () => {
     const api = await loadApi()
-    await api.updateConfig({ mochi: { petName: 'Kiro', theme: 'mocha', soul: 'x' } })
+    await api.updateConfig({ mochi: { petName: 'Tofu', theme: 'mocha', soul: 'x' } })
     // The write route rejects unknown keys, so one unowned key must not cost the
     // user the rest of the save.
-    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Kiro' })
+    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Tofu' })
   })
 
   it('makes no request when a partial reduces to nothing owned', async () => {
@@ -136,10 +136,10 @@ describe('mochiApi config shape', () => {
     // for `shortcuts`: one keyboard belongs to one computer.
     const api = await loadApi()
     await api.updateConfig({
-      mochi: { petName: 'Kiro', petInstance: 'crew-remote' },
+      mochi: { petName: 'Tofu', petInstance: 'crew-remote' },
       shortcuts: { toggleWindow: 'Alt+Shift+M' },
     })
-    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Kiro' })
+    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Tofu' })
   })
 
   it('makes no request when a partial holds ONLY shell-owned prefs', async () => {

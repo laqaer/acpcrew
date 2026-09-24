@@ -7,7 +7,6 @@ import { api } from '../api/client'
 import { readSendReceipt } from '../utils/sendDelivery'
 import type { AgentSource } from './useAgentSync'
 import { useImeGuard } from './useImeGuard'
-import { KIRO_GHOST_PIXELS } from './sceneText'
 
 import { i18nT } from '../i18n/t'
 /** Minimal agent shape for hit-testing — all scene agent types satisfy this */
@@ -18,23 +17,9 @@ export interface SceneAgent {
   color?: string
 }
 
-/** Tiny pixel Kiro ghost used as the popover's agent identity marker */
-function MiniGhost({ color }: { color: string }) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const cv = ref.current
-    const ctx = cv?.getContext('2d')
-    if (!cv || !ctx) return
-    ctx.clearRect(0, 0, 24, 28)
-    ctx.fillStyle = color
-    KIRO_GHOST_PIXELS.forEach((row, y) => {
-      for (let x = 0; x < row.length; x++) if (row[x] === '#') ctx.fillRect(x, y, 1, 1)
-    })
-    ctx.fillStyle = '#14141e'
-    ctx.fillRect(11, 8, 3, 4)
-    ctx.fillRect(17, 8, 3, 4)
-  }, [color])
-  return <canvas ref={ref} width={24} height={28} style={{ width: 18, height: 21, imageRendering: 'pixelated', flexShrink: 0 }} aria-hidden />
+/** The agent's scene colour as a small swatch, so the popover names which sprite it is about. */
+function AgentSwatch({ color }: { color: string }) {
+  return <span aria-hidden style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
 }
 
 export interface SceneTooltipTheme {
@@ -469,7 +454,7 @@ export function useSceneInteraction(
         onPointerDown={onHeaderPointerDown}
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', borderBottom: '1px solid #333', cursor: 'grab', touchAction: 'none', userSelect: 'none' }}
       >
-        <MiniGhost color={threadView.agent.color || '#e8ecf4'} />
+        <AgentSwatch color={threadView.agent.color || '#e8ecf4'} />
         <span style={{ color: '#f90', fontWeight: 'bold', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{threadView.agent.name}</span>
         <button
           onClick={() => openChat(threadView.agent)}
@@ -495,8 +480,8 @@ export function useSceneInteraction(
         ) : (
           threadView.messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', gap: 5, alignItems: 'baseline' }}>
-              <span style={{ color: m.role === 'user' ? '#f90' : '#7a8', flexShrink: 0, fontWeight: 'bold' }}>
-                {m.role === 'user' ? 'you' : 'kiro'}
+              <span style={{ color: m.role === 'user' ? '#f90' : '#7a8', flexShrink: 0, fontWeight: 'bold', maxWidth: 72, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {m.role === 'user' ? 'you' : threadView.agent.name}
               </span>
               <span style={{ color: '#bbb', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
                 {messagePreview(m.content, 200)}
@@ -505,7 +490,7 @@ export function useSceneInteraction(
           ))
         )}
         {sourceFor(threadView.agent)?.running ? (
-          <div style={{ color: '#7a8', fontStyle: 'italic' }}>{i18nT('hooks.useSceneInteraction.kiro_is_working')}</div>
+          <div style={{ color: '#7a8', fontStyle: 'italic' }}>{i18nT('hooks.useSceneInteraction.agent_is_working')}</div>
         ) : null}
         <div ref={messagesEndRef} />
       </div>

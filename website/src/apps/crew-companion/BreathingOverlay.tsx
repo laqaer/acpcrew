@@ -14,9 +14,7 @@
  * Ported from the desktop app's renderer. Two deliberate substitutions: the panel's
  * own `useSkin` theme becomes the dashboard's CSS custom properties (so it inherits
  * all ~36 Junction themes for free), and `useT` becomes `i18nT`. The companion glyph
- * is a plain inline SVG here rather than the desktop `PetAvatar`, because appearance
- * packs belong to the window layer — the motion is what carries the exercise, and
- * that is fully preserved.
+ * is the user's current avatar, drawn by `PetAvatar` (see `CompanionGlyph`).
  */
 import { X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -43,19 +41,13 @@ export const CUSTOM_PHASE_TRANSITION = 'transform 180ms ease-out'
 
 /**
  * The companion that breathes with the exercise — the user's CURRENT avatar, not a
- * hardcoded ghost.
- *
- * This used to draw the built-in `kiro_idle.svg` directly, so the exercise showed the
- * default ghost even when the user had picked a capybara. The comment justifying that
- * ("appearance packs belong to the window layer") did not hold: this overlay renders
- * inside `panel.tsx`, which IS a window layer, the same one that draws the live pet.
+ * fixed drawing, so a user who picked a capybara breathes with the capybara. This
+ * overlay renders inside `panel.tsx`, the same window layer that draws the live pet.
  *
  * `PetAvatar` is self-contained — it reads the active appearance from config, resolves
  * the pack's art, and re-resolves on pack/recolour events — so no appearance data has
- * to be threaded down here. It also brings the `isDefault` eye gate for free: a custom
- * pack draws its own eyes, so PetAvatar suppresses the overlay eyes that only belong to
- * the eyeless built-in ghost (drawing both is a two-pairs-of-eyes bug). The breathing
- * scale lives on the `.cc-breathe-glyph` wrapper OUTSIDE this, so every pack breathes.
+ * to be threaded down here. The breathing scale lives on the `.cc-breathe-glyph`
+ * wrapper OUTSIDE this, so every pack breathes.
  *
  * `anim={null}` holds the body still — the breath IS the motion here; a pack's own idle
  * fidget playing underneath would fight the scale.
@@ -200,7 +192,7 @@ export default function BreathingOverlay({ onDone, onEnd }: BreathingOverlayProp
           className="cc-breathe-glyph"
           style={{
             transform: `scale(${glyphScale})`,
-            // Custom phase art carries its own motion; otherwise Kiro's scale is the fallback.
+            // Custom phase art carries its own motion; otherwise the built-in scale is the fallback.
             transition: customPhase
               ? CUSTOM_PHASE_TRANSITION
               : `transform ${state.phase.ms}ms cubic-bezier(.4,.0,.4,1)`,

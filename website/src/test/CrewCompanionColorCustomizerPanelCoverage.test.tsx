@@ -17,7 +17,7 @@
  *    outline colours faded to their own shade;
  *  - a preset click, an Enter/Space activation and a manual edit each persist
  *    through `gallerySetColorMap` against the pack id the backend actually reloads
- *    by (`kiro-ghost`), and an edit drops the active mark because the result is no
+ *    by (`default-mochi`), and an edit drops the active mark because the result is no
  *    longer that preset;
  *  - the save form's guard, and the two ways out of it, which differ on whether the
  *    typed name survives;
@@ -58,7 +58,7 @@ const { toDataUri } = await import('../apps/crew-companion/animationResolver')
 /* ── fixtures ─────────────────────────────────────────────────── */
 
 /** The backend's canonical built-in pack id (appearances.py `DEFAULT_PACK`). */
-const PACK_ID = 'kiro-ghost'
+const PACK_ID = 'default-mochi'
 
 /**
  * Idle art with four distinct source colours: two the panel has a body-part label

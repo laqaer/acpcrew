@@ -1,9 +1,9 @@
 /**
- * Deterministic avatar for a crew.
+ * Deterministic avatar for a crew or an agent.
  *
- * The seed is the crew name, so a crew keeps the same face forever and two
+ * The seed is the crew name, so a crew keeps the same plate forever and two
  * people looking at the same config see the same roster. Generation is fully
- * LOCAL — `@dicebear/core` renders the SVG in-process from the `kiroGhost` style
+ * LOCAL — `@dicebear/core` renders the SVG in-process from the `routePlate` style
  * definition. Nothing is fetched, so this works offline and no crew name ever
  * leaves the machine (DiceBear's HTTP API is deliberately not used).
  *
@@ -12,45 +12,51 @@
  *  - no `dangerouslySetInnerHTML`, so this stays clear of the frontend-security
  *    rule and there is no HTML-string path to audit;
  *  - inline DiceBear SVGs collide on their internal `id`s when several are on
- *    one page (clip paths resolve to whichever came first, which renders some
- *    styles blank). A data URI is its own document, so the problem cannot
- *    arise and `randomizeIds` is unnecessary.
+ *    one page (the corner mask resolves to whichever came first). A data URI is
+ *    its own document, so the problem cannot arise and `randomizeIds` is
+ *    unnecessary.
  *
  * Swapping the art set is a one-line change to STYLE below; nothing outside
  * this file knows which style is in use.
  */
 import { useMemo } from 'react'
 import { createAvatar } from '@dicebear/core'
-import { kiroGhost } from '../lib/kiroGhostAvatar'
+import { routePlate } from '../lib/routePlateAvatar'
 
-/** Kiro's own ghost, built on the shipped mark. See `lib/kiroGhostAvatar.ts`. */
-const STYLE = kiroGhost
+/** Transit-signage route plates. See `lib/routePlateAvatar.ts`. */
+const STYLE = routePlate
 
 /**
- * Generated data URIs, keyed by seed. Module-level rather than per-component
- * so a crew's avatar is generated once per session even though it is rendered
- * in both the roster card and the editor panel.
+ * Generated data URIs, keyed by seed and pinned line. Module-level rather than
+ * per-component so an avatar is generated once per session even though it is
+ * rendered in both the roster card and the editor panel.
  */
 const CACHE = new Map<string, string>()
 
 export interface CrewAvatarProps {
   /** Crew name — the whole identity of the image. */
   seed: string
+  /**
+   * Pins the plate's line colour to one palette entry (wrapped), keeping the route
+   * the seed draws. Null or absent lets the seed choose the colour too.
+   */
+  line?: number | null
   /** Rendered edge length in px. */
   size?: number
   className?: string
 }
 
-export default function CrewAvatar({ seed, size = 40, className = '' }: CrewAvatarProps) {
+export default function CrewAvatar({ seed, line = null, size = 40, className = '' }: CrewAvatarProps) {
   const src = useMemo(() => {
-    const hit = CACHE.get(seed)
+    const key = JSON.stringify([line, seed])
+    const hit = CACHE.get(key)
     if (hit) return hit
-    // The tile color is part of the style rather than a `backgroundColor` list,
+    // The plate colour is part of the style rather than a `backgroundColor` list,
     // so that it is drawn from the same seeded stream as every other trait.
-    const uri = createAvatar(STYLE, { seed, radius: 12 }).toDataUri()
-    CACHE.set(seed, uri)
+    const uri = createAvatar(STYLE, { seed, radius: 12, line }).toDataUri()
+    CACHE.set(key, uri)
     return uri
-  }, [seed])
+  }, [seed, line])
 
   return (
     <img
@@ -59,6 +65,7 @@ export default function CrewAvatar({ seed, size = 40, className = '' }: CrewAvat
       // announcing the avatar too would just repeat it.
       alt=""
       aria-hidden="true"
+      draggable={false}
       width={size}
       height={size}
       style={{ width: size, height: size }}

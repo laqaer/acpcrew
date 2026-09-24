@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DragEvent as ReactDragEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { FileDown } from 'lucide-react'
 
-import kiroFileChomper from '../assets/kiro-file-chomper.png'
 import { i18nT } from '../i18n/t'
 
 type DropHandler = (event: ReactDragEvent) => void
@@ -138,19 +138,20 @@ export default function ChatDropOverlay({
             exit={{ opacity: 0, scale: 0.98, y: 2 }}
             transition={{ duration: reduceMotion ? 0 : 0.14, ease: 'easeOut' }}
           >
-            <motion.img
-              src={kiroFileChomper}
-              alt=""
-              draggable={false}
+            {/* A drop target, drawn as an interchange: the file glyph inside an
+                accent ring. Decorative — the status text below carries the copy. */}
+            <motion.span
               aria-hidden="true"
-              className="h-[140px] w-[200px] select-none object-contain [will-change:transform]"
-              animate={reduceMotion ? undefined : { y: [0, -5, 0], rotate: [-1, 1.2, -1] }}
+              className="flex h-20 w-20 select-none items-center justify-center rounded-full border-2 border-accent/60 bg-accent-subtle text-accent [will-change:transform]"
+              animate={reduceMotion ? undefined : { y: [0, -5, 0] }}
               transition={reduceMotion ? undefined : {
                 duration: BOB_CYCLE_SECONDS,
                 ease: 'easeInOut',
                 repeat: Infinity,
               }}
-            />
+            >
+              <FileDown className="lucide-inline h-9 w-9" />
+            </motion.span>
             <span className="mt-4 text-[13px] font-medium text-text-strong">
               {i18nT('components.chatInput.drop_to_attach')}
             </span>

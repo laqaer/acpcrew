@@ -198,7 +198,7 @@ beforeEach(() => {
   sinceZeroFails = false
   packDetail = null
   savedPos = { x: 300, y: 200 }
-  config = { activeAppearance: 'kiro-ghost', sessionNotificationsEnabled: true }
+  config = { activeAppearance: 'default-mochi', sessionNotificationsEnabled: true }
   queue([])
   window.localStorage.clear()
   // English is pinned in setup.ts, but `vi.resetModules()` hands pet.tsx a FRESH
@@ -482,7 +482,7 @@ describe('session signals from the gateway socket', () => {
   })
 
   it('reads the live "tell me when sessions are done" switch, not a captured value', async () => {
-    config = { activeAppearance: 'kiro-ghost', sessionNotificationsEnabled: false }
+    config = { activeAppearance: 'default-mochi', sessionNotificationsEnabled: false }
     await mountPet()
     await waitFor(() => expect(watch).not.toBeNull())
     await waitFor(() => expect(watch!.isSilent()).toBe(true))
@@ -587,14 +587,14 @@ describe('pointer and keyboard on the companion', () => {
 })
 
 describe('the active appearance pack', () => {
-  it('reads the built-in ghost and asks for no pack detail', async () => {
+  it('reads the built-in cat and asks for no pack detail', async () => {
     await mountPet()
     await waitFor(() => expect(bridge.getCrewCompanionConfig).toHaveBeenCalled())
     expect(bridge.galleryGetPackDetail).not.toHaveBeenCalled()
   })
 
   it('reads a custom pack’s own random behaviours', async () => {
-    config = { activeAppearance: 'petdex-pack', kiro: { accessory: 'partyhat' } }
+    config = { activeAppearance: 'petdex-pack' }
     packDetail = {
       animations: { idle: '<svg/>', walking: '<svg/>', happy: '<svg/>', wave: '<svg/>' },
       randomNames: ['wave', 'missing-art'],
@@ -604,10 +604,12 @@ describe('the active appearance pack', () => {
     await waitFor(() => expect(bridge.galleryGetPackDetail).toHaveBeenCalledWith('petdex-pack'))
   })
 
-  it('treats an unknown saved accessory as "no prop" rather than guessing', async () => {
-    config = { activeAppearance: 'kiro-ghost', kiro: { accessory: 42 } }
+  it('still draws a pet for a pack id with no readable art', async () => {
+    // A deleted pack, or one this build does not ship: the built-in cat stands in.
+    config = { activeAppearance: 'retired-pack' }
+    packDetail = null
     await mountPet()
-    await waitFor(() => expect(bridge.getCrewCompanionConfig).toHaveBeenCalled())
+    await waitFor(() => expect(bridge.galleryGetPackDetail).toHaveBeenCalledWith('retired-pack'))
     expect(petEl()).not.toBeNull()
   })
 

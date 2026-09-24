@@ -33,8 +33,9 @@ from junction.platform_compat import chmod_safe, is_link_or_junction
 
 logger = logging.getLogger(__name__)
 
-#: The built-in ghost's id. Referenced by the renderer, so it is a contract.
-DEFAULT_PACK = "kiro-ghost"
+#: The built-in pet's id (the default cat). Referenced by the renderer, so it is
+#: a contract.
+DEFAULT_PACK = "default-mochi"
 
 #: Custom packs live one directory each, named by id, under this subdirectory.
 PACKS_DIRNAME = "appearances"

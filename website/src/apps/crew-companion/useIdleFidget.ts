@@ -1,7 +1,7 @@
 /**
  * useIdleFidget — calm, non-intrusive "aliveness".
  *
- * The ghost stays put at its home spot. On a gentle timer it does a SMALL nearby
+ * The companion stays put at its home spot. On a gentle timer it does a SMALL nearby
  * fidget — a little hop a few dozen pixels away and right back home — or a brief
  * mood flicker. It never roams across the screen and always returns to where the
  * user left it, so it feels alive without being annoying (matches the calm
@@ -28,7 +28,7 @@ const AMBIENT_MOODS: PetMood[] = ['curious', 'happy']
  * otherwise that art is wired up and never shown.
  *
  * `sleepy` is a PERSISTENT mood (not in TRANSIENT_MOODS), so unlike the daytime
- * flickers it stays until the user interacts — the ghost dozes off and wakes when
+ * flickers it stays until the user interacts — the companion dozes off and wakes when
  * touched, which is the behaviour we want overnight.
  */
 const NIGHT_MOODS: PetMood[] = ['sleepy']
@@ -40,7 +40,10 @@ export function useIdleFidget(opts: {
   getPos: () => { x: number; y: number }
   walkPath: (points: Array<{ x: number; y: number }>) => void
   setMood: (m: PetMood) => void
-  /** Custom art has no separate eye layer, so only the built-in ghost can flicker expressions. */
+  /**
+   * Only the built-in cat draws its moods; custom art is chosen by state, so only
+   * the built-in flickers expressions.
+   */
   allowMood?: boolean
   /**
    * Play one in-place body fidget for `holdMs`, then go still.
@@ -103,7 +106,7 @@ export function useIdleFidget(opts: {
          * is how the motions ended up rare in the first place.
          *
          * At night the body motions drop out: the night behaviour is dozing off, and
-         * a ghost that glances and nods while asleep contradicts the sleepy mood.
+         * a companion that glances and nods while asleep contradicts the sleepy mood.
          */
         const actions: Array<() => void> = [smallHop]
         if (allowMoodRef.current) actions.unshift(() => flickerMood(night))

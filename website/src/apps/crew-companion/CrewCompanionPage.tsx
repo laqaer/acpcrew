@@ -1,5 +1,5 @@
 /**
- * Crew Companion — Junction builtin dashboard page.
+ * Companion — Junction builtin dashboard page.
  *
  * The companion lives on the desktop as a separate macOS app running its own HTTP
  * server on 127.0.0.1:7778. A browser page can't read that server directly, so every
@@ -13,7 +13,7 @@
  * of dead controls, and keeps Memories visible from a local cache.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Ghost, ExternalLink, PowerOff } from 'lucide-react'
+import { PawPrint, ExternalLink, PowerOff } from 'lucide-react'
 import { i18nT } from '../../i18n/t'
 import { isElectron } from '../../lib/electron'
 import { apiGet, apiPost } from './api'
@@ -219,7 +219,7 @@ export default function CrewCompanionPage() {
       <div>
         <div className="cc-head-top" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-            <Ghost size={22} style={{ color: 'var(--accent)' }} aria-hidden />
+            <PawPrint className="lucide-inline cc-head-mark" aria-hidden />
             <h1 className="cc-h1">{i18nT('apps.crewCompanion.header.title')}</h1>
           </div>
           {!offline ? (
@@ -253,7 +253,7 @@ export default function CrewCompanionPage() {
       {offline ? (
         <>
           <section className="cc-offline">
-            <Ghost className="cc-offline-ghost" aria-hidden />
+            <PawPrint className="lucide-inline cc-offline-mark" aria-hidden />
             <div className="cc-offline-title">{i18nT('apps.crewCompanion.offline.title')}</div>
             <div className="cc-offline-body">{i18nT('apps.crewCompanion.offline.body')}</div>
             <button type="button" className="cc-cta" onClick={openPet}>

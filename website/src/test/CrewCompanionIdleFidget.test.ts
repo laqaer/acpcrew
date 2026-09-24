@@ -1,5 +1,5 @@
 /**
- * useIdleFidget — the built-in ghost's calm "aliveness": a small in-place hop or a
+ * useIdleFidget — the built-in cat's calm "aliveness": a small in-place hop or a
  * brief mood flicker on a gentle timer, never roaming. These pin the parts that
  * decide WHETHER it acts (the `enabled` gate) and WHERE a hop lands (on-screen, clear
  * of the Dock), plus the day/night cadence and the mood pools — all carried verbatim
@@ -64,7 +64,7 @@ describe('useIdleFidget gating', () => {
   })
 
 
-  it('keeps Kiro body motions for idle-only custom art without ghost eye moods', () => {
+  it('keeps the built-in body motions for idle-only custom art, without mood flickers', () => {
     vi.setSystemTime(DAY)
     vi.spyOn(Math, 'random').mockReturnValue(0)
     const { walkPath, setMood } = mount(true, false)

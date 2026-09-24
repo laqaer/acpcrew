@@ -7247,7 +7247,7 @@
       "deny": "却下",
       "failed": "失敗しました",
       "idle": "アイドル",
-      "kiro_is_working": "kiro が作業中…",
+      "agent_is_working": "エージェントが作業中…",
       "loading_thread": "スレッドを読み込み中…",
       "message": "{{name}} にメッセージ",
       "message_sent": "メッセージが送信されました",

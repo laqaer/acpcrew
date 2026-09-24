@@ -7351,7 +7351,7 @@
       "deny": "Ablehnen",
       "failed": "fehlgeschlagen",
       "idle": "Inaktiv",
-      "kiro_is_working": "Kiro arbeitet…",
+      "agent_is_working": "Agent arbeitet…",
       "loading_thread": "Thread wird geladen…",
       "message": "Nachricht {{name}}",
       "message_sent": "Nachricht gesendet",

@@ -1,14 +1,14 @@
 /**
  * CrewCompanion - Built-in Cat Color Presets
  *
- * 10 real-world cat breed color presets based on Default Kiro SVG colors.
+ * 10 real-world cat breed color presets based on the built-in cat's SVG colors.
  */
 import type { CatPreset } from './catPresets'
 import type { ColorMap } from './colorCustomizer'
 
 /**
- * Default Kiro SVG source colors (the keys every preset maps FROM).
- * Extracted from assets/animations/kiro_idle.svg.
+ * The built-in cat's SVG source colors (the keys every preset maps FROM).
+ * Extracted from src/assets/pets/mochi_idle.svg.
  * Each entry maps a hex color to its body part for prompt descriptions.
  */
 export const DEFAULT_CREW_COMPANION_COLORS = [

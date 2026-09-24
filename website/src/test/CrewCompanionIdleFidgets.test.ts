@@ -33,7 +33,7 @@ describe('idle fidgets', () => {
 
   it('maps every fidget to a real stylesheet class', () => {
     for (const { anim } of IDLE_FIDGET_ANIMS) {
-      expect(animClassFor(anim)).toBe(`kg-anim-${anim}`)
+      expect(animClassFor(anim)).toBe(`pet-anim-${anim}`)
     }
   })
 

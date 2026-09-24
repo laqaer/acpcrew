@@ -596,11 +596,11 @@ export const petBridge: PetBridge = {
       for (const cb of listeners.config) cb()
       // The in-page fan-out above cannot reach the pet overlay — it is a
       // separate window, and only the main process spans both (same reason
-      // gallerySetActive broadcasts). Without this, choosing an accessory
+      // gallerySetActive broadcasts). Without this, an appearance change
       // persisted but the live companion stayed unchanged until reload.
-      // Gated to appearance-bearing patches (`kiro.accessory` lives under
-      // `kiro`) so unrelated settings writes don't repaint the overlay.
-      if ('kiro' in patch || 'activeAppearance' in patch) preload()?.appearanceChanged?.()
+      // Gated to appearance-bearing patches so unrelated settings writes don't
+      // repaint the overlay.
+      if ('activeAppearance' in patch) preload()?.appearanceChanged?.()
     }
     return saved
   },

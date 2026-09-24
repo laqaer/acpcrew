@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 /**
- * Data shapes exchanged with the Crew Companion desktop backend (through the gateway
+ * Data shapes exchanged with the Companion desktop backend (through the gateway
  * proxy). Reminders live in the desktop app's userData JSON, which a browser page
  * cannot read; the app serves them over HTTP and we reach them through the proxy.
  */

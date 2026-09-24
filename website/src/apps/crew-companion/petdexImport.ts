@@ -1,5 +1,5 @@
 /**
- * petdexImport — turn a PetDex sprite sheet into a Kiro Ghost sprite pack.
+ * petdexImport — turn a PetDex sprite sheet into a Companion sprite pack.
  *
  * PetDex pets are a fixed 8-col × 9-row grid of 192×208 frames. Each row is a
  * state (authoritative order from crafter-station/petdex `src/lib/pet-states.ts`).

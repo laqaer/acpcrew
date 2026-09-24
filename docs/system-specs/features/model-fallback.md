@@ -53,7 +53,7 @@ Each candidate gets `FALLBACK_CANDIDATE_ATTEMPTS` (2: initial + one ~2s retry) â
 deliberately not a fresh full budget, because throttle events are frequently
 cell-scoped and model-agnostic. A non-transient error mid-chain propagates
 immediately. Chain exhaustion surfaces the original error class with the chain's
-story attached (`_kc_fallback_story`).
+story attached (`_jn_fallback_story`).
 
 ## Surfaces
 

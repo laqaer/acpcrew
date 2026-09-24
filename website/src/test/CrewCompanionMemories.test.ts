@@ -1,5 +1,5 @@
 /**
- * Crew Companion page: guards against a string rendering as its RAW KEY.
+ * Companion page: guards against a string rendering as its RAW KEY.
  *
  * This is not a hypothetical. `memoryRows` passed i18next a locale-FORMATTED
  * count (`v.toLocaleString()`, a string) as `count`. Plural selection needs a
@@ -30,7 +30,7 @@ const stats = (over: Partial<CompanionStats> = {}): CompanionStats => ({
   ...over,
 } as CompanionStats)
 
-describe('Crew Companion memories rows', () => {
+describe('Companion memories rows', () => {
   // 0 and 1 are the interesting values: they select _other and _one, and 0 is
   // what was on screen when the bug was found.
   for (const count of [0, 1, 2, 1000]) {

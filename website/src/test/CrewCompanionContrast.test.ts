@@ -1,10 +1,9 @@
 /**
  * contrast.ts — the panel's runtime WCAG math.
  *
- * Previously untested. Expectations derive from the WCAG formulas the module
- * implements and from the real values its own header documents (the kiro-dark
- * accent purple measuring 3.57:1 on the card — below AA — is the reason this
- * module exists).
+ * Expectations derive from the WCAG formulas the module implements, and from a
+ * real failure shape: a purple accent measuring 3.57:1 on a dark card — below AA —
+ * is exactly the case this module exists for.
  */
 import { describe, it, expect } from 'vitest'
 
@@ -77,9 +76,9 @@ describe('pickReadable', () => {
     expect(pickReadable('#000000', '#ffffff', '#333333')).toBe('#000000')
   })
 
-  it('falls back when the theme accent misses AA — the documented kiro-dark case', () => {
-    // The module header measures accent purple at 3.57:1 on the dark card,
-    // below AA_TEXT (4.5) — exactly the case the panel must not ship as text.
+  it('falls back when the theme accent misses AA', () => {
+    // A purple accent at 3.57:1 on a dark card is below AA_TEXT (4.5) — exactly
+    // the case the panel must not ship as text.
     const picked = pickReadable('#8E48FF', '#1e1b26', '#e8e6ef')
     expect(picked).toBe('#e8e6ef')
   })

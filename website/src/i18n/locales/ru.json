@@ -7559,7 +7559,7 @@
       "deny": "Запретить",
       "failed": "не удалось",
       "idle": "Простой",
-      "kiro_is_working": "kiro работает…",
+      "agent_is_working": "Агент работает…",
       "loading_thread": "Загрузка ветки…",
       "message": "Написать {{name}}",
       "message_sent": "Сообщение отправлено",

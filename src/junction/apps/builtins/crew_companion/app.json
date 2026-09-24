@@ -28,7 +28,7 @@
       {
         "route": "/crew-companion",
         "label": "Companion",
-        "icon": "Ghost"
+        "icon": "PawPrint"
       }
     ]
   },

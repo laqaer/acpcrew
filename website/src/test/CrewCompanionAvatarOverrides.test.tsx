@@ -29,30 +29,30 @@ beforeEach(() => { animations = { idle: IDLE } })
 afterEach(cleanup)
 
 describe('custom state overrides are granular', () => {
-  it('keeps Kiro celebration when Success is absent', async () => {
+  it('keeps the built-in celebration when Success is absent', async () => {
     const { container } = render(<PetAvatar size={128} state="done" />)
     await waitFor(() => expect(decodedArt(container)).toContain('id="idle"'))
-    expect(container.querySelector('.kg-anim-celebrate')).not.toBeNull()
+    expect(container.querySelector('.pet-anim-celebrate')).not.toBeNull()
   })
 
-  it('uses uploaded Success without layering Kiro celebration', async () => {
+  it('uses uploaded Success without layering the built-in celebration', async () => {
     animations.done = DONE
     const { container } = render(<PetAvatar size={128} state="done" />)
     await waitFor(() => expect(decodedArt(container)).toContain('id="done"'))
-    expect(container.querySelector('.kg-anim-celebrate')).toBeNull()
+    expect(container.querySelector('.pet-anim-celebrate')).toBeNull()
   })
 
-  it('keeps Kiro error motion when Failure is absent', async () => {
+  it('keeps the built-in error motion when Failure is absent', async () => {
     const { container } = render(<PetAvatar size={128} state="error" />)
     await waitFor(() => expect(decodedArt(container)).toContain('id="idle"'))
-    expect(container.querySelector('.kg-anim-error')).not.toBeNull()
+    expect(container.querySelector('.pet-anim-error')).not.toBeNull()
   })
 
-  it('uses uploaded Failure without layering Kiro error motion', async () => {
+  it('uses uploaded Failure without layering the built-in error motion', async () => {
     animations.error = ERROR
     const { container } = render(<PetAvatar size={128} state="error" />)
     await waitFor(() => expect(decodedArt(container)).toContain('id="error"'))
-    expect(container.querySelector('.kg-anim-error')).toBeNull()
+    expect(container.querySelector('.pet-anim-error')).toBeNull()
   })
 
   it('reports an uploaded breathing phase as its own replacement', async () => {

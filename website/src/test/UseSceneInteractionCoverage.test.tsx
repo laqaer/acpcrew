@@ -415,14 +415,14 @@ describe('useSceneInteraction — thread popover lifecycle', () => {
   it('shows a working footer line when the live source is mid-turn', async () => {
     renderScene({ sources: [source({ id: 'slot-a', running: true })] })
     await clickAt(100, 100)
-    expect(screen.getByText(i18nT('hooks.useSceneInteraction.kiro_is_working'))).toBeInTheDocument()
+    expect(screen.getByText(i18nT('hooks.useSceneInteraction.agent_is_working'))).toBeInTheDocument()
   })
 
   it('omits the working footer line for an idle source', async () => {
     renderScene({ sources: [source({ id: 'slot-a', running: false })] })
     await clickAt(100, 100)
     expect(
-      screen.queryByText(i18nT('hooks.useSceneInteraction.kiro_is_working')),
+      screen.queryByText(i18nT('hooks.useSceneInteraction.agent_is_working')),
     ).not.toBeInTheDocument()
   })
 

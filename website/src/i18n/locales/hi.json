@@ -7351,7 +7351,7 @@
       "deny": "अस्वीकार करें",
       "failed": "विफल",
       "idle": "निष्क्रिय",
-      "kiro_is_working": "kiro काम कर रहा है…",
+      "agent_is_working": "एजेंट काम कर रहा है…",
       "loading_thread": "थ्रेड लोड हो रहा है…",
       "message": "{{name}} को संदेश भेजें",
       "message_sent": "संदेश भेजा गया",

@@ -1,7 +1,7 @@
 /**
  * PanelCard — the reminder pet's panel, built as a self-contained CARD.
  *
- * The design it implements was specified in the standalone Crew Companion app's
+ * The design it implements was specified in the standalone Companion app's
  * own spec document, which did not move into this repository with the code — so
  * the intent is written out here rather than cited as a path that a reader cannot
  * open.

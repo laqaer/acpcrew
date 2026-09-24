@@ -53,7 +53,7 @@ import { Badge, Btn, IconButton, Input, Toggle } from '../../../components/ui'
 import SimpleSelect from '../../../components/SimpleSelect'
 import { useAgents } from '../../../hooks/useAgents'
 import { useAvailableModels } from '../../../hooks/useAvailableModels'
-import CrewGhost, { djb2, ghostVariantCount } from './CrewGhost'
+import CrewPlate, { crewPlateVariant, crewPlateVariantCount } from './CrewPlate'
 import { issueRadarApi, type Crew, type CrewPatch, type CrewSpec } from '../api'
 import { repoScopeKey } from '../lib/links'
 import { useIssueRadar } from '../context'
@@ -417,8 +417,11 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
    *  it (which is what the hint promises). In create mode there is no record yet,
    *  so the name IS the seed and the preview tracks it as the user types. */
   const seed = crew ? crew.avatar_seed : trimmedName
-  const derivedVariant = seed ? djb2(seed) % ghostVariantCount : 0
-  const shownVariant = draft.variant ?? derivedVariant
+  /** What the plates render from while the name is still empty. */
+  const plateSeed = seed || 'crew'
+  /** The face in effect, resolved exactly as the plate resolves it, so the strip
+   *  marks the face the preview is showing even for an out-of-range stored pin. */
+  const shownVariant = crewPlateVariant(plateSeed, draft.variant)
 
   const rollName = () => {
     if (suggestions.length === 0) return
@@ -614,7 +617,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
         }}
       >
         <DialogHeader>
-          <CrewGhost seed={seed || 'crew'} variant={draft.variant} size={26} />
+          <CrewPlate seed={plateSeed} variant={draft.variant} size={26} />
           <DialogTitle>{title}</DialogTitle>
           <Badge variant="muted" className="ml-auto">
             {active.owner}/{active.repo}
@@ -626,7 +629,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
           <SectionLabel>{t('apps.issueRadar.views.crews.editor.section_identity')}</SectionLabel>
           <div className="flex items-start gap-4">
             <div className="flex h-[104px] w-[104px] shrink-0 items-center justify-center rounded-lg border border-border bg-bg-elevated">
-              <CrewGhost seed={seed || 'crew'} variant={draft.variant} size={78} />
+              <CrewPlate seed={plateSeed} variant={draft.variant} size={78} />
             </div>
             <div className="min-w-0 flex-1">
               <div
@@ -634,7 +637,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                 aria-label={t('apps.issueRadar.views.crews.editor.face_strip_label')}
                 className="flex flex-wrap gap-1.5"
               >
-                {Array.from({ length: ghostVariantCount }, (_, i) => (
+                {Array.from({ length: crewPlateVariantCount }, (_, i) => (
                   <button
                     key={i}
                     type="button"
@@ -644,13 +647,13 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                     })}
                     data-testid={`crew-face-${i}`}
                     onClick={() => pickVariant(i)}
-                    className={`flex h-[58px] w-[52px] items-center justify-center rounded-md border transition-colors focus-ring ${
+                    className={`flex h-[52px] w-[52px] items-center justify-center rounded-md border transition-colors focus-ring ${
                       shownVariant === i
                         ? 'border-accent bg-accent-subtle'
                         : 'border-border bg-bg-elevated hover:border-border-strong'
                     }`}
                   >
-                    <CrewGhost seed={seed || 'crew'} variant={i} size={40} />
+                    <CrewPlate seed={plateSeed} variant={i} size={40} />
                   </button>
                 ))}
               </div>

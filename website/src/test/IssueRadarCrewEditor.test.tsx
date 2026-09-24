@@ -140,14 +140,14 @@ vi.mock('../components/SimpleSelect', () => ({
   },
 }))
 
-const ACTIVE = { owner: 'kirodotdev', repo: 'Junction' } // brand-ok: the repository name
+const ACTIVE = { owner: 'laqaer', repo: 'junction' }
 
 vi.mock('../apps/issue-radar/context', () => ({
   useIssueRadar: () => ({ active: ACTIVE }),
 }))
 
 import CrewEditor from '../apps/issue-radar/components/CrewEditor'
-import { djb2, ghostVariantCount } from '../apps/issue-radar/components/CrewGhost'
+import { crewPlateVariant, crewPlateVariantCount } from '../apps/issue-radar/components/CrewPlate'
 import type { Crew } from '../apps/issue-radar/api'
 
 const K = 'apps.issueRadar.views.crews.editor'
@@ -394,8 +394,8 @@ describe('CrewEditor — duplicate name', () => {
 
 describe('CrewEditor — face', () => {
   /** The variant the NAME hashes to, which is what the strip shows unpinned. */
-  const derived = djb2(SUGGESTIONS[0]) % ghostVariantCount
-  const pinned = (derived + 3) % ghostVariantCount
+  const derived = crewPlateVariant(SUGGESTIONS[0])
+  const pinned = (derived + 3) % crewPlateVariantCount
 
   it('starts on the seed-derived face', async () => {
     await openCreate()

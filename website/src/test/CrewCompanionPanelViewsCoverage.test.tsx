@@ -1,5 +1,5 @@
 /**
- * The Crew Companion panel's secondary views, exercised through their real bridge
+ * The Companion panel's secondary views, exercised through their real bridge
  * seam.
  *
  * `PanelViews.tsx` holds four exported surfaces and one private one: the back row

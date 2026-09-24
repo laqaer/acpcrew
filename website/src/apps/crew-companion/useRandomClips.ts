@@ -1,5 +1,5 @@
 /**
- * Custom appearance packs replace Kiro's idle-motion pool only when they provide
+ * Custom appearance packs replace the built-in idle-motion pool only when they provide
  * random moments of their own. The replacement pool is flat and uniform: Idle plus
  * every uploaded moment, so one uploaded clip produces [Idle, clip].
  */

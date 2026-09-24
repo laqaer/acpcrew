@@ -1,10 +1,10 @@
 /**
  * The peek nudge: position stands in for a missing peek POSE.
  *
- * Only the built-in cat ships `peeking` / `peekThinking` art. The Kiro Ghost
- * omits it deliberately (a peek is a specific half-hidden drawing and none of its
- * four float clips is one), so AnimationResolver falls back to `idle` and a
- * "peeking" ghost sat upright at the edge — indistinguishable from not peeking.
+ * The built-in cat ships `peeking` / `peekThinking` art; an imported pack often
+ * does not (a peek is a specific half-hidden drawing), so AnimationResolver falls
+ * back to `idle` and a "peeking" pet would sit upright at the edge —
+ * indistinguishable from not peeking.
  *
  * The nudge must apply ONLY when the art cannot say it itself, or a pack that
  * ships a peek pose would have that pose shoved out of frame.

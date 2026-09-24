@@ -213,9 +213,8 @@ describe('petBridge read helpers', () => {
 describe('cross-window appearance broadcast', () => {
   // The pet overlay is a SEPARATE window: in-page listener fan-out cannot reach
   // it, only the main-process broadcast (preload().appearanceChanged) spans
-  // both. The regression: choosing an accessory or a recolour persisted to disk
-  // but the live companion stayed visually unchanged until reload, because only
-  // gallerySetActive ever broadcast.
+  // both. Without it, an appearance change or a recolour persists to disk but the
+  // live companion stays visually unchanged until reload.
   function stubPreload() {
     const appearanceChanged = vi.fn()
     ;(window as unknown as { crewCompanion?: unknown }).crewCompanion = { appearanceChanged }
@@ -229,21 +228,21 @@ describe('cross-window appearance broadcast', () => {
   it('a recolour save broadcasts to the overlay window', async () => {
     stubFetch({ ok: true })
     const broadcast = stubPreload()
-    await petBridge.gallerySetColorMap!('kiro-ghost', { '#fff': '#f0f' })
+    await petBridge.gallerySetColorMap!('default-mochi', { '#fff': '#f0f' })
     expect(broadcast).toHaveBeenCalledOnce()
   })
 
   it('a FAILED recolour does not broadcast', async () => {
     stubFetch({ ok: false })
     const broadcast = stubPreload()
-    await petBridge.gallerySetColorMap!('kiro-ghost', { '#fff': '#f0f' })
+    await petBridge.gallerySetColorMap!('default-mochi', { '#fff': '#f0f' })
     expect(broadcast).not.toHaveBeenCalled()
   })
 
-  it('an accessory config save broadcasts to the overlay window', async () => {
+  it('an appearance config save broadcasts to the overlay window', async () => {
     stubFetch({ body: { ok: true } })
     const broadcast = stubPreload()
-    await petBridge.updateConfig!({ kiro: { accessory: 'scarf' } })
+    await petBridge.updateConfig!({ activeAppearance: 'default-mochi' })
     expect(broadcast).toHaveBeenCalledOnce()
   })
 
@@ -275,7 +274,7 @@ describe('non-2xx responses are refusals, not successes', () => {
     stubFetch({ ok: false, body: { error: 'store_write_failed' } })
     const heard = vi.fn()
     const off = petBridge.onConfigUpdated!(heard)
-    const saved = await petBridge.updateConfig!({ kiro: { accessory: 'scarf' } })
+    const saved = await petBridge.updateConfig!({ activeAppearance: 'default-mochi' })
     off()
     expect(saved).toBe(false)
     expect(heard).not.toHaveBeenCalled()

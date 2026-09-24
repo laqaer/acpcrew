@@ -32,15 +32,15 @@ import { PetContextMenu } from './PetContextMenu'
 
 // ── Hardcoded SVG fallbacks for default-mochi built-in pack ────────────────
 // These are compiled in via Vite ?raw — zero I/O, instant render on startup.
-import svgIdleRaw from '../../assets/animations/mochi_idle.svg?raw'
-import svgWalkingRaw from '../../assets/animations/mochi_walking.svg?raw'
-import svgPeekRaw from '../../assets/animations/mochi_peek.svg?raw'
-import svgErrorRaw from '../../assets/animations/mochi_error.svg?raw'
-import svgThinkingRaw from '../../assets/animations/mochi_thinking.svg?raw'
-import svgWorkingRaw from '../../assets/animations/mochi_working.svg?raw'
-import svgHappyRaw from '../../assets/animations/mochi_done.svg?raw'
-import svgSleepyRaw from '../../assets/animations/mochi_sleeping.svg?raw'
-import svgPeekThinkingRaw from '../../assets/animations/mochi_peek_thinking.svg?raw'
+import svgIdleRaw from '../../../../assets/pets/mochi_idle.svg?raw'
+import svgWalkingRaw from '../../../../assets/pets/mochi_walking.svg?raw'
+import svgPeekRaw from '../../../../assets/pets/mochi_peek.svg?raw'
+import svgErrorRaw from '../../../../assets/pets/mochi_error.svg?raw'
+import svgThinkingRaw from '../../../../assets/pets/mochi_thinking.svg?raw'
+import svgWorkingRaw from '../../../../assets/pets/mochi_working.svg?raw'
+import svgHappyRaw from '../../../../assets/pets/mochi_done.svg?raw'
+import svgSleepyRaw from '../../../../assets/pets/mochi_sleeping.svg?raw'
+import svgPeekThinkingRaw from '../../../../assets/pets/mochi_peek_thinking.svg?raw'
 
 // Raw SVG strings kept as source data for dynamic color replacement.
 // Converted to data URIs at runtime via useMemo (see fallbackUriCache).
@@ -214,8 +214,8 @@ export const PetWidget: React.FC = () => {
   const [spriteConfig, setSpriteConfig] = useState<SpriteConfig | null>(null)
   // The PACK's baseline facing, XOR'd with situational flips in the transform
   // below. Read from the pack-level `flipX` (falling back to a sprite sheet's
-  // own flag), so a mirrored SVG/Lottie pack — the built-in Kiro Ghost — can say
-  // so without pretending to be a sprite.
+  // own flag), so a mirrored SVG/Lottie pack can say so without pretending to
+  // be a sprite.
   const [packFlipX, setPackFlipX] = useState(false)
 
   // Color customization for default-mochi fallback SVGs
@@ -293,14 +293,19 @@ export const PetWidget: React.FC = () => {
       setPetName(resolvePetName(c))
       // Only fetch pack detail for non-cat packs: default-mochi uses hardcoded
       // SVG fallbacks (compiled in via Vite ?raw) so it can be recoloured.
-      // The id comes from `avatar` when no custom pack overrides it -- reading
-      // activeAppearance alone rendered the cat for a user who chose the ghost.
+      // The id goes through the shared resolver, the ONE place that says which
+      // pack the settings select.
       const packId = resolveActivePackId(c)
-      if (packId === BUILTIN_MOCHI_ID) {
-        // Load saved colorMap for default-mochi
-        api?.presetsGetColorMap?.('default-mochi').then((cm: any) => {
+      // The default cat with the user's saved recolour. Also what an id with no
+      // readable art renders — a pack that was deleted, or one this build does
+      // not ship — so the pet always shows a character rather than nothing.
+      const showDefault = () => {
+        api?.presetsGetColorMap?.(BUILTIN_MOCHI_ID).then((cm: any) => {
           if (cm && Object.keys(cm).length > 0) setMochiColorMap(cm)
         }).catch(() => {})
+      }
+      if (packId === BUILTIN_MOCHI_ID) {
+        showDefault()
       } else {
         api?.galleryGetPackDetail?.(packId).then((data: any) => {
           if (data?.meta && data?.animations) {
@@ -309,19 +314,20 @@ export const PetWidget: React.FC = () => {
             setSpriteConfig(data.sprite || null)
             setPackFlipX((data.flipX ?? data.sprite?.flipX) === true)
           } else {
-            // The pack the settings point at produced no art. Silence here read
-            // as "the ghost just doesn't work" — say which pack and what came
-            // back instead.
+            // The pack the settings point at produced no art. Say which pack and
+            // what came back, so a silent fallback to the cat is diagnosable.
             // eslint-disable-next-line no-console
             console.error('[mochi] active pack returned no usable detail', {
               packId,
               hasMeta: Boolean(data?.meta),
               hasAnimations: Boolean(data?.animations),
             })
+            showDefault()
           }
         }).catch((err: unknown) => {
           // eslint-disable-next-line no-console
           console.error('[mochi] could not load the active pack', packId, err)
+          showDefault()
         })
       }
     })
@@ -488,11 +494,11 @@ export const PetWidget: React.FC = () => {
   // With rAF-based walk, pos always equals visual position
   //
   // …EXCEPT while peeking with a pack that has no peek art. A peek pose is a
-  // specific half-off-screen DRAWING, and only the built-in cat ships one; the
-  // ghost deliberately omits it (its four clips are all fully-visible floats), so
-  // the resolver falls back to `idle` and the "peek" looked identical to standing
-  // still at the edge. Sliding the art partly off-screen produces the read that
-  // the missing drawing would have — the pet is tucked behind the edge, watching.
+  // specific half-off-screen DRAWING, and the built-in cat ships one while an
+  // imported pack often does not, so the resolver falls back to `idle` and the
+  // "peek" would look identical to standing still at the edge. Sliding the art
+  // partly off-screen produces the read that the missing drawing would have —
+  // the pet is tucked behind the edge, watching.
   //
   // Applied to visualPos rather than as a CSS transform on purpose: the speech
   // bubble anchors here and useMouseForward derives the click hitbox from it

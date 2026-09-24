@@ -1427,20 +1427,6 @@ button:hover .app-icon{--ico-a:var(--accent);--ico-b:var(--text)}
 @keyframes csb-a{0%,30%{opacity:1;transform:translateY(0) scale(1)}38%{opacity:0;transform:translateY(-3px) scale(.6)}45%,82%{opacity:0;transform:translateY(3px) scale(.6)}90%,100%{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes csb-b{0%,30%{opacity:0;transform:translateY(3px) scale(.6)}38%{opacity:0;transform:translateY(3px) scale(.6)}45%{opacity:1;transform:translateY(-2px) scale(1)}55%{opacity:1;transform:translateY(0) scale(1)}82%{opacity:1;transform:translateY(0) scale(1)}90%{opacity:0;transform:translateY(-3px) scale(.6)}100%{opacity:0;transform:translateY(3px) scale(.6)}}
 
-/* ── The track-mark loader icons ──
-   These are the DEFAULT loader artwork for every theme (see ChatFooter's
-   DEFAULT_ICONS); a theme replaces them through the themeBranding `loaderIcons`
-   seam. Factory chrome uses lucide track/switch marks, not a mascot. */
-.csb4 .lyr>.kp{width:100%;height:100%;object-fit:contain}
-/* The outline is a REAL vector stroke baked into each pose asset (black, scaled
-   per-viewBox so all 8 render at the same 1px), not a CSS effect. Chained
-   drop-shadows were tried first and rejected: each pass shadows the *result* of
-   the previous one, so the weight compounds and reads as a soft, heavy band
-   rather than a line. A stroke with paint-order:stroke sits outside the
-   silhouette and stays crisp at any size.
-   The stroke is in the shared asset, so it applies on both palettes — on the
-   dark surface a black edge against a near-black background is imperceptible,
-   which is why no dark-theme override is needed. */
 @property --glow-strength{syntax:'<number>';inherits:false;initial-value:0}
 @keyframes approval-glow{0%,100%{--glow-strength:0}50%{--glow-strength:1}}
 .approval-glow{--glow-strength:0;animation:approval-glow 2.5s ease-in-out infinite;box-shadow:0 0 0 1.5px color-mix(in srgb, var(--warn) calc(var(--glow-strength) * 55%), transparent),0 0 14px 1px color-mix(in srgb, var(--warn) calc(var(--glow-strength) * 40%), transparent)}

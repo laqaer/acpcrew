@@ -54,7 +54,7 @@ import {
   EDITING_PHASES, TERMINAL_PHASES, countsTowardOpen, issueRadarApi,
   type Crew, type CrewEvent, type CrewEventKind, type CrewPhase, type WorkItem,
 } from '../api'
-import CrewGhost from '../components/CrewGhost'
+import CrewPlate from '../components/CrewPlate'
 import { useIssueRadar } from '../context'
 import { issueUrlFor, repoScopeKey } from '../lib/links'
 
@@ -337,7 +337,7 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
     <div className="px-4 md:px-6 pt-4 pb-6 flex flex-col gap-4" data-testid="crew-page">
       {/* ── 1. header ── */}
       <div className="flex items-start gap-4">
-        <CrewGhost seed={crew.avatar_seed} variant={crew.avatar_variant} size={78} blush />
+        <CrewPlate seed={crew.avatar_seed} variant={crew.avatar_variant} size={78} />
         <div className="min-w-0 flex-1">
           <h2 className="text-[22px] leading-none text-text-strong truncate" data-testid="crew-name">
             {crew.name}

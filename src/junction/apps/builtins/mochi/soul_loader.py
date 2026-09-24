@@ -39,12 +39,11 @@ DEFAULT_SOUL = (
 
 #: Personality per BUILT-IN pack. The character IS the personality — there is no
 #: user-editable "soul" any more. That decision is deliberate rather than a
-#: simplification: an arbitrary custom persona attached to the Kiro ghost would
-#: put words in the mouth of a product mascot, so persona is a property of the
-#: character and is settled when the character is chosen.
+#: simplification: persona is a property of the character and is settled when
+#: the character is chosen, so the art and the voice cannot disagree.
 #:
 #: Keyed by APPEARANCE PACK ID, which is the single identity key (see
-#: ``settings.PACK_MOCHI`` / ``PACK_GHOST``). A user-imported pack is not in this
+#: ``settings.PACK_MOCHI``). A user-imported pack is not in this
 #: table and instead contributes its own ``meta.description`` — the original's
 #: rule (``installAgentConfig(petName, pack.manifest.meta.description, ...)``).
 #: That is what keeps an imported robot from describing itself as a cat.
@@ -53,11 +52,6 @@ DEFAULT_SOUL = (
 #: base carries the response-length and tone rules that make the small chat panel
 #: usable, and duplicating those per character would let them drift apart.
 BUILTIN_PERSONAS: dict[str, str] = {
-    "kiro-ghost": (
-        "You are Kiro — a small ghost. Calm, dry wit, quietly competent. "
-        "You understate rather than exclaim, and you never pretend to be "
-        "anything other than what you are."
-    ),
     "default-mochi": (
         "You are Mochi — a small cat. Curious, a little mischievous, warm. "
         "You stretch, you nap, you notice things. You are affectionate without "
@@ -67,10 +61,10 @@ BUILTIN_PERSONAS: dict[str, str] = {
 
 #: What the pet CALLS ITSELF per built-in pack, when no explicit pet name is set.
 #:
-#: Distinct from the pack's display name in the picker ("Drift" /
-#: "Mochi Cat", in the renderer's i18n): one names the character design, this
+#: Distinct from the pack's display name in the picker ("Mochi Cat", in the
+#: renderer's i18n): one names the character design, this
 #: one is how the pet refers to itself in chat and in its title bar.
-BUILTIN_PET_NAMES: dict[str, str] = {"kiro-ghost": "Drift", "default-mochi": "Mochi"}
+BUILTIN_PET_NAMES: dict[str, str] = {"default-mochi": "Mochi"}
 
 
 def persona_for(pack_id: str | None, pack_description: str | None = None) -> str:
@@ -125,7 +119,7 @@ class SoulLoader:
         built-ins, which have curated text.
 
         Also switches the default pet name, unless the user set one explicitly —
-        picking the ghost should not leave it introducing itself as "Mochi".
+        picking an imported pack should not leave it introducing itself as "Mochi".
         """
         self._pack_id = pack_id
         self._pack_description = description

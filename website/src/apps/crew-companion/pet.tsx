@@ -30,10 +30,10 @@ import { i18nT } from '../../i18n/t'
 import { PENDING_PATH, PRESENCE_PATH } from './constants'
 import { nudgeTextFor } from './nudgeKeys'
 import { PetAvatar, type PetState } from './PetAvatar'
+import { BUILTIN_PACK } from './builtinPet'
 import { usePlayfulMotion } from './usePlayfulMotion'
 import { petBridge } from './petBridge'
 import { watchSessions } from './sessionWatch'
-import { randomCelebrateProp, type GhostAccessory } from './ghostAccessories'
 
 import { PetContextMenu } from './PetContextMenu'
 import { dragGrip } from './dragGrip'
@@ -54,7 +54,7 @@ import { useEdgeHide } from './useEdgeHide'
 import { useWalking } from './useWalking'
 import { useIdleFidget } from './useIdleFidget'
 import { normaliseCustomRandomNames, useRandomClips } from './useRandomClips'
-import { activeAnimFor, CELEBRATE_MS, CELEBRATE_PROP_HOLD_MS, type PetAnim } from './petAnim'
+import { activeAnimFor, type PetAnim } from './petAnim'
 
 /** Well inside the backend's 90s presence TTL, so one dropped request is harmless. */
 /**
@@ -234,7 +234,7 @@ function Companion() {
     isPeekingRef,
     setIsPeeking,
     setHideEdge,
-    // The built-in ghost docks at an edge; a custom pack's art has no defined
+    // The built-in cat docks at an edge; a custom pack's art has no defined
     // silhouette to crop, which is why the desktop app gates this.
     allowPeek: true,
     getGrip: () => dragGrip({}),
@@ -250,12 +250,11 @@ function Companion() {
   const artRef = useRef<HTMLDivElement>(null)
   const playActiveRef = useRef(false)
   /**
-   * Only the built-in ghost gets the bob/lean/nod (and the cursor-tracking eyes) —
-   * a custom pack bakes its own motion and eyes, so it stays still, exactly as the
-   * desktop app gates it.
+   * Only the built-in cat gets the bob/lean/nod — a custom pack bakes its own
+   * motion, so it stays still, exactly as the desktop app gates it.
    */
   const [isDefaultPack, setIsDefaultPack] = useState(true)
-  /** Uploaded random moments replace only Kiro's idle-motion pool. */
+  /** Uploaded random moments replace only the built-in idle-motion pool. */
   const [customRandomNames, setCustomRandomNames] = useState<string[]>([])
   const hasCustomRandomPool = !isDefaultPack && customRandomNames.length > 0
   const motionEnabledRef = useRef(true)
@@ -293,19 +292,17 @@ function Companion() {
         // re-reads on `config:updated` with it, so toggling the switch in the panel
         // reaches the watcher without another poll.
         sessionAlertsRef.current = c?.sessionNotificationsEnabled !== false
-        // The gallery writes this under `kiro.accessory`; anything unknown means
-        // "no prop" rather than a guess at what the user meant.
-        const worn = (c as { kiro?: { accessory?: unknown } })?.kiro?.accessory
-        setSavedProp(typeof worn === 'string' ? (worn as GhostAccessory) : 'none')
-        const packId = c?.activeAppearance || 'kiro-ghost'
-        const isDefault = packId === 'kiro-ghost'
-        setIsDefaultPack(isDefault)
-        if (isDefault) {
+        const packId = c?.activeAppearance || BUILTIN_PACK
+        if (packId === BUILTIN_PACK) {
+          setIsDefaultPack(true)
           setCustomRandomNames([])
           return
         }
         const detail = await petBridge.galleryGetPackDetail?.(packId).catch(() => null)
         if (!alive) return
+        // A pack id with no readable art renders the built-in cat (see PetAvatar),
+        // so it moves like the built-in too.
+        setIsDefaultPack(!detail?.animations)
         const anims = detail?.animations ?? {}
         // Walking is stored under either states or random depending on pack format.
         // Normalize both shapes once so it receives exactly one pool entry.
@@ -387,22 +384,8 @@ function Companion() {
    * restart — and this is the switch that spent this whole port controlling nothing.
    */
   const sessionAlertsRef = useRef(true)
-  /**
-   * The dress-up prop the user picked, and a transient one worn only for a
-   * celebration.
-   *
-   * Two values rather than one, because the celebrate prop must OVERLAY the saved
-   * choice and then give it back — it never writes to config. `celebrateProp ??
-   * savedProp` is the single answer both the art layer and the eye-suppression rule
-   * read, so they cannot disagree about what is being worn.
-   */
   /** Bubble identity for locally-raised bubbles; see the session watcher below. */
   const localSeqRef = useRef(0)
-  /** The prop the user picked in the gallery. */
-  const [savedProp, setSavedProp] = useState<GhostAccessory>('none')
-  /** A prop worn only for the length of a celebration; overlays the saved one. */
-  const [celebrateProp, setCelebrateProp] = useState<GhostAccessory | null>(null)
-  const celebrateTimerRef = useRef<number | null>(null)
   /**
    * The live poll, exposed so the backend's fire doorbell can run it at once.
    *
@@ -559,24 +542,6 @@ function Companion() {
    * several land together, and it never shoves aside unresolved work that is holding
    * the slot. The reaction matches the completion branch of the poll below.
    */
-  /*
-   * Wear a random prop for one celebration.
-   *
-   * Picked fresh each time so repeated completions do not look canned, and 'none'
-   * is IN that set on purpose — a plain hop has to stay a common outcome, or every
-   * finish turns into confetti and the flourish stops meaning anything.
-   *
-   * Held 450ms past the 900ms hop so the prop does not vanish mid-bounce.
-   */
-  const celebrateWithProp = useCallback(() => {
-    if (celebrateTimerRef.current !== null) window.clearTimeout(celebrateTimerRef.current)
-    setCelebrateProp(randomCelebrateProp())
-    celebrateTimerRef.current = window.setTimeout(() => {
-      setCelebrateProp(null)
-      celebrateTimerRef.current = null
-    }, CELEBRATE_MS + CELEBRATE_PROP_HOLD_MS)
-  }, [])
-
   useEffect(() => watchSessions({
     isSilent: () => sessionAlertsRef.current === false,
     // The backend rang: drain now rather than at the next tick of the poll.
@@ -629,7 +594,6 @@ function Companion() {
       } else {
         react('done', 2_400)
         setMood('happy')
-        celebrateWithProp()
       }
     },
     /*
@@ -693,7 +657,7 @@ function Companion() {
       if (slotRef.current?.sticky) slotRef.current = null
       setBubble((b) => (b && isSticky(b.kind) ? null : b))
     },
-  }), [react, setMood, celebrateWithProp, bumpReaction])
+  }), [react, setMood, bumpReaction])
 
   /** Presence: silence is read as "nobody is there", so this must not stop. */  useEffect(() => {
     void post(PRESENCE_PATH)
@@ -839,9 +803,10 @@ function Companion() {
         setBubble({ seq: latest.seq, kind: shownKind, text: result.show })
         // A finish is a celebration; a failure or something blocked is a shake. Both
         // settle back to idle so the companion does not sit in a reaction.
-        // The body reacts AND the mood changes, because the mood is what the eyes
-        // read — a body nod alone left the face blank, which is why the companion
-        // looked unmoved by its own notifications. Transient, so it auto-resets.
+        // The body reacts AND the mood changes, because the mood is what picks the
+        // built-in cat's drawing — a body nod alone leaves the face unchanged, and the
+        // companion looks unmoved by its own notifications. Transient, so it
+        // auto-resets.
         if (shownKind === 'session-error') {
           react('error', 2_000)
           setMood('scared')
@@ -859,8 +824,6 @@ function Companion() {
         } else {
           react('done', 2_400)
           setMood('happy')
-          // Every finish gets the flourish, not just the ones arriving over the socket.
-          celebrateWithProp()
         }
       } catch {
         /* keep polling */
@@ -918,7 +881,7 @@ function Companion() {
     posReady && !dragging.current && !isWalking && !isPeeking &&
     menuAt === null && !reducedMotion
 
-  // Built-in ghost: small in-place hop / brief mood flicker.
+  // Built-in cat: small in-place hop / brief mood flicker.
   /*
    * The idle fidget currently playing, if any.
    *
@@ -1006,8 +969,8 @@ function Companion() {
   playActiveRef.current = !dragging.current && !isPeeking && !isWalking
 
   // Mirror on the right half so the art faces the screen. Lifted out of the style
-  // block so the eye gaze can share it — eyes and body then agree on which way is
-  // "toward the cursor". A walk flips the art to face its direction of travel.
+  // block so the playful lean shares it — the lean and the body then agree on which
+  // way is "toward the cursor". A walk flips the art to face its direction of travel.
   // Set every render so the rAF loop sees the current facing (the file uses the same
   // approach for its other motion flags).
   const facingRight =
@@ -1151,13 +1114,6 @@ function Companion() {
         }}
       >
         {/*
-          The real mascot art from the Kiro Design System, the same asset the chat
-          loading carousel uses — NOT a hand-drawn SVG. `use-lucide-icons` in
-          website/AUTOSDE.yaml blocks inline SVG elements in any .tsx
-          unconditionally, and its brand-mark exception requires exactly this: the
-          mark lives in its own file and is consumed through a URL import.
-        */}
-        {/*
           The full avatar: the active appearance pack, its format (svg, sprite or
           Lottie), the user's recolouring, and the motion for the current state.
           Replaces the static image this used to be.
@@ -1185,9 +1141,6 @@ function Companion() {
              * `petState` returning to idle is what lets the held clip show.
              */
             clipName={petState === 'idle' ? activeClip : undefined}
-            trackCursor
-            flipX={facingRight}
-            accessory={celebrateProp ?? savedProp}
           />
         </div>
       </div>

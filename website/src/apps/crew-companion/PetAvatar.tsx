@@ -8,32 +8,22 @@
  * third copy for the panel would have compounded that drift, so resolution lives
  * here once and every surface consumes it.
  *
- * Covers all three pack formats (svg / lottie / sprite), applies the active
- * colour map, and keeps itself current when the user switches pack or recolours.
- *
- * The eye overlay is added ONLY for the built-in pack, whose bodies are drawn
- * eyeless on purpose. Custom packs bake their own eyes in, so overlaying would
- * double them up.
+ * Covers all three pack formats (svg / lottie / sprite) plus the built-in cat,
+ * applies the active colour map, and keeps itself current when the user switches
+ * pack or recolours.
  */
-import React, { useEffect, useState } from 'react'
-import { GhostEyeOverlay } from './GhostEyeOverlay'
-import GhostAccessoryLayer from './GhostAccessoryLayer'
-import { HIDES_EYES, type GhostAccessory } from './ghostAccessories'
-import { ghostPoseForKey, ghostEyeOffsetFor, POSED_ANIMS } from './ghostEyes'
+import React, { useEffect, useMemo, useState } from 'react'
 import { animClassFor, type PetAnim } from './petAnim'
 import { LottieRenderer } from './LottieRenderer'
 import { SpriteRenderer } from './SpriteRenderer'
 import { toDataUri } from './animationResolver'
 import { applySvgColorMap, type ColorMap } from './colorCustomizer'
+import { BUILTIN_PACK, builtinArt } from './builtinPet'
 import './petMotion.css'
-import ghostIdleUrl from './assets/kiro_idle.svg'
 import { petBridge } from './petBridge'
 
 // Same method names as the desktop app's IPC bridge, over Junction's gateway.
 const api = petBridge
-
-/** The built-in pack id. Only this one gets the live eye overlay. */
-const DEFAULT_PACK = 'kiro-ghost'
 
 /**
  * What the pet is reacting to. Drives BOTH the pack slot (which art) and the
@@ -89,37 +79,17 @@ export interface PetAvatarProps {
    */
   state?: PetState
   /**
-   * Current mood, which outranks state for the eyes — matching ghostPoseFor.
-   * A notification sets a mood, and that is most of what makes the companion
+   * Current mood, which outranks state for the built-in cat's drawing. A
+   * notification sets a mood, and that is most of what makes the companion
    * visibly react.
    */
   mood?: string
   /**
-   * The dress-up prop to wear, if any.
-   *
-   * Passed in rather than read here, because two sources feed it and only the
-   * caller can arbitrate: the appearance the user picked in the gallery, and a
-   * transient celebrate prop that overlays it for the length of a hop. Reading
-   * config here would let the two disagree.
-   */
-  accessory?: GhostAccessory
-  /**
-   * Docked at a screen edge. The desktop app goes QUIET when docked — it drops to
-   * the neutral 'primary' pose and suppresses the error / curious / walking
-   * reactions — rather than adopting a separate docked pose. GHOST_EYE_MAP has a
-   * 'docked' entry, but nothing in the source ever selects it.
+   * Docked at a screen edge. The companion goes QUIET when docked — the built-in
+   * cat shows its resting drawing and the error / curious / walking reactions are
+   * suppressed — rather than adopting a separate docked pose.
    */
   docked?: boolean
-  /** True while an ancestor mirrors the art; the eyes invert their gaze to match. */
-  flipX?: boolean
-  /** Eye offsets in eye-span units, for the built-in pack only. */
-  eyeDx?: number
-  eyeDy?: number
-  /**
-   * Let the built-in ghost's eyes follow the cursor. Only the live desktop pet
-   * turns this on; static previews (gallery, chat loader) leave the eyes still.
-   */
-  trackCursor?: boolean
   /**
    * The motion to play, overriding the one `state` alone implies. The live pet passes
    * this because the choice depends on things a state cannot express — whether the
@@ -151,27 +121,21 @@ export interface PetAvatarProps {
    * fidget pool. Cleared (undefined) means "render the state slot as always".
    */
   clipName?: string
-  /** Reports whether this exact state has custom art and therefore replaces Kiro's motion. */
+  /** Reports whether this exact state has custom art and therefore replaces the built-in motion. */
   onCustomOverrideChange?: (active: boolean) => void
   className?: string
 }
 
 export const PetAvatar: React.FC<PetAvatarProps> = ({
-  size, state = 'idle', mood, docked = false, eyeDx = 0, eyeDy = 0, trackCursor = false, flipX = false, anim, animEpoch = 0, clipName, onCustomOverrideChange, className,
-  accessory = 'none',
+  size, state = 'idle', mood, docked = false, anim, animEpoch = 0, clipName, onCustomOverrideChange, className,
 }) => {
   /**
-   * Which eye pose to draw.
-   *
-   * Mirrors ghostPoseFor's precedence (mood outranks state) but goes through
-   * ghostPoseForKey, because this component's `state` is the DISPLAY union
-   * (idle / loading / done / error / breathing phases) while ghostPoseFor expects the
-   * pack-authoring union. ghostPoseForKey looks a bare key up in both tables and falls
-   * back to 'primary', so a state with no pose of its own is safe rather than a crash.
+   * Which built-in drawing to show: the mood when there is one (it outranks the
+   * state), the state otherwise, and the resting body while docked. `builtinArt`
+   * reads both vocabularies and falls back to the resting body, so a state with no
+   * drawing of its own is safe rather than blank.
    */
-  const eyePose = docked
-    ? 'primary'
-    : ghostPoseForKey(mood && mood !== 'neutral' ? mood : state)
+  const builtinKey = docked ? 'idle' : mood && mood !== 'neutral' ? mood : state
 
   const slot = STATE_TO_SLOT[state]
   /**
@@ -180,17 +144,11 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
    * has no opinion, so the state decides.
    */
   const requestedAnim: PetAnim = anim !== undefined ? anim : STATE_TO_ANIM[state]
-  /**
-   * A posed reaction holds the eyes where the footage puts them: live cursor gaze
-   * would fight the pose and read as a twitch. The offset is ART-relative, so it is
-   * added to whatever the caller asked for rather than replacing it.
-   */
+  /** Exact custom art for this state replaces the built-in motion (see below). */
   const [usesCustomOverride, setUsesCustomOverride] = useState(false)
   const animName: PetAnim = usesCustomOverride ? null : requestedAnim
-  const posed = POSED_ANIMS.has(animName ?? '')
-  const eyeOff = ghostEyeOffsetFor(animName)
   const [art, setArt] = useState<Art>({ kind: 'default' })
-  // Built-in pack only: the user's recolour of the default ghost.
+  // Built-in pack only: the user's recolour of the default cat.
   const [colorMap, setColorMap] = useState<ColorMap | null>(null)
   // Bumped to force a re-resolve when the pack or colours change underneath us.
   const [rev, setRev] = useState(0)
@@ -200,7 +158,7 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
   useEffect(() => {
     const offPack = api?.onGalleryActiveChanged?.(() => setRev(n => n + 1))
     const offColor = api?.onColorMapChanged?.((d: { packId: string; colorMap: ColorMap }) => {
-      if (d?.packId === DEFAULT_PACK) setColorMap(d.colorMap)
+      if (d?.packId === BUILTIN_PACK) setColorMap(d.colorMap)
       setRev(n => n + 1)
     })
     return () => { offPack?.(); offColor?.() }
@@ -211,23 +169,24 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
 
     ;(async () => {
       const cfg = await api?.getCrewCompanionConfig?.().catch(() => null)
-      const packId: string = cfg?.activeAppearance || DEFAULT_PACK
+      const packId: string = cfg?.activeAppearance || BUILTIN_PACK
 
-      if (packId === DEFAULT_PACK) {
-        // Built-in ghost: raw SVG + the user's colour map, if any.
-        const cm = await api?.presetsGetColorMap?.(DEFAULT_PACK).catch(() => null)
+      // The built-in cat with the user's colour map, if any. Also what a pack id
+      // with no readable art renders — a deleted pack, or one this build does not
+      // ship — so the companion always shows a character rather than nothing.
+      const showBuiltin = async () => {
+        const cm = await api?.presetsGetColorMap?.(BUILTIN_PACK).catch(() => null)
         if (!alive) return
         setColorMap(cm && Object.keys(cm).length > 0 ? cm : null)
         setUsesCustomOverride(false)
         setArt({ kind: 'default' })
-        return
       }
 
+      if (packId === BUILTIN_PACK) return showBuiltin()
+
       const detail = await api?.galleryGetPackDetail?.(packId).catch(() => null)
-      if (!alive || !detail?.animations) {
-        if (alive) setUsesCustomOverride(false)
-        return
-      }
+      if (!alive) return
+      if (!detail?.animations) return showBuiltin()
 
       const a = detail.animations
       const requestedEntry = clipName
@@ -237,8 +196,8 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
           : state === 'idle'
             ? null
             : a[slot]
-      // A missing optional state inherits Kiro's motion on idle art. Exact custom
-      // art replaces only that state and is never combined with the Kiro motion.
+      // A missing optional state inherits the built-in motion on idle art. Exact
+      // custom art replaces only that state and is never combined with that motion.
       const entry = requestedEntry || a.idle
       setUsesCustomOverride(Boolean(requestedEntry))
       if (!entry) return
@@ -270,22 +229,13 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
     onCustomOverrideChange?.(usesCustomOverride)
   }, [onCustomOverrideChange, usesCustomOverride])
 
-  const isDefault = art.kind === 'default'
+  // The built-in drawing for this moment, recoloured when the user has a map.
+  const builtinUri = useMemo(() => {
+    const raw = builtinArt(builtinKey)
+    return toDataUri(colorMap ? applySvgColorMap(raw, colorMap) : raw)
+  }, [builtinKey, colorMap])
 
-  // The built-in SVG is fetched as a URL by the bundler, so a colour map has to
-  // be applied to its text. Without a map we can use the URL directly.
-  const [defaultUri, setDefaultUri] = useState<string | null>(null)
-  useEffect(() => {
-    if (!isDefault || !colorMap) { setDefaultUri(null); return }
-    let alive = true
-    fetch(ghostIdleUrl)
-      .then(r => r.text())
-      .then(raw => { if (alive) setDefaultUri(toDataUri(applySvgColorMap(raw, colorMap))) })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [isDefault, colorMap])
-
-  const imgSrc = art.kind === 'svg' ? art.uri : (defaultUri ?? ghostIdleUrl)
+  const imgSrc = art.kind === 'svg' ? art.uri : builtinUri
 
   return (
     <span
@@ -318,39 +268,6 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
             alt=""
             style={{ width: size, height: size, objectFit: 'contain', display: 'block' }}
           />
-        )}
-        {/*
-          Built-in bodies are eyeless by design; custom art is not.
-
-          A prop that sits OVER the eyes suppresses them — shades, a sleep mask and
-          the retired antenna. Drawing both leaves pupils floating on top of the
-          lenses, which is why the source keeps one source of truth for the worn
-          prop and consults it here.
-        */}
-        {isDefault && !HIDES_EYES.has(accessory) && (
-                  <GhostEyeOverlay
-                    pose={eyePose}
-                    size={size}
-                    dx={eyeDx + eyeOff.dx}
-                    dy={eyeDy + eyeOff.dy}
-                    track={trackCursor && !posed}
-                    flipX={flipX}
-                    anim={animName}
-                    posed={posed}
-                  />
-                )}
-        {/*
-          Props ride the same layered container, so they move with every motion —
-          but ONLY on the built-in ghost. Their placement is derived from
-          GHOST_EYE_MAP (the built-in ghost's eye geometry), so on a custom pack a hat
-          or shades land by a face that is not the pack's own — floating in empty space
-          beside a capybara. The eye overlay is already `isDefault`-gated for the same
-          reason; the accessory layer must be too. A custom pack simply celebrates with
-          its hop and no prop, which is the honest degrade: we cannot know where an
-          arbitrary custom sprite wears a hat.
-        */}
-        {isDefault && (
-          <GhostAccessoryLayer id={accessory} pose={eyePose} flipX={flipX} />
         )}
       </span>
     </span>

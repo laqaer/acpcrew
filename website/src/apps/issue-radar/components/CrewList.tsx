@@ -16,7 +16,7 @@ import type { Crew } from '../api'
 import { compareText, fmtNumber } from '../../../i18n/format'
 import { Btn, EmptyState } from '../../../components/ui'
 import Clickable from '../../../components/Clickable'
-import CrewGhost from './CrewGhost'
+import CrewPlate from './CrewPlate'
 import ListSkeleton from './ListSkeleton'
 
 /** The three statuses `GET /crews` derives per crew, mirroring `_crew_status` in
@@ -240,15 +240,10 @@ function CrewRow({ crew, selected, onSelect, cardClass }: {
       data-testid={`crew-row-${crew.id}`}
       className={`${cardClass(selected)} flex items-center gap-2.5 flex-shrink-0`}
     >
-      {/* The ghost sprite is near-white, so on a light theme it disappears into
-          the card. The tinted rounded tile is what makes it legible there; it is
-          a theme token rather than a fixed grey so a dark theme keeps the same
-          gentle lift instead of a bright patch. */}
-      <span className="w-[38px] h-[38px] rounded-lg bg-bg-accent border border-border flex items-center justify-center flex-shrink-0 overflow-hidden">
-        {/* Decorative: the crew's name is rendered as text beside it, so the
-            avatar adds no information a reader would otherwise miss. */}
-        <CrewGhost seed={crew.avatar_seed} variant={crew.avatar_variant} size={34} />
-      </span>
+      {/* Decorative: the crew's name is rendered as text beside it, so the
+          avatar adds no information a reader would otherwise miss. The plate is
+          its own saturated tile, so it reads on light and dark cards alike. */}
+      <CrewPlate seed={crew.avatar_seed} variant={crew.avatar_variant} size={38} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-[13px] font-semibold text-text-strong truncate">{crew.name}</span>

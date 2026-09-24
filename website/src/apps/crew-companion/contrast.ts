@@ -3,9 +3,9 @@
  *
  * Needed because the panel follows the user's Junction theme rather than a palette
  * we control. That is the right behaviour, but it means readability can no longer be
- * guaranteed at build time: measured against the app's own `kiro-dark` fallback, the
- * accent purple as TEXT sits at 3.57:1 on the card and 2.58:1 on a tinted accent
- * pill — both below the 4.5:1 WCAG AA threshold for normal text.
+ * guaranteed at build time: a theme's accent can pass as TEXT on its card and still
+ * fail on a tinted accent pill, or fail on both — below the 4.5:1 WCAG AA threshold
+ * for normal text either way.
  *
  * So instead of choosing between "matches the theme" and "is readable", the panel
  * measures the theme's own colours at runtime and only uses the accent for text

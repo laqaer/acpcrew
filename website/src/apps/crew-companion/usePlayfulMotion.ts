@@ -1,5 +1,5 @@
 /**
- * usePlayfulMotion — makes the ghost feel alive/pokeable. A single rAF loop
+ * usePlayfulMotion — makes the companion feel alive/pokeable. A single rAF loop
  * drives three subtle motions on the art wrapper (transform, no React re-renders):
  *   • idle bob   — gentle vertical float while idle
  *   • cursor lean — the body drifts a few px toward the cursor

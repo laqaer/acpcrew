@@ -694,10 +694,6 @@
       "prose": 1,
       "template": 2
     },
-    "pages/scenes/GhostScene.tsx": {
-      "total": 3,
-      "template": 3
-    },
     "pages/scenes/mission-control/MissionControlScene.tsx": {
       "total": 17,
       "array": 2,

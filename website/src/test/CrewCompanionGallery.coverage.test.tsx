@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => {
     active?: (data?: { packId?: string }) => void
     packs?: () => void
     color?: (data: { packId: string; colorMap: Record<string, string> }) => void
-    config?: (kiro?: { language?: string }) => void
+    config?: (cfg?: { language?: string }) => void
   } = {}
   const api = {
     galleryListPacks: vi.fn(),
@@ -113,15 +113,15 @@ const { GalleryPanel } = await import('../apps/crew-companion/GalleryPanel')
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
 /** The backend's canonical built-in id (appearances.py `DEFAULT_PACK`). */
-const BUILTIN_ID = 'kiro-ghost'
+const BUILTIN_ID = 'default-mochi'
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="4" height="4"/></svg>'
 
 const builtin: PackMeta = {
   id: BUILTIN_ID,
-  name: 'Kiro',
+  name: 'Mochi Cat',
   author: 'Junction',
-  description: 'the bundled ghost',
+  description: 'the bundled cat',
   type: 'built-in',
   format: 'svg',
   thumbnail: '',
@@ -216,17 +216,12 @@ async function openDetail(name: string) {
   await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
 }
 
-/**
- * The built-in ghost's body is a bundled asset the thumbnail re-fetches in order to
- * recolour it. Serve a known one-colour body so the recolour is observable.
- */
-const GHOST_BODY = '<svg xmlns="http://www.w3.org/2000/svg"><path fill="#FFFFFF"/></svg>'
-const stubGhostBody = () =>
-  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(GHOST_BODY, { status: 200 }))
+/** The built-in cat's main body colour, so a recolour of it is observable. */
+const CAT_FUR = '#F9A85F'
 
 /** The built-in card's art, decoded back out of its data URI. */
-const builtinArt = () =>
-  decodeURIComponent((cardFor('Kiro').querySelector('img') as HTMLImageElement).getAttribute('src') ?? '')
+const builtinCardArt = () =>
+  decodeURIComponent((cardFor('Mochi Cat').querySelector('img') as HTMLImageElement).getAttribute('src') ?? '')
 
 // ── The grid ───────────────────────────────────────────────────────────────
 
@@ -246,7 +241,7 @@ describe('gallery grid', () => {
 
   it('renders one card per pack with its name and author', async () => {
     await mount()
-    expect(screen.getByText('Kiro')).toBeInTheDocument()
+    expect(screen.getByText('Mochi Cat')).toBeInTheDocument()
     expect(screen.getByText('Junction')).toBeInTheDocument()
     expect(screen.getByText('Boba')).toBeInTheDocument()
     expect(screen.getByText('community')).toBeInTheDocument()
@@ -254,8 +249,8 @@ describe('gallery grid', () => {
 
   it('badges only the active pack, and invites a tap on the others', async () => {
     await mount()
-    expect(cardFor('Kiro')).toHaveTextContent('Active')
-    expect(cardFor('Kiro')).toHaveAttribute('aria-pressed', 'true')
+    expect(cardFor('Mochi Cat')).toHaveTextContent('Active')
+    expect(cardFor('Mochi Cat')).toHaveAttribute('aria-pressed', 'true')
     expect(cardFor('Boba')).toHaveTextContent('Tap to use')
     expect(cardFor('Boba')).toHaveAttribute('aria-pressed', 'false')
   })
@@ -263,7 +258,7 @@ describe('gallery grid', () => {
   it('offers Manage on custom packs only — a built-in has nothing to manage', async () => {
     await mount()
     expect(cardFor('Boba').querySelector('button[aria-label="Manage"]')).not.toBeNull()
-    expect(cardFor('Kiro').querySelector('button[aria-label="Manage"]')).toBeNull()
+    expect(cardFor('Mochi Cat').querySelector('button[aria-label="Manage"]')).toBeNull()
   })
 
   it('surfaces a failed pack list as a dismissable banner', async () => {
@@ -278,16 +273,14 @@ describe('gallery grid', () => {
   it('falls back to the built-in as active when the config read fails', async () => {
     api.getCrewCompanionConfig.mockRejectedValue(new Error('no config'))
     await mount()
-    expect(cardFor('Kiro')).toHaveTextContent('Active')
+    expect(cardFor('Mochi Cat')).toHaveTextContent('Active')
   })
 
   it('recolours the built-in thumbnail when a colour map is stored for it', async () => {
-    stubGhostBody()
-    api.presetsGetColorMap.mockResolvedValue({ '#FFFFFF': '#00ff00' })
+    api.presetsGetColorMap.mockResolvedValue({ [CAT_FUR]: '#00ff00' })
     await mount()
-    // The bundled body is fetched and rewritten, so the card's art is the recoloured
-    // SVG rather than the asset PetAvatar would otherwise point straight at.
-    await waitFor(() => expect(builtinArt()).toContain('fill="#00ff00"'))
+    // The bundled body is rewritten with the stored map — the same art PetAvatar draws.
+    await waitFor(() => expect(builtinCardArt()).toContain('fill="#00ff00"'))
   })
 })
 
@@ -311,9 +304,9 @@ describe('applying a pack from its card', () => {
 
   it('ignores a tap on the pack that is already active', async () => {
     await mount()
-    fireEvent.click(cardFor('Kiro'))
-    fireEvent.keyDown(cardFor('Kiro'), { key: ' ' })
-    await waitFor(() => expect(screen.getByText('Kiro')).toBeInTheDocument())
+    fireEvent.click(cardFor('Mochi Cat'))
+    fireEvent.keyDown(cardFor('Mochi Cat'), { key: ' ' })
+    await waitFor(() => expect(screen.getByText('Mochi Cat')).toBeInTheDocument())
     expect(api.gallerySetActive).not.toHaveBeenCalled()
   })
 
@@ -323,7 +316,7 @@ describe('applying a pack from its card', () => {
     fireEvent.click(cardFor('Boba'))
 
     expect(await screen.findByText('that pack is broken')).toBeInTheDocument()
-    expect(cardFor('Kiro')).toHaveTextContent('Active')
+    expect(cardFor('Mochi Cat')).toHaveTextContent('Active')
   })
 
   it('reports a thrown switch through the shared error text', async () => {
@@ -339,11 +332,11 @@ describe('applying a pack from its card', () => {
 describe('gallery broadcasts', () => {
   it('moves the Active badge when another window switches the avatar', async () => {
     await mount()
-    expect(cardFor('Kiro')).toHaveTextContent('Active')
+    expect(cardFor('Mochi Cat')).toHaveTextContent('Active')
 
     await act(async () => { mocks.listeners.active?.({ packId: custom.id }) })
     expect(cardFor('Boba')).toHaveTextContent('Active')
-    expect(cardFor('Kiro')).toHaveTextContent('Tap to use')
+    expect(cardFor('Mochi Cat')).toHaveTextContent('Tap to use')
   })
 
   it('re-reads the config when the broadcast carries no pack id', async () => {
@@ -363,17 +356,16 @@ describe('gallery broadcasts', () => {
   })
 
   it('picks up a colour-map change for the built-in and ignores one for another pack', async () => {
-    stubGhostBody()
     await mount()
     await act(async () => {
-      mocks.listeners.color?.({ packId: 'some-other-pack', colorMap: { '#FFFFFF': '#00ff00' } })
+      mocks.listeners.color?.({ packId: 'some-other-pack', colorMap: { [CAT_FUR]: '#00ff00' } })
     })
-    expect(builtinArt()).not.toContain('#00ff00')
+    expect(builtinCardArt()).not.toContain('#00ff00')
 
     await act(async () => {
-      mocks.listeners.color?.({ packId: BUILTIN_ID, colorMap: { '#FFFFFF': '#00ff00' } })
+      mocks.listeners.color?.({ packId: BUILTIN_ID, colorMap: { [CAT_FUR]: '#00ff00' } })
     })
-    await waitFor(() => expect(builtinArt()).toContain('fill="#00ff00"'))
+    await waitFor(() => expect(builtinCardArt()).toContain('fill="#00ff00"'))
   })
 
   it('survives a language broadcast without losing the grid', async () => {
