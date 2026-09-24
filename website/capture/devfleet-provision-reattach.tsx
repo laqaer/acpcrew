@@ -30,7 +30,7 @@ const params = new URLSearchParams(location.search)
 const scene = params.get('scene') || 'running'
 const theme = params.get('theme') || 'dark'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 const NOW = Date.now() / 1000
 

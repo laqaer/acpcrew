@@ -39,7 +39,7 @@ const params = new URLSearchParams(location.search)
 const scene = params.get('scene') === 'before' ? 'before' : 'after'
 const theme = params.get('theme') || 'dark'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 const COLUMN = { maxWidth: 'var(--mc-content-width, 900px)' } as const
 
@@ -60,7 +60,7 @@ function FooterBefore() {
   return (
     <div data-testid="chat-footer" className="px-4 mx-auto w-full py-1" style={COLUMN}>
       <div className="px-3.5 py-2.5">
-        <SwapCarousel icons={resolveLoaderIcons('kiro')} />
+        <SwapCarousel icons={resolveLoaderIcons('junction')} />
       </div>
     </div>
   )

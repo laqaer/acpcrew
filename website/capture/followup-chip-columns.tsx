@@ -37,7 +37,7 @@ const contentWidth = (params.get('width') || 'compact') as ContentWidth
 const layout = (params.get('layout') || 'multiline') as 'multiline' | 'scroll'
 const fixOn = params.get('fix') !== 'off'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 document.documentElement.setAttribute('data-fix', fixOn ? 'on' : 'off')
 
 /**

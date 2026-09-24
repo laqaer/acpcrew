@@ -31,7 +31,7 @@ import '../src/index.css'
 const params = new URLSearchParams(location.search)
 const theme = params.get('theme') === 'light' ? 'light' : 'dark'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 /** One server, stubbable and not yet stubbed -- the state an operator is in
  * when they reach for the switch this PR changes. */

@@ -28,8 +28,8 @@ import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/terminal-nav-active'
 
 const SCENES = [
-  { name: 'dark', theme: 'dark', attr: 'kiro-dark' },
-  { name: 'light', theme: 'light', attr: 'kiro-light' },
+  { name: 'dark', theme: 'dark', attr: 'junction-dark' },
+  { name: 'light', theme: 'light', attr: 'junction-light' },
 ]
 const RAILS = [
   { name: 'expanded', collapsed: false, width: 560 },

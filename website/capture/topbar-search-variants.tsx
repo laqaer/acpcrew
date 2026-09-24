@@ -42,7 +42,7 @@ const count = params.get('count') || '99+'
 const pins = Number(params.get('pins') || '0')
 const unread = Number(params.get('unread') || '0')
 const rowW = params.get('roww')
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 initI18n('zh-CN')
 
 // The retired cue: an alpha mask over the row's last 18px. Injected verbatim so

@@ -77,7 +77,7 @@ REJECTED (install fails), so do not invent variables; the allowlist is
 `_THEME_CSS_VARS` in `src/junction/dashboard/theme_validate.py`.
 
 - To clone a built-in theme's palette, transcribe its block from
-  `website/src/index.css` (e.g. `[data-theme="kiro-dark"]`), keeping only
+  `website/src/index.css` (e.g. `[data-theme="junction-dark"]`), keeping only
   allowlisted vars.
 - `--accent-fg` and the four `--json-*` highlight colors (`--json-key`,
   `--json-str`, `--json-num`, `--json-bool`) are allowlisted — set them directly

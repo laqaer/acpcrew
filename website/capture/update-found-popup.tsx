@@ -38,7 +38,7 @@ const scene = params.get('scene') || 'desktop'
 const theme = params.get('theme') || 'dark'
 const lang = params.get('lang') || 'en'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 // Realistic length and shape: gateway notes are CHANGELOG.md markdown, so the
 // frame must prove headers/lists render and the box scrolls.

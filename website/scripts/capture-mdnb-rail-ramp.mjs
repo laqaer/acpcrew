@@ -117,7 +117,7 @@ async function main() {
     await page.addInitScript(vaultId => {
       localStorage.setItem('mdnb-active-vault', vaultId)
       localStorage.setItem('mdnb-list-view', 'folders')
-      localStorage.setItem('mc-color-theme', 'kiro')
+      localStorage.setItem('mc-color-theme', 'junction')
     }, MDNB_VAULT_ID)
 
     await page.goto(base + '/md-notebook', { waitUntil: 'domcontentloaded' })

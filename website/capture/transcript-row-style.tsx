@@ -45,7 +45,7 @@ import '../src/index.css'
 const params = new URLSearchParams(location.search)
 const theme = params.get('theme') || 'dark'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 // MarkdownRenderer probes path-like inline code and unfurls links; neither
 // endpoint exists here and a pending probe leaves a chip mid-load.

@@ -30,8 +30,8 @@ const FIXED_API = makeFixedApi(PROJECT)
 
 /** `theme` is the data-theme attribute; `mode` is what /api/theme/boot returns. */
 const SCENES = [
-  { name: 'light', theme: 'kiro-light', mode: 'light' },
-  { name: 'dark', theme: 'kiro-dark', mode: 'dark' },
+  { name: 'light', theme: 'junction-light', mode: 'light' },
+  { name: 'dark', theme: 'junction-dark', mode: 'dark' },
 ]
 
 mkdirSync(OUT, { recursive: true })

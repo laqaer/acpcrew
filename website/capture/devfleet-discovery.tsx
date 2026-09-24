@@ -28,7 +28,7 @@ const params = new URLSearchParams(location.search)
 const scene = params.get('scene') || 'setup'
 const theme = params.get('theme') || 'dark'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 const FLEET = scene === 'error'
   ? {
