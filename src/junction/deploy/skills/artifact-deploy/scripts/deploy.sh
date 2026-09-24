@@ -289,7 +289,7 @@ print(json.dumps({
     "expires_at": None if expires == "null" else expires,
     "persistent": expires == "null", "ttl_hours": ttl,
 }))' "$SLUG" "${USER:-unknown}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$EXPIRES_RAW" "$TTL_HOURS" > "$MANIFEST"
-"${AWS[@]}" s3 cp "$MANIFEST" "s3://$BUCKET/$SLUG/.kirocrew-deploy.json" \
+"${AWS[@]}" s3 cp "$MANIFEST" "s3://$BUCKET/$SLUG/.junction-deploy.json" \
   --content-type application/json --only-show-errors
 rm -f "$MANIFEST"
 

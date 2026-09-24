@@ -7,7 +7,7 @@ triggers: theme pack, custom theme, theme.json, variables.json, overrides.css, i
 # Junction theme-pack authoring
 
 House rules for building theme packs. The authoritative contract is
-[`website/docs/theming-contract.md`](https://github.com/kirodotdev/KiroCrew/blob/main/website/docs/theming-contract.md);
+[`website/docs/theming-contract.md`](https://github.com/laqaer/junction/blob/main/website/docs/theming-contract.md);
 this skill is the task-oriented digest, plus the traps that cost real
 debugging time.
 

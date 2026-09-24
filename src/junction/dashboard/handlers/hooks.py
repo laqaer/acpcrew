@@ -349,8 +349,8 @@ _HOOK_SESSION_PREFIX = "hook:"
 _HOOK_TIMEOUT_DEFAULT = 599  # ~10 min — prime to avoid thundering herd with cron intervals
 _HOOK_TIMEOUT_MAX = 3593  # ~1 hour — prime for same reason
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home";
 # dashboard/handlers/usage.py is the reference implementation.
 _HOOK_STORE_PATH: Path | None = None

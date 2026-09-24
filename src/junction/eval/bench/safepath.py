@@ -13,7 +13,7 @@ The threat model is the same one that justifies the read gate. These values arri
 from argv and the environment, and in this product neither is necessarily set by the
 human who owns the machine: an agent can run any CLI command. So
 
-    junction bench retrieval --out-dir ~/.kiro/crew --stem security_policy
+    junction bench retrieval --out-dir ~/.junction --stem security_policy
 
 is a reachable invocation that would overwrite a governance policy file with a
 benchmark report. Nothing about the benchmark needs to write there, so it is refused
@@ -78,7 +78,7 @@ def guard_output_dir(path: str | Path, *, what: str) -> Path:
     """Refuse an output directory that is protected OR that contains a protected tree.
 
     The second half is why this is not just :func:`guard_write_path`. ``~`` is not a
-    sensitive path, but it *contains* ``~/.ssh`` and the crew data home, and a
+    sensitive path, but it *contains* ``~/.ssh`` and the data home, and a
     command that creates directories and files under it is doing something no
     benchmark run needs to do.
     """

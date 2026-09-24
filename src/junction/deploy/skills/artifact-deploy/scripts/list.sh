@@ -20,7 +20,7 @@ printf '%-30s %-9s %-22s %s\n' "------------------------------" "---------" "---
 aws_cli s3 ls "s3://$BUCKET/" 2>/dev/null | awk '/ PRE /{print $2}' | while read -r pfx; do
   slug="${pfx%/}"
   [[ -n "$slug" && "$slug" != _* ]] || continue
-  man="$(aws_cli s3 cp "s3://$BUCKET/$slug/.kirocrew-deploy.json" - 2>/dev/null)"
+  man="$(aws_cli s3 cp "s3://$BUCKET/$slug/.junction-deploy.json" - 2>/dev/null)"
   if [[ -z "$man" ]]; then
     printf '%-30s %-9s %-22s %s\n' "$slug" "?" "-" "https://$DOMAIN/$slug/"
     continue

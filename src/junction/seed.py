@@ -27,7 +27,7 @@ except ImportError:  # pragma: no cover — Junction targets py3.10.
 # would mean the Junction install itself is broken — there's no scenario
 # where it's optional. ``_safe_audit`` still handles *runtime* SEL failures
 # (read-only ``$HOME``, HMAC-key write failure) via its broad except.
-from junction.config.paths import _default_home, _legacy_home
+from junction.config.paths import default_home_paths
 from junction.sel import sel
 
 # Exit codes.
@@ -162,26 +162,21 @@ def _resolve_fixture(name: str) -> Path:
 def _protected_homes() -> set[Path]:
     """Return the resolved gateway homes we refuse to seed into, ever.
 
-    These are the paths that could hold a dev's LIVE gateway state, so seeding
-    into them — even with ``--seed-replace`` — is the single most destructive
-    outcome this tool could produce and is always refused:
+    These are the paths that hold a dev's LIVE gateway state — the default
+    data home ``~/.junction`` — so seeding into them, even with
+    ``--seed-replace``, is the single most destructive outcome this tool could
+    produce and is always refused. Each is ``.resolve()``-d to collapse
+    symlinks along the way.
 
-    * ``_default_home()`` → ``~/.kiro/crew`` — the current main gateway home.
-    * ``_legacy_home()`` → ``~/.kirocrew`` — the pre-move home. A box that
-      hasn't migrated yet (or was rolled back) still keeps its real data here,
-      so it must stay protected until the user removes it themselves.
-
-    Each is ``.resolve()``-d to collapse symlinks along the way.
-
-    Uses ``_default_home()`` / ``_legacy_home()`` rather than ``config_dir()`` on
-    purpose: seeding requires ``$JUNCTION_HOME`` to be set, so ``config_dir()``
-    would return that override itself and the guardrail equality check would
-    always fire. The guardrail must compare against the DEFAULT (non-override)
-    homes. Extracted as a helper so tests can monkeypatch ``Path.home()`` via
+    Uses ``default_home_paths()`` rather than ``config_dir()`` on purpose:
+    seeding requires ``$JUNCTION_HOME`` to be set, so ``config_dir()`` would
+    return that override itself and the guardrail equality check would always
+    fire. The guardrail must compare against the DEFAULT (non-override) home.
+    Extracted as a helper so tests can monkeypatch ``Path.home()`` via
     ``$HOME`` and exercise the guardrail on synthetic default-home paths.
     """
     homes: set[Path] = set()
-    for home in (_default_home(), _legacy_home()):
+    for home in default_home_paths():
         try:
             homes.add(home.resolve())
         except OSError:
@@ -194,7 +189,7 @@ def _resolve_target(*, for_main_home_check: bool = False) -> Path:
 
     ``expanduser()`` is applied so ``JUNCTION_HOME=~/dev`` works. Pass
     ``for_main_home_check=True`` to additionally ``resolve()`` the path so
-    a symlinked ``JUNCTION_HOME`` pointing at ``~/.kiro/crew`` is caught by
+    a symlinked ``JUNCTION_HOME`` pointing at ``~/.junction`` is caught by
     the main-home guardrail. The unresolved form is used for ``copytree`` /
     ``rmtree`` because a non-existent target is valid input to those.
     """
@@ -202,21 +197,21 @@ def _resolve_target(*, for_main_home_check: bool = False) -> Path:
     if not raw:
         raise SeedError(
             "$JUNCTION_HOME is not set. Point it at a dev directory "
-            "(e.g. JUNCTION_HOME=~/.kirocrew-dev junction gateway --seed empty).",
+            "(e.g. JUNCTION_HOME=~/.junction-dev junction gateway --seed empty).",
             guardrail=SeedError.GUARDRAIL_UNSET_HOME,
         )
     target = Path(raw).expanduser()
     if for_main_home_check:
         # ``resolve(strict=False)`` tolerates non-existent targets while
         # still collapsing any symlinks that DO exist along the way. That
-        # catches ``$JUNCTION_HOME -> ~/.kiro/crew`` even when the symlink
+        # catches ``$JUNCTION_HOME -> ~/.junction`` even when the symlink
         # target doesn't exist yet on some platforms.
         #
         # On resolution failure (broken symlink chain, permission error,
         # exotic cross-mount issues) we MUST fail closed — falling back
         # to the unresolved path would silently bypass the main-home
         # guardrail: if the unresolved path is actually a symlink to
-        # ``~/.kiro/crew`` that ``resolve()`` couldn't evaluate, the
+        # ``~/.junction`` that ``resolve()`` couldn't evaluate, the
         # guardrail comparison won't match, and ``--seed-replace`` would
         # then ``rmtree`` the dev's live gateway home. That's the one
         # outcome this tool must never produce.
@@ -237,7 +232,7 @@ def seed(fixture_name: str, *, replace: bool = False) -> None:
     Raises ``SeedError`` on guardrail violations. Enforces, in order:
 
     1. **Main-home guardrail** — refuses when ``$JUNCTION_HOME`` resolves to
-       ``~/.kiro/crew`` (the dev's live gateway home). This guardrail is
+       ``~/.junction`` (the dev's live gateway home). This guardrail is
        ABSOLUTE: ``replace=True`` does NOT override it. Clobbering the
        main gateway is the one outcome we never want to enable.
     2. **Non-empty guardrail** — refuses when the target exists and contains
@@ -258,7 +253,7 @@ def seed(fixture_name: str, *, replace: bool = False) -> None:
     # ``copytree`` / ``rmtree`` work. ``resolve()`` would rewrite a symlinked
     # ``$JUNCTION_HOME`` into its target and we'd copy/rmtree the wrong
     # location; conversely, the raw path can't be trusted for the main-home
-    # guardrail because ``JUNCTION_HOME=~/my-link`` where ``my-link -> ~/.kiro/crew``
+    # guardrail because ``JUNCTION_HOME=~/my-link`` where ``my-link -> ~/.junction``
     # would bypass the string compare. Two calls keeps each value's purpose
     # explicit at the cost of one extra ``os.environ`` lookup — acceptable.
     dst_resolved = _resolve_target(for_main_home_check=True)
@@ -266,7 +261,7 @@ def seed(fixture_name: str, *, replace: bool = False) -> None:
         raise SeedError(
             f"refusing to seed main gateway home: {dst_resolved}. "
             "Point $JUNCTION_HOME at a separate dev directory "
-            "(e.g. ~/.kirocrew-dev).",
+            "(e.g. ~/.junction-dev).",
             guardrail=SeedError.GUARDRAIL_MAIN_HOME,
         )
     dst = _resolve_target()

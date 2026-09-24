@@ -431,7 +431,7 @@ def put_oac_bucket_policy(bucket: str, distribution_arn: str, profile: str) -> N
                 "Principal": {"Service": "cloudfront.amazonaws.com"},
                 "Action": "s3:GetObject",
                 "Resource": [
-                    f"arn:aws:s3:::{bucket}/*/.kirocrew-deploy.json",
+                    f"arn:aws:s3:::{bucket}/*/.junction-deploy.json",
                     f"arn:aws:s3:::{bucket}/_quarantine/*",
                 ],
             },

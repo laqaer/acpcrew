@@ -1653,9 +1653,8 @@ def _service_wait_ping(
     # user is looking at, so track neither, and stay that way for the rest of the
     # turn (see the latch below -- a self-expiring window flapped the hole back
     # open). Deliberately a containment, not a cure: the cure is per-session
-    # identity, which this cannot synthesize.
-    # Tracked in https://github.com/kirodotdev/KiroCrew/issues/2347, which also
-    # lists this guard among the things to delete once identity is fixed.
+    # identity, which this cannot synthesize; delete this guard once that
+    # identity exists.
     if slot._wait_contested:
         # Latched for the REST OF THE TURN, not for a fixed window. An expiring
         # window reopened the hole it was built to close: both sleeps keep

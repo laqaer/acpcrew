@@ -246,7 +246,7 @@ def _is_junction_checkout(path: str) -> bool:
 # ever named in a user-facing message, because a path the user did not choose is
 # noise to them. Names are matched case-insensitively against what is on disk,
 # so only the canonical spelling is listed here.
-_CHECKOUT_DIR_NAMES = frozenset({"junction", "kiro-crew"})
+_CHECKOUT_DIR_NAMES = frozenset({"junction"})
 _CHECKOUT_PARENT_DIRS = (
     "", "repos", "src", "projects", "dev", "git", "code", "workplace",
 )
@@ -4875,7 +4875,7 @@ _MAKE_LIVE_COMMITTED = False
 def _gateway_unit_name() -> str:
     """Resolve the systemd unit of the gateway THIS backend belongs to.
 
-    Inside a pod (config home under ``.kirocrew-pods/<name>``) the owning unit
+    Inside a pod (config home under ``.junction-pods/<name>``) the owning unit
     is the pod template instance — restarting the hardcoded live unit from a
     pod would bounce the user's LIVE gateway across planes.
     """
@@ -4883,7 +4883,7 @@ def _gateway_unit_name() -> str:
         from junction.config.loader import config_dir
 
         home = config_dir()
-        if home.parent.name == ".kirocrew-pods":
+        if home.parent.name == ".junction-pods":
             return f"junction-pod@{home.name}.service"
     except Exception:  # noqa: BLE001 — fall through to the live unit
         pass
@@ -4905,7 +4905,7 @@ def _gateway_label() -> str:
         from junction.pod.launchd import LABEL_PREFIX
 
         home = config_dir()
-        if home.parent.name == ".kirocrew-pods":
+        if home.parent.name == ".junction-pods":
             prefix = os.environ.get("JUNCTION_POD_UNIT_PREFIX", DEFAULT_UNIT_PREFIX)
             return f"{LABEL_PREFIX}.{prefix}.{home.name}"
     except Exception:  # noqa: BLE001 — fall through to the live agent
@@ -5166,7 +5166,7 @@ async def api_dev_fleet_restart_gateway(request: web.Request) -> web.Response:
 
 def _in_pod() -> bool | None:
     """Whether THIS backend runs inside a pod (config home under
-    ``.kirocrew-pods/<name>``) — same detection as _gateway_unit_name.
+    ``.junction-pods/<name>``) — same detection as _gateway_unit_name.
 
     Returns ``True`` (definitely a pod), ``False`` (definitely not), or
     ``None`` when pod status cannot be resolved (config home unresolvable).
@@ -5180,7 +5180,7 @@ def _in_pod() -> bool | None:
     try:
         from junction.config.loader import config_dir
 
-        return config_dir().parent.name == ".kirocrew-pods"
+        return config_dir().parent.name == ".junction-pods"
     except Exception:  # noqa: BLE001
         return None
 

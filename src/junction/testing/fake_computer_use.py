@@ -114,7 +114,7 @@ FAKE_SELECTED_TEXT = "quarterly"
 FAKE_FILES_APP = AppRef(
     name="Fake Files",
     pid=4101,
-    bundle_id="dev.junction.fake.files",
+    bundle_id="com.example.fake.files",
     window_id=8801,
     window_title="Documents",
 )
@@ -122,7 +122,7 @@ FAKE_FILES_APP = AppRef(
 FAKE_LOGIN_APP = AppRef(
     name="Fake Login",
     pid=4102,
-    bundle_id="dev.junction.fake.login",
+    bundle_id="com.example.fake.login",
     window_id=8802,
     window_title="Sign in",
 )
@@ -146,7 +146,7 @@ FAKE_APPS: tuple[AppRef, ...] = (FAKE_FILES_APP, FAKE_LOGIN_APP, FAKE_TERMINAL_A
 FAKE_DRAW_APP = AppRef(
     name="Fake Draw",
     pid=4104,
-    bundle_id="dev.junction.fake.draw",
+    bundle_id="com.example.fake.draw",
     window_id=8804,
     window_title="Untitled",
 )

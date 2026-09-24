@@ -30,9 +30,8 @@ logger = logging.getLogger(__name__)
 #
 # ``config_dir()`` / ``kiro_sessions_dir()`` read ``JUNCTION_HOME`` on every
 # call, so binding their result to a module constant freezes whatever the home
-# happened to be when this module was first imported. That breaks three things:
-# pod isolation (a pod sets ``JUNCTION_HOME`` for its own process), the one-time
-# ``~/.kirocrew`` -> ``~/.kiro/crew`` migration (deliberately lazy), and test
+# happened to be when this module was first imported. That breaks two things:
+# pod isolation (a pod sets ``JUNCTION_HOME`` for its own process) and test
 # isolation -- the autouse ``_isolate_junction_home`` fixture runs *after*
 # collection has already imported this module, so it silently cannot reach a
 # frozen constant.

@@ -7,7 +7,7 @@ a model prompt, a transcript, or Slack.
 
 The keystone test deliberately asserts against the real ``security`` module rather
 than a mock. A rename of ``SECRETS_FILENAME`` that forgot to update
-``_CREW_SECRET_LEAVES`` would silently drop the protection with no other symptom,
+``_DATA_HOME_SECRET_LEAVES`` would silently drop the protection with no other symptom,
 so this is the test that catches it.
 """
 
@@ -24,10 +24,10 @@ from junction.apps.builtins.ops_mission_control.backend import secrets
 class TestKeystoneProtection(unittest.TestCase):
     def test_filename_is_registered_on_the_secret_floor(self):
         """The two lists must agree — see the module docstring."""
-        self.assertIn(secrets.SECRETS_FILENAME, security._CREW_SECRET_LEAVES)
+        self.assertIn(secrets.SECRETS_FILENAME, security._DATA_HOME_SECRET_LEAVES)
 
     def _secret_path(self) -> str:
-        return os.path.expanduser(f"~/.kiro/crew/{secrets.SECRETS_FILENAME}")
+        return os.path.expanduser(f"~/.junction/{secrets.SECRETS_FILENAME}")
 
     def test_agent_file_tools_cannot_touch_it(self):
         """``is_sensitive_path`` is the shared read+write gate for agent tools."""
@@ -46,16 +46,12 @@ class TestKeystoneProtection(unittest.TestCase):
                 self.assertTrue(security.is_sensitive_bash_command(command))
 
     def test_every_home_prefix_is_covered(self):
-        """The floor is built per home prefix — including the legacy home.
+        """The floor is built per home prefix.
 
-        The prefixes are read from ``security._CREW_HOME_PREFIXES`` rather than
-        written as a literal ``~/.kirocrew/...``: ``test_runtime_home_write_paths``
-        forbids any Python outside ``test/`` from expanding a hardcoded legacy home
-        (it is how the legacy dir kept getting re-created), and these tests live
-        under ``src/``. Deriving the prefixes also means a future home move is
-        covered here automatically.
+        The prefixes are read from ``security._DATA_HOME_PREFIXES`` rather than
+        written as literals, so a future home move is covered here automatically.
         """
-        for prefix in security._CREW_HOME_PREFIXES:
+        for prefix in security._DATA_HOME_PREFIXES:
             with self.subTest(prefix=prefix):
                 path = os.path.join(os.path.expanduser("~"), prefix, secrets.SECRETS_FILENAME)
                 self.assertTrue(security.is_sensitive_path(path))
@@ -583,8 +579,8 @@ class TestTheScheduleIsWriteProtectedButReadable(unittest.TestCase):
 
         Iterates the HOME FORMS rather than `self._path()`, the same way the incidents-index
         equivalent below does, and the difference is load-bearing rather than stylistic. The
-        bash gate is a STRING matcher over `_CREW_HOME_PREFIXES` (`.kiro/crew`, `.kirocrew`),
-        so it recognises a command only by the home spelling the command carries. The tool
+        bash gate is a STRING matcher over `_DATA_HOME_PREFIXES` (`.junction`), so it
+        recognises a command only by the home spelling the command carries. The tool
         gate on the two tests above is not: `is_sensitive_write_path` resolves through
         `config_dir()`, so it DOES follow a non-default `JUNCTION_HOME`.
 
@@ -597,7 +593,7 @@ class TestTheScheduleIsWriteProtectedButReadable(unittest.TestCase):
         reported a guarantee it had not checked.
         """
         for home in ("~", "$HOME", "/home/alice", "/Users/alice"):
-            path = f"{home}/.kiro/crew/apps/ops-mission-control/data/rotation.yaml"
+            path = f"{home}/.junction/apps/ops-mission-control/data/rotation.yaml"
             for cmd in (
                 f"echo 'who: attacker' > {path}",
                 f"cp /tmp/evil.yaml {path}",
@@ -615,7 +611,7 @@ class TestTheScheduleIsWriteProtectedButReadable(unittest.TestCase):
     def test_the_registered_path_is_not_a_bare_filename(self):
         """A bare `rotation.yaml` entry matches NOTHING, which is the trap here.
 
-        The bash matcher builds `<home>/<crew-prefix>/<entry>`, so an entry has to carry its
+        The bash matcher builds `<home>/<data-home-prefix>/<entry>`, so an entry has to carry its
         `apps/.../data/` subpath. Spelling it as a bare leaf enforced nothing while reading
         exactly like a completed fix — so this pins the shape, not just the behaviour.
         """
@@ -732,7 +728,7 @@ class TestTheIncidentIndexIsWriteProtectedButReadable(unittest.TestCase):
         why a native `WindowsPath` is not used here.
         """
         for home in ("~", "$HOME", "/home/alice", "/Users/alice"):
-            path = f"{home}/.kiro/crew/apps/ops-mission-control/data/incidents/index.json"
+            path = f"{home}/.junction/apps/ops-mission-control/data/incidents/index.json"
             for cmd in (
                 f"echo '{{}}' > {path}",
                 f"cp /tmp/evil.json {path}",
@@ -760,10 +756,10 @@ class TestTheIncidentIndexIsWriteProtectedButReadable(unittest.TestCase):
         `test_agent_file_tools_can_still_read_it` above pins it. Asserted rather than left
         implicit so the next reader does not "fix" this into a write-only matcher.
         """
-        path = "~/.kiro/crew/apps/ops-mission-control/data/incidents/index.json"
+        path = "~/.junction/apps/ops-mission-control/data/incidents/index.json"
         self.assertIsNotNone(security.is_sensitive_bash_command(f"cat {path}"))
         # And identical to the leaf registered before it, so the two cannot drift.
-        schedule = "~/.kiro/crew/apps/ops-mission-control/data/rotation.yaml"
+        schedule = "~/.junction/apps/ops-mission-control/data/rotation.yaml"
         self.assertIsNotNone(security.is_sensitive_bash_command(f"cat {schedule}"))
 
     def test_the_registered_path_is_not_a_bare_filename(self):

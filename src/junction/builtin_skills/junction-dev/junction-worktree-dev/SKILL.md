@@ -28,8 +28,7 @@ waste hours.
   backend-only change lives in a worktree.
 - **Single-active model.** Making a worktree "live" swaps the *code* behind the
   same dashboard URL and the same shared data home — `~/.junction` by default
-  (legacy installs auto-migrate from `~/.kirocrew` on first launch;
-  `JUNCTION_HOME` overrides) — including your REAL DB and sessions. Only one
+  (`JUNCTION_HOME` overrides) — including your REAL DB and sessions. Only one
   worktree is live at a time. Be deliberate about migrations, and switch back
   to the clean baseline when done.
 
@@ -219,9 +218,8 @@ the gate that lets you push.
 
 - Flags belong in the config of the instance you are actually looking at.
   Each runtime has its own home: the live gateway uses `~/.junction/` (the
-  default since the data-home move; legacy `~/.kirocrew` auto-migrates),
-  `dev-backend.sh` uses the worktree's `.kirocrew-dev/`, and each pod has its
-  own isolated `JUNCTION_HOME`. Editing `~/.junction/config.json` while
+  default), `dev-backend.sh` uses the worktree's `.junction-dev/`, and each pod
+  has its own isolated `JUNCTION_HOME`. Editing `~/.junction/config.json` while
   previewing via dev-backend or a pod changes your PRODUCTION config and does
   nothing to the preview — edit the preview instance's own `config.json`.
 - Config is read live (fingerprint cache) — edits are picked up without a
@@ -243,7 +241,7 @@ step with several paths; use whichever your environment supports:
    ```bash
    ./dev-backend.sh
    ```
-   Starts the gateway on its own dev port using `.kirocrew-dev/` as its data
+   Starts the gateway on its own dev port using `.junction-dev/` as its data
    directory (isolated from your production `~/.junction/`). It uses
    `PYTHONPATH=src` so code changes are picked up on restart. Ctrl+C to stop,
    re-run after changes.

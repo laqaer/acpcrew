@@ -1,6 +1,6 @@
 """Fetch the official app catalog and annotate registry rows with it.
 
-WHAT THIS IS. The catalog at ``apps.crew.kiro.dev`` is the list Junction
+WHAT THIS IS. The catalog at ``apps.getjunction.dev`` is the list Junction
 publishes, delivered as a document rather than baked into the wheel. The bundled
 ``app-registry.json`` answers the same question offline -- it is the seed -- so
 both carry ``provenance: "official"``; see ``_apply_trust_fields``.
@@ -49,9 +49,9 @@ from junction.config.loader import config_dir
 
 logger = logging.getLogger(__name__)
 
-#: Documented in the KiroCrewApps repo's docs/distribution.md and printed by
-#: its publish workflow. Trailing slash matters: refs are resolved against it.
-OFFICIAL_CATALOG_BASE = "https://apps.crew.kiro.dev/"
+#: The Junction app registry's publish location. Trailing slash matters: refs are
+#: resolved against it.
+OFFICIAL_CATALOG_BASE = "https://apps.getjunction.dev/"
 OFFICIAL_CATALOG_URL = f"{OFFICIAL_CATALOG_BASE}official-registry.json"
 
 #: The only schemaVersion this code understands. An unknown major is refused
@@ -62,7 +62,7 @@ SUPPORTED_SCHEMA_VERSION = 1
 
 CACHE_TTL = 3600  # 1 hour
 #: How long a FAILED fetch is remembered. Without this, an outage at
-#: ``apps.crew.kiro.dev`` costs every ``GET /api/apps/registry`` a fresh attempt
+#: ``apps.getjunction.dev`` costs every ``GET /api/apps/registry`` a fresh attempt
 #: and up to ``FETCH_TIMEOUT`` seconds of wall clock, for as long as the outage
 #: lasts -- so the store's own page load inherits the CDN's downtime, which is
 #: not the "degrade to the seed" this module promises. Much shorter than the
@@ -563,7 +563,7 @@ def inventory_for_install(name: str) -> dict[str, Any] | None:
 
     So the install path re-fetches the document over HTTPS and ignores the cache
     entirely. Someone able to write a local file cannot answer for
-    ``apps.crew.kiro.dev``, and TLS to our own domain is the trust basis this module
+    ``apps.getjunction.dev``, and TLS to our own domain is the trust basis this module
     already documents. This is NOT a substitute for verifying the ``.sig`` sidecar --
     that would also close the case where the CDN itself is wrong -- but it removes
     the local surface, which is the one this client creates for itself.

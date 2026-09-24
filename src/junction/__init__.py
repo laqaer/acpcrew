@@ -3,23 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
-
-
-def _accept_legacy_env() -> None:
-    """Copy a previous KIROCREW_* value onto JUNCTION_* when the new name is unset.
-
-    Service units and shells from before the rename still set the old prefix.
-    Doing this at import keeps that data home and those ports without making
-    the rest of the process look the old name up.
-    """
-    legacy = "KIROCREW_"
-    for key, value in list(os.environ.items()):
-        if key.startswith(legacy):
-            os.environ.setdefault("JUNCTION_" + key[len(legacy) :], value)
-
-
-_accept_legacy_env()
 
 __version__ = "0.5.0"
 

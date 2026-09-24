@@ -66,7 +66,7 @@ junction service restart   # or restart however you run the gateway
 The `chmod` comes first on purpose: under a standard `022` umask a file created
 by the append alone is `0644`, and the gateway only forces `0600` the next time
 it reads it — so the key would be readable by other local users until then. The
-quoting matters for the same reason if your crew home contains a space. Every
+quoting matters for the same reason if your data home contains a space. Every
 key in `~/.junction/.env` is loaded into the gateway's environment at startup;
 a bare `KIRO_API_KEY=` with no value does not count, because falsy values are
 skipped. Do not put the key in the systemd unit or in

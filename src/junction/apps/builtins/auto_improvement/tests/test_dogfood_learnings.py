@@ -1455,7 +1455,7 @@ class TestAgentTestsCannotWriteJunctionConfig:
     """`mode="strict"` hides credential READS; it does not make the filesystem read-only.
 
     Measured on this host before the fix: a strict-mode child ran
-    `open('~/.kiro/crew/config.json','a')` and exited 0 — it MODIFIED Junction's own
+    `open('~/.junction/config.json','a')` and exited 0 — it MODIFIED Junction's own
     write-protected config. Those paths are `security.write_protected_home_paths()`, enforced
     by the platform HOOK layer, which a sandboxed subprocess never passes through, so the
     protection was inert for exactly the code that most needs it: the target repository's

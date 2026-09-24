@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 # Fallback data dir, used ONLY when a live ``config_dir()`` lookup is unavailable
 # or raises (see ``LessonStore.__init__`` / ``_reject_sensitive``). This is a pure
 # literal, resolved at use time — it must NOT call ``config_dir()`` at import, or
-# merely importing this module would fire the one-time blocking legacy-home
-# migration as an import side effect. The migration stays gated at the single
-# ``ensure_data_home()`` call in the CLI prologue; the live home is resolved
-# lazily via ``config_dir()`` inside ``LessonStore.__init__``. Honors
+# merely importing this module would create the data home as an import side
+# effect. Creation stays gated at the single ``ensure_data_home()`` call in the
+# CLI prologue; the live home is resolved lazily via ``config_dir()`` inside
+# ``LessonStore.__init__``. Honors
 # ``JUNCTION_HOME`` only insofar as this fallback is rarely reached — the normal
 # path resolves through ``config_dir()``, which does honor the override.
-_DEFAULT_DIR = Path.home() / ".kiro" / "crew"
+_DEFAULT_DIR = Path.home() / ".junction"
 _LESSONS_FILE = "lessons.jsonl"
 _MAX_LESSONS_IN_CONTEXT = 50
 _MAX_LESSONS_TOTAL = 200  # prune oldest when exceeded

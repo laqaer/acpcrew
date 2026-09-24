@@ -523,8 +523,7 @@ def _own_console_script() -> str | None:
     """Absolute path of the console script *this* CLI process was invoked as.
 
     Returns ``None`` unless ``sys.argv[0]`` is an existing executable whose
-    basename is a Junction console stem (``junction``, or the silent aliases
-    ``junction`` / ``acpcrew``).
+    basename is a Junction console stem (``junction``).
 
     :func:`_spawn_detached_gateway` prefers this over PATH lookup so a restart
     replaces the gateway with the *same* entry point that asked for the
@@ -575,7 +574,7 @@ def _spawn_detached_gateway(port: int | None = None) -> subprocess.Popen[bytes]:
     - Detaches via ``start_new_session=True`` (own session + process
       group), so closing the calling terminal does not SIGHUP it.
     - Drops stdin to ``/dev/null`` and redirects stdout/stderr to
-      ``~/.kiro/crew/gateway.log`` (same file the existing ``logs``
+      ``~/.junction/gateway.log`` (same file the existing ``logs``
       command tails for foreground gateways), so the user has one
       place to look regardless of how the gateway was started.
     - Resolves the console script this CLI was invoked as
@@ -1349,7 +1348,7 @@ def _update_wheel(layout) -> None:
 
     This is the path taken when JUNCTION_PROJECT_DIR is unset or has no .git —
     the standard state for ``curl | sh`` installs where the venv at
-    ``~/.kiro/crew-venv`` has no source tree.
+    ``~/.junction-venv`` has no source tree.
     """
 
     from junction import __version__ as local_version
@@ -1850,7 +1849,7 @@ def _logs_cmd(args: argparse.Namespace) -> None:
     Order of preference:
       1. systemd journal (if the system service is installed on Linux)
       2. launchd stdout file (macOS)
-      3. ``~/.kiro/crew/gateway.log`` (foreground gateway)
+      3. ``~/.junction/gateway.log`` (foreground gateway)
     """
     follow = bool(getattr(args, "follow", False))
     lines = int(getattr(args, "lines", 100) or 100)

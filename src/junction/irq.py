@@ -260,7 +260,7 @@ class Probe:
 
 def _state_dir() -> Path:
     home = os.environ.get("JUNCTION_HOME")
-    base = Path(home) if home else Path.home() / ".kiro" / "crew"
+    base = Path(home) if home else Path.home() / ".junction"
     return base / "watch"
 
 

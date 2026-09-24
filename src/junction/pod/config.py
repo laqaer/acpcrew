@@ -59,7 +59,7 @@ def environment_vars(cfg: PodConfig) -> dict[str, str]:
     """
     home = Path.home()
     candidates: list[tuple[str, str, str | None]] = [
-        ("JUNCTION_POD_ROOT", str(cfg.pod_root), str(home / ".kirocrew-pods")),
+        ("JUNCTION_POD_ROOT", str(cfg.pod_root), str(home / ".junction-pods")),
         ("JUNCTION_POD_ENV_DIR", str(cfg.pods_dir), str(_default_home() / "pods")),
         (
             "JUNCTION_POD_ARTIFACTS_DIR",
@@ -119,9 +119,9 @@ class PodConfig:
     @classmethod
     def load(cls) -> "PodConfig":
         home = Path.home()
-        pod_root = _env_path("JUNCTION_POD_ROOT", home / ".kirocrew-pods")
-        # Pod env files are HOST-side state, so they follow the data-home move to
-        # ~/.kiro/crew. Use the DEFAULT home (not config_dir()) so a pod process
+        pod_root = _env_path("JUNCTION_POD_ROOT", home / ".junction-pods")
+        # Pod env files are HOST-side state, so they live in the host's data
+        # home, ~/.junction. Use the DEFAULT home (not config_dir()) so a pod process
         # that has its own isolated JUNCTION_HOME set can't redirect the host's
         # pod registry into the pod's throwaway home.
         pods_dir = _env_path("JUNCTION_POD_ENV_DIR", _default_home() / "pods")

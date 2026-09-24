@@ -983,7 +983,7 @@ def mint_token(cfg: PodConfig, name: str, ttl: str = "2h") -> str:
 # Config sections a sanitized seed boots with ``enabled=False``. Deny-by-default:
 # every channel carrying a config-level ``enabled`` is listed, because that flag is
 # the only thing between a seed cloned from the real config (the intended
-# ``--seed ~/.kiro/crew`` workflow) and a pod that answers real people as the
+# ``--seed ~/.junction`` workflow) and a pod that answers real people as the
 # operator's bot. The channel's credential is not a second gate — Telegram,
 # Discord, Webex and Weixin read their token straight out of the seeded
 # config.json; iMessage needs no credential at all, since its transport is the

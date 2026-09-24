@@ -1,7 +1,7 @@
 """Instances registry — persistent store of remote Junction instances.
 
 Backs the *Instances* feature (multi-instance management). The registry is a
-small JSON file at ``~/.kiro/crew/instances.json``. Each record describes how to
+small JSON file at ``~/.junction/instances.json``. Each record describes how to
 reach one remote Junction over **either SSH or AWS SSM Session Manager**
 (``connection_method``); the *local* instance is implicit (the gateway itself)
 and is never stored here.

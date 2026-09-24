@@ -1,6 +1,6 @@
 """Meetings — on-disk data layout and the single path-containment barrier.
 
-Everything lives under ``~/.kiro/crew/apps/meetings/data/`` (via
+Everything lives under ``~/.junction/apps/meetings/data/`` (via
 :func:`junction.apps.manager.app_data_dir`, the platform-standard app-scoped
 data dir). ``root`` is accepted on every function (mirroring issue_radar's
 ``store.py``) so tests can point at a tmp dir instead of the real data dir.
@@ -102,10 +102,6 @@ SEED_DICTIONARY = """\
 # and the longest alias wins.
 #
 # The Settings page edits this file, but hand-editing works too.
-
-[[term]]
-correct = "Junction"
-aliases = ["kiro crew", "kiro-crew", "kirocrew"]  # brand-ok: speech aliases for the previous name
 
 # Add your team's terms below:
 # [[term]]

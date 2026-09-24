@@ -444,7 +444,7 @@ async def ingest_artifact(
     tmp_path: str | None = None
     try:
         def _write_tmp() -> str:
-            fd, p = tempfile.mkstemp(suffix=ext, prefix="kc-artifact-")
+            fd, p = tempfile.mkstemp(suffix=ext, prefix="jn-artifact-")
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
                     fh.write(text)

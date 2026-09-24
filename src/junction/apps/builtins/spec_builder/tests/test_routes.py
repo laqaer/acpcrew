@@ -121,7 +121,7 @@ def _live_state_snapshot() -> dict[str, int]:
 @pytest.fixture(autouse=True)
 def _never_touch_the_real_state(monkeypatch, tmp_path):
     """Safety net: a test that forgets _redirect_state must still not write to
-    the USER's live ~/.kiro/crew/workspace/spec-builder/.
+    the USER's live ~/.junction/workspace/spec-builder/.
 
     Two leaks got through before this was tight enough: one test called
     _save_index without redirecting at all, and later the tombstone file was
@@ -3943,7 +3943,7 @@ async def test_detail_refuses_when_the_slot_is_foreign(tmp_path, monkeypatch):
 def test_seed_prompt_is_self_contained_and_type_aware():
     """The reported gap: the seed told the agent to "follow the `spec-workflow`
     skill exactly", but builtin apps are not run through bridges.register_app
-    (that path symlinks from ~/.kiro/crew/apps/<name>/, which a wheel-shipped
+    (that path symlinks from ~/.junction/apps/<name>/, which a wheel-shipped
     builtin has no copy of), so the skill is not on the agent's skill path. It
     also listed all three documents for every spec type, contradicting `quick`."""
     spec_dir = Path("/w/.kiro/specs/thing")
@@ -12122,11 +12122,9 @@ def test_the_decision_ledger_is_not_in_the_agent_writable_index():
 @pytest.mark.parametrize(
     "path",
     [
-        "~/.kiro/crew/trust/spec-builder-decisions.json",
-        "~/.kirocrew/trust/spec-builder-decisions.json",
+        "~/.junction/trust/spec-builder-decisions.json",
         # The PARENT, which is the half a leaf-only entry missed.
-        "~/.kiro/crew/trust",
-        "~/.kirocrew/trust",
+        "~/.junction/trust",
     ],
 )
 def test_the_decision_ledger_is_on_the_security_keystone(path):
@@ -12149,12 +12147,12 @@ def test_the_decision_ledger_is_on_the_security_keystone(path):
 @pytest.mark.parametrize(
     "cmd",
     [
-        "ln -s /tmp/evil ~/.kiro/crew/trust",
-        "ln -sf /tmp/evil ~/.kiro/crew/trust/spec-builder-decisions.json",
-        "mv ~/.kiro/crew/trust /tmp/x",
-        "mv /tmp/evil ~/.kiro/crew/trust/spec-builder-decisions.json",
-        "rm -rf ~/.kiro/crew/trust",
-        "cp /tmp/evil ~/.kiro/crew/trust/spec-builder-decisions.json",
+        "ln -s /tmp/evil ~/.junction/trust",
+        "ln -sf /tmp/evil ~/.junction/trust/spec-builder-decisions.json",
+        "mv ~/.junction/trust /tmp/x",
+        "mv /tmp/evil ~/.junction/trust/spec-builder-decisions.json",
+        "rm -rf ~/.junction/trust",
+        "cp /tmp/evil ~/.junction/trust/spec-builder-decisions.json",
     ],
 )
 def test_the_ledger_directory_cannot_be_swapped_or_removed(cmd):

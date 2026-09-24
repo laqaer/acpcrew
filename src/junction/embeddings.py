@@ -4,7 +4,7 @@ Embeddings run in-process via the vendored llama-cpp-python runtime
 (``junction/_vendor``) — no external Ollama server, no HTTP hop, no
 runtime pip install. The Qwen3-Embedding-0.6B GGUF model is downloaded in
 the background (sha256-verified, with retries) and installed persistently
-to ``~/.kiro/crew/models/``. Sources are tried in order: a byte-identical
+to ``~/.junction/models/``. Sources are tried in order: a byte-identical
 blob salvaged from a legacy Ollama install, then the public CloudFront CDN
 (plain HTTPS — no git access, no cloud SDK). ``JUNCTION_EMBED_MODEL_URL``
 (or the ``memory.embed_model_url`` config knob) overrides the CDN URL for
@@ -1098,7 +1098,7 @@ class LlamaCppEmbedder(EmbeddingBackend):
     inference inline would accumulate one CPU-count-sized pool per caller
     thread (a busy gateway can reach dozens of pools and well over a thousand
     threads within an hour). Every call is therefore forwarded to ONE owned
-    daemon thread (``kc-embed-infer``), so the process holds exactly one
+    daemon thread (``jn-embed-infer``), so the process holds exactly one
     compute pool no matter how many threads embed. ``_lock`` already serializes
     inference, so the hand-off adds no extra queueing.
     """
@@ -1225,7 +1225,7 @@ class LlamaCppEmbedder(EmbeddingBackend):
                 self._load_failed_at = time.monotonic()
                 return
             self._load_thread = threading.Thread(
-                target=self._load_model, name="kc-embed-load", daemon=True
+                target=self._load_model, name="jn-embed-load", daemon=True
             )
             self._load_thread.start()
 
@@ -1430,7 +1430,7 @@ class LlamaCppEmbedder(EmbeddingBackend):
                 thread = threading.Thread(
                     target=self._infer_loop,
                     args=(self._jobs,),
-                    name="kc-embed-infer",
+                    name="jn-embed-infer",
                     daemon=True,
                 )
                 self._infer_thread = thread
@@ -1687,7 +1687,7 @@ async def _run_download_on_daemon_thread(fn: "Callable[[], tuple[bool, str]]") -
         finally:
             loop.call_soon_threadsafe(done.set)
 
-    threading.Thread(target=_worker, name="kc-model-download", daemon=True).start()
+    threading.Thread(target=_worker, name="jn-model-download", daemon=True).start()
     await done.wait()
     return result[0]
 
@@ -2062,7 +2062,7 @@ def make_sync_embed_fn() -> Callable[[str], "list[float] | None"]:
     # the lru_cache key would re-embed the same text once per priority, losing the
     # reuse that currently lets episodic recall ride on the lessons embed of the
     # identical query. Thread-local is safe because embed() blocks on the calling
-    # thread — the hand-off to kc-embed-infer happens inside it.
+    # thread — the hand-off to jn-embed-infer happens inside it.
     _call_priority = threading.local()
 
     @functools.lru_cache(maxsize=_EMBED_CACHE_MAX)

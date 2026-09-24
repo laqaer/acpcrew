@@ -12,7 +12,7 @@ file is writable by any auto-approved agent shell. So a prompt-injected agent co
 tooling the operator never granted. Found in review.
 
 This mirrors ``secrets.py`` exactly: one owner-only JSON file under ``config_dir()``, named
-``ops_mission_control_policy.json``, which ``security._CREW_SECRET_LEAVES`` places on the
+``ops_mission_control_policy.json``, which ``security._DATA_HOME_SECRET_LEAVES`` places on the
 read+write keystone floor — the agent can neither read nor overwrite it. The authenticated
 dashboard PUT handler is the sole writer and opens the path directly (via ``set_mode`` /
 ``set_rules`` here), bypassing the agent gate, so Settings still works.
@@ -35,7 +35,7 @@ from junction.config.loader import config_dir
 
 logger = logging.getLogger(__name__)
 
-#: Keystone leaf. MUST match the entry in ``security._CREW_SECRET_LEAVES`` — a test pins
+#: Keystone leaf. MUST match the entry in ``security._DATA_HOME_SECRET_LEAVES`` — a test pins
 #: the two equal, because a rename here without the fence entry silently un-protects the
 #: ceiling, which is the whole failure this file exists to prevent.
 POLICY_FILENAME = "ops_mission_control_policy.json"

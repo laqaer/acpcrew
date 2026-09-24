@@ -10,15 +10,15 @@ Configuration files (edit these, then ``junction setup --agent-only``):
   ``src/junction/config/prompt.md``
       System prompt.
 
-  ``~/.kiro/crew/agent.json``
+  ``~/.junction/agent.json``
       User overrides merged on top of defaults (optional).
 
-  ``~/.kiro/crew/prompt.md``
+  ``~/.junction/prompt.md``
       User prompt override (optional, takes priority over shipped prompt).
 
 Dynamic fields resolved at install time:
   - ``prompt`` — ``file://`` URI pointing to the prompt file
-  - ``mcpServers.kirocrew-cron.command`` — absolute path to ``junction`` binary
+  - ``mcpServers.junction-cron.command`` — absolute path to ``junction`` binary
 """
 
 from __future__ import annotations
@@ -288,9 +288,9 @@ def _shipped_prompt() -> Path:
 # captures): importing agent.py — which cli.py does transitively at import time
 # via cli_doctor — must NOT fire config_dir(), or it would create $JUNCTION_HOME
 # before main() reaches its `gateway --seed` guard (whose copytree needs an empty
-# target) AND trigger the one-time migration off the single ensure_data_home()
-# point. Accessors keep every use lazy; the process-cached config_dir() makes
-# repeated calls cheap.
+# target) AND create the data home off the single ensure_data_home() point.
+# Accessors keep every use lazy; the process-cached config_dir() makes repeated
+# calls cheap.
 def _user_dir() -> Path:
     return config_dir()
 
@@ -955,7 +955,7 @@ def ensure_junction_on_path(
             if os.path.realpath(link) == os.path.realpath(target):
                 return None
             # A launcher that still WORKS belongs to another install — typically
-            # the cli.sh wheel under ~/.kiro/crew-venv — and taking the name from
+            # the cli.sh wheel under ~/.junction-venv — and taking the name from
             # it is not a repair. This runs on EVERY gateway start, so whichever
             # install booted last would win, and the losing installer's upgrades
             # would then land on a path nothing points at: `junction` keeps
@@ -1141,7 +1141,7 @@ def _all_skill_paths() -> list[str]:
     Returns directories containing SKILL.md files from:
     - ``~/.aim/skills`` and ``~/.aim/packages/*/skills`` (AIM-installed)
     - ``JUNCTION_PROJECT_DIR/skills`` (project-level)
-    - ``~/.kiro/crew/skills`` (user-created)
+    - ``~/.junction/skills`` (user-created)
     """
     paths: set[str] = set()
     # AIM skills — only known locations, not broad rglob.
@@ -1335,7 +1335,7 @@ def _sel_hook_rejected(event: str, command: str, reason: str) -> None:
         logger.debug("SEL audit for rejected hook failed", exc_info=True)
 
 
-# Junction-internal hook keys that must NOT appear in generated kiro-cli agent  # brand-ok
+# Junction-internal hook keys that must NOT appear in generated kiro-cli agent
 # specs (kiro-cli rejects unknown keys). Excluded when deriving _VALID_HOOK_EVENTS
 # from bundled defaults below, so an internal key never round-trips as an event.
 _INTERNAL_HOOK_KEYS = frozenset(
@@ -1782,7 +1782,7 @@ def _apply_user_kiro_hooks(config: dict, mc_cfg: dict) -> None:
 
     Two sources, explicit first then auto-discovered:
 
-      1. ``agent.kiro_hooks`` in ``~/.kiro/crew/config.json`` -- explicit entries
+      1. ``agent.kiro_hooks`` in ``~/.junction/config.json`` -- explicit entries
          the user wrote by hand.  Unchanged behavior.
       2. ``agent.kiro_hooks_autoimport`` (default true): scan
          ``agent.kiro_hooks_dir`` (default ``~/.kiro/hooks``) for executable
@@ -1949,7 +1949,7 @@ def build_agent_config(*, gated_off: "frozenset[str] | None" = None) -> dict:
     silently drop the PreToolUse security gate. ``deniedCommands`` are NO
     LONGER injected here — command denial is enforced at Junction's own
     hooks.py PreToolUse gate, not via the kiro agent spec. User-defined
-    ``kiro_hooks`` from ``~/.kiro/crew/config.json`` are then additively merged;
+    ``kiro_hooks`` from ``~/.junction/config.json`` are then additively merged;
     bundled hooks always run first and cannot be removed.
 
     Args:
@@ -1966,7 +1966,7 @@ def build_agent_config(*, gated_off: "frozenset[str] | None" = None) -> dict:
     bundled_hooks = bundled.get("hooks")
     if not bundled_hooks:
         raise RuntimeError("Cannot build agent config: hooks missing from bundled defaults")
-    # Strip Junction-internal keys (auto_approve_tools etc.) that kiro-cli  # brand-ok
+    # Strip Junction-internal keys (auto_approve_tools etc.) that kiro-cli
     # rejects. _VALID_HOOK_EVENTS already unions in every non-internal bundled
     # event key, so this never drops a new event added to bundled defaults (#3362).
     config["hooks"] = _kiro_hooks_only(bundled_hooks)
@@ -1975,7 +1975,7 @@ def build_agent_config(*, gated_off: "frozenset[str] | None" = None) -> dict:
     # merged from a stale project defaults.json or user override cannot carry it.
     _strip_legacy_denied_commands(config)
 
-    # Merge user-defined kiro_hooks from ~/.kiro/crew/config.json (additive).
+    # Merge user-defined kiro_hooks from ~/.junction/config.json (additive).
     mc_cfg = _load_json(_mc_config_path()) or {}
     _apply_user_kiro_hooks(config, mc_cfg)
 
@@ -2173,7 +2173,7 @@ def _refresh_dynamic_fields(config: dict, *, gated_off: "frozenset[str] | None" 
     # the stale list ahead of the hooks gate (see _strip_legacy_denied_commands).
     _strip_legacy_denied_commands(config)
 
-    # Merge user-defined kiro_hooks from ~/.kiro/crew/config.json (additive).
+    # Merge user-defined kiro_hooks from ~/.junction/config.json (additive).
     mc_cfg = _load_json(_mc_config_path()) or {}
     _apply_user_kiro_hooks(config, mc_cfg)
 
@@ -3041,7 +3041,7 @@ def _seed_kas_permissions(config: dict[str, Any]) -> None:
 
     **Seed, never refresh.** Once the key exists it belongs to whoever edits the
     file, and this function does not touch it again. The obvious alternative —
-    recognising Crew's own output by its shape and regenerating that — was
+    recognising Junction's own output by its shape and regenerating that — was
     written first and removed: the shapes overlap (a blanket ``allow`` is exactly
     what a user writes too), so the rule that keeps a derived policy current is
     the same rule that silently overwrites a hand-written one, and losing a
@@ -3049,7 +3049,7 @@ def _seed_kas_permissions(config: dict[str, Any]) -> None:
     written before ``allowedTools`` changed keeps describing the old list. That
     is bounded, because the wire projection derives afresh from ``allowedTools``
     on every session and outranks the file — the block on disk is what applies
-    when Crew is NOT injecting an agent.
+    when Junction is NOT injecting an agent.
     """
     if config.get("permissions") is not None:
         return
@@ -3295,7 +3295,7 @@ def rebuild_agent_config(*, clean: bool = False) -> Path:
     and injects fresh AIM skill paths.
 
     Merge priority (highest wins):
-      1. ~/.kiro/crew/mcp.json (agent-specific overrides)
+      1. ~/.junction/mcp.json (agent-specific overrides)
       2. ~/.kiro/settings/mcp.json (kiro global, fills gaps)
       3. Existing junction.json (preserves user customizations)
       4. Bundled defaults (security, managed servers)
@@ -3417,7 +3417,7 @@ def rebuild_agent_config(*, clean: bool = False) -> Path:
                 # the fallback-candidate lookup.
                 config.setdefault("mcpServers", {}).setdefault(name, without_marker(spec))
 
-    # ~/.kiro/crew/mcp.json overrides kiro mcp.json for the junction agent —
+    # ~/.junction/mcp.json overrides kiro mcp.json for the junction agent —
     # junction-specific config wins in a tie.
     # Uses update() to merge into existing specs, preserving user-set fields
     # like autoApprove while letting junction's command/args/env win.
@@ -3674,7 +3674,7 @@ def rebuild_agent_config(*, clean: bool = False) -> Path:
 
     # Drop any server whose argv invokes the deleted mcp-playwright-proxy
     # subcommand.  Runs on EVERY rebuild because the entry can be
-    # re-injected from ~/.kiro/crew/mcp.json by the merges above.  The
+    # re-injected from ~/.junction/mcp.json by the merges above.  The
     # first-run marker-guarded purge (clean_stale_managed_mcp) covers the
     # GLOBAL ~/.kiro/settings/mcp.json, which is a different file and a
     # different ownership boundary; this covers the assembled agent config.

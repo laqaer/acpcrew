@@ -39,10 +39,12 @@ CARD_VERSION = "1.4"
 CARD_CONTENT_TYPE = "application/vnd.microsoft.card.adaptive"
 
 #: Discriminator on a submit payload, so an approval click, an options pick and
-#: an unrelated card cannot be confused for one another.
-KIND_APPROVAL = "kc_approval"
-KIND_OPTION = "kc_option"
-KIND_SESSION = "kc_session"
+#: an unrelated card cannot be confused for one another. ``KIND_KEY`` names the
+#: field that carries it.
+KIND_KEY = "jn"
+KIND_APPROVAL = "jn_approval"
+KIND_OPTION = "jn_option"
+KIND_SESSION = "jn_session"
 
 #: Approval decisions a card can carry.
 DECISION_APPROVE = "approve"
@@ -108,7 +110,7 @@ def approval_card(
     # so without this line a user over-grants on every prompt and only finds out from
     # the reply afterwards. The shared note, so it cannot disagree with `/yolo`.
     body.append(_text_block(f"Auto-approve: {YOLO_SCOPE_NOTE}", subtle=True))
-    data = {"kc": KIND_APPROVAL, "rid": request_id, "nonce": nonce}
+    data = {KIND_KEY: KIND_APPROVAL, "rid": request_id, "nonce": nonce}
     actions = [
         {
             "type": "Action.Submit",
@@ -137,7 +139,7 @@ def options_card(*, prompt: str, options: list[str], nonce: str) -> dict[str, An
         {
             "type": "Action.Submit",
             "title": label,
-            "data": {"kc": KIND_OPTION, "nonce": nonce, "index": index, "label": label},
+            "data": {KIND_KEY: KIND_OPTION, "nonce": nonce, "index": index, "label": label},
         }
         for index, label in enumerate(options)
     ]
@@ -157,7 +159,7 @@ def session_picker_card(*, prompt: str, choices: Any, nonce: str) -> dict[str, A
         {
             "type": "Action.Submit",
             "title": f"{index + 1}. {choice.title}",
-            "data": {"kc": KIND_SESSION, "nonce": nonce, "index": index},
+            "data": {KIND_KEY: KIND_SESSION, "nonce": nonce, "index": index},
         }
         for index, choice in enumerate(choices)
     ]
@@ -188,7 +190,7 @@ def parse_submit(value: Any) -> dict[str, str] | None:
     """
     if not isinstance(value, dict):
         return None
-    kind = value.get("kc")
+    kind = value.get(KIND_KEY)
     nonce = value.get("nonce")
     if not isinstance(nonce, str) or not nonce:
         return None
@@ -199,7 +201,7 @@ def parse_submit(value: Any) -> dict[str, str] | None:
             return None
         if not isinstance(decision, str) or decision not in _DECISIONS:
             return None
-        return {"kc": KIND_APPROVAL, "rid": rid, "nonce": nonce, "decision": decision}
+        return {KIND_KEY: KIND_APPROVAL, "rid": rid, "nonce": nonce, "decision": decision}
     if kind == KIND_SESSION:
         index = value.get("index")
         if isinstance(index, bool) or not isinstance(index, (int, str)):
@@ -207,7 +209,7 @@ def parse_submit(value: Any) -> dict[str, str] | None:
         text = str(index)
         if not text.isdigit() or len(text) > _MAX_INDEX_DIGITS:
             return None
-        return {"kc": KIND_SESSION, "nonce": nonce, "index": text}
+        return {KIND_KEY: KIND_SESSION, "nonce": nonce, "index": text}
     if kind == KIND_OPTION:
         label = value.get("label")
         if not isinstance(label, str) or not label:
@@ -225,5 +227,5 @@ def parse_submit(value: Any) -> dict[str, str] | None:
         # ``max_buttons``, so three digits is generous.
         if not text.isdigit() or len(text) > _MAX_INDEX_DIGITS:
             return None
-        return {"kc": KIND_OPTION, "nonce": nonce, "index": text, "label": label}
+        return {KIND_KEY: KIND_OPTION, "nonce": nonce, "index": text, "label": label}
     return None

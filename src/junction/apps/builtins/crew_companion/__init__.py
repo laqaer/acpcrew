@@ -1,4 +1,4 @@
-"""Crew Companion — a desktop companion that helps you pace your day.
+"""Companion — a desktop companion that helps you pace your day.
 
 It nudges you to take breaks (water, stretch, look away) on an interval you
 choose, holds the reminders you set in plain language, and runs a short breathing

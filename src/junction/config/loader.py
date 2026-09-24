@@ -1,7 +1,7 @@
 """Configuration loader for Junction.
 
-Config location: ~/.kiro/crew/config.json (overridden by JUNCTION_HOME)
-Credentials:    ~/.kiro/crew/.env (overridden by JUNCTION_HOME)
+Config location: ~/.junction/config.json (overridden by JUNCTION_HOME)
+Credentials:    ~/.junction/.env (overridden by JUNCTION_HOME)
 
 Junction is KiroACP-only: the sole provider is the ACP adapter driving the
 kiro-cli backend. This module handles session timeouts, hook rules, and the
@@ -670,7 +670,7 @@ def computer_use_state_path() -> Path:
     """Return path to computer_use.json — the computer-use primary enable.
 
     Same KEYSTONE reasoning as :func:`denied_commands_path`, and the leaf is on
-    ``security._CREW_SECRET_LEAVES`` for the same reason: enabling computer use
+    ``security._DATA_HOME_SECRET_LEAVES`` for the same reason: enabling computer use
     grants full desktop observation plus input synthesis into the operator's real
     applications, which is a security ceiling, not a preference. Keeping it out
     of the agent-readable ``config.json`` is what makes it un-flippable by a
@@ -696,7 +696,7 @@ def oauth_endpoints_path() -> Path:
 
     Same KEYSTONE reasoning as :func:`denied_commands_path` and
     :func:`computer_use_state_path`, and the leaf is on
-    ``security._CREW_SECRET_LEAVES`` for the same reason: each listed endpoint
+    ``security._DATA_HOME_SECRET_LEAVES`` for the same reason: each listed endpoint
     widens the banner-only OAuth entropy carve-out (``security.py``'s
     ``_OAUTH_AUTHORIZATION_ENDPOINTS``), so an agent that could write this file
     could exempt an attacker-controlled host from the exfiltration heuristics —
@@ -715,7 +715,7 @@ def aws_consent_path() -> Path:
     """Return path to aws_service_consent.json — paid-AWS-service consent.
 
     Same KEYSTONE reasoning as :func:`computer_use_state_path`, and the leaf is
-    on ``security._CREW_SECRET_LEAVES`` for the same reason: a recorded consent
+    on ``security._DATA_HOME_SECRET_LEAVES`` for the same reason: a recorded consent
     to call a PAID AWS service is an authorization, not a preference. Storing it
     in ``config.json`` would leave it writable by any auto-approved agent shell,
     so a prompt-injected agent could mint the grant and consent, on the
@@ -1251,7 +1251,7 @@ def workspace_dir_for(workspace: str | None = None) -> Path:
     format) or falls back to raw string values (legacy flat format).
 
     Values starting with ``/`` or ``~`` are treated as absolute paths.
-    Otherwise the value is relative to ``config_dir()`` (``~/.kiro/crew/``).
+    Otherwise the value is relative to ``config_dir()`` (``~/.junction/``).
     Unmapped workspace names fall back to ``"workspace"``.
     """
     data = _raw_config()
@@ -2788,7 +2788,7 @@ class PublishConfig:
             "Artifact Relocate Roots",
             "Extra absolute filesystem roots an artifact may be relocated into, "
             "beyond your home directory. Empty = home-only (the secure default). "
-            "The sensitive-path denylist (~/.aws, ~/.ssh, ~/.kiro/crew, …) still "
+            "The sensitive-path denylist (~/.aws, ~/.ssh, ~/.junction, …) still "
             "applies inside every allowed root.",
             tags=["artifacts"],
         ),
@@ -3686,7 +3686,7 @@ class SkillsConfig:
             "Extra Skill Paths",
             "Additional directories to scan for skills. Supports ~ expansion. "
             "Skills from extra_paths are read-only (trigger matching + loading). "
-            "Local ~/.kiro/crew/skills/ takes precedence for duplicate names.",
+            "Local ~/.junction/skills/ takes precedence for duplicate names.",
         ),
     )
     project_skills_enabled: bool = field(
@@ -3841,7 +3841,7 @@ class TelemetryConfig:
     Default OFF: when disabled, metric call sites are cheap no-ops and nothing is
     written or exported (byte-identical to no telemetry), mirroring the
     ``mcp_gateway.enabled`` / ``skills.lazy_load`` opt-in convention. When
-    enabled, a local-first JSONL sink under ``~/.kiro/crew/metrics`` is activated;
+    enabled, a local-first JSONL sink under ``~/.junction/metrics`` is activated;
     remote / OTLP egress is a separate opt-in requiring ``junction[otlp]``.
     """
 
@@ -3851,14 +3851,14 @@ class TelemetryConfig:
             "Enabled",
             "Main switch for Junction metrics telemetry. Off by default: metric "
             "call sites are no-ops and nothing is written. When on, a local-first "
-            "JSONL sink under ~/.kiro/crew/metrics is enabled (no network egress).",
+            "JSONL sink under ~/.junction/metrics is enabled (no network egress).",
         ),
     )
     local_dir: str = field(
         default="",
         metadata=_meta(
             "Local Metrics Dir",
-            "Directory for local JSONL metric shards. Empty = ~/.kiro/crew/metrics. "
+            "Directory for local JSONL metric shards. Empty = ~/.junction/metrics. "
             "Supports ~ expansion.",
         ),
     )
@@ -5039,7 +5039,7 @@ class McpGatewayConfig:
         metadata=_meta(
             "Response Spill Threshold",
             "Tool-call responses larger than this (bytes) have their text content "
-            "written to ~/.kiro/crew/mcp_spill/ and truncated inline to 16 KiB + "
+            "written to ~/.junction/mcp_spill/ and truncated inline to 16 KiB + "
             "a file path marker. Default 256 KiB. Set 0 to disable spilling. "
             "Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
         ),
@@ -5279,7 +5279,7 @@ class InstancesConfig:
 
 @dataclass
 class HeartbeatConfig:
-    """Heartbeat background task queue (~/.kiro/crew/workspace/HEARTBEAT.md)."""
+    """Heartbeat background task queue (~/.junction/workspace/HEARTBEAT.md)."""
 
     default_deliver: str = field(
         default="slack",
@@ -6853,7 +6853,7 @@ class JunctionConfig:
         metadata=_meta(
             "Snapshot Directory",
             "Directory for junction snapshot output. "
-            "Defaults to ~/.kiro/crew/snapshots if empty.",
+            "Defaults to ~/.junction/snapshots if empty.",
         ),
     )
     registries: list[ExternalRegistryConfig] = field(
@@ -6892,7 +6892,7 @@ class JunctionConfig:
 
     @classmethod
     def load(cls) -> JunctionConfig:
-        """Load config from ~/.kiro/crew/config.json, falling back to defaults.
+        """Load config from ~/.junction/config.json, falling back to defaults.
 
         If ``config.local.json`` exists alongside ``config.json``, it is
         deep-merged on top. User overrides in the local file survive
@@ -8225,7 +8225,7 @@ class JunctionConfig:
         return d
 
     def save(self) -> None:
-        """Write current config to ~/.kiro/crew/config.json.
+        """Write current config to ~/.junction/config.json.
 
         Stamps a ``meta`` block with the current version and timestamp
         so we can tell which build last touched the file.
@@ -8310,7 +8310,7 @@ class JunctionConfig:
         return ""
 
     def load_credentials(self) -> dict[str, str]:
-        """Load credentials from ~/.kiro/crew/.env and environment variables.
+        """Load credentials from ~/.junction/.env and environment variables.
 
         .env format: KEY=VALUE (one per line, # comments, no quotes required).
         Environment variables override .env values.
@@ -8367,7 +8367,7 @@ class JunctionConfig:
         # Propagate credentials into the process environment so spawned children
         # (sandboxed agents, MCP servers, cron-fired subprocesses) inherit them
         # via Popen's default env=os.environ.copy() — even when their view of
-        # ~/.kiro/crew/.env is a bind-mounted empty file. setdefault() preserves
+        # ~/.junction/.env is a bind-mounted empty file. setdefault() preserves
         # any value the caller already set explicitly.
         #
         # EXCEPTION: when the Docker entrypoint has deliberately scrubbed

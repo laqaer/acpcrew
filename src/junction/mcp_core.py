@@ -1885,7 +1885,7 @@ def _crew_machine_markers() -> list[tuple[str, str]]:
     """Strings that identify THIS machine, longest first.
 
     Longest-first matters: the Junction home normally sits inside the user's
-    home, so scrubbing the home first would leave ``<home>/.kiro/crew/...`` —
+    home, so scrubbing the home first would leave ``<home>/.junction/...`` —
     still a directory layout — instead of collapsing the whole prefix.
     """
     markers: list[tuple[str, str]] = []

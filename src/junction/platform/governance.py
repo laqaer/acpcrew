@@ -2074,7 +2074,7 @@ def load_security_policy(
     2. ``bundled_loader()`` — the companion-bundled resource, supplied by the
        caller when the active edition is ``amazon`` (Phase 9 packages it via
        ``importlib.resources``).  The public core passes ``None`` here.
-    3. ``~/.kiro/crew/security_policy.json`` — standalone operator-authored.
+    3. ``~/.junction/security_policy.json`` — standalone operator-authored.
     4. None → editable secure-defaults (standalone, ungoverned ceiling).
 
     A **present-but-unreadable / invalid** policy at the env or home path raises
@@ -2806,17 +2806,14 @@ def assert_governance_paths_protected() -> None:
     # import path; only the boot check needs it.
     from junction import security
 
-    # The data home moved to ~/.kiro/crew; check the CURRENT home's trust-root
-    # paths are gated (the legacy ~/.kirocrew forms remain in the keystone too,
-    # but a fresh install only ever writes the new home, so that is what the boot
-    # integrity check must assert).
+    # The trust-root paths under the data home (~/.junction) must be gated.
     required = (
-        ".kiro/crew/security_policy.json",
-        ".kiro/crew/profiles",
-        ".kiro/crew/admission_policy.json",
+        ".junction/security_policy.json",
+        ".junction/profiles",
+        ".junction/admission_policy.json",
         # Denied-command opt-out ceiling — the agent must not be able to write
         # its own deny opt-out state (would let it disable the deny gate).
-        ".kiro/crew/denied_commands.json",
+        ".junction/denied_commands.json",
     )
     sensitive = set(security._SENSITIVE_HOME_DIRS)  # noqa: SLF001 — boot integrity check
     missing = [p for p in required if p not in sensitive]

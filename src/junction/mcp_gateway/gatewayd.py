@@ -3475,7 +3475,7 @@ async def _zombie_diagnostic(
 
 def _build_argparser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="mc-mcp-gatewayd",
+        prog="junction-mcp-gatewayd",
         description="Junction MCP gateway daemon — pools MCP backends across sessions",
     )
     p.add_argument(
@@ -3606,17 +3606,15 @@ async def _amain(argv: Optional[list[str]] = None) -> int:
 
 def main() -> None:
     """Sync entry point for ``python -m junction.mcp_gateway.gatewayd``."""
-    # Resolve (and, on first launch of an upgraded install, MIGRATE) the data home
-    # NOW — synchronously, on the main thread, before the event loop starts below.
-    # This is a SEPARATE process entrypoint from cli.main() (the MCP-gateway daemon
-    # is spawned directly as ``python -m junction.mcp_gateway.gatewayd``), so its
-    # migration cache starts empty; without this, the first config_dir() would fire
-    # lazily on the event loop (e.g. via _zombie_diagnostic_path() or the pool's
-    # cfg_dir lookup) and the blocking legacy→~/.kiro/crew migration (copytree +
-    # os.walk under a file lock) would freeze the loop and could trip the stall
-    # watchdog (no-blocking-call-on-event-loop). Idempotent + process-cached, so
-    # every later config_dir() is a cheap lookup; a fresh install with no legacy
-    # home just creates the directory.
+    # Resolve and create the data home NOW — synchronously, on the main thread,
+    # before the event loop starts below. This is a SEPARATE process entrypoint
+    # from cli.main() (the MCP-gateway daemon is spawned directly as
+    # ``python -m junction.mcp_gateway.gatewayd``), so its resolution cache starts
+    # empty; without this, the first config_dir() would fire lazily on the event
+    # loop (e.g. via _zombie_diagnostic_path() or the pool's cfg_dir lookup) and
+    # its filesystem work (mkdir, recovery-breadcrumb read/write) would run on the
+    # loop (no-blocking-call-on-event-loop). Idempotent + process-cached, so every
+    # later config_dir() is a cheap lookup.
     from junction.config.paths import ensure_data_home
 
     ensure_data_home()

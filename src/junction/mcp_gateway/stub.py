@@ -89,7 +89,7 @@ _BINARY_HASH_CAP_BYTES = 4 * 1024 * 1024
 _CONFIG_SNAPSHOT_PLACEHOLDER = "0" * 64
 
 
-def _crew_home() -> Path:
+def _data_home() -> Path:
     """Data home the stub resolves its paths under.
 
     ``Path.home()`` rather than ``os.environ["HOME"]``: that variable is
@@ -116,18 +116,12 @@ def _crew_home() -> Path:
         base = Path.home()
     except RuntimeError:
         base = Path(os.environ.get("USERPROFILE") or os.environ.get("HOME") or ".")
-    return base / ".kiro" / "crew"
+    return base / ".junction"
 
 
 def _default_socket_path() -> str:
     """Resolve the default gateway socket under JUNCTION_HOME (0700 dir)."""
-    home = _crew_home()
-    new_path = home / "junction-mcp-gateway.sock"
-    # Accept legacy socket name written by older versions (#928).
-    legacy_path = home / "mc-mcp-gateway.sock"
-    if not new_path.exists() and legacy_path.exists():
-        return str(legacy_path)
-    return str(new_path)
+    return str(_data_home() / "junction-mcp-gateway.sock")
 
 
 def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -947,7 +941,7 @@ async def run_bridge(
 
 
 def _fallback_log_path() -> Path:
-    return _crew_home() / "logs" / "stub_fallback.jsonl"
+    return _data_home() / "logs" / "stub_fallback.jsonl"
 
 
 # Rotate the fallback log once it exceeds this size, keeping ONE previous

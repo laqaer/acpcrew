@@ -1359,7 +1359,7 @@ async def _fetch_app_manifest(
     """Fetch app.json for an app from its source repo (lightweight).
 
     Tries, in order:
-      1. The persistent clone under ``~/.kiro/crew/app-sources/{app_name}/``
+      1. The persistent clone under ``~/.junction/app-sources/{app_name}/``
          (if the app was already cloned by a previous install).
       2. A throwaway shallow clone of *git_url* into a temp directory, from
          which only ``app.json`` is read (the clone is then discarded).
@@ -2397,12 +2397,10 @@ def _enrich_with_install_status(
 
 #: Index-declared author spellings that name US, folded by ``_fold_author``.
 #
-# The product name is two words, so the bundled catalog and the official
-# published catalog both state ``Junction``; the historical bundled spelling
-# was the single token ``junction``. Both are us, so both mint the mark.
-FIRST_PARTY_AUTHORS: frozenset[str] = frozenset(
-    {"junction", "kiro crew"}  # brand-ok: folded values, lower-cased by contract
-)
+# The bundled catalog and the official published catalog both state
+# ``Junction``; the fold lower-cases it, so the single folded value covers every
+# case spelling.
+FIRST_PARTY_AUTHORS: frozenset[str] = frozenset({"junction"})
 
 
 def _fold_author(value: object) -> str:
@@ -2410,7 +2408,7 @@ def _fold_author(value: object) -> str:
 
     NFKC maps fullwidth forms onto ASCII, category-``Cf`` code points (ZWSP,
     soft hyphen, bidi marks) are dropped, and runs of whitespace collapse to a
-    single space. Without this, ``Ｋｉｒｏ Ｃｒｅｗ`` and ``kiro\u200bcrew``
+    single space. Without this, ``Ｊｕｎｃｔｉｏｎ`` and ``junc\u200btion``
     read as us to a human but compare unequal, so an index row that legitimately
     names us in a non-ASCII form would silently lose the mark.
 
@@ -4056,7 +4054,7 @@ def _app_sources_dir() -> Path:
 
 
 def app_source_dir(name: str) -> Path:
-    """Return ~/.kiro/crew/app-sources/{name}/ — persistent clone directory."""
+    """Return ~/.junction/app-sources/{name}/ — persistent clone directory."""
     return _app_sources_dir() / name
 
 
@@ -4168,7 +4166,7 @@ async def _refuse_identity_mismatch(
     any build output) leaves no residue in the entry's ``app-sources/`` slot — a
     leftover would also be preferred by :func:`_fetch_app_manifest` on the next
     listing, letting a refused repo keep answering as this app.  Nothing has
-    been written under ``~/.kiro/crew/apps/`` at this point, so removing the
+    been written under ``~/.junction/apps/`` at this point, so removing the
     fresh clone leaves the machine exactly as it was before the install.
 
     A checkout that **pre-existed** (the update path — ``git pull`` brought in a
@@ -5499,7 +5497,7 @@ async def _clone_build_app(
 ) -> dict[str, Any]:
     """Clone an app repo, gate its identity, then run its build.
 
-    Source is cloned to ``~/.kiro/crew/app-sources/{app_name}/`` (persistent;
+    Source is cloned to ``~/.junction/app-sources/{app_name}/`` (persistent;
     survives reboots and is reused for updates).  **The identity gate runs
     BETWEEN clone and build**: the cloned ``app.json`` (under *subdirectory*
     when set) must declare *app_name* before :func:`_run_app_build` executes —
@@ -6232,14 +6230,14 @@ async def install_from_registry(
 ) -> dict[str, Any]:
     """Clone an app from its git repo and install it.
 
-    Source code is cloned to ``~/.kiro/crew/app-sources/{name}/`` (persistent,
+    Source code is cloned to ``~/.junction/app-sources/{name}/`` (persistent,
     survives reboots, used by app update scripts).
 
     For self-managed apps (``managed: "self"`` in registry), only the clone +
-    install script is run — Junction does NOT copy files to ``~/.kiro/crew/apps/``
+    install script is run — Junction does NOT copy files to ``~/.junction/apps/``
     or register resources via bridges.  The app registers itself at runtime.
 
-    For junction-managed apps, files are copied to ``~/.kiro/crew/apps/{name}/``
+    For junction-managed apps, files are copied to ``~/.junction/apps/{name}/``
     and resources are registered via bridges.py as usual.
 
     Args:
@@ -6251,7 +6249,7 @@ async def install_from_registry(
 
     Steps:
     1. Validate the app exists in the trusted registry JSON
-    2. Clone the repo to ~/.kiro/crew/app-sources/{name}/ (timeout: 60s)
+    2. Clone the repo to ~/.junction/app-sources/{name}/ (timeout: 60s)
     3. Build it (npm/pip, auto-detected) then run the install script from
        app.json if any (timeout: 300s)
     4. For junction-managed: call install_app() or update_app()
@@ -7067,7 +7065,7 @@ async def install_from_registry(
             }
             return outcome
 
-        # Junction-managed: copy to ~/.kiro/crew/apps/ and register resources
+        # Junction-managed: copy to ~/.junction/apps/ and register resources
         log_lines.append("Installing app...")
         # Lock-free: the route handler holds app_lifecycle_lock(name) across
         # the whole transaction (clone/build → copy → register → backend

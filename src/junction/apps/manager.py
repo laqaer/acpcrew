@@ -1,6 +1,6 @@
 """App Manager — install, uninstall, enable, disable lifecycle for Junction apps.
 
-Apps are installed to ``~/.kiro/crew/apps/{name}/``.  Each installed app has an
+Apps are installed to ``~/.junction/apps/{name}/``.  Each installed app has an
 ``installed.json`` metadata file tracking version, timestamp, and enabled state.
 
 The manager validates manifests, copies app files, and delegates resource
@@ -55,7 +55,7 @@ INSTALLED_META_FILENAME = "installed.json"
 
 
 def apps_dir() -> Path:
-    """Return the root directory for installed apps: ``~/.kiro/crew/apps/``."""
+    """Return the root directory for installed apps: ``~/.junction/apps/``."""
     return config_dir() / "apps"
 
 
@@ -65,7 +65,7 @@ def app_dir(name: str) -> Path:
 
 
 def app_data_dir(name: str) -> Path:
-    """Return the app-scoped data directory: ``~/.kiro/crew/apps/{name}/data/``."""
+    """Return the app-scoped data directory: ``~/.junction/apps/{name}/data/``."""
     d = app_dir(name) / "data"
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -512,7 +512,7 @@ def install_app(
     """Install an app from a local directory path.
 
     1. Validate manifest and any caller-pinned app identity
-    2. Copy to ``~/.kiro/crew/apps/{name}/``
+    2. Copy to ``~/.junction/apps/{name}/``
     3. Write ``installed.json``
 
     Resource registration (agents, skills, crons) is handled separately
@@ -2234,7 +2234,7 @@ def resolve_mcp_backend_url(mcp_servers: Any) -> str | None:
     """Derive an app backend's base URL from its ``mcpServers`` declaration.
 
     This is the single definition of that rule.  Self-managed apps -- ones the
-    gateway does not spawn, like the Crew Companion desktop app on :7778 --
+    gateway does not spawn, like the Companion desktop app on :7778 --
     declare no ``backend.entryPoint``, so their backend is discovered from the
     MCP URL instead, with the path stripped.
 

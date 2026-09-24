@@ -5,7 +5,7 @@ rule_mode)` is only a ceiling if the agent cannot raise it. They lived in `data/
 which is served unauthenticated over `/config` and writable by any auto-approved agent shell —
 so a prompt-injected agent could set `mode=act` plus a matching rule and unlock a provider
 write. Found in review; fixed by moving them to `ops_mission_control_policy.json` on the
-`security._CREW_SECRET_LEAVES` floor.
+`security._DATA_HOME_SECRET_LEAVES` floor.
 """
 
 from __future__ import annotations
@@ -62,11 +62,11 @@ class TestTheCeilingIsOnTheKeystoneFloor(_HomeIsolated):
         )
 
     def test_the_filename_matches_the_fence_entry(self):
-        """A rename here without updating `_CREW_SECRET_LEAVES` silently un-protects it."""
+        """A rename here without updating `_DATA_HOME_SECRET_LEAVES` silently un-protects it."""
         from junction import security
         from junction.apps.builtins.ops_mission_control.backend import policy_store
 
-        self.assertIn(policy_store.POLICY_FILENAME, security._CREW_SECRET_LEAVES)
+        self.assertIn(policy_store.POLICY_FILENAME, security._DATA_HOME_SECRET_LEAVES)
 
     def test_setting_the_mode_writes_the_fenced_file_not_config(self):
         from junction.apps.builtins.ops_mission_control.backend import policy_store

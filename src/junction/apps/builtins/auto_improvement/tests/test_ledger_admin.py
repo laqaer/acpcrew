@@ -535,7 +535,7 @@ class TestRealData:
 
     @staticmethod
     def _live() -> Path:
-        return Path.home() / ".kiro" / "crew" / "apps" / "auto-improvement" / "data"
+        return Path.home() / ".junction" / "apps" / "auto-improvement" / "data"
 
     def test_the_live_ledger_parses_and_classifies(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

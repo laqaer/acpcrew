@@ -28,7 +28,7 @@ surfaces: the work log on your crew page, and the `<details>` progress list insi
 your claim comment on github.com. So a progress line must never contain an
 absolute path, a host name, a directory from this machine, or anything else about
 the environment you run in. Say "added the Windows branch to `_safe_chmod`", never
-`/home/…/kc-crews/src/…`. Worktree paths belong in the work item's own fields,
+`/home/…/junction-crews/src/…`. Worktree paths belong in the work item's own fields,
 which stay local and are never rendered into a comment.
 
 ## Per-turn protocol — strict order

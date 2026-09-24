@@ -15,7 +15,7 @@ Design (full spec in ``docs/system-specs/features/dashboard-token-auth.md``):
 - Reuse detection (RFC 6819 §5.2.2.3): a consumed ``jti`` presented again
   outside the multi-tab grace window auto-revokes the entire chain.
 - 60-second same-IP grace window absorbs benign multi-tab races.
-- Persistence: ``~/.kiro/crew/refresh_chains.json`` (mode ``0600``).
+- Persistence: ``~/.junction/refresh_chains.json`` (mode ``0600``).
 """
 
 from __future__ import annotations
@@ -344,7 +344,7 @@ class RefreshStateManager:
                 # on Windows restrict_to_owner is a subprocess (icacls) that
                 # takes measurable time, so if the payload were written first
                 # the temp would carry the parent-inherited DACL during that
-                # window and a local co-tenant able to enumerate ~/.kiro/crew
+                # window and a local co-tenant able to enumerate ~/.junction
                 # could read the consumed-JTI + revoked-chain state (breaking
                 # RFC-6819 §5.2.2.3 reuse-detection secrecy) or, worse,
                 # truncate the temp before the rename and substitute state that

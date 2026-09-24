@@ -50,7 +50,7 @@ from junction.config.loader import (
     DASHBOARD_PORT,
     build_provider_factory,
 )
-from junction.config.paths import _default_home, _legacy_home
+from junction.config.paths import default_home_paths
 from junction.constants import BANNER, MIN_NODE_MAJOR, env_flag_enabled
 from junction.crash_guard import install as _install_crash_guard
 from junction.env import git_build_info
@@ -505,22 +505,19 @@ def _resolve_gateway_args(args: argparse.Namespace) -> dict:
         if not home_env:
             print(
                 "--approval yolo refused: JUNCTION_HOME must be explicitly set "
-                "to an isolated path (not the default ~/.kiro/crew).",
+                "to an isolated path (not the default ~/.junction).",
                 file=sys.stderr,
             )
             sys.exit(2)
         try:
             home_resolved = Path(home_env).expanduser().resolve()
-            # Compare against BOTH default (non-override) gateway homes. Do NOT use
+            # Compare against the default (non-override) gateway home. Do NOT use
             # config_dir() here: JUNCTION_HOME is already set, so config_dir() would
-            # return the override itself and the rail would always fire. We must
-            # reject the legacy ~/.junction too, not just ~/.kiro/crew: on an
-            # unmigrated or downgraded install the legacy home still holds the LIVE
-            # data, so JUNCTION_HOME=~/.junction would otherwise enable unrestricted
-            # tool approval against the real gateway home. Mirrors seed.py's
-            # _protected_homes().
+            # return the override itself and the rail would always fire. Spelling
+            # out JUNCTION_HOME=~/.junction must still be refused, because that is
+            # the live gateway home. Mirrors seed.py's _protected_homes().
             protected_homes: set[Path] = set()
-            for home in (_default_home(), _legacy_home()):
+            for home in default_home_paths():
                 try:
                     protected_homes.add(home.resolve())
                 except OSError:
@@ -705,7 +702,7 @@ def _consolidate_cmd(args) -> None:
         print(f"Consolidating session: {session_key}")
         asyncio.run(_run([session_key]))
 
-    print("\nDone. Check ~/.kiro/crew/skills/auto/ for new skills.")
+    print("\nDone. Check ~/.junction/skills/auto/ for new skills.")
 
 
 def _fd_targets_file(fd: int, path: Path) -> bool:
@@ -1073,7 +1070,7 @@ Examples:
                 "gateway (dev tool). Fixture must exist under "
                 "src/junction/tests_fixtures/. The gateway then runs normally "
                 "against the populated $JUNCTION_HOME. Refuses when "
-                "$JUNCTION_HOME is the main gateway home (~/.kiro/crew) or "
+                "$JUNCTION_HOME is the main gateway home (~/.junction) or "
                 "when the target is non-empty (use --seed-replace to wipe + re-seed)."
             ),
         )
@@ -1083,7 +1080,7 @@ Examples:
             help=(
                 "When used with --seed, wipe $JUNCTION_HOME (rmtree) before "
                 "copying the fixture. Ignored without --seed. Does NOT "
-                "override the main-gateway-home rail — ~/.kiro/crew is refused "
+                "override the main-gateway-home rail — ~/.junction is refused "
                 "regardless."
             ),
         )
@@ -1293,7 +1290,7 @@ Examples:
         help="Run a script cron locally with real MCP tools; notifications are captured and printed instead of delivered",
     )
     cron_preview.add_argument(
-        "script", help="Script path in module:function format (e.g. ~/.kiro/crew/crons/my.py:run)"
+        "script", help="Script path in module:function format (e.g. ~/.junction/crons/my.py:run)"
     )
     cron_preview.add_argument("--message", "-m", default="", help="ctx.message value")
     cron_preview.add_argument(
@@ -2365,17 +2362,14 @@ The dashboard port is set with the JUNCTION_PORT env var, not a config key.
         if _rc != 0:
             sys.exit(_rc)
 
-    # Resolve (and, on first launch of an upgraded install, MIGRATE) the data home
-    # NOW — synchronously, on the main thread, before any subcommand starts an
-    # asyncio loop. The legacy→~/.kiro/crew migration blocks (copytree + os.walk
-    # under a file lock); running it here guarantees it never lands on the event
-    # loop via a lazy first config_dir() inside an async-facing constructor, where
-    # it would freeze the loop and could trip the stall watchdog
-    # (no-blocking-call-on-event-loop). Idempotent + process-cached, so every later
-    # config_dir() is a cheap lookup. Placed AFTER the --seed guard (seeding needs
-    # an empty target) and before JunctionConfig.load()/the log handler, both of
-    # which call config_dir(). Skipped for the seed path above, which set up its
-    # own $JUNCTION_HOME (an override → migration is a no-op there anyway).
+    # Resolve and create the data home NOW — synchronously, on the main thread,
+    # before any subcommand starts an asyncio loop. Resolution does filesystem
+    # work (mkdir + the recovery breadcrumb); running it here guarantees it never
+    # lands on the event loop via a lazy first config_dir() inside an
+    # async-facing constructor (no-blocking-call-on-event-loop). Idempotent +
+    # process-cached, so every later config_dir() is a cheap lookup. Placed AFTER
+    # the --seed guard (seeding needs an empty target) and before
+    # JunctionConfig.load()/the log handler, both of which call config_dir().
     ensure_data_home()
 
     # Console + gateway.log logging. Extracted to a helper because the

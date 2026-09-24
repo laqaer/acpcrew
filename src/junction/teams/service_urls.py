@@ -55,7 +55,7 @@ _MAX_ENTRIES = 512
 STORE_FILENAME = "teams_service_urls.json"
 
 #: Own directory under the data home, and the DIRECTORY is what
-#: ``security._CREW_SECRET_LEAVES`` registers. A file leaf covers only its exact name,
+#: ``security._DATA_HOME_SECRET_LEAVES`` registers. A file leaf covers only its exact name,
 #: while ``atomic_write`` publishes through a ``tempfile.mkstemp`` sibling
 #: (``tmpXXXXXXXX.tmp``) in the same parent -- so with the store loose in the data-home
 #: root, an agent watching that directory could overwrite the temp file, in the window
@@ -93,8 +93,8 @@ class ServiceUrlStore:
     def path(self) -> Path:
         """Resolve the store path lazily.
 
-        ``data_home()`` CREATES the directory and may run the legacy-home
-        migration, so it must not be called at import or construction time.
+        ``data_home()`` CREATES the directory and refreshes the recovery
+        breadcrumb, so it must not be called at import or construction time.
         """
         if self._path is None:
             self._path = _store_path()

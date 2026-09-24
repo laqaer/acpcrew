@@ -1,9 +1,9 @@
-"""Manifest contract tests for the Crew Companion builtin app.
+"""Manifest contract tests for the Companion builtin app.
 
 Why this manifest still mirrors the user-installed one
 -----------------------------------------------------
 Apps live at ``apps/<name>/`` keyed on NAME ALONE, so this builtin shares a
-directory with the externally distributed Crew Companion app. Registration no
+directory with the externally distributed Companion app. Registration no
 longer touches such a directory -- ``register_builtin_apps()`` stands down when
 ``installed.json`` shows a user-owned install, because overwriting it would set
 ``lifecycle="locked"`` and destroy the ``origin`` record, leaving no way to tell
@@ -65,7 +65,7 @@ def test_identity() -> None:
     m = _manifest()
     assert m.name == "crew-companion"
     assert m.version == "1.0.0"
-    assert m.displayName == "Crew Companion"
+    assert m.displayName == "Companion"
     assert m.author == "junction"
 
 
@@ -170,7 +170,7 @@ def test_declares_no_separate_process_backend() -> None:
 def test_does_not_launch_anything_on_enable() -> None:
     """Enabling must not run a command that can fail.
 
-    ``setup.onEnable`` used to be ``open "$HOME/Applications/Crew Companion.app"``,
+    ``setup.onEnable`` used to be ``open "$HOME/Applications/Companion.app"``,
     and ``handle_app_api_proxy`` rolls an enable BACK when that script fails. On
     every machine without that app already present — which is every machine but
     the author's — the tile therefore could not be switched on at all. Nothing

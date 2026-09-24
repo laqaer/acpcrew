@@ -12,7 +12,7 @@ preview and attach natural-language comments. Comments accumulate into a
 therefore contains **many comments as sub-items**:
 
 ```
-~/.kiro/crew/apps/design-tweak/data/queue/<timestamp>-<id>.json
+~/.junction/apps/design-tweak/data/queue/<timestamp>-<id>.json
 ```
 
 **A request is a batch. Work every comment in it, and report per comment.**

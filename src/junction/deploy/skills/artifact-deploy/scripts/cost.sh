@@ -25,7 +25,7 @@ read_base_outputs || { echo "base stack not found." >&2; exit 1; }
 # time), NOT a calendar month. Persistent deploys are projected monthly instead.
 PROJ_HOURS=72; PROJ_MODE="window"; SLUG_PERSIST="false"; SLUG_BYTES=0
 if [[ -n "$SLUG" ]]; then
-  _man="$(aws_cli s3 cp "s3://$BUCKET/$SLUG/.kirocrew-deploy.json" - 2>/dev/null || true)"
+  _man="$(aws_cli s3 cp "s3://$BUCKET/$SLUG/.junction-deploy.json" - 2>/dev/null || true)"
   if [[ -n "$_man" ]]; then
     read -r _th _pers < <(printf '%s' "$_man" | python3 -c 'import sys,json;m=json.load(sys.stdin);print((m.get("ttl_hours") or "72"),str(m.get("persistent")).lower())')
     SLUG_PERSIST="$_pers"

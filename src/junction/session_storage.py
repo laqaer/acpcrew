@@ -78,13 +78,11 @@ from typing import IO, Any
 
 from junction import hooks, platform_compat
 from junction.config.paths import (
-    CONFIG_DIR_LEAF,
-    CONFIG_DIR_NAME,
     KIRO_BASE_DIR_NAME,
     data_home,
+    default_home_paths,
     kiro_home,
     kiro_sessions_dir,
-    legacy_home,
 )
 from junction.history import ARCHIVE_DIR_NAME, ARCHIVE_SEGMENT_DELIMITER, SESSIONS_DIR_NAME
 from junction.session_map import SESSION_MAP_FILENAME
@@ -349,8 +347,8 @@ def _scan_key(sid_for_stem: Mapping[str, str]) -> tuple[object, ...]:
     """Everything a cached pass depends on besides the contents of the stores.
 
     The store LOCATIONS are part of it. Both are resolved per call by design — a
-    pod overrides the data home, and an unmigrated install resolves the legacy one
-    — so a process can legitimately enumerate different stores over its lifetime,
+    pod overrides the data home — so a process can legitimately enumerate different
+    stores over its lifetime,
     and a key without them would answer a question about one store with a pass over
     another. This was not hypothetical: it showed up immediately as one test's
     totals being served to the next.
@@ -737,7 +735,7 @@ def select_reclaimable(
 
 def _pod_root() -> Path:
     raw = os.environ.get("JUNCTION_POD_ROOT")
-    return Path(raw).expanduser() if raw else Path.home() / ".kirocrew-pods"
+    return Path(raw).expanduser() if raw else Path.home() / ".junction-pods"
 
 
 def _replay_store_cotenants() -> list[str]:
@@ -914,14 +912,7 @@ def reclaim_block_reason() -> str:
             return path
 
     home = _norm(Path.home())
-    # BOTH of these are defaults, not isolation: an install that has not yet
-    # migrated legitimately reports the legacy home, and treating that as an
-    # isolated instance would refuse every pre-migration install.
-    defaults = {
-        home / CONFIG_DIR_NAME,
-        home / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF,
-        _norm(legacy_home()),
-    }
+    defaults = {_norm(p) for p in default_home_paths()}
     data = _norm(data_home())
     if data in defaults:
         # The mirror of the isolated-instance case, and just as destructive: a pod

@@ -133,7 +133,7 @@ The dashboard page is compiled into the host bundle rather than shipped here:
 registered in `website/src/apps/builtinRegistry.ts`.
 
 Request/queue state lives in the app's data dir,
-`~/.kiro/crew/apps/design-tweak/data/` — see `skills/visual-edit/SKILL.md` for
+`~/.junction/apps/design-tweak/data/` — see `skills/visual-edit/SKILL.md` for
 the request schema and the reporting protocol.
 
 ## Platform notes

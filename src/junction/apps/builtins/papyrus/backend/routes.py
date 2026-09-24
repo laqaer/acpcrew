@@ -714,7 +714,7 @@ async def _handle_pdf(request: web.Request) -> web.StreamResponse:
         if main_file is None:
             return project, None
         # `None` when the derived name is not contained — a cloned repo shipping
-        # `main.pdf -> ~/.kiro/crew/.local_secret` would otherwise have that file
+        # `main.pdf -> ~/.junction/.local_secret` would otherwise have that file
         # streamed straight to the browser by the `FileResponse` below.
         pdf = store.pdf_path(project, main_file)
         if pdf is None or not pdf.is_file():

@@ -664,7 +664,7 @@ class TestRealData:
         ships no profiler artifact, so a real ``.pstats`` is generated in-process with
         stdlib ``cProfile`` instead. If real captures ever appear, this asserts the
         reader can parse them rather than quietly skipping."""
-        real = Path.home() / ".kiro" / "crew" / "apps" / "auto-improvement" / "data" / "profiles"
+        real = Path.home() / ".junction" / "apps" / "auto-improvement" / "data" / "profiles"
         if not real.is_dir():
             pytest.skip("no live data directory on this machine")
         artifacts = sorted(p for p in real.glob("*") if p.suffix in {".json", ".pstats"})

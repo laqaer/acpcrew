@@ -6,7 +6,7 @@ pipe on Windows; ``mcp_gateway.transport`` owns that split so no other module
 has to know which is in play. When enabled, it:
 
 1. Writes rewritten kiro agent JSON into an overlay directory
-   (``~/.kiro/crew/mcp-gateway/agents/``) — never touches the user's
+   (``~/.junction/mcp-gateway/agents/``) — never touches the user's
    ``~/.kiro/agents/`` files on disk.
 2. Spawns ``python -m junction.mcp_gateway.gatewayd`` at Junction
    startup and supervises it.

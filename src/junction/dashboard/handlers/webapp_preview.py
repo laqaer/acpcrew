@@ -38,7 +38,7 @@ Security model (all LLM-influenceable inputs re-validated at serve time):
   sandboxed iframe — the previewed app can never reach dashboard cookies,
   storage, or same-origin APIs. ``frame-ancestors 'self'`` keeps third-party
   sites from embedding the preview.
-- Dotfiles (and thus ``.kirocrew-deploy.json`` style manifests / VCS dirs)
+- Dotfiles (and thus ``.junction-deploy.json`` style manifests / VCS dirs)
   are never served.
 """
 from __future__ import annotations

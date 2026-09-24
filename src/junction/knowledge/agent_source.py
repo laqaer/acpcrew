@@ -355,7 +355,7 @@ async def _add_agent_document(
     tmp_path: str | None = None
     try:
         def _write_tmp() -> str:
-            fd, p = tempfile.mkstemp(suffix=_DEFAULT_EXT, prefix="kc-agent-doc-")
+            fd, p = tempfile.mkstemp(suffix=_DEFAULT_EXT, prefix="jn-agent-doc-")
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as fh:
                     fh.write(text)

@@ -46,7 +46,7 @@ W, H = 1920, 1080
 
 # --- ADAPT: how to reach the URL under test -------------------------------------
 # If the target needs a credential, the OPERATOR hands this script the finished
-# URL in KC_VIDEO_TARGET_URL. This script does NOT mint one, on purpose: minting a
+# URL in JUNCTION_VIDEO_TARGET_URL. This script does NOT mint one, on purpose: minting a
 # dashboard credential is denied to the agent at the shell, so doing it from a
 # child process would be routing around that control rather than satisfying it.
 # The bare pod URL below is the fallback, and it is only enough when the target
@@ -83,7 +83,7 @@ def _write_nofollow(path: pathlib.Path, text: str) -> None:
 
 
 def target_url() -> str:
-    url = os.environ.get("KC_VIDEO_TARGET_URL", "").strip()
+    url = os.environ.get("JUNCTION_VIDEO_TARGET_URL", "").strip()
     if url:
         return url
     out = subprocess.run(
@@ -92,7 +92,7 @@ def target_url() -> str:
     lines = [ln.strip() for ln in out.stdout.splitlines() if ln.strip()]
     base = lines[-1] if lines else ""
     if not base:
-        raise SystemExit("could not read the pod URL -- set KC_VIDEO_TARGET_URL instead")
+        raise SystemExit("could not read the pod URL -- set JUNCTION_VIDEO_TARGET_URL instead")
     return base
 
 
@@ -105,7 +105,7 @@ SEED = {
     "mc-onboarded": "1",
     "mc-import-onboarded": "1",
     "mc-privacy-acked": "1",
-    "mc-color-theme": "kiro",
+    "mc-color-theme": "junction",
     "mc-theme": "dark",
 }
 
@@ -208,7 +208,7 @@ def main() -> None:
             raise SystemExit(
                 "navigation to the target failed "
                 f"({type(exc).__name__}) -- the URL is withheld because it may "
-                "carry a credential; check KC_VIDEO_TARGET_URL and that the target "
+                "carry a credential; check JUNCTION_VIDEO_TARGET_URL and that the target "
                 "is reachable"
             ) from None
         page.wait_for_selector("main, textarea", timeout=30000)

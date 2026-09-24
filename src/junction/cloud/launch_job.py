@@ -504,7 +504,7 @@ def _rollback_failed_provision(
 
 
 def _new_tag() -> str:
-    return f"kc-{secrets.token_hex(3)}"
+    return f"jn-{secrets.token_hex(3)}"
 
 
 # ── Orchestrator ─────────────────────────────────────────────────────────────

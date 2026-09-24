@@ -45,7 +45,7 @@ async def _read_upload_file(request: web.Request) -> tuple[Path | None, web.Resp
     # A single path rather than a scratch directory: the callers below already
     # own the returned file and unlink it in their `finally`, so a directory
     # would be a second thing to clean and nobody is cleaning it.
-    dest = Path(tempfile.gettempdir()) / f"kc_import_{uuid.uuid4().hex}.zip"
+    dest = Path(tempfile.gettempdir()) / f"jn_import_{uuid.uuid4().hex}.zip"
     try:
         await part_stream.stream_part_to_file(part, dest, max_bytes=_MAX_IMPORT_BYTES)
     except part_stream.PartTooLarge:

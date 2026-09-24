@@ -39,17 +39,9 @@ logger = logging.getLogger(__name__)
 # literal so downstream string checks (the security keystone) can match it.
 CONFIG_DIR_NAME = ".junction"
 
-# Previous default, still recognized when ``~/.junction`` is absent, and still
-# on the security floor. ``KIRO_BASE_DIR_NAME`` is also kiro-cli's own home
-# (``~/.kiro``), which is a different directory from Junction's data home.
+# kiro-cli's own home directory name (``~/.kiro``). It holds kiro-cli's agents,
+# settings and sessions and is a different directory from Junction's data home.
 KIRO_BASE_DIR_NAME = ".kiro"
-CONFIG_DIR_LEAF = "crew"
-PRIOR_CONFIG_DIR_NAME = f"{KIRO_BASE_DIR_NAME}/{CONFIG_DIR_LEAF}"  # ".kiro/crew"
-
-# The older top-level home (``~/.kirocrew``). Retained as a constant (not an
-# inline literal) so the security keystone and other legacy-path consumers
-# reference the same source of truth.
-LEGACY_CONFIG_DIR_NAME = ".kirocrew"
 
 # Non-secret pointer at ``~/.junction.breadcrumb``. Only written on the default
 # (non-override) path. A ``JUNCTION_HOME`` override is the user's own location.
@@ -88,54 +80,22 @@ def _default_home() -> Path:
     return Path.home() / CONFIG_DIR_NAME
 
 
-def _prior_home() -> Path:
-    """Resolve the previous default data root: ``~/.kiro/crew``."""
-    return Path.home() / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF
-
-
-def _legacy_home() -> Path:
-    """Resolve the older top-level home: ``~/.kirocrew``."""
-    return Path.home() / LEGACY_CONFIG_DIR_NAME
-
-
 def default_home_paths() -> tuple[Path, ...]:
     """Homes that count as the operator's real data directory, not an override.
 
-    Order is current, previous, then the older top-level spelling. Callers
-    that compare an explicit ``JUNCTION_HOME`` against "the default" use this
-    so a spelled-out ``~/.junction`` is still the real home.
+    There is exactly one: ``~/.junction``. Callers that compare an explicit
+    ``JUNCTION_HOME`` against "the default" use this so a spelled-out
+    ``~/.junction`` is still recognized as the real home.
     """
-    return (_default_home(), _prior_home(), _legacy_home())
+    return (_default_home(),)
 
 
 def _select_default_home() -> Path:
-    """Pick a default data root without creating it.
+    """Pick the default data root without creating it: ``~/.junction``.
 
-    A new install uses ``~/.junction``. When that directory is absent and a
-    previous data directory already exists, that directory is kept so the
-    machine does not start empty. The caller creates the chosen path.
+    The caller creates the chosen path.
     """
-    current = _default_home()
-    if current.is_dir():
-        return current
-    prior = _prior_home()
-    if prior.is_dir():
-        return prior
-    legacy = _legacy_home()
-    if legacy.is_dir():
-        return legacy
-    return current
-
-
-def legacy_home() -> Path:
-    """Public alias for the pre-move top-level home (``~/.kirocrew``).
-
-    Exported so modules that legitimately need to recognise a legacy-rooted
-    path — e.g. ``autonudge.repair_sentinel_path`` re-homing a persisted
-    kill-switch path — can do so without reaching into the private
-    ``_legacy_home``.
-    """
-    return _legacy_home()
+    return _default_home()
 
 
 def _resolve_default_home() -> Path:

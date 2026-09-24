@@ -105,7 +105,7 @@ def _fix_shell_profiles() -> None:
         home / ".profile",
     ]
     stale_markers = [
-        ".kirocrew-app",
+        ".junction-app",
     ]
     cleaned_profiles: list[str] = []
     for profile in profiles:

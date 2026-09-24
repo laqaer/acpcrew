@@ -1516,12 +1516,12 @@ _EXFIL_HEURISTICS: tuple[tuple[str, str], ...] = (
 def _own_namespace_prefixes() -> tuple[str, ...]:
     """Home-relative prefixes that belong to Junction / kiro-cli itself.
 
-    Derived from the crew data-home prefixes, plus the ``.kiro`` parent that
+    Derived from the data-home prefixes, plus the ``.kiro`` directory that
     holds kiro-cli's own state and the gateway's auth staging dir. Used only to
     label a row in the posture view — a misclassification is cosmetic, never a
     gate decision.
     """
-    return tuple({p.split("/", 1)[0] for p in security.crew_home_prefixes()})
+    return tuple({p.split("/", 1)[0] for p in security.data_home_prefixes()} | {".kiro"})
 
 
 def _sensitive_path_items() -> list[PostureItem]:
@@ -1529,7 +1529,7 @@ def _sensitive_path_items() -> list[PostureItem]:
     items: list[PostureItem] = []
     own = _own_namespace_prefixes()
     for entry in security.sensitive_home_dirs():
-        # Path-boundary match, so a sibling like `.kirocrew-notes` is not counted
+        # Path-boundary match, so a sibling like `.junction-notes` is not counted
         # as ours just because it shares a string prefix.
         first = entry.split("/", 1)[0]
         if first in own:

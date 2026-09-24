@@ -368,7 +368,7 @@ def prove(repo: Path, base: str, per_hunk: bool) -> dict:
     if per_hunk and not mutations:
         raise EnvironmentError("could not split the production diff into hunks")
 
-    tmp = Path(tempfile.mkdtemp(prefix="kc-prove-"))
+    tmp = Path(tempfile.mkdtemp(prefix="jn-prove-"))
     worktree = tmp / "wt"
     try:
         r = _git(["worktree", "add", "-q", "--detach", str(worktree), "HEAD"], repo)

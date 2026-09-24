@@ -5,7 +5,7 @@ its own port, its own `JUNCTION_HOME` (own DB / sessions / memory), no Slack
 tunnel, `--no-crons` (unless you pass `--crons`), resource-capped, and reclaimed
 by `pod down`. Test a branch's
 backend `/api/*` **and** the SPA bundle it serves, all **without touching your
-live gateway or your shared `~/.kiro/crew` data**.
+live gateway or your shared `~/.junction` data**.
 
 Think **`kubectl` for local worktree test rigs.** This is the *test line*
 (multi-active, burn-on-evict); it is orthogonal to the *live line* (a single
@@ -90,7 +90,7 @@ stop-drain-verify path `down` uses, with liveness re-checked per name).
 ### Port derivation
 
 `port = base + (cksum(name) % 199) + 1` (base `7810` → `7811..8009`), unless a
-`PORT=` is pinned in `~/.kiro/crew/pods/<name>.env`. `pod up` refuses if a derived
+`PORT=` is pinned in `~/.junction/pods/<name>.env`. `pod up` refuses if a derived
 port ever resolves to the live port.
 
 ## Configuration (`PodConfig`, all `JUNCTION_POD_*`-overridable)
@@ -99,8 +99,8 @@ port ever resolves to the live port.
 |---|---|---|
 | `JUNCTION_POD_REPO` | invoking cwd | repo git is queried from to resolve worktree names |
 | `JUNCTION_POD_WORKTREES_ROOT` | (unset) | optional `name→path` fallback root (hermetic planes) |
-| `JUNCTION_POD_ROOT` | `~/.kirocrew-pods` | isolated pod HOMEs (reclaimed by `pod down`) |
-| `JUNCTION_POD_ENV_DIR` | `~/.kiro/crew/pods` | per-pod `CHECKOUT=`/`PORT=`/`SEED=` files |
+| `JUNCTION_POD_ROOT` | `~/.junction-pods` | isolated pod HOMEs (reclaimed by `pod down`) |
+| `JUNCTION_POD_ENV_DIR` | `~/.junction/pods` | per-pod `CHECKOUT=`/`PORT=`/`SEED=` files |
 | `JUNCTION_POD_BASE_PORT` | `7810` | port derivation base |
 | `JUNCTION_POD_LIVE_PORT` | `5476` | the port a pod must never bind |
 | `JUNCTION_POD_UNIT_PREFIX` | `junction-pod` | systemd unit prefix |
@@ -112,12 +112,12 @@ that can't collide with a developer's live pods — used by the test suite.
 ## Safety
 
 - A pod runs its own `JUNCTION_HOME` and binds `127.0.0.1` only; it never touches
-  the shared `~/.kiro/crew` data and refuses the live port.
+  the shared `~/.junction` data and refuses the live port.
 - Every pod's `config.json` forces `enabled=false` on the tunnel and on every
   channel that carries a config-level enable (`runtime.SEED_DISABLED_SECTIONS`),
   and the booted env scrubs `SLACK_*`, `WECOM_*`, `MICROSOFT_APP_*` and non-AWS
   `*_TOKEN`, so a pod can never grab a live messaging identity — not even a
-  seeded one, which is the point: `--seed ~/.kiro/crew` clones the real config.
+  seeded one, which is the point: `--seed ~/.junction` clones the real config.
   Pod HOME is `0700`; `config.json` is `0600`.
 
 ## Platform

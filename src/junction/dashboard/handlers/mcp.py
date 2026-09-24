@@ -624,11 +624,11 @@ async def api_mcp_servers(request: web.Request) -> web.Response:
             d["tools"] = cached.get("tools", d["tools"])
             d["error"] = cached.get("error", d["error"])
         spec = global_mcps.get(s.name, {})
-        kc_spec = junction_mcps.get(s.name)
-        d["junctionManaged"] = isinstance(kc_spec, dict)
+        jn_spec = junction_mcps.get(s.name)
+        d["junctionManaged"] = isinstance(jn_spec, dict)
         is_disabled = (
             (isinstance(spec, dict) and spec.get("disabled"))
-            or (isinstance(kc_spec, dict) and kc_spec.get("disabled"))
+            or (isinstance(jn_spec, dict) and jn_spec.get("disabled"))
             or s.disabled
         )
         d["enabled"] = not is_disabled
@@ -1396,8 +1396,8 @@ async def api_mcp_server_detail(request: web.Request) -> web.Response:
 # ─── Batched scope apply ────────────────────────────────────────────────
 
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home";
 # dashboard/handlers/usage.py is the reference implementation.
 _JUNCTION_MCP_JSON: Path | None = None
@@ -1506,7 +1506,7 @@ def _find_server_spec_anywhere(name: str) -> dict | None:
     """Locate a server's full spec from any known source.
 
     Search order matches the Junction merge: agent config → <data home>/mcp.json
-    (``config_dir()/mcp.json``, i.e. ~/.kiro/crew/mcp.json) → kiro global →
+    (``config_dir()/mcp.json``, i.e. ~/.junction/mcp.json) → kiro global →
     edition-contributed provider scopes.  Returns a shallow copy with
     ``disabled`` stripped (the caller decides whether to disable in its target
     scope).

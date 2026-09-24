@@ -25,7 +25,6 @@ Repository = "https://github.com/laqaer/junction"
 
 [project.scripts]
 junction = "junction._bootstrap:main"
-acpcrew = "junction._bootstrap:main"
 
 [dependency-groups]
 # Pinned dev tool versions for reproducible CI. Bump as needed.

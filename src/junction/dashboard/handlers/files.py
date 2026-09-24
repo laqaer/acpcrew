@@ -958,8 +958,8 @@ async def api_upload(request: web.Request) -> web.Response:
 
 
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home";
 # dashboard/handlers/usage.py is the reference implementation.
 _SCREENSHOT_DIR: Path | None = None
@@ -3190,7 +3190,7 @@ async def api_browse_dirs(request: web.Request) -> web.Response:
     if is_sensitive_path(base):
         _sel().log_api_access(caller=caller, operation="browse_dirs", outcome="denied", resources=base, error="sensitive path")
         return web.json_response({"error": "Access denied"}, status=403)
-    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".kirocrew", ".kiro", ".aim"}
+    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".junction", ".kiro", ".aim"}
     dirs = await asyncio.to_thread(_browse_dirs_sync, base, skip)
     _sel().log_api_access(caller=caller, operation="browse_dirs", outcome="allowed", resources=base)
     return web.json_response({"path": base, "parent": os.path.dirname(base), "dirs": dirs})
@@ -3450,7 +3450,7 @@ async def api_browse_files(request: web.Request) -> web.Response:
     if is_sensitive_path(base):
         _sel().log_api_access(caller=caller, operation="browse_files", outcome="denied", resources=base, error="sensitive path")
         return web.json_response({"error": "Access denied"}, status=403)
-    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".kirocrew", ".kiro", ".aim", "build", "dist", ".next"}
+    skip = {".git", "node_modules", "__pycache__", ".cache", ".venv", "venv", "env", ".junction", ".kiro", ".aim", "build", "dist", ".next"}
     dirs, files = await asyncio.to_thread(_browse_files_sync, base, skip)
     _sel().log_api_access(caller=caller, operation="browse_files", outcome="allowed", resources=base)
     return web.json_response({"path": base, "parent": os.path.dirname(base), "dirs": dirs, "files": files})

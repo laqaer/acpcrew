@@ -46,7 +46,7 @@ def _sessions_dir() -> Path:
     """Sessions directory, resolved per call against the live data home.
 
     Never captured at import: an import-time binding freezes the data home and
-    defeats pod isolation, the lazy legacy-home migration and test isolation.
+    defeats pod isolation and test isolation.
     A caller that owns its own override passes ``sessions_dir=`` instead of
     shadowing this — there is one override knob, not two.
     """

@@ -6,7 +6,7 @@ Two routes back the Settings > Channels > WeChat "Connect via QR" flow:
                                           QR image + a server-side session id.
   GET  /api/channels/weixin/qr/status  -> poll scan status; on ``confirmed``,
                                           persist the bot token to the cred
-                                          store (~/.kiro/crew/.env) and the
+                                          store (~/.junction/.env) and the
                                           account_id/base_url to config.json,
                                           then enable the channel.
 
@@ -115,7 +115,7 @@ def _atomic_write(path: Path, text: str, *, secret: bool = False) -> None:
 
 
 def _write_env_secret(key: str, value: str) -> None:
-    """Upsert ``KEY=VALUE`` in ~/.kiro/crew/.env (0600), preserving other lines."""
+    """Upsert ``KEY=VALUE`` in ~/.junction/.env (0600), preserving other lines."""
     ep = env_path()
     lines: list[str] = []
     found = False
@@ -135,7 +135,7 @@ def _write_env_secret(key: str, value: str) -> None:
 
 
 def _read_env_value(key: str) -> Optional[str]:
-    """Return the current value of ``key`` in ~/.kiro/crew/.env, or None if absent.
+    """Return the current value of ``key`` in ~/.junction/.env, or None if absent.
 
     Used to snapshot the previous credential so a failed two-file commit can be
     rolled back instead of destroying a working credential.
@@ -153,7 +153,7 @@ def _read_env_value(key: str) -> Optional[str]:
 
 
 def _delete_env_key(key: str) -> None:
-    """Remove ``key`` from ~/.kiro/crew/.env, preserving every other line."""
+    """Remove ``key`` from ~/.junction/.env, preserving every other line."""
     ep = env_path()
     if not ep.exists():
         return

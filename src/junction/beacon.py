@@ -213,11 +213,11 @@ def is_ci() -> bool:
 def is_default_home() -> bool:
     """Return whether the data home is the user's real one.
 
-    A non-default ``JUNCTION_HOME`` means a dev home (``.kirocrew-dev``), a pod,
+    A non-default ``JUNCTION_HOME`` means a dev home (``.junction-dev``), a pod,
     or a worktree preview — one operator's own extra instances, so counting them
     would inflate DAU.
 
-    Compared against the known default homes directly rather than against
+    Compared against the default home directly rather than against
     ``config_dir()``: ``config_dir()`` *honors* ``JUNCTION_HOME``, so comparing
     the two would always match and this suppression would never fire. Resolved
     on both sides so a symlinked or trailing-slash spelling of the real home

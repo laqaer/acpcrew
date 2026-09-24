@@ -87,7 +87,7 @@ def normalize_paste(raw: str) -> str:
 def token_path() -> Path:
     """Where the token is stored.
 
-    Registered in :data:`junction.security._CREW_SECRET_LEAVES`, so the agent's
+    Registered in :data:`junction.security._DATA_HOME_SECRET_LEAVES`, so the agent's
     own file tools cannot read it even though the environment it inherits can.
     That asymmetry is the point: a credential the agent never needs to open.
     """

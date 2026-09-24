@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 # ── Token model ──
 
-TOKEN_PREFIX = "kc_whk_"
+TOKEN_PREFIX = "jn_whk_"
 TOKEN_ENTROPY_CHARS = 32
 MAX_TOKENS = 20
 LABEL_MAX_LEN = 64
@@ -63,9 +63,9 @@ LEGACY_TOKEN_ID = "legacy"
 LEGACY_TOKEN_LABEL = "Legacy token (config)"
 
 TOKENS_FILENAME = "tokens.json"
-# The credential store lives in its OWN directory, not beside the other crew
-# files, because the sensitive-path gate classifies whole directories and the
-# store's temp files have to be covered as well as the store itself.
+# The credential store lives in its OWN directory, not beside the other
+# data-home files, because the sensitive-path gate classifies whole directories
+# and the store's temp files have to be covered as well as the store itself.
 #
 # Gating only the final filename was not enough: ``write_json_atomic`` publishes
 # through ``mkstemp`` + ``os.replace``, so a same-UID agent with file-write tools
@@ -90,7 +90,7 @@ RUNS_FILENAME = "webhook_runs.json"
 # unmodified and is not a replay. They are independent gates and both are
 # enforced when a token has ``require_signature``.
 
-SIGNING_SECRET_PREFIX = "kc_whs_"
+SIGNING_SECRET_PREFIX = "jn_whs_"
 #: ``secrets.token_urlsafe(32)`` is exactly this many url-safe chars.
 SIGNING_SECRET_ENTROPY_CHARS = 43
 

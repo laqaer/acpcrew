@@ -47,7 +47,7 @@
     "postToolUse": [
       {
         "matcher": "execute_bash",
-        "command": "{ echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) BASH:\"; cat; echo; } >> \"${JUNCTION_HOME:-$HOME/.kiro/crew}/audit.log\""
+        "command": "{ echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) BASH:\"; cat; echo; } >> \"${JUNCTION_HOME:-$HOME/.junction}/audit.log\""
       }
     ]
   }

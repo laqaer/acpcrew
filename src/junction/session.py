@@ -550,13 +550,13 @@ def _session_model(cfg: "JunctionConfig", agent: str | None) -> "str | None":
 
     Blocking I/O (globs + reads ``~/.kiro/agents/*.json``): call in an executor.
     """
-    crew = cfg.agents.get(agent) if agent else None
-    if crew is not None:
-        crew_model = normalize_agent_model(crew.model)
+    crew_cfg = cfg.agents.get(agent) if agent else None
+    if crew_cfg is not None:
+        crew_model = normalize_agent_model(crew_cfg.model)
         if crew_model:
             return crew_model
         # The crew defers, so continue down the chain on the template it binds.
-        agent = crew.kiro_agent or agent
+        agent = crew_cfg.kiro_agent or agent
 
     per_agent_model = ""
     if agent and agent != "junction":
@@ -5921,7 +5921,7 @@ class SessionManager:
                 pass
 
             # Sweep orphaned sandbox launcher scripts and seatbelt profiles
-            # from ~/.kiro/crew/run/.  PID-tagged filenames; the blocking
+            # from ~/.junction/run/.  PID-tagged filenames; the blocking
             # os.kill/os.remove loop is kept off the event loop.
             try:
                 sandbox_removed = await asyncio.get_running_loop().run_in_executor(

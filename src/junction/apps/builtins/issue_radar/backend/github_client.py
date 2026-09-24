@@ -1993,7 +1993,7 @@ def list_pr_checks(
 # subprocess spawns for a 50-PR repo, minutes of latency.
 #
 # GraphQL answers both for the WHOLE list in a single request (measured: ~2.4s
-# for 50 open PRs on kirodotdev/KiroCrew), so the enrichment is one extra call
+# for a repo with 50 open PRs), so the enrichment is one extra call
 # regardless of list size. It is also strictly OPTIONAL: a failure here leaves the
 # rows un-enriched rather than failing the list, because the diff size and the
 # check dot are nice-to-have decoration on a card, not its reason to exist.
@@ -2668,8 +2668,8 @@ def enrichment_complete(pulls: list[dict]) -> bool:
 # The bounded ``list_open_pulls`` / ``list_closed_pulls`` pair deliberately caps
 # the closed set at one page, which keeps a big repo's list view fast — but it
 # makes any CLIENT-side "authored by me" style filter unsound: your older PRs
-# simply are not in the window (kirodotdev/KiroCrew has 363 closed PRs, so a PR
-# merged a couple of days ago already ranks ~147th and falls outside).
+# simply are not in the window (on a repo with 363 closed PRs, a PR merged a
+# couple of days ago already ranks ~147th and falls outside).
 #
 # So the per-person filters are answered by GitHub's SEARCH API instead: the
 # qualifier does the filtering server-side over the WHOLE repo, and the result

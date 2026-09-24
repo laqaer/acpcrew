@@ -56,7 +56,7 @@ from junction._sqlite_compat import sqlite3
 from junction.agent_files import AGENT_FILENAME
 from junction.atomic_write import atomic_write
 from junction.config.loader import CRED_KIRO_API_KEY, read_env_file_credential
-from junction.config.paths import config_dir
+from junction.config.paths import CONFIG_DIR_NAME, config_dir
 from junction.config.paths import data_home as resolve_data_home
 from junction.kiro_cli import (
     find_kiro_cli_candidates,
@@ -170,7 +170,7 @@ try:
     _PROCESS_GROUP_SUPERVISOR_CODE = Path(_PROCESS_GROUP_SUPERVISOR).read_text(encoding="utf-8")
 except OSError:
     _PROCESS_GROUP_SUPERVISOR_CODE = ""
-_AUTH_STAGING_RELATIVE = Path(".kiro") / "crew-auth-staging"
+_AUTH_STAGING_RELATIVE = Path(".kiro") / "junction-auth-staging"
 # Marker the offline E2E harness sets on the gateway it spawns. It grants NO
 # privilege: the packaged fake ACP backend is launched by the ordinary in-place
 # path like any other runnable executable. It is kept purely as a "this gateway
@@ -1949,7 +1949,7 @@ class KiroPrerequisiteService:
             self._data_home = (
                 Path(configured_home).expanduser()
                 if configured_home
-                else self._home / ".kiro" / "crew"
+                else self._home / CONFIG_DIR_NAME
             )
         else:
             self._data_home = config_dir()
@@ -1973,18 +1973,17 @@ class KiroPrerequisiteService:
         # CLI whose valid session lives outside the staged files (an external
         # auth helper resolved from the real home) can read its own credentials,
         # and device login so kiro-cli can WRITE its own credential store there.
-        self._crew_hidden_dirs = tuple(
+        self._data_home_hidden_dirs = tuple(
             dict.fromkeys(
                 str(path)
                 for path in (
                     self._data_home,
-                    self._home / ".kiro" / "crew",
-                    self._home / ".kirocrew",
+                    self._home / CONFIG_DIR_NAME,
                 )
             )
         )
         self._hidden_probe_dirs = tuple(
-            dict.fromkeys((*self._crew_hidden_dirs, *(str(path) for path in auth_store_dirs)))
+            dict.fromkeys((*self._data_home_hidden_dirs, *(str(path) for path in auth_store_dirs)))
         )
         self._probe_environment: dict[str, str] = {}
         self._run = process_runner or _run_process
@@ -2940,7 +2939,7 @@ class KiroPrerequisiteService:
                 env=base_env,
                 timeout_secs=timeout_secs,
                 sandbox_mode=_KIRO_AUTH_SANDBOX_MODE,
-                extra_hidden_dirs=self._crew_hidden_dirs,
+                extra_hidden_dirs=self._data_home_hidden_dirs,
             )
 
         workspace = await asyncio.to_thread(

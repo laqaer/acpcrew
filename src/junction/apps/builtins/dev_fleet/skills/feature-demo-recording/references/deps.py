@@ -56,7 +56,7 @@ def _home() -> pathlib.Path:
 # ~/.local/bin is the standard user bin dir, so it is worth looking in when a tool
 # is not on PATH. Anything more specific than that is one machine's layout and does
 # not belong in a shipped skill -- point at an existing interpreter with
-# KC_VIDEO_PW_PYTHON instead of hardcoding somebody's venv.
+# JUNCTION_VIDEO_PW_PYTHON instead of hardcoding somebody's venv.
 def _ffmpeg_dirs() -> list[pathlib.Path]:
     """Resolved per call, not at import.
 
@@ -70,13 +70,13 @@ def _ffmpeg_dirs() -> list[pathlib.Path]:
 def _candidate_pw_pythons() -> list[pathlib.Path]:
     """Interpreters that might already have playwright, best first.
 
-    Naming only KC_VIDEO_PW_PYTHON is not enough in practice: a first-time
+    Naming only JUNCTION_VIDEO_PW_PYTHON is not enough in practice: a first-time
     reader usually HAS a working interpreter and does not know which, so the
     doctor told them to pip-install into the wrong one. These are standard
     locations, never a hardcoded personal venv.
     """
     out: list[pathlib.Path] = []
-    env = os.environ.get("KC_VIDEO_PW_PYTHON")
+    env = os.environ.get("JUNCTION_VIDEO_PW_PYTHON")
     if env:
         out.append(pathlib.Path(env))
     on_path = shutil.which("python3")
@@ -156,7 +156,7 @@ def check_speech() -> Result:
     model, so without one auto falls through to polly.
     """
     piper_bin = shutil.which("piper")
-    piper_model = os.environ.get("KC_VIDEO_PIPER_MODEL", "")
+    piper_model = os.environ.get("JUNCTION_VIDEO_PIPER_MODEL", "")
     piper_ready = bool(
         piper_bin and piper_model and pathlib.Path(os.path.expanduser(piper_model)).is_file()
     )
@@ -168,7 +168,7 @@ def check_speech() -> Result:
         detail = "auto picks polly -- runs in YOUR AWS account (costs a little)"
         if piper_bin:
             detail += "; piper is installed but has no model, so auto skips it. Set "
-            detail += "KC_VIDEO_PIPER_MODEL and pass --piper-model for the local path"
+            detail += "JUNCTION_VIDEO_PIPER_MODEL and pass --piper-model for the local path"
         return Result("speech", True, detail)
     return Result(
         "speech",
@@ -253,14 +253,14 @@ def check_playwright() -> Result:
                 "playwright",
                 True,
                 f"not importable by {sys.executable}, but present in {py} -- "
-                f"run the recorder with that interpreter (KC_VIDEO_PW_PYTHON={py})",
+                f"run the recorder with that interpreter (JUNCTION_VIDEO_PW_PYTHON={py})",
             )
     return Result(
         "playwright",
         False,
         f"not importable by {sys.executable}",
         fix=[sys.executable, "-m", "pip", "install", "--user", "playwright"],
-        # ...or point KC_VIDEO_PW_PYTHON at an interpreter that already has it.
+        # ...or point JUNCTION_VIDEO_PW_PYTHON at an interpreter that already has it.
         installable=True,
     )
 

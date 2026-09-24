@@ -120,7 +120,7 @@ def _default_snapshot_dir() -> str:
 
         return str(config_dir() / "snapshots")
     except Exception:
-        return str(Path.home() / ".kiro" / "crew" / "snapshots")
+        return str(Path.home() / ".junction" / "snapshots")
 
 
 def _audit(event_type: str, resources: str) -> None:
@@ -168,7 +168,7 @@ COMPONENT_HELP = {
 
 def _mc_dir() -> Path:
     # Use the shared resolver so snapshot/restore honor the documented
-    # JUNCTION_HOME override (and the same ~/.kiro/crew default) as every other
+    # JUNCTION_HOME override (and the same ~/.junction default) as every other
     # module — not an undocumented JUNCTION_DIR, which would make snapshots
     # silently target the real home even when state was relocated.
     from junction.config.loader import config_dir

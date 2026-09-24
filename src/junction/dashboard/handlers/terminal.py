@@ -1169,7 +1169,7 @@ def _vetted_completion_dir(directory: str) -> str | None:
 def _entry_is_sensitive(canonical_dir: str, entry: os.DirEntry) -> bool:
     """Whether one directory ENTRY must be withheld from a completion listing.
 
-    Vetting only the DIRECTORY is not enough: ``~/.kiro/crew`` is not itself on
+    Vetting only the DIRECTORY is not enough: ``~/.junction`` is not itself on
     the denylist while several of its children are (``security_policy.json``,
     ``profiles/``, ``token_signing.key``), so an entry-blind listing of an
     otherwise-allowed directory still discloses trust-root metadata names.

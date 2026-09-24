@@ -413,7 +413,7 @@ class CompanionStore:
                     "earliestActiveTime": s.earliest_active_time,
                     "latestActiveTime": s.latest_active_time,
                 },
-                "petName": "Crew Companion",
+                "petName": "Companion",
                 "language": self._state.config.language,
             }
 

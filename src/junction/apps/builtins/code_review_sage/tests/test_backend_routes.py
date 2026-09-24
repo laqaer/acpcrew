@@ -498,7 +498,7 @@ class TestHandlers(unittest.IsolatedAsyncioTestCase):
             return None
         self.mod._run_review_bg = _noop      # don't run the real driver
 
-        _url = "https://github.com/kirodotdev/KiroCrew/pull/20"
+        _url = "https://github.com/laqaer/junction/pull/20"
 
         class _Req:
             async def json(self):
@@ -515,7 +515,7 @@ class TestHandlers(unittest.IsolatedAsyncioTestCase):
         # dashboard aligns each row with its phase instead of showing "queued"
         # forever (regression guard for the raw-link-vs-change-id mismatch).
         self.assertEqual(run["change_ids"], [_rd.change_id_for(_url)])
-        self.assertEqual(run["change_ids"], ["GH-kirodotdev-Junction-20"])
+        self.assertEqual(run["change_ids"], ["GH-laqaer-junction-20"])
         await asyncio.sleep(0)               # let the no-op bg task drain
 
 

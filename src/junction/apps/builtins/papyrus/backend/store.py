@@ -1,6 +1,6 @@
 """Papyrus — on-disk project layout and path containment.
 
-Every paper lives under ``~/.kiro/crew/apps/papyrus/data/projects/<name>/`` (via
+Every paper lives under ``~/.junction/apps/papyrus/data/projects/<name>/`` (via
 :func:`junction.apps.manager.app_data_dir`, the platform-standard app-scoped
 data dir). Nothing is stored outside that tree and nothing is uploaded anywhere.
 
@@ -451,7 +451,7 @@ def pdf_path(project: Path, main_file: str) -> Path | None:
     main file and the suffix is a literal — but the RESULT is a name in a directory a
     cloned repository controls, and ``safe_child`` is what resolves symlinks.
 
-    A repo shipping ``main.pdf -> ~/.kiro/crew/.local_secret`` had that file served
+    A repo shipping ``main.pdf -> ~/.junction/.local_secret`` had that file served
     verbatim by the ``/pdf`` route, which renders it inline in the browser. Plain
     concatenation could not see it: every segment is innocent and the link is the whole
     trick. This is the same containment the editor's file reads have always had; the

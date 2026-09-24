@@ -976,8 +976,8 @@ def _resolve_skill_root(name: str, state: DashboardState, session_key: str = "")
     """Return the absolute skill directory for *name*, or None.
 
     Accepts the same nested-name scheme used by the existing skill API:
-    - ``foo`` → ``~/.kiro/crew/skills/foo``
-    - ``utils/tiny-url`` → ``~/.kiro/crew/skills/utils/tiny-url``
+    - ``foo`` → ``~/.junction/skills/foo``
+    - ``utils/tiny-url`` → ``~/.junction/skills/utils/tiny-url``
     - ``package/<skill>`` → resolved via _resolve_package_skill_path() lookup
     - ``kiro-user/<skill>`` → ``~/.kiro/skills/<skill>``
     - ``kiro-workspace/<skill>`` → ``<project>/.kiro/skills/<skill>``
@@ -1036,7 +1036,7 @@ def _resolve_skill_root(name: str, state: DashboardState, session_key: str = "")
     else:
         # ``junction`` skills live under the active config home, which honors
         # JUNCTION_HOME (e.g. isolated dev gateways).  Hardcoding
-        # ``~/.kirocrew`` here would 404 every skill in a JUNCTION_HOME-isolated
+        # ``~/.junction`` here would 404 every skill in a JUNCTION_HOME-isolated
         # deployment even though SkillsLoader (the GET /api/skills source)
         # resolves them correctly.
         rel = name

@@ -282,7 +282,7 @@ def ensure(spec: DatasetSpec | str, *, allow_download: bool = True) -> Path:
             ) from None
 
     # JUNCTION_BENCH_CACHE can point this anywhere, so it gets the same treatment
-    # as an argv path: a cache root of ~/.kiro/crew would drop corpus files and
+    # as an argv path: a cache root of ~/.junction would drop corpus files and
     # sidecars into the governance trust root.
     root = guard_output_dir(cache_dir(), what="corpus cache directory")
     dest = guard_write_path(root / spec.filename, what="corpus file")

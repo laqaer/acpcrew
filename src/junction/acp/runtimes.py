@@ -73,7 +73,7 @@ class RuntimeSpec:
 def dsh_launcher_path(*, home: Path | None = None, env: Mapping[str, str] | None = None) -> Path:
     """DeepSeek Harness ACP launcher used by Buzz (``dsh-acp``)."""
     environ = env if env is not None else os.environ
-    override = environ.get("DSH_ACP_LAUNCHER") or environ.get("ACPCREW_DSH_LAUNCHER")
+    override = environ.get("DSH_ACP_LAUNCHER")
     if override:
         return Path(override)
     root = home if home is not None else Path.home()

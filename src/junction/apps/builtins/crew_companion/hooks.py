@@ -6,7 +6,7 @@ when it is disabled or the gateway stops. Both are idempotent, because a
 re-enable calls startup again on a process that never restarted.
 
 This is the whole reason enabling works now. The previous manifest ran
-``open "$HOME/Applications/Crew Companion.app"`` as an ``onEnable`` script, and
+``open "$HOME/Applications/Companion.app"`` as an ``onEnable`` script, and
 ``handle_app_api_proxy`` rolls an enable BACK when that script fails — so on any
 machine without that app already present, which is every machine but the
 author's, the tile could not be switched on at all. There is nothing here to

@@ -83,7 +83,7 @@ _VALID_SANDBOX_MODES = frozenset({"auto", "standard", "strict", "cc", "off"})
 def _read_config() -> dict:
     """Read the data home's ``config.json`` once; ``{}`` on any error.
 
-    ``config_dir()`` resolves to ``~/.kiro/crew`` (or ``$JUNCTION_HOME``), so
+    ``config_dir()`` resolves to ``~/.junction`` (or ``$JUNCTION_HOME``), so
     this reads ``<data home>/config.json``.
 
     Synchronous disk read — call from a thread (e.g. ``asyncio.to_thread``) when

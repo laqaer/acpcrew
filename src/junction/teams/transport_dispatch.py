@@ -77,6 +77,7 @@ from junction.teams.cards import (
     DECISION_DENY,
     DECISION_TRUST,
     KIND_APPROVAL,
+    KIND_KEY,
     KIND_SESSION,
     parse_submit,
 )
@@ -531,7 +532,7 @@ class TeamsDispatcher:
             return
         identity = self._identity(inbound)
         candidates = self._click_session_keys(inbound, identity)
-        if payload["kc"] == KIND_APPROVAL:
+        if payload[KIND_KEY] == KIND_APPROVAL:
             decision = payload["decision"]
             approved = decision in (DECISION_APPROVE, DECISION_TRUST)
             # At most one candidate can hold this (rid, nonce) pair, so trying them in
@@ -587,7 +588,7 @@ class TeamsDispatcher:
             if renderer is not None:
                 await renderer.settle_prompt(payload["rid"], outcome)
             return
-        if payload["kc"] == KIND_SESSION:
+        if payload[KIND_KEY] == KIND_SESSION:
             # A session pick. Resolved against the list THIS process offered, so the
             # payload's index can only ever miss -- it never names a session key.
             await self._session_resume.choose(

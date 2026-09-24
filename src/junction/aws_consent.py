@@ -26,7 +26,7 @@ unwanted traffic the operator is trying to avoid.
 Where the grant lives, and why not ``config.json``
 --------------------------------------------------
 ``aws_service_consent.json`` sits on the read+write KEYSTONE floor
-(``security._CREW_SECRET_LEAVES``), the same placement as ``computer_use.json``
+(``security._DATA_HOME_SECRET_LEAVES``), the same placement as ``computer_use.json``
 and ``ops_mission_control_policy.json``, and for the same reason: this is an
 authorization record, not a preference. ``config.json`` is writable by any
 auto-approved agent shell, so a grant stored there could be minted by a

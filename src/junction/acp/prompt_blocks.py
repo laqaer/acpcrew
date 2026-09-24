@@ -100,7 +100,7 @@ _POSIX_PATH_RE = re.compile(
 
 # Windows absolute paths: a drive letter ("C:\...", "C:/...") or a UNC share
 # ("\\\\host\\share\\..."). Temp attachments land in %LOCALAPPDATA%\Temp and
-# dashboard uploads in %USERPROFILE%\.kiro\crew\uploads, so on Windows the
+# dashboard uploads in %USERPROFILE%\.junction\uploads, so on Windows the
 # POSIX grammar matched NOTHING and every image stayed prose -- then the temp
 # file was deleted at end of turn, leaving a dead reference.
 #

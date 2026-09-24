@@ -13,7 +13,7 @@ an Instances tunnel; see [instances.md](../../../docs/system-specs/modules/insta
 **Two layers travel.** *Layer A* is the visible transcript (the bundle's
 ``messages``) — what the imported tab DISPLAYS. *Layer B* (bundle_version 2) is
 the kiro-cli context window itself (``<sid>.json`` + ``<sid>.jsonl``, stored
-outside the crew home and joined via ``session_map.json``): carrying it lets the
+outside the data home and joined via ``session_map.json``): carrying it lets the
 imported session RESUME with full fidelity through ``session/load`` rather than
 replaying the transcript as a lossy ~8K prefix. Layer B is optional — a v1
 sender, or a session that never opened a kiro-cli context, ships Layer A only
@@ -231,7 +231,7 @@ def _read_layer_b(sid: str) -> dict[str, Any] | None:
 
     Layer A (the transcript in the bundle's ``messages``) is only the DISPLAY
     copy. Layer B is the model's actual context window plus tool/compaction
-    state, stored OUTSIDE the crew home at ``kiro_sessions_dir()/<sid>.{json,jsonl}``
+    state, stored OUTSIDE the data home at ``kiro_sessions_dir()/<sid>.{json,jsonl}``
     and joined to a slot through ``session_map.json``. Carrying it is what makes
     an imported session RESUME with full fidelity (``session/load``) instead of
     replaying the transcript as a lossy ~8K prefix.

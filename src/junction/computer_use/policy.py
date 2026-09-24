@@ -87,14 +87,14 @@ _DENIED_BUNDLE_PREFIXES: tuple[DeniedApp, ...] = (
             "Junction's own dashboard can change the agent's security settings, "
             "which must only be done by the operator out-of-band"
         ),
-        bundle_prefixes=("com.amazon.kiro.crew", "dev.kiro.crew"),
-        name_substrings=("kiro crew", "junction"),  # brand-ok: match the previous window name
+        bundle_prefixes=("dev.junction",),
+        name_substrings=("junction",),
         # The dashboard is ALSO reachable as a browser tab, where the app identity
         # is Chrome's or Safari's and the two lists above cannot fire. The window
         # title is the only signal that survives that hosting, so it carries the
         # same rule. Substrings, not exact strings: the tab title takes a badge
         # prefix ("(3) Junction") and popouts a "<label> — Junction" suffix.
-        title_substrings=("kiro crew", "junction"),  # brand-ok: match the previous window title
+        title_substrings=("junction",),
     ),
 )
 
@@ -126,7 +126,7 @@ def denied_rule_for(app: AppRef) -> DeniedApp | None:
     (``… — Junction``), and popout frames prepend their own label.
 
     The known false-positive cost, stated rather than discovered: any window whose
-    title merely CONTAINS "kiro crew" is refused — a code editor with this repo open,  # brand-ok
+    title merely CONTAINS "junction" is refused — a code editor with this repo open,
     a browser reading this very PR. That is accepted because the failure directions
     are not symmetric. Refusing an unrelated window is visible and recoverable (the
     refusal names the target); failing to refuse our own dashboard silently hands the

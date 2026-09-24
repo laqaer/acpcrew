@@ -133,9 +133,9 @@ def _ws_dir_resolves_inside_home(ws_dir: str) -> bool:
 
     STRICT descendant, so the root itself is refused HERE. The separate
     "cannot use config root" checks at each call site compare
-    ``config_dir() / ws_dir`` WITHOUT expanding ``~``, so ``~/.kiro/crew`` used to
-    become ``<home>/~/.kiro/crew`` there — unequal to the root, hence accepted —
-    while the plain absolute form was refused. Deciding it in this one expanded
+    ``config_dir() / ws_dir`` WITHOUT expanding ``~``, so ``~/.junction`` would
+    become ``<home>/~/.junction`` there — unequal to the root, hence accepted —
+    while the plain absolute form is refused. Deciding it in this one expanded
     place removes that split: a workspace pointed at the data-home root would put
     agent-writable memory/lessons on top of ``config.json`` / ``.env``.
 
@@ -181,7 +181,7 @@ def _format_schedule(schedule: object) -> str:
 def _internal_secret(port: int) -> str:
     """Read the per-session IPC secret written by the gateway.
 
-    The gateway writes ``~/.kiro/crew/.local_secret`` (mode 0600) after a
+    The gateway writes ``~/.junction/.local_secret`` (mode 0600) after a
     successful port bind. CLI commands that hit internal API paths (e.g.
     ``/api/spawn``) send this value as ``X-Internal-Secret`` so the
     dashboard's ``token_auth_middleware`` accepts the request without a
@@ -1155,7 +1155,7 @@ def _cron_preview(args: argparse.Namespace) -> None:
     from junction.cron_script import Done, McpToolClient, Report, Skip, resolve_script_path
 
     # Resolve and validate script path (same validation as production cron runner:
-    # format, existence, sensitive path, containment under ~/.kiro/crew/crons/)
+    # format, existence, sensitive path, containment under ~/.junction/crons/)
     try:
         script_path, func_name = resolve_script_path(args.script)
     except (ValueError, FileNotFoundError, PermissionError) as e:
@@ -1200,7 +1200,7 @@ def _cron_preview(args: argparse.Namespace) -> None:
         """Dry-run ctx: real MCP tools, suppressed hooks.
 
         Runs in-process (not sandboxed) unlike production's run_script_sandboxed.
-        Acceptable because: scripts are constrained to ~/.kiro/crew/crons/ via
+        Acceptable because: scripts are constrained to ~/.junction/crons/ via
         resolve_script_path, and the command is user-initiated from their terminal."""
 
         def __init__(self, message: str):
@@ -1580,7 +1580,7 @@ def _policy(args: argparse.Namespace) -> None:
     elif action == "profile":
         prof = get_store_profile(args.name)
         if prof is None:
-            print(f"No profile named {args.name!r} in ~/.kiro/crew/profiles/.")
+            print(f"No profile named {args.name!r} in ~/.junction/profiles/.")
             return
         bind = f"{prof.bind.type}:{prof.bind.id}" if prof.bind else "(unbound)"
         print(f"📄 Profile {prof.name!r}  bind={bind}  extends={prof.extends or '—'}")

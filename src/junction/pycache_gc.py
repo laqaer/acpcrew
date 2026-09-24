@@ -16,7 +16,7 @@ CPython transparently recompiles it on the next import (at worst a marginally
 slower first run). That safety is what lets the GC stay simple and aggressive:
 a mtime TTL for staleness plus an oldest-first total-size cap.
 
-The cache root lives under the crew home, which the agent subtree can write.
+The cache root lives under the data home, which the agent subtree can write.
 A path-based walk validated up front is therefore raceable: swap the root (or
 any subdirectory) for a symlink between the check and the delete and the GC
 follows the replacement out of the cache. The traversal is instead anchored

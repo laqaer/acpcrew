@@ -47,7 +47,7 @@ class RoutesTestCase(unittest.IsolatedAsyncioTestCase):
 
         # The sites handlers do NOT go through the store: they resolve
         # ``app_data_dir`` themselves, so patching the store alone left them
-        # writing sites.json into the OPERATOR'S real ~/.kiro/crew. Redirect the
+        # writing sites.json into the OPERATOR'S real ~/.junction. Redirect the
         # path itself -- a test must not have side effects outside its tmpdir.
         sites_file = Path(self._tmp) / "sites.json"
         sites_patcher = mock.patch.object(
@@ -328,7 +328,7 @@ class TestTheSuiteHasNoSideEffects(RoutesTestCase):
     This is not hypothetical: the sites handlers resolve ``app_data_dir``
     themselves rather than going through the store, so patching the store alone
     left ``PUT /sites`` writing sites.json into the OPERATOR'S real
-    ``~/.kiro/crew`` every time the suite ran — silently replacing whatever store
+    ``~/.junction`` every time the suite ran — silently replacing whatever store
     configuration they had. The fixture now redirects ``_sites_path``; this test
     fails if that ever stops being true.
     """
@@ -358,10 +358,9 @@ class TestTheSuiteHasNoSideEffects(RoutesTestCase):
         )
 
     async def test_the_real_data_home_is_never_resolved(self) -> None:
-        """The patched path must not be the operator's home under any spelling."""
+        """The patched path must not be the operator's data home."""
         resolved = str(routes_mod._sites_path().resolve())
-        self.assertNotIn(".kiro/crew/apps", resolved)
-        self.assertNotIn(".kirocrew/apps", resolved)
+        self.assertNotIn(".junction/apps", resolved)
 
 
 if __name__ == "__main__":

@@ -1,1 +1,1 @@
-"""Crew Companion builtin backend (routes)."""
+"""Companion builtin backend (routes)."""

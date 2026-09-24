@@ -316,7 +316,7 @@ def _sensitive_hidden_dirs() -> tuple[str, ...]:
     paths = [os.path.join(home, rel) for rel in rels]
     # RE-ANCHOR the data-home leaves under the LIVE data home as well.
     #
-    # `sensitive_home_dirs()` returns paths relative to `$HOME`, so its `.kiro/crew/*`
+    # `sensitive_home_dirs()` returns paths relative to `$HOME`, so its `.junction/*`
     # entries name the DEFAULT data home. With `JUNCTION_HOME` pointed elsewhere — a dev
     # instance, a pod, an operator who moved it — the real `sel_hmac.key`,
     # `token_signing.key`, `.local_secret` and `security_policy.json` live somewhere the
@@ -325,14 +325,16 @@ def _sensitive_hidden_dirs() -> tuple[str, ...]:
     # ZERO of the 52 entries covered it.
     #
     # Both are kept rather than swapping one for the other: the default location may
-    # still hold files from before the move, and hiding a path that does not exist is
-    # free (the launcher skips it, and a seatbelt rule for an absent path is inert).
+    # hold files from a run without the override, and hiding a path that does not exist
+    # is free (the launcher skips it, and a seatbelt rule for an absent path is inert).
     data_home = str(config_dir())
-    prefix = f".kiro{os.sep}crew{os.sep}"
+    prefixes = tuple(p.replace("/", os.sep) + os.sep for p in security.data_home_prefixes())
     for rel in rels:
         normalized = rel.replace("/", os.sep)
-        if normalized.startswith(prefix):
-            paths.append(os.path.join(data_home, normalized[len(prefix):]))
+        for prefix in prefixes:
+            if normalized.startswith(prefix):
+                paths.append(os.path.join(data_home, normalized[len(prefix):]))
+                break
     return tuple(dict.fromkeys(paths))
 
 
@@ -355,10 +357,10 @@ async def _run(
 
     Strict on its own is NOT enough. Its credential list covers third-party
     locations (``~/.aws``, ``~/.gnupg``, ``~/.config/gcloud``) plus
-    ``~/.kiro/crew/.env`` — but not the REST of Junction's own trust root. The
+    ``~/.junction/.env`` — but not the REST of Junction's own trust root. The
     gateway's ``.local_secret``, ``sel_hmac.key``, ``security_policy.json``,
     ``profiles/`` and the other keystone files sit beside it, and TeX reads files:
-    ``\\verbatiminput{~/.kiro/crew/.local_secret}`` would typeset the gateway's own
+    ``\\verbatiminput{~/.junction/.local_secret}`` would typeset the gateway's own
     callback credential into the PDF. So :func:`_sensitive_hidden_dirs` adds the
     read+write floor to ``extra_hidden_dirs``.
 

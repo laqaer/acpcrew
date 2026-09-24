@@ -167,7 +167,7 @@ _OWNER_SECURITY_INFORMATION = 0x00000001
 #: Name of the throwaway file :func: tries to create. Distinctive
 #: so a leftover is attributable, and only ever created in a directory the launch is
 #: about to REFUSE (a successful create is the rejection).
-_WRITE_PROBE_NAME = ".kirocrew-launch-write-probe"
+_WRITE_PROBE_NAME = ".junction-launch-write-probe"
 
 #: Executables that are refused as launch targets regardless of where they live.
 #:

@@ -93,8 +93,8 @@ def _isolated_app_data_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     ``data_dir`` only redirects callers that go through :mod:`..backend.store`, while
     ``do_not_pollute_paths`` reaches the operator's home directly through
     ``config.loader.config_dir()`` — and that resolver is not a read: on the default
-    path it migrates a legacy home, writes a recovery breadcrumb outside ``~/.kiro/``,
-    and sweeps archive leftovers. Pointing the variable at a temp directory redirects
+    path it creates the home and writes a recovery breadcrumb beside it
+    (``~/.junction.breadcrumb``). Pointing the variable at a temp directory redirects
     every reader of the home, including the ones no fixture knows about.
 
     This is STRICTER than the rootdir conftest's own per-test pin, and the difference is what

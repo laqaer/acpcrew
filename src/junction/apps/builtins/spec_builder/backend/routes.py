@@ -114,10 +114,10 @@ APP_NAME = "spec-builder"
 
 #: Override hooks, None = resolve live. `config_dir()` reads JUNCTION_HOME on
 #: every call, so binding these at import time froze whichever home was active
-#: when this module first loaded — which breaks pod isolation, the lazy
-#: ~/.kirocrew -> ~/.kiro/crew migration, and test isolation (the autouse
-#: fixture runs after collection has already imported this module, so it cannot
-#: reach a frozen constant). See test/test_lazy_data_home_paths.py and #874.
+#: when this module first loaded — which breaks pod isolation and test
+#: isolation (the autouse fixture runs after collection has already imported
+#: this module, so it cannot reach a frozen constant). See
+#: test/test_lazy_data_home_paths.py.
 _STATE_DIR: Path | None = None
 _INDEX_PATH: Path | None = None
 _DELETED_PATH: Path | None = None
@@ -797,7 +797,7 @@ _DUPLICATING = "duplicating"
 #: The directory is renamed into place only after every document is durable, so
 #: this marker lets a restarted gateway distinguish its complete publication
 #: from an unrelated directory at the same path.
-_DUPLICATE_MARKER = ".kirocrew-duplicate"
+_DUPLICATE_MARKER = ".junction-duplicate"
 _DUPLICATE_TOKEN_RE = re.compile(r"[0-9a-f]{32}")
 
 #: Identity of THIS gateway process, stamped into a delete reservation so
@@ -4951,7 +4951,7 @@ def _seed_prompt(
 
     SELF-CONTAINED by necessity: this app ships a ``spec-workflow`` skill in its
     manifest, but builtin apps are not run through ``bridges.register_app`` (that
-    path symlinks from ``~/.kiro/crew/apps/<name>/``, which a wheel-shipped
+    path symlinks from ``~/.junction/apps/<name>/``, which a wheel-shipped
     builtin does not have), so the skill is NOT on the agent's skill path. The
     old prompt told the agent to "follow the `spec-workflow` skill exactly" --
     a dangling reference -- and listed all three documents regardless of the spec

@@ -122,7 +122,7 @@ _INFO_PLIST_RELPATH = os.path.join(_CONTENTS_RELDIR, "Info.plist")
 #: Name of the throwaway file :func:`_directory_is_writable` creates. Mirrors
 #: ``launch_windows``' probe: distinctive so a leftover is attributable, and only ever
 #: created in a directory the launch is about to REFUSE.
-_WRITE_PROBE_NAME = ".kirocrew-launch-write-probe"
+_WRITE_PROBE_NAME = ".junction-launch-write-probe"
 
 #: Bundles refused as launch targets regardless of where they live.
 #:

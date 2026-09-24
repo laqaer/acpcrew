@@ -15,7 +15,7 @@ outlier.
 
 **Why a NAMED profile plus systemd, not a path attachment.** The obvious design —
 attach the profile to the gateway's interpreter — does not work here, and worse,
-the naive fix over-grants. ``~/.kiro/crew-venv/bin/python3`` is a *symlink* to the
+the naive fix over-grants. ``~/.junction-venv/bin/python3`` is a *symlink* to the
 system interpreter (verified on Ubuntu 26.04: it resolves to ``/usr/bin/python3``),
 and AppArmor matches an attachment against the path the kernel resolves, not the
 symlink. So a profile attached to the venv path would never match, while one

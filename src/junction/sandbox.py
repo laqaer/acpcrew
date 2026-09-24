@@ -13,7 +13,7 @@ The parent Junction process is completely unaffected — isolation applies
 only to the spawned child.  Falls back gracefully to no sandbox when the
 OS mechanism is unavailable (logged as warning).
 
-Config: ``"sandbox": "auto" | "off"`` in ``~/.kiro/crew/config.json``.
+Config: ``"sandbox": "auto" | "off"`` in ``~/.junction/config.json``.
 ``"auto"`` (default) uses namespace sandbox on Linux, seatbelt on macOS.
 """
 
@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from junction import platform_compat
-from junction.config.paths import config_dir
+from junction.config.paths import CONFIG_DIR_NAME, config_dir
 from junction.constants import GITHUB_SLUG, JUNCTION_SPAWNED_ENV, JUNCTION_SPAWNED_VALUE
 from junction.platform import current_context
 
@@ -66,7 +66,7 @@ _LEGACY_LAUNCHER_DIR = "/tmp"
 # Sensitive directories to hide from the agent subprocess tree.
 # "strict" mode hides all; "standard" mode only hides non-workflow dirs.
 _STRICT_DIRS: list[str] = [
-    ".kiro/crew-auth-staging",
+    ".kiro/junction-auth-staging",
     ".aws",
     ".gnupg",
     ".gpg",
@@ -76,33 +76,31 @@ _STRICT_DIRS: list[str] = [
     ".docker",
     ".kube",
     # Encrypted secret vault (PR 1 of #2351). The ``.vault`` dir is also a
-    # keystone leaf in ``security._CREW_SECRET_LEAVES`` (which blocks the
+    # keystone leaf in ``security._DATA_HOME_SECRET_LEAVES`` (which blocks the
     # agent's in-process tool-call file access), but a spawned ``python -c``
     # subprocess does an OS ``open()`` that never routes through that gate — so
     # the vault dir must ALSO be bind-mount-hidden here, exactly as ``.env`` is
     # in ``_CC_FILES``. Without this a same-UID agent subprocess could read
     # ``.vault/.vault_key`` and decrypt the store.
-    ".kiro/crew/.vault",
-    ".kirocrew/.vault",
+    f"{CONFIG_DIR_NAME}/.vault",
 ]
 
 _STANDARD_DIRS: list[str] = [
-    ".kiro/crew-auth-staging",
+    ".kiro/junction-auth-staging",
     ".gnupg",
     ".gpg",
     ".config/gcloud",
     ".azure",
     ".docker",
     # Secret vault — hidden in every mode (see _STRICT_DIRS note above).
-    ".kiro/crew/.vault",
-    ".kirocrew/.vault",
+    f"{CONFIG_DIR_NAME}/.vault",
 ]
 
 # CC mode: hides all credential dirs including .aws, but selectively exposes
 # .aws/config (needed for credential_process → Bedrock auth). All other .aws
 # files (credentials, sso cache, etc.) are filesystem-hidden via bind mount.
 _CC_DIRS: list[str] = [
-    ".kiro/crew-auth-staging",
+    ".kiro/junction-auth-staging",
     ".aws",
     ".gnupg",
     ".gpg",
@@ -111,8 +109,7 @@ _CC_DIRS: list[str] = [
     ".docker",
     ".kube",
     # Secret vault — hidden in every mode (see _STRICT_DIRS note above).
-    ".kiro/crew/.vault",
-    ".kirocrew/.vault",
+    f"{CONFIG_DIR_NAME}/.vault",
 ]
 
 # CC mode: files to expose read-only inside otherwise-hidden dirs.
@@ -128,11 +125,8 @@ _CC_FILES: list[str] = [
     ".pypirc",
     ".netrc",
     ".git-credentials",
-    # Junction's channel-credential file. The data home moved to ~/.kiro/crew,
-    # so the live .env is now ~/.kiro/crew/.env; the legacy ~/.kirocrew/.env is
-    # kept covered too (a not-yet-migrated box still holds real secret bytes).
-    ".kiro/crew/.env",
-    ".kirocrew/.env",
+    # Junction's channel-credential file under the default data home.
+    f"{CONFIG_DIR_NAME}/.env",
 ]
 
 
@@ -176,7 +170,7 @@ _SENSITIVE_ENV_PREFIXES: list[str] = [
 #    ``<data home>/cache/pycache`` so the embedded interpreter keeps bytecode
 #    out of the signed bundle. Inherited into the agent subtree, every foreign
 #    interpreter (uv-managed pythons, ephemeral venvs the agent's bash spawns)
-#    mirrors its whole stdlib + site-packages under the crew home instead of
+#    mirrors its whole stdlib + site-packages under the data home instead of
 #    writing ``__pycache__`` beside its own sources; each ephemeral root mints
 #    a fresh path-keyed mirror, so the cache grows without bound (multi-GB per
 #    day under heavy subagent use). ``pycache_gc.prune_pycache`` bounds what
@@ -1463,7 +1457,7 @@ def _build_launcher_script(
     env_prefixes = list(_SENSITIVE_ENV_PREFIXES)
     if sandbox_level in ("cc", "strict"):
         # Block agent subprocesses from reading credentials via os.environ
-        # (the file-level bind-mount of ~/.kiro/crew/.env hides them on disk;
+        # (the file-level bind-mount of ~/.junction/.env hides them on disk;
         # config/loader.py seeds them into os.environ for trusted children
         # only — sandboxed agents must not see them either way).
         env_prefixes = env_prefixes + list(_AGENT_DENIED_ENV_KEYS)
@@ -1486,7 +1480,7 @@ def _build_launcher_script(
     # caller asked for it to be hidden, got no error, and it stayed readable.
     #
     # That is not hypothetical: `security.sensitive_home_dirs()` is not all directories
-    # (`sel_hmac.key`, `token_signing.key`, `.kiro/crew/.env` are files), and Papyrus
+    # (`sel_hmac.key`, `token_signing.key`, `.junction/.env` are files), and Papyrus
     # passes that whole list as `extra_hidden_dirs` so a `.tex` cannot `\input` the
     # gateway's own secrets into a rendered PDF.
     #
@@ -1621,7 +1615,7 @@ def main():
         _libc.mount(None, b"/", None, _MS_REC | _MS_PRIVATE, None)
 
         # Pick a tmpfs-backed source dir for bind-mount empty files/dirs. Same-fs
-        # binds (e.g. /tmp on ext4 over ~/.kiro/crew/.env on ext4) can corrupt the
+        # binds (e.g. /tmp on ext4 over ~/.junction/.env on ext4) can corrupt the
         # target's host directory entry via a kernel propagation race when the
         # private NS is torn down — leaving the host file pointing at the empty
         # source inode permanently. Cross-fs binds use distinct inode spaces and
@@ -1777,7 +1771,7 @@ def main():
         # ban (which broke npm cacache / pnpm / ln for no gain). Masking is
         # per-level: strict bind-masks its dir/file list PLUS ~/.ssh; cc masks
         # the same MINUS ~/.ssh; standard masks only _STANDARD_DIRS (.gnupg,
-        # .gpg, .config/gcloud, .azure, .docker, crew-auth-staging). For a file
+        # .gpg, .config/gcloud, .azure, .docker, junction-auth-staging). For a file
         # that IS masked the credential inode has no reachable path, so no link
         # source exists. For a file left UNMASKED at a given level (~/.ssh under
         # cc; .aws/.ssh/_CC_FILES under standard) there is no privilege delta:
@@ -1927,7 +1921,7 @@ def main():
         # about a directory — and every directory has nlink >= 2 for `.` and
         # `..`. `SENSITIVE_FILES` deliberately carries every hidden path of BOTH
         # kinds (the hiding loops classify per entry, see `_build_launcher_script`),
-        # so without this check two ordinary directories — `~/.kiro/crew-auth-staging`
+        # so without this check two ordinary directories — `~/.kiro/junction-auth-staging`
         # and `~/.gnupg` on the measuring host — seeded the match set on every
         # spawn. The 100k-entry walk of $CWD and /tmp then ran every time, costing
         # 1.5s per sandboxed spawn and emitting the truncation warning constantly,
@@ -2155,7 +2149,7 @@ def _build_seatbelt_profile(
 # kiro's internal sandbox ON  -> Junction's seatbelt OFF for kiro-cli spawns
 # kiro's internal sandbox OFF -> Junction's seatbelt ON (unchanged default)
 # (``~/.kiro/settings`` is the kiro-cli backend's own directory, distinct from
-# Junction's data home ``~/.kiro/crew``; the filename is the literal kiro-cli ships.)
+# Junction's data home ``~/.junction``; the filename is the literal kiro-cli ships.)
 _KIRO_INTERNAL_SETTINGS_PATH = "~/.kiro/settings/amazon-internal.json"
 _KIRO_INTERNAL_SANDBOX_KEY = "sandbox"
 
@@ -2719,7 +2713,7 @@ def _no_backend_guidance() -> str:
     """
     optout = (
         "As a last resort, agent.sandbox_allow_unsandboxed_exec=true in "
-        "~/.kiro/crew/config.json allows unsandboxed execution, but that removes "
+        "~/.junction/config.json allows unsandboxed execution, but that removes "
         "the isolation this check exists to protect. "
     )
     if sys.platform.startswith("linux") and _apparmor_userns_restricted():
@@ -2747,7 +2741,7 @@ def _no_backend_guidance() -> str:
             # shlex.quote, not bare interpolation: this string is printed for the
             # user to paste into a shell, and a filename is attacker-influenced in
             # the cases that matter (a downloaded or unpacked AppImage). An
-            # AppImage named `Kiro-Crew-$(...).AppImage` would otherwise have its
+            # AppImage named `Junction-$(...).AppImage` would otherwise have its
             # substitution executed by the paste, turning a diagnostic into a
             # command-injection vector. Mirrors the quoting the desktop side
             # already does in website/electron/sandbox-profile.js.
@@ -2776,7 +2770,7 @@ def _no_backend_guidance() -> str:
     return (
         "If this host genuinely lacks a sandbox backend, set "
         "agent.sandbox_allow_unsandboxed_exec=true in "
-        "~/.kiro/crew/config.json to explicitly allow unsandboxed "
+        "~/.junction/config.json to explicitly allow unsandboxed "
         "execution, or install a supported sandbox backend "
         "(Linux user namespaces, or macOS sandbox-exec). "
     )
@@ -2923,7 +2917,7 @@ def _warn_no_isolation(mode: str) -> None:
         "~/.aws, ~/.ssh and other secrets are readable by it and only the "
         "bypassable app-level security.py checks remain. Install a supported "
         "sandbox (Linux user namespaces, or macOS < 26 sandbox-exec), or set "
-        "agent.sandbox_allow_no_isolation=true in ~/.kiro/crew/config.json to "
+        "agent.sandbox_allow_no_isolation=true in ~/.junction/config.json to "
         "acknowledge the risk and silence this warning.",
         mode,
     )
@@ -3755,7 +3749,7 @@ def wrap_argv(
                     "(the container is then the only isolation boundary):\n"
                     "        docker run -e JUNCTION_ALLOW_UNSANDBOXED=1 ...\n"
                     "  (c) Manually set agent.sandbox_allow_unsandboxed_exec=true "
-                    "in ~/.kiro/crew/config.json inside the container.\n"
+                    "in ~/.junction/config.json inside the container.\n"
                     "See docs/guides/docker.md for the full sandbox troubleshooting guide."
                 )
             else:

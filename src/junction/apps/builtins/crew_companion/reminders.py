@@ -1,7 +1,7 @@
 """Reminder model and scheduling rules — pure, so every rule is unit-tested
 without a filesystem, a gateway or a clock.
 
-Ported behaviour-first from the Crew Companion desktop app's
+Ported behaviour-first from the Companion desktop app's
 ``src/shared/reminders.ts``. The TypeScript is the specification until a rule is
 *intentionally* changed: several behaviours below look like quirks and are
 deliberate, and each one is called out where it lives. The original module's own

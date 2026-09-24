@@ -1,4 +1,4 @@
-"""HTTP routes for the Crew Companion builtin, served in-process by the gateway.
+"""HTTP routes for the Companion builtin, served in-process by the gateway.
 
 Mounted at ``/api/apps/crew-companion/`` — the same single-argument
 ``register_routes`` convention every builtin uses.

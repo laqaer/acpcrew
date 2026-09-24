@@ -272,7 +272,7 @@ def _owned_roots() -> tuple[Path, ...]:
     from junction.config import paths as config_paths
 
     roots: list[Path] = []
-    for resolver in (config_paths.data_home, config_paths.legacy_home, config_paths.kiro_home):
+    for resolver in (config_paths.data_home, config_paths.kiro_home):
         try:
             roots.append(Path(resolver()))
         except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive

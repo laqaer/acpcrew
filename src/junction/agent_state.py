@@ -15,7 +15,7 @@ Two values are tracked, both kept in this sidecar rather than the kiro spec:
 - ``cc_model`` (str): a per-agent model for the ``claude_code`` provider (that
   backend can't pick a per-agent model from ``--agent`` the way kiro-cli does).
 
-State file (``~/.kiro/crew/agent_model_state.json``, honoring ``JUNCTION_HOME``)::
+State file (``~/.junction/agent_model_state.json``, honoring ``JUNCTION_HOME``)::
 
     {
       "junction":           {"model_managed": true},

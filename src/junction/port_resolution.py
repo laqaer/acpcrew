@@ -431,9 +431,8 @@ def _args_look_like_junction(args: str) -> bool:
       form ``<python> -m junction.<subcmd>``. A Python interpreter must precede
       ``-m`` so we don't misread some other tool's ``-m`` flag (e.g. ``grep -m``).
     * **Console script** — the executable token (argv0, after wrappers such
-      as ``sudo`` / ``env``) is ``/path/to/junction <subcmd>`` or a silent
-      alias (``junction`` / ``acpcrew``). A later argument is not the
-      program: ``grep -m junction gateway somefile`` must not match. ``up``
+      as ``sudo`` / ``env``) is ``/path/to/junction <subcmd>``. A later
+      argument is not the program: ``grep -m junction gateway somefile`` must not match. ``up``
       is the operator start verb; ``gateway`` remains the script alias.
 
     Examples::

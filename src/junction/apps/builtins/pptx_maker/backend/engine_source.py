@@ -133,7 +133,7 @@ _DIR_MODE = 0o755
 #: a verified extraction, so its presence is the "this checkout is the vetted
 #: one" signal — the replacement for probing ``(root / ".git").is_dir()``, which
 #: a tarball install has no way to satisfy.
-SOURCE_MARKER_FILENAME = ".kirocrew-engine.json"
+SOURCE_MARKER_FILENAME = ".junction-engine.json"
 
 _SSL_CA_PATHS = (
     "/etc/pki/tls/certs/ca-bundle.crt",  # AL2, RHEL, CentOS

@@ -1433,7 +1433,7 @@ async def api_stt_transcribe(request: web.Request) -> web.Response:
     # A fresh unpublished path: stream_part_to_file writes to a sibling temp
     # off the event loop and publishes here atomically, so no exit path (413,
     # backend failure, cancellation) can leave a partial file at this name.
-    tmp = os.path.join(tempfile.gettempdir(), f"kc_stt_{uuid.uuid4().hex}{ext}")
+    tmp = os.path.join(tempfile.gettempdir(), f"jn_stt_{uuid.uuid4().hex}{ext}")
     try:
         try:
             await part_stream.stream_part_to_file(
@@ -2042,7 +2042,7 @@ _EDITABLE_CONFIG: dict[str, dict] = {
     "dashboard.tailscale.pin_scope": {"type": "str", "max_len": 8},
     # Local OTEL metric collection — the Privacy panel's recording switch. Safe
     # to expose where beacon_endpoint is not: turning this on writes JSONL under
-    # ~/.kiro/crew/metrics. It is NOT unconditionally local, though —
+    # ~/.junction/metrics. It is NOT unconditionally local, though —
     # `_build_recorder` attaches an OTLP reader when `telemetry.otlp_endpoint` is
     # set — so the gate below refuses the ENABLE on a host that configured an
     # endpoint, which is what keeps the switch's local-only promise true for every
@@ -2532,7 +2532,7 @@ async def api_junction_config_patch(request: web.Request) -> web.Response:
 async def api_token_local(request: web.Request) -> web.Response:
     """GET /api/token/local — issue a token for local apps.
 
-    Requires a per-session secret written to ~/.kiro/crew/.local_secret at
+    Requires a per-session secret written to ~/.junction/.local_secret at
     gateway startup. Only processes on the same machine can read the file.
     Secret passed via ``X-Local-Secret`` header (not query string, to avoid
     leaking in logs).

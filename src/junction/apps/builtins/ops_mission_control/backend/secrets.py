@@ -13,7 +13,7 @@ stores, or transmits an AWS access key — "IAM roles over keys" applied directl
 
 **Third-party tokens live on the keystone floor.** They go in
 ``<crew_home>/ops_mission_control_secrets.json``, whose filename is registered in
-``security._CREW_SECRET_LEAVES``. That places it on the shared read+write
+``security._DATA_HOME_SECRET_LEAVES``. That places it on the shared read+write
 sensitive-path floor, so the AGENT'S OWN file tools and shell cannot read or write
 it — the same mechanism that makes the governance ceiling un-disableable. The
 dashboard PUT handler is the only writer and opens the path directly (it does not
@@ -49,8 +49,8 @@ from junction.sel import sel
 
 logger = logging.getLogger(__name__)
 
-#: Filename on the crew home. MUST stay in sync with the entry added to
-#: ``security._CREW_SECRET_LEAVES`` — the test suite asserts the two agree, so a
+#: Filename on the data home. MUST stay in sync with the entry added to
+#: ``security._DATA_HOME_SECRET_LEAVES`` — the test suite asserts the two agree, so a
 #: rename cannot silently drop the keystone protection.
 SECRETS_FILENAME = "ops_mission_control_secrets.json"
 
