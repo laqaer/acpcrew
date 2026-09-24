@@ -494,7 +494,7 @@ def _args_look_like_junction(args: str) -> bool:
                     ):
                         return True
 
-        # --- Console-script form: the executable is junction (or a silent alias).
+        # --- Console-script form: the executable is the junction console script.
         # A later argument with the same spelling is not the program.
         if (
             index == program_index

@@ -105,17 +105,17 @@ def validate(raw: str) -> Path:
         return _reject(f"the live target is not a resolvable path: {exc}")
     if not checkout.is_dir():
         return _reject(f"the live target is not a directory: {checkout}")
-    kcbin = target_bin(checkout)
-    if not kcbin.is_file():
+    cli_bin = target_bin(checkout)
+    if not cli_bin.is_file():
         return _reject(
-            f"the live target has no {kcbin.name} in its .venv — provision it first "
-            f"(expected {kcbin})"
+            f"the live target has no {cli_bin.name} in its .venv — provision it first "
+            f"(expected {cli_bin})"
         )
     # A present-but-non-executable entry point is worse than a missing one: it
     # would pass a naive existence check and then fail the exec, so the caller
     # must be able to distinguish it.
-    if not os.access(kcbin, os.X_OK):
-        return _reject(f"the live target's {kcbin} is not executable")
+    if not os.access(cli_bin, os.X_OK):
+        return _reject(f"the live target's {cli_bin} is not executable")
     if not (checkout / "src" / "junction").is_dir():
         return _reject(
             f"the live target does not look like a Junction checkout "
@@ -268,12 +268,12 @@ def maybe_reexec(argv: list[str], *, log: object = None) -> None:
         if reason:
             _warn(log, f"ignoring the live target and starting the installed build: {reason}")
         return
-    kcbin = target_bin(target)
+    cli_bin = target_bin(target)
     # The loop guard proper: if the pointer names the image already executing,
     # exec'ing would replace this process with itself, forever. Compare resolved
     # paths so a symlinked entry point cannot slip past.
     try:
-        same_image = os.path.realpath(kcbin) == _current_image()
+        same_image = os.path.realpath(cli_bin) == _current_image()
     except OSError:
         same_image = False
     if same_image:
@@ -288,9 +288,9 @@ def maybe_reexec(argv: list[str], *, log: object = None) -> None:
         # subprocess (or an agent shell turn) resolves to the machine-wide
         # install, so the gateway would run the target while everything it
         # spawns re-invoked the old build.
-        "PATH": os.pathsep.join([str(kcbin.parent), os.environ.get("PATH", "")]),
+        "PATH": os.pathsep.join([str(cli_bin.parent), os.environ.get("PATH", "")]),
     }
-    _warn(log, f"live target set: executing {kcbin}")
+    _warn(log, f"live target set: executing {cli_bin}")
     try:
         os.chdir(target)
     except OSError as exc:
@@ -307,15 +307,15 @@ def maybe_reexec(argv: list[str], *, log: object = None) -> None:
         # on passing an environment through at all, which is inherent to handing a
         # gateway its own env across the exec.
         os.execve(  # nosemgrep: python.lang.security.audit.dangerous-os-exec-tainted-env-args.dangerous-os-exec-tainted-env-args
-            str(kcbin),
-            [str(kcbin), *argv],
+            str(cli_bin),
+            [str(cli_bin), *argv],
             env,
         )
     except OSError as exc:
         # Fail SAFE: an exec that could not even start leaves this process
         # intact, so continue booting the installed build rather than dying with
         # no gateway at all.
-        _warn(log, f"could not execute the live target {kcbin}: {exc}")
+        _warn(log, f"could not execute the live target {cli_bin}: {exc}")
 
 
 def _warn(log: object, message: str) -> None:

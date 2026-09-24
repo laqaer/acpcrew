@@ -5240,7 +5240,7 @@ def _sd_value(raw: str) -> str:
     return escaped
 
 
-def _dropin_content(worktree: Path, kcbin: Path) -> str:
+def _dropin_content(worktree: Path, cli_bin: Path) -> str:
     """Render the drop-in that repoints the live unit at *worktree*.
 
     The lone empty ``ExecStart=`` line RESETS the unit's ExecStart before the
@@ -5261,7 +5261,7 @@ def _dropin_content(worktree: Path, kcbin: Path) -> str:
         "[Service]\n"
         f"WorkingDirectory={_sd_value(str(worktree))}\n"
         "ExecStart=\n"
-        f"ExecStart={_sd_value(str(kcbin))} gateway --no-open\n"
+        f"ExecStart={_sd_value(str(cli_bin))} gateway --no-open\n"
         f"Environment={_sd_value('PATH=' + path_env)}\n"
     )
 
@@ -5427,7 +5427,7 @@ def _manual_restart_command() -> str:
     return "junction restart"
 
 
-def _make_live_plan(worktree: Path, kcbin: Path, *,
+def _make_live_plan(worktree: Path, cli_bin: Path, *,
                     svc: "gateway_service.GatewayServiceBackend | None",
                     foreground: "gateway_service.ForegroundBackend | None" = None,
                     ) -> dict:
@@ -5445,13 +5445,13 @@ def _make_live_plan(worktree: Path, kcbin: Path, *,
     plan: dict = {
         "mechanism": "live-target pointer",
         "pointer_path": str(live_target.pointer_path()),
-        "exec": str(kcbin),
+        "exec": str(cli_bin),
         "restart": "automatic" if (svc is not None or foreground is not None) else "manual",
     }
     if svc is not None:
-        plan.update(svc.plan(worktree, kcbin))
+        plan.update(svc.plan(worktree, cli_bin))
     elif foreground is not None:
-        plan.update(foreground.plan(worktree, kcbin))
+        plan.update(foreground.plan(worktree, cli_bin))
     else:
         plan["manual_restart"] = _manual_restart_command()
     return plan
@@ -5720,7 +5720,7 @@ async def _make_live(path: str, dry_run: bool = False,
             f"live to complete the cutover, or restart the gateway to apply it."
         )}
 
-    kcbin = real / ".venv" / "bin" / "junction"
+    cli_bin = real / ".venv" / "bin" / "junction"
     dist_index = real / "src" / "junction" / "static" / "dist" / "index.html"
 
     def _validate_artifacts_sync() -> tuple[str, str] | None:
@@ -5731,7 +5731,7 @@ async def _make_live(path: str, dry_run: bool = False,
         executable.  Running off the event loop prevents a slow or
         network-backed filesystem from stalling all gateway requests.
         """
-        if not kcbin.is_file():
+        if not cli_bin.is_file():
             return ("missing_venv", (
                 f"{real.name} has no .venv/bin/junction — Provision it first "
                 "(row menu \u2192 Provision) before making it live"
@@ -5741,7 +5741,7 @@ async def _make_live(path: str, dry_run: bool = False,
         # replacement can never start (systemd ExecStart requires +x) — leaving
         # NO gateway running.  Gate on the exec bit with a DISTINCT, actionable
         # code.
-        if not os.access(kcbin, os.X_OK):
+        if not os.access(cli_bin, os.X_OK):
             return ("venv_not_executable", (
                 f"{real.name} has a non-executable .venv/bin/junction — run "
                 "`chmod +x` on it or re-Provision the worktree before making "
@@ -5769,7 +5769,7 @@ async def _make_live(path: str, dry_run: bool = False,
         return {"ok": False, "code": code, "error": msg}
 
     try:
-        plan = _make_live_plan(real, kcbin, svc=svc if can_restart else None,
+        plan = _make_live_plan(real, cli_bin, svc=svc if can_restart else None,
                                foreground=foreground)
     except live_target.InvalidTarget as exc:
         return {"ok": False, "code": "unsafe_path", "error": (
@@ -5933,7 +5933,7 @@ async def _make_live(path: str, dry_run: bool = False,
                     "notice": _staged_notice(real.name, unit_status)}
         assert svc is not None  # can_restart implies a backend
 
-        staged, code, err = await svc.stage(real, kcbin)
+        staged, code, err = await svc.stage(real, cli_bin)
         if not staged:
             rolled_back = await _unwind()
             # Re-read definitions so the loaded config matches the restored disk

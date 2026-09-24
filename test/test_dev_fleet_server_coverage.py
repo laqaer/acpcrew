@@ -172,11 +172,11 @@ def test_launchd_live_worktree_unusable_exec_is_none(monkeypatch, tmp_path, scri
 def test_launchd_live_worktree_resolves_checkout(monkeypatch, tmp_path):
     """A venv binary in the exec line resolves to its checkout grandparent."""
     checkout = tmp_path / "junction-wt-alpha"
-    kcbin = checkout / ".venv" / "bin" / "junction"
-    kcbin.parent.mkdir(parents=True)
-    kcbin.write_text("", encoding="utf-8", newline="\n")
+    cli_bin = checkout / ".venv" / "bin" / "junction"
+    cli_bin.parent.mkdir(parents=True)
+    cli_bin.write_text("", encoding="utf-8", newline="\n")
     launcher = tmp_path / "live-gateway"
-    launcher.write_text(f"#!/bin/sh\nexec '{kcbin}' gateway\n", encoding="utf-8", newline="\n")
+    launcher.write_text(f"#!/bin/sh\nexec '{cli_bin}' gateway\n", encoding="utf-8", newline="\n")
     monkeypatch.setattr(
         gateway_service.LaunchdBackend, "live_program", staticmethod(lambda: launcher)
     )

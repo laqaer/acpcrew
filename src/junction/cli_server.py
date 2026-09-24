@@ -579,10 +579,9 @@ def _spawn_detached_gateway(port: int | None = None) -> subprocess.Popen[bytes]:
       place to look regardless of how the gateway was started.
     - Resolves the console script this CLI was invoked as
       (:func:`_own_console_script`) first, so a restart respawns the
-      *same* console stem rather than whichever one happens to sit
-      earliest on ``PATH``; then :func:`junction.service.common.which_console_script`
-      (``junction`` first, then silent aliases), falling
-      back to ``sys.executable -m junction`` so editable/source-tree
+      console script the operator actually ran; then
+      :func:`junction.service.common.which_console_script` (``junction`` on
+      ``PATH``), falling back to ``sys.executable -m junction`` so editable/source-tree
       dev installs also work without a global ``junction`` symlink.
     - Closes all inherited file descriptors so it does not pin sockets
       or pipes from the parent CLI process.

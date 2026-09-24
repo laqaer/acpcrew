@@ -53,11 +53,11 @@ def _place_entry_point(checkout: Path, mode: int = 0o755) -> Path:
     (``.venv/bin/junction`` vs ``.venv/Scripts/junction.exe``) instead of pinning
     one and failing validation everywhere else.
     """
-    kcbin = target_bin(checkout)
-    kcbin.parent.mkdir(parents=True, exist_ok=True)
-    kcbin.write_text("#!/bin/sh\n")
-    kcbin.chmod(mode)
-    return kcbin
+    cli_bin = target_bin(checkout)
+    cli_bin.parent.mkdir(parents=True, exist_ok=True)
+    cli_bin.write_text("#!/bin/sh\n")
+    cli_bin.chmod(mode)
+    return cli_bin
 
 
 def _make_valid_checkout(tmp_path: Path) -> Path:
@@ -116,8 +116,8 @@ class TestValidate:
         checkout = tmp_path / "co"
         checkout.mkdir()
         (checkout / "src" / "junction").mkdir(parents=True)
-        kcbin = _place_entry_point(checkout, mode=0o644)
-        if os.access(kcbin, os.X_OK):
+        cli_bin = _place_entry_point(checkout, mode=0o644)
+        if os.access(cli_bin, os.X_OK):
             # Windows reports every existing file as executable, so the state
             # this asserts on cannot be constructed there.
             pytest.skip("platform cannot produce a non-executable file")
@@ -501,9 +501,9 @@ class TestMaybeReexec:
         """Returns without exec when the pointer names the running image."""
         checkout = _make_valid_checkout(tmp_path)
         write_target(checkout)
-        kcbin = target_bin(checkout.resolve())
+        cli_bin = target_bin(checkout.resolve())
         # Arrange sys.argv[0] to be the target's entry point (same realpath)
-        monkeypatch.setattr(sys, "argv", [str(kcbin), "gateway"])
+        monkeypatch.setattr(sys, "argv", [str(cli_bin), "gateway"])
         monkeypatch.delenv(EXEC_MARKER, raising=False)
         mock_execve = MagicMock()
         monkeypatch.setattr(os, "execve", mock_execve)
@@ -511,12 +511,12 @@ class TestMaybeReexec:
         mock_execve.assert_not_called()
 
     def test_exec_path_argv_and_env(self, tmp_path, monkeypatch):
-        """On exec: argv is [kcbin, *argv], env has EXEC_MARKER + PROJECT_DIR + PATH."""
+        """On exec: argv is [cli_bin, *argv], env has EXEC_MARKER + PROJECT_DIR + PATH."""
         checkout = _make_valid_checkout(tmp_path)
         write_target(checkout)
         resolved = checkout.resolve()
-        kcbin = target_bin(resolved)
-        # argv[0] must differ from kcbin for the loop guard to pass
+        cli_bin = target_bin(resolved)
+        # argv[0] must differ from cli_bin for the loop guard to pass
         monkeypatch.setattr(sys, "argv", ["/usr/bin/junction", "gateway", "--port", "5476"])
         monkeypatch.delenv(EXEC_MARKER, raising=False)
         monkeypatch.setenv("PATH", "/usr/bin:/bin")
@@ -530,13 +530,13 @@ class TestMaybeReexec:
         exec_path = call_args[0]
         exec_argv = call_args[1]
         exec_env = call_args[2]
-        assert exec_path == str(kcbin)
-        assert exec_argv == [str(kcbin), "gateway", "--port", "5476"]
+        assert exec_path == str(cli_bin)
+        assert exec_argv == [str(cli_bin), "gateway", "--port", "5476"]
         assert exec_env[EXEC_MARKER] == "1"
         assert exec_env["JUNCTION_PROJECT_DIR"] == str(resolved)
         # Target venv bin is FIRST on PATH
         path_entries = exec_env["PATH"].split(os.pathsep)
-        assert path_entries[0] == str(kcbin.parent)
+        assert path_entries[0] == str(cli_bin.parent)
 
     def test_execve_oserror_is_swallowed(self, tmp_path, monkeypatch):
         """Fail-safe: OSError from execve does not propagate."""

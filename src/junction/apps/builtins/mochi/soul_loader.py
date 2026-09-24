@@ -118,8 +118,8 @@ class SoulLoader:
         user-imported pack a persona that matches its art, and is ignored for the
         built-ins, which have curated text.
 
-        Also switches the default pet name, unless the user set one explicitly —
-        picking an imported pack should not leave it introducing itself as "Mochi".
+        Also resets the pet name to the pack's built-in name (``DEFAULT_PET_NAME``
+        for an imported pack), unless the user set one explicitly.
         """
         self._pack_id = pack_id
         self._pack_description = description
