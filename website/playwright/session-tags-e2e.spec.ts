@@ -44,12 +44,12 @@ async function toggleBoardView(page: Page) {
 // resetColumns() deletes EVERY tag column, not just ones this spec created, so
 // it is gated on an EXPLICIT ephemeral-harness marker -- same contract and same
 // reasoning as session-tags-folders.spec.ts. test/test_playwright_e2e.py sets
-// KIROCREW_E2E_EPHEMERAL for the throwaway tmp-home gateway it spawns. Token
+// JUNCTION_E2E_EPHEMERAL for the throwaway tmp-home gateway it spawns. Token
 // presence alone is NOT a safe signal: it is also the normal state when
 // authenticating to a real token-protected gateway, so a developer pointing this
 // suite at their live gateway (to debug a failure) must never lose their columns.
 // Absent the marker the whole describe skips rather than wiping user state.
-const HARNESS_GATEWAY = !!process.env.KIROCREW_E2E_EPHEMERAL
+const HARNESS_GATEWAY = !!process.env.JUNCTION_E2E_EPHEMERAL
 
 async function resetColumns(request: APIRequestContext) {
   const list = await (await request.get('/api/chat/tag-columns')).json()
@@ -71,7 +71,7 @@ test.describe('E2E: sidebar tag columns', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(
       !HARNESS_GATEWAY,
-      'destructive tag-column wipes require the ephemeral harness gateway (KIROCREW_E2E_EPHEMERAL)',
+      'destructive tag-column wipes require the ephemeral harness gateway (JUNCTION_E2E_EPHEMERAL)',
     )
     await primeBrowser(page)
   })

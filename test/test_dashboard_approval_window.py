@@ -21,15 +21,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.config.loader import (
+from junction.config.loader import (
     APPROVAL_TURN_MARGIN_SECS,
     TOOL_APPROVAL_TIMEOUT_MAX,
     TOOL_APPROVAL_TIMEOUT_MIN,
     AgentConfig,
     _clamp_security_bounds,
 )
-from kiro_crew.constants import CHAT_TURN_TIMEOUT, TOOL_APPROVAL_TIMEOUT
-from kiro_crew.dashboard import turn_dispatch as td
+from junction.constants import CHAT_TURN_TIMEOUT, TOOL_APPROVAL_TIMEOUT
+from junction.dashboard import turn_dispatch as td
 
 
 class _Cfg:
@@ -47,7 +47,7 @@ def cfg(monkeypatch: pytest.MonkeyPatch):
 
     def _apply(*, window: int, turn: int = 7200) -> None:
         monkeypatch.setattr(
-            td.KiroCrewConfig, "load", staticmethod(lambda: _Cfg(window=window, turn=turn))
+            td.JunctionConfig, "load", staticmethod(lambda: _Cfg(window=window, turn=turn))
         )
 
     return _apply
@@ -70,7 +70,7 @@ class TestDefaultsAreShort:
 
         The bug was exactly an inlined ``7200.0`` here, invisible to config.
         """
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         src = inspect.getsource(chat_runner._run_chat)
         assert "wait_for(fut, timeout=7200.0)" not in src
@@ -170,7 +170,7 @@ class TestStallSignalReachesTheLoop:
 
     @staticmethod
     def _timeout_branch() -> list[str]:
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         lines = inspect.getsource(chat_runner._run_chat).split("\n")
         start = next(
@@ -229,7 +229,7 @@ class TestResolver:
         def _boom() -> None:
             raise RuntimeError("no config")
 
-        monkeypatch.setattr(td.KiroCrewConfig, "load", staticmethod(_boom))
+        monkeypatch.setattr(td.JunctionConfig, "load", staticmethod(_boom))
         assert td.tool_approval_timeout_secs() == TOOL_APPROVAL_TIMEOUT
 
     def test_non_positive_window_falls_back(self, cfg) -> None:
@@ -259,7 +259,7 @@ class TestResolver:
 class TestLoadTimeClamp:
     def test_window_at_the_ceiling_is_clamped(self, caplog: pytest.LogCaptureFixture) -> None:
         data = {"agent": {"tool_approval_timeout_secs": 7200, "chat_turn_timeout_secs": 7200}}
-        with caplog.at_level(logging.WARNING, logger="kiro_crew.config.loader"):
+        with caplog.at_level(logging.WARNING, logger="junction.config.loader"):
             _clamp_security_bounds(data)
         assert data["agent"]["tool_approval_timeout_secs"] == 7200 - APPROVAL_TURN_MARGIN_SECS
         assert "can never fire" in caplog.text
@@ -419,7 +419,7 @@ class TestNoBudgetCard:
 
     def test_runner_declines_without_waiting_when_the_window_is_zero(self) -> None:
         """A zero window must skip the await entirely, not pass 0 to wait_for."""
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         src = inspect.getsource(chat_runner._run_chat)
         idx = src.index("_approval_window = min(")
@@ -450,7 +450,7 @@ class TestCardsMatchRealRecovery:
         identified by its `_reject_label` append — not the invalid-tool-name or
         hook-error branches above it, which deliberately `break`.
         """
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         src = inspect.getsource(chat_runner._run_chat)
         idx = src.index('slot.append("tool", _reject_label, "msg msg-tool")')
@@ -478,7 +478,7 @@ class TestTimeoutCard:
 
     def test_runner_renders_the_approval_card_on_timeout(self) -> None:
         """The timeout branch must append the card, not fall through silently."""
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         src = inspect.getsource(chat_runner._run_chat)
         idx = src.index("_approval_window = min(")

@@ -28,20 +28,20 @@ const MCP_SERVERS = [
   {
     name: 'builder-mcp', command: 'npx -y @amzn/builder-mcp-server --stdio', status: 'connected',
     tools: ['ReadInternalWebsites', 'InternalCodeSearch', 'GetPipelineDetails'],
-    source: 'kirocrew', enabled: true, kirocrewManaged: true,
-    presence: { kirocrew: true, kiroGlobal: false },
+    source: 'junction', enabled: true, junctionManaged: true,
+    presence: { junction: true, kiroGlobal: false },
   },
   {
     name: 'playwright', command: 'npx @playwright/mcp@latest', status: 'connected',
     tools: ['browser_navigate', 'browser_click', 'browser_snapshot'],
-    source: 'kirocrew', enabled: true, kirocrewManaged: true,
-    presence: { kirocrew: true, kiroGlobal: true },
+    source: 'junction', enabled: true, junctionManaged: true,
+    presence: { junction: true, kiroGlobal: true },
   },
   {
     name: 'notion', command: '', url: 'https://mcp.notion.com/mcp', status: 'error',
     error: 'authorization required', tools: [],
-    source: 'kirocrew', enabled: true, kirocrewManaged: true,
-    presence: { kirocrew: true, kiroGlobal: false },
+    source: 'junction', enabled: true, junctionManaged: true,
+    presence: { junction: true, kiroGlobal: false },
   },
 ]
 

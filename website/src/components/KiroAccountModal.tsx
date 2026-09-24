@@ -34,7 +34,7 @@ interface KiroAccountModalProps {
 }
 
 const KIRO_ACCOUNT_URL = 'https://app.kiro.dev/settings/account'
-const KIRO_ACCOUNT_EMAIL_HIDDEN_KEY = 'kirocrew:account-email-hidden'
+const KIRO_ACCOUNT_EMAIL_HIDDEN_KEY = 'junction:account-email-hidden'
 
 function formatResetDate(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)

@@ -27,7 +27,7 @@ describe('CopyCommandButton', () => {
 
   it('shows check icon after successful copy', async () => {
     mockedCopyCode.mockResolvedValue(undefined)
-    render(<CopyCommandButton text="kirocrew config set x true" />)
+    render(<CopyCommandButton text="junction config set x true" />)
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button'))

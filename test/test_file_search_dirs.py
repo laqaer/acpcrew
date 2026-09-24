@@ -15,9 +15,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.file_index import FileIndex
-from kiro_crew.dashboard.handlers import api_file_search
-from kiro_crew.dashboard.handlers import files as files_mod
+from junction.dashboard.file_index import FileIndex
+from junction.dashboard.handlers import api_file_search
+from junction.dashboard.handlers import files as files_mod
 
 
 def _make_app(index=None) -> web.Application:
@@ -31,7 +31,7 @@ def _make_app(index=None) -> web.Application:
 
 @pytest.fixture()
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.sel") as m:
+    with patch("junction.dashboard.handlers.sel") as m:
         m.return_value = MagicMock()
         yield m.return_value
 
@@ -195,7 +195,7 @@ class TestFileIndexDirs:
         def fake_sensitive(p):
             return os.path.realpath(p) == real
 
-        with patch("kiro_crew.dashboard.file_index.is_sensitive_path", side_effect=fake_sensitive):
+        with patch("junction.dashboard.file_index.is_sensitive_path", side_effect=fake_sensitive):
             entries, _ = idx._walk()
         names = {e[1] for e in entries if e[5] == "dir"}
         assert "widgetslink" not in names
@@ -214,7 +214,7 @@ class TestFileIndexDirs:
         def fake_sensitive(p):
             return os.path.realpath(p) == real
 
-        with patch("kiro_crew.dashboard.file_index.is_sensitive_path", side_effect=fake_sensitive):
+        with patch("junction.dashboard.file_index.is_sensitive_path", side_effect=fake_sensitive):
             entries, _ = idx._walk()
         names = {e[1] for e in entries if e[5] == "file"}
         assert "widgetslink.py" not in names
@@ -334,8 +334,8 @@ class TestApiFileSearchDirs:
 
         with patch(
             # api_file_search imports is_sensitive_path locally from
-            # kiro_crew.security, so the source module is the patch target.
-            "kiro_crew.security.is_sensitive_path",
+            # junction.security, so the source module is the patch target.
+            "junction.security.is_sensitive_path",
             side_effect=fake_sensitive,
         ):
             async with TestClient(TestServer(_make_app())) as client:

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 /**
  * /capabilities — Agent Capabilities page.
  * SidePanelLayout with 7 tabs: Agents, Agent Templates, Connections,
- * Skills, Steering, Hooks, Prompts. Default tab is "crews" (KiroCrewAgentsPage).
+ * Skills, Steering, Hooks, Prompts. Default tab is "crews" (JunctionAgentsPage).
  *
  * Covers: page load + heading, tab navigation with content change assertion,
  * the crew roster read + a create/delete round-trip mutation through the
@@ -23,7 +23,7 @@ test.describe('Capabilities Page — /capabilities', () => {
     // Default tab description from the content area header
     // Prose deliberately: on /capabilities this string is a TAB DESCRIPTION
     // (CapabilitiesPage.tsx:16), not a PageHeader subtitle, so there is no
-    // page-subtitle testid on this route. KiroCrewAgentsPage renders the same
+    // page-subtitle testid on this route. JunctionAgentsPage renders the same
     // string as a real PageHeader subtitle, hence the #main-content scope.
     await expect(page.locator('#main-content').getByText('Agents you chat with', { exact: false })).toBeVisible({ timeout: 5000 })
   })
@@ -46,12 +46,12 @@ test.describe('Capabilities Page — /capabilities', () => {
     const cards = page.getByTestId('crew-card')
     await expect(cards.first()).toBeVisible({ timeout: 5000 })
 
-    // The minimal fixture seeds one crew bound to the "kirocrew" agent template.
+    // The minimal fixture seeds one crew bound to the "junction" agent template.
     // The crew's own NAME is "default" there (config/loader.py seeds
     // agents["default"] when config.json has no agents section), so the template
     // value is what identifies it — the same string the retired assertion
     // matched, which was a table cell in the Agent Template column, not a name.
-    const seeded = cards.filter({ hasText: 'kirocrew' }).first()
+    const seeded = cards.filter({ hasText: 'junction' }).first()
     await expect(seeded).toBeVisible({ timeout: 5000 })
 
     // Every card labels the four bindings the table used to carry as columns.
@@ -106,7 +106,7 @@ test.describe('Capabilities Page — /capabilities', () => {
       // the default agent, so Create now refuses until it is set.
       await createSheet.getByPlaceholder('e.g. oncall').fill(agentName)
       await createSheet.getByRole('combobox', { name: 'Agent Template' }).click()
-      await page.getByRole('option', { name: 'kirocrew', exact: true }).click()
+      await page.getByRole('option', { name: 'junction', exact: true }).click()
       await createSheet.getByRole('button', { name: 'Create', exact: true }).click()
 
       // A successful create closes the sheet and refetches the roster.

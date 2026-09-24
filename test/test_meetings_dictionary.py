@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 ``dictionary.toml`` is user-editable AND writable by the agent's own file tools,
 so every malformed-input case must degrade to "no corrections" rather than raise
@@ -16,8 +16,8 @@ from pathlib import Path
 import pytest
 from meetings_helpers import reset_module_state_fixture  # noqa: F401
 
-from kiro_crew.apps.builtins.meetings.backend import constants as k
-from kiro_crew.apps.builtins.meetings.backend.domain.dictionary import DomainDictionary
+from junction.apps.builtins.meetings.backend import constants as k
+from junction.apps.builtins.meetings.backend.domain.dictionary import DomainDictionary
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def dictionary(tmp_path: Path) -> DomainDictionary:
     path = tmp_path / "dictionary.toml"
     path.write_text(
         '[[term]]\ncorrect = "DynamoDB"\naliases = ["dynamo db", "dynamo d b"]\n'
-        '\n[[term]]\ncorrect = "KiroCrew"\naliases = ["kiro crew", "kiro-crew"]\n'
+        '\n[[term]]\ncorrect = "Junction"\naliases = ["kiro crew", "kiro-crew"]\n'  # brand-ok
     )
     d = DomainDictionary()
     d.load(path)
@@ -43,7 +43,8 @@ class TestMatching:
         assert dictionary.correct("Dynamo DB is fast") == "DynamoDB is fast"
 
     def test_multiple_corrections_in_one_line(self, dictionary):
-        assert dictionary.correct("kiro crew uses dynamo db") == "KiroCrew uses DynamoDB"
+        phrase = "kiro crew uses dynamo db"  # brand-ok
+        assert dictionary.correct(phrase) == "Junction uses DynamoDB"
 
     def test_word_boundaries_respected(self, dictionary):
         # No space, so the "dynamo db" alias must not match inside the word.
@@ -52,8 +53,8 @@ class TestMatching:
     @pytest.mark.parametrize(
         "correct",
         [
-            r"C:\Users\share",   # a Windows path — `\U` is "bad escape" in a template
-            r"a\1b",             # a group reference: would substitute, not insert
+            r"C:\Users\share",  # a Windows path — `\U` is "bad escape" in a template
+            r"a\1b",  # a group reference: would substitute, not insert
             r"back\\slash",
             r"trailing\\",
         ],
@@ -135,7 +136,10 @@ class TestLoading:
     def test_term_cap_enforced(self):
         d = DomainDictionary()
         d.load_terms(
-            [{"correct": f"T{i}", "aliases": [f"t {i}"]} for i in range(k.MAX_DICTIONARY_TERMS + 50)]
+            [
+                {"correct": f"T{i}", "aliases": [f"t {i}"]}
+                for i in range(k.MAX_DICTIONARY_TERMS + 50)
+            ]
         )
         assert len(d.terms) == k.MAX_DICTIONARY_TERMS
 
@@ -172,7 +176,7 @@ class TestMutation:
     def test_remove_term(self, dictionary):
         assert dictionary.remove_term("DynamoDB") is True
         assert dictionary.correct("dynamo db") == "dynamo db"
-        assert dictionary.correct("kiro crew") == "KiroCrew"
+        assert dictionary.correct("kiro crew") == "Junction"  # brand-ok
 
     def test_remove_missing_returns_false(self, dictionary):
         assert dictionary.remove_term("Nope") is False

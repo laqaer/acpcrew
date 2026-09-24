@@ -3,9 +3,9 @@
  *
  * The original shipped six switchable themes (`THEMES`, `THEME_LIST`) plus a
  * picker in the settings panel. The team sync decision removed overall themes:
- * Mochi follows the KiroCrew theme instead. This module keeps the original's
+ * Mochi follows the Junction theme instead. This module keeps the original's
  * EXPORT SURFACE so the vendored components compile unchanged, with a single
- * `'kirocrew'` id.
+ * `'junction'` id.
  *
  * LIVE FOLLOW (the mechanism, in three layers):
  *
@@ -61,7 +61,7 @@ export function applyFallbackTheme(root: HTMLElement = document.documentElement)
  * Only one id ever existed upstream; kept as a type so ported call sites
  * (`applyTheme(m.theme as ThemeId)`) compile unchanged.
  */
-export type ThemeId = 'kirocrew'
+export type ThemeId = 'junction'
 
 /**
  * Vendored-vocabulary variables derived FROM core variables. These resolve at
@@ -202,7 +202,7 @@ export function applyTheme(_theme?: string | ThemeId): void {
  * values must be literal rather than resolved from a stylesheet.
  */
 export const BUBBLE_COLORS: Record<ThemeId, { bg: string; text: string; shadow: string }> = {
-  kirocrew: { bg: 'rgba(20,21,28,0.95)', text: '#f4f4f5', shadow: 'rgba(0,0,0,0.35)' },
+  junction: { bg: 'rgba(20,21,28,0.95)', text: '#f4f4f5', shadow: 'rgba(0,0,0,0.35)' },
 }
 
 /**

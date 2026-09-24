@@ -15,9 +15,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import resource_status
-from kiro_crew.dashboard import cautious_boot
-from kiro_crew.dashboard.cautious_boot import (
+from junction import resource_status
+from junction.dashboard import cautious_boot
+from junction.dashboard.cautious_boot import (
     MAX_DELAY_SECS,
     MILD_DELAY_SECS,
     RECENT_DUMP_MAX_AGE_SECS,
@@ -26,7 +26,7 @@ from kiro_crew.dashboard.cautious_boot import (
     initialize,
     pause_before,
 )
-from kiro_crew.dashboard.crash_dump_store import DUMP_PREFIX, DUMP_SUFFIX
+from junction.dashboard.crash_dump_store import DUMP_PREFIX, DUMP_SUFFIX
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -39,7 +39,7 @@ class _DashCfg:
 
 
 class _Cfg:
-    """Minimal stand-in for KiroCrewConfig — only what _evaluate reads."""
+    """Minimal stand-in for JunctionConfig — only what _evaluate reads."""
 
     def __init__(self, cautious: bool = True) -> None:
         self.dashboard = _DashCfg(cautious)
@@ -70,7 +70,7 @@ def _create_stacked_dump(dumps_dir: Path, *, age_secs: float = 0.0) -> Path:
     """Create a dump with real stack content (a wedge), aged *age_secs*."""
     p = dumps_dir / f"{DUMP_PREFIX}20260810T010000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# Kiro Crew loop-stall crash dump — opened 20260810T010000Z\n"
+        "# Junction loop-stall crash dump — opened 20260810T010000Z\n"
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -87,7 +87,7 @@ def _create_header_only_dump(dumps_dir: Path) -> Path:
     """Create a header-only dump (clean exit — no wedge)."""
     p = dumps_dir / f"{DUMP_PREFIX}20260810T020000Z{DUMP_SUFFIX}"
     p.write_text(
-        "# Kiro Crew loop-stall crash dump — opened 20260810T020000Z\n"
+        "# Junction loop-stall crash dump — opened 20260810T020000Z\n"
         "# PID: 12345\n"
         "# If thread stacks appear below, the event loop wedged and faulthandler fired.\n"
         "\n"
@@ -273,12 +273,12 @@ class TestInitializeAndPause:
 
 class TestConfigKey:
     def test_dashboard_config_defaults_on(self):
-        from kiro_crew.config.loader import DashboardConfig
+        from junction.config.loader import DashboardConfig
 
         assert DashboardConfig().cautious_boot is True
 
     def test_loader_rejects_non_bool(self):
-        from kiro_crew.config.loader import _safe_bool
+        from junction.config.loader import _safe_bool
 
         assert _safe_bool("yes", True) is True  # non-bool → default
         assert _safe_bool(False, True) is False

@@ -17,9 +17,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-import kiro_crew.apps.hooks_integration as hooks_mod
-import kiro_crew.apps.routes as routes_mod
-from kiro_crew.apps.route_registry import RouteRegistry
+import junction.apps.hooks_integration as hooks_mod
+import junction.apps.routes as routes_mod
+from junction.apps.route_registry import RouteRegistry
 
 
 @pytest.fixture(autouse=True)
@@ -48,13 +48,13 @@ def _arm_startup(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, app_dir: Path, info: dict
 ) -> None:
     """Point on_gateway_startup at one app living under tmp_path."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     monkeypatch.setattr(hooks_mod, "_lifecycle_dispatcher", SimpleNamespace())
     monkeypatch.setattr(hooks_mod, "_route_registry", RouteRegistry(web.Application()))
     monkeypatch.setattr(hooks_mod, "list_apps", lambda: [info])
     monkeypatch.setattr(hooks_mod, "_app_hook_root", lambda _name: app_dir)
     monkeypatch.setattr(hooks_mod, "app_execution_denied", lambda *a, **kw: "")
-    monkeypatch.setattr("kiro_crew.apps.execution.third_party_execution_allowed", lambda: True)
+    monkeypatch.setattr("junction.apps.execution.third_party_execution_allowed", lambda: True)
 
 
 class TestStartupPublishesHookHealth:

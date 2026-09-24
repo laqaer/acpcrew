@@ -1,21 +1,21 @@
-"""Tests for kiro_crew.metrics.provider — consent gate + recorder singleton."""
+"""Tests for junction.metrics.provider — consent gate + recorder singleton."""
 
 import threading
 import time
 
 import pytest
 
-from kiro_crew.config.loader import KiroCrewConfig, TelemetryConfig
-from kiro_crew.metrics.provider import MetricsRecorder, get_recorder, reset_for_testing
-from kiro_crew.metrics.provider import shutdown as provider_shutdown
+from junction.config.loader import JunctionConfig, TelemetryConfig
+from junction.metrics.provider import MetricsRecorder, get_recorder, reset_for_testing
+from junction.metrics.provider import shutdown as provider_shutdown
 
 
 def _patch_config(monkeypatch, **tel_kwargs):
-    fake = KiroCrewConfig(telemetry=TelemetryConfig(**tel_kwargs))
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: fake))
-    # Keep the consent gate deterministic: a stray KIROCREW_TELEMETRY in the
+    fake = JunctionConfig(telemetry=TelemetryConfig(**tel_kwargs))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: fake))
+    # Keep the consent gate deterministic: a stray JUNCTION_TELEMETRY in the
     # ambient env must not flip these tests. Individual env-var tests re-set it.
-    monkeypatch.delenv("KIROCREW_TELEMETRY", raising=False)
+    monkeypatch.delenv("JUNCTION_TELEMETRY", raising=False)
 
 
 def test_disabled_by_default(monkeypatch):
@@ -39,7 +39,7 @@ def test_enabled_builds_live_recorder(tmp_path, monkeypatch):
         rec = get_recorder()
         assert rec.enabled is True
         # Routes through a real MeterProvider without raising.
-        rec.histogram("kirocrew.session.startup.duration", 1.0, unit="ms")
+        rec.histogram("junction.session.startup.duration", 1.0, unit="ms")
     finally:
         reset_for_testing()
 
@@ -83,7 +83,7 @@ def _worker_event(monkeypatch):
     left running by a prior test, so this helper does not touch
     ``_check_in_flight`` itself — see ``reset_for_testing``'s docstring.
     """
-    import kiro_crew.metrics.provider as provider_mod
+    import junction.metrics.provider as provider_mod
 
     done = threading.Event()
     real_worker = provider_mod._consent_worker
@@ -104,7 +104,7 @@ def test_reader_thread_reaped_when_meterprovider_init_fails(tmp_path, monkeypatc
     __init__. If a later init step (MeterProvider) raises, the reader is already
     ticking — the provider must shut it down before degrading, or an orphaned
     thread spams export WARNINGs for the whole process lifetime."""
-    import kiro_crew.metrics.provider as provider_mod
+    import junction.metrics.provider as provider_mod
 
     reset_for_testing()
     _patch_config(monkeypatch, enabled=True, local_dir=str(tmp_path))
@@ -139,7 +139,7 @@ def test_the_otlp_reader_is_reaped_too_when_init_fails(tmp_path, monkeypatch):
     is told turned collection off. get_recorder() rebuilds on a consent change, so
     a repeating failure would leak one per flip rather than one per process.
     """
-    import kiro_crew.metrics.provider as provider_mod
+    import junction.metrics.provider as provider_mod
 
     reset_for_testing()
     _patch_config(
@@ -180,7 +180,7 @@ def test_the_otlp_reader_is_reaped_too_when_init_fails(tmp_path, monkeypatch):
 def test_degrades_to_noop_when_otel_missing(monkeypatch):
     """with opentelemetry absent from the env closure, the provider
     must degrade to a no-op recorder instead of crashing the eager boot chain."""
-    import kiro_crew.metrics.provider as provider_mod
+    import junction.metrics.provider as provider_mod
 
     reset_for_testing()
     _patch_config(monkeypatch, enabled=True, local_dir="/tmp/does-not-matter")
@@ -189,7 +189,7 @@ def test_degrades_to_noop_when_otel_missing(monkeypatch):
         rec = get_recorder()
         assert rec.enabled is False
         # A histogram call on the no-op recorder must not raise.
-        rec.histogram("kirocrew.session.startup.duration", 1.0, unit="ms")
+        rec.histogram("junction.session.startup.duration", 1.0, unit="ms")
     finally:
         reset_for_testing()
 
@@ -199,8 +199,8 @@ def test_degrades_to_noop_when_otel_missing(monkeypatch):
 
 def test_otlp_reader_none_by_default():
     """Empty otlp_endpoint => no OTLP reader => no network egress (default)."""
-    from kiro_crew.config.loader import TelemetryConfig
-    from kiro_crew.metrics.provider import _build_otlp_reader
+    from junction.config.loader import TelemetryConfig
+    from junction.metrics.provider import _build_otlp_reader
 
     assert _build_otlp_reader(TelemetryConfig(enabled=True)) is None
 
@@ -209,8 +209,8 @@ def test_otlp_reader_degrades_without_logging_endpoint(monkeypatch, caplog):
     """Missing exporter degrades locally without logging credential-bearing URL."""
     import builtins
 
-    from kiro_crew.config.loader import TelemetryConfig
-    from kiro_crew.metrics.provider import _build_otlp_reader
+    from junction.config.loader import TelemetryConfig
+    from junction.metrics.provider import _build_otlp_reader
 
     real_import = builtins.__import__
 
@@ -234,8 +234,8 @@ def test_otlp_constructor_failure_never_logs_endpoint(monkeypatch, caplog):
     import sys
     import types
 
-    from kiro_crew.config.loader import TelemetryConfig
-    from kiro_crew.metrics.provider import _build_otlp_reader
+    from junction.config.loader import TelemetryConfig
+    from junction.metrics.provider import _build_otlp_reader
 
     endpoint = "https://user:super-secret@example.test/v1/metrics?token=hidden"
 
@@ -260,7 +260,7 @@ def test_otlp_constructor_failure_never_logs_endpoint(monkeypatch, caplog):
 
 def test_retention_config_defaults():
     """Retention caps default off so upgrades never delete existing shards."""
-    from kiro_crew.config.loader import TelemetryConfig
+    from junction.config.loader import TelemetryConfig
 
     cfg = TelemetryConfig()
     assert cfg.retention_days == 0
@@ -275,10 +275,10 @@ def test_retention_config_defaults():
 
 
 def test_env_var_opts_in_when_config_disabled(tmp_path, monkeypatch):
-    """KIROCREW_TELEMETRY=1 enables LOCAL telemetry even if the config flag is off."""
+    """JUNCTION_TELEMETRY=1 enables LOCAL telemetry even if the config flag is off."""
     reset_for_testing()
     _patch_config(monkeypatch, enabled=False, local_dir=str(tmp_path), export_interval_seconds=3600)
-    monkeypatch.setenv("KIROCREW_TELEMETRY", "1")
+    monkeypatch.setenv("JUNCTION_TELEMETRY", "1")
     try:
         assert get_recorder().enabled is True
     finally:
@@ -286,10 +286,10 @@ def test_env_var_opts_in_when_config_disabled(tmp_path, monkeypatch):
 
 
 def test_env_var_opts_out_when_config_enabled(monkeypatch):
-    """KIROCREW_TELEMETRY=0 force-disables telemetry even if the config flag is on."""
+    """JUNCTION_TELEMETRY=0 force-disables telemetry even if the config flag is on."""
     reset_for_testing()
     _patch_config(monkeypatch, enabled=True, local_dir="/tmp/should-not-matter")
-    monkeypatch.setenv("KIROCREW_TELEMETRY", "0")
+    monkeypatch.setenv("JUNCTION_TELEMETRY", "0")
     try:
         assert get_recorder().enabled is False
     finally:
@@ -298,9 +298,9 @@ def test_env_var_opts_out_when_config_enabled(monkeypatch):
 
 def test_env_var_blank_defers_to_config(monkeypatch):
     """A blank/unknown env value defers to the config flag (still default-off)."""
-    from kiro_crew.metrics.provider import _consent_enabled
+    from junction.metrics.provider import _consent_enabled
 
-    monkeypatch.setenv("KIROCREW_TELEMETRY", "   ")
+    monkeypatch.setenv("JUNCTION_TELEMETRY", "   ")
     assert _consent_enabled(TelemetryConfig(enabled=False)) is False
     assert _consent_enabled(TelemetryConfig(enabled=True)) is True
 
@@ -315,7 +315,7 @@ def test_otlp_reader_built_when_endpoint_set(monkeypatch):
 
     from opentelemetry.sdk.metrics.export import MetricExporter, MetricExportResult
 
-    from kiro_crew.metrics.provider import _build_otlp_reader
+    from junction.metrics.provider import _build_otlp_reader
 
     # Stub the optional OTLP/HTTP exporter extra so the test never needs the
     # real package (or a network endpoint); asserts the opt-in wiring path.
@@ -360,7 +360,7 @@ def test_otlp_reader_built_when_endpoint_set(monkeypatch):
 class TestConsentRecheck:
     """A config edit from OUTSIDE this process must take effect without a restart.
 
-    `kirocrew config set telemetry.enabled true` writes config.json from a separate
+    `junction config set telemetry.enabled true` writes config.json from a separate
     process. The recorder is memoized, so without a recheck it stays a no-op for the
     life of the gateway while the dashboard — which reads config live — reports
     collection as on. That combination is the failure these tests pin: the product
@@ -372,7 +372,7 @@ class TestConsentRecheck:
 
     def _elapse_window(self, monkeypatch):
         """Push the recheck clock past its window without sleeping."""
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         monkeypatch.setattr(
             provider_mod, "_consent_checked_at", 0.0
@@ -386,7 +386,7 @@ class TestConsentRecheck:
         on a worker. The call that notices therefore returns a no-op and a later
         one returns the live recorder.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -417,7 +417,7 @@ class TestConsentRecheck:
         filesystem; `get_recorder()` is called on the event loop by the
         route-latency middleware for every request.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -456,7 +456,7 @@ class TestConsentRecheck:
         start its own worker, the recheck would see no difference and never retry,
         and recording would stay a no-op for the life of the process.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -517,7 +517,7 @@ class TestConsentRecheck:
         lock across it blocks every get_recorder() on the event loop on lock
         ACQUISITION — the same stall as flushing inline, one level removed.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(
@@ -569,7 +569,7 @@ class TestConsentRecheck:
         come back on when the in-flight build completed — collection the user
         explicitly stopped.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -611,7 +611,7 @@ class TestConsentRecheck:
             reset_for_testing()
 
     def test_disabling_out_of_band_stops_collection_and_flushes(self, tmp_path, monkeypatch):
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(
@@ -661,7 +661,7 @@ class TestConsentRecheck:
         that inline in get_recorder() — which the route-latency middleware calls in a
         finally on every request — stalls every task on the loop.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(
@@ -716,7 +716,7 @@ class TestConsentRecheck:
     def test_unchanged_consent_does_not_rebuild(self, tmp_path, monkeypatch):
         # A rebuild tears down the exporter and its reader thread, so an idle
         # recheck that finds no change must leave the live recorder alone.
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(
@@ -739,13 +739,13 @@ class TestConsentRecheck:
             get_recorder()  # builds, stamps the clock
 
             reads = {"n": 0}
-            real_load = KiroCrewConfig.load
+            real_load = JunctionConfig.load
 
             def counting_load(cls=None):
                 reads["n"] += 1
                 return real_load()
 
-            monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: counting_load()))
+            monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: counting_load()))
             for _ in range(50):
                 get_recorder()
             assert reads["n"] == 0
@@ -764,7 +764,7 @@ class TestConsentRecheck:
             def _boom(cls=None):
                 raise OSError("config unreadable")
 
-            monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: _boom()))
+            monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: _boom()))
             self._elapse_window(monkeypatch)
 
             assert get_recorder().enabled is True
@@ -779,7 +779,7 @@ class TestConsentRecheck:
         defers the next one by a full window — leaving the setting unapplied for up
         to `_CONSENT_RECHECK_SECS` even though the user already changed it.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -806,7 +806,7 @@ class TestConsentRecheck:
     def test_get_recorder_never_reads_config_on_the_calling_thread(self, monkeypatch):
         """The recheck's config read must happen on a worker, not the caller.
 
-        `KiroCrewConfig.load()` is a fingerprint-cache hit in the steady state
+        `JunctionConfig.load()` is a fingerprint-cache hit in the steady state
         (~0.3ms) but a full read plus schema validation when the file actually
         changed (~14ms) — and that is exactly when the recheck fires. The
         route-latency middleware calls get_recorder() on the event loop for every
@@ -819,14 +819,14 @@ class TestConsentRecheck:
             caller = threading.get_ident()
             read_threads: list[int] = []
             read_done = threading.Event()
-            real_load = KiroCrewConfig.load
+            real_load = JunctionConfig.load
 
             def _tracking_load(cls=None):
                 read_threads.append(threading.get_ident())
                 read_done.set()
                 return real_load()
 
-            monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: _tracking_load()))
+            monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: _tracking_load()))
             done = _worker_event(monkeypatch)
             self._elapse_window(monkeypatch)
             get_recorder()
@@ -840,7 +840,7 @@ class TestConsentRecheck:
 
     def test_recheck_clock_is_stamped_after_a_failed_read(self, monkeypatch):
         """A failing read must not turn every later call into a fresh read."""
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -854,7 +854,7 @@ class TestConsentRecheck:
                 read_done.set()
                 raise OSError("config unreadable")
 
-            monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: _boom()))
+            monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: _boom()))
             done = _worker_event(monkeypatch)
             self._elapse_window(monkeypatch)
             get_recorder()  # schedules the check; the worker does the failing read
@@ -879,7 +879,7 @@ class TestConsentRecheck:
         to return it, a shutdown landing between the guard and the return would hand
         back None from a `-> MetricsRecorder` signature.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(
@@ -941,7 +941,7 @@ class TestConsentRecheck:
         would block until the 30s reader join finished. Holding the lock is therefore
         the same defect as flushing inline, one level removed.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(
@@ -984,12 +984,12 @@ class TestConsentRecheck:
         """A pinned host must not start collecting because config.json changed."""
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
-        monkeypatch.setenv("KIROCREW_TELEMETRY", "0")
+        monkeypatch.setenv("JUNCTION_TELEMETRY", "0")
         try:
             assert get_recorder().enabled is False
-            fake = KiroCrewConfig(telemetry=TelemetryConfig(enabled=True, local_dir=str(tmp_path)))
-            monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: fake))
-            monkeypatch.setenv("KIROCREW_TELEMETRY", "0")
+            fake = JunctionConfig(telemetry=TelemetryConfig(enabled=True, local_dir=str(tmp_path)))
+            monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: fake))
+            monkeypatch.setenv("JUNCTION_TELEMETRY", "0")
             self._elapse_window(monkeypatch)
 
             assert get_recorder().enabled is False
@@ -1020,7 +1020,7 @@ class TestResetForTestingWaitsOutInFlightWorker:
         wait loop, so the ordering is established by that signal rather than
         a guessed delay.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)
@@ -1095,7 +1095,7 @@ class TestResetForTestingWaitsOutInFlightWorker:
         this wait exists to prevent: a test would proceed believing it has a
         clean state while a stale worker can still mutate module globals.
         """
-        import kiro_crew.metrics.provider as provider_mod
+        import junction.metrics.provider as provider_mod
 
         reset_for_testing()
         _patch_config(monkeypatch, enabled=False)

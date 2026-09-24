@@ -26,13 +26,13 @@ mkdirSync(OUT, { recursive: true })
 // f1 carries a project_dir so the nested-create shot can show inheritance;
 // f1a deliberately has none of its own.
 const folders = [
-  { id: 'f1', name: 'Kiro', icon: '🚀', order: 0, collapsed: false, project_dir: '/Volumes/workplace/KiroCrew' },
+  { id: 'f1', name: 'Kiro', icon: '🚀', order: 0, collapsed: false, project_dir: '/Volumes/workplace/Junction' },
   { id: 'f1a', name: 'Backend', icon: '🧩', order: 0, collapsed: false, parent_id: 'f1' },
-  { id: 'f2', name: 'Payments', icon: '🎯', order: 1, collapsed: true, project_dir: '/repo/payments', default_agent: 'kirocrew-dev' },
+  { id: 'f2', name: 'Payments', icon: '🎯', order: 1, collapsed: true, project_dir: '/repo/payments', default_agent: 'junction-dev' },
 ]
 
 const slot = (key, title, folder_id, last_ts) => ({
-  key, title, messages: 4, running: false, agent: 'kirocrew',
+  key, title, messages: 4, running: false, agent: 'junction',
   created: '2026-07-20T01:00:00Z', last_ts, folder_id,
 })
 

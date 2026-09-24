@@ -11,7 +11,7 @@ from chat_test_helpers import _make_state, drain_background_tasks
 
 
 def _make_slack_app(state):
-    from kiro_crew.dashboard.chat_slack import (
+    from junction.dashboard.chat_slack import (
         api_chat_slot_handoff,
         api_chat_slot_slack_link,
         api_chat_slot_slack_unlink,
@@ -32,7 +32,7 @@ def _make_slack_app(state):
 class TestSlackLink:
     @pytest.mark.asyncio
     async def test_slot_not_found(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         async with TestClient(TestServer(_make_slack_app(state))) as client:
             resp = await client.post("/api/chat/slots/nope/slack-link")
@@ -40,7 +40,7 @@ class TestSlackLink:
 
     @pytest.mark.asyncio
     async def test_no_slack_client(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.get_or_create_slot("s1")
         state.slack_client = None
@@ -50,7 +50,7 @@ class TestSlackLink:
 
     @pytest.mark.asyncio
     async def test_link_success(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.append("user", "hello")
@@ -78,7 +78,7 @@ class TestSlackLink:
         (the thread already has it), but MUST register the reverse link so a
         later reply in that thread routes back to this session.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.append("user", "hello")
@@ -114,7 +114,7 @@ class TestSlackLink:
 class TestSlackUnlink:
     @pytest.mark.asyncio
     async def test_slot_not_found(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         async with TestClient(TestServer(_make_slack_app(state))) as client:
             resp = await client.post("/api/chat/slots/nope/slack-unlink")
@@ -125,7 +125,7 @@ class TestSlackUnlink:
         """The handler must clear BOTH the raw and the dashboard:-prefixed keys.
         chat_runner copies the link onto the dashboard:-prefixed key at turn
         start, so clearing only one leaves the next turn to re-inherit it."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot._slack_linked = True
@@ -151,7 +151,7 @@ class TestSlackUnlink:
     @pytest.mark.asyncio
     async def test_unlink_posts_courtesy_note(self, tmp_path, monkeypatch):
         """On a real unlink, a best-effort note is posted to the old thread."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot._slack_linked = True
@@ -172,7 +172,7 @@ class TestSlackUnlink:
     @pytest.mark.asyncio
     async def test_unlink_idempotent_when_not_linked(self, tmp_path, monkeypatch):
         """Unlinking an unlinked session is a no-op: was_linked False, no post."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.get_or_create_slot("s1")
         state.slack_client = MagicMock()
@@ -190,7 +190,7 @@ class TestSlackUnlink:
     @pytest.mark.asyncio
     async def test_unlink_courtesy_note_failure_non_fatal(self, tmp_path, monkeypatch):
         """A Slack post failure during the courtesy note must not fail the unlink."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot._slack_linked = True
@@ -221,12 +221,12 @@ class TestSlackLinkUnlinkRoundTrip:
         """
         from unittest.mock import patch
 
-        from kiro_crew.session_map import SessionMap
+        from junction.session_map import SessionMap
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         # Swap the mocked sessions for a real SessionMap backed by tmp_path.
-        with patch("kiro_crew.session_map.config_dir", return_value=tmp_path):
+        with patch("junction.session_map.config_dir", return_value=tmp_path):
             state.sessions = SessionMap()
 
         slot = state.get_or_create_slot("s1")
@@ -258,11 +258,11 @@ class TestSlackLinkUnlinkRoundTrip:
 class TestSlackChannels:
     @pytest.mark.asyncio
     async def test_list_channels(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         mock_cfg = MagicMock()
         mock_cfg.slack.tracking_channels = [{"channel_id": "C1", "name": "general"}]
         mock_cfg.slack_channels = {}
-        monkeypatch.setattr("kiro_crew.config.loader.KiroCrewConfig.load", lambda: mock_cfg)
+        monkeypatch.setattr("junction.config.loader.JunctionConfig.load", lambda: mock_cfg)
         state = _make_state(tmp_path)
         async with TestClient(TestServer(_make_slack_app(state))) as client:
             resp = await client.get("/api/slack/channels")
@@ -274,13 +274,13 @@ class TestSlackChannels:
     @pytest.mark.asyncio
     async def test_resolves_names_for_slack_channels_dict(self, tmp_path, monkeypatch):
         """cfg.slack_channels entries (no name field) should have names resolved."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         mock_cfg = MagicMock()
         mock_cfg.slack.tracking_channels = []
         cc = MagicMock()
         cc.activation = "always"
         mock_cfg.slack_channels = {"C0AU38Q0E4B": cc}
-        monkeypatch.setattr("kiro_crew.config.loader.KiroCrewConfig.load", lambda: mock_cfg)
+        monkeypatch.setattr("junction.config.loader.JunctionConfig.load", lambda: mock_cfg)
         state = _make_state(tmp_path)
         state.slack_client = MagicMock()
         state.slack_client.conversations_list = AsyncMock(
@@ -299,13 +299,13 @@ class TestSlackChannels:
     @pytest.mark.asyncio
     async def test_no_slack_client_falls_back_to_id(self, tmp_path, monkeypatch):
         """Without a Slack client, unresolved channels keep id as name (no crash)."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         mock_cfg = MagicMock()
         mock_cfg.slack.tracking_channels = []
         cc = MagicMock()
         cc.activation = "always"
         mock_cfg.slack_channels = {"C0AU38Q0E4B": cc}
-        monkeypatch.setattr("kiro_crew.config.loader.KiroCrewConfig.load", lambda: mock_cfg)
+        monkeypatch.setattr("junction.config.loader.JunctionConfig.load", lambda: mock_cfg)
         state = _make_state(tmp_path)
         state.slack_client = None
         async with TestClient(TestServer(_make_slack_app(state))) as client:
@@ -320,7 +320,7 @@ class TestSlackChannels:
 class TestHandoff:
     @pytest.mark.asyncio
     async def test_handoff_no_slack(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.get_or_create_slot("s1")
         state.slack_client = None
@@ -332,7 +332,7 @@ class TestHandoff:
 class TestHandoffChannels:
     @pytest.mark.asyncio
     async def test_deprecated_endpoint(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         async with TestClient(TestServer(_make_slack_app(state))) as client:
             resp = await client.get("/api/handoff-channels")
@@ -366,7 +366,7 @@ class TestSlackLinkAnchorTitleFallback:
 
     @pytest.mark.asyncio
     async def test_untitled_slot_uses_first_prompt_snippet(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.title = ""
@@ -379,7 +379,7 @@ class TestSlackLinkAnchorTitleFallback:
 
     @pytest.mark.asyncio
     async def test_untitled_slot_no_prompt_uses_default(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.title = ""
@@ -390,7 +390,7 @@ class TestSlackLinkAnchorTitleFallback:
 
     @pytest.mark.asyncio
     async def test_snippet_truncated(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.title = ""
@@ -404,7 +404,7 @@ class TestSlackLinkAnchorTitleFallback:
 
     @pytest.mark.asyncio
     async def test_titled_slot_keeps_title(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.title = "Build triage"
@@ -419,7 +419,7 @@ class TestSlackLinkAnchorTitleFallback:
         its raw key as the DEFAULT title (state.py initializes title to the
         key); the display_title predicate must treat that as untitled so the
         anchor shows 'New session', never the raw key."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = self._state(tmp_path)
         state.get_or_create_slot("s1")  # title defaults to the key "s1"
         await self._link(state)

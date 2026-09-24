@@ -1,11 +1,11 @@
 /**
- * Does a tool title name the kirocrew-core `wait` tool?
+ * Does a tool title name the junction-core `wait` tool?
  *
  * An allowlist of the three shapes the transport actually produces, not a
  * substring or token test:
  *
  *   wait                      direct MCP
- *   kirocrew-core___wait      pooled gateway namespacing
+ *   junction-core___wait      pooled gateway namespacing
  *   wait (mcp)                suffixed
  *
  * A strict `=== 'wait'` comparison matches only the first, which reads as "the

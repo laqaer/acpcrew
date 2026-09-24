@@ -15,22 +15,22 @@ import re
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from kiro_crew.config.loader import config_path
-from kiro_crew.context import (
+from junction.config.loader import config_path
+from junction.context import (
     _UI_LANGUAGE_CATALOGS,
     ContextBuilder,
     _build_ui_language_section,
 )
-from kiro_crew.learn import LessonStore
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.learn import LessonStore
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 
 def _seed_language(language: str) -> None:
     """Write a config.json with dashboard.language into the test-isolated home.
 
-    conftest pins KIROCREW_HOME to a per-test tmp dir, so config_path()
-    resolves inside it and KiroCrewConfig.load() picks this file up.
+    conftest pins JUNCTION_HOME to a per-test tmp dir, so config_path()
+    resolves inside it and JunctionConfig.load() picks this file up.
     """
     p = config_path()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -179,7 +179,7 @@ class TestUiLanguageSection:
         stubbed/mocked config (see TestCurrentDateTimezone) as well as from a
         loader that stopped coercing."""
         cfg = MagicMock()
-        monkeypatch.setattr("kiro_crew.context.KiroCrewConfig.load", lambda: cfg)
+        monkeypatch.setattr("junction.context.JunctionConfig.load", lambda: cfg)
         ctx = _builder(tmp_path).build_session_context()
         assert "[UI LANGUAGE]" not in ctx
         assert _build_ui_language_section(cfg) == ""
@@ -241,7 +241,7 @@ class TestCatalogDriftGate:
     def test_backend_set_matches_the_frontend_registry(self):
         """_UI_LANGUAGE_CATALOGS == SUPPORTED_LANGUAGES minus devOnly, exactly.
 
-        On failure: edit _UI_LANGUAGE_CATALOGS in src/kiro_crew/context.py to
+        On failure: edit _UI_LANGUAGE_CATALOGS in src/junction/context.py to
         match website/src/i18n/languages.ts — that file stays the single source
         of truth; the Python set is the derived copy.
         """
@@ -251,7 +251,7 @@ class TestCatalogDriftGate:
             "backend catalog set drifted from the frontend registry.\n"
             f"  missing from backend: {sorted(shipped - _UI_LANGUAGE_CATALOGS)}\n"
             f"  stale in backend:     {sorted(_UI_LANGUAGE_CATALOGS - shipped)}\n"
-            "Update _UI_LANGUAGE_CATALOGS in src/kiro_crew/context.py."
+            "Update _UI_LANGUAGE_CATALOGS in src/junction/context.py."
         )
 
     def test_dev_only_pseudolocale_stays_excluded(self):

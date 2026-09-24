@@ -1,5 +1,5 @@
 /**
- * Crew roster (KiroCrewAgentsPage) — card grid, compact table, editor dialog.
+ * Crew roster (JunctionAgentsPage) — card grid, compact table, editor dialog.
  *
  * The page used to be a StatCard row plus an HTML table, and its tests read the
  * DOM structurally (`table tr`, nth-child cells). Those assertions could not
@@ -62,14 +62,14 @@ vi.mock('framer-motion', async () => {
 
 /* ── Mock api client ── */
 const mockApi = vi.hoisted(() => ({
-  kirocrewAgents: vi.fn(),
+  junctionAgents: vi.fn(),
   agentsInstalled: vi.fn(),
   workspaces: vi.fn(),
-  kirocrewConfig: vi.fn(),
+  junctionConfig: vi.fn(),
   createWorkspace: vi.fn(),
-  createKirocrewAgent: vi.fn(),
-  updateKirocrewAgent: vi.fn(),
-  deleteKirocrewAgent: vi.fn(),
+  createJunctionAgent: vi.fn(),
+  updateJunctionAgent: vi.fn(),
+  deleteJunctionAgent: vi.fn(),
   agentResolvedModel: vi.fn(),
   setDefaultAgent: vi.fn(),
   createChatSlot: vi.fn(),
@@ -78,7 +78,7 @@ const mockApi = vi.hoisted(() => ({
 
 vi.mock('../api/client', () => ({ api: mockApi }))
 
-import KiroCrewAgentsPage from '../pages/KiroCrewAgentsPage'
+import JunctionAgentsPage from '../pages/JunctionAgentsPage'
 import CrewAvatar from '../components/CrewAvatar'
 
 function createTestStore() {
@@ -94,7 +94,7 @@ function renderPage() {
     <QueryClientProvider client={qc}>
       <Provider store={store}>
         <MemoryRouter>
-          <KiroCrewAgentsPage />
+          <JunctionAgentsPage />
         </MemoryRouter>
       </Provider>
     </QueryClientProvider>,
@@ -105,8 +105,8 @@ function renderPage() {
    called "default": otherwise the literal "default" appears three times inside
    its own card and the `default` badge could not be asserted by text. */
 const DEFAULT_CREW = {
-  name: 'kirocrew',
-  kiro_agent: 'kirocrew',
+  name: 'junction',
+  kiro_agent: 'junction',
   workspace: 'core-ws',
   memory_store: 'core-mem',
 }
@@ -118,26 +118,26 @@ const OTHER_CREW = {
   model: 'claude-opus-5',
 }
 
-const AGENTS_RESPONSE = { agents: [DEFAULT_CREW, OTHER_CREW], default_agent: 'kirocrew' }
+const AGENTS_RESPONSE = { agents: [DEFAULT_CREW, OTHER_CREW], default_agent: 'junction' }
 const WORKSPACES_RESPONSE = {
   workspaces: [{ name: 'default' }, { name: 'core-ws' }, { name: 'oncall' }],
 }
-const INSTALLED_RESPONSE = [{ name: 'kirocrew' }, { name: 'oncall-agent' }]
+const INSTALLED_RESPONSE = [{ name: 'junction' }, { name: 'oncall-agent' }]
 const CONFIG_RESPONSE = { memory_stores: { default: {}, 'core-mem': {}, 'oncall-mem': {} } }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockApi.kirocrewAgents.mockResolvedValue(AGENTS_RESPONSE)
+  mockApi.junctionAgents.mockResolvedValue(AGENTS_RESPONSE)
   mockApi.agentsInstalled.mockResolvedValue(INSTALLED_RESPONSE)
   mockApi.workspaces.mockResolvedValue(WORKSPACES_RESPONSE)
-  mockApi.kirocrewConfig.mockResolvedValue(CONFIG_RESPONSE)
-  mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'kirocrew' })
+  mockApi.junctionConfig.mockResolvedValue(CONFIG_RESPONSE)
+  mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'junction' })
   mockApi.models.mockResolvedValue([{ model_name: 'claude-opus-5' }])
   // The mutation hooks read `.error` off the resolved body, so an undefined
   // resolution (a bare vi.fn()) would throw inside onSuccess.
-  mockApi.createKirocrewAgent.mockResolvedValue({})
-  mockApi.updateKirocrewAgent.mockResolvedValue({})
-  mockApi.deleteKirocrewAgent.mockResolvedValue({})
+  mockApi.createJunctionAgent.mockResolvedValue({})
+  mockApi.updateJunctionAgent.mockResolvedValue({})
+  mockApi.deleteJunctionAgent.mockResolvedValue({})
   mockApi.setDefaultAgent.mockResolvedValue({})
   mockApi.createWorkspace.mockResolvedValue({ name: 'staging' })
 })
@@ -147,7 +147,7 @@ async function renderRoster(expectCards = 2) {
   const rendered = renderPage()
   await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(expectCards))
   await waitFor(() => expect(mockApi.workspaces).toHaveBeenCalled())
-  await waitFor(() => expect(mockApi.kirocrewConfig).toHaveBeenCalled())
+  await waitFor(() => expect(mockApi.junctionConfig).toHaveBeenCalled())
   return rendered
 }
 
@@ -197,7 +197,7 @@ describe('crew roster — cards', () => {
     const cards = screen.getAllByTestId('crew-card')
     expect(cards).toHaveLength(2)
 
-    const defaultCard = crewCard('kirocrew')
+    const defaultCard = crewCard('junction')
     expect(within(defaultCard).getByText('default')).toBeInTheDocument()
     expect(within(defaultCard).getByText('Used for all new chats')).toBeInTheDocument()
 
@@ -220,16 +220,16 @@ describe('crew roster — cards', () => {
     // on MEMORY STORE and nowhere else. A bare "Shared" badge in the header was
     // read by a first-run reviewer as "shared with my teammates", so the point
     // of this shape is that it names WHICH store is doubled up.
-    mockApi.kirocrewAgents.mockResolvedValue({
+    mockApi.junctionAgents.mockResolvedValue({
       agents: [
         { ...DEFAULT_CREW, memory_store: 'core-mem' },
         { ...OTHER_CREW, workspace: 'oncall', memory_store: 'core-mem' },
       ],
-      default_agent: 'kirocrew',
+      default_agent: 'junction',
     })
     await renderRoster()
 
-    for (const name of ['kirocrew', 'oncall']) {
+    for (const name of ['junction', 'oncall']) {
       const card = crewCard(name)
       // One marker per card — the workspaces are distinct, so files are not shared.
       expect(within(card).getAllByText('shared')).toHaveLength(1)
@@ -296,7 +296,7 @@ describe('crew roster — filtering', () => {
     })
     await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(1))
     expect(crewCard('oncall')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Edit crew kirocrew' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit crew junction' })).not.toBeInTheDocument()
   })
 
   it('shows the filter empty state when nothing matches', async () => {
@@ -309,7 +309,7 @@ describe('crew roster — filtering', () => {
   })
 
   it('shows the zero-crew empty state when there are no crews at all', async () => {
-    mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+    mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
     await waitFor(() =>
       expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No crews'),
@@ -321,12 +321,12 @@ describe('crew roster — filtering', () => {
 
   it('does not flash the empty state while an invalidateQueries-driven refetch is in flight', async () => {
     // After retiring the refreshTrigger-in-queryKey pattern (#4179), the
-    // roster query key is stable (`['kirocrew-agents']`) and refetches are
+    // roster query key is stable (`['junction-agents']`) and refetches are
     // triggered by `queryClient.invalidateQueries` from the WS handler.
     // `invalidateQueries` keeps the cached data visible during the refetch,
     // so the roster must never collapse to the empty state.
     let resolveSecond: (v: unknown) => void = () => {}
-    mockApi.kirocrewAgents
+    mockApi.junctionAgents
       .mockResolvedValueOnce(AGENTS_RESPONSE)
       .mockImplementationOnce(() => new Promise(res => { resolveSecond = res }))
 
@@ -336,7 +336,7 @@ describe('crew roster — filtering', () => {
       <QueryClientProvider client={qc}>
         <Provider store={store}>
           <MemoryRouter>
-            <KiroCrewAgentsPage />
+            <JunctionAgentsPage />
           </MemoryRouter>
         </Provider>
       </QueryClientProvider>,
@@ -344,11 +344,11 @@ describe('crew roster — filtering', () => {
     await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(2))
 
     // Simulate the WS handler: invalidate the query in-place (no key change).
-    act(() => { qc.invalidateQueries({ queryKey: ['kirocrew-agents'] }) })
+    act(() => { qc.invalidateQueries({ queryKey: ['junction-agents'] }) })
 
     // The prior roster must remain on screen throughout the pending refetch —
     // no empty state, cards intact.
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(2))
     expect(screen.queryByTestId('empty-state-title')).not.toBeInTheDocument()
     expect(screen.getAllByTestId('crew-card')).toHaveLength(2)
 
@@ -367,9 +367,9 @@ describe('crew roster — description', () => {
     const long =
       'Paged-alert triage crew — owns the runbooks, keeps the escalation ladder ' +
       'warm, and files the follow-up tickets after every page.'
-    mockApi.kirocrewAgents.mockResolvedValue({
+    mockApi.junctionAgents.mockResolvedValue({
       agents: [DEFAULT_CREW, { ...OTHER_CREW, description: long }],
-      default_agent: 'kirocrew',
+      default_agent: 'junction',
     })
     await renderRoster()
 
@@ -386,7 +386,7 @@ describe('crew roster — description', () => {
     await renderRoster()
     // DEFAULT_CREW has no description, so the card shows the default-crew line
     // instead — and must not advertise a tooltip that would render as blank.
-    const filler = within(crewCard('kirocrew')).getByText('Used for all new chats')
+    const filler = within(crewCard('junction')).getByText('Used for all new chats')
     expect(filler).not.toHaveAttribute('title')
   })
 
@@ -405,7 +405,7 @@ describe('crew roster — description', () => {
 
     // And the default crew keeps its own hint in BOTH views, rather than one
     // view explaining why it matters and the other calling it undescribed.
-    const defaultRow = screen.getByRole('button', { name: 'Edit crew kirocrew' }).closest('tr')!
+    const defaultRow = screen.getByRole('button', { name: 'Edit crew junction' }).closest('tr')!
     expect(within(defaultRow).getByText('Used for all new chats')).toBeInTheDocument()
   })
 })
@@ -478,12 +478,12 @@ describe('crew roster — view toggle', () => {
   })
 
   it('flags a doubled-up store in the row, naming which one', async () => {
-    mockApi.kirocrewAgents.mockResolvedValue({
+    mockApi.junctionAgents.mockResolvedValue({
       agents: [
         { ...DEFAULT_CREW, memory_store: 'core-mem' },
         { ...OTHER_CREW, workspace: 'oncall', memory_store: 'core-mem' },
       ],
-      default_agent: 'kirocrew',
+      default_agent: 'junction',
     })
     await renderRoster()
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
@@ -495,7 +495,7 @@ describe('crew roster — view toggle', () => {
   })
 
   it('is not offered when there are no crews to lay out', async () => {
-    mockApi.kirocrewAgents.mockResolvedValue({ agents: [], default_agent: '' })
+    mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
     await waitFor(() =>
       expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No crews'),
@@ -545,7 +545,7 @@ describe('crew editor — create', () => {
     fireEvent.click(within(sheet).getByRole('button', { name: 'Create' }))
 
     expect(await within(sheet).findByText('Name is required')).toBeInTheDocument()
-    expect(mockApi.createKirocrewAgent).not.toHaveBeenCalled()
+    expect(mockApi.createJunctionAgent).not.toHaveBeenCalled()
     // The dialog stays open so the user can fix it in place.
     expect(screen.getByRole('dialog', { name: 'Create a new crew' })).toBeInTheDocument()
   })
@@ -558,11 +558,11 @@ describe('crew editor — create', () => {
     await user.type(within(sheet).getByPlaceholderText('e.g. oncall'), 'staging')
     fireEvent.click(within(sheet).getByRole('button', { name: 'Create' }))
 
-    // The template used to be pre-filled with 'kirocrew', so a crew created
+    // The template used to be pre-filled with 'junction', so a crew created
     // this way became an alias for the DEFAULT agent and the chat picker
     // appeared to "fall back to default" (#1684). It is now an explicit choice.
     expect(await within(sheet).findByText('Agent Template is required')).toBeInTheDocument()
-    expect(mockApi.createKirocrewAgent).not.toHaveBeenCalled()
+    expect(mockApi.createJunctionAgent).not.toHaveBeenCalled()
   })
 
   it('creates the crew with the chosen bindings', async () => {
@@ -581,7 +581,7 @@ describe('crew editor — create', () => {
     fireEvent.click(within(sheet).getByRole('button', { name: 'Create' }))
 
     await waitFor(() =>
-      expect(mockApi.createKirocrewAgent).toHaveBeenCalledWith({
+      expect(mockApi.createJunctionAgent).toHaveBeenCalledWith({
         name: 'staging',
         kiro_agent: 'oncall-agent',
         workspace: 'default',
@@ -603,8 +603,8 @@ describe('crew editor — save', () => {
     fireEvent.change(within(sheet).getByRole('textbox', { name: 'Triggers' }), { target: { value: 'pager' } })
     fireEvent.click(within(sheet).getByRole('button', { name: 'Save changes' }))
 
-    await waitFor(() => expect(mockApi.updateKirocrewAgent).toHaveBeenCalled())
-    expect(mockApi.updateKirocrewAgent).toHaveBeenCalledWith('oncall', {
+    await waitFor(() => expect(mockApi.updateJunctionAgent).toHaveBeenCalled())
+    expect(mockApi.updateJunctionAgent).toHaveBeenCalledWith('oncall', {
       kiro_agent: 'oncall-agent',
       workspace: 'oncall',
       memory_store: 'oncall-mem',
@@ -639,8 +639,8 @@ describe('crew editor — save', () => {
     })
     fireEvent.click(within(sheet).getByRole('button', { name: 'Save changes' }))
 
-    await waitFor(() => expect(mockApi.updateKirocrewAgent).toHaveBeenCalled())
-    expect(mockApi.updateKirocrewAgent).toHaveBeenCalledWith(
+    await waitFor(() => expect(mockApi.updateJunctionAgent).toHaveBeenCalled())
+    expect(mockApi.updateJunctionAgent).toHaveBeenCalledWith(
       'oncall',
       expect.objectContaining({ triggers: 'incident, prod outage' }),
     )
@@ -657,7 +657,7 @@ describe('crew editor — save', () => {
     gotoPane(sheet, 'routing')
     fireEvent.change(within(sheet).getByRole('textbox', { name: 'Triggers' }), { target: { value: 'pager' } })
     fireEvent.click(within(sheet).getByRole('button', { name: 'Save changes' }))
-    await waitFor(() => expect(mockApi.updateKirocrewAgent).toHaveBeenCalled())
+    await waitFor(() => expect(mockApi.updateJunctionAgent).toHaveBeenCalled())
     expect(mockApi.setDefaultAgent).not.toHaveBeenCalled()
   })
 })
@@ -667,7 +667,7 @@ describe('crew editor — stale writes', () => {
     // Save A, dismiss while it is in flight, then open B: A's success must not
     // dismiss B's panel or discard B's edits.
     let resolveA: (v: unknown) => void = () => {}
-    mockApi.updateKirocrewAgent.mockImplementation(() => new Promise(res => { resolveA = res }))
+    mockApi.updateJunctionAgent.mockImplementation(() => new Promise(res => { resolveA = res }))
     await renderRoster()
 
     const sheetA = await openEditor('oncall')
@@ -677,18 +677,18 @@ describe('crew editor — stale writes', () => {
       expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
     )
 
-    const sheetB = await openEditor('kirocrew')
+    const sheetB = await openEditor('junction')
     resolveA({ ok: true })
 
     // B survives, and A's outcome is not reported against it.
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalled())
-    expect(screen.getByRole('dialog', { name: 'Edit crew kirocrew' })).toBeInTheDocument()
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
+    expect(screen.getByRole('dialog', { name: 'Edit crew junction' })).toBeInTheDocument()
     expect(within(sheetB).queryByRole('button', { name: 'Save changes' })).toBeInTheDocument()
   })
 
   it('does not report a stale write\u2019s error against the crew now open', async () => {
     let rejectA: (e: unknown) => void = () => {}
-    mockApi.updateKirocrewAgent.mockImplementation(() => new Promise((_res, rej) => { rejectA = rej }))
+    mockApi.updateJunctionAgent.mockImplementation(() => new Promise((_res, rej) => { rejectA = rej }))
     await renderRoster()
 
     const sheetA = await openEditor('oncall')
@@ -698,10 +698,10 @@ describe('crew editor — stale writes', () => {
       expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
     )
 
-    const sheetB = await openEditor('kirocrew')
+    const sheetB = await openEditor('junction')
     rejectA(new Error('oncall write blew up'))
 
-    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Edit crew kirocrew' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Edit crew junction' })).toBeInTheDocument())
     expect(within(sheetB).queryByText('oncall write blew up')).not.toBeInTheDocument()
   })
 
@@ -709,7 +709,7 @@ describe('crew editor — stale writes', () => {
     // The narrower case a name comparison could not catch: dismiss and reopen
     // the SAME crew, and the stale completion still matched by name.
     let resolveA: (v: unknown) => void = () => {}
-    mockApi.updateKirocrewAgent.mockImplementation(() => new Promise(res => { resolveA = res }))
+    mockApi.updateJunctionAgent.mockImplementation(() => new Promise(res => { resolveA = res }))
     await renderRoster()
 
     const first = await openEditor('oncall')
@@ -722,7 +722,7 @@ describe('crew editor — stale writes', () => {
     await openEditor('oncall')
     resolveA({ ok: true })
 
-    await waitFor(() => expect(mockApi.kirocrewAgents).toHaveBeenCalled())
+    await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
     expect(screen.getByRole('dialog', { name: 'Edit crew oncall' })).toBeInTheDocument()
   })
 
@@ -740,13 +740,13 @@ describe('crew editor — stale writes', () => {
       expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
     )
 
-    const replacement = await openEditor('kirocrew')
+    const replacement = await openEditor('junction')
     resolveSlot({ key: 'slot-1', title: 'oncall' })
 
     // The replacement panel survives; the user is not thrown into /chat.
     await waitFor(() => expect(mockApi.createChatSlot).toHaveBeenCalled())
     expect(replacement).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Edit crew kirocrew' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Edit crew junction' })).toBeInTheDocument()
   })
 })
 
@@ -755,18 +755,18 @@ describe('crew roster — default crew bar', () => {
     await renderRoster()
 
     const picker = screen.getByRole('combobox', { name: 'New sessions use' })
-    expect(picker).toHaveTextContent('kirocrew')
+    expect(picker).toHaveTextContent('junction')
 
     fireEvent.click(picker)
     fireEvent.click(await screen.findByRole('option', { name: 'oncall' }))
 
     // The write is immediate — this control is not part of any form.
     await waitFor(() => expect(mockApi.setDefaultAgent).toHaveBeenCalledWith('oncall'))
-    expect(mockApi.updateKirocrewAgent).not.toHaveBeenCalled()
+    expect(mockApi.updateJunctionAgent).not.toHaveBeenCalled()
   })
 
   it('is hidden when there is nothing to choose between', async () => {
-    mockApi.kirocrewAgents.mockResolvedValue({ agents: [DEFAULT_CREW], default_agent: 'kirocrew' })
+    mockApi.junctionAgents.mockResolvedValue({ agents: [DEFAULT_CREW], default_agent: 'junction' })
     await renderRoster(1)
 
     expect(screen.getByTestId('crew-card')).toBeInTheDocument()
@@ -808,11 +808,11 @@ describe('crew editor — delete', () => {
     // button in a slide-in panel was the flagged regret risk.
     gotoPane(sheet, 'danger')
     fireEvent.click(within(sheet).getByRole('button', { name: 'Delete crew' }))
-    expect(mockApi.deleteKirocrewAgent).not.toHaveBeenCalled()
+    expect(mockApi.deleteJunctionAgent).not.toHaveBeenCalled()
     expect(within(sheet).getByText(/Delete crew oncall\?/)).toBeInTheDocument()
 
     fireEvent.click(within(sheet).getByTestId('confirm-delete-crew'))
-    await waitFor(() => expect(mockApi.deleteKirocrewAgent).toHaveBeenCalledWith('oncall'))
+    await waitFor(() => expect(mockApi.deleteJunctionAgent).toHaveBeenCalledWith('oncall'))
   })
 
   it('abandons the delete when the confirm step is cancelled', async () => {
@@ -823,12 +823,12 @@ describe('crew editor — delete', () => {
     fireEvent.click(within(sheet).getByRole('button', { name: 'Delete crew' }))
     fireEvent.click(within(sheet).getByTestId('cancel-delete-crew'))
     expect(within(sheet).queryByTestId('confirm-delete-crew')).not.toBeInTheDocument()
-    expect(mockApi.deleteKirocrewAgent).not.toHaveBeenCalled()
+    expect(mockApi.deleteJunctionAgent).not.toHaveBeenCalled()
   })
 
   it('hides the danger zone on the default crew', async () => {
     await renderRoster()
-    const sheet = await openEditor('kirocrew')
+    const sheet = await openEditor('junction')
 
     // The backend refuses to delete the default crew, so the affordance is not
     // offered rather than offered-then-rejected.
@@ -862,7 +862,7 @@ describe('CrewAvatar', () => {
   }
 
   it('renders a decorative img backed by a local data URI', async () => {
-    const { img, src } = renderAvatar('kirocrew')
+    const { img, src } = renderAvatar('junction')
     expect(img).toBeTruthy()
     // Generated in-process — never an http(s) URL, so no crew name leaves the
     // machine and the roster works offline.
@@ -877,7 +877,7 @@ describe('CrewAvatar', () => {
     const second = renderAvatar('oncall')
     expect(second.src).toBe(first.src)
 
-    const other = renderAvatar('kirocrew')
+    const other = renderAvatar('junction')
     expect(other.src).not.toBe(first.src)
   })
 })

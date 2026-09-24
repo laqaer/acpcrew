@@ -13,8 +13,8 @@ import json
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.config.loader import ConfigReadError, read_config_for_update
+from junction import platform_compat
+from junction.config.loader import ConfigReadError, read_config_for_update
 
 _REAL_SETTINGS = {
     "agent": {"approval_mode": "interactive", "max_subagents": 8},
@@ -90,7 +90,7 @@ class TestNoFailOpenConfigWriters:
         import ast
         import pathlib
 
-        root = pathlib.Path(__file__).resolve().parents[1] / "src" / "kiro_crew"
+        root = pathlib.Path(__file__).resolve().parents[1] / "src" / "junction"
         # The one documented exception: interactive `config set --local`
         # deliberately overwrites a corrupt overlay (see config.md).
         allowed = {("cli_config.py", "d")}
@@ -175,7 +175,7 @@ class TestNoModeWideningConfigWriters:
         import ast
         import pathlib
 
-        root = pathlib.Path(__file__).resolve().parents[1] / "src" / "kiro_crew"
+        root = pathlib.Path(__file__).resolve().parents[1] / "src" / "junction"
         # loader.py IS the implementation; cli_commands.py hand-rolls the same
         # contract (explicit mode= + restrict_to_owner) and predates the helper.
         allowed_files = {"loader.py", "cli_commands.py"}
@@ -251,7 +251,7 @@ class TestWriteConfigAtomically:
         import os
         import stat
 
-        from kiro_crew.config.loader import write_config_atomically
+        from junction.config.loader import write_config_atomically
 
         path = tmp_path / "config.json"
         path.write_text(json.dumps({"slack": {"bot_token": "xoxb-secret"}}), encoding="utf-8")
@@ -270,7 +270,7 @@ class TestWriteConfigAtomically:
     def test_new_file_is_owner_only(self, tmp_path):
         import stat
 
-        from kiro_crew.config.loader import write_config_atomically
+        from junction.config.loader import write_config_atomically
 
         path = tmp_path / "config.json"
         write_config_atomically(path, {"auto_update": True})
@@ -279,15 +279,15 @@ class TestWriteConfigAtomically:
     def test_does_not_spawn_a_subprocess_on_the_event_loop(self, tmp_path, monkeypatch):
         """Must not call restrict_to_owner: it shells out to icacls on Windows.
 
-        This function runs inside async request handlers and KiroCrewConfig.save(),
+        This function runs inside async request handlers and JunctionConfig.save(),
         so a blocking subprocess here would freeze the gateway's event loop —
         the `no-blocking-call-on-event-loop` AUTOSDE rule. Pinned because the
         obvious "harden the file" reflex reintroduces it.
         """
         import subprocess
 
-        from kiro_crew import platform_compat
-        from kiro_crew.config.loader import write_config_atomically
+        from junction import platform_compat
+        from junction.config.loader import write_config_atomically
 
         def _fail(*a, **k):  # pragma: no cover - must never run
             raise AssertionError("write_config_atomically must not spawn a subprocess")
@@ -306,7 +306,7 @@ class TestWriteConfigAtomically:
         Symlinking config.json into a dotfiles repo is a normal setup, and the
         write_text this replaced followed the link. Preserve that.
         """
-        from kiro_crew.config.loader import write_config_atomically
+        from junction.config.loader import write_config_atomically
 
         target = tmp_path / "real-config.json"
         link = tmp_path / "config.json"
@@ -319,7 +319,7 @@ class TestWriteConfigAtomically:
         assert json.loads(target.read_text(encoding="utf-8"))["auto_update"] is False
 
     def test_leaves_no_temp_files_behind(self, tmp_path):
-        from kiro_crew.config.loader import write_config_atomically
+        from junction.config.loader import write_config_atomically
 
         path = tmp_path / "config.json"
         write_config_atomically(path, {"auto_update": True})
@@ -331,7 +331,7 @@ class TestAutoUpdateToggleKeepsSettings:
 
     @pytest.mark.asyncio
     async def test_toggle_preserves_all_other_settings(self, tmp_path, monkeypatch):
-        from kiro_crew.dashboard.handlers import updates
+        from junction.dashboard.handlers import updates
 
         path = tmp_path / "config.json"
         path.write_text(json.dumps(_REAL_SETTINGS, indent=2), encoding="utf-8")
@@ -354,7 +354,7 @@ class TestAutoUpdateToggleKeepsSettings:
     async def test_unreadable_config_fails_loudly_and_changes_nothing(
         self, tmp_path, monkeypatch
     ):
-        from kiro_crew.dashboard.handlers import updates
+        from junction.dashboard.handlers import updates
 
         path = tmp_path / "config.json"
         torn = json.dumps(_REAL_SETTINGS, indent=2)[:-20]

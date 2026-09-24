@@ -1,7 +1,7 @@
 ---
 title: Official App Registry + Editorial Feed
 status: partial
-author: KiroCrew contributors
+author: Junction contributors
 created: 2026-07-29
 last-audited: 2026-08-19
 audited-at: cdd8b301
@@ -13,21 +13,21 @@ superseded-by: []
 ---
 # RFC: Official App Registry + Editorial Feed
 
-**Author:** KiroCrew contributors
+**Author:** Junction contributors
 **Date:** 2026-07-29
 **Status:** partial, **and diverged** — this document's failure mode is the first one the [directory README](README.md) names: *the plan was overtaken.* Rollout step R1 shipped **in the sibling `kirodotdev/KiroCrewApps` repo**, but §4 was reversed on four decisions while it did, so §4 is now a record of what was decided rather than a description of the contract. **Read the note at the head of §4 before trusting anything below about categories.** The schema files in that repository are the current source of truth.
 
-On the Kiro Crew side, R3 and R4 are no longer unstarted as this line previously said, but neither is finished. The official **fetch** is live and so is editorial-driven Discover (`apps/official_catalog.py`, `apps/official_editorial.py`). The **signature gate is not**: that module's own header lists three deliberate omissions, and the first is "No signature verification" — the `.sig` sidecar is published and nothing checks it, so trust is TLS to our own domain, and the consequence is enforced rather than ignored (a curated author does not mint the verified mark while that holds). **Tombstone resolution is absent** on the same terms: a document carrying a non-empty `removed` or `reinstated` list is refused outright rather than half-resolved. The rail order's own document is published but not yet read by any client — the client still resolves category order from the editorial document, so that one URL exists ahead of its consumer by design.
+On the Junction side, R3 and R4 are no longer unstarted as this line previously said, but neither is finished. The official **fetch** is live and so is editorial-driven Discover (`apps/official_catalog.py`, `apps/official_editorial.py`). The **signature gate is not**: that module's own header lists three deliberate omissions, and the first is "No signature verification" — the `.sig` sidecar is published and nothing checks it, so trust is TLS to our own domain, and the consequence is enforced rather than ignored (a curated author does not mint the verified mark while that holds). **Tombstone resolution is absent** on the same terms: a document carrying a non-empty `removed` or `reinstated` list is refused outright rather than half-resolved. The rail order's own document is published but not yet read by any client — the client still resolves category order from the editorial document, so that one URL exists ahead of its consumer by design.
 
 ---
 
 ## 1. Problem Statement
 
-The App Store's catalog and its merchandising are frozen into each KiroCrew
+The App Store's catalog and its merchandising are frozen into each Junction
 release. Two concrete gaps:
 
 1. **No first-party remote registry.** The curated catalog is the bundled
-   `kiro_crew/apps/app-registry.json`, compiled into the wheel next to
+   `junction/apps/app-registry.json`, compiled into the wheel next to
    `registry.py` (`_REGISTRY_FILE`). Changing the catalog — adding an app,
    fixing a repo URL, pulling a broken one — requires shipping a new app
    release. User-configured *external* registries exist
@@ -49,9 +49,9 @@ release. Two concrete gaps:
 
 ### Goals
 
-- A KiroCrew-owned **official registry** the client pulls at runtime, trusted
+- A Junction-owned **official registry** the client pulls at runtime, trusted
   enough to drive featuring, updatable without an app release.
-- A KiroCrew-owned **editorial feed** describing the Discover page
+- A Junction-owned **editorial feed** describing the Discover page
   declaratively, that is **fail-safe** (degrades gracefully when unreachable or
   malformed) and **schema-versioned** (new layouts reach new clients while old
   clients keep working).
@@ -97,10 +97,10 @@ mechanism*):
 |-------|------|----------|
 | **Contract (schema)** | `KiroCrewApps` *(now; migrates to `KiroCrewAppSDK` later)* | JSON Schema + generated TS types for the registry entry and the editorial document. Starts co-located with the data it validates; extracted to the SDK once there are external consumers (published app-author tooling). |
 | **Data (source of truth)** | `KiroCrewApps` | `official-registry.json` + `editorial.json`, hand-curated. A publish CI workflow validates against the co-located schema and pushes to the distribution CDN. |
-| **Client + fallback** | `KiroCrew` | Fetch / validate / layered-fallback code, **plus** the bundled fallback snapshot `kiro_crew/apps/app-registry.json`, which is **generated** from `KiroCrewApps` at build time (or a bot sync PR) — never hand-authored, so the offline floor cannot drift from canonical. |
+| **Client + fallback** | `Junction` | Fetch / validate / layered-fallback code, **plus** the bundled fallback snapshot `junction/apps/app-registry.json`, which is **generated** from `KiroCrewApps` at build time (or a bot sync PR) — never hand-authored, so the offline floor cannot drift from canonical. |
 
 Rationale: the entire premise of goal 1 is to decouple catalog + merchandising
-cadence from app releases. Co-locating the data in `KiroCrew` re-couples them —
+cadence from app releases. Co-locating the data in `Junction` re-couples them —
 every catalog tweak or featured swap would go through the product repo's
 CODEOWNERS, review, and commit history, and force curators (PM/devrel) to hold
 product-code write access. A dedicated catalog repo gives a separate write/trust
@@ -130,7 +130,7 @@ file copied verbatim. Curators edit a human-friendly source of truth in
 KiroCrewApps (authored, reviewed)
    → CI: validate against schema · normalize · resolve · stamp · integrity · SIGN
       → published document on the CDN (generated, immutable per revision)
-         → client fetch  /  generated bundled snapshot in KiroCrew
+         → client fetch  /  generated bundled snapshot in Junction
 ```
 
 What the generator adds that hand-authoring cannot guarantee:
@@ -154,7 +154,7 @@ API from `formulae.brew.sh`; the tap is never the read surface. Same split here.
 Two consequences worth stating: published documents must be treated as
 **immutable per revision** (never rewrite a published payload with different
 bytes — that is the CloudFront edge-skew failure mode the release system already
-learned), and the bundled fallback snapshot in `KiroCrew` is generated from the
+learned), and the bundled fallback snapshot in `Junction` is generated from the
 *published* document, not from the authored file, so the offline floor is
 byte-consistent with what the CDN serves.
 
@@ -257,7 +257,7 @@ Notes that make this work in practice:
   doesn't recognize is dropped from the installable set — never partially
   handled. Because dropping an *entry* hides an app (unlike dropping an editorial
   section, which only hides a layout), the UI should surface "N apps require a
-  newer KiroCrew" rather than silently shrinking the catalog.
+  newer Junction" rather than silently shrinking the catalog.
 - **Every new type costs a fetcher + a trust gate**, not just a schema variant.
   Adding one is a client change; the schema slot alone doesn't make it live.
 - **The v1 JSON Schema must model `source` as a *closed* discriminated union** —
@@ -491,7 +491,7 @@ which is itself the finding: they were only ever *derived*.
 | `lifecycle` | same | declared in `app.json` |
 | `detectInstalled` | a **shell command** in the registry, executed on the listing path | replaced by declarative `platform.externalInstall` |
 
-**`resources` / `lifecycle`.** These decide whether KiroCrew copies files and
+**`resources` / `lifecycle`.** These decide whether Junction copies files and
 registers resources or the app self-registers. Their current wiring is thinner
 than it looks:
 
@@ -514,7 +514,7 @@ fetched document and run by the client is the same class of mistake as the
 `delegates[]` list removed in §3.3: the document reaching into client *behavior*
 rather than describing apps. It is also self-evidently app knowledge ("does my
 bundle exist at this path"). The replacement is declarative and evaluated by
-KiroCrew, never by a shell:
+Junction, never by a shell:
 
 ```jsonc
 "platform": {
@@ -535,7 +535,7 @@ fingerprint installed apps. Our `detectInstalled` is that same shape — a probe
 supplied by a third party — and it runs on the *listing* path (for every entry
 that declares one and is not already locally installed), not just at install.
 
-So installed-state resolution becomes: **local receipt** (apps KiroCrew installed
+So installed-state resolution becomes: **local receipt** (apps Junction installed
 — already the source of truth) **∪ declarative probe** (`externalInstall`,
 evaluated natively). Conservative by default: detect and report, never act.
 Homebrew Cask's own history is the caution — a pre-existing-artifact check once
@@ -714,7 +714,7 @@ The official registry needs a tier **between** bundled and user-external:
 | Tier | Source | Featuring / editorial | Clone credentials | Authenticity |
 |------|--------|-----------------------|-------------------|--------------|
 | **Bundled** | compiled `app-registry.json` | honored | ambient (owner-designated) | ships in the wheel |
-| **Official** *(new)* | KiroCrew-owned CDN doc | **honored** (only once the signature verifies) | **credential-free + strict sandbox** | host-pin **and** required detached signature |
+| **Official** *(new)* | Junction-owned CDN doc | **honored** (only once the signature verifies) | **credential-free + strict sandbox** | host-pin **and** required detached signature |
 | **External (user)** | user-configured repos | ignored | credential-free + strict sandbox | none |
 
 Two properties of this table are load-bearing and were nearly got wrong:
@@ -779,7 +779,7 @@ two documents must not be read as using one shared tier vocabulary.
 
 ---
 
-## 6. Client changes (KiroCrew)
+## 6. Client changes (Junction)
 
 - **One authenticated fetcher, one cache dir, one validator** for both docs,
   reusing the manifest-cache machinery (`_manifest_cache_dir()`, atomic writes,
@@ -857,7 +857,7 @@ two documents must not be read as using one shared tier vocabulary.
   uninstall). This is the only path by which an already-installed app learns it
   was pulled.
 - **Bundled fallback generation**: a build step (or bot PR) pulls the current
-  *published* document (§2) and writes `kiro_crew/apps/app-registry.json` as the
+  *published* document (§2) and writes `junction/apps/app-registry.json` as the
   compiled snapshot — including its tombstones, so an offline client still
   honors removals.
 
@@ -900,7 +900,7 @@ leaves a stale pointer elsewhere in the document.
    with schema validation in CI (proposed) vs a small authoring tool. Who
    curates, and how often?
 2. **Snapshot-sync mechanism** — build-time generation vs scheduled bot PR into
-   `KiroCrew`. Trade-off: build-time is always fresh but couples the KiroCrew
+   `Junction`. Trade-off: build-time is always fresh but couples the Junction
    build to a `KiroCrewApps` fetch; a bot PR keeps the build hermetic but can
    lag. *(This is why §2's table marks that row open rather than settled.)*
 3. **Schema version scheme** — integer majors (proposed, matches the installed-
@@ -923,7 +923,7 @@ leaves a stale pointer elsewhere in the document.
    per-repository grant look like, who authors it, and is it owner-local config
    rather than anything a fetched index can influence?
 
-7. **Who evaluates `platform.externalInstall`, and when?** "Evaluated by KiroCrew,
+7. **Who evaluates `platform.externalInstall`, and when?** "Evaluated by Junction,
    never by a shell" does not name the evaluating process, the cadence (on browse vs
    on `refresh_registries()`), or the result for a platform the descriptor omits —
    the example covers macOS and Linux, leaving Windows undefined (not-installed vs

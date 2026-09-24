@@ -19,7 +19,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.dashboard.state import _ChatSlot
+from junction.dashboard.state import _ChatSlot
 
 
 @pytest.fixture(autouse=True)
@@ -31,7 +31,7 @@ def _isolate_config_dir(tmp_path, monkeypatch):
     and let parallel workers race on the shared slot key.
     """
     for module in ("state", "chat", "chat_orchestrator"):
-        monkeypatch.setattr(f"kiro_crew.dashboard.{module}.config_dir", lambda: tmp_path)
+        monkeypatch.setattr(f"junction.dashboard.{module}.config_dir", lambda: tmp_path)
 
 
 def _make_state():
@@ -68,7 +68,7 @@ def _stage_texts(monkeypatch, texts):
         if idx < len(texts):
             slot.append("assistant", texts[idx], "msg msg-a")
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
 
 def _completion_message(slot):
@@ -83,7 +83,7 @@ def _completion_message(slot):
 
 
 async def _run_plan(monkeypatch, titles, texts):
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state = _make_state()
     slot = _make_slot(titles)
@@ -101,14 +101,14 @@ def _record_reads(monkeypatch, seen_threads, paths_read):
     that genuinely opened and read the file — not merely the thread that reached
     a call site.
     """
-    from kiro_crew import hooks
+    from junction import hooks
 
     def recording(path):
         seen_threads.append(threading.get_ident())
         paths_read.append(path)
         return hooks.safe_read_file(path)
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator.safe_read_file", recording)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator.safe_read_file", recording)
 
 
 @pytest.mark.asyncio
@@ -205,7 +205,7 @@ async def test_completion_summary_survives_a_deleted_result_file(monkeypatch, tm
 
     The read error must stay contained per stage: stage 2 still gets its excerpt.
     """
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state = _make_state()
     slot = _make_slot(["First", "Second"])
@@ -219,7 +219,7 @@ async def test_completion_summary_survives_a_deleted_result_file(monkeypatch, tm
             (tmp_path / "sessions" / s.key / "stage_1_result.md").unlink()
         return path
 
-    from kiro_crew.dashboard import chat_orchestrator
+    from junction.dashboard import chat_orchestrator
 
     real_capture = chat_orchestrator._capture_stage_result
     monkeypatch.setattr(chat_orchestrator, "_capture_stage_result", _capture_then_delete_stage_1)
@@ -245,8 +245,8 @@ async def test_completion_summary_redacts_credentials_from_the_excerpt(monkeypat
 @pytest.mark.asyncio
 async def test_no_worker_hop_when_no_stage_results_were_captured(monkeypatch):
     """A plan with nothing on disk must not pay for an empty thread round-trip."""
-    from kiro_crew.dashboard import chat_orchestrator
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard import chat_orchestrator
+    from junction.dashboard.chat import _stage_loop
 
     def _capture_fails(s, stage_num):
         raise OSError("disk full")

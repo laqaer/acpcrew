@@ -23,8 +23,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.acp.client import AcpAuthRequired
-from kiro_crew.dashboard.chat_runner import _run_chat
+from junction.acp.client import AcpAuthRequired
+from junction.dashboard.chat_runner import _run_chat
 
 LINKED_KEY = "slack:1730000000.123456"
 
@@ -202,7 +202,7 @@ class TestOneTurnCannotRetireAnother:
             sl._active_turn_session_key = "dashboard:successor"
             return True
 
-        monkeypatch.setattr("kiro_crew.dashboard.chat_runner._start_next_queued_turn", _fake_start)
+        monkeypatch.setattr("junction.dashboard.chat_runner._start_next_queued_turn", _fake_start)
 
         await _run_chat(state, slot, "first message")
 
@@ -228,7 +228,7 @@ class TestThePromptsGetReEntry:
         state, slot, client = _state_and_slot(tmp_path)
         seen: list[str] = []
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat_runner._expand_prompt_mention",
+            "junction.dashboard.chat_runner._expand_prompt_mention",
             lambda mention, st, sl: ("expanded prompt body", "ok"),
         )
 

@@ -78,14 +78,14 @@ describe('SttSettings provider-aware install surface', () => {
   it('hides the Install button and shows the restart hint for Transcribe', async () => {
     mount({
       provider: 'transcribe',
-      prereqs: ["/opt/kirocrew/bin/python -m pip install 'kirocrew[voice]'"],
+      prereqs: ["/opt/junction/bin/python -m pip install 'junction[voice]'"],
     })
     await loaded()
     // No install affordance of any kind — the button installs a local Whisper
     // runtime, which cannot change Transcribe's availability.
     expect(screen.queryByRole('button', { name: /install/i })).toBeNull()
     // The prerequisite command from the backend is rendered verbatim…
-    expect(screen.getByText(/kirocrew\[voice\]/)).toBeTruthy()
+    expect(screen.getByText(/junction\[voice\]/)).toBeTruthy()
     // …with the transcribe-specific next step, not the button trailer.
     expect(screen.getByText(/restart the gateway/i)).toBeTruthy()
     expect(screen.queryByText(/then click install below/i)).toBeNull()

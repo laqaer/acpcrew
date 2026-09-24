@@ -16,7 +16,7 @@ catalogs the gates.
   implementation.
 - **Pinned by** names the test module and the test function(s). Test modules live
   at `test/` in the repo root; engine sources live at
-  `src/kiro_crew/workflows/`.
+  `src/junction/workflows/`.
 - A gate is *closed* by its test, not by this document. If a row disagrees with
   the named test, the test is right.
 
@@ -66,7 +66,7 @@ subset has to get right.
 | C2 | Malformed or invalid model output triggers a *bounded* retry (`DEFAULT_SCHEMA_RETRIES = 2`, so at most initial plus 2 attempts), then returns `None` rather than raising or looping. | `test_workflows_schema.py::test_c2_retry_then_success`, `::test_c2_all_malformed_returns_none`, `::test_c2_schema_violation_retried_then_none` | `schema.py` (`run_with_schema`) |
 | C3 | An object that parses as JSON but violates the schema is rejected, not returned: missing `required` key, wrong type, `enum` violation, and `bool` not counting as `integer`. | `test_workflows_schema.py::test_c3_missing_required_rejected`, `::test_c3_wrong_type_rejected`, `::test_c3_enum_violation_rejected`, `::test_c3_bool_is_not_integer` | `schema.py` |
 
-## Group D: Kiro Crew's own `ctx` primitives
+## Group D: Junction's own `ctx` primitives
 
 Each native primitive delegates to a port injected per run. The gate is the
 *calling convention* (the ctx surface reaches the port with the right arguments),
@@ -103,9 +103,9 @@ and a git-dependent gate can redden a clean trunk.
 
 | Gate | Guarantees | Pinned by | Constrains |
 |---|---|---|---|
-| F1 | The layering holds: `validate` / `dsl` / `schema` / `events` / `registry` / `__init__` and the optional adapters (`agent_exec`, `agent_pool`, `store`) are leaves with no intra-package siblings; `context` may import `validate`; `runner` may import `validate`, `dsl`, `events`, `context`, `schema`, `registry`; `service` sits above the runner. No module may import backwards, no module escapes the declared contract, and the engine must not reach into `kiro_crew.dashboard.state` or `kiro_crew.dashboard.ws` (progress goes through the event bus or a port). | `test_workflows_architecture.py::test_layering_no_backward_or_unexpected_sibling_imports`, `::test_engine_does_not_import_dashboard_internals`, `::test_every_module_is_covered_by_the_contract` | all of `src/kiro_crew/workflows/` |
+| F1 | The layering holds: `validate` / `dsl` / `schema` / `events` / `registry` / `__init__` and the optional adapters (`agent_exec`, `agent_pool`, `store`) are leaves with no intra-package siblings; `context` may import `validate`; `runner` may import `validate`, `dsl`, `events`, `context`, `schema`, `registry`; `service` sits above the runner. No module may import backwards, no module escapes the declared contract, and the engine must not reach into `junction.dashboard.state` or `junction.dashboard.ws` (progress goes through the event bus or a port). | `test_workflows_architecture.py::test_layering_no_backward_or_unexpected_sibling_imports`, `::test_engine_does_not_import_dashboard_internals`, `::test_every_module_is_covered_by_the_contract` | all of `src/junction/workflows/` |
 | F2 | The frozen contract in `workflows/__init__.py` cannot drift silently: `__all__`, the `WorkflowContext` data attributes, its exact method set, each method's signature and async-ness, each port's methods and `runtime_checkable`-ness, `EVENT_TYPES` (exact and ordered), and the event envelope keys plus JSON round-trip. Changing any of them is an explicit re-freeze that must update `__init__.py`, [workflows.md](workflows.md), and this test together. | `test_workflows_conformance.py::test_all_exports_exact`, `::test_ctx_method_set_exact`, `::test_ctx_method_signature`, `::test_port_method_signature`, `::test_event_types_exact_and_ordered`, `::test_event_envelope_keys_exact` | `__init__.py` |
-| F3 | Every implementation module under `workflows/` is imported by at least one `test/test_workflows_*.py`, so a module cannot be added without a test that reaches it. The gate carries its own negative control, so it cannot silently stop catching orphans. | `test_workflows_presence.py::test_every_workflows_module_has_a_referencing_test`, `::test_presence_gate_flags_an_orphan_module` | all of `src/kiro_crew/workflows/` |
+| F3 | Every implementation module under `workflows/` is imported by at least one `test/test_workflows_*.py`, so a module cannot be added without a test that reaches it. The gate carries its own negative control, so it cannot silently stop catching orphans. | `test_workflows_presence.py::test_every_workflows_module_has_a_referencing_test`, `::test_presence_gate_flags_an_orphan_module` | all of `src/junction/workflows/` |
 
 ## Group G: authoring reliability
 

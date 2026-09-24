@@ -11,11 +11,11 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.config.loader import KiroCrewConfig, SkillsConfig
-from kiro_crew.context import ContextBuilder
-from kiro_crew.context_blocks import split_blocks
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import _SHORT_DESC_CHARS, SkillsLoader
+from junction.config.loader import JunctionConfig, SkillsConfig
+from junction.context import ContextBuilder
+from junction.context_blocks import split_blocks
+from junction.memory import MemoryStore
+from junction.skills import _SHORT_DESC_CHARS, SkillsLoader
 
 BODY_SENTINEL = "STEP ONE: pour the concrete before the rebar."
 HINT_HEADER = "[Relevant skills for this message]"
@@ -58,7 +58,7 @@ def _loader(skills_path: Path, *, cap: int = 3) -> SkillsLoader:
     return SkillsLoader(
         skills_path=skills_path,
         install_builtins=False,
-        config=KiroCrewConfig(skills=SkillsConfig(max_triggered=cap)),
+        config=JunctionConfig(skills=SkillsConfig(max_triggered=cap)),
     )
 
 
@@ -245,7 +245,7 @@ class TestDeliveryIsAuditable:
                 if isinstance(meta, dict):
                     captured.update(meta)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: _Sel())
+        monkeypatch.setattr("junction.skills.sel", lambda: _Sel())
 
         loader.get_triggered_skills("zebra quokka")
 

@@ -24,7 +24,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.apps import manager, registry
+from junction.apps import manager, registry
 
 GOOD_URL = "https://github.com/good-org/shared-name.git"
 EVIL_URL = "https://github.com/evil-org/shared-name.git"
@@ -33,7 +33,7 @@ EVIL_URL = "https://github.com/evil-org/shared-name.git"
 @pytest.fixture(autouse=True)
 def _admit_registry_execution(monkeypatch):
     """These tests must reach the admitted post-clone install path."""
-    monkeypatch.setattr("kiro_crew.apps.execution.third_party_execution_allowed", lambda: True)
+    monkeypatch.setattr("junction.apps.execution.third_party_execution_allowed", lambda: True)
     monkeypatch.setattr(registry, "app_admission_denied", lambda *a, **k: None)
 
 
@@ -179,12 +179,12 @@ class TestIdentityGate:
 class TestProvenanceCapture:
     @pytest.fixture()
     def signing_home(self, tmp_path, monkeypatch) -> Path:
-        """An explicitly-isolated KIROCREW_HOME, so writing an admission policy
+        """An explicitly-isolated JUNCTION_HOME, so writing an admission policy
         below can never reach the developer's real ``~/.kiro/crew``."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
-        monkeypatch.setattr("kiro_crew.config.paths._resolved_home", None)
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
+        monkeypatch.setattr("junction.config.paths._resolved_home", None)
         assert manager.config_dir() == home
         return home
 
@@ -201,7 +201,7 @@ class TestProvenanceCapture:
             json.dumps({"mode": "open", "trust_keys": {"acme": secret}}), encoding="utf-8"
         )
 
-        from kiro_crew.apps.manifest import AppManifest
+        from junction.apps.manifest import AppManifest
 
         manifest = _manifest("signed-app", signer="acme")
         manifest["signature"] = hmac.new(

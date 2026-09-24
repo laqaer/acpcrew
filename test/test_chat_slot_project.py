@@ -8,8 +8,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.chat import api_chat_slot_project
-from kiro_crew.dashboard.state import DashboardState, _ChatSlot
+from junction.dashboard.chat import api_chat_slot_project
+from junction.dashboard.state import DashboardState, _ChatSlot
 
 
 def _make_app(state: DashboardState) -> web.Application:
@@ -38,7 +38,7 @@ class TestChatSlotProject:
     async def test_set_project(self, tmp_path):
         slot = _ChatSlot("test")
         state = _mock_state(slot)
-        with patch("kiro_crew.dashboard.chat_handlers._save_recent_project"):
+        with patch("junction.dashboard.chat_handlers._save_recent_project"):
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.post(
                     "/api/chat/slots/test/project",
@@ -78,7 +78,7 @@ class TestChatSlotProject:
     async def test_sensitive_path_returns_403(self, tmp_path):
         slot = _ChatSlot("test")
         state = _mock_state(slot)
-        with patch("kiro_crew.dashboard.chat_handlers.is_sensitive_path", return_value=True):
+        with patch("junction.dashboard.chat_handlers.is_sensitive_path", return_value=True):
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.post(
                     "/api/chat/slots/test/project",
@@ -92,7 +92,7 @@ class TestChatSlotProject:
         slot = _ChatSlot("test")
         slot.total_messages = 5
         state = _mock_state(slot)
-        with patch("kiro_crew.dashboard.chat_handlers._save_recent_project"):
+        with patch("junction.dashboard.chat_handlers._save_recent_project"):
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.post(
                     "/api/chat/slots/test/project",
@@ -118,7 +118,7 @@ class TestChatSlotProject:
         chat_runner consumes the flag so the next message picks up the new CWD."""
         slot = _ChatSlot("test")
         state = _mock_state(slot)
-        with patch("kiro_crew.dashboard.chat_handlers._save_recent_project"):
+        with patch("junction.dashboard.chat_handlers._save_recent_project"):
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.post(
                     "/api/chat/slots/test/project",
@@ -136,7 +136,7 @@ class TestChatSlotProject:
         slot = _ChatSlot("test")
         slot.project = str(tmp_path)
         state = _mock_state(slot)
-        with patch("kiro_crew.dashboard.chat_handlers._save_recent_project"):
+        with patch("junction.dashboard.chat_handlers._save_recent_project"):
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.post(
                     "/api/chat/slots/test/project",

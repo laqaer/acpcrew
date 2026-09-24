@@ -140,26 +140,26 @@ export function DisplayPanel() {
   const defaultColor = useAppSelector(s => s.dashboard.sessionDefaultColor) as DefaultColorSetting
 
   // Recency-tint count is persisted server-side (dashboard.recent_tint_count) via the shared
-  // kirocrewConfig query, so the choice follows the user across browsers/restarts. Optimistic
+  // junctionConfig query, so the choice follows the user across browsers/restarts. Optimistic
   // cache write makes the sidebar tint (which reads the same query) re-rank instantly.
   const qc = useQueryClient()
   const mcQ = useQuery<{ dashboard?: { recent_tint_count?: number; terminal?: { shell?: string } } }>({
-    queryKey: ['kirocrewConfig'],
-    queryFn: () => api.kirocrewConfig(),
+    queryKey: ['junctionConfig'],
+    queryFn: () => api.junctionConfig(),
   })
   const recentTintCount = clampTintCount(mcQ.data?.dashboard?.recent_tint_count)
   const tintMut = useMutation({
     mutationFn: (value: number) => api.patchConfig('dashboard.recent_tint_count', value),
     onMutate: async (value: number) => {
-      await qc.cancelQueries({ queryKey: ['kirocrewConfig'] })
-      const prev = qc.getQueryData<{ dashboard?: { recent_tint_count?: number } }>(['kirocrewConfig'])
+      await qc.cancelQueries({ queryKey: ['junctionConfig'] })
+      const prev = qc.getQueryData<{ dashboard?: { recent_tint_count?: number } }>(['junctionConfig'])
       const next = structuredClone(prev ?? {})
       next.dashboard = { ...(next.dashboard ?? {}), recent_tint_count: value }
-      qc.setQueryData(['kirocrewConfig'], next)
+      qc.setQueryData(['junctionConfig'], next)
       return { prev }
     },
-    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(['kirocrewConfig'], ctx.prev) },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(['junctionConfig'], ctx.prev) },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
   })
   const setTintCount = (n: number) => tintMut.mutate(clampTintCount(n))
 
@@ -174,21 +174,21 @@ export function DisplayPanel() {
   // a round-trip, which reads as a failed save. Errors are mapped from the
   // response's machine-readable `code` to catalog keys: the backend's English
   // sentence must never render verbatim in a 12-language dashboard.
-  type KirocrewCfg = { dashboard?: { recent_tint_count?: number; terminal?: { shell?: string } } }
+  type JunctionCfg = { dashboard?: { recent_tint_count?: number; terminal?: { shell?: string } } }
   const serverShell = mcQ.data?.dashboard?.terminal?.shell ?? ''
   const [shellDraft, setShellDraft] = useState<string | null>(null)
   const [shellError, setShellError] = useState<string | null>(null)
   const shellMut = useMutation({
     mutationFn: (value: string) => api.patchConfig('dashboard.terminal.shell', value),
     onMutate: async (value: string) => {
-      await qc.cancelQueries({ queryKey: ['kirocrewConfig'] })
-      const prev = qc.getQueryData<KirocrewCfg>(['kirocrewConfig'])
+      await qc.cancelQueries({ queryKey: ['junctionConfig'] })
+      const prev = qc.getQueryData<JunctionCfg>(['junctionConfig'])
       const next = structuredClone(prev ?? {})
       next.dashboard = {
         ...(next.dashboard ?? {}),
         terminal: { ...(next.dashboard?.terminal ?? {}), shell: value },
       }
-      qc.setQueryData(['kirocrewConfig'], next)
+      qc.setQueryData(['junctionConfig'], next)
       return { prev }
     },
     onSuccess: () => {
@@ -196,7 +196,7 @@ export function DisplayPanel() {
       setShellError(null)
     },
     onError: (e, _value, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['kirocrewConfig'], ctx.prev)
+      if (ctx?.prev) qc.setQueryData(['junctionConfig'], ctx.prev)
       const code = e instanceof ApiError ? parseErrorCode(e.body) : undefined
       setShellError(i18nT(
         code === 'shell_not_executable'
@@ -204,7 +204,7 @@ export function DisplayPanel() {
           : 'pages.settings.displayPanel.terminal_shell_save_failed',
       ))
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
   })
   const commitShell = () => {
     if (shellDraft === null) return

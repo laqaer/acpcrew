@@ -13,7 +13,7 @@ const {
 const {
   classifyPortOwner,
   forceStopPort,
-  isKirocrewCommand,
+  isJunctionCommand,
 } = require("../gateway-stop");
 
 const TEST_TOOLS = windowsSystemToolPaths("D:\\Windows");
@@ -39,29 +39,29 @@ test("windowsSystemToolPaths resolves every utility beneath the system root", ()
 test("windowsGatewayExecutablePaths resolves the executables a launcher can spawn", () => {
   assert.deepStrictEqual(
     windowsGatewayExecutablePaths(
-      "D:\\KiroCrew\\resources\\backend-dist\\kirocrew-backend\\bin\\kirocrew.cmd"
+      "D:\\Junction\\resources\\backend-dist\\junction-backend\\bin\\junction.cmd"
     ),
-    ["D:\\KiroCrew\\resources\\backend-dist\\kirocrew-backend\\python.exe"]
+    ["D:\\Junction\\resources\\backend-dist\\junction-backend\\python.exe"]
   );
   assert.deepStrictEqual(
-    windowsGatewayExecutablePaths("D:\\venv\\Scripts\\kirocrew.exe"),
+    windowsGatewayExecutablePaths("D:\\venv\\Scripts\\junction.exe"),
     [
-      "D:\\venv\\Scripts\\kirocrew.exe",
+      "D:\\venv\\Scripts\\junction.exe",
       "D:\\venv\\Scripts\\python.exe",
       "D:\\venv\\python.exe",
     ]
   );
   assert.deepStrictEqual(
-    windowsGatewayExecutablePaths("kirocrew.exe", { pathEnv: "" }),
+    windowsGatewayExecutablePaths("junction.exe", { pathEnv: "" }),
     []
   );
 });
 
 test("windowsGatewayExecutablePaths resolves a PATH-launched executable", () => {
-  const expected = "D:\\Kiro Crew\\Scripts\\kirocrew.exe";
+  const expected = "D:\\Junction\\Scripts\\junction.exe";
   const probed = [];
-  const resolved = windowsGatewayExecutablePaths("kirocrew.exe", {
-    pathEnv: 'C:\\Other;"D:\\Kiro Crew\\Scripts"',
+  const resolved = windowsGatewayExecutablePaths("junction.exe", {
+    pathEnv: 'C:\\Other;"D:\\Junction\\Scripts"',
     accessSync: (candidate) => {
       probed.push(candidate);
       if (candidate !== expected) throw new Error("ENOENT");
@@ -69,22 +69,22 @@ test("windowsGatewayExecutablePaths resolves a PATH-launched executable", () => 
   });
   assert.deepStrictEqual(resolved, [
     expected,
-    "D:\\Kiro Crew\\Scripts\\python.exe",
-    "D:\\Kiro Crew\\python.exe",
+    "D:\\Junction\\Scripts\\python.exe",
+    "D:\\Junction\\python.exe",
   ]);
   assert.deepStrictEqual(probed, [
-    "C:\\Other\\kirocrew.exe",
+    "C:\\Other\\junction.exe",
     expected,
   ]);
 });
 
 test("a venv launcher trusts the Python listener it delegates to", () => {
-  const launcher = "D:\\venv\\Scripts\\kirocrew.exe";
+  const launcher = "D:\\venv\\Scripts\\junction.exe";
   const trustedExecutablePaths = windowsGatewayExecutablePaths(launcher);
   assert.strictEqual(
-    isKirocrewCommand(
+    isJunctionCommand(
       '"D:\\venv\\Scripts\\python.exe" '
-        + '"D:\\venv\\Scripts\\python.exe" -s -m kiro_crew gateway',
+        + '"D:\\venv\\Scripts\\python.exe" -s -m junction gateway',
       { trustedExecutablePaths }
     ),
     true
@@ -142,13 +142,13 @@ test("windowsProcessCommand prefers PowerShell command-line output", async () =>
   const calls = [];
   const execFileFn = (command, args, options, callback) => {
     calls.push({ command, args, options });
-    callback(null, '"C:\\Program Files\\KiroCrew\\kirocrew.exe" gateway\r\n');
+    callback(null, '"C:\\Program Files\\Junction\\junction.exe" gateway\r\n');
   };
   const command = await windowsProcessCommand(4242, {
     execFileFn,
     tools: TEST_TOOLS,
   });
-  assert.strictEqual(command, '"C:\\Program Files\\KiroCrew\\kirocrew.exe" gateway');
+  assert.strictEqual(command, '"C:\\Program Files\\Junction\\junction.exe" gateway');
   assert.strictEqual(calls.length, 1);
   assert.strictEqual(calls[0].command, TEST_TOOLS.powershell);
   assert.match(calls[0].args.at(-1), /ProcessId = 4242/);
@@ -166,7 +166,7 @@ test("windowsProcessCommand falls back to WMIC and unwraps its value", async () 
     callback(
       null,
       "\r\nExecutablePath=C:\\Python\\python.exe\r\n"
-        + "CommandLine=C:\\Python\\python.exe -m kiro_crew gateway\r\n\r\n"
+        + "CommandLine=C:\\Python\\python.exe -m junction gateway\r\n\r\n"
     );
   };
   const command = await windowsProcessCommand(4242, {
@@ -175,7 +175,7 @@ test("windowsProcessCommand falls back to WMIC and unwraps its value", async () 
   });
   assert.strictEqual(
     command,
-    '"C:\\Python\\python.exe" C:\\Python\\python.exe -m kiro_crew gateway'
+    '"C:\\Python\\python.exe" C:\\Python\\python.exe -m junction gateway'
   );
   assert.deepStrictEqual(
     calls.map(({ command: name }) => name),
@@ -202,7 +202,7 @@ test("windowsProcessCommand fails closed when WMIC cannot prove the executable p
       callback(new Error("PowerShell unavailable"), "");
       return;
     }
-    callback(null, "CommandLine=kirocrew gateway\r\n");
+    callback(null, "CommandLine=junction gateway\r\n");
   };
   assert.strictEqual(
     await windowsProcessCommand(4242, { execFileFn, tools: TEST_TOOLS }),
@@ -210,82 +210,82 @@ test("windowsProcessCommand fails closed when WMIC cannot prove the executable p
   );
 });
 
-test("isKirocrewCommand accepts Windows executable and module shapes", () => {
-  const trustedCli = "C:\\Program Files\\KiroCrew\\kirocrew.exe";
-  const trustedBackend = "C:\\bundle\\kirocrew-backend.exe";
+test("isJunctionCommand accepts Windows executable and module shapes", () => {
+  const trustedCli = "C:\\Program Files\\Junction\\junction.exe";
+  const trustedBackend = "C:\\bundle\\junction-backend.exe";
   const trustedPython = "C:\\Python\\python.exe";
   assert.strictEqual(
-    isKirocrewCommand(`"${trustedCli}" gateway`, {
+    isJunctionCommand(`"${trustedCli}" gateway`, {
       trustedExecutablePaths: [trustedCli],
     }),
     true
   );
   assert.strictEqual(
-    isKirocrewCommand(`${trustedBackend} gateway`, {
+    isJunctionCommand(`${trustedBackend} gateway`, {
       trustedExecutablePaths: [trustedBackend],
     }),
     true
   );
   assert.strictEqual(
-    isKirocrewCommand(`${trustedPython} -s -m kiro_crew gateway`, {
+    isJunctionCommand(`${trustedPython} -s -m junction gateway`, {
       trustedExecutablePaths: [trustedPython],
     }),
     true
   );
   assert.strictEqual(
-    isKirocrewCommand(
-      `${trustedPython} C:\\venv\\Scripts\\kirocrew gateway`,
+    isJunctionCommand(
+      `${trustedPython} C:\\venv\\Scripts\\junction gateway`,
       { trustedExecutablePaths: [trustedPython] }
     ),
     true
   );
   assert.strictEqual(
-    isKirocrewCommand(
-      `"${trustedPython}" ${trustedPython} -s -m kiro_crew gateway`,
+    isJunctionCommand(
+      `"${trustedPython}" ${trustedPython} -s -m junction gateway`,
       { trustedExecutablePaths: [trustedPython] }
     ),
     true
   );
 });
 
-test("isKirocrewCommand rejects Windows path substrings and unrelated Python", () => {
+test("isJunctionCommand rejects Windows path substrings and unrelated Python", () => {
   assert.strictEqual(
-    isKirocrewCommand("C:\\Users\\kirocrew\\OtherApp\\server.exe --port 5476"),
+    isJunctionCommand("C:\\Users\\junction\\OtherApp\\server.exe --port 5476"),
     false
   );
   assert.strictEqual(
-    isKirocrewCommand("C:\\Users\\kirocrew\\python.exe -m http.server 5476"),
+    isJunctionCommand("C:\\Users\\junction\\python.exe -m http.server 5476"),
     false
   );
   assert.strictEqual(
-    isKirocrewCommand("C:\\Python\\python.exe app.py kirocrew"),
+    isJunctionCommand("C:\\Python\\python.exe app.py junction"),
     false
   );
   assert.strictEqual(
-    isKirocrewCommand("C:\\Python\\python.exe app.py C:\\tmp\\kirocrew"),
+    isJunctionCommand("C:\\Python\\python.exe app.py C:\\tmp\\junction"),
     false
   );
   assert.strictEqual(
-    isKirocrewCommand("C:\\Python\\python.exe app.py -m kiro_crew"),
+    isJunctionCommand("C:\\Python\\python.exe app.py -m junction"),
     false
   );
   assert.strictEqual(
-    isKirocrewCommand("C:\\Temp\\kirocrew.exe gateway", {
+    isJunctionCommand("C:\\Temp\\junction.exe gateway", {
       trustedExecutablePaths: [
-        "C:\\Program Files\\KiroCrew\\kirocrew.exe",
+        "C:\\Program Files\\Junction\\junction.exe",
       ],
     }),
     false
   );
 });
 
-test("isKirocrewCommand rejects SSH aliases and remote gateway commands", () => {
+test("isJunctionCommand rejects SSH aliases and remote gateway commands", () => {
   assert.strictEqual(
-    isKirocrewCommand("C:\\Windows\\System32\\OpenSSH\\ssh.exe -NL 5476:localhost:5476 kirocrew"),
+    isJunctionCommand("C:\\Windows\\System32\\OpenSSH\\ssh.exe -NL 5476:localhost:5476 junction"),
     false
   );
   assert.strictEqual(
-    isKirocrewCommand("ssh.exe host python.exe -m kiro_crew gateway"),
+    isJunctionCommand("ssh.exe host python.exe -m junction gateway"),
     false
   );
 });
@@ -298,12 +298,12 @@ test("Windows owner classification returns unknown when netstat cannot run", asy
   assert.strictEqual(owner, "unknown");
 });
 
-test("Windows force-stop refuses an SSH holder even when its alias is kirocrew", async () => {
+test("Windows force-stop refuses an SSH holder even when its alias is junction", async () => {
   const killed = [];
   const result = await forceStopPort(5476, {
     getListenPids: async () => [909],
     getCommand: async () =>
-      "C:\\Windows\\System32\\OpenSSH\\ssh.exe -NL 5476:localhost:5476 kirocrew",
+      "C:\\Windows\\System32\\OpenSSH\\ssh.exe -NL 5476:localhost:5476 junction",
     kill: async (pid) => killed.push(pid),
     sleep: async () => {},
     failClosedOnProbeError: true,
@@ -313,11 +313,11 @@ test("Windows force-stop refuses an SSH holder even when its alias is kirocrew",
   assert.strictEqual(result.foreignHolder, true);
 });
 
-test("Windows force-stop refuses unrelated Python with a later kirocrew path", async () => {
+test("Windows force-stop refuses unrelated Python with a later junction path", async () => {
   const killed = [];
   const result = await forceStopPort(5476, {
     getListenPids: async () => [910],
-    getCommand: async () => "C:\\Python\\python.exe app.py C:\\tmp\\kirocrew",
+    getCommand: async () => "C:\\Python\\python.exe app.py C:\\tmp\\junction",
     kill: async (pid) => killed.push(pid),
     sleep: async () => {},
     failClosedOnProbeError: true,
@@ -327,15 +327,15 @@ test("Windows force-stop refuses unrelated Python with a later kirocrew path", a
   assert.strictEqual(result.foreignHolder, true);
 });
 
-test("Windows force-stop refuses an untrusted kirocrew.exe basename", async () => {
+test("Windows force-stop refuses an untrusted junction.exe basename", async () => {
   const killed = [];
-  const trustedCli = "C:\\Program Files\\KiroCrew\\kirocrew.exe";
+  const trustedCli = "C:\\Program Files\\Junction\\junction.exe";
   const result = await forceStopPort(5476, {
     getListenPids: async () => [911],
-    getCommand: async () => "C:\\Temp\\kirocrew.exe gateway",
+    getCommand: async () => "C:\\Temp\\junction.exe gateway",
     kill: async (pid) => killed.push(pid),
     sleep: async () => {},
-    isKirocrew: (command) => isKirocrewCommand(command, {
+    isJunction: (command) => isJunctionCommand(command, {
       trustedExecutablePaths: [trustedCli],
     }),
     failClosedOnProbeError: true,
@@ -347,7 +347,7 @@ test("Windows force-stop refuses an untrusted kirocrew.exe basename", async () =
 
 test("windowsTaskkill revalidates identity before using force on the PID", async () => {
   let invocation;
-  const trustedCli = "C:\\Program Files\\KiroCrew\\kirocrew.exe";
+  const trustedCli = "C:\\Program Files\\Junction\\junction.exe";
   const execFileFn = (command, args, options, callback) => {
     invocation = { command, args, options };
     callback(null, "SUCCESS");
@@ -357,7 +357,7 @@ test("windowsTaskkill revalidates identity before using force on the PID", async
     timeoutMs: 2345,
     tools: TEST_TOOLS,
     getCommandFn: async () => `"${trustedCli}" gateway`,
-    isTrustedCommand: (command) => isKirocrewCommand(command, {
+    isTrustedCommand: (command) => isJunctionCommand(command, {
       trustedExecutablePaths: [trustedCli],
     }),
   });
@@ -427,13 +427,13 @@ test("the SIGKILL launch hint is not offered as macOS-only advice on Windows", (
 
 test("windowsTaskkill refuses a PID reused by an unrelated process", async () => {
   let invoked = false;
-  const trustedCli = "C:\\Program Files\\KiroCrew\\kirocrew.exe";
+  const trustedCli = "C:\\Program Files\\Junction\\junction.exe";
   await assert.rejects(
     windowsTaskkill(4242, {
       execFileFn: () => { invoked = true; },
       tools: TEST_TOOLS,
       getCommandFn: async () => "C:\\Windows\\System32\\notepad.exe",
-      isTrustedCommand: (command) => isKirocrewCommand(command, {
+      isTrustedCommand: (command) => isJunctionCommand(command, {
         trustedExecutablePaths: [trustedCli],
       }),
     }),
@@ -443,7 +443,7 @@ test("windowsTaskkill refuses a PID reused by an unrelated process", async () =>
 });
 
 test("Windows force-stop cannot taskkill a PID that changes owners", async () => {
-  const trustedCli = "C:\\Program Files\\KiroCrew\\kirocrew.exe";
+  const trustedCli = "C:\\Program Files\\Junction\\junction.exe";
   let taskkillInvoked = false;
   const result = await forceStopPort(5476, {
     getListenPids: async () => [4242],
@@ -452,12 +452,12 @@ test("Windows force-stop cannot taskkill a PID that changes owners", async () =>
       execFileFn: () => { taskkillInvoked = true; },
       tools: TEST_TOOLS,
       getCommandFn: async () => "C:\\Windows\\System32\\notepad.exe",
-      isTrustedCommand: (command) => isKirocrewCommand(command, {
+      isTrustedCommand: (command) => isJunctionCommand(command, {
         trustedExecutablePaths: [trustedCli],
       }),
     }),
     sleep: async () => {},
-    isKirocrew: (command) => isKirocrewCommand(command, {
+    isJunction: (command) => isJunctionCommand(command, {
       trustedExecutablePaths: [trustedCli],
     }),
     failClosedOnProbeError: true,

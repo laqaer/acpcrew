@@ -18,8 +18,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.workflows.agent_exec as agent_exec
-from kiro_crew.workflows.agent_exec import build_agent_fn
+import junction.workflows.agent_exec as agent_exec
+from junction.workflows.agent_exec import build_agent_fn
 
 pytestmark = pytest.mark.asyncio
 
@@ -144,7 +144,7 @@ async def test_extra_env_run_level_pin_flows_into_get_or_create() -> None:
 
 async def test_end_to_end_through_runner() -> None:
     """A workflow's ctx.agent() reaches the model via the built agent_fn."""
-    from kiro_crew.workflows.runner import WorkflowRunner
+    from junction.workflows.runner import WorkflowRunner
 
     sessions = FakeSessions()
     fn = build_agent_fn(sessions, run_id="wf_e2e")
@@ -171,9 +171,9 @@ async def test_agent_step_persists_usage_row_with_surface() -> None:
 
     persist = AsyncMock()
     with patch(
-        "kiro_crew.dashboard.handlers.usage.persist_token_record_async", persist
+        "junction.dashboard.handlers.usage.persist_token_record_async", persist
     ), patch(
-        "kiro_crew.dashboard.handlers.usage.read_context_tokens",
+        "junction.dashboard.handlers.usage.read_context_tokens",
         MagicMock(return_value=(42, 200000)),
         create=True,
     ):

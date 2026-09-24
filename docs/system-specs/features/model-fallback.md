@@ -3,7 +3,7 @@
 When the active model stays throttled past the same-model transient-retry budget,
 the turn is retried on a fallback model instead of failing — visibly, never
 silently. kiro-cli has no fallback mechanism; this feature is entirely
-Kiro Crew-side, built on the substitute `set_model` path.
+Junction-side, built on the substitute `set_model` path.
 
 ## Config
 
@@ -23,7 +23,7 @@ keys/aliases to acp ids and matches `"auto"` case-insensitively:
   as before the feature existed (regression-pinned; this is the rollback
   story).
 
-Editable via `kirocrew config set agent.fallback_model <id|auto|''>`, the
+Editable via `junction config set agent.fallback_model <id|auto|''>`, the
 config PATCH API (str type, model-id grammar, `_validate_role_model` — the same
 entitlement validation as the role-model pins, so `""`/`"auto"` always allow),
 and Settings → Chat → Rate-limit fallback (single-select dropdown fed by the

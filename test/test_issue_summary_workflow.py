@@ -39,7 +39,7 @@ pytestmark = pytest.mark.skipif(
     reason="requires the workflow file plus a POSIX bash and jq",
 )
 
-MARKER = "<!-- kirocrew-issue-summary -->"
+MARKER = "<!-- junction-issue-summary -->"
 
 # A neighbour pool shaped like the real repository's: open issues, a recently
 # closed one (a legitimate duplicate target -- "already fixed, upgrade"), and one

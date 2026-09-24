@@ -19,9 +19,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import kiro_crew.acp.client as client_mod
-import kiro_crew.executors as ex
-from kiro_crew.acp.client import AcpClient, _capture_child_records
+import junction.acp.client as client_mod
+import junction.executors as ex
+from junction.acp.client import AcpClient, _capture_child_records
 
 
 def teardown_function() -> None:

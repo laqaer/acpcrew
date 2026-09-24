@@ -8,11 +8,11 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kiro_crew.context import ContextBuilder, _neutralize_structural_markers
-from kiro_crew.hooks import ContextRule, HookManager, HooksConfig
-from kiro_crew.learn import LessonStore
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.context import ContextBuilder, _neutralize_structural_markers
+from junction.hooks import ContextRule, HookManager, HooksConfig
+from junction.learn import LessonStore
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 # ---------------------------------------------------------------------------
 # Strategies
@@ -304,7 +304,7 @@ class TestContextBuilder:
             "carry on",
             is_new_session=False,
             needs_reinjection=True,
-            agent="kirocrew",
+            agent="junction",
         )
         assert "[REINJECTED AFTER COMPACTION" in msg
         assert "widget-maker" in msg
@@ -329,10 +329,10 @@ class TestContextBuilder:
         # build_message injects whenever the caller supplies folder_path
         # (is_new_session=False here proves the block is not gated to new sessions).
         msg, _ = builder.build_message(
-            "hello", is_new_session=False, folder_path="KiroCrew › Backend"
+            "hello", is_new_session=False, folder_path="Junction › Backend"
         )
         assert "[FOLDER]" in msg
-        assert "KiroCrew › Backend" in msg
+        assert "Junction › Backend" in msg
         # Absent when no folder path is supplied.
         msg_none, _ = builder.build_message("hello", is_new_session=False)
         assert "[FOLDER]" not in msg_none
@@ -420,7 +420,7 @@ class TestContextBuilder:
         assert "pipeline tool" in msg
 
     def test_hook_modify(self, tmp_path):
-        from kiro_crew.hooks import TransformHook
+        from junction.hooks import TransformHook
 
         hooks_cfg = HooksConfig(transforms=[TransformHook(pattern="deploy", prefix="[DEPLOY]")])
         builder = ContextBuilder(
@@ -433,7 +433,7 @@ class TestContextBuilder:
 
     def test_dashboard_cross_session_removed(self, tmp_path):
         """Cross-tab context injection is removed -- sibling sessions never leak."""
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -451,7 +451,7 @@ class TestContextBuilder:
 
     def test_history_budget_truncates_long_messages(self, tmp_path):
         """Long assistant messages are truncated to _PER_MESSAGE_CAP."""
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -470,8 +470,8 @@ class TestContextBuilder:
 
     def test_history_budget_limits_total_chars(self, tmp_path):
         """History injection respects _HISTORY_BUDGET_CHARS."""
-        from kiro_crew.context import _HISTORY_BUDGET_CHARS
-        from kiro_crew.history import ConversationLog
+        from junction.context import _HISTORY_BUDGET_CHARS
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -499,7 +499,7 @@ class TestGetMemoryForVectorStore:
 
     def test_nondefault_store_shares_vector_store(self, tmp_path, monkeypatch):
         """Non-default stores get the same vector_store as the default store."""
-        import kiro_crew.context as ctx_mod
+        import junction.context as ctx_mod
 
         original = ctx_mod._memory_stores.copy()
         ctx_mod._memory_stores.clear()
@@ -522,7 +522,7 @@ class TestGetMemoryForVectorStore:
 
     def test_nondefault_store_without_default_has_no_vector_store(self, tmp_path, monkeypatch):
         """If no default store exists yet, non-default store gets no vector_store."""
-        import kiro_crew.context as ctx_mod
+        import junction.context as ctx_mod
 
         original = ctx_mod._memory_stores.copy()
         ctx_mod._memory_stores.clear()
@@ -539,13 +539,13 @@ class TestCompressAssistantMessage:
     """Tests for _compress_assistant_message code block and JSON handling."""
 
     def test_small_code_block_preserved(self):
-        from kiro_crew.context import _compress_assistant_message
+        from junction.context import _compress_assistant_message
 
         text = "Here:\n```python\nprint('hi')\n```\nDone."
         assert _compress_assistant_message(text) == text
 
     def test_large_code_block_head_tail(self):
-        from kiro_crew.context import _compress_assistant_message
+        from junction.context import _compress_assistant_message
 
         lines = [f"line {i} " + "a" * 100 for i in range(30)]
         block = "```python\n" + "\n".join(lines) + "\n```"
@@ -557,7 +557,7 @@ class TestCompressAssistantMessage:
         assert "line 15" not in result  # middle omitted
 
     def test_few_long_lines_char_truncated(self):
-        from kiro_crew.context import _compress_assistant_message
+        from junction.context import _compress_assistant_message
 
         # 5 lines of 1K each = 5K total, >2K but <=15 lines
         lines = ["x" * 1000 for _ in range(5)]
@@ -567,13 +567,13 @@ class TestCompressAssistantMessage:
         assert len(result) < len(block)
 
     def test_json_blob_small_preserved(self):
-        from kiro_crew.context import _compress_assistant_message
+        from junction.context import _compress_assistant_message
 
         text = 'Result: {"key": "value", "num": 42}'
         assert _compress_assistant_message(text) == text
 
     def test_json_blob_large_truncated(self):
-        from kiro_crew.context import _compress_assistant_message
+        from junction.context import _compress_assistant_message
 
         blob = '{"data": "' + "x" * 1500 + '"}'
         result = _compress_assistant_message(f"Output: {blob}")
@@ -583,7 +583,7 @@ class TestCompressAssistantMessage:
 class TestDocsSection:
     def test_docs_section_present_when_docs_exist(self, tmp_path, monkeypatch):
         """_build_docs_section returns content when docs dir exists."""
-        from kiro_crew import context as ctx_mod
+        from junction import context as ctx_mod
 
         docs_dir = tmp_path / "docs"
         docs_dir.mkdir()
@@ -597,16 +597,16 @@ class TestDocsSection:
 
     def test_docs_section_empty_when_no_docs(self, tmp_path, monkeypatch):
         """_build_docs_section returns empty string when docs dir missing."""
-        from kiro_crew import context as ctx_mod
+        from junction import context as ctx_mod
 
         monkeypatch.setattr(ctx_mod, "_BUNDLED_DOCS_DIR", tmp_path / "nonexistent")
 
         result = ctx_mod._build_docs_section()
         assert result == ""
 
-    def test_docs_injected_for_kirocrew_agent(self, tmp_path, monkeypatch):
-        """build_session_context includes docs for the default kirocrew agent."""
-        from kiro_crew import context as ctx_mod
+    def test_docs_injected_for_junction_agent(self, tmp_path, monkeypatch):
+        """build_session_context includes docs for the default junction agent."""
+        from junction import context as ctx_mod
 
         docs_dir = tmp_path / "docs"
         docs_dir.mkdir()
@@ -621,8 +621,8 @@ class TestDocsSection:
         assert "[DOCUMENTATION]" in ctx
 
     def test_docs_not_injected_for_custom_agent(self, tmp_path, monkeypatch):
-        """build_session_context skips docs for custom (non-kirocrew) agents."""
-        from kiro_crew import context as ctx_mod
+        """build_session_context skips docs for custom (non-junction) agents."""
+        from junction import context as ctx_mod
 
         docs_dir = tmp_path / "docs"
         docs_dir.mkdir()
@@ -640,8 +640,8 @@ class TestDocsSection:
 class TestCompressThreadHistory:
     @pytest.mark.asyncio
     async def test_returns_none_when_no_history(self, tmp_path):
-        from kiro_crew.context import compress_thread_history
-        from kiro_crew.history import ConversationLog
+        from junction.context import compress_thread_history
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -651,8 +651,8 @@ class TestCompressThreadHistory:
 
     @pytest.mark.asyncio
     async def test_short_transcript_returned_without_llm(self, tmp_path):
-        from kiro_crew.context import compress_thread_history
-        from kiro_crew.history import ConversationLog
+        from junction.context import compress_thread_history
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -668,8 +668,8 @@ class TestCompressThreadHistory:
     async def test_long_transcript_calls_llm(self, tmp_path, monkeypatch):
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.context import compress_thread_history
-        from kiro_crew.history import ConversationLog
+        from junction.context import compress_thread_history
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -685,7 +685,7 @@ class TestCompressThreadHistory:
         mock_sessions.recycle_background = AsyncMock()
 
         monkeypatch.setattr(
-            "kiro_crew.llm_helpers.stream_and_collect",
+            "junction.llm_helpers.stream_and_collect",
             AsyncMock(return_value="compressed summary here"),
         )
 
@@ -702,8 +702,8 @@ class TestCompressThreadHistory:
     async def test_llm_failure_returns_none(self, tmp_path, monkeypatch):
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.context import compress_thread_history
-        from kiro_crew.history import ConversationLog
+        from junction.context import compress_thread_history
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -724,7 +724,7 @@ class TestCompressThreadHistory:
 
     def test_build_session_context_uses_compressed_history(self, tmp_path):
         """When compressed_history is passed, it replaces naive truncation."""
-        from kiro_crew.history import ConversationLog
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -746,8 +746,8 @@ class TestCompressThreadHistory:
         """Credentials in LLM compression output must be scrubbed."""
         from unittest.mock import AsyncMock, MagicMock
 
-        from kiro_crew.context import compress_thread_history
-        from kiro_crew.history import ConversationLog
+        from junction.context import compress_thread_history
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -763,7 +763,7 @@ class TestCompressThreadHistory:
 
         fake_key = "AKIAIOSFODNN7EXAMPLE"
         monkeypatch.setattr(
-            "kiro_crew.llm_helpers.stream_and_collect",
+            "junction.llm_helpers.stream_and_collect",
             AsyncMock(return_value=f"summary with {fake_key} leaked"),
         )
 
@@ -814,18 +814,18 @@ class TestRuntimeDisplayName:
             ("_hb", "Junction heartbeat"),
             ("cli_chat", "CLI terminal"),
             ("slack:1234567890.123456", "Slack"),
-            ("discord:kirocrew:direct:474737235959480320", "Discord"),
-            ("discord_kirocrew_direct_474737235959480320", "Discord"),
-            ("telegram:kirocrew:direct:123", "Telegram"),
-            ("wecom:kirocrew:direct:user@example.com", "WeCom"),
-            ("weixin:kirocrew:direct:wxid", "Weixin"),
-            ("webex:kirocrew:direct:user@example.com", "Webex"),
-            ("teams:kirocrew:direct:user@example.com", "Microsoft Teams"),
+            ("discord:junction:direct:474737235959480320", "Discord"),
+            ("discord_junction_direct_474737235959480320", "Discord"),
+            ("telegram:junction:direct:123", "Telegram"),
+            ("wecom:junction:direct:user@example.com", "WeCom"),
+            ("weixin:junction:direct:wxid", "Weixin"),
+            ("webex:junction:direct:user@example.com", "Webex"),
+            ("teams:junction:direct:user@example.com", "Microsoft Teams"),
             ("1234567890.123456", "Slack"),
         ],
     )
     def test_runtime_display_name(self, session_key, expected_runtime):
-        from kiro_crew.context import _runtime_display_name
+        from junction.context import _runtime_display_name
 
         assert _runtime_display_name(session_key) == expected_runtime
 
@@ -843,11 +843,11 @@ class TestRuntimeDisplayName:
         assert "[CURRENT AGENT]" not in ctx
         assert "[RUNTIME]" not in ctx
 
-    def test_agent_defaults_to_kirocrew(self, tmp_path):
-        """Agent label defaults to 'kirocrew' when agent param is None."""
+    def test_agent_defaults_to_junction(self, tmp_path):
+        """Agent label defaults to 'junction' when agent param is None."""
         builder = ContextBuilder(memory=MemoryStore(workspace=tmp_path))
         ctx = builder.build_session_context("dashboard:chat-1")
-        assert "[CURRENT AGENT] kirocrew" in ctx
+        assert "[CURRENT AGENT] junction" in ctx
 
     def test_explicit_runtime_source_overrides_stable_session_key(self, tmp_path):
         """The current transport wins when a dashboard session resumes elsewhere."""
@@ -939,7 +939,7 @@ class TestMultibyteSanitization:
 
     def test_multibyte_table_covers_all_chars(self):
         """Translation table handles all listed multi-byte chars."""
-        from kiro_crew.context import _MULTIBYTE_TABLE
+        from junction.context import _MULTIBYTE_TABLE
 
         sample = "\u2014 \u2013 \u2018 \u2019 \u201c \u201d \u2026 \u00a0 \u2022"
         result = sample.translate(_MULTIBYTE_TABLE)
@@ -948,8 +948,8 @@ class TestMultibyteSanitization:
     @pytest.mark.asyncio
     async def test_compress_thread_history_strips_multibyte(self, tmp_path):
         """Short transcript with multi-byte chars gets sanitized."""
-        from kiro_crew.context import compress_thread_history
-        from kiro_crew.history import ConversationLog
+        from junction.context import compress_thread_history
+        from junction.history import ConversationLog
 
         conv_log = ConversationLog(base_dir=tmp_path / "sessions")
         conv_log.init()
@@ -964,7 +964,7 @@ class TestMultibyteSanitization:
 
 
 class TestCurrentDateTimezone:
-    """[CURRENT DATE] injection must honour KiroCrewConfig.timezone, so LLMs
+    """[CURRENT DATE] injection must honour JunctionConfig.timezone, so LLMs
     see the user's local time rather than the gateway host TZ (often UTC)."""
 
     def _make_builder(self, tmp_path):
@@ -977,7 +977,7 @@ class TestCurrentDateTimezone:
 
     def test_current_date_uses_configured_timezone(self, tmp_path):
         builder = self._make_builder(tmp_path)
-        with patch("kiro_crew.cron.KiroCrewConfig.load") as mock_load:
+        with patch("junction.cron.JunctionConfig.load") as mock_load:
             mock_load.return_value.timezone = "Asia/Tokyo"
             ctx = builder.build_session_context()
         # Tokyo is JST/UTC+9; %Z renders "JST"
@@ -987,7 +987,7 @@ class TestCurrentDateTimezone:
 
     def test_current_date_falls_back_to_utc_when_config_empty(self, tmp_path):
         builder = self._make_builder(tmp_path)
-        with patch("kiro_crew.cron.KiroCrewConfig.load") as mock_load:
+        with patch("junction.cron.JunctionConfig.load") as mock_load:
             mock_load.return_value.timezone = ""
             ctx = builder.build_session_context()
         date_line = [ln for ln in ctx.splitlines() if ln.startswith("[CURRENT DATE]")][0]
@@ -998,7 +998,7 @@ class TestLoadSteeringResources:
     """Tests for _load_steering_resources."""
 
     def test_loads_md_files_from_resources(self, tmp_path):
-        from kiro_crew.context import _load_steering_resources
+        from junction.context import _load_steering_resources
 
         # Create steering file
         steering_dir = tmp_path / ".kiro" / "steering"
@@ -1010,7 +1010,7 @@ class TestLoadSteeringResources:
         agents_dir.mkdir(parents=True)
         import json
 
-        (agents_dir / "kirocrew.json").write_text(
+        (agents_dir / "junction.json").write_text(
             json.dumps({"resources": ["file://.kiro/steering/**/*.md"]})
         )
 
@@ -1021,7 +1021,7 @@ class TestLoadSteeringResources:
         assert "Always be nice." in result
 
     def test_returns_empty_when_no_config(self, tmp_path):
-        from kiro_crew.context import _load_steering_resources
+        from junction.context import _load_steering_resources
 
         with patch("pathlib.Path.home", return_value=tmp_path):
             result = _load_steering_resources()
@@ -1029,7 +1029,7 @@ class TestLoadSteeringResources:
         assert result == ""
 
     def test_skips_sensitive_paths(self, tmp_path):
-        from kiro_crew.context import _load_steering_resources
+        from junction.context import _load_steering_resources
 
         # Create a .md file in a sensitive location
         ssh_dir = tmp_path / ".ssh"
@@ -1040,7 +1040,7 @@ class TestLoadSteeringResources:
         agents_dir.mkdir(parents=True)
         import json
 
-        (agents_dir / "kirocrew.json").write_text(json.dumps({"resources": ["file://.ssh/*.md"]}))
+        (agents_dir / "junction.json").write_text(json.dumps({"resources": ["file://.ssh/*.md"]}))
 
         with patch("pathlib.Path.home", return_value=tmp_path):
             result = _load_steering_resources()
@@ -1061,7 +1061,7 @@ class TestLoadSteeringResources:
         (steering_dir / "rules.md").write_text("# My Rules\nSTEERING_MARKER_XYZ")
         agents_dir = tmp_path / ".kiro" / "agents"
         agents_dir.mkdir(parents=True)
-        (agents_dir / "kirocrew.json").write_text(
+        (agents_dir / "junction.json").write_text(
             json.dumps({"resources": ["file://.kiro/steering/**/*.md"]})
         )
 
@@ -1084,8 +1084,8 @@ class TestLoadSteeringResources:
 
 class TestLessonsCap:
     def test_over_cap_injects_error_block(self, tmp_path):
-        from kiro_crew.context import _LESSONS_CAP
-        from kiro_crew.learn import Lesson
+        from junction.context import _LESSONS_CAP
+        from junction.learn import Lesson
 
         lessons = LessonStore(base_dir=tmp_path)
         # Save enough long lessons that the formatted context exceeds the cap.
@@ -1106,7 +1106,7 @@ class TestLessonsCap:
         assert "x" * 500 in ctx  # part of the kept lessons content is still present in ctx
 
     def test_under_cap_no_error_block(self, tmp_path):
-        from kiro_crew.learn import Lesson
+        from junction.learn import Lesson
 
         lessons = LessonStore(base_dir=tmp_path)
         lessons.save(Lesson(ts="1", rule="always run the formatter", category="knowledge"))
@@ -1198,7 +1198,7 @@ class TestAsyncCallSitesUseToThread:
         from pathlib import Path
 
         nested_scopes = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
-        src_root = Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+        src_root = Path(__file__).resolve().parent.parent / "src" / "junction"
         offenders: list[str] = []
 
         def _iter_frame_calls(fn: ast.AsyncFunctionDef):
@@ -1280,7 +1280,7 @@ class TestMemoryGetContextQueryWiring:
         # re-inject rows deleted from it.
         from types import SimpleNamespace
 
-        from kiro_crew.learn import Lesson
+        from junction.learn import Lesson
 
         builder = self._builder(tmp_path)
         store = builder.get_memory_for(None)
@@ -1300,7 +1300,7 @@ class TestMemoryGetContextQueryWiring:
         # vanish from the prompt in the meantime.
         from types import SimpleNamespace
 
-        from kiro_crew.learn import Lesson
+        from junction.learn import Lesson
 
         builder = self._builder(tmp_path)
         store = builder.get_memory_for(None)

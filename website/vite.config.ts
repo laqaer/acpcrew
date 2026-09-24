@@ -30,7 +30,7 @@ import {
 type EditionBranding = { title?: string; themeColor?: string }
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
-const backendPort = process.env.KIROCREW_PORT || 5476
+const backendPort = process.env.JUNCTION_PORT || 5476
 
 /**
  * Dev-only plugin: when the browser hits `/?token=xxx`, proxy that request
@@ -39,7 +39,7 @@ const backendPort = process.env.KIROCREW_PORT || 5476
  */
 function tokenProxyPlugin(): Plugin {
   return {
-    name: 'kirocrew-token-proxy',
+    name: 'junction-token-proxy',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = new URL(req.url || '/', `http://localhost:3000`)
@@ -73,13 +73,13 @@ function tokenProxyPlugin(): Plugin {
  * that maps bare module specifiers to vendor stubs in /vendor/*.mjs.
  *
  * The stubs are hand-written files in public/vendor/ that read from
- * window.__kirocrew_modules (registered by shared-modules.ts at startup).
+ * window.__junction_modules (registered by shared-modules.ts at startup).
  * This approach is bundler-agnostic — stubs never go through Rollup,
  * so exports are never renamed or tree-shaken.
  */
 function appImportMapPlugin(): Plugin {
   return {
-    name: 'kirocrew-app-importmap',
+    name: 'junction-app-importmap',
     enforce: 'post',
     transformIndexHtml: {
       order: 'post',
@@ -90,8 +90,8 @@ function appImportMapPlugin(): Plugin {
             'react-dom': '/vendor/react-dom.mjs',
             'react-dom/client': '/vendor/react-dom-client.mjs',
             'react/jsx-runtime': '/vendor/react-jsx-runtime.mjs',
-            '@kirocrew/app-sdk': '/vendor/kirocrew-app-sdk.mjs',
-            '@kirocrew/app-sdk/ui': '/vendor/kirocrew-ui.mjs',
+            '@junction/app-sdk': '/vendor/junction-app-sdk.mjs',
+            '@junction/app-sdk/ui': '/vendor/junction-ui.mjs',
             'lucide-react': '/vendor/lucide-react.mjs',
           },
         }
@@ -125,7 +125,7 @@ function vendorRuntimePlugin(): Plugin {
     { servePath: MERMAID_RUNTIME_PATH, src: MERMAID_RUNTIME_SRC },
   ]
   return {
-    name: 'kirocrew-vendor-runtimes',
+    name: 'junction-vendor-runtimes',
     // Dev: the build output doesn't exist, so serve straight from node_modules.
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
@@ -157,7 +157,7 @@ function vendorRuntimePlugin(): Plugin {
  */
 function swVersionPlugin(): Plugin {
   return {
-    name: 'kirocrew-sw-version',
+    name: 'junction-sw-version',
     apply: 'build',
     closeBundle() {
       const swPath = path.resolve(__dirname, 'dist/sw.js')
@@ -193,15 +193,15 @@ function swVersionPlugin(): Plugin {
 }
 
 /**
- * Edition-extension seam: resolves the virtual module `virtual:kirocrew-edition`
+ * Edition-extension seam: resolves the virtual module `virtual:junction-edition`
  * — imported once by `src/extensions.ts` — to a downstream edition's own
  * composition-root module, WITHOUT the edition having to overlay/shadow any core
  * file.
  *
- * - `KIROCREW_EDITION_DIR` unset (the stock OSS build): resolves to an INERT
+ * - `JUNCTION_EDITION_DIR` unset (the stock OSS build): resolves to an INERT
  *   empty module (`export {}`), so the stock build registers nothing and is
  *   byte-identical to having no seam at all.
- * - `KIROCREW_EDITION_DIR=<abs path>` set (a downstream edition build): resolves
+ * - `JUNCTION_EDITION_DIR=<abs path>` set (a downstream edition build): resolves
  *   to `<dir>/extensions.tsx` (or `.ts`) — the edition's own file, living in the
  *   edition's own repo. Its `register*()` calls + component imports compile into
  *   the SPA through the SAME vite/rollup pass as the core, so the edition never
@@ -213,25 +213,25 @@ function swVersionPlugin(): Plugin {
  * build time, never by shadowing `main.tsx`/`extensions.ts`.
  */
 function editionExtensionPlugin(): Plugin {
-  const VIRTUAL_ID = 'virtual:kirocrew-edition'
+  const VIRTUAL_ID = 'virtual:junction-edition'
   const RESOLVED_ID = '\0' + VIRTUAL_ID
-  const editionDir = process.env.KIROCREW_EDITION_DIR
+  const editionDir = process.env.JUNCTION_EDITION_DIR
   // FAIL-CLOSED by default: composing a downstream edition (which compiles that
   // edition's proprietary sources into website/dist — the dist staged into the
-  // public OSS wheel) requires an EXPLICIT opt-in, KIROCREW_ALLOW_EDITION=1.
+  // public OSS wheel) requires an EXPLICIT opt-in, JUNCTION_ALLOW_EDITION=1.
   // Every pipeline — including release/publish — is therefore protected by
   // default with NO "remember to set a guard var" dependency: an inherited
-  // KIROCREW_EDITION_DIR without the opt-in FAILS THE BUILD rather than
+  // JUNCTION_EDITION_DIR without the opt-in FAILS THE BUILD rather than
   // silently contaminating a public artifact (a one-way door — a published
   // release cannot be unpublished). Only the edition's own build.sh sets the
   // opt-in. Unsetting the opt-in can never weaken this; forgetting to set it
   // only ever fails safe (stock).
-  if (editionDir && process.env.KIROCREW_ALLOW_EDITION !== '1') {
+  if (editionDir && process.env.JUNCTION_ALLOW_EDITION !== '1') {
     throw new Error(
-      `KIROCREW_EDITION_DIR is set to '${editionDir}' but KIROCREW_ALLOW_EDITION=1 is not. ` +
+      `JUNCTION_EDITION_DIR is set to '${editionDir}' but JUNCTION_ALLOW_EDITION=1 is not. ` +
         'Edition composition is opt-in (fail-closed) so a stray env var cannot contaminate a ' +
-        'stock/release build. Set KIROCREW_ALLOW_EDITION=1 in the edition build, or unset ' +
-        'KIROCREW_EDITION_DIR for a stock build.'
+        'stock/release build. Set JUNCTION_ALLOW_EDITION=1 in the edition build, or unset ' +
+        'JUNCTION_EDITION_DIR for a stock build.'
     )
   }
   // Resolve the edition's composition root eagerly so a MISCONFIGURED dir
@@ -244,20 +244,20 @@ function editionExtensionPlugin(): Plugin {
     const candidate = ['extensions.tsx', 'extensions.ts'].map((f) => path.join(abs, f)).find(existsSync)
     if (!candidate) {
       throw new Error(
-        `KIROCREW_EDITION_DIR is set to '${editionDir}' but no extensions.tsx/.ts exists there. ` +
+        `JUNCTION_EDITION_DIR is set to '${editionDir}' but no extensions.tsx/.ts exists there. ` +
           'Unset it for the stock build, or point it at the edition composition root.'
       )
     }
     editionEntry = candidate
-    // Loud, unmissable self-identification: an inherited KIROCREW_EDITION_DIR
+    // Loud, unmissable self-identification: an inherited JUNCTION_EDITION_DIR
     // would otherwise SILENTLY compile a downstream edition's (proprietary)
     // sources into website/dist — which is staged into the Python package. In
     // this public OSS repo that is an IP-contamination hazard with no trace, so
     // every edition-mode build/test run must announce itself in local + CI logs.
     console.warn(
-      `\n[kirocrew-edition] ⚠ BUILDING WITH EDITION COMPOSITION ROOT: ${editionEntry}\n` +
-        '[kirocrew-edition] the resulting dist is EDITION-composed, NOT a stock OSS build. ' +
-        'Unset KIROCREW_EDITION_DIR for a stock build.\n'
+      `\n[junction-edition] ⚠ BUILDING WITH EDITION COMPOSITION ROOT: ${editionEntry}\n` +
+        '[junction-edition] the resulting dist is EDITION-composed, NOT a stock OSS build. ' +
+        'Unset JUNCTION_EDITION_DIR for a stock build.\n'
     )
   }
   // Pre-boot shell branding, resolved eagerly like the composition root so a
@@ -274,7 +274,7 @@ function editionExtensionPlugin(): Plugin {
       try {
         branding = parseBrandingConfig(readFileSync(brandingPath, 'utf-8'))
       } catch (e: unknown) {
-        throw new Error(`[kirocrew-edition] ${brandingPath}: ${(e as Error).message}`)
+        throw new Error(`[junction-edition] ${brandingPath}: ${(e as Error).message}`)
       }
     }
     // Only allowlisted shell assets overlay the stock public/ copies; anything
@@ -294,7 +294,7 @@ function editionExtensionPlugin(): Plugin {
       )
       if (strays.length > 0) {
         throw new Error(
-          `[kirocrew-edition] ${publicDir} contains entries outside the shell-overlay allowlist ` +
+          `[junction-edition] ${publicDir} contains entries outside the shell-overlay allowlist ` +
             `(${SHELL_OVERLAY_ALLOWLIST.join(', ')}), or non-files: ` +
             `${strays.map((d) => d.name).join(', ')}. ` +
             'The allowlist is what keeps an edition from overwriting index.html, sw.js, or vendor/*.'
@@ -304,7 +304,7 @@ function editionExtensionPlugin(): Plugin {
     }
   }
   return {
-    name: 'kirocrew-edition-extension',
+    name: 'junction-edition-extension',
     enforce: 'pre',
     // Patch the pre-boot shell (<title>, <meta name="theme-color">) from the
     // edition's branding.json. registerThemeBranding() can only retitle the tab
@@ -389,7 +389,7 @@ function bundleReportPlugin(): Plugin {
   const REPORT_MODE = 'analyze'
   let active = false
   return {
-    name: 'kirocrew-bundle-report',
+    name: 'junction-bundle-report',
     apply: 'build',
     configResolved(resolved) {
       active = resolved.mode === REPORT_MODE
@@ -482,7 +482,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
     // Force a SINGLE instance of every CONTEXT-CARRYING singleton across the
-    // bundle. A KIROCREW_EDITION_DIR in a separate repo may resolve these from
+    // bundle. A JUNCTION_EDITION_DIR in a separate repo may resolve these from
     // ITS OWN node_modules; a second copy binds an edition component's hooks to
     // a DIFFERENT context instance than the core's providers — "Invalid hook
     // call" (react), "No QueryClient set" / null router context / silently empty
@@ -653,7 +653,7 @@ export default defineConfig({
       // in dev mode, Vite serves them directly from src/vendor/ via the
       // multi-entry input config, so no proxy needed.
       '/logo.png': `http://localhost:${backendPort}`,
-      '/static/kirocrew-logo.png': `http://localhost:${backendPort}`,
+      '/static/junction-logo.png': `http://localhost:${backendPort}`,
     },
   },
   build: {

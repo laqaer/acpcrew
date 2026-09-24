@@ -11,9 +11,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from kiro_crew.messaging import dispatch as D
-from kiro_crew.messaging.dispatch import ChannelTurn, drive_turn
-from kiro_crew.messaging.renderer import SilentRenderer
+from junction.messaging import dispatch as D
+from junction.messaging.dispatch import ChannelTurn, drive_turn
+from junction.messaging.renderer import SilentRenderer
 
 
 class _Sessions:
@@ -555,17 +555,17 @@ class TestPureCancelPredicate:
         import importlib
         import pkgutil
 
-        import kiro_crew
+        import junction
 
         found: dict[str, set[str]] = {}
         unreadable: list[str] = []
-        for mod in pkgutil.iter_modules(kiro_crew.__path__):
+        for mod in pkgutil.iter_modules(junction.__path__):
             # `messaging` is the shared layer that OWNS the union rather than a
             # channel that contributes to it, so it is not a mirror of anything.
             if not mod.ispkg or mod.name == "messaging":
                 continue
             try:
-                commands = importlib.import_module(f"kiro_crew.{mod.name}.commands")
+                commands = importlib.import_module(f"junction.{mod.name}.commands")
             except ModuleNotFoundError:
                 continue
             aliases: set[str] = set()
@@ -647,7 +647,7 @@ class TestCancellationSurvivesAGovernanceDeny:
 
 
 def test_the_origin_conversation_is_recorded_and_bound(monkeypatch) -> None:
-    from kiro_crew.messaging.link import ChannelLink
+    from junction.messaging.link import ChannelLink
 
     _patch_pipeline(monkeypatch)
     sessions = _MirrorSessions()
@@ -670,7 +670,7 @@ def test_a_unified_key_records_no_origin_conversation(monkeypatch) -> None:
     for exactly this reason, so the sibling ``set_origin_link`` must not be the
     hole that reopens it.
     """
-    from kiro_crew.messaging.link import ChannelLink
+    from junction.messaging.link import ChannelLink
 
     _patch_pipeline(monkeypatch)
     sessions = _MirrorSessions()
@@ -700,7 +700,7 @@ def test_the_persisted_opt_out_is_honoured(monkeypatch) -> None:
     The bind is re-asserted every turn, so without reading the opt-out "off"
     would last exactly until they typed again.
     """
-    from kiro_crew.messaging.link import ChannelLink
+    from junction.messaging.link import ChannelLink
 
     _patch_pipeline(monkeypatch)
     sessions = _MirrorSessions(opt_out=True)
@@ -715,7 +715,7 @@ def test_the_persisted_opt_out_is_honoured(monkeypatch) -> None:
 def test_a_binding_aimed_elsewhere_is_not_repointed(monkeypatch) -> None:
     # The dashboard can aim a session's mirror at any surface; overwriting it
     # would silently redirect the user's replies into this conversation.
-    from kiro_crew.messaging.link import ChannelLink
+    from junction.messaging.link import ChannelLink
 
     _patch_pipeline(monkeypatch)
     elsewhere = ChannelLink("discord", channel_id="99", thread_id=None)
@@ -734,7 +734,7 @@ def test_a_bind_failure_does_not_drop_the_turn(monkeypatch) -> None:
     Losing the mirror costs a dashboard convenience; raising costs the user the
     answer they are waiting for.
     """
-    from kiro_crew.messaging.link import ChannelLink
+    from junction.messaging.link import ChannelLink
 
     _patch_pipeline(monkeypatch)
     sessions = _MirrorSessions(raises=True)

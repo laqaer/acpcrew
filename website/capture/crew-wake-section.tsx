@@ -28,12 +28,12 @@ const now = Math.floor(Date.now() / 1000)
 const JOBS = [
   {
     id: 'j1', name: 'gh-autofix-dispatcher', message: '', enabled: true, last_status: 'ok',
-    schedule: 'every 15m', agent: 'kirocrew-autofix',
+    schedule: 'every 15m', agent: 'junction-autofix',
     last_run_ts: now - 240, next_run_ts: now + 660,
   },
   {
     id: 'j2', name: 'gh-autofix-cleanup', message: '', enabled: true, last_status: 'ok',
-    schedule: 'every 15m', agent: 'kirocrew-autofix',
+    schedule: 'every 15m', agent: 'junction-autofix',
     last_run_ts: now - 540, next_run_ts: now + 360,
   },
   {
@@ -80,10 +80,10 @@ function Scenes() {
     <QueryClientProvider client={qc}>
       <MemoryRouter>
         <div className="flex flex-col items-start gap-5 bg-bg p-6 text-text">
-          <Frame label="kirocrew-autofix — two clock triggers" crew="kirocrew-autofix" isDefaultCrew={false} />
+          <Frame label="junction-autofix — two clock triggers" crew="junction-autofix" isDefaultCrew={false} />
           <Frame label="ops-triage — one paused" crew="ops-triage" isDefaultCrew={false} />
           <Frame label="default — claims the agent-less cron" crew="default" isDefaultCrew />
-          <Frame label="kirocrew-lite — nothing wakes it" crew="kirocrew-lite" isDefaultCrew={false} />
+          <Frame label="junction-lite — nothing wakes it" crew="junction-lite" isDefaultCrew={false} />
         </div>
       </MemoryRouter>
     </QueryClientProvider>

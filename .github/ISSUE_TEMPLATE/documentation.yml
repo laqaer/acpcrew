@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         This covers the Junction README, `CONTRIBUTING.md`, docs under
-        `src/kiro_crew/docs/`, skill files, and in-product help. If the docs
+        `src/junction/docs/`, skill files, and in-product help. If the docs
         are correct but the product is wrong, file a bug report instead.
 
   - type: input
@@ -16,7 +16,7 @@ body:
       description: >-
         File path, doc page, or the UI surface carrying the text. A permalink is
         ideal.
-      placeholder: src/kiro_crew/docs/getting-started.md, or Settings > Planes
+      placeholder: src/junction/docs/getting-started.md, or Settings > Planes
     validations:
       required: true
 

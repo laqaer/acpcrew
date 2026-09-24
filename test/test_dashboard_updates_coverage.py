@@ -34,9 +34,9 @@ import pytest
 from aiohttp import web
 from aiohttp.client_exceptions import ClientConnectionResetError
 
-from kiro_crew.config.loader import ConfigReadError
-from kiro_crew.dashboard.handlers import updates
-from kiro_crew.platform import update_layout
+from junction.config.loader import ConfigReadError
+from junction.dashboard.handlers import updates
+from junction.platform import update_layout
 
 
 @pytest.fixture(autouse=True)
@@ -48,8 +48,8 @@ def _isolated_module_state(monkeypatch, tmp_path):
     exactly the class of cross-test coupling this module's cache contract exists
     to prevent.
     """
-    monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-    monkeypatch.delenv("KIROCREW_CDN_BASE", raising=False)
+    monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+    monkeypatch.delenv("JUNCTION_CDN_BASE", raising=False)
     monkeypatch.setattr(update_layout, "data_home", lambda: tmp_path)
     saved_info = dict(updates._update_info)
     saved_ring = list(updates._log_ring)
@@ -152,7 +152,7 @@ def _git_proj(monkeypatch, tmp_path) -> str:
     (proj / ".git").mkdir()
     (proj / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
     monkeypatch.setattr(
-        "kiro_crew.platform.update_capability.running_from_checkout",
+        "junction.platform.update_capability.running_from_checkout",
         lambda root, **kw: True,
     )
     return str(proj)
@@ -165,7 +165,7 @@ def _git_capability():
     under test do not also depend on a real git binary answering about this
     host's own tree.
     """
-    from kiro_crew.platform import update_capability
+    from junction.platform import update_capability
 
     return update_capability.UpdateCapability(
         supported=True,
@@ -193,7 +193,7 @@ class TestUpdateCheckEndpoint:
         async def _fake_check() -> None:
             checked.append(None)
             updates._set_update_info(
-                managed_by="kirocrew",
+                managed_by="junction",
                 latest_version="9.9.9",
                 update_available=True,
                 check_status="succeeded",
@@ -314,7 +314,7 @@ class TestGitCheckoutFailurePaths:
         self._assert_failed_check(updates.ERR_GIT_READ_FAILED)
         # The version is read at the REMOTE sha when the two differ, not at HEAD:
         # comparing HEAD against itself can never detect an update.
-        assert argv[-1] == ("git", "show", "bbb222:src/kiro_crew/__init__.py")
+        assert argv[-1] == ("git", "show", "bbb222:src/junction/__init__.py")
 
     @pytest.mark.asyncio
     async def test_a_version_that_cannot_be_parsed_is_reported_as_such(self, monkeypatch, tmp_path):
@@ -465,7 +465,7 @@ class TestChangelogCache:
         path = proj / "CHANGELOG.md"
         # newline="\n" so the byte count and content match on Windows too.
         path.write_text(body, encoding="utf-8", newline="\n")
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
         return path
 
     def test_an_unchanged_file_is_read_once(self, monkeypatch, tmp_path):
@@ -513,7 +513,7 @@ class TestChangelogCache:
     def test_no_changelog_anywhere_yields_empty(self, monkeypatch, tmp_path):
         empty = tmp_path / "no-changelog"
         empty.mkdir()
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(empty))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(empty))
         monkeypatch.setattr(updates, "_changelog_path", lambda: None)
         assert updates._read_changelog() == ""
 
@@ -531,7 +531,7 @@ class TestChangelogCache:
 
         monkeypatch.setattr(Path, "is_file", _only_bundled)
         # A project dir with no CHANGELOG.md of its own must not short-circuit.
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
 
         resolved = updates._changelog_path()
 
@@ -545,7 +545,7 @@ class TestPipInstallFailureReport:
 
     @pytest.mark.asyncio
     async def test_a_huge_stderr_is_truncated_with_a_marker(self, monkeypatch):
-        from kiro_crew import dep_sync
+        from junction import dep_sync
 
         state = MagicMock()
 
@@ -573,14 +573,14 @@ class TestApplyRefusals:
     async def test_refuses_when_no_project_dir_is_configured(self):
         resp = await updates.api_update_apply(_request({}))
         assert resp.status == 400
-        assert "KIROCREW_PROJECT_DIR" in json.loads(resp.body.decode())["error"]
+        assert "JUNCTION_PROJECT_DIR" in json.loads(resp.body.decode())["error"]
 
     @pytest.mark.asyncio
     async def test_refuses_a_tarball_install_with_a_specific_message(self, monkeypatch, tmp_path):
         """No ``.git`` means ``git pull`` cannot update it — say so, not "pull failed"."""
         plain = tmp_path / "tarball"
         plain.mkdir()
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(plain))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(plain))
         resp = await updates.api_update_apply(_request({}))
         assert resp.status == 409
         assert "Not a git checkout" in json.loads(resp.body.decode())["error"]
@@ -595,7 +595,7 @@ class TestApplyRefusals:
         permits this host to pull from this remote -- and a blocked update must
         leave no "updating" overlay behind for the user to dismiss.
         """
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
         monkeypatch.setattr(updates, "resolve_remote_url", lambda _p: "https://example.invalid/x")
         monkeypatch.setattr(updates, "update_blocked_reason", lambda _u: "remote is not permitted")
 
@@ -611,7 +611,7 @@ class TestApplyRefusals:
 
     @pytest.mark.asyncio
     async def test_a_hung_status_check_answers_500_rather_than_hanging(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
         monkeypatch.setattr(updates, "resolve_remote_url", lambda _p: "")
         monkeypatch.setattr(updates, "update_blocked_reason", lambda _u: "")
         _sequence_procs(monkeypatch, [_FakeProc(time_out=True, kill_raises=True)])
@@ -625,10 +625,10 @@ class TestApplyRefusals:
 
     @pytest.mark.asyncio
     async def test_a_dirty_tree_is_refused_without_starting_the_worker(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
         monkeypatch.setattr(updates, "resolve_remote_url", lambda _p: "")
         monkeypatch.setattr(updates, "update_blocked_reason", lambda _u: "")
-        _sequence_procs(monkeypatch, [_FakeProc(out=b" M src/kiro_crew/cli.py\n")])
+        _sequence_procs(monkeypatch, [_FakeProc(out=b" M src/junction/cli.py\n")])
 
         req = _request({})
         resp = await updates.api_update_apply(req)
@@ -639,7 +639,7 @@ class TestApplyRefusals:
 
     async def _drive_worker(self, monkeypatch, tmp_path, procs: list[_FakeProc]):
         """Accept the request, then await the background worker it scheduled."""
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
         monkeypatch.setattr(updates, "resolve_remote_url", lambda _p: "")
         monkeypatch.setattr(updates, "update_blocked_reason", lambda _u: "")
         # Clean tree, then the diverged guard's own fetch and a fast-forwardable
@@ -683,7 +683,7 @@ class TestApplyRefusals:
         The overlay has no other way to leave the "updating" state, so a
         swallowed error strands the user on a spinner forever.
         """
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
         monkeypatch.setattr(updates, "resolve_remote_url", lambda _p: "")
         monkeypatch.setattr(updates, "update_blocked_reason", lambda _u: "")
         calls = {"n": 0}
@@ -750,7 +750,7 @@ class TestLogLevel:
 
     @pytest.fixture(autouse=True)
     def _restore_level(self):
-        root = logging.getLogger("kiro_crew")
+        root = logging.getLogger("junction")
         saved = root.level
         yield
         root.setLevel(saved)
@@ -763,25 +763,25 @@ class TestLogLevel:
     @pytest.mark.parametrize("level", ["TRACE", "", "verbose", "CRITICAL"])
     @pytest.mark.asyncio
     async def test_rejects_a_level_outside_the_map(self, level):
-        before = logging.getLogger("kiro_crew").level
+        before = logging.getLogger("junction").level
         resp = await updates.api_log_level(_request({"level": level}))
         assert resp.status == 400
         # A rejected level must not have been applied on the way to the refusal.
-        assert logging.getLogger("kiro_crew").level == before
+        assert logging.getLogger("junction").level == before
 
     @pytest.mark.asyncio
     async def test_applies_and_persists_a_valid_level_case_insensitively(self, monkeypatch):
         saved: list[str] = []
         cfg = MagicMock()
         cfg.save = lambda: saved.append(cfg.agent.log_level)
-        monkeypatch.setattr(updates.KiroCrewConfig, "load", staticmethod(lambda: cfg))
+        monkeypatch.setattr(updates.JunctionConfig, "load", staticmethod(lambda: cfg))
 
         resp = await updates.api_log_level(_request({"level": "warning"}))
 
         assert resp.status == 200
         payload = json.loads(resp.body.decode())
         assert payload == {"ok": True, "level": "WARNING", "persisted": True}
-        assert logging.getLogger("kiro_crew").level == logging.WARNING
+        assert logging.getLogger("junction").level == logging.WARNING
         assert saved == ["WARNING"]
 
     @pytest.mark.asyncio
@@ -792,7 +792,7 @@ class TestLogLevel:
         from blocking a debugging session.
         """
         monkeypatch.setattr(
-            updates.KiroCrewConfig,
+            updates.JunctionConfig,
             "load",
             staticmethod(MagicMock(side_effect=OSError("read-only fs"))),
         )
@@ -802,17 +802,17 @@ class TestLogLevel:
         payload = json.loads(resp.body.decode())
         assert payload["ok"] is True
         assert payload["persisted"] is False
-        assert logging.getLogger("kiro_crew").level == logging.DEBUG
+        assert logging.getLogger("junction").level == logging.DEBUG
 
     @pytest.mark.asyncio
     async def test_the_getter_reports_the_live_level(self):
-        logging.getLogger("kiro_crew").setLevel(logging.ERROR)
+        logging.getLogger("junction").setLevel(logging.ERROR)
         resp = await updates.api_log_level_get(_request())
         assert json.loads(resp.body.decode()) == {"level": "ERROR"}
 
 
 def _record(msg: str = "hello", level: int = logging.INFO) -> logging.LogRecord:
-    return logging.LogRecord("kiro_crew.test", level, __file__, 1, msg, None, None)
+    return logging.LogRecord("junction.test", level, __file__, 1, msg, None, None)
 
 
 class TestQueueLogHandler:
@@ -973,7 +973,7 @@ class TestRingLogHandler:
         assert json.loads(ring[0])["msg"] == "during shutdown"
 
     def test_install_is_idempotent_and_attaches_exactly_one_handler(self, monkeypatch):
-        root = logging.getLogger("kiro_crew")
+        root = logging.getLogger("junction")
         monkeypatch.setattr(updates, "_log_ring_handler_installed", False)
         monkeypatch.setattr(updates, "_log_ring_handler", None)
         before = list(root.handlers)
@@ -1041,7 +1041,7 @@ class TestLogsStream:
         # must not leave one attached to the logger.
         assert not any(
             isinstance(h, updates._QueueLogHandler)
-            for h in logging.getLogger("kiro_crew").handlers
+            for h in logging.getLogger("junction").handlers
         )
 
     @pytest.mark.parametrize("raw", ["not-a-number", "", "1e5"])
@@ -1076,7 +1076,7 @@ class TestLogsStream:
         self, monkeypatch
     ):
         writes = _stub_stream(monkeypatch)
-        root = logging.getLogger("kiro_crew")
+        root = logging.getLogger("junction")
         before = len(root.handlers)
 
         task = asyncio.ensure_future(updates.api_logs(_request(query={"lines": "1"})))
@@ -1086,8 +1086,8 @@ class TestLogsStream:
                 break
         assert any(isinstance(h, updates._QueueLogHandler) for h in root.handlers)
 
-        logging.getLogger("kiro_crew.stream").warning("live one")
-        logging.getLogger("kiro_crew.stream").warning("live two")
+        logging.getLogger("junction.stream").warning("live one")
+        logging.getLogger("junction.stream").warning("live two")
         for _ in range(200):
             await asyncio.sleep(0.005)
             if len(writes) >= 2:
@@ -1268,7 +1268,7 @@ class TestUpdateInfoAccessors:
 
     def test_get_update_info_cannot_be_mutated_through_the_caller(self):
         updates._set_update_info(
-            managed_by="kirocrew", latest_version="1.2.3", check_status="succeeded"
+            managed_by="junction", latest_version="1.2.3", check_status="succeeded"
         )
         snapshot = updates.get_update_info()
         snapshot["latest_version"] = "tampered"
@@ -1301,7 +1301,7 @@ class TestUpdateInfoAccessors:
         A second copy of the list is the drift this contract removed: the
         capability now answers for every stamp, including the Linux packages.
         """
-        from kiro_crew.platform import update_capability
+        from junction.platform import update_capability
 
         for stamp in ("dmg", "appimage", "deb", "rpm"):
             capability = update_capability.derive_capability(install_root="", dist=stamp)
@@ -1311,7 +1311,7 @@ class TestUpdateInfoAccessors:
 
     def test_a_cdn_override_moves_the_feed_and_the_artifact_together(self, monkeypatch):
         """Splitting them would check one host and recommend an install from another."""
-        monkeypatch.setenv("KIROCREW_CDN_BASE", "https://cdn.example.invalid/")
+        monkeypatch.setenv("JUNCTION_CDN_BASE", "https://cdn.example.invalid/")
         assert updates._cdn_bases() == (
             "https://cdn.example.invalid",
             "https://cdn.example.invalid",
@@ -1321,7 +1321,7 @@ class TestUpdateInfoAccessors:
         # Asserts the invariants, not an exact string: the builder is shared with
         # the gateway's unattended path, so its shape may change (it stopped
         # piping curl into sh, which hid download failures) while these must hold.
-        monkeypatch.setenv("KIROCREW_CDN_BASE", "https://download.example.invalid")
+        monkeypatch.setenv("JUNCTION_CDN_BASE", "https://download.example.invalid")
         command = updates.wheel_update_command("insider")
         assert "--proto '=https'" in command, "must refuse a plaintext override"
         assert "https://download.example.invalid/cli.sh" in command
@@ -1342,9 +1342,9 @@ class TestExternallyManagedCheck:
         Answering with a CLI verdict here would compare against the wrong version
         stream and then recommend an installer that does not apply to a bundle.
         """
-        from kiro_crew.platform import update_capability
+        from junction.platform import update_capability
 
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "dmg")
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "dmg")
         await updates._do_update_check()
         assert updates._update_info["managed_by"] == update_capability.MANAGED_BY_ELECTRON
         assert updates._update_info["can_apply"] is False
@@ -1358,7 +1358,7 @@ class TestExternallyManagedCheck:
     async def test_an_unexpected_crash_records_an_error_rather_than_a_verdict(
         self, monkeypatch, tmp_path
     ):
-        monkeypatch.setenv("KIROCREW_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
+        monkeypatch.setenv("JUNCTION_PROJECT_DIR", _git_proj(monkeypatch, tmp_path))
 
         async def _boom(_proj: str, _capability) -> None:
             raise RuntimeError("git is not installed")
@@ -1381,11 +1381,11 @@ class TestExternallyManagedCheck:
         async def _count(capability) -> None:
             calls.append(capability.managed_by)
 
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "wheel")
         monkeypatch.setattr(updates, "_check_release_feed", _count)
         with patch.object(updates, "_check_in_flight", True):
             await updates._do_update_check()
         assert calls == []
 
         await updates._do_update_check()
-        assert calls == ["kirocrew"]
+        assert calls == ["junction"]

@@ -7,10 +7,10 @@ from typing import Callable, List
 
 import pytest
 
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.platform.bootstrap import build_default_context
-from kiro_crew.platform.context import PlatformCompositionError, set_context
-from kiro_crew.preflight import run_preflight_checks
+from junction.config import JunctionConfig
+from junction.platform.bootstrap import build_default_context
+from junction.platform.context import PlatformCompositionError, set_context
+from junction.preflight import run_preflight_checks
 
 
 class _StubIdentity:
@@ -47,7 +47,7 @@ class _RaisingIdentity(_StubIdentity):
 
 
 def _install_identity(identity: object) -> None:
-    base = build_default_context(KiroCrewConfig())
+    base = build_default_context(JunctionConfig())
     set_context(dataclasses.replace(base, identity=identity))
 
 
@@ -71,7 +71,7 @@ class TestRunPreflightChecks:
         def _boom() -> None:
             raise RuntimeError("boom")
 
-        with caplog.at_level("WARNING", logger="kiro_crew.preflight"):
+        with caplog.at_level("WARNING", logger="junction.preflight"):
             run_preflight_checks([_boom, lambda: calls.append("after")])
         # The failing check is logged and the NEXT check still runs.
         assert calls == ["after"]

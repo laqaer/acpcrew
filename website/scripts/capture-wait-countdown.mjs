@@ -79,7 +79,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/wait-countdown'
 const SLOT = 'chat-wait-countdown'
-const PROJECT = '/home/user/workspace/KiroCrew'
+const PROJECT = '/home/user/workspace/Junction'
 const WAIT_ID = 'wait-7f3a91'
 const TOOL_CALL_ID = 'tc_wait_1'
 const VIEW = { width: 1200, height: 780 }
@@ -102,7 +102,7 @@ const INPUT_PREVIEW = JSON.stringify({ seconds: WAIT_SECONDS, reason: RESUME_REA
  * the whole capture.
  */
 function readWaitPingSecs() {
-  const src = fileURLToPath(new URL('../../src/kiro_crew/mcp_core.py', import.meta.url))
+  const src = fileURLToPath(new URL('../../src/junction/mcp_core.py', import.meta.url))
   try {
     const m = /^WAIT_PING_SECS\s*=\s*([0-9]+(?:\.[0-9]+)?)/m.exec(readFileSync(src, 'utf8'))
     if (m) return Number(m[1])
@@ -131,7 +131,7 @@ const slot = (waitState) => ({
   running: true,
   last_message: '🔧 wait',
   messages: 3,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: Math.floor(Date.now() / 1000),

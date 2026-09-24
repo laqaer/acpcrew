@@ -72,7 +72,7 @@ function crew(over: Record<string, unknown> = {}) {
     name: 'Andromeda',
     avatar_seed: 'crew-andromeda',
     avatar_variant: 2,
-    agent: 'kirocrew',
+    agent: 'junction',
     model: 'claude-opus-5',
     extra_prompt: 'Prefer the smallest reversible fix.',
     labels: ['area: dashboard'],

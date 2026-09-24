@@ -53,7 +53,7 @@ cd junction
 cd website
 npm install
 npm run build
-cp -r dist ../src/kiro_crew/static/dist
+cp -r dist ../src/junction/static/dist
 cd ..
 
 # 3. Editable backend install (with optional voice extras)
@@ -81,10 +81,10 @@ Slack, Discord, Telegram, Teams, Webex, WeCom, or WeChat later, or run
 ## Development Skills (agents and humans)
 
 The contributor workflow is codified as agent-loadable skills in
-[`src/kiro_crew/builtin_skills/kirocrew-dev/`](src/kiro_crew/builtin_skills/kirocrew-dev/)
+[`src/junction/builtin_skills/junction-dev/`](src/junction/builtin_skills/junction-dev/)
 — the canonical definition of how code gets written, tested, and reviewed here:
 
-- **`kirocrew-worktree-dev`** — the HARD RULE workflow: every change in a git
+- **`junction-worktree-dev`** — the HARD RULE workflow: every change in a git
   worktree, the blocking build gates, the built-dist gotcha, preview paths.
 - **`prepare-pr`** — drives working-tree changes to a review-ready PR
   (commit → sync → squash → open → poll CI/review bots → fix findings).
@@ -109,7 +109,7 @@ pytest                       # run the test suite
 ### Frontend
 
 The React SPA lives in `website/`. Production builds are bundled into
-`src/kiro_crew/static/dist/` and served by the backend.
+`src/junction/static/dist/` and served by the backend.
 
 ```bash
 cd website
@@ -117,7 +117,7 @@ npm install
 npm run build                # tsc + vite build → website/dist
 ```
 
-After building, copy `website/dist` into `src/kiro_crew/static/dist/` so the
+After building, copy `website/dist` into `src/junction/static/dist/` so the
 backend serves the latest assets (the `pip` build step copies this directory
 into the wheel).
 
@@ -130,18 +130,18 @@ Run a dev gateway alongside production without data or port conflicts:
 ./dev-seed.sh
 
 # Start the dev backend (port 6777, isolated data)
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction up
+JUNCTION_HOME=.kirocrew-dev JUNCTION_PORT=6777 junction up
 ```
 
 Browse at `http://localhost:6777`. The backend serves the built frontend assets directly.
 
 | Env var | Purpose | Default |
 |---------|---------|---------|
-| `KIROCREW_HOME` | Config/data directory override | `~/.kiro/crew` |
-| `KIROCREW_PORT` | Dashboard port override | `5476` |
-| `KIROCREW_KIRO_BIN` | Explicit path to the `kiro-cli` binary (overrides PATH auto-detection) | auto-detected |
+| `JUNCTION_HOME` | Config/data directory override | `~/.junction` |
+| `JUNCTION_PORT` | Dashboard port override | `5476` |
+| `JUNCTION_KIRO_BIN` | Explicit path to the `kiro-cli` binary (overrides PATH auto-detection) | auto-detected |
 
-If you don't need to run production and dev side by side, omit `KIROCREW_PORT` —
+If you don't need to run production and dev side by side, omit `JUNCTION_PORT` —
 just stop your production gateway first.
 
 ### Full-Stack Dev Setup (Backend + Frontend Hot-Reload)
@@ -151,15 +151,15 @@ for instant hot-reload without rebuilding:
 
 ```bash
 # Terminal 1 — start the backend
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction up
+JUNCTION_HOME=.kirocrew-dev JUNCTION_PORT=6777 junction up
 
 # Terminal 2 — start the frontend dev server (hot-reloads .tsx changes)
 cd website
-KIROCREW_PORT=6777 npm run dev
+JUNCTION_PORT=6777 npm run dev
 # → Vite starts at http://localhost:3000, proxies /api/* to backend on port 6777
 
 # Terminal 3 — generate an auth token
-KIROCREW_HOME=.kirocrew-dev KIROCREW_PORT=6777 junction token
+JUNCTION_HOME=.kirocrew-dev JUNCTION_PORT=6777 junction token
 # → Outputs: http://localhost:6777?token=eyJ...
 
 # Open in browser — replace :6777 with :3000:
@@ -277,7 +277,7 @@ is what makes nightlies read as previews of the *next* release:
 
 | File | Field |
 |------|-------|
-| `src/kiro_crew/__init__.py` | `__version__` — the source of truth |
+| `src/junction/__init__.py` | `__version__` — the source of truth |
 | `pyproject.toml` | `[project] version` — what the wheel carries |
 | `website/electron/package.json` | `version` — the updater's version compare |
 
@@ -310,21 +310,21 @@ Key entry points:
 
 | File | Purpose |
 |------|---------|
-| `src/kiro_crew/cli.py` | CLI entrypoint (argparse) |
-| `src/kiro_crew/session.py` | Conversation session management |
-| `src/kiro_crew/providers/` | LLM provider layer (claude_code, acp, bedrock) |
-| `src/kiro_crew/acp/client.py` | ACP JSON-RPC client (stdio) |
-| `src/kiro_crew/slack/gateway.py` | Slack Socket Mode gateway |
-| `src/kiro_crew/slack/handler.py` | Message handling, tool approval |
-| `src/kiro_crew/dashboard/` | Web dashboard (aiohttp backend) |
-| `src/kiro_crew/mcp_core.py` | MCP tools: spawn, learn, task, wait, hook, send_message, file_send |
-| `src/kiro_crew/mcp_cron.py` | MCP tools: cron scheduling |
-| `src/kiro_crew/context.py` | Context builder (memory, skills, history) |
-| `src/kiro_crew/subagent.py` | Subagent lifecycle and timeout |
-| `src/kiro_crew/autonudge.py` | Reactive same-session self-nudge service |
-| `src/kiro_crew/snapshot.py` | Portable snapshot and restore |
-| `src/kiro_crew/apps/` | App Kit platform (manifest, manager, registry, routes) |
-| `src/kiro_crew/eval/` | Multi-session eval harness |
+| `src/junction/cli.py` | CLI entrypoint (argparse) |
+| `src/junction/session.py` | Conversation session management |
+| `src/junction/providers/` | LLM provider layer (claude_code, acp, bedrock) |
+| `src/junction/acp/client.py` | ACP JSON-RPC client (stdio) |
+| `src/junction/slack/gateway.py` | Slack Socket Mode gateway |
+| `src/junction/slack/handler.py` | Message handling, tool approval |
+| `src/junction/dashboard/` | Web dashboard (aiohttp backend) |
+| `src/junction/mcp_core.py` | MCP tools: spawn, learn, task, wait, hook, send_message, file_send |
+| `src/junction/mcp_cron.py` | MCP tools: cron scheduling |
+| `src/junction/context.py` | Context builder (memory, skills, history) |
+| `src/junction/subagent.py` | Subagent lifecycle and timeout |
+| `src/junction/autonudge.py` | Reactive same-session self-nudge service |
+| `src/junction/snapshot.py` | Portable snapshot and restore |
+| `src/junction/apps/` | App Kit platform (manifest, manager, registry, routes) |
+| `src/junction/eval/` | Multi-session eval harness |
 | `agents/` | Agent config and system prompt |
 | `agents/prompt.md` | Default system prompt — edit to change the agent's base personality and rules |
 | `skills/` | On-demand skill definitions (see [skills/README.md](skills/README.md)) |
@@ -368,17 +368,17 @@ a doc nobody updated is worse than no doc, because readers still trust it.
    comments citing a doc that does not exist, and a renamed doc whose filename is
    hardcoded in code.
 
-Note that `src/kiro_crew/docs/` is **packaged and read at runtime**: its filenames
-are an API (see [its README](src/kiro_crew/docs/README.md)), so renaming a file
+Note that `src/junction/docs/` is **packaged and read at runtime**: its filenames
+are an API (see [its README](src/junction/docs/README.md)), so renaming a file
 there is a code change, and an internal engineering note placed there ships to every
 user.
 
 ## Extending Junction
 
-- **Skills** — drop markdown files in `skills/` or `~/.kiro/crew/skills/`. See [skills/README.md](skills/README.md) for the full format reference
+- **Skills** — drop markdown files in `skills/` or `~/.junction/skills/`. See [skills/README.md](skills/README.md) for the full format reference
 - **MCP tools** — add to `mcp_core.py` or `mcp_cron.py`. Every LLM-facing command must have an MCP tool
-- **Hooks** — configure in `~/.kiro/crew/config.json`
-- **Lessons** — self-learned from corrections, stored in `~/.kiro/crew/lessons.jsonl`
+- **Hooks** — configure in `~/.junction/config.json`
+- **Lessons** — self-learned from corrections, stored in `~/.junction/lessons.jsonl`
 
 ## Tests
 
@@ -443,7 +443,7 @@ passing. Trimming your own diff is the single highest-leverage thing you can do 
 get it merged.
 
 When your change is ready, the workflow is already codified rather than left to
-taste. See Development Skills above: `kirocrew-worktree-dev` covers building and
+taste. See Development Skills above: `junction-worktree-dev` covers building and
 verifying in a worktree, and `prepare-pr` takes it from there, driving the change
 to a review-ready pull request by committing, syncing onto the base, squashing to
 the one or two commits this repo allows, opening or updating the PR, then polling CI

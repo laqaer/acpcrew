@@ -42,18 +42,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp._dispatch import classify_notification
-from kiro_crew.acp.runtime import AcpRuntime
-from kiro_crew.acp.session_handle import AcpSessionHandle
-from kiro_crew.acp.types import METHOD_SUBAGENT_LIST_UPDATE
-from kiro_crew.providers.acp import AcpProvider
-from kiro_crew.providers.base import (
+from junction.acp._dispatch import classify_notification
+from junction.acp.runtime import AcpRuntime
+from junction.acp.session_handle import AcpSessionHandle
+from junction.acp.types import METHOD_SUBAGENT_LIST_UPDATE
+from junction.providers.acp import AcpProvider
+from junction.providers.base import (
     EVENT_COMPLETE,
     EVENT_SUBAGENT_LIST,
     EVENT_TEXT_CHUNK,
     LLMEvent,
 )
-from kiro_crew.subagent import SubagentInfo, SubagentManager
+from junction.subagent import SubagentInfo, SubagentManager
 
 # ``SubagentManager.spawn`` refuses -- registering no task -- while the host
 # looks short of memory, which is the runner's state, not this test's input.
@@ -229,7 +229,7 @@ async def _observe_after(event: SimpleNamespace) -> tuple[float, bool]:
 
     mgr = _manager(stream_factory)
     holder["mgr"] = mgr
-    with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+    with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
         info = mgr.spawn("watch my idle clock")
         assert info is not None
         await mgr._tasks[info.id]

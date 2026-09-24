@@ -380,7 +380,7 @@ export default function WidgetFrame({ html, title = 'Widget', slug, messageTs, w
   //
   // `exists` and `pinned` are SEPARATE states and must stay that way. Since
   // the backend auto-registers every emitted widget as an unpinned artifact
-  // (see kiro_crew/widget_artifacts.py), the common case is exists=true,
+  // (see junction/widget_artifacts.py), the common case is exists=true,
   // pinned=false — so collapsing the two (the pre-auto-registration behavior)
   // would light up every widget's star as if the user had already saved it.
   //   exists  → the title links to /artifacts/<slug>

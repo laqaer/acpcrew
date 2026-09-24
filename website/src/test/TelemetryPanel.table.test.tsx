@@ -126,7 +126,7 @@ describe('TelemetryPanel — context sessions', () => {
               peak_pct: 95,
               used: 152341,
               window: 200000,
-              agent: 'kirocrew',
+              agent: 'junction',
               model: 'opus-5',
               surface: 'dashboard',
               ts: '2026-08-05T00:00:00Z',

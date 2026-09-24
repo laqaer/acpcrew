@@ -25,8 +25,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew import github_runner as runner
-from kiro_crew import platform_compat, windows_acl
+from junction import github_runner as runner
+from junction import platform_compat, windows_acl
 
 ME = "S-1-5-21-1-2-3-1001"
 SYSTEM = "S-1-5-18"

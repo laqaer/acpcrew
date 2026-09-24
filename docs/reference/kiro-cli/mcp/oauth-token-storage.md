@@ -8,8 +8,8 @@ from the `aws/amazon-q-developer-cli` source
 > Why this matters: kiro-cli has **no `mcp logout` command**, no ACP method
 > for sign-out, and the docs say nothing about where tokens live. The only
 > in-CLI affordance is `/mcp` → reauthenticate inside an interactive
-> `kiro-cli chat` REPL — unreachable from Kiro Crew's ACP-based gateway.
-> Surgical file deletion is the only mechanism Kiro Crew can drive.
+> `kiro-cli chat` REPL — unreachable from Junction's ACP-based gateway.
+> Surgical file deletion is the only mechanism Junction can drive.
 
 ## Storage location
 
@@ -132,7 +132,7 @@ pkill -f "kiro-cli acp"   # drop in-memory tokens in running sessions
 ```
 
 Next MCP call → kiro-cli sees no token but has a registration → re-runs
-the consent flow only → emits `_kiro.dev/mcp/oauth_request` → Kiro Crew's
+the consent flow only → emits `_kiro.dev/mcp/oauth_request` → Junction's
 banner fires → user authorizes → fresh token written.
 
 ### 2. "Forget this server entirely" (resets DCR too)
@@ -172,7 +172,7 @@ kiro-cli looks for the exact `.token.json` / `.registration.json` filenames
 2. **kiro-cli sessions cache tokens in memory.** A running `kiro-cli acp`
    subprocess holds the bearer in process memory regardless of what the
    file says. Always `pkill -f "kiro-cli acp"` after deleting the file.
-   Kiro Crew's warm session pool means this also requires draining the pool
+   Junction's warm session pool means this also requires draining the pool
    (or a gateway restart) to fully take effect.
 
 3. **Path is shared with AWS SSO.** Never write code that does
@@ -189,7 +189,7 @@ kiro-cli looks for the exact `.token.json` / `.registration.json` filenames
    In-memory tokens in already-running sessions remain usable until the
    process exits. Sign-out only takes effect on next process spawn.
 
-## How Kiro Crew should expose this
+## How Junction should expose this
 
 Two distinct dashboard affordances, mapping to actions 1 and 2 above:
 
@@ -242,15 +242,15 @@ Pair with a `state.recycle_kiro_sessions()` call so the warm pool reloads
 ## Long-term direction
 
 The design doc at `docs/design/mcp-oauth-ownership-problem.md` argues that
-Kiro Crew should eventually own the OAuth chain end-to-end (token store,
+Junction should eventually own the OAuth chain end-to-end (token store,
 refresh, sign-out, per-agent identity) once a Kiro SDK exists or we move
 to the Claude Agent SDK. At that point this whole file becomes legacy —
 the question of "where does kiro-cli put its tokens" stops mattering
 because we'd inject pre-authenticated `Authorization` headers into the
 agent config at session-spawn time, and kiro-cli's OAuth path would be
-dead code in the Kiro Crew use case.
+dead code in the Junction use case.
 
 Until then, the recipe in this doc is the only way to drive sign-out from
-Kiro Crew, and it's worth keeping the helper code small, well-tested, and
+Junction, and it's worth keeping the helper code small, well-tested, and
 clearly scoped to "kiro-cli's caching behavior" so it can be removed
 cleanly later.

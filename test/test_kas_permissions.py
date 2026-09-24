@@ -21,13 +21,13 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.acp.kas_agents import to_client_custom_agent
-from kiro_crew.acp.kas_permissions import (
+from junction.acp.kas_agents import to_client_custom_agent
+from junction.acp.kas_permissions import (
     CAPABILITY_BY_TOOL,
     WITHHELD_FROM_AUTO_APPROVE,
     allowed_tools_to_permissions,
 )
-from kiro_crew.agent import _seed_kas_permissions
+from junction.agent import _seed_kas_permissions
 
 
 def _rule(policy: dict, capability: str) -> dict:
@@ -77,8 +77,8 @@ class TestTheShellAndFilesystemFamiliesAreRefused:
 
     def test_the_refusal_is_reported_at_info_because_it_reverses_the_spec(self, caplog):
         """Distinct from an unmappable entry: this one the spec explicitly asked for."""
-        with caplog.at_level("INFO", logger="kiro_crew.acp.kas_permissions"):
-            allowed_tools_to_permissions(["execute_bash"], agent_id="kirocrew")
+        with caplog.at_level("INFO", logger="junction.acp.kas_permissions"):
+            allowed_tools_to_permissions(["execute_bash"], agent_id="junction")
         assert "not auto-approving execute_bash" in caplog.text
 
     def test_no_withheld_tool_is_also_in_the_capability_table(self):
@@ -88,12 +88,12 @@ class TestTheShellAndFilesystemFamiliesAreRefused:
 
 class TestMcpEntries:
     def test_a_bare_server_becomes_a_one_level_glob(self):
-        policy = allowed_tools_to_permissions(["@kirocrew-core"])
-        assert _rule(policy, "mcp")["match"] == ["kirocrew-core/*"]
+        policy = allowed_tools_to_permissions(["@junction-core"])
+        assert _rule(policy, "mcp")["match"] == ["junction-core/*"]
 
     def test_a_named_action_stays_exact(self):
-        policy = allowed_tools_to_permissions(["@kirocrew-cron/cron_list"])
-        assert _rule(policy, "mcp")["match"] == ["kirocrew-cron/cron_list"]
+        policy = allowed_tools_to_permissions(["@junction-cron/cron_list"])
+        assert _rule(policy, "mcp")["match"] == ["junction-cron/cron_list"]
 
     def test_all_servers_share_one_rule(self):
         policy = allowed_tools_to_permissions(["@a", "@b"])
@@ -106,9 +106,9 @@ class TestMcpEntries:
         that one line already subsumes another.
         """
         policy = allowed_tools_to_permissions(
-            ["@kirocrew-cron/cron_list", "@kirocrew-cron/cron_pause", "@kirocrew-cron"]
+            ["@junction-cron/cron_list", "@junction-cron/cron_pause", "@junction-cron"]
         )
-        assert _rule(policy, "mcp")["match"] == ["kirocrew-cron/*"]
+        assert _rule(policy, "mcp")["match"] == ["junction-cron/*"]
 
     def test_another_servers_per_tool_entry_is_not_absorbed(self):
         policy = allowed_tools_to_permissions(["@a", "@b/one"])
@@ -135,24 +135,24 @@ class TestTranslationNeverWidensAGrant:
         [
             "@*",
             "@*/*",
-            "@kirocrew-*",
-            "@kirocrew-core/*",
-            "@kirocrew-core/cron_?",
-            "@kirocrew-core/[abc]",
+            "@junction-*",
+            "@junction-core/*",
+            "@junction-core/cron_?",
+            "@junction-core/[abc]",
             "@{a,b}",
-            "@!kirocrew-core",
+            "@!junction-core",
         ],
     )
     def test_a_glob_reference_yields_no_rule(self, entry):
         assert allowed_tools_to_permissions([entry]) is None
 
     def test_a_glob_does_not_suppress_the_literal_entries_beside_it(self):
-        policy = allowed_tools_to_permissions(["@*", "@kirocrew-core", "web_fetch"])
-        assert _rule(policy, "mcp")["match"] == ["kirocrew-core/*"]
+        policy = allowed_tools_to_permissions(["@*", "@junction-core", "web_fetch"])
+        assert _rule(policy, "mcp")["match"] == ["junction-core/*"]
         assert _rule(policy, "web_fetch")["effect"] == "allow"
 
     def test_a_rejected_glob_is_explainable_from_the_log(self, caplog):
-        with caplog.at_level("DEBUG", logger="kiro_crew.acp.kas_permissions"):
+        with caplog.at_level("DEBUG", logger="junction.acp.kas_permissions"):
             allowed_tools_to_permissions(["@*"], agent_id="a")
         assert "@*" in caplog.text
 
@@ -170,8 +170,8 @@ class TestUnclassifiableEntriesFailClosed:
     def test_the_names_are_reported_so_a_missing_grant_is_explainable(self, caplog):
         # Names the logger: left to the root logger this passes alone and fails in
         # the full suite, once something else has raised the package level.
-        with caplog.at_level("DEBUG", logger="kiro_crew.acp.kas_permissions"):
-            allowed_tools_to_permissions(["introspect"], agent_id="kirocrew")
+        with caplog.at_level("DEBUG", logger="junction.acp.kas_permissions"):
+            allowed_tools_to_permissions(["introspect"], agent_id="junction")
         assert "introspect" in caplog.text
 
     @pytest.mark.parametrize("bad", [None, "fs_read", 42, {}])
@@ -197,12 +197,12 @@ class TestTheRealAllowlist:
         "introspect",
         "session",
         "report",
-        "@kirocrew-cron/cron_list",
-        "@kirocrew-cron/cron_pause",
-        "@kirocrew-core",
+        "@junction-cron/cron_list",
+        "@junction-cron/cron_pause",
+        "@junction-core",
         "@notes-mcp",
         "@tickets-mcp",
-        "@kirocrew-cron",
+        "@junction-cron",
         "@weather-mcp",
     ]
 
@@ -236,7 +236,7 @@ class TestTheDiskWriter:
 
     @staticmethod
     def _config(**over) -> dict:
-        base: dict = {"name": "kirocrew", "tools": ["fs_read"], "allowedTools": ["web_fetch"]}
+        base: dict = {"name": "junction", "tools": ["fs_read"], "allowedTools": ["web_fetch"]}
         base.update(over)
         return base
 
@@ -297,7 +297,7 @@ class TestTheDiskWriter:
         )
         _seed_kas_permissions(config)
         assert config["permissions"]["rules"] == [{"capability": "web_fetch", "effect": "allow"}]
-        assert to_client_custom_agent("kirocrew", {**config, "prompt": "p"}, "p")[
+        assert to_client_custom_agent("junction", {**config, "prompt": "p"}, "p")[
             "permissions"
         ] == {"rules": [{"capability": "mcp", "match": ["srv/*"], "effect": "allow"}]}
 

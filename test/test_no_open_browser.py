@@ -14,10 +14,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.config.loader import DashboardConfig, KiroCrewConfig
+from junction.config.loader import DashboardConfig, JunctionConfig
 
 
-def _load_from_raw_string(content: str, tmp_path: Path) -> KiroCrewConfig:
+def _load_from_raw_string(content: str, tmp_path: Path) -> JunctionConfig:
     """Write raw *content* under *tmp_path* and load the config from it.
 
     ``config_path`` is patched, so the name is arbitrary — what matters is that the
@@ -26,8 +26,8 @@ def _load_from_raw_string(content: str, tmp_path: Path) -> KiroCrewConfig:
     tmp = tmp_path / "config.json"
     tmp.write_text(content, encoding="utf-8")
 
-    with patch("kiro_crew.config.loader.config_path", return_value=tmp):
-        return KiroCrewConfig.load()
+    with patch("junction.config.loader.config_path", return_value=tmp):
+        return JunctionConfig.load()
 
 
 class TestAutoOpenBrowserConfig:
@@ -58,12 +58,12 @@ class TestAutoOpenBrowserConfig:
 
     def test_roundtrip_serialization(self, tmp_path: Path) -> None:
         """auto_open_browser survives save/load roundtrip."""
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.dashboard.auto_open_browser = False
         tmp = tmp_path / "config.json"
-        with patch("kiro_crew.config.loader.config_path", return_value=tmp):
+        with patch("junction.config.loader.config_path", return_value=tmp):
             cfg.save()
-            loaded = KiroCrewConfig.load()
+            loaded = JunctionConfig.load()
         assert loaded.dashboard.auto_open_browser is False
 
 
@@ -72,18 +72,18 @@ class TestNoOpenCliFlag:
 
     def test_orchestrator_stores_no_open_true(self) -> None:
         """GatewayOrchestrator stores no_open=True."""
-        from kiro_crew.slack.gateway import GatewayOrchestrator
+        from junction.slack.gateway import GatewayOrchestrator
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         with patch.object(cfg, "load_credentials", return_value={}):
             orch = GatewayOrchestrator(cfg, no_open=True)
         assert orch._no_open is True
 
     def test_orchestrator_stores_no_open_false_by_default(self) -> None:
         """GatewayOrchestrator defaults no_open to False."""
-        from kiro_crew.slack.gateway import GatewayOrchestrator
+        from junction.slack.gateway import GatewayOrchestrator
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         with patch.object(cfg, "load_credentials", return_value={}):
             orch = GatewayOrchestrator(cfg)
         assert orch._no_open is False
@@ -91,15 +91,15 @@ class TestNoOpenCliFlag:
     @pytest.mark.asyncio
     async def test_run_gateway_passes_no_open(self) -> None:
         """run_gateway forwards no_open to GatewayOrchestrator."""
-        from kiro_crew.slack.gateway import run_gateway
+        from junction.slack.gateway import run_gateway
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         with (
             # run_gateway's real body applies the aggregate cgroup ceiling
             # (systemctl set-property) — a host-service mutation the rootdir
             # guard refuses; stub it like every other host mutation.
-            patch("kiro_crew.slack.gateway.ensure_agents_slice_limits", return_value=True),
-            patch("kiro_crew.slack.gateway.GatewayOrchestrator") as mock_orch_cls,
+            patch("junction.slack.gateway.ensure_agents_slice_limits", return_value=True),
+            patch("junction.slack.gateway.GatewayOrchestrator") as mock_orch_cls,
         ):
             mock_orch = MagicMock()
             mock_orch.run = AsyncMock()

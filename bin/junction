@@ -17,12 +17,11 @@ if [ -z "$REAL_PATH" ]; then
     exit 1
 fi
 SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")/.." && pwd)"
-export KIROCREW_PROJECT_DIR="${KIROCREW_PROJECT_DIR:-$SCRIPT_DIR}"
+export JUNCTION_PROJECT_DIR="${JUNCTION_PROJECT_DIR:-${KIROCREW_PROJECT_DIR:-$SCRIPT_DIR}}"
 
-# Prefer the venv entry matching how we were invoked, then the primary CLI,
-# then silent aliases. setup.cfg still ships kirocrew for older metadata
-# readers; pyproject installs all three.
-for name in "$INVOKED" junction kirocrew acpcrew; do
+# Prefer the venv entry matching how we were invoked, then the primary CLI.
+# The previous binary name is still checked so an older virtualenv keeps launching.
+for name in "$INVOKED" junction acpcrew kirocrew; do
     if [ -x "$SCRIPT_DIR/.venv/bin/$name" ]; then
         exec "$SCRIPT_DIR/.venv/bin/$name" "$@"
     fi

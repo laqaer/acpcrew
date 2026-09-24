@@ -12,10 +12,10 @@ import asyncio
 from types import SimpleNamespace
 from typing import Any
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK
-from kiro_crew.messaging.driver import APPROVAL_AUTO
-from kiro_crew.messaging.transport import InboundMessage
-from kiro_crew.whatsapp.commands import (
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+from junction.messaging.driver import APPROVAL_AUTO
+from junction.messaging.transport import InboundMessage
+from junction.whatsapp.commands import (
     COMPACT_AUTO_TEXT,
     COMPACT_BUSY_TEXT,
     COMPACT_FAILED_TEXT,
@@ -23,8 +23,8 @@ from kiro_crew.whatsapp.commands import (
     COMPACTED_TEXT,
     CONTEXT_LONG_TEXT,
 )
-from kiro_crew.whatsapp.group_gate import SILENCE_SENTINEL, GroupVerdict
-from kiro_crew.whatsapp.transport_dispatch import (
+from junction.whatsapp.group_gate import SILENCE_SENTINEL, GroupVerdict
+from junction.whatsapp.transport_dispatch import (
     REACTION_DONE,
     REACTION_FAILED,
     REACTION_WORKING,
@@ -180,7 +180,7 @@ class FakeCfg:
     """
 
     def __init__(self) -> None:
-        self.agent = SimpleNamespace(default_agent="kirocrew", approval_mode="auto")
+        self.agent = SimpleNamespace(default_agent="junction", approval_mode="auto")
         self.messaging = SimpleNamespace(idle_reset_minutes=0, daily_reset_hour=-1, dm_scope="user")
         # The shipped defaults. WhatsAppConfig.__post_init__ guarantees
         # soft <= hard, so a test never has to reason about an inverted pair.
@@ -368,7 +368,7 @@ def test_busy_flips_free_reprocesses_the_message():
 
 # ── dispatcher: governance + failures ───────────────────────────────────────
 def test_governance_deny_drops_before_any_turn(monkeypatch):
-    import kiro_crew.messaging.dispatch as mod
+    import junction.messaging.dispatch as mod
 
     async def deny(_ct):
         return False
@@ -541,7 +541,7 @@ def test_a_muted_unprompted_group_turn_starts_no_cooldown():
     transport.pending_verdicts[id(inbound)] = GroupVerdict(
         respond=True, may_steer=False, unprompted=True, rules="be helpful"
     )
-    import kiro_crew.messaging.dispatch as dispatch_mod
+    import junction.messaging.dispatch as dispatch_mod
 
     # Mute the conversation exactly the way the dashboard disconnect does.
     original = dispatch_mod.conversation_is_muted
@@ -576,7 +576,7 @@ def _captured_turn(monkeypatch, dispatcher, inbound):
     is whether a permission request is approved, which needs a provider driving
     the full ladder. What matters here is the dispatcher's CHOICE.
     """
-    import kiro_crew.whatsapp.transport_dispatch as mod
+    import junction.whatsapp.transport_dispatch as mod
 
     seen = {}
 
@@ -957,7 +957,7 @@ def test_a_persisted_generation_seeds_the_counter():
     resuming the history the operator explicitly threw away.
     """
     d, _client, sessions, _transport = _make()
-    bucket = "whatsapp:kirocrew:direct:" + _DM
+    bucket = "whatsapp:junction:direct:" + _DM
     sessions.persisted_generations[bucket] = 1
 
     assert d._conv.current_gen(_DM) == 1, "the on-disk generation was not read"
@@ -971,7 +971,7 @@ def test_a_group_scope_seeds_from_its_forum_bucket():
     seed has to ask about that bucket -- reading a direct-chat one answers 0 for
     a conversation that has generations on disk."""
     d, _client, sessions, _transport = _make()
-    sessions.persisted_generations["whatsapp:kirocrew:forum:" + _GROUP] = 3
+    sessions.persisted_generations["whatsapp:junction:forum:" + _GROUP] = 3
     assert d._conv.current_gen(_GROUP) == 3
 
 
@@ -981,7 +981,7 @@ def test_the_operators_unified_bucket_is_the_one_seeded():
     resurrection straight back."""
     d, _client, sessions, _transport = _make()
     d.cfg.messaging.dm_scope = "unified"
-    sessions.persisted_generations["unified:kirocrew"] = 4
+    sessions.persisted_generations["unified:junction"] = 4
     assert d._conv.current_gen(_DM) == 4
 
 

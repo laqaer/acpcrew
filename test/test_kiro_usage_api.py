@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.dashboard.handlers.kiro_usage_api — the direct RTS
+"""Tests for junction.dashboard.handlers.kiro_usage_api — the direct RTS
 GetUsageLimits client that surfaces real Kiro credit usage/overage.
 """
 from __future__ import annotations
@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import kiro_crew.dashboard.handlers.kiro_usage_api as api
+import junction.dashboard.handlers.kiro_usage_api as api
 
 
 def _resp(status: int, body: object) -> MagicMock:
@@ -220,7 +220,7 @@ class TestLoadBearerToken:
         def fake_read(read_id):
             return (json.dumps({"accessToken": "tok-abc", "expiresAt": future}).encode()
                     if read_id == "kiro_usage_api.sso_token_cli" else None)
-        with patch("kiro_crew.hooks.safe_read_file_internal", side_effect=fake_read), \
+        with patch("junction.hooks.safe_read_file_internal", side_effect=fake_read), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() == "tok-abc"
@@ -228,7 +228,7 @@ class TestLoadBearerToken:
     def test_skips_expired_json_token(self):
         past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         blob = json.dumps({"accessToken": "old", "expiresAt": past}).encode()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=blob), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=blob), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() is None
@@ -239,13 +239,13 @@ class TestLoadBearerToken:
         def fake_read(read_id):
             return (json.dumps({"accessToken": "fresh", "expiresAt": future}).encode()
                     if read_id.endswith("cli") else None)
-        with patch("kiro_crew.hooks.safe_read_file_internal", side_effect=fake_read), \
+        with patch("junction.hooks.safe_read_file_internal", side_effect=fake_read), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() == "fresh"
 
     def test_missing_sources_return_none(self, tmp_path):
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
              patch.object(api, "_CLI_SQLITE_DBS", (tmp_path / "nope.sqlite3",)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() is None
@@ -266,8 +266,8 @@ class TestLoadBearerToken:
         )
         con.commit()
         con.close()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=stale), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=stale), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() == "live-sqlite"
@@ -286,8 +286,8 @@ class TestLoadBearerToken:
         )
         con.commit()
         con.close()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=False), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=False), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() is None
@@ -304,8 +304,8 @@ class TestLoadBearerToken:
         )
         con.commit()
         con.close()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True) as audit, \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True) as audit, \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() is None
@@ -317,7 +317,7 @@ class TestLoadBearerToken:
         # The audit entry point enforces its own registry -- an unregistered
         # read_id must be refused (False), so it cannot serve as an unscoped
         # bypass of the SEL-audit surface, and callers fail closed on it.
-        from kiro_crew import hooks
+        from junction import hooks
         assert hooks.emit_internal_read_audit("rogue.read_id", "success") is False
         assert "kiro_usage_api.sqlite_token" in hooks._AUDIT_ONLY_READ_IDS
 
@@ -331,14 +331,14 @@ class TestLoadBearerToken:
                 raise OSError("permission denied")
 
         raising = _RaisingPath(db)
-        with patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True):
+        with patch("junction.hooks.emit_internal_read_audit", return_value=True):
             now = datetime.now(timezone.utc)
             assert api._token_from_sqlite(raising, now) is None
 
     def test_json_token_non_dict_ignored(self):
         # A JSON list/scalar cache entry must not raise on .get — it fails closed
         # (None) without aborting the remaining candidate sources.
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=b"[]"), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=b"[]"), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() is None
@@ -352,7 +352,7 @@ class TestLoadBearerToken:
         con.close()
         link = tmp_path / "link.sqlite3"
         link.symlink_to(real)
-        with patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True):
+        with patch("junction.hooks.emit_internal_read_audit", return_value=True):
             assert api._token_from_sqlite(link, datetime.now(timezone.utc)) is None
 
     def test_sqlite_opened_but_no_token_still_audits(self, tmp_path):
@@ -363,7 +363,7 @@ class TestLoadBearerToken:
         con.execute("CREATE TABLE auth_kv (key TEXT PRIMARY KEY, value TEXT)")
         con.commit()
         con.close()
-        with patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True) as audit:
+        with patch("junction.hooks.emit_internal_read_audit", return_value=True) as audit:
             assert api._token_from_sqlite(db, datetime.now(timezone.utc)) is None
         audit.assert_any_call(api._SQLITE_AUDIT_READ_ID, "no_token")
 
@@ -382,8 +382,8 @@ class TestLoadBearerToken:
         )
         con.commit()
         con.close()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() == "social-tok"
@@ -403,8 +403,8 @@ class TestLoadBearerToken:
         )
         con.commit()
         con.close()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._load_bearer_token() == "idp-tok"
@@ -468,8 +468,8 @@ class TestWindowsCliStore:
                 return _resp(200, {"profiles": []})
             return _resp(200, usage_body)
 
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()), \
              patch.object(api, "_post", side_effect=fake_post):
@@ -507,8 +507,8 @@ class TestWindowsCliStore:
                 return _resp(200, {"profiles": []})
             return _resp(200, usage_body)
 
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=None), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=None), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()), \
              patch.object(api, "_post", side_effect=fake_post):
@@ -1061,8 +1061,8 @@ class TestCandidateOrdering:
         def fake_read(read_id):
             return stale if read_id.endswith("cli") else None
 
-        with patch("kiro_crew.hooks.safe_read_file_internal", side_effect=fake_read), \
-             patch("kiro_crew.hooks.emit_internal_read_audit", return_value=True), \
+        with patch("junction.hooks.safe_read_file_internal", side_effect=fake_read), \
+             patch("junction.hooks.emit_internal_read_audit", return_value=True), \
              patch.object(api, "_CLI_SQLITE_DBS", (db,)), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             cands = api._candidate_tokens()
@@ -1080,7 +1080,7 @@ class TestCandidateOrdering:
             name = "cli-tok" if read_id.endswith("cli") else "ide-tok"
             return json.dumps({"accessToken": name, "expiresAt": same}).encode()
 
-        with patch("kiro_crew.hooks.safe_read_file_internal", side_effect=fake_read), \
+        with patch("junction.hooks.safe_read_file_internal", side_effect=fake_read), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert [c.token for c in api._candidate_tokens()] == ["cli-tok", "ide-tok"]
@@ -1096,7 +1096,7 @@ class TestCandidateOrdering:
             exp = early if read_id.endswith("cli") else late
             return json.dumps({"accessToken": "same", "expiresAt": exp}).encode()
 
-        with patch("kiro_crew.hooks.safe_read_file_internal", side_effect=fake_read), \
+        with patch("junction.hooks.safe_read_file_internal", side_effect=fake_read), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             cands = api._candidate_tokens()
@@ -1105,7 +1105,7 @@ class TestCandidateOrdering:
     def test_expired_candidates_excluded(self):
         past = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
         blob = json.dumps({"accessToken": "old", "expiresAt": past}).encode()
-        with patch("kiro_crew.hooks.safe_read_file_internal", return_value=blob), \
+        with patch("junction.hooks.safe_read_file_internal", return_value=blob), \
              patch.object(api, "_CLI_SQLITE_DBS", ()), \
              patch.object(api, "_OTHER_SQLITE_DBS", ()):
             assert api._candidate_tokens() == []
@@ -1145,7 +1145,7 @@ class TestSafeReadFileInternalSymlink:
     file (O_NOFOLLOW + fstat), never a symlink-redirected target."""
 
     def test_reads_regular_allowlisted_file(self, tmp_path, monkeypatch):
-        from kiro_crew import hooks
+        from junction import hooks
         f = tmp_path / "tok.json"
         f.write_bytes(b'{"accessToken":"x"}')
         # An absolute allowlist value replaces the Path.home() prefix on join.
@@ -1155,7 +1155,7 @@ class TestSafeReadFileInternalSymlink:
         assert hooks.safe_read_file_internal("test.reg") == b'{"accessToken":"x"}'
 
     def test_rejects_symlinked_allowlisted_path(self, tmp_path, monkeypatch):
-        from kiro_crew import hooks
+        from junction import hooks
         real = tmp_path / "real.json"
         real.write_bytes(b'{"accessToken":"x"}')
         link = tmp_path / "link.json"
@@ -1169,7 +1169,7 @@ class TestSafeReadFileInternalSymlink:
     def test_rejects_read_id_not_in_allowlist(self, monkeypatch):
         """An unregistered read_id fails closed (CWE-1188): PermissionError with
         'not in allowlist' AND a 'not_allowlisted' SEL audit, never a read."""
-        from kiro_crew import hooks
+        from junction import hooks
         audited = []
         monkeypatch.setattr(
             hooks,
@@ -1186,7 +1186,7 @@ class TestSafeReadFileInternalSymlink:
         refused with 'non-sensitive path' + a 'not_sensitive' SEL audit. Mirrors
         the happy-path registration (setitem on _INTERNAL_READ_ALLOWLIST) but
         stubs is_sensitive_path to False so the defense-in-depth check trips."""
-        from kiro_crew import hooks
+        from junction import hooks
         f = tmp_path / "tok.json"
         f.write_bytes(b'{"accessToken":"x"}')
         monkeypatch.setitem(hooks._INTERNAL_READ_ALLOWLIST, "test.nonsensitive", str(f))
@@ -1209,7 +1209,7 @@ class TestTokenStoreSensitivePath:
     def test_sqlite_token_stores_are_sensitive(self):
         from pathlib import Path
 
-        from kiro_crew.security import is_sensitive_path
+        from junction.security import is_sensitive_path
         home = Path.home()
         for base in (".local/share", "Library/Application Support",
                      "AppData/Local", "AppData/Roaming"):

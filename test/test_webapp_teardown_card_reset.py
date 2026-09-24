@@ -4,8 +4,8 @@ leave a live-looking card.
 mark_webapp_expired() must clear lifecycle.expires_at (no phantom countdown
 next to the Expired badge) and deploy_target.public_url (no dead public link).
 """
-from kiro_crew.artifacts import ArtifactStore
-from kiro_crew.deploy.webapp_types import (
+from junction.artifacts import ArtifactStore
+from junction.deploy.webapp_types import (
     WebAppDeployTarget,
     WebAppLifecycle,
     WebAppMetadata,

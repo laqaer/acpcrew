@@ -110,7 +110,7 @@ export default function CrewOverviewPane({
     {
       key: 'routing',
       icon: Waypoints,
-      label: t('pages.kiroCrewAgentsPage.triggers'),
+      label: t('pages.junctionAgentsPage.triggers'),
       value: routingWords > 0 ? String(routingWords) : t('components.crewEditor.node_none'),
       muted: routingWords === 0,
     },
@@ -144,7 +144,7 @@ export default function CrewOverviewPane({
     {
       key: 'workspace',
       icon: FolderOpen,
-      label: t('pages.kiroCrewAgentsPage.workspace_2'),
+      label: t('pages.junctionAgentsPage.workspace_2'),
       value: workspace,
       mono: true,
       ...(workspaceShared ? { tag: t('components.crewEditor.tag_shared') } : {}),
@@ -152,7 +152,7 @@ export default function CrewOverviewPane({
     {
       key: 'memory',
       icon: Database,
-      label: t('pages.kiroCrewAgentsPage.memory_store'),
+      label: t('pages.junctionAgentsPage.memory_store'),
       value: memoryStore,
       mono: true,
       ...(memoryShared ? { tag: t('components.crewEditor.tag_shared') } : {}),
@@ -160,7 +160,7 @@ export default function CrewOverviewPane({
     {
       key: 'model',
       icon: Cpu,
-      label: t('pages.kiroCrewAgentsPage.model'),
+      label: t('pages.junctionAgentsPage.model'),
       value: modelLabel,
       mono: !modelInherited,
       muted: modelInherited,

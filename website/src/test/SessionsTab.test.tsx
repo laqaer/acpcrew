@@ -28,7 +28,7 @@ function defaultPayload() {
         title: 'Debugging session',
         slot_key: 'chat-1',
         untitled: false,
-        agent: 'kirocrew',
+        agent: 'junction',
         channel: 'dashboard',
         pid: 1001,
         owns_runtime: true,
@@ -64,7 +64,7 @@ function defaultPayload() {
       {
         id: 'task-1',
         task: 'Research subtask',
-        agent: 'kirocrew-research',
+        agent: 'junction-research',
         parent: 'dashboard:chat-1',
         rss_mb: 64,
         peak_rss_mb: 80,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from kiro_crew._ssl_compat import _CA_CANDIDATES, _ensure_ssl_certs
+from junction._ssl_compat import _CA_CANDIDATES, _ensure_ssl_certs
 
 
 class TestEnsureSslCerts:
@@ -58,7 +58,7 @@ class TestEnsureSslCerts:
 
         with (
             patch("ssl.get_default_verify_paths", return_value=mock_paths),
-            patch("kiro_crew._ssl_compat._CA_CANDIDATES", candidates),
+            patch("junction._ssl_compat._CA_CANDIDATES", candidates),
         ):
             _ensure_ssl_certs()
 
@@ -80,7 +80,7 @@ class TestEnsureSslCerts:
 
         with (
             patch("ssl.get_default_verify_paths", return_value=mock_paths),
-            patch("kiro_crew._ssl_compat._CA_CANDIDATES", candidates),
+            patch("junction._ssl_compat._CA_CANDIDATES", candidates),
         ):
             _ensure_ssl_certs()
 
@@ -99,7 +99,7 @@ class TestEnsureSslCerts:
 
         with (
             patch("ssl.get_default_verify_paths", return_value=mock_paths),
-            patch("kiro_crew._ssl_compat._CA_CANDIDATES", candidates),
+            patch("junction._ssl_compat._CA_CANDIDATES", candidates),
             patch.dict("sys.modules", {"certifi": None}),
         ):
             _ensure_ssl_certs()
@@ -123,7 +123,7 @@ class TestEnsureSslCerts:
 
         with (
             patch("ssl.get_default_verify_paths", return_value=mock_paths),
-            patch("kiro_crew._ssl_compat._CA_CANDIDATES", candidates),
+            patch("junction._ssl_compat._CA_CANDIDATES", candidates),
             patch.dict("sys.modules", {"certifi": mock_certifi}),
         ):
             _ensure_ssl_certs()
@@ -147,7 +147,7 @@ class TestEnsureSslCerts:
 
         with (
             patch("ssl.get_default_verify_paths", return_value=mock_paths),
-            patch("kiro_crew._ssl_compat._CA_CANDIDATES", candidates),
+            patch("junction._ssl_compat._CA_CANDIDATES", candidates),
         ):
             _ensure_ssl_certs()
 
@@ -168,8 +168,8 @@ class TestEnsureSslCerts:
         from unittest.mock import patch as _patch
 
         mock_fn = MagicMock()
-        with _patch("kiro_crew._ssl_compat._ensure_ssl_certs", mock_fn):
-            import kiro_crew.cli
+        with _patch("junction._ssl_compat._ensure_ssl_certs", mock_fn):
+            import junction.cli
 
-            importlib.reload(kiro_crew.cli)
+            importlib.reload(junction.cli)
         mock_fn.assert_called()

@@ -1,4 +1,4 @@
-"""``kirocrew-cron`` resolves the calling session from the injected caller block.
+"""``junction-cron`` resolves the calling session from the injected caller block.
 
 The server used to read identity from its own process environment. On a pooled
 backend one process serves many sessions, so process environment can only ever
@@ -33,10 +33,10 @@ import uuid
 
 import pytest
 
-from kiro_crew import mcp_cron, mcp_shared, session_pid_sig
-from kiro_crew.cron import CronService
-from kiro_crew.mcp_caller import CallerContext, set_current_caller
-from kiro_crew.mcp_cron import _authz_session_key, _call_tool_inner
+from junction import mcp_cron, mcp_shared, session_pid_sig
+from junction.cron import CronService
+from junction.mcp_caller import CallerContext, set_current_caller
+from junction.mcp_cron import _authz_session_key, _call_tool_inner
 
 _MUTATING_TOOLS = ("cron_update", "cron_remove", "cron_pause", "cron_resume", "cron_trigger")
 
@@ -48,13 +48,13 @@ def _isolate(monkeypatch, tmp_path):
     Identity is granted per test rather than by a shared fixture: half of this
     module is about what happens when there is none.
     """
-    monkeypatch.setattr("kiro_crew.cron._DEFAULT_DIR", tmp_path)
-    monkeypatch.setattr("kiro_crew.mcp_cron.config_dir", lambda: tmp_path)
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
-    monkeypatch.delenv("KIROCREW_SESSION_KEY", raising=False)
-    monkeypatch.delenv("KIROCREW_HOST_PID", raising=False)
-    monkeypatch.delenv("KIROCREW_CHANNEL_ID", raising=False)
-    monkeypatch.delenv("KIROCREW_CLI", raising=False)
+    monkeypatch.setattr("junction.cron._DEFAULT_DIR", tmp_path)
+    monkeypatch.setattr("junction.mcp_cron.config_dir", lambda: tmp_path)
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+    monkeypatch.delenv("JUNCTION_SESSION_KEY", raising=False)
+    monkeypatch.delenv("JUNCTION_HOST_PID", raising=False)
+    monkeypatch.delenv("JUNCTION_CHANNEL_ID", raising=False)
+    monkeypatch.delenv("JUNCTION_CLI", raising=False)
     set_current_caller(None)
     yield tmp_path
     set_current_caller(None)
@@ -81,7 +81,7 @@ def test_the_caller_block_beats_the_process_environment(monkeypatch) -> None:
     environment can only ever name one session (or, in practice, none), so the
     block has to outrank it rather than merely be consulted.
     """
-    monkeypatch.setenv("KIROCREW_SESSION_KEY", "dashboard:from-env")
+    monkeypatch.setenv("JUNCTION_SESSION_KEY", "dashboard:from-env")
     _as_session("dashboard:from-block")
 
     assert _authz_session_key() == "dashboard:from-block"
@@ -89,7 +89,7 @@ def test_the_caller_block_beats_the_process_environment(monkeypatch) -> None:
 
 def test_no_caller_block_falls_back_to_the_process_environment(monkeypatch) -> None:
     """A non-gateway launch has no block to read and must not be regressed."""
-    monkeypatch.setenv("KIROCREW_SESSION_KEY", "dashboard:from-env")
+    monkeypatch.setenv("JUNCTION_SESSION_KEY", "dashboard:from-env")
 
     assert _authz_session_key() == "dashboard:from-env"
 
@@ -169,7 +169,7 @@ def test_the_cli_keeps_its_admin_bypass(monkeypatch) -> None:
     _as_session("dashboard:owner")
     job_id = _add_job(f"cli-{uuid.uuid4().hex[:8]}")
     set_current_caller(None)
-    monkeypatch.setenv("KIROCREW_CLI", "1")
+    monkeypatch.setenv("JUNCTION_CLI", "1")
 
     assert "cannot determine which session is calling" not in _call_tool_inner(
         "cron_pause", {"job_id": job_id}
@@ -197,7 +197,7 @@ def test_one_session_cannot_see_or_touch_another_sessions_job() -> None:
 
 
 def test_the_channel_default_also_comes_from_the_caller_block() -> None:
-    """``KIROCREW_CHANNEL_ID`` had the same defect as the session key.
+    """``JUNCTION_CHANNEL_ID`` had the same defect as the session key.
 
     Process environment can only name one session's channel, and gatewayd forwards
     none to a shared backend -- so a pooled ``cron_add`` defaulted the delivery
@@ -230,7 +230,7 @@ def test_a_job_created_now_always_records_an_owner() -> None:
 def test_an_ownerless_row_is_outside_every_sessions_scope() -> None:
     """A row with no recorded owner: not readable and not writable by a session.
 
-    Every creation path that has no session to name writes one -- ``kirocrew cron
+    Every creation path that has no session to name writes one -- ``junction cron
     add`` from the CLI, the onboarding importer, and ``cron_add`` on a pooled
     backend before this change. So this set keeps growing, and it is a permanent
     scope rule rather than a drainable exemption for legacy rows.

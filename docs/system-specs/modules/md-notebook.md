@@ -2,10 +2,10 @@
 
 ## Overview
 
-Notes is a builtin App Store app (`kiro_crew/apps/builtins/md_notebook/`) for keeping a
+Notes is a builtin App Store app (`junction/apps/builtins/md_notebook/`) for keeping a
 markdown notebook inside a git repository. It runs as a managed app backend SUBPROCESS: an
 aiohttp server on the backend-assigned port, reached only through the gateway proxy. Every
-proxied request carries an HMAC signature (`X-KiroCrew-Proxy: <ts>:<hmac>` over
+proxied request carries an HMAC signature (`X-Junction-Proxy: <ts>:<hmac>` over
 `<ts>:<METHOD>:<path>[?q]:<sha256(body)>`, +/-60s window) verified fail-closed by
 `proxy_auth.verify_proxy_request` in the backend's middleware. A failed verification is
 SEL-audited before the 401 goes out (`operation=proxy_auth_failed`, `outcome=denied`,

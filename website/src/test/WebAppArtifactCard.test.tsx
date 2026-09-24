@@ -41,9 +41,9 @@ function makeArtifact(overrides?: Partial<Artifact>): Artifact {
         backend: 'API Gateway HTTP API -> Lambda',
         state: 'DynamoDB (IAM scoped to table)',
         resources: [
-          { type: 'frontend', id: 's3://kirocrew-deploy-base/kanban/' },
-          { type: 'backend', id: 'kirocrew-deploy-app-kanban-demo' },
-          { type: 'state', id: 'kirocrew-deploy-app-kanban-demo-table' },
+          { type: 'frontend', id: 's3://junction-deploy-base/kanban/' },
+          { type: 'backend', id: 'junction-deploy-app-kanban-demo' },
+          { type: 'state', id: 'junction-deploy-app-kanban-demo-table' },
         ],
       },
       lifecycle: {

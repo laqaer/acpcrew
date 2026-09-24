@@ -10,8 +10,9 @@ This tree does not require `kiro-cli`. Multi-ACP is already on `main`.
 
 Junction is a local control plane (dashboard, CLI, messaging channels,
 cron, memory) that speaks
-[Agent Client Protocol](https://agentclientprotocol.com/) over stdio and
-optionally routes inference through a Codex Router sidecar.
+[Agent Client Protocol](https://agentclientprotocol.com/) over stdio.
+`junction up` starts a loopback model catalog. The docked agent uses the
+models it already serves. Junction does not forward provider traffic.
 
 Default `agent.acp_backend` is `auto`: the first installed of Cursor,
 Claude, Codex, Kimi, DeepSeek Harness, Goose, Grok, Pi, Droid. `kiro-cli`
@@ -26,10 +27,10 @@ is last in that list and optional. Set a concrete id to pin.
 }
 ```
 
-CLI: `junction`. State still lives under `~/.kiro/crew` until a later,
-human-gated rename. Package import path stays `kiro_crew` /
-`KIROCREW_HOME` as implementation identifiers, not as the product name.
+CLI: `junction`. A new install stores state in `~/.junction`. An older data
+directory is still opened when that path is absent. Package import path is
+`junction`. `JUNCTION_HOME` overrides the data home.
 
-Registry: `src/kiro_crew/acp/runtimes.py`. Two-plane thesis:
+Registry: `src/junction/acp/runtimes.py`. Two-plane thesis:
 [`ARCHITECTURE.md`](ARCHITECTURE.md). Model catalog and role DAG:
 [`docs/system-specs/modules/model-router.md`](docs/system-specs/modules/model-router.md).

@@ -73,7 +73,7 @@ const workflowLaunch = msg('tool', {
 })
 const subagentLaunch = msg('tool', {
   content: '🔧 spawn_run',
-  meta: { output: 'Spawned 2 subagent(s).\n  1a2b3c4d (kirocrew): read specs\n  5e6f7a8b (kirocrew): read code' },
+  meta: { output: 'Spawned 2 subagent(s).\n  1a2b3c4d (junction): read specs\n  5e6f7a8b (junction): read code' },
 })
 
 describe('the generic tool row', () => {
@@ -106,7 +106,7 @@ describe('the shape-matched cards', () => {
 
   it('draws a sub-agent completion with the folder and panel affordances wired', () => {
     const m = msg('subagent', {
-      content: '[Subagent completion event]\nAgent `1a2b3c4d` (kirocrew) ✅ completed\nTask: read specs\n',
+      content: '[Subagent completion event]\nAgent `1a2b3c4d` (junction) ✅ completed\nTask: read specs\n',
     })
     const { el, id, row } = drawn(m)
     expect(id).toBe('subagent_completion')

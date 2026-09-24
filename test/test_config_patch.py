@@ -1,4 +1,4 @@
-"""Tests for PATCH /api/config/kirocrew validators (enum, int, float, bool, str)."""
+"""Tests for PATCH /api/config/junction validators (enum, int, float, bool, str)."""
 
 from __future__ import annotations
 
@@ -12,10 +12,10 @@ from aiohttp.test_utils import TestClient, TestServer
 
 
 def _make_app() -> web.Application:
-    from kiro_crew.dashboard.handlers import api_kirocrew_config_patch
+    from junction.dashboard.handlers import api_junction_config_patch
 
     app = web.Application()
-    app.router.add_patch("/api/config/kirocrew", api_kirocrew_config_patch)
+    app.router.add_patch("/api/config/junction", api_junction_config_patch)
     return app
 
 
@@ -47,13 +47,13 @@ def _make_app_with_state(
 def _seed_config() -> dict:
     return {
         "agents": {
-            "kirocrew": {
-                "kiro_agent": "kirocrew",
+            "junction": {
+                "kiro_agent": "junction",
                 "workspace": "default",
                 "memory_store": "default",
             }
         },
-        "default_agent": "kirocrew",
+        "default_agent": "junction",
         "session": {"pool_agent": "", "timeout_secs": 3600, "autocompact_pct": 50.0},
         "agent": {"approval_mode": "auto", "sandbox": "auto"},
         "auto_update": False,
@@ -64,12 +64,12 @@ def _seed_config() -> dict:
 def tmp_config(tmp_path):
     cfg_path = tmp_path / "config.json"
     cfg_path.write_text(json.dumps(_seed_config()), encoding="utf-8")
-    with patch("kiro_crew.config.loader.config_path", return_value=cfg_path):
+    with patch("junction.config.loader.config_path", return_value=cfg_path):
         yield cfg_path
 
 
 async def _patch(client, path, value):
-    return await client.patch("/api/config/kirocrew", json={"path": path, "value": value})
+    return await client.patch("/api/config/junction", json={"path": path, "value": value})
 
 
 # ── Per-role models (agent.role_models.*) ─────────────────────────────────
@@ -102,7 +102,7 @@ class TestRoleModels:
     @pytest.mark.asyncio
     async def test_background_role_triggers_rebuild(self, tmp_config) -> None:
         # A background-model change must rewrite the lite/heartbeat specs.
-        with patch("kiro_crew.agent.rebuild_agent_config") as rebuild:
+        with patch("junction.agent.rebuild_agent_config") as rebuild:
             async with TestClient(TestServer(_make_app())) as c:
                 resp = await _patch(c, "agent.role_models.background", "claude-sonnet-4.6")
                 assert resp.status == 200
@@ -194,7 +194,7 @@ class TestPatchGeneral:
     async def test_invalid_json_body_returns_400(self, tmp_config) -> None:
         async with TestClient(TestServer(_make_app())) as c:
             resp = await c.patch(
-                "/api/config/kirocrew",
+                "/api/config/junction",
                 data=b"not json",
                 headers={"Content-Type": "application/json"},
             )
@@ -320,7 +320,7 @@ class TestBoolValidator:
     async def test_beacon_enabled_opt_out(self, tmp_config) -> None:
         """Settings → Privacy flips the beacon through this endpoint.
 
-        This is the GUI twin of ``kirocrew telemetry disable`` and must persist
+        This is the GUI twin of ``junction telemetry disable`` and must persist
         to the SAME key, so the choice survives restarts and the CLI reports it.
         """
         async with TestClient(TestServer(_make_app())) as c:
@@ -358,7 +358,7 @@ class TestBoolValidator:
         nothing — the same false-promise-on-a-privacy-control failure the overlay
         check guards against.
         """
-        from kiro_crew.dashboard.handlers import core as core_mod
+        from junction.dashboard.handlers import core as core_mod
 
         monkeypatch.setattr(core_mod, "_beacon_governance_pinned_off", lambda: True)
         async with TestClient(TestServer(_make_app())) as c:
@@ -377,7 +377,7 @@ class TestBoolValidator:
         Refusing this would leave a user unable to record the stricter preference
         they already have in effect, and strand them if the policy were lifted.
         """
-        from kiro_crew.dashboard.handlers import core as core_mod
+        from junction.dashboard.handlers import core as core_mod
 
         monkeypatch.setattr(core_mod, "_beacon_governance_pinned_off", lambda: True)
         async with TestClient(TestServer(_make_app())) as c:
@@ -388,7 +388,7 @@ class TestBoolValidator:
     @pytest.mark.asyncio
     async def test_unpinned_host_can_still_re_enable(self, tmp_config, monkeypatch) -> None:
         """The gate must not fire on an ordinary standalone install."""
-        from kiro_crew.dashboard.handlers import core as core_mod
+        from junction.dashboard.handlers import core as core_mod
 
         monkeypatch.setattr(core_mod, "_beacon_governance_pinned_off", lambda: False)
         async with TestClient(TestServer(_make_app())) as c:
@@ -404,7 +404,7 @@ class TestStrValidator:
     @pytest.mark.asyncio
     async def test_valid_agent_passes(self, tmp_config) -> None:
         async with TestClient(TestServer(_make_app())) as c:
-            resp = await _patch(c, "session.pool_agent", "kirocrew")
+            resp = await _patch(c, "session.pool_agent", "junction")
             assert resp.status == 200
 
     @pytest.mark.asyncio
@@ -720,7 +720,7 @@ class TestTelemetryEnabledPatch:
 
     @pytest.mark.asyncio
     async def test_drops_the_memoized_recorder(self, tmp_config) -> None:
-        with patch("kiro_crew.metrics.provider.shutdown") as reset:
+        with patch("junction.metrics.provider.shutdown") as reset:
             async with TestClient(TestServer(_make_app())) as c:
                 assert (await _patch(c, "telemetry.enabled", True)).status == 200
         reset.assert_called_once()
@@ -729,14 +729,14 @@ class TestTelemetryEnabledPatch:
     async def test_unrelated_field_leaves_the_recorder_alone(self, tmp_config) -> None:
         # Rebuilding the recorder flushes and restarts the exporter thread, so it
         # must not ride along on every unrelated config write.
-        with patch("kiro_crew.metrics.provider.shutdown") as reset:
+        with patch("junction.metrics.provider.shutdown") as reset:
             async with TestClient(TestServer(_make_app())) as c:
                 assert (await _patch(c, "session.timeout_secs", 600)).status == 200
         reset.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_rejected_value_leaves_the_recorder_alone(self, tmp_config) -> None:
-        with patch("kiro_crew.metrics.provider.shutdown") as reset:
+        with patch("junction.metrics.provider.shutdown") as reset:
             async with TestClient(TestServer(_make_app())) as c:
                 assert (await _patch(c, "telemetry.enabled", "yes")).status == 400
         reset.assert_not_called()
@@ -745,7 +745,7 @@ class TestTelemetryEnabledPatch:
     async def test_recorder_reset_failure_does_not_fail_the_write(self, tmp_config) -> None:
         # The value is already durable by this point; a flush that raises must not
         # report the save as failed and send the UI's switch back.
-        with patch("kiro_crew.metrics.provider.shutdown", side_effect=RuntimeError("boom")):
+        with patch("junction.metrics.provider.shutdown", side_effect=RuntimeError("boom")):
             async with TestClient(TestServer(_make_app())) as c:
                 assert (await _patch(c, "telemetry.enabled", True)).status == 200
         data = json.loads(tmp_config.read_text(encoding="utf-8"))
@@ -796,7 +796,7 @@ class TestTelemetryEnabledEgressGate:
     @pytest.mark.asyncio
     async def test_refused_enable_does_not_touch_the_recorder(self, tmp_config) -> None:
         self._seed_endpoint(tmp_config, "http://otel.internal:4318/v1/metrics")
-        with patch("kiro_crew.metrics.provider.shutdown") as reset:
+        with patch("junction.metrics.provider.shutdown") as reset:
             async with TestClient(TestServer(_make_app())) as c:
                 assert (await _patch(c, "telemetry.enabled", True)).status == 409
         reset.assert_not_called()

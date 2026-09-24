@@ -1,7 +1,7 @@
 """The changelog-history gate must protect exactly the shipped sections.
 
 ``scripts/check_changelog_history.py`` loads its version folding from
-:mod:`kiro_crew.changelog` by path rather than re-implementing it, so there is no
+:mod:`junction.changelog` by path rather than re-implementing it, so there is no
 second copy to drift. What still needs pinning is the gate's own judgment: which
 headings count as shipped history, and which diffs against them are violations.
 """
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.changelog import base_version
+from junction.changelog import base_version
 
 _REPO = Path(__file__).resolve().parents[1]
 _GATE = _REPO / "scripts" / "check_changelog_history.py"
@@ -284,7 +284,7 @@ def test_the_gate_reads_the_grammar_from_the_renderer_it_is_given() -> None:
     # Anchored to the repo, never to the process CWD: pytest can be invoked from
     # anywhere and a CWD-relative read would fail with FileNotFoundError.
     renderer = gate._load_renderer_source(
-        (_REPO / "src" / "kiro_crew" / "changelog.py").read_text(encoding="utf-8")
+        (_REPO / "src" / "junction" / "changelog.py").read_text(encoding="utf-8")
     )
     grammar = gate.grammar_of(renderer)
     assert grammar.section_re is renderer._SECTION_RE

@@ -20,7 +20,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers.knowledge import ingest_file
+from junction.dashboard.handlers.knowledge import ingest_file
 
 
 class _FakeStore:
@@ -69,7 +69,7 @@ async def _post(app: web.Application, data: bytes, filename: str, ctype: str):
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.dashboard.handlers.knowledge.sel") as m:
+    with patch("junction.dashboard.handlers.knowledge.sel") as m:
         m.return_value = MagicMock()
         yield m
 
@@ -134,7 +134,7 @@ async def test_docx_zip_bomb_member_count_rejected_before_parse(mock_sel):
     decompression-bomb guard (CWE-770) before any parser opens it."""
     app, ingest_spy = _make_app()
     data = _multi_member_zip_bytes(5)  # 6 members total, all with valid PK header
-    with patch("kiro_crew.dashboard.handlers.knowledge._MAX_INGEST_ARCHIVE_MEMBERS", 2):
+    with patch("junction.dashboard.handlers.knowledge._MAX_INGEST_ARCHIVE_MEMBERS", 2):
         status, body = await _post(
             app, data, "bomb.docx",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -149,7 +149,7 @@ async def test_docx_zip_bomb_uncompressed_size_rejected_before_parse(mock_sel):
     before parsing (declared-size bomb guard)."""
     app, ingest_spy = _make_app()
     data = _minimal_zip_bytes()  # one member, >1 uncompressed byte
-    with patch("kiro_crew.dashboard.handlers.knowledge._MAX_INGEST_ARCHIVE_UNCOMPRESSED", 1):
+    with patch("junction.dashboard.handlers.knowledge._MAX_INGEST_ARCHIVE_UNCOMPRESSED", 1):
         status, body = await _post(
             app, data, "bomb.docx",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document")

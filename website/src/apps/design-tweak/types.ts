@@ -120,7 +120,7 @@ export interface QueueResponse {
 
 /**
  * `GET /health`. `dataDir` is the data home the backend actually resolved
- * (`KIROCREW_APP_DATA_DIR` / `KIROCREW_HOME` dependent), and is the only correct
+ * (`JUNCTION_APP_DATA_DIR` / `JUNCTION_HOME` dependent), and is the only correct
  * source for the payload path the page quotes to the agent.
  */
 export interface HealthResponse {

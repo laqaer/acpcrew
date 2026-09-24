@@ -31,10 +31,10 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
-from kiro_crew import autonudge
-from kiro_crew.apps.builtins.issue_radar.backend import crew_runtime
-from kiro_crew.autonudge import AutoNudgeService, NudgeAdmissionRefused
-from kiro_crew.dashboard import chat_handlers as handlers
+from junction import autonudge
+from junction.apps.builtins.issue_radar.backend import crew_runtime
+from junction.autonudge import AutoNudgeService, NudgeAdmissionRefused
+from junction.dashboard import chat_handlers as handlers
 
 NAME = "chat-1-1785"
 
@@ -242,8 +242,8 @@ async def test_a_failed_persist_takes_the_app_dismissal_back(tmp_path, monkeypat
     async def _persist(*_a, **_kw) -> None:
         raise OSError("no space left on device")
 
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_closed", _told)
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_close_undone", _undo)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _told)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_close_undone", _undo)
     monkeypatch.setattr(handlers, "save_slot_off_loop", _persist)
 
     resp = await handlers.api_chat_slot_delete(_Req(state, NAME))
@@ -283,7 +283,7 @@ async def test_an_app_that_cannot_be_told_aborts_the_close(tmp_path, monkeypatch
         return False
 
     monkeypatch.setattr(handlers, "save_slot_off_loop", _persist)
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_closed", _hook_fails)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook_fails)
 
     resp = await handlers.api_chat_slot_delete(_Req(state, NAME))
 
@@ -311,7 +311,7 @@ async def test_app_close_retires_a_loop_armed_during_the_close_hook(tmp_path, mo
         await release_hook.wait()
         return True
 
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_closed", _hook)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook)
     close = asyncio.create_task(handlers.api_chat_slot_delete(_Req(state, NAME)))
     await hook_entered.wait()
 
@@ -344,7 +344,7 @@ async def test_app_close_waits_for_a_queued_direct_arm(tmp_path, monkeypatch) ->
         await release_hook.wait()
         return True
 
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_closed", _hook)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook)
     close = asyncio.create_task(handlers.api_chat_slot_delete(_Req(state, NAME)))
     await hook_entered.wait()
 
@@ -395,7 +395,7 @@ async def test_app_close_retires_the_latest_queued_arm_generation(
         await release_hook.wait()
         return True
 
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_closed", _hook)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook)
     close = asyncio.create_task(handlers.api_chat_slot_delete(_Req(state, NAME)))
     await hook_entered.wait()
     first = await svc.add(NAME, "first arm", idle_secs=300)
@@ -449,7 +449,7 @@ async def test_issue_radar_arm_queued_behind_final_retirement_is_refused(
         await release_hook.wait()
         return True
 
-    monkeypatch.setattr("kiro_crew.apps.teardown.notify_slot_closed", _hook)
+    monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook)
     monkeypatch.setattr(
         crew_runtime, "ensure_crew_session", AsyncMock(return_value=slot)
     )

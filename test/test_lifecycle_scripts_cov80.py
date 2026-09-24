@@ -14,8 +14,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.apps import lifecycle_scripts
+from junction import platform_compat
+from junction.apps import lifecycle_scripts
 
 
 class _Process:

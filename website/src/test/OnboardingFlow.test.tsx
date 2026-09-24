@@ -12,7 +12,7 @@ vi.mock('../api/client', async importOriginal => {
     ...mod,
     api: {
       ...mod.api,
-      kirocrewConfig: vi.fn().mockResolvedValue({
+      junctionConfig: vi.fn().mockResolvedValue({
         dashboard: { user_role: '', user_technical_level: '' },
       }),
       patchConfig: vi.fn().mockResolvedValue({}),
@@ -23,14 +23,14 @@ vi.mock('../api/client', async importOriginal => {
         reason: 'ready',
         endpoint_configured: true,
         env_override: false,
-        env_var: 'KIROCREW_TELEMETRY_DISABLED',
+        env_var: 'JUNCTION_TELEMETRY_DISABLED',
       }),
     },
   }
 })
 
 const patchConfig = vi.mocked(api.patchConfig)
-const kirocrewConfig = vi.mocked(api.kirocrewConfig)
+const junctionConfig = vi.mocked(api.junctionConfig)
 
 const advanceToStep2 = () => {
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -43,8 +43,8 @@ describe('OnboardingFlow — About You step', () => {
     // can't leak across tests.
     patchConfig.mockReset()
     patchConfig.mockResolvedValue({})
-    kirocrewConfig.mockReset()
-    kirocrewConfig.mockResolvedValue({
+    junctionConfig.mockReset()
+    junctionConfig.mockResolvedValue({
       dashboard: { user_role: '', user_technical_level: '' },
     })
   })
@@ -134,7 +134,7 @@ describe('OnboardingFlow — About You step', () => {
   })
 
   it('preselects previously saved answers for /onboarding replays', async () => {
-    kirocrewConfig.mockResolvedValue({
+    junctionConfig.mockResolvedValue({
       dashboard: { user_role: 'developer', user_technical_level: 'codes' },
     })
     renderWithProviders(<OnboardingFlow initialOpen onComplete={vi.fn()} />)
@@ -298,7 +298,7 @@ describe('OnboardingFlow — About You step', () => {
   })
 
   it('switching from Other to a real chip leaves the stored free text alone', async () => {
-    kirocrewConfig.mockResolvedValue({
+    junctionConfig.mockResolvedValue({
       dashboard: {
         user_role: 'other',
         user_role_other: 'solutions architect',
@@ -419,8 +419,8 @@ describe('OnboardingFlow — end of the tour', () => {
   beforeEach(() => {
     patchConfig.mockReset()
     patchConfig.mockResolvedValue({})
-    kirocrewConfig.mockReset()
-    kirocrewConfig.mockResolvedValue({
+    junctionConfig.mockReset()
+    junctionConfig.mockResolvedValue({
       dashboard: { user_role: '', user_technical_level: '' },
     })
   })

@@ -1,4 +1,4 @@
-"""Behaviour coverage for the un-exercised helpers of ``kiro_crew.apps.registry``.
+"""Behaviour coverage for the un-exercised helpers of ``junction.apps.registry``.
 
 The registry module's install path is the interesting half (git clone, build,
 identity gates) but most of its surface is small, deterministic helpers that had
@@ -10,7 +10,7 @@ Every subprocess is faked at this module's own chokepoints
 (``wrap_argv`` / ``cgroup_scope_argv`` / ``create_subprocess_limited``), matching
 the harness already used by ``test_apps_registry.py``, so nothing here spawns
 git, npm, or pip. All filesystem work happens under ``tmp_path`` with
-``_manifest_cache_dir`` redirected, so no test touches the real Kiro Crew home.
+``_manifest_cache_dir`` redirected, so no test touches the real Junction home.
 """
 
 from __future__ import annotations
@@ -27,8 +27,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.apps import registry
-from kiro_crew.platform import PlatformCompositionError
+from junction.apps import registry
+from junction.platform import PlatformCompositionError
 
 # ---------------------------------------------------------------------------
 # Fixtures / shared fakes
@@ -38,7 +38,7 @@ from kiro_crew.platform import PlatformCompositionError
 @pytest.fixture(autouse=True)
 def _explicit_registry_execution_admission(monkeypatch):
     """These tests reach admitted registry code paths unless they say otherwise."""
-    monkeypatch.setattr("kiro_crew.apps.execution.third_party_execution_allowed", lambda: True)
+    monkeypatch.setattr("junction.apps.execution.third_party_execution_allowed", lambda: True)
 
 
 @pytest.fixture()
@@ -118,9 +118,9 @@ def _reg(name: str, repo: str, branch: str = "main") -> SimpleNamespace:
 
 
 def _config_with(monkeypatch, registries: list[SimpleNamespace]) -> None:
-    """Make every ``KiroCrewConfig.load()`` in this module see *registries*."""
+    """Make every ``JunctionConfig.load()`` in this module see *registries*."""
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
+        "junction.config.loader.JunctionConfig.load",
         classmethod(lambda cls: SimpleNamespace(registries=registries)),
     )
 
@@ -374,7 +374,7 @@ class TestConfiguredRegistryHosts:
             raise OSError("config unreadable")
 
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load", classmethod(_boom)
+            "junction.config.loader.JunctionConfig.load", classmethod(_boom)
         )
         assert registry._configured_registry_hosts() == frozenset()
 
@@ -923,14 +923,14 @@ class TestMergeManifest:
                 "useCases": ["u"],
                 "configuration": ["c"],
                 "license": "MIT",
-                "minKiroCrewVersion": "0.1.0",
+                "minJunctionVersion": "0.1.0",
             },
         )
         assert merged["displayName"] == "Demo"
         assert merged["tags"] == ["a"]
         assert merged["useCases"] == ["u"]
         assert merged["configuration"] == ["c"]
-        assert merged["minKiroCrewVersion"] == "0.1.0"
+        assert merged["minJunctionVersion"] == "0.1.0"
         # Registry-only fields survive.
         assert merged["name"] == "demo" and merged["branch"] == "main"
 
@@ -1091,7 +1091,7 @@ class TestApplyTrustFields:
                 {
                     "name": "demo",
                     "_registry": "third-party",
-                    "_index_author": "kirocrew",
+                    "_index_author": "junction",
                     "verified": True,
                     "provenance": "official",
                     "featured": True,
@@ -1111,9 +1111,9 @@ class TestApplyTrustFields:
     def test_core_row_is_verified_only_from_the_index_author(self):
         rows = registry._apply_trust_fields(
             [
-                {"name": "a", "_index_author": "KiroCrew"},  # brand-ok: registry.py compares author.lower() == "kirocrew"
+                {"name": "a", "_index_author": "Junction"},  # brand-ok: registry.py compares author.lower() == "junction"
                 {"name": "b", "_index_author": "someone-else"},
-                {"name": "c", "_index_author": {"name": "kirocrew"}},
+                {"name": "c", "_index_author": {"name": "junction"}},
             ]
         )
         assert [r["verified"] for r in rows] == [True, False, False]
@@ -1175,7 +1175,7 @@ class TestCandidateResolution:
         # fails (#4236); pin "catalog reachable, app absent" so the assertion
         # exercises the bundled + external span deterministically.
         monkeypatch.setattr(
-            "kiro_crew.apps.official_catalog.inventory_for_install",
+            "junction.apps.official_catalog.inventory_for_install",
             lambda name: None,
         )
         monkeypatch.setattr(
@@ -1336,7 +1336,7 @@ class TestRepoLookups:
             raise RuntimeError("config exploded")
 
         monkeypatch.setattr(
-            "kiro_crew.config.loader.KiroCrewConfig.load", classmethod(_boom)
+            "junction.config.loader.JunctionConfig.load", classmethod(_boom)
         )
         assert registry._external_registry_app_by_repo("ext/demo") is None
         assert registry._external_registry_repos() == set()
@@ -1855,7 +1855,7 @@ class TestRunAppBuild:
         """
         (tmp_path / "pyproject.toml").write_text("[project]\n", encoding="utf-8")
         bundled = tmp_path / "App.app" / "Contents" / "Resources" / "backend-dist"
-        bundled = bundled / "kirocrew-backend-arm64" / "bin" / "python3.12"
+        bundled = bundled / "junction-backend-arm64" / "bin" / "python3.12"
         bundled.parent.mkdir(parents=True, exist_ok=True)
         bundled.write_text("", encoding="utf-8")
         monkeypatch.setattr(registry.sys, "executable", str(bundled))
@@ -2064,7 +2064,7 @@ class TestInstallFromRegistryRefusals:
         ``app-sources`` is redirected at *tmp_path* as a belt-and-braces guard:
         the refusals all return before the stale-checkout sweep, and this makes
         a future regression fail loudly in the sandbox instead of quietly
-        touching the real Kiro Crew home.
+        touching the real Junction home.
         """
         monkeypatch.setattr(registry, "sel", lambda: MagicMock())
         monkeypatch.setattr(registry, "_app_sources_dir", lambda: tmp_path / "app-sources")
@@ -2203,11 +2203,11 @@ class TestInstallFromRegistryRefusals:
     async def test_legacy_name_grant_refuses_before_manifest_fetch_or_clone(
         self, tmp_path, monkeypatch
     ):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         home = tmp_path / "home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
         (home / "config.json").write_text(
             json.dumps({"agent": {"apps_trusted": ["demo"]}}),
             encoding="utf-8",
@@ -2302,7 +2302,7 @@ class TestInstallFromRegistryRefusals:
         )
 
         async def _manifest(*a, **k):
-            return {"name": "demo", "minKiroCrewVersion": "999.0.0"}
+            return {"name": "demo", "minJunctionVersion": "999.0.0"}
 
         monkeypatch.setattr(registry, "_fetch_app_manifest", _manifest)
         monkeypatch.setattr(registry, "get_app", lambda name: None)
@@ -2310,7 +2310,7 @@ class TestInstallFromRegistryRefusals:
             registry, "app_admission_denied", lambda name, manifest=None, action="": None
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.version.check_min_version", lambda mv: "needs 999.0.0"
+            "junction.apps.version.check_min_version", lambda mv: "needs 999.0.0"
         )
         result = await registry.install_from_registry("demo")
         assert result == {"ok": False, "name": "demo", "error": "needs 999.0.0"}

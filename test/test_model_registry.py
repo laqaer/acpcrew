@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kiro_crew import model_registry as mr
+from junction import model_registry as mr
 
 
 class TestModelRegistry:
@@ -138,7 +138,7 @@ class TestModelRegistry:
         # override case: the registry lists auto=200k but kiro serves it at 1M.
         # Manipulate the in-memory cache directly (restored in teardown) to avoid
         # a module reload that would leak state into other tests.
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         saved = dict(mr._KIRO_WINDOWS)
         try:
             mr._KIRO_WINDOWS.clear()
@@ -344,7 +344,7 @@ class TestAcpProviderIds:
         # claude-agent-acp's advertised ids for dropdown dedup), and
         # claude-opus-4.6 is an alias of opus-4.8-1m. But kiro-cli serves each as
         # a DISTINCT real model. to_acp_id (unlike to_provider_id) must pass these
-        # through unchanged — otherwise the Haiku-pinned kirocrew-knowledge agent
+        # through unchanged — otherwise the Haiku-pinned junction-knowledge agent
         # (and mcp_core subagents) silently run on Sonnet.
         assert mr.to_acp_id("claude-haiku-4.5") == "claude-haiku-4.5"
         assert mr.to_acp_id("claude-sonnet-4.5") == "claude-sonnet-4.5"

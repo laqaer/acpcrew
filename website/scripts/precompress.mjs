@@ -3,7 +3,7 @@
  *
  * The gateway serves the SPA over HTTP and does NOT compress responses — a fact
  * Kiro Crew's own SSH-tunnel code documents as the reason `ssh -C` exists
- * (`src/kiro_crew/instances/constants.py`, `ssh_tunnel_manager.py`). A cold
+ * (`src/junction/instances/constants.py`, `ssh_tunnel_manager.py`). A cold
  * dashboard load therefore transfers ~7.8 MB of uncompressed JS, which is felt
  * as lag whenever the dashboard is reached over a tunnel or a slow link.
  *
@@ -138,7 +138,7 @@ export function compressDir(dir) {
  */
 export function precompressPlugin({ outDir = 'dist', subdir = 'assets', log = true } = {}) {
   return {
-    name: 'kirocrew-precompress',
+    name: 'junction-precompress',
     apply: 'build',
     closeBundle() {
       const target = path.resolve(process.cwd(), outDir, subdir)

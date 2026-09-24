@@ -21,7 +21,7 @@ import { mkdirSync, readFileSync } from 'node:fs'
 const BASE = process.argv[2] || 'http://127.0.0.1:6802'
 const OUT = process.argv[3] || '../temp-screenshots/link-previews'
 const SLOT = 'chat-linkprev'
-const PROJECT = '/Users/diwm/workspace/KiroCrew'
+const PROJECT = '/Users/diwm/workspace/Junction'
 
 mkdirSync(OUT, { recursive: true })
 
@@ -107,7 +107,7 @@ const slots = [{
   running: false,
   last_message: 'Two of the big ones…',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   modified: Math.floor(Date.now() / 1000),

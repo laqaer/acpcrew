@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.mcp_gateway.secret_uri."""
+"""Tests for junction.mcp_gateway.secret_uri."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.mcp_gateway.secret_uri import resolve_secret_uris
+from junction.mcp_gateway.secret_uri import resolve_secret_uris
 
 
 @pytest.fixture()
 def vault_dir(tmp_path: Path) -> Path:
     """Create a temporary vault with test secrets."""
-    from kiro_crew.secrets import SecretVault
+    from junction.secrets import SecretVault
 
     vault = SecretVault(tmp_path)
     vault._set_sync("MY_API_KEY", "sk-live-abc123")

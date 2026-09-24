@@ -1,7 +1,7 @@
-"""Tests for the per-crew-member space (``$KIROCREW_HOME/members/<slug>/``).
+"""Tests for the per-crew-member space (``$JUNCTION_HOME/members/<slug>/``).
 
-``KIROCREW_HOME`` is pinned to a per-test tmp dir by the autouse
-``_isolate_kirocrew_home`` fixture, so every path here resolves under tmp.
+``JUNCTION_HOME`` is pinned to a per-test tmp dir by the autouse
+``_isolate_junction_home`` fixture, so every path here resolves under tmp.
 """
 
 from __future__ import annotations
@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from kiro_crew.members import (
+from junction.members import (
     ACTIVITY_FILE_NAME,
     MemberSlugError,
     member_dir,
@@ -215,7 +215,7 @@ class TestRecordActivity:
     def test_reports_failure_instead_of_raising(self, monkeypatch):
         # Total by contract: the call sites have no guard, and one of them
         # (mcp_core) has no logger, so a raise here would surface as a tool error.
-        monkeypatch.setattr("kiro_crew.members.member_dir", lambda _s: (_ for _ in ()).throw(OSError("boom")))
+        monkeypatch.setattr("junction.members.member_dir", lambda _s: (_ for _ in ()).throw(OSError("boom")))
         assert record_activity("M", "s1", "persistent") is False
 
 

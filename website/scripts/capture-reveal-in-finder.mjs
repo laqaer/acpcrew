@@ -25,7 +25,7 @@ const PREFIX = process.argv[3] || 'after'
 
 mkdirSync(OUT, { recursive: true })
 
-const ROOT = '/Users/kyle/workspace/kirocrew'
+const ROOT = '/Users/kyle/workspace/junction'
 const FILE = `${ROOT}/README.md`
 const FE_API = '/apps/file-explorer/api'
 
@@ -45,7 +45,7 @@ const CONTENT = [
   '',
   '## Install',
   '',
-  '    pipx install kirocrew',
+  '    pipx install junction',
   '',
 ].join('\n')
 

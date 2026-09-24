@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.acp import runtime as rt
+from junction.acp import runtime as rt
 
 
 def _bare_runtime(pid: int = 54321) -> rt.AcpRuntime:

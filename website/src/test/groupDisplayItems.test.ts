@@ -20,7 +20,7 @@ const workingTurn = () => [msg('assistant', 'a'), msg('tool', 't'), msg('assista
 /** A sub-agent completion event SubagentCompletionCard can parse. */
 const COMPLETION = [
   '[Subagent completion event]',
-  'Agent `53e3e5eb` (kirocrew) completed ✅',
+  'Agent `53e3e5eb` (junction) completed ✅',
   'Task: map the picker',
   '',
   'done',

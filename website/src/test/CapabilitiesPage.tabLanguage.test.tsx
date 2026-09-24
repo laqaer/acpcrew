@@ -18,7 +18,7 @@ import React from 'react'
 
 // The tab bodies are irrelevant here and each pulls its own fetches; the rail is
 // what is under test.
-vi.mock('../pages/KiroCrewAgentsPage', () => ({ default: () => <div /> }))
+vi.mock('../pages/JunctionAgentsPage', () => ({ default: () => <div /> }))
 vi.mock('../pages/AgentsPage', () => ({ default: () => <div /> }))
 vi.mock('../pages/HooksPage', () => ({ default: () => <div /> }))
 vi.mock('../pages/connections/ConnectionsPage', () => ({ default: () => <div /> }))

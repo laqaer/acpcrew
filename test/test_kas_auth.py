@@ -11,8 +11,8 @@ import json
 
 import pytest
 
-from kiro_crew.acp import kas_auth
-from kiro_crew.acp.kas_auth import (
+from junction.acp import kas_auth
+from junction.acp.kas_auth import (
     KasAuthCallbackError,
     _parse_token_output,
     resolve_kas_access_token,

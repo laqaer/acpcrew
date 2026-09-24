@@ -16,8 +16,8 @@ from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 import pytest
 import yarl
 
-from kiro_crew import link_unfurl as lu
-from kiro_crew.dashboard.handlers import link_meta as lm
+from junction import link_unfurl as lu
+from junction.dashboard.handlers import link_meta as lm
 
 
 def _run(coro):
@@ -692,10 +692,10 @@ def _isolate(monkeypatch):
 
 def _set_enabled(monkeypatch, enabled: bool) -> None:
     """Patch the config loader the handler imports at call time."""
-    from kiro_crew.config import loader as loader_mod
+    from junction.config import loader as loader_mod
 
     cfg = SimpleNamespace(dashboard=SimpleNamespace(link_previews=enabled))
-    monkeypatch.setattr(loader_mod.KiroCrewConfig, "load", staticmethod(lambda: cfg))
+    monkeypatch.setattr(loader_mod.JunctionConfig, "load", staticmethod(lambda: cfg))
 
 
 def _install(monkeypatch, routes: Dict[str, Tuple[int, Dict[str, str], bytes]]) -> _FakeTransport:

@@ -18,16 +18,16 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-import kiro_crew
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.context import ContextBuilder
+import junction
+from junction.config.loader import JunctionConfig
+from junction.context import ContextBuilder
 
 
 def _resolve(prompt: str, session_key: str, *, verbosity: str = "default") -> str:
     fake_cfg = SimpleNamespace(
         dashboard=SimpleNamespace(widget_density="more", verbosity=verbosity)
     )
-    with patch("kiro_crew.context.KiroCrewConfig.load", return_value=fake_cfg):
+    with patch("junction.context.JunctionConfig.load", return_value=fake_cfg):
         return ContextBuilder._resolve_prompt_templates(prompt, session_key)
 
 
@@ -55,7 +55,7 @@ class TestVerbosityBlockPlaceholder:
 
     def test_missing_verbosity_attr_defaults_to_empty(self):
         fake_cfg = SimpleNamespace(dashboard=SimpleNamespace(widget_density="more"))
-        with patch("kiro_crew.context.KiroCrewConfig.load", return_value=fake_cfg):
+        with patch("junction.context.JunctionConfig.load", return_value=fake_cfg):
             result = ContextBuilder._resolve_prompt_templates("a {{VERBOSITY_BLOCK}} b", "dashboard:x")
         assert result == "a  b"
 
@@ -422,7 +422,7 @@ class TestShippedPromptCarriesToken:
     """Regression guard: the main prompt MUST ship the placeholder, else concise mode is a silent no-op."""
 
     def test_main_prompt_has_verbosity_placeholder(self):
-        prompt_md = Path(kiro_crew.__file__).parent / "config" / "prompt.md"
+        prompt_md = Path(junction.__file__).parent / "config" / "prompt.md"
         assert "{{VERBOSITY_BLOCK}}" in prompt_md.read_text(encoding="utf-8")
 
 
@@ -433,60 +433,60 @@ class TestVerbosityRoundTrip:
     def cfg_file(self, tmp_path):
         p = tmp_path / "config.json"
         p.write_text("{}", encoding="utf-8")
-        with patch("kiro_crew.config.loader.config_path", return_value=p):
+        with patch("junction.config.loader.config_path", return_value=p):
             yield p
 
     def test_defaults_to_default(self):
-        assert KiroCrewConfig().dashboard.verbosity == "default"
+        assert JunctionConfig().dashboard.verbosity == "default"
 
     def test_answer_only_is_an_advertised_enum_value(self):
         """The Settings UI and the config-patch validator both read this enum;
         a level missing here is a level the user cannot select.
         """
-        field = KiroCrewConfig().dashboard.__dataclass_fields__["verbosity"]
+        field = JunctionConfig().dashboard.__dataclass_fields__["verbosity"]
         assert field.metadata["enum"] == ["default", "concise", "ultra", "answer_only"]
 
     def test_answer_only_round_trips(self, cfg_file):
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.dashboard.verbosity = "answer_only"
         cfg.save()
-        assert KiroCrewConfig.load().dashboard.verbosity == "answer_only"
+        assert JunctionConfig.load().dashboard.verbosity == "answer_only"
 
     def test_save_load(self, cfg_file):
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.dashboard.verbosity = "concise"
         cfg.save()
         assert json.loads(cfg_file.read_text())["dashboard"]["verbosity"] == "concise"
-        assert KiroCrewConfig.load().dashboard.verbosity == "concise"
+        assert JunctionConfig.load().dashboard.verbosity == "concise"
 
     def test_load_from_existing(self, cfg_file):
         cfg_file.write_text(json.dumps({"dashboard": {"verbosity": "concise"}}), encoding="utf-8")
-        assert KiroCrewConfig.load().dashboard.verbosity == "concise"
+        assert JunctionConfig.load().dashboard.verbosity == "concise"
 
 
 @pytest.fixture()
 def cfg_file(tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    with patch("kiro_crew.config.loader.config_path", return_value=p):
+    with patch("junction.config.loader.config_path", return_value=p):
         yield p
 
 
 @pytest.fixture()
 def mock_sel():
     try:
-        import kiro_crew.dashboard.handlers  # noqa: F401
+        import junction.dashboard.handlers  # noqa: F401
     except ImportError:
         pytest.skip("dashboard handler deps not available locally")
     m = MagicMock()
     m.log_tool_invocation = MagicMock()
-    with patch("kiro_crew.dashboard.handlers.sel", return_value=m):
+    with patch("junction.dashboard.handlers.sel", return_value=m):
         yield m
 
 
 @pytest.fixture()
 def handler_app(cfg_file, mock_sel):
-    from kiro_crew.dashboard.handlers.files import api_dashboard_config
+    from junction.dashboard.handlers.files import api_dashboard_config
     app = web.Application()
     app.router.add_put("/api/dashboard/config", api_dashboard_config)
     app.router.add_get("/api/dashboard/config", api_dashboard_config)
@@ -498,7 +498,7 @@ async def test_handler_put_verbosity_concise(handler_app, cfg_file):
     async with TestClient(TestServer(handler_app)) as client:
         resp = await client.put("/api/dashboard/config", json={"verbosity": "concise"})
         assert resp.status == 200
-    assert KiroCrewConfig.load().dashboard.verbosity == "concise"
+    assert JunctionConfig.load().dashboard.verbosity == "concise"
 
 
 @pytest.mark.asyncio
@@ -506,7 +506,7 @@ async def test_handler_put_verbosity_ultra(handler_app, cfg_file):
     async with TestClient(TestServer(handler_app)) as client:
         resp = await client.put("/api/dashboard/config", json={"verbosity": "ultra"})
         assert resp.status == 200
-    assert KiroCrewConfig.load().dashboard.verbosity == "ultra"
+    assert JunctionConfig.load().dashboard.verbosity == "ultra"
 
 
 @pytest.mark.asyncio
@@ -514,7 +514,7 @@ async def test_handler_put_verbosity_answer_only(handler_app, cfg_file):
     async with TestClient(TestServer(handler_app)) as client:
         resp = await client.put("/api/dashboard/config", json={"verbosity": "answer_only"})
         assert resp.status == 200
-    assert KiroCrewConfig.load().dashboard.verbosity == "answer_only"
+    assert JunctionConfig.load().dashboard.verbosity == "answer_only"
 
 
 @pytest.mark.asyncio
@@ -534,7 +534,7 @@ async def test_handler_put_verbosity_rejects_invalid(handler_app, cfg_file):
         resp = await client.put("/api/dashboard/config", json={"verbosity": "aggressive"})
         assert resp.status == 400
     # bad value must not be persisted
-    assert KiroCrewConfig.load().dashboard.verbosity == "default"
+    assert JunctionConfig.load().dashboard.verbosity == "default"
 
 
 @pytest.mark.asyncio

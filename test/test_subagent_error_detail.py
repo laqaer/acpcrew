@@ -12,8 +12,8 @@ import sqlite3
 
 import pytest
 
-from kiro_crew.dashboard.chat_runner import _MAX_NATIVE_CARD_ERROR, _clip_card_error
-from kiro_crew.subagent import (
+from junction.dashboard.chat_runner import _MAX_NATIVE_CARD_ERROR, _clip_card_error
+from junction.subagent import (
     _MAX_ERROR_CHAIN,
     _MAX_ERROR_DETAIL_LEN,
     SubagentInfo,
@@ -25,7 +25,7 @@ from kiro_crew.subagent import (
 @pytest.fixture()
 def agent_root(tmp_path, monkeypatch):
     """Point persistence at a temp directory."""
-    monkeypatch.setattr("kiro_crew.subagent_persistence._SUBAGENTS_DIR", tmp_path)
+    monkeypatch.setattr("junction.subagent_persistence._SUBAGENTS_DIR", tmp_path)
     return tmp_path
 
 
@@ -37,9 +37,7 @@ class TestDescribeException:
         SQLITE_MISUSE. Rendered without its class it reads as an unspecified
         argument bug and sends a reader looking in the wrong subsystem.
         """
-        rendered = _describe_exception(
-            sqlite3.InterfaceError("bad parameter or other API misuse")
-        )
+        rendered = _describe_exception(sqlite3.InterfaceError("bad parameter or other API misuse"))
         assert rendered == "sqlite3.InterfaceError: bad parameter or other API misuse"
 
     def test_builtins_are_not_module_qualified(self):
@@ -105,13 +103,11 @@ class TestDescribeException:
 
 class TestTombstoneCarriesTheReason:
     def _tombstone(self, agent_root, agent_id):
-        return json.loads(
-            (agent_root / agent_id / "tombstone.json").read_text(encoding="utf-8")
-        )
+        return json.loads((agent_root / agent_id / "tombstone.json").read_text(encoding="utf-8"))
 
     def test_records_the_specific_reason_not_just_the_bucket(self, agent_root):
         """``cause`` is a bucket; without ``detail`` the reason dies with the process."""
-        from kiro_crew.subagent_persistence import create_agent_folder
+        from junction.subagent_persistence import create_agent_folder
 
         create_agent_folder("deadbeef", task="t")
         info = SubagentInfo(id="deadbeef", task="t")
@@ -124,7 +120,7 @@ class TestTombstoneCarriesTheReason:
         assert tomb["detail"] == "sqlite3.InterfaceError: bad parameter or other API misuse"
 
     def test_absent_error_yields_an_empty_detail(self, agent_root):
-        from kiro_crew.subagent_persistence import create_agent_folder
+        from junction.subagent_persistence import create_agent_folder
 
         create_agent_folder("nodetail", task="t")
         SubagentManager._write_tombstone(SubagentInfo(id="nodetail", task="t"), "reaped")
@@ -132,7 +128,7 @@ class TestTombstoneCarriesTheReason:
         assert self._tombstone(agent_root, "nodetail")["detail"] == ""
 
     def test_detail_is_bounded(self, agent_root):
-        from kiro_crew.subagent_persistence import create_agent_folder
+        from junction.subagent_persistence import create_agent_folder
 
         create_agent_folder("longone", task="t")
         info = SubagentInfo(id="longone", task="t")
@@ -151,7 +147,7 @@ class TestTerminalArmUsesTheDescription:
         import asyncio
         from unittest.mock import AsyncMock, MagicMock, patch
 
-        from kiro_crew.subagent_persistence import create_agent_folder
+        from junction.subagent_persistence import create_agent_folder
 
         sessions = MagicMock()
         sessions.release = MagicMock()
@@ -166,11 +162,13 @@ class TestTerminalArmUsesTheDescription:
         async def _raise_sqlite_misuse(*_a, **_kw):
             raise sqlite3.InterfaceError("bad parameter or other API misuse")
 
-        with patch.object(manager, "_run_inner", _raise_sqlite_misuse), \
-             patch("kiro_crew.subagent.Stats"), \
-             patch("kiro_crew.subagent.sel"), \
-             patch.object(manager, "_fire_event", new_callable=AsyncMock), \
-             patch.object(manager, "_on_done", new_callable=AsyncMock):
+        with (
+            patch.object(manager, "_run_inner", _raise_sqlite_misuse),
+            patch("junction.subagent.Stats"),
+            patch("junction.subagent.sel"),
+            patch.object(manager, "_fire_event", new_callable=AsyncMock),
+            patch.object(manager, "_on_done", new_callable=AsyncMock),
+        ):
             await asyncio.wait_for(manager._run(info), timeout=10)
 
         assert info.error == "sqlite3.InterfaceError: bad parameter or other API misuse"
@@ -215,7 +213,7 @@ class TestClipCardError:
         """Pins the call site: the native card is where the clip is applied."""
         from unittest.mock import MagicMock
 
-        from kiro_crew.dashboard.chat_runner import _native_subagent_sync
+        from junction.dashboard.chat_runner import _native_subagent_sync
 
         state = MagicMock()
         state.broadcast_ws = MagicMock()

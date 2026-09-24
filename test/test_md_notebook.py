@@ -31,9 +31,9 @@ from aiohttp.test_utils import TestClient, TestServer
 from windows_sim import replace_sharing_violation
 
 from conftest import requires_symlinks
-from kiro_crew import atomic_write as atomic_write_mod
-from kiro_crew import platform_compat
-from kiro_crew.apps.builtins.md_notebook import git_ops
+from junction import atomic_write as atomic_write_mod
+from junction import platform_compat
+from junction.apps.builtins.md_notebook import git_ops
 
 SECRET = "test-proxy-secret"
 
@@ -127,7 +127,7 @@ class SignedClient:
         digest = hashlib.sha256(body).hexdigest()
         msg = f"{ts}:{method}:{target}:{digest}"
         sig = hmac.new(SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()
-        return {"X-KiroCrew-Proxy": f"{ts}:{sig}"}
+        return {"X-Junction-Proxy": f"{ts}:{sig}"}
 
     async def request(
         self, method: str, path: str, payload: Optional[dict[str, Any]] = None
@@ -164,11 +164,11 @@ def fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, _seed_template: Pa
     """A fresh backend module bound to a temp home, plus git fixture repos."""
     monkeypatch.setenv("MD_NOTEBOOK_HOME", str(tmp_path / "home"))
     # The PAT lives under the crew data home (config_dir), never MD_NOTEBOOK_HOME,
-    # so isolate KIROCREW_HOME too or tests would touch the real ~/.kiro/crew.
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "crew"))
-    monkeypatch.setenv("KIROCREW_PROXY_SECRET", SECRET)
+    # so isolate JUNCTION_HOME too or tests would touch the real ~/.kiro/crew.
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "crew"))
+    monkeypatch.setenv("JUNCTION_PROXY_SECRET", SECRET)
     monkeypatch.setenv("MD_NOTEBOOK_NO_PICKER", "1")
-    from kiro_crew.apps.builtins.md_notebook import server as server_mod
+    from junction.apps.builtins.md_notebook import server as server_mod
 
     # HOME and friends are resolved at import time, so rebind them to the temp
     # home rather than relying on import order.
@@ -254,7 +254,7 @@ async def test_tampered_signature_is_rejected(fixtures) -> None:
     app = server_mod.create_app()
     async with TestClient(TestServer(app)) as raw:
         resp = await raw.get(
-            "/api/vaults", headers={"X-KiroCrew-Proxy": f"{int(time.time())}:deadbeef"}
+            "/api/vaults", headers={"X-Junction-Proxy": f"{int(time.time())}:deadbeef"}
         )
         assert resp.status == 401
 
@@ -266,7 +266,7 @@ def _sign_wire_target(method: str, wire_target: str, body: bytes = b"") -> dict[
     digest = hashlib.sha256(body).hexdigest()
     msg = f"{ts}:{method}:{wire_target}:{digest}"
     sig = hmac.new(SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()
-    return {"X-KiroCrew-Proxy": f"{ts}:{sig}"}
+    return {"X-Junction-Proxy": f"{ts}:{sig}"}
 
 
 @pytest.mark.asyncio
@@ -631,7 +631,7 @@ async def test_reveal_pins_path_so_a_planted_helper_cannot_run(monkeypatch) -> N
     """
     if os.name != "posix":
         pytest.skip("PATH is deliberately left inherited on Windows")
-    from kiro_crew.apps.builtins.md_notebook import server as server_mod
+    from junction.apps.builtins.md_notebook import server as server_mod
 
     captured: dict[str, Any] = {}
 
@@ -663,7 +663,7 @@ def test_every_spawn_in_this_module_pins_path() -> None:
     `subprocess.run` added without `env=_trusted_env()` would silently reopen the
     hole, so the count is asserted rather than left to review.
     """
-    from kiro_crew.apps.builtins.md_notebook import server as server_mod
+    from junction.apps.builtins.md_notebook import server as server_mod
 
     source = Path(server_mod.__file__).read_text(encoding="utf-8")
     assert source.count("subprocess.run(") == source.count("env=_trusted_env(),")
@@ -986,14 +986,14 @@ def test_path_contains_sensitive_flags_ancestors_of_credentials(
     """The reverse-direction gate flags the home directory (it contains
     ``~/.ssh``) and any ancestor of a protected location — WITHOUT needing the
     credential paths to exist on disk, and without walking the tree."""
-    from kiro_crew import security
+    from junction import security
 
     home = tmp_path / "home"
     home.mkdir()
     # Path.home() reads HOME on POSIX and USERPROFILE on Windows.
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setenv("USERPROFILE", str(home))
-    monkeypatch.delenv("KIROCREW_HOME", raising=False)
+    monkeypatch.delenv("JUNCTION_HOME", raising=False)
     # The home dir itself: not sensitive, but it CONTAINS ~/.ssh et al.
     assert security.is_sensitive_path(str(home)) is False
     assert security.path_contains_sensitive(str(home)) is True
@@ -1003,10 +1003,10 @@ def test_path_contains_sensitive_flags_ancestors_of_credentials(
     benign = tmp_path / "elsewhere" / "notes"
     benign.mkdir(parents=True)
     assert security.path_contains_sensitive(str(benign)) is False
-    # A custom KIROCREW_HOME re-anchors the crew secret leaves — a folder
+    # A custom JUNCTION_HOME re-anchors the crew secret leaves — a folder
     # containing THAT must be refused as well (the Notes PAT lives there).
     crew = tmp_path / "elsewhere" / "notes" / "crew"
-    monkeypatch.setenv("KIROCREW_HOME", str(crew))
+    monkeypatch.setenv("JUNCTION_HOME", str(crew))
     assert security.path_contains_sensitive(str(benign)) is True
 
 
@@ -1048,9 +1048,9 @@ def test_pat_stays_under_crew_home_ignoring_md_notebook_home(monkeypatch, tmp_pa
     MD_NOTEBOOK_HOME at an unprotected dir must not move the credential there."""
     crew = tmp_path / "crew"
     stray = tmp_path / "stray"
-    monkeypatch.setenv("KIROCREW_HOME", str(crew))
+    monkeypatch.setenv("JUNCTION_HOME", str(crew))
     monkeypatch.setenv("MD_NOTEBOOK_HOME", str(stray))
-    from kiro_crew.apps.builtins.md_notebook import server as server_mod
+    from junction.apps.builtins.md_notebook import server as server_mod
 
     server_mod = importlib.reload(server_mod)
     pat = server_mod._pat_file()
@@ -1077,17 +1077,17 @@ def test_pat_stays_under_crew_home_ignoring_md_notebook_home(monkeypatch, tmp_pa
     assert str(stray) in str(server_mod._clone_root())
 
 
-def test_default_home_follows_kirocrew_home(monkeypatch, tmp_path: Path) -> None:
+def test_default_home_follows_junction_home(monkeypatch, tmp_path: Path) -> None:
     """An isolated instance keeps its own vaults instead of the production ones.
 
-    Deriving the data root from ``Path.home()`` ignored ``KIROCREW_HOME``, so a
-    dev gateway (``KIROCREW_HOME=.kirocrew-dev``) would load and edit the real
+    Deriving the data root from ``Path.home()`` ignored ``JUNCTION_HOME``, so a
+    dev gateway (``JUNCTION_HOME=.kirocrew-dev``) would load and edit the real
     ~/.kiro/crew notes. ``_default_home`` now routes through ``config_dir()``.
     """
-    from kiro_crew.apps.builtins.md_notebook import server as server_mod
+    from junction.apps.builtins.md_notebook import server as server_mod
 
     iso = tmp_path / "iso-home"
-    monkeypatch.setenv("KIROCREW_HOME", str(iso))
+    monkeypatch.setenv("JUNCTION_HOME", str(iso))
     home = server_mod._default_home()
     assert str(home).startswith(str(iso.resolve()))
     assert home.name == server_mod.APP_NAME
@@ -2398,7 +2398,7 @@ def test_notebook_pat_is_behind_the_sensitive_path_floor() -> None:
     file tools must not be able to read it through the shared gate. The app's own
     backend opens it directly and is unaffected.
     """
-    from kiro_crew.security import is_sensitive_path
+    from junction.security import is_sensitive_path
 
     assert is_sensitive_path("~/.kiro/crew/workspace/md-notebook/pat") is True
     # config_dir() can resolve to the legacy `.kirocrew` data-home on a migration
@@ -3167,7 +3167,7 @@ async def test_an_external_edit_during_the_retry_window_still_wins(fixtures) -> 
                 raise PermissionError(32, "The process cannot access the file")
             return real_replace(src, dst, *args, **kwargs)
 
-        from kiro_crew import atomic_write as aw
+        from junction import atomic_write as aw
 
         with pytest.MonkeyPatch.context() as mp:
             # Both backoff knobs are zeroed, both with raising=False, so this test
@@ -3391,7 +3391,7 @@ async def test_a_tokenless_save_stages_inside_the_note_lock(fixtures) -> None:
 @pytest.mark.asyncio
 async def test_the_vault_registry_write_also_retries(fixtures) -> None:
     """The registry is re-read by every later request, so it has the same window."""
-    from kiro_crew import atomic_write as aw
+    from junction import atomic_write as aw
 
     server_mod, _remote, _seed = fixtures
 
@@ -3470,7 +3470,7 @@ def loop_syncer(monkeypatch: pytest.MonkeyPatch):
     (1440) intact, so the interval assertions below hold with a wide margin
     instead of depending on the scheduler's cooperation.
     """
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     monkeypatch.setattr(syncer_mod, "TICK_SEC", 0.005)
     monkeypatch.setattr(syncer_mod, "SECONDS_PER_MINUTE", 0.005)
@@ -3592,7 +3592,7 @@ async def test_settings_writes_apply_in_arrival_order(fixtures) -> None:
 async def test_auto_sync_permission_flip_is_audited(fixtures) -> None:
     """Enabling autoSync authorizes unattended `git push`; the permission flip
     MUST leave a SEL record. A no-op re-write (True->True) writes nothing."""
-    from kiro_crew.sel import sel
+    from junction.sel import sel
 
     server_mod, _remote, _seed = fixtures
     fingerprint = "autoSyncMins=1439"  # unique to this test, so it isolates its events
@@ -3701,7 +3701,7 @@ async def test_create_app_wires_the_auto_sync_loop(fixtures) -> None:
     lifecycle it would stop the moment the Notes tab closed, which is the whole
     defect this replaces."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     app = server_mod.create_app()
     assert syncer_mod.start_syncer in app.on_startup
@@ -3784,7 +3784,7 @@ async def test_a_raising_vault_does_not_stop_the_others(
     """Per-vault containment: an unreachable remote costs that vault one cycle,
     not auto-sync for every other vault until the gateway restarts."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     await server_mod.write_vaults(
         [
@@ -3818,7 +3818,7 @@ async def test_the_loop_skips_read_only_vaults(
     """sync commits, merges and pushes — all writes — so a read-only vault must
     not reach it, exactly as on the manual path."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     await server_mod.write_vaults(
         [
@@ -3850,7 +3850,7 @@ async def test_a_vault_forgotten_mid_cycle_is_skipped(
     mid-cycle has had its authorization revoked and must not be pushed from the
     stale snapshot. It is skipped while the still-connected vaults sync."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     full = [
         {"id": "a", "localPath": "/vaults/a"},
@@ -3890,7 +3890,7 @@ async def test_a_mid_cycle_revocation_stops_the_remaining_vaults(
     """A cycle pushes every vault in turn; disabling auto-sync mid-cycle must stop
     the run rather than finish pushing the rest against a revoked authorization."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     await server_mod.write_vaults(
         [
@@ -3930,7 +3930,7 @@ async def test_the_loop_passes_the_anti_tamper_pins(
     one. Nobody is watching this run, so a repointed remote that was not refused
     would send the user's notes somewhere new with no step to intervene at."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     vault = {
         "id": "v1",
@@ -3977,7 +3977,7 @@ async def test_conflicts_do_not_record_a_sync_time(
     """A conflicted merge was aborted and pushed nothing, so stamping it would
     tell the user their notes are backed up when they are still only local."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     await server_mod.write_vaults([{"id": "v1", "localPath": "/vaults/v1"}])
 
@@ -4005,7 +4005,7 @@ async def test_a_cycle_never_overlaps_the_previous_one(
     """Two concurrent commits in one repository race on index.lock, and the
     loser drops that cycle's notes from history."""
     server_mod, _remote, _seed = fixtures
-    from kiro_crew.apps.builtins.md_notebook import syncer as syncer_mod
+    from junction.apps.builtins.md_notebook import syncer as syncer_mod
 
     await server_mod.write_vaults([{"id": "v1", "localPath": "/vaults/v1"}])
     started = asyncio.Event()

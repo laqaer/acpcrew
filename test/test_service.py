@@ -8,8 +8,8 @@ Two layers tested separately:
     exit code.
 
 Tests do not actually invoke ``systemctl`` or ``launchctl``. The
-subprocess calls in :mod:`kiro_crew.service.linux` and
-:mod:`kiro_crew.service.macos` are mocked.
+subprocess calls in :mod:`junction.service.linux` and
+:mod:`junction.service.macos` are mocked.
 """
 
 from __future__ import annotations
@@ -26,13 +26,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.service import common, controller
-from kiro_crew.service.common import (
+from junction.service import common, controller
+from junction.service.common import (
     LAUNCHD_LABEL,
     SERVICE_NAME,
     Platform,
     current_platform,
-    kirocrew_bin,
+    junction_bin,
     service_environment,
 )
 
@@ -53,9 +53,9 @@ def _clear_sudo_user(monkeypatch):
 class TestPlatformDetection:
     def test_linux_with_systemctl_returns_systemd(self):
         with (
-            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch("junction.service.common.sys") as mock_sys,
             patch(
-                "kiro_crew.service.common.shutil.which",
+                "junction.service.common.shutil.which",
                 return_value="/usr/bin/systemctl",
             ),
         ):
@@ -64,17 +64,17 @@ class TestPlatformDetection:
 
     def test_linux_without_systemctl_returns_unsupported(self):
         with (
-            patch("kiro_crew.service.common.sys") as mock_sys,
-            patch("kiro_crew.service.common.shutil.which", return_value=None),
+            patch("junction.service.common.sys") as mock_sys,
+            patch("junction.service.common.shutil.which", return_value=None),
         ):
             mock_sys.platform = "linux"
             assert current_platform() == Platform.UNSUPPORTED
 
     def test_darwin_with_launchctl_returns_launchd(self):
         with (
-            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch("junction.service.common.sys") as mock_sys,
             patch(
-                "kiro_crew.service.common.shutil.which",
+                "junction.service.common.shutil.which",
                 return_value="/bin/launchctl",
             ),
         ):
@@ -83,9 +83,9 @@ class TestPlatformDetection:
 
     def test_unknown_platform_returns_unsupported(self):
         with (
-            patch("kiro_crew.service.common.sys") as mock_sys,
+            patch("junction.service.common.sys") as mock_sys,
             patch(
-                "kiro_crew.service.common.shutil.which",
+                "junction.service.common.shutil.which",
                 return_value="/usr/bin/anything",
             ),
         ):
@@ -95,7 +95,7 @@ class TestPlatformDetection:
 
 class TestShutdownBudget:
     def test_service_deadline_covers_gateway_grace(self):
-        from kiro_crew.gateway_shutdown_budget import (
+        from junction.gateway_shutdown_budget import (
             GRACEFUL_SHUTDOWN_SECS,
             SIGNAL_MARGIN_SECS,
             TOTAL_SHUTDOWN_BUDGET_SECS,
@@ -106,10 +106,10 @@ class TestShutdownBudget:
 
 
 class TestLinuxUnitRendering:
-    """The rendered systemd unit should reference the resolved kirocrew bin."""
+    """The rendered systemd unit should reference the resolved junction bin."""
 
     def test_render_unit_includes_exec_start(self, tmp_path, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         # `id -gn tester` would return some real group; mock it to a known value
@@ -117,10 +117,10 @@ class TestLinuxUnitRendering:
         gid_result = MagicMock(returncode=0, stdout="amazon\n", stderr="")
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/home/u/.toolbox/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/home/u/.toolbox/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid_result),
+            patch("junction.service.linux.subprocess.run", return_value=gid_result),
         ):
             unit = svc_linux.render_unit()
         # ExecStart executable is double-quoted (systemd tokenizes on
@@ -128,7 +128,7 @@ class TestLinuxUnitRendering:
         # is asserted as part of the SAME string rather than separately: a bare
         # `in unit` check for the prefix passes even if the flag is dropped,
         # because the prefix is still a substring of the shorter line.
-        assert 'ExecStart="/home/u/.toolbox/bin/kirocrew" gateway --no-open' in unit
+        assert 'ExecStart="/home/u/.toolbox/bin/junction" gateway --no-open' in unit
         assert "Restart=on-failure" in unit
         assert "RestartSec=10" in unit
         # System-level unit must run as the invoking user with the user's
@@ -155,16 +155,16 @@ class TestLinuxUnitRendering:
         """A system unit inherits no login-session env, so pods (systemd --user
         units) were unreachable from the service-installed gateway. The unit must
         wire up the per-user systemd instance explicitly."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         gid_result = MagicMock(returncode=0, stdout="staff\n", stderr="")
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid_result),
+            patch("junction.service.linux.subprocess.run", return_value=gid_result),
             patch.object(svc_linux, "_current_uid", return_value=4242),
         ):
             unit = svc_linux.render_unit()
@@ -186,16 +186,16 @@ class TestLinuxUnitRendering:
     def test_render_unit_omits_session_bus_when_uid_unresolvable(self, monkeypatch):
         """Rather than bake in a guessed uid, omit the pair — the pod runtime
         backfills the same values at call time anyway."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         gid_result = MagicMock(returncode=0, stdout="staff\n", stderr="")
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid_result),
+            patch("junction.service.linux.subprocess.run", return_value=gid_result),
             patch.object(svc_linux, "_current_uid", return_value=None),
         ):
             unit = svc_linux.render_unit()
@@ -209,34 +209,34 @@ class TestLinuxUnitRendering:
     def test_session_bus_is_systemd_only_not_in_the_shared_environment(self):
         """`/run/user/<uid>` is a Linux/systemd path with no launchd equivalent,
         so it must NOT leak into the env shared with the macOS plist."""
-        from kiro_crew.service.common import service_environment
+        from junction.service.common import service_environment
 
         keys = set(service_environment("/home/tester"))
         assert "XDG_RUNTIME_DIR" not in keys
         assert "DBUS_SESSION_BUS_ADDRESS" not in keys
 
     def test_current_uid_returns_none_for_an_unknown_user(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         assert svc_linux._current_uid("no-such-user-e2b9f1") is None
 
-    def test_render_unit_falls_back_to_argv0_when_kirocrew_not_on_path(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+    def test_render_unit_falls_back_to_argv0_when_junction_not_on_path(self, monkeypatch):
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         with (
-            patch("kiro_crew.service.common.shutil.which", return_value=None),
-            patch.object(sys, "argv", ["/some/path/kirocrew"]),
+            patch("junction.service.common.shutil.which", return_value=None),
+            patch.object(sys, "argv", ["/some/path/junction"]),
         ):
             unit = svc_linux.render_unit()
         # argv[0] is realpathed; just check the unit references *something*
-        # that ends in the (quoted) kirocrew executable followed by gateway.
-        assert 'kirocrew" gateway' in unit
+        # that ends in the (quoted) junction executable followed by gateway.
+        assert 'junction" gateway' in unit
 
     def test_install_writes_unit_via_sudo_install_and_invokes_systemctl(
         self, tmp_path, monkeypatch
     ):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         # Pin a non-root euid so the privilege prefix is deterministically
@@ -247,18 +247,18 @@ class TestLinuxUnitRendering:
         ok = MagicMock(returncode=0, stdout="", stderr="")
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run,
+            patch("junction.service.linux.subprocess.run", return_value=ok) as run,
         ):
             svc_linux.install()
 
         # Four things must happen:
-        # 1) `sudo install -m 0644 -o root -g root <tmp> /etc/systemd/system/kirocrew.service`
+        # 1) `sudo install -m 0644 -o root -g root <tmp> /etc/systemd/system/junction.service`
         # 2) `sudo systemctl daemon-reload`
-        # 3) `sudo systemctl enable kirocrew.service`
-        # 4) `sudo systemctl restart kirocrew.service`
+        # 3) `sudo systemctl enable junction.service`
+        # 4) `sudo systemctl restart junction.service`
         called = [list(c.args[0]) for c in run.call_args_list]
         install_calls = [
             c
@@ -280,7 +280,7 @@ class TestLinuxUnitRendering:
         """If `sudo install` fails (user denies password, sudoers misconfigured),
         install MUST raise with a clear message rather than continuing on
         and silently leaving the system half-configured."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         monkeypatch.setattr(svc_linux.os, "geteuid", lambda: 1000, raising=False)
@@ -288,10 +288,10 @@ class TestLinuxUnitRendering:
 
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=install_failed),
+            patch("junction.service.linux.subprocess.run", return_value=install_failed),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
@@ -306,25 +306,25 @@ class TestLinuxUnitRendering:
         """Defensive: render_unit needs the user's name to fill `User=`. If
         the env doesn't expose it, fail fast rather than render a unit
         with an empty User= line that systemd will reject."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.delenv("USER", raising=False)
         monkeypatch.delenv("LOGNAME", raising=False)
 
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/usr/local/bin/junction",
         ):
             with pytest.raises(svc_linux.ServiceInstallError):
                 svc_linux.install()
 
     def test_uninstall_is_idempotent_when_unit_missing(self, tmp_path, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         # Point UNIT_PATH at a nonexistent file; uninstall should be a no-op.
         unit_path = tmp_path / "missing.service"
         monkeypatch.setattr(svc_linux, "UNIT_PATH", unit_path)
-        with patch("kiro_crew.service.linux.subprocess.run") as run:
+        with patch("junction.service.linux.subprocess.run") as run:
             svc_linux.uninstall()
         run.assert_not_called()
 
@@ -335,19 +335,19 @@ class TestLinuxPrivilegeResolution:
     nor lets a raw FileNotFoundError escape controller.install_service."""
 
     def test_privilege_prefix_is_empty_as_root(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setattr(svc_linux.os, "geteuid", lambda: 0, raising=False)
         assert svc_linux._privilege_prefix() == []
 
     def test_privilege_prefix_is_sudo_when_not_root(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setattr(svc_linux.os, "geteuid", lambda: 1000, raising=False)
         assert svc_linux._privilege_prefix() == ["sudo"]
 
     def test_require_privilege_ok_as_root_without_sudo(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setattr(svc_linux.os, "geteuid", lambda: 0, raising=False)
         monkeypatch.setattr(svc_linux.shutil, "which", lambda _n: None)
@@ -355,7 +355,7 @@ class TestLinuxPrivilegeResolution:
         svc_linux._require_privilege()
 
     def test_require_privilege_raises_when_not_root_and_no_sudo(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         # The guard is Linux-scoped (systemd module); pin the platform so the
         # test asserts the raising branch on any host it runs on.
@@ -367,7 +367,7 @@ class TestLinuxPrivilegeResolution:
         assert "sudo" in str(exc.value).lower()
 
     def test_require_privilege_is_noop_off_linux(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         # On a non-Linux host (macOS/Windows) the systemd path is never the real
         # dispatch target, and cross-platform unit tests call these functions
@@ -381,7 +381,7 @@ class TestLinuxPrivilegeResolution:
         """A bare-root install (root login, or sudo with no SUDO_USER) must NOT
         produce a User=root unit — the gateway runs untrusted tools and the
         module invariant is that it runs as a normal user."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "root")
         monkeypatch.delenv("SUDO_USER", raising=False)
@@ -392,9 +392,9 @@ class TestLinuxPrivilegeResolution:
         assert "root" in str(exc.value).lower()
 
     def test_current_user_prefers_sudo_user_over_root(self, monkeypatch):
-        """`sudo kirocrew service install` must target the human behind sudo,
+        """`sudo junction service install` must target the human behind sudo,
         not the root sudo elevated to — so the unit gets User=<human>."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "root")
         monkeypatch.setenv("SUDO_USER", "alice")
@@ -405,7 +405,7 @@ class TestLinuxPrivilegeResolution:
         HOME=/WorkingDirectory= in the unit must follow the resolved USER (from
         that user's passwd home), never the process's /root — otherwise the
         non-root service cannot enter its working dir and fails to start."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "root")
         monkeypatch.setenv("SUDO_USER", "alice")
@@ -417,8 +417,8 @@ class TestLinuxPrivilegeResolution:
         )
         gid = MagicMock(returncode=0, stdout="alice\n", stderr="")
         with (
-            patch("kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+            patch("junction.service.common.shutil.which", return_value="/usr/local/bin/junction"),
+            patch("junction.service.linux.subprocess.run", return_value=gid),
         ):
             unit = svc_linux.render_unit()
         assert "User=alice" in unit
@@ -430,7 +430,7 @@ class TestLinuxPrivilegeResolution:
         """The reported bug: on a root-only/minimal host without sudo, install
         used to crash with an uncaught FileNotFoundError. It must raise the
         friendly ServiceInstallError instead."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setattr(svc_linux.sys, "platform", "linux")
         monkeypatch.setenv("USER", "tester")
@@ -444,7 +444,7 @@ class TestLinuxPrivilegeResolution:
         """restart()/stop() are best-effort and reachable from the update path;
         a missing sudo must degrade to a failed result, never a raised
         FileNotFoundError."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setattr(svc_linux.os, "geteuid", lambda: 1000, raising=False)
 
@@ -452,7 +452,7 @@ class TestLinuxPrivilegeResolution:
             raise FileNotFoundError("sudo")
 
         monkeypatch.setattr(svc_linux.subprocess, "run", _boom)
-        res = svc_linux._sudo_run("systemctl", "restart", "kirocrew.service")
+        res = svc_linux._sudo_run("systemctl", "restart", "junction.service")
         assert res.returncode == 127
         # restart() surfaces the failure as False rather than crashing.
         assert svc_linux.restart() is False
@@ -460,15 +460,15 @@ class TestLinuxPrivilegeResolution:
 
 class TestLinuxEnvironmentFile:
     """The operator-editable overrides file — the honest fix to 'I set
-    KIROCREW_PORT on the service and it did not change the port'."""
+    JUNCTION_PORT on the service and it did not change the port'."""
 
     def test_unit_references_the_env_file(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/usr/local/bin/junction",
         ):
             unit = svc_linux.render_unit()
         assert f"EnvironmentFile=-{svc_linux.ENV_FILE_PATH}\n" in unit
@@ -479,9 +479,9 @@ class TestLinuxEnvironmentFile:
         assert service < unit.index("EnvironmentFile=") < install
 
     def test_seed_env_file_creates_when_absent(self, tmp_path, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
-        env_file = tmp_path / "kirocrew" / "kirocrew.env"
+        env_file = tmp_path / "junction" / "junction.env"
         monkeypatch.setattr(svc_linux, "ENV_DIR", env_file.parent)
         monkeypatch.setattr(svc_linux, "ENV_FILE_PATH", env_file)
 
@@ -506,14 +506,14 @@ class TestLinuxEnvironmentFile:
         svc_linux._seed_env_file()
         assert env_file.exists()
         # Seed is inert until an operator opts in: the port line is commented.
-        assert "#KIROCREW_PORT=" in written["contents"]
+        assert "#JUNCTION_PORT=" in written["contents"]
 
     def test_seed_env_file_never_clobbers_operator_edits(self, tmp_path, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
-        env_file = tmp_path / "kirocrew" / "kirocrew.env"
+        env_file = tmp_path / "junction" / "junction.env"
         env_file.parent.mkdir(parents=True)
-        env_file.write_text("KIROCREW_PORT=5477\n")
+        env_file.write_text("JUNCTION_PORT=5477\n")
         monkeypatch.setattr(svc_linux, "ENV_DIR", env_file.parent)
         monkeypatch.setattr(svc_linux, "ENV_FILE_PATH", env_file)
 
@@ -529,15 +529,15 @@ class TestLinuxEnvironmentFile:
         svc_linux._seed_env_file()
         # An existing file is left exactly as the operator wrote it.
         called.assert_not_called()
-        assert env_file.read_text() == "KIROCREW_PORT=5477\n"
+        assert env_file.read_text() == "JUNCTION_PORT=5477\n"
 
     def test_seed_env_file_is_non_fatal_when_probe_denied(self, tmp_path, monkeypatch):
-        """A pre-existing root-only /etc/kirocrew must not abort install: the
+        """A pre-existing root-only /etc/junction must not abort install: the
         existence probe goes through privileged `test -e`, and any error still
         degrades to a warning instead of propagating."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
-        env_file = tmp_path / "kirocrew" / "kirocrew.env"
+        env_file = tmp_path / "junction" / "junction.env"
         monkeypatch.setattr(svc_linux, "ENV_DIR", env_file.parent)
         monkeypatch.setattr(svc_linux, "ENV_FILE_PATH", env_file)
 
@@ -553,13 +553,13 @@ class TestLinuxEnvironmentFile:
         """Uninstall must delete ONLY our untouched seed — an operator-authored
         or -edited overrides file (including one pre-provisioned before install)
         is their config, not ours to remove."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
-        unit = tmp_path / "kirocrew.service"
+        unit = tmp_path / "junction.service"
         unit.write_text("[Unit]\n")
-        env_file = tmp_path / "kirocrew" / "kirocrew.env"
+        env_file = tmp_path / "junction" / "junction.env"
         env_file.parent.mkdir(parents=True)
-        env_file.write_text("KIROCREW_PORT=5477\n")  # operator content, not our seed
+        env_file.write_text("JUNCTION_PORT=5477\n")  # operator content, not our seed
         monkeypatch.setattr(svc_linux, "UNIT_PATH", unit)
         monkeypatch.setattr(svc_linux, "ENV_DIR", env_file.parent)
         monkeypatch.setattr(svc_linux, "ENV_FILE_PATH", env_file)
@@ -580,11 +580,11 @@ class TestLinuxEnvironmentFile:
         assert str(env_file) not in removed
 
     def test_uninstall_removes_our_untouched_seed(self, tmp_path, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
-        unit = tmp_path / "kirocrew.service"
+        unit = tmp_path / "junction.service"
         unit.write_text("[Unit]\n")
-        env_file = tmp_path / "kirocrew" / "kirocrew.env"
+        env_file = tmp_path / "junction" / "junction.env"
         env_file.parent.mkdir(parents=True)
         env_file.write_text(svc_linux._ENV_FILE_TEMPLATE)  # our exact untouched seed
         monkeypatch.setattr(svc_linux, "UNIT_PATH", unit)
@@ -619,12 +619,12 @@ class TestMacOSPlistRendering:
         from both: on a headless Linux box the auto-open has nothing to reach, which
         is why the gap survived there unnoticed.
         """
-        from kiro_crew.service import linux as svc_linux
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import linux as svc_linux
+        from junction.service import macos as svc_macos
 
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", tmp_path / "live-gateway")
         with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/opt/homebrew/bin/kirocrew"
+            "junction.service.common.shutil.which", return_value="/opt/homebrew/bin/junction"
         ):
             plist = svc_macos.render_plist()
         args = plist.split("<key>ProgramArguments</key>", 1)[1].split("</array>", 1)[0]
@@ -635,11 +635,11 @@ class TestMacOSPlistRendering:
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="staff\n", stderr="")
         with (
-            patch("kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+            patch("junction.service.common.shutil.which", return_value="/usr/local/bin/junction"),
+            patch("junction.service.linux.subprocess.run", return_value=gid),
         ):
             unit = svc_linux.render_unit()
-        assert 'ExecStart="/usr/local/bin/kirocrew" gateway --no-open' in unit
+        assert 'ExecStart="/usr/local/bin/junction" gateway --no-open' in unit
 
     def test_render_plist_runs_the_live_program_not_the_resolved_bin(self, monkeypatch, tmp_path):
         """ProgramArguments[0] is the live-gateway launcher.
@@ -649,25 +649,25 @@ class TestMacOSPlistRendering:
         PATH included - without rewriting and re-bootstrapping the plist (see
         service.common.launchd_live_program).
         """
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         link = tmp_path / "live-gateway"
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", link)
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/opt/homebrew/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/opt/homebrew/bin/junction",
         ):
             plist = svc_macos.render_plist()
         assert f"<string>{LAUNCHD_LABEL}</string>" in plist
         assert f"<string>{link}</string>" in plist
-        assert "/opt/homebrew/bin/kirocrew" not in plist
+        assert "/opt/homebrew/bin/junction" not in plist
         assert "<string>gateway</string>" in plist
         assert "<key>RunAtLoad</key>" in plist
         assert "<key>KeepAlive</key>" in plist
 
     def test_render_plist_pins_bounded_graceful_restart_contract(self, tmp_path):
-        from kiro_crew.gateway_shutdown_budget import TOTAL_SHUTDOWN_BUDGET_SECS
-        from kiro_crew.service import macos as svc_macos
+        from junction.gateway_shutdown_budget import TOTAL_SHUTDOWN_BUDGET_SECS
+        from junction.service import macos as svc_macos
 
         rendered = svc_macos.render_plist()
         payload = plistlib.loads(rendered.encode())
@@ -678,8 +678,8 @@ class TestMacOSPlistRendering:
         assert svc_macos.restart_contract_current(plist) is True
 
     def test_restart_contract_rejects_legacy_and_unbounded_definitions(self, tmp_path):
-        from kiro_crew.gateway_shutdown_budget import TOTAL_SHUTDOWN_BUDGET_SECS
-        from kiro_crew.service import macos as svc_macos
+        from junction.gateway_shutdown_budget import TOTAL_SHUTDOWN_BUDGET_SECS
+        from junction.service import macos as svc_macos
 
         plist = tmp_path / "agent.plist"
         for payload in (
@@ -711,7 +711,7 @@ class TestMacOSPlistRendering:
         containing ``&`` or ``<`` would otherwise emit invalid XML that
         ``launchctl load`` rejects.
         """
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", Path("/path/with/<bad>&chars/live-gateway"))
         plist = svc_macos.render_plist()
@@ -721,7 +721,7 @@ class TestMacOSPlistRendering:
         assert "&amp;chars" in plist
 
     def test_install_writes_plist_and_loads(self, tmp_path, monkeypatch):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         plist_dir = tmp_path / "LaunchAgents"
         log_dir = tmp_path / "Logs"
@@ -735,10 +735,10 @@ class TestMacOSPlistRendering:
         run = MagicMock(returncode=0, stdout="", stderr="")
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/opt/homebrew/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/opt/homebrew/bin/junction",
             ),
-            patch("kiro_crew.service.macos.subprocess.run", return_value=run) as proc,
+            patch("junction.service.macos.subprocess.run", return_value=run) as proc,
         ):
             svc_macos.install()
 
@@ -749,22 +749,22 @@ class TestMacOSPlistRendering:
 
 class TestControllerDispatch:
     def test_install_unsupported_returns_2(self):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch(
-            "kiro_crew.service.controller.current_platform",
+            "junction.service.controller.current_platform",
             return_value=Platform.UNSUPPORTED,
         ):
             rc = controller.install_service()
         assert rc == 2
 
     def test_install_systemd_returns_0(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "install") as mock_install,
@@ -774,31 +774,31 @@ class TestControllerDispatch:
         mock_install.assert_called_once()
 
     def test_uninstall_unsupported_returns_2(self):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch(
-            "kiro_crew.service.controller.current_platform",
+            "junction.service.controller.current_platform",
             return_value=Platform.UNSUPPORTED,
         ):
             rc = controller.uninstall_service()
         assert rc == 2
 
     def test_is_service_active_unsupported_returns_false(self):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch(
-            "kiro_crew.service.controller.current_platform",
+            "junction.service.controller.current_platform",
             return_value=Platform.UNSUPPORTED,
         ):
             assert controller.is_service_active() is False
 
     def test_stop_service_returns_false_when_inactive(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "is_active", return_value=False),
@@ -808,12 +808,12 @@ class TestControllerDispatch:
         mock_stop.assert_not_called()
 
     def test_stop_service_returns_true_when_active_systemd(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "is_active", return_value=True),
@@ -823,12 +823,12 @@ class TestControllerDispatch:
         mock_stop.assert_called_once()
 
     def test_stop_service_routes_to_macos(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "is_active", return_value=True),
@@ -838,12 +838,12 @@ class TestControllerDispatch:
         mock_stop.assert_called_once()
 
     def test_stop_service_returns_false_when_macos_inactive(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "is_active", return_value=False),
@@ -853,10 +853,10 @@ class TestControllerDispatch:
         mock_stop.assert_not_called()
 
     def test_stop_service_unsupported_returns_false(self):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch(
-            "kiro_crew.service.controller.current_platform",
+            "junction.service.controller.current_platform",
             return_value=Platform.UNSUPPORTED,
         ):
             assert controller.stop_service() is False
@@ -865,12 +865,12 @@ class TestControllerDispatch:
         # Same behavior as stop_service: the controller should refuse to
         # restart an inactive service rather than masking the state issue.
         # Callers fall back to the foreground-gateway path on False.
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "is_active", return_value=False),
@@ -880,12 +880,12 @@ class TestControllerDispatch:
         mock_restart.assert_not_called()
 
     def test_restart_service_returns_true_when_active_systemd(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "is_active", return_value=True),
@@ -901,12 +901,12 @@ class TestControllerDispatch:
         # bogus success. The controller must propagate the restart outcome so
         # the caller falls back to the foreground path instead of assuming the
         # service manager handled it.
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "is_active", return_value=True),
@@ -916,12 +916,12 @@ class TestControllerDispatch:
         mock_restart.assert_called_once()
 
     def test_restart_service_routes_to_macos(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "is_active", return_value=True),
@@ -931,12 +931,12 @@ class TestControllerDispatch:
         mock_restart.assert_called_once()
 
     def test_restart_service_returns_false_when_macos_restart_fails(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "is_active", return_value=True),
@@ -946,12 +946,12 @@ class TestControllerDispatch:
         mock_restart.assert_called_once()
 
     def test_restart_service_returns_false_when_macos_inactive(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "is_active", return_value=False),
@@ -961,10 +961,10 @@ class TestControllerDispatch:
         mock_restart.assert_not_called()
 
     def test_restart_service_unsupported_returns_false(self):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch(
-            "kiro_crew.service.controller.current_platform",
+            "junction.service.controller.current_platform",
             return_value=Platform.UNSUPPORTED,
         ):
             assert controller.restart_service() is False
@@ -972,12 +972,12 @@ class TestControllerDispatch:
     def test_install_systemd_handles_install_error(self, capsys):
         """If linux.install raises ServiceInstallError, controller catches it,
         prints to stderr, and returns 1 — not propagating the exception."""
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(
@@ -992,12 +992,12 @@ class TestControllerDispatch:
         assert "simulated failure" in captured.err
 
     def test_install_routes_to_macos(self, capsys):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "install") as mock_install,
@@ -1011,12 +1011,12 @@ class TestControllerDispatch:
         assert "plist:" in captured.out
 
     def test_uninstall_routes_to_systemd(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "uninstall") as mock_un,
@@ -1029,12 +1029,12 @@ class TestControllerDispatch:
         """uninstall() needs root to remove the root-owned unit, so it can raise
         ServiceInstallError on a non-root host without sudo. The controller must
         catch it and return non-zero, not let a traceback escape."""
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(
@@ -1046,12 +1046,12 @@ class TestControllerDispatch:
         assert "needs sudo" in capsys.readouterr().err
 
     def test_uninstall_routes_to_macos(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "uninstall") as mock_un,
@@ -1062,28 +1062,28 @@ class TestControllerDispatch:
 
     def test_status_routes_to_systemd_active(self, capsys):
         """status() returns 0 when active, prints the systemctl output."""
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
-            patch.object(svc_linux, "status", return_value="● kirocrew.service\n"),
+            patch.object(svc_linux, "status", return_value="● junction.service\n"),
             patch.object(svc_linux, "is_active", return_value=True),
         ):
             rc = controller.service_status()
         assert rc == 0
-        assert "kirocrew.service" in capsys.readouterr().out
+        assert "junction.service" in capsys.readouterr().out
 
     def test_status_routes_to_systemd_inactive_returns_1(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "status", return_value=""),
@@ -1093,12 +1093,12 @@ class TestControllerDispatch:
         assert rc == 1
 
     def test_status_routes_to_macos_active(self, capsys):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "status", return_value='"PID" = 1234;\n'),
@@ -1109,12 +1109,12 @@ class TestControllerDispatch:
         assert "PID" in capsys.readouterr().out
 
     def test_status_routes_to_macos_inactive_returns_1(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "status", return_value=""),
@@ -1124,22 +1124,22 @@ class TestControllerDispatch:
         assert rc == 1
 
     def test_status_unsupported_returns_2(self):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch(
-            "kiro_crew.service.controller.current_platform",
+            "junction.service.controller.current_platform",
             return_value=Platform.UNSUPPORTED,
         ):
             rc = controller.service_status()
         assert rc == 2
 
     def test_is_service_active_systemd_routes(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import controller
+        from junction.service import linux as svc_linux
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.SYSTEMD,
             ),
             patch.object(svc_linux, "is_active", return_value=True),
@@ -1147,12 +1147,12 @@ class TestControllerDispatch:
             assert controller.is_service_active() is True
 
     def test_is_service_active_macos_routes(self):
-        from kiro_crew.service import controller
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import controller
+        from junction.service import macos as svc_macos
 
         with (
             patch(
-                "kiro_crew.service.controller.current_platform",
+                "junction.service.controller.current_platform",
                 return_value=Platform.LAUNCHD,
             ),
             patch.object(svc_macos, "is_active", return_value=True),
@@ -1164,21 +1164,21 @@ class TestLinuxControlPaths:
     """Cover uninstall, stop, status, is_active, and the sudo helper paths."""
 
     def test_uninstall_runs_full_teardown_when_unit_exists(self, tmp_path, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         # Point UNIT_PATH at a real temp file so ``UNIT_PATH.exists()``
         # is True without monkeypatching ``Path.exists`` globally (which
         # would also affect pytest/fixture machinery).
-        unit_path = tmp_path / "kirocrew.service"
+        unit_path = tmp_path / "junction.service"
         unit_path.write_text("")
         data_home = tmp_path / "crew-home"
         data_home.mkdir()
         sentinel = data_home / "memory.db"
         sentinel.write_text("user data")
-        monkeypatch.setenv("KIROCREW_HOME", str(data_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(data_home))
         monkeypatch.setattr(svc_linux, "UNIT_PATH", unit_path)
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.linux.subprocess.run", return_value=ok) as run:
             svc_linux.uninstall()
         called = [list(c.args[0]) for c in run.call_args_list]
         # Each step must use sudo since /etc/systemd/system requires root.
@@ -1191,36 +1191,36 @@ class TestLinuxControlPaths:
         assert sentinel.read_text() == "user data"
 
     def test_is_active_returns_true_when_systemctl_says_active(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         active_result = MagicMock(returncode=0, stdout="active\n", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=active_result) as run:
+        with patch("junction.service.linux.subprocess.run", return_value=active_result) as run:
             assert svc_linux.is_active() is True
         # is_active must NOT use sudo (status is queryable as a regular user).
         called = [list(c.args[0]) for c in run.call_args_list]
         assert all("sudo" not in c for c in called), f"is_active must not call sudo; got {called}"
 
     def test_is_active_returns_false_when_inactive(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         inactive_result = MagicMock(returncode=3, stdout="inactive\n", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=inactive_result):
+        with patch("junction.service.linux.subprocess.run", return_value=inactive_result):
             assert svc_linux.is_active() is False
 
     def test_stop_invokes_systemctl_stop(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.linux.subprocess.run", return_value=ok) as run:
             svc_linux.stop()
         called = [list(c.args[0]) for c in run.call_args_list]
         assert ["sudo", "systemctl", "stop", f"{SERVICE_NAME}.service"] in called
 
     def test_restart_returns_true_on_success(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.linux.subprocess.run", return_value=ok) as run:
             assert svc_linux.restart() is True
         called = [list(c.args[0]) for c in run.call_args_list]
         assert ["sudo", "systemctl", "restart", f"{SERVICE_NAME}.service"] in called
@@ -1230,20 +1230,20 @@ class TestLinuxControlPaths:
         # refuses a system-scope restart without root). restart() must report
         # that failure, not swallow it -- this is the crux of the false-success
         # bug: the outcome has to reach restart_service() and its caller.
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         failed = MagicMock(returncode=1, stdout="", stderr="Interactive authentication required")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=failed):
+        with patch("junction.service.linux.subprocess.run", return_value=failed):
             assert svc_linux.restart() is False
 
     def test_restart_invokes_systemctl_restart_atomic(self):
         # systemctl restart is preferred over stop+start: it's a single
         # atomic operation, smaller down-window, and the supervisor
         # stays in charge of the lifecycle the whole time.
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.linux.subprocess.run", return_value=ok) as run:
             svc_linux.restart()
         called = [list(c.args[0]) for c in run.call_args_list]
         assert ["sudo", "systemctl", "restart", f"{SERVICE_NAME}.service"] in called
@@ -1254,21 +1254,21 @@ class TestLinuxControlPaths:
         ), f"restart() should be atomic, not stop+start; got {called}"
 
     def test_status_returns_systemctl_output(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
-        result = MagicMock(returncode=0, stdout="● kirocrew.service - active\n", stderr="")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=result) as run:
+        result = MagicMock(returncode=0, stdout="● junction.service - active\n", stderr="")
+        with patch("junction.service.linux.subprocess.run", return_value=result) as run:
             out = svc_linux.status()
-        assert "kirocrew.service" in out
+        assert "junction.service" in out
         # status() must NOT use sudo.
         called = [list(c.args[0]) for c in run.call_args_list]
         assert all("sudo" not in c for c in called)
 
     def test_status_falls_back_to_stderr_when_stdout_empty(self):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         result = MagicMock(returncode=4, stdout="", stderr="not found\n")
-        with patch("kiro_crew.service.linux.subprocess.run", return_value=result):
+        with patch("junction.service.linux.subprocess.run", return_value=result):
             out = svc_linux.status()
         assert "not found" in out
 
@@ -1298,7 +1298,7 @@ class TestLinuxControlPaths:
         return respond
 
     def test_install_propagates_failure_at_daemon_reload(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         reload_failed = MagicMock(returncode=1, stdout="", stderr="systemctl: bad config")
@@ -1306,17 +1306,17 @@ class TestLinuxControlPaths:
 
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", side_effect=responder),
+            patch("junction.service.linux.subprocess.run", side_effect=responder),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
         assert "daemon-reload" in str(exc_info.value)
 
     def test_install_propagates_failure_at_enable(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         enable_failed = MagicMock(returncode=1, stdout="", stderr="enable failed: unit invalid")
@@ -1326,17 +1326,17 @@ class TestLinuxControlPaths:
 
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", side_effect=responder),
+            patch("junction.service.linux.subprocess.run", side_effect=responder),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
         assert "enable" in str(exc_info.value)
 
     def test_install_propagates_failure_at_restart(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         restart_failed = MagicMock(returncode=1, stdout="", stderr="job failed")
@@ -1344,10 +1344,10 @@ class TestLinuxControlPaths:
 
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/usr/local/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/usr/local/bin/junction",
             ),
-            patch("kiro_crew.service.linux.subprocess.run", side_effect=responder),
+            patch("junction.service.linux.subprocess.run", side_effect=responder),
         ):
             with pytest.raises(svc_linux.ServiceInstallError) as exc_info:
                 svc_linux.install()
@@ -1360,11 +1360,11 @@ class TestLinuxControlPaths:
         """If `id -gn` is missing or errors, fall back to using the username
         as the group name. Better to fail loudly at systemd start than to
         guess wrong here."""
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         # FileNotFoundError simulates `id` not being on PATH.
         with patch(
-            "kiro_crew.service.linux.subprocess.run",
+            "junction.service.linux.subprocess.run",
             side_effect=FileNotFoundError("id"),
         ):
             assert svc_linux._current_group("alice") == "alice"
@@ -1377,7 +1377,7 @@ class TestMacOSControlPaths:
         """Re-running install on a host that already has the plist loaded
         should unload first, then write+load. Otherwise the new plist
         wouldn't take effect."""
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         plist_dir = tmp_path / "LaunchAgents"
         plist_path = plist_dir / f"{LAUNCHD_LABEL}.plist"
@@ -1394,10 +1394,10 @@ class TestMacOSControlPaths:
         ok = MagicMock(returncode=0, stdout="", stderr="")
         with (
             patch(
-                "kiro_crew.service.common.shutil.which",
-                return_value="/opt/homebrew/bin/kirocrew",
+                "junction.service.common.shutil.which",
+                return_value="/opt/homebrew/bin/junction",
             ),
-            patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run,
+            patch("junction.service.macos.subprocess.run", return_value=ok) as run,
         ):
             svc_macos.install()
         called = [c.args[0] for c in run.call_args_list]
@@ -1407,7 +1407,7 @@ class TestMacOSControlPaths:
         assert unload_idx < load_idx
 
     def test_uninstall_unloads_and_removes_plist(self, tmp_path, monkeypatch):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         plist_dir = tmp_path / "LaunchAgents"
         plist_path = plist_dir / f"{LAUNCHD_LABEL}.plist"
@@ -1417,11 +1417,11 @@ class TestMacOSControlPaths:
         data_home.mkdir()
         sentinel = data_home / "memory.db"
         sentinel.write_text("user data")
-        monkeypatch.setenv("KIROCREW_HOME", str(data_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(data_home))
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
 
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.macos.subprocess.run", return_value=ok) as run:
             svc_macos.uninstall()
         assert not plist_path.exists()
         called = [c.args[0] for c in run.call_args_list]
@@ -1429,43 +1429,43 @@ class TestMacOSControlPaths:
         assert sentinel.read_text() == "user data"
 
     def test_uninstall_idempotent_when_plist_missing(self, tmp_path, monkeypatch):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         monkeypatch.setattr(svc_macos, "PLIST_PATH", tmp_path / "missing.plist")
-        with patch("kiro_crew.service.macos.subprocess.run") as run:
+        with patch("junction.service.macos.subprocess.run") as run:
             svc_macos.uninstall()
         run.assert_not_called()
 
     def test_is_active_returns_false_when_launchctl_errors(self):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         not_loaded = MagicMock(returncode=1, stdout="", stderr="not loaded")
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=not_loaded):
+        with patch("junction.service.macos.subprocess.run", return_value=not_loaded):
             assert svc_macos.is_active() is False
 
     def test_is_active_returns_true_with_pid_in_output(self):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         loaded = MagicMock(
             returncode=0,
-            stdout='{\n\t"PID" = 1234;\n\t"Label" = "dev.kirocrew.gateway";\n}\n',
+            stdout='{\n\t"PID" = 1234;\n\t"Label" = "dev.junction.gateway";\n}\n',
             stderr="",
         )
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=loaded):
+        with patch("junction.service.macos.subprocess.run", return_value=loaded):
             assert svc_macos.is_active() is True
 
     def test_is_active_returns_true_when_loaded_without_pid_line(self):
         """`launchctl list <label>` succeeds even if the agent is loaded
         but not running. We treat that as active so callers don't trip
         over a transient state."""
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         loaded_no_pid = MagicMock(
             returncode=0,
-            stdout='{\n\t"Label" = "dev.kirocrew.gateway";\n}\n',
+            stdout='{\n\t"Label" = "dev.junction.gateway";\n}\n',
             stderr="",
         )
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=loaded_no_pid):
+        with patch("junction.service.macos.subprocess.run", return_value=loaded_no_pid):
             assert svc_macos.is_active() is True
 
     def test_stop_unloads_plist_when_present(self, tmp_path, monkeypatch):
@@ -1473,13 +1473,13 @@ class TestMacOSControlPaths:
         # restart the agent immediately. ``unload`` (without ``-w``) is
         # the supported way to actually stop the running gateway, while
         # leaving the plist enabled for the next login.
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         plist_path = tmp_path / "agent.plist"
         plist_path.write_text("<plist/>")
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.macos.subprocess.run", return_value=ok) as run:
             svc_macos.stop()
         called = [c.args[0] for c in run.call_args_list]
         assert ["launchctl", "unload", str(plist_path)] in called
@@ -1487,10 +1487,10 @@ class TestMacOSControlPaths:
         assert not any(c[:2] == ["launchctl", "stop"] for c in called)
 
     def test_stop_no_op_when_plist_absent(self, tmp_path, monkeypatch):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         monkeypatch.setattr(svc_macos, "PLIST_PATH", tmp_path / "missing.plist")
-        with patch("kiro_crew.service.macos.subprocess.run") as run:
+        with patch("junction.service.macos.subprocess.run") as run:
             svc_macos.stop()
         run.assert_not_called()
 
@@ -1502,13 +1502,13 @@ class TestMacOSControlPaths:
         # never runs and the agent stays down. ``kickstart -k`` is performed by
         # launchd itself, so it survives the caller's death — the property Dev
         # Fleet's Restart control depends on.
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         plist_path = tmp_path / "agent.plist"
         plist_path.write_text("<plist/>")
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
         ok = MagicMock(returncode=0, stdout="", stderr="")
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=ok) as run:
+        with patch("junction.service.macos.subprocess.run", return_value=ok) as run:
             assert svc_macos.restart() is True
         called = [c.args[0] for c in run.call_args_list]
         assert len(called) == 1, "restart must be a single launchd operation"
@@ -1522,13 +1522,13 @@ class TestMacOSControlPaths:
 
     def test_restart_is_false_when_launchd_rejects_it(self, tmp_path, monkeypatch):
         """A rejected kickstart must not be reported as a restart."""
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         plist_path = tmp_path / "agent.plist"
         plist_path.write_text("<plist/>")
         monkeypatch.setattr(svc_macos, "PLIST_PATH", plist_path)
         bad = MagicMock(returncode=1, stdout="", stderr="no such service")
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=bad):
+        with patch("junction.service.macos.subprocess.run", return_value=bad):
             assert svc_macos.restart() is False
 
     def test_restart_no_op_when_plist_absent(self, tmp_path, monkeypatch):
@@ -1536,41 +1536,41 @@ class TestMacOSControlPaths:
         # error. The CLI controller decides whether to fall back to the
         # foreground-gateway path; this layer just refuses to invent a
         # plist that doesn't exist.
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         monkeypatch.setattr(svc_macos, "PLIST_PATH", tmp_path / "missing.plist")
-        with patch("kiro_crew.service.macos.subprocess.run") as run:
+        with patch("junction.service.macos.subprocess.run") as run:
             svc_macos.restart()
         run.assert_not_called()
 
     def test_status_returns_launchctl_output_when_loaded(self):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         loaded = MagicMock(
             returncode=0,
             stdout='{\n\t"PID" = 1234;\n}\n',
             stderr="",
         )
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=loaded):
+        with patch("junction.service.macos.subprocess.run", return_value=loaded):
             out = svc_macos.status()
         assert "PID" in out
 
     def test_status_returns_friendly_message_when_not_loaded(self):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         not_loaded = MagicMock(returncode=1, stdout="", stderr="no entry")
-        with patch("kiro_crew.service.macos.subprocess.run", return_value=not_loaded):
+        with patch("junction.service.macos.subprocess.run", return_value=not_loaded):
             out = svc_macos.status()
         assert "not loaded" in out
 
-    def test_kirocrew_bin_falls_back_to_argv0(self, monkeypatch):
-        """If `kirocrew` is not on PATH, kirocrew_bin should resolve
+    def test_junction_bin_falls_back_to_argv0(self, monkeypatch):
+        """If `junction` is not on PATH, junction_bin should resolve
         sys.argv[0] rather than crash."""
-        from kiro_crew.service import common as svc_common
+        from junction.service import common as svc_common
 
-        monkeypatch.setattr(sys, "argv", ["/some/path/kirocrew"])
-        with patch("kiro_crew.service.common.shutil.which", return_value=None):
-            assert "kirocrew" in svc_common.kirocrew_bin()
+        monkeypatch.setattr(sys, "argv", ["/some/path/junction"])
+        with patch("junction.service.common.shutil.which", return_value=None):
+            assert "junction" in svc_common.junction_bin()
 
 
 class TestRestartCommandHint:
@@ -1578,95 +1578,95 @@ class TestRestartCommandHint:
     service is actually installed.
 
     The bug was the update path and the Slack restart-failure hint both
-    hardcoding ``systemctl --user restart kirocrew``, which fails on the
+    hardcoding ``systemctl --user restart junction``, which fails on the
     system-level systemd unit. The helper centralises the correct command
     per platform.
     """
 
     def test_systemd_returns_sudo_systemctl(self, monkeypatch):
-        from kiro_crew.service import common as svc_common
+        from junction.service import common as svc_common
 
         monkeypatch.setattr(svc_common, "current_platform", lambda: Platform.SYSTEMD)
         assert svc_common.restart_command_hint() == f"sudo systemctl restart {SERVICE_NAME}"
 
     def test_launchd_returns_service_aware_cli(self, monkeypatch):
-        from kiro_crew.service import common as svc_common
+        from junction.service import common as svc_common
 
         monkeypatch.setattr(svc_common, "current_platform", lambda: Platform.LAUNCHD)
-        assert svc_common.restart_command_hint() == "kirocrew restart"
+        assert svc_common.restart_command_hint() == "junction restart"
 
     def test_unsupported_returns_service_aware_cli(self, monkeypatch):
-        from kiro_crew.service import common as svc_common
+        from junction.service import common as svc_common
 
         monkeypatch.setattr(svc_common, "current_platform", lambda: Platform.UNSUPPORTED)
-        assert svc_common.restart_command_hint() == "kirocrew restart"
+        assert svc_common.restart_command_hint() == "junction restart"
 
     def test_never_returns_broken_user_scope_command(self, monkeypatch):
         """Regression: no platform may emit the broken `systemctl --user`
         string that was filed against."""
-        from kiro_crew.service import common as svc_common
+        from junction.service import common as svc_common
 
         for platform in Platform:
             monkeypatch.setattr(svc_common, "current_platform", lambda p=platform: p)
             assert "systemctl --user" not in svc_common.restart_command_hint()
 
 
-class TestKirocrewBinOverride:
+class TestJunctionBinOverride:
     def test_service_bin_override_wins_over_which(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "/opt/wrapper/kirocrew")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/wrapper/junction")
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/usr/local/bin/junction",
         ):
-            assert kirocrew_bin() == "/opt/wrapper/kirocrew"
+            assert junction_bin() == "/opt/wrapper/junction"
 
     def test_falls_back_to_which_when_override_unset(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
+        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/usr/local/bin/junction",
         ):
-            assert kirocrew_bin() == "/usr/local/bin/kirocrew"
+            assert junction_bin() == "/usr/local/bin/junction"
 
     def test_prefers_junction_over_alias_on_path(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
+        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
 
         def _which(name: str) -> str | None:
             return {
                 "junction": "/usr/local/bin/junction",
-                "kirocrew": "/usr/local/bin/kirocrew",
+                "junction": "/usr/local/bin/junction",
                 "acpcrew": "/usr/local/bin/acpcrew",
             }.get(name)
 
-        with patch("kiro_crew.service.common.shutil.which", side_effect=_which):
-            assert kirocrew_bin() == "/usr/local/bin/junction"
+        with patch("junction.service.common.shutil.which", side_effect=_which):
+            assert junction_bin() == "/usr/local/bin/junction"
 
-    def test_falls_back_to_kirocrew_alias_when_junction_absent(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
+    def test_falls_back_to_junction_alias_when_junction_absent(self, monkeypatch):
+        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
 
         def _which(name: str) -> str | None:
-            return "/usr/local/bin/kirocrew" if name == "kirocrew" else None
+            return "/usr/local/bin/junction" if name == "junction" else None
 
-        with patch("kiro_crew.service.common.shutil.which", side_effect=_which):
-            assert kirocrew_bin() == "/usr/local/bin/kirocrew"
+        with patch("junction.service.common.shutil.which", side_effect=_which):
+            assert junction_bin() == "/usr/local/bin/junction"
 
     def test_blank_override_is_ignored(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "   ")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "   ")
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/usr/local/bin/junction",
         ):
-            assert kirocrew_bin() == "/usr/local/bin/kirocrew"
+            assert junction_bin() == "/usr/local/bin/junction"
 
     def test_relative_override_is_made_absolute(self, monkeypatch):
         # A relative override would produce an invalid ExecStart/ProgramArguments
         # under launchd/systemd (no meaningful cwd), so it must be absolutised.
         import os
 
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "./.venv/bin/kirocrew")
-        result = kirocrew_bin()
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "./.venv/bin/junction")
+        result = junction_bin()
         assert os.path.isabs(result)
-        assert result == os.path.abspath("./.venv/bin/kirocrew")
+        assert result == os.path.abspath("./.venv/bin/junction")
 
 
 class TestServiceEnvironment:
@@ -1677,7 +1677,7 @@ class TestServiceEnvironment:
     def test_always_sets_home_path_and_locale(self, monkeypatch):
         monkeypatch.delenv("LANG", raising=False)
         monkeypatch.delenv("LC_ALL", raising=False)
-        monkeypatch.delenv("KIROCREW_KIRO_BIN", raising=False)
+        monkeypatch.delenv("JUNCTION_KIRO_BIN", raising=False)
         env = service_environment("/home/tester")
         assert env["HOME"] == "/home/tester"
         assert "PATH" in env
@@ -1710,18 +1710,18 @@ class TestServiceEnvironment:
             assert env["LC_ALL"] == "C.UTF-8"
 
     def test_propagates_port_only_when_set(self, monkeypatch):
-        """KIROCREW_PORT reaches the installed service.
+        """JUNCTION_PORT reaches the installed service.
 
         It is the ONLY input DASHBOARD_PORT reads, so a service definition that
         cannot carry it can only ever bind the default 5476 — broken by
         construction on any host where that port is taken, which includes every
-        host running Kiro Crew's own instance tunnel (it pins
+        host running Junction's own instance tunnel (it pins
         local_port == remote_port).
         """
-        monkeypatch.delenv("KIROCREW_PORT", raising=False)
-        assert "KIROCREW_PORT" not in service_environment("/home/tester")
-        monkeypatch.setenv("KIROCREW_PORT", "5477")
-        assert service_environment("/home/tester")["KIROCREW_PORT"] == "5477"
+        monkeypatch.delenv("JUNCTION_PORT", raising=False)
+        assert "JUNCTION_PORT" not in service_environment("/home/tester")
+        monkeypatch.setenv("JUNCTION_PORT", "5477")
+        assert service_environment("/home/tester")["JUNCTION_PORT"] == "5477"
 
     def test_port_reaches_both_rendered_service_definitions(self, monkeypatch, tmp_path):
         """End-to-end, not just present in the dict.
@@ -1730,43 +1730,43 @@ class TestServiceEnvironment:
         the systemd unit's Environment= lines. Asserting only the dict would pass
         even if a renderer dropped the key on the way out.
         """
-        from kiro_crew.service import linux as svc_linux
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import linux as svc_linux
+        from junction.service import macos as svc_macos
 
-        monkeypatch.setenv("KIROCREW_PORT", "5477")
+        monkeypatch.setenv("JUNCTION_PORT", "5477")
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", tmp_path / "live-gateway")
         with patch(
-            "kiro_crew.service.common.shutil.which", return_value="/opt/homebrew/bin/kirocrew"
+            "junction.service.common.shutil.which", return_value="/opt/homebrew/bin/junction"
         ):
             plist = svc_macos.render_plist()
         envs = plist.split("<key>EnvironmentVariables</key>", 1)[1].split("</dict>", 1)[0]
-        assert "<key>KIROCREW_PORT</key>" in envs and "<string>5477</string>" in envs
+        assert "<key>JUNCTION_PORT</key>" in envs and "<string>5477</string>" in envs
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="staff\n", stderr="")
         with (
-            patch("kiro_crew.service.common.shutil.which", return_value="/usr/local/bin/kirocrew"),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+            patch("junction.service.common.shutil.which", return_value="/usr/local/bin/junction"),
+            patch("junction.service.linux.subprocess.run", return_value=gid),
         ):
             unit = svc_linux.render_unit()
-        assert "KIROCREW_PORT=5477" in unit
+        assert "JUNCTION_PORT=5477" in unit
 
     def test_propagates_kiro_bin_pin_only_when_set(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_KIRO_BIN", raising=False)
-        assert "KIROCREW_KIRO_BIN" not in service_environment("/home/tester")
-        monkeypatch.setenv("KIROCREW_KIRO_BIN", "/opt/shim/kiro-cli")
+        monkeypatch.delenv("JUNCTION_KIRO_BIN", raising=False)
+        assert "JUNCTION_KIRO_BIN" not in service_environment("/home/tester")
+        monkeypatch.setenv("JUNCTION_KIRO_BIN", "/opt/shim/kiro-cli")
         env = service_environment("/home/tester")
-        assert env["KIROCREW_KIRO_BIN"] == "/opt/shim/kiro-cli"
+        assert env["JUNCTION_KIRO_BIN"] == "/opt/shim/kiro-cli"
 
     def test_kiro_bin_pin_is_absolutized(self, monkeypatch):
         # A relative pin is meaningless once the service runs from a different
         # cwd; it must be absolutised like the service-bin override.
         import os
 
-        monkeypatch.setenv("KIROCREW_KIRO_BIN", "./kiro-cli")
+        monkeypatch.setenv("JUNCTION_KIRO_BIN", "./kiro-cli")
         env = service_environment("/home/tester")
-        assert os.path.isabs(env["KIROCREW_KIRO_BIN"])
-        assert env["KIROCREW_KIRO_BIN"] == os.path.abspath("./kiro-cli")
+        assert os.path.isabs(env["JUNCTION_KIRO_BIN"])
+        assert env["JUNCTION_KIRO_BIN"] == os.path.abspath("./kiro-cli")
 
     def test_non_utf8_installer_locale_not_preserved(self, monkeypatch):
         # LANG=C / POSIX must NOT be preserved: with LC_ALL then explicitly set
@@ -1780,67 +1780,67 @@ class TestServiceEnvironment:
             assert env["LC_ALL"] == self.EXPECTED_UTF8, bad
 
     def test_plist_includes_locale_and_kiro_bin(self, monkeypatch):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
-        monkeypatch.setenv("KIROCREW_KIRO_BIN", "/opt/shim/kiro-cli")
+        monkeypatch.setenv("JUNCTION_KIRO_BIN", "/opt/shim/kiro-cli")
         monkeypatch.setenv("LANG", "en_US.UTF-8")
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/opt/homebrew/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/opt/homebrew/bin/junction",
         ):
             plist = svc_macos.render_plist()
         assert "<key>LANG</key>" in plist
         assert "<key>LC_ALL</key>" in plist
-        assert "<key>KIROCREW_KIRO_BIN</key>" in plist
+        assert "<key>JUNCTION_KIRO_BIN</key>" in plist
         assert "<string>/opt/shim/kiro-cli</string>" in plist
         assert "<key>HOME</key>" in plist
         assert "<key>PATH</key>" in plist
 
     def test_unit_includes_locale_and_kiro_bin(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        monkeypatch.setenv("KIROCREW_KIRO_BIN", "/opt/shim/kiro-cli")
+        monkeypatch.setenv("JUNCTION_KIRO_BIN", "/opt/shim/kiro-cli")
         with patch(
-            "kiro_crew.service.common.shutil.which",
-            return_value="/usr/local/bin/kirocrew",
+            "junction.service.common.shutil.which",
+            return_value="/usr/local/bin/junction",
         ):
             unit = svc_linux.render_unit()
         # Environment values are double-quoted (systemd tokenizes on whitespace).
         assert 'Environment="USER=tester"\n' in unit
         assert 'Environment="LANG=' in unit
-        assert 'Environment="KIROCREW_KIRO_BIN=/opt/shim/kiro-cli"\n' in unit
+        assert 'Environment="JUNCTION_KIRO_BIN=/opt/shim/kiro-cli"\n' in unit
 
     def test_unit_quotes_spaced_program_and_env(self, monkeypatch):
-        # A spaced KIROCREW_SERVICE_BIN / KIROCREW_KIRO_BIN must not split the
+        # A spaced JUNCTION_SERVICE_BIN / JUNCTION_KIRO_BIN must not split the
         # ExecStart exec (203/EXEC) or truncate the env value at the space.
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "/opt/Kiro Crew/kirocrew")
-        monkeypatch.setenv("KIROCREW_KIRO_BIN", "/opt/Kiro Crew/kiro-cli")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/Junction App/junction")
+        monkeypatch.setenv("JUNCTION_KIRO_BIN", "/opt/Junction App/kiro-cli")
         unit = svc_linux.render_unit()
-        assert 'ExecStart="/opt/Kiro Crew/kirocrew" gateway' in unit
-        assert 'Environment="KIROCREW_KIRO_BIN=/opt/Kiro Crew/kiro-cli"\n' in unit
+        assert 'ExecStart="/opt/Junction App/junction" gateway' in unit
+        assert 'Environment="JUNCTION_KIRO_BIN=/opt/Junction App/kiro-cli"\n' in unit
         # The bare unquoted forms must NOT appear (would break systemd parsing).
-        assert "ExecStart=/opt/Kiro Crew/kirocrew gateway" not in unit
+        assert "ExecStart=/opt/Kiro Crew/junction gateway" not in unit
 
     def test_unit_escapes_percent_specifiers(self, monkeypatch):
         # systemd expands %-specifiers (%h=home, %i=instance) in ExecStart /
         # Environment= regardless of quoting; a literal % in a path (e.g. a dir
         # named "100%") must be escaped to %% or the exec targets the wrong path.
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "/opt/100%/kirocrew")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/100%/junction")
         unit = svc_linux.render_unit()
-        assert 'ExecStart="/opt/100%%/kirocrew" gateway' in unit
+        assert 'ExecStart="/opt/100%%/junction" gateway' in unit
         # The single-% form must NOT survive (systemd would treat %/ as a
-        # specifier). Guard against a bare "/opt/100%/kirocrew" in ExecStart.
-        assert "/opt/100%/kirocrew" not in unit
+        # specifier). Guard against a bare "/opt/100%/junction" in ExecStart.
+        assert "/opt/100%/junction" not in unit
 
     def test_sd_quote_escape_order(self):
-        from kiro_crew.service.linux import _sd_quote
+        from junction.service.linux import _sd_quote
 
         # %% before \\ before \" — a value with all three renders correctly.
         assert _sd_quote("a%b") == '"a%%b"'
@@ -1852,7 +1852,7 @@ class TestServiceEnvironment:
         # systemd token and let the remainder be parsed as fresh unit
         # directives (e.g. User=root injection into the root-owned unit) — must
         # raise, not escape.
-        from kiro_crew.service.linux import _sd_quote
+        from junction.service.linux import _sd_quote
 
         for bad in ("/opt/x\nUser=root", "a\tb", "a\x00b", "a\x7fb", "a\rb"):
             with pytest.raises(ValueError):
@@ -1861,10 +1861,10 @@ class TestServiceEnvironment:
     def test_render_unit_rejects_newline_injection(self, monkeypatch):
         # End-to-end: a newline-bearing override must abort render_unit(), not
         # emit an injectable unit file.
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "/opt/x/kirocrew\nUser=root\nExecStart=/evil")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/x/junction\nUser=root\nExecStart=/evil")
         with pytest.raises(ValueError):
             svc_linux.render_unit()
 
@@ -1880,14 +1880,14 @@ class TestServiceEnvironment:
     def test_live_program_quotes_a_spaced_override(self, monkeypatch, tmp_path):
         # The resolved binary now goes into a generated shell script, so a spaced
         # path must be QUOTED there or the launcher would exec the wrong argv.
-        # Compared against what kirocrew_bin() actually returned rather than a
+        # Compared against what junction_bin() actually returned rather than a
         # literal, so the test does not re-encode one platform's path shape.
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         link = tmp_path / "live-gateway"
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", link)
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", "/opt/Kiro Crew/kirocrew")
-        resolved = svc_macos.kirocrew_bin()
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", "/opt/Junction App/junction")
+        resolved = svc_macos.junction_bin()
         assert " " in resolved, "the spaced override must survive resolution"
         svc_macos.write_live_program(svc_macos.render_live_program(resolved))
         script = link.read_text()
@@ -1897,10 +1897,10 @@ class TestServiceEnvironment:
     def test_live_program_escapes_a_single_quote_in_the_path(self):
         # A path containing ' would otherwise terminate the shell quoting and
         # turn the rest of the path into separate argv words.
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
-        script = svc_macos.render_live_program("/opt/it's/kirocrew")
-        assert """exec '/opt/it'\\''s/kirocrew' "$@\"""" in script
+        script = svc_macos.render_live_program("/opt/it's/junction")
+        assert """exec '/opt/it'\\''s/junction' "$@\"""" in script
 
     @pytest.mark.skipif(
         os.name != "posix",
@@ -1912,14 +1912,14 @@ class TestServiceEnvironment:
         The agent can be kickstarted at any moment, so the write goes through a
         temp sibling that is chmod'd before the rename.
         """
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         link = tmp_path / "live-gateway"
         monkeypatch.setattr(svc_macos, "LIVE_PROGRAM", link)
-        svc_macos.write_live_program(svc_macos.render_live_program("/first/kirocrew"))
-        svc_macos.write_live_program(svc_macos.render_live_program("/second/kirocrew"))
-        assert "'/second/kirocrew'" in link.read_text()
-        assert "'/first/kirocrew'" not in link.read_text()
+        svc_macos.write_live_program(svc_macos.render_live_program("/first/junction"))
+        svc_macos.write_live_program(svc_macos.render_live_program("/second/junction"))
+        assert "'/second/junction'" in link.read_text()
+        assert "'/first/junction'" not in link.read_text()
         assert os.access(link, os.X_OK)
         # No temp siblings left behind.
         assert [p.name for p in tmp_path.iterdir()] == ["live-gateway"]
@@ -1935,18 +1935,18 @@ class TestEnsureLiveProgram:
     """
 
     def _agent(self, monkeypatch, tmp_path, *, indirected=True, fmt=None):
-        from kiro_crew.service import macos as svc_macos
+        from junction.service import macos as svc_macos
 
         launcher = tmp_path / "live-gateway"
-        plist = tmp_path / "dev.kirocrew.gateway.plist"
-        target = str(launcher) if indirected else "/usr/local/bin/kirocrew"
+        plist = tmp_path / "dev.junction.gateway.plist"
+        target = str(launcher) if indirected else "/usr/local/bin/junction"
         # A REAL plist, in either wire format: launchd accepts XML and binary
         # alike, and the reconcile must not care which one it is handed.
         plist.write_bytes(
             plistlib.dumps(
                 {
-                    "Label": "dev.kirocrew.gateway",
-                    "EnvironmentVariables": {"KIROCREW_PORT": "5477"},
+                    "Label": "dev.junction.gateway",
+                    "EnvironmentVariables": {"JUNCTION_PORT": "5477"},
                     "ProgramArguments": [target, "gateway", "--no-open"],
                 },
                 fmt=fmt or plistlib.FMT_XML,
@@ -1964,7 +1964,7 @@ class TestEnsureLiveProgram:
         that only decides whether to rewrite a launcher.
         """
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path, fmt=plistlib.FMT_BINARY)
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", str(self._exe(tmp_path / "bin" / "kirocrew")))
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", str(self._exe(tmp_path / "bin" / "junction")))
 
         assert svc.ensure_live_program() is True
         assert launcher.exists()
@@ -2021,12 +2021,12 @@ class TestEnsureLiveProgram:
         self, monkeypatch, tmp_path
     ):
         svc, launcher, plist = self._agent(monkeypatch, tmp_path)
-        pinned = self._exe(tmp_path / "opt" / "kirocrew")
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", str(pinned))
+        pinned = self._exe(tmp_path / "opt" / "junction")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", str(pinned))
         # Read the target back off the resolver rather than restating a literal:
-        # kirocrew_bin() absolutizes, so the path SHAPE differs per platform
+        # junction_bin() absolutizes, so the path SHAPE differs per platform
         # (Windows resolves a rooted POSIX path to a drive-qualified one).
-        resolved = svc.kirocrew_bin()
+        resolved = svc.junction_bin()
         before = plist.read_bytes()
 
         assert svc.ensure_live_program() is True
@@ -2043,7 +2043,7 @@ class TestEnsureLiveProgram:
         "Windows, and this reconcile only ever runs on darwin",
     )
     def test_refuses_to_write_a_launcher_that_execs_a_non_executable(self, monkeypatch, tmp_path):
-        """`python -m kiro_crew` with no console script resolves to `__main__.py`.
+        """`python -m junction` with no console script resolves to `__main__.py`.
 
         Writing that would leave launchd unable to spawn the agent AND suppress
         every later repair, since the launcher would then exist — the self-heal
@@ -2053,7 +2053,7 @@ class TestEnsureLiveProgram:
         not_exec = tmp_path / "pkg" / "__main__.py"
         not_exec.parent.mkdir()
         not_exec.write_text("# a module, not a program\n")
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", str(not_exec))
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", str(not_exec))
 
         with pytest.raises(OSError, match="not an executable file"):
             svc.ensure_live_program()
@@ -2064,41 +2064,41 @@ class TestEnsureLiveProgram:
         """No sibling script and no override: refuse, never resolve through PATH.
 
         PATH cannot answer "which install is running", so an unrelated or older
-        `kirocrew` ahead of this one would be persisted into the agent — the
+        `junction` ahead of this one would be persisted into the agent — the
         mismatch this repair exists to end, recreated by the repair.
         """
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path)
-        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
-        stray = self._exe(tmp_path / "stray" / "kirocrew")
-        from kiro_crew.service import common as svc_common
+        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
+        stray = self._exe(tmp_path / "stray" / "junction")
+        from junction.service import common as svc_common
 
         monkeypatch.setattr(svc_common.shutil, "which", lambda _n: str(stray))
-        # An interpreter directory with NO kirocrew beside it.
+        # An interpreter directory with NO junction beside it.
         bare = tmp_path / "bare"
         bare.mkdir()
         monkeypatch.setattr(svc.sys, "executable", str(bare / "python"))
 
-        with pytest.raises(OSError, match="no kirocrew console script"):
+        with pytest.raises(OSError, match="no junction console script"):
             svc.ensure_live_program()
 
         assert not launcher.exists()
 
     def test_targets_the_repairing_install_not_whatever_path_finds(self, monkeypatch, tmp_path):
-        """A stray `kirocrew` earlier on PATH must not be baked into the launcher.
+        """A stray `junction` earlier on PATH must not be baked into the launcher.
 
         Restoring the agent onto some OTHER install is a quieter version of the
         mismatch this repair exists to end, so the target comes from the running
         interpreter rather than from PATH resolution.
         """
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path)
-        monkeypatch.delenv("KIROCREW_SERVICE_BIN", raising=False)
-        stray = self._exe(tmp_path / "stray" / "kirocrew")
-        # kirocrew_bin() lives in service.common and resolves through ITS shutil.
-        from kiro_crew.service import common as svc_common
+        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
+        stray = self._exe(tmp_path / "stray" / "junction")
+        # junction_bin() lives in service.common and resolves through ITS shutil.
+        from junction.service import common as svc_common
 
         monkeypatch.setattr(svc_common.shutil, "which", lambda _n: str(stray))
         # The console script that ships beside the running interpreter.
-        mine = self._exe(tmp_path / "mine" / ("kirocrew.exe" if os.name == "nt" else "kirocrew"))
+        mine = self._exe(tmp_path / "mine" / ("junction.exe" if os.name == "nt" else "junction"))
         monkeypatch.setattr(svc.sys, "executable", str(mine.parent / "python"))
 
         assert svc.ensure_live_program() is True
@@ -2110,9 +2110,9 @@ class TestEnsureLiveProgram:
     def test_an_explicit_service_bin_override_still_wins(self, monkeypatch, tmp_path):
         """Pinning the service Program is operator intent, not PATH shadowing."""
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path)
-        pinned = self._exe(tmp_path / "pinned" / "kirocrew")
-        monkeypatch.setenv("KIROCREW_SERVICE_BIN", str(pinned))
-        resolved = svc.kirocrew_bin()
+        pinned = self._exe(tmp_path / "pinned" / "junction")
+        monkeypatch.setenv("JUNCTION_SERVICE_BIN", str(pinned))
+        resolved = svc.junction_bin()
 
         assert svc.ensure_live_program() is True
 
@@ -2122,7 +2122,7 @@ class TestEnsureLiveProgram:
         """An existing launcher may carry a Dev Fleet cutover — never clobber it."""
         svc, launcher, _plist = self._agent(monkeypatch, tmp_path)
         launcher.write_text(
-            "#!/bin/sh\ncd '/wt/live' || exit 1\nexec '/wt/live/.venv/bin/kirocrew' \"$@\"\n"
+            "#!/bin/sh\ncd '/wt/live' || exit 1\nexec '/wt/live/.venv/bin/junction' \"$@\"\n"
         )
 
         assert svc.ensure_live_program() is False
@@ -2147,32 +2147,32 @@ class TestEnsureLiveProgram:
 class TestLauncherReconcileIsProductionOnly:
     """Only the real instance may repair the shared launchd launcher.
 
-    LIVE_PROGRAM is a per-user path that KIROCREW_HOME does not scope, so a dev,
+    LIVE_PROGRAM is a per-user path that JUNCTION_HOME does not scope, so a dev,
     pod, or worktree gateway "repairing" it would repoint the user's REAL agent
     at its own venv — the serving-vs-managed mismatch the reconcile exists to
     prevent, authored by the reconcile itself.
     """
 
     def test_the_default_home_on_darwin_reconciles(self, monkeypatch):
-        from kiro_crew import cli_server
+        from junction import cli_server
 
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(cli_server.sys, "platform", "darwin")
 
         assert cli_server._should_reconcile_launchd_launcher() is True
 
     def test_an_isolated_home_does_not_reconcile(self, monkeypatch, tmp_path):
-        from kiro_crew import cli_server
+        from junction import cli_server
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / ".kirocrew-dev"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / ".kirocrew-dev"))
         monkeypatch.setattr(cli_server.sys, "platform", "darwin")
 
         assert cli_server._should_reconcile_launchd_launcher() is False
 
     def test_non_darwin_never_reconciles(self, monkeypatch):
-        from kiro_crew import cli_server
+        from junction import cli_server
 
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(cli_server.sys, "platform", "linux")
 
         assert cli_server._should_reconcile_launchd_launcher() is False
@@ -2185,9 +2185,9 @@ class TestLauncherReconcileIsProductionOnly:
         the signed bundle and invalidate its signature. The launchd agent belongs
         to a `service install`, not to an app that manages its own backend.
         """
-        from kiro_crew import cli_server, platform_compat
+        from junction import cli_server, platform_compat
 
-        monkeypatch.delenv("KIROCREW_HOME", raising=False)
+        monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(cli_server.sys, "platform", "darwin")
         # Drive the real predicate with a bundle-shaped interpreter path rather
         # than stubbing it, so this test and the packaging layout cannot agree on
@@ -2195,7 +2195,7 @@ class TestLauncherReconcileIsProductionOnly:
         bundled_python = (
             tmp_path
             / platform_compat.BUNDLED_BACKEND_DIST_DIRNAME
-            / "kirocrew-backend"
+            / "junction-backend"
             / "bin"
             / "python3.12"
         )
@@ -2222,7 +2222,7 @@ class TestAppArmorGate:
         parser="/usr/sbin/apparmor_parser",
         version=(5, 0),
     ):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "apparmor_is_active", lambda: "apparmor" in lsm)
         monkeypatch.setattr(aa, "userns_restricted", lambda: sysctl == "1")
@@ -2264,13 +2264,13 @@ class TestAppArmorGate:
 
     def test_sysctl_absent_reads_as_unrestricted(self, monkeypatch, tmp_path):
         """An absent knob (Debian, older kernels) must not look like `1`."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "_SYSCTL_PATH", tmp_path / "nope")
         assert aa.userns_restricted() is False
 
     def test_lsm_read_failure_reads_as_inactive(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "_LSM_PATH", tmp_path / "nope")
         assert aa.apparmor_is_active() is False
@@ -2289,7 +2289,7 @@ class TestAppArmorProfileRendering:
         host. The profile is therefore named-only and applied by systemd to the
         one unit. This test fails if anyone reintroduces an attachment.
         """
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         text = aa.render_profile("4.0")
 
@@ -2303,7 +2303,7 @@ class TestAppArmorProfileRendering:
         assert "crew-venv" not in body
 
     def test_grants_only_userns(self):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         body = aa.render_profile("4.0").split("{", 1)[1]
 
@@ -2313,20 +2313,20 @@ class TestAppArmorProfileRendering:
         assert " mr," not in body
 
     def test_abi_line_matches_the_detected_abi(self):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert "abi <abi/4.0>," in aa.render_profile("4.0")
         assert "abi <abi/5.0>," in aa.render_profile("5.0")
 
     def test_abi_line_is_omitted_when_none_is_available(self):
         """Declaring an abi file the host lacks makes the profile fail to load."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert "abi <" not in aa.render_profile(None)
 
     def test_detect_abi_picks_the_highest_numeric_file(self, monkeypatch, tmp_path):
         """Ubuntu 25.10 ships parser 5.x but only abi/3.0 and abi/4.0 on disk."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         for name in ("3.0", "4.0", "4.0-ip", "kernel-5.4-vanilla"):
             (tmp_path / name).write_text("", encoding="utf-8")
@@ -2335,17 +2335,17 @@ class TestAppArmorProfileRendering:
         assert aa.detect_abi() == "4.0"
 
     def test_detect_abi_returns_none_without_any_numeric_file(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "_ABI_DIR", tmp_path / "missing")
         assert aa.detect_abi() is None
 
     def test_documents_that_removal_rebreaks_the_sandbox(self):
         """The file is the only record a future reader has — it must say why."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         text = aa.render_profile("4.0")
-        assert "Managed by KiroCrew" in text
+        assert "Managed by Junction" in text
         assert "Removing this file" in text
 
 
@@ -2366,7 +2366,7 @@ class TestAppArmorInstall:
         return writes, runs, write, run
 
     def test_skips_cleanly_when_the_host_does_not_need_it(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (False, "no restriction here"))
@@ -2379,7 +2379,7 @@ class TestAppArmorInstall:
 
     def test_refuses_to_install_a_profile_that_does_not_compile(self, monkeypatch):
         """Loading a broken profile is how you get a service that will not start."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
@@ -2397,7 +2397,7 @@ class TestAppArmorInstall:
 
     def test_a_sudo_failure_warns_and_never_raises(self, monkeypatch):
         """An install must never die because a hardening step failed."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
         monkeypatch.setattr(aa, "parser_path", lambda: "/usr/sbin/apparmor_parser")
@@ -2417,7 +2417,7 @@ class TestAppArmorInstall:
 
     def test_does_not_claim_success_when_enforcement_cannot_be_verified(self, monkeypatch):
         """A profile that loads but does not take effect is worse than none."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
@@ -2436,7 +2436,7 @@ class TestAppArmorInstall:
         assert "Not claiming success" in outcome.message
 
     def test_happy_path_validates_loads_then_verifies(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         order: list[str] = []
@@ -2471,7 +2471,7 @@ class TestAppArmorInstall:
         assert runs[0][1:] == ("-r", "-W", str(aa.PROFILE_PATH))
 
     def test_uninstall_is_a_noop_when_no_profile_is_present(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         _w, runs, _write, run = self._writers()
         monkeypatch.setattr(aa, "PROFILE_PATH", tmp_path / "absent")
@@ -2483,7 +2483,7 @@ class TestAppArmorInstall:
 
     def test_uninstall_unloads_then_removes(self, monkeypatch, tmp_path):
         """Whatever removes the service removes the grant — no orphaned profile."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         profile = tmp_path / aa.PROFILE_NAME
         profile.write_text("profile", encoding="utf-8")
@@ -2502,13 +2502,13 @@ class TestAppArmorUnitDirective:
     """The unit carries the profile, so it applies to this service only."""
 
     def test_no_directive_by_default(self, monkeypatch):
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="tester\n", stderr="")
         with (
-            patch("kiro_crew.service.common.shutil.which", return_value="/usr/bin/kirocrew"),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+            patch("junction.service.common.shutil.which", return_value="/usr/bin/junction"),
+            patch("junction.service.linux.subprocess.run", return_value=gid),
         ):
             unit = svc_linux.render_unit()
 
@@ -2521,19 +2521,19 @@ class TestAppArmorUnitDirective:
         turning a hardening step into an outage. With it the gateway starts and
         simply fails closed per-spawn, which is the pre-existing behaviour.
         """
-        from kiro_crew.service import apparmor as aa
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import apparmor as aa
+        from junction.service import linux as svc_linux
 
         monkeypatch.setenv("USER", "tester")
         gid = MagicMock(returncode=0, stdout="tester\n", stderr="")
         with (
-            patch("kiro_crew.service.common.shutil.which", return_value="/usr/bin/kirocrew"),
-            patch("kiro_crew.service.linux.subprocess.run", return_value=gid),
+            patch("junction.service.common.shutil.which", return_value="/usr/bin/junction"),
+            patch("junction.service.linux.subprocess.run", return_value=gid),
         ):
             unit = svc_linux.render_unit(aa.PROFILE_NAME)
 
         assert f"AppArmorProfile=-{aa.PROFILE_NAME}" in unit
-        assert "AppArmorProfile=kirocrew" not in unit  # never the hard form
+        assert "AppArmorProfile=junction" not in unit  # never the hard form
 
 
 class TestAppArmorNeverFailsTheInstall:
@@ -2547,15 +2547,15 @@ class TestAppArmorNeverFailsTheInstall:
 
     @staticmethod
     def _patched(monkeypatch, outcome):
-        from kiro_crew.service import controller
-        from kiro_crew.service.common import Platform
+        from junction.service import controller
+        from junction.service.common import Platform
 
         monkeypatch.setattr(controller, "current_platform", lambda: Platform.SYSTEMD)
         monkeypatch.setattr(controller.linux, "install", lambda: outcome)
         return controller
 
     def test_install_still_succeeds_when_the_profile_fails(self, monkeypatch, capsys):
-        from kiro_crew.service.apparmor import ProfileOutcome
+        from junction.service.apparmor import ProfileOutcome
 
         controller = self._patched(
             monkeypatch,
@@ -2571,7 +2571,7 @@ class TestAppArmorNeverFailsTheInstall:
         assert "could not be installed" in out
 
     def test_install_reports_the_profile_on_success(self, monkeypatch, capsys):
-        from kiro_crew.service.apparmor import ProfileOutcome
+        from junction.service.apparmor import ProfileOutcome
 
         controller = self._patched(
             monkeypatch, ProfileOutcome(True, "AppArmor profile installed at /etc/apparmor.d/x")
@@ -2586,7 +2586,7 @@ class TestAppArmorNeverFailsTheInstall:
 
     def test_a_silent_skip_prints_nothing_extra(self, monkeypatch, capsys):
         """On Debian/Arch/RHEL the step must be invisible, not chatty."""
-        from kiro_crew.service.apparmor import ProfileOutcome
+        from junction.service.apparmor import ProfileOutcome
 
         controller = self._patched(monkeypatch, ProfileOutcome(False, ""))
 
@@ -2598,9 +2598,9 @@ class TestAppArmorNeverFailsTheInstall:
         assert "⚠️" not in out
 
     def test_uninstall_removes_the_profile_and_still_reports_success(self, monkeypatch, capsys):
-        from kiro_crew.service import controller
-        from kiro_crew.service.apparmor import ProfileOutcome
-        from kiro_crew.service.common import Platform
+        from junction.service import controller
+        from junction.service.apparmor import ProfileOutcome
+        from junction.service.common import Platform
 
         removed: list[bool] = []
 
@@ -2632,7 +2632,7 @@ class TestEnforcementVerificationIsSafeAndFaithful:
     """
 
     def test_never_spawns_unprivileged_and_drops_back_to_the_caller(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         calls: list[tuple[str, ...]] = []
         monkeypatch.setattr(
@@ -2660,7 +2660,7 @@ class TestEnforcementVerificationIsSafeAndFaithful:
         """sys.executable is user-writable; running it under sudo would be an LPE."""
         import sys as _sys
 
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         calls: list[tuple[str, ...]] = []
         monkeypatch.setattr(aa, "_resolve_trusted", lambda name: f"/usr/bin/{name}")
@@ -2669,11 +2669,14 @@ class TestEnforcementVerificationIsSafeAndFaithful:
         argv = calls[0]
         assert "/usr/bin/python3" in argv
         assert _sys.executable not in argv
-        # And the payload must not import our own (user-writable) package.
-        assert "kiro_crew" not in " ".join(argv)
+        # The payload must not import our own (user-writable) package. The
+        # profile name on the aa-exec argv is allowed to contain the product
+        # token; the python -c snippet is what sudo would execute.
+        snippet = argv[argv.index("-c") + 1]
+        assert "junction" not in snippet
 
     def test_a_missing_trusted_tool_is_inconclusive_not_a_failure_claim(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(
             aa, "_resolve_trusted", lambda name: None if name == "setpriv" else "/usr/bin/x"
@@ -2686,7 +2689,7 @@ class TestEnforcementVerificationIsSafeAndFaithful:
         assert "setpriv" in problem
 
     def test_a_failing_probe_inside_the_profile_is_surfaced(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "_resolve_trusted", lambda name: f"/usr/bin/{name}")
 
@@ -2702,7 +2705,7 @@ class TestTrustedToolResolution:
     """Anything handed to sudo must not be resolvable through the user's $PATH."""
 
     def test_rejects_a_binary_outside_the_trusted_dirs(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         fake = tmp_path / "apparmor_parser"
         fake.write_text("#!/bin/sh\n", encoding="utf-8")
@@ -2715,7 +2718,7 @@ class TestTrustedToolResolution:
         assert aa._resolve_trusted("apparmor_parser") is None
 
     def test_rejects_a_group_or_world_writable_binary(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         target = tmp_path / "aa-exec"
         target.write_text("#!/bin/sh\n", encoding="utf-8")
@@ -2725,7 +2728,7 @@ class TestTrustedToolResolution:
         assert aa._resolve_trusted("aa-exec") is None
 
     def test_missing_binary_returns_none(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "_TRUSTED_BIN_DIRS", (str(tmp_path),))
         assert aa._resolve_trusted("nope") is None
@@ -2741,7 +2744,7 @@ class TestTrustedToolResolution:
     )
     def test_resolves_a_real_root_owned_system_binary(self):
         """Against the real filesystem, not a fixture: /bin/sh must resolve."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         resolved = aa._resolve_trusted("sh")
         assert resolved is not None and resolved.startswith("/")
@@ -2756,8 +2759,8 @@ class TestProfileLoadsBeforeTheServiceStarts:
     """
 
     def test_profile_is_installed_before_daemon_reload_and_restart(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
-        from kiro_crew.service import linux as svc_linux
+        from junction.service import apparmor as aa
+        from junction.service import linux as svc_linux
 
         order: list[str] = []
         monkeypatch.setenv("USER", "tester")
@@ -2806,7 +2809,7 @@ def durable_dir(tmp_path, monkeypatch):
     ``test_rejects_a_world_writable_location`` and the ``_substitutable_by_others``
     tests deliberately do NOT use this fixture: they assert the refusals.
     """
-    from kiro_crew.service import apparmor as aa
+    from junction.service import apparmor as aa
 
     monkeypatch.setattr(aa, "_UNSAFE_EXEC_PARENTS", ())
     monkeypatch.setattr(aa, "_substitutable_by_others", lambda _p: None)
@@ -2831,20 +2834,20 @@ class TestLauncherExecPathIsSafeToAttach:
     """
 
     def test_rejects_a_relative_path(self):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        resolved, problem = aa.validate_exec_path("kirocrew.AppImage")
+        resolved, problem = aa.validate_exec_path("junction.AppImage")
 
         assert resolved is None
         assert "absolute" in problem
 
     def test_rejects_an_empty_path(self):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert aa.validate_exec_path("   ")[0] is None
 
     def test_rejects_a_path_that_does_not_exist(self, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         resolved, problem = aa.validate_exec_path(str(tmp_path / "nope.AppImage"))
 
@@ -2852,7 +2855,7 @@ class TestLauncherExecPathIsSafeToAttach:
         assert "could not be resolved" in problem
 
     def test_rejects_a_directory(self, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         resolved, problem = aa.validate_exec_path(str(tmp_path))
 
@@ -2866,9 +2869,9 @@ class TestLauncherExecPathIsSafeToAttach:
         The constant is monkeypatched rather than writing to the real /tmp so the
         assertion holds on macOS too, where /tmp resolves to /private/tmp.
         """
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = tmp_path / "kirocrew.AppImage"
+        app = tmp_path / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         monkeypatch.setattr(aa, "_UNSAFE_EXEC_PARENTS", (str(tmp_path) + "/",))
 
@@ -2880,7 +2883,7 @@ class TestLauncherExecPathIsSafeToAttach:
 
     def test_rejects_the_appimage_runtime_mount(self):
         """/tmp/.mount_XXXXXX is a fresh random path every launch."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert "/tmp/" in aa._UNSAFE_EXEC_PARENTS
 
@@ -2900,28 +2903,28 @@ class TestLauncherExecPathIsSafeToAttach:
     )
     def test_shared_interpreters_are_recognised(self, path):
         """Attaching here would grant userns to every program that runs it."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert aa._SHARED_INTERPRETER_RE.match(path), path
 
     @pytest.mark.parametrize(
         "path",
         [
-            "/home/user/AppImages/kirocrew.AppImage",
-            "/opt/KiroCrew/kirocrew",
-            "/usr/bin/kirocrew-desktop",
+            "/home/user/AppImages/junction.AppImage",
+            "/opt/Junction/junction",
+            "/usr/bin/junction-desktop",
             "/usr/local/bin/pythonish-app",
         ],
     )
     def test_real_application_paths_are_not_mistaken_for_interpreters(self, path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert not aa._SHARED_INTERPRETER_RE.match(path), path
 
     @posix_only
     def test_rejects_a_shared_interpreter_end_to_end(self):
         """/bin/sh exists on every POSIX host, and resolves to a shell either way."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         resolved, problem = aa.validate_exec_path("/bin/sh")
 
@@ -2937,9 +2940,9 @@ class TestLauncherExecPathIsSafeToAttach:
         attachment that the kernel matches against /bin/sh — a host-wide grant
         reached through a name that looks harmless.
         """
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        link = tmp_path / "kirocrew.AppImage"
+        link = tmp_path / "junction.AppImage"
         link.symlink_to("/bin/sh")
 
         resolved, problem = aa.validate_exec_path(str(link))
@@ -2950,7 +2953,7 @@ class TestLauncherExecPathIsSafeToAttach:
     @pytest.mark.parametrize("bad", ["star*", "quest?", "brack[et]", "brace{x}", 'quo"te'])
     def test_rejects_glob_metacharacters(self, durable_dir, bad):
         """AppArmor reads an attachment as a glob even inside quotes."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         app = durable_dir / f"{bad}.AppImage"
         try:
@@ -2966,9 +2969,9 @@ class TestLauncherExecPathIsSafeToAttach:
     @posix_only
     def test_accepts_a_durable_path_with_a_space(self, durable_dir):
         """A space is fine — the rendered attachment is quoted."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = durable_dir / "Kiro Crew.AppImage"
+        app = durable_dir / "Junction App.AppImage"
         app.write_text("#!/bin/sh\n")
 
         resolved, problem = aa.validate_exec_path(str(app))
@@ -2991,11 +2994,11 @@ class TestATakeoverOfTheAttachedPathIsRefused:
     def test_a_world_writable_directory_outside_the_denylist_is_refused(
         self, tmp_path, monkeypatch
     ):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         shared = tmp_path / "shared"
         shared.mkdir()
-        app = shared / "kirocrew.AppImage"
+        app = shared / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         os.chmod(
             shared, 0o777
@@ -3012,9 +3015,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
     def test_a_group_writable_file_is_refused(self, tmp_path, monkeypatch):
         """Group members could replace the binary that receives the grant."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = tmp_path / "kirocrew.AppImage"
+        app = tmp_path / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         os.chmod(
             app, 0o775
@@ -3029,12 +3032,12 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
     def test_a_writable_ancestor_is_enough_to_refuse(self, tmp_path, monkeypatch):
         """Renaming a writable parent re-points the same absolute path."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         outer = tmp_path / "outer"
         inner = outer / "inner"
         inner.mkdir(parents=True)
-        app = inner / "kirocrew.AppImage"
+        app = inner / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         os.chmod(
             app, 0o755
@@ -3061,7 +3064,7 @@ class TestATakeoverOfTheAttachedPathIsRefused:
         to be owned by the caller closes the whole class rather than adding names
         to the list.
         """
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         target = Path("/usr/bin/env")  # root-owned on every POSIX host
         if not target.exists():
@@ -3086,7 +3089,7 @@ class TestATakeoverOfTheAttachedPathIsRefused:
         self, shared, monkeypatch, tmp_path
     ):
         """The ownership rule covers what the interpreter regex never listed."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         stand_in = tmp_path / Path(shared).name
         stand_in.write_text("#!/bin/sh\n")
@@ -3105,9 +3108,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
     def test_a_file_you_own_under_a_tight_chain_is_accepted(self, tmp_path):
         """Positive control: an AppImage you downloaded is owned by you."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = tmp_path / "kirocrew.AppImage"
+        app = tmp_path / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         os.chmod(
             app, 0o755
@@ -3127,7 +3130,7 @@ class TestATakeoverOfTheAttachedPathIsRefused:
         disqualifying; what matters is that the most obvious wrong answer a user
         could give is refused.
         """
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         tmp_uid = Path("/tmp").stat().st_uid
         if tmp_uid not in (0, os.getuid()):
@@ -3140,9 +3143,9 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 
     def test_a_file_owned_by_another_user_is_refused(self, tmp_path, monkeypatch):
         """The owner of the file chooses which binary gets the grant."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = tmp_path / "kirocrew.AppImage"
+        app = tmp_path / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         real = app.stat()
 
@@ -3162,8 +3165,8 @@ class TestATakeoverOfTheAttachedPathIsRefused:
 class TestLauncherProfileRendering:
     """The rendered profile must grant one permission and attach to one path."""
 
-    def _render(self, path="/home/u/Apps/kirocrew.AppImage", abi="4.0"):
-        from kiro_crew.service import apparmor as aa
+    def _render(self, path="/home/u/Apps/junction.AppImage", abi="4.0"):
+        from junction.service import apparmor as aa
 
         return aa.render_launcher_profile(abi, Path(path))
 
@@ -3187,12 +3190,12 @@ class TestLauncherProfileRendering:
 
     @posix_only
     def test_attaches_to_the_given_path_in_quotes(self):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        text = self._render("/home/u/My Apps/kirocrew.AppImage")
+        text = self._render("/home/u/My Apps/junction.AppImage")
 
         assert (
-            f'profile {aa.LAUNCHER_PROFILE_NAME} "/home/u/My Apps/kirocrew.AppImage" '
+            f'profile {aa.LAUNCHER_PROFILE_NAME} "/home/u/My Apps/junction.AppImage" '
             "flags=(unconfined)" in text
         )
 
@@ -3204,7 +3207,7 @@ class TestLauncherProfileRendering:
         assert "include <tunables/global>" in text
 
     def test_keeps_a_local_override_include(self):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         assert f"include if exists <local/{aa.LAUNCHER_PROFILE_NAME}>" in self._render()
 
@@ -3213,20 +3216,20 @@ class TestLauncherProfileRendering:
         text = self._render()
 
         assert "Moving or renaming" in text
-        assert "kirocrew sandbox status" in text
+        assert "junction sandbox status" in text
 
     @posix_only
     def test_round_trips_through_the_attachment_parser(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         profile = tmp_path / aa.LAUNCHER_PROFILE_NAME
-        profile.write_text(self._render("/home/u/Apps/kirocrew.AppImage"))
+        profile.write_text(self._render("/home/u/Apps/junction.AppImage"))
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", profile)
 
-        assert aa.installed_attachment() == "/home/u/Apps/kirocrew.AppImage"
+        assert aa.installed_attachment() == "/home/u/Apps/junction.AppImage"
 
     def test_attachment_parser_returns_none_when_not_installed(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", tmp_path / "absent")
 
@@ -3243,30 +3246,30 @@ class TestLauncherStatusTellsTheTruth:
         monkeypatch.setattr(aa, "userns_restricted", lambda: True)
 
     def test_unaffected_host_is_reported_as_fine(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "apparmor_is_active", lambda: True)
         monkeypatch.setattr(aa, "userns_restricted", lambda: False)
 
-        ok, detail = aa.launcher_status("/home/u/Apps/kirocrew.AppImage")
+        ok, detail = aa.launcher_status("/home/u/Apps/junction.AppImage")
 
         assert ok is True
         assert "does not restrict" in detail
 
     def test_missing_profile_on_an_appimage_launch_names_the_command(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._restricted(monkeypatch, aa)
         monkeypatch.setattr(aa, "installed_attachment", lambda: None)
 
-        ok, detail = aa.launcher_status("/home/u/Apps/kirocrew.AppImage")
+        ok, detail = aa.launcher_status("/home/u/Apps/junction.AppImage")
 
         assert ok is False
-        assert "kirocrew sandbox install-profile" in detail
+        assert "junction sandbox install-profile" in detail
 
     def test_missing_profile_without_an_appimage_points_at_the_service(self, monkeypatch):
         """A foreground gateway has no safe path to attach to."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._restricted(monkeypatch, aa)
         monkeypatch.setattr(aa, "installed_attachment", lambda: None)
@@ -3275,28 +3278,28 @@ class TestLauncherStatusTellsTheTruth:
         ok, detail = aa.launcher_status(None)
 
         assert ok is False
-        assert "kirocrew service install" in detail
+        assert "junction service install" in detail
 
     def test_a_moved_appimage_is_reported_as_not_covered(self, monkeypatch, durable_dir):
         """The kernel reports nothing here — the profile simply never matches."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = durable_dir / "kirocrew.AppImage"
+        app = durable_dir / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         self._restricted(monkeypatch, aa)
-        monkeypatch.setattr(aa, "installed_attachment", lambda: "/old/place/kirocrew.AppImage")
+        monkeypatch.setattr(aa, "installed_attachment", lambda: "/old/place/junction.AppImage")
 
         ok, detail = aa.launcher_status(str(app))
 
         assert ok is False
-        assert "/old/place/kirocrew.AppImage" in detail
+        assert "/old/place/junction.AppImage" in detail
         assert "does not apply" in detail
         assert "re-point" in detail
 
     def test_a_matching_attachment_is_reported_as_covered(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        app = durable_dir / "kirocrew.AppImage"
+        app = durable_dir / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         self._restricted(monkeypatch, aa)
         monkeypatch.setattr(aa, "installed_attachment", lambda: str(app.resolve()))
@@ -3313,7 +3316,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
 
     @staticmethod
     def _app(durable_dir):
-        app = durable_dir / "kirocrew.AppImage"
+        app = durable_dir / "junction.AppImage"
         app.write_text("#!/bin/sh\n")
         return app
 
@@ -3332,7 +3335,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         monkeypatch.setattr(aa, "verify_enforcement", lambda *_a: (True, None))
 
     def test_skips_cleanly_on_a_host_that_does_not_need_it(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (False, "no restriction here"))
@@ -3346,7 +3349,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert writes == [] and runs == []
 
     def test_explains_itself_when_there_is_nothing_to_attach_to(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
@@ -3360,7 +3363,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert writes == []
 
     def test_refuses_an_unsafe_path_without_touching_the_host(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         monkeypatch.setattr(aa, "should_install", lambda: (True, "restricted"))
@@ -3372,7 +3375,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert writes == [] and runs == []
 
     def test_refuses_a_profile_that_does_not_compile(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         self._ready(monkeypatch, aa)
@@ -3387,7 +3390,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert writes == [] and runs == []
 
     def test_a_sudo_failure_warns_and_never_raises(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._ready(monkeypatch, aa)
 
@@ -3407,7 +3410,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert "fail closed" in outcome.message
 
     def test_does_not_claim_success_when_enforcement_is_unconfirmed(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         self._ready(monkeypatch, aa)
@@ -3425,7 +3428,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         self, monkeypatch, durable_dir
     ):
         """Verifying the service profile instead would prove the wrong thing."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         self._ready(monkeypatch, aa)
@@ -3445,7 +3448,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
     def test_success_writes_the_profile_loads_it_and_says_to_restart(
         self, monkeypatch, durable_dir
     ):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         self._ready(monkeypatch, aa)
@@ -3462,22 +3465,22 @@ class TestLauncherInstallIsFailSoftAndHonest:
 
     def test_warns_about_a_conflicting_hand_written_profile(self, monkeypatch, durable_dir):
         """The workaround people find first attaches to the same AppImage."""
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         writes, runs, write, run = self._writers()
         self._ready(monkeypatch, aa)
-        monkeypatch.setattr(aa, "conflicting_attachment", lambda _p: "/etc/apparmor.d/kirocrew")
+        monkeypatch.setattr(aa, "conflicting_attachment", lambda _p: "/etc/apparmor.d/junction")
 
         outcome = aa.install_launcher(
             write, run, lambda *_a: (0, ""), 1000, 1000, str(self._app(durable_dir))
         )
 
         assert outcome.ok is True, "a conflict is a warning, not a failure"
-        assert "/etc/apparmor.d/kirocrew" in outcome.message
+        assert "/etc/apparmor.d/junction" in outcome.message
         assert "ambiguous" in outcome.message
 
     def test_uninstall_is_a_silent_noop_when_nothing_is_installed(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", durable_dir / "absent")
 
@@ -3487,7 +3490,7 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert outcome.message == ""
 
     def test_uninstall_unloads_then_removes(self, monkeypatch, durable_dir):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         profile = durable_dir / aa.LAUNCHER_PROFILE_NAME
         profile.write_text("profile\n")
@@ -3502,10 +3505,10 @@ class TestLauncherInstallIsFailSoftAndHonest:
         assert runs[1] == ("rm", "-f", str(profile))
 
     def test_default_exec_path_reads_appimage(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        monkeypatch.setenv("APPIMAGE", "/home/u/Apps/kirocrew.AppImage")
-        assert aa.default_exec_path() == "/home/u/Apps/kirocrew.AppImage"
+        monkeypatch.setenv("APPIMAGE", "/home/u/Apps/junction.AppImage")
+        assert aa.default_exec_path() == "/home/u/Apps/junction.AppImage"
 
         monkeypatch.setenv("APPIMAGE", "   ")
         assert aa.default_exec_path() is None
@@ -3518,7 +3521,7 @@ class TestSandboxProfileControllerDispatch:
     """Non-Linux hosts get a clean no-op, not an error."""
 
     def test_install_is_a_noop_off_systemd(self, capsys):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch.object(controller, "current_platform", return_value=Platform.LAUNCHD):
             rc = controller.install_launcher_profile(None)
@@ -3527,7 +3530,7 @@ class TestSandboxProfileControllerDispatch:
         assert "Linux-only" in capsys.readouterr().out
 
     def test_status_is_a_noop_off_systemd(self, capsys):
-        from kiro_crew.service import controller
+        from junction.service import controller
 
         with patch.object(controller, "current_platform", return_value=Platform.LAUNCHD):
             rc = controller.sandbox_profile_status(None)
@@ -3536,7 +3539,7 @@ class TestSandboxProfileControllerDispatch:
         assert "does not restrict" in capsys.readouterr().out
 
     def test_install_returns_nonzero_when_the_outcome_is_not_ok(self, capsys):
-        from kiro_crew.service import apparmor, controller, linux
+        from junction.service import apparmor, controller, linux
 
         with (
             patch.object(controller, "current_platform", return_value=Platform.SYSTEMD),
@@ -3552,7 +3555,7 @@ class TestSandboxProfileControllerDispatch:
         assert "⚠️" in capsys.readouterr().out
 
     def test_status_exit_code_is_the_answer(self):
-        from kiro_crew.service import apparmor, controller
+        from junction.service import apparmor, controller
 
         with (
             patch.object(controller, "current_platform", return_value=Platform.SYSTEMD),
@@ -3581,7 +3584,7 @@ class TestHeadlessApiKeyDoctorReport:
     SECRET = "sk-doctor-value-not-for-disclosure"
 
     def _warn(self, monkeypatch, unit, warning="Note: dropped key"):
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         monkeypatch.setattr(cli_doctor.service_controller, "installed_unit_path", lambda: unit)
         monkeypatch.setattr(cli_doctor.common_service, "headless_auth_warning", lambda: warning)
@@ -3590,7 +3593,7 @@ class TestHeadlessApiKeyDoctorReport:
         return issues
 
     def test_reports_when_a_service_is_installed(self, monkeypatch, capsys, tmp_path):
-        issues = self._warn(monkeypatch, tmp_path / "kirocrew.service")
+        issues = self._warn(monkeypatch, tmp_path / "junction.service")
         out = capsys.readouterr().out
         assert "cannot see it" in out
         assert "Note: dropped key" in out
@@ -3606,12 +3609,12 @@ class TestHeadlessApiKeyDoctorReport:
         path only proves a definition exists on disk. Both halves are pinned --
         the append being absent, and the `sys.exit(1)` it would have reached.
         """
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         source = inspect.getsource(cli_doctor._doctor_headless_auth)
         assert "issues.append" not in source
         assert "del issues" in source
-        assert self._warn(monkeypatch, tmp_path / "kirocrew.service") == []
+        assert self._warn(monkeypatch, tmp_path / "junction.service") == []
         assert "sys.exit(1)" in inspect.getsource(cli_doctor._doctor)
 
     def test_silent_when_no_service_is_installed(self, monkeypatch, capsys):
@@ -3621,18 +3624,18 @@ class TestHeadlessApiKeyDoctorReport:
         assert issues == []
 
     def test_silent_when_the_helper_has_nothing_to_say(self, monkeypatch, capsys, tmp_path):
-        issues = self._warn(monkeypatch, tmp_path / "kirocrew.service", warning="")
+        issues = self._warn(monkeypatch, tmp_path / "junction.service", warning="")
         assert capsys.readouterr().out == ""
         assert issues == []
 
     def test_a_failing_probe_cannot_break_doctor(self, monkeypatch, capsys, tmp_path):
         """Doctor reports; it must not raise because a diagnostic could not run."""
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         monkeypatch.setattr(
             cli_doctor.service_controller,
             "installed_unit_path",
-            lambda: tmp_path / "kirocrew.service",
+            lambda: tmp_path / "junction.service",
         )
 
         def boom():
@@ -3648,7 +3651,7 @@ class TestHeadlessApiKeyDoctorReport:
         real = common.headless_auth_warning
         monkeypatch.setenv(self.API_KEY, self.SECRET)
         monkeypatch.setattr(common.loader, "env_path", lambda: tmp_path / ".env")
-        issues = self._warn(monkeypatch, tmp_path / "kirocrew.service", warning=real())
+        issues = self._warn(monkeypatch, tmp_path / "junction.service", warning=real())
         captured = capsys.readouterr().out
         assert captured, "expected a report for this fixture"
         assert self.SECRET not in captured
@@ -3661,7 +3664,7 @@ class TestHeadlessApiKeyDoctorReport:
         `_doctor` performs dozens of live host probes; the property under test is
         only that the call site exists.
         """
-        from kiro_crew import cli_doctor
+        from junction import cli_doctor
 
         assert "_doctor_headless_auth(issues)" in inspect.getsource(cli_doctor._doctor)
 
@@ -3670,14 +3673,14 @@ class TestInstalledUnitPath:
     """Presence of the definition file is the installed signal, per platform."""
 
     def test_systemd_reports_the_unit_when_present(self, monkeypatch, tmp_path):
-        unit = tmp_path / "kirocrew.service"
+        unit = tmp_path / "junction.service"
         unit.write_text("[Unit]\n", encoding="utf-8")
         monkeypatch.setattr(controller, "current_platform", lambda: Platform.SYSTEMD)
         monkeypatch.setattr(controller.linux, "UNIT_PATH", unit)
         assert controller.installed_unit_path() == unit
 
     def test_launchd_reports_the_plist_when_present(self, monkeypatch, tmp_path):
-        plist = tmp_path / "dev.kirocrew.gateway.plist"
+        plist = tmp_path / "dev.junction.gateway.plist"
         plist.write_text("<plist/>", encoding="utf-8")
         monkeypatch.setattr(controller, "current_platform", lambda: Platform.LAUNCHD)
         monkeypatch.setattr(controller.macos, "PLIST_PATH", plist)
@@ -3768,11 +3771,11 @@ class TestHeadlessApiKeyWarning:
     def test_custom_home_caveat_only_when_home_is_overridden(self, monkeypatch, tmp_path):
         self._dotenv(monkeypatch, tmp_path, "")
         plain = common.headless_auth_warning({self.API_KEY: self.SECRET})
-        assert "KIROCREW_HOME" not in plain
+        assert "JUNCTION_HOME" not in plain
         with_home = common.headless_auth_warning(
-            {self.API_KEY: self.SECRET, "KIROCREW_HOME": "/srv/crew"}
+            {self.API_KEY: self.SECRET, "JUNCTION_HOME": "/srv/crew"}
         )
-        assert "KIROCREW_HOME" in with_home
+        assert "JUNCTION_HOME" in with_home
 
     def test_remedy_tightens_permissions_before_writing_the_secret(self, monkeypatch, tmp_path):
         """The append must not be the step that creates the file.
@@ -3898,7 +3901,7 @@ class TestAppArmorProfileValidation:
 
     @staticmethod
     def _fake_run(monkeypatch, *, returncode=0, stdout="", stderr="", raises=None):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         seen: dict = {}
 
@@ -3913,7 +3916,7 @@ class TestAppArmorProfileValidation:
         return seen
 
     def test_a_clean_parse_reports_ok(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         seen = self._fake_run(monkeypatch)
         ok, detail = aa.validate("/usr/sbin/apparmor_parser", "profile x {}")
@@ -3922,7 +3925,7 @@ class TestAppArmorProfileValidation:
         assert seen["argv"][:3] == ["/usr/sbin/apparmor_parser", "-Q", "--skip-cache"]
 
     def test_the_profile_text_reaches_the_parser_and_the_temp_file_is_removed(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         seen = self._fake_run(monkeypatch)
         written: dict = {}
@@ -3942,7 +3945,7 @@ class TestAppArmorProfileValidation:
         assert seen == {}
 
     def test_a_parse_failure_returns_the_parsers_own_words(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._fake_run(monkeypatch, returncode=1, stderr="  syntax error at line 3  ")
         assert aa.validate("/usr/sbin/apparmor_parser", "bad") == (
@@ -3951,13 +3954,13 @@ class TestAppArmorProfileValidation:
         )
 
     def test_stdout_is_used_when_stderr_is_empty(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._fake_run(monkeypatch, returncode=1, stdout="told you so")
         assert aa.validate("/usr/sbin/apparmor_parser", "bad") == (False, "told you so")
 
     def test_a_missing_parser_is_a_failure_not_a_crash(self, monkeypatch):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._fake_run(monkeypatch, raises=OSError("no such file"))
         ok, detail = aa.validate("/usr/sbin/apparmor_parser", "profile x {}")
@@ -3968,7 +3971,7 @@ class TestAppArmorProfileValidation:
     def test_a_parser_timeout_is_a_failure_not_a_crash(self, monkeypatch):
         import subprocess
 
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         self._fake_run(monkeypatch, raises=subprocess.TimeoutExpired("p", 30))
         assert aa.validate("/usr/sbin/apparmor_parser", "profile x {}")[0] is False
@@ -3980,7 +3983,7 @@ class TestAppArmorProfileValidation:
 #: would never match the forward-slash profile text and the test would assert a
 #: platform artefact instead of the matching logic. AppArmor is Linux-only, so
 #: PurePosixPath is also what production actually passes here.
-_APPIMAGE = PurePosixPath("/opt/KiroCrew.AppImage")
+_APPIMAGE = PurePosixPath("/opt/Junction.AppImage")
 
 
 class TestAppArmorConflictingAttachment:
@@ -3994,7 +3997,7 @@ class TestAppArmorConflictingAttachment:
 
     @staticmethod
     def _dir(monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", tmp_path / aa.LAUNCHER_PROFILE_NAME)
         return aa
@@ -4005,20 +4008,20 @@ class TestAppArmorConflictingAttachment:
 
     def test_our_own_profile_is_never_the_conflict(self, monkeypatch, tmp_path):
         aa = self._dir(monkeypatch, tmp_path)
-        (tmp_path / aa.LAUNCHER_PROFILE_NAME).write_text('"/opt/KiroCrew.AppImage" {}')
+        (tmp_path / aa.LAUNCHER_PROFILE_NAME).write_text('"/opt/Junction.AppImage" {}')
         assert aa.conflicting_attachment(_APPIMAGE) is None
 
     @pytest.mark.parametrize(
         "body",
         [
-            '"/opt/KiroCrew.AppImage" flags=(attach_disconnected) {}',
-            "profile local /opt/KiroCrew.AppImage {}",
-            "profile local\n/opt/KiroCrew.AppImage",
+            '"/opt/Junction.AppImage" flags=(attach_disconnected) {}',
+            "profile local /opt/Junction.AppImage {}",
+            "profile local\n/opt/Junction.AppImage",
         ],
     )
     def test_each_attachment_spelling_is_found(self, body: str, monkeypatch, tmp_path):
         aa = self._dir(monkeypatch, tmp_path)
-        other = tmp_path / "local-kirocrew"
+        other = tmp_path / "local-junction"
         other.write_text(body)
         assert aa.conflicting_attachment(_APPIMAGE) == str(other)
 
@@ -4038,7 +4041,7 @@ class TestAppArmorConflictingAttachment:
         aa = self._dir(monkeypatch, tmp_path)
         (tmp_path / "unreadable").write_text("x")
         good = tmp_path / "zz-real"
-        good.write_text('"/opt/KiroCrew.AppImage" {}')
+        good.write_text('"/opt/Junction.AppImage" {}')
         real_read = Path.read_text
 
         def _read(self, *a, **kw):
@@ -4063,16 +4066,16 @@ class TestAppArmorLauncherUninstall:
     """
 
     def test_nothing_to_do_when_no_profile_is_installed(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", tmp_path / "absent")
         outcome = aa.uninstall_launcher(lambda *a: None)
         assert (outcome.changed, outcome.ok) == (False, True)
 
     def test_it_unloads_then_removes(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        path = tmp_path / "kirocrew-launcher"
+        path = tmp_path / "junction-launcher"
         path.write_text("profile")
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", path)
         monkeypatch.setattr(aa, "parser_path", lambda: "/usr/sbin/apparmor_parser")
@@ -4087,9 +4090,9 @@ class TestAppArmorLauncherUninstall:
         assert outcome.changed is True and outcome.ok is True
 
     def test_a_failed_unload_still_removes_the_file(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        path = tmp_path / "kirocrew-launcher"
+        path = tmp_path / "junction-launcher"
         path.write_text("profile")
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", path)
         monkeypatch.setattr(aa, "parser_path", lambda: "/usr/sbin/apparmor_parser")
@@ -4106,9 +4109,9 @@ class TestAppArmorLauncherUninstall:
         assert outcome.ok is True
 
     def test_a_failed_removal_is_reported(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        path = tmp_path / "kirocrew-launcher"
+        path = tmp_path / "junction-launcher"
         path.write_text("profile")
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", path)
         monkeypatch.setattr(aa, "parser_path", lambda: None)
@@ -4122,9 +4125,9 @@ class TestAppArmorLauncherUninstall:
         assert "read-only /etc" in outcome.message
 
     def test_no_parser_skips_the_unload_and_still_removes(self, monkeypatch, tmp_path):
-        from kiro_crew.service import apparmor as aa
+        from junction.service import apparmor as aa
 
-        path = tmp_path / "kirocrew-launcher"
+        path = tmp_path / "junction-launcher"
         path.write_text("profile")
         monkeypatch.setattr(aa, "LAUNCHER_PROFILE_PATH", path)
         monkeypatch.setattr(aa, "parser_path", lambda: None)

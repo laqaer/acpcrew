@@ -50,7 +50,7 @@ const slots = [{
   running: false,
   last_message: 'Launched the workflow.',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: '',
   folder_id: '',

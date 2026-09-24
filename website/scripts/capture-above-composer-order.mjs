@@ -59,7 +59,7 @@ const slots = [{
   running: true,            // the tip trigger only arms on a running slot
   last_message: 'Two candidates — which do you want first?',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   folder_id: '',            // unfiled — precondition for the folder card
@@ -160,7 +160,7 @@ async function main() {
     await page.routeWebSocket(/\/api\/ws/, ws => { wsServer = ws })
     await page.addInitScript(slot => {
       localStorage.setItem('mc-active-slot', slot)
-      localStorage.removeItem('kirocrew.tips.lastShownAt')
+      localStorage.removeItem('junction.tips.lastShownAt')
     }, SLOT)
     await page.goto(base + '/', { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2500)

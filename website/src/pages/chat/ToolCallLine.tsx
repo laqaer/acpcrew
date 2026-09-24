@@ -290,7 +290,7 @@ export default memo(function ToolCallLine({ message, running: _running, slot, on
   // the MCP subprocess and never appears on the ACP tool_call frame, so there is
   // nothing to join on. The title has to go through isWaitToolTitle rather than
   // `=== 'wait'` because the transport decides its shape (`wait`,
-  // `kirocrew-core___wait`, `wait (mcp)`) — see that helper.
+  // `junction-core___wait`, `wait (mcp)`) — see that helper.
   //
   // `slot.wait_state` is the ONLY liveness signal consulted, and deliberately so.
   // The backend mints it on the sleep's first keepalive ping and clears it on the

@@ -6,8 +6,8 @@ import platform
 
 import pytest
 
-from kiro_crew import platform_compat
-from kiro_crew.browser_cli import os_deps as mod
+from junction import platform_compat
+from junction.browser_cli import os_deps as mod
 
 
 @pytest.fixture(autouse=True)

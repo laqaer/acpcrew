@@ -8,7 +8,7 @@ import { Input, Btn } from './ui'
 import { SourceBadge } from './SourceBadge'
 
 import { i18nT } from '../i18n/t'
-export interface KiroCrewAgent {
+export interface JunctionAgent {
   name: string
   kiro_agent: string
   workspace: string
@@ -24,7 +24,7 @@ export interface KiroCrewAgent {
 }
 
 interface Props {
-  agents: KiroCrewAgent[]
+  agents: JunctionAgent[]
   defaultAgent: string
   value: string
   onChange: (name: string) => void
@@ -59,7 +59,7 @@ export default function AgentSelector({ agents, defaultAgent, value, onChange }:
     closeToTrigger,
   })
 
-  const handleSelect = (a: KiroCrewAgent) => {
+  const handleSelect = (a: JunctionAgent) => {
     onChange(a.name)
     closeToTrigger()
   }

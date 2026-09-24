@@ -136,7 +136,7 @@ interface AppManifest {
   crons?: { name: string }[]
   mcpServers?: Record<string, McpServerConfig>
   permissions?: AppPermissions
-  minKiroCrewVersion?: string
+  minJunctionVersion?: string
 }
 
 function ScreenshotGallery({ screenshots }: { screenshots: string[] }) {
@@ -270,7 +270,7 @@ export default function AppDetailPage() {
         // the browse list uses. Spelled separately, the two chains disagreed:
         // this page preferred the manifest (`m.author || registryEntry?.author`)
         // while the list preferred the row, so one app could read
-        // "Kiro Crew · Developer Tools" in the list and "kirocrew · Productivity"
+        // "Junction · Developer Tools" in the list and "junction · Productivity"
         // one click later. The catalog is the store's inventory on both surfaces
         // or on neither.
         if (registryEntry && isBuiltinServerRow(registryEntry)) {
@@ -852,7 +852,7 @@ export default function AppDetailPage() {
                 <>
                   <div className="text-[13px] text-ok flex items-center gap-1.5"><Check size={14} /> {i18nT('pages.appDetailPage.installed_version', { version: app.installedVersion })}</div>
                   {app.updateAvailable && <Btn onClick={handleInstall} disabled={actionLoading === 'install'} className="!bg-[var(--info)] !text-white hover:!opacity-80">{actionLoading === 'install' ? <><Loader2 size={14} className="animate-spin" /> {i18nT('pages.appDetailPage.updating')}</> : <><ArrowUp size={14} /> {i18nT('pages.appDetailPage.update')}</>}</Btn>}
-                  {canUninstall && <Btn danger onClick={() => handleAction('uninstall')} disabled={actionLoading === 'uninstall'} title={i18nT('pages.appDetailPage.removes_kirocrew_metadata_only_the_app_itself_is')}><Trash2 size={14} /> {i18nT('pages.appDetailPage.uninstall')}</Btn>}
+                  {canUninstall && <Btn danger onClick={() => handleAction('uninstall')} disabled={actionLoading === 'uninstall'} title={i18nT('pages.appDetailPage.removes_junction_metadata_only_the_app_itself_is')}><Trash2 size={14} /> {i18nT('pages.appDetailPage.uninstall')}</Btn>}
                 </>
               )}
               {app.installed && !isSelfManaged && !isBuiltin && (
@@ -909,7 +909,7 @@ export default function AppDetailPage() {
               <div className="flex items-center gap-2">
                 {installDone && error && (
                   <Btn onClick={() => {
-                    const appSourcePath = `~/.kiro/crew/app-sources/${app?.name || name}/`
+                    const appSourcePath = `~/.junction/app-sources/${app?.name || name}/`
                     const msg = [
                       `App "${app?.displayName || name}" installation failed. Error log:`,
                       '',
@@ -1170,7 +1170,7 @@ export default function AppDetailPage() {
               {app.author && <div>{i18nT('pages.appDetailPage.author')} {app.author}</div>}
               {app.installedAt && <div>{i18nT('pages.appDetailPage.installed')} {fmtDateNumeric(app.installedAt)}</div>}
               {app.origin && <div>{i18nT('pages.appDetailPage.origin')} {app.origin} {i18nT('pages.appDetailPage.resources_2')} {app.resources || 'gateway'} {i18nT('pages.appDetailPage.lifecycle')} {app.lifecycle || 'gateway'}</div>}
-              {app.manifest?.minKiroCrewVersion && <div>{i18nT('pages.appDetailPage.min_kirocrew_v')}{app.manifest.minKiroCrewVersion}</div>}
+              {app.manifest?.minJunctionVersion && <div>{i18nT('pages.appDetailPage.min_junction_v')}{app.manifest.minJunctionVersion}</div>}
               {app.platform?.os && <div>{i18nT('pages.appDetailPage.platform')} {app.platform.os.join(', ')}</div>}
             </div>
           </Card>

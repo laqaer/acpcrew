@@ -1,5 +1,5 @@
 /**
- * The API surface `useDrag` and `PetContextMenu` expect, backed by Kiro Crew.
+ * The API surface `useDrag` and `PetContextMenu` expect, backed by Junction.
  *
  * In the desktop app these were Electron IPC calls into the main process, which owned
  * the pet window and persisted its position to userData. Here the companion is a
@@ -875,7 +875,7 @@ export const petBridge: PetBridge = {
     if (action === 'quit') {
       // The desktop app quit its own process. Here the companion IS an app, so the
       // equivalent is disabling it: the overlay goes, the reminders stay, and the
-      // user can bring it back from the Apps page. Quitting Kiro Crew itself would
+      // user can bring it back from the Apps page. Quitting Junction itself would
       // close the dashboard too, which is not what "dismiss the companion" means.
       void fetch('/api/apps/crew-companion/disable', {
         method: 'POST',

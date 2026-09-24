@@ -1,4 +1,4 @@
-"""Tests for :mod:`kiro_crew.agent_scratch` (issue #5063).
+"""Tests for :mod:`junction.agent_scratch` (issue #5063).
 
 Everything runs against a monkeypatched data home under ``tmp_path``; the
 real ``<data home>/scratch`` is never touched.
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import agent_scratch as sc
+from junction import agent_scratch as sc
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ class TestEnv:
     def test_exports_temp_triple_and_scratch_alias(self, tmp_path: Path) -> None:
         env = sc.scratch_env(tmp_path)
         value = str(tmp_path)
-        assert env == {"TMPDIR": value, "TMP": value, "TEMP": value, "KIROCREW_SCRATCH": value}
+        assert env == {"TMPDIR": value, "TMP": value, "TEMP": value, "JUNCTION_SCRATCH": value}
 
 
 class TestLivenessSweep:

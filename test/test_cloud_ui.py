@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.cloud import ui
+from junction.cloud import ui
 
 
 class TestChoiceKeys:

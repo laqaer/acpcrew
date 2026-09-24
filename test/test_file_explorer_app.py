@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.apps.builtins.file_explorer import server
+from junction.apps.builtins.file_explorer import server
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def patch_allowed_roots(tmp_tree):
     """Allow the tmp_path in ALLOWED_ROOTS and mock security/sel functions."""
 
     def mock_is_sensitive(path_str):
-        """Check sensitive dirs by path component (excluding .kirocrew which is handled
+        """Check sensitive dirs by path component (excluding .junction which is handled
         granularly)."""
         parts = Path(path_str).parts
         return any(s in parts for s in server.SENSITIVE_DIRS)
@@ -87,7 +87,7 @@ class TestIsSensitive:
     def test_aws_is_sensitive(self, tmp_tree):
         assert server._is_sensitive(Path("/home/otheruser/.aws/credentials")) is True
 
-    def test_kirocrew_is_sensitive(self, tmp_tree):
+    def test_junction_is_sensitive(self, tmp_tree):
         assert server._is_sensitive(tmp_tree / ".kirocrew" / ".env") is True
 
     def test_crew_home_nonsafe_file_is_sensitive(self, tmp_tree):
@@ -107,7 +107,7 @@ class TestIsSensitive:
             tmp_tree / ".KIRO" / "crew" / "config.json",
             tmp_tree / ".kiro" / "CREW" / "config.json",
             tmp_tree / ".KiRo" / "CrEw" / "sessions" / "s.json",
-            tmp_tree / ".KIROCREW" / "config.json",
+            tmp_tree / ".JUNCTION" / "config.json",
         ):
             assert server._is_sensitive(variant) is True, variant
 
@@ -542,16 +542,16 @@ class TestHTTPHandler:
         assert responses[0][1]["content"] == ""
 
 
-class TestKirocrewGranularSensitive:
-    """Regression tests for .kirocrew granular sensitive path policy.
+class TestJunctionGranularSensitive:
+    """Regression tests for .junction granular sensitive path policy.
 
     .kirocrew/workspace/, uploads/, skills/, artifacts/ etc. should be accessible.
     .kirocrew/config.json, sessions/, *.key should be blocked.
     """
 
     @pytest.fixture(autouse=True)
-    def kirocrew_tree(self, tmp_tree):
-        """Create a .kirocrew directory structure for testing."""
+    def junction_tree(self, tmp_tree):
+        """Create a .junction directory structure for testing."""
         mc = tmp_tree / ".kirocrew"
         mc.mkdir()
         # Safe subdirs
@@ -575,7 +575,7 @@ class TestKirocrewGranularSensitive:
         # Governance trust-root files (the fork keystone): the security
         # ceiling, profiles, and admission policy must NEVER be reachable
         # through the explorer — "profiles" is deliberately absent from
-        # _KIROCREW_SAFE_SUBDIRS.
+        # _JUNCTION_SAFE_SUBDIRS.
         (mc / "security_policy.json").write_text('{"ceiling": true}')
         (mc / "admission_policy.json").write_text('{"admission": true}')
         (mc / "profiles").mkdir()
@@ -627,19 +627,19 @@ class TestKirocrewGranularSensitive:
             server._safe_path(str(tmp_tree / ".kirocrew" / "memory.db"))
         assert exc_info.value.status == 403
 
-    def test_kirocrew_root_listing_blocked_by_safe_path(self, tmp_tree):
+    def test_junction_root_listing_blocked_by_safe_path(self, tmp_tree):
         """Listing .kirocrew/ root is blocked at _safe_path level (deny-by-default).
-        Tree/complete handlers use _kirocrew_safe_children() instead."""
+        Tree/complete handlers use _junction_safe_children() instead."""
         with pytest.raises(server.PathError) as exc_info:
             server._safe_path(str(tmp_tree / ".kirocrew"))
         assert exc_info.value.status == 403
 
-    def test_kirocrew_safe_children_returns_only_safe_subdirs(self, tmp_tree):
-        """_kirocrew_safe_children() exposes only allowlisted dirs."""
+    def test_junction_safe_children_returns_only_safe_subdirs(self, tmp_tree):
+        """_junction_safe_children() exposes only allowlisted dirs."""
         mc = tmp_tree / ".kirocrew"
-        entries = server._kirocrew_safe_children(mc)
+        entries = server._junction_safe_children(mc)
         names = {e["name"] for e in entries}
-        # Only dirs in _KIROCREW_SAFE_SUBDIRS should appear
+        # Only dirs in _JUNCTION_SAFE_SUBDIRS should appear
         assert "workspace" in names
         assert "uploads" in names
         assert "skills" in names
@@ -652,7 +652,7 @@ class TestKirocrewGranularSensitive:
     # ~/.kirocrew/security_policy.json, profiles/, admission_policy.json are
     # the governance ceiling's trust root. The granular branch alone must
     # block them (is_sensitive_path is mocked to SENSITIVE_DIRS parts in this
-    # suite) — "profiles" must stay OUT of _KIROCREW_SAFE_SUBDIRS.
+    # suite) — "profiles" must stay OUT of _JUNCTION_SAFE_SUBDIRS.
 
     def test_security_policy_blocked(self, tmp_tree):
         """The governance security ceiling must be blocked."""
@@ -675,8 +675,8 @@ class TestKirocrewGranularSensitive:
     def test_profiles_not_in_safe_children_or_listing(self, tmp_tree):
         """'profiles' never appears in safe-children output or root listings."""
         mc = tmp_tree / ".kirocrew"
-        assert "profiles" not in server._KIROCREW_SAFE_SUBDIRS
-        child_names = {e["name"] for e in server._kirocrew_safe_children(mc)}
+        assert "profiles" not in server._JUNCTION_SAFE_SUBDIRS
+        child_names = {e["name"] for e in server._junction_safe_children(mc)}
         assert "profiles" not in child_names
         entries, _ = server._list_dir(mc, depth=1)
         listing_names = {e["name"] for e in entries}
@@ -690,16 +690,16 @@ class TestAutoSdeRound1Findings:
 
     #15 security-controls: listing .kirocrew/ root must not leak sensitive
         entry NAMES (config.json, *.key, memory.db, sessions/).
-    #17 rg allowlist side-effect: searching a root OUTSIDE .kirocrew must not
-        restrict results to .kirocrew safe subdirs (non-negated globs
+    #17 rg allowlist side-effect: searching a root OUTSIDE .junction must not
+        restrict results to .junction safe subdirs (non-negated globs
         allowlist-restrict ripgrep); searching INSIDE a safe subdir adds no
-        .kirocrew globs at all.
+        .junction globs at all.
     #16 auto-skill-namespace: the file explorer must remain read-only (GET
         only) so opening skills/ cannot create an auto-skill write path.
     """
 
     @pytest.fixture(autouse=True)
-    def kirocrew_tree(self, tmp_tree):
+    def junction_tree(self, tmp_tree):
         mc = tmp_tree / ".kirocrew"
         mc.mkdir()
         (mc / "workspace").mkdir()
@@ -714,7 +714,7 @@ class TestAutoSdeRound1Findings:
         return tmp_tree
 
     def test_root_listing_hides_sensitive_names(self, tmp_tree):
-        """#15: /tree of .kirocrew root shows ONLY safe subdirs — no
+        """#15: /tree of .junction root shows ONLY safe subdirs — no
         config.json / *.key / sessions / memory.db names."""
         entries, _ = server._list_dir(tmp_tree / ".kirocrew", depth=1)
         names = {e["name"] for e in entries}
@@ -722,22 +722,22 @@ class TestAutoSdeRound1Findings:
         for leaked in ("config.json", "sel_hmac.key", "sessions", "memory.db"):
             assert leaked not in names, f"sensitive name leaked in listing: {leaked}"
 
-    def test_python_search_outside_kirocrew_finds_project_files(self, tmp_tree):
+    def test_python_search_outside_junction_finds_project_files(self, tmp_tree):
         """#17: searching the project root must return matches OUTSIDE
-        .kirocrew (the old glob set silently excluded them under rg)."""
+        .junction (the old glob set silently excluded them under rg)."""
         results = server._search_python(tmp_tree, "needle", "", "")
         files = {r["file"] for r in results}
         assert any(
             f.endswith("src/main.py") for f in files
         ), f"src/main.py missing from results — allowlist side-effect: {files}"
 
-    def test_python_search_never_surfaces_kirocrew_root_files(self, tmp_tree):
-        """#15/defense: .kirocrew root files (config.json) never appear in
-        search results even when the walk passes through .kirocrew."""
+    def test_python_search_never_surfaces_junction_root_files(self, tmp_tree):
+        """#15/defense: .junction root files (config.json) never appear in
+        search results even when the walk passes through .junction."""
         results = server._search_python(tmp_tree, "token123", "", "")
         assert results == [], f".kirocrew root file content leaked: {results}"
 
-    def test_rg_glob_set_has_no_nonnegated_kirocrew_globs(self, tmp_tree):
+    def test_rg_glob_set_has_no_nonnegated_junction_globs(self, tmp_tree):
         """#17: the rg command for an outside-root search contains only
         NEGATED crew-home globs (a non-negated glob would allowlist-restrict
         the entire search). The data home spans two prefixes — the current
@@ -764,8 +764,8 @@ class TestAutoSdeRound1Findings:
         ], crew_globs
         assert all(g.startswith("!") for g in crew_globs)
 
-    def test_rg_no_kirocrew_globs_when_root_inside_safe_subdir(self, tmp_tree):
-        """#17: searching inside .kirocrew/workspace adds no .kirocrew globs
+    def test_rg_no_junction_globs_when_root_inside_safe_subdir(self, tmp_tree):
+        """#17: searching inside .kirocrew/workspace adds no .junction globs
         (path gate already validated the subtree)."""
         captured: dict = {}
 
@@ -793,8 +793,8 @@ class TestAutoSdeRound1Findings:
         for verb in ("do_POST", "do_PUT", "do_DELETE", "do_PATCH"):
             assert verb not in src, f"unexpected write verb handler: {verb}"
 
-    def test_kirocrew_root_outside_allowed_roots_denied(self, tmp_tree, monkeypatch):
-        """Security: a .kirocrew dir outside ALLOWED_ROOTS must be denied even
+    def test_junction_root_outside_allowed_roots_denied(self, tmp_tree, monkeypatch):
+        """Security: a .junction dir outside ALLOWED_ROOTS must be denied even
         via the special-case listing path in _h_tree. Exercises the _expand ->
         _is_within check that bypasses _safe_path."""
         import tempfile
@@ -852,7 +852,7 @@ def test_main_boots_platform_before_serving(monkeypatch):
             pass
 
     monkeypatch.setattr(server, "boot_platform", _fake_boot)
-    monkeypatch.setattr(server.KiroCrewConfig, "load", classmethod(lambda cls: SimpleNamespace()))
+    monkeypatch.setattr(server.JunctionConfig, "load", classmethod(lambda cls: SimpleNamespace()))
     monkeypatch.setattr(server, "ThreadingHTTPServer", _FakeServer)
 
     assert server.main() == 0

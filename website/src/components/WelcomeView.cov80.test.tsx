@@ -103,7 +103,7 @@ describe('WelcomeView', () => {
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: i18nT('components.welcomeView.try_create_a_plan_to_analyze_kirocrew_code_packa'),
+        name: i18nT('components.welcomeView.try_create_a_plan_to_analyze_junction_code_packa'),
       }),
     )
     expect(setInput).toHaveBeenCalledWith(expect.stringContaining('Create a plan'))

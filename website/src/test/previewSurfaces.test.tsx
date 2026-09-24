@@ -23,7 +23,7 @@ vi.mock('../pages/SessionArchive', () => ({ default: () => <div /> }))
 vi.mock('../pages/LocalStorageDebug', () => ({ default: () => <div /> }))
 vi.mock('../pages/settings/McpManagement', () => ({ McpManagement: () => <div /> }))
 vi.mock('../pages/overview', () => ({
-  KiroCrewCfgTab: () => <div data-testid="kirocrew-cfg" />,
+  JunctionCfgTab: () => <div data-testid="junction-cfg" />,
   AgentCfgTab: () => <div />,
 }))
 vi.mock('../pages/overview/MemoryGraphTab', () => ({ default: () => <div /> }))
@@ -285,7 +285,7 @@ describe('Developer > Feature Previews', () => {
     // rail must offer the tab that does — otherwise the opt-ins become
     // unreachable while every unit test above still passes.
     render(<MemoryRouter initialEntries={['/developer?tab=config']}><DeveloperPage /></MemoryRouter>)
-    expect(screen.getByTestId('kirocrew-cfg')).toBeTruthy()
+    expect(screen.getByTestId('junction-cfg')).toBeTruthy()
     expect(screen.queryByRole('switch', { name: /webhooks/i })).toBeNull()
 
     const tab = screen.getByRole('button', { name: /feature previews/i })

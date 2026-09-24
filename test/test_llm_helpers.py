@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.client import AcpError, AcpPromptBusy
-from kiro_crew.llm_helpers import (
+from junction.acp.client import AcpError, AcpPromptBusy
+from junction.llm_helpers import (
     FALLBACK_CANDIDATE_ATTEMPTS,
     TURN_FALLBACK_ATTR,
     FallbackState,
@@ -22,7 +22,7 @@ from kiro_crew.llm_helpers import (
     save_conversation_turn,
     stream_and_collect,
 )
-from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, EVENT_TOOL_CALL, LLMEvent
+from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, EVENT_TOOL_CALL, LLMEvent
 
 
 class TestFirstAdvertisedFallback:
@@ -262,7 +262,7 @@ class TestStreamAndCollectPromptBusy:
         unattended caller (workflows/agent_pool, handlers/side, the
         subagent-completion injector).
         """
-        from kiro_crew.acp.client import _format_acp_error
+        from junction.acp.client import _format_acp_error
 
         formatted = _format_acp_error(
             {"code": -32603, "message": "Internal error", "data": "Prompt already in progress"}
@@ -295,7 +295,7 @@ class TestStreamAndCollectPromptBusy:
     @pytest.mark.asyncio
     async def test_formatted_prompt_busy_exhaustion_still_raises_typed(self) -> None:
         """The exhaustion arm must also fire for a formatted prompt-busy."""
-        from kiro_crew.acp.client import _format_acp_error
+        from junction.acp.client import _format_acp_error
 
         formatted = _format_acp_error(
             {"code": -32603, "message": "Internal error", "data": "Prompt already in progress"}
@@ -344,14 +344,14 @@ class TestTransientErrorClassifier:
     """_is_transient_acp_error: retry server-side hiccups, fail fast on auth."""
 
     def test_internal_server_error_is_transient(self) -> None:
-        from kiro_crew.llm_helpers import _is_transient_acp_error
+        from junction.llm_helpers import _is_transient_acp_error
 
         assert _is_transient_acp_error(
             "Prompt error: {'message': 'Internal error: API Error: Internal server error'}"
         )
 
     def test_throttle_and_unavailable_are_transient(self) -> None:
-        from kiro_crew.llm_helpers import _is_transient_acp_error
+        from junction.llm_helpers import _is_transient_acp_error
 
         assert _is_transient_acp_error("Bedrock is throttling requests")
         assert _is_transient_acp_error("ServiceUnavailableException")
@@ -359,7 +359,7 @@ class TestTransientErrorClassifier:
         assert _is_transient_acp_error("connection reset by peer")
 
     def test_dispatch_failure_is_transient(self) -> None:
-        from kiro_crew.llm_helpers import _is_transient_acp_error
+        from junction.llm_helpers import _is_transient_acp_error
 
         # AWS SDK connector-level I/O failure (conn/DNS/TLS drop) — retryable.
         # Uses the exact shapes seen in history-consolidation ACP errors.
@@ -375,7 +375,7 @@ class TestTransientErrorClassifier:
         )
 
     def test_auth_and_validation_are_not_transient(self) -> None:
-        from kiro_crew.llm_helpers import _is_transient_acp_error
+        from junction.llm_helpers import _is_transient_acp_error
 
         # These must fail fast — a retry cannot fix them.
         assert not _is_transient_acp_error(
@@ -392,19 +392,19 @@ class TestAcpErrorIsTransient:
     falls back to the string classifier."""
 
     def test_flag_true_wins_over_nontransient_message(self) -> None:
-        from kiro_crew.llm_helpers import acp_error_is_transient
+        from junction.llm_helpers import acp_error_is_transient
 
         # Flag is authoritative: a terminal-looking message is still retried.
         assert acp_error_is_transient(AcpError("ValidationException", transient=True))
 
     def test_flag_false_wins_over_transient_message(self) -> None:
-        from kiro_crew.llm_helpers import acp_error_is_transient
+        from junction.llm_helpers import acp_error_is_transient
 
         # Flag is authoritative: a transient-looking message still fails fast.
         assert not acp_error_is_transient(AcpError("ServiceUnavailableException", transient=False))
 
     def test_unflagged_5xx_message_falls_back_to_string(self) -> None:
-        from kiro_crew.llm_helpers import acp_error_is_transient
+        from junction.llm_helpers import acp_error_is_transient
 
         # The regression: _format_acp_error's friendly 5xx string is
         # now recognised by the string fallback even with no flag set.
@@ -416,7 +416,7 @@ class TestAcpErrorIsTransient:
         assert acp_error_is_transient(AcpError(msg))  # transient defaults to None
 
     def test_plain_exception_uses_string_fallback(self) -> None:
-        from kiro_crew.llm_helpers import acp_error_is_transient
+        from junction.llm_helpers import acp_error_is_transient
 
         # Non-AcpError (no .transient attr) → string classifier.
         assert acp_error_is_transient(RuntimeError("ServiceUnavailableException"))
@@ -462,7 +462,7 @@ class TestStreamAndCollectTransient:
         (initial attempt + _TRANSIENT_RETRIES); without it, a skipped retry
         path would still pass on the first raise.
         """
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -712,11 +712,11 @@ class TestConfiguredFallbackChain:
     """agent.fallback_model -> walk-order derivation (the one shared derivation)."""
 
     def _chain_for(self, value: str) -> tuple[str, ...]:
-        from kiro_crew.llm_helpers import configured_fallback_chain
+        from junction.llm_helpers import configured_fallback_chain
 
         cfg = MagicMock()
         cfg.agent.fallback_model = value
-        with patch("kiro_crew.llm_helpers.KiroCrewConfig") as kc:
+        with patch("junction.llm_helpers.JunctionConfig") as kc:
             kc.load.return_value = cfg
             return configured_fallback_chain()
 
@@ -733,9 +733,9 @@ class TestConfiguredFallbackChain:
         assert self._chain_for("claude-opus-4.8") == ("claude-opus-4.8", "auto")
 
     def test_load_failure_disables(self) -> None:
-        from kiro_crew.llm_helpers import configured_fallback_chain
+        from junction.llm_helpers import configured_fallback_chain
 
-        with patch("kiro_crew.llm_helpers.KiroCrewConfig") as kc:
+        with patch("junction.llm_helpers.JunctionConfig") as kc:
             kc.load.side_effect = RuntimeError("boom")
             assert configured_fallback_chain() == ()
 
@@ -759,7 +759,7 @@ class TestSetModelWitness:
         # set_model("claude-opus-4.8") silently no-ops (resolve collapsed it):
         # the walk must skip the candidate instead of publishing a marker for
         # a model that never took over.
-        from kiro_crew.llm_helpers import FallbackState, advance_fallback_candidate
+        from junction.llm_helpers import FallbackState, advance_fallback_candidate
 
         provider = self._provider("primary-model")
         fb = FallbackState(chain=("claude-opus-4.8",))
@@ -769,7 +769,7 @@ class TestSetModelWitness:
 
     @pytest.mark.asyncio
     async def test_witnessed_swap_is_published(self) -> None:
-        from kiro_crew.llm_helpers import FallbackState, advance_fallback_candidate
+        from junction.llm_helpers import FallbackState, advance_fallback_candidate
 
         provider = self._provider("primary-model")
 
@@ -787,7 +787,7 @@ class TestSetModelWitness:
         # An "auto" primary that resolves to "" restores nothing: the session
         # is still on the fallback, so the marker must survive for the next
         # probe (clearing it re-opens the backfill permanent-pin door).
-        from kiro_crew.llm_helpers import probe_fallback_restore
+        from junction.llm_helpers import probe_fallback_restore
 
         provider = self._provider("fallback-model")
         setattr(provider, TURN_FALLBACK_ATTR, ("auto", "fallback-model"))
@@ -796,7 +796,7 @@ class TestSetModelWitness:
 
     @pytest.mark.asyncio
     async def test_witnessed_restore_clears_the_marker(self) -> None:
-        from kiro_crew.llm_helpers import probe_fallback_restore
+        from junction.llm_helpers import probe_fallback_restore
 
         provider = self._provider("fallback-model")
 
@@ -813,14 +813,14 @@ class TestProviderFallbackActive:
     """The shared usage-attribution guard reads the sticky marker."""
 
     def test_true_while_marker_present(self) -> None:
-        from kiro_crew.llm_helpers import provider_fallback_active
+        from junction.llm_helpers import provider_fallback_active
 
         provider = MagicMock()
         setattr(provider, TURN_FALLBACK_ATTR, ("primary-model", "fallback-model"))
         assert provider_fallback_active(provider) is True
 
     def test_false_without_marker_or_malformed(self) -> None:
-        from kiro_crew.llm_helpers import provider_fallback_active
+        from junction.llm_helpers import provider_fallback_active
 
         provider = MagicMock(spec=[])  # no marker attribute at all
         assert provider_fallback_active(provider) is False
@@ -863,7 +863,7 @@ class TestAdvanceFallbackCandidateAutoPrimary:
         # chain ("auto",) on an auto-routed session: nothing to fall back to —
         # the walk must exhaust (original error surfaces), never "swap" to the
         # model already serving.
-        from kiro_crew.llm_helpers import FallbackState, advance_fallback_candidate
+        from junction.llm_helpers import FallbackState, advance_fallback_candidate
 
         provider = self._provider()
         fb = FallbackState(chain=("auto",))
@@ -876,7 +876,7 @@ class TestAdvanceFallbackCandidateAutoPrimary:
         # chain (id, "auto") on an auto-routed session: the concrete candidate
         # applies, and the recorded primary is "auto" — the restore probe then
         # re-enters auto routing instead of tripping the empty-primary arm.
-        from kiro_crew.llm_helpers import FallbackState, advance_fallback_candidate
+        from junction.llm_helpers import FallbackState, advance_fallback_candidate
 
         provider = self._provider()
         fb = FallbackState(chain=("claude-opus-4.8", "auto"))
@@ -936,7 +936,7 @@ class TestStreamAndCollectThrottleFallback:
     async def test_fallback_serves_turn_after_budget_exhaustion(self) -> None:
         """Same-model budget exhausts, the first advertised candidate is set
         and serves the turn; the sticky marker is published on the provider."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -961,7 +961,7 @@ class TestStreamAndCollectThrottleFallback:
     async def test_two_attempts_per_candidate_then_advance(self) -> None:
         """A failing candidate gets exactly FALLBACK_CANDIDATE_ATTEMPTS
         attempts, then the chain advances to the next candidate."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
         fail_until = _TRANSIENT_RETRIES + 1 + FALLBACK_CANDIDATE_ATTEMPTS
@@ -988,7 +988,7 @@ class TestStreamAndCollectThrottleFallback:
     async def test_chain_exhaustion_surfaces_original_error_class(self) -> None:
         """Every candidate fails: the ORIGINAL error class propagates, carrying
         the chain's story for the delivering surface."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -1012,7 +1012,7 @@ class TestStreamAndCollectThrottleFallback:
     async def test_empty_chain_is_todays_behavior(self) -> None:
         """REGRESSION PIN: with no chain configured, behavior is byte-for-byte
         the pre-feature error surface — same attempt count, no set_model."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -1034,7 +1034,7 @@ class TestStreamAndCollectThrottleFallback:
     async def test_non_transient_error_mid_chain_propagates_immediately(self) -> None:
         """An auth/validation error raised by a candidate fails fast — the
         chain is for transient throttles only."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -1075,7 +1075,7 @@ class TestStreamAndCollectThrottleFallback:
 
     @pytest.mark.asyncio
     async def test_unadvertised_candidates_are_skipped(self) -> None:
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -1123,7 +1123,7 @@ class TestStreamAndCollectThrottleFallback:
         replay the original prompt — that would re-run the mutation once per
         candidate attempt. Any fired tool across any attempt disables the
         chain and the error surfaces as before the feature."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -1152,7 +1152,7 @@ class TestStreamAndCollectThrottleFallback:
         fallback (marker P->F1, restore failing) that exhausts again must
         keep P as the primary — never record F1 as the primary — and must
         not re-try the currently-failing F1."""
-        from kiro_crew.llm_helpers import _TRANSIENT_RETRIES
+        from junction.llm_helpers import _TRANSIENT_RETRIES
 
         call_count = 0
 
@@ -1280,7 +1280,7 @@ class TestRecordInteractionEvent:
     """The shared per-interaction telemetry helper used by every surface."""
 
     def _install_stub(self, monkeypatch, record):
-        import kiro_crew.platform as platform
+        import junction.platform as platform
 
         telemetry = MagicMock()
         telemetry.record_event = record

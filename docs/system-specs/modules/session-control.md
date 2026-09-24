@@ -9,7 +9,7 @@ has spent an hour on a PR cannot tell whether the session watching the build has
 finished, and today the only way to find out is for the human to switch tabs and
 look. Session control lets the session ask directly.
 
-Three MCP tools on `kirocrew-dashboard`, three strict-internal routes, one config
+Three MCP tools on `junction-dashboard`, three strict-internal routes, one config
 switch. Every route is on `_STRICT_INTERNAL_API_PATHS`; an unlisted one is
 unreachable in production because the caller's `X-Internal-Secret` is ignored.
 
@@ -44,7 +44,7 @@ hand -- new tab, retype the title, pick the agent -- and the two observation ver
 have nothing to point at that the agent itself put there. It deliberately does
 NOT seed a first message: that would be delivery.
 
-`kirocrew-dashboard` rather than `kirocrew-core`, because these tools are not a
+`junction-dashboard` rather than `junction-core`, because these tools are not a
 capability every session should carry. That server is an **assignable set**: it
 is absent from the default agent's spec and loads only for an agent whose own
 spec references it, so an ordinary session spends no context on tools it will
@@ -114,7 +114,7 @@ The routes are **strict-internal** (`_STRICT_INTERNAL_API_PATHS`): loopback plus
 are the entry point to opening, stopping, and reading another live conversation —
 a cookie path there would be a new authorization surface rather than a
 convenience. The MCP process holds the secret; an agent's own sandbox does not
-(`KIROCREW_INTERNAL_SECRET` is stripped from agent env), which is why these are
+(`JUNCTION_INTERNAL_SECRET` is stripped from agent env), which is why these are
 tools rather than something an agent can curl.
 
 Each handler **re-asserts** `request["internal_auth"] is True` rather than
@@ -128,7 +128,7 @@ check closes the cookie path, the app-token path, and the non-loopback
 reclassification together. The same reasoning is why
 `/api/computer-use/frame` re-asserts it.
 
-The config read fails **closed**: `KiroCrewConfig.load()` raising resolves to
+The config read fails **closed**: `JunctionConfig.load()` raising resolves to
 disabled, which is also the field's own default, so neither a malformed unrelated
 section nor a missing setting can produce cross-session reach.
 
@@ -181,7 +181,7 @@ refuse with a message naming the switch, so an agent that has not been granted i
 reports why rather than failing silently.
 
 Default-off is the deliberate part. The three tools ride on the existing
-assignable `kirocrew-dashboard` server rather than a new one, so an operator who
+assignable `junction-dashboard` server rather than a new one, so an operator who
 had already assigned that server to an agent for folder organization would
 otherwise find that agent able to read peer transcripts and stop peer turns purely
 by upgrading. Every target is still one of the user's own sessions on their own

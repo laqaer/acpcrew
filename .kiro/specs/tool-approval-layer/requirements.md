@@ -2,8 +2,8 @@
 
 ## Introduction
 
-Kiro Crew already intercepts every agent tool call before it executes. The backend
-`HookManager.on_tool_call` gate (`src/kiro_crew/hooks.py`) classifies each PreToolUse
+Junction already intercepts every agent tool call before it executes. The backend
+`HookManager.on_tool_call` gate (`src/junction/hooks.py`) classifies each PreToolUse
 event as `TOOL_ALLOW`, `TOOL_AUTO_APPROVE`, or `TOOL_DENY` — enforcing sensitive-path,
 exfiltration, write-protected-config, deny-by-default-shell, and governance rules
 *before* the tool runs. When a call is neither auto-approved nor denied, the frontend
@@ -12,7 +12,7 @@ operator approves or rejects, and the decision flows back through
 `onApprove(decision, pattern?)` → `api.approveChatSlot(slot, action, extra)`
 (`ChatInput.tsx`) to resume the paused turn.
 
-This is Kiro Crew's **batch-approve + inline tool-request preview** differentiator: a
+This is Junction's **batch-approve + inline tool-request preview** differentiator: a
 verification checkpoint that sits between an autonomous agent and any consequential
 action. The trust story is that delegation is safe *because* interception is always
 running — the operator can intervene with full context instead of crossing their fingers.
@@ -21,7 +21,7 @@ The **Tool-Approval Layer** formalizes that capability as a **portable pattern**
 intercept a tool call before execution, render an approval card via generative UI,
 resume on the operator's click. It is expressed against the Vercel AI SDK's tool-call
 lifecycle (`UIToolInvocation` states and interrupted tool execution + client resume) so
-the same shape lands in any AI-SDK app, not only Kiro Crew's dashboard.
+the same shape lands in any AI-SDK app, not only Junction's dashboard.
 
 Scope is the interception → render → resume loop and its contracts. It is NOT a rewrite
 of the existing `on_tool_call` security gate (that gate remains the enforcement authority),
@@ -80,13 +80,13 @@ several pending calls at once, so that supervision scales past one-click-per-cal
 ### Requirement 5 — Portable AI-SDK lifecycle mapping
 
 **User Story:** As an app author on the Vercel AI SDK, I want this approval loop expressed
-in AI-SDK terms, so that I can adopt the pattern in my own app without Kiro Crew internals.
+in AI-SDK terms, so that I can adopt the pattern in my own app without Junction internals.
 
 #### Acceptance Criteria
 1. WHEN the layer models a tool call's state THEN it SHALL map to the AI-SDK `UIToolInvocation` lifecycle union (`input-streaming` | `input-available` | `output-available` | `output-error`) as the component-internal state model.
 2. WHERE the AI SDK exposes an interruption/resume seam (a tool whose execution is interrupted pending client input, resumed via `addToolResult`/a continued stream) THE layer's resume step SHALL be documented against that seam so a non-Kiro-Crew app can wire the same intercept → render → resume loop.
 3. WHEN the pattern is documented THEN it SHALL state explicitly which parts are Kiro-Crew-specific (the `on_tool_call` gate, `approveChatSlot`) and which are the portable shape (intercept before execute, render a card from the invocation state, resume on decision), so an adopter substitutes their own enforcement and transport without misreading the boundary.
-4. WHERE Kiro Crew's transport differs from AI-SDK's typed part stream THE mapping SHALL NOT claim a wire-format equivalence that does not exist — the AI-SDK lifecycle union is reused as a state model, not as a transport claim (consistent with the App Builder Kit tool-view encoding).
+4. WHERE Junction's transport differs from AI-SDK's typed part stream THE mapping SHALL NOT claim a wire-format equivalence that does not exist — the AI-SDK lifecycle union is reused as a state model, not as a transport claim (consistent with the App Builder Kit tool-view encoding).
 
 ### Requirement 6 — Enforcement authority is unchanged
 

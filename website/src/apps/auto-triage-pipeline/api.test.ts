@@ -708,7 +708,7 @@ describe('autoTriagePipelineFoldApi.itemSessions', () => {
           {
             slot: 'slot-c',
             model: 'sonnet',
-            agent: 'kirocrew',
+            agent: 'junction',
             surface: 'cron',
             current: true,
             startedAt: 1_700_000_100,

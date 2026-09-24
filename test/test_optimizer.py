@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.dashboard.handlers.optimizer import (
+from junction.dashboard.handlers.optimizer import (
     OPTIMIZER_SYSTEM,
     handle_optimize,
 )
-from kiro_crew.kiro_prerequisite import KiroPrerequisiteService
+from junction.kiro_prerequisite import KiroPrerequisiteService
 
 
 class _ReadyKiroPrerequisiteService(KiroPrerequisiteService):
@@ -113,7 +113,7 @@ class TestOptimizerEndpoint:
 
     @pytest.mark.asyncio
     async def test_unchanged_response_from_llm(self):
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         mock_client = AsyncMock()
 
@@ -143,7 +143,7 @@ class TestOptimizerEndpoint:
 
     @pytest.mark.asyncio
     async def test_optimized_response_from_llm(self):
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         mock_client = AsyncMock()
         optimized_text = (
@@ -177,7 +177,7 @@ class TestOptimizerEndpoint:
     @pytest.mark.asyncio
     async def test_short_prompt_still_optimized(self):
         """Explicit user action means even short prompts get optimized."""
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         mock_client = AsyncMock()
 
@@ -224,7 +224,7 @@ class TestOptimizerEndpoint:
 
     @pytest.mark.asyncio
     async def test_quoted_response_stripped(self):
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         mock_client = AsyncMock()
 
@@ -251,7 +251,7 @@ class TestOptimizerEndpoint:
 
     @pytest.mark.asyncio
     async def test_context_truncated_to_2000_chars(self):
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
         mock_client = AsyncMock()
         captured_prompt = []
@@ -289,7 +289,7 @@ class TestOptimizerEndpoint:
 def _paste_mock_state(captured_prompt, reply_text):
     """Build a mocked DashboardState whose optimizer session streams reply_text
     and records the full prompt it was handed into captured_prompt."""
-    from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
+    from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK
 
     mock_client = AsyncMock()
 
@@ -311,7 +311,7 @@ class TestPasteSeqs:
     """Placeholder-seq extraction from draft/rewrite text."""
 
     def test_extracts_seq_numbers(self):
-        from kiro_crew.dashboard.handlers.optimizer import _paste_seqs
+        from junction.dashboard.handlers.optimizer import _paste_seqs
 
         assert _paste_seqs("look at [ Paste #1 · 40 lines ] and [ Paste #2 · 3 lines ]") == {
             "1",
@@ -319,7 +319,7 @@ class TestPasteSeqs:
         }
 
     def test_empty_when_no_placeholders(self):
-        from kiro_crew.dashboard.handlers.optimizer import _paste_seqs
+        from junction.dashboard.handlers.optimizer import _paste_seqs
 
         assert _paste_seqs("no pastes here") == set()
 
@@ -328,7 +328,7 @@ class TestBuildPastedContentBlock:
     """`<pasted_content-nonce>` block construction + budgeting."""
 
     def test_includes_only_referenced_blocks(self):
-        from kiro_crew.dashboard.handlers.optimizer import _build_pasted_content_block
+        from junction.dashboard.handlers.optimizer import _build_pasted_content_block
 
         pastes = [{"seq": 1, "content": "AAA"}, {"seq": 2, "content": "BBB"}]
         block = _build_pasted_content_block(pastes, {"1"}, "abc123")
@@ -338,17 +338,17 @@ class TestBuildPastedContentBlock:
         assert block.rstrip().endswith("</pasted_content-abc123>")
 
     def test_empty_when_nothing_referenced(self):
-        from kiro_crew.dashboard.handlers.optimizer import _build_pasted_content_block
+        from junction.dashboard.handlers.optimizer import _build_pasted_content_block
 
         assert _build_pasted_content_block([{"seq": 1, "content": "AAA"}], set(), "n") == ""
 
     def test_empty_on_malformed_input(self):
-        from kiro_crew.dashboard.handlers.optimizer import _build_pasted_content_block
+        from junction.dashboard.handlers.optimizer import _build_pasted_content_block
 
         assert _build_pasted_content_block("not a list", {"1"}, "n") == ""
 
     def test_truncates_over_budget(self):
-        from kiro_crew.dashboard.handlers.optimizer import (
+        from junction.dashboard.handlers.optimizer import (
             _PASTE_CONTENT_BUDGET,
             _build_pasted_content_block,
         )

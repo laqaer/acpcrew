@@ -29,7 +29,7 @@ directory is the license text, and the same text is reproduced under
 "Bundled Fonts" in THIRD-PARTY-NOTICES.
 
 The macOS computer-use feature's optional background-window click path
-(src/kiro_crew/computer_use/macos_skylight.py) uses undocumented macOS
+(src/junction/computer_use/macos_skylight.py) uses undocumented macOS
 window-server interfaces. The symbol declarations and the event-field
 recipe are derived from prior MIT-licensed open-source projects that
 reverse-engineered that path. No third-party code is copied; the

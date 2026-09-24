@@ -3,7 +3,7 @@
 Covers the wire contract of ``/api/mcp/discover`` (+ ``/detail`` and
 ``/install``): the short-query availability probe, installed cross-ref,
 provider-string redaction, the install write path (spec lands in the
-KiroCrew scope, SEL-logged), and every documented error status.
+Junction scope, SEL-logged), and every documented error status.
 
 Providers are faked end-to-end — no network, no edition capability manager.
 """
@@ -19,7 +19,7 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.mcp_providers.base import (
+from junction.mcp_providers.base import (
     McpInstallPlan,
     McpSearchResult,
     McpServerDetail,
@@ -107,7 +107,7 @@ def _search_result(**overrides) -> McpSearchResult:
 def fake_home(tmp_path, monkeypatch):
     """Pin $HOME to tmp_path so all config paths resolve into a sandbox."""
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.delenv("KIROCREW_HOME", raising=False)
+    monkeypatch.delenv("JUNCTION_HOME", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     return tmp_path
 
@@ -120,24 +120,24 @@ def sandbox(fake_home, monkeypatch):
     patching Path.home alone is not enough. Also stubs list_servers (the
     installed cross-ref source) and rebuild_agent_config (post-install).
     """
-    from kiro_crew.dashboard.handlers import mcp as mcp_mod
+    from junction.dashboard.handlers import mcp as mcp_mod
 
-    monkeypatch.setattr(mcp_mod, "_KIROCREW_MCP_JSON", fake_home / "kirocrew.mcp.json")
+    monkeypatch.setattr(mcp_mod, "_JUNCTION_MCP_JSON", fake_home / "junction.mcp.json")
     monkeypatch.setattr(mcp_mod, "_GLOBAL_MCP_JSON", fake_home / "kiro.mcp.json")
     monkeypatch.setattr(mcp_mod, "_MCP_LOCK_PATH", fake_home / "kiro.mcp.lock")
 
-    import kiro_crew.mcp_discovery as discovery_mod
+    import junction.mcp_discovery as discovery_mod
 
     monkeypatch.setattr(discovery_mod, "list_servers", lambda: [])
 
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     rebuild = MagicMock()
     monkeypatch.setattr(agent_mod, "rebuild_agent_config", rebuild)
 
     return SimpleNamespace(
         home=fake_home,
-        kirocrew_json=fake_home / "kirocrew.mcp.json",
+        junction_json=fake_home / "junction.mcp.json",
         discovery_mod=discovery_mod,
         rebuild=rebuild,
         mcp_mod=mcp_mod,
@@ -147,7 +147,7 @@ def sandbox(fake_home, monkeypatch):
 @pytest.fixture
 def fake_sel(monkeypatch):
     """Capture SEL calls made by the discover handlers."""
-    from kiro_crew.dashboard.handlers import mcp_discover as mod
+    from junction.dashboard.handlers import mcp_discover as mod
 
     instance = MagicMock()
     monkeypatch.setattr(mod, "sel", lambda: instance)
@@ -155,7 +155,7 @@ def fake_sel(monkeypatch):
 
 
 def _make_app(provider) -> web.Application:
-    from kiro_crew.dashboard.handlers import mcp_discover as mod
+    from junction.dashboard.handlers import mcp_discover as mod
 
     registry = ProviderRegistry()
     registry.register(provider)
@@ -173,7 +173,7 @@ def _make_app(provider) -> web.Application:
 @pytest.fixture
 def reset_registry():
     """Restore the module-level registry singleton after each test."""
-    from kiro_crew.dashboard.handlers import mcp_discover as mod
+    from junction.dashboard.handlers import mcp_discover as mod
 
     old = mod._registry
     yield
@@ -411,10 +411,10 @@ class TestDiscoverInstall:
                 "method": "npx",
                 "enabled": False,
             }
-            # The translated spec landed in the KiroCrew scope — DISABLED,
+            # The translated spec landed in the Junction scope — DISABLED,
             # because required env is unset: enabling after configuration is
             # the user's informed-consent step (review finding).
-            written = json.loads(sandbox.kirocrew_json.read_text(encoding="utf-8"))
+            written = json.loads(sandbox.junction_json.read_text(encoding="utf-8"))
             assert written["mcpServers"]["weather"] == {
                 "command": "npx",
                 "args": ["-y", "@acme/weather-mcp@1.2.3"],
@@ -454,7 +454,7 @@ class TestDiscoverInstall:
             )
             assert resp.status == 200
             assert (await resp.json())["enabled"] is False
-            written = json.loads(sandbox.kirocrew_json.read_text(encoding="utf-8"))
+            written = json.loads(sandbox.junction_json.read_text(encoding="utf-8"))
             assert written["mcpServers"]["weather"]["disabled"] is True
         finally:
             await client.close()
@@ -462,7 +462,7 @@ class TestDiscoverInstall:
     async def test_reinstall_preserves_user_enabled_state(self, sandbox, fake_sel, reset_registry):
         """A user who configured env and enabled the server must not be
         flipped back to disabled by an idempotent reinstall click."""
-        sandbox.kirocrew_json.write_text(
+        sandbox.junction_json.write_text(
             json.dumps(
                 {
                     "mcpServers": {
@@ -483,13 +483,13 @@ class TestDiscoverInstall:
             )
             assert resp.status == 200
             assert (await resp.json())["enabled"] is True
-            written = json.loads(sandbox.kirocrew_json.read_text(encoding="utf-8"))
+            written = json.loads(sandbox.junction_json.read_text(encoding="utf-8"))
             assert "disabled" not in written["mcpServers"]["weather"]
         finally:
             await client.close()
 
     async def test_reinstall_same_spec_is_idempotent(self, sandbox, fake_sel, reset_registry):
-        sandbox.kirocrew_json.write_text(
+        sandbox.junction_json.write_text(
             json.dumps(
                 {
                     "mcpServers": {
@@ -510,7 +510,7 @@ class TestDiscoverInstall:
             )
             assert resp.status == 200
             # User's filled env value survives the reinstall no-op.
-            written = json.loads(sandbox.kirocrew_json.read_text(encoding="utf-8"))
+            written = json.loads(sandbox.junction_json.read_text(encoding="utf-8"))
             assert written["mcpServers"]["weather"]["env"] == {
                 "WEATHER_API_KEY": "user-filled-value"
             }
@@ -518,7 +518,7 @@ class TestDiscoverInstall:
             await client.close()
 
     async def test_name_collision_different_spec_409(self, sandbox, fake_sel, reset_registry):
-        sandbox.kirocrew_json.write_text(
+        sandbox.junction_json.write_text(
             json.dumps({"mcpServers": {"weather": {"command": "uvx", "args": ["other"]}}})
         )
         client = await _client(FakeOfficialProvider())
@@ -530,7 +530,7 @@ class TestDiscoverInstall:
             assert resp.status == 409
             assert (await resp.json())["error"] == "name already in use"
             # The existing spec was NOT clobbered.
-            written = json.loads(sandbox.kirocrew_json.read_text(encoding="utf-8"))
+            written = json.loads(sandbox.junction_json.read_text(encoding="utf-8"))
             assert written["mcpServers"]["weather"]["command"] == "uvx"
         finally:
             await client.close()
@@ -598,8 +598,8 @@ class TestDiscoverInstall:
     async def test_capability_install_delegates_to_manager(
         self, sandbox, fake_sel, reset_registry, monkeypatch
     ):
-        from kiro_crew.dashboard.handlers import _shared as shared_mod
-        from kiro_crew.platform.interfaces import CapabilityResult
+        from junction.dashboard.handlers import _shared as shared_mod
+        from junction.platform.interfaces import CapabilityResult
 
         install_calls: list[str] = []
 
@@ -616,7 +616,7 @@ class TestDiscoverInstall:
 
         monkeypatch.setattr(shared_mod, "_capability_manager", lambda: _FakeManager())
         # The handler resolves the manager through its own lazy import site too.
-        from kiro_crew.dashboard.handlers import mcp_discover as mod
+        from junction.dashboard.handlers import mcp_discover as mod
 
         synced: list[tuple] = []
         monkeypatch.setattr(

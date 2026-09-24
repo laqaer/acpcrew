@@ -43,7 +43,7 @@ const SERVERS = {
       can_stub: true,
       in_allowlist: false,
       entry_poolable: false,
-      agents: ['kirocrew'],
+      agents: ['junction'],
       transport: 'stdio',
       denylisted: false,
     },

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from kiro_crew.config.loader import _sanitize_bot_name
+from junction.config.loader import _sanitize_bot_name
 
 
 class TestSanitizeBotName:
@@ -30,27 +30,27 @@ class TestSanitizeBotName:
 
 class TestBotNameSubstitution:
     def test_custom_name_substituted(self):
-        from kiro_crew.context import ContextBuilder
+        from junction.context import ContextBuilder
 
         ctx = ContextBuilder(bot_name="Alita")
         assert ctx._substitute_bot_name("You are {bot_name} 🐾") == "You are Alita 🐾"
 
     def test_empty_defaults_from_config(self):
-        from kiro_crew.context import ContextBuilder
+        from junction.context import ContextBuilder
 
         # When no custom name is set, the prompt uses the product name.
         ctx = ContextBuilder(bot_name="")
         assert ctx._substitute_bot_name("You are {bot_name}.") == "You are Junction."
 
     def test_no_placeholder_is_noop(self):
-        from kiro_crew.context import ContextBuilder
+        from junction.context import ContextBuilder
 
         ctx = ContextBuilder(bot_name="Alita")
         assert ctx._substitute_bot_name("No placeholder here.") == "No placeholder here."
 
     def test_self_referential_no_recursion(self):
         """bot_name containing {bot_name} — braces stripped by sanitizer."""
-        from kiro_crew.context import ContextBuilder
+        from junction.context import ContextBuilder
 
         name = _sanitize_bot_name("{bot_name}")
         ctx = ContextBuilder(bot_name=name)

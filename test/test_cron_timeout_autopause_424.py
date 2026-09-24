@@ -13,8 +13,8 @@ import asyncio
 
 import pytest
 
-from kiro_crew import cron as cron_mod
-from kiro_crew.cron import _AUTO_PAUSE_THRESHOLD, CronJob, CronService
+from junction import cron as cron_mod
+from junction.cron import _AUTO_PAUSE_THRESHOLD, CronJob, CronService
 
 
 @pytest.mark.asyncio

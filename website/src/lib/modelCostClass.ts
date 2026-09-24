@@ -1,7 +1,7 @@
 /**
  * Cost-class classifier for Settings role pickers.
  *
- * Mirrors `classify_cost` in `src/kiro_crew/model_router/routing.py` so the
+ * Mirrors `classify_cost` in `src/junction/model_router/routing.py` so the
  * dashboard does not offer an opus id on an economy role. Keep the token sets
  * in lockstep with that module.
  */

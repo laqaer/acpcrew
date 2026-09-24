@@ -226,7 +226,7 @@ export const EXEMPT_CONFIRM_PLACEHOLDER_NAMES = new Set([
 export const CONFIRM_OPERAND_KEY_EXEMPTIONS: Record<string, string> = {
   'pages.agentsPage.delete_the_template_named_confirm':
     'kind word "template" sits next to the operand (#4657)',
-  'pages.kiroCrewAgentsPage.delete_crew_named_confirm':
+  'pages.junctionAgentsPage.delete_crew_named_confirm':
     'kind word "crew" sits next to the operand (#4657)',
 }
 

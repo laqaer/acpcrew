@@ -77,17 +77,17 @@ const withAlpha = (cssVar) => ({ opacityValue }) =>
 
 /**
  * Content sources. The core app is always scanned. When a downstream edition is
- * composed through the `KIROCREW_EDITION_DIR` seam (see `editionExtensionPlugin`
+ * composed through the `JUNCTION_EDITION_DIR` seam (see `editionExtensionPlugin`
  * in vite.config.ts), the edition's OWN sources must be scanned too — otherwise
  * any utility class used only by edition components (e.g. `z-[95]`) is silently
  * absent from the generated stylesheet, and the edition UI renders unstyled with
- * no build error. Gated on the same `KIROCREW_ALLOW_EDITION=1` opt-in as the
+ * no build error. Gated on the same `JUNCTION_ALLOW_EDITION=1` opt-in as the
  * vite plugin (which fails the build on a dir without the opt-in), so a stray
  * env var can never widen the scan of a stock build.
  */
 const content = ['./index.html', './src/**/*.{ts,tsx}']
-if (process.env.KIROCREW_EDITION_DIR && process.env.KIROCREW_ALLOW_EDITION === '1') {
-  content.push(`${process.env.KIROCREW_EDITION_DIR}/**/*.{ts,tsx}`)
+if (process.env.JUNCTION_EDITION_DIR && process.env.JUNCTION_ALLOW_EDITION === '1') {
+  content.push(`${process.env.JUNCTION_EDITION_DIR}/**/*.{ts,tsx}`)
 }
 
 export default {

@@ -15,9 +15,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.task_models import Project, Task
-from kiro_crew.task_planner import update_plan_tasks
-from kiro_crew.taskrunner import Step, StepStatus, TaskRun, TaskRunner
+from junction.task_models import Project, Task
+from junction.task_planner import update_plan_tasks
+from junction.taskrunner import Step, StepStatus, TaskRun, TaskRunner
 
 # ── Helpers ──
 
@@ -42,7 +42,7 @@ def _mock_sessions() -> MagicMock:
 
 
 def _make_provider(text: str = "done"):
-    from kiro_crew.providers.base import LLMEvent
+    from junction.providers.base import LLMEvent
 
     provider = MagicMock()
 

@@ -133,7 +133,7 @@ test("a failed install re-arms gateway recovery", () => {
 test("updater init failure cannot gate gateway startup (fail-open)", () => {
   // GPT round-4 finding: the registration reorder put initAutoUpdate BEFORE the
   // awaited gateway boot, so an init-time throw (e.g. malformed
-  // KIROCREW_UPDATE_FEED reaching a URL parse) would abort the ready handler
+  // JUNCTION_UPDATE_FEED reaching a URL parse) would abort the ready handler
   // and leave the app unusable -- strictly worse than a broken updater.
   assert.match(
     SRC,

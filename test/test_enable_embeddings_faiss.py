@@ -19,11 +19,11 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-import kiro_crew.dashboard.handlers.memory as mem_mod
-from kiro_crew.embeddings import DOWNLOAD_ATTEMPTS_INTERACTIVE
+import junction.dashboard.handlers.memory as mem_mod
+from junction.embeddings import DOWNLOAD_ATTEMPTS_INTERACTIVE
 
-_MOD = "kiro_crew.dashboard.handlers.memory"
-_EMB = "kiro_crew.embeddings"
+_MOD = "junction.dashboard.handlers.memory"
+_EMB = "junction.embeddings"
 
 
 def _make_app() -> web.Application:
@@ -69,7 +69,7 @@ def _common_patches(cfg_path, faiss_available=False, proc_rc=0, proc_stderr=b"",
     patches = {
         "mgr": patch(f"{_MOD}.model_download_manager", return_value=mgr),
         "model_present": patch(f"{_MOD}.model_file_present", return_value=model_present),
-        "cfg_load": patch(f"{_MOD}.KiroCrewConfig.load", return_value=MagicMock()),
+        "cfg_load": patch(f"{_MOD}.JunctionConfig.load", return_value=MagicMock()),
         "cfg_path": patch(f"{_MOD}.config_path", return_value=cfg_path),
         "subprocess": patch("asyncio.create_subprocess_exec", return_value=proc),
         "embed_fn": patch(f"{_MOD}.make_sync_embed_fn", return_value=lambda t: [0.0]),
@@ -85,7 +85,7 @@ def _common_patches(cfg_path, faiss_available=False, proc_rc=0, proc_stderr=b"",
 class TestFaissInstallSuccess:
     @pytest.mark.asyncio
     async def test_pip_install_runs_when_faiss_missing(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=False, proc_rc=0)
 
@@ -109,7 +109,7 @@ class TestFaissInstallSuccess:
 class TestFaissInstallFailure:
     @pytest.mark.asyncio
     async def test_returns_500_and_resets_status(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(
             cfg_path, faiss_available=False, proc_rc=1, proc_stderr=b"No matching distribution"
@@ -131,7 +131,7 @@ class TestFaissInstallFailure:
 class TestFaissAlreadyInstalled:
     @pytest.mark.asyncio
     async def test_skips_pip_when_faiss_importable(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=True)
 
@@ -155,9 +155,9 @@ class TestFaissSandboxUnavailableDoesNotWedge:
 
     @pytest.mark.asyncio
     async def test_returns_200_and_status_not_wedged(self, tmp_path: Path) -> None:
-        from kiro_crew.sandbox import SandboxUnavailableError
+        from junction.sandbox import SandboxUnavailableError
 
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=False)
 
@@ -194,7 +194,7 @@ class TestModelDownloadFlow:
 
     @pytest.mark.asyncio
     async def test_downloads_model_when_absent(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(
             cfg_path, faiss_available=True, model_present=False, ensure_ok=True
@@ -228,7 +228,7 @@ class TestModelDownloadFlow:
     @pytest.mark.asyncio
     async def test_download_in_flight_returns_without_new_task(self, tmp_path: Path) -> None:
         """A download already in flight is adopted — no second ensure_model task."""
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(
             cfg_path, faiss_available=True, model_present=False, ensure_ok=True
@@ -254,7 +254,7 @@ class TestModelDownloadFlow:
 class TestLoadFaissIndexCalled:
     @pytest.mark.asyncio
     async def test_called_after_successful_setup(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=True)
 
@@ -269,7 +269,7 @@ class TestLoadFaissIndexCalled:
 
     @pytest.mark.asyncio
     async def test_persists_llama_cpp_provider(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=True)
 
@@ -289,7 +289,7 @@ class TestLoadFaissIndexCalled:
 class TestLoadFaissIndexFailure:
     @pytest.mark.asyncio
     async def test_returns_500_when_load_faiss_raises(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=True)
         store.load_faiss_index.side_effect = RuntimeError("corrupted index")
@@ -310,7 +310,7 @@ class TestLoadFaissIndexFailure:
 class TestFaissInstallTimeout:
     @pytest.mark.asyncio
     async def test_returns_500_on_timeout(self, tmp_path: Path) -> None:
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         patches, store, proc, mgr = _common_patches(cfg_path, faiss_available=False, proc_rc=0)
         proc.kill = MagicMock()
@@ -354,7 +354,7 @@ class TestEmbeddingStatusEndpoint:
         mgr = MagicMock()
         mgr.status = {"step": "downloading", "error": "", "attempt": 2}
 
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=cfg), \
+        with patch("junction.config.loader.JunctionConfig.load", return_value=cfg), \
              patch(f"{_MOD}.get_shared_embedder", return_value=embedder), \
              patch(f"{_MOD}.model_download_manager", return_value=mgr), \
              patch(f"{_MOD}.model_file_present", return_value=False):
@@ -365,7 +365,7 @@ class TestEmbeddingStatusEndpoint:
 
         assert body["enabled"] is True
         # Legacy token: the shipped frontend hard-checks provider === "ollama"
-        # to render the healthy state; kept until KiroCrewWebsite ships its
+        # to render the healthy state; kept until JunctionWebsite ships its
         # companion change.
         assert body["provider"] == "ollama"
         assert body["model_available"] is False
@@ -395,7 +395,7 @@ class TestEmbeddingStatusEndpoint:
         mgr = MagicMock()
         mgr.status = {"step": "failed", "error": "sha256 mismatch", "attempt": 6}
 
-        with patch("kiro_crew.config.loader.KiroCrewConfig.load", return_value=cfg), \
+        with patch("junction.config.loader.JunctionConfig.load", return_value=cfg), \
              patch(f"{_MOD}.get_shared_embedder", return_value=embedder), \
              patch(f"{_MOD}.model_download_manager", return_value=mgr), \
              patch(f"{_MOD}.model_file_present", return_value=False):
@@ -457,7 +457,7 @@ class TestEnsurePipBootstrap:
     async def test_enable_returns_500_when_pip_bootstrap_fails(self, tmp_path: Path) -> None:
         # End-to-end: faiss missing AND pip bootstrap fails -> handler 500s
         # before attempting the faiss install, with status reset to idle.
-        cfg_path = tmp_path / "kirocrew.json"
+        cfg_path = tmp_path / "junction.json"
         cfg_path.write_text("{}", encoding="utf-8")
         # faiss_available=False, but do NOT inject a fake pip -> force the
         # bootstrap path; make ensurepip (the only subprocess) fail.
@@ -468,7 +468,7 @@ class TestEnsurePipBootstrap:
 
         with patch(f"{_MOD}.model_download_manager", return_value=_mock_mgr()), \
              patch(f"{_MOD}.model_file_present", return_value=True), \
-             patch(f"{_MOD}.KiroCrewConfig.load", return_value=MagicMock()), \
+             patch(f"{_MOD}.JunctionConfig.load", return_value=MagicMock()), \
              patch(f"{_MOD}.config_path", return_value=cfg_path), \
              patch("asyncio.create_subprocess_exec", return_value=proc), \
              patch.dict("sys.modules", {"faiss": None, "pip": None}), \

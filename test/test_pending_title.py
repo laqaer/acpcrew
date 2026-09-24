@@ -11,10 +11,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from kiro_crew.dashboard.chat_title import (
+from junction.dashboard.chat_title import (
     _fallback_title_from_messages,
 )
-from kiro_crew.dashboard.state import NEW_SESSION_TITLE, _ChatSlot
+from junction.dashboard.state import NEW_SESSION_TITLE, _ChatSlot
 
 
 def _fake_state():
@@ -112,7 +112,7 @@ class TestManualTitleFallback:
     def test_generation_failure_uses_sanitized_fallback(self):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         state = _fake_state()
         slot = _ChatSlot("chat-4-1783603256")
@@ -148,7 +148,7 @@ class TestManualTitleFallback:
     def test_attachment_only_failure_keeps_auto_title_unlocked(self):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         state = _fake_state()
         slot = _ChatSlot("chat-4-1783603257")
@@ -181,7 +181,7 @@ class TestAutoTitleInFlightGuard:
     def test_in_flight_guard_short_circuits(self):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         state = _fake_state()
         slot = _ChatSlot("chat-4-1783603256")
@@ -208,7 +208,7 @@ class TestAutoTitleInFlightGuard:
     def test_end_of_turn_retry_waits_for_send_time_attempt(self):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         async def _scenario():
             state = _fake_state()
@@ -256,7 +256,7 @@ class TestAutoTitleCancellation:
     def test_cancellation_does_not_start_pending_retry(self):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         async def _scenario():
             state = _fake_state()
@@ -302,7 +302,7 @@ class TestSkipFallbackBranch:
     def _run_with_skip(self, slot):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         state = _fake_state()
 
@@ -353,7 +353,7 @@ class TestAutoTitleRunsForEveryMemoryMode:
     def _run(self, slot, generated="Debug flaky test"):
         import asyncio
 
-        from kiro_crew.dashboard import chat_title
+        from junction.dashboard import chat_title
 
         state = _fake_state()
         attempts = []

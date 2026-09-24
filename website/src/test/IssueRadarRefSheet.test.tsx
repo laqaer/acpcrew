@@ -45,7 +45,7 @@ const RefMarkdown = (await import('../apps/issue-radar/components/RefMarkdown'))
 const RefSheet = (await import('../apps/issue-radar/components/RefSheet')).default
 
 const OWNER = 'kirodotdev'
-const REPO = 'KiroCrew'
+const REPO = 'Junction'
 
 function summary(over: Record<string, unknown> = {}) {
   return {

@@ -1,4 +1,4 @@
-"""Coverage tests for ``kiro_crew.dashboard.chat_runner``.
+"""Coverage tests for ``junction.dashboard.chat_runner``.
 
 The module's happy paths are well covered by the existing chat suites
 (``test_dashboard_approval``, ``test_dashboard_chat``, ``test_eager_spawn``,
@@ -33,19 +33,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from chat_test_helpers import _make_ready_kiro_prerequisite
 
-from kiro_crew.acp.types import (
+from junction.acp.types import (
     EVENT_COMPLETE,
     EVENT_PERMISSION_REQUEST,
     EVENT_TEXT_CHUNK,
     STOP_REASON_STALE_RECOVER,
     STOP_REASON_TOOL_STALL,
 )
-from kiro_crew.dashboard import chat_runner
-from kiro_crew.dashboard.state import DashboardState, _ChatSlot
-from kiro_crew.history import ConversationLog
-from kiro_crew.providers.base import LLMEvent
-from kiro_crew.security import oauth_url_contains_credential
-from kiro_crew.trust_patterns import canonical_non_shell_trust_key, exact_trust_pattern
+from junction.dashboard import chat_runner
+from junction.dashboard.state import DashboardState, _ChatSlot
+from junction.history import ConversationLog
+from junction.providers.base import LLMEvent
+from junction.security import oauth_url_contains_credential
+from junction.trust_patterns import canonical_non_shell_trust_key, exact_trust_pattern
 
 # ── Shared helpers ────────────────────────────────────────────────────────
 
@@ -600,13 +600,13 @@ class TestEmitMcpOauthRequest:
 
 class TestConnectionsManagedNames:
     def test_failure_fails_open_to_the_empty_set(self):
-        with patch.object(chat_runner, "kirocrew_managed_names", side_effect=RuntimeError("io")):
+        with patch.object(chat_runner, "junction_managed_names", side_effect=RuntimeError("io")):
             assert chat_runner._connections_managed_mcp_names() == frozenset()
 
     def test_intersection_of_managed_and_carded(self):
         with (
             patch.object(
-                chat_runner, "kirocrew_managed_names", return_value={"github", "handmade"}
+                chat_runner, "junction_managed_names", return_value={"github", "handmade"}
             ),
             patch.object(
                 chat_runner,
@@ -805,7 +805,7 @@ class TestChannelTargetLadder:
     def test_governance_denial_skips_the_mirror(self, tmp_path):
         link = MagicMock(channel_type="telegram", channel_id="123", thread_id=None)
         with patch(
-            "kiro_crew.platform.governance_profiles.vet_and_audit",
+            "junction.platform.governance_profiles.vet_and_audit",
             return_value=MagicMock(permitted=False),
         ):
             assert (
@@ -818,7 +818,7 @@ class TestChannelTargetLadder:
         link = MagicMock(channel_type="telegram", channel_id="123", thread_id=None)
 
         with patch(
-            "kiro_crew.platform.governance_profiles.vet_and_audit",
+            "junction.platform.governance_profiles.vet_and_audit",
             return_value=MagicMock(permitted=True),
         ):
             assert chat_runner._resolve_channel_target(state, "dashboard:x", link) is None
@@ -831,7 +831,7 @@ class TestChannelTargetLadder:
         link = MagicMock(channel_type="wecom", channel_id="123", thread_id=None)
 
         with patch(
-            "kiro_crew.platform.governance_profiles.vet_and_audit",
+            "junction.platform.governance_profiles.vet_and_audit",
             return_value=MagicMock(permitted=True),
         ):
             assert chat_runner._resolve_channel_target(state, "dashboard:x", link) is None
@@ -844,7 +844,7 @@ class TestChannelTargetLadder:
         link = MagicMock(channel_type="telegram", channel_id="123", thread_id=None)
 
         with patch(
-            "kiro_crew.platform.governance_profiles.vet_and_audit",
+            "junction.platform.governance_profiles.vet_and_audit",
             return_value=MagicMock(permitted=True),
         ):
             got = chat_runner._resolve_channel_target(state, "dashboard:x", link)
@@ -1242,13 +1242,13 @@ class TestScheduleEagerSpawn:
         cfg = MagicMock()
         cfg.session.eager_spawn = False
 
-        with patch.object(chat_runner.KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(chat_runner.JunctionConfig, "load", return_value=cfg):
             assert chat_runner.schedule_eager_spawn(state, slot) is None
 
     def test_config_load_failure_returns_no_task(self, tmp_path):
         state, slot = _state(tmp_path), _slot()
 
-        with patch.object(chat_runner.KiroCrewConfig, "load", side_effect=RuntimeError("bad toml")):
+        with patch.object(chat_runner.JunctionConfig, "load", side_effect=RuntimeError("bad toml")):
             assert chat_runner.schedule_eager_spawn(state, slot) is None
 
     @pytest.mark.asyncio
@@ -1258,7 +1258,7 @@ class TestScheduleEagerSpawn:
         cfg.session.eager_spawn = True
 
         with (
-            patch.object(chat_runner.KiroCrewConfig, "load", return_value=cfg),
+            patch.object(chat_runner.JunctionConfig, "load", return_value=cfg),
             patch.object(chat_runner, "_eager_spawn", new=AsyncMock()),
         ):
             first = chat_runner.schedule_eager_spawn(state, slot)
@@ -1440,7 +1440,7 @@ class TestStartNextQueuedTurn:
         state.subagents = None
 
         with (
-            patch.object(chat_runner.KiroCrewConfig, "load", side_effect=RuntimeError("bad toml")),
+            patch.object(chat_runner.JunctionConfig, "load", side_effect=RuntimeError("bad toml")),
             patch.object(chat_runner, "spawn_guarded_turn", return_value=MagicMock()) as spawn,
             patch.object(chat_runner, "_run_chat", return_value=MagicMock()),
         ):
@@ -1657,7 +1657,7 @@ class TestRunPendingSynthesis:
         carve-out keyed on it swallowed every restored cron notification. Assert
         the durable channel directly rather than trusting the live shape.
         """
-        from kiro_crew.dashboard.chat_persistence import _build_message_entry_uncached
+        from junction.dashboard.chat_persistence import _build_message_entry_uncached
 
         cron_cls = json.dumps({"cronLabel": "nightly-audit"})
         entry = _build_message_entry_uncached(
@@ -1820,12 +1820,12 @@ class TestFinishQueueCycle:
 
 class TestTtftMetric:
     def test_emission_failure_is_swallowed(self):
-        with patch("kiro_crew.metrics.provider.get_recorder", side_effect=RuntimeError("down")):
+        with patch("junction.metrics.provider.get_recorder", side_effect=RuntimeError("down")):
             chat_runner._emit_ttft_metric(0.0, "dashboard:x", is_new=True, resumed=False)
 
     def test_attributes_split_cold_and_resumed_populations(self):
         recorder = MagicMock()
-        with patch("kiro_crew.metrics.provider.get_recorder", return_value=recorder):
+        with patch("junction.metrics.provider.get_recorder", return_value=recorder):
             chat_runner._emit_ttft_metric(0.0, "dashboard:x", is_new=True, resumed=True)
 
         attrs = recorder.histogram.call_args.kwargs["attrs"]
@@ -2540,7 +2540,7 @@ class TestRunChatAutoApproveRungs:
 
     @pytest.mark.asyncio
     async def test_browser_cli_presence_does_not_skip_shell_approval(self, tmp_path, monkeypatch):
-        from kiro_crew.browser_cli import install
+        from junction.browser_cli import install
 
         state, client = _runner_state(tmp_path)
         slot = _slot()
@@ -2908,7 +2908,7 @@ class TestAppAgentDispatchGuard:
         slot._app = "myapp"
         slot.agent = "my-app-agent"
 
-        cold = _bindings(kiro_agent="kirocrew", resolved_alias="default", requested_resolved=False)
+        cold = _bindings(kiro_agent="junction", resolved_alias="default", requested_resolved=False)
         warm = _bindings(
             kiro_agent="my-app-agent",
             resolved_alias="my-app-agent",
@@ -2944,7 +2944,7 @@ class TestAppAgentDispatchGuard:
         slot._app = "myapp"
         slot.agent = "my-app-agent"
 
-        cold = _bindings(kiro_agent="kirocrew", resolved_alias="default", requested_resolved=False)
+        cold = _bindings(kiro_agent="junction", resolved_alias="default", requested_resolved=False)
         warm = _bindings(
             kiro_agent="my-app-agent",
             resolved_alias="my-app-agent",
@@ -2957,8 +2957,8 @@ class TestAppAgentDispatchGuard:
                 chat_runner, "resolve_agent_bindings", side_effect=[cold, cold, warm]
             ) as resolve,
             patch.object(chat_runner, "refresh_materialized_agents", refresh),
-            patch("kiro_crew.apps.bridges.register_app", reregister),
-            patch("kiro_crew.apps.manager.is_app_enabled", MagicMock(return_value=True)),
+            patch("junction.apps.bridges.register_app", reregister),
+            patch("junction.apps.manager.is_app_enabled", MagicMock(return_value=True)),
             patch.object(chat_runner, "subprocess_executor", MagicMock(return_value=None)),
             patch.object(chat_runner, "warm_project_agent_names", new=AsyncMock()),
         ):
@@ -2981,7 +2981,7 @@ class TestAppAgentDispatchGuard:
         slot._app = "myapp"
         slot.agent = "my-app-agent"
 
-        cold = _bindings(kiro_agent="kirocrew", resolved_alias="default", requested_resolved=False)
+        cold = _bindings(kiro_agent="junction", resolved_alias="default", requested_resolved=False)
         refresh = MagicMock()
         reregister = MagicMock(return_value=[])
         with (
@@ -2989,8 +2989,8 @@ class TestAppAgentDispatchGuard:
                 chat_runner, "resolve_agent_bindings", side_effect=[cold, cold, cold]
             ) as resolve,
             patch.object(chat_runner, "refresh_materialized_agents", refresh),
-            patch("kiro_crew.apps.bridges.register_app", reregister),
-            patch("kiro_crew.apps.manager.is_app_enabled", MagicMock(return_value=True)),
+            patch("junction.apps.bridges.register_app", reregister),
+            patch("junction.apps.manager.is_app_enabled", MagicMock(return_value=True)),
             patch.object(chat_runner, "subprocess_executor", MagicMock(return_value=None)),
             patch.object(chat_runner, "warm_project_agent_names", new=AsyncMock()),
         ):
@@ -3019,13 +3019,13 @@ class TestAppAgentDispatchGuard:
         slot._app = "myapp"
         slot.agent = "my-app-agent"
 
-        cold = _bindings(kiro_agent="kirocrew", resolved_alias="default", requested_resolved=False)
+        cold = _bindings(kiro_agent="junction", resolved_alias="default", requested_resolved=False)
         reregister = MagicMock(return_value=["my-app-agent"])
         with (
             patch.object(chat_runner, "resolve_agent_bindings", side_effect=[cold, cold, cold]),
             patch.object(chat_runner, "refresh_materialized_agents", MagicMock()),
-            patch("kiro_crew.apps.bridges.register_app", reregister),
-            patch("kiro_crew.apps.manager.is_app_enabled", MagicMock(return_value=False)),
+            patch("junction.apps.bridges.register_app", reregister),
+            patch("junction.apps.manager.is_app_enabled", MagicMock(return_value=False)),
             patch.object(chat_runner, "subprocess_executor", MagicMock(return_value=None)),
             patch.object(chat_runner, "warm_project_agent_names", new=AsyncMock()),
         ):
@@ -3046,7 +3046,7 @@ class TestAppAgentDispatchGuard:
         # disable could deregister and the still-running thread republish a
         # now-disabled agent. Prove the cancelled task stays blocked until
         # register_app completes.
-        import kiro_crew.dashboard.chat_runner as cr
+        import junction.dashboard.chat_runner as cr
 
         started = threading.Event()
         release = threading.Event()
@@ -3068,8 +3068,8 @@ class TestAppAgentDispatchGuard:
         with (
             patch.object(cr, "resolve_agent_bindings", return_value=warm),
             patch.object(cr, "subprocess_executor", MagicMock(return_value=None)),
-            patch("kiro_crew.apps.manager.is_app_enabled", MagicMock(return_value=True)),
-            patch("kiro_crew.apps.bridges.register_app", slow_register),
+            patch("junction.apps.manager.is_app_enabled", MagicMock(return_value=True)),
+            patch("junction.apps.bridges.register_app", slow_register),
         ):
             task = asyncio.create_task(
                 cr._recover_app_agent_binding(MagicMock(), slot, project=None)
@@ -3100,13 +3100,13 @@ class TestAppAgentDispatchGuard:
         # Never reached when the bail is present; set so a REMOVED bail would fail
         # on the assertion below (get_or_create awaited) rather than on unpacking.
         state.sessions.get_or_create = AsyncMock(return_value=(MagicMock(), True, False))
-        cold = _bindings(kiro_agent="kirocrew", resolved_alias="default", requested_resolved=False)
+        cold = _bindings(kiro_agent="junction", resolved_alias="default", requested_resolved=False)
         with (
             patch.object(chat_runner.asyncio, "sleep", new=AsyncMock()),
             patch.object(chat_runner, "_consume_pending_reset", new=AsyncMock()),
             patch.object(chat_runner, "resolve_agent_bindings", side_effect=[cold, cold, cold]),
             patch.object(chat_runner, "refresh_materialized_agents", MagicMock()),
-            patch("kiro_crew.apps.bridges.register_app", MagicMock(return_value=[])),
+            patch("junction.apps.bridges.register_app", MagicMock(return_value=[])),
             patch.object(chat_runner, "subprocess_executor", MagicMock(return_value=None)),
         ):
             await chat_runner._eager_spawn(state, slot)

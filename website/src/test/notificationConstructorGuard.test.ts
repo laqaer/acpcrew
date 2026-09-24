@@ -116,7 +116,7 @@ describe('page-context Notification construction is best-effort', () => {
     function wrapper({ children }: { children: React.ReactNode }) {
       return createElement(Provider, { store }, children)
     }
-    renderHook(() => useNativeNotification('Kiro Crew', '/avatar.png'), { wrapper })
+    renderHook(() => useNativeNotification('Junction', '/avatar.png'), { wrapper })
 
     // A new unacked notification triggers the toast effect; the throw must
     // stay inside it.

@@ -4,7 +4,7 @@ double-write fix.
 ``_spawn_detached_gateway`` redirects the child gateway's stdout/stderr INTO
 ``gateway.log``. Before the fix, ``main()``'s ``basicConfig`` console handler
 (root → stderr) then wrote a second, console-formatted copy (no [PID]) of
-every ``kiro_crew`` record into the same file the rotating file handler
+every ``junction`` record into the same file the rotating file handler
 writes, doubling log volume and halving the 2MB rotation window. The boot
 rotation also renamed the inode fds 1/2 point at, sending raw stderr writes
 into ``gateway.log.prev``.
@@ -23,20 +23,20 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from kiro_crew.cli import (
+from junction.cli import (
     _fd_targets_file,
     _FdTrackingRotatingFileHandler,
     _redirect_fds_to,
     _setup_cli_logging,
 )
-from kiro_crew.config import config_dir
+from junction.config import config_dir
 
 
 @pytest.fixture(autouse=True)
 def _pristine_logging():
     """Snapshot, clear, and restore global logging state around each test.
 
-    ``_setup_cli_logging`` mutates the root and ``kiro_crew`` loggers
+    ``_setup_cli_logging`` mutates the root and ``junction`` loggers
     (handlers + levels), and these tests assert on absolute handler
     topology. Other tests in the same process may have leaked handlers
     onto either logger (they are process-global), so start each test from
@@ -46,7 +46,7 @@ def _pristine_logging():
     tmpdir cleanup).
     """
     root = logging.getLogger()
-    kc = logging.getLogger("kiro_crew")
+    kc = logging.getLogger("junction")
     saved_root = (root.handlers[:], root.level)
     saved_kc = (kc.handlers[:], kc.level)
     root.handlers[:] = []
@@ -197,7 +197,7 @@ class TestFdTrackingRotatingFileHandler:
     def test_do_rollover_calls_fd_redirect(self, tmp_path, monkeypatch):
         """The subclass must re-point fds 1/2 at the new base file on every
         rollover — pin the doRollover hook itself."""
-        import kiro_crew.cli as cli_mod
+        import junction.cli as cli_mod
 
         calls: list[Path] = []
         monkeypatch.setattr(
@@ -224,9 +224,9 @@ class TestSetupCliLoggingDetached:
         # Force detached detection instead of dup2-ing over the REAL fd 2,
         # which would fight pytest's capture machinery. The detection
         # primitive itself is covered by TestFdTargetsFile.
-        monkeypatch.setattr("kiro_crew.cli._fd_targets_file", lambda fd, path: True)
+        monkeypatch.setattr("junction.cli._fd_targets_file", lambda fd, path: True)
         self.redirect = MagicMock()
-        monkeypatch.setattr("kiro_crew.cli._redirect_fds_to", self.redirect)
+        monkeypatch.setattr("junction.cli._redirect_fds_to", self.redirect)
 
     def test_no_console_handler_installed(self):
         _setup_cli_logging("gateway", 1)
@@ -235,21 +235,21 @@ class TestSetupCliLoggingDetached:
         ]
         assert stream_handlers == []
 
-    def test_file_handler_on_root_not_kiro_crew(self):
+    def test_file_handler_on_root_not_junction(self):
         _setup_cli_logging("gateway", 1)
         root_fhs = [h for h in logging.getLogger().handlers if isinstance(h, RotatingFileHandler)]
         assert len(root_fhs) == 1
         assert Path(root_fhs[0].baseFilename) == config_dir() / "gateway.log"
         kc_fhs = [
             h
-            for h in logging.getLogger("kiro_crew").handlers
+            for h in logging.getLogger("junction").handlers
             if isinstance(h, RotatingFileHandler)
         ]
         assert kc_fhs == []
 
-    def test_kiro_crew_record_written_exactly_once(self):
+    def test_junction_record_written_exactly_once(self):
         _setup_cli_logging("gateway", 1)
-        logging.getLogger("kiro_crew.test_doublewrite").warning("sentinel-record")
+        logging.getLogger("junction.test_doublewrite").warning("sentinel-record")
         for h in logging.getLogger().handlers:
             h.flush()
         text = (config_dir() / "gateway.log").read_text(encoding="utf-8")
@@ -281,18 +281,18 @@ class TestSetupCliLoggingDetached:
         self.redirect.assert_not_called()
 
     def test_handler_level_capped_at_warning_for_third_party(self, monkeypatch):
-        """A stricter persisted kiro_crew level must not gag third-party
-        WARNINGs on the shared root handler (kiro_crew records stay filtered
-        at the kiro_crew logger itself)."""
-        from kiro_crew.config import KiroCrewConfig
+        """A stricter persisted junction level must not gag third-party
+        WARNINGs on the shared root handler (junction records stay filtered
+        at the junction logger itself)."""
+        from junction.config import JunctionConfig
 
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         cfg.agent.log_level = "ERROR"
-        monkeypatch.setattr("kiro_crew.cli.KiroCrewConfig.load", staticmethod(lambda: cfg))
+        monkeypatch.setattr("junction.cli.JunctionConfig.load", staticmethod(lambda: cfg))
         _setup_cli_logging("gateway", 0)
         fh = next(h for h in logging.getLogger().handlers if isinstance(h, RotatingFileHandler))
         assert fh.level == logging.WARNING
-        assert logging.getLogger("kiro_crew").level == logging.ERROR
+        assert logging.getLogger("junction").level == logging.ERROR
 
 
 class TestSetupCliLoggingForeground:
@@ -300,15 +300,15 @@ class TestSetupCliLoggingForeground:
 
     @pytest.fixture(autouse=True)
     def _foreground(self, monkeypatch):
-        monkeypatch.setattr("kiro_crew.cli._fd_targets_file", lambda fd, path: False)
+        monkeypatch.setattr("junction.cli._fd_targets_file", lambda fd, path: False)
         self.redirect = MagicMock()
-        monkeypatch.setattr("kiro_crew.cli._redirect_fds_to", self.redirect)
+        monkeypatch.setattr("junction.cli._redirect_fds_to", self.redirect)
 
-    def test_file_handler_on_kiro_crew_logger(self):
+    def test_file_handler_on_junction_logger(self):
         _setup_cli_logging("gateway", 1)
         kc_fhs = [
             h
-            for h in logging.getLogger("kiro_crew").handlers
+            for h in logging.getLogger("junction").handlers
             if isinstance(h, RotatingFileHandler)
         ]
         assert len(kc_fhs) == 1
@@ -318,8 +318,8 @@ class TestSetupCliLoggingForeground:
 
     def test_record_written_once_to_file(self):
         _setup_cli_logging("gateway", 1)
-        logging.getLogger("kiro_crew.test_foreground").warning("fg-sentinel")
-        for h in logging.getLogger("kiro_crew").handlers:
+        logging.getLogger("junction.test_foreground").warning("fg-sentinel")
+        for h in logging.getLogger("junction").handlers:
             h.flush()
         text = (config_dir() / "gateway.log").read_text(encoding="utf-8")
         assert text.count("fg-sentinel") == 1

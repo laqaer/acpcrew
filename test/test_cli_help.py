@@ -10,18 +10,18 @@ import sys
 
 import pytest
 
-from kiro_crew import cli_help
+from junction import cli_help
 
 
 def _capture_cli(monkeypatch, tmp_path, capsys, argv):
     """Run ``junction <argv>`` far enough to render help, and return (out, err).
 
-    ``KIROCREW_PROJECT_DIR`` is pinned so ``main()``'s project auto-detection
+    ``JUNCTION_PROJECT_DIR`` is pinned so ``main()``'s project auto-detection
     does not walk (and then export) the checkout it happens to run in.
     """
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(tmp_path))
-    monkeypatch.setattr(sys, "argv", ["kirocrew", *argv])
-    from kiro_crew.cli import main
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["junction", *argv])
+    from junction.cli import main
 
     with pytest.raises(SystemExit):
         main()
@@ -129,7 +129,7 @@ class TestTopLevelHelpLayout:
     def test_orientation_explains_both_lifetimes_and_the_default_port(
         self, monkeypatch, tmp_path, capsys
     ):
-        from kiro_crew.config.loader import _DEFAULT_PORT
+        from junction.config.loader import _DEFAULT_PORT
 
         out, _err = _capture_cli(monkeypatch, tmp_path, capsys, ["--help"])
         assert "junction service install" in out

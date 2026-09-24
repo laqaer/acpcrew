@@ -1,4 +1,4 @@
-"""Further coverage for ``kiro_crew.slack.gateway``.
+"""Further coverage for ``junction.slack.gateway``.
 
 ``test_slack_gateway.py``, ``test_slack_gateway_coverage.py`` and
 ``test_slack_gateway_cron_exec_coverage.py`` already drive the cron executor,
@@ -29,7 +29,7 @@ surfaces exercised here had no test anywhere in the suite before this file:
 Everything is driven through mocked collaborators: ``asyncio``'s process
 spawner, the process-tree killer, the embedding backend, the dashboard/API
 server starters and the Slack client are all patched, so no subprocess, no
-signal, no socket and no write outside the per-test ``KIROCREW_HOME`` (pinned
+signal, no socket and no write outside the per-test ``JUNCTION_HOME`` (pinned
 by ``test/conftest.py``) happens. Style and patch seams mirror
 ``test_slack_gateway.py``.
 """
@@ -45,9 +45,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.autonudge import APPROVAL_STALL_REASON, NudgeLoop
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.slack import gateway as gw
+from junction.autonudge import APPROVAL_STALL_REASON, NudgeLoop
+from junction.config.loader import JunctionConfig
+from junction.slack import gateway as gw
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -58,8 +58,8 @@ def _make_orchestrator(**kwargs: Any) -> Any:
     Returned as ``Any`` on purpose: every test below swaps real collaborators
     for mocks, which do not satisfy the declared attribute types.
     """
-    cfg = KiroCrewConfig()
-    creds = {"KIROCREW_OWNER_ID": "U_OWNER"}
+    cfg = JunctionConfig()
+    creds = {"JUNCTION_OWNER_ID": "U_OWNER"}
     with patch.object(cfg, "load_credentials", return_value=creds):
         return gw.GatewayOrchestrator(
             cfg,
@@ -94,7 +94,7 @@ def _mock_slack(*, dm: str | None = "D1") -> MagicMock:
 def _slack_default_deliver() -> Any:
     """Pin ``heartbeat.default_deliver`` to "slack" for tagless deliveries."""
     return patch.object(
-        gw.KiroCrewConfig,
+        gw.JunctionConfig,
         "load",
         return_value=SimpleNamespace(heartbeat=SimpleNamespace(default_deliver="slack")),
     )
@@ -248,7 +248,7 @@ class TestDeliverResultRouting:
         orch = _make_orchestrator()
         orch.slack = None
         orch.dashboard_state = None
-        with patch.object(gw.KiroCrewConfig, "load", side_effect=RuntimeError("no config")):
+        with patch.object(gw.JunctionConfig, "load", side_effect=RuntimeError("no config")):
             await orch._deliver_result("Title", "task", "result", "")  # must not raise
 
     @pytest.mark.asyncio
@@ -385,7 +385,7 @@ class TestShutdownExtras:
         orch.dashboard_state = ds
         orch._stop_mcp_broker = AsyncMock()
         with patch(
-            "kiro_crew.dashboard.chat.save_all_slots_to_history",
+            "junction.dashboard.chat.save_all_slots_to_history",
             side_effect=RuntimeError("history lock"),
         ):
             await orch._shutdown()  # must not raise
@@ -477,7 +477,7 @@ class TestDashboardPortSelection:
         ds = _mock_dashboard_state()
         with patch.object(gw, "LessonStore", MagicMock()):
             with patch(
-                "kiro_crew.dashboard.start_api_server", AsyncMock(return_value=(runner, ds))
+                "junction.dashboard.start_api_server", AsyncMock(return_value=(runner, ds))
             ) as start:
                 await orch._init_api_server()
         assert start.await_args.kwargs["port"] == 0
@@ -492,7 +492,7 @@ class TestDashboardPortSelection:
         runner.addresses = [("127.0.0.1", 1)]
         with patch.object(gw, "LessonStore", MagicMock()):
             with patch(
-                "kiro_crew.dashboard.start_api_server",
+                "junction.dashboard.start_api_server",
                 AsyncMock(return_value=(runner, _mock_dashboard_state())),
             ) as start:
                 await orch._init_api_server()
@@ -550,7 +550,7 @@ class TestAutoMigrateMemory:
             with patch.object(gw, "model_file_present", return_value=True):
                 with patch.object(gw, "make_sync_embed_fn", return_value=lambda s: [0.0]):
                     with patch.object(gw, "reconcile_store_embedding_space") as reconcile:
-                        with patch("kiro_crew.memory.legacy_memory_present", return_value=True):
+                        with patch("junction.memory.legacy_memory_present", return_value=True):
                             await orch._auto_migrate_memory()
 
         orch._set_memory_migrated.assert_awaited_once_with(True)
@@ -599,9 +599,7 @@ class TestAutoMigrateMemory:
     @pytest.mark.asyncio
     async def test_set_memory_migrated_delegates_to_handler(self):
         orch = _make_orchestrator()
-        with patch(
-            "kiro_crew.dashboard.handlers.memory._set_migrated", AsyncMock()
-        ) as set_migrated:
+        with patch("junction.dashboard.handlers.memory._set_migrated", AsyncMock()) as set_migrated:
             await orch._set_memory_migrated(True)
         set_migrated.assert_awaited_once_with(True)
 
@@ -621,7 +619,7 @@ class TestInitCrew:
         orch.dashboard_state = ds
         with caplog.at_level("WARNING"):
             with patch(
-                "kiro_crew.crew_chat.CrewOrchestrator", side_effect=RuntimeError("bad wiring")
+                "junction.crew_chat.CrewOrchestrator", side_effect=RuntimeError("bad wiring")
             ):
                 orch._init_crew()
         assert "crew mode disabled" in caplog.text
@@ -629,7 +627,7 @@ class TestInitCrew:
     def test_no_dashboard_state_skips_crew_setup(self):
         orch = _make_orchestrator()
         orch.dashboard_state = None
-        with patch("kiro_crew.crew_chat.CrewOrchestrator") as ctor:
+        with patch("junction.crew_chat.CrewOrchestrator") as ctor:
             orch._init_crew()
         ctor.assert_not_called()
 
@@ -642,13 +640,13 @@ class TestInitMcpDiscovery:
         orch = _make_orchestrator()
         servers = [SimpleNamespace(name="builder-mcp"), SimpleNamespace(name="playwright-mcp")]
         with caplog.at_level("INFO"):
-            with patch("kiro_crew.mcp_discovery.list_servers", return_value=servers):
+            with patch("junction.mcp_discovery.list_servers", return_value=servers):
                 orch._init_mcp_discovery()
         assert "builder-mcp, playwright-mcp" in caplog.text
 
     def test_listing_failure_is_swallowed(self):
         orch = _make_orchestrator()
-        with patch("kiro_crew.mcp_discovery.list_servers", side_effect=RuntimeError("boom")):
+        with patch("junction.mcp_discovery.list_servers", side_effect=RuntimeError("boom")):
             orch._init_mcp_discovery()  # must not raise
 
 

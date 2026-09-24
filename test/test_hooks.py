@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.hooks import (
+from junction.hooks import (
     HOOK_INJECT_CONTEXT,
     HOOK_MODIFY,
     HOOK_PASSTHROUGH,
@@ -371,7 +371,7 @@ class TestShellCommandProperty:
     """
 
     def test_from_raw_tool_params(self):
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(kind="tool_call", is_shell=True, raw_tool_params={"command": "ls -la"})
         assert ev.shell_command == "ls -la"
@@ -381,7 +381,7 @@ class TestShellCommandProperty:
         — this is the dashboard's primary gate path, so the fallback is
         load-bearing. Regression for the review-bot finding that the first cut
         only read raw_tool_params and was a no-op on permission events."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="permission_request",
@@ -391,13 +391,13 @@ class TestShellCommandProperty:
         assert ev.shell_command == "cr --all --yes"
 
     def test_non_shell_returns_none(self):
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(kind="tool_call", is_shell=False, raw_tool_params={"command": "ls"})
         assert ev.shell_command is None
 
     def test_missing_or_empty_command_returns_none(self):
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         assert AcpEvent(kind="tool_call", is_shell=True, raw_tool_params={}).shell_command is None
         assert (
@@ -406,7 +406,7 @@ class TestShellCommandProperty:
         )
 
     def test_malformed_tool_input_returns_none(self):
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(kind="permission_request", is_shell=True, tool_input="not json{")
         assert ev.shell_command is None
@@ -421,7 +421,7 @@ class TestShellCommandUseAws:
     """
 
     def test_use_aws_from_raw_tool_params(self):
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -449,7 +449,7 @@ class TestShellCommandUseAws:
         the dashboard's primary gate path, where the v3.3.x SSM block fired."""
         import json as _json
 
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="permission_request",
@@ -463,7 +463,7 @@ class TestShellCommandUseAws:
     def test_use_aws_not_denied_by_default_gate(self):
         """End-to-end through the gate: a benign use_aws call must NOT hit the
         deny-by-default backstop once the command is recoverable."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="permission_request",
@@ -478,7 +478,7 @@ class TestShellCommandUseAws:
     def test_use_aws_destructive_operation_still_denied(self):
         """The synthesized command must keep the built-in deny globs armed:
         destructive AWS operations stay blocked."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -497,7 +497,7 @@ class TestShellCommandUseAws:
     def test_use_aws_credential_read_payload_still_denied(self):
         """A shell payload smuggled inside ssm send-command parameters must be
         visible to the sensitive-path checks via the serialized tail."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -516,7 +516,7 @@ class TestShellCommandUseAws:
     def test_missing_operation_name_still_returns_none(self):
         """Half a structured shape is not verifiable — deny-by-default must
         stay armed for it."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call", is_shell=True, raw_tool_params={"service_name": "ssm"}
@@ -528,7 +528,7 @@ class TestShellCommandUseAws:
     def test_pascal_case_operation_normalized_to_kebab(self):
         """PascalCase operation_name (the AWS API name, e.g. 'DeleteStack')
         must be normalized to kebab-case so deny globs still match."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -547,7 +547,7 @@ class TestShellCommandUseAws:
     def test_pascal_case_destructive_op_denied(self):
         """End-to-end: PascalCase 'DeleteStack' must hit the deny gate
         identically to kebab 'delete-stack'."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -567,7 +567,7 @@ class TestShellCommandUseAws:
 
     def test_camel_case_operation_normalized(self):
         """camelCase operation_name must also normalize (e.g. 'deleteStack')."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -583,7 +583,7 @@ class TestShellCommandUseAws:
 
     def test_kebab_case_operation_unchanged(self):
         """Already-kebab operation_name must pass through unchanged."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -601,7 +601,7 @@ class TestShellCommandUseAws:
         single tokens like 'cloudformation'). PascalCase service_name is passed
         through as-is because normalizing it would break deny regex matches
         (e.g. 'CloudFormation' → 'cloud-formation' ≠ 'cloudformation')."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -624,7 +624,7 @@ class TestShellCommandUseAws:
     def test_whitespace_in_service_name_returns_none(self):
         """service_name with whitespace is rejected (fail-closed) — a
         multi-token service could confuse regex-based deny rules."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -638,7 +638,7 @@ class TestShellCommandUseAws:
 
     def test_whitespace_in_operation_name_returns_none(self):
         """operation_name with whitespace is rejected (fail-closed)."""
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="tool_call",
@@ -654,7 +654,7 @@ class TestShellCommandUseAws:
         """permission_request path (tool_input JSON) also normalizes casing."""
         import json as _json
 
-        from kiro_crew.acp.types import AcpEvent
+        from junction.acp.types import AcpEvent
 
         ev = AcpEvent(
             kind="permission_request",
@@ -716,14 +716,14 @@ class TestHooksConfigFromDict:
         assert cfg.auto_approve_subagent_tools is True
 
     def test_hook_manager_auto_approve_subagent_tools_property(self):
-        from kiro_crew.hooks import HookManager
+        from junction.hooks import HookManager
 
         cfg = HooksConfig.from_dict({"auto_approve_subagent_tools": True})
         mgr = HookManager(cfg)
         assert mgr.auto_approve_subagent_tools is True
 
     def test_hook_manager_auto_approve_subagent_tools_default(self):
-        from kiro_crew.hooks import HookManager
+        from junction.hooks import HookManager
 
         cfg = HooksConfig.from_dict({})
         mgr = HookManager(cfg)
@@ -753,7 +753,7 @@ class TestSafeReadFile:
 
     def test_blocks_symlink_to_sensitive_path(self, tmp_path, monkeypatch):
         """A workspace symlink into ~/.aws must be refused through the link."""
-        from kiro_crew.hooks import safe_read_file_bytes
+        from junction.hooks import safe_read_file_bytes
 
         home = tmp_path / "home"
         (home / ".aws").mkdir(parents=True)
@@ -776,7 +776,7 @@ class TestSafeReadFile:
         A FILE symlink, so a junction cannot stand in for it — the marker skips
         this only where symlink creation needs a privilege the shell lacks.
         """
-        from kiro_crew.hooks import safe_read_file_bytes
+        from junction.hooks import safe_read_file_bytes
 
         real = tmp_path / "real.txt"
         real.write_text("hello")
@@ -810,24 +810,24 @@ class TestShouldAutoApproveSpawn:
     """Test _should_auto_approve_spawn helper from handler.py."""
 
     def test_approves_spawn_run_when_flag_true(self):
-        from kiro_crew.hooks import HookManager
-        from kiro_crew.slack.handler import _should_auto_approve_spawn
+        from junction.hooks import HookManager
+        from junction.slack.handler import _should_auto_approve_spawn
 
         ctx = MagicMock()
         ctx.hooks = HookManager(HooksConfig.from_dict({"auto_approve_subagent_spawn": True}))
         assert _should_auto_approve_spawn(ctx, "spawn_run") is True
 
     def test_rejects_when_flag_false(self):
-        from kiro_crew.hooks import HookManager
-        from kiro_crew.slack.handler import _should_auto_approve_spawn
+        from junction.hooks import HookManager
+        from junction.slack.handler import _should_auto_approve_spawn
 
         ctx = MagicMock()
         ctx.hooks = HookManager(HooksConfig.from_dict({"auto_approve_subagent_spawn": False}))
         assert _should_auto_approve_spawn(ctx, "spawn_run") is False
 
     def test_rejects_non_spawn_tool(self):
-        from kiro_crew.hooks import HookManager
-        from kiro_crew.slack.handler import _should_auto_approve_spawn
+        from junction.hooks import HookManager
+        from junction.slack.handler import _should_auto_approve_spawn
 
         ctx = MagicMock()
         ctx.hooks = HookManager(HooksConfig.from_dict({"auto_approve_subagent_spawn": True}))
@@ -842,7 +842,7 @@ class TestMutatingKindBeatsTheTitle:
     agent-controlled, which ``on_tool_call``'s own docstring states outright. The
     computer-use read-only auto-approve used to be tested BEFORE any kind guard, so
     once the operator enabled computer use, an ``edit``/``execute``/``write``/
-    ``delete`` call titled ``mcp__kirocrew-computer__computer_get_state`` skipped
+    ``delete`` call titled ``mcp__junction-computer__computer_get_state`` skipped
     interactive approval entirely.
 
     The first fix for that was a DENYLIST (``kind in _WRITE_TOOL_KINDS`` → allow),
@@ -853,7 +853,7 @@ class TestMutatingKindBeatsTheTitle:
     branch — so a kind nobody has enumerated fails closed.
     """
 
-    _CU_OBSERVE_TITLE = "mcp__kirocrew-computer__computer_get_state"
+    _CU_OBSERVE_TITLE = "mcp__junction-computer__computer_get_state"
 
     #: Known mutators, plus the ACP values and shapes a denylist would miss. The
     #: second group is the point: those are what made the denylist fail open.
@@ -876,7 +876,7 @@ class TestMutatingKindBeatsTheTitle:
     def test_a_non_read_kind_is_not_auto_approved_despite_a_cu_read_title(self, kind, monkeypatch):
         # Force the CU predicate True so the test pins the DECISION, not the
         # keystone read (which is off in CI and would mask a regression).
-        monkeypatch.setattr("kiro_crew.hooks._cu_read_only_auto_approve", lambda _name: True)
+        monkeypatch.setattr("junction.hooks._cu_read_only_auto_approve", lambda _name: True)
         mgr = HookManager()
         result = mgr.on_tool_call(self._CU_OBSERVE_TITLE, tool_kind=kind)
         assert result.action == TOOL_ALLOW, (
@@ -895,7 +895,7 @@ class TestMutatingKindBeatsTheTitle:
         import inspect
         import textwrap
 
-        from kiro_crew import hooks as hooks_mod
+        from junction import hooks as hooks_mod
 
         assert hooks_mod._READ_ONLY_TOOL_KINDS == frozenset({"read", "fetch"})
         # Over the AST, not the source text: the explanatory comment names the
@@ -913,7 +913,7 @@ class TestMutatingKindBeatsTheTitle:
     @pytest.mark.parametrize("kind", ["read", "fetch"])
     def test_a_genuine_cu_observation_still_auto_approves(self, kind, monkeypatch):
         """The feature the fix must not break: a PROVEN read still doesn't nag."""
-        monkeypatch.setattr("kiro_crew.hooks._cu_read_only_auto_approve", lambda _name: True)
+        monkeypatch.setattr("junction.hooks._cu_read_only_auto_approve", lambda _name: True)
         mgr = HookManager()
         assert mgr.on_tool_call(self._CU_OBSERVE_TITLE, tool_kind=kind).action == (
             TOOL_AUTO_APPROVE
@@ -931,10 +931,10 @@ class TestMutatingKindBeatsTheTitle:
 
         Narrower than GPT's prescription — the generic `_is_read_only_tool` fallback for
         absent kinds is deliberately left intact, because it rejects every
-        `mcp__kirocrew-computer__*` title anyway (asserted below), so blocking absent
+        `mcp__junction-computer__*` title anyway (asserted below), so blocking absent
         kinds outright would have regressed every ordinary tool for no security gain.
         """
-        monkeypatch.setattr("kiro_crew.hooks._cu_read_only_auto_approve", lambda _name: True)
+        monkeypatch.setattr("junction.hooks._cu_read_only_auto_approve", lambda _name: True)
         mgr = HookManager()
         assert mgr.on_tool_call(self._CU_OBSERVE_TITLE).action == TOOL_ALLOW, (
             "a computer-use title with NO kind auto-approved — a mutating call can "
@@ -948,15 +948,15 @@ class TestMutatingKindBeatsTheTitle:
         above would stop being the only way in and this PR's guarantee would quietly
         weaken — so it is asserted rather than assumed.
         """
-        from kiro_crew.slack.gateway import _is_read_only_tool
+        from junction.slack.gateway import _is_read_only_tool
 
         for tool in ("computer_get_state", "computer_list_apps", "computer_click"):
-            title = f"mcp__kirocrew-computer__{tool}"
+            title = f"mcp__junction-computer__{tool}"
             assert not _is_read_only_tool(title), title
 
     def test_a_read_sounding_title_cannot_rescue_a_non_read_kind(self, monkeypatch):
         """The same invariant for the generic title heuristic, not just the CU one."""
-        monkeypatch.setattr("kiro_crew.hooks._cu_read_only_auto_approve", lambda _name: False)
+        monkeypatch.setattr("junction.hooks._cu_read_only_auto_approve", lambda _name: False)
         mgr = HookManager()
         for kind in ("execute", "other"):
             assert mgr.on_tool_call("read_the_docs", tool_kind=kind).action == TOOL_ALLOW, kind
@@ -965,12 +965,12 @@ class TestMutatingKindBeatsTheTitle:
         assert mgr.on_tool_call("read_the_docs").action == TOOL_AUTO_APPROVE
 
     def test_rejects_none_context(self):
-        from kiro_crew.slack.handler import _should_auto_approve_spawn
+        from junction.slack.handler import _should_auto_approve_spawn
 
         assert _should_auto_approve_spawn(None, "spawn_run") is False
 
     def test_rejects_none_hooks(self):
-        from kiro_crew.slack.handler import _should_auto_approve_spawn
+        from junction.slack.handler import _should_auto_approve_spawn
 
         ctx = MagicMock()
         ctx.hooks = None
@@ -994,7 +994,7 @@ class TestCanonicalMcpIdentityGoverned:
         them and denies if any matches -- mirroring the real tightest-wins
         evaluation over a single profile snapshot.
         """
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         seen: list[str] = []
 
@@ -1158,7 +1158,7 @@ class TestBuiltinToolIdentityGoverned:
         # profile hot-reloaded mid-call answer each from a different snapshot, so
         # a tool both complete profiles deny could be permitted by every single
         # lookup -- and each resolve walked ``profiles/`` on the event loop.
-        import kiro_crew.platform.governance_profiles as profiles_mod
+        import junction.platform.governance_profiles as profiles_mod
 
         calls = []
         real = profiles_mod.resolve_active_scope
@@ -1192,7 +1192,7 @@ class TestServerLevelGovernanceBindsOnPartialIdentity:
     @staticmethod
     def _ceiling_denying(server_ref: str):
         """A real ceiling whose ``mcp`` scope denies *server_ref*."""
-        from kiro_crew.platform.governance import (
+        from junction.platform.governance import (
             MODE_DENY,
             GovernanceCeiling,
             ScopedRuleset,
@@ -1208,8 +1208,8 @@ class TestServerLevelGovernanceBindsOnPartialIdentity:
     @staticmethod
     def _install(monkeypatch, ceiling):
         """Run the gate against *ceiling* with the real security authority."""
-        import kiro_crew.hooks as hooks_mod
-        from kiro_crew.platform import current_context
+        import junction.hooks as hooks_mod
+        from junction.platform import current_context
 
         real = current_context()
 
@@ -1365,7 +1365,7 @@ class TestAppOwnMcpServerAutoApprove:
     def _builtin(self, monkeypatch):
         """Treat the test app names as first-party builtins whose shipped
         manifest declares the ``myapp:srv`` MCP server."""
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(
             hooks_mod,
@@ -1390,7 +1390,7 @@ class TestAppOwnMcpServerAutoApprove:
     @pytest.fixture
     def _agent_owned(self, monkeypatch):
         """``myagent`` is declared by builtin ``myapp``'s shipped manifest."""
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_BUILTIN_APP_AGENTS", {"myagent": "myapp"})
 
@@ -1436,7 +1436,7 @@ class TestAppOwnMcpServerAutoApprove:
             "mcp__myapp:srv__do_thing",
             app="",
             agent="myagent",  # alias spelled like the builtin's agent
-            resolved_agent="kirocrew",  # …but a different agent served the turn
+            resolved_agent="junction",  # …but a different agent served the turn
             mcp_server_name="myapp:srv",
             mcp_tool_name="do_thing",
             tool_kind="other",
@@ -1463,7 +1463,7 @@ class TestAppOwnMcpServerAutoApprove:
         # auto-approve a different app's app-scoped server. Both apps are
         # first-party and both servers declared, so ONLY the ownership check can
         # be what rejects this.
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(
             hooks_mod, "_is_first_party_app", lambda app: app.casefold() in {"myapp", "otherapp"}
@@ -1521,7 +1521,7 @@ class TestAppOwnMcpServerAutoApprove:
         # A per-tool policy denying ``@myapp:srv/danger`` must block the call
         # even though the prose title never matches that policy — closing the
         # bypass where an own-server auto-approve skipped per-tool governance.
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_is_first_party_app", lambda app: True)
         monkeypatch.setattr(hooks_mod, "_is_declared_builtin_mcp_server", lambda name: True)
@@ -1558,7 +1558,7 @@ class TestAppOwnMcpServerAutoApprove:
         # to the canonical mcp__server__tool, not just the prose title. A deny
         # rule keyed on the canonical name blocks the own-server auto-approve
         # even when the LLM title is non-canonical prose that never matched it.
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_is_first_party_app", lambda app: True)
         monkeypatch.setattr(hooks_mod, "_is_declared_builtin_mcp_server", lambda name: True)
@@ -1593,7 +1593,7 @@ class TestAppOwnMcpServerAutoApprove:
     def test_set_builtin_app_mcp_servers_populates_gate(self, monkeypatch):
         # Boot pushes the shipped-manifest-declared <app>:<server> names in; the
         # gate then does a pure in-memory, case-insensitive membership test.
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_BUILTIN_APP_MCP_SERVERS", frozenset())
         hooks_mod.set_builtin_app_mcp_servers(["MyApp:Srv", "other:s", "", None])  # junk ignored
@@ -1630,7 +1630,7 @@ class TestAppOwnMcpServerAutoApprove:
 
     def test_third_party_own_server_not_auto_approved(self, monkeypatch):
         # A third-party app (no builtin provenance) is NOT blanket-trusted.
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_is_first_party_app", lambda app: False)
         mgr = HookManager()
@@ -1660,12 +1660,12 @@ class TestAppOwnMcpServerAutoApprove:
         assert r.action == TOOL_ALLOW
 
     def test_host_managed_server_not_matched(self, _builtin):
-        # Host/managed servers (kirocrew-cron) are not `<app>:`-namespaced.
+        # Host/managed servers (junction-cron) are not `<app>:`-namespaced.
         mgr = HookManager()
         r = mgr.on_tool_call(
-            "mcp__kirocrew-cron__cron_add",
+            "mcp__junction-cron__cron_add",
             app="myapp",
-            mcp_server_name="kirocrew-cron",
+            mcp_server_name="junction-cron",
             tool_kind="other",
         )
         assert r.action == TOOL_ALLOW
@@ -1684,7 +1684,7 @@ class TestAppOwnMcpServerAutoApprove:
     def test_governance_deny_wins_over_own_server(self, monkeypatch):
         # The app-own-server branch is placed AFTER `_governance_denial`, so a
         # ceiling/profile that denies the app's own server still blocks it.
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_is_first_party_app", lambda app: True)
         monkeypatch.setattr(
@@ -1702,19 +1702,19 @@ class TestAppOwnMcpServerAutoApprove:
         assert r.action == TOOL_DENY
 
     def test_ownership_helper_direct(self):
-        from kiro_crew.hooks import _app_owns_mcp_server
+        from junction.hooks import _app_owns_mcp_server
 
         assert _app_owns_mcp_server("myapp:srv", "myapp") is True
         assert _app_owns_mcp_server("MyApp:srv", "myapp") is True  # case-insensitive
         assert _app_owns_mcp_server("other:srv", "myapp") is False
         assert _app_owns_mcp_server("myapp:srv", "") is False
         assert _app_owns_mcp_server("", "myapp") is False  # no server → fail closed
-        assert _app_owns_mcp_server("kirocrew-cron", "myapp") is False  # no colon
+        assert _app_owns_mcp_server("junction-cron", "myapp") is False  # no colon
 
     def test_set_builtin_app_names_populates_gate(self, monkeypatch):
         # Boot pushes the builtin names in; the gate then does a pure in-memory,
         # case-insensitive membership test (no filesystem I/O on the event loop).
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_BUILTIN_APP_NAMES", frozenset())
         hooks_mod.set_builtin_app_names(["MyApp", "other", "", None])  # junk ignored
@@ -1725,7 +1725,7 @@ class TestAppOwnMcpServerAutoApprove:
     def test_unwarmed_builtin_set_fails_closed(self, monkeypatch):
         # Before boot warms the set, provenance is unknown → treated as
         # third-party (own-server calls prompt, never wrongly auto-approved).
-        import kiro_crew.hooks as hooks_mod
+        import junction.hooks as hooks_mod
 
         monkeypatch.setattr(hooks_mod, "_BUILTIN_APP_NAMES", frozenset())
         assert hooks_mod._is_first_party_app("myapp") is False
@@ -1743,13 +1743,13 @@ class TestTargetPathSpellings:
 
     @staticmethod
     def _gate():
-        from kiro_crew.hooks import HookManager, HooksConfig
+        from junction.hooks import HookManager, HooksConfig
 
         return HookManager(HooksConfig.from_dict({}))
 
     @pytest.mark.parametrize("key", ["path", "file_path", "filePath"])
     def test_a_sensitive_path_is_denied_under_every_spelling(self, key):
-        from kiro_crew.hooks import TOOL_DENY
+        from junction.hooks import TOOL_DENY
 
         decision = self._gate().on_tool_call(
             "Tidy up the notes",
@@ -1774,7 +1774,7 @@ class TestTargetPathSpellings:
         limiting the keystone to the FIRST path still passed while the kind was
         ``edit``.
         """
-        from kiro_crew.hooks import TOOL_DENY
+        from junction.hooks import TOOL_DENY
 
         decision = self._gate().on_tool_call(
             "Read the notes",
@@ -1787,7 +1787,7 @@ class TestTargetPathSpellings:
     def test_an_ordinary_path_is_still_allowed_under_every_spelling(self):
         """The absence direction: widening the spellings must not start denying
         ordinary files, or the gate would refuse most real edits."""
-        from kiro_crew.hooks import TOOL_DENY
+        from junction.hooks import TOOL_DENY
 
         for key in ("path", "file_path", "filePath"):
             decision = self._gate().on_tool_call(
@@ -1799,7 +1799,7 @@ class TestTargetPathSpellings:
             assert decision.action != TOOL_DENY, f"{key!r} wrongly denied an ordinary file"
 
     def test_target_paths_ignores_non_string_and_blank_values(self):
-        from kiro_crew.hooks import target_paths
+        from junction.hooks import target_paths
 
         assert target_paths({"path": {"nested": 1}, "filePath": "   "}) == []
         assert target_paths(None) == []

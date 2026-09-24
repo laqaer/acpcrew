@@ -35,7 +35,7 @@ The existing `SubagentManager` remains the compatibility facade and local
 executor while its scheduling and terminal-finalization responsibilities move
 behind smaller lifecycle boundaries.
 
-This is an evolution of Kiro Crew's current single-node design, not a distributed
+This is an evolution of Junction's current single-node design, not a distributed
 scheduler rewrite. SQLite is the first coordinator implementation. It gives one
 gateway process a canonical execution ledger and an explicit ownership protocol;
 the interface leaves room for another durable backend later without requiring
@@ -52,7 +52,7 @@ Verified at `c4f253891` on 2026-08-22.
 
 ### 2.1 Strong lifecycle invariants exist, but they are concentrated
 
-`SubagentManager` begins at `src/kiro_crew/subagent.py:1344` and the module is
+`SubagentManager` begins at `src/junction/subagent.py:1344` and the module is
 6,415 lines. Its constructor owns process execution, approval callbacks,
 in-memory run/task registries, the admission queue, batch accounting, terminal
 report tasks, follow-up watchers, conversation retention, and the periodic
@@ -72,7 +72,7 @@ across one very broad class and tested mostly through its private surface.
 ### 2.2 Persistence records evidence, not a canonical execution ledger
 
 Every run currently gets a folder containing `state.json`, `result.txt`, and,
-when terminal, `tombstone.json` (`src/kiro_crew/subagent_persistence.py:1-7`).
+when terminal, `tombstone.json` (`src/junction/subagent_persistence.py:1-7`).
 Folder creation writes a running snapshot (`subagent_persistence.py:88-125`),
 updates rewrite that JSON (`132-147`), output appends to `result.txt`
 (`153-163`), and terminal classification writes a tombstone
@@ -95,12 +95,12 @@ not a transactional command, execution, and delivery ledger.
 ### 2.3 The submission boundary has an uncertainty seam
 
 The `spawn_run` MCP tool submits wave members through separate HTTP requests
-(`src/kiro_crew/mcp_tools/spawn.py:484-598`). A response can fail after the
+(`src/junction/mcp_tools/spawn.py:484-598`). A response can fail after the
 gateway accepted the request, so the caller and gateway maintain extra
 submission accounting and lost-submission reconciliation. The manager exposes
 `record_lost_submission()` and a stuck-wave reaper
 (`subagent.py:4504-4600`), while the dashboard handler reconciles the roster
-against accepted IDs (`src/kiro_crew/dashboard/handlers/messaging.py:90-202`).
+against accepted IDs (`src/junction/dashboard/handlers/messaging.py:90-202`).
 
 The existing preassigned run ID is an important foundation: `spawn()` assigns
 identity before every exit path and preserves it through queueing
@@ -227,7 +227,7 @@ diagnosis.
 
 ### 5.3 Canonical schema
 
-SQLite lives under the Kiro Crew data home beside the existing subagent
+SQLite lives under the Junction data home beside the existing subagent
 registry. The initial schema has four tables.
 
 #### `runs`
@@ -674,7 +674,7 @@ but payloads stay redacted.
 
 ## 10. Security considerations
 
-- The database is created in a dedicated directory below the Kiro Crew data
+- The database is created in a dedicated directory below the Junction data
   home. PR 4 adds that directory to `_SENSITIVE_HOME_DIRS` under every known
   data-home prefix, so agent file tools and shell commands cannot read, replace,
   or delete the database, its WAL/SHM files, or migration sidecars. The security
@@ -717,7 +717,7 @@ ladder keeps every cutover observable and reversible.
 
 ### 11.4 Start with a network queue or distributed database
 
-Kiro Crew is presently a personal, single-gateway system. A remote control plane
+Junction is presently a personal, single-gateway system. A remote control plane
 would add deployment, authentication, partition, and consistency requirements
 before the local lifecycle has one explicit contract. The coordinator port and
 fence fields preserve a future seam without paying that cost now.

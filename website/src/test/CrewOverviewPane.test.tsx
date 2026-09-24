@@ -17,7 +17,7 @@ function renderPane(over: Partial<React.ComponentProps<typeof CrewOverviewPane>>
     <CrewOverviewPane
       hub={<span data-testid="hub" />}
       templateLabel="Agent Template"
-      template="kirocrew"
+      template="junction"
       workspace="oncall"
       memoryStore="oncall-mem"
       modelLabel="Inherited"

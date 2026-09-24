@@ -35,7 +35,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.subagent import SubagentInfo, SubagentManager
+from junction.subagent import SubagentInfo, SubagentManager
 
 
 def _make_manager(max_concurrent: int = 4) -> SubagentManager:
@@ -403,7 +403,7 @@ async def test_cancel_all_cancels_reports_that_exceed_the_drain_timeout(monkeypa
     they keep invoking `_on_done` against tearing-down state, then they die when
     the loop closes. They must be cancelled and gathered.
     """
-    import kiro_crew.subagent as mod
+    import junction.subagent as mod
 
     monkeypatch.setattr(mod, "_REPORT_DRAIN_TIMEOUT", 0.05)
     mgr = _make_manager()
@@ -434,7 +434,7 @@ async def test_cancel_all_readmits_an_undelivered_report_to_orphan_recovery(monk
     an outcome that was never injected AND is invisible to the only path that
     could still inject it. Shutdown must clear the tombstone in that case.
     """
-    import kiro_crew.subagent as mod
+    import junction.subagent as mod
 
     monkeypatch.setattr(mod, "_REPORT_DRAIN_TIMEOUT", 0.05)
     mgr = _make_manager()
@@ -474,7 +474,7 @@ async def test_cancel_all_keeps_the_tombstone_when_delivery_already_happened(mon
     second time — the duplicate delivery this PR exists to remove. Only
     `_reported_to_parent == False` may be re-admitted.
     """
-    import kiro_crew.subagent as mod
+    import junction.subagent as mod
 
     monkeypatch.setattr(mod, "_REPORT_DRAIN_TIMEOUT", 0.05)
     mgr = _make_manager()
@@ -791,7 +791,7 @@ async def test_user_stop_during_pending_recovery_is_not_recorded_as_failure():
     recovery = mgr._tasks.get("a1b2c3d4:recovery")
     assert recovery is not None, "recovery task was not registered"
 
-    import kiro_crew.subagent as mod
+    import junction.subagent as mod
 
     class _Stats:
         def inc_subagent_failed(self):

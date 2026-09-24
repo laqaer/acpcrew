@@ -141,7 +141,7 @@ function markerOf(container: HTMLElement): HTMLElement | null {
 }
 
 const slot = (over: Partial<ChatSlot> = {}): ChatSlot =>
-  ({ key: 'k1', title: 'a-session', running: false, messages: 2, agent: 'kirocrew', ...over }) as ChatSlot
+  ({ key: 'k1', title: 'a-session', running: false, messages: 2, agent: 'junction', ...over }) as ChatSlot
 
 beforeEach(() => localStorage.clear())
 afterEach(() => vi.clearAllMocks())

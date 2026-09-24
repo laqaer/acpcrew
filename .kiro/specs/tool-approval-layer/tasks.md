@@ -1,6 +1,6 @@
 # Implementation Plan — Human-in-the-Loop Tool-Approval Layer
 
-This plan enriches the render + resume steps of Kiro Crew's existing approval loop and
+This plan enriches the render + resume steps of Junction's existing approval loop and
 documents the portable AI-SDK mapping. The backend enforcement gate (`on_tool_call`) is
 NOT modified. **Prerequisite:** the App Builder Kit's `kit/tool-views` module
 (`ToolPreviewFrame` + `defineToolView`) must ship first — this spec is sequenced after it
@@ -77,7 +77,7 @@ Reqs 1/3/4/5/6 without the module; only the typed rich preview (Req 2.2) is gate
     (`on_tool_call`, `approveChatSlot`) vs the portable shape, and the AI-SDK resume seam
     (`addToolResult` / continued stream).
   - State explicitly that the `UIToolInvocation` union is a state model, not a transport
-    equivalence (Kiro Crew's transport is markdown + `<mcwidget>` opaque strings).
+    equivalence (Junction's transport is markdown + `<mcwidget>` opaque strings).
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
 - [ ] 7. Tests — render, resume, batch, non-bypass

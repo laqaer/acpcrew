@@ -150,7 +150,7 @@ test("loopback: local dev targets are exempt from the grant, real sites are not"
   for (const u of [
     "http://localhost:5173/",
     "http://127.0.0.1:8080/x",
-    "https://kirocrew.localhost/",
+    "https://junction.localhost/",
     "http://[::1]:3000/",
   ]) {
     assert.strictEqual(isLoopbackUrl(u), true, u);

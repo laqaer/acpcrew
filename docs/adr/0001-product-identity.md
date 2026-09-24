@@ -6,12 +6,9 @@
 
 ## Context
 
-`laqaer/junction` already docks multiple ACP agents on `main`. User-facing
-chrome still said Kiro Crew / acpcrew in README, the marketing site, CLI
-help, and the dashboard default bot name. The operator asked to leave both
-names, combine Codex Router as a model plane, run a full branding assessment,
-then decide. Junction is the product of this checkout, not a public fork
-identity.
+`laqaer/junction` docks multiple ACP agents. User-facing chrome is Junction
+in the README, the marketing site, CLI help, and the dashboard default bot
+name. Junction is the product of this checkout.
 
 Criteria: one-word CLI; works for **both** “which agent” and “which model”;
 local-first; not a clone of Crew / Router / Codex; searchable; low trademark
@@ -28,7 +25,9 @@ The product name is **Junction**.
 | Product-facing aliases | none |
 | Tagline | Where coding agents meet the models you want. |
 | GitHub slug | `laqaer/junction` |
-| Python package / data home / Electron id | Unchanged this cut |
+| Python package | `junction` |
+| Data home | `~/.junction` (an existing previous directory is kept) |
+| Electron id | Junction |
 
 ## Assessment (then the winner)
 
@@ -48,7 +47,7 @@ The product name is **Junction**.
 | Portico | Gateway | `portico` | Few | Gateway ≠ two planes |
 | Switchboard | Classic routing | `switchboard` | Dated, long | Reject |
 | Codex Router | Accurate to one plane | — | Their 3.7k-star product | Never |
-| acpcrew / Kiro Crew | Current | — | Operator asked to leave both | Never |
+| acpcrew / the previous product name | Left behind | — | Operator asked to leave both | Never |
 | **Junction** | Meeting of agent plane + model plane | `junction` | Minor (git-junction, road signs); no category killer | **Winner** |
 
 Junction names the join: ACP harnesses on one side, model routing on the other.
@@ -58,8 +57,9 @@ Hearth was the runner-up (home/memory) and lost because it is silent on routing.
 
 - User-facing overlay this cut: README, `site/`, CLI, dashboard
   `DEFAULT_PRODUCT_NAME` / `bot_name`, brand gate.
-- Brand gate still forbids concatenated `KiroCrew` in newly added prose.
-  Junction is accepted. Do not require a whole-tree rename of identifiers.
+- Brand gate still forbids the concatenated upstream brand token in newly
+  added prose. Junction is accepted. Security paths and the optional
+  kiro-cli harness keep their own spellings.
 - Hardcoded catalog descriptions stay a follow-up issue.
 - Chartroom remains an internal nod only, not a public name.
 

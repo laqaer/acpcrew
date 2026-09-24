@@ -1,4 +1,4 @@
-"""Coverage tests for the residual branches of ``kiro_crew.dashboard.server``.
+"""Coverage tests for the residual branches of ``junction.dashboard.server``.
 
 The module's route/middleware wiring is already pinned elsewhere
 (``test_api_server.py``, ``test_api_health.py``, ``test_dashboard_static_routes.py``,
@@ -30,7 +30,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer, make_mocked_request
 
 from conftest import requires_symlinks
-from kiro_crew.dashboard import server as srv
+from junction.dashboard import server as srv
 
 # ── helpers ─────────────────────────────────────────────────────────────
 
@@ -80,7 +80,7 @@ class TestShouldPreventSleep:
     async def test_config_read_failure_allows_sleep(self, monkeypatch) -> None:
         loader = MagicMock()
         loader.load.side_effect = RuntimeError("corrupt config")
-        monkeypatch.setattr(srv, "KiroCrewConfig", loader)
+        monkeypatch.setattr(srv, "JunctionConfig", loader)
 
         assert await srv._should_prevent_sleep(_state(sessions=MagicMock()), 0) is False
 
@@ -90,7 +90,7 @@ class TestShouldPreventSleep:
     ) -> None:
         loader = MagicMock()
         loader.load.return_value = _cfg(prevent_sleep=False)
-        monkeypatch.setattr(srv, "KiroCrewConfig", loader)
+        monkeypatch.setattr(srv, "JunctionConfig", loader)
         sessions = MagicMock()
 
         assert await srv._should_prevent_sleep(_state(sessions=sessions), 0) is False
@@ -100,7 +100,7 @@ class TestShouldPreventSleep:
     async def test_missing_session_manager_allows_sleep(self, monkeypatch) -> None:
         loader = MagicMock()
         loader.load.return_value = _cfg(prevent_sleep=True)
-        monkeypatch.setattr(srv, "KiroCrewConfig", loader)
+        monkeypatch.setattr(srv, "JunctionConfig", loader)
 
         assert await srv._should_prevent_sleep(_state(sessions=None), 0) is False
 
@@ -108,7 +108,7 @@ class TestShouldPreventSleep:
     async def test_active_turn_blocks_sleep(self, monkeypatch) -> None:
         loader = MagicMock()
         loader.load.return_value = _cfg(prevent_sleep=True)
-        monkeypatch.setattr(srv, "KiroCrewConfig", loader)
+        monkeypatch.setattr(srv, "JunctionConfig", loader)
         sessions = MagicMock(any_active_turn=MagicMock(return_value=True))
 
         assert await srv._should_prevent_sleep(_state(sessions=sessions), 0) is True
@@ -117,7 +117,7 @@ class TestShouldPreventSleep:
     async def test_active_turn_probe_failure_allows_sleep(self, monkeypatch) -> None:
         loader = MagicMock()
         loader.load.return_value = _cfg(prevent_sleep=True)
-        monkeypatch.setattr(srv, "KiroCrewConfig", loader)
+        monkeypatch.setattr(srv, "JunctionConfig", loader)
         sessions = MagicMock(
             any_active_turn=MagicMock(side_effect=RuntimeError("map busy"))
         )
@@ -248,7 +248,7 @@ class TestPrecomputeTelemetry:
     """Telemetry is best-effort: no individual failure may abort startup."""
 
     def test_every_stage_failure_is_swallowed(self, monkeypatch) -> None:
-        import kiro_crew.dashboard.handlers_system as hs
+        import junction.dashboard.handlers_system as hs
 
         monkeypatch.setattr(
             hs, "_get_owner_hash", MagicMock(side_effect=RuntimeError("no owner"))
@@ -265,7 +265,7 @@ class TestPrecomputeTelemetry:
     def test_gateway_start_event_carries_the_precomputed_fields(
         self, monkeypatch
     ) -> None:
-        import kiro_crew.dashboard.handlers_system as hs
+        import junction.dashboard.handlers_system as hs
 
         monkeypatch.setattr(hs, "_get_owner_hash", MagicMock(return_value="hash-1"))
         monkeypatch.setattr(
@@ -313,7 +313,7 @@ class TestWriteSecretFileDescriptorCleanup:
             closed.append(fd)
             real_close(fd)
 
-        with patch("kiro_crew.dashboard.server.os.close", _spy):
+        with patch("junction.dashboard.server.os.close", _spy):
             with pytest.raises(OSError, match="chmod denied"):
                 srv._write_secret_file(secret_path, "s")
 
@@ -335,7 +335,7 @@ class TestWriteSecretFileDescriptorCleanup:
             real_close(fd)  # keep the descriptor from leaking in-process
             raise OSError("close failed")
 
-        with patch("kiro_crew.dashboard.server.os.close", _close_then_fail):
+        with patch("junction.dashboard.server.os.close", _close_then_fail):
             with pytest.raises(OSError, match="chmod denied"):
                 srv._write_secret_file(secret_path, "s")
 
@@ -596,8 +596,8 @@ async def _start_api(tmp_path: Path, monkeypatch, **kwargs: Any) -> Any:
     cover -- notably the secret-write failure arm, which still reaches
     ``runner.cleanup()``.
     """
-    import kiro_crew.config.loader as _loader
-    import kiro_crew.dashboard.state as _st
+    import junction.config.loader as _loader
+    import junction.dashboard.state as _st
 
     monkeypatch.setattr(srv, "data_home", lambda: tmp_path)
     monkeypatch.setattr(_st, "config_dir", lambda: tmp_path)

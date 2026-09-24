@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.apps.manager — App lifecycle management."""
+"""Tests for junction.apps.manager — App lifecycle management."""
 
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kiro_crew import platform_compat
-from kiro_crew.apps.manager import (
+from junction import platform_compat
+from junction.apps.manager import (
     APP_MANIFEST_FILENAME,
     AppResult,
     InstalledApp,
@@ -53,10 +53,10 @@ def _make_app_source(tmp_path, name="test-app", **manifest_overrides):
 
 @pytest.fixture()
 def app_home(tmp_path, monkeypatch):
-    """Set KIROCREW_HOME to a temp directory for isolated testing."""
-    home = tmp_path / "kirocrew-home"
+    """Set JUNCTION_HOME to a temp directory for isolated testing."""
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     # Lifecycle success tests explicitly admit their synthetic third-party apps.
     (home / "config.json").write_text(
         json.dumps({"agent": {"apps_allow_third_party": True}}), encoding="utf-8"
@@ -108,7 +108,7 @@ class TestUnportableAppName:
         assert not (app_home / "apps" / "nul").exists()
 
     def test_register_external_refuses_it_before_materialization(self, app_home):
-        from kiro_crew.apps.manager import register_external_app
+        from junction.apps.manager import register_external_app
 
         result = register_external_app("nul", "1.0.0", "Null App")
         assert not result.ok
@@ -117,7 +117,7 @@ class TestUnportableAppName:
         assert not (app_home / "apps" / "nul").exists()
 
     def test_builtin_registration_refuses_it(self):
-        from kiro_crew.apps.manager import _validate_builtin_app
+        from junction.apps.manager import _validate_builtin_app
 
         errors = _validate_builtin_app(
             {
@@ -379,13 +379,13 @@ class TestUninstall:
         src = _make_app_source(tmp_path, name="evil-app")
         sel_calls = []
         monkeypatch.setattr(
-            "kiro_crew.apps.manager.sel",
+            "junction.apps.manager.sel",
             lambda: type(
                 "FakeSel", (), {"log_api_access": lambda self, **kw: sel_calls.append(kw)}
             )(),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.manager._check_path_safety",
+            "junction.apps.manager._check_path_safety",
             lambda name: False,
         )
         result = install_app(src)
@@ -454,7 +454,7 @@ class TestUninstall:
         """Successful install must emit SEL audit event."""
         sel_calls = []
         monkeypatch.setattr(
-            "kiro_crew.apps.manager.sel",
+            "junction.apps.manager.sel",
             lambda: type(
                 "FakeSel", (), {"log_api_access": lambda self, **kw: sel_calls.append(kw)}
             )(),
@@ -531,7 +531,7 @@ class TestAppAdmission:
         assert "blocked by admission policy" in result.error
 
     def test_register_external_denied_when_banned(self, tmp_path, app_home):
-        from kiro_crew.apps.manager import register_external_app
+        from junction.apps.manager import register_external_app
 
         self._write_policy(app_home, {"mode": "enforce", "banned": ["ext-app"]})
         result = register_external_app("ext-app", "1.0.0", "Ext App")
@@ -547,8 +547,8 @@ class TestAppAdmission:
         import hashlib
         import hmac
 
-        from kiro_crew.apps.manager import register_external_app
-        from kiro_crew.apps.manifest import AppManifest
+        from junction.apps.manager import register_external_app
+        from junction.apps.manifest import AppManifest
 
         secret = "s3cr3t"
         manifest_data = {
@@ -582,7 +582,7 @@ class TestAppAdmission:
         assert _read_installed("ext-signed") is not None
 
     def test_register_external_denies_unsigned_manifest(self, tmp_path, app_home):
-        from kiro_crew.apps.manager import register_external_app
+        from junction.apps.manager import register_external_app
 
         self._write_policy(
             app_home,
@@ -607,7 +607,7 @@ class TestAppAdmission:
         import hashlib
         import hmac
 
-        from kiro_crew.apps.manifest import AppManifest
+        from junction.apps.manifest import AppManifest
 
         secret = "s3cr3t"
         m = AppManifest.from_dict(
@@ -658,7 +658,7 @@ class TestAppAdmission:
         # Builtins ship unsigned with defaultEnabled=False; a require_signature
         # policy must NOT strand them (they are trusted first-party code). The
         # admission gate governs third-party enable, not builtins.
-        from kiro_crew.apps.manager import _write_installed
+        from junction.apps.manager import _write_installed
 
         src = _make_app_source(tmp_path, name="builtin-app")
         assert install_app(src).ok
@@ -701,8 +701,8 @@ class TestAppAdmission:
     def test_non_ascii_signature_is_clean_deny(self):
         # A non-ASCII signature (attacker-controlled) must NOT raise TypeError out
         # of hmac.compare_digest — it must be a clean deny (no unhandled 500 DoS).
-        from kiro_crew.apps.admission import AppAdmissionPolicy, _signature_valid
-        from kiro_crew.apps.manifest import AppManifest
+        from junction.apps.admission import AppAdmissionPolicy, _signature_valid
+        from junction.apps.manifest import AppManifest
 
         policy = AppAdmissionPolicy(
             mode="enforce", require_signature=True, trust_keys={"acme": "s3cr3t"}
@@ -976,20 +976,20 @@ class TestInstalledApp:
         assert meta.lifecycle == "locked"
         assert meta.schemaVersion == 2
 
-    def test_migrate_managed_kirocrew(self):
-        """Old managed='kirocrew' with no source → defaults to registry."""
-        meta = InstalledApp.from_dict({"name": "old", "managed": "kirocrew"})
+    def test_migrate_managed_junction(self):
+        """Old managed='junction' with no source → defaults to registry."""
+        meta = InstalledApp.from_dict({"name": "old", "managed": "junction"})
         assert meta.origin == "registry"
         assert meta.resources == "gateway"
         assert meta.lifecycle == "gateway"
         assert meta.schemaVersion == 2
 
-    def test_migrate_managed_kirocrew_local_source(self):
-        """Old managed='kirocrew' with filesystem source → origin='local'."""
+    def test_migrate_managed_junction_local_source(self):
+        """Old managed='junction' with filesystem source → origin='local'."""
         meta = InstalledApp.from_dict(
             {
                 "name": "old",
-                "managed": "kirocrew",
+                "managed": "junction",
                 "source": "/Users/dev/my-tool",
             }
         )
@@ -997,12 +997,12 @@ class TestInstalledApp:
         assert meta.resources == "gateway"
         assert meta.lifecycle == "gateway"
 
-    def test_migrate_managed_kirocrew_registry_source(self):
-        """Old managed='kirocrew' with registry: source → origin='registry'."""
+    def test_migrate_managed_junction_registry_source(self):
+        """Old managed='junction' with registry: source → origin='registry'."""
         meta = InstalledApp.from_dict(
             {
                 "name": "old",
-                "managed": "kirocrew",
+                "managed": "junction",
                 "source": "registry:my-app",
             }
         )
@@ -1026,7 +1026,7 @@ class TestInstalledApp:
 
     def test_uninstall_locked_rejected(self, tmp_path, app_home):
         """lifecycle=locked apps cannot be uninstalled."""
-        from kiro_crew.apps.manager import register_builtin_apps
+        from junction.apps.manager import register_builtin_apps
 
         register_builtin_apps()
         result = uninstall_app("agent-worlds")
@@ -1133,8 +1133,8 @@ class TestCleanupMigratedBuiltin:
 
     def test_no_migrated_to_still_cleaned_up(self, tmp_path, monkeypatch):
         """Old deploy_web install with origin=builtin but NO migratedTo -> still removed."""
-        from kiro_crew.apps import manager
-        from kiro_crew.apps.manager import (
+        from junction.apps import manager
+        from junction.apps.manager import (
             INSTALLED_META_FILENAME,
             cleanup_migrated_builtin,
         )
@@ -1168,8 +1168,8 @@ class TestCleanupMigratedBuiltin:
 
     def test_idempotent_already_gone(self, tmp_path, monkeypatch):
         """If app was never installed, returns ok=True (idempotent)."""
-        from kiro_crew.apps import manager
-        from kiro_crew.apps.manager import cleanup_migrated_builtin
+        from junction.apps import manager
+        from junction.apps.manager import cleanup_migrated_builtin
 
         monkeypatch.setattr(manager, "app_dir", lambda name: tmp_path / name)
 
@@ -1179,8 +1179,8 @@ class TestCleanupMigratedBuiltin:
 
     def test_standalone_origin_not_touched(self, tmp_path, monkeypatch):
         """If origin is not 'builtin', no cleanup (standalone owns the slot)."""
-        from kiro_crew.apps import manager
-        from kiro_crew.apps.manager import (
+        from junction.apps import manager
+        from junction.apps.manager import (
             INSTALLED_META_FILENAME,
             cleanup_migrated_builtin,
         )
@@ -1227,7 +1227,7 @@ class TestCopyAppTree:
         result = install_app(src)
         assert result.ok, result.error
 
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         dest = app_dir("test-app")
         assert not (dest / "assets-link").exists()
@@ -1250,7 +1250,7 @@ class TestCopyAppTree:
         result = install_app(src)
         assert result.ok, result.error
 
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         dest = app_dir("test-app")
         link = dest / "alias"
@@ -1282,7 +1282,7 @@ class TestCopyAppTree:
         result = install_app(src)
         assert result.ok, result.error
 
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         dest = app_dir("test-app")
         assert not (dest / "ui" / "node_modules").exists()
@@ -1292,7 +1292,7 @@ class TestCopyAppTree:
         assert (dest / "ui" / "dist" / "index.mjs").is_file()
 
     def test_lifecycle_lock_is_per_app(self):
-        from kiro_crew.apps.manager import app_lifecycle_lock
+        from junction.apps.manager import app_lifecycle_lock
 
         lock_a = app_lifecycle_lock("app-a")
         assert app_lifecycle_lock("app-a") is lock_a
@@ -1332,7 +1332,7 @@ class TestCopyAppTree:
 
     def test_orphaned_partial_install_self_heals(self, tmp_path, app_home):
         """dest exists with junk but no installed metadata → fresh install wins."""
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         orphan = app_dir("test-app")
         orphan.mkdir(parents=True)
@@ -1347,7 +1347,7 @@ class TestCopyAppTree:
     def test_local_install_cannot_claim_a_repository_bound_grant(
         self, tmp_path, app_home
     ):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         reviewed = "https://clone.example.test/Owner/reviewed-app"
         (app_home / "config.json").write_text(
@@ -1373,7 +1373,7 @@ class TestCopyAppTree:
     def test_external_registration_cannot_claim_a_repository_bound_grant(
         self, app_home
     ):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         reviewed = "https://clone.example.test/Owner/reviewed-app"
         (app_home / "config.json").write_text(
@@ -1399,7 +1399,7 @@ class TestCopyAppTree:
     def test_legacy_name_grant_cannot_install_repository_code(
         self, tmp_path, app_home
     ):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         (app_home / "config.json").write_text(
             json.dumps({"agent": {"apps_trusted": ["test-app"]}}),
@@ -1420,7 +1420,7 @@ class TestCopyAppTree:
     def test_legacy_name_grant_cannot_claim_fresh_local_install(
         self, tmp_path, app_home
     ):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         (app_home / "config.json").write_text(
             json.dumps({"agent": {"apps_trusted": ["test-app"]}}),
@@ -1438,7 +1438,7 @@ class TestCopyAppTree:
         self, tmp_path, app_home
     ):
         """The registry's one-argument manager call still gets its safe source."""
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         reviewed = "ssh://deploy@example.test/owner/repo"
         (app_home / "config.json").write_text(
@@ -1468,8 +1468,8 @@ class TestCopyAppTree:
         self, tmp_path, app_home, monkeypatch
     ):
         """A failure after installed.json cannot turn repository code local."""
-        from kiro_crew.apps.execution import app_execution_denied
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.apps.execution import app_execution_denied
+        from junction.config.loader import _invalidate_config_cache
 
         reviewed = "https://example.test/owner/reviewed"
         (app_home / "config.json").write_text(
@@ -1489,7 +1489,7 @@ class TestCopyAppTree:
             raise RuntimeError("secret bookkeeping failed")
 
         monkeypatch.setattr(
-            "kiro_crew.dashboard.token_auth.write_app_secret",
+            "junction.dashboard.token_auth.write_app_secret",
             _bookkeeping_failure,
         )
 
@@ -1507,7 +1507,7 @@ class TestCopyAppTree:
     def test_provenance_enrichment_failure_keeps_provisional_repository(
         self, tmp_path, app_home, monkeypatch
     ):
-        from kiro_crew.apps import manager
+        from junction.apps import manager
 
         reviewed = "https://example.test/owner/reviewed"
         with registry_source_repository(reviewed):
@@ -1536,7 +1536,7 @@ class TestCopyAppTree:
         self, tmp_path, app_home
     ):
         """A source changed after registry preflight cannot reach the copy step."""
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         reviewed = "ssh://deploy@example.test/owner/reviewed"
         rebound = "ssh://deploy@example.test/owner/rebound"
@@ -1565,7 +1565,7 @@ class TestCopyAppTree:
     @pytest.mark.asyncio
     async def test_registry_context_is_task_local_across_to_thread(self):
         """Concurrent installs cannot exchange their repository coordinates."""
-        from kiro_crew.apps.manager import _effective_source_repository
+        from junction.apps.manager import _effective_source_repository
 
         async def _resolve(repository: str) -> str:
             with registry_source_repository(repository):
@@ -1584,8 +1584,8 @@ class TestCopyAppTree:
     def test_legacy_name_grant_cannot_update_to_repository_code(
         self, tmp_path, app_home
     ):
-        from kiro_crew.apps.manager import update_app
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.apps.manager import update_app
+        from junction.config.loader import _invalidate_config_cache
 
         assert install_app(_make_app_source(tmp_path)).ok
         (app_home / "config.json").write_text(
@@ -1604,7 +1604,7 @@ class TestCopyAppTree:
         assert get_app("test-app")["version"] == "1.0.0"
 
     def test_legacy_name_grant_cannot_register_repository_code(self, app_home):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         (app_home / "config.json").write_text(
             json.dumps({"agent": {"apps_trusted": ["test-app"]}}),
@@ -1626,8 +1626,8 @@ class TestCopyAppTree:
     def test_installed_legacy_local_grant_can_update_local_code(
         self, tmp_path, app_home
     ):
-        from kiro_crew.apps.manager import update_app
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.apps.manager import update_app
+        from junction.config.loader import _invalidate_config_cache
 
         assert install_app(_make_app_source(tmp_path)).ok
         (app_home / "config.json").write_text(
@@ -1642,7 +1642,7 @@ class TestCopyAppTree:
         assert get_app("test-app")["version"] == "2.0.0"
 
     def test_update_preserves_data_and_secret(self, tmp_path, app_home):
-        from kiro_crew.apps.manager import app_dir, update_app
+        from junction.apps.manager import app_dir, update_app
 
         src = _make_app_source(tmp_path)
         assert install_app(src).ok
@@ -1659,7 +1659,7 @@ class TestCopyAppTree:
         assert secret.read_text(encoding="utf-8") == "s3cret"
 
     def test_local_update_clears_prior_registry_provenance(self, tmp_path, app_home):
-        from kiro_crew.apps.manager import (
+        from junction.apps.manager import (
             _read_installed,
             set_app_provenance,
             update_app,
@@ -1704,14 +1704,14 @@ class TestCopyAppTree:
         result = install_app(src)
         assert result.ok, result.error
 
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         dest = app_dir("test-app")
         assert not (dest / "junction-dir").exists()
 
     def test_update_rejects_mismatched_source_name(self, tmp_path, app_home):
         """expected_name guards against updating app A from app B's source."""
-        from kiro_crew.apps.manager import update_app
+        from junction.apps.manager import update_app
 
         src = _make_app_source(tmp_path)
         assert install_app(src).ok
@@ -1738,7 +1738,7 @@ class TestCopyAppTree:
 
 def _ship_test_builtin(monkeypatch, root, manifest_data):
     """Give a synthetic builtin immutable package provenance for bridge tests."""
-    from kiro_crew.apps import execution
+    from junction.apps import execution
 
     shipped = root / "shipped-builtins"
     shipped_app = shipped / manifest_data["name"]
@@ -1755,8 +1755,8 @@ class TestBootSkillReconcile:
 
     def test_reconcile_creates_missing_skill_symlinks(self, tmp_path, monkeypatch):
         """An enabled app with manifest skills but missing symlinks gets them on reconcile."""
-        from kiro_crew.apps import bridges, manager
-        from kiro_crew.apps.bridges import reconcile_app_skills
+        from junction.apps import bridges, manager
+        from junction.apps.bridges import reconcile_app_skills
 
         apps_root = tmp_path / "apps"
         app_root = apps_root / "test-app"
@@ -1815,8 +1815,8 @@ class TestBootSkillReconcile:
 
     def test_reconcile_removes_stale_skill_symlinks(self, tmp_path, monkeypatch):
         """Skills removed from manifest get their stale symlinks cleaned up."""
-        from kiro_crew.apps import bridges, manager
-        from kiro_crew.apps.bridges import reconcile_app_skills
+        from junction.apps import bridges, manager
+        from junction.apps.bridges import reconcile_app_skills
 
         apps_root = tmp_path / "apps"
         app_root = apps_root / "test-app"
@@ -1897,11 +1897,11 @@ class TestBootSkillReconcile:
 class TestBuiltinSecretForMcpServers:
     @pytest.fixture(autouse=True)
     def _clean_port_env(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_PORT", raising=False)
+        monkeypatch.delenv("JUNCTION_PORT", raising=False)
 
     def _register_only(self, monkeypatch, apps):
         """Run register_builtin_apps() with exactly `apps` as the builtin set."""
-        from kiro_crew.apps import manager
+        from junction.apps import manager
 
         monkeypatch.setattr(manager, "_BUILTIN_APPS", [])
         monkeypatch.setattr(manager, "discover_builtin_apps", lambda *a, **k: apps)
@@ -1909,7 +1909,7 @@ class TestBuiltinSecretForMcpServers:
         manager.register_builtin_apps()
 
     def test_declares_backend_helper(self):
-        from kiro_crew.apps.manager import _app_declares_backend
+        from junction.apps.manager import _app_declares_backend
 
         # entryPoint → backend
         assert _app_declares_backend({"backend": {"entryPoint": "pkg.server"}})
@@ -1932,7 +1932,7 @@ class TestBuiltinSecretForMcpServers:
         FAILS before the fix (condition was `backend.entryPoint` only), passes
         after (condition is `_app_declares_backend`).
         """
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         mcp_only = {
             "name": "mcp-only-app",
@@ -1948,7 +1948,7 @@ class TestBuiltinSecretForMcpServers:
 
     def test_no_backend_builtin_gets_no_secret(self, tmp_path, app_home, monkeypatch):
         """A builtin with no backend of any kind must NOT get a secret."""
-        from kiro_crew.apps.manager import app_dir
+        from junction.apps.manager import app_dir
 
         no_backend = {
             "name": "no-backend-app",
@@ -1974,7 +1974,7 @@ class TestBuiltinDoesNotClobberUserInstall:
     """
 
     def _register_only(self, monkeypatch, apps):
-        from kiro_crew.apps import manager
+        from junction.apps import manager
 
         monkeypatch.setattr(manager, "_BUILTIN_APPS", [])
         monkeypatch.setattr(manager, "discover_builtin_apps", lambda *a, **k: apps)
@@ -1986,7 +1986,7 @@ class TestBuiltinDoesNotClobberUserInstall:
         "version": "9.9.9",
         "displayName": "Collide (builtin)",
         "description": "a builtin that shares a name with a user install",
-        "author": "kirocrew",
+        "author": "junction",
         "defaultEnabled": False,
     }
 
@@ -1994,7 +1994,7 @@ class TestBuiltinDoesNotClobberUserInstall:
         """Write metadata + a manifest the way install_app() would."""
         import json
 
-        from kiro_crew.apps.manager import (
+        from junction.apps.manager import (
             APP_MANIFEST_FILENAME,
             InstalledApp,
             _now_iso,
@@ -2026,7 +2026,7 @@ class TestBuiltinDoesNotClobberUserInstall:
         """FAILS before the fix: the manifest was atomic_write'n unconditionally."""
         import json
 
-        from kiro_crew.apps.manager import APP_MANIFEST_FILENAME
+        from junction.apps.manager import APP_MANIFEST_FILENAME
 
         d = self._seed_user_install()
         self._register_only(monkeypatch, [self.BUILTIN])
@@ -2040,7 +2040,7 @@ class TestBuiltinDoesNotClobberUserInstall:
 
         FAILS before the fix (origin -> "builtin", lifecycle -> "locked").
         """
-        from kiro_crew.apps.manager import _read_installed
+        from junction.apps.manager import _read_installed
 
         self._seed_user_install()
         self._register_only(monkeypatch, [self.BUILTIN])
@@ -2053,7 +2053,7 @@ class TestBuiltinDoesNotClobberUserInstall:
 
     def test_a_genuine_builtin_is_still_updated(self, tmp_path, app_home, monkeypatch):
         """The guard must not freeze real builtins: ours still take the update."""
-        from kiro_crew.apps.manager import _read_installed
+        from junction.apps.manager import _read_installed
 
         # First registration creates it with source="builtin".
         self._register_only(monkeypatch, [self.BUILTIN])
@@ -2067,7 +2067,7 @@ class TestBuiltinDoesNotClobberUserInstall:
         assert meta.displayName == "Collide v10"
 
     def test_helper_classifies_both_cases(self):
-        from kiro_crew.apps.manager import InstalledApp, _builtin_owns_install
+        from junction.apps.manager import InstalledApp, _builtin_owns_install
 
         ours = InstalledApp(
             name="x",
@@ -2107,7 +2107,7 @@ class TestMalformedMcpUrlIsSkippedNotFatal:
     ]
 
     def test_malformed_urls_return_none_and_do_not_raise(self):
-        from kiro_crew.apps.manager import resolve_mcp_backend_url
+        from junction.apps.manager import resolve_mcp_backend_url
 
         for url in self.BAD_URLS:
             # The assertion is that this LINE does not raise.
@@ -2122,7 +2122,7 @@ class TestMalformedMcpUrlIsSkippedNotFatal:
         Pinned so the malformed-input guard above is never "tightened" into rejecting
         it.
         """
-        from kiro_crew.apps.manager import resolve_mcp_backend_url
+        from junction.apps.manager import resolve_mcp_backend_url
 
         assert (
             resolve_mcp_backend_url({"x": {"url": "http://:7778/mcp"}}) == "http://127.0.0.1:7778"
@@ -2130,7 +2130,7 @@ class TestMalformedMcpUrlIsSkippedNotFatal:
 
     def test_a_good_server_after_a_bad_one_still_resolves(self):
         """Skipping means continuing, not abandoning the whole manifest."""
-        from kiro_crew.apps.manager import resolve_mcp_backend_url
+        from junction.apps.manager import resolve_mcp_backend_url
 
         servers = {
             "broken": {"url": "http://127.0.0.1:notaport/mcp"},
@@ -2143,7 +2143,7 @@ class TestMalformedMcpUrlIsSkippedNotFatal:
 
         FAILS before the fix with ValueError out of register_builtin_apps().
         """
-        from kiro_crew.apps import manager
+        from junction.apps import manager
 
         bad = {
             "name": "bad-url-app",
@@ -2164,7 +2164,7 @@ class TestMalformedMcpUrlIsSkippedNotFatal:
         assert not (manager.app_dir("bad-url-app") / ".app_secret").is_file()
 
     def test_a_valid_loopback_url_is_unaffected(self):
-        from kiro_crew.apps.manager import resolve_mcp_backend_url
+        from junction.apps.manager import resolve_mcp_backend_url
 
         assert (
             resolve_mcp_backend_url({"crew-companion": {"url": "http://127.0.0.1:7778/mcp"}})
@@ -2226,7 +2226,7 @@ class TestRegisterExternalPreservesServerProvenance:
 
     @classmethod
     def _seed_registry_app(cls) -> None:
-        from kiro_crew.apps.manager import set_app_provenance
+        from junction.apps.manager import set_app_provenance
 
         result = register_external_app(
             "self-app",
@@ -2286,7 +2286,7 @@ class TestRegisterExternalPreservesServerProvenance:
         assert meta.origin == "external"
 
     def test_nonempty_bound_repository_can_transition_a_local_registration(self, app_home):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         local = register_external_app(
             "self-app",
@@ -2329,7 +2329,7 @@ class TestRegisterExternalPreservesServerProvenance:
     def test_allow_all_refresh_preserves_pin_and_pinned_resolver(
         self, app_home, monkeypatch
     ):
-        from kiro_crew.apps import registry
+        from junction.apps import registry
 
         self._seed_registry_app()
         refreshed = register_external_app(
@@ -2370,7 +2370,7 @@ class TestRegisterExternalPreservesServerProvenance:
     def test_repository_bound_refresh_uses_existing_pin_and_rejects_rebind(
         self, app_home
     ):
-        from kiro_crew.config.loader import _invalidate_config_cache
+        from junction.config.loader import _invalidate_config_cache
 
         self._seed_registry_app()
         (app_home / "config.json").write_text(

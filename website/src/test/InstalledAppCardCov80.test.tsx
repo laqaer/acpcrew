@@ -199,7 +199,7 @@ describe('InstalledAppCard openCommand app', () => {
     mocks.openApp.mockResolvedValue({ remote: true })
     renderCard(app({}, { openCommand: 'zzq --open' }))
     fireEvent.click(screen.getByRole('button', { name: new RegExp(T('open')) }))
-    expect(await screen.findByText(T('app_cannot_be_opened_kirocrew_is_running_in_a_he'))).toBeInTheDocument()
+    expect(await screen.findByText(T('app_cannot_be_opened_junction_is_running_in_a_he'))).toBeInTheDocument()
   })
 })
 
@@ -210,7 +210,7 @@ describe('InstalledAppCard details drawer', () => {
       permissions: { mcpTools: ['zzq_tool_1', 'zzq_tool_2'] },
       sops: ['sop-1', 'sop-2'],
       ui: { pages: [{ route: '/zzq', label: 'Zzq Page', icon: 'Box' }] },
-      minKiroCrewVersion: '9.9.9',
+      minJunctionVersion: '9.9.9',
     }))
     expect(screen.queryByText(T('mcp_tools'))).not.toBeInTheDocument()
 
@@ -237,7 +237,7 @@ describe('InstalledAppCard details drawer', () => {
   it('explains a builtin app in the drawer and omits its source line', () => {
     renderCard(app({ origin: 'builtin', source: '/zzq/builtin/dir' }))
     fireEvent.click(screen.getByLabelText(T('expand_details')))
-    expect(screen.getByText(T('built_in_this_feature_is_part_of_the_kirocrew_da'))).toBeInTheDocument()
+    expect(screen.getByText(T('built_in_this_feature_is_part_of_the_junction_da'))).toBeInTheDocument()
     expect(screen.queryByText(new RegExp('/zzq/builtin/dir'))).not.toBeInTheDocument()
   })
 })

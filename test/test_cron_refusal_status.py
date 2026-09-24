@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.cron import _AUTO_PAUSE_THRESHOLD, CronJob, CronSchedule
+from junction.cron import _AUTO_PAUSE_THRESHOLD, CronJob, CronSchedule
 
 # (title, approved, security_blocked) triples a turn's tool gate reports.
 GateScript = list[tuple[str, bool, bool]]
@@ -45,7 +45,7 @@ def _run_cron_runs(
     *job* reuses an existing job across calls, which is what makes a recovery
     assertion meaningful: a fresh job's counter reads 0 either way.
     """
-    from kiro_crew.slack.gateway import GatewayOrchestrator
+    from junction.slack.gateway import GatewayOrchestrator
 
     gw = GatewayOrchestrator.__new__(GatewayOrchestrator)
     gw.sessions = MagicMock()
@@ -104,8 +104,8 @@ def _run_cron_runs(
 
     captured_cb = None
 
-    with patch("kiro_crew.slack.gateway.stream_and_collect", fake_stream), patch(
-        "kiro_crew.slack.gateway.CronService"
+    with patch("junction.slack.gateway.stream_and_collect", fake_stream), patch(
+        "junction.slack.gateway.CronService"
     ) as mock_cron_cls:
 
         def capture_cron(on_job=None, **kw):
@@ -383,7 +383,7 @@ class TestSchedulerContract:
         Without this guard the LLM path's mutation would be overwritten to "ok"
         on the way out and the run would report success again.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
 
@@ -403,7 +403,7 @@ class TestSchedulerContract:
     async def test_an_error_status_becomes_a_failure_history_record(self, tmp_path) -> None:
         """The history status is derived from last_status; pin the mapping so the
         operator-visible run log keeps reflecting a blocked run as a failure."""
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         svc._history.append = AsyncMock()
@@ -424,7 +424,7 @@ class TestSchedulerContract:
     @pytest.mark.asyncio
     async def test_a_clean_run_still_becomes_a_success_history_record(self, tmp_path) -> None:
         """The control for the test above — healthy runs must stay "success"."""
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         svc._history.append = AsyncMock()

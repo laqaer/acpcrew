@@ -55,10 +55,10 @@ Options:
   -h, --help              this text
 
 Environment:
-  KIROCREW_HOME                 data home (default ~/.kiro/crew)
-  KIROCREW_PLAYWRIGHT_CLI_HOME  overrides --prefix
-  KIROCREW_NPM_REGISTRY         overrides --registry
-  KIROCREW_NODE_BIN_DIR         an existing Node bin dir to reuse
+  JUNCTION_HOME                 data home (default ~/.kiro/crew)
+  JUNCTION_PLAYWRIGHT_CLI_HOME  overrides --prefix
+  JUNCTION_NPM_REGISTRY         overrides --registry
+  JUNCTION_NODE_BIN_DIR         an existing Node bin dir to reuse
   HTTPS_PROXY / NO_PROXY        honored by curl, wget and npm
   NODE_EXTRA_CA_CERTS           CA bundle for a TLS-terminating proxy
 
@@ -88,15 +88,15 @@ WRAPPER_NAME="playwright-cli"
 PUBLIC_NPM_REGISTRY="https://registry.npmjs.org/"
 # Provenance, not just value: a credential in the ENVIRONMENT is visible only to
 # its owner, while one on the command line is world-readable in /proc. Only the
-# flag form is refused, so KIROCREW_NPM_REGISTRY stays a working escape.
-REGISTRY="${KIROCREW_NPM_REGISTRY:-$PUBLIC_NPM_REGISTRY}"
+# flag form is refused, so JUNCTION_NPM_REGISTRY stays a working escape.
+REGISTRY="${JUNCTION_NPM_REGISTRY:-$PUBLIC_NPM_REGISTRY}"
 REGISTRY_FROM_FLAG=0
 DOWNLOAD_HOST_FROM_FLAG=0
 ISOLATED_NPMRC=0
 
 # The package itself declares engines.node >= 18, but the floor that matters is
-# the one Kiro Crew's own browsing requires of this CLI: MIN_NODE_MAJOR in
-# src/kiro_crew/browser_cli/install.py, currently 20. Accepting 18 here would
+# the one Junction's own browsing requires of this CLI: MIN_NODE_MAJOR in
+# src/junction/browser_cli/install.py, currently 20. Accepting 18 here would
 # install a CLI the product then refuses to drive, leaving the user with a tool
 # that works at the shell and not in the app. A test binds these two numbers
 # together so the pair cannot drift. What gets INSTALLED when nothing is usable is
@@ -119,8 +119,8 @@ NODE_STAMP_NAME=".kirocrew-playwright-cli-node"
 # `${HOME:-}` rather than a bare `$HOME`, because `set -u` turns an unset HOME into
 # a raw shell abort with an exit code outside the documented table. The situation is
 # reported properly once EX_USAGE exists, a few lines below.
-DATA_HOME="${KIROCREW_HOME:-${HOME:-}/.kiro/crew}"
-PREFIX="${KIROCREW_PLAYWRIGHT_CLI_HOME:-$DATA_HOME/playwright-cli}"
+DATA_HOME="${JUNCTION_HOME:-${HOME:-}/.kiro/crew}"
+PREFIX="${JUNCTION_PLAYWRIGHT_CLI_HOME:-$DATA_HOME/playwright-cli}"
 BIN_DIR="${HOME:-$DATA_HOME}/.local/bin"
 # Seeded from the ambient value, not left empty, because `npx playwright install`
 # inherits PLAYWRIGHT_DOWNLOAD_HOST from this process whether or not the script
@@ -355,7 +355,7 @@ _reject_url_credential() { # label url alternative
 # Reported here, AFTER argument parsing, so a caller who supplied both paths
 # explicitly is not refused for a variable they had already worked around. Only the
 # defaults need HOME; --prefix and --bin-dir replace every use of it.
-if [ -z "${HOME:-}" ] && [ -z "${KIROCREW_HOME:-}" ] \
+if [ -z "${HOME:-}" ] && [ -z "${JUNCTION_HOME:-}" ] \
    && { [ "$PREFIX" = "/.kiro/crew/playwright-cli" ] || [ "$BIN_DIR" = "/.local/bin" ]; }; then
   die "$EX_USAGE" "HOME is not set; pass --prefix and --bin-dir, or set HOME"
 fi
@@ -365,12 +365,12 @@ fi
 # sends a user hunting for a flag they never typed -- and the fix is in their shell
 # profile, which the message has to name to be actionable.
 if [ "$REGISTRY_FROM_FLAG" = 1 ]; then _registry_label="--registry"
-else _registry_label="KIROCREW_NPM_REGISTRY"; fi
+else _registry_label="JUNCTION_NPM_REGISTRY"; fi
 if [ "$DOWNLOAD_HOST_FROM_FLAG" = 1 ]; then _dlhost_label="--download-host"
 else _dlhost_label="PLAYWRIGHT_DOWNLOAD_HOST"; fi
 _require_https "$_registry_label" "$REGISTRY"
 [ "$REGISTRY_FROM_FLAG" = 0 ] || _reject_url_credential "--registry" "$REGISTRY" \
-  "Pass it as KIROCREW_NPM_REGISTRY in the environment instead, or run 'npm login --registry <url>' first."
+  "Pass it as JUNCTION_NPM_REGISTRY in the environment instead, or run 'npm login --registry <url>' first."
 [ -z "$NODE_MIRROR" ] || _require_https "--node-mirror" "$NODE_MIRROR"
 [ -z "$NODE_MIRROR" ] || _reject_url_credential "--node-mirror" "$NODE_MIRROR" \
   "Use a proxy, or a credentials file that curl and wget read for that host."
@@ -558,27 +558,27 @@ _try_node() { # candidate node path
   # A Node whose directory contains PATH's separator cannot be put on PATH at all,
   # so it counts as unusable and resolution falls through to the bootstrap, whose
   # directory lives under the already-validated $PREFIX. Reachable through
-  # KIROCREW_NODE_BIN_DIR or the ensure-node.sh marker; a PATH lookup cannot
+  # JUNCTION_NODE_BIN_DIR or the ensure-node.sh marker; a PATH lookup cannot
   # produce one, having come from PATH in the first place.
   case "$(dirname "$1")" in
     *:*) return 1 ;;
   esac
   NODE="$1"
   # Also embedded in the generated wrapper, and this is the one place every
-  # candidate funnels through -- $KIROCREW_NODE_BIN_DIR, the marker file and a
+  # candidate funnels through -- $JUNCTION_NODE_BIN_DIR, the marker file and a
   # PATH lookup can each hand us a relative path.
   NODE_BIN_DIR="$(_absolute "$(dirname "$1")")"
   return 0
 }
 
 # Preference order, most specific first: a Node this installer bootstrapped
-# earlier, then one the caller named, then the toolchain Kiro Crew's own
+# earlier, then one the caller named, then the toolchain Junction's own
 # ensure-node.sh recorded (so the two installers share a single download), then
 # whatever is on PATH.
 _resolve_node() {
   _try_node "$PREFIX/node/bin/node" && return 0
-  if [ -n "${KIROCREW_NODE_BIN_DIR:-}" ]; then
-    _try_node "$KIROCREW_NODE_BIN_DIR/node" && return 0
+  if [ -n "${JUNCTION_NODE_BIN_DIR:-}" ]; then
+    _try_node "$JUNCTION_NODE_BIN_DIR/node" && return 0
   fi
   if [ -f "$DATA_HOME/node-bin-dir" ]; then
     _marked="$(head -n 1 "$DATA_HOME/node-bin-dir" 2>/dev/null || true)"

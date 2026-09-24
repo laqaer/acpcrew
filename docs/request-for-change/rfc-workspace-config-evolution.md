@@ -1,7 +1,7 @@
 ---
 title: Config System, Named Memory Stores & Plugin Architecture
 status: partial
-author: KiroCrew contributors
+author: Junction contributors
 created: 2026-03-25
 last-audited: 2026-08-03
 audited-at: 0ab6ed48
@@ -13,7 +13,7 @@ superseded-by: []
 ---
 # RFC: Config System, Named Memory Stores & Plugin Architecture
 
-**Author:** KiroCrew contributors  
+**Author:** Junction contributors  
 **Date:** 2026-03-25 (rev 2: 2026-03-25)  
 **Status:** partial — Phases 1 and 2 are verifiably on main (schema registry + `/api/config/schema`; `WorkspaceConfig`, `MemoryStoreConfig`, `resolve_agent_bindings` with seven real callers, auto-migration). Phase 3 is half-built: the markdown/lesson layer is store-scoped, but **per-store `memory.db`/`memory.faiss` isolation was affirmatively reversed** by commit `7d1ff74e`, which shares one `VectorMemoryStore` across all stores — this doc's Phase 3 text is stale on that point. Phase 4 (`MemoryBackend` / `EmbeddingBackend` plugin entry points) is unstarted. Two deviations: the merge shipped as `resolve_memory_store_config`, not `resolve_effective_config`, and per-workspace `agent` overrides were never built.
 **Branches:** both named below are **gone** — neither `feat/workspace-scoped-vector-memory` nor `config-standarize-` exists on the remote; Phases 1–2 landed via the pre-fork import commit `64e47961`.
@@ -24,9 +24,9 @@ superseded-by: []
 
 ## 1. Problem Statement
 
-KiroCrew's configuration and memory systems have grown organically. Several pain points have emerged:
+Junction's configuration and memory systems have grown organically. Several pain points have emerged:
 
-1. **Ad-hoc config parsing** — `workspaces`, `default_workspace`, `slack.*` are parsed outside the dataclass hierarchy in `KiroCrewConfig.load()`. No validation, no schema, no discoverability for the dashboard.
+1. **Ad-hoc config parsing** — `workspaces`, `default_workspace`, `slack.*` are parsed outside the dataclass hierarchy in `JunctionConfig.load()`. No validation, no schema, no discoverability for the dashboard.
 2. **Global memory** — `VectorMemoryStore` uses a single `memory.db` + `memory.faiss` at `~/.kirocrew/`. Users working across multiple projects (oncall vs. feature work vs. personal) get cross-contaminated context. The parked `feat/workspace-scoped-vector-memory` branch prototyped per-workspace stores but depends on a proper config foundation.
 3. **No plugin system** — memory backends are hardcoded (SQLite+FAISS local, in-process llama.cpp embeddings). No way to swap in remote vector DBs, different embedding providers, or team-shared memory without code changes.
 
@@ -55,7 +55,7 @@ Memory stores and workspaces are **independent dimensions**. A workspace is a wo
 
 An agent session picks both:
 - **Workspace** — where files live (e.g. `oncall`, `feature-work`)
-- **Memory store** — what knowledge to use (e.g. `oncall-knowledge`, `kirocrew-dev`, `shared-team`)
+- **Memory store** — what knowledge to use (e.g. `oncall-knowledge`, `junction-dev`, `shared-team`)
 
 This decoupling enables scenarios that 1:1 binding can't:
 - Two workspaces sharing the same memory store (e.g. `frontend` and `backend` workspaces both using `project-x` memory)
@@ -97,7 +97,7 @@ Each phase includes its own test plan. The goal is to catch regressions early wi
 - Integration test: swap backend via config, verify read/write round-trip
 - Gate: all Phase 3 tests pass with the built-in backend selected via plugin system
 
-**How to run:** All tests run via `black src/kiro_crew test && isort src/kiro_crew test && flake8 src/kiro_crew test && pytest`. No separate test commands. Property tests use `@settings(max_examples=100)`. Test files: `test/test_config_schema.py`, `test/test_config_loader.py`, plus new files per phase.
+**How to run:** All tests run via `black src/junction test && isort src/junction test && flake8 src/junction test && pytest`. No separate test commands. Property tests use `@settings(max_examples=100)`. Test files: `test/test_config_schema.py`, `test/test_config_loader.py`, plus new files per phase.
 
 ### Phase 1: Formalized Config System
 
@@ -108,7 +108,7 @@ Each phase includes its own test plan. The goal is to catch regressions early wi
 What it delivers:
 - Field metadata (`label`, `help`, `tags`, `sensitive`, `deprecated`, `enum`) on every dataclass field via `_meta()` helper
 - New `SlackConfig` and `DashboardConfig` dataclasses — eliminates all ad-hoc `data.get("slack", {})` parsing
-- `workspaces` and `default_workspace` as proper typed fields on `KiroCrewConfig`
+- `workspaces` and `default_workspace` as proper typed fields on `JunctionConfig`
 - Schema registry (`config/schema.py`) — walks `dataclasses.fields()` recursively, produces flat `ConfigEntry` list
 - Three-layer schema: dataclasses → nested JSON Schema (for `jsonschema.validate()`) → flat entry list (for API + baseline)
 - `GET /api/config/schema` endpoint for dashboard consumption
@@ -144,7 +144,7 @@ Target `config.json` structure after Phase 1:
   "slack": {
     "allowed_users": [],
     "tracking_channels": [],
-    "command": "kirocrew"
+    "command": "junction"
   },
   "dashboard": { "url": "" },
   "hooks": {},
@@ -174,7 +174,7 @@ Proposed config shape:
   "workspaces": {
     "default": {
       "dir": "workspace",
-      "agent": { "default_agent": "kirocrew" }
+      "agent": { "default_agent": "junction" }
     },
     "oncall": {
       "dir": "workspace-oncall",
@@ -211,7 +211,7 @@ Key design decisions:
       "model": "auto",
       "workspace": "oncall",
       "memory_store": "oncall-knowledge",
-      "tools": ["@kirocrew-cron", "@kirocrew-core"]
+      "tools": ["@junction-cron", "@junction-core"]
     }
   }
   ```
@@ -343,7 +343,7 @@ Config shape:
       "remote": true,
       "backend_config": {
         "connection_string": "postgresql://...",
-        "table_prefix": "kirocrew_"
+        "table_prefix": "junction_"
       }
     }
   }
@@ -358,11 +358,11 @@ Key design decisions:
 
 - **Per-plugin remote consent (addressing review comment)** — instead of piggy-backing on the embedding-specific `allow_remote_embedding` flag, each store/plugin that communicates with an external service declares `"remote": true`. The system enforces a general-purpose `allow_remote_access` top-level flag. A store with `"remote": true` is rejected at load time unless `allow_remote_access` is also true. This cleanly separates the consent mechanism from embedding semantics.
 
-- **Plugin discovery** — plugins are Python entry points (`kirocrew.memory_backends`, `kirocrew.embedding_backends`). Built-in backends registered by default.
+- **Plugin discovery** — plugins are Python entry points (`junction.memory_backends`, `junction.embedding_backends`). Built-in backends registered by default.
 
 - **Schema extensibility** — the `kind` field on `ConfigEntry` already supports `"core"` vs `"plugin"`. Plugin configs contribute JSON Schema fragments merged into the root schema at runtime.
 
-- **No new dependencies for core** — plugin implementations bring their own deps. The ABC interfaces live in `kiro_crew/plugins/base.py`.
+- **No new dependencies for core** — plugin implementations bring their own deps. The ABC interfaces live in `junction/plugins/base.py`.
 
 Use cases this enables:
 - Team-shared memory via remote PostgreSQL + pgvector

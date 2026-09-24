@@ -10,7 +10,7 @@ from types import ModuleType
 from skill_script_helpers import load_skill_script
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "src" / "kiro_crew" / "builtin_skills" / "kirocrew-dev" / "prepare-pr" / "scripts" / "pr_status.py"
+SCRIPT = ROOT / "src" / "junction" / "builtin_skills" / "junction-dev" / "prepare-pr" / "scripts" / "pr_status.py"
 
 
 def _load_script() -> ModuleType:

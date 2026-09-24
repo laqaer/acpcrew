@@ -11,18 +11,18 @@ from __future__ import annotations
 
 import json
 
-from kiro_crew.config.loader import config_path
-from kiro_crew.context import ContextBuilder
-from kiro_crew.learn import LessonStore
-from kiro_crew.memory import MemoryStore
-from kiro_crew.skills import SkillsLoader
+from junction.config.loader import config_path
+from junction.context import ContextBuilder
+from junction.learn import LessonStore
+from junction.memory import MemoryStore
+from junction.skills import SkillsLoader
 
 
 def _seed_profile(role: str = "", tech: str = "", other: str = "") -> None:
     """Write a config.json with profile fields into the test-isolated home.
 
-    conftest pins KIROCREW_HOME to a per-test tmp dir, so config_path()
-    resolves inside it and KiroCrewConfig.load() picks this file up.
+    conftest pins JUNCTION_HOME to a per-test tmp dir, so config_path()
+    resolves inside it and JunctionConfig.load() picks this file up.
     """
     p = config_path()
     p.parent.mkdir(parents=True, exist_ok=True)

@@ -136,9 +136,9 @@ export default function WelcomeView({
       {mode === 'orchestrator' && (
         <button
           className="px-4 py-2 rounded-lg text-[13px] text-muted border border-border bg-card hover:border-accent hover:text-text transition-all cursor-pointer"
-          onClick={() => setInput(i18nT('components.welcomeView.try_create_a_plan_to_analyze_kirocrew_code_packa'))}
+          onClick={() => setInput(i18nT('components.welcomeView.try_create_a_plan_to_analyze_junction_code_packa'))}
         >
-          {i18nT('components.welcomeView.try_create_a_plan_to_analyze_kirocrew_code_packa')}
+          {i18nT('components.welcomeView.try_create_a_plan_to_analyze_junction_code_packa')}
         </button>
       )}
       {(onSwitchMode || onToggleClean) && (
@@ -191,7 +191,7 @@ export default function WelcomeView({
               ))}
               {/* Clean is a peer option in this group, but it is NOT a memory
                   mode — it picks no memory_mode. It supersedes them entirely:
-                  the agent runs with its own identity only, no KiroCrew context
+                  the agent runs with its own identity only, no Junction context
                   or MCP servers injected. */}
               {onToggleClean && (
                 <button
@@ -202,7 +202,7 @@ export default function WelcomeView({
                     <Droplet size={14} className="text-accent" />
                     <span>{i18nT('components.welcomeView.clean')}</span>
                   </div>
-                  <div className="text-[11px] text-muted leading-snug">{i18nT('components.welcomeView.agent_only_no_kirocrew_context_or_mcp')}</div>
+                  <div className="text-[11px] text-muted leading-snug">{i18nT('components.welcomeView.agent_only_no_junction_context_or_mcp')}</div>
                 </button>
               )}
             </div>,

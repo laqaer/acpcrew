@@ -187,7 +187,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Deliberately NOT gated behind the `changes` job's surface outputs:
-    # everything under src/kiro_crew/_vendor is excluded from semgrep and the
+    # everything under src/junction/_vendor is excluded from semgrep and the
     # AI reviewers' diff, so this checksum gate is the only content review the
     # vendored tree gets. Hashing the ~26MB tree takes seconds, and an
     # always-on job cannot be dodged by a path-filter edge case.
@@ -196,9 +196,9 @@ jobs:
 
       - name: Verify _vendor tree against the committed sha256 manifest
         # Blocking gate: fails on any modified, missing, or added file under
-        # src/kiro_crew/_vendor relative to scripts/vendor_manifest.sha256.
+        # src/junction/_vendor relative to scripts/vendor_manifest.sha256.
         # Legitimate vendored bumps regenerate the manifest with --write (see
-        # src/kiro_crew/_vendor/README.md) so the change lands as a reviewable
+        # src/junction/_vendor/README.md) so the change lands as a reviewable
         # manifest diff. No setup-python step: ubuntu-latest ships Python 3,
         # same as the other stdlib-only lint jobs in this file.
         run: python3 scripts/verify_vendor_manifest.py
@@ -309,7 +309,7 @@ jobs:
         # An asyncio.Lock/Event/Queue created at module scope binds to the
         # import-time (or first-use) event loop and raises RuntimeError when
         # acquired from another loop (Python 3.10+). #4800 converted every
-        # module-global lock to kiro_crew.loop_lock.LoopBoundLock; this gate
+        # module-global lock to junction.loop_lock.LoopBoundLock; this gate
         # keeps the declaration form of the class extinct (the registry form
         # — dicts holding lazily-created locks — is a review concern; see the
         # script docstring). Whole-tree, not diff-scoped: the backlog is zero
@@ -329,7 +329,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check harness identity tests on the lines this change adds
-        # Kiro Crew drives one first-class harness (kiro-cli) and adapts the
+        # Junction drives one first-class harness (kiro-cli) and adapts the
         # others. The defect class is a call site that spells "this is kiro" as
         # the ABSENCE of another harness: correct with two backends, and then it
         # hands the third a capability or a sandbox waiver nobody granted it.
@@ -420,7 +420,7 @@ jobs:
       # black-clean, so the bulk pass it waits on is ~95,800 lines and has been
       # "pending" long enough for the old estimate in this comment to drift by 3x.
       # Leaving it off meanwhile was the worse failure: AGENTS.md tells every
-      # contributor to run `black src/kiro_crew test` before committing, and
+      # contributor to run `black src/junction test` before committing, and
       # following that instruction reformats those 1,420 files on top of their
       # change. The baseline makes the gate real for everything else, so new code
       # is formatted without any PR being forced to carry unrelated churn.
@@ -448,19 +448,19 @@ jobs:
 
       # isort/flake8/mypy below are BLOCKING (config in pyproject.toml + setup.cfg).
       #
-      # The two repo-root modules are named explicitly: `src/kiro_crew test` misses
+      # The two repo-root modules are named explicitly: `src/junction test` misses
       # them, and between them they hold the host-protection floor for all three
       # testpaths -- the isolation fixtures and the xdist worker budget -- so they
       # are the last files that should go unlinted.
 
       - name: Check imports (isort)
-        run: isort --check-only src/kiro_crew test conftest.py xdist_budget.py
+        run: isort --check-only src/junction test conftest.py xdist_budget.py
 
       - name: Lint (flake8)
-        run: flake8 src/kiro_crew test conftest.py xdist_budget.py
+        run: flake8 src/junction test conftest.py xdist_budget.py
 
       - name: Type check (mypy)
-        run: mypy src/kiro_crew/
+        run: mypy src/junction/
 
   backend-test:
     name: Backend Tests
@@ -558,7 +558,7 @@ jobs:
           fi
           pytest -q -n auto --timeout=120 \
             --splits "$SHARD_COUNT" --group ${{ matrix.group }} \
-            ${{ matrix.python-version == '3.12' && '--cov=kiro_crew --cov=sage_lib' || '--no-cov' }}
+            ${{ matrix.python-version == '3.12' && '--cov=junction --cov=sage_lib' || '--no-cov' }}
         # Nothing is deselected. The eleven files that used to be -- the two sandbox
         # suites, the two ops git/gh suites, and the seven auto_improvement suites --
         # each carry `skipif(not userns_available())` on the tests that need a namespace
@@ -586,7 +586,7 @@ jobs:
           if-no-files-found: error
 
   # Windows regression line: the backend supports Windows natively via
-  # kiro_crew.platform_compat (see docs/guides/windows-install.md for the
+  # junction.platform_compat (see docs/guides/windows-install.md for the
   # per-feature status), but until this job existed nothing in CI held
   # that line -- a POSIX-only regression would land silently. Single
   # Python (3.12: the preferred Windows runtime; numpy 1.x ships no 3.13
@@ -838,15 +838,15 @@ jobs:
           pytest -q --timeout=180 --no-cov \
             test/test_script_hooks.py \
             test/test_cron_script.py \
-            src/kiro_crew/apps/builtins/ops_mission_control/tests/test_ledger_sync_git.py \
-            src/kiro_crew/apps/builtins/ops_mission_control/tests/test_schedule_file.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_dogfood_learnings.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_pr_watchers.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_lint_findings.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_github_profile.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_profile_capture.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_runner.py \
-            src/kiro_crew/apps/builtins/auto_improvement/tests/test_perf_track_propose.py
+            src/junction/apps/builtins/ops_mission_control/tests/test_ledger_sync_git.py \
+            src/junction/apps/builtins/ops_mission_control/tests/test_schedule_file.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_dogfood_learnings.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_pr_watchers.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_lint_findings.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_github_profile.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_profile_capture.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_runner.py \
+            src/junction/apps/builtins/auto_improvement/tests/test_perf_track_propose.py
 
   coverage-combine:
     name: Coverage Combine
@@ -1326,7 +1326,7 @@ jobs:
         run: pip install "cfn-lint==1.22.3"
 
       - name: Lint deploy templates
-        run: cfn-lint src/kiro_crew/deploy/skills/artifact-deploy/templates/*.yaml
+        run: cfn-lint src/junction/deploy/skills/artifact-deploy/templates/*.yaml
 
   # The Electron shell (website/electron) has its own 460+ test node:test suite,
   # and until now NOTHING ran it on a PR — its only runner was ota-test.yml,
@@ -1591,7 +1591,7 @@ jobs:
 
       - name: Build in analyze mode
         working-directory: website
-        # `--mode analyze` activates the kirocrew-bundle-report plugin (see
+        # `--mode analyze` activates the junction-bundle-report plugin (see
         # vite.config.ts), which emits dist/bundle-report.json with per-chunk
         # sizes. A normal `npm run build` deliberately never writes one, so the
         # gate below measures a dedicated build instead of taxing the real one.
@@ -1641,12 +1641,12 @@ jobs:
 
       - name: Stage frontend into package
         # The dashboard Playwright specs render the bundled UI the harness
-        # gateway serves from src/kiro_crew/static/dist. Mirror nightly.yml's
+        # gateway serves from src/junction/static/dist. Mirror nightly.yml's
         # build-wheel staging so the specs hit a real dashboard, not a 404.
         run: |
-          rm -rf src/kiro_crew/static/dist
-          mkdir -p src/kiro_crew/static
-          cp -R website/dist src/kiro_crew/static/dist
+          rm -rf src/junction/static/dist
+          mkdir -p src/junction/static
+          cp -R website/dist src/junction/static/dist
 
       # The browser install is the single largest source of red on this job, and
       # never because a test failed: across 112 consecutive E2E jobs the
@@ -1735,18 +1735,18 @@ jobs:
           npm run i18n:render
 
       - name: Run E2E (smoke + Playwright)
-        # KIROCREW_E2E=1 is set by `setup.py test_e2e` itself. KIROCREW_E2E_REQUIRE=1
+        # JUNCTION_E2E=1 is set by `setup.py test_e2e` itself. JUNCTION_E2E_REQUIRE=1
         # turns environment-resolution misses (missing website dir, Playwright CLI,
         # or node<18) into HARD failures -- without it a skipped suite counts as a
         # pass and the gate goes green having run zero browser specs. The suite
-        # wires the packaged fake ACP backend (KIROCREW_KIRO_BIN) internally, so
+        # wires the packaged fake ACP backend (JUNCTION_KIRO_BIN) internally, so
         # every turn is deterministic and offline: no Kiro/model calls, no cost.
         env:
-          KIROCREW_E2E_REQUIRE: "1"
+          JUNCTION_E2E_REQUIRE: "1"
           # CI-enforced on-loop persistence invariant: the e2e gateway boots with
           # strict mode so any un-offloaded session-JSONL mutator that enters
           # ``_locked`` on the event loop raises ``OnLoopPersistError`` and fails
           # this gate at PR time (setup.py test_e2e also sets this; declared here
           # for discoverability). See docs/system-specs/modules/history.md.
-          KIROCREW_STRICT_ON_LOOP_PERSIST: "1"
+          JUNCTION_STRICT_ON_LOOP_PERSIST: "1"
         run: python setup.py test_e2e

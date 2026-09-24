@@ -19,14 +19,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew import subagent as subagent_mod
-from kiro_crew.subagent import (
+from junction import subagent as subagent_mod
+from junction.subagent import (
     SubagentInfo,
     SubagentManager,
     _context_groups_field,
     _context_groups_of,
 )
-from kiro_crew.subagent_persistence import create_agent_folder, read_state
+from junction.subagent_persistence import create_agent_folder, read_state
 
 # ``SubagentManager.spawn`` refuses -- registering no task -- while the host
 # looks short of memory, which is the runner's state, not this test's input.
@@ -151,7 +151,7 @@ class TestContinuationInheritsScope:
     def test_falls_back_to_persisted_scope(self, monkeypatch):
         mgr = _mgr()
         monkeypatch.setattr(
-            "kiro_crew.subagent.read_state",
+            "junction.subagent.read_state",
             lambda _id: {"context_groups": "lessons,project"},
         )
         assert mgr._inherited_context_groups("gone") == (False, True, True)
@@ -160,13 +160,13 @@ class TestContinuationInheritsScope:
         """An empty recorded scope means "all withheld", not "unknown"."""
         mgr = _mgr()
         monkeypatch.setattr(
-            "kiro_crew.subagent.read_state", lambda _id: {"context_groups": ""}
+            "junction.subagent.read_state", lambda _id: {"context_groups": ""}
         )
         assert mgr._inherited_context_groups("stripped") == (False, False, False)
 
     def test_run_predating_the_field_defaults_to_all_on(self, monkeypatch):
         mgr = _mgr()
-        monkeypatch.setattr("kiro_crew.subagent.read_state", lambda _id: {"id": "old"})
+        monkeypatch.setattr("junction.subagent.read_state", lambda _id: {"id": "old"})
         assert mgr._inherited_context_groups("old") == (True, True, True)
 
     def test_continue_conversation_forwards_the_inherited_scope(self, monkeypatch):
@@ -210,7 +210,7 @@ class TestContinuationInheritsScope:
         # No caller cwd -> nothing invented here; spawn applies its own default.
         # A recorded state.json must NOT be consulted on this path.
         monkeypatch.setattr(
-            "kiro_crew.subagent.read_state", lambda _id: {"cwd": str(proj)}
+            "junction.subagent.read_state", lambda _id: {"cwd": str(proj)}
         )
         captured.clear()
         mgr.continue_conversation("conv3", "follow up")
@@ -225,7 +225,7 @@ class TestContinuationInheritsScope:
         proj = tmp_path / "alpha"
         proj.mkdir()
         monkeypatch.setattr(
-            "kiro_crew.subagent.read_state", lambda _id: {"cwd": str(proj)}
+            "junction.subagent.read_state", lambda _id: {"cwd": str(proj)}
         )
         assert mgr.recorded_cwd("conv9") == str(proj)
 
@@ -236,12 +236,12 @@ class TestContinuationInheritsScope:
         # A loud refusal is recoverable; a silent write to the wrong tree is not.
         gone = tmp_path / "deleted-project"
         monkeypatch.setattr(
-            "kiro_crew.subagent.read_state", lambda _id: {"cwd": str(gone)},
+            "junction.subagent.read_state", lambda _id: {"cwd": str(gone)},
         )
         assert mgr.recorded_cwd("conv9") == str(gone)
         # Only a run that never recorded a cwd yields "": for it the pool default
         # is right, because there is no project to miss.
-        monkeypatch.setattr("kiro_crew.subagent.read_state", lambda _id: {})
+        monkeypatch.setattr("junction.subagent.read_state", lambda _id: {})
         assert mgr.recorded_cwd("conv9") == ""
 
         # And the synchronous path carries no probe of its own. Comments are
@@ -281,7 +281,7 @@ class TestScopePersistence:
         assert _context_groups_field(info) == ""
 
     def test_folder_creation_records_the_scope(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.subagent_persistence._subagents_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.subagent_persistence._subagents_dir", lambda: tmp_path)
         create_agent_folder("r3", task="t", context_groups="lessons")
         assert (read_state("r3") or {}).get("context_groups") == "lessons"
 
@@ -289,7 +289,7 @@ class TestScopePersistence:
         self, tmp_path, monkeypatch
     ):
         """The real write -> real read path, not a patched read_state."""
-        monkeypatch.setattr("kiro_crew.subagent_persistence._subagents_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.subagent_persistence._subagents_dir", lambda: tmp_path)
         mgr = _mgr()
         info = SubagentInfo(id="r4", task="t", include_memory=False, include_project=False)
         mgr._log_spawned(info)

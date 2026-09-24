@@ -10,10 +10,10 @@ const {
   stopGatewayGracefully,
   forceStopPort,
   classifyPortOwner,
-  isKirocrewCommand,
+  isJunctionCommand,
 } = require("../gateway-stop");
 
-// Helper: temp KIROCREW_HOME containing a .local_secret file.
+// Helper: temp JUNCTION_HOME containing a .local_secret file.
 function tmpHomeWithSecret(secret) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gw-stop-"));
   if (secret !== null) fs.writeFileSync(path.join(dir, ".local_secret"), secret);
@@ -66,7 +66,7 @@ test("postShutdown returns true on 200 with correct secret", async () => {
   const home = tmpHomeWithSecret("s3cr3t");
   const { server, port } = await startServer({ secret: "s3cr3t", status: 200 });
   try {
-    const ok = await postShutdown({ backendUrl: `http://127.0.0.1:${port}`, kirocrewHome: home });
+    const ok = await postShutdown({ backendUrl: `http://127.0.0.1:${port}`, junctionHome: home });
     assert.strictEqual(ok, true);
   } finally { server.close(); fs.rmSync(home, { recursive: true, force: true }); }
 });
@@ -75,14 +75,14 @@ test("postShutdown returns false on 403 (wrong secret)", async () => {
   const home = tmpHomeWithSecret("wrong");
   const { server, port } = await startServer({ secret: "right", status: 200 });
   try {
-    const ok = await postShutdown({ backendUrl: `http://127.0.0.1:${port}`, kirocrewHome: home });
+    const ok = await postShutdown({ backendUrl: `http://127.0.0.1:${port}`, junctionHome: home });
     assert.strictEqual(ok, false);
   } finally { server.close(); fs.rmSync(home, { recursive: true, force: true }); }
 });
 
 test("postShutdown returns false when no secret file exists", async () => {
   const home = tmpHomeWithSecret(null);
-  const ok = await postShutdown({ backendUrl: "http://127.0.0.1:1", kirocrewHome: home });
+  const ok = await postShutdown({ backendUrl: "http://127.0.0.1:1", junctionHome: home });
   assert.strictEqual(ok, false);
   fs.rmSync(home, { recursive: true, force: true });
 });
@@ -121,7 +121,7 @@ test("stopGatewayGracefully: happy path — endpoint exits process, no signal ne
   });
   try {
     await stopGatewayGracefully(proc, {
-      backendUrl: `http://127.0.0.1:${port}`, kirocrewHome: home, timeoutMs: 10000,
+      backendUrl: `http://127.0.0.1:${port}`, junctionHome: home, timeoutMs: 10000,
     });
     assert.notStrictEqual(proc.exitCode === null && proc.signalCode === null, true, "process should be gone");
   } finally { server.close(); fs.rmSync(home, { recursive: true, force: true }); }
@@ -134,7 +134,7 @@ test("stopGatewayGracefully: SIGTERM fallback when endpoint fails", async () => 
   const { server, port } = await startServer({ secret: "s3cr3t", status: 500 }); // endpoint fails
   try {
     await stopGatewayGracefully(proc, {
-      backendUrl: `http://127.0.0.1:${port}`, kirocrewHome: home, timeoutMs: 10000,
+      backendUrl: `http://127.0.0.1:${port}`, junctionHome: home, timeoutMs: 10000,
     });
     assert.strictEqual(proc.signalCode, "SIGTERM");
   } finally { server.close(); fs.rmSync(home, { recursive: true, force: true }); }
@@ -159,7 +159,7 @@ test("stopGatewayGracefully: SIGKILL fallback when SIGTERM ignored", { skip: pro
   const { server, port } = await startServer({ secret: "s3cr3t", status: 500 });
   try {
     await stopGatewayGracefully(proc, {
-      backendUrl: `http://127.0.0.1:${port}`, kirocrewHome: home, timeoutMs: 800,
+      backendUrl: `http://127.0.0.1:${port}`, junctionHome: home, timeoutMs: 800,
     });
     assert.strictEqual(proc.signalCode, "SIGKILL");
   } finally { server.close(); fs.rmSync(home, { recursive: true, force: true }); }
@@ -176,7 +176,7 @@ test("stopGatewayGracefully: a SIGTERM-ignoring child still dies on Windows", { 
   const { server, port } = await startServer({ secret: "s3cr3t", status: 500 });
   try {
     await stopGatewayGracefully(proc, {
-      backendUrl: `http://127.0.0.1:${port}`, kirocrewHome: home, timeoutMs: 800,
+      backendUrl: `http://127.0.0.1:${port}`, junctionHome: home, timeoutMs: 800,
     });
     assert.notStrictEqual(
       proc.exitCode === null && proc.signalCode === null,
@@ -218,7 +218,7 @@ test("stopGatewayGracefully: the Windows fallback reaps the TREE, not just the g
   };
   await stopGatewayGracefully(proc, {
     backendUrl: "http://127.0.0.1:1",
-    kirocrewHome: "/nope",
+    junctionHome: "/nope",
     timeoutMs: 50,
     // The endpoint fails -- this is the fallback path, by construction.
     postShutdownFn: async () => false,
@@ -251,7 +251,7 @@ test("stopGatewayGracefully: a REJECTED tree kill still falls back to killing th
   };
   await stopGatewayGracefully(proc, {
     backendUrl: "http://127.0.0.1:1",
-    kirocrewHome: "/nope",
+    junctionHome: "/nope",
     timeoutMs: 50,
     postShutdownFn: async () => false,
     platform: "win32",
@@ -285,7 +285,7 @@ test("stopGatewayGracefully: does not resolve while the tree kill is still reapi
   };
   const stopping = stopGatewayGracefully(proc, {
     backendUrl: "http://127.0.0.1:1",
-    kirocrewHome: "/nope",
+    junctionHome: "/nope",
     timeoutMs: 5000,
     postShutdownFn: async () => false,
     platform: "win32",
@@ -331,7 +331,7 @@ test("stopGatewayGracefully: a HUNG tree kill still resolves, and never pre-empt
   const started = Date.now();
   await stopGatewayGracefully(proc, {
     backendUrl: "http://127.0.0.1:1",
-    kirocrewHome: "/nope",
+    junctionHome: "/nope",
     timeoutMs: 60,
     postShutdownFn: async () => false,
     platform: "win32",
@@ -446,7 +446,7 @@ test("stopGatewayGracefully: POSIX keeps signalling the child, not a tree kill",
   };
   await stopGatewayGracefully(proc, {
     backendUrl: "http://127.0.0.1:1",
-    kirocrewHome: "/nope",
+    junctionHome: "/nope",
     timeoutMs: 50,
     postShutdownFn: async () => false,
     platform: "linux",
@@ -460,7 +460,7 @@ test("stopGatewayGracefully: no-op on already-dead process", async () => {
   const proc = spawnDummy({ ignoreSigterm: false });
   await new Promise((r) => { proc.once("exit", r); proc.kill("SIGKILL"); });
   // Should resolve immediately without throwing.
-  await stopGatewayGracefully(proc, { backendUrl: "http://127.0.0.1:1", kirocrewHome: "/nope", timeoutMs: 500 });
+  await stopGatewayGracefully(proc, { backendUrl: "http://127.0.0.1:1", junctionHome: "/nope", timeoutMs: 500 });
   assert.ok(true);
 });
 
@@ -468,7 +468,7 @@ test("stopGatewayGracefully: no-op on already-dead process", async () => {
 // Injectable deps so we exercise the verify-the-kill-worked logic without a
 // real OS process. `listenSeq` is a queue of lsof results returned on each
 // successive call, letting a test model "killed then gone" vs "never gone".
-function fakeDeps({ listenSeq, command = "python -m kiro_crew gateway", onKill = () => {} }) {
+function fakeDeps({ listenSeq, command = "python -m junction gateway", onKill = () => {} }) {
   let i = 0;
   const killed = [];
   return {
@@ -512,7 +512,7 @@ test("forceStopPort: UNKILLABLE owner still holds port -> freed=false, survivors
   assert.deepStrictEqual(r.survivors, [4242]);
 });
 
-test("forceStopPort: never signals a non-KiroCrew owner", async () => {
+test("forceStopPort: never signals a non-Junction owner", async () => {
   const deps = fakeDeps({ listenSeq: [[999], [999]], command: "nginx: worker process" });
   const r = await forceStopPort(7788, deps);
   assert.strictEqual(r.killed, 0);
@@ -526,7 +526,7 @@ test("forceStopPort: never signals a non-KiroCrew owner", async () => {
 });
 
 test("forceStopPort: foreign owner that vanishes during verify reports freed", async () => {
-  // A non-KiroCrew owner we skip, but the port frees on its own before we finish
+  // A non-Junction owner we skip, but the port frees on its own before we finish
   // (the other app exited). freed must reflect the real port state, not our kills.
   const deps = fakeDeps({ listenSeq: [[999], []], command: "nginx: worker process" });
   const r = await forceStopPort(7788, deps);
@@ -542,7 +542,7 @@ test("forceStopPort: freed reflects real port state even after killing our targe
   const seq = [[4242], [777]]; // ours dies, foreign 777 appears
   const deps = {
     getListenPids: async () => seq[Math.min(i++, seq.length - 1)],
-    getCommand: async () => "python -m kiro_crew gateway",
+    getCommand: async () => "python -m junction gateway",
     kill: () => {},
     sleep: async () => {},
     verifyTimeoutMs: 1000,
@@ -564,10 +564,10 @@ test("forceStopPort: awaits an asynchronous Windows kill before verifying", asyn
       assert.strictEqual(killFinished, true, "verification raced taskkill completion");
       return [];
     },
-    getCommand: async () => "C:\\bundle\\kirocrew.exe gateway",
+    getCommand: async () => "C:\\bundle\\junction.exe gateway",
     kill: async () => { killFinished = true; },
     sleep: async () => {},
-    isKirocrew: (command) => command.includes("kirocrew.exe"),
+    isJunction: (command) => command.includes("junction.exe"),
   });
   assert.strictEqual(r.killed, 1);
   assert.strictEqual(r.freed, true);
@@ -595,10 +595,10 @@ test("forceStopPort: a failed Windows verification never claims recovery", async
       if (probes++ === 0) return [4242];
       throw new Error("netstat verify timed out");
     },
-    getCommand: async () => "C:\\bundle\\kirocrew.exe gateway",
+    getCommand: async () => "C:\\bundle\\junction.exe gateway",
     kill: async () => {},
     sleep: async () => {},
-    isKirocrew: (command) => command.includes("kirocrew.exe"),
+    isJunction: (command) => command.includes("junction.exe"),
     failClosedOnProbeError: true,
   });
   assert.deepStrictEqual(r, {
@@ -609,15 +609,15 @@ test("forceStopPort: a failed Windows verification never claims recovery", async
 
 // ── classifyPortOwner ───────────────────────────────────────────────────────
 // Ground truth for "is the thing on our port local, or a tunnel?". Every
-// outcome except a positively identified local KiroCrew process must be
+// outcome except a positively identified local Junction process must be
 // treated as "not ours" by callers.
 
-test("classifyPortOwner: local KiroCrew gateway is ours", async () => {
+test("classifyPortOwner: local Junction gateway is ours", async () => {
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [4242],
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
   });
-  assert.strictEqual(owner, "kirocrew");
+  assert.strictEqual(owner, "junction");
 });
 
 // A gateway the OS service manager owns (launchd LaunchAgent / systemd unit) is
@@ -627,19 +627,19 @@ test("classifyPortOwner: local KiroCrew gateway is ours", async () => {
 test("classifyPortOwner: a service-managed gateway (ppid 1) is 'service'", async () => {
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [4242],
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
     getPpid: async () => "1",
   });
   assert.strictEqual(owner, "service");
 });
 
-test("classifyPortOwner: an app-spawned gateway (real ppid) stays 'kirocrew'", async () => {
+test("classifyPortOwner: an app-spawned gateway (real ppid) stays 'junction'", async () => {
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [4242],
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
     getPpid: async () => "  3310\n",
   });
-  assert.strictEqual(owner, "kirocrew");
+  assert.strictEqual(owner, "junction");
 });
 
 test("classifyPortOwner: an unreadable ppid fails closed to 'service'", async () => {
@@ -647,7 +647,7 @@ test("classifyPortOwner: an unreadable ppid fails closed to 'service'", async ()
   // mistaking a wedge for a service only costs an eviction we can explain.
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [4242],
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
     getPpid: async () => { throw new Error("ps failed"); },
   });
   assert.strictEqual(owner, "service");
@@ -658,16 +658,16 @@ test("classifyPortOwner: without a ppid probe the old classification stands", as
   // every local gateway as a service.
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [4242],
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
   });
-  assert.strictEqual(owner, "kirocrew");
+  assert.strictEqual(owner, "junction");
 });
 
 test("forceStopPort: never SIGKILLs a service-managed gateway", async () => {
   const killed = [];
   const res = await forceStopPort(5476, {
     getListenPids: async () => [4242],
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
     getPpid: async () => "1",
     kill: (pid, sig) => killed.push([pid, sig]),
     sleep: async () => {},
@@ -684,7 +684,7 @@ test("forceStopPort: still evicts a gateway this app spawned", async () => {
   const res = await forceStopPort(5476, {
     // Second probe reports the port free, i.e. the kill took.
     getListenPids: async () => (probes++ === 0 ? [4242] : []),
-    getCommand: async () => "python -m kiro_crew gateway --port 5476",
+    getCommand: async () => "python -m junction gateway --port 5476",
     getPpid: async () => "3310",
     kill: (pid, sig) => killed.push([pid, sig]),
     sleep: async () => {},
@@ -726,47 +726,47 @@ test("classifyPortOwner: an unrunnable probe is 'unknown', never 'none'", async 
 test("classifyPortOwner: ours wins when a mixed set holds the port", async () => {
   const owner = await classifyPortOwner(5476, {
     getListenPids: async () => [909, 4242],
-    getCommand: async (pid) => (pid === 4242 ? "kirocrew gateway" : "ssh -NL 5476:localhost:5476 host"),
+    getCommand: async (pid) => (pid === 4242 ? "junction gateway" : "ssh -NL 5476:localhost:5476 host"),
   });
-  assert.strictEqual(owner, "kirocrew");
+  assert.strictEqual(owner, "junction");
 });
 
-test("classifyPortOwner and forceStopPort share one KiroCrew matcher", async () => {
+test("classifyPortOwner and forceStopPort share one Junction matcher", async () => {
   // Drift between the two would let one mis-target a stranger's process.
-  assert.ok(isKirocrewCommand("python -m kiro_crew gateway"));
-  assert.ok(isKirocrewCommand("/Applications/KiroCrew.app/.../kirocrew"));
-  assert.ok(!isKirocrewCommand("ssh -NL 5476:localhost:5476 host"));
-  assert.ok(!isKirocrewCommand("ssh -NL 5476:localhost:5476 kirocrew"));
+  assert.ok(isJunctionCommand("python -m junction gateway"));
+  assert.ok(isJunctionCommand("/Applications/Junction.app/.../junction"));
+  assert.ok(!isJunctionCommand("ssh -NL 5476:localhost:5476 host"));
+  assert.ok(!isJunctionCommand("ssh -NL 5476:localhost:5476 junction"));
   // The matcher keys on the executable/module TOKEN, not a path substring:
-  // an unrelated process merely living under a `kirocrew` home dir is foreign.
-  assert.ok(!isKirocrewCommand("C:\\Users\\kirocrew\\OtherApp\\server.exe --port 5476"));
-  assert.ok(!isKirocrewCommand("/home/kirocrew/some-other-server --port 5476"));
-  assert.ok(!isKirocrewCommand("C:\\Users\\kirocrew\\python.exe -m http.server 5476"));
-  assert.ok(!isKirocrewCommand("python app.py C:\\tmp\\kirocrew"));
-  assert.ok(!isKirocrewCommand("python app.py -m kiro_crew"));
+  // an unrelated process merely living under a `junction` home dir is foreign.
+  assert.ok(!isJunctionCommand("C:\\Users\\junction\\OtherApp\\server.exe --port 5476"));
+  assert.ok(!isJunctionCommand("/home/junction/some-other-server --port 5476"));
+  assert.ok(!isJunctionCommand("C:\\Users\\junction\\python.exe -m http.server 5476"));
+  assert.ok(!isJunctionCommand("python app.py C:\\tmp\\junction"));
+  assert.ok(!isJunctionCommand("python app.py -m junction"));
   // A POSIX `ps` line is unquoted, so an install path with a space arrives
   // split across tokens. Our own gateway must still be identified there, and a
   // later argument must still never pose as the executable.
-  assert.ok(isKirocrewCommand("/Users/Jane Doe/Apps/KiroCrew.app/Contents/Resources/bin/kirocrew gateway --port 5476"));
-  assert.ok(isKirocrewCommand("/Users/Jane Doe/venv/bin/python -m kiro_crew gateway"));
-  assert.ok(!isKirocrewCommand("/tmp/evil --spoof /usr/local/bin/kirocrew"));
-  assert.ok(!isKirocrewCommand("/tmp/evil /usr/local/bin/kirocrew"));
-  assert.ok(!isKirocrewCommand("/tmp/dir with space/evil kirocrew --port 5476"));
+  assert.ok(isJunctionCommand("/Users/Jane Doe/Apps/Junction.app/Contents/Resources/bin/junction gateway --port 5476"));
+  assert.ok(isJunctionCommand("/Users/Jane Doe/venv/bin/python -m junction gateway"));
+  assert.ok(!isJunctionCommand("/tmp/evil --spoof /usr/local/bin/junction"));
+  assert.ok(!isJunctionCommand("/tmp/evil /usr/local/bin/junction"));
+  assert.ok(!isJunctionCommand("/tmp/dir with space/evil junction --port 5476"));
   // Windows identity is path-bound: a matching basename at any other location
   // remains foreign and can never authorize taskkill.
-  const trustedCli = "C:\\Program Files\\KiroCrew\\kirocrew.exe";
-  const trustedBackend = "C:\\Program Files\\KiroCrew\\kirocrew-backend.exe";
-  const trustedPython = "C:\\Program Files\\KiroCrew\\python.exe";
-  assert.ok(isKirocrewCommand(`"${trustedCli}"`, {
+  const trustedCli = "C:\\Program Files\\Junction\\junction.exe";
+  const trustedBackend = "C:\\Program Files\\Junction\\junction-backend.exe";
+  const trustedPython = "C:\\Program Files\\Junction\\python.exe";
+  assert.ok(isJunctionCommand(`"${trustedCli}"`, {
     trustedExecutablePaths: [trustedCli],
   }));
-  assert.ok(isKirocrewCommand(`"${trustedBackend}" --gateway`, {
+  assert.ok(isJunctionCommand(`"${trustedBackend}" --gateway`, {
     trustedExecutablePaths: [trustedBackend],
   }));
-  assert.ok(isKirocrewCommand(`"${trustedPython}" -m kiro_crew gateway`, {
+  assert.ok(isJunctionCommand(`"${trustedPython}" -m junction gateway`, {
     trustedExecutablePaths: [trustedPython],
   }));
-  assert.ok(!isKirocrewCommand("C:\\Temp\\kirocrew.exe gateway", {
+  assert.ok(!isJunctionCommand("C:\\Temp\\junction.exe gateway", {
     trustedExecutablePaths: [trustedCli],
   }));
 });

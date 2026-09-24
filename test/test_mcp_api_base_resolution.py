@@ -22,7 +22,7 @@ import pytest
 
 @pytest.fixture
 def mcp(monkeypatch: pytest.MonkeyPatch) -> Any:
-    module = importlib.import_module("kiro_crew.mcp_core")
+    module = importlib.import_module("junction.mcp_core")
     monkeypatch.setattr(module, "_API_PORT", None)
     monkeypatch.setattr(module, "_API", None)
     monkeypatch.setattr(module, "_API_UNIX_SOCKET", None)
@@ -260,7 +260,7 @@ class TestMcpComputerReplay:
 
     @pytest.fixture
     def computer(self, mcp: Any, monkeypatch) -> Any:
-        module = importlib.import_module("kiro_crew.mcp_computer")
+        module = importlib.import_module("junction.mcp_computer")
         monkeypatch.setattr(module, "_internal_secret", lambda: "s")
         return module
 

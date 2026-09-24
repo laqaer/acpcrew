@@ -41,7 +41,7 @@ vi.mock('../pages/ChatPage', () => ({
       data-no-url-sync={String(!!props.noUrlSync)}
     />
   ),
-  PREFILL_STORAGE_KEY: 'kirocrew_prefill',
+  PREFILL_STORAGE_KEY: 'junction_prefill',
 }))
 
 const mkArtifact = (overrides: Partial<Artifact> = {}): Artifact => ({
@@ -552,7 +552,7 @@ describe('ArtifactDetailPage companion chat', () => {
     renderPage()
     await waitForLoaded()
     act(() => {
-      window.dispatchEvent(new CustomEvent('kirocrew:artifact-deleted', { detail: { slug: 'cr-queue' } }))
+      window.dispatchEvent(new CustomEvent('junction:artifact-deleted', { detail: { slug: 'cr-queue' } }))
     })
     await waitFor(() => expect(screen.getByText('library page target')).toBeInTheDocument())
   })
@@ -561,7 +561,7 @@ describe('ArtifactDetailPage companion chat', () => {
     renderPage()
     await waitForLoaded()
     act(() => {
-      window.dispatchEvent(new CustomEvent('kirocrew:artifact-deleted', { detail: { slug: 'other' } }))
+      window.dispatchEvent(new CustomEvent('junction:artifact-deleted', { detail: { slug: 'other' } }))
     })
     expect(screen.queryByText('library page target')).toBeNull()
   })

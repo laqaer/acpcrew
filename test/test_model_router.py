@@ -1,4 +1,4 @@
-"""Model-router sidecar probe: loopback only, no live providers, no secrets."""
+"""Model catalog probe: loopback only, no live providers, no secrets."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.model_router.probe import (
+from junction.model_router.probe import (
     CODE_INVALID_PORT,
     CODE_OK,
     CODE_UNREACHABLE,
@@ -98,12 +98,15 @@ def test_env_port_override(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_cli_status_prints_json_without_secrets(
     health_server: _HealthServer, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    from kiro_crew.model_router.cli import run_router_command
+    from junction.model_router.cli import run_router_command
 
     args = argparse.Namespace(router_action="status", router_port=health_server.port)
     run_router_command(args)
     out = capsys.readouterr().out
     assert "sk-live-secret" not in out
+    assert "injects them" not in out
+    assert "never paste provider keys into chat." in out
+    assert out.splitlines()[0].startswith("model plane:")
     last = out.strip().splitlines()[-1]
     payload = json.loads(last)
     assert payload["reachable"] is True
@@ -115,8 +118,8 @@ def test_cli_status_prints_json_without_secrets(
 async def test_api_status_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
     from aiohttp.test_utils import make_mocked_request
 
-    from kiro_crew.model_router import api
-    from kiro_crew.model_router.probe import EndpointStatus, RouterStatus
+    from junction.model_router import api
+    from junction.model_router.probe import EndpointStatus, RouterStatus
 
     fake = RouterStatus(
         reachable=False,
@@ -138,7 +141,7 @@ async def test_api_status_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_router_is_a_listed_cli_command() -> None:
-    from kiro_crew import cli_help
+    from junction import cli_help
 
     assert "router" in cli_help.SUMMARIES
     assert "planes" in cli_help.SUMMARIES
@@ -147,7 +150,7 @@ def test_router_is_a_listed_cli_command() -> None:
 def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:
     import re
 
-    from kiro_crew.model_router.catalog import MODEL_ID_MAX_LEN, MODEL_ID_PATTERN
+    from junction.model_router.catalog import MODEL_ID_MAX_LEN, MODEL_ID_PATTERN
 
     assert MODEL_ID_MAX_LEN == 64
     assert re.fullmatch(MODEL_ID_PATTERN, "")
@@ -163,7 +166,7 @@ def test_model_id_pattern_allows_namespaced_slugs_not_paths() -> None:
 
 
 def test_catalog_includes_codex_router_model_choices() -> None:
-    from kiro_crew.model_router.catalog import load_catalog
+    from junction.model_router.catalog import load_catalog
 
     catalog = load_catalog()
     slugs = {row.slug for row in catalog.models}
@@ -181,7 +184,7 @@ def test_catalog_includes_codex_router_model_choices() -> None:
     dumped = json.dumps(catalog.to_dict())
     assert "sk-" not in dumped
     # ``auth_kind: api_key`` names how the sidecar authenticates, not a secret.
-    from kiro_crew.model_router.routing import annotated_catalog
+    from junction.model_router.routing import annotated_catalog
 
     annotated = annotated_catalog()
     by_slug = {row["slug"]: row["cost_class"] for row in annotated["models"]}
@@ -191,7 +194,7 @@ def test_catalog_includes_codex_router_model_choices() -> None:
 
 
 def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
-    from kiro_crew.model_router.routing import (
+    from junction.model_router.routing import (
         COST_CAPABLE,
         COST_ECONOMY,
         COST_STANDARD,
@@ -234,7 +237,7 @@ def test_cost_class_and_plan_never_hardcodes_a_default_id() -> None:
 def test_cli_catalog_and_plan_print_json_without_secrets(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    from kiro_crew.model_router.cli import run_router_command
+    from junction.model_router.cli import run_router_command
 
     run_router_command(argparse.Namespace(router_action="catalog", provider="", cost_class=""))
     catalog_out = capsys.readouterr().out
@@ -242,9 +245,13 @@ def test_cli_catalog_and_plan_print_json_without_secrets(
     payload = json.loads(last)
     assert payload["model_count"] >= 198
     assert "sk-" not in catalog_out
+    assert "holds credentials" not in catalog_out
+    assert "no credentials in this snapshot" in catalog_out
 
     run_router_command(argparse.Namespace(router_action="plan", advertised="haiku-4.5,opus"))
     plan_out = capsys.readouterr().out
+    assert "injects them" not in plan_out
+    assert "never paste provider keys into chat." in plan_out
     plan_payload = json.loads(plan_out.strip().splitlines()[-1])
     assert plan_payload["code"] == "ok"
     roles = {row["role"]: row for row in plan_payload["roles"]}
@@ -256,7 +263,7 @@ def test_cli_catalog_and_plan_print_json_without_secrets(
 async def test_api_catalog_and_plan() -> None:
     from aiohttp.test_utils import make_mocked_request
 
-    from kiro_crew.model_router import api
+    from junction.model_router import api
 
     catalog_resp = await api.api_catalog(make_mocked_request("GET", "/api/model-router/catalog"))
     assert catalog_resp.status == 200
@@ -276,7 +283,7 @@ async def test_api_catalog_and_plan() -> None:
 
 
 def test_orchestrator_turn_role_picks_dag_stage() -> None:
-    from kiro_crew.model_router.routing import (
+    from junction.model_router.routing import (
         ROLE_EXECUTION,
         ROLE_ORCHESTRATION,
         ROLE_PLANNING,
@@ -291,8 +298,8 @@ def test_orchestrator_turn_role_picks_dag_stage() -> None:
 
 @pytest.mark.asyncio
 async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.MonkeyPatch) -> None:
-    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-    from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+    from junction.config.loader import AgentConfig, JunctionConfig
+    from junction.model_router.routing import ROLE_PLANNING, apply_role_model
 
     class _Client:
         def __init__(self) -> None:
@@ -302,9 +309,9 @@ async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.Monk
             self.seen.append(model_id)
 
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
+        "junction.config.loader.JunctionConfig.load",
         classmethod(
-            lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-k3"}))
+            lambda cls: JunctionConfig(agent=AgentConfig(role_models={"planning": "kimi-k3"}))
         ),
     )
     client = _Client()
@@ -317,8 +324,8 @@ async def test_apply_role_model_sets_pin_and_skips_auto(monkeypatch: pytest.Monk
 
 @pytest.mark.asyncio
 async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.MonkeyPatch) -> None:
-    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-    from kiro_crew.model_router.routing import ROLE_PLANNING, apply_role_model
+    from junction.config.loader import AgentConfig, JunctionConfig
+    from junction.model_router.routing import ROLE_PLANNING, apply_role_model
 
     class _Client:
         def __init__(self) -> None:
@@ -328,9 +335,9 @@ async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.Monkey
             self.seen.append(model_id)
 
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
+        "junction.config.loader.JunctionConfig.load",
         classmethod(
-            lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={"planning": "kimi-oauth/k3"}))
+            lambda cls: JunctionConfig(agent=AgentConfig(role_models={"planning": "kimi-oauth/k3"}))
         ),
     )
     client = _Client()
@@ -342,8 +349,8 @@ async def test_apply_role_model_skips_namespaced_slug(monkeypatch: pytest.Monkey
 async def test_apply_role_model_calls_available_models_method(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from kiro_crew.config.loader import AgentConfig, KiroCrewConfig
-    from kiro_crew.model_router.routing import ROLE_ORCHESTRATION, apply_role_model
+    from junction.config.loader import AgentConfig, JunctionConfig
+    from junction.model_router.routing import ROLE_ORCHESTRATION, apply_role_model
 
     class _Client:
         def __init__(self) -> None:
@@ -359,9 +366,87 @@ async def test_apply_role_model_calls_available_models_method(
             self.seen.append(model_id)
 
     monkeypatch.setattr(
-        "kiro_crew.config.loader.KiroCrewConfig.load",
-        classmethod(lambda cls: KiroCrewConfig(agent=AgentConfig(role_models={}))),
+        "junction.config.loader.JunctionConfig.load",
+        classmethod(lambda cls: JunctionConfig(agent=AgentConfig(role_models={}))),
     )
     client = _Client()
     assert await apply_role_model(client, ROLE_ORCHESTRATION) == "claude-haiku-4.5"
     assert client.seen == ["claude-haiku-4.5"]
+
+
+def test_embedded_router_serves_catalog_and_refuses_forwarding() -> None:
+    import urllib.error
+    import urllib.request
+
+    from junction.model_router.embedded import (
+        CODE_NO_FORWARD,
+        ensure_embedded_router,
+        stop_embedded_router,
+    )
+
+    bind = ensure_embedded_router(port=0)
+    try:
+        assert bind.owned is True
+        assert bind.host == "127.0.0.1"
+        assert bind.port > 0
+        status = probe_status(router_port=bind.port, gateway_port=9)
+        assert status.router.ok is True
+        assert status.router.health.get("service") == "junction"
+        assert status.to_dict()["status"] == "degraded"
+        again = ensure_embedded_router(port=0)
+        assert again.port == bind.port
+        from junction.loopback_http import loopback_urlopen
+
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{bind.port}/v1/chat/completions",
+            data=b"{}",
+            method="POST",
+        )
+        with pytest.raises(urllib.error.HTTPError) as raised:
+            loopback_urlopen(req, timeout=2)
+        assert raised.value.code == 501
+        body = json.loads(raised.value.read())
+        assert body["code"] == CODE_NO_FORWARD
+        with loopback_urlopen(f"http://127.0.0.1:{bind.port}/catalog", timeout=2) as resp:
+            catalog = json.loads(resp.read())
+        assert catalog["model_count"] >= 1
+        dumped = json.dumps(catalog)
+        assert "sk-" not in dumped
+        assert "BEGIN PRIVATE" not in dumped
+    finally:
+        stop_embedded_router()
+
+
+def test_embedded_router_leaves_a_busy_port_alone() -> None:
+    from junction.model_router.embedded import ensure_embedded_router, stop_embedded_router
+
+    holder = ThreadingHTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
+    port = int(holder.server_address[1])
+    thread = threading.Thread(target=holder.serve_forever, daemon=True)
+    thread.start()
+    try:
+        bind = ensure_embedded_router(port=port)
+        assert bind.owned is False
+        assert bind.port == port
+    finally:
+        holder.shutdown()
+        holder.server_close()
+        stop_embedded_router()
+
+
+def test_builtin_catalog_line_when_health_names_junction() -> None:
+    from junction.planes import format_human_planes
+
+    text = format_human_planes(
+        {
+            "harness": {"default": "auto", "selected": "", "runtimes": []},
+            "model": {
+                "status": "degraded",
+                "router": {"health": {"service": "junction", "ok": True}},
+            },
+            "roles": {"roles": []},
+        },
+        heading="Planes",
+    )
+    assert "built-in catalog" in text
+    assert "provider translation is not bundled" in text

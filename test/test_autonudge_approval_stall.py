@@ -4,13 +4,13 @@ import asyncio
 
 import pytest
 
-from kiro_crew import autonudge as _an
-from kiro_crew.autonudge import APPROVAL_STALL_REASON, AutoNudgeService, NudgeLoop
+from junction import autonudge as _an
+from junction.autonudge import APPROVAL_STALL_REASON, AutoNudgeService, NudgeLoop
 
 
 @pytest.fixture(autouse=True)
 def _enable(monkeypatch):
-    monkeypatch.setenv("KIROCREW_AUTONUDGE", "1")
+    monkeypatch.setenv("JUNCTION_AUTONUDGE", "1")
 
 
 @pytest.fixture(autouse=True)

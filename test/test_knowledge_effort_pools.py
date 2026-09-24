@@ -8,9 +8,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.dashboard.handlers import knowledge as kh
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction.config.loader import JunctionConfig
+from junction.dashboard.handlers import knowledge as kh
+from junction.knowledge.store import KnowledgeStore
 
 
 class _FakePool:
@@ -35,7 +35,7 @@ def store(tmp_path):
 
 
 def _config(background_effort: str | None = None):
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     if background_effort is not None:
         cfg.agent.role_efforts = {"background": background_effort}
     return cfg
@@ -63,7 +63,7 @@ class TestKnowledgePoolSetup:
             return extractor
 
         monkeypatch.setattr(
-            kh.KiroCrewConfig, "load", lambda: _config(background_effort)
+            kh.JunctionConfig, "load", lambda: _config(background_effort)
         )
         monkeypatch.setattr(kh, "LLMPool", _pool_factory)
         monkeypatch.setattr(kh, "EntityExtractor", _extractor_factory)

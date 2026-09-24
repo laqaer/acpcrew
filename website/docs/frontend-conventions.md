@@ -43,8 +43,8 @@ Other shared modules:
 - `InfoTip.tsx`, `MarkdownRenderer.tsx` (highlight.js syntax highlighting),
   `TypewriterText.tsx`
 
-`src/kirocrew-ui/index.ts` re-exports the subset that apps may import as
-`@kirocrew/ui`. Adding a primitive there makes it app-facing API, so add
+`src/junction-ui/index.ts` re-exports the subset that apps may import as
+`@junction/ui`. Adding a primitive there makes it app-facing API, so add
 deliberately.
 
 ## Accessibility
@@ -149,7 +149,7 @@ slices:
 | `dashboard` | SSE/WS connection state, chat slots, approval mode, optimistic slot add/remove, thunks for slot fetch and approval-mode change |
 | `chat` | active slot, messages, session history with pagination, WS chunk/done handling, thunks for slot CRUD and history fetch/resume/delete |
 | `notifications` | notification list with add/delete/clear plus their thunks |
-| `instances` | the known Kiro Crew instances a user can switch between |
+| `instances` | the known Junction instances a user can switch between |
 
 Server data belongs in React Query, not in a slice. Reach for Redux only when the
 state is shell-wide and not a cached server read.

@@ -24,14 +24,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.liveness import (
+from junction.acp.liveness import (
     VERDICT_DEAD,
     VERDICT_UNKNOWN,
     VERDICT_WORKING,
     ToolCallState,
 )
-from kiro_crew.acp.session_handle import AcpSessionHandle, WatchdogSettings
-from kiro_crew.acp.types import (
+from junction.acp.session_handle import AcpSessionHandle, WatchdogSettings
+from junction.acp.types import (
     EVENT_COMPLETE,
     METHOD_SESSION_UPDATE,
     STOP_REASON_CANCELLED,
@@ -39,7 +39,7 @@ from kiro_crew.acp.types import (
     STOP_REASON_TOOL_STALL,
     JsonRpcMessage,
 )
-from kiro_crew.dashboard.state import (
+from junction.dashboard.state import (
     STALE_RECOVERY_PREFIX,
     TOOL_STALL_RECOVERY_PREFIX,
     build_stale_recovery_prompt,
@@ -359,7 +359,7 @@ async def test_working_verdict_never_cancels_tool_at_any_idle():
     handle._queue = _SilentQueue()  # type: ignore[assignment]
     handle._oracle.check_tool = lambda pid, tool: ("working", "shell child 1234 alive")
     handle._inflight_tool = None  # _consult_tool_oracle guards; force via oracle
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     handle._inflight_tool = ToolCallState(title="bash", command="long-build > build.log 2>&1")
 
@@ -373,7 +373,7 @@ async def test_working_verdict_never_cancels_tool_at_any_idle():
 async def test_dead_tool_verdict_cancels_within_one_tick():
     """A DEAD tool verdict (child exited, no result frame) acts immediately —
     no waiting for the 600s-equivalent suspect window."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     # Huge UNKNOWN windows: only a DEAD verdict can trigger the cancel here.
     wd = WatchdogSettings(
@@ -409,7 +409,7 @@ async def test_dead_tool_verdict_cancels_within_one_tick():
 async def test_stuck_input_verdict_flagged_in_evidence():
     """A STUCK_INPUT verdict acts immediately and the evidence marker survives
     on the terminal event so the recovery nudge can name the cause."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     wd = WatchdogSettings(check_after_secs=0.01, tool_stall_suspect_secs=999.0,
                           tool_stall_hard_cap_secs=999.0)
@@ -432,7 +432,7 @@ async def test_stuck_input_verdict_flagged_in_evidence():
 async def test_unknown_tool_verdict_waits_for_suspect_window():
     """UNKNOWN tool verdicts stay in the timeout-governed class: no cancel
     before tool_stall_suspect_secs, cancel after."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     wd = WatchdogSettings(check_after_secs=0.01, tool_stall_suspect_secs=0.2,
                           tool_stall_hard_cap_secs=999.0)
@@ -462,7 +462,7 @@ async def test_established_flat_tool_verdict_narrows_to_model_silent_window():
     kiro-cli use_subagent) uses min(model_silent_probe_secs,
     tool_stall_suspect_secs) as the effective suspect window instead of the
     build-scale forbearance."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     # Build-scale suspect window (999s) but a tight model-silent budget: only
     # the narrowed window can trigger the cancel inside this test's runtime.
@@ -489,7 +489,7 @@ async def test_plain_flat_tool_verdict_keeps_full_suspect_window():
     """UNKNOWN tool evidence WITHOUT the established_flat tag (a quiet MCP
     tool / build) keeps the full tool_stall_suspect_secs — the narrowed
     model-silent window must never leak onto build-shaped stalls."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     # Tight model-silent budget, build-scale suspect window: if the narrowing
     # incorrectly applied here, the cancel would fire within this test.
@@ -515,7 +515,7 @@ async def test_narrowed_tool_window_never_exceeds_suspect_window():
     """min() semantics: when the per-agent suspect window is ALREADY tighter
     than model_silent_probe_secs, the tighter one governs an established_flat
     tool stall (an override can only ever narrow, never extend)."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     wd = WatchdogSettings(check_after_secs=0.01, tool_stall_suspect_secs=0.05,
                           tool_stall_hard_cap_secs=999.0, model_silent_probe_secs=999.0)
@@ -537,7 +537,7 @@ async def test_narrowed_tool_window_never_exceeds_suspect_window():
 async def test_working_verdict_still_never_acted_on_with_established_flat_windows():
     """Invariant: the narrowed window governs only UNKNOWN — a WORKING tool
     verdict is never cancelled regardless of the model-silent budget."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     wd = WatchdogSettings(check_after_secs=0.01, tool_stall_suspect_secs=0.05,
                           tool_stall_hard_cap_secs=0.05, model_silent_probe_secs=0.05)
@@ -558,22 +558,22 @@ async def test_working_verdict_still_never_acted_on_with_established_flat_window
 
 
 def _cfg_with_agent_overrides(monkeypatch, agents: dict) -> None:
-    """Patch KiroCrewConfig.load() with a real default config carrying *agents*."""
-    from kiro_crew.config.loader import KiroCrewConfig
+    """Patch JunctionConfig.load() with a real default config carrying *agents*."""
+    from junction.config.loader import JunctionConfig
 
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.agents = agents
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: cfg))
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: cfg))
 
 
 def test_per_agent_override_narrows_watchdog_snapshot(monkeypatch):
     """A crew declaring watchdog_tool_stall_* overrides gets them in the
     WatchdogSettings snapshot; the untouched windows keep global values."""
-    from kiro_crew.acp.session_handle import _load_watchdog_settings
-    from kiro_crew.config.loader import KiroCrewAgentConfig
+    from junction.acp.session_handle import _load_watchdog_settings
+    from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
-        "pr-reviewer": KiroCrewAgentConfig(
+        "pr-reviewer": JunctionAgentConfig(
             kiro_agent="pr-reviewer-kiro",
             watchdog_tool_stall_suspect_secs=900.0,
             watchdog_tool_stall_hard_cap_secs=1800.0,
@@ -591,11 +591,11 @@ def test_per_agent_override_narrows_watchdog_snapshot(monkeypatch):
 def test_per_agent_override_zero_inherits_global(monkeypatch):
     """0 (the default) inherits the global window — the same empty-inherits
     convention as the agent's model field."""
-    from kiro_crew.acp.session_handle import _load_watchdog_settings
-    from kiro_crew.config.loader import KiroCrewAgentConfig
+    from junction.acp.session_handle import _load_watchdog_settings
+    from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
-        "builder": KiroCrewAgentConfig(kiro_agent="builder-kiro"),
+        "builder": JunctionAgentConfig(kiro_agent="builder-kiro"),
     })
 
     wd = _load_watchdog_settings("builder")
@@ -609,11 +609,11 @@ def test_kiro_binding_name_is_not_resolved(monkeypatch):
     than being reverse-matched to the crew that binds it — the surface that
     owns the identity passes the crew name (see the chat_runner call sites),
     so no cross-namespace guessing happens here."""
-    from kiro_crew.acp.session_handle import _load_watchdog_settings
-    from kiro_crew.config.loader import KiroCrewAgentConfig
+    from junction.acp.session_handle import _load_watchdog_settings
+    from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
-        "pr-reviewer": KiroCrewAgentConfig(
+        "pr-reviewer": JunctionAgentConfig(
             kiro_agent="pr-reviewer-kiro",
             watchdog_tool_stall_suspect_secs=600.0,
         ),
@@ -626,12 +626,12 @@ def test_shared_binding_cannot_collide_canonical_names(monkeypatch):
     """Two crews binding the same kiro agent were a collision under the old
     cross-namespace match; canonical resolution keys each crew's overrides to
     its own name, so both apply independently."""
-    from kiro_crew.acp.session_handle import _load_watchdog_settings
-    from kiro_crew.config.loader import KiroCrewAgentConfig
+    from junction.acp.session_handle import _load_watchdog_settings
+    from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
-        "a": KiroCrewAgentConfig(kiro_agent="shared", watchdog_tool_stall_suspect_secs=60.0),
-        "b": KiroCrewAgentConfig(kiro_agent="shared", watchdog_tool_stall_suspect_secs=120.0),
+        "a": JunctionAgentConfig(kiro_agent="shared", watchdog_tool_stall_suspect_secs=60.0),
+        "b": JunctionAgentConfig(kiro_agent="shared", watchdog_tool_stall_suspect_secs=120.0),
     })
 
     assert _load_watchdog_settings("a").tool_stall_suspect_secs == 60.0
@@ -642,10 +642,10 @@ def test_handle_snapshots_crew_agent_overrides(monkeypatch):
     """The handle keys its construction-time watchdog snapshot on crew_agent
     (the canonical identity); a construction without it snapshots the
     globals."""
-    from kiro_crew.config.loader import KiroCrewAgentConfig
+    from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
-        "pr-reviewer": KiroCrewAgentConfig(
+        "pr-reviewer": JunctionAgentConfig(
             kiro_agent="pr-reviewer-kiro",
             watchdog_tool_stall_suspect_secs=450.0,
         ),
@@ -665,10 +665,10 @@ def test_rebind_watchdog_follows_warm_pool_rekey(monkeypatch):
     """rebind_watchdog() re-snapshots for the claiming crew (identity travels
     with the session, not the pool key), and an empty rebind drops a previous
     crew's windows back to the globals."""
-    from kiro_crew.config.loader import KiroCrewAgentConfig
+    from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
-        "claimer": KiroCrewAgentConfig(
+        "claimer": JunctionAgentConfig(
             kiro_agent="shared", watchdog_tool_stall_suspect_secs=300.0
         ),
     })
@@ -691,7 +691,7 @@ def test_rebind_watchdog_follows_warm_pool_rekey(monkeypatch):
 def test_unknown_agent_inherits_global(monkeypatch):
     """An agent with no config entry (or no agent name at all) snapshots the
     plain global windows."""
-    from kiro_crew.acp.session_handle import _load_watchdog_settings
+    from junction.acp.session_handle import _load_watchdog_settings
 
     _cfg_with_agent_overrides(monkeypatch, {})
 
@@ -781,7 +781,7 @@ async def test_genuine_user_cancel_not_reclassified():
 async def test_wait_tool_declared_duration_reads_working():
     """A wait(1800) is WORKING by contract until its declared duration + slack
     elapses — the real oracle (not a stub) must defer the stall cancel."""
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     wd = WatchdogSettings(check_after_secs=0.01, tool_stall_suspect_secs=0.05,
                           tool_stall_hard_cap_secs=999.0)
@@ -907,7 +907,7 @@ async def test_toctou_path_b_ingress_seq_prevents_cancel():
     handle = _make_handle(watchdog=wd)
     handle._stale_eligible = False
     handle._tool_dispatched = True
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
     handle._inflight_tool = ToolCallState(title="ReadInternalWebsites", command="")
     handle._queue = _SilentQueue()  # type: ignore[assignment]
     handle._consult_oracle_offloaded = oracle  # type: ignore[method-assign]
@@ -958,7 +958,7 @@ async def test_toctou_path_a_queue_depth_prevents_cancel():
     handle = _make_handle(watchdog=wd)
     handle._stale_eligible = False
     handle._tool_dispatched = True
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
     handle._inflight_tool = ToolCallState(title="ReadInternalWebsites", command="")
     # Backlog queue: times out fast when empty, delivers put_nowait items.
     handle._queue = _SilentQueueWithBacklog()  # type: ignore[assignment]
@@ -1091,7 +1091,7 @@ async def test_hard_cap_below_suspect_window_fires_at_cap():
     With cap=0.05s and suspect=999s, the cancel would never fire within this
     test's runtime unless the hard cap is applied as min(suspect, hard_cap).
     """
-    from kiro_crew.acp.liveness import ToolCallState
+    from junction.acp.liveness import ToolCallState
 
     wd = WatchdogSettings(
         check_after_secs=0.01,
@@ -1215,8 +1215,8 @@ async def test_a_real_submission_is_recorded_and_gates_the_next_tick():
         return await _real_wait_for(awaitable, timeout=0.01)
 
     with (
-        patch("kiro_crew.acp.session_handle.subprocess_executor", return_value=pool),
-        patch("kiro_crew.acp.session_handle.asyncio.wait_for", _fast_timeout),
+        patch("junction.acp.session_handle.subprocess_executor", return_value=pool),
+        patch("junction.acp.session_handle.asyncio.wait_for", _fast_timeout),
     ):
         assert await handle._consult_oracle_offloaded(model_wait=False) == (
             VERDICT_UNKNOWN,
@@ -1247,7 +1247,7 @@ async def test_failed_submission_reports_unknown_without_latching_the_gate():
     handle._oracle = MagicMock()
 
     with patch(
-        "kiro_crew.acp.session_handle.subprocess_executor",
+        "junction.acp.session_handle.subprocess_executor",
         side_effect=RuntimeError("cannot schedule new futures after shutdown"),
     ):
         assert await handle._consult_oracle_offloaded(model_wait=False) == (
@@ -1281,8 +1281,8 @@ async def test_pending_walk_exception_is_consumed_without_any_boundary():
         return await _real_wait_for(awaitable, timeout=0.01)
 
     with (
-        patch("kiro_crew.acp.session_handle.subprocess_executor", return_value=pool),
-        patch("kiro_crew.acp.session_handle.asyncio.wait_for", _fast_timeout),
+        patch("junction.acp.session_handle.subprocess_executor", return_value=pool),
+        patch("junction.acp.session_handle.asyncio.wait_for", _fast_timeout),
     ):
         await handle._consult_oracle_offloaded(model_wait=False)
 
@@ -1310,7 +1310,7 @@ async def test_cancelled_consult_still_consumes_a_later_failure():
     handle._oracle = MagicMock()
     pool, thread_future = _stub_pool()
 
-    with patch("kiro_crew.acp.session_handle.subprocess_executor", return_value=pool):
+    with patch("junction.acp.session_handle.subprocess_executor", return_value=pool):
         task = asyncio.ensure_future(handle._consult_oracle_offloaded(model_wait=False))
         while handle._consult_future is None:
             await asyncio.sleep(0)
@@ -1423,8 +1423,8 @@ async def test_the_submitted_walk_is_bound_to_the_oracle_it_sampled():
         return await _real_wait_for(awaitable, timeout=0.01)
 
     with (
-        patch("kiro_crew.acp.session_handle.subprocess_executor", return_value=pool),
-        patch("kiro_crew.acp.session_handle.asyncio.wait_for", _fast_timeout),
+        patch("junction.acp.session_handle.subprocess_executor", return_value=pool),
+        patch("junction.acp.session_handle.asyncio.wait_for", _fast_timeout),
     ):
         await handle._consult_oracle_offloaded(model_wait=False)
 

@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.wecom.transport_dispatch (WeComDispatcher) + commands."""
+"""Tests for junction.wecom.transport_dispatch (WeComDispatcher) + commands."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
-from kiro_crew.wecom.client import WeComInbound
-from kiro_crew.wecom.commands import ConversationState, parse_command
-from kiro_crew.wecom.transport_dispatch import WeComDispatcher
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, AcpEvent
+from junction.wecom.client import WeComInbound
+from junction.wecom.commands import ConversationState, parse_command
+from junction.wecom.transport_dispatch import WeComDispatcher
 
 # ------------------------------------------------------------------
 # Fakes
@@ -265,7 +265,7 @@ def _inbound(text: str = "hello", userid: str = "Wei") -> WeComInbound:
 def _deny_wecom_profile(monkeypatch, tmp_path):
     import json
 
-    from kiro_crew.platform import governance_profiles as gp
+    from junction.platform import governance_profiles as gp
 
     pdir = tmp_path / "profiles"
     pdir.mkdir(exist_ok=True)
@@ -287,7 +287,7 @@ class TestTurn:
     async def test_channels_deny_drops_inbound_message(self, tmp_path, monkeypatch) -> None:
         # HIGH (GPT round-4 #2): a channels DENY must stop handle_message from
         # driving a turn. Regression-locks the WeCom inbound chokepoint.
-        from kiro_crew.platform import governance_profiles as gp
+        from junction.platform import governance_profiles as gp
 
         _deny_wecom_profile(monkeypatch, tmp_path)
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
@@ -321,12 +321,12 @@ class TestTurn:
         assert (key, "assistant", "hi there") in conv.appended
 
     @pytest.mark.asyncio
-    async def test_agent_resolves_to_kirocrew_when_unset(self) -> None:
+    async def test_agent_resolves_to_junction_when_unset(self) -> None:
         provider = FakeProvider([AcpEvent(kind=EVENT_COMPLETE)])
         sessions = FakeSessions(provider)
         d = _dispatcher(sessions, FakeCtx(), FakeClient(), cfg=_cfg(default_agent=""))
         await d.handle_message(_inbound("hi"))
-        assert sessions.last_agent == "kirocrew"
+        assert sessions.last_agent == "junction"
 
     @pytest.mark.asyncio
     async def test_cold_start_failure_finalizes_and_skips_release(self) -> None:
@@ -437,7 +437,7 @@ class TestCommands:
         d = _dispatcher(sessions, FakeCtx(), client)
         await d.handle_message(_inbound("/link"))
 
-        key = "wecom:kirocrew:direct:Wei"
+        key = "wecom:junction:direct:Wei"
         assert sessions.mirror_links[key].channel_type == "wecom"
         assert sessions.mirror_links[key].channel_id == "Wei"
         assert sessions.opted_out[key] is False
@@ -452,7 +452,7 @@ class TestCommands:
         d = _dispatcher(sessions, FakeCtx(), client)
         await d.handle_message(_inbound("/unlink"))
 
-        key = "wecom:kirocrew:direct:Wei"
+        key = "wecom:junction:direct:Wei"
         assert sessions.opted_out[key] is True
         assert sessions.successes == []  # a command runs no LLM turn
 

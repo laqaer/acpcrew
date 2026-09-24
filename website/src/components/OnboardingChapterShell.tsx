@@ -51,7 +51,7 @@ export function ShellAside({ copy }: { copy: ShellAsideCopy }) {
       <div className="relative z-10 flex w-full flex-col p-7 sm:p-10">
         <div className="flex items-center gap-3">
           <GitMerge className="lucide-inline h-8 w-7" aria-hidden="true" />
-          <span className="text-[15px] font-semibold tracking-wide">{i18nT('components.onboardingChapterShell.kiro_crew')}</span>
+          <span className="text-[15px] font-semibold tracking-wide">{i18nT('components.onboardingChapterShell.junction')}</span>
         </div>
         <div className="mt-auto max-w-[290px]">
           <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[clamp(2.2rem,4vw,3.5rem)]">

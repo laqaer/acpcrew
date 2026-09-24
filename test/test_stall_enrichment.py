@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sys
 
-from kiro_crew.dashboard.stall_enrichment import (
+from junction.dashboard.stall_enrichment import (
     _decode_proc_addr,
     _established_lines,
     collect_stall_enrichment,

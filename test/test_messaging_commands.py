@@ -8,7 +8,7 @@ channel (where the copies could drift), the CONTRACT the hoist has to preserve -
 the ``None`` sentinel meaning "not this command, keep routing", the retryable busy
 answer, and the redaction every reply owes an external surface -- and the two
 structural guarantees that make the extraction safe: the module accepts no address,
-and ``kiro_crew.messaging`` still imports nothing from the surfaces built on it.
+and ``junction.messaging`` still imports nothing from the surfaces built on it.
 """
 
 from __future__ import annotations
@@ -25,10 +25,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.messaging.commands as commands
-from kiro_crew.cron import CronJob, CronSchedule, CronStoreBusy
-from kiro_crew.dashboard.token_auth import parse_duration
-from kiro_crew.messaging.commands import (
+import junction.messaging.commands as commands
+from junction.cron import CronJob, CronSchedule, CronStoreBusy
+from junction.dashboard.token_auth import parse_duration
+from junction.messaging.commands import (
     _CRON_BUSY,
     DEFAULT_DASHBOARD_TTL_SECS,
     MIN_DASHBOARD_TTL_SECS,
@@ -48,7 +48,7 @@ from kiro_crew.messaging.commands import (
     task_arg_reply,
     task_command_reply,
 )
-from kiro_crew.messaging.queue_receipt import ReceiptQueue, receipt_text
+from junction.messaging.queue_receipt import ReceiptQueue, receipt_text
 
 
 class _Surface:
@@ -174,7 +174,7 @@ class TestStopRunningTurn:
 
 
 def _reset_grant() -> Any:
-    from kiro_crew.safety_override import safety_override
+    from junction.safety_override import safety_override
 
     so = safety_override()
     if so.is_active():
@@ -270,7 +270,7 @@ class TestRunYoloCommand:
     def test_a_failed_activation_is_audited_as_denied(
         self, grant: Any, audit: _Sel, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.safety_override import ActivationResult
+        from junction.safety_override import ActivationResult
 
         monkeypatch.setattr(
             grant,
@@ -439,7 +439,7 @@ class TestLayering:
     #: trade than one documented deferred import. Recorded as a pair so a NEW edge
     #: still fails, and so removing this one does not silently widen the gate.
     _ALLOWED_SURFACE_EDGES = {
-        ("dispatch.py", "kiro_crew.dashboard.session_directive_apply"),
+        ("dispatch.py", "junction.dashboard.session_directive_apply"),
     }
 
     def test_messaging_imports_nothing_from_the_surfaces_built_on_it(self) -> None:
@@ -462,7 +462,7 @@ class TestLayering:
                     module = ",".join(a.name for a in node.names)
                 else:
                     continue
-                if "kiro_crew.dashboard" not in module and "kiro_crew.slack" not in module:
+                if "junction.dashboard" not in module and "junction.slack" not in module:
                     continue
                 if (path.name, module) in self._ALLOWED_SURFACE_EDGES:
                     continue
@@ -494,7 +494,7 @@ _AWS_KEY = "AKIA" + "IOSFODNN7EXAMPLE"
 
 #: A non-Slack conversation key. Namespaced rather than a bare id because this is
 #: the shape every channel's session key has, and the value is forwarded verbatim.
-_TG_KEY = "telegram:kirocrew:direct:U9"
+_TG_KEY = "telegram:junction:direct:U9"
 
 
 def _job(job_id: str = "j1", **kw: Any) -> CronJob:
@@ -666,7 +666,7 @@ class TestCron:
         svc.remove_jobs = AsyncMock(return_value=(["j1"], []))
         svc.remove_job_async = AsyncMock(return_value=True)
 
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             await cron_command_reply("cron remove all", svc, source="telegram", caller="7")
             await cron_command_reply("cron remove j1", svc, source="telegram", caller="7")
 
@@ -683,7 +683,7 @@ class TestCron:
         svc.list_jobs.return_value = [_job("j1")]
         svc.remove_jobs = AsyncMock(return_value=(["j1"], []))
 
-        with patch("kiro_crew.messaging.commands.sel") as mock_sel:
+        with patch("junction.messaging.commands.sel") as mock_sel:
             await cron_command_reply("cron remove all", svc, source="webex")
 
         svc.remove_jobs.assert_awaited_once_with(["j1"], actor="webex", source="webex")
@@ -871,7 +871,7 @@ class TestTaskSpecPathIsGated:
         key = secret_dir / "id_rsa"
         key.write_text("PRIVATE KEY", encoding="utf-8")
         monkeypatch.setattr(
-            "kiro_crew.hooks.is_sensitive_path",
+            "junction.hooks.is_sensitive_path",
             lambda p: str(secret_dir) in str(p),
         )
 
@@ -901,7 +901,7 @@ class TestTaskSpecPathIsGated:
         link = tmp_path / "plan.yaml"
         link.symlink_to(secret_dir / "id_rsa")
         monkeypatch.setattr(
-            "kiro_crew.hooks.is_sensitive_path",
+            "junction.hooks.is_sensitive_path",
             lambda p: str(secret_dir) in str(p),
         )
 
@@ -948,7 +948,7 @@ class TestSlackKeywordCarriesTheSessionKey:
 
     @pytest.mark.asyncio
     async def test_the_slack_handler_forwards_the_session_key(self) -> None:
-        from kiro_crew.slack import handler as sh
+        from junction.slack import handler as sh
 
         seen: list[dict] = []
 
@@ -964,16 +964,16 @@ class TestSlackKeywordCarriesTheSessionKey:
                 object(),  # type: ignore[arg-type]
                 "C1",
                 "1.2",
-                session_key="slack:kirocrew:direct:U1",
+                session_key="slack:junction:direct:U1",
             )
         assert out == "started"
-        assert seen and seen[0]["session_key"] == "slack:kirocrew:direct:U1"
+        assert seen and seen[0]["session_key"] == "slack:junction:direct:U1"
 
     @pytest.mark.asyncio
     async def test_omitting_it_reproduces_the_old_behaviour(self) -> None:
         # Keyword-only with a default, so the ~25 existing positional call sites are
         # unchanged and an omitted key means owner-DM-only exactly as before.
-        from kiro_crew.slack import handler as sh
+        from junction.slack import handler as sh
 
         seen: list[str] = []
 
@@ -1052,6 +1052,6 @@ class TestListsHostState:
             SimpleNamespace(id="a2", started=0.0, task="somebody elses"),
         ]
         manager = SimpleNamespace(running=agents, max_concurrent=4)
-        out = commands.spawn_task_reply("list", manager, "telegram:kirocrew:direct:7")
+        out = commands.spawn_task_reply("list", manager, "telegram:junction:direct:7")
         assert out is not None
         assert "mine" in out and "somebody elses" in out

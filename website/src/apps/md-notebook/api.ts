@@ -153,7 +153,7 @@ export const notesApi = {
 }
 
 // ---------------------------------------------------------------------------
-// Kiro Crew Knowledge library (host API, not the app's backend)
+// Junction Knowledge library (host API, not the app's backend)
 // ---------------------------------------------------------------------------
 
 /**

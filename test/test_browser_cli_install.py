@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.browser_cli import install as mod
+from junction.browser_cli import install as mod
 
 # The real implementation, captured before the autouse fixture below replaces
 # ``mod._required_revisions`` with a degradation stub. Revision-aware tests
@@ -39,7 +39,7 @@ def isolated_browser_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
 def _default_no_os_deps(monkeypatch: pytest.MonkeyPatch) -> None:
     """Default every test to a host with no OS-package step.
 
-    The browser step now asks :mod:`kiro_crew.browser_cli.os_deps` what this host
+    The browser step now asks :mod:`junction.browser_cli.os_deps` what this host
     allows, and the answer is read from the DEVELOPER's ``/etc/os-release``
     otherwise -- which would make the argv assertions here pass on macOS and fail
     on Ubuntu. Tests that care about the flag opt in explicitly.
@@ -170,7 +170,7 @@ def test_no_consent_flag_is_consulted(tmp_path: Path, monkeypatch: pytest.Monkey
     An empty data home must not make an installed CLI unavailable, which is what
     a capability flag would do. Approval remains outside this module.
     """
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path / "empty-home"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "empty-home"))
     _wire(
         monkeypatch,
         {"playwright-cli": "/n/playwright-cli"},
@@ -823,7 +823,7 @@ class TestCliEnvIsPublic:
     """The Node-augmented env helper is importable by view.py and other callers."""
 
     def test_cli_env_is_importable_by_name(self) -> None:
-        from kiro_crew.browser_cli.install import cli_env
+        from junction.browser_cli.install import cli_env
 
         assert callable(cli_env)
 
@@ -1252,7 +1252,7 @@ class TestManifestResolution:
         """
         prefix = tmp_path / "standalone"
         _install_root(prefix, _MANIFEST)
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", str(prefix))
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", str(prefix))
         wrapper = tmp_path / "elsewhere" / "bin" / "playwright-cli"
         wrapper.parent.mkdir(parents=True)
         wrapper.write_text("#!/bin/sh\nexec node ...\n", encoding="utf-8")
@@ -1280,7 +1280,7 @@ class TestManifestResolution:
         (package / "playwright-cli.js").write_text("// entry\n", encoding="utf-8")
         wrapper = prefix / "playwright-cli.cmd"
         wrapper.write_text("@echo off\r\nnode ...\r\n", encoding="utf-8")
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
         monkeypatch.setattr(mod, "cli_path", lambda: str(wrapper))
 
         assert mod._browsers_manifest_path() == manifest
@@ -1297,7 +1297,7 @@ class TestManifestResolution:
         wrapper = prefix / "bin" / "playwright-cli"
         wrapper.parent.mkdir(parents=True)
         wrapper.write_text("#!/bin/sh\nexec node ...\n", encoding="utf-8")
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
         monkeypatch.setattr(mod, "cli_path", lambda: str(wrapper))
 
         assert mod._browsers_manifest_path() == manifest
@@ -1313,7 +1313,7 @@ class TestManifestResolution:
         node_modules = prefix / "node_modules"
         manifest = _write_manifest(node_modules, _MANIFEST)
         (node_modules / "@playwright" / "cli").mkdir(parents=True)
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", str(prefix))
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", str(prefix))
         monkeypatch.setattr(mod, "cli_path", lambda: None)
 
         assert mod._browsers_manifest_path() == manifest
@@ -1333,7 +1333,7 @@ class TestManifestResolution:
         _write_manifest(
             home / "node_modules", {"browsers": [{"name": "chromium", "revision": "9"}]}
         )
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
         wrapper = home / "bin" / "playwright-cli"
         wrapper.parent.mkdir(parents=True)
         wrapper.write_text("#!/bin/sh\n", encoding="utf-8")
@@ -1350,7 +1350,7 @@ class TestManifestResolution:
         _write_manifest(
             home / "node_modules", {"browsers": [{"name": "chromium", "revision": "9999"}]}
         )
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", str(tmp_path / "absent-prefix"))
         wrapper = home / "bin" / "playwright-cli"
         wrapper.parent.mkdir(parents=True)
         wrapper.write_text("#!/bin/sh\n", encoding="utf-8")
@@ -1362,6 +1362,6 @@ class TestManifestResolution:
 
     def test_no_cli_means_no_manifest(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(mod, "cli_path", lambda: None)
-        monkeypatch.setenv("KIROCREW_PLAYWRIGHT_CLI_HOME", "/nonexistent-prefix")
+        monkeypatch.setenv("JUNCTION_PLAYWRIGHT_CLI_HOME", "/nonexistent-prefix")
         assert mod._browsers_manifest_path() is None
         assert _REAL_REQUIRED_REVISIONS() is None

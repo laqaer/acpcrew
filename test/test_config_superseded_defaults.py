@@ -21,10 +21,10 @@ import logging
 
 import pytest
 
-from kiro_crew.config import loader as L
-from kiro_crew.config import superseded_defaults as SD
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.config.superseded_defaults import (
+from junction.config import loader as L
+from junction.config import superseded_defaults as SD
+from junction.config.loader import JunctionConfig
+from junction.config.superseded_defaults import (
     SupersededDefault,
     drift_summary,
     superseded_default_drift,
@@ -97,7 +97,7 @@ def test_absent_key_and_absent_section_are_not_drift():
     """An absent key already resolves to the current default, so there is nothing to say."""
     assert superseded_default_drift({"mcp_gateway": {}}) == []
     assert superseded_default_drift({}) == []
-    assert KiroCrewConfig().mcp_gateway.forward_declared_env is True
+    assert JunctionConfig().mcp_gateway.forward_declared_env is True
 
 
 def test_zero_is_not_read_as_false():
@@ -136,7 +136,7 @@ def test_load_reports_drift_and_leaves_the_value_alone(tmp_path, monkeypatch, ca
     _write_config(tmp_path, {"mcp_gateway": {"forward_declared_env": False}})
 
     with caplog.at_level(logging.WARNING, logger=L.__name__):
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
 
     assert cfg.mcp_gateway.forward_declared_env is False
     assert _on_disk(tmp_path)["mcp_gateway"]["forward_declared_env"] is False
@@ -149,10 +149,10 @@ def test_load_warns_once_per_process_not_once_per_load(tmp_path, monkeypatch, ca
     _write_config(tmp_path, {"mcp_gateway": {"forward_declared_env": False}})
 
     with caplog.at_level(logging.WARNING, logger=L.__name__):
-        KiroCrewConfig.load()
+        JunctionConfig.load()
         first = len([r for r in caplog.records if "forward_declared_env" in r.getMessage()])
         L._invalidate_config_cache()
-        KiroCrewConfig.load()
+        JunctionConfig.load()
         second = len([r for r in caplog.records if "forward_declared_env" in r.getMessage()])
 
     assert first == 1
@@ -164,7 +164,7 @@ def test_load_says_nothing_when_the_stored_value_is_current(tmp_path, monkeypatc
     _write_config(tmp_path, {"mcp_gateway": {"forward_declared_env": True}})
 
     with caplog.at_level(logging.WARNING, logger=L.__name__):
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
 
     assert cfg.mcp_gateway.forward_declared_env is True
     assert not [r for r in caplog.records if "forward_declared_env" in r.getMessage()]
@@ -181,7 +181,7 @@ def test_base_drift_is_reported_even_when_an_overlay_masks_it(tmp_path, monkeypa
     _write_local(tmp_path, {"mcp_gateway": {"forward_declared_env": True}})
 
     with caplog.at_level(logging.WARNING, logger=L.__name__):
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
 
     # The overlay is the operator's live choice and still wins for this load.
     assert cfg.mcp_gateway.forward_declared_env is True
@@ -196,7 +196,7 @@ def test_an_overlay_only_value_is_not_reported_as_base_drift(tmp_path, monkeypat
     _write_local(tmp_path, {"mcp_gateway": {"forward_declared_env": False}})
 
     with caplog.at_level(logging.WARNING, logger=L.__name__):
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
 
     assert cfg.mcp_gateway.forward_declared_env is False
     assert not [r for r in caplog.records if "forward_declared_env" in r.getMessage()]
@@ -271,14 +271,14 @@ def test_every_registered_key_ends_at_the_live_default():
 
     for dotted, entry in newest.items():
         section, field = dotted.split(".")
-        live = getattr(getattr(KiroCrewConfig(), section), field)
+        live = getattr(getattr(JunctionConfig(), section), field)
         assert live == entry.new_default, (
             f"{dotted}: registry says the current default is "
             f"{entry.new_default!r} but the loader applies {live!r} -- append a "
             f"new entry for the later change instead of leaving this one stale"
         )
         assert any(
-            f.name == field for f in dc_fields(getattr(KiroCrewConfig(), section))
+            f.name == field for f in dc_fields(getattr(JunctionConfig(), section))
         ), f"{dotted}: no such field on the {section} config"
 
 

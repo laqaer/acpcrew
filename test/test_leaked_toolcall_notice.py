@@ -26,8 +26,8 @@ verbatim makes the file itself hazardous to quote.
 
 from __future__ import annotations
 
-from kiro_crew.acp.types import STOP_REASON_CANCELLED, STOP_REASON_END_TURN
-from kiro_crew.dashboard.chat_utils import (
+from junction.acp.types import STOP_REASON_CANCELLED, STOP_REASON_END_TURN
+from junction.dashboard.chat_utils import (
     has_leaked_tool_call,
     should_notice_leaked_tool_call,
 )

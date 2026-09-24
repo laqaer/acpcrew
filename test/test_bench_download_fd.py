@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.eval.bench.datasets import CorpusFetchError, _download
+from junction.eval.bench.datasets import CorpusFetchError, _download
 
 
 def _open_fd_count() -> int:

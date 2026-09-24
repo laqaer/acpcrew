@@ -1,4 +1,4 @@
-"""Coverage tests for kiro_crew.memory — module path helpers, legacy-migration
+"""Coverage tests for junction.memory — module path helpers, legacy-migration
 detection, the combined legacy read/write split, history pruning + decay, and the
 FTS error-swallowing paths.
 
@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from kiro_crew._sqlite_compat import sqlite3
-from kiro_crew.memory import (
+from junction._sqlite_compat import sqlite3
+from junction.memory import (
     MemoryStore,
     legacy_memory_present,
     memory_dir,
@@ -24,10 +24,10 @@ from kiro_crew.memory import (
 
 @pytest.fixture()
 def fake_config_dir(tmp_path, monkeypatch):
-    """Point kiro_crew.memory's config_dir() at an isolated tmp dir."""
+    """Point junction.memory's config_dir() at an isolated tmp dir."""
     root = tmp_path / "cfg"
     root.mkdir()
-    monkeypatch.setattr("kiro_crew.memory.config_dir", lambda: root)
+    monkeypatch.setattr("junction.memory.config_dir", lambda: root)
     return root
 
 

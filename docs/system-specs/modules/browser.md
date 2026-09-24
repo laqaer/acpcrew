@@ -1,7 +1,7 @@
 ## Browser Module
 
 Website browsing through `playwright-cli`, the Playwright agent CLI. An agent
-drives a browser by running shell commands; Kiro Crew owns the install flow, the
+drives a browser by running shell commands; Junction owns the install flow, the
 snapshot directory, and the dashboard surface that displays and hands over a live
 session.
 
@@ -116,7 +116,7 @@ stays subprocess-free.
 **The manifest is attributed to a `@playwright/cli` package, never searched for.**
 Resolution anchors on that package — the hoisted sibling in the same
 `node_modules`, a copy nested under the package, or the standalone installer's
-known prefix (`KIROCREW_PLAYWRIGHT_CLI_HOME`, else `<data home>/playwright-cli`).
+known prefix (`JUNCTION_PLAYWRIGHT_CLI_HOME`, else `<data home>/playwright-cli`).
 Anchoring is a correctness property, not an optimization: walking ancestors
 instead passes through `$HOME` on the standalone layout, where one unrelated
 `~/node_modules/playwright-core` supplies a revision from a **different** install.
@@ -194,12 +194,12 @@ reporting "stored" while the extension keeps prompting.
 
 ### Launch config
 
-Kiro Crew installs, gates on, and offers downloads for **Chromium**:
+Junction installs, gates on, and offers downloads for **Chromium**:
 `install-browser` fetches the Chromium build, `browser_ok` is
 `browsers_present()["chromium"]`, and `attach --extension` supports that family
 alone. The CLI's own default is a different browser — the branded Chrome
 *channel*, an OS-level install at a path like `/opt/google/chrome/chrome` that
-Kiro Crew never provisions and cannot install without root. So on a host that did
+Junction never provisions and cannot install without root. So on a host that did
 everything the product asked, the first browse fails with
 
 ```
@@ -222,7 +222,7 @@ only the file works for a whole session:
 The last one is the mechanism used, and for the same reason as
 [snapshot retention](#snapshot-retention): the agent runs the CLI as a shell
 command, so an inherited environment variable is the only channel that reaches an
-invocation Kiro Crew never constructs. The config is written under the data home
+invocation Junction never constructs. The config is written under the data home
 at a fixed absolute path, independent of whichever working directory a turn ran in.
 
 The schema is **nested** under a `browser` key — `{"browser": {"browserName":
@@ -239,7 +239,7 @@ security boundary, so no generated default removes it. A host that cannot run it
 a container lacking the kernel permissions, where the failure is
 `No usable sandbox!` — needs an operator decision rather than a default that
 quietly drops the boundary for every host. That is what the escape hatch is for:
-when `PLAYWRIGHT_MCP_CONFIG` is **already set** in the environment, Kiro Crew adds
+when `PLAYWRIGHT_MCP_CONFIG` is **already set** in the environment, Junction adds
 nothing and the operator's file wins entirely. Naming a config is how an operator
 selects a different engine, pins an `executablePath`, or accepts the sandbox
 trade-off on a host that requires it.
@@ -366,8 +366,8 @@ registry that answers without a login. When either is missing, a bare
 `npm install -g` fails with npm's own output, which does not distinguish "your
 token expired" from "the registry is firewalled" from "this mirror does not carry
 the package", and those three have mutually exclusive remedies. The scripts remove
-both assumptions without introducing a private artifact channel: there is no Kiro
-Crew-hosted Playwright build to keep in sync or to trust.
+both assumptions without introducing a private artifact channel: there is no Junction
+-hosted Playwright build to keep in sync or to trust.
 
 **Node is bootstrapped, not required.** A Node already on PATH is reused when its
 major is at least the floor the install flow above requires, as is one recorded by
@@ -419,7 +419,7 @@ world-readable, so `--registry https://user:token@host/` publishes the token to
 every account on the machine for as long as the install runs, and leaves it in shell
 history besides — neither of which redaction can reach, since redaction covers only
 what the scripts print. The credential travels in the environment instead
-(`KIROCREW_NPM_REGISTRY`, `PLAYWRIGHT_DOWNLOAD_HOST`), where `/proc/<pid>/environ` is
+(`JUNCTION_NPM_REGISTRY`, `PLAYWRIGHT_DOWNLOAD_HOST`), where `/proc/<pid>/environ` is
 readable only by its owner, or through `npm login`. The refusal keys on PROVENANCE
 rather than content: the resolved registry value also holds an env-supplied
 credential, and refusing that would break the escape the error message recommends.
@@ -439,9 +439,9 @@ absent) and 16 (browser download blocked).
 
 ### Related
 
-- [web-browse](../../../src/kiro_crew/builtin_skills/web-browse/SKILL.md) for
+- [web-browse](../../../src/junction/builtin_skills/web-browse/SKILL.md) for
   opening a page so the user can see it.
-- [web-verify](../../../src/kiro_crew/builtin_skills/web-verify/SKILL.md) for
+- [web-verify](../../../src/junction/builtin_skills/web-verify/SKILL.md) for
   screenshotting a front-end change as evidence.
 - [mcp](../../architecture/mcp.md) for why browsing is deliberately not an MCP
   server.

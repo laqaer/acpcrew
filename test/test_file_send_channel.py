@@ -16,8 +16,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers.files import api_channel_upload_file, api_slack_upload_file
-from kiro_crew.dashboard.state import DashboardState
+from junction.dashboard.handlers.files import api_channel_upload_file, api_slack_upload_file
+from junction.dashboard.state import DashboardState
 
 
 def _make_app(slack_client, tmp_path, state=None):
@@ -50,13 +50,13 @@ class TestFileUploadChannel:
         app = _make_app(slack, tmp_path)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=outbox_file.parent,
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path,
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel",
+            "junction.dashboard.handlers.files.is_tracked_channel",
             return_value=True,
         ):
             async with TestClient(TestServer(app)) as client:
@@ -86,13 +86,13 @@ class TestFileUploadChannel:
         app = _make_app(slack, tmp_path)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=outbox_file.parent,
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path,
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel",
+            "junction.dashboard.handlers.files.is_tracked_channel",
             return_value=False,
         ):
             async with TestClient(TestServer(app)) as client:
@@ -120,16 +120,16 @@ class TestFileUploadChannel:
         app = _make_app(slack, tmp_path)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=outbox_file.parent,
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path,
         ), patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load",
+            "junction.config.loader.JunctionConfig.load",
         ) as mock_cfg:
             mock_cfg.return_value.load_credentials.return_value = {
-                "KIROCREW_OWNER_ID": "U_OWNER"
+                "JUNCTION_OWNER_ID": "U_OWNER"
             }
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -157,10 +157,10 @@ class TestFileUploadChannel:
         app = _make_app(slack, tmp_path)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=outbox_file.parent,
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path,
         ):
             async with TestClient(TestServer(app)) as client:
@@ -192,10 +192,10 @@ class TestFileUploadChannel:
         outside.write_text("data", encoding="utf-8")
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=tmp_path / "outbox",
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path / "workspace",
         ):
             async with TestClient(TestServer(app)) as client:
@@ -233,16 +233,16 @@ class TestFileUploadBinary:
         app = _make_app(slack, tmp_path)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=outbox,
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path,
         ), patch(
-            "kiro_crew.dashboard.handlers.files._sel",
+            "junction.dashboard.handlers.files._sel",
             return_value=MagicMock(),
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel",
+            "junction.dashboard.handlers.files.is_tracked_channel",
             return_value=True,
         ):
             async with TestClient(TestServer(app)) as client:
@@ -271,13 +271,13 @@ class TestFileUploadBinary:
         app = _make_app(slack, tmp_path)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir",
+            "junction.config.loader.outbox_dir",
             return_value=outbox,
         ), patch(
-            "kiro_crew.config.loader.workspace_root",
+            "junction.config.loader.workspace_root",
             return_value=tmp_path,
         ), patch(
-            "kiro_crew.dashboard.handlers.files._sel",
+            "junction.dashboard.handlers.files._sel",
             return_value=MagicMock(),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -325,11 +325,11 @@ class TestFileUploadSlotThreading:
         app = _make_app(slack, tmp_path, state=state)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel", return_value=False
+            "junction.dashboard.handlers.files.is_tracked_channel", return_value=False
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -366,11 +366,11 @@ class TestFileUploadSlotThreading:
         app = _make_app(slack, tmp_path, state=state)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel", return_value=False
+            "junction.dashboard.handlers.files.is_tracked_channel", return_value=False
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -406,14 +406,14 @@ class TestFileUploadSlotThreading:
         app = _make_app(slack, tmp_path, state=state)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ), patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load"
+            "junction.config.loader.JunctionConfig.load"
         ) as mock_cfg:
             mock_cfg.return_value.load_credentials.return_value = {
-                "KIROCREW_OWNER_ID": "U_OWNER"
+                "JUNCTION_OWNER_ID": "U_OWNER"
             }
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -449,11 +449,11 @@ class TestFileUploadSlotThreading:
         app = _make_app(slack, tmp_path, state=state)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel", return_value=True
+            "junction.dashboard.handlers.files.is_tracked_channel", return_value=True
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -491,11 +491,11 @@ class TestFileUploadSlotThreading:
         app = _make_app(slack, tmp_path, state=state)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel", return_value=True
+            "junction.dashboard.handlers.files.is_tracked_channel", return_value=True
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -532,11 +532,11 @@ class TestFileUploadSlotThreading:
         app = _make_app(slack, tmp_path, state=state)
 
         with patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ), patch(
-            "kiro_crew.dashboard.handlers.files.is_tracked_channel", return_value=False
+            "junction.dashboard.handlers.files.is_tracked_channel", return_value=False
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -575,7 +575,7 @@ class TestChannelUploadEndpoint:
 
     @staticmethod
     def _link(channel_type, channel_id="42", thread_id=None):
-        from kiro_crew.messaging.link import ChannelLink
+        from junction.messaging.link import ChannelLink
 
         return ChannelLink(channel_type=channel_type, channel_id=channel_id, thread_id=thread_id)
 
@@ -591,10 +591,10 @@ class TestChannelUploadEndpoint:
         transport.send_document = AsyncMock(return_value="123")
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram", "42"), transport),
         ), patch(
-            "kiro_crew.messaging.upload_gate.uploads_restricted",
+            "junction.messaging.upload_gate.uploads_restricted",
             new=AsyncMock(return_value=True),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -622,7 +622,7 @@ class TestChannelUploadEndpoint:
         app = self._app()
         leaky_name = "AKIA" + "IOSFODNN7EXAMPLE" + ".txt"
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram", "42"), transport),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -650,12 +650,12 @@ class TestChannelUploadEndpoint:
         transport.send_document = AsyncMock(return_value="900")
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram", "42"), transport),
         ), patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox_file.parent
+            "junction.config.loader.outbox_dir", return_value=outbox_file.parent
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -694,7 +694,7 @@ class TestChannelUploadEndpoint:
 
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             side_effect=_fake_resolver,
         ):
             async with TestClient(TestServer(app)) as client:
@@ -725,7 +725,7 @@ class TestChannelUploadEndpoint:
     async def test_no_destination_is_a_skip(self, tmp_path, outbox_file):
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=None,
         ):
             async with TestClient(TestServer(app)) as client:
@@ -747,12 +747,12 @@ class TestChannelUploadEndpoint:
         transport.send_document = AsyncMock(return_value="123")
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram", "42", thread_id="7"), transport),
         ), patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox_file.parent
+            "junction.config.loader.outbox_dir", return_value=outbox_file.parent
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -790,7 +790,7 @@ class TestChannelUploadEndpoint:
         transport.send_message_with_files = AsyncMock(return_value="900")
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("discord", "555"), transport),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -810,7 +810,7 @@ class TestChannelUploadEndpoint:
         transport = MagicMock(spec_set=["send_message"])  # no upload verb
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("teams", "t1"), transport),
         ):
             async with TestClient(TestServer(app)) as client:
@@ -838,12 +838,12 @@ class TestChannelUploadEndpoint:
         transport.send_document = AsyncMock()
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram"), transport),
         ), patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox
+            "junction.config.loader.outbox_dir", return_value=outbox
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=workspace
+            "junction.config.loader.workspace_root", return_value=workspace
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -864,12 +864,12 @@ class TestChannelUploadEndpoint:
         transport.send_document = AsyncMock(side_effect=RuntimeError("boom"))
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram"), transport),
         ), patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox_file.parent
+            "junction.config.loader.outbox_dir", return_value=outbox_file.parent
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
@@ -889,12 +889,12 @@ class TestChannelUploadEndpoint:
         transport.send_document = AsyncMock(return_value="")
         app = self._app()
         with patch(
-            "kiro_crew.dashboard.chat_runner._resolve_mirror_target",
+            "junction.dashboard.chat_runner._resolve_mirror_target",
             return_value=(self._link("telegram"), transport),
         ), patch(
-            "kiro_crew.config.loader.outbox_dir", return_value=outbox_file.parent
+            "junction.config.loader.outbox_dir", return_value=outbox_file.parent
         ), patch(
-            "kiro_crew.config.loader.workspace_root", return_value=tmp_path
+            "junction.config.loader.workspace_root", return_value=tmp_path
         ):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(

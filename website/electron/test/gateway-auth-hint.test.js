@@ -10,7 +10,7 @@ const assert = require("node:assert");
 const { classifyAuthBlock, defaultedPort } = require("../gateway-auth-hint");
 
 test("our own local gateway points at THIS machine", () => {
-  assert.equal(classifyAuthBlock({ localOwner: "kirocrew" }), "local");
+  assert.equal(classifyAuthBlock({ localOwner: "junction" }), "local");
 });
 
 test("a confirmed tunnel (ssh owns the socket) points at the OTHER machine", () => {
@@ -21,7 +21,7 @@ test("a confirmed tunnel (ssh owns the socket) points at the OTHER machine", () 
 
 test("a configured remote host is decisive, whatever the socket says", () => {
   assert.equal(
-    classifyAuthBlock({ localOwner: "kirocrew", remoteHost: "dev-host.example.com" }),
+    classifyAuthBlock({ localOwner: "junction", remoteHost: "dev-host.example.com" }),
     "foreign",
   );
 });
@@ -44,7 +44,7 @@ test("no facts at all yields the hedged verdict, not a guess", () => {
 test("an empty remoteHost does not force the foreign verdict", () => {
   // Guard against treating "" as "a host was configured" — that would mislabel
   // every local-gateway failure as a tunnel.
-  assert.equal(classifyAuthBlock({ localOwner: "kirocrew", remoteHost: "" }), "local");
+  assert.equal(classifyAuthBlock({ localOwner: "junction", remoteHost: "" }), "local");
 });
 
 // ── defaultedPort: a default-port URL must not read as "no port" ────────────

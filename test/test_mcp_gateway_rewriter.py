@@ -16,10 +16,10 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.mcp_gateway import rewriter
-from kiro_crew.mcp_gateway.hashing import is_secret_env_key
-from kiro_crew.mcp_gateway.manager import is_credential_env_key
-from kiro_crew.mcp_gateway.rewriter import (
+from junction.mcp_gateway import rewriter
+from junction.mcp_gateway.hashing import is_secret_env_key
+from junction.mcp_gateway.manager import is_credential_env_key
+from junction.mcp_gateway.rewriter import (
     _WRAPPER_MARKER,
     _expand_env_map,
     _expand_env_placeholders,
@@ -28,7 +28,7 @@ from kiro_crew.mcp_gateway.rewriter import (
     env_sidecar_dir_for_stubs,
     env_sidecar_name,
 )
-from kiro_crew.sandbox import scrub_agent_denied_env
+from junction.sandbox import scrub_agent_denied_env
 
 
 class TestSettingsRelocationMatchesInjection:
@@ -65,7 +65,7 @@ class TestSettingsRelocationMatchesInjection:
         key; matching only the raw name would silently fail to relocate a
         stubbed slash-named server."""
         spec = {"mcpServers": {"npm:@playwright/mcp": {"command": sys.executable}}}
-        from kiro_crew.mcp_gateway.rewriter import mcp_server_alias
+        from junction.mcp_gateway.rewriter import mcp_server_alias
 
         alias = mcp_server_alias("npm:@playwright/mcp")
         assert alias != "npm:@playwright/mcp"
@@ -89,12 +89,12 @@ class TestSettingsRelocationMatchesInjection:
         while every unstubbed global server silently vanished from the only
         overlay that lists it.
         """
-        from kiro_crew.mcp_gateway.rewriter import rewrite_agents
+        from junction.mcp_gateway.rewriter import rewrite_agents
 
         source_dir = tmp_path / "agents"
         source_dir.mkdir()
-        (source_dir / "kirocrew.json").write_text(
-            json.dumps({"name": "kirocrew", "mcpServers": {}}), encoding="utf-8"
+        (source_dir / "junction.json").write_text(
+            json.dumps({"name": "junction", "mcpServers": {}}), encoding="utf-8"
         )
         settings_dir = tmp_path / "settings"
         settings_dir.mkdir()
@@ -237,7 +237,7 @@ def test_private_server_with_declared_env_is_not_warned_about(tmp_path: Path, ca
             },
         },
     }
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.mcp_gateway.rewriter"):
+    with caplog.at_level(logging.WARNING, logger="junction.mcp_gateway.rewriter"):
         new_spec, wrapped = _rewrite(
             spec,
             tmp_path,
@@ -265,7 +265,7 @@ def test_shared_server_with_declared_env_is_still_warned_about(tmp_path: Path, c
             "needs-env": {"command": sys.executable, "env": {"REGION": "us-west-2"}},
         },
     }
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.mcp_gateway.rewriter"):
+    with caplog.at_level(logging.WARNING, logger="junction.mcp_gateway.rewriter"):
         _rewrite(spec, tmp_path, stub_servers=frozenset({"needs-env"}))
 
     msgs = [r.getMessage() for r in caplog.records if "declares" in r.getMessage()]
@@ -283,19 +283,19 @@ def test_unresolvable_bare_command_is_not_stubbed(tmp_path: Path, caplog) -> Non
         "name": "agent-a",
         "mcpServers": {
             "ghost": {
-                "command": "kirocrew-test-definitely-missing-cmd",
+                "command": "junction-test-definitely-missing-cmd",
                 "args": ["--serve"],
                 "poolable": True,
             },
         },
     }
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.mcp_gateway.rewriter"):
+    with caplog.at_level(logging.WARNING, logger="junction.mcp_gateway.rewriter"):
         new_spec, wrapped = _rewrite(spec, tmp_path, stub_servers=frozenset({"ghost"}))
 
     entry = new_spec["mcpServers"]["ghost"]
     assert wrapped == 0
     assert _WRAPPER_MARKER not in entry
-    assert entry.get("command") == "kirocrew-test-definitely-missing-cmd"
+    assert entry.get("command") == "junction-test-definitely-missing-cmd"
     assert "poolable" not in entry  # internal hint never reaches kiro-cli
     assert any("cannot resolve" in r.getMessage() for r in caplog.records)
 
@@ -338,7 +338,7 @@ def test_env_declaring_server_is_declassified_when_forwarding_is_off(
             },
         },
     }
-    with caplog.at_level(logging.WARNING, logger="kiro_crew.mcp_gateway.rewriter"):
+    with caplog.at_level(logging.WARNING, logger="junction.mcp_gateway.rewriter"):
         off_spec, off_wrapped = _rewrite(
             spec, tmp_path, stub_servers=frozenset({"needs-env"}), forward_env=False
         )
@@ -399,7 +399,7 @@ def test_spec_env_path_wins_over_augmented_host_path(tmp_path: Path, monkeypatch
     delegates to it rather than hand-rolling the composition."""
     import os as _os
 
-    from kiro_crew.mcp_gateway import rewriter as _rw
+    from junction.mcp_gateway import rewriter as _rw
 
     spec_dir = tmp_path / "spec-bin"
     host_dir = tmp_path / "host-bin"
@@ -433,10 +433,10 @@ def test_spec_env_path_wins_over_augmented_host_path(tmp_path: Path, monkeypatch
 def test_non_string_env_path_does_not_abort_the_rewrite(tmp_path: Path) -> None:
     """A hand-edited spec can carry ``"PATH": 7``; joining it would TypeError
     out of the rewrite pass and disable pooling for every agent."""
-    from kiro_crew.mcp_gateway import rewriter as _rw
+    from junction.mcp_gateway import rewriter as _rw
 
     resolved = _rw._resolve_target_command(
-        "kirocrew-test-definitely-missing-cmd", {"PATH": 7}, None
+        "junction-test-definitely-missing-cmd", {"PATH": 7}, None
     )
     assert resolved == ""  # unresolvable, but no exception
 
@@ -445,7 +445,7 @@ def test_dead_absolute_command_is_not_stubbed(tmp_path: Path) -> None:
     """An absolute path that does not exist (or is not executable) fails the
     same predicate the agent-config resolver applies — no stub, so the failure
     surfaces in the session instead of a per-session pooled-spawn ENOENT."""
-    from kiro_crew.mcp_gateway import rewriter as _rw
+    from junction.mcp_gateway import rewriter as _rw
 
     assert _rw._resolve_target_command(str(tmp_path / "gone-mcp"), {}, None) == ""
     live = Path(sys.executable)
@@ -457,7 +457,7 @@ def test_windows_authored_path_key_is_honoured(tmp_path: Path, monkeypatch) -> N
     ``"PATH"`` lookup would ignore the operator's pin."""
     import os as _os
 
-    from kiro_crew.mcp_gateway import rewriter as _rw
+    from junction.mcp_gateway import rewriter as _rw
 
     spec_dir = tmp_path / "spec-bin"
     spec_dir.mkdir()
@@ -524,7 +524,7 @@ def test_rewriter_calls_restrict_to_owner_on_windows(tmp_path: Path, monkeypatch
     """
     from unittest.mock import patch
 
-    from kiro_crew.mcp_gateway.rewriter import rewrite_agents
+    from junction.mcp_gateway.rewriter import rewrite_agents
 
     # Scaffold a minimal agent spec with an env var (triggers sidecar write).
     source_dir = tmp_path / "agents"
@@ -555,18 +555,18 @@ def test_rewriter_calls_restrict_to_owner_on_windows(tmp_path: Path, monkeypatch
         made_owner_dirs.append(p)
 
     # Simulate Windows: IS_POSIX=False, IS_WINDOWS=True.
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.platform_compat.IS_POSIX", False)
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.platform_compat.IS_WINDOWS", True)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.platform_compat.IS_POSIX", False)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.platform_compat.IS_WINDOWS", True)
     # Forwarding ON or the env-declaring fixture is declassified (issue #3495
     # cause B) and no sidecar write happens at all.
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.forward_declared_env_enabled", lambda: True)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.forward_declared_env_enabled", lambda: True)
     with (
         patch(
-            "kiro_crew.mcp_gateway.rewriter.platform_compat.restrict_to_owner",
+            "junction.mcp_gateway.rewriter.platform_compat.restrict_to_owner",
             side_effect=_mock_restrict,
         ),
         patch(
-            "kiro_crew.mcp_gateway.rewriter.platform_compat.make_owner_only_dir",
+            "junction.mcp_gateway.rewriter.platform_compat.make_owner_only_dir",
             side_effect=_mock_make_owner_only_dir,
         ),
     ):
@@ -612,12 +612,12 @@ def test_rewriter_overlay_dirs_are_traversable_on_posix(tmp_path: Path) -> None:
     Regression test for GPT 5.6 finding: restrict_to_owner applies 0o600 to
     directories, removing the execute bit needed for traversal.
     """
-    from kiro_crew import platform_compat
+    from junction import platform_compat
 
     if not platform_compat.IS_POSIX:
         pytest.skip("POSIX-only: directory execute bit semantics")
 
-    from kiro_crew.mcp_gateway.rewriter import rewrite_agents
+    from junction.mcp_gateway.rewriter import rewrite_agents
 
     source_dir = tmp_path / "agents"
     source_dir.mkdir()
@@ -667,8 +667,8 @@ def test_overlay_lockdown_precedes_content(tmp_path: Path, monkeypatch) -> None:
     existed yet. A post-write stat passes on the buggy ordering too, so it
     would not be a regression test.
     """
-    from kiro_crew import platform_compat
-    from kiro_crew.mcp_gateway.rewriter import rewrite_agents
+    from junction import platform_compat
+    from junction.mcp_gateway.rewriter import rewrite_agents
 
     source_dir = tmp_path / "agents"
     _spec_with_env(source_dir)
@@ -683,7 +683,7 @@ def test_overlay_lockdown_precedes_content(tmp_path: Path, monkeypatch) -> None:
             sizes_by_dir.setdefault(p.parent.name, []).append(os.stat(p).st_size)
         return real_restrict(target)
 
-    monkeypatch.setattr("kiro_crew.platform_compat.restrict_to_owner", _measuring)
+    monkeypatch.setattr("junction.platform_compat.restrict_to_owner", _measuring)
     rewrite_agents(
         source_dir=source_dir,
         overlay_dir=overlay_dir,
@@ -735,12 +735,12 @@ def test_env_sidecar_directory_goes_through_make_owner_only_dir(
     """
     from unittest.mock import patch
 
-    from kiro_crew.mcp_gateway.rewriter import rewrite_agents
+    from junction.mcp_gateway.rewriter import rewrite_agents
 
     # Sidecar machinery is under test, not pooling classification: forwarding
     # must be ON or the env-declaring fixture is declassified (issue #3495
     # cause B) and no sidecar is ever written.
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.forward_declared_env_enabled", lambda: True)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.forward_declared_env_enabled", lambda: True)
 
     source_dir = tmp_path / "agents"
     _spec_with_env(source_dir)
@@ -752,7 +752,7 @@ def test_env_sidecar_directory_goes_through_make_owner_only_dir(
         made.append(p)
 
     with patch(
-        "kiro_crew.mcp_gateway.rewriter.platform_compat.make_owner_only_dir",
+        "junction.mcp_gateway.rewriter.platform_compat.make_owner_only_dir",
         side_effect=_mock_make_owner_only_dir,
     ):
         rewrite_agents(
@@ -782,12 +782,12 @@ def test_failed_sidecar_protection_leaves_no_readable_credentials(
     """
     from unittest.mock import patch
 
-    from kiro_crew.mcp_gateway.rewriter import rewrite_agents
+    from junction.mcp_gateway.rewriter import rewrite_agents
 
     # Sidecar machinery is under test, not pooling classification: forwarding
     # must be ON or the env-declaring fixture is declassified (issue #3495
     # cause B) and no sidecar is ever written.
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.forward_declared_env_enabled", lambda: True)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.forward_declared_env_enabled", lambda: True)
 
     source_dir = tmp_path / "agents"
     _spec_with_env(source_dir)
@@ -805,15 +805,15 @@ def test_failed_sidecar_protection_leaves_no_readable_credentials(
         if Path(path).parent.name == "env":
             raise OSError("icacls: access denied")
 
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.platform_compat.IS_POSIX", False)
-    monkeypatch.setattr("kiro_crew.mcp_gateway.rewriter.platform_compat.IS_WINDOWS", True)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.platform_compat.IS_POSIX", False)
+    monkeypatch.setattr("junction.mcp_gateway.rewriter.platform_compat.IS_WINDOWS", True)
     with (
         patch(
-            "kiro_crew.mcp_gateway.rewriter.platform_compat.restrict_to_owner",
+            "junction.mcp_gateway.rewriter.platform_compat.restrict_to_owner",
             side_effect=_fail_only_for_the_sidecar,
         ),
         patch(
-            "kiro_crew.mcp_gateway.rewriter.platform_compat.make_owner_only_dir",
+            "junction.mcp_gateway.rewriter.platform_compat.make_owner_only_dir",
             side_effect=_mock_make_owner_only_dir,
         ),
     ):
@@ -853,9 +853,9 @@ def test_stub_fingerprint_is_the_module_on_the_launch_line(tmp_path: Path) -> No
     fail loudly — it reports zero stubs for a runtime that is carrying them,
     which is precisely the reading this pair of columns exists to give.
     """
-    from kiro_crew import subagent
-    from kiro_crew.dashboard import session_memory
-    from kiro_crew.mcp_gateway import STUB_MODULE, rewriter
+    from junction import subagent
+    from junction.dashboard import session_memory
+    from junction.mcp_gateway import STUB_MODULE, rewriter
 
     source_dir = tmp_path / "agents"
     overlay_dir = tmp_path / "overlay"

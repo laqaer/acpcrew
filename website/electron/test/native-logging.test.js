@@ -39,7 +39,7 @@ function fakeFs({ present = [], throwOn = null } = {}) {
 
 describe("nativeLogPath / previousNativeLogPath", () => {
   it("sits next to the other launch logs in the logs directory", () => {
-    assert.equal(nativeLogPath("/logs/Kiro Crew"), path.join("/logs/Kiro Crew", NATIVE_LOG_BASENAME));
+    assert.equal(nativeLogPath("/logs/Junction"), path.join("/logs/Junction", NATIVE_LOG_BASENAME));
   });
 
   it("keeps the previous generation beside the live file", () => {

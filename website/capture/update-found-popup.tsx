@@ -67,7 +67,7 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(typeof input === 'string' ? input : input instanceof URL ? input : (input as Request).url)
   const json = (body: unknown) =>
     Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }))
-  if (url.includes('/api/config/kirocrew')) return json({ dashboard: { update_nudge: {} } })
+  if (url.includes('/api/config/junction')) return json({ dashboard: { update_nudge: {} } })
   if (url.includes('/api/update/check')) return json({ changes: NOTES, latest_version: '0.5.0' })
   return realFetch(input, init)
 }) as typeof window.fetch

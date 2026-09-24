@@ -19,7 +19,7 @@ import urllib.request
 
 import pytest
 
-from kiro_crew.apps import official_catalog as oc
+from junction.apps import official_catalog as oc
 
 
 def doc(**over):
@@ -189,15 +189,15 @@ class TestAnnotate:
 
     def test_a_curated_author_is_applied_for_display(self):
         rows = self.rows()
-        oc.annotate(rows, [{"name": "demo-app", "author": {"name": "Kiro Crew", "kind": "org"}}])
-        assert rows[0]["author"] == "Kiro Crew"
+        oc.annotate(rows, [{"name": "demo-app", "author": {"name": "Junction", "kind": "org"}}])
+        assert rows[0]["author"] == "Junction"
 
     def test_a_curated_author_does_not_reach_the_verified_snapshot(self):
         """With the signature unchecked, the catalog is trusted only as far as
         TLS -- and TLS to a CDN is not evidence for a first-party badge. Wiring
         the author into `_index_author` is the step AFTER verification lands."""
         rows = self.rows()
-        oc.annotate(rows, [{"name": "demo-app", "author": {"name": "Kiro Crew"}}])
+        oc.annotate(rows, [{"name": "demo-app", "author": {"name": "Junction"}}])
         assert "_index_author" not in rows[0]
 
     def test_an_entry_matching_no_row_is_ignored(self):
@@ -444,7 +444,7 @@ class TestNameSquattingCannotInheritCuratedCopy:
         "name": "official-app",
         "displayName": "The Real One",
         "summary": "Curated copy that belongs to the official app.",
-        "author": {"name": "Kiro Crew", "kind": "org"},  # brand-ok: squat fixture
+        "author": {"name": "Junction", "kind": "org"},  # brand-ok: squat fixture
         "iconRef": "assets/icons/abc.png",
     }
 

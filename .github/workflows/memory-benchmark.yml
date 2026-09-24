@@ -122,14 +122,14 @@ jobs:
         # from the previous vector space. That is the correct outcome: those
         # numbers are not comparable.
         run: |
-          DIGEST="$(python3 -c 'from kiro_crew import embeddings; print(embeddings._GGUF_SHA256)')"
+          DIGEST="$(python3 -c 'from junction import embeddings; print(embeddings._GGUF_SHA256)')"
           case "$DIGEST" in
             [0-9a-f][0-9a-f]*) ;;
             *) echo "::error::could not read the model digest (got '$DIGEST')"; exit 1 ;;
           esac
           # Derived, not hardcoded: the cache path must follow the code's own idea
           # of where the model lives or the cache silently stops covering it.
-          MODEL_DIR="$(python3 -c 'from kiro_crew import embeddings; print(embeddings.default_model_path().parent)')"
+          MODEL_DIR="$(python3 -c 'from junction import embeddings; print(embeddings.default_model_path().parent)')"
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
           echo "path=$MODEL_DIR" >> "$GITHUB_OUTPUT"
 
@@ -149,13 +149,13 @@ jobs:
         env:
           # The harness's own test suite sets this to keep unit tests from pulling
           # 639 MB. Here the download is the point, so make its absence explicit.
-          KIROCREW_SKIP_MODEL_DOWNLOAD: ""
+          JUNCTION_SKIP_MODEL_DOWNLOAD: ""
         run: |
           python3 - <<'PY'
           import asyncio
           import sys
 
-          from kiro_crew import embeddings
+          from junction import embeddings
 
           mgr = embeddings.ModelDownloadManager()
           if mgr.model_ready():
@@ -173,7 +173,7 @@ jobs:
         # Checksum-verified against a pinned upstream revision. A mismatch is a
         # hard failure: a corpus that changed underneath a stored baseline turns
         # a regression into a mystery.
-        run: kirocrew bench fetch locomo10
+        run: junction bench fetch locomo10
 
       - name: Run the benchmark
         env:
@@ -189,7 +189,7 @@ jobs:
           # No --toy-embedder: the harness refuses to run when the real model is
           # not resident, so a failed model download fails here loudly instead of
           # quietly measuring substring overlap.
-          kirocrew bench retrieval locomo10 \
+          junction bench retrieval locomo10 \
             --timeline "$TIMELINE" \
             $SLICE \
             --out-dir reports \
@@ -258,7 +258,7 @@ jobs:
                 # `compare` refuses when the two runs disagree on corpus
                 # fingerprint, ingest config, retrieval config or embedder, so a
                 # mismatch prints "not comparable" instead of a plausible number.
-                kirocrew bench compare "$OLD" "$NEW" || true
+                junction bench compare "$OLD" "$NEW" || true
               fi
               echo
             done

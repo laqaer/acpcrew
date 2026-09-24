@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.imessage.rpc (newline-framed JSON-RPC 2.0 over stdio).
+"""Tests for junction.imessage.rpc (newline-framed JSON-RPC 2.0 over stdio).
 
 No real child process is spawned: ``asyncio.create_subprocess_exec`` is replaced
 with a fake whose stdout is a real ``StreamReader`` the test feeds, so the framing
@@ -13,8 +13,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.imessage import rpc
-from kiro_crew.imessage.rpc import (
+from junction.imessage import rpc
+from junction.imessage.rpc import (
     STDOUT_LINE_LIMIT,
     JsonRpcPeer,
     RpcError,

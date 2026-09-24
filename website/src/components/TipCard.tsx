@@ -11,9 +11,9 @@ import { i18nT } from '../i18n/t'
 // The Feature Tips toggle lives in Settings → Chat.
 export const TIPS_SETTINGS_PATH = '/settings/chat'
 
-// Tip docs live in the repo at src/kiro_crew/docs/ (same base the Security and
+// Tip docs live in the repo at src/junction/docs/ (same base the Security and
 // Discord settings panels link to).
-const DOCS_BASE = 'https://github.com/laqaer/junction/blob/main/src/kiro_crew/docs'
+const DOCS_BASE = 'https://github.com/laqaer/junction/blob/main/src/junction/docs'
 // Tips can be LLM-generated: only link a doc value shaped like a plain
 // markdown filename so an invented value can't produce a weird URL.
 const DOC_FILENAME_RE = /^[a-z0-9][a-z0-9._-]*\.md$/i
@@ -285,7 +285,7 @@ export function useTipTrigger(isRunning: boolean, suppressed = false, slotKey: s
     if (!isRunning || blocked) return
     const timer = setTimeout(() => {
       if (shownThisTurnRef.current) return
-      const lastShown = safeGetItem('kirocrew.tips.lastShownAt')
+      const lastShown = safeGetItem('junction.tips.lastShownAt')
       if (lastShown && Date.now() - parseInt(lastShown, 10) < clientGateMs) return
       setEnabled(true)
     }, 10000)
@@ -307,7 +307,7 @@ export function useTipTrigger(isRunning: boolean, suppressed = false, slotKey: s
     if (tip && enabled && isRunning && !suppressed && !blocked && !shownThisTurnRef.current) {
       setVisible(true)
       shownThisTurnRef.current = true
-      safeSetItem('kirocrew.tips.lastShownAt', String(Date.now()))
+      safeSetItem('junction.tips.lastShownAt', String(Date.now()))
       // Tell the backend the tip was actually displayed: starts the server-side
       // cadence gate and releases the offered slot (without dismissing), so
       // passive users who never click ✕ don't get the same tip re-served every

@@ -3,7 +3,7 @@
 A desktop pet companion: an always-on-top animated character plus a chat panel,
 a watch list, an appearance gallery, and an autonomous "owner loop" that plans
 moves/moods, checks watched items, and delivers notifications. The pet windows
-render only in the KiroCrew desktop (Electron) shell; the dashboard page is a
+render only in the Junction desktop (Electron) shell; the dashboard page is a
 browser-visible status/watch/plan surface.
 
 `defaultEnabled: false` and `platform.requiresDesktopApp: true` — it appears in
@@ -14,7 +14,7 @@ the App Store, is opt-in, and its window surfaces need the Electron shell.
 
 | Path | What it is |
 |---|---|
-| `src/kiro_crew/apps/builtins/mochi/app.json` | manifest (`backend.routes`, `backend.hooks`, `backend.mcpServers`, `ui.pages`, agents, permissions, `platform.requiresDesktopApp`) |
+| `src/junction/apps/builtins/mochi/app.json` | manifest (`backend.routes`, `backend.hooks`, `backend.mcpServers`, `ui.pages`, agents, permissions, `platform.requiresDesktopApp`) |
 | `.../hooks.py` | **the owner loop** — `MochiRuntime`, the `on_startup`/`on_shutdown` lifecycle hooks, the poller/idle/watchlist callback bags, and the notify path |
 | `.../queue_file.py`, `.../queue_poller.py` | the behaviour queue (planned moves/moods/reminders) + the poller that executes it — a **file-based scheduler that lives beside core `cron.py`**, not on top of it |
 | `.../watchlist_file.py`, `.../watchlist_service.py` | watch items (add/cancel/remove/update), cross-process-locked RMW |

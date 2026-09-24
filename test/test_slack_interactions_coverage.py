@@ -1,4 +1,4 @@
-"""Coverage tests for ``kiro_crew.slack.interactions``.
+"""Coverage tests for ``junction.slack.interactions``.
 
 Focuses on the interactive-payload surfaces the existing suite leaves
 untested: the view-submission registry, ``ack_button``, ``dispatch``
@@ -9,7 +9,7 @@ config writers, and the session resume-choice flow.
 
 Everything runs in-process: no network, no subprocesses, no real Slack.
 ``aiohttp.ClientSession`` is stubbed for the whole module, and config
-writes land in the per-test ``KIROCREW_HOME`` that ``conftest.py`` pins.
+writes land in the per-test ``JUNCTION_HOME`` that ``conftest.py`` pins.
 """
 
 from __future__ import annotations
@@ -20,10 +20,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.config.loader import ConfigReadError, config_path
-from kiro_crew.slack import handler as sh
-from kiro_crew.slack import interactions as ix
-from kiro_crew.slack.allowlist import (
+from junction.config.loader import ConfigReadError, config_path
+from junction.slack import handler as sh
+from junction.slack import interactions as ix
+from junction.slack.allowlist import (
     ACTION_ALLOWLIST_APPROVE,
     ACTION_ALLOWLIST_DENY,
     ACTION_TRACK_APPROVE,
@@ -472,7 +472,7 @@ class TestDispatchRouting:
     async def test_checkboxes_toggle_is_a_noop(
         self, orch: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack.format import OPTIONS_CHECKBOXES_ACTION
+        from junction.slack.format import OPTIONS_CHECKBOXES_ACTION
 
         spy = AsyncMock()
         monkeypatch.setattr(ix, "_handle_options_submit", spy)
@@ -483,7 +483,7 @@ class TestDispatchRouting:
     async def test_spent_options_marker_is_a_noop(
         self, orch: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack.format import OPTIONS_ACTION_PREFIX
+        from junction.slack.format import OPTIONS_ACTION_PREFIX
 
         spy = AsyncMock()
         monkeypatch.setattr(ix, "_handle_options", spy)
@@ -494,7 +494,7 @@ class TestDispatchRouting:
     async def test_options_blocked_by_channels_governance(
         self, orch: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack.format import OPTIONS_SUBMIT_ACTION
+        from junction.slack.format import OPTIONS_SUBMIT_ACTION
 
         monkeypatch.setattr(ix, "channel_inbound_permitted", AsyncMock(return_value=False))
         spy = AsyncMock()
@@ -600,7 +600,7 @@ class TestDispatchTransportToolApproval:
     async def test_approve_resolves_and_labels(
         self, orch: MagicMock, _decider: MagicMock
     ) -> None:
-        from kiro_crew.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
 
         await ix.dispatch(_action_payload(f"{TOOL_APPROVE_ACTION_PREFIX}rid1", "sess1:rid1"))
         _decider.resolve_global.assert_called_once_with("sess1:rid1", True)
@@ -608,7 +608,7 @@ class TestDispatchTransportToolApproval:
 
     @pytest.mark.asyncio
     async def test_deny_resolves_false(self, orch: MagicMock, _decider: MagicMock) -> None:
-        from kiro_crew.slack.renderer import TOOL_DENY_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_DENY_ACTION_PREFIX
 
         await ix.dispatch(_action_payload(f"{TOOL_DENY_ACTION_PREFIX}rid2", "sess1:rid2"))
         _decider.resolve_global.assert_called_once_with("sess1:rid2", False)
@@ -618,7 +618,7 @@ class TestDispatchTransportToolApproval:
     async def test_trust_grants_session_trust_before_resolving(
         self, orch: MagicMock, _decider: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack.renderer import TOOL_TRUST_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_TRUST_ACTION_PREFIX
 
         trust = MagicMock()
         monkeypatch.setattr(ix, "add_trusted_session", trust)
@@ -631,7 +631,7 @@ class TestDispatchTransportToolApproval:
     async def test_expired_approval_reports_expiry(
         self, orch: MagicMock, _decider: MagicMock
     ) -> None:
-        from kiro_crew.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
 
         _decider.resolve_global = MagicMock(return_value=False)
         await ix.dispatch(_action_payload(f"{TOOL_APPROVE_ACTION_PREFIX}rid4", "sess1:rid4"))
@@ -641,7 +641,7 @@ class TestDispatchTransportToolApproval:
     async def test_approval_key_falls_back_to_action_id_suffix(
         self, orch: MagicMock, _decider: MagicMock
     ) -> None:
-        from kiro_crew.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
 
         await ix.dispatch(_action_payload(f"{TOOL_APPROVE_ACTION_PREFIX}rid5", ""))
         assert _decider.resolve_global.call_args.args[0] == "rid5"
@@ -651,7 +651,7 @@ class TestDispatchTransportToolApproval:
         self, orch: MagicMock, _decider: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A channels-deny must refuse the tool, not strand the pending future."""
-        from kiro_crew.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
 
         monkeypatch.setattr(ix, "channel_inbound_permitted", AsyncMock(return_value=False))
         await ix.dispatch(_action_payload(f"{TOOL_APPROVE_ACTION_PREFIX}rid6", "sess1:rid6"))
@@ -662,7 +662,7 @@ class TestDispatchTransportToolApproval:
     async def test_update_message_failure_is_swallowed(
         self, orch: MagicMock, _decider: MagicMock
     ) -> None:
-        from kiro_crew.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
+        from junction.slack.renderer import TOOL_APPROVE_ACTION_PREFIX
 
         orch.slack.update_message = AsyncMock(side_effect=RuntimeError("api down"))
         await ix.dispatch(_action_payload(f"{TOOL_APPROVE_ACTION_PREFIX}rid7", "sess1:rid7"))
@@ -923,7 +923,7 @@ class TestAckHandlers:
 
     @pytest.mark.asyncio
     async def test_cron_ack_survives_busy_store(self, orch: MagicMock) -> None:
-        from kiro_crew.cron import CronStoreBusy
+        from junction.cron import CronStoreBusy
 
         orch.cron_svc.ack_job_async = AsyncMock(side_effect=CronStoreBusy("busy"))
         orch.dashboard_state = None
@@ -1582,7 +1582,7 @@ class TestResumeChoice:
         lines.append(json.dumps({"role": "tool", "content": "ignored"}))
         (sessions / "s9.jsonl").write_text("\n".join(lines), encoding="utf-8")
         monkeypatch.setattr(ix, "_orch", resume_orch)
-        monkeypatch.setattr("kiro_crew.config.loader.data_home", lambda: tmp_path)
+        monkeypatch.setattr("junction.config.loader.data_home", lambda: tmp_path)
 
         await ix._handle_resume_choice(
             _payload(), _choice(key="s9"), "C1", "m1", "U1", mode="dm"
@@ -1602,7 +1602,7 @@ class TestResumeChoice:
         (sessions / "dashboard_s9.jsonl").write_text(
             json.dumps({"role": "assistant", "content": "hi there"}), encoding="utf-8"
         )
-        monkeypatch.setattr("kiro_crew.config.loader.data_home", lambda: tmp_path)
+        monkeypatch.setattr("junction.config.loader.data_home", lambda: tmp_path)
         await ix._handle_resume_choice(
             _payload(), _choice(key="s9"), "C1", "m1", "U1", mode="dm"
         )

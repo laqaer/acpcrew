@@ -1,4 +1,4 @@
-"""Coverage for the thinly-tested command dispatchers in ``kiro_crew.cli_server``.
+"""Coverage for the thinly-tested command dispatchers in ``junction.cli_server``.
 
 Everything here injects a fake at the seam the product actually reaches:
 
@@ -26,17 +26,17 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import cli_server, platform_compat
-from kiro_crew.config.loader import _DEFAULT_PORT
-from kiro_crew.dashboard.handlers.core import DASHBOARD_HTML_NOT_FOUND_MARKER
-from kiro_crew.platform.update_layout import InstallLayout
-from kiro_crew.service import linux as svc_linux
-from kiro_crew.service import macos as svc_macos
-from kiro_crew.service.common import Platform
+from junction import cli_server, platform_compat
+from junction.config.loader import _DEFAULT_PORT
+from junction.dashboard.handlers.core import DASHBOARD_HTML_NOT_FOUND_MARKER
+from junction.platform.update_layout import InstallLayout
+from junction.service import linux as svc_linux
+from junction.service import macos as svc_macos
+from junction.service.common import Platform
 
 
 class _SelRecorder:
-    """Stand-in for :func:`kiro_crew.sel.sel` that records audit calls."""
+    """Stand-in for :func:`junction.sel.sel` that records audit calls."""
 
     def __init__(self) -> None:
         self.calls: list[dict] = []
@@ -85,21 +85,21 @@ class TestResolveClientPortExFallThrough:
         monkeypatch.setattr(cli_server, "_config_url_port", lambda: None)
         monkeypatch.setattr(cli_server, "_marker_port", lambda: None)
 
-    def test_garbage_kirocrew_port_falls_to_default(self, monkeypatch) -> None:
-        monkeypatch.setenv("KIROCREW_PORT", "not-a-number")
-        monkeypatch.delenv("KIROCREW_BOUND_PORT", raising=False)
+    def test_garbage_junction_port_falls_to_default(self, monkeypatch) -> None:
+        monkeypatch.setenv("JUNCTION_PORT", "not-a-number")
+        monkeypatch.delenv("JUNCTION_BOUND_PORT", raising=False)
         assert cli_server.resolve_client_port_ex(None) == (_DEFAULT_PORT, False)
 
     def test_garbage_bound_port_falls_to_default(self, monkeypatch) -> None:
-        monkeypatch.delenv("KIROCREW_PORT", raising=False)
-        monkeypatch.setenv("KIROCREW_BOUND_PORT", "")
-        monkeypatch.setenv("KIROCREW_BOUND_PORT", "12x4")
+        monkeypatch.delenv("JUNCTION_PORT", raising=False)
+        monkeypatch.setenv("JUNCTION_BOUND_PORT", "")
+        monkeypatch.setenv("JUNCTION_BOUND_PORT", "12x4")
         assert cli_server.resolve_client_port_ex(None) == (_DEFAULT_PORT, False)
 
-    def test_garbage_kirocrew_port_still_honours_bound_port(self, monkeypatch) -> None:
+    def test_garbage_junction_port_still_honours_bound_port(self, monkeypatch) -> None:
         """The fall-through lands on the NEXT source, not straight on the default."""
-        monkeypatch.setenv("KIROCREW_PORT", "oops")
-        monkeypatch.setenv("KIROCREW_BOUND_PORT", "9931")
+        monkeypatch.setenv("JUNCTION_PORT", "oops")
+        monkeypatch.setenv("JUNCTION_BOUND_PORT", "9931")
         assert cli_server.resolve_client_port_ex(None) == (9931, True)
 
 
@@ -236,7 +236,7 @@ class TestStopOnWindows:
         monkeypatch.setattr(cli_server, "resolve_client_port", lambda p: 5476)
         monkeypatch.setattr(cli_server.service_controller, "stop_service", lambda: False)
         monkeypatch.setattr(platform_compat, "find_listening_pids", lambda port: [4242])
-        monkeypatch.setattr(cli_server, "_is_kirocrew_process", lambda pid: True)
+        monkeypatch.setattr(cli_server, "_is_junction_process", lambda pid: True)
         monkeypatch.setattr(platform_compat, "IS_WINDOWS", True)
         monkeypatch.setattr(cli_server, "_pid_exited", lambda pid: True)
         monkeypatch.setattr("time.sleep", lambda s: None)
@@ -408,7 +408,7 @@ class TestLogsCmdSystemd:
 
     @pytest.fixture(autouse=True)
     def _systemd(self, monkeypatch, tmp_path):
-        unit = tmp_path / "kirocrew.service"
+        unit = tmp_path / "junction.service"
         unit.write_text("[Unit]\n", encoding="utf-8", newline="\n")
         monkeypatch.setattr(cli_server, "current_platform", lambda: Platform.SYSTEMD)
         monkeypatch.setattr(svc_linux, "UNIT_PATH", unit)
@@ -591,8 +591,8 @@ class TestGateway:
         class _Cfg(_FakeCfg):
             saved = 0
 
-        monkeypatch.setattr(cli_server, "KiroCrewConfig", _Cfg)
-        monkeypatch.setattr("kiro_crew.cli._node_ok", lambda: True)
+        monkeypatch.setattr(cli_server, "JunctionConfig", _Cfg)
+        monkeypatch.setattr("junction.cli._node_ok", lambda: True)
         return captured, _Cfg
 
     def test_flags_are_forwarded_to_run_gateway(self, gw) -> None:
@@ -618,7 +618,7 @@ class TestGateway:
     def test_missing_dist_warns_but_still_starts(self, gw, monkeypatch, caplog) -> None:
         captured, _ = gw
         monkeypatch.setattr(cli_server, "ensure_dev_dist_symlink", lambda: None)
-        with caplog.at_level("WARNING", logger="kiro_crew.cli_server"):
+        with caplog.at_level("WARNING", logger="junction.cli_server"):
             asyncio.run(cli_server._gateway(no_dashboard=False))
         assert any("dist/ not found" in r.message for r in caplog.records)
         assert "kw" in captured
@@ -635,8 +635,8 @@ class TestGateway:
 
     def test_stale_node_triggers_ensure_node(self, gw, monkeypatch) -> None:
         calls: list[str] = []
-        monkeypatch.setattr("kiro_crew.cli._node_ok", lambda: False)
-        monkeypatch.setattr("kiro_crew.cli._ensure_node", lambda *a: calls.append("ensured"))
+        monkeypatch.setattr("junction.cli._node_ok", lambda: False)
+        monkeypatch.setattr("junction.cli._ensure_node", lambda *a: calls.append("ensured"))
         asyncio.run(cli_server._gateway(no_dashboard=True))
         assert calls == ["ensured"]
 
@@ -644,7 +644,7 @@ class TestGateway:
         self, gw, monkeypatch, caplog
     ) -> None:
         monkeypatch.setattr(cli_server, "activate_mise", lambda: ["PATH"])
-        with caplog.at_level("INFO", logger="kiro_crew.cli_server"):
+        with caplog.at_level("INFO", logger="junction.cli_server"):
             asyncio.run(cli_server._gateway(no_dashboard=True))
         assert any("Activated mise" in r.message for r in caplog.records)
 
@@ -656,7 +656,7 @@ class TestGateway:
             raise OSError("read-only Application Support")
 
         monkeypatch.setattr(svc_macos, "ensure_live_program", boom)
-        with caplog.at_level("WARNING", logger="kiro_crew.cli_server"):
+        with caplog.at_level("WARNING", logger="junction.cli_server"):
             asyncio.run(cli_server._gateway(no_dashboard=True))
         assert any("live-gateway launcher" in r.message for r in caplog.records)
         assert "kw" in captured  # the gateway still started
@@ -712,12 +712,12 @@ class _Result:
 @pytest.fixture
 def taskrunner_env(monkeypatch, tmp_path):
     """Replace every collaborator ``_run_task`` constructs, and expose the spies."""
-    from kiro_crew.config import KiroCrewConfig
+    from junction.config import JunctionConfig
 
     state: dict = {"vector": None, "sessions": None, "runner_kwargs": None, "observed": []}
 
-    monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: cls()))
-    monkeypatch.setattr(cli_server, "KiroCrewConfig", KiroCrewConfig)
+    monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: cls()))
+    monkeypatch.setattr(cli_server, "JunctionConfig", JunctionConfig)
     monkeypatch.setattr(cli_server, "build_provider_factory", lambda cfg: object())
 
     def _sessions(cfg, provider_factory=None):
@@ -1005,35 +1005,35 @@ class _GitStub:
 
 @pytest.fixture
 def git_checkout(monkeypatch, tmp_path):
-    """A KIROCREW_PROJECT_DIR that looks like a git checkout, with git stubbed out."""
+    """A JUNCTION_PROJECT_DIR that looks like a git checkout, with git stubbed out."""
     proj = tmp_path / "proj"
     (proj / ".git").mkdir(parents=True)
     # ``.git/HEAD``, not just ``.git/``: the install shape is derived by asking
     # git and falling back to the on-disk markers of a working tree's own root,
     # and a bare ``.git`` directory is refused by both on purpose.
     (proj / ".git" / "HEAD").write_text("ref: refs/heads/main\n", encoding="utf-8")
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
     # The git lane requires provenance as well as the path probe; this fixture
     # exercises the git path with a fabricated tree the test process does not
     # run from, so provenance is declared rather than derived.
     monkeypatch.setattr(
-        "kiro_crew.platform.update_capability.running_from_checkout",
+        "junction.platform.update_capability.running_from_checkout",
         lambda root, **kw: True,
     )
     monkeypatch.setattr(
-        "kiro_crew.platform.update_governance.resolve_remote_url",
+        "junction.platform.update_governance.resolve_remote_url",
         lambda p, remote="", branch="": "https://github.com/kirodotdev/KiroCrew.git",
     )
     monkeypatch.setattr(
-        "kiro_crew.platform.update_governance.update_blocked_reason", lambda url: ""
+        "junction.platform.update_governance.update_blocked_reason", lambda url: ""
     )
     monkeypatch.setattr(cli_server.shutil, "which", lambda name: None)
     monkeypatch.setattr(cli_server, "build_frontend_sync", lambda p: None)
-    monkeypatch.setattr("kiro_crew.cli._ensure_node", lambda *a: None)
+    monkeypatch.setattr("junction.cli._ensure_node", lambda *a: None)
     # Pin the install ROUTE. The real probe reads the test interpreter's own
     # Scripts dir, so on a Windows dev box running from a checkout these tests
     # would silently take the dependency-only branch instead of the reinstall
-    # they assert. `kirocrew update`'s own substitute behaviour is covered in
+    # they assert. `junction update`'s own substitute behaviour is covered in
     # test/test_dep_sync.py.
     monkeypatch.setattr(cli_server.dep_sync, "locked_console_scripts", lambda target: [])
     # And the foreign-venv guard, which now runs before either install branch.
@@ -1066,7 +1066,7 @@ class TestUpdateGitPath:
 
         monkeypatch.setattr(subprocess, "run", _run)
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.update_blocked_reason",
+            "junction.platform.update_governance.update_blocked_reason",
             lambda url: "remote not on the fleet allowlist",
         )
         with pytest.raises(SystemExit) as exc:
@@ -1270,7 +1270,7 @@ class TestUpdateSubprocessHardening:
         """Gap class (b), exit-1 sites: a timeout must not traceback out.
 
         RED-BEFORE: on unmodified main this raises TimeoutExpired straight
-        through ``kirocrew update`` instead of the SystemExit(1) the fetch
+        through ``junction update`` instead of the SystemExit(1) the fetch
         failure path already defines.
         """
         monkeypatch.setattr(subprocess, "run", self._timeout_on(["git", "fetch"], _GitStub()))
@@ -1323,11 +1323,11 @@ class TestUpdateWheelDispatch:
     """No git checkout means the wheel path gets a correctly shaped layout."""
 
     def test_layout_is_built_from_the_distribution(self, monkeypatch, capsys) -> None:
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
         # Both bindings: the capability derives WHO owns the update from the
         # stamp, and cli_server names the layout kind from its own import.
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "wheel")
-        monkeypatch.setattr("kiro_crew.cli_server.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "wheel")
+        monkeypatch.setattr("junction.cli_server.distribution", lambda: "wheel")
         seen: list[InstallLayout] = []
         monkeypatch.setattr(cli_server, "_update_wheel", lambda layout: seen.append(layout))
         cli_server._update()
@@ -1337,9 +1337,9 @@ class TestUpdateWheelDispatch:
         assert seen[0].is_externally_managed is False
 
     def test_unknown_distribution_defaults_to_wheel(self, monkeypatch) -> None:
-        monkeypatch.delenv("KIROCREW_PROJECT_DIR", raising=False)
-        monkeypatch.setattr("kiro_crew.platform.update_capability.distribution", lambda: "")
-        monkeypatch.setattr("kiro_crew.cli_server.distribution", lambda: "")
+        monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
+        monkeypatch.setattr("junction.platform.update_capability.distribution", lambda: "")
+        monkeypatch.setattr("junction.cli_server.distribution", lambda: "")
         seen: list[InstallLayout] = []
         monkeypatch.setattr(cli_server, "_update_wheel", lambda layout: seen.append(layout))
         cli_server._update()
@@ -1360,16 +1360,16 @@ _LAYOUT = InstallLayout(
 def wheel_feed(monkeypatch):
     """Pin the CDN bases, channel, and installer command; return a payload setter."""
     monkeypatch.setattr(
-        "kiro_crew.platform.update_layout.cdn_bases",
+        "junction.platform.update_layout.cdn_bases",
         lambda: ("https://cdn.example.com", "https://cdn.example.com"),
     )
-    monkeypatch.setattr("kiro_crew.platform.update_layout.release_channel", lambda: "stable")
+    monkeypatch.setattr("junction.platform.update_layout.release_channel", lambda: "stable")
     monkeypatch.setattr(
-        "kiro_crew.platform.update_layout.wheel_update_command",
+        "junction.platform.update_layout.wheel_update_command",
         lambda channel=None: "curl -fsSL https://cdn.example.com/cli.sh | sh",
     )
     monkeypatch.setattr(
-        "kiro_crew.platform.update_governance.update_blocked_reason", lambda url: ""
+        "junction.platform.update_governance.update_blocked_reason", lambda url: ""
     )
 
     def _no_network(*a, **k):
@@ -1390,7 +1390,7 @@ class TestUpdateWheelFeedValidation:
 
     def test_pinned_feed_base_blocks_the_update(self, monkeypatch, wheel_feed, capsys) -> None:
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.update_blocked_reason",
+            "junction.platform.update_governance.update_blocked_reason",
             lambda url: "source pinned to an internal mirror",
         )
         with pytest.raises(SystemExit) as exc:
@@ -1402,11 +1402,11 @@ class TestUpdateWheelFeedValidation:
         self, monkeypatch, wheel_feed, capsys
     ) -> None:
         monkeypatch.setattr(
-            "kiro_crew.platform.update_layout.cdn_bases",
+            "junction.platform.update_layout.cdn_bases",
             lambda: ("https://feed.example.com", "https://artifacts.example.com"),
         )
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance.update_blocked_reason",
+            "junction.platform.update_governance.update_blocked_reason",
             lambda url: "" if "feed" in url else "artifact host not allowed",
         )
         with pytest.raises(SystemExit) as exc:
@@ -1418,7 +1418,7 @@ class TestUpdateWheelFeedValidation:
         self, monkeypatch, wheel_feed, capsys
     ) -> None:
         monkeypatch.setattr(
-            "kiro_crew.platform.update_layout.cdn_bases",
+            "junction.platform.update_layout.cdn_bases",
             lambda: ("https://cdn.example.com;id", "https://cdn.example.com"),
         )
         with pytest.raises(SystemExit) as exc:
@@ -1449,7 +1449,7 @@ class TestUpdateWheelFeedValidation:
 
     def test_channel_mismatch_is_refused(self, wheel_feed, capsys) -> None:
         wheel_feed(
-            b'{"schema": "kirocrew-cli-artifact-manifest-v1", '
+            b'{"schema": "junction-cli-artifact-manifest-v1", '
             b'"channel": "insider", "version": "9.9.9"}'
         )
         with pytest.raises(SystemExit) as exc:
@@ -1458,7 +1458,7 @@ class TestUpdateWheelFeedValidation:
         assert "Feed channel mismatch" in capsys.readouterr().out
 
     def test_missing_version_is_refused(self, wheel_feed, capsys) -> None:
-        wheel_feed(b'{"schema": "kirocrew-cli-artifact-manifest-v1", "channel": "stable"}')
+        wheel_feed(b'{"schema": "junction-cli-artifact-manifest-v1", "channel": "stable"}')
         with pytest.raises(SystemExit) as exc:
             cli_server._update_wheel(_LAYOUT)
         assert exc.value.code == 1
@@ -1471,7 +1471,7 @@ class TestUpdateWheelInstaller:
     @pytest.fixture(autouse=True)
     def _newer_feed(self, wheel_feed, monkeypatch):
         wheel_feed(
-            b'{"schema": "kirocrew-cli-artifact-manifest-v1", '
+            b'{"schema": "junction-cli-artifact-manifest-v1", '
             b'"channel": "stable", "version": "999.0.0"}'
         )
         monkeypatch.setattr(sys, "platform", "linux")
@@ -1535,7 +1535,7 @@ class TestUpdateWheelInstaller:
     ) -> None:
         """``_is_newer`` returning None must fail OPEN — an update is safer than a stall."""
         wheel_feed(
-            b'{"schema": "kirocrew-cli-artifact-manifest-v1", '
+            b'{"schema": "junction-cli-artifact-manifest-v1", '
             b'"channel": "stable", "version": "not-a-version"}'
         )
         monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a[0], 0))
@@ -1547,10 +1547,10 @@ class TestUpdateWheelInstaller:
     def test_already_latest_returns_without_running_the_installer(
         self, monkeypatch, wheel_feed, capsys
     ) -> None:
-        from kiro_crew import __version__ as local_version
+        from junction import __version__ as local_version
 
         wheel_feed(
-            b'{"schema": "kirocrew-cli-artifact-manifest-v1", "channel": "stable", '
+            b'{"schema": "junction-cli-artifact-manifest-v1", "channel": "stable", '
             + f'"version": "{local_version}"'.encode()
             + b"}"
         )

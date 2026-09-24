@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.cloud import aws
-from kiro_crew.cloud import connect as connect_mod
-from kiro_crew.cloud import ec2, iam, login, ssm, wizard
-from kiro_crew.cloud.config import CloudConfig
+from junction.cloud import aws
+from junction.cloud import connect as connect_mod
+from junction.cloud import ec2, iam, login, ssm, wizard
+from junction.cloud.config import CloudConfig
 
 
 def _patch_post_launch(monkeypatch, *, logged_in: bool = True) -> dict[str, list[str]]:
@@ -162,7 +162,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "kirocrew-kc-old",
+                "stack_name": "junction-kc-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "public_dns": "",
@@ -199,7 +199,7 @@ class TestLaunchResume:
                 return {
                     "tag": tag,
                     "exists": True,
-                    "stack_name": "kirocrew-kc-broken",
+                    "stack_name": "junction-kc-broken",
                     "stack_status": "ROLLBACK_COMPLETE",
                     "instance_id": "",
                     "region": "us-west-2",
@@ -208,7 +208,7 @@ class TestLaunchResume:
             return {
                 "tag": tag,
                 "exists": True,
-                "stack_name": f"kirocrew-{tag}",
+                "stack_name": f"junction-{tag}",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-fresh",
                 "region": "us-west-2",
@@ -226,7 +226,7 @@ class TestLaunchResume:
             deployed.append(kw["tag"])
             return ec2.DeployResult(
                 tag=kw["tag"],
-                stack_name=f"kirocrew-{kw['tag']}",
+                stack_name=f"junction-{kw['tag']}",
                 region="us-west-2",
                 instance_id="i-fresh",
                 status="CREATE_COMPLETE",
@@ -252,7 +252,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "kirocrew-kc-old",
+                "stack_name": "junction-kc-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "region": "us-west-2",
@@ -287,7 +287,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "kirocrew-kc-old",
+                "stack_name": "junction-kc-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "region": "us-west-2",
@@ -309,7 +309,7 @@ class TestLaunchResume:
         assert "terminated" in capsys.readouterr().out
 
     def test_hold_tunnel_false_closes_and_returns(self, monkeypatch, capsys):
-        # Embedded in `kirocrew setup`, the wizard must NOT block on the
+        # Embedded in `junction setup`, the wizard must NOT block on the
         # tunnel child — it closes it and returns so setup can finish.
         cfg = CloudConfig(profile="dev", region="us-west-2", last_tag="kc-old")
         _patch_post_launch(monkeypatch)
@@ -352,7 +352,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "kirocrew-kc-old",
+                "stack_name": "junction-kc-old",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "public_dns": "",
@@ -386,7 +386,7 @@ class TestLaunchResume:
             deploy_calls.append(tag)
             return ec2.DeployResult(
                 tag=tag,
-                stack_name="kirocrew-kc-new",
+                stack_name="junction-kc-new",
                 region=region,
                 instance_id="i-new",
                 status="CREATE_COMPLETE",
@@ -419,7 +419,7 @@ class TestLaunchResume:
             deploy_calls.append(tag)
             return ec2.DeployResult(
                 tag=tag,
-                stack_name="kirocrew-kc-new",
+                stack_name="junction-kc-new",
                 region=region,
                 instance_id="i-new",
                 status="CREATE_COMPLETE",
@@ -477,7 +477,7 @@ class TestLaunchResume:
         def fake_deploy(**_k):
             return ec2.DeployResult(
                 tag="kc-new",
-                stack_name="kirocrew-kc-new",
+                stack_name="junction-kc-new",
                 region="us-west-2",
                 instance_id="i-abc",
                 status="CREATE_COMPLETE",
@@ -505,7 +505,7 @@ class TestLaunchResume:
             lambda *_a, **_k: [
                 {
                     "tag": "kc-found",
-                    "stack_name": "kirocrew-kc-found",
+                    "stack_name": "junction-kc-found",
                     "stack_status": "CREATE_COMPLETE",
                 }
             ],
@@ -516,7 +516,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": "kirocrew-kc-found",
+                "stack_name": "junction-kc-found",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-found",
                 "region": "us-west-2",
@@ -555,7 +555,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": tag == "kc-old",
-                "stack_name": f"kirocrew-{tag}",
+                "stack_name": f"junction-{tag}",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": "i-old",
                 "region": "us-west-2",
@@ -570,7 +570,7 @@ class TestLaunchResume:
             deploy_calls.append(tag)
             return ec2.DeployResult(
                 tag=tag,
-                stack_name="kirocrew-kc-new",
+                stack_name="junction-kc-new",
                 region=region,
                 instance_id="i-new",
                 status="CREATE_COMPLETE",
@@ -585,7 +585,7 @@ class TestLaunchResume:
             x == "i-new" for x in calls["login"]
         )  # sign-in + verify both check i-new
         assert save_calls == [("dev", "us-west-2", "kc-new")]
-        assert choices[0][0] == "Existing KiroCrew cloud deployment"
+        assert choices[0][0] == "Existing Junction cloud deployment"
         assert choices[0][1][0][0] == "Keep and resume existing"
         assert choices[0][1][1][0] == "Create a new installation"
         assert "existing stack is unchanged" in capsys.readouterr().out
@@ -606,8 +606,8 @@ class TestLaunchResume:
             ec2,
             "list_stacks",
             lambda *_a, **_k: [
-                {"tag": "kc-a", "stack_name": "kirocrew-kc-a"},
-                {"tag": "kc-b", "stack_name": "kirocrew-kc-b"},
+                {"tag": "kc-a", "stack_name": "junction-kc-a"},
+                {"tag": "kc-b", "stack_name": "junction-kc-b"},
             ],
         )
         monkeypatch.setattr(
@@ -616,7 +616,7 @@ class TestLaunchResume:
             lambda tag, *_a, **_k: {
                 "tag": tag,
                 "exists": True,
-                "stack_name": f"kirocrew-{tag}",
+                "stack_name": f"junction-{tag}",
                 "stack_status": "CREATE_COMPLETE",
                 "instance_id": f"i-{tag}",
                 "region": "us-west-2",
@@ -641,10 +641,10 @@ class TestLaunchResume:
         assert save_calls == [("dev", "us-west-2", "kc-b")]
         assert choices == [
             (
-                "Existing KiroCrew cloud deployments",
+                "Existing Junction cloud deployments",
                 [
-                    ("Keep kc-a", "kirocrew-kc-a"),
-                    ("Keep kc-b", "kirocrew-kc-b"),
+                    ("Keep kc-a", "junction-kc-a"),
+                    ("Keep kc-b", "junction-kc-b"),
                     ("Create a new installation", "Leaves existing AWS stacks untouched."),
                 ],
             )
@@ -658,8 +658,8 @@ class TestLaunchResume:
             ec2,
             "list_stacks",
             lambda *_a, **_k: [
-                {"tag": "kc-a", "stack_name": "kirocrew-kc-a"},
-                {"tag": "kc-b", "stack_name": "kirocrew-kc-b"},
+                {"tag": "kc-a", "stack_name": "junction-kc-a"},
+                {"tag": "kc-b", "stack_name": "junction-kc-b"},
             ],
         )
         monkeypatch.setattr(
@@ -670,7 +670,7 @@ class TestLaunchResume:
 
         assert wizard.launch(profile="dev", region="us-west-2", assume_yes=True) == 1
         out = capsys.readouterr().out
-        assert "multiple existing KiroCrew cloud stacks found" in out
+        assert "multiple existing Junction cloud stacks found" in out
         assert "kc-a" in out and "kc-b" in out
 
 

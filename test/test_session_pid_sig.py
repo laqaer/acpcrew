@@ -1,4 +1,4 @@
-"""Tests for :mod:`kiro_crew.session_pid_sig` — signed session_pid publication.
+"""Tests for :mod:`junction.session_pid_sig` — signed session_pid publication.
 
 The ``session_pid_<pid>.txt`` file is same-uid agent-writable, so the strict
 identity path must not trust it bare. These tests lock in the sidecar
@@ -14,10 +14,10 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew import session_pid_sig
+from junction import session_pid_sig
 
 SESSION_KEY = "dashboard:chat-7-123456"
-LOGGER_NAME = "kiro_crew.session_pid_sig"
+LOGGER_NAME = "junction.session_pid_sig"
 
 
 def records_from_this_module(caplog, level="ERROR"):
@@ -116,7 +116,7 @@ class TestVerify:
     def test_round_trip(self, cfg):
         session_pid_sig.publish_session_pid(4242, SESSION_KEY)
         assert session_pid_sig.verify_session_pid(4242) == SESSION_KEY
-        # str pid (as read from KIROCREW_HOST_PID) verifies identically.
+        # str pid (as read from JUNCTION_HOST_PID) verifies identically.
         assert session_pid_sig.verify_session_pid("4242") == SESSION_KEY
 
     def test_missing_files_refused(self, cfg):
@@ -483,7 +483,7 @@ class TestSigningUnavailableReport:
 
 
 class TestSigningHealth:
-    """The diagnostic surface (`kirocrew doctor`) asks proactively; publication
+    """The diagnostic surface (`junction doctor`) asks proactively; publication
     only reports once a session is claimed."""
 
     def test_reports_healthy_with_the_resolved_path(self, cfg):
@@ -500,7 +500,7 @@ class TestSigningHealth:
     def test_never_constructs_the_sel_singleton(self, cfg):
         """Asking the question must not create the trust root it asks about,
         and must not put a mkdir + key write behind a read-only command."""
-        with patch("kiro_crew.sel.SecurityEventLog") as sel_cls:
+        with patch("junction.sel.SecurityEventLog") as sel_cls:
             session_pid_sig.signing_health()
         sel_cls.assert_not_called()
 
@@ -509,7 +509,7 @@ class TestSigningHealth:
         the socket binds, and this check is a diagnostic, not a gate."""
         import inspect
 
-        from kiro_crew.dashboard import token_auth
+        from junction.dashboard import token_auth
 
         assert "signing_health" not in inspect.getsource(
             token_auth.warm_auth_singletons

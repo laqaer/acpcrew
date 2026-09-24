@@ -30,7 +30,7 @@ import threading
 
 import pytest
 
-from kiro_crew.computer_use import capture_windows as C
+from junction.computer_use import capture_windows as C
 
 #: Bytes per pixel at the module's current depth. Derived rather than written as a
 #: literal: the depth is dictated by what ``PW_RENDERFULLCONTENT`` will render into
@@ -868,7 +868,7 @@ class TestCaptureSnapshotImageEndToEnd:
 
     @staticmethod
     def _snap(**kw):
-        from kiro_crew.computer_use.types import AppRef, Snapshot
+        from junction.computer_use.types import AppRef, Snapshot
 
         app = AppRef(
             name="app",

@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from kiro_crew.acp.client import CLIENT_NAME, AcpClient
-from kiro_crew.acp.types import METHOD_SET_MODE
+from junction.acp.client import CLIENT_NAME, AcpClient
+from junction.acp.types import METHOD_SET_MODE
 
 
 def _make_client(agent: str, tmp_path) -> AcpClient:
@@ -57,7 +57,7 @@ async def _wait_with_modes(mode_ids):
             "protocolVersion": "1.0",
             "sessionId": "sess-123",
             "modes": {
-                "currentModeId": "kirocrew",
+                "currentModeId": "junction",
                 "availableModes": [{"id": m} for m in mode_ids],
             },
         }
@@ -70,12 +70,12 @@ async def test_set_mode_fails_closed_when_agent_not_in_advertised_modes(tmp_path
     """Guard (A): backend advertises a `modes` list that excludes the agent →
     FAIL CLOSED (raise), never silently run kiro-cli's default mode in place of
     the requested (possibly more-restricted) agent."""
-    from kiro_crew.acp.client import AcpError
+    from junction.acp.client import AcpError
 
     client = _make_client("ghost-agent", tmp_path)
     client._session_id = None  # force the session/new path so modes are captured
     client._send_request = AsyncMock(return_value=1)
-    client._wait_for_response = AsyncMock(side_effect=await _wait_with_modes(["kirocrew"]))
+    client._wait_for_response = AsyncMock(side_effect=await _wait_with_modes(["junction"]))
     client._drain_notifications = AsyncMock()
 
     with patch("pathlib.Path.exists", return_value=False), patch("pathlib.Path.stat"):
@@ -94,7 +94,7 @@ async def test_set_mode_sent_when_agent_in_advertised_modes(tmp_path):
     client = _make_client("ops", tmp_path)
     client._session_id = None  # force the session/new path so modes are captured
     client._send_request = AsyncMock(return_value=1)
-    client._wait_for_response = AsyncMock(side_effect=await _wait_with_modes(["kirocrew", "ops"]))
+    client._wait_for_response = AsyncMock(side_effect=await _wait_with_modes(["junction", "ops"]))
     client._drain_notifications = AsyncMock()
 
     with patch("pathlib.Path.exists", return_value=False), patch("pathlib.Path.stat"):

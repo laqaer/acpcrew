@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from kiro_crew.dashboard.state import DashboardState
-from kiro_crew.learn import Lesson, LessonStore
+from junction.dashboard.state import DashboardState
+from junction.learn import Lesson, LessonStore
 
 
 def _make_state(

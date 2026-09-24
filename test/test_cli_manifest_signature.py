@@ -27,7 +27,7 @@ CLI_WORKFLOW = ROOT / ".github" / "workflows" / "publish-cli.yml"
 PINNED_PUBLIC_KEY = ROOT / "packaging" / "signing" / "cli-manifest-public.pem"
 VERSION = "1.2.3"
 CHANNEL = "stable"
-WHEEL_NAME = f"kirocrew-{VERSION}-py3-none-any.whl"
+WHEEL_NAME = f"junction-{VERSION}-py3-none-any.whl"
 CDN_BASE = "https://fixtures.invalid"
 
 
@@ -203,7 +203,7 @@ def test_helper_builds_a_canonical_independently_verifiable_manifest(
     manifest_path = _build_manifest(tmp_path, test_key, wheel)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
-    assert manifest["schema"] == "kirocrew-cli-artifact-manifest-v1"
+    assert manifest["schema"] == "junction-cli-artifact-manifest-v1"
     assert manifest["algorithm"] == "RSASSA_PKCS1_V1_5_SHA_256"
     assert manifest["key_id"] == test_key.key_id
     assert manifest["sha256"] == hashlib.sha256(wheel.read_bytes()).hexdigest()
@@ -401,7 +401,7 @@ def _run_installer(
         {
             "PATH": f"{tools}{os.pathsep}{env['PATH']}",
             "HOME": str(root / "home"),
-            "KIROCREW_HOME": str(root / "data-home"),
+            "JUNCTION_HOME": str(root / "data-home"),
             "FAKE_CDN_ROOT": str(cdn),
             "FAKE_CURL_MARKER": str(curl_marker),
             "FAKE_INSTALL_MARKER": str(install_marker),

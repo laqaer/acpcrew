@@ -691,7 +691,7 @@ describe('AppDetailPage — uncovered surfaces', () => {
         displayName: 'Ledger Lens',
         description: 'Reads your books and explains them.',
         author: 'zezhexu',
-        minKiroCrewVersion: '0.2.0',
+        minJunctionVersion: '0.2.0',
         highlights: ['Explains a balance sheet', 'Flags odd entries'],
         tags: ['finance', 'reporting'],
         agents: ['agents/auditor.json', 'agents/scribe.json'],

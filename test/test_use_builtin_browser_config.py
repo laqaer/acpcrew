@@ -17,35 +17,35 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.config.loader import KiroCrewConfig
+from junction.config.loader import JunctionConfig
 
 
 @pytest.fixture()
 def cfg_file(tmp_path):
     p = tmp_path / "config.json"
     p.write_text("{}", encoding="utf-8")
-    with patch("kiro_crew.config.loader.config_path", return_value=p):
+    with patch("junction.config.loader.config_path", return_value=p):
         yield p
 
 
 def test_use_builtin_browser_default_true():
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     assert cfg.dashboard.use_builtin_browser is True
 
 
 def test_use_builtin_browser_save_load(cfg_file):
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     cfg.dashboard.use_builtin_browser = False
     cfg.save()
 
     raw = json.loads(cfg_file.read_text(encoding="utf-8"))
     assert raw["dashboard"]["use_builtin_browser"] is False
-    assert KiroCrewConfig.load().dashboard.use_builtin_browser is False
+    assert JunctionConfig.load().dashboard.use_builtin_browser is False
 
 
 def test_use_builtin_browser_absent_key_stays_true(cfg_file):
     cfg_file.write_text(json.dumps({"dashboard": {}}), encoding="utf-8")
-    assert KiroCrewConfig.load().dashboard.use_builtin_browser is True
+    assert JunctionConfig.load().dashboard.use_builtin_browser is True
 
 
 def test_use_builtin_browser_non_bool_fails_open_true(cfg_file):
@@ -56,24 +56,24 @@ def test_use_builtin_browser_non_bool_fails_open_true(cfg_file):
             json.dumps({"dashboard": {"use_builtin_browser": bad}}),
             encoding="utf-8",
         )
-        assert KiroCrewConfig.load().dashboard.use_builtin_browser is True, bad
+        assert JunctionConfig.load().dashboard.use_builtin_browser is True, bad
 
 
 @pytest.fixture()
 def mock_sel():
     try:
-        import kiro_crew.dashboard.handlers  # noqa: F401
+        import junction.dashboard.handlers  # noqa: F401
     except ImportError:
         pytest.skip("dashboard handler deps not available locally")
     m = MagicMock()
     m.log_tool_invocation = MagicMock()
-    with patch("kiro_crew.dashboard.handlers.sel", return_value=m):
+    with patch("junction.dashboard.handlers.sel", return_value=m):
         yield m
 
 
 @pytest.fixture()
 def handler_app(cfg_file, mock_sel):
-    from kiro_crew.dashboard.handlers.files import api_dashboard_config
+    from junction.dashboard.handlers.files import api_dashboard_config
 
     app = web.Application()
     app.router.add_put("/api/dashboard/config", api_dashboard_config)
@@ -86,7 +86,7 @@ async def test_handler_put_sole_key_persists(handler_app, cfg_file):
     async with TestClient(TestServer(handler_app)) as client:
         resp = await client.put("/api/dashboard/config", json={"use_builtin_browser": False})
         assert resp.status == 200
-        assert KiroCrewConfig.load().dashboard.use_builtin_browser is False
+        assert JunctionConfig.load().dashboard.use_builtin_browser is False
 
 
 @pytest.mark.asyncio
@@ -98,7 +98,7 @@ async def test_handler_put_sole_key_invalid_400_with_code(handler_app, cfg_file)
         assert "boolean" in body["error"]
         # A new non-2xx body must carry a machine-readable code (error-code contract).
         assert body["code"] == "invalid_use_builtin_browser"
-        assert KiroCrewConfig.load().dashboard.use_builtin_browser is True
+        assert JunctionConfig.load().dashboard.use_builtin_browser is True
 
 
 @pytest.mark.asyncio
@@ -132,7 +132,7 @@ async def test_multikey_put_does_not_clobber_use_builtin_browser(handler_app, cf
         # Browser panel turns it OFF via the sole-key path.
         r = await client.put("/api/dashboard/config", json={"use_builtin_browser": False})
         assert r.status == 200
-        assert KiroCrewConfig.load().dashboard.use_builtin_browser is False
+        assert JunctionConfig.load().dashboard.use_builtin_browser is False
 
         # A stale Chat-panel save carries use_builtin_browser=True alongside its own
         # change. The multi-key PUT must NOT apply it.
@@ -142,7 +142,7 @@ async def test_multikey_put_does_not_clobber_use_builtin_browser(handler_app, cf
         r2 = await client.put("/api/dashboard/config", json=body)
         assert r2.status == 200
 
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.quick_send is True
         assert cfg.dashboard.use_builtin_browser is False  # not reverted
 
@@ -156,7 +156,7 @@ async def test_handler_put_malformed_dashboard_section_recovers(handler_app, cfg
     async with TestClient(TestServer(handler_app)) as client:
         resp = await client.put("/api/dashboard/config", json={"use_builtin_browser": False})
         assert resp.status == 200
-        assert KiroCrewConfig.load().dashboard.use_builtin_browser is False
+        assert JunctionConfig.load().dashboard.use_builtin_browser is False
 
 
 @pytest.mark.asyncio
@@ -188,7 +188,7 @@ async def test_handler_put_cancelled_write_logs_failure(handler_app, cfg_file, m
     def _raise_cancel(*a, **k):
         raise _asyncio.CancelledError()
 
-    with patch("kiro_crew.config.loader.update_config_locked", _raise_cancel):
+    with patch("junction.config.loader.update_config_locked", _raise_cancel):
         async with TestClient(TestServer(handler_app)) as client:
             try:
                 await client.put("/api/dashboard/config", json={"use_builtin_browser": False})

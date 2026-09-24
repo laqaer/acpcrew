@@ -14,8 +14,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import usage as usage_mod
-from kiro_crew.dashboard.handlers.telemetry import api_context_trace
+from junction.dashboard.handlers import usage as usage_mod
+from junction.dashboard.handlers.telemetry import api_context_trace
 
 
 @pytest.fixture(autouse=True)
@@ -247,7 +247,7 @@ class TestApiContextTraceAppDenial:
 
     @pytest.fixture(autouse=True)
     def _quiet_sel(self, monkeypatch):
-        import kiro_crew.sel as sel_mod
+        import junction.sel as sel_mod
 
         calls: list[dict] = []
 

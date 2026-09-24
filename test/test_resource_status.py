@@ -1,6 +1,6 @@
 """Tests for the advisory resource probe and its two surfaces.
 
-Covers :mod:`kiro_crew.resource_status` (posture classification, context line,
+Covers :mod:`junction.resource_status` (posture classification, context line,
 disable switch, fail-open) and the ``resource_status`` pull tool wired into
 ``mcp_core`` (advertised + dispatchable).
 """
@@ -11,11 +11,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew import resource_status as rs
+from junction import resource_status as rs
 
 
 def _cfg(pressure: float, critical: float) -> SimpleNamespace:
-    """Minimal stand-in for KiroCrewConfig exposing the two thresholds."""
+    """Minimal stand-in for JunctionConfig exposing the two thresholds."""
     return SimpleNamespace(
         agent=SimpleNamespace(
             resource_pressure_gb=pressure,
@@ -140,14 +140,14 @@ def test_summary_lines_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_tool_is_advertised() -> None:
-    from kiro_crew import mcp_core
+    from junction import mcp_core
 
     names = {t["name"] for t in mcp_core._list_tools()}
     assert "resource_status" in names
 
 
 def test_tool_dispatch_returns_report(monkeypatch: pytest.MonkeyPatch) -> None:
-    from kiro_crew import mcp_core
+    from junction import mcp_core
 
     fake = rs.ResourceStatus(
         available_gb=3.0,
@@ -186,7 +186,7 @@ def test_thresholds_clamped_when_inverted(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_tool_registered_and_rejects_stray_args() -> None:
-    from kiro_crew.validation import (
+    from junction.validation import (
         MCP_CORE_SCHEMAS,
         ValidationError,
         validate_tool_args,

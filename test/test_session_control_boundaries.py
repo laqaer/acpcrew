@@ -20,9 +20,9 @@ from unittest.mock import MagicMock
 import pytest
 from chat_test_helpers import _make_state
 
-from kiro_crew.dashboard import session_control as sc
-from kiro_crew.dashboard.chat_utils import slot_history_key
-from kiro_crew.dashboard.handlers import session_control as handlers_sc
+from junction.dashboard import session_control as sc
+from junction.dashboard.chat_utils import slot_history_key
+from junction.dashboard.handlers import session_control as handlers_sc
 
 
 @pytest.fixture(autouse=True)

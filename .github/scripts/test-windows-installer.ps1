@@ -113,7 +113,7 @@ $expectedDisplayName = "$productName $($package.version)"
 # tests the sync client rather than the installer. Evidence still lives under
 # the workspace for artifact upload. The /D argument must remain last for NSIS.
 $requestedInstallRoot = Join-Path ([IO.Path]::GetFullPath($env:TEMP)) `
-  "kirocrew-installer-test-$PID"
+  "junction-installer-test-$PID"
 $sentinel = Join-Path $requestedInstallRoot "pre-existing-user-file.txt"
 New-Item -ItemType Directory -Path $requestedInstallRoot -Force | Out-Null
 Set-Content -LiteralPath $sentinel -Value "must survive uninstall" -Encoding utf8NoBOM
@@ -222,7 +222,7 @@ if ($SkipGatewayValidation) {
 # Windows package ships checked-hash bytecode for the measured gateway import
 # closure; this catches either those files being filtered out of the artifact or
 # the launcher accidentally redirecting imports into an empty user cache again.
-$backendRoot = Join-Path $installLocation "resources\backend-dist\kirocrew-backend"
+$backendRoot = Join-Path $installLocation "resources\backend-dist\junction-backend"
 $bundledPython = Join-Path $backendRoot "python.exe"
 if (-not (Test-Path -LiteralPath $bundledPython -PathType Leaf)) {
   throw "The installed bundled Python is missing: $bundledPython"
@@ -244,8 +244,8 @@ $gatewayStderr = Join-Path $evidence "gateway-stderr.log"
 New-Item -ItemType Directory -Path $gatewayHome -Force | Out-Null
 
 $savedGatewayEnv = @{
-  KIROCREW_HOME = $env:KIROCREW_HOME
-  KIROCREW_PROJECT_DIR = $env:KIROCREW_PROJECT_DIR
+  JUNCTION_HOME = $env:JUNCTION_HOME
+  JUNCTION_PROJECT_DIR = $env:JUNCTION_PROJECT_DIR
   KIRO_HOME = $env:KIRO_HOME
   PYTHONPYCACHEPREFIX = $env:PYTHONPYCACHEPREFIX
   PYTHONPATH = $env:PYTHONPATH
@@ -257,8 +257,8 @@ $gatewayProcess = $null
 $gatewayReady = $false
 $gatewayTimer = [System.Diagnostics.Stopwatch]::StartNew()
 try {
-  $env:KIROCREW_HOME = $gatewayHome
-  $env:KIROCREW_PROJECT_DIR = $installLocation
+  $env:JUNCTION_HOME = $gatewayHome
+  $env:JUNCTION_PROJECT_DIR = $installLocation
   $env:KIRO_HOME = Join-Path $gatewayHome "kiro"
   $env:PYTHONPYCACHEPREFIX = $null
   $env:PYTHONPATH = $null
@@ -266,7 +266,7 @@ try {
   $env:PYTHONUTF8 = "1"
   $env:PYTHONIOENCODING = "utf-8:backslashreplace"
   $gatewayProcess = Start-Process -FilePath $bundledPython -ArgumentList @(
-    "-s", "-m", "kiro_crew", "gateway", "--no-open", "--port", "$gatewayPort"
+    "-s", "-m", "junction", "gateway", "--no-open", "--port", "$gatewayPort"
   ) -WorkingDirectory $installLocation -RedirectStandardOutput $gatewayStdout `
     -RedirectStandardError $gatewayStderr -WindowStyle Hidden -PassThru
 

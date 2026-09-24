@@ -25,8 +25,8 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from kiro_crew.providers.cleanup import _is_safe_path
-from kiro_crew.subagent_persistence import (
+from junction.providers.cleanup import _is_safe_path
+from junction.subagent_persistence import (
     _cleanup_session_files_sync,
     create_agent_folder,
     prune_stale_tombstones,
@@ -45,7 +45,7 @@ pytestmark = pytest.mark.usefixtures("healthy_host_memory")
 @pytest.fixture()
 def agent_root(tmp_path, monkeypatch):
     """Point subagent persistence at a temp directory."""
-    monkeypatch.setattr("kiro_crew.subagent_persistence._SUBAGENTS_DIR", tmp_path)
+    monkeypatch.setattr("junction.subagent_persistence._SUBAGENTS_DIR", tmp_path)
     return tmp_path
 
 
@@ -150,7 +150,7 @@ class TestAcpCleanupDeletesFiles:
         json_file.write_text("{}")
         jsonl_file.write_text("")
 
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             _cleanup_session_files_sync(session_id, "acp")
 
         assert not json_file.exists()
@@ -158,7 +158,7 @@ class TestAcpCleanupDeletesFiles:
 
     def test_acp_cleanup_missing_files_no_error(self, tmp_path):
         """Cleanup succeeds when files don't exist."""
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             # Should not raise
             _cleanup_session_files_sync("nonexistent-id", "acp")
 
@@ -169,7 +169,7 @@ class TestAcpCleanupDeletesFiles:
         json_file = sessions_dir / "partial123.json"
         json_file.write_text("{}")
 
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             _cleanup_session_files_sync("partial123", "acp")
 
         assert not json_file.exists()
@@ -194,7 +194,7 @@ class TestCleanupNeverRaises:
         _cleanup_session_files_sync returns without raising.
         """
         # Should never raise regardless of input
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             _cleanup_session_files_sync(session_id, "acp")
             _cleanup_session_files_sync(session_id, "claude_code")
             _cleanup_session_files_sync(session_id, "bedrock")
@@ -202,12 +202,12 @@ class TestCleanupNeverRaises:
 
     def test_cleanup_empty_string(self, tmp_path):
         """Empty session_id is a no-op."""
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             _cleanup_session_files_sync("", "acp")
 
     def test_cleanup_null_bytes(self, tmp_path):
         """Null bytes in session_id don't raise."""
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             _cleanup_session_files_sync("abc\x00def", "acp")
 
 
@@ -234,7 +234,7 @@ class TestCleanupIdempotent:
         json_file = sessions_dir / f"{session_id}.json"
         json_file.write_text("{}")
 
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             _cleanup_session_files_sync(session_id, "acp")
             # Second call — files already gone
             _cleanup_session_files_sync(session_id, "acp")
@@ -274,7 +274,7 @@ class TestCleanupRestriction:
         For any session key that does not start with 'subagent:', the
         SessionManager.release() with cleanup=True does NOT invoke cleanup_session.
         """
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = MagicMock()
         cfg.session.pool_size = 0
@@ -302,7 +302,7 @@ class TestCleanupRestriction:
     @pytest.mark.asyncio
     async def test_subagent_key_triggers_cleanup(self):
         """Subagent keys DO trigger cleanup."""
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = MagicMock()
         cfg.session.pool_size = 0
@@ -341,8 +341,8 @@ class TestSubagentManagerCleanupIntegration:
 
         Validates: Requirements 2.1
         """
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
-        from kiro_crew.subagent import SubagentManager
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
+        from junction.subagent import SubagentManager
 
         sessions = MagicMock()
         sessions.get_pid = MagicMock(return_value=None)
@@ -371,7 +371,7 @@ class TestSubagentManagerCleanupIntegration:
 
         manager = SubagentManager(sessions=sessions, ctx_builder=ctx)
 
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.spawn("cleanup test", parent_session_key="dashboard:default")
             assert info is not None
             await manager._tasks[info.id]
@@ -390,7 +390,7 @@ class TestSubagentManagerCleanupIntegration:
         Validates: Requirements 2.2 (amended by retain-by-default: deletion
         moved from teardown-time to tombstone-prune-time)
         """
-        from kiro_crew.subagent import SubagentManager
+        from junction.subagent import SubagentManager
 
         sessions = MagicMock()
         sessions.get_pid = MagicMock(return_value=None)
@@ -419,7 +419,7 @@ class TestSubagentManagerCleanupIntegration:
 
         manager = SubagentManager(sessions=sessions, ctx_builder=ctx)
 
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.spawn("error test", parent_session_key="dashboard:default")
             assert info is not None
             await manager._tasks[info.id]
@@ -435,8 +435,8 @@ class TestSubagentManagerCleanupIntegration:
 
         Validates: Requirements 2.3, 3.2
         """
-        from kiro_crew.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
-        from kiro_crew.subagent import SubagentManager
+        from junction.providers.base import EVENT_COMPLETE, EVENT_TEXT_CHUNK, LLMEvent
+        from junction.subagent import SubagentManager
 
         sessions = MagicMock()
         sessions.get_pid = MagicMock(return_value=None)
@@ -467,7 +467,7 @@ class TestSubagentManagerCleanupIntegration:
         on_done = AsyncMock()
         manager = SubagentManager(sessions=sessions, ctx_builder=ctx, on_done=on_done)
 
-        with patch("kiro_crew.subagent.Stats"), patch("kiro_crew.subagent.sel"):
+        with patch("junction.subagent.Stats"), patch("junction.subagent.sel"):
             info = manager.spawn("cleanup fail test", parent_session_key="dashboard:default")
             assert info is not None
             await manager._tasks[info.id]
@@ -573,7 +573,7 @@ class TestTombstonePruningCleansSessionFiles:
         json_file.write_text("{}")
         jsonl_file.write_text("")
 
-        with patch("kiro_crew.subagent_persistence.Path.home", return_value=tmp_path):
+        with patch("junction.subagent_persistence.Path.home", return_value=tmp_path):
             pruned = prune_stale_tombstones(max_age_days=7)
 
         # Subagent folder should be deleted
@@ -638,21 +638,21 @@ class TestStartupSweep:
             create_agent_folder(agent_id, task=f"task-{i}")
             update_state(agent_id, session_id=sid, provider="acp", pid=99999 + i)
 
-        from kiro_crew.subagent import SubagentManager
+        from junction.subagent import SubagentManager
 
         sessions = MagicMock()
         manager = SubagentManager(sessions=sessions, ctx_builder=MagicMock())
 
         with (
             patch.object(manager, "_is_pid_alive", return_value=False),
-            patch("kiro_crew.subagent._cleanup_session_files_sync") as mock_cleanup,
+            patch("junction.subagent._cleanup_session_files_sync") as mock_cleanup,
         ):
             await manager._reconcile_orphans()
 
         # Retain-by-default: session files are NOT deleted at reconcile time.
         mock_cleanup.assert_not_called()
         # Every orphan is still tombstoned (reconcile happened).
-        from kiro_crew.subagent_persistence import _agent_dir as _adir
+        from junction.subagent_persistence import _agent_dir as _adir
 
         for i in range(len(session_ids)):
             assert (_adir(f"orphan-{i}") / "tombstone.json").exists(), (
@@ -667,8 +667,8 @@ class TestStartupSweep:
         no longer deletes session files, so per-entry cleanup failures can't
         occur here — the invariant is that every orphan is still tombstoned).
         """
-        from kiro_crew.subagent import SubagentManager
-        from kiro_crew.subagent_persistence import _agent_dir as _adir
+        from junction.subagent import SubagentManager
+        from junction.subagent_persistence import _agent_dir as _adir
 
         # Create two orphans
         create_agent_folder("fail-orphan", task="t1")
@@ -681,7 +681,7 @@ class TestStartupSweep:
 
         with (
             patch.object(manager, "_is_pid_alive", return_value=False),
-            patch("kiro_crew.subagent._cleanup_session_files_sync") as mock_cleanup,
+            patch("junction.subagent._cleanup_session_files_sync") as mock_cleanup,
         ):
             await manager._reconcile_orphans()
 
@@ -701,7 +701,7 @@ class TestStartingPidGuard:
     """
 
     def _make_manager(self):
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = MagicMock()
         cfg.session.pool_size = 0
@@ -722,7 +722,7 @@ class TestStartingPidGuard:
     def test_starting_pid_not_swept_as_orphan(self):
         """The active set the sweep checks against must include in-flight PIDs,
         even when the PID is absent from self._sessions."""
-        from kiro_crew.session_pid import _collect_active_pids
+        from junction.session_pid import _collect_active_pids
 
         manager = self._make_manager()
         starting_pid = 99991
@@ -753,7 +753,7 @@ class TestCompanionRuntimeGuard:
     them by contributing their live PIDs to the sweep's active set."""
 
     def _make_manager(self):
-        from kiro_crew.session import SessionManager
+        from junction.session import SessionManager
 
         cfg = MagicMock()
         cfg.session.pool_size = 0
@@ -816,7 +816,7 @@ class TestCompanionRuntimeGuard:
     def test_companion_pid_not_swept_as_orphan(self):
         """The active set the sweep checks against must include companion + bg
         runtime PIDs, even though they are absent from self._sessions."""
-        from kiro_crew.session_pid import _collect_active_pids
+        from junction.session_pid import _collect_active_pids
 
         manager = self._make_manager()
         companion_pid = 71017

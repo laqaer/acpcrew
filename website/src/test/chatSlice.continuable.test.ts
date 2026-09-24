@@ -8,7 +8,7 @@ import type { ChatMessage } from '../types'
  *
  * `selectContinuable` decides whether the UI OFFERS Continue on an empty
  * composer — mirroring `_has_conversation` in
- * `src/kiro_crew/dashboard/chat_handlers.py`, which authorizes the press under
+ * `src/junction/dashboard/chat_handlers.py`, which authorizes the press under
  * the slot lock. `selectTurnInterrupted` only decides what the button SAYS,
  * mirroring `_is_interrupted`, which makes the same split to pick the
  * continuation body handed to the model.

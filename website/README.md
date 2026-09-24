@@ -1,8 +1,8 @@
-# KiroCrew Website
+# Junction Website
 
-React + TypeScript + Vite single-page app for the Kiro Crew dashboard. Built assets
+React + TypeScript + Vite single-page app for the Junction dashboard. Built assets
 are emitted to `dist/` and copied into the Python package at
-`../src/kiro_crew/static/dist/` so the gateway can serve them.
+`../src/junction/static/dist/` so the gateway can serve them.
 
 ## Develop
 
@@ -22,7 +22,7 @@ Clear the destination first: Vite emits content-hashed filenames, so copying ove
 existing bundle accumulates stale assets.
 
 ```bash
-rm -rf ../src/kiro_crew/static/dist && cp -r dist ../src/kiro_crew/static/dist
+rm -rf ../src/junction/static/dist && cp -r dist ../src/junction/static/dist
 ```
 
 ## Test and lint

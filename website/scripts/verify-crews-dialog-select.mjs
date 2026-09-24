@@ -21,8 +21,8 @@ import { stubDashboardApi } from './lib/stub-dashboard-api.mjs'
 import { crewsApi } from './lib/crews-fixtures.mjs'
 
 const CREWS = [
-  { name: 'kirocrew', kiro_agent: 'kirocrew', workspace: 'core-ws', memory_store: 'core-mem' },
-  { name: 'oncall', kiro_agent: 'kirocrew', workspace: 'oncall', memory_store: 'oncall-mem' },
+  { name: 'junction', kiro_agent: 'junction', workspace: 'core-ws', memory_store: 'core-mem' },
+  { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall-mem' },
 ]
 
 async function main() {
@@ -37,7 +37,7 @@ async function main() {
   await stubDashboardApi(page, {
     extra: crewsApi({
       crews: CREWS,
-      defaultAgent: 'kirocrew',
+      defaultAgent: 'junction',
       memoryStores: ['core-mem', 'oncall-mem'],
     }),
   })
@@ -60,8 +60,8 @@ async function main() {
   await dialog.getByRole('combobox', { name: 'Memory Store' }).click()
   await page.getByRole('option', { name: 'core-mem' }).click()
 
-  // Picking the store kirocrew already uses must surface the warning, by name.
-  await dialog.getByText(/Also used by kirocrew/).waitFor({ timeout: 10000 })
+  // Picking the store junction already uses must surface the warning, by name.
+  await dialog.getByText(/Also used by junction/).waitFor({ timeout: 10000 })
 
   // The select must have actually committed the new value, not just warned.
   const committed = await dialog.getByRole('combobox', { name: 'Memory Store' }).textContent()

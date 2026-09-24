@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.mcp_gateway.pool import PoolKey
+from junction.mcp_gateway.pool import PoolKey
 
 _VALID = {
     "server_name": "slack-mcp",
@@ -34,7 +34,7 @@ def test_pool_key_field_set_is_exactly_the_twelve_dimensions() -> None:
     """The key's field set is asserted EXPLICITLY so adding or removing a
     pool dimension has to be a deliberate test change, never a silent one.
     ``user_identity`` was deleted (issue #3604): nothing ever populated its
-    ``KIROCREW_PRINCIPAL`` source, so it always collapsed to the OS user and
+    ``JUNCTION_PRINCIPAL`` source, so it always collapsed to the OS user and
     never isolated anything — re-adding it must come with a real
     multi-principal design, not just a field.
     """
@@ -87,7 +87,7 @@ class TestChannelIsNotAPoolDimension:
     It was never a usable trust boundary: on Slack a channel is a room shared
     by several people (so two humans in one channel shared a backend anyway),
     while on Telegram the same field carried a per-user id. The channel is
-    delivered to backends PER CALL via ``_meta.kirocrew.caller`` instead, so a
+    delivered to backends PER CALL via ``_meta.junction.caller`` instead, so a
     channel-aware server does not need a process to itself.
     """
 
@@ -123,7 +123,7 @@ class TestChannelIsNotAPoolDimension:
     def test_legacy_user_identity_is_not_a_pool_dimension(self) -> None:
         """An older stub still sends ``user_identity`` in its register
         payload. The field was deleted from the key (it never isolated
-        anything — nothing populated ``KIROCREW_PRINCIPAL``, so it always
+        anything — nothing populated ``JUNCTION_PRINCIPAL``, so it always
         collapsed to the OS user), so the payload key must be ignored, not
         rejected, and must not partition the pool."""
         base = PoolKey.from_register(dict(_VALID))

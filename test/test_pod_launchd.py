@@ -14,9 +14,9 @@ import subprocess
 
 import pytest
 
-from kiro_crew.pod import launchd
-from kiro_crew.pod import runtime as rt
-from kiro_crew.pod.config import PodConfig
+from junction.pod import launchd
+from junction.pod import runtime as rt
+from junction.pod.config import PodConfig
 
 
 def _cp(stdout: str = "", returncode: int = 0, stderr: str = "") -> subprocess.CompletedProcess:
@@ -30,9 +30,9 @@ def cfg(tmp_path, monkeypatch) -> PodConfig:
     # dir resolved to the runner's REAL profile, and a plist left by one test
     # made another test's teardown sweep think the name had been reclaimed.
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    monkeypatch.setenv("KIROCREW_POD_ROOT", str(tmp_path / "pods"))
-    monkeypatch.setenv("KIROCREW_POD_ENV_DIR", str(tmp_path / "pods-env"))
-    monkeypatch.setenv("KIROCREW_POD_ARTIFACTS_DIR", str(tmp_path / "artifacts"))
+    monkeypatch.setenv("JUNCTION_POD_ROOT", str(tmp_path / "pods"))
+    monkeypatch.setenv("JUNCTION_POD_ENV_DIR", str(tmp_path / "pods-env"))
+    monkeypatch.setenv("JUNCTION_POD_ARTIFACTS_DIR", str(tmp_path / "artifacts"))
     return PodConfig.load()
 
 
@@ -68,7 +68,7 @@ def test_plist_boots_the_named_pod_through_python(cfg):
     body = launchd.render_plist(cfg, "smoke")
     argv = body["ProgramArguments"]
     assert argv[-3:] == ["pod", "_run", "smoke"]
-    assert body["Label"] == "dev.kirocrew.pod.kirocrew-pod.smoke"
+    assert body["Label"] == "dev.junction.pod.kirocrew-pod.smoke"
     assert body["RunAtLoad"] is True
     # Restart on crash, but never fight a deliberate bootout.
     assert body["KeepAlive"] == {"SuccessfulExit": False}
@@ -83,7 +83,7 @@ def test_plist_routes_logs_to_files_since_launchd_has_no_journal(cfg):
 
 def test_plist_is_valid_and_written_per_pod(cfg):
     dst = launchd.write_plist(cfg, "smoke")
-    assert dst.name == "dev.kirocrew.pod.kirocrew-pod.smoke.plist"
+    assert dst.name == "dev.junction.pod.kirocrew-pod.smoke.plist"
     # Deliberately NOT ~/Library/LaunchAgents: launchd loads that directory at
     # login, which would resurrect pods after a reboot — the systemd path is
     # transient (start, never enable) and macOS must match.
@@ -91,25 +91,25 @@ def test_plist_is_valid_and_written_per_pod(cfg):
     assert "LaunchAgents" not in str(dst)
     with dst.open("rb") as fh:
         parsed = plistlib.load(fh)
-    assert parsed["Label"] == "dev.kirocrew.pod.kirocrew-pod.smoke"
+    assert parsed["Label"] == "dev.junction.pod.kirocrew-pod.smoke"
 
 
 def test_label_honours_a_hermetic_unit_prefix(cfg, monkeypatch):
     """A test plane must not be able to collide with a developer's real pods."""
-    monkeypatch.setenv("KIROCREW_POD_UNIT_PREFIX", "kirocrew-pod-test")
+    monkeypatch.setenv("JUNCTION_POD_UNIT_PREFIX", "junction-pod-test")
     hermetic = PodConfig.load()
-    assert launchd.pod_label(hermetic, "smoke") == "dev.kirocrew.pod.kirocrew-pod-test.smoke"
+    assert launchd.pod_label(hermetic, "smoke") == "dev.junction.pod.kirocrew-pod-test.smoke"
     # The default plane carries its prefix segment too: without it, the default
     # prefix was a strict prefix of every custom plane's labels and a hermetic
     # plane's pods surfaced in the default plane's listing (review finding).
-    assert launchd.pod_label(cfg, "smoke") == "dev.kirocrew.pod.kirocrew-pod.smoke"
+    assert launchd.pod_label(cfg, "smoke") == "dev.junction.pod.kirocrew-pod.smoke"
     assert not launchd.pod_label(cfg, "").startswith(launchd.pod_label(hermetic, ""))
     assert not launchd.pod_label(hermetic, "").startswith(launchd.pod_label(cfg, ""))
 
 
 def test_env_selection_is_shared_with_the_systemd_backend(cfg):
     """Both backends must pin the SAME plane, or a pod boots differently per OS."""
-    from kiro_crew.pod.config import environment_vars
+    from junction.pod.config import environment_vars
 
     body = launchd.render_plist(cfg, "smoke")
     assert body.get("EnvironmentVariables") == environment_vars(cfg)
@@ -170,8 +170,8 @@ def test_unit_state_inactive_when_not_loaded(cfg, monkeypatch):
 
 def test_active_names_filters_to_our_prefix_and_liveness(cfg, monkeypatch):
     domain_dump = (
-        "dev.kirocrew.pod.kirocrew-pod.alpha\n"
-        "dev.kirocrew.pod.kirocrew-pod.beta\n"
+        "dev.junction.pod.kirocrew-pod.alpha\n"
+        "dev.junction.pod.kirocrew-pod.beta\n"
         "com.apple.something\n"
         "dev.other.pod.gamma\n"
     )
@@ -389,7 +389,7 @@ def test_down_preserves_the_new_pods_checkout_pin_when_reclaimed(cfg, monkeypatc
     NOT delete the per-pod env file — it pins the NEW pod's checkout."""
     import argparse
 
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     monkeypatch.setattr(rt, "validate_name", lambda n: n)
     monkeypatch.setattr(rt, "is_active", lambda c, n: True)
@@ -477,7 +477,7 @@ def test_down_fails_on_macos_when_stop_cannot_confirm_even_if_not_active(cfg, mo
     checkout pin while leaving service, plist and HOME behind."""
     import argparse
 
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     monkeypatch.setattr(rt, "IS_MACOS", True)
     monkeypatch.setattr(rt, "validate_name", lambda n: n)
@@ -500,7 +500,7 @@ def test_up_pins_the_checkout_inside_the_name_mutex(cfg, monkeypatch, tmp_path):
     import argparse
     import contextlib as _ctx
 
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     events: list[str] = []
 
@@ -548,7 +548,7 @@ def test_up_failure_cleanup_stops_the_pod_inside_the_mutex(cfg, monkeypatch, tmp
     import argparse
     import contextlib as _ctx
 
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     events: list[str] = []
 
@@ -591,7 +591,7 @@ def test_ls_translates_orphan_probe_failures_to_the_documented_error(cfg, monkey
     documented one-line `pod: <msg>` refusal (review finding)."""
     import argparse
 
-    from kiro_crew.pod import cli as pod_cli
+    from junction.pod import cli as pod_cli
 
     monkeypatch.setattr(rt, "IS_MACOS", True)
     monkeypatch.setattr(launchd, "launchctl", lambda *a, **k: _cp(returncode=5, stderr="EIO"))

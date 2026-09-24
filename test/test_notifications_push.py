@@ -9,17 +9,17 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps.manifest import (
+from junction.apps.manifest import (
     MAX_NOTIFICATION_CHANNELS,
     AppManifest,
     CronEntry,
     NotificationChannel,
     NotificationsConfig,
 )
-from kiro_crew.dashboard.handlers.notifications_push import api_push_notification
-from kiro_crew.dashboard.token_auth import app_token_path_allowed
-from kiro_crew.notifications.bus import NotificationBus
-from kiro_crew.notifications.rate_limit import RATE_LIMIT_BURST, AppRateLimiter
+from junction.dashboard.handlers.notifications_push import api_push_notification
+from junction.dashboard.token_auth import app_token_path_allowed
+from junction.notifications.bus import NotificationBus
+from junction.notifications.rate_limit import RATE_LIMIT_BURST, AppRateLimiter
 
 # ── Manifest channel declarations ──
 
@@ -116,7 +116,7 @@ class TestAppRateLimiter:
         limiter = AppRateLimiter()
         now = [1000.0]
         monkeypatch.setattr(
-            "kiro_crew.notifications.rate_limit.time.monotonic", lambda: now[0]
+            "junction.notifications.rate_limit.time.monotonic", lambda: now[0]
         )
         for _ in range(RATE_LIMIT_BURST):
             assert limiter.allow("app-a")
@@ -186,7 +186,7 @@ _CHANNELS = {"ticket-update": "default", "alerts": "critical"}
 
 def _patch_channels(channels="unset"):
     return patch(
-        "kiro_crew.dashboard.handlers.notifications_push._resolve_app_channels",
+        "junction.dashboard.handlers.notifications_push._resolve_app_channels",
         return_value=dict(_CHANNELS) if channels == "unset" else channels,
     )
 
@@ -408,7 +408,7 @@ class TestPushHandler:
         # exactly _MAX_BODY_BYTES must pass the size gate (it then fails
         # payload validation with 400 because the body field exceeds its own
         # cap, which proves the 413 gate was cleared), one byte more -> 413.
-        from kiro_crew.dashboard.handlers._shared import _MAX_BODY_BYTES
+        from junction.dashboard.handlers._shared import _MAX_BODY_BYTES
 
         prefix = b'{"channel": "ticket-update", "title": "t", "body": "'
         suffix = b'"}'
@@ -439,10 +439,10 @@ class TestPushHandler:
         # Regression: _resolve_app_channels runs in a worker thread, so it
         # must never call get_app (its version-sync write to installed.json
         # would race loop-side writers).
-        from kiro_crew.dashboard.handlers.notifications_push import _resolve_app_channels
+        from junction.dashboard.handlers.notifications_push import _resolve_app_channels
 
-        with patch("kiro_crew.apps.manager.get_app") as get_app_mock, patch(
-            "kiro_crew.dashboard.handlers.notifications_push.is_app_enabled",
+        with patch("junction.apps.manager.get_app") as get_app_mock, patch(
+            "junction.dashboard.handlers.notifications_push.is_app_enabled",
             return_value=False,
         ):
             assert _resolve_app_channels("some-app") is None
@@ -454,7 +454,7 @@ class TestPushHandler:
         # no-app-token 403 previously skipped it.
         state = _FakeState()
         with patch(
-            "kiro_crew.dashboard.handlers.notifications_push.sel"
+            "junction.dashboard.handlers.notifications_push.sel"
         ) as sel_mock:
             async with TestClient(TestServer(_make_app(state, {"app": ""}))) as client:
                 resp = await client.post(
@@ -568,7 +568,7 @@ class TestPushHandler:
 
         state.notification_bus = NotificationBus(sink=exploding_sink)
         with _patch_channels(), patch(
-            "kiro_crew.dashboard.handlers.notifications_push.sel"
+            "junction.dashboard.handlers.notifications_push.sel"
         ) as sel_mock:
             async with TestClient(TestServer(_make_app(state, {"app": "oncall-radar"}))) as client:
                 resp = await client.post(
@@ -598,7 +598,7 @@ class TestPushDurability:
 
         state.notification_bus = NotificationBus(sink=failing_sink)
         with _patch_channels(), patch(
-            "kiro_crew.dashboard.handlers.notifications_push.sel"
+            "junction.dashboard.handlers.notifications_push.sel"
         ) as sel_mock:
             async with TestClient(TestServer(_make_app(state, {"app": "oncall-radar"}))) as client:
                 resp = await client.post(
@@ -700,10 +700,10 @@ class TestReservedAppName:
         system.* channel namespace -- 403, not a shadowed system.approval."""
         state = _FakeState()
         with patch(
-            "kiro_crew.dashboard.handlers.notifications_push.is_app_enabled",
+            "junction.dashboard.handlers.notifications_push.is_app_enabled",
             return_value=True,
         ), patch(
-            "kiro_crew.dashboard.handlers.notifications_push.get_app_manifest"
+            "junction.dashboard.handlers.notifications_push.get_app_manifest"
         ) as gm:
             async with TestClient(TestServer(_make_app(state, {"app": "system"}))) as client:
                 resp = await client.post(
@@ -757,7 +757,7 @@ class TestDisablePushRace:
         channel left registered."""
         import asyncio as _asyncio
 
-        from kiro_crew.apps.manager import app_lifecycle_lock
+        from junction.apps.manager import app_lifecycle_lock
 
         state = _FakeState()
         enabled = {"value": True}
@@ -767,7 +767,7 @@ class TestDisablePushRace:
             return dict(_CHANNELS) if enabled["value"] else None
 
         with patch(
-            "kiro_crew.dashboard.handlers.notifications_push._resolve_app_channels",
+            "junction.dashboard.handlers.notifications_push._resolve_app_channels",
             side_effect=resolve,
         ):
             async with TestClient(TestServer(_make_app(state, {"app": "oncall-radar"}))) as client:

@@ -1,11 +1,11 @@
-# KiroCrew gateway image — headless dashboard + channel bots (Slack/Discord/
+# Junction gateway image — headless dashboard + channel bots (Slack/Discord/
 # Telegram/WeCom/Webex) in a container.
 #
 # Build contract: the image consumes the CI-BUILT WHEEL from dist/ (the same
 # artifact pip users install — frontend staged in, version stamped), never a
 # raw source tree. Building from source here would duplicate build-wheel.yml
 # and let the Docker bytes drift from the pip bytes for the same version.
-#   docker build -f docker/Dockerfile .        (requires dist/kirocrew-*.whl
+#   docker build -f docker/Dockerfile .        (requires dist/junction-*.whl
 #                                                and BuildKit — the default
 #                                                builder since Docker 23; on
 #                                                older engines prefix with
@@ -17,10 +17,10 @@
 # py3-none-any — multi-arch needs no compilation.
 #
 # Security posture:
-#   - Non-root user (kirocrew, uid 1000). All state lives under
-#     /home/kirocrew so a single volume mount persists everything: gateway
-#     home (~/.kiro/crew), kiro-cli credentials, agents, skills.
-#   - KIROCREW_BIND=0.0.0.0 binds the container's network namespace only;
+#   - Non-root user (junction, uid 1000). All state lives under
+#     /home/junction so a single volume mount persists everything: gateway
+#     home (~/.junction), kiro-cli credentials, agents, skills.
+#   - JUNCTION_BIND=0.0.0.0 binds the container's network namespace only;
 #     nothing reaches the host unless the operator publishes the port
 #     (-p 5476:5476). Token auth is always mounted server-side (see
 #     dashboard/origin.py bind_address_for), CSRF + Host checks apply to
@@ -31,8 +31,8 @@
 #     user-mounted home can never shadow them with stale or tampered copies.
 #     The download is resolved through the release manifest and
 #     sha256-verified fail-closed; the resolved version is recorded at
-#     /usr/local/share/kirocrew/kiro-cli-version and (when the lane passes
-#     KIRO_CLI_VERSION) in the dev.kirocrew.kiro-cli.version OCI label.
+#     /usr/local/share/junction/kiro-cli-version and (when the lane passes
+#     KIRO_CLI_VERSION) in the dev.junction.kiro-cli.version OCI label.
 
 FROM python:3.12-slim-trixie
 
@@ -41,7 +41,7 @@ FROM python:3.12-slim-trixie
 ARG TARGETARCH
 
 # Version stamped into OCI labels by the publish lane (dev builds: "dev").
-ARG KIROCREW_VERSION=dev
+ARG JUNCTION_VERSION=dev
 ARG VCS_REF=unknown
 
 # kiro-cli version the build MUST resolve to. The lanes resolve this from
@@ -56,11 +56,11 @@ ARG KIRO_CLI_VERSION=latest
 ARG SOURCE_REPO_URL="https://github.com/kirodotdev/KiroCrew"
 
 LABEL org.opencontainers.image.source="${SOURCE_REPO_URL}" \
-      org.opencontainers.image.description="KiroCrew gateway — personal AI agent crew (dashboard + Slack/Discord/Telegram/WeCom/Webex)" \
+      org.opencontainers.image.description="Junction gateway — personal AI agent crew (dashboard + Slack/Discord/Telegram/WeCom/Webex)" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.version="${KIROCREW_VERSION}" \
+      org.opencontainers.image.version="${JUNCTION_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \
-      dev.kirocrew.kiro-cli.version="${KIRO_CLI_VERSION}"
+      dev.junction.kiro-cli.version="${KIRO_CLI_VERSION}"
 
 # Runtime toolset for agent sessions: git (repo work), curl (healthcheck +
 # fetches), ripgrep (agent search), unzip (kiro-cli archive), tini (PID 1:
@@ -77,7 +77,7 @@ RUN apt-get update \
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# kiro-cli — the agent runtime KiroCrew drives over ACP; chat sessions
+# kiro-cli — the agent runtime Junction drives over ACP; chat sessions
 # require it. Global install (Q_INSTALL_GLOBAL) places kiro-cli,
 # kiro-cli-chat, kiro-cli-term into /usr/local/bin; Q_SKIP_SETUP skips
 # dotfile/shell integrations that are meaningless in a container.
@@ -90,7 +90,7 @@ RUN apt-get update \
 #   3. Download the VERSIONED zip and verify its sha256 fail-closed before
 #      executing anything from it.
 #   4. Record the resolved version at a fixed path for runtime audit
-#      (docker run --rm <image> cat /usr/local/share/kirocrew/kiro-cli-version).
+#      (docker run --rm <image> cat /usr/local/share/junction/kiro-cli-version).
 RUN set -eux; \
     case "${TARGETARCH}" in \
         amd64) KIRO_ARCH="x86_64" ;; \
@@ -112,8 +112,8 @@ RUN set -eux; \
     unzip -q /tmp/kirocli.zip -d /tmp; \
     Q_INSTALL_GLOBAL=1 Q_SKIP_SETUP=1 /tmp/kirocli/install.sh; \
     rm -rf /tmp/kirocli /tmp/kirocli.zip /tmp/kirocli-manifest.json; \
-    mkdir -p /usr/local/share/kirocrew; \
-    printf '%s\n' "${RESOLVED}" > /usr/local/share/kirocrew/kiro-cli-version; \
+    mkdir -p /usr/local/share/junction; \
+    printf '%s\n' "${RESOLVED}" > /usr/local/share/junction/kiro-cli-version; \
     kiro-cli --version
 
 # The CI-built wheel (build-wheel.yml artifact). The glob keeps the Dockerfile
@@ -134,16 +134,16 @@ RUN --mount=type=bind,source=dist,target=/tmp/wheels \
     WHEEL_COUNT=$(ls /tmp/wheels/*.whl | wc -l); \
     [ "${WHEEL_COUNT}" -eq 1 ] || { echo "expected exactly one wheel, found ${WHEEL_COUNT}" >&2; exit 1; }; \
     pip install --no-cache-dir /tmp/wheels/*.whl; \
-    kirocrew --version
+    junction --version
 
 # Re-stamp the provenance the wheel already carries: this image installs the
 # wheel artifact, which is stamped "wheel", so without this every container
 # reports the wheel channel and the two are indistinguishable. Overwrite the
 # baked module in the installed package rather than setting
-# KIROCREW_DISTRIBUTION -- the baked value deliberately outranks the env var,
+# JUNCTION_DISTRIBUTION -- the baked value deliberately outranks the env var,
 # so an ENV here would be ignored.
 RUN set -eux; \
-    PKG_DIR="$(python -c 'import kiro_crew, pathlib; print(pathlib.Path(kiro_crew.__file__).parent)')"; \
+    PKG_DIR="$(python -c 'import junction, pathlib; print(pathlib.Path(junction.__file__).parent)')"; \
     printf '%s\n' \
       '"""Build-time provenance. GENERATED -- do not edit."""' \
       '' \
@@ -151,36 +151,36 @@ RUN set -eux; \
       '' \
       'DISTRIBUTION = "docker"' \
       > "${PKG_DIR}/_build_info.py"; \
-    python -c 'from kiro_crew import beacon; assert beacon.distribution() == "docker", beacon.distribution()'
+    python -c 'from junction import beacon; assert beacon.distribution() == "docker", beacon.distribution()'
 
 # Non-root runtime user. HOME holds ALL persistent state; users mount a
-# named volume at /home/kirocrew (recommended over a bind mount: named
+# named volume at /home/junction (recommended over a bind mount: named
 # volumes inherit the image's ownership on first use).
-RUN useradd --create-home --uid 1000 --shell /bin/bash kirocrew
-COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/kirocrew-entrypoint
-USER kirocrew
-WORKDIR /home/kirocrew
+RUN useradd --create-home --uid 1000 --shell /bin/bash junction
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/junction-entrypoint
+USER junction
+WORKDIR /home/junction
 
 # Container networking: published ports map to the bridge interface, so the
 # gateway must bind beyond loopback INSIDE the container namespace. This is
 # an explicit, validated override (see bind_address_for) — operators can set
-# KIROCREW_BIND=127.0.0.1 to force loopback-only (e.g. behind an in-pod
+# JUNCTION_BIND=127.0.0.1 to force loopback-only (e.g. behind an in-pod
 # sidecar proxy).
-ENV KIROCREW_BIND=0.0.0.0
+ENV JUNCTION_BIND=0.0.0.0
 
 EXPOSE 5476
 
 # Probes loopback inside the container namespace: the default 0.0.0.0 bind
-# answers there. Operators who narrow KIROCREW_BIND to a specific interface
+# answers there. Operators who narrow JUNCTION_BIND to a specific interface
 # address own the corresponding healthcheck override.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -fsS "http://127.0.0.1:${KIROCREW_PORT:-5476}/api/health" || exit 1
+    CMD curl -fsS "http://127.0.0.1:${JUNCTION_PORT:-5476}/api/health" || exit 1
 
 # tini as PID 1: reaps agent subprocess zombies and forwards signals.
 # The script (not tini) is the ENTRYPOINT: it must scrub credentials from
 # the environment BEFORE any long-lived process image is created, then it
-# execs `tini -- kirocrew ...` itself. Wrapping the script IN tini would
+# execs `tini -- junction ...` itself. Wrapping the script IN tini would
 # give PID 1 an execve-time environ snapshot containing every credential
 # (verified by the docker-smoke environ scan).
-ENTRYPOINT ["kirocrew-entrypoint"]
+ENTRYPOINT ["junction-entrypoint"]
 CMD ["gateway"]

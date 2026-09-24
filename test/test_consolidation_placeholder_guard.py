@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.history import HistoryConsolidator, _is_plausible_memory_file
+from junction.history import HistoryConsolidator, _is_plausible_memory_file
 
 _PREFS_HEADER = "# User Preferences"
 _PROJECTS_HEADER = "# Active Projects"

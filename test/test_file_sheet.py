@@ -10,8 +10,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.handlers import api_file_sheet
-from kiro_crew.dashboard.handlers.files import (
+from junction.dashboard.handlers import api_file_sheet
+from junction.dashboard.handlers.files import (
     _MAX_UPLOAD_BYTES,
     _SHEET_MAX_COLS,
     _SHEET_MAX_ROWS,
@@ -30,8 +30,8 @@ def _make_app() -> web.Application:
 
 @pytest.fixture
 def mock_sel():
-    with patch("kiro_crew.sel.sel") as m, \
-         patch("kiro_crew.dashboard.handlers.files.is_sensitive_path", return_value=False):
+    with patch("junction.sel.sel") as m, \
+         patch("junction.dashboard.handlers.files.is_sensitive_path", return_value=False):
         instance = MagicMock()
         m.return_value = instance
         yield instance
@@ -65,7 +65,7 @@ async def test_returns_cell_grid_with_sheet_names(tmp_path, mock_sel):
 
     f = tmp_path / "model.xlsx"
     f.write_bytes(_workbook_bytes(populate))
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-sheet?path={f}")
             assert resp.status == 200
@@ -193,7 +193,7 @@ def test_datetime_and_nonfinite_floats_serialize_json_safe():
 def test_cell_text_is_credential_redacted():
     # Workbook text leaves the host through the dashboard -- the same egress
     # class as api_file_read, so the same redaction pass must apply.
-    from kiro_crew.platform import redact_via_context
+    from junction.platform import redact_via_context
 
     sample = "aws key AKIA" + "IOSFODNN7EXAMPLE"
     assert redact_via_context(sample) != sample  # fixture must be redactable
@@ -217,7 +217,7 @@ def test_zip_expansion_cap_refuses_before_parse(tmp_path):
     with zipfile.ZipFile(f, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("big.bin", b"\x00" * (16 * 1024))
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("kiro_crew.dashboard.handlers.files._SHEET_MAX_EXPANDED_BYTES", 1024)
+        mp.setattr("junction.dashboard.handlers.files._SHEET_MAX_EXPANDED_BYTES", 1024)
         with pytest.raises(_SheetRefusal) as exc:
             # The parser receives the checked-open file object (ownership
             # transfers: it closes on every path) and the bounded-read cap as
@@ -235,7 +235,7 @@ def test_zip_member_count_cap_refuses_before_parse(tmp_path):
         for i in range(12):
             z.writestr(f"m{i}", b"x")
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("kiro_crew.dashboard.handlers.files._SHEET_MAX_MEMBERS", 10)
+        mp.setattr("junction.dashboard.handlers.files._SHEET_MAX_MEMBERS", 10)
         with pytest.raises(_SheetRefusal) as exc:
             _load_sheet_payload(open(f, "rb"), max_bytes=_MAX_UPLOAD_BYTES)
     assert exc.value.status == 413
@@ -244,7 +244,7 @@ def test_zip_member_count_cap_refuses_before_parse(tmp_path):
 def test_eocd_declared_entry_count_refuses_before_zipfile_construction(tmp_path):
     import zipfile
 
-    from kiro_crew.dashboard.handlers.files import _vet_zip_eocd
+    from junction.dashboard.handlers.files import _vet_zip_eocd
 
     # A crafted EOCD claiming hundreds of thousands of entries must be
     # refused from the raw bytes -- ZipFile construction itself would
@@ -264,7 +264,7 @@ def test_eocd_declared_entry_count_refuses_before_zipfile_construction(tmp_path)
 def test_eocd_declared_directory_size_refuses_before_zipfile_construction(tmp_path):
     import zipfile
 
-    from kiro_crew.dashboard.handlers.files import _vet_zip_eocd
+    from junction.dashboard.handlers.files import _vet_zip_eocd
 
     # A lying EOCD can under-declare the entry count while inflating the
     # directory byte size zipfile actually iterates by; both fields are capped.
@@ -280,7 +280,7 @@ def test_eocd_declared_directory_size_refuses_before_zipfile_construction(tmp_pa
 
 
 def test_missing_eocd_refuses_as_not_a_spreadsheet():
-    from kiro_crew.dashboard.handlers.files import _vet_zip_eocd
+    from junction.dashboard.handlers.files import _vet_zip_eocd
 
     with pytest.raises(_SheetRefusal) as exc:
         _vet_zip_eocd(b"PK\x03\x04" + b"\x00" * 64)
@@ -290,7 +290,7 @@ def test_missing_eocd_refuses_as_not_a_spreadsheet():
 def test_zip64_saturated_fields_refuse_outright(tmp_path):
     import zipfile
 
-    from kiro_crew.dashboard.handlers.files import _vet_zip_eocd
+    from junction.dashboard.handlers.files import _vet_zip_eocd
 
     # Saturated classic EOCD fields declare an inventory orders of magnitude
     # past this endpoint's caps, so no ZIP64 record parse can change the
@@ -310,7 +310,7 @@ def test_zip64_saturated_fields_refuse_outright(tmp_path):
 
 
 def test_oversized_cell_text_is_truncated():
-    from kiro_crew.dashboard.handlers.files import _SHEET_MAX_CELL_CHARS
+    from junction.dashboard.handlers.files import _SHEET_MAX_CELL_CHARS
 
     def populate(wb):
         wb.active["A1"] = "x" * (_SHEET_MAX_CELL_CHARS + 500)
@@ -331,7 +331,7 @@ def test_workbook_text_budget_refuses_amplified_shared_strings():
                 ws.cell(row=r, column=c, value="shared payload " * 10)
 
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("kiro_crew.dashboard.handlers.files._SHEET_MAX_TEXT_CHARS", 4000)
+        mp.setattr("junction.dashboard.handlers.files._SHEET_MAX_TEXT_CHARS", 4000)
         with pytest.raises(_SheetRefusal) as exc:
             _parse_workbook_grid(_workbook_bytes(populate))
     assert exc.value.status == 413
@@ -342,7 +342,7 @@ def test_workbook_text_budget_refuses_amplified_shared_strings():
 async def test_rejects_non_zip_magic(tmp_path, mock_sel):
     f = tmp_path / "fake.xlsx"
     f.write_bytes(b"not a zip at all")
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-sheet?path={f}")
             assert resp.status == 415
@@ -357,7 +357,7 @@ async def test_zip_that_is_not_a_workbook_answers_422(tmp_path, mock_sel):
     with zipfile.ZipFile(buf, "w") as z:
         z.writestr("hello.txt", "not a workbook")
     f.write_bytes(buf.getvalue())
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-sheet?path={f}")
             assert resp.status == 422
@@ -366,7 +366,7 @@ async def test_zip_that_is_not_a_workbook_answers_422(tmp_path, mock_sel):
 
 @pytest.mark.asyncio
 async def test_rejects_invalid_path(mock_sel):
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=None):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=None):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get("/api/file-sheet?path=/etc/passwd")
             assert resp.status == 400
@@ -376,9 +376,9 @@ async def test_rejects_invalid_path(mock_sel):
 async def test_rejects_sensitive_path(tmp_path):
     f = tmp_path / "creds.xlsx"
     f.write_bytes(b"PK\x03\x04junk")
-    with patch("kiro_crew.sel.sel", return_value=MagicMock()), \
-         patch("kiro_crew.dashboard.handlers.files.is_sensitive_path", return_value=True), \
-         patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
+    with patch("junction.sel.sel", return_value=MagicMock()), \
+         patch("junction.dashboard.handlers.files.is_sensitive_path", return_value=True), \
+         patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-sheet?path={f}")
             assert resp.status == 403
@@ -387,7 +387,7 @@ async def test_rejects_sensitive_path(tmp_path):
 @pytest.mark.asyncio
 async def test_missing_file_answers_404(tmp_path, mock_sel):
     ghost = tmp_path / "ghost.xlsx"
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(ghost)):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(ghost)):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-sheet?path={ghost}")
             assert resp.status == 404
@@ -397,8 +397,8 @@ async def test_missing_file_answers_404(tmp_path, mock_sel):
 async def test_oversized_file_answers_413(tmp_path, mock_sel):
     f = tmp_path / "big.xlsx"
     f.write_bytes(b"PK\x03\x04" + b"\x00" * 16)
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
-         patch("kiro_crew.dashboard.handlers.files._MAX_UPLOAD_BYTES", 8):
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+         patch("junction.dashboard.handlers.files._MAX_UPLOAD_BYTES", 8):
         async with TestClient(TestServer(_make_app())) as client:
             resp = await client.get(f"/api/file-sheet?path={f}")
             assert resp.status == 413
@@ -417,9 +417,9 @@ async def test_cancellation_during_parse_still_audits(tmp_path, mock_sel):
     """
     f = tmp_path / "model.xlsx"
     f.write_bytes(_workbook_bytes(lambda wb: None))
-    with patch("kiro_crew.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
+    with patch("junction.dashboard.handlers._validate_dashboard_path", return_value=str(f)), \
          patch(
-             "kiro_crew.dashboard.handlers.files.asyncio.to_thread",
+             "junction.dashboard.handlers.files.asyncio.to_thread",
              side_effect=asyncio.CancelledError,
          ):
         request = MagicMock()

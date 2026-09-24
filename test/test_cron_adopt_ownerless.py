@@ -1,6 +1,6 @@
 """Recovery path for a cron job with no owning chat session (issue #4660).
 
-A cron created outside a chat -- ``kirocrew cron add``, the dashboard Schedule
+A cron created outside a chat -- ``junction cron add``, the dashboard Schedule
 page, an onboarding import -- has no originating chat session, so its
 ``session_key`` is empty. That is truthful, not a defect: every consumer reads
 that field as the delivery target (``session="origin"`` resolution and
@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from kiro_crew.cli_commands import _cron
+from junction.cli_commands import _cron
 
 
 def _job(job_id="abc12345", *, session_key="", created_by=""):
@@ -52,8 +52,8 @@ class TestCronListOwnership:
 
     def test_list_marks_a_job_with_no_owning_session(self, capsys):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc_cls.return_value.list_jobs.return_value = [_job()]
             _cron(argparse.Namespace(cron_action="list"))
@@ -66,8 +66,8 @@ class TestCronListOwnership:
 
     def test_list_shows_the_owning_session_key(self, capsys):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc_cls.return_value.list_jobs.return_value = [
                 _job(session_key="dashboard:chat-3-1712793600")
@@ -81,8 +81,8 @@ class TestCronListOwnership:
         """``created_by`` is a separate, namespaced provenance tag (``app:*`` /
         ``import:*``) and is NOT the owner -- printing both keeps them distinct."""
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc_cls.return_value.list_jobs.return_value = [
                 _job(created_by="import:slack-reminders")
@@ -96,8 +96,8 @@ class TestCronListOwnership:
 class TestCronAdopt:
     def test_adopt_reports_the_delivery_consequence(self, capsys):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc = mock_svc_cls.return_value
             mock_svc.adopt_job.return_value = True
@@ -110,8 +110,8 @@ class TestCronAdopt:
 
     def test_session_of_adds_the_prefix_the_consumers_strip(self):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc = mock_svc_cls.return_value
             mock_svc.adopt_job.return_value = True
@@ -132,8 +132,8 @@ class TestCronAdopt:
         stored = {}
 
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc = mock_svc_cls.return_value
             mock_svc.adopt_job.side_effect = lambda jid, sk: stored.setdefault(jid, sk) or True
@@ -146,8 +146,8 @@ class TestCronAdopt:
         operator pasting a full key into ``--session-of`` is not double-prefixed
         into an undeliverable ``dashboard:dashboard:...``."""
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc = mock_svc_cls.return_value
             mock_svc.adopt_job.return_value = True
@@ -156,8 +156,8 @@ class TestCronAdopt:
 
     def test_release_clears_the_owner(self, capsys):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc = mock_svc_cls.return_value
             mock_svc.adopt_job.return_value = True
@@ -167,8 +167,8 @@ class TestCronAdopt:
 
     def test_missing_job_exits_nonzero(self):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc_cls.return_value.adopt_job.return_value = False
             with pytest.raises(SystemExit) as exc:
@@ -180,8 +180,8 @@ class TestCronAdopt:
         """A blank target must NOT fall through to the release path: that would
         turn a typo into a silent hand-back to operator-only management."""
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc = mock_svc_cls.return_value
             with pytest.raises(SystemExit) as exc:
@@ -191,8 +191,8 @@ class TestCronAdopt:
 
     def test_adopt_is_audited(self):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel") as mock_sel,
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel") as mock_sel,
         ):
             mock_svc_cls.return_value.adopt_job.return_value = True
             _cron(_adopt_args(session_of="dashboard:chat-3"))
@@ -214,9 +214,9 @@ class TestAdoptTargetVisibility:
 
     def _run_adopt_with_known(self, known):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
-            patch("kiro_crew.cli_commands.ConversationLog") as mock_log_cls,
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
+            patch("junction.cli_commands.ConversationLog") as mock_log_cls,
         ):
             mock_svc_cls.return_value.adopt_job.return_value = True
             mock_log_cls.return_value.has_log.return_value = known
@@ -243,9 +243,9 @@ class TestAdoptTargetVisibility:
     def test_a_failing_lookup_stays_quiet(self, capsys):
         """Cannot-tell is not evidence of a typo -- never cry wolf."""
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
-            patch("kiro_crew.cli_commands.ConversationLog", side_effect=OSError("no dir")),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
+            patch("junction.cli_commands.ConversationLog", side_effect=OSError("no dir")),
         ):
             mock_svc_cls.return_value.adopt_job.return_value = True
             _cron(_adopt_args(session_of="chat-9"))
@@ -253,8 +253,8 @@ class TestAdoptTargetVisibility:
 
     def test_release_does_not_warn(self, capsys):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
         ):
             mock_svc_cls.return_value.adopt_job.return_value = True
             _cron(_adopt_args(release=True))
@@ -273,9 +273,9 @@ class TestAdoptNamespaceHonesty:
 
     def _adopt(self, target):
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
-            patch("kiro_crew.cli_commands.ConversationLog") as mock_log_cls,
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
+            patch("junction.cli_commands.ConversationLog") as mock_log_cls,
         ):
             mock_svc_cls.return_value.adopt_job.return_value = True
             mock_log_cls.return_value.has_log.return_value = True
@@ -299,9 +299,9 @@ class TestAdoptNamespaceHonesty:
         """The history lookup only knows dashboard slots, so a `slack:` key must
         not be run through it and reported as a typo."""
         with (
-            patch("kiro_crew.cli_commands.CronService") as mock_svc_cls,
-            patch("kiro_crew.cli_commands.sel"),
-            patch("kiro_crew.cli_commands.ConversationLog") as mock_log_cls,
+            patch("junction.cli_commands.CronService") as mock_svc_cls,
+            patch("junction.cli_commands.sel"),
+            patch("junction.cli_commands.ConversationLog") as mock_log_cls,
         ):
             mock_svc_cls.return_value.adopt_job.return_value = True
             mock_log_cls.return_value.has_log.return_value = False
@@ -322,7 +322,7 @@ class TestAdoptIsDeniedFromBash:
     """
 
     def _rule(self):
-        from kiro_crew.security import BUILTIN_DENIED_RULES
+        from junction.security import BUILTIN_DENIED_RULES
 
         return next(
             (r for r in BUILTIN_DENIED_RULES if r.id == "self-protection-cron-adopt"),
@@ -337,34 +337,34 @@ class TestAdoptIsDeniedFromBash:
     @pytest.mark.parametrize(
         "command",
         [
-            "kirocrew cron adopt abc123 --session-of chat-3",
-            "kirocrew cron adopt abc123 --release",
+            "junction cron adopt abc123 --session-of chat-3",
+            "junction cron adopt abc123 --release",
             "kiro-crew cron adopt abc123 --session-of dashboard:chat-3",
             "kiro.crew cron adopt abc123 --session-of dashboard:chat-3",
-            "cd /tmp && kirocrew cron  adopt abc123 --session-of chat-3",
-            "KIROCREW_HOME=/tmp kirocrew cron adopt abc123 --session-of chat-3",
+            "cd /tmp && junction cron  adopt abc123 --session-of chat-3",
+            "JUNCTION_HOME=/tmp junction cron adopt abc123 --session-of chat-3",
             # The module spelling, which is how the CLI is invoked from a venv.
             # `kiro.?crew` covers it because `.` matches the underscore.
-            "python3 -m kiro_crew cron adopt abc123 --release",
+            "python3 -m junction cron adopt abc123 --release",
             # Interposed top-level flags. The CLI really accepts these before a
             # subcommand (`--verbose`/`-v` is a repeatable count and `--no-jail`
             # is declared on the top-level parser as well as the jailed
-            # subparsers) -- verified by running `kirocrew -v cron list`, which
+            # subparsers) -- verified by running `junction -v cron list`, which
             # executes normally.
-            "kirocrew -v cron adopt abc123 --session-of chat-3",
-            "kirocrew -vv cron adopt abc123 --session-of chat-3",
-            "kirocrew --verbose cron adopt abc123 --session-of chat-3",
-            "kirocrew --no-jail cron adopt abc123 --session-of chat-3",
-            "kirocrew -v --no-jail cron adopt abc123 --session-of chat-3",
+            "junction -v cron adopt abc123 --session-of chat-3",
+            "junction -vv cron adopt abc123 --session-of chat-3",
+            "junction --verbose cron adopt abc123 --session-of chat-3",
+            "junction --no-jail cron adopt abc123 --session-of chat-3",
+            "junction -v --no-jail cron adopt abc123 --session-of chat-3",
             # Separators that are not whitespace and not flags. A redirection is
             # legal anywhere in a simple command, and $IFS is a word separator,
             # so an allow-list of interlopers would need extending per spelling.
-            "kirocrew >/dev/null cron adopt abc123 --release",
-            "kirocrew 2>/dev/null cron adopt abc123 --release",
-            "kirocrew >/dev/null 2>&1 cron adopt abc123 --release",
-            "kirocrew${IFS}cron${IFS}adopt abc123 --release",
-            "kirocrew\tcron\tadopt abc123 --release",
-            "kirocrew cron >/dev/null adopt abc123 --release",
+            "junction >/dev/null cron adopt abc123 --release",
+            "junction 2>/dev/null cron adopt abc123 --release",
+            "junction >/dev/null 2>&1 cron adopt abc123 --release",
+            "junction${IFS}cron${IFS}adopt abc123 --release",
+            "junction\tcron\tadopt abc123 --release",
+            "junction cron >/dev/null adopt abc123 --release",
         ],
     )
     def test_the_pattern_matches_the_forms_an_agent_would_reach_for(self, command):
@@ -378,10 +378,10 @@ class TestAdoptIsDeniedFromBash:
         [
             # A command separator ends the match: the words must belong to ONE
             # simple command, so an unrelated `adopt` in a LATER command does not
-            # combine with an earlier harmless `kirocrew cron` read.
-            "kirocrew cron list; echo adopt",
-            "kirocrew cron list && git adopt-nothing",
-            "kirocrew cron list | grep adopt",
+            # combine with an earlier harmless `junction cron` read.
+            "junction cron list; echo adopt",
+            "junction cron list && git adopt-nothing",
+            "junction cron list | grep adopt",
         ],
     )
     def test_a_command_separator_ends_the_match(self, command):
@@ -393,9 +393,9 @@ class TestAdoptIsDeniedFromBash:
     @pytest.mark.parametrize(
         "command",
         [
-            "kirocrew cron list",
-            "kirocrew cron add nightly 'sweep' --every 3600",
-            "kirocrew cron remove abc123",
+            "junction cron list",
+            "junction cron add nightly 'sweep' --every 3600",
+            "junction cron remove abc123",
             "git commit -m 'adopt a cron convention'",
         ],
     )
@@ -408,24 +408,24 @@ class TestAdoptIsDeniedFromBash:
     @pytest.mark.parametrize(
         "command",
         [
-            "kirocrew cron adopt abc123 --session-of chat-3",
-            "kirocrew -v cron adopt abc123 --session-of chat-3",
+            "junction cron adopt abc123 --session-of chat-3",
+            "junction -v cron adopt abc123 --session-of chat-3",
         ],
     )
     def test_the_real_gate_denies_it_not_just_the_regex(self, command):
         """Assert through ``is_denied`` -- the function the PreToolUse gate calls --
         so the test proves enforcement rather than only pattern shape."""
-        from kiro_crew import security
+        from junction import security
 
         assert security.is_denied(
             command, denied_regexes=[r.pattern for r in security.BUILTIN_DENIED_RULES]
         ), command
 
     def test_the_real_gate_still_allows_reading_the_list(self):
-        from kiro_crew import security
+        from junction import security
 
         assert not security.is_denied(
-            "kirocrew cron list",
+            "junction cron list",
             denied_regexes=[r.pattern for r in security.BUILTIN_DENIED_RULES],
         )
 
@@ -434,7 +434,7 @@ class TestAdoptJobService:
     """``adopt_job`` is the only writer of ``session_key`` outside creation."""
 
     def test_adopt_and_release_persist(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         job = svc.add_job(name="nightly", message="sweep", every_secs=3600)
@@ -449,7 +449,7 @@ class TestAdoptJobService:
         assert CronService(base_dir=tmp_path).get_job(job.id).session_key == ""
 
     def test_adopt_missing_id_returns_false(self, tmp_path):
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         assert svc.adopt_job("deadbeef", "dashboard:chat-1") is False
@@ -462,7 +462,7 @@ class TestAdoptJobService:
         repoint where any job delivers. The CLI -- the one surface that is not
         itself a session -- is deliberately the only writer.
         """
-        from kiro_crew.cron import CronService
+        from junction.cron import CronService
 
         svc = CronService(base_dir=tmp_path)
         job = svc.add_job(name="nightly", message="sweep", every_secs=3600)

@@ -20,14 +20,14 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.dashboard.state import DashboardState
+from junction.dashboard.state import DashboardState
 
 
 def _load_with(tmp_path: Any, payload: object) -> list[dict]:
     (tmp_path / "folders.json").write_text(json.dumps(payload), encoding="utf-8")
     state = DashboardState.__new__(DashboardState)
     state._folders = []
-    with patch("kiro_crew.dashboard.state.config_dir", return_value=tmp_path):
+    with patch("junction.dashboard.state.config_dir", return_value=tmp_path):
         DashboardState.load_folders(state)
     return state._folders
 
@@ -95,7 +95,7 @@ class TestTheRealSnapshotSurvivesWhatLoadAdmits:
         )
         state = DashboardState.__new__(DashboardState)
         state._folders = []
-        with patch("kiro_crew.dashboard.state.config_dir", return_value=tmp_path):
+        with patch("junction.dashboard.state.config_dir", return_value=tmp_path):
             DashboardState.load_folders(state)
             # dict(row) over the surviving rows must not raise.
             snapshot = [dict(f) for f in state._folders]

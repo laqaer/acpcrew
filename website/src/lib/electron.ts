@@ -15,7 +15,7 @@
  * neither `.mac-electron` nor `.win-electron` applies, which is the correct
  * zero-inset layout, locked in by App.linuxElectron.test.tsx.
  */
-const mc = (window as { kirocrew?: { isElectron?: boolean; platform?: string; linuxFrameless?: boolean } }).kirocrew
+const mc = (window as { junction?: { isElectron?: boolean; platform?: string; linuxFrameless?: boolean } }).junction
 
 export const isElectron = !!mc?.isElectron
 export const isMacElectron = isElectron && mc?.platform === 'darwin'
@@ -44,11 +44,11 @@ export const LINUX_CAPTION_CONTROLS_WIDTH = 108
  * For copy about an action the SHELL performs rather than the gateway — Mochi's
  * reveal is an IPC send its main process handles, so the gateway's platform would
  * be the wrong host to name. Read lazily (not from the module-load `mc` capture
- * above) so a test can stub `window.kirocrew` per-case, exactly as `pathForFile`
+ * above) so a test can stub `window.junction` per-case, exactly as `pathForFile`
  * does.
  */
 export function electronPlatform(): string | undefined {
-  return (window as { kirocrew?: { platform?: string } }).kirocrew?.platform
+  return (window as { junction?: { platform?: string } }).junction?.platform
 }
 
 /**
@@ -58,10 +58,10 @@ export function electronPlatform(): string | undefined {
  * falsy result as "no path available" and keep their browser behaviour.
  *
  * Read lazily (not via the module-load `mc` capture above) so tests can stub
- * `window.kirocrew` per-case without import-order coupling.
+ * `window.junction` per-case without import-order coupling.
  */
 export function pathForFile(file: File): string {
-  const k = (window as { kirocrew?: { getPathForFile?: (f: File) => string } }).kirocrew
+  const k = (window as { junction?: { getPathForFile?: (f: File) => string } }).junction
   try {
     return k?.getPathForFile?.(file) || ''
   } catch {
@@ -113,4 +113,4 @@ export function needsDesktopApp(app: {
  * `components.appstore.*.desktop_app_hint` instead; this remains the
  * machine-readable reason string for logs and non-UI callers.
  */
-export const DESKTOP_APP_REQUIRED_LABEL = 'Requires the KiroCrew desktop app'
+export const DESKTOP_APP_REQUIRED_LABEL = 'Requires the Junction desktop app'

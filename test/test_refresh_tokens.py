@@ -19,7 +19,7 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew.dashboard.refresh_tokens import (
+from junction.dashboard.refresh_tokens import (
     MAX_REFRESH_TTL_SECS,
     REFRESH_GRACE_SECS,
     RefreshStateManager,
@@ -45,7 +45,7 @@ def isolated_state(tmp_path: Path):
 
     # Force the module-level singleton to point at our isolated manager
     with patch(
-        "kiro_crew.dashboard.refresh_tokens._state_singleton",
+        "junction.dashboard.refresh_tokens._state_singleton",
         mgr,
     ):
         yield mgr
@@ -140,7 +140,7 @@ def test_tr_u_07_validate_expired():
 def test_tr_u_08_validate_wrong_kind():
     """Access tokens (kind != 'refresh') are rejected."""
     # generate_token (the access token) doesn't set kind=refresh
-    from kiro_crew.dashboard.token_auth import generate_token
+    from junction.dashboard.token_auth import generate_token
 
     access = generate_token("alice")
     valid, _user, reason, _c, _j, _e = validate_refresh_token(access)
@@ -246,7 +246,7 @@ def test_tr_u_15c_handler_rate_limiter_caps_per_ip():
 
     Defense-in-depth against an attacker pumping rotations.
     """
-    from kiro_crew.dashboard.handlers import auth_refresh
+    from junction.dashboard.handlers import auth_refresh
 
     # Fresh bucket for this IP to avoid cross-test pollution
     auth_refresh._refresh_rate_buckets.pop("198.51.100.7", None)
@@ -264,7 +264,7 @@ def test_tr_u_15c_handler_rate_limiter_caps_per_ip():
 
 def test_tr_u_15d_handler_rate_limiter_per_ip_isolation():
     """Rate-limit buckets must not cross-contaminate between source IPs."""
-    from kiro_crew.dashboard.handlers import auth_refresh
+    from junction.dashboard.handlers import auth_refresh
 
     auth_refresh._refresh_rate_buckets.pop("203.0.113.1", None)
     auth_refresh._refresh_rate_buckets.pop("203.0.113.2", None)
@@ -285,7 +285,7 @@ def test_tr_u_15e_handler_rate_limiter_empty_ip_fails_closed():
     #2 on bucketing under a shared sentinel still allowed
     60/min, which contradicted the docstring claim of fail-closed.
     """
-    from kiro_crew.dashboard.handlers import auth_refresh
+    from junction.dashboard.handlers import auth_refresh
 
     # First empty-IP call denied (no bucket lookup, immediate deny)
     assert auth_refresh._rate_limited("", now=1.0) is True
@@ -303,7 +303,7 @@ def test_tr_u_15f_rate_buckets_evict_stale_ips():
     so a wide spread of one-shot client IPs (or a spoofed-XFF pump) slowly
     leaked memory. The periodic sweep must evict stale/empty buckets.
     """
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     # Isolate: clear the map and force a sweep on the next call.
     with ar._refresh_rate_lock:
@@ -342,7 +342,7 @@ def test_tr_u_15g_rate_buckets_hard_capped():
     previously-unseen source IP is rate-limited (fail-closed) rather than
     admitted by evicting a live bucket. The map never grows past the cap and
     no live bucket is dropped to make room for a newcomer."""
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     with ar._refresh_rate_lock:
         ar._refresh_rate_buckets.clear()
@@ -377,7 +377,7 @@ def test_tr_u_15h_rate_buckets_capped_per_insertion_between_sweeps():
     (so only the per-insert fail-closed cap check can bound it), then feed a
     burst of brand-new source IPs. The map must never exceed
     _REFRESH_RATE_MAX_BUCKETS."""
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     with ar._refresh_rate_lock:
         ar._refresh_rate_buckets.clear()
@@ -415,7 +415,7 @@ def test_tr_u_15i_saturated_client_cannot_reset_bucket_via_cap_flood():
     exhausted bucket survives and they stay limited until it ages out of the
     window on its own.
     """
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     with ar._refresh_rate_lock:
         ar._refresh_rate_buckets.clear()
@@ -464,7 +464,7 @@ def test_tr_u_15j_new_ip_admitted_at_cap_when_stale_buckets_reclaimable():
     """
     import collections as _c
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     with ar._refresh_rate_lock:
         ar._refresh_rate_buckets.clear()
@@ -542,7 +542,7 @@ def test_a_failed_lockdown_still_persists_the_reuse_record(
     def _boom(*a, **kw):
         raise OSError("chmod denied (read-only filesystem)")
 
-    monkeypatch.setattr("kiro_crew.platform_compat.os.chmod", _boom)
+    monkeypatch.setattr("junction.platform_compat.os.chmod", _boom)
     mgr.mark_consumed(
         "jti1", chain_id="c1", exp=time.time() + 86400, ip="1.2.3.4", replacement="{}"
     )
@@ -828,7 +828,7 @@ def test_foreign_port_cookies_ignores_non_port_names():
 def test_cookie_jar_needs_pruning_threshold():
     """The size gate is False for a small jar (live gateways coexist) and True
     once the approximate Cookie header size crosses the threshold."""
-    from kiro_crew.dashboard.refresh_tokens import COOKIE_JAR_PRUNE_THRESHOLD_BYTES
+    from junction.dashboard.refresh_tokens import COOKIE_JAR_PRUNE_THRESHOLD_BYTES
 
     small = {"mc_token_7777": "abc", "mc_refresh_7777": "def"}
     assert cookie_jar_needs_pruning(small) is False
@@ -876,7 +876,7 @@ def test_tr_u_23_logout_revokes_chain_and_clears_cookies(
 
     from aiohttp import web
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     # Mint a real refresh token so validate_refresh_token accepts it
     token, chain_id, _jti, _exp = generate_refresh_token("alice")
@@ -891,7 +891,7 @@ def test_tr_u_23_logout_revokes_chain_and_clears_cookies(
     request.remote = "127.0.0.1"
 
     # check_origin must accept loopback — patch it tight to True
-    with patch("kiro_crew.dashboard.handlers.auth_refresh.check_origin", return_value=True):
+    with patch("junction.dashboard.handlers.auth_refresh.check_origin", return_value=True):
         import asyncio
         resp = asyncio.run(ar.api_auth_logout(request))
 
@@ -916,7 +916,7 @@ def test_tr_u_24_logout_without_cookie_still_clears(
 
     from aiohttp import web
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     request = MagicMock(spec=web.Request)
     request.app = {"port": 7777, "allowed_origins": set()}
@@ -926,7 +926,7 @@ def test_tr_u_24_logout_without_cookie_still_clears(
     request.host = "localhost:7777"
     request.remote = "127.0.0.1"
 
-    with patch("kiro_crew.dashboard.handlers.auth_refresh.check_origin", return_value=True):
+    with patch("junction.dashboard.handlers.auth_refresh.check_origin", return_value=True):
         import asyncio
         resp = asyncio.run(ar.api_auth_logout(request))
 
@@ -944,14 +944,14 @@ def test_tr_u_24_logout_without_cookie_still_clears(
 def test_tr_u_25_secure_flag_only_on_https():
     """Cookies must set Secure=True only when the request is HTTPS. Localhost
     HTTP must not set it (browser would refuse to send it back). Per the security reviewer
-    finding #5 on. Forward-compatible for KiroCrew OSS behind
+    finding #5 on. Forward-compatible for Junction OSS behind
     a real HTTPS reverse proxy.
     """
     from unittest.mock import MagicMock
 
     from aiohttp import web
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     # HTTP request: Secure should NOT be set
     http_resp = web.Response()
@@ -972,7 +972,7 @@ def test_tr_u_25_secure_flag_only_on_https():
     https_req = MagicMock(spec=web.Request)
     https_req.app = {"port": 443}
     https_req.scheme = "https"
-    https_req.host = "kirocrew.example.com"
+    https_req.host = "junction.example.com"
     https_req.headers = {}
     https_req.remote = "127.0.0.1"
     ar._set_access_cookie(https_resp, https_req, "tok", time.time() + 3600)
@@ -992,14 +992,14 @@ def test_tr_u_25b_secure_flag_via_forwarded_proto_over_tunnel():
 
     from aiohttp import web
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     # Tunnel: scheme=http on loopback, XFP=https -> Secure MUST be set
     tun_resp = web.Response()
     tun_req = MagicMock(spec=web.Request)
     tun_req.app = {"port": 7777}
     tun_req.scheme = "http"
-    tun_req.host = "kirocrew.example.com"
+    tun_req.host = "junction.example.com"
     tun_req.headers = {"X-Forwarded-Proto": "https"}
     tun_req.remote = "127.0.0.1"
     ar._set_access_cookie(tun_resp, tun_req, "tok", time.time() + 3600)
@@ -1038,8 +1038,8 @@ def test_tr_u_26_refresh_cookie_path_covers_logout():
 
     from aiohttp import web
 
-    from kiro_crew.dashboard import refresh_tokens
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard import refresh_tokens
+    from junction.dashboard.handlers import auth_refresh as ar
 
     # The constant itself must scope to /api/auth (one segment broader than
     # /api/auth/refresh) so /api/auth/logout is included.
@@ -1101,14 +1101,14 @@ def test_tr_u_27_logout_revokes_access_cookie(tmp_path, monkeypatch):
 
     from aiohttp import web
 
-    import kiro_crew.dashboard.revocation_gen as rg
-    import kiro_crew.dashboard.token_auth as ta
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
-    from kiro_crew.dashboard.token_auth import generate_token, validate_token
+    import junction.dashboard.revocation_gen as rg
+    import junction.dashboard.token_auth as ta
+    from junction.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.token_auth import generate_token, validate_token
 
     # Isolate BOTH the refresh store and the token_auth revoked-nonce store to
     # tmp dirs so nothing touches the real ~/.kirocrew.
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     monkeypatch.setattr(rg, "_gen", 0)
     monkeypatch.setattr(ta, "_revoked_store_singleton", None)
     refresh_state = RefreshStateManager(state_path=tmp_path / "refresh_chains.json")
@@ -1132,9 +1132,9 @@ def test_tr_u_27_logout_revokes_access_cookie(tmp_path, monkeypatch):
     request.remote = "127.0.0.1"
 
     with patch(
-        "kiro_crew.dashboard.refresh_tokens._state_singleton", refresh_state
+        "junction.dashboard.refresh_tokens._state_singleton", refresh_state
     ), patch(
-        "kiro_crew.dashboard.handlers.auth_refresh.check_origin", return_value=True
+        "junction.dashboard.handlers.auth_refresh.check_origin", return_value=True
     ):
         resp = asyncio.run(ar.api_auth_logout(request))
 
@@ -1164,7 +1164,7 @@ def test_refresh_expires_foreign_port_cookies_keeps_current(
 
     from aiohttp import web
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     token, _chain_id, _jti, _exp = generate_refresh_token("alice")
 
@@ -1184,9 +1184,9 @@ def test_refresh_expires_foreign_port_cookies_keeps_current(
     request.remote = "127.0.0.1"
 
     with patch(
-        "kiro_crew.dashboard.handlers.auth_refresh.check_origin", return_value=True
+        "junction.dashboard.handlers.auth_refresh.check_origin", return_value=True
     ), patch(
-        "kiro_crew.dashboard.handlers.auth_refresh._rate_limited", return_value=False
+        "junction.dashboard.handlers.auth_refresh._rate_limited", return_value=False
     ):
         resp = asyncio.run(ar.api_auth_refresh(request))
 
@@ -1214,7 +1214,7 @@ def test_refresh_leaves_small_jar_untouched(
 
     from aiohttp import web
 
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.handlers import auth_refresh as ar
 
     token, _chain_id, _jti, _exp = generate_refresh_token("alice")
 
@@ -1232,9 +1232,9 @@ def test_refresh_leaves_small_jar_untouched(
     request.remote = "127.0.0.1"
 
     with patch(
-        "kiro_crew.dashboard.handlers.auth_refresh.check_origin", return_value=True
+        "junction.dashboard.handlers.auth_refresh.check_origin", return_value=True
     ), patch(
-        "kiro_crew.dashboard.handlers.auth_refresh._rate_limited", return_value=False
+        "junction.dashboard.handlers.auth_refresh._rate_limited", return_value=False
     ):
         resp = asyncio.run(ar.api_auth_refresh(request))
 
@@ -1246,7 +1246,7 @@ def test_refresh_leaves_small_jar_untouched(
 
 # -- Global revocation generation (TR-U-28..31) --------------------------------
 #
-# `kirocrew logout` (revoke_all_sessions) bumps the persisted revocation
+# `junction logout` (revoke_all_sessions) bumps the persisted revocation
 # generation; refresh-token validation rejects any token carrying a lower gen,
 # mirroring the access-cookie semantics — the counter is authoritative over
 # BOTH cookie types.
@@ -1258,9 +1258,9 @@ def isolated_gen(tmp_path: Path, monkeypatch):
 
     Yields the revocation_gen module so tests can bump/inspect the counter.
     """
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     monkeypatch.setattr(rg, "_gen", 0)
     yield rg
 
@@ -1268,14 +1268,14 @@ def isolated_gen(tmp_path: Path, monkeypatch):
 def test_tr_u_28_revoke_all_sessions_kills_refresh_token(
     isolated_gen, isolated_state: RefreshStateManager, monkeypatch
 ):
-    """A refresh token minted before `kirocrew logout` must be rejected.
+    """A refresh token minted before `junction logout` must be rejected.
 
     revoke_all_sessions() bumps the persisted revocation generation; the
     pre-logout refresh token carries the old gen and validation rejects it
     with reason "session revoked" — the same semantics as the access cookie.
     """
-    import kiro_crew.dashboard.token_auth as ta
-    from kiro_crew.dashboard.token_auth import revoke_all_sessions
+    import junction.dashboard.token_auth as ta
+    from junction.dashboard.token_auth import revoke_all_sessions
 
     # Fresh revoked-nonce store bound to this test's tmp config_dir.
     monkeypatch.setattr(ta, "_revoked_store_singleton", None)
@@ -1284,7 +1284,7 @@ def test_tr_u_28_revoke_all_sessions_kills_refresh_token(
     valid_before, _, _, _, _, _ = validate_refresh_token(token)
     assert valid_before is True
 
-    revoke_all_sessions()  # operator `kirocrew logout`
+    revoke_all_sessions()  # operator `junction logout`
 
     valid, user, reason, decoded_chain, _jti2, decoded_exp = validate_refresh_token(token)
     assert valid is False
@@ -1299,8 +1299,8 @@ def test_tr_u_29_refresh_token_minted_after_bump_validates(
     isolated_gen, isolated_state: RefreshStateManager, monkeypatch
 ):
     """A refresh token minted AFTER the bump embeds the new gen and validates."""
-    import kiro_crew.dashboard.token_auth as ta
-    from kiro_crew.dashboard.token_auth import revoke_all_sessions
+    import junction.dashboard.token_auth as ta
+    from junction.dashboard.token_auth import revoke_all_sessions
 
     monkeypatch.setattr(ta, "_revoked_store_singleton", None)
 
@@ -1322,7 +1322,7 @@ def test_tr_u_30_legacy_payload_without_gen_fails_closed(
     fail-closed posture. On installs that never ran a logout (gen still 0),
     legacy tokens keep validating.
     """
-    import kiro_crew.dashboard.refresh_tokens as rt
+    import junction.dashboard.refresh_tokens as rt
 
     now = time.time()
     legacy_payload = {
@@ -1360,9 +1360,9 @@ def test_tr_u_31_refresh_endpoint_rejects_pre_logout_cookie(
 
     from aiohttp import web
 
-    import kiro_crew.dashboard.token_auth as ta
-    from kiro_crew.dashboard.handlers import auth_refresh as ar
-    from kiro_crew.dashboard.token_auth import revoke_all_sessions
+    import junction.dashboard.token_auth as ta
+    from junction.dashboard.handlers import auth_refresh as ar
+    from junction.dashboard.token_auth import revoke_all_sessions
 
     monkeypatch.setattr(ta, "_revoked_store_singleton", None)
 
@@ -1378,9 +1378,9 @@ def test_tr_u_31_refresh_endpoint_rejects_pre_logout_cookie(
     request.remote = "127.0.0.1"
 
     with patch(
-        "kiro_crew.dashboard.handlers.auth_refresh.check_origin", return_value=True
+        "junction.dashboard.handlers.auth_refresh.check_origin", return_value=True
     ), patch(
-        "kiro_crew.dashboard.handlers.auth_refresh._rate_limited", return_value=False
+        "junction.dashboard.handlers.auth_refresh._rate_limited", return_value=False
     ):
         resp = asyncio.run(ar.api_auth_refresh(request))
 
@@ -1395,7 +1395,7 @@ def test_tr_u_32_failed_gen_load_is_not_memoized(monkeypatch):
     real persisted counter — a startup read glitch on a host whose counter is
     above 0 cannot pin the process at gen 0 for its lifetime.
     """
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
     monkeypatch.setattr(rg, "_gen", None)
     loads = iter([None, 7])  # first read fails, retry succeeds
@@ -1416,12 +1416,12 @@ def test_tr_u_33_validator_fails_closed_when_counter_unreadable(
     revoked. Both the refresh and access validators reject with
     "revocation state unavailable"; the next validation retries the read.
     """
-    from kiro_crew.dashboard.token_auth import generate_token, validate_token
+    from junction.dashboard.token_auth import generate_token, validate_token
 
     refresh_token, _cid, _jti, _exp = generate_refresh_token("alice")  # minted at gen 0
     access_token = generate_token("alice", ttl_seconds=3600)
 
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
     monkeypatch.setattr(rg, "_gen", None)
     monkeypatch.setattr(rg, "_load_revocation_gen_or_none", lambda: None)
@@ -1442,7 +1442,7 @@ def test_tr_u_34_bump_refuses_unreadable_base(monkeypatch):
     value than on disk (e.g. 5 -> 1), resurrecting revoked sessions after a
     restart. The bump refuses with OSError instead.
     """
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
     monkeypatch.setattr(rg, "_gen", None)
     monkeypatch.setattr(rg, "_load_revocation_gen_or_none", lambda: None)
@@ -1461,13 +1461,13 @@ def test_tr_u_35_bump_persist_failure_leaves_counter_unchanged(
     after restart and outlive a later successful logout, so a failed persist
     must not advance what mints observe.
     """
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
     # Point config_dir at a FILE so the mkdir(parents=True) in the persist
     # path raises — a deterministic write failure confined to tmp_path.
     blocker = tmp_path / "not-a-dir"
     blocker.write_text("x", encoding="utf-8")
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: blocker)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: blocker)
     monkeypatch.setattr(rg, "_gen", 3)
 
     with pytest.raises(OSError):
@@ -1487,9 +1487,9 @@ def test_tr_u_36_unreadable_counter_file_logs_recovery(
     next boot. The loader reports it unreadable, explains the reset cost, and
     validators reject until the state is repaired.
     """
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     counter = tmp_path / rg._REVOCATION_FILE
     counter.write_text(contents, encoding="utf-8")
     monkeypatch.setattr(rg, "_gen", None)
@@ -1499,7 +1499,7 @@ def test_tr_u_36_unreadable_counter_file_logs_recovery(
 
     assert str(counter) in caplog.text
     assert "delete only" in caplog.text
-    assert "re-enables unexpired sessions revoked by kirocrew logout" in caplog.text
+    assert "re-enables unexpired sessions revoked by junction logout" in caplog.text
 
     token, _cid, _jti, _exp = generate_refresh_token("alice")  # mint degrades to gen 0
     valid, _, reason, _, _, _ = validate_refresh_token(token)
@@ -1510,9 +1510,9 @@ def test_tr_u_36_unreadable_counter_file_logs_recovery(
 def test_tr_u_37_bump_persists_atomically(tmp_path: Path, monkeypatch):
     """The bump lands via same-directory tmp + os.replace: the on-disk file
     always carries a complete value and no tmp residue is left behind."""
-    import kiro_crew.dashboard.revocation_gen as rg
+    import junction.dashboard.revocation_gen as rg
 
-    monkeypatch.setattr("kiro_crew.config.loader.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.config.loader.config_dir", lambda: tmp_path)
     monkeypatch.setattr(rg, "_gen", None)
 
     assert rg.bump_revocation_gen() == 1

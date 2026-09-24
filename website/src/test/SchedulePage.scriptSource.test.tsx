@@ -31,8 +31,8 @@ vi.mock('../api/client', () => ({
     runCron: vi.fn().mockResolvedValue({}),
     cronToChat: vi.fn().mockResolvedValue({}),
     cronHistoryAll: vi.fn().mockResolvedValue({ runs: [] }),
-    kirocrewAgents: vi.fn().mockResolvedValue({ agents: [], default_agent: '' }),
-    syncKirocrewAgents: vi.fn().mockResolvedValue({}),
+    junctionAgents: vi.fn().mockResolvedValue({ agents: [], default_agent: '' }),
+    syncJunctionAgents: vi.fn().mockResolvedValue({}),
   },
 }))
 

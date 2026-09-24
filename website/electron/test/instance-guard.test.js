@@ -1,7 +1,7 @@
 "use strict";
 // Decision table for the cross-app gateway ownership guard. The guard's
 // contract: interpose ONLY when both sides are positively identified as
-// different KiroCrew identity families; every ambiguous case preserves the
+// different Junction identity families; every ambiguous case preserves the
 // historical reuse behavior.
 
 const { test } = require("node:test");
@@ -35,9 +35,9 @@ test("same family reuses: nightly shell, nightly gateway (relaunch)", () => {
   assert.equal(d.action, "reuse");
 });
 
-// A local KiroCrew LISTEN owner is what makes an eviction legitimate. Passing
+// A local Junction LISTEN owner is what makes an eviction legitimate. Passing
 // it explicitly in the cross-family cases keeps those tests about FAMILY logic.
-const LOCAL = { localOwner: "kirocrew" };
+const LOCAL = { localOwner: "junction" };
 
 test("cross family prompts: nightly shell over prod gateway", () => {
   const d = decideGatewayAction("0.2.0-nightly.20260722120000", { ok: true, app: "junction", version: "0.1.0" }, LOCAL);
@@ -65,8 +65,8 @@ test("non-junction responder on the port reuses (never evict a stranger)", () =>
   assert.equal(d.action, "reuse");
 });
 
-test("legacy kirocrew health identity is a stranger (reuse)", () => {
-  const d = decideGatewayAction("0.1.0-nightly.20260722120000", { ok: true, app: "kirocrew", version: "0.1.0" });
+test("legacy junction health identity is a stranger (reuse)", () => {
+  const d = decideGatewayAction("0.1.0-nightly.20260722120000", { ok: true, app: "junction", version: "0.1.0" });
   assert.equal(d.action, "reuse");
 });
 
@@ -78,7 +78,7 @@ test("unclassifiable own version never evicts", () => {
 // An `ssh -L 5476:localhost:5476 host` forward makes a REMOTE gateway answer
 // /api/health on localhost with a payload identical to a local install's. Every
 // case below is cross-family (the family logic says "evict") and must still
-// reuse, because the port is not held by a local KiroCrew process.
+// reuse, because the port is not held by a local Junction process.
 const CROSS_FAMILY_HEALTH = { ok: true, app: "junction", version: "0.1.0" };
 const NIGHTLY_SHELL = "0.2.0-nightly.20260722120000";
 
@@ -110,7 +110,7 @@ test("omitting the locality input defaults to no eviction", () => {
 test("a genuine local rival install still prompts (cross-app mutex preserved)", () => {
   // Regression pin for the case the takeover was built for (#193): two installs
   // on ONE machine sharing ~/.kiro/crew and :5476. The guard must keep working.
-  const d = decideGatewayAction(NIGHTLY_SHELL, CROSS_FAMILY_HEALTH, { localOwner: "kirocrew" });
+  const d = decideGatewayAction(NIGHTLY_SHELL, CROSS_FAMILY_HEALTH, { localOwner: "junction" });
   assert.equal(d.action, "takeover-prompt");
   assert.equal(d.otherFamily, "prod");
 });
@@ -126,8 +126,8 @@ test("locality is checked only after family — same-family still short-circuits
 test("FAMILY_META separates display names from quit-by-name targets", () => {
   // Both installs deliberately share one bundle identifier, so the app NAME
   // is the only valid AppleScript targeting handle.
-  assert.equal(FAMILY_META.prod.appName, "KiroCrew");
-  assert.equal(FAMILY_META.nightly.appName, "KiroCrew Nightly");
+  assert.equal(FAMILY_META.prod.appName, "Junction");
+  assert.equal(FAMILY_META.nightly.appName, "Junction Nightly");
   assert.equal(FAMILY_META.prod.displayName, "Junction");
   assert.equal(FAMILY_META.nightly.displayName, "Junction Nightly");
 });

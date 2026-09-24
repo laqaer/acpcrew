@@ -44,7 +44,7 @@ write_if_absent() {  # $1=path  $2=content
 LOOP_MD=$(cat <<EOF
 # LOOP — $PROJECT continuous session guide
 
-One page. Tells you how to launch an autonomous AutoNudge loop in this KiroCrew session for **$PROJECT**.
+One page. Tells you how to launch an autonomous AutoNudge loop in this Junction session for **$PROJECT**.
 
 Generated: $(date -u +%FT%TZ) by \`self-nudge-loop/scaffold.sh\`.
 
@@ -174,7 +174,7 @@ One cycle = one step.
 
 | Symptom | Check |
 |---|---|
-| UI icon dim | \`echo \$KIROCREW_AUTONUDGE\` should be \`1\`. |
+| UI icon dim | \`echo \$JUNCTION_AUTONUDGE\` should be \`1\`. |
 | Nudge never fires | \`cat ~/.kiro/crew/autonudge.json\` — loop \`active:true\`? Right slot_key? |
 | Loop fires but agent does nothing | STOP sentinel present? \`ls $STOP_PATH\`. |
 | \`code=-15 SIGTERM\` after ~100 cycles | Context-window overflow. Re-arm with \`max_cycles: 30\`. |

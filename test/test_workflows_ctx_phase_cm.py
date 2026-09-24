@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.workflows.runner import WorkflowRunner
-from kiro_crew.workflows.validate import validate
+from junction.workflows.runner import WorkflowRunner
+from junction.workflows.validate import validate
 
 pytestmark = pytest.mark.asyncio
 

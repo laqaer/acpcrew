@@ -12,11 +12,11 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Product | **Junction** |
 | CLI | `junction` |
 | Tagline | Where coding agents meet the models you want. |
-| Promise | Run Cursor, Claude, Codex, Grok from one local dashboard — and route their inference to Kimi, DeepSeek, Copilot, and the rest — with memory and cron. A vendor agent CLI is optional. |
+| Promise | Run Cursor, Claude, Codex, and Grok from one local dashboard, with memory and cron. `junction up` starts a loopback catalog and a role DAG. The docked agent uses models it already serves. Provider translation is not bundled. A vendor agent CLI is optional. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
 | Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. `www.getjunction.dev` redirects there. |
-| GitHub slug | `laqaer/junction` (renamed). Description and homepage still need a token that can PATCH repo metadata. |
-| Package / data home | `kiro_crew`, `KIROCREW_HOME`, Electron `productName` stay as implementation identifiers. |
+| GitHub slug | `laqaer/junction`. |
+| Package / data home | `junction`, `JUNCTION_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
 
 Decision record: [`docs/adr/0001-product-identity.md`](docs/adr/0001-product-identity.md).
@@ -24,27 +24,32 @@ Agent overlay: [`JUNCTION.md`](JUNCTION.md).
 
 ## Two-plane thesis
 
-Junction is a **local control plane** that docks ACP agents and routes their
-models. Combining this tree with Codex Router is two planes in one product,
-not a Node dump into Python.
+Junction is a **local control plane** that docks ACP agents and shows their
+model roles. The catalog snapshot came from Codex Router. Junction is not a
+Node dump of that product, and it does not forward provider traffic.
 
 ```
 Operator
   → junction CLI / dashboard
     → Python gateway
       → Harness plane (ACP runtime registry: Cursor, Claude, Codex, Grok, Pi, …)
-      → Model plane (optional Codex Router sidecar on loopback, typically :4202 + LiteLLM :4200)
+      → Model plane (built-in loopback catalog, typically :4202; /health and /catalog only)
       → Memory, cron, skills
 ```
 
 - **Harness plane** already exists on `main`: `agent.acp_backend` defaults to
-  `auto` via `src/kiro_crew/acp/runtimes.py`. Multi-ACP must not be re-landed.
-- **Model plane** is observed and composed this cut: Python supervisor /
-  health / status in `src/kiro_crew/model_router/`. The sidecar is the
-  published Codex Router (or a later vendored subset). If the sidecar is
-  absent, Junction still works as an ACP gateway (degraded, documented).
-- Agents may optionally point `openai_base_url` at the model plane. Junction
-  never pastes provider keys into chat.
+  `auto` via `src/junction/acp/runtimes.py`. Multi-ACP must not be re-landed.
+- **Model plane** is the listener `junction up` starts in
+  `src/junction/model_router/`. Completions return `501`. A translation
+  gateway on `:4200` is not bundled. If the catalog listener is down,
+  Junction still works as an ACP gateway (degraded, documented).
+- An operator may later point an agent's `openai_base_url` at a translation
+  listener they run themselves. Junction does not mint that URL and never
+  pastes provider keys into chat.
+
+Current contract: [ADR 0007](docs/adr/0007-builtin-model-catalog.md). The
+execution manifest below records the bootstrap cut. It is not the
+model-plane contract.
 
 ## Authority envelope
 
@@ -74,7 +79,7 @@ Safe agent-prompts defaults for this execution:
 Merge; GitHub rename (token-blocked); package / data-home rename; PyPI / Docker / paid
 Vercel; vendoring Codex Router; copying tray / widget / Electron / public
 Cursor HTTPS tunnel / ACP agent bridges; reimplementing LiteLLM; storing
-provider keys in `KIROCREW_HOME` without the router's secret-entry rules;
+provider keys in `JUNCTION_HOME` without the router's secret-entry rules;
 weakening keystone or harness-parity; restoring Channels / Board; whole-tree
 i18n rewrite; Dependabot unless it blocks the branch; `CHANGELOG.md` (written
 only at version bump).

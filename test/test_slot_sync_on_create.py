@@ -28,13 +28,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.config import KiroCrewConfig
-from kiro_crew.session import SessionManager
+from junction.config import JunctionConfig
+from junction.session import SessionManager
 
 
 def _make_state(sessions):
     """A dashboard state real enough to run the REAL get_or_create_slot."""
-    from kiro_crew.dashboard.state import DashboardState
+    from junction.dashboard.state import DashboardState
 
     st = DashboardState.__new__(DashboardState)
     st._slots = {}
@@ -119,7 +119,7 @@ class TestWorkerSessionSurvivesOrphanSweep:
         set does. Before the fix this test fails: the sweep reaps the session
         as "slot gone".
         """
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
         st = _make_state(mgr)
 
@@ -145,7 +145,7 @@ class TestWorkerSessionSurvivesOrphanSweep:
     @pytest.mark.asyncio
     async def test_genuinely_orphaned_session_is_still_reaped(self):
         """The fix must not disable the orphan sweep it corrects."""
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         mgr = SessionManager(cfg, provider_factory=_mock_provider_factory())
 
         await mgr.get_or_create("dashboard:closed-tab")

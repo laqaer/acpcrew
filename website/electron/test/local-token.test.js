@@ -107,6 +107,6 @@ describe("fetchLocalToken", () => {
 describe("literalLoopbackUrl", () => {
   it("preserves the port while replacing hostname aliases", () => {
     assert.equal(literalLoopbackUrl("http://localhost:6777"), "http://127.0.0.1:6777");
-    assert.equal(literalLoopbackUrl("http://kirocrew.localhost:6777"), "http://127.0.0.1:6777");
+    assert.equal(literalLoopbackUrl("http://junction.localhost:6777"), "http://127.0.0.1:6777");
   });
 });

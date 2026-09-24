@@ -1,5 +1,5 @@
 """Tests for the credit-usage helpers in
-kiro_crew.dashboard.handlers.sessions: _parse_usage, _redact_strings, and the
+junction.dashboard.handlers.sessions: _parse_usage, _redact_strings, and the
 _fetch_usage_bg gating/redaction logic.
 """
 from __future__ import annotations
@@ -12,8 +12,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import kiro_crew.dashboard.handlers.sessions as sessions_mod
-from kiro_crew.dashboard.handlers.sessions import (
+import junction.dashboard.handlers.sessions as sessions_mod
+from junction.dashboard.handlers.sessions import (
     _normalize_text_usage,
     _parse_usage,
     _redact_strings,
@@ -187,7 +187,7 @@ class TestFetchUsageBg:
         # raises before the subprocess is spawned, making proc=None and skipping
         # the reap path that several tests assert on.
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.sessions.wrap_argv",
+            "junction.dashboard.handlers.sessions.wrap_argv",
             lambda argv, **k: (list(argv), None),
         )
         # Force the text-scrape fallback path by default (the real API client
@@ -222,7 +222,7 @@ class TestFetchUsageBg:
         monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "FAKE-secret")
         monkeypatch.setenv("PYTHONHOME", "/gateway/pythonhome")
         monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "0000:FAKE")
-        monkeypatch.setenv("KIROCREW_UNRELATED_KEEPME", "keep-this-value")
+        monkeypatch.setenv("JUNCTION_UNRELATED_KEEPME", "keep-this-value")
         with (
             patch.object(sessions_mod, "_resolve_kiro_bin_for_spawn", return_value=resolved),
             patch("asyncio.create_subprocess_exec", spawn),
@@ -241,7 +241,7 @@ class TestFetchUsageBg:
         assert "AWS_SECRET_ACCESS_KEY" not in env
         assert "PYTHONHOME" not in env
         assert "TELEGRAM_BOT_TOKEN" not in env
-        assert env["KIROCREW_UNRELATED_KEEPME"] == "keep-this-value"
+        assert env["JUNCTION_UNRELATED_KEEPME"] == "keep-this-value"
 
     @pytest.mark.asyncio
     async def test_unparseable_usage_caches_unavailable(self):
@@ -407,7 +407,7 @@ class TestFetchUsageDeadline:
     def _reset(self, monkeypatch):
         _reset_usage_globals()
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.sessions.wrap_argv",
+            "junction.dashboard.handlers.sessions.wrap_argv",
             lambda argv, **k: (list(argv), None),
         )
         yield
@@ -595,7 +595,7 @@ class TestFetchUsageBgApi:
         _reset_usage_globals()
         _enable_text_scrape(monkeypatch)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.sessions.wrap_argv",
+            "junction.dashboard.handlers.sessions.wrap_argv",
             lambda argv, **k: (list(argv), None),
         )
         yield
@@ -676,7 +676,7 @@ class TestApiKeyAuthFailFast:
     def _reset(self, monkeypatch):
         _reset_usage_globals()
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.sessions.wrap_argv",
+            "junction.dashboard.handlers.sessions.wrap_argv",
             lambda argv, **k: (list(argv), None),
         )
         yield
@@ -788,7 +788,7 @@ class TestFetchWhoami:
         monkeypatch.setenv("SSH_AUTH_SOCK", "/tmp/fake-agent.sock")
         monkeypatch.setenv("PYTHONPYCACHEPREFIX", "/gateway/pycache")
         monkeypatch.setenv("WECOM_SECRET", "FAKE-wecom-secret")
-        monkeypatch.setenv("KIROCREW_UNRELATED_KEEPME", "keep-this-value")
+        monkeypatch.setenv("JUNCTION_UNRELATED_KEEPME", "keep-this-value")
         proc = MagicMock()
         proc.communicate = AsyncMock(return_value=(b'{"email":"me@corp.com"}', b""))
         proc.returncode = 0
@@ -809,7 +809,7 @@ class TestFetchWhoami:
             "WECOM_SECRET",
         ):
             assert key not in env
-        assert env["KIROCREW_UNRELATED_KEEPME"] == "keep-this-value"
+        assert env["JUNCTION_UNRELATED_KEEPME"] == "keep-this-value"
 
 
 class TestIdentityAccountCoupling:
@@ -1153,7 +1153,7 @@ class TestTextScrapeIsOptIn:
     def _reset(self, monkeypatch):
         _reset_usage_globals()
         monkeypatch.setattr(
-            "kiro_crew.dashboard.handlers.sessions.wrap_argv",
+            "junction.dashboard.handlers.sessions.wrap_argv",
             lambda argv, **k: (list(argv), None),
         )
         # The API path yields no plan, which is exactly what used to fall through
@@ -1347,14 +1347,14 @@ class TestTextScrapeIsOptIn:
 
     def test_the_gate_fails_closed_when_config_is_unreadable(self, monkeypatch):
         # A malformed config must never silently start billing chat turns.
-        import kiro_crew.config.loader as loader_mod
+        import junction.config.loader as loader_mod
 
         monkeypatch.setattr(
-            loader_mod.KiroCrewConfig, "load", staticmethod(lambda *a, **k: 1 / 0)
+            loader_mod.JunctionConfig, "load", staticmethod(lambda *a, **k: 1 / 0)
         )
         assert sessions_mod._text_scrape_enabled() is False
 
     def test_the_knob_defaults_to_off(self):
-        from kiro_crew.config.loader import DashboardConfig
+        from junction.config.loader import DashboardConfig
 
         assert DashboardConfig().usage_text_scrape_enabled is False

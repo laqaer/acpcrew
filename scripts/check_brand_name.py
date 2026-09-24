@@ -210,7 +210,7 @@ SKIP_DIRS = (
     "temp-screenshots/",
     # AGENTS.md excludes _vendor/ from every linter, and it holds native libraries
     # whose suffixes (`.0`, `.dylib`) no extension list will ever fully enumerate.
-    "src/kiro_crew/_vendor/",
+    "src/junction/_vendor/",
 )
 SKIP_SUFFIXES = (
     ".lock",
@@ -248,7 +248,7 @@ SKIP_PATHS = (
 # Generated artifacts. Counted by the whole-tree report, never enforced.
 #
 # The locale catalogs are machine-translated and carry ~85 joined spellings each;
-# `tips_catalog.json` is derived from `src/kiro_crew/docs/*.md`. Both are JSON, so
+# `tips_catalog.json` is derived from `src/junction/docs/*.md`. Both are JSON, so
 # neither offers a line the `brand-ok` comment could sit on, and both re-emit their
 # lines wholesale when regenerated or re-indented — which would fail a PR on text its
 # author neither wrote nor can correct where the error points. Their sources stay
@@ -256,7 +256,7 @@ SKIP_PATHS = (
 # a fix there is what reaches the artifact.
 GENERATED_PATHS = (
     re.compile(r"^website/src/i18n/locales/(?!en\.json$|en\.manual\.json$)[\w-]+\.json$"),
-    re.compile(r"^src/kiro_crew/data/tips_catalog\.json$"),
+    re.compile(r"^src/junction/data/tips_catalog\.json$"),
 )
 
 

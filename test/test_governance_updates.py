@@ -11,15 +11,15 @@ import pathlib
 
 import pytest
 
-from kiro_crew.platform import update_governance
-from kiro_crew.platform.context import PlatformCompositionError
-from kiro_crew.platform.governance import (
+from junction.platform import update_governance
+from junction.platform.context import PlatformCompositionError
+from junction.platform.governance import (
     UpdatePins,
     active_update_pins,
     parse_policy,
     parse_profile,
 )
-from kiro_crew.subprocess_utf8 import UTF8_TEXT
+from junction.subprocess_utf8 import UTF8_TEXT
 
 
 def _policy(**updates: str) -> dict:
@@ -37,8 +37,8 @@ class TestSourcePin:
 
     def test_glob_matches(self):
         pins = UpdatePins(source="https://github.com/acme/*")
-        assert pins.permits_source("https://github.com/acme/kirocrew")
-        assert not pins.permits_source("https://github.com/acme-evil/kirocrew")
+        assert pins.permits_source("https://github.com/acme/junction")
+        assert not pins.permits_source("https://github.com/acme-evil/junction")
 
     def test_unresolvable_source_is_denied_when_pinned(self):
         """An admin's pin must not be satisfied by "we could not tell"."""
@@ -164,16 +164,14 @@ class TestSeam:
     """The shared gate the API, CLI and boot paths call."""
 
     def test_ungoverned_host_is_unpinned(self, monkeypatch):
-        monkeypatch.setattr(
-            "kiro_crew.platform.governance.active_update_pins", lambda: UpdatePins()
-        )
+        monkeypatch.setattr("junction.platform.governance.active_update_pins", lambda: UpdatePins())
         assert update_governance.update_blocked_reason("https://anywhere") == ""
         assert update_governance.update_required("0.0.1") is False
         assert update_governance.min_version() == ""
 
     def test_source_mismatch_is_blocked_with_a_reason(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.platform.governance.active_update_pins",
+            "junction.platform.governance.active_update_pins",
             lambda: UpdatePins(source="https://git.corp/*"),
         )
         reason = update_governance.update_blocked_reason("https://github.com/evil/x")
@@ -183,14 +181,14 @@ class TestSeam:
 
     def test_unresolvable_source_reports_so(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.platform.governance.active_update_pins",
+            "junction.platform.governance.active_update_pins",
             lambda: UpdatePins(source="https://git.corp/*"),
         )
         assert "does not match" in update_governance.update_blocked_reason("")
 
     def test_below_floor_requires_an_update(self, monkeypatch):
         monkeypatch.setattr(
-            "kiro_crew.platform.governance.active_update_pins",
+            "junction.platform.governance.active_update_pins",
             lambda: UpdatePins(min_version="2.0.0"),
         )
         assert update_governance.update_required("1.9.9") is True
@@ -202,7 +200,7 @@ class TestSeam:
         def _boom():
             raise RuntimeError("context unavailable")
 
-        monkeypatch.setattr("kiro_crew.platform.context.current_context", _boom)
+        monkeypatch.setattr("junction.platform.context.current_context", _boom)
         assert active_update_pins() == UpdatePins()
         assert update_governance.update_blocked_reason("https://anywhere") == ""
         assert update_governance.update_required("0.0.1") is False
@@ -378,7 +376,7 @@ class TestPrimaryBranchResolution:
         """The accepted cost, asserted rather than left implicit.
 
         A fork whose primary line is named something else only gets the badge.
-        `kirocrew update` and the dashboard apply path still serve it, and both
+        `junction update` and the dashboard apply path still serve it, and both
         have a human in the loop — the difference that makes wider trust
         acceptable there and not on an unauthenticated boot path.
         """
@@ -708,7 +706,7 @@ class TestWorktreeRedirectRefusal:
     def test_unresolvable_work_tree_is_refused(self, monkeypatch):
         """Cannot prove where a write would land, so do not write."""
         monkeypatch.setattr(
-            "kiro_crew.platform.update_governance._git_probe",
+            "junction.platform.update_governance._git_probe",
             lambda proj, *a: "" if a[:1] == ("config",) else None,
         )
         assert update_governance.repo_exec_config_reason("/proj") != ""
@@ -1471,7 +1469,7 @@ class TestRepoExecConfigRefusal:
 
     def test_unreadable_config_refuses(self, monkeypatch):
         """Cannot prove a repo driver-free, so do not proceed."""
-        monkeypatch.setattr("kiro_crew.platform.update_governance._git_probe", lambda *a, **k: None)
+        monkeypatch.setattr("junction.platform.update_governance._git_probe", lambda *a, **k: None)
         assert update_governance.repo_exec_config_reason("/proj") != ""
 
     def test_driver_regex_agrees_with_the_worktree_gate(self):
@@ -1481,7 +1479,7 @@ class TestRepoExecConfigRefusal:
         module carries its own because `platform/` must not import a dashboard
         handler. Parity is asserted rather than assumed.
         """
-        from kiro_crew.dashboard.handlers.worktree import _FILTER_KEY_RE
+        from junction.dashboard.handlers.worktree import _FILTER_KEY_RE
 
         for key in (
             "filter.evil.process",

@@ -20,8 +20,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.teams.client import TeamsClient, TeamsSendError
-from kiro_crew.teams.transport import TeamsTransport
+from junction.teams.client import TeamsClient, TeamsSendError
+from junction.teams.transport import TeamsTransport
 
 _SVC = "https://smba.trafficmanager.net/"
 _ALICE = "alice@example.com"
@@ -40,7 +40,7 @@ class _Client:
 
 
 def _transport(client: Any, tmp_path: Any, monkeypatch: Any) -> TeamsTransport:
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     return TeamsTransport(client, allowed_emails=[_ALICE], dispatch=None)
 
 
@@ -246,7 +246,7 @@ class TestTheCredentialOnlyGoesToConnectorHosts:
         ],
     )
     def test_the_predicate_is_deny_by_default(self, url: str, allowed: bool) -> None:
-        from kiro_crew.teams.client import connector_host_allowed
+        from junction.teams.client import connector_host_allowed
 
         assert connector_host_allowed(url) is allowed
 
@@ -255,7 +255,7 @@ class TestTheCredentialOnlyGoesToConnectorHosts:
         """The attack the gate exists for: write the file, wait for a restart."""
         import json
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         transport = _transport(_Client(), tmp_path, monkeypatch)
         path = transport._store.path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -282,7 +282,7 @@ class TestTheCredentialOnlyGoesToConnectorHosts:
     @pytest.mark.asyncio
     async def test_the_send_refuses_it_too(self, tmp_path, monkeypatch) -> None:
         """The store is defence in depth; the CHOKEPOINT is where the token is attached."""
-        from kiro_crew.teams.client import TeamsClient
+        from junction.teams.client import TeamsClient
 
         client = TeamsClient(app_id="app", app_password="pw")
         client._token = "app-token"
@@ -313,8 +313,8 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
     def test_the_store_path_is_sensitive_both_ways(self) -> None:
         from pathlib import Path
 
-        from kiro_crew.security import is_sensitive_path
-        from kiro_crew.teams.service_urls import STORE_DIRNAME, STORE_FILENAME
+        from junction.security import is_sensitive_path
+        from junction.teams.service_urls import STORE_DIRNAME, STORE_FILENAME
 
         for prefix in (".kiro/crew", ".kirocrew"):
             path = Path.home() / prefix / STORE_DIRNAME / STORE_FILENAME
@@ -326,10 +326,10 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
         They are stated in two modules, so a move in one without the other silently
         un-fences the file while every other test keeps passing.
         """
-        from kiro_crew.security import is_sensitive_path
-        from kiro_crew.teams.service_urls import ServiceUrlStore
+        from junction.security import is_sensitive_path
+        from junction.teams.service_urls import ServiceUrlStore
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         store = ServiceUrlStore()
 
         assert store.path().parent.name == "routing"
@@ -346,15 +346,15 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
         """
         from pathlib import Path
 
-        from kiro_crew.security import is_sensitive_path
-        from kiro_crew.teams.service_urls import STORE_DIRNAME
+        from junction.security import is_sensitive_path
+        from junction.teams.service_urls import STORE_DIRNAME
 
         temp = Path.home() / ".kiro/crew" / STORE_DIRNAME / "tmpAb3Kd9Zq.tmp"
         assert is_sensitive_path(str(temp))
 
     def test_a_shell_write_to_the_store_is_refused(self) -> None:
-        from kiro_crew.security import is_sensitive_bash_command
-        from kiro_crew.teams.service_urls import STORE_DIRNAME, STORE_FILENAME
+        from junction.security import is_sensitive_bash_command
+        from junction.teams.service_urls import STORE_DIRNAME, STORE_FILENAME
 
         target = f"~/.kiro/crew/{STORE_DIRNAME}/{STORE_FILENAME}"
         for command in (
@@ -369,7 +369,7 @@ class TestTheRoutingStoreIsOnTheKeystoneFloor:
     @pytest.mark.asyncio
     async def test_the_store_itself_still_reads_and_writes(self, tmp_path) -> None:
         """The gate is for AGENT tools. The store opens its own path directly."""
-        from kiro_crew.teams.service_urls import ServiceUrlStore
+        from junction.teams.service_urls import ServiceUrlStore
 
         path = tmp_path / "routing" / "teams_service_urls.json"
         store = ServiceUrlStore(path=path)
@@ -394,7 +394,7 @@ class TestWhichIdentityTheAllowListAuthorizes:
     _OID = "11111111-2222-3333-4444-555555555555"
 
     def _inbound(self, *, email: str = "", object_id: str = "") -> Any:
-        from kiro_crew.teams.client import TeamsInbound
+        from junction.teams.client import TeamsInbound
 
         return TeamsInbound(
             conversation_id="conv-1",
@@ -406,7 +406,7 @@ class TestWhichIdentityTheAllowListAuthorizes:
         )
 
     def _transport_for(self, allowed: list[str], tmp_path, monkeypatch) -> TeamsTransport:
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         return TeamsTransport(_Client(), allowed_emails=allowed, dispatch=None)
 
     def test_an_allow_listed_object_id_wins_over_an_unlisted_email(
@@ -451,14 +451,14 @@ class TestWhichIdentityTheAllowListAuthorizes:
         persist under a session nobody authorized and owner-only `/sessions` would refuse
         the very user just let in.
         """
-        from kiro_crew.teams.transport_dispatch import TeamsDispatcher
+        from junction.teams.transport_dispatch import TeamsDispatcher
 
         seen: list[str] = []
 
         async def _dispatch(inbound: Any) -> None:
             seen.append(TeamsDispatcher._identity(inbound))
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         transport = TeamsTransport(_Client(), allowed_emails=[self._OID], dispatch=_dispatch)
 
         await transport.receive(self._inbound(email="guest#EXT#@x.com", object_id=self._OID))
@@ -475,14 +475,14 @@ class TestWhichIdentityTheAllowListAuthorizes:
         approval card resolved against a session nothing was awaiting and expired, and
         `/new` rotated a generation the turn was not using.
         """
-        from kiro_crew.teams.transport_dispatch import TeamsDispatcher
+        from junction.teams.transport_dispatch import TeamsDispatcher
 
         keys: list[str] = []
 
         async def _dispatch(inbound: Any) -> None:
             keys.append(TeamsDispatcher._identity(inbound))
 
-        monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         transport = TeamsTransport(_Client(), allowed_emails=[self._OID], dispatch=_dispatch)
         inbound = self._inbound(email="guest#EXT#@x.com", object_id=self._OID)
 

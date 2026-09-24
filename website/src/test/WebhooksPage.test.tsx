@@ -42,11 +42,11 @@ import WebhooksPage from '../pages/WebhooksPage'
 const NOW = Math.floor(Date.now() / 1000)
 const AGENTS = [
   {
-    name: 'reviewer', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default',
+    name: 'reviewer', kiro_agent: 'junction', workspace: 'default', memory_store: 'default',
     model: '', description: 'Reviews code changes', source: 'user',
   },
   {
-    name: 'oncall', kiro_agent: 'kirocrew', workspace: 'default', memory_store: 'default',
+    name: 'oncall', kiro_agent: 'junction', workspace: 'default', memory_store: 'default',
     model: '', description: 'Handles incidents', source: 'user',
   },
 ]
@@ -399,13 +399,13 @@ describe('request examples and responsive shell', () => {
     await openSource('wht_review')
     fireEvent.click(screen.getByText('Request example'))
     const signed = screen.getByLabelText('Example signed request for Review Bot').textContent || ''
-    expect(signed).toContain('X-KiroCrew-Signature: sha256=$SIG')
+    expect(signed).toContain('X-Junction-Signature: sha256=$SIG')
 
     fireEvent.click(screen.getByTestId('webhook-row-token-wht_deploy'))
     fireEvent.click(screen.getByText('Request example'))
     const bearer = screen.getByLabelText('Example curl request for Deploy Bot').textContent || ''
     expect(bearer).toContain('Authorization: Bearer <token>')
-    expect(bearer).not.toContain('X-KiroCrew-Signature')
+    expect(bearer).not.toContain('X-Junction-Signature')
   })
 
   it('shell-quotes a hostile Activity context id', async () => {

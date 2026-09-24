@@ -1,13 +1,13 @@
-# Hello World — Minimal KiroCrew App
+# Hello World — Minimal Junction App
 
-The simplest possible KiroCrew app: one agent + one skill, no UI.
+The simplest possible Junction app: one agent + one skill, no UI.
 
 ## Install
 
 ```bash
-kirocrew app install ./minimal-app
+junction app install ./minimal-app
 ```
 
 ## Use
 
-Chat with the `greeter` agent from any KiroCrew slot.
+Chat with the `greeter` agent from any Junction slot.

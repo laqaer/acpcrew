@@ -20,8 +20,8 @@ export function SkillsPanel() {
   const [saveError, setSaveError] = useState('')
 
   const cfgQ = useQuery<{ skills?: SkillsCfg }>({
-    queryKey: ['kirocrewConfig'],
-    queryFn: () => api.kirocrewConfig(),
+    queryKey: ['junctionConfig'],
+    queryFn: () => api.junctionConfig(),
   })
   const skills = cfgQ.data?.skills
   const autoCreate = skills?.auto_create_from_sessions ?? false
@@ -32,20 +32,20 @@ export function SkillsPanel() {
     mutationFn: ({ path, value }: { path: string; value: boolean }) =>
       api.patchConfig(path, value),
     onMutate: async ({ path, value }) => {
-      await qc.cancelQueries({ queryKey: ['kirocrewConfig'] })
-      const prev = qc.getQueryData<{ skills?: SkillsCfg }>(['kirocrewConfig'])
+      await qc.cancelQueries({ queryKey: ['junctionConfig'] })
+      const prev = qc.getQueryData<{ skills?: SkillsCfg }>(['junctionConfig'])
       const key = path.split('.')[1]
-      qc.setQueryData<{ skills?: SkillsCfg }>(['kirocrewConfig'], (old) => ({
+      qc.setQueryData<{ skills?: SkillsCfg }>(['junctionConfig'], (old) => ({
         ...(old ?? {}),
         skills: { ...(old?.skills ?? {}), [key]: value },
       }))
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(['kirocrewConfig'], ctx.prev)
+      if (ctx?.prev) qc.setQueryData(['junctionConfig'], ctx.prev)
       setSaveError(i18nT('pages.settings.skillsPanel.failed_to_save_skills_setting'))
     },
-    onSettled: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
   })
 
   const disabled = cfgQ.isLoading || patchMut.isPending

@@ -1,6 +1,6 @@
 # macOS Troubleshooting
 
-Fixes for problems specific to the macOS desktop app (`KiroCrew.app`). For
+Fixes for problems specific to the macOS desktop app (`Junction.app`). For
 install and build steps see [install.md](install.md); for problems that are not
 macOS-specific, start with `junction doctor`.
 
@@ -68,7 +68,7 @@ command now resolves inside the app (an agent shell tool running
 the domain is empty again and the app is back to the minimal `PATH` until the
 command is re-run. Either re-run it when the symptom reappears, or automate it
 with a LaunchAgent that runs at login. Save the following as
-`~/Library/LaunchAgents/dev.kirocrew.path.plist`:
+`~/Library/LaunchAgents/dev.junction.path.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -76,7 +76,7 @@ with a LaunchAgent that runs at login. Save the following as
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>dev.kirocrew.path</string>
+  <key>Label</key><string>dev.junction.path</string>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/launchctl</string>
@@ -95,7 +95,7 @@ last `<string>`. Keep the system directories first and append your own, as in
 the example. If a directory name contains an XML-reserved character, escape
 it (`&` as `&amp;`, `<` as `&lt;`) — a raw `&` makes the file unparseable and
 the agent silently fails to load. Load it once with
-`launchctl load ~/Library/LaunchAgents/dev.kirocrew.path.plist`; from then on
+`launchctl load ~/Library/LaunchAgents/dev.junction.path.plist`; from then on
 it runs at every login. If the app auto-starts at login, launch order is not
 guaranteed on the first login after adding the agent — quit and relaunch the
 app once if a command is still missing.

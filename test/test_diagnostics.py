@@ -24,9 +24,9 @@ import pytest
 import yaml
 
 from conftest import requires_symlinks
-from kiro_crew import beacon, diagnostics
-from kiro_crew.dashboard.handlers import diagnostics as dh
-from kiro_crew.diagnostics import BundleResult
+from junction import beacon, diagnostics
+from junction.dashboard.handlers import diagnostics as dh
+from junction.diagnostics import BundleResult
 
 _GATEWAY = (
     "09:00 boot ok\n"
@@ -48,7 +48,7 @@ _SECRETS = (
 def _isolate(monkeypatch, home: Path) -> None:
     """Point the collector at a temp home and stub host-specific probes."""
     home.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr("kiro_crew.diagnostics.config_dir", lambda: home)
+    monkeypatch.setattr("junction.diagnostics.config_dir", lambda: home)
     monkeypatch.setattr(diagnostics, "_macos_crash_reports", lambda: [])
     monkeypatch.setattr(diagnostics, "_kiro_cli_chat_log", lambda: None)
     monkeypatch.setattr(diagnostics, "_kiro_cli_extra_logs", lambda: [])
@@ -345,7 +345,7 @@ def test_issue_url_is_well_formed(tmp_path, monkeypatch):
 
 
 class TestTerminalIssueUrlSurvivesRedaction:
-    """The link `kirocrew doctor` PRINTS must reach the user intact.
+    """The link `junction doctor` PRINTS must reach the user intact.
 
     The dashboard renders `github_issue_url` from a JSON response no redactor
     scans, so it keeps the full pre-filled body. A link printed to stdout has no
@@ -356,9 +356,9 @@ class TestTerminalIssueUrlSurvivesRedaction:
     """
 
     def _result(self, tmp_path):  # type: ignore[no-untyped-def]
-        from kiro_crew import diagnostics
+        from junction import diagnostics
 
-        name = "kirocrew-diagnostics-20260811.zip"
+        name = "junction-diagnostics-20260811.zip"
         return diagnostics.BundleResult(
             zip_path=tmp_path / name,
             filename=name,
@@ -367,16 +367,16 @@ class TestTerminalIssueUrlSurvivesRedaction:
 
     def test_prefilled_variant_is_the_one_that_gets_eaten(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """Guard the premise — if this stops being redacted the fix is moot."""
-        from kiro_crew import diagnostics
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction import diagnostics
+        from junction.security import scan_exfiltration_urls
 
         rich = diagnostics._issue_url(self._result(tmp_path), "something broke")
         assert len(rich.split("?", 1)[1]) >= 200
         assert scan_exfiltration_urls(rich) != []
 
     def test_terminal_variant_is_not_redacted(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        from kiro_crew import diagnostics
-        from kiro_crew.security import redact_exfiltration_urls, scan_exfiltration_urls
+        from junction import diagnostics
+        from junction.security import redact_exfiltration_urls, scan_exfiltration_urls
 
         url = diagnostics.terminal_issue_url(self._result(tmp_path), "something broke")
         assert scan_exfiltration_urls(url) == []
@@ -389,8 +389,8 @@ class TestTerminalIssueUrlSurvivesRedaction:
         note, so a budget that merely fits today's fields is not enough — the
         free-form fields are dropped so the query is bounded by construction.
         """
-        from kiro_crew import diagnostics
-        from kiro_crew.security import scan_exfiltration_urls
+        from junction import diagnostics
+        from junction.security import scan_exfiltration_urls
 
         result = self._result(tmp_path)
         for note in ("", "short note", "x" * 5000, "multi\nline\nnote " * 200):
@@ -402,7 +402,7 @@ class TestTerminalIssueUrlSurvivesRedaction:
         """Shortening must not cost the answers automatic triage reads."""
         from urllib.parse import parse_qs, urlsplit
 
-        from kiro_crew import diagnostics
+        from junction import diagnostics
 
         params = parse_qs(urlsplit(diagnostics.terminal_issue_url(self._result(tmp_path))).query)
         assert params["template"] == ["bug_report.yml"]
@@ -612,12 +612,12 @@ class _CollectReq:
 def _stub_sel(monkeypatch) -> MagicMock:
     """Install a mock SEL logger and return it (download handler audits via it)."""
     sel = MagicMock()
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.sel", lambda: sel)
+    monkeypatch.setattr("junction.dashboard.handlers.sel", lambda: sel)
     return sel
 
 
 def test_download_rejects_path_traversal(tmp_path, monkeypatch):
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     sel = _stub_sel(monkeypatch)
     resp = asyncio.run(dh.api_diagnostics_download(_DownloadReq("../../etc/passwd")))
     assert resp.status == 403
@@ -628,7 +628,7 @@ def test_download_rejects_non_zip(tmp_path, monkeypatch):
     diag = tmp_path / "diagnostics"
     diag.mkdir()
     (diag / "foo.txt").write_text("not a zip")
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     sel = _stub_sel(monkeypatch)
     resp = asyncio.run(dh.api_diagnostics_download(_DownloadReq("foo.txt")))
     assert resp.status == 403
@@ -639,7 +639,7 @@ def test_download_allows_and_audits_valid_zip(tmp_path, monkeypatch):
     diag = tmp_path / "diagnostics"
     diag.mkdir()
     (diag / "b.zip").write_bytes(b"PK\x03\x04zip")
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     sel = _stub_sel(monkeypatch)
     resp = asyncio.run(dh.api_diagnostics_download(_DownloadReq("b.zip")))
     assert resp.status == 200
@@ -647,7 +647,7 @@ def test_download_allows_and_audits_valid_zip(tmp_path, monkeypatch):
 
 
 def test_collect_handler_returns_download_url(tmp_path, monkeypatch):
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     fake = BundleResult(
         zip_path=tmp_path / "b.zip",
         filename="b.zip",
@@ -690,17 +690,17 @@ def test_old_bundles_are_pruned(tmp_path):
     out.mkdir()
     base = time.time()
     for i in range(6):
-        p = out / f"kirocrew-diagnostics-2026010{i}-000000.zip"
+        p = out / f"junction-diagnostics-2026010{i}-000000.zip"
         p.write_bytes(b"x")
         os.utime(p, (base + i, base + i))  # distinct mtimes; newest = i==5
     diagnostics._prune_old_bundles(out, keep=3)
-    kept = {p.name for p in out.glob("kirocrew-diagnostics-*.zip")}
+    kept = {p.name for p in out.glob("junction-diagnostics-*.zip")}
     assert len(kept) == 3
-    assert "kirocrew-diagnostics-20260105-000000.zip" in kept  # newest kept
-    assert "kirocrew-diagnostics-20260100-000000.zip" not in kept  # oldest pruned
+    assert "junction-diagnostics-20260105-000000.zip" in kept  # newest kept
+    assert "junction-diagnostics-20260100-000000.zip" not in kept  # oldest pruned
 
 
 def test_collect_handler_rejects_non_object_body(tmp_path, monkeypatch):
-    monkeypatch.setattr("kiro_crew.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.dashboard.handlers.diagnostics.config_dir", lambda: tmp_path)
     resp = asyncio.run(dh.api_diagnostics_collect(_CollectReq(["not", "a", "dict"])))
     assert resp.status == 400

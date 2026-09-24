@@ -81,10 +81,10 @@ describe('Junction naming', () => {
     const { container } = render(<App />);
     const text = pageText(container);
     expect(text).not.toMatch(/Kiro Crew/);
-    expect(text).not.toMatch(/kirocrew/i);
+    expect(text).not.toMatch(/kirocrew/i); // brand-ok: assert the old token is absent
     // Clone URLs use the GitHub slug. They are not a second product name.
     const leftover = text
-      .replace(/laqaer\/junction(?:\.git)?/gi, '')
+      .replace(/(?:myrmitis|laqaer)\/junction(?:\.git)?/gi, '')
       .replace(/\bcd junction\b/gi, '');
     expect(leftover).not.toMatch(/acpcrew/i);
     expect(text).toMatch(/vendor agent CLI is optional/i);
@@ -117,7 +117,7 @@ describe('Junction naming', () => {
     expect(heartbeat).toBeTruthy();
     fireEvent.click(heartbeat!);
     expect(pageText(container)).toContain('junction telemetry disable');
-    expect(text).toContain('What if I skip the model sidecar?');
+    expect(text).toContain('Does Junction forward provider traffic?');
     expect(text).not.toContain('Where is the website hosted?');
     expect(text).not.toContain('Three commands');
     expect(text).toContain('get-junction.sh');

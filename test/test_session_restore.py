@@ -13,9 +13,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.chat import restore_recent_sessions
-from kiro_crew.dashboard.state import DashboardState
-from kiro_crew.history import ConversationLog
+from junction.dashboard.chat import restore_recent_sessions
+from junction.dashboard.state import DashboardState
+from junction.history import ConversationLog
 
 # ── Helpers ──
 
@@ -52,7 +52,7 @@ def _write_session(
 
 def _make_config_app(tmp_path):
     """Minimal aiohttp app with dashboard config endpoint."""
-    from kiro_crew.dashboard.handlers import api_dashboard_config
+    from junction.dashboard.handlers import api_dashboard_config
 
     state = _make_state(tmp_path)
     app = web.Application()
@@ -74,7 +74,7 @@ class TestRestoreRecentSessions:
 
     def test_restores_recent_dashboard_session(self, tmp_path, monkeypatch):
         """Restores a dashboard session modified within the time window."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_chat1",
@@ -82,7 +82,7 @@ class TestRestoreRecentSessions:
                 {"role": "user", "content": "hello", "ts": "2026-03-23T10:00:00"},
                 {"role": "assistant", "content": "hi there", "ts": "2026-03-23T10:00:01"},
             ],
-            meta={"title": "Test Chat", "agent": "kirocrew", "workspace": "myws", "mode": "orchestrator"},
+            meta={"title": "Test Chat", "agent": "junction", "workspace": "myws", "mode": "orchestrator"},
         )
         # Touch the file to make it recent
         path = tmp_path / "dashboard_chat1.jsonl"
@@ -94,7 +94,7 @@ class TestRestoreRecentSessions:
         assert "chat1" in state._slots
         slot = state._slots["chat1"]
         assert slot.title == "Test Chat"
-        assert slot.agent == "kirocrew"
+        assert slot.agent == "junction"
         assert slot.workspace == "myws"
         assert slot.mode == "orchestrator"
         assert len(slot.messages) == 2
@@ -105,7 +105,7 @@ class TestRestoreRecentSessions:
 
     def test_restores_mode_empty_by_default(self, tmp_path, monkeypatch):
         """Sessions without mode in metadata default to empty string."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_nomode",
@@ -119,7 +119,7 @@ class TestRestoreRecentSessions:
 
     def test_trust_flags_not_restored(self, tmp_path, monkeypatch):
         """Trust flags in metadata are NOT restored — security boundary."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_trusted",
@@ -134,7 +134,7 @@ class TestRestoreRecentSessions:
 
     def test_skips_old_sessions(self, tmp_path, monkeypatch):
         """Sessions older than the window are not restored."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_old",
@@ -157,7 +157,7 @@ class TestRestoreRecentSessions:
         reads in an executor. Pulling them in here would put a large
         transcript's read in front of the whole gateway at startup.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "slack_thread123",
@@ -170,7 +170,7 @@ class TestRestoreRecentSessions:
 
     def test_skips_sessions_with_no_dashboard_surface(self, tmp_path, monkeypatch):
         """Keys owned by another surface (cron, sub-agent) never become tabs."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         for stem in ("cron_nightly", "subagent_abc123"):
             _write_session(
                 tmp_path,
@@ -184,7 +184,7 @@ class TestRestoreRecentSessions:
 
     def test_skips_already_existing_slots(self, tmp_path, monkeypatch):
         """Does not overwrite slots that already exist in state."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_existing",
@@ -206,7 +206,7 @@ class TestRestoreRecentSessions:
 
     def test_limits_to_500_messages(self, tmp_path, monkeypatch):
         """Only the last 500 messages are loaded from a session."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         messages = [
             {"role": "user", "content": f"msg {i}", "ts": f"2026-03-23T10:{i:04d}"}
             for i in range(600)
@@ -225,7 +225,7 @@ class TestRestoreRecentSessions:
 
     def test_restores_multiple_sessions(self, tmp_path, monkeypatch):
         """Multiple recent dashboard sessions are all restored."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         for name in ["dashboard_a", "dashboard_b", "dashboard_c"]:
             _write_session(
                 tmp_path,
@@ -243,7 +243,7 @@ class TestRestoreRecentSessions:
 
     def test_dashboard_underscore_key_derives_correct_slot_name(self, tmp_path, monkeypatch):
         """Underscore-format key (dashboard_mychat) derives slot name 'mychat'."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_mychat",
@@ -264,7 +264,7 @@ class TestRestoreRecentSessions:
         branch in restore_recent_sessions handles keys like 'dashboard:xyz'.
         We mock list_sessions() to return a colon-format key to exercise that path.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_mychat",
@@ -299,7 +299,7 @@ class TestRestoreRecentSessions:
         point moved, so this asserts the emit path rather than the slot contents.
         See test_display_time_redaction.py for the per-site coverage.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_redact",
@@ -322,22 +322,22 @@ class TestRestoreRecentSessions:
         assert slot.messages[0]["content"] == "show me the key"
 
         # The credential is gone from what the slot-detail endpoint returns...
-        from kiro_crew.dashboard.chat_utils import _prepare_messages
+        from junction.dashboard.chat_utils import _prepare_messages
 
         emitted = _prepare_messages(slot.messages, False)
         rendered = " ".join(m.get("content", "") for m in emitted)
         assert "AKIAIOSFODNN7EXAMPLE" not in rendered
         assert "[REDACTED" in rendered
         # ...and from the prompt-building paths that leave the process.
-        from kiro_crew.dashboard.chat_persistence import _build_history_prefix
-        from kiro_crew.dashboard.side_context import _format_parent_snapshot
+        from junction.dashboard.chat_persistence import _build_history_prefix
+        from junction.dashboard.side_context import _format_parent_snapshot
 
         assert "AKIAIOSFODNN7EXAMPLE" not in _build_history_prefix(slot)
         assert "AKIAIOSFODNN7EXAMPLE" not in _format_parent_snapshot(slot)
 
     def test_zero_window_restores_all_sessions(self, tmp_path, monkeypatch):
         """window_minutes=0 means infinite — restores sessions regardless of age."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_ancient",
@@ -355,7 +355,7 @@ class TestRestoreRecentSessions:
 
     def test_negative_window_restores_all_sessions(self, tmp_path, monkeypatch):
         """Negative window_minutes is treated the same as 0 (restore all)."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_neg",
@@ -372,7 +372,7 @@ class TestRestoreRecentSessions:
 
     def test_removeprefix_preserves_interior_dashboard(self, tmp_path, monkeypatch):
         """Slot name 'my_dashboard_session' is not mangled by prefix stripping."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_my_dashboard_session",
@@ -395,10 +395,10 @@ class TestDashboardConfigAPI:
     async def test_get_defaults(self, tmp_path, monkeypatch):
         """GET returns default config values."""
         monkeypatch.setattr(
-            "kiro_crew.config.loader.config_path", lambda: tmp_path / "nonexistent.json"
+            "junction.config.loader.config_path", lambda: tmp_path / "nonexistent.json"
         )
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -412,9 +412,9 @@ class TestDashboardConfigAPI:
     async def test_put_updates_config(self, tmp_path, monkeypatch):
         """PUT updates restore settings and persists to disk."""
         cfg_file = tmp_path / "config.json"
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -436,9 +436,9 @@ class TestDashboardConfigAPI:
     async def test_put_clamps_window_minutes(self, tmp_path, monkeypatch):
         """PUT clamps restore_window_minutes to [0, 1440] range."""
         cfg_file = tmp_path / "config.json"
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -464,9 +464,9 @@ class TestDashboardConfigAPI:
     async def test_put_accepts_zero_window(self, tmp_path, monkeypatch):
         """PUT accepts restore_window_minutes=0 (infinite restore)."""
         cfg_file = tmp_path / "config.json"
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -481,9 +481,9 @@ class TestDashboardConfigAPI:
     @pytest.mark.asyncio
     async def test_put_invalid_json(self, tmp_path, monkeypatch):
         """PUT with invalid JSON returns 400."""
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: tmp_path / "config.json")
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: tmp_path / "config.json")
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -497,9 +497,9 @@ class TestDashboardConfigAPI:
     @pytest.mark.asyncio
     async def test_put_invalid_window_type(self, tmp_path, monkeypatch):
         """PUT with non-integer restore_window_minutes returns 400."""
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: tmp_path / "config.json")
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: tmp_path / "config.json")
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -514,9 +514,9 @@ class TestDashboardConfigAPI:
     @pytest.mark.asyncio
     async def test_put_invalid_restore_sessions_type(self, tmp_path, monkeypatch):
         """PUT with non-boolean restore_sessions returns 400."""
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: tmp_path / "config.json")
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: tmp_path / "config.json")
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -532,9 +532,9 @@ class TestDashboardConfigAPI:
     async def test_get_after_put_reflects_changes(self, tmp_path, monkeypatch):
         """GET after PUT returns the updated values."""
         cfg_file = tmp_path / "config.json"
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        with patch("kiro_crew.sel.sel") as mock_sel:
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        with patch("junction.sel.sel") as mock_sel:
             mock_sel.return_value = MagicMock()
             app = _make_config_app(tmp_path)
             async with TestClient(TestServer(app)) as client:
@@ -554,15 +554,15 @@ class TestDashboardConfigAPI:
 class TestConfigRestoreFields:
     def test_defaults_have_restore_fields(self):
         """Default config has restore_sessions=False and restore_window_minutes=30."""
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         assert cfg.dashboard.restore_sessions is False
         assert cfg.dashboard.restore_window_minutes == 30
 
     def test_load_restore_fields_from_file(self, tmp_path, monkeypatch):
         """Config loader reads dashboard restore fields from JSON."""
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(
@@ -576,18 +576,18 @@ class TestConfigRestoreFields:
                 }
             )
         )
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
 
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.restore_sessions is True
         assert cfg.dashboard.restore_window_minutes == 120
         assert cfg.dashboard.url == "http://localhost:9120"
 
     def test_to_dict_includes_restore_fields(self):
         """to_dict() serializes restore fields under dashboard key."""
-        from kiro_crew.config.loader import DashboardConfig, KiroCrewConfig
+        from junction.config.loader import DashboardConfig, JunctionConfig
 
-        cfg = KiroCrewConfig(
+        cfg = JunctionConfig(
             dashboard=DashboardConfig(restore_sessions=True, restore_window_minutes=60)
         )
         d = cfg.to_dict()
@@ -596,35 +596,35 @@ class TestConfigRestoreFields:
 
     def test_save_and_reload_roundtrip(self, tmp_path, monkeypatch):
         """save() then load() preserves restore fields."""
-        from kiro_crew.config.loader import DashboardConfig, KiroCrewConfig
+        from junction.config.loader import DashboardConfig, JunctionConfig
 
         cfg_file = tmp_path / ".kirocrew" / "config.json"
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
 
-        cfg = KiroCrewConfig(
+        cfg = JunctionConfig(
             dashboard=DashboardConfig(restore_sessions=True, restore_window_minutes=720)
         )
         cfg.save()
 
-        loaded = KiroCrewConfig.load()
+        loaded = JunctionConfig.load()
         assert loaded.dashboard.restore_sessions is True
         assert loaded.dashboard.restore_window_minutes == 720
 
     def test_missing_restore_fields_use_defaults(self, tmp_path, monkeypatch):
         """Config without dashboard restore fields falls back to defaults."""
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({"dashboard": {"url": "http://localhost:9120"}}))
-        monkeypatch.setattr("kiro_crew.config.loader.config_path", lambda: cfg_file)
+        monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
 
-        cfg = KiroCrewConfig.load()
+        cfg = JunctionConfig.load()
         assert cfg.dashboard.restore_sessions is False
         assert cfg.dashboard.restore_window_minutes == 30
 
     def test_restores_foldered_session_regardless_of_age(self, tmp_path, monkeypatch):
         """Sessions with folder_id are restored even when older than the window."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_foldered",
@@ -643,7 +643,7 @@ class TestConfigRestoreFields:
 
     def test_closed_foldered_session_not_restored(self, tmp_path, monkeypatch):
         """Closed sessions are NOT restored even with folder_id — explicit close always wins."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_closedfolder",
@@ -661,7 +661,7 @@ class TestConfigRestoreFields:
 
     def test_skips_closed_session_without_folder(self, tmp_path, monkeypatch):
         """Closed sessions without folder_id are not restored."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_closednofolder",
@@ -676,7 +676,7 @@ class TestConfigRestoreFields:
 
     def test_folders_only_skips_non_foldered(self, tmp_path, monkeypatch):
         """folders_only=True skips sessions without folder_id."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_nofolder",
@@ -690,7 +690,7 @@ class TestConfigRestoreFields:
 
     def test_folders_only_restores_foldered(self, tmp_path, monkeypatch):
         """folders_only=True restores sessions with folder_id."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_withfolder",
@@ -706,14 +706,14 @@ class TestConfigRestoreFields:
 
     def test_folder_id_persisted_in_flush(self, tmp_path, monkeypatch):
         """folder_id is written to JSONL metadata when slot is saved."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("testslot")
         slot.folder_id = "f-abc"
         slot.append("user", "hello")
         slot.drain()
 
-        from kiro_crew.dashboard.chat import _save_slot_to_history
+        from junction.dashboard.chat import _save_slot_to_history
 
         _save_slot_to_history(state, slot)
 
@@ -724,7 +724,7 @@ class TestConfigRestoreFields:
 
     def test_restores_pinned_session_regardless_of_age(self, tmp_path, monkeypatch):
         """Pinned sessions are restored even when older than the window."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_pinnedold",
@@ -742,7 +742,7 @@ class TestConfigRestoreFields:
 
     def test_folders_only_restores_pinned(self, tmp_path, monkeypatch):
         """folders_only=True also restores pinned sessions."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_pinnedonly",
@@ -758,14 +758,14 @@ class TestConfigRestoreFields:
 
     def test_pinned_persisted_in_save(self, tmp_path, monkeypatch):
         """pinned is written to JSONL metadata when slot is saved."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("pinslot")
         slot.pinned = True
         slot.append("user", "hello")
         slot.drain()
 
-        from kiro_crew.dashboard.chat import _save_slot_to_history
+        from junction.dashboard.chat import _save_slot_to_history
 
         _save_slot_to_history(state, slot)
 
@@ -789,8 +789,8 @@ class TestRehydrateSlotFromHistory:
 
         The messaging handler relies on this to distinguish "slot truly gone
         → fall through to Slack DM" from "slot on disk but unloaded → revive"."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         assert _rehydrate_slot_from_history(state, "missing-slot") is None
@@ -798,8 +798,8 @@ class TestRehydrateSlotFromHistory:
 
     def test_returns_existing_slot_without_reloading(self, tmp_path, monkeypatch):
         """Hot-path: when slot is already in memory, return it as-is."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         existing = state.get_or_create_slot("hot-slot")
@@ -821,14 +821,14 @@ class TestRehydrateSlotFromHistory:
         a kiro provider it is a no-op; previously this test read the ambient
         on-disk config and so passed or failed depending on the dev machine.
         """
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         # Force a kiro (acp) provider so canonicalize_for_provider is a no-op and
         # the stored model round-trips unchanged, independent of the dev config.
-        _acp_cfg = KiroCrewConfig()
+        _acp_cfg = JunctionConfig()
         _acp_cfg.agent.provider = "acp"
-        monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: _acp_cfg))
+        monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: _acp_cfg))
         _write_session(
             tmp_path,
             "dashboard_originchat",
@@ -838,7 +838,7 @@ class TestRehydrateSlotFromHistory:
             ],
             meta={"title": "Cron Owner Tab", "agent": "general", "model": "claude-opus-4.7"},
         )
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         slot = _rehydrate_slot_from_history(state, "originchat")
@@ -856,19 +856,19 @@ class TestRehydrateSlotFromHistory:
     def test_rehydrate_canonicalizes_model_for_claude_code(self, tmp_path, monkeypatch):
         """For a claude_code session, a stored raw provider id is mapped back to
         the canonical registry key so it matches the canonical-keyed dropdown."""
-        from kiro_crew.config.loader import KiroCrewConfig
+        from junction.config.loader import JunctionConfig
 
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        _cc_cfg = KiroCrewConfig()
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        _cc_cfg = JunctionConfig()
         _cc_cfg.agent.provider = "claude_code"
-        monkeypatch.setattr(KiroCrewConfig, "load", classmethod(lambda cls: _cc_cfg))
+        monkeypatch.setattr(JunctionConfig, "load", classmethod(lambda cls: _cc_cfg))
         _write_session(
             tmp_path,
             "dashboard_ccchat",
             [{"role": "user", "content": "hi", "ts": "2026-03-23T10:00:00"}],
             meta={"title": "CC", "model": "claude-opus-4.7"},
         )
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         slot = _rehydrate_slot_from_history(state, "ccchat")
@@ -882,14 +882,14 @@ class TestRehydrateSlotFromHistory:
         Regression guard for the phantom-slot bug: naive get_or_create_slot
         would default to memory_mode='persistent', so an incognito cron message
         would leak content to disk."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_incog",
             [{"role": "user", "content": "secret", "ts": "2026-03-23T10:00:00"}],
             meta={"memory_mode": "off", "title": "Private Tab"},
         )
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         slot = _rehydrate_slot_from_history(state, "incog")
@@ -900,7 +900,7 @@ class TestRehydrateSlotFromHistory:
 
     def test_rehydrates_folder_and_pin_metadata(self, tmp_path, monkeypatch):
         """Folder, pin, and color metadata are preserved across rehydrate."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_foldered",
@@ -912,7 +912,7 @@ class TestRehydrateSlotFromHistory:
                 "color_index": 3,
             },
         )
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         slot = _rehydrate_slot_from_history(state, "foldered")
@@ -924,14 +924,14 @@ class TestRehydrateSlotFromHistory:
     def test_skips_closed_session(self, tmp_path, monkeypatch):
         """Explicitly closed sessions are NOT rehydrated — cron messages fall
         through to Slack DM instead of resurrecting a tab the user closed."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_closed",
             [{"role": "user", "content": "bye", "ts": "2026-03-23T10:00:00"}],
             meta={"closed": True, "title": "Done"},
         )
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         assert _rehydrate_slot_from_history(state, "closed") is None
@@ -939,7 +939,7 @@ class TestRehydrateSlotFromHistory:
 
     def test_returns_none_when_no_conversation_log(self, tmp_path):
         """Without a conversation_log, rehydrate is a no-op returning None."""
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         state.conversation_log = None
@@ -962,7 +962,7 @@ class TestAsyncRehydrateSlotFromHistory:
     @pytest.mark.asyncio
     async def test_matches_the_sync_helper(self, tmp_path, monkeypatch):
         """Parity: title, metadata and full message history, same as sync."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_asyncchat",
@@ -972,7 +972,7 @@ class TestAsyncRehydrateSlotFromHistory:
             ],
             meta={"title": "Async Tab", "agent": "general"},
         )
-        from kiro_crew.dashboard.chat_persistence import rehydrate_slot_from_history_async
+        from junction.dashboard.chat_persistence import rehydrate_slot_from_history_async
 
         state = _make_state(tmp_path)
         slot = await rehydrate_slot_from_history_async(state, "asyncchat")
@@ -984,14 +984,14 @@ class TestAsyncRehydrateSlotFromHistory:
     @pytest.mark.asyncio
     async def test_the_transcript_read_is_off_the_loop(self, tmp_path, monkeypatch):
         """The whole point: no message read may run on the event-loop thread."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_offloop",
             [{"role": "user", "content": "hi", "ts": "2026-03-23T10:00:00"}],
             meta={"title": "Off Loop"},
         )
-        from kiro_crew.dashboard.chat_persistence import rehydrate_slot_from_history_async
+        from junction.dashboard.chat_persistence import rehydrate_slot_from_history_async
 
         state = _make_state(tmp_path)
         loop_thread = threading.get_ident()
@@ -1015,14 +1015,14 @@ class TestAsyncRehydrateSlotFromHistory:
         exists for app-owned worker slots, whose lifecycle belongs to the app —
         idle-slot cleanup archives them with closed=True without the user ever
         asking, and that must not permanently hide the transcript."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_archived",
             [{"role": "user", "content": "mid-build", "ts": "2026-03-23T10:00:00"}],
             meta={"title": "Spec: x", "app": "spec-builder", "closed": True},
         )
-        from kiro_crew.dashboard.chat_persistence import rehydrate_slot_from_history_async
+        from junction.dashboard.chat_persistence import rehydrate_slot_from_history_async
 
         state = _make_state(tmp_path)
         assert await rehydrate_slot_from_history_async(state, "archived") is None
@@ -1042,14 +1042,14 @@ class TestAsyncRehydrateSlotFromHistory:
         materialize this slot while we are reading. Applying the snapshot on top
         would duplicate its messages, so the post-await recheck returns the live
         slot untouched."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         _write_session(
             tmp_path,
             "dashboard_racy",
             [{"role": "user", "content": "from disk", "ts": "2026-03-23T10:00:00"}],
             meta={"title": "Racy"},
         )
-        from kiro_crew.dashboard.chat_persistence import rehydrate_slot_from_history_async
+        from junction.dashboard.chat_persistence import rehydrate_slot_from_history_async
 
         state = _make_state(tmp_path)
         real_read = state.conversation_log.read_messages_chained
@@ -1085,9 +1085,9 @@ class TestPartialRehydrateRollsBack:
         raise RuntimeError("malformed persisted content")
 
     def test_sync_rehydrate_leaves_no_partial_slot(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard import chat_persistence
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard import chat_persistence
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         _write_session(tmp_path, "dashboard_doomed", [{"role": "user", "content": "hi"}],
@@ -1108,8 +1108,8 @@ class TestPartialRehydrateRollsBack:
     async def test_async_rehydrate_leaves_no_partial_slot(self, tmp_path, monkeypatch):
         """The async twin -- the path app-owned worker slots use. This is the one
         that had no protection at all before the rollback moved into the callee."""
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard import chat_persistence
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard import chat_persistence
 
         state = _make_state(tmp_path)
         _write_session(tmp_path, "dashboard_doomed-async", [{"role": "user", "content": "hi"}],
@@ -1134,9 +1134,9 @@ class TestPartialRehydrateRollsBack:
         returns early when the slot already exists, so its body only ever runs
         for a slot the call created itself.
         """
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
-        from kiro_crew.dashboard import chat_persistence
-        from kiro_crew.dashboard.chat import _rehydrate_slot_from_history
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
+        from junction.dashboard import chat_persistence
+        from junction.dashboard.chat import _rehydrate_slot_from_history
 
         state = _make_state(tmp_path)
         state._restricted_keys.add("dashboard:keeper")
@@ -1157,7 +1157,7 @@ class TestPartialRehydrateRollsBack:
         only itself -- the async twin had none. Asserts on the code, not comments."""
         import inspect
 
-        from kiro_crew.dashboard import chat_persistence
+        from junction.dashboard import chat_persistence
 
         callee = inspect.getsource(chat_persistence._rehydrate_slot_from_history)
         assert "state._slots.pop(" in callee, "the callee no longer rolls back its own slot"

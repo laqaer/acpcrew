@@ -1,6 +1,6 @@
 # Standalone provider — removed
 
-> **This provider no longer exists in KiroCrew.** The public fork drives a single
+> **This provider no longer exists in Junction.** The public fork drives a single
 > backend — `kiro-cli` over the Agent Client Protocol (`agent.provider` is fixed
 > to `acp`). The removed standalone provider, the removed Bedrock provider, the
 > removed agent-renderer / mirror modules, their config fields, and the dashboard

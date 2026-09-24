@@ -1,4 +1,4 @@
-"""Failure-branch coverage for :mod:`kiro_crew.slack.handler`.
+"""Failure-branch coverage for :mod:`junction.slack.handler`.
 
 ``test_slack_handler.py`` and ``test_slack_handler_coverage.py`` drive the happy
 paths of the Slack command surface. This module deliberately targets what they
@@ -21,11 +21,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from conftest import MockSlackClient
-from kiro_crew.config.loader import ConfigReadError
-from kiro_crew.messaging import auto_title
-from kiro_crew.messaging import commands as mc
-from kiro_crew.providers.base import LLMEvent
-from kiro_crew.slack import handler as h
+from junction.config.loader import ConfigReadError
+from junction.messaging import auto_title
+from junction.messaging import commands as mc
+from junction.providers.base import LLMEvent
+from junction.slack import handler as h
 
 # ──────────────────────────────────────────────────────────────────────
 # doubles
@@ -265,7 +265,7 @@ class TestConfigWriteFailures:
 
         monkeypatch.setattr(h, "update_config_locked", _boom)
         with pytest.raises(ValueError, match="Failed to read config"):
-            h._set_default_agent("kirocrew")
+            h._set_default_agent("junction")
         assert h._cached_default_agent is None
 
     def test_set_default_agent_write_error(self, monkeypatch):
@@ -274,7 +274,7 @@ class TestConfigWriteFailures:
 
         monkeypatch.setattr(h, "update_config_locked", _boom)
         with pytest.raises(ValueError, match="Failed to write config"):
-            h._set_default_agent("kirocrew")
+            h._set_default_agent("junction")
         # Cache must NOT advance past a failed write.
         assert h._cached_default_agent is None
 
@@ -292,7 +292,7 @@ class TestConfigWriteFailures:
 
         monkeypatch.setattr(h, "update_config_locked", _boom)
         with pytest.raises(ValueError, match="Failed to write config"):
-            h._persist_channel_config("C1", agent="kirocrew")
+            h._persist_channel_config("C1", agent="junction")
 
     def test_persist_channel_config_merges_both_fields(self, monkeypatch, tmp_path):
         # Real file through the real locked primitive: the write must merge
@@ -300,10 +300,10 @@ class TestConfigWriteFailures:
         cfg = tmp_path / "config.json"
         cfg.write_text(json.dumps({"slack": {"bot": "x"}}), encoding="utf-8", newline="\n")
         monkeypatch.setattr(h, "config_path", lambda: cfg)
-        h._persist_channel_config("C9", activation="always", agent="kirocrew")
+        h._persist_channel_config("C9", activation="always", agent="junction")
         written = json.loads(cfg.read_text(encoding="utf-8"))
         ch = written["slack"]["channels"]["C9"]
-        assert ch == {"activation": "always", "agent": "kirocrew"}
+        assert ch == {"activation": "always", "agent": "junction"}
         # Sibling keys survive the merge.
         assert written["slack"]["bot"] == "x"
 
@@ -313,7 +313,7 @@ class TestSensitivePathRefusal:
         monkeypatch.setattr(h, "config_path", lambda: tmp_path / "config.json")
         monkeypatch.setattr(h, "is_sensitive_path", lambda _p: True)
         with pytest.raises(ValueError, match="sensitive path"):
-            h._set_default_agent("kirocrew")
+            h._set_default_agent("junction")
         with pytest.raises(ValueError, match="sensitive path"):
             h._persist_channel_config("C1", activation="mention")
 
@@ -655,7 +655,7 @@ class TestHandleMessageKeywordDispatch:
     async def test_owner_only_command_denied_for_a_stranger(self, sessions, owner, monkeypatch):
         slack = FlakySlack()
         monkeypatch.setattr(h, "_handle_slash_command", AsyncMock(return_value=""))
-        await _msg(slack, sessions, "!agent kirocrew", user="U999")
+        await _msg(slack, sessions, "!agent junction", user="U999")
         assert "Owner-only command." in _texts(slack)
         h._handle_slash_command.assert_not_awaited()
 
@@ -665,7 +665,7 @@ class TestHandleMessageKeywordDispatch:
     ):
         slack = FlakySlack()
         monkeypatch.setattr(h, "_handle_compact_command", AsyncMock())
-        await _msg(slack, sessions, "<@UBOT|kirocrew> !compact")
+        await _msg(slack, sessions, "<@UBOT|junction> !compact")
         h._handle_compact_command.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -719,13 +719,13 @@ class TestListAllAgentNames:
     def test_union_dedups_and_hides_the_internal_variant(self, monkeypatch, tmp_path):
         agents = tmp_path / "agents"
         agents.mkdir()
-        for stem in ("alpha", "shared", "kirocrew-lite"):
+        for stem in ("alpha", "shared", "junction-lite"):
             (agents / f"{stem}.json").write_text(
                 json.dumps({"name": stem}), encoding="utf-8", newline="\n"
             )
         monkeypatch.setattr(h, "kiro_agents_dir", lambda: agents)
         monkeypatch.setattr(
-            h, "_iter_cc_agent_names", lambda _d=None: iter(["shared", "beta", "kirocrew-lite"])
+            h, "_iter_cc_agent_names", lambda _d=None: iter(["shared", "beta", "junction-lite"])
         )
         out = h._list_all_agent_names()
         names = [n.strip() for n in out.split(",")]

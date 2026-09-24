@@ -12,13 +12,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.acp.liveness import (
+from junction.acp.liveness import (
     VERDICT_DEAD,
     VERDICT_STUCK_INPUT,
     VERDICT_UNKNOWN,
     VERDICT_WORKING,
 )
-from kiro_crew.subagent import SubagentInfo, SubagentManager
+from junction.subagent import SubagentInfo, SubagentManager
 
 
 def _make_manager(stall_idle_secs: int = 120) -> SubagentManager:
@@ -134,7 +134,7 @@ async def test_consult_failure_degrades_to_unknown():
     SubagentManager._note_tool_dispatch(info, _event())
     boom = MagicMock()
     boom.check_tool.side_effect = RuntimeError("proc read blew up")
-    with patch("kiro_crew.subagent.LivenessOracle", return_value=boom):
+    with patch("junction.subagent.LivenessOracle", return_value=boom):
         verdict, evidence = await mgr._stall_verdict(info)
     assert verdict == VERDICT_UNKNOWN
     assert evidence == "oracle offload error"
@@ -162,7 +162,7 @@ async def test_consult_runs_off_the_event_loop():
 
     oracle = MagicMock()
     oracle.check_tool.side_effect = _probe
-    with patch("kiro_crew.subagent.LivenessOracle", return_value=oracle):
+    with patch("junction.subagent.LivenessOracle", return_value=oracle):
         verdict, _ = await mgr._stall_verdict(info)
 
     assert verdict == VERDICT_WORKING
@@ -191,11 +191,11 @@ async def test_only_one_consult_outstanding_per_agent():
     oracle = MagicMock()
     oracle.check_tool.side_effect = _wedged
     try:
-        with patch("kiro_crew.subagent.LivenessOracle", return_value=oracle):
+        with patch("junction.subagent.LivenessOracle", return_value=oracle):
             # First sweep: submits the walk, then times out waiting on it.
             # The bounded await lives in ``consult_offloaded``, so the seam is
             # patched there rather than in this module.
-            with patch("kiro_crew.acp.liveness.asyncio.wait_for", side_effect=asyncio.TimeoutError):
+            with patch("junction.acp.liveness.asyncio.wait_for", side_effect=asyncio.TimeoutError):
                 first, _ = await mgr._stall_verdict(info)
             assert first == VERDICT_UNKNOWN
             # The walk is genuinely in a worker thread and still wedged there.
@@ -238,10 +238,10 @@ async def test_working_child_is_not_flagged():
     SubagentManager._note_tool_dispatch(info, _event())
     with (
         patch(
-            "kiro_crew.subagent.LivenessOracle",
+            "junction.subagent.LivenessOracle",
             return_value=_oracle(VERDICT_WORKING, "shell child 5150 alive"),
         ),
-        patch("kiro_crew.subagent.record_slow_command") as rec,
+        patch("junction.subagent.record_slow_command") as rec,
     ):
         await mgr._maybe_flag_stall("a1b2c3d4", info, now)
     assert info.stalled is False
@@ -268,8 +268,8 @@ async def test_wedged_verdict_flags_immediately_without_two_sweep(verdict, evide
     info = _info(turns=1, _pid=4242, last_activity=now - 200)
     SubagentManager._note_tool_dispatch(info, _event())
     with (
-        patch("kiro_crew.subagent.LivenessOracle", return_value=_oracle(verdict, evidence)),
-        patch("kiro_crew.subagent.record_slow_command"),
+        patch("junction.subagent.LivenessOracle", return_value=_oracle(verdict, evidence)),
+        patch("junction.subagent.record_slow_command"),
     ):
         await mgr._maybe_flag_stall("a1b2c3d4", info, now)
     assert info.stalled is True
@@ -289,7 +289,7 @@ async def test_unknown_still_needs_the_two_sweep_confirmation():
     now = 1_000.0
     info = _info(turns=1, _pid=4242, last_activity=now - 200)
     SubagentManager._note_tool_dispatch(info, _event(is_shell=False))  # -> UNKNOWN
-    with patch("kiro_crew.subagent.record_slow_command") as rec:
+    with patch("junction.subagent.record_slow_command") as rec:
         await mgr._maybe_flag_stall("a1b2c3d4", info, now)
         # Sweep 1: suspect only.
         assert info.stalled is False and info._stall_suspect_at > 0
@@ -312,8 +312,8 @@ async def test_wedged_verdict_still_never_reaps():
     info = _info(turns=1, _pid=4242, last_activity=now - 200)
     SubagentManager._note_tool_dispatch(info, _event())
     with (
-        patch("kiro_crew.subagent.LivenessOracle", return_value=_oracle(VERDICT_DEAD, "gone")),
-        patch("kiro_crew.subagent.record_slow_command"),
+        patch("junction.subagent.LivenessOracle", return_value=_oracle(VERDICT_DEAD, "gone")),
+        patch("junction.subagent.record_slow_command"),
     ):
         await mgr._maybe_flag_stall("a1b2c3d4", info, now)
     assert info.stalled is True
@@ -340,7 +340,7 @@ async def test_working_cannot_suppress_the_badge_forever():
     that turns a case the old idle-time path DID badge into a permanent false
     negative — worse than what it replaces, since the badge is self-clearing and a
     missing badge is not. Past the ceiling the badge wins."""
-    from kiro_crew.subagent import _SUPPRESS_CEILING
+    from junction.subagent import _SUPPRESS_CEILING
 
     mgr = _make_manager(stall_idle_secs=10)
     now = 1_000.0
@@ -350,8 +350,8 @@ async def test_working_cannot_suppress_the_badge_forever():
     below = _info(turns=1, _pid=4242, last_activity=now - 10 * _SUPPRESS_CEILING + 5)
     SubagentManager._note_tool_dispatch(below, _event())
     with (
-        patch("kiro_crew.subagent.LivenessOracle", return_value=oracle),
-        patch("kiro_crew.subagent.record_slow_command"),
+        patch("junction.subagent.LivenessOracle", return_value=oracle),
+        patch("junction.subagent.record_slow_command"),
     ):
         await mgr._maybe_flag_stall("a1b2c3d4", below, now)
     assert below.stalled is False, "WORKING should still suppress below the ceiling"
@@ -365,8 +365,8 @@ async def test_working_cannot_suppress_the_badge_forever():
     )
     SubagentManager._note_tool_dispatch(over, _event())
     with (
-        patch("kiro_crew.subagent.LivenessOracle", return_value=oracle),
-        patch("kiro_crew.subagent.record_slow_command"),
+        patch("junction.subagent.LivenessOracle", return_value=oracle),
+        patch("junction.subagent.record_slow_command"),
     ):
         await mgr._maybe_flag_stall("a1b2c3d4", over, now)
     assert over.stalled is True, "a WORKING reading suppressed the badge past the ceiling"
@@ -416,7 +416,7 @@ async def test_a_verdict_superseded_mid_consult_is_discarded():
         return (VERDICT_DEAD, "shell child 5150 exited, no result frame")
 
     oracle.check_tool.side_effect = _walk_then_activity
-    with patch("kiro_crew.subagent.LivenessOracle", return_value=oracle):
+    with patch("junction.subagent.LivenessOracle", return_value=oracle):
         verdict, evidence = await mgr._stall_verdict(info)
     assert verdict == VERDICT_UNKNOWN, "a stale DEAD verdict was applied"
     assert evidence == "superseded mid-consult"
@@ -439,10 +439,10 @@ async def _flag_with_dead(mgr, info, now):
     SubagentManager._note_tool_dispatch(info, _event())
     with (
         patch(
-            "kiro_crew.subagent.LivenessOracle",
+            "junction.subagent.LivenessOracle",
             return_value=_oracle(VERDICT_DEAD, "shell child 5150 exited, no result frame"),
         ),
-        patch("kiro_crew.subagent.record_slow_command"),
+        patch("junction.subagent.record_slow_command"),
     ):
         await mgr._maybe_flag_stall("a1b2c3d4", info, now)
     return info.stalled

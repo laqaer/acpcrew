@@ -1,4 +1,4 @@
-"""Additional coverage for ``kiro_crew.slack.gateway``.
+"""Additional coverage for ``junction.slack.gateway``.
 
 Focuses on the orchestrator surfaces the existing ``test_slack_gateway.py`` and
 ``test_turn_duration_slack.py`` do not reach:
@@ -29,10 +29,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew import subagent as _sa
-from kiro_crew.autonudge import NudgeLoop
-from kiro_crew.config.loader import KiroCrewConfig
-from kiro_crew.slack import gateway as gw
+from junction import subagent as _sa
+from junction.autonudge import NudgeLoop
+from junction.config.loader import JunctionConfig
+from junction.slack import gateway as gw
 
 # ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -51,8 +51,8 @@ def _make_orchestrator(**kwargs: Any) -> Any:
     (``sessions`` / ``slack`` / ``ctx_builder`` ...) for mocks, which do not
     satisfy the orchestrator's declared attribute types.
     """
-    cfg = KiroCrewConfig()
-    creds = {"KIROCREW_OWNER_ID": "U_OWNER"}
+    cfg = JunctionConfig()
+    creds = {"JUNCTION_OWNER_ID": "U_OWNER"}
     with patch.object(cfg, "load_credentials", return_value=creds):
         return gw.GatewayOrchestrator(
             cfg,
@@ -118,7 +118,7 @@ def _discord_transport(*, authorized: bool = True, current_key: str | None = Non
     dispatcher = MagicMock()
     dispatcher.is_authorized = MagicMock(return_value=authorized)
     dispatcher.current_session_key = MagicMock(
-        return_value=current_key if current_key is not None else "discord:kirocrew:direct:U9"
+        return_value=current_key if current_key is not None else "discord:junction:direct:U9"
     )
     dispatcher.handle_message = AsyncMock()
     sessions = MagicMock()
@@ -140,7 +140,7 @@ def _discord_orchestrator(transport: MagicMock | None) -> Any:
     return orch
 
 
-_DKEY = "discord:kirocrew:direct:U9"
+_DKEY = "discord:junction:direct:U9"
 
 
 # ═════════════════════════════════════════════════════════════════════════
@@ -170,7 +170,7 @@ class TestFireDiscordNudge:
     async def test_unsupported_key_shape_retires_loop(self):
         """A key that is not ``discord:{agent}:direct:{user}`` can never route."""
         orch = _discord_orchestrator(_discord_transport())
-        assert await orch._fire_discord_nudge(_loop("discord:kirocrew:channel")) is False
+        assert await orch._fire_discord_nudge(_loop("discord:junction:channel")) is False
         orch.autonudge_svc.remove.assert_awaited_once_with("loop-1")
 
     @pytest.mark.asyncio
@@ -183,7 +183,7 @@ class TestFireDiscordNudge:
     @pytest.mark.asyncio
     async def test_rotated_session_retires_loop(self):
         """A `!new` generation bump means the monitored conversation is gone."""
-        transport = _discord_transport(current_key="discord:kirocrew:direct:U9:gen2")
+        transport = _discord_transport(current_key="discord:junction:direct:U9:gen2")
         orch = _discord_orchestrator(transport)
         assert await orch._fire_discord_nudge(_loop(_DKEY)) is False
         orch.autonudge_svc.remove.assert_awaited_once_with("loop-1")
@@ -460,8 +460,8 @@ class TestAutonudgeRouterAndObserver:
     """``_init_autonudge`` builds the key-namespace router and the WS observer."""
 
     async def _wire(self, orch: Any):
-        with patch("kiro_crew.slack.gateway.autonudge_enabled", return_value=True):
-            with patch("kiro_crew.slack.gateway.AutoNudgeService") as mock_svc:
+        with patch("junction.slack.gateway.autonudge_enabled", return_value=True):
+            with patch("junction.slack.gateway.AutoNudgeService") as mock_svc:
                 inst = MagicMock()
                 inst.start = AsyncMock()
                 inst.subscribe = MagicMock()
@@ -559,8 +559,8 @@ class TestAutonudgeRouterAndObserver:
 
 
 def _capture_subagent_kwargs(orch: Any) -> dict:
-    with patch("kiro_crew.slack.handler.is_yolo_mode", return_value=False):
-        with patch("kiro_crew.slack.gateway.SubagentManager") as mock_sm:
+    with patch("junction.slack.handler.is_yolo_mode", return_value=False):
+        with patch("junction.slack.gateway.SubagentManager") as mock_sm:
             inst = MagicMock()
             inst.start_reaper = MagicMock()
             mock_sm.return_value = inst
@@ -686,7 +686,7 @@ class TestTaskNotify:
         orch.ctx_builder = MagicMock()
         orch.conv_log = MagicMock()
         orch.consolidator = MagicMock()
-        with patch("kiro_crew.slack.gateway.TaskRunner") as mock_tr:
+        with patch("junction.slack.gateway.TaskRunner") as mock_tr:
             mock_tr.return_value = MagicMock()
             orch._init_task_runner()
             return mock_tr.call_args.kwargs["on_notify"]
@@ -779,7 +779,7 @@ class TestInitMcpGateway:
         orch = _make_orchestrator()
         orch._cfg.mcp_gateway.enabled = False
         orch._cfg.mcp_gateway.stub_servers = []
-        with patch("kiro_crew.slack.gateway.is_gateway_supported") as probe:
+        with patch("junction.slack.gateway.is_gateway_supported") as probe:
             await orch._init_mcp_gateway()
         probe.assert_not_called()
         assert orch._mcp_gateway_manager is None
@@ -797,7 +797,7 @@ class TestInitMcpGateway:
         orch._cfg.mcp_gateway.enabled = False
         orch._cfg.mcp_gateway.stub_servers = ["alpha-mcp"]
         with patch(
-            "kiro_crew.slack.gateway.is_gateway_supported", return_value=False
+            "junction.slack.gateway.is_gateway_supported", return_value=False
         ) as probe:
             await orch._init_mcp_gateway()
         probe.assert_called_once()
@@ -835,7 +835,7 @@ class TestInitMcpGateway:
             assert stub_servers == frozenset({"alpha-mcp"})
 
         with patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load", return_value=orch._cfg
+            "junction.config.loader.JunctionConfig.load", return_value=orch._cfg
         ):
             with patch.object(orch, "_stop_mcp_broker", _stop), patch.object(
                 orch, "_init_mcp_gateway", _init
@@ -862,7 +862,7 @@ class TestInitMcpGateway:
             calls.append("init")
 
         with patch(
-            "kiro_crew.config.loader.KiroCrewConfig.load", return_value=orch._cfg
+            "junction.config.loader.JunctionConfig.load", return_value=orch._cfg
         ):
             with patch.object(orch, "_stop_mcp_broker", _stop), patch.object(
                 orch, "_init_mcp_gateway", _init
@@ -875,8 +875,8 @@ class TestInitMcpGateway:
     async def test_unsupported_platform_returns_early(self):
         orch = _make_orchestrator()
         orch._cfg.mcp_gateway.enabled = True
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=False):
-            with patch("kiro_crew.slack.gateway.rewrite_agents") as rewriter:
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=False):
+            with patch("junction.slack.gateway.rewrite_agents") as rewriter:
                 await orch._init_mcp_gateway()
         rewriter.assert_not_called()
         assert orch._mcp_gateway_manager is None
@@ -885,16 +885,16 @@ class TestInitMcpGateway:
     async def test_rewriter_failure_falls_back_to_per_session_mcp(self, tmp_path):
         orch = _make_orchestrator()
         orch._cfg.mcp_gateway.enabled = True
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=True), patch(
-            "kiro_crew.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=True), patch(
+            "junction.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
         ), patch(
-            "kiro_crew.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
+            "junction.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
         ), patch(
-            "kiro_crew.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
+            "junction.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
         ), patch(
-            "kiro_crew.slack.gateway.rewrite_agents", side_effect=RuntimeError("bad spec")
+            "junction.slack.gateway.rewrite_agents", side_effect=RuntimeError("bad spec")
         ), patch(
-            "kiro_crew.slack.gateway.GatewayManager"
+            "junction.slack.gateway.GatewayManager"
         ) as mgr_cls:
             await orch._init_mcp_gateway()
         mgr_cls.assert_not_called()
@@ -909,16 +909,16 @@ class TestInitMcpGateway:
         orch._cfg.mcp_gateway.stub_servers = ["alpha-mcp"]
         manager = MagicMock()
         manager.start = AsyncMock(return_value=True)
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=True), patch(
-            "kiro_crew.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=True), patch(
+            "junction.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
         ), patch(
-            "kiro_crew.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
+            "junction.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
         ), patch(
-            "kiro_crew.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
+            "junction.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
         ), patch(
-            "kiro_crew.slack.gateway.rewrite_agents", return_value=(None, {"MC_MCP_TARGET_X": "1"})
+            "junction.slack.gateway.rewrite_agents", return_value=(None, {"MC_MCP_TARGET_X": "1"})
         ), patch(
-            "kiro_crew.slack.gateway.GatewayManager", return_value=manager
+            "junction.slack.gateway.GatewayManager", return_value=manager
         ):
             await orch._init_mcp_gateway()
         assert orch._mcp_gateway_manager is manager
@@ -940,16 +940,16 @@ class TestInitMcpGateway:
         orch._cfg.mcp_gateway.stub_servers = ["alpha-mcp", "beta-mcp"]  # pending
         manager = MagicMock()
         manager.start = AsyncMock(return_value=True)
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=True), patch(
-            "kiro_crew.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=True), patch(
+            "junction.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
         ), patch(
-            "kiro_crew.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
+            "junction.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
         ), patch(
-            "kiro_crew.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
+            "junction.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
         ), patch(
-            "kiro_crew.slack.gateway.rewrite_agents", return_value=(None, {})
+            "junction.slack.gateway.rewrite_agents", return_value=(None, {})
         ) as rewriter, patch(
-            "kiro_crew.slack.gateway.GatewayManager", return_value=manager
+            "junction.slack.gateway.GatewayManager", return_value=manager
         ):
             await orch._init_mcp_gateway(stub_servers=frozenset({"alpha-mcp"}))
 
@@ -975,18 +975,18 @@ class TestInitMcpGateway:
         orch._cfg.mcp_gateway.stub_servers = ["alpha-mcp", "beta-mcp"]  # beta pending
         manager = MagicMock()
         manager.start = AsyncMock(return_value=True)
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=True), patch(
-            "kiro_crew.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=True), patch(
+            "junction.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
         ), patch(
-            "kiro_crew.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
+            "junction.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
         ), patch(
-            "kiro_crew.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
+            "junction.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
         ), patch(
-            "kiro_crew.slack.gateway.rewrite_agents", return_value=(None, {})
+            "junction.slack.gateway.rewrite_agents", return_value=(None, {})
         ), patch(
-            "kiro_crew.slack.gateway.GatewayManager", return_value=manager
+            "junction.slack.gateway.GatewayManager", return_value=manager
         ):
-            with caplog.at_level(logging.INFO, logger="kiro_crew.slack.gateway"):
+            with caplog.at_level(logging.INFO, logger="junction.slack.gateway"):
                 await orch._init_mcp_gateway(stub_servers=frozenset({"alpha-mcp"}))
 
         ready = [r for r in caplog.records if "broker ready" in r.getMessage()]
@@ -1012,16 +1012,16 @@ class TestInitMcpGateway:
         orch._cfg.mcp_gateway.stub_servers = ["alpha-mcp"]
         manager = MagicMock()
         manager.start = AsyncMock(return_value=False)  # transient failure
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=True), patch(
-            "kiro_crew.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=True), patch(
+            "junction.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
         ), patch(
-            "kiro_crew.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
+            "junction.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
         ), patch(
-            "kiro_crew.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
+            "junction.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
         ), patch(
-            "kiro_crew.slack.gateway.rewrite_agents", return_value=(None, {})
+            "junction.slack.gateway.rewrite_agents", return_value=(None, {})
         ), patch(
-            "kiro_crew.slack.gateway.GatewayManager", return_value=manager
+            "junction.slack.gateway.GatewayManager", return_value=manager
         ):
             await orch._init_mcp_gateway()
 
@@ -1037,16 +1037,16 @@ class TestInitMcpGateway:
         orch._cfg.mcp_gateway.enabled = True
         manager = MagicMock()
         manager.start = AsyncMock(return_value=False)
-        with patch("kiro_crew.slack.gateway.is_gateway_supported", return_value=True), patch(
-            "kiro_crew.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
+        with patch("junction.slack.gateway.is_gateway_supported", return_value=True), patch(
+            "junction.slack.gateway.resolve_overlay_dir", return_value=tmp_path / "overlay"
         ), patch(
-            "kiro_crew.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
+            "junction.slack.gateway.default_socket_path", return_value=tmp_path / "gw.sock"
         ), patch(
-            "kiro_crew.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
+            "junction.slack.gateway.kiro_agents_dir", return_value=tmp_path / "agents"
         ), patch(
-            "kiro_crew.slack.gateway.rewrite_agents", return_value=(None, {})
+            "junction.slack.gateway.rewrite_agents", return_value=(None, {})
         ), patch(
-            "kiro_crew.slack.gateway.GatewayManager", return_value=manager
+            "junction.slack.gateway.GatewayManager", return_value=manager
         ):
             await orch._init_mcp_gateway()
         assert orch._mcp_gateway_manager is None
@@ -1098,9 +1098,9 @@ class TestStopAndApplyMcpBroker:
 
         orch._init_mcp_gateway = _init_that_must_not_run
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.mcp_gateway.stub_servers = ["beta", "alpha"]
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             out = await orch._apply_mcp_stub()
         assert out == {
             "applied": False,
@@ -1125,9 +1125,9 @@ class TestStopAndApplyMcpBroker:
 
         orch._init_mcp_gateway = _init_that_must_not_run
 
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.mcp_gateway.stub_servers = ["alpha"]
-        with patch.object(KiroCrewConfig, "load", return_value=cfg):
+        with patch.object(JunctionConfig, "load", return_value=cfg):
             out = await orch._apply_mcp_stub()
 
         old.shutdown.assert_not_awaited()
@@ -1266,7 +1266,7 @@ class TestFireDashboardNudgeDispatch:
         # nothing will ever await.
         task = MagicMock()
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat._run_chat", MagicMock(return_value="CORO")
+            "junction.dashboard.chat._run_chat", MagicMock(return_value="CORO")
         )
         monkeypatch.setattr(gw, "spawn_guarded_turn", MagicMock(return_value=task))
 
@@ -1306,7 +1306,7 @@ class TestFireDashboardNudgeDispatch:
 
         monkeypatch.setattr(gw, "rehydrate_slot_from_history_async", _rehydrate)
         monkeypatch.setattr(
-            "kiro_crew.dashboard.chat._run_chat", MagicMock(return_value="CORO")
+            "junction.dashboard.chat._run_chat", MagicMock(return_value="CORO")
         )
         monkeypatch.setattr(gw, "spawn_guarded_turn", MagicMock(return_value=MagicMock()))
 
@@ -1321,54 +1321,54 @@ class TestFireDashboardNudgeDispatch:
 
 
 class TestDigestChunkSize:
-    """``KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE`` parse guard: never crash import."""
+    """``JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE`` parse guard: never crash import."""
 
     def test_default_when_unset(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE", raising=False)
+        monkeypatch.delenv("JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE", raising=False)
         assert gw._digest_chunk_size() == 10
 
     def test_explicit_value_is_honoured(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE", "25")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE", "25")
         assert gw._digest_chunk_size() == 25
 
     def test_malformed_value_falls_back_to_default(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE", "not-a-number")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE", "not-a-number")
         assert gw._digest_chunk_size() == 10
 
     def test_value_is_clamped_to_a_sane_range(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE", "0")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE", "0")
         assert gw._digest_chunk_size() == 1
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_CHUNK_SIZE", "99999")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_CHUNK_SIZE", "99999")
         assert gw._digest_chunk_size() == 1000
 
 
 class TestDigestHoldSecs:
-    """``KIROCREW_SUBAGENT_DIGEST_HOLD_SECS`` parse guard (issue #2215): the
+    """``JUNCTION_SUBAGENT_DIGEST_HOLD_SECS`` parse guard (issue #2215): the
     latency half of the digest split must never crash import, and 0 is the
     documented opt-out back to count-trigger-only delivery."""
 
     def test_default_when_unset(self, monkeypatch):
-        monkeypatch.delenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", raising=False)
+        monkeypatch.delenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", raising=False)
         assert _sa._digest_hold_secs() == 120.0
 
     def test_explicit_value_is_honoured(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "45.5")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "45.5")
         assert _sa._digest_hold_secs() == 45.5
 
     def test_malformed_value_falls_back_to_default(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "not-a-number")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "not-a-number")
         assert _sa._digest_hold_secs() == 120.0
 
     def test_zero_and_negative_disable_the_deadline(self, monkeypatch):
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "0")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "0")
         assert _sa._digest_hold_secs() == 0.0
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "-30")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "-30")
         assert _sa._digest_hold_secs() == 0.0
 
     def test_clamped_to_the_per_agent_hard_ceiling(self, monkeypatch):
         """A deadline beyond the reap window is meaningless — the member is
         already dead by then and the wave closes on its own."""
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "999999")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "999999")
         assert _sa._digest_hold_secs() == float(_sa._TIMEOUT_SECS)
 
     def test_nan_is_malformed_input_not_a_deadline(self, monkeypatch):
@@ -1379,7 +1379,7 @@ class TestDigestHoldSecs:
         clocks were cleared and ``flushed`` advanced — permanently withholding
         the results the deadline exists to release."""
         for spelling in ("nan", "NaN", "-nan"):
-            monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", spelling)
+            monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", spelling)
             got = _sa._digest_hold_secs()
             assert not math.isnan(got), f"{spelling!r} leaked NaN into the deadline"
             assert got == 120.0
@@ -1392,9 +1392,9 @@ class TestDigestHoldSecs:
     def test_infinity_is_clamped_not_leaked(self, monkeypatch):
         """+inf clamps to the ceiling; -inf is a valid opt-out. Unlike NaN,
         both order correctly, so neither needs rejecting."""
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "inf")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "inf")
         assert _sa._digest_hold_secs() == float(_sa._TIMEOUT_SECS)
-        monkeypatch.setenv("KIROCREW_SUBAGENT_DIGEST_HOLD_SECS", "-inf")
+        monkeypatch.setenv("JUNCTION_SUBAGENT_DIGEST_HOLD_SECS", "-inf")
         assert _sa._digest_hold_secs() == 0.0
 
 

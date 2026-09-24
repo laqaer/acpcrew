@@ -1,4 +1,4 @@
-"""The ``kirocrew update`` agent-only refresh must be hardened at its call site.
+"""The ``junction update`` agent-only refresh must be hardened at its call site.
 
 The refresh runs ``setup --agent-only`` as a child with ``capture_output=True``,
 so two properties are load-bearing (issue #5616):
@@ -8,7 +8,7 @@ so two properties are load-bearing (issue #5616):
   silently until the timeout.
 * ``subprocess.TimeoutExpired`` is swallowed — the refresh is best-effort and
   runs after the update already succeeded, so a timeout must downgrade to a
-  warning, never traceback out of ``kirocrew update``.
+  warning, never traceback out of ``junction update``.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from __future__ import annotations
 import inspect
 import subprocess
 
-from kiro_crew import cli_server
+from junction import cli_server
 
 
 class _RunRecorder:

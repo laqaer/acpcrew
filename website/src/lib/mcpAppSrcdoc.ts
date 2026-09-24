@@ -198,7 +198,7 @@ export function buildMcpAppSrcdoc(payload: McpAppRenderPayload): string {
   // 'unsafe-inline', so this inline script is permitted by the emitted CSP.
   const bridgeGuard =
     '<script>(function(){' +
-    "function n(){try{parent.postMessage({__kirocrew_nav__:1},'*')}catch(e){}}" +
+    "function n(){try{parent.postMessage({__junction_nav__:1},'*')}catch(e){}}" +
     "addEventListener('pagehide',n,{capture:true});" +
     "addEventListener('beforeunload',n,{capture:true});" +
     '})();</script>'

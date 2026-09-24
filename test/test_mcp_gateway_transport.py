@@ -27,8 +27,8 @@ from typing import Any, Iterator
 
 import pytest
 
-from kiro_crew import platform_compat as pc
-from kiro_crew.mcp_gateway import transport
+from junction import platform_compat as pc
+from junction.mcp_gateway import transport
 
 # --- Address resolution ------------------------------------------------------
 
@@ -70,7 +70,7 @@ def test_posix_address_is_the_socket_path(tmp_path: Path) -> None:
 def test_windows_address_is_a_pipe_name(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pc, "IS_WINDOWS", True)
     addr = transport.resolve_address("/some/home/mcp-gateway/gateway.sock")
-    assert addr.startswith(r"\\.\pipe\kirocrew-mcp-")
+    assert addr.startswith(r"\\.\pipe\junction-mcp-")
     # No path separators survive into the name: a pipe name is a flat namespace.
     assert "/" not in addr[len(r"\\.\pipe\\"):]
 
@@ -81,7 +81,7 @@ def test_windows_address_is_deterministic_and_path_scoped(
     """The stub and gatewayd derive the name independently from --socket.
 
     They exchange nothing, so the same path must always give the same name, and
-    two installations (different $KIROCREW_HOME) must not collide on the
+    two installations (different $JUNCTION_HOME) must not collide on the
     machine-global pipe namespace.
     """
     monkeypatch.setattr(pc, "IS_WINDOWS", True)
@@ -925,7 +925,7 @@ async def test_manager_offloads_prepare_dir_from_the_event_loop(
 ) -> None:
     from unittest.mock import AsyncMock, MagicMock
 
-    from kiro_crew.mcp_gateway import manager as mgr
+    from junction.mcp_gateway import manager as mgr
 
     probe = _LoopProbe()
     monkeypatch.setattr(mgr.transport, "prepare_dir", probe)
@@ -952,7 +952,7 @@ async def test_manager_offloads_prepare_dir_from_the_event_loop(
 async def test_gatewayd_offloads_prepare_dir_from_the_event_loop(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from kiro_crew.mcp_gateway import gatewayd as gw
+    from junction.mcp_gateway import gatewayd as gw
 
     probe = _LoopProbe()
     monkeypatch.setattr(gw.transport, "prepare_dir", probe)

@@ -10,14 +10,14 @@ from pathlib import Path
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.deploy import handlers, pending
+from junction.deploy import handlers, pending
 
 # ─── F1: staging root in config_dir, symlink-preemptable defense ───────────
 
 
 def test_staging_root_uses_config_dir(tmp_path: Path, monkeypatch):
     """F1: _staging_root() returns a path under config_dir(), not /tmp."""
-    monkeypatch.setattr("kiro_crew.deploy.handlers.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.deploy.handlers.config_dir", lambda: tmp_path)
     root = handlers._staging_root()
     assert root.parent == tmp_path
     assert root.name == "deploy-staging"
@@ -34,7 +34,7 @@ def test_staging_root_rejects_symlink(tmp_path: Path, monkeypatch):
     target.mkdir()
     symlink = fake_config / "deploy-staging"
     symlink.symlink_to(target)
-    monkeypatch.setattr("kiro_crew.deploy.handlers.config_dir", lambda: fake_config)
+    monkeypatch.setattr("junction.deploy.handlers.config_dir", lambda: fake_config)
     with pytest.raises(RuntimeError, match="symlink"):
         handlers._staging_root()
 
@@ -43,7 +43,7 @@ def test_staging_root_rejects_wrong_owner(tmp_path: Path, monkeypatch):
     """F1: _staging_root() raises when uid mismatch (mocked)."""
     fake_config = tmp_path / "cfg"
     fake_config.mkdir()
-    monkeypatch.setattr("kiro_crew.deploy.handlers.config_dir", lambda: fake_config)
+    monkeypatch.setattr("junction.deploy.handlers.config_dir", lambda: fake_config)
     # First call creates the dir normally
     handlers._staging_root()
     # Patch os.getuid to return a different uid
@@ -62,7 +62,7 @@ def test_stage_tree_runs_in_thread(tmp_path: Path, monkeypatch):
     """
     fake_config = tmp_path / "cfg"
     fake_config.mkdir()
-    monkeypatch.setattr("kiro_crew.deploy.handlers.config_dir", lambda: fake_config)
+    monkeypatch.setattr("junction.deploy.handlers.config_dir", lambda: fake_config)
 
     src = tmp_path / "src"
     src.mkdir()
@@ -88,7 +88,7 @@ def test_symlink_in_source_blocks_deploy(tmp_path: Path, monkeypatch):
     and then detected+rejected in the staged snapshot check."""
     fake_config = tmp_path / "cfg"
     fake_config.mkdir()
-    monkeypatch.setattr("kiro_crew.deploy.handlers.config_dir", lambda: fake_config)
+    monkeypatch.setattr("junction.deploy.handlers.config_dir", lambda: fake_config)
 
     src = tmp_path / "src"
     src.mkdir()
@@ -111,7 +111,7 @@ def test_normal_tree_passes_staging(tmp_path: Path, monkeypatch):
     """F3: A normal tree (no symlinks) passes the staging check."""
     fake_config = tmp_path / "cfg"
     fake_config.mkdir()
-    monkeypatch.setattr("kiro_crew.deploy.handlers.config_dir", lambda: fake_config)
+    monkeypatch.setattr("junction.deploy.handlers.config_dir", lambda: fake_config)
 
     src = tmp_path / "src"
     src.mkdir()
@@ -137,7 +137,7 @@ def test_normal_tree_passes_staging(tmp_path: Path, monkeypatch):
 
 def test_claim_pending_returns_entry(tmp_path: Path, monkeypatch):
     """F4: claim_pending atomically removes and returns the entry."""
-    monkeypatch.setattr("kiro_crew.deploy.pending.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.deploy.pending.config_dir", lambda: tmp_path)
     entry = pending.add_pending({"site_id": "test-site", "profile": "p"})
     claimed = pending.claim_pending(entry["id"])
     assert claimed is not None
@@ -149,7 +149,7 @@ def test_claim_pending_returns_entry(tmp_path: Path, monkeypatch):
 
 def test_claim_pending_double_claim_atomic(tmp_path: Path, monkeypatch):
     """F4: Two sequential claims — exactly one gets the entry."""
-    monkeypatch.setattr("kiro_crew.deploy.pending.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.deploy.pending.config_dir", lambda: tmp_path)
     entry = pending.add_pending({"site_id": "double-test"})
     first = pending.claim_pending(entry["id"])
     second = pending.claim_pending(entry["id"])
@@ -159,7 +159,7 @@ def test_claim_pending_double_claim_atomic(tmp_path: Path, monkeypatch):
 
 def test_claim_pending_nonexistent_returns_none(tmp_path: Path, monkeypatch):
     """F4: claim_pending with unknown id returns None."""
-    monkeypatch.setattr("kiro_crew.deploy.pending.config_dir", lambda: tmp_path)
+    monkeypatch.setattr("junction.deploy.pending.config_dir", lambda: tmp_path)
     result = pending.claim_pending("nonexistent-uuid")
     assert result is None
 
@@ -175,7 +175,7 @@ def test_manifest_failure_triggers_rollback(tmp_path: Path, monkeypatch):
         recall_called.append((site_id, profile, region))
         return {"recalled": True}
 
-    monkeypatch.setattr("kiro_crew.deploy.engine.recall", mock_recall)
+    monkeypatch.setattr("junction.deploy.engine.recall", mock_recall)
 
     # We just test that the rollback path in the 502 response includes rolled_back
     # The full integration would need the entire _do_deploy; we test the contract:
@@ -188,7 +188,7 @@ def test_manifest_failure_triggers_rollback(tmp_path: Path, monkeypatch):
 
 def test_deploy_sh_no_unbound_scan_rc():
     """F6: deploy.sh must not contain $SCAN_RC (only $_SCAN_RC)."""
-    script = Path(__file__).parent.parent / "src" / "kiro_crew" / "deploy" / \
+    script = Path(__file__).parent.parent / "src" / "junction" / "deploy" / \
         "skills" / "artifact-deploy" / "scripts" / "deploy.sh"
     if not script.exists():
         pytest.skip("deploy.sh not found")
@@ -202,7 +202,7 @@ def test_deploy_sh_no_unbound_scan_rc():
 
 def test_deploy_sh_passes_bash_syntax():
     """F6: deploy.sh passes bash -n syntax check."""
-    script = Path(__file__).parent.parent / "src" / "kiro_crew" / "deploy" / \
+    script = Path(__file__).parent.parent / "src" / "junction" / "deploy" / \
         "skills" / "artifact-deploy" / "scripts" / "deploy.sh"
     if not script.exists():
         pytest.skip("deploy.sh not found")

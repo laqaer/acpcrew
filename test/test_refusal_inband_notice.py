@@ -19,14 +19,14 @@ import re
 
 import pytest
 
-from kiro_crew.dashboard.chat_runner import (
+from junction.dashboard.chat_runner import (
     _refined_tool_row_content,
     _reject_hook_blocked,
     _reject_hook_error,
     _reject_invalid_tool,
     _steer_policy_notice,
 )
-from kiro_crew.dashboard.state import (
+from junction.dashboard.state import (
     DENY_CAUSE_HOOK_ERROR,
     DENY_CAUSE_INVALID_NAME,
     DENY_CAUSE_POLICY,
@@ -70,7 +70,7 @@ class _Slot:
     """Enough of a slot for the reject helper: it appends one blocked row."""
 
     def __init__(self):
-        self.agent = "kirocrew"
+        self.agent = "junction"
         self.rows: list[tuple[str, str]] = []
         self._app = ""
 
@@ -244,24 +244,24 @@ class TestFloorDenialExplainsItself:
     MINT_PATTERN_TAIL = "\\btoken\\b"
 
     def _deny(self, command: str) -> str:
-        from kiro_crew.security import is_denied
+        from junction.security import is_denied
 
         return is_denied(command) or ""
 
     def test_inline_import_is_denied_at_all(self):
         # Guards the premise of every assertion below.
-        assert self._deny('python -c "import kiro_crew"')
+        assert self._deny('python -c "import junction"')
 
     def test_reported_pattern_cannot_match_the_command(self):
         # The exact trap: the first line requires a `token` word this command
         # does not contain, so the identifier alone reads as a false reason.
-        command = 'python -c "import kiro_crew"'
+        command = 'python -c "import junction"'
         first_line = self._deny(command).splitlines()[0]
         assert self.MINT_PATTERN_TAIL in first_line
         assert "token" not in command
 
     def test_second_line_says_the_match_was_structural(self):
-        lines = self._deny('python -c "import kiro_crew"').splitlines()
+        lines = self._deny('python -c "import junction"').splitlines()
         assert len(lines) >= 2, "floor denial must carry an explanation line"
         assert "structurally" in lines[1]
         assert "argv" in lines[1]
@@ -269,13 +269,13 @@ class TestFloorDenialExplainsItself:
     def test_explanation_names_the_import_gate(self):
         # What the agent needs in order to adapt: it is the IMPORT that is
         # gated, so retrying with a differently-worded command is futile.
-        note = self._deny('python -c "import kiro_crew"').splitlines()[1]
+        note = self._deny('python -c "import junction"').splitlines()[1]
         assert "import" in note
 
     def test_first_line_stays_single_line_and_prefixed(self):
         # RecoveryCard.tsx extracts the pattern with a per-line end-anchored
         # regex, so anything appended to line 1 would be read as the pattern.
-        out = self._deny('python -c "import kiro_crew"')
+        out = self._deny('python -c "import junction"')
         assert out.startswith("Blocked by security policy: ")
         assert "\n" not in out.splitlines()[0]
 
@@ -403,7 +403,7 @@ class TestCauseSpecificWording:
         assert build_refusal_steer_notice("bash", "denied") == build_refusal_steer_notice(
             "bash", "denied", cause=DENY_CAUSE_POLICY
         )
-        assert "was blocked by a Kiro Crew safety policy" in build_refusal_steer_notice(
+        assert "was blocked by a Junction safety policy" in build_refusal_steer_notice(
             "bash", "denied"
         )
 
@@ -423,7 +423,7 @@ class TestCauseSpecificWording:
         # body one line later, and the body is the part doing the correcting.
         for cause in (DENY_CAUSE_POLICY, DENY_CAUSE_INVALID_NAME, DENY_CAUSE_HOOK_ERROR):
             out = build_refusal_steer_notice("bash", "why", cause=cause)
-            assert out.startswith("[Kiro Crew host notice]"), cause
+            assert out.startswith("[Junction host notice]"), cause
             # "policy" may still appear in the POLICY cause's own clause; what must
             # not survive is the tag claiming every cause is one.
             assert "policy notice" not in out, cause
@@ -582,7 +582,7 @@ class TestEveryHostDenyCallSiteIsWired:
     catch once someone passes an explicit ``None`` to silence it.
     """
 
-    RUNNER = pathlib.Path(__file__).resolve().parents[1] / "src/kiro_crew/dashboard/chat_runner.py"
+    RUNNER = pathlib.Path(__file__).resolve().parents[1] / "src/junction/dashboard/chat_runner.py"
     HELPERS = ("_reject_invalid_tool", "_reject_hook_error", "_reject_hook_blocked")
     #: A call OPENING in either shape black may produce: arguments on the following
     #: lines, or the whole call on one line. Anchoring to a line that ENDS in "("

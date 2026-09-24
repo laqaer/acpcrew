@@ -508,7 +508,7 @@ describe('Lightbox download', () => {
 
   it('falls back to the alt text when the source carries no filename', async () => {
     const { getByLabelText } = render(<Lightbox />)
-    act(() => open('data:image/png;base64,iVBORw0KGgo=', 'Kiro Crew banner'))
+    act(() => open('data:image/png;base64,iVBORw0KGgo=', 'Junction banner'))
     act(() => { fireEvent.click(getByLabelText('Download image')) })
     await waitFor(() => expect(clicks).toHaveLength(1))
     expect(clicks[0].download).toBe('Kiro_Crew_banner')

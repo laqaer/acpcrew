@@ -41,7 +41,7 @@ const SWITCH = [
   },
   {
     plane: 'Model',
-    sub: 'sidecar optional',
+    sub: 'built-in catalog',
     rows: [
       { name: 'orchestration', state: 'economy' },
       { name: 'planning', state: 'capable' },
@@ -53,7 +53,7 @@ const SWITCH = [
 const SESSIONS = [
   { time: '12:39 PM', title: 'Route orchestration to an economy model', preview: 'Orchestration stays on an economy class…' },
   { time: '12:33 PM', title: 'Dock Codex and apply the role DAG', preview: 'junction router plan — orchestration → planning → execution' , active: true },
-  { time: '12:22 PM', title: 'Sidecar health when the model plane is down', preview: 'Gateway still serves chat; catalog degrades honestly…' },
+  { time: '12:22 PM', title: 'Catalog health when the model plane is down', preview: 'Gateway still serves chat; catalog degrades honestly…' },
   { time: 'Thu 09:19 PM', title: 'Attach a local ACP runtime', preview: 'agent.acp_backend is auto; vendor CLIs optional…' },
 ];
 
@@ -115,7 +115,7 @@ export function AppPreview() {
             </span>
             <Pill>Role DAG</Pill>
             <Pill><Box size={10} /> Terminal</Pill>
-            <Pill>sidecar optional</Pill>
+            <Pill>built-in catalog</Pill>
           </div>
         </div>
 
@@ -217,7 +217,7 @@ export function AppPreview() {
               {/* user bubble */}
               <div className="flex justify-end mb-3">
                 <div className="max-w-[78%] px-3 py-2 rounded-2xl text-[12px]" style={{ background: C.panel, border: `1px solid ${C.border}`, color: C.text }}>
-                  Point execution at the economy model and keep the sidecar optional.
+                  Point execution at the economy model. The catalog stays on loopback.
                 </div>
               </div>
               {/* worked through steps */}
@@ -235,7 +235,7 @@ export function AppPreview() {
                   <div style={{ color: C.mutedSoft }}>@@ orchestration → planning → execution @@</div>
                   <div style={{ color: '#e4a54a' }}>+ role_models.orchestration = economy</div>
                   <div style={{ color: '#e4a54a' }}>+ role_models.planning = capable</div>
-                  <div style={{ color: C.muted }}>  sidecar optional; keys stay off chat</div>
+                  <div style={{ color: C.muted }}>  catalog on loopback; keys stay off chat</div>
                 </div>
               </div>
             </div>

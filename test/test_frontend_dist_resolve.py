@@ -1,11 +1,11 @@
-"""Tests for ``kiro_crew.frontend.ensure_dev_dist_symlink``.
+"""Tests for ``junction.frontend.ensure_dev_dist_symlink``.
 
 Covers the runtime dist-resolution contract described:
 
 * pre-bundled real directory is left alone (packaged install / prior build)
 * valid symlink is kept
 * dangling / empty symlink is replaced
-* sibling ``KiroCrewWebsite/dist`` is resolved and symlinked
+* sibling ``JunctionWebsite/dist`` is resolved and symlinked
 * nothing-found returns ``None`` (caller logs warning and serves legacy UI)
 """
 
@@ -21,12 +21,12 @@ from unittest.mock import patch
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew import frontend, platform_compat
+from junction import frontend, platform_compat
 
 
-def _fake_kiro_crew_package(root: Path) -> Path:
+def _fake_junction_package(root: Path) -> Path:
     """Build the minimal directory shape the resolver walks."""
-    pkg = root / "src" / "KiroCrew" / "src" / "kiro_crew"
+    pkg = root / "src" / "Junction" / "src" / "junction"
     pkg.mkdir(parents=True)
     (pkg / "__init__.py").write_text("")
     return pkg
@@ -51,12 +51,12 @@ def _make_dist(path: Path) -> Path:
 def fake_pkg(tmp_path, monkeypatch):
     """Patch ``frontend.__file__`` to a throwaway filesystem layout.
 
-    Returns the ``kiro_crew`` package dir (``<ws>/src/KiroCrew/src/kiro_crew``).
-    The resolver uses ``Path(__file__)`` from ``kiro_crew.frontend`` to locate
+    Returns the ``junction`` package dir (``<ws>/src/Junction/src/junction``).
+    The resolver uses ``Path(__file__)`` from ``junction.frontend`` to locate
     the package; monkeypatching that attribute redirects every probe to the
     temp-dir tree we build in each test.
     """
-    pkg = _fake_kiro_crew_package(tmp_path)
+    pkg = _fake_junction_package(tmp_path)
     monkeypatch.setattr(frontend, "__file__", str(pkg / "frontend.py"))
     return pkg
 
@@ -114,7 +114,7 @@ def test_dangling_symlink_is_replaced_when_candidate_exists(fake_pkg, tmp_path, 
     shutil.rmtree(dead_target)  # now dangling on both POSIX and Windows
 
     # Sibling checkout has a fresh dist — resolver should pick it up.
-    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "KiroCrewWebsite" / "dist")
+    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "JunctionWebsite" / "dist")
 
     monkeypatch.setattr(subprocess, "run", _no_brazil_path)
 
@@ -149,7 +149,7 @@ def test_symlink_to_empty_dir_is_replaced(fake_pkg, tmp_path, monkeypatch):
     tree_dist.parent.mkdir(parents=True)
     platform_compat.symlink_or_junction(str(empty_target), str(tree_dist))
 
-    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "KiroCrewWebsite" / "dist")
+    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "JunctionWebsite" / "dist")
     monkeypatch.setattr(subprocess, "run", _no_brazil_path)
 
     result = frontend.ensure_dev_dist_symlink()
@@ -162,8 +162,8 @@ def test_symlink_to_empty_dir_is_replaced(fake_pkg, tmp_path, monkeypatch):
 
 
 def test_sibling_checkout_is_symlinked(fake_pkg, monkeypatch):
-    """Sibling KiroCrewWebsite/dist wins even when brazil-path is available."""
-    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "KiroCrewWebsite" / "dist")
+    """Sibling JunctionWebsite/dist wins even when brazil-path is available."""
+    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "JunctionWebsite" / "dist")
 
     # Should not be reached — sibling wins first.
     def _should_not_run(*a, **kw):
@@ -248,7 +248,7 @@ def test_empty_real_dir_is_replaced_when_candidate_exists(fake_pkg, monkeypatch)
     tree_dist = fake_pkg / "static" / "dist"
     tree_dist.mkdir(parents=True)  # empty — no index.html
 
-    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "KiroCrewWebsite" / "dist")
+    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "JunctionWebsite" / "dist")
     monkeypatch.setattr(subprocess, "run", _no_brazil_path)
 
     result = frontend.ensure_dev_dist_symlink()
@@ -268,7 +268,7 @@ def test_resolver_produces_a_symlink_the_pwa_guard_accepts(fake_pkg, tmp_path, m
     prefixes.
     """
     _ = tmp_path  # unused — fake_pkg is the layout we need
-    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "KiroCrewWebsite" / "dist")
+    sibling_dist = _make_dist(fake_pkg.parent.parent.parent / "JunctionWebsite" / "dist")
     (sibling_dist / "pcm-worklet.js").write_text("// worklet")
     monkeypatch.setattr(subprocess, "run", _no_brazil_path)
 
@@ -354,8 +354,8 @@ async def test_build_frontend_async_spawns_resolved_npm_path(tmp_path, monkeypat
 
 
 def _repo_with_build(root: Path) -> Path:
-    """Minimal repo shape: src/kiro_crew/ plus a built website/dist."""
-    (root / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    """Minimal repo shape: src/junction/ plus a built website/dist."""
+    (root / "src" / "junction" / "static").mkdir(parents=True)
     built = _make_dist(root / "website" / "dist")
     (built / "assets" / "app-abc123.js").write_text("console.log(1)")
     return built
@@ -369,7 +369,7 @@ def test_stage_built_dist_replaces_symlink_with_real_copy(tmp_path):
     directory the running gateway serves.
     """
     built = _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.symlink_to(built)
     assert static_dist.is_symlink()
 
@@ -389,7 +389,7 @@ def test_stage_built_dist_replaces_symlink_with_real_copy(tmp_path):
 def test_stage_built_dist_refreshes_an_existing_real_dir(tmp_path):
     """Re-staging overwrites a previously staged tree instead of merging it."""
     _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("stale")
     (static_dist / "old-hashed-chunk.js").write_text("stale")
@@ -403,7 +403,7 @@ def test_stage_built_dist_refreshes_an_existing_real_dir(tmp_path):
 
 def test_stage_built_dist_reports_failure_when_build_missing(tmp_path):
     """No build output → False, so Dev Fleet's strict step fails the sync."""
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     assert frontend._stage_dist(tmp_path / "website" / "dist", tmp_path) is False
 
 
@@ -414,7 +414,7 @@ def test_stage_built_dist_keeps_serving_when_copy_fails(tmp_path):
     served assets down with it.
     """
     built = _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("previously staged")
 
@@ -436,7 +436,7 @@ def test_stage_built_dist_sweeps_abandoned_staging_dirs(tmp_path):
     which fail-closes Dev Fleet's prune.
     """
     _repo_with_build(tmp_path)
-    static_parent = tmp_path / "src" / "kiro_crew" / "static"
+    static_parent = tmp_path / "src" / "junction" / "static"
     static_parent.mkdir(parents=True, exist_ok=True)
     orphan = static_parent / ".dist.staging.abandoned"
     orphan.mkdir()
@@ -466,7 +466,7 @@ def test_concurrent_staging_does_not_destroy_the_served_tree(tmp_path):
     that serialized them anyway could not hide a missing lock.
     """
     built = _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.symlink_to(built)
 
     workers = 4
@@ -543,7 +543,7 @@ def test_stage_built_dist_restores_previous_bundle_when_swap_fails(tmp_path):
     publish an empty dashboard — the last good bundle is put back.
     """
     _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("last good bundle")
     (static_dist / "assets").mkdir()
@@ -581,7 +581,7 @@ def test_stage_built_dist_restores_symlink_when_swap_fails(tmp_path):
     leave the dashboard with nothing to serve.
     """
     built = _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.symlink_to(built)
 
     real_replace = frontend.os.replace
@@ -611,10 +611,10 @@ def test_stage_built_dist_refuses_a_source_without_index(tmp_path):
     `npm run build` empties its outDir before repopulating it, and that build is
     not under the staging lock, so a peer flow's rebuild can be seen mid-flight.
     """
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     mid_rebuild = tmp_path / "website" / "dist"
     mid_rebuild.mkdir(parents=True)  # exists, but Vite has not written index.html yet
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("last good bundle")
 
@@ -630,7 +630,7 @@ def test_stage_built_dist_refuses_when_source_is_emptied_mid_copy(tmp_path, caps
     emptying the tree while copytree reads it.
     """
     built = _repo_with_build(tmp_path)
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("last good bundle")
 
@@ -670,7 +670,7 @@ def test_stage_built_dist_refuses_when_a_referenced_chunk_is_missing(tmp_path):
     """
     built = _repo_with_build(tmp_path)
     (built / "assets" / "main-abc123.js").unlink()  # index still references it
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("last good bundle")
 
@@ -699,9 +699,9 @@ def test_stage_built_dist_sweeps_residue_even_when_refusing(tmp_path):
     accumulate ~30 MB trees that fail-close Dev Fleet's prune just because the
     source was mid-rebuild each time.
     """
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     (tmp_path / "website" / "dist").mkdir(parents=True)  # no index.html -> refused
-    static_parent = tmp_path / "src" / "kiro_crew" / "static"
+    static_parent = tmp_path / "src" / "junction" / "static"
     orphan = static_parent / ".dist.staging.abandoned"
     orphan.mkdir()
     (orphan / "half-copied.js").write_text("x")
@@ -718,14 +718,14 @@ def test_build_and_stage_holds_the_lock_across_the_build(tmp_path):
     partially written tree — and lazy chunks are unreachable from index.html, so
     no inspection of the copy detects that reliably.
     """
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     website = tmp_path / "website"
     website.mkdir()
     lock_held_during_build = {"value": False}
 
     def _fake_build(*args, **kwargs):
         # A peer process would block here; probe it without blocking ourselves.
-        lock_path = tmp_path / "src" / "kiro_crew" / "static" / ".dist.staging.lock"
+        lock_path = tmp_path / "src" / "junction" / "static" / ".dist.staging.lock"
         with open(lock_path, "a+") as probe:
             lock_held_during_build["value"] = not frontend.platform_compat.try_acquire_lock(
                 probe.fileno(), exclusive=True
@@ -745,15 +745,15 @@ def test_build_and_stage_holds_the_lock_across_the_build(tmp_path):
         assert frontend.build_and_stage(tmp_path, npm="/usr/bin/true") is True
 
     assert lock_held_during_build["value"], "the build ran without the staging lock"
-    staged = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    staged = tmp_path / "src" / "junction" / "static" / "dist"
     assert (staged / "index.html").is_file()
 
 
 def test_build_and_stage_reports_a_failed_build(tmp_path):
     """A non-zero build must not publish anything and must return False."""
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     (tmp_path / "website").mkdir()
-    static_dist = tmp_path / "src" / "kiro_crew" / "static" / "dist"
+    static_dist = tmp_path / "src" / "junction" / "static" / "dist"
     static_dist.mkdir()
     (static_dist / "index.html").write_text("last good bundle")
 
@@ -777,7 +777,7 @@ def test_build_and_stage_reaps_the_whole_tree_on_timeout(tmp_path):
     writing website/dist after the lock releases — and a surviving writer makes
     the lock's exclusion meaningless.
     """
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     (tmp_path / "website").mkdir()
     killed: list[tuple[int, int]] = []
 
@@ -810,7 +810,7 @@ def test_build_timeout_reaps_a_descendant_that_escaped_the_group(tmp_path):
     and enumerate BEFORE killing, because the kill reparents survivors to init
     and erases the PPID links that identify them.
     """
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     (tmp_path / "website").mkdir()
     events: list[str] = []
     killed: list[int] = []
@@ -845,12 +845,12 @@ def test_build_timeout_reaps_a_descendant_that_escaped_the_group(tmp_path):
 
 def test_stage_built_dist_accepts_an_explicit_source_dir(tmp_path):
     """A caller may stage from a build directory other than website/dist."""
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     scratch = _make_dist(tmp_path / "website" / "dist-scratch")
 
     assert frontend._stage_dist(scratch, tmp_path) is True
 
-    assert (tmp_path / "src" / "kiro_crew" / "static" / "dist" / "index.html").is_file()
+    assert (tmp_path / "src" / "junction" / "static" / "dist" / "index.html").is_file()
 
 
 def test_build_and_stage_accepts_a_string_repo_path(tmp_path):
@@ -860,7 +860,7 @@ def test_build_and_stage_accepts_a_string_repo_path(tmp_path):
     path must be normalised before any `/` is applied to it — `str / str` raises
     TypeError and would fail every stock Pull+Build before it builds anything.
     """
-    (tmp_path / "src" / "kiro_crew" / "static").mkdir(parents=True)
+    (tmp_path / "src" / "junction" / "static").mkdir(parents=True)
     built = _make_dist(tmp_path / "website" / "dist")
     assert built.is_dir()
 
@@ -877,4 +877,4 @@ def test_build_and_stage_accepts_a_string_repo_path(tmp_path):
             str(tmp_path), npm="/usr/bin/true", log=lambda _m: None
         ) is True
 
-    assert (tmp_path / "src" / "kiro_crew" / "static" / "dist" / "index.html").is_file()
+    assert (tmp_path / "src" / "junction" / "static" / "dist" / "index.html").is_file()

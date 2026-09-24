@@ -18,8 +18,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.workflows import store as store_mod
-from kiro_crew.workflows.store import WorkflowRunStore, _redact, default_workflows_dir
+from junction.workflows import store as store_mod
+from junction.workflows.store import WorkflowRunStore, _redact, default_workflows_dir
 
 
 class TestDefaultWorkflowsDir:
@@ -31,7 +31,7 @@ class TestDefaultWorkflowsDir:
             def load():
                 return SimpleNamespace(workflows=SimpleNamespace(dir=str(configured)))
 
-        monkeypatch.setattr(store_mod, "KiroCrewConfig", _Cfg)
+        monkeypatch.setattr(store_mod, "JunctionConfig", _Cfg)
         assert default_workflows_dir() == configured
 
     def test_expands_user_in_configured_dir(self, monkeypatch) -> None:
@@ -40,7 +40,7 @@ class TestDefaultWorkflowsDir:
             def load():
                 return SimpleNamespace(workflows=SimpleNamespace(dir="~/wf-relative"))
 
-        monkeypatch.setattr(store_mod, "KiroCrewConfig", _Cfg)
+        monkeypatch.setattr(store_mod, "JunctionConfig", _Cfg)
         assert default_workflows_dir() == Path("~/wf-relative").expanduser()
 
     def test_blank_config_value_falls_back_to_config_dir(self, monkeypatch, tmp_path) -> None:
@@ -49,7 +49,7 @@ class TestDefaultWorkflowsDir:
             def load():
                 return SimpleNamespace(workflows=SimpleNamespace(dir=""))
 
-        monkeypatch.setattr(store_mod, "KiroCrewConfig", _Cfg)
+        monkeypatch.setattr(store_mod, "JunctionConfig", _Cfg)
         monkeypatch.setattr(store_mod, "config_dir", lambda: tmp_path)
         assert default_workflows_dir() == tmp_path / "workflows"
 
@@ -59,12 +59,12 @@ class TestDefaultWorkflowsDir:
             def load():
                 raise RuntimeError("config layer unavailable")
 
-        monkeypatch.setattr(store_mod, "KiroCrewConfig", _Cfg)
+        monkeypatch.setattr(store_mod, "JunctionConfig", _Cfg)
         monkeypatch.setattr(store_mod, "config_dir", lambda: tmp_path)
         assert default_workflows_dir() == tmp_path / "workflows"
 
     def test_missing_config_dependency_falls_back(self, monkeypatch, tmp_path) -> None:
-        monkeypatch.setattr(store_mod, "KiroCrewConfig", None)
+        monkeypatch.setattr(store_mod, "JunctionConfig", None)
         monkeypatch.setattr(store_mod, "config_dir", lambda: tmp_path)
         assert default_workflows_dir() == tmp_path / "workflows"
 

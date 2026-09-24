@@ -1,5 +1,5 @@
 /**
- * InstancesPanel — Settings → Instances. Set up and manage remote KiroCrew
+ * InstancesPanel — Settings → Instances. Set up and manage remote Junction
  * instances reachable over SSH tunnels (add / edit / connect / disconnect /
  * diagnose). This panel is the *control plane* only — it does not
  * embed remote dashboards. Once an instance is connected here, switch into it
@@ -291,7 +291,7 @@ export function InstancesPanel() {
           <div role="status" className="flex items-start gap-2 px-3 py-2 mb-3 text-[13px] rounded-md bg-warn/10 text-warn border border-warn/30">
             <AlertTriangle size={14} className="lucide-inline mt-0.5 shrink-0" />
             <span>
-              {i18nT('pages.settings.instancesPanel.disabled_in_config_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.kirocrew_restart')}</code>){' '}
+              {i18nT('pages.settings.instancesPanel.disabled_in_config_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.junction_restart')}</code>){' '}
               {i18nT('pages.settings.instancesPanel.to_fully_tear_down_any_tunnels_still_running_fro')}
             </span>
           </div>
@@ -305,7 +305,7 @@ export function InstancesPanel() {
             i18nKey="pages.settings.instancesPanel.enable_via_setting"
             components={{
               settingRef: <SettingRef configKey="instances.enabled" />,
-              restartCmd: <code className="text-text">kirocrew restart</code>,
+              restartCmd: <code className="text-text">junction restart</code>,
             }}
           />
         </p>
@@ -333,7 +333,7 @@ export function InstancesPanel() {
         <div role="status" className="flex items-start gap-2 px-3 py-2 text-[13px] rounded-md bg-warn/10 text-warn border border-warn/30">
           <AlertTriangle size={14} className="lucide-inline mt-0.5 shrink-0" />
           <span>
-            {i18nT('pages.settings.instancesPanel.enabled_but_not_active_yet_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.kirocrew_restart')}</code>){' '}
+            {i18nT('pages.settings.instancesPanel.enabled_but_not_active_yet_restart_the_gateway')}<code className="text-text">{i18nT('pages.settings.instancesPanel.junction_restart')}</code>){' '}
             {i18nT('pages.settings.instancesPanel.to_start_the_ssh_tunnel_manager_and_activate_ins')}
           </span>
         </div>

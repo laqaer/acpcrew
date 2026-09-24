@@ -21,8 +21,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.apps.builtins.auto_triage_pipeline.backend import pipeline_fold as fold
-from kiro_crew.apps.builtins.auto_triage_pipeline.backend import routes
+from junction.apps.builtins.auto_triage_pipeline.backend import pipeline_fold as fold
+from junction.apps.builtins.auto_triage_pipeline.backend import routes
 
 
 @pytest.fixture(name="enabled")

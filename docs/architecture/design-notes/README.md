@@ -8,7 +8,7 @@ grows into a subsystem should become a spec under
 | Note | Covers |
 |---|---|
 | [soft-stop.md](soft-stop.md) | Cooperative cancel: acknowledging a stop before a hard kill so session state survives. |
-| [session-slack-linking.md](session-slack-linking.md) | How a Slack thread maps onto a Kiro Crew session, and how thread state stays in sync. |
+| [session-slack-linking.md](session-slack-linking.md) | How a Slack thread maps onto a Junction session, and how thread state stays in sync. |
 | [mcp-oauth-ownership.md](mcp-oauth-ownership.md) | Who owns an MCP server's OAuth tokens, and why that ownership is contested. |
 | [connections-status-tiers.md](connections-status-tiers.md) | The authorization axis behind a Connections card: grant-presence status, source-backed connected-since, what Cancel releases, and which mint tiers exist. |
 | [connections-l1-smoke.md](connections-l1-smoke.md) | The Connections launch-gate ladder, and what an automated smoke run over a real stored grant can and cannot prove. |

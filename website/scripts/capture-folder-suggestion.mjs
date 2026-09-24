@@ -21,7 +21,7 @@ import { logPageProblems, stubDashboardApi, json } from './lib/stub-dashboard-ap
 
 const OUT = process.argv[2] || '../temp-screenshots/folder-suggestion'
 const SLOT = 'chat-foldersug'
-const PROJECT = '/home/user/workspace/KiroCrew'
+const PROJECT = '/home/user/workspace/Junction'
 
 mkdirSync(OUT, { recursive: true })
 
@@ -31,7 +31,7 @@ const slots = [{
   running: false,
   last_message: 'Root-caused it to the SegmentedControl width spring.',
   messages: 2,
-  agent: 'kirocrew',
+  agent: 'junction',
   memory_mode: 'persistent',
   project: PROJECT,
   folder_id: '',          // unfiled — the whole precondition for the card

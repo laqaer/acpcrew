@@ -266,13 +266,13 @@ export function ChatHeaderMenu({ activeSlot, agent, onReveal, onRename, mode }: 
     queryFn: () => api.mcpActive(agent || undefined),
     enabled: mcpOpen,
   })
-  // Tool Search mode for this session's MCP tools (shared ['kirocrewConfig']
+  // Tool Search mode for this session's MCP tools (shared ['junctionConfig']
   // cache). When on, tool specs are deferred (search-and-call), so every server
   // shows as connected but its tools load only when used; when off, every spec
   // is sent each turn. Explains the "why are they all loaded?" question.
   const { data: toolSearchOn = true } = useQuery<{ agent?: { tool_search?: boolean } }, Error, boolean>({
-    queryKey: ['kirocrewConfig'],
-    queryFn: () => api.kirocrewConfig(),
+    queryKey: ['junctionConfig'],
+    queryFn: () => api.junctionConfig(),
     select: (c) => c.agent?.tool_search ?? true,
     enabled: mcpOpen,
   })
@@ -857,7 +857,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   const messages = useAppSelector(s => s.chat.messages)
   const messagesRef = useRef(messages)
   messagesRef.current = messages
-  const kiroCrewVersion = useAppSelector(s => s.dashboard.status?.version) || ''
+  const junctionVersion = useAppSelector(s => s.dashboard.status?.version) || ''
   // Count COMPLETED back-and-forths (one user message answered by an assistant
   // reply), not raw assistant-role messages — see countCompletedTurns for why a
   // plain assistant-message tally over-counts. Extracted to a pure helper so the
@@ -2787,8 +2787,8 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
     // it can open the file natively in the IDE editor. If the plugin
     // handles file opens, skip the dashboard's DiffPanel — the user wanted
     // IDE-native, not in-dashboard.
-    try { window.dispatchEvent(new CustomEvent('kirocrew-file-open', { detail: { path: filePath } })) } catch { /* ignore */ }
-    if ((window as unknown as { __kirocrewPluginHandlesFiles?: boolean }).__kirocrewPluginHandlesFiles) return
+    try { window.dispatchEvent(new CustomEvent('junction-file-open', { detail: { path: filePath } })) } catch { /* ignore */ }
+    if ((window as unknown as { __junctionPluginHandlesFiles?: boolean }).__junctionPluginHandlesFiles) return
     try {
       const [{ text }] = await Promise.all([
         queryClient.fetchQuery({
@@ -2905,11 +2905,11 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
     // diff viewer (with syntax highlighting). Skip the dashboard's
     // own DiffPanel in that case — the plugin sets the flag on page load.
     try {
-      window.dispatchEvent(new CustomEvent('kirocrew-file-open', {
+      window.dispatchEvent(new CustomEvent('junction-file-open', {
         detail: { path: filePath, before: original, after: modified },
       }))
     } catch { /* ignore */ }
-    if ((window as unknown as { __kirocrewPluginHandlesFiles?: boolean }).__kirocrewPluginHandlesFiles) return
+    if ((window as unknown as { __junctionPluginHandlesFiles?: boolean }).__junctionPluginHandlesFiles) return
     // Brand-new file (no prior content): a diff would render as one big green
     // all-additions block, which hurts readability. Open the normal readable
     // file view instead — there's no meaningful "before" to compare against.
@@ -4815,7 +4815,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   // "Load preview" card (setSessionPreviewPending) — the GET fires only on the
   // user's explicit Load click, so agent output can never drive the scripted
   // iframe to an arbitrary host without consent.
-  //   • marker (`kirocrew:preview`, explicit agent intent) → also OPEN the tab,
+  //   • marker (`junction:preview`, explicit agent intent) → also OPEN the tab,
   //     once per distinct URL. The applied URL is PERSISTED per slot so a route
   //     remount doesn't reopen a card the user dismissed; an in-memory ref
   //     backstops a failed localStorage write.
@@ -4876,8 +4876,8 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
       }
       browseOpenedRef.current = { key, ts: now }
     }
-    window.addEventListener('kirocrew-tool-call', onTool)
-    return () => window.removeEventListener('kirocrew-tool-call', onTool)
+    window.addEventListener('junction-tool-call', onTool)
+    return () => window.removeEventListener('junction-tool-call', onTool)
   }, [dispatch])
   // Reachability: declare open chat slots to the Electron main process so the
   // agent command channel polls for them (see listPanelIds) even before the Browser
@@ -5042,7 +5042,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   // reload; open sessions keep the model they already resolved.
   const pinModelToAgentMut = useMutation({
     mutationFn: ({ agent, model }: { agent: string; model: string }) =>
-      api.updateKirocrewAgent(agent, { model }),
+      api.updateJunctionAgent(agent, { model }),
     onSuccess: () => {
       dispatch(triggerRefresh())
       queryClient.invalidateQueries({ queryKey: ['resolved-model'] })
@@ -7206,7 +7206,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
                     // a missing check.
                     key={activeSlot}
                     sessionId={activeSlot}
-                    kiroCrewVersion={kiroCrewVersion}
+                    junctionVersion={junctionVersion}
                     turnCount={completedTurnCount}
                     slotOrigin={currentSlot?.origin}
                     onLayoutChange={handleSurveyLayoutChange}

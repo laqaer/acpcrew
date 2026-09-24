@@ -692,7 +692,7 @@ function GovernanceRow({ row }: { row: GovernanceScope }) {
 /** Read-only viewer: the effective governance ceiling across every scope. */
 /* ── Ad-hoc auto-approve duration ── */
 
-interface KirocrewCfgShape { agent?: { yolo_duration?: string; apps_allow_third_party?: unknown } }
+interface JunctionCfgShape { agent?: { yolo_duration?: string; apps_allow_third_party?: unknown } }
 
 const YOLO_DURATION_KEYS = ['30m', '1h', '6h', '12h', '24h', 'until_shutdown'] as const
 type YoloDurationKey = (typeof YOLO_DURATION_KEYS)[number]
@@ -709,13 +709,13 @@ function YoloDurationCard() {
   const qc = useQueryClient()
   const status = useAppSelector(s => s.dashboard.status)
   const untilShutdownPermitted = status?.yolo_until_shutdown_permitted ?? true
-  const { data } = useQuery<KirocrewCfgShape>({ queryKey: ['kirocrewConfig'], queryFn: api.kirocrewConfig })
+  const { data } = useQuery<JunctionCfgShape>({ queryKey: ['junctionConfig'], queryFn: api.junctionConfig })
   const configured = data?.agent?.yolo_duration
   const current: YoloDurationKey =
     YOLO_DURATION_KEYS.find(k => k === configured) ?? '6h'
   const save = useMutation({
     mutationFn: (v: string) => api.patchConfig('agent.yolo_duration', v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['kirocrewConfig'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['junctionConfig'] }),
   })
 
   // Live "when does this end" line, so a no-expiry grant is never mistaken for
@@ -1124,7 +1124,7 @@ function GovernancePolicyViewer() {
             <ShieldCheck size={16} className="lucide-inline text-ok shrink-0 mt-0.5" />
             <div>
               <div className="text-[13px] font-semibold text-text">{i18nT('pages.settings.securityPanel.no_enterprise_policy_in_effect')}</div>
-              <div className="text-[12px] text-muted mt-0.5 leading-relaxed">{i18nT('pages.settings.securityPanel.no_policy_or_host_profile_restricts_the_host_sur')} <code className="font-mono text-[11px]">{i18nT('pages.settings.securityPanel.kiro_crew_security_policy_json')}</code> {i18nT('pages.settings.securityPanel.and_per_surface')} <code className="font-mono text-[11px]">{i18nT('pages.settings.securityPanel.profiles_json')}</code>.</div>
+              <div className="text-[12px] text-muted mt-0.5 leading-relaxed">{i18nT('pages.settings.securityPanel.no_policy_or_host_profile_restricts_the_host_sur')} <code className="font-mono text-[11px]">{i18nT('pages.settings.securityPanel.junction_security_policy_json')}</code> {i18nT('pages.settings.securityPanel.and_per_surface')} <code className="font-mono text-[11px]">{i18nT('pages.settings.securityPanel.profiles_json')}</code>.</div>
             </div>
           </div>
         ) : (
@@ -1237,7 +1237,7 @@ type TrustConfirmTarget =
  * The backend's prose is preferred over a generic "request failed" because the
  * two 409s here are not retry-and-hope conditions: `trust_setting_overlay_owned`
  * names the FILE and KEY the user has to edit (nothing the UI can do for them,
- * since `config.local.json` is user-owned and never written by Kiro Crew), and
+ * since `config.local.json` is user-owned and never written by Junction), and
  * `blanket_trust_sweep_incomplete` names the apps still executing after trust was
  * withdrawn. Collapsing either into "something went wrong" hides the only
  * actionable part.
@@ -1297,7 +1297,7 @@ function PostureSection() {
       <SettingsCard>
         {/* Non-expandable rows: single-valued modes, not counted sets. */}
         <StatusRow icon={<Lock size={14} />} label={i18nT('pages.settings.securityPanel.process_sandbox')} value={i18nT('pages.settings.securityPanel.standard')} variant="ok"
-          href={`${CODE_BASE}/src/kiro_crew/sandbox.py`} />
+          href={`${CODE_BASE}/src/junction/sandbox.py`} />
         <StatusRow
           icon={yolo ? <ShieldAlert size={14} /> : <ShieldCheck size={14} />}
           label={i18nT('pages.settings.securityPanel.tool_approval')}
@@ -1508,7 +1508,7 @@ function DeniedCommandsSection({ draft, onDraftChange, noteDraft, onNoteDraftCha
   }
 
   const confirmBody = !confirm ? '' : confirm.kind === 'disable-all'
-    ? i18nT('pages.settings.securityPanel.disabling_all_built_in_denies_removes_kirocrew_s')
+    ? i18nT('pages.settings.securityPanel.disabling_all_built_in_denies_removes_junction_s')
     : i18nT('pages.settings.securityPanel.disabling_weakens_protection', { name: confirm.description })
 
   return (
@@ -1675,7 +1675,7 @@ function DeniedCommandsSection({ draft, onDraftChange, noteDraft, onNoteDraftCha
         {/* eslint-disable-next-line jsx-a11y/label-has-for -- the Checkbox control is nested inside the label */}
         <label className="flex items-center gap-2.5 mt-4 cursor-pointer">
           <Checkbox checked={ack} onChange={e => setAck(e.target.checked)} />
-          <span className="text-[13px] text-text">{i18nT('pages.settings.securityPanel.i_understand_this_weakens_kirocrew_s_protection')}</span>
+          <span className="text-[13px] text-text">{i18nT('pages.settings.securityPanel.i_understand_this_weakens_junction_s_protection')}</span>
         </label>
       </Modal>
     </SettingsSection>
@@ -1979,7 +1979,7 @@ function LayersSection() {
     <SettingsSection title={i18nT('pages.settings.securityPanel.defense_in_depth_architecture')}>
       <SettingsCard>
         <div className="text-[12px] text-muted mb-3 leading-relaxed">
-          {i18nT('pages.settings.securityPanel.kirocrew_implements_6_security_layers_each_layer')}
+          {i18nT('pages.settings.securityPanel.junction_implements_6_security_layers_each_layer')}
         </div>
         <div className="divide-y divide-border">
           {FEATURES.map(f => <FeatureRow key={f.key} feature={f} />)}
@@ -2123,7 +2123,7 @@ export function SecurityPanel({ basePath }: { basePath?: string } = {}) {
   // own them, so the rail adds no extra request.
   const status = useAppSelector(s => s.dashboard.status)
   const { data: dc } = useQuery<DeniedCommandsData>({ queryKey: ['denied-commands'], queryFn: api.deniedCommands })
-  const { data: cfg, isError: cfgError } = useQuery<KirocrewCfgShape>({ queryKey: ['kirocrewConfig'], queryFn: api.kirocrewConfig })
+  const { data: cfg, isError: cfgError } = useQuery<JunctionCfgShape>({ queryKey: ['junctionConfig'], queryFn: api.junctionConfig })
   // Same key and staleTime the card uses, so the rail adds no second request.
   const { data: tailnet, isError: tailnetError } = useQuery<TailnetStatusData>({
     queryKey: ['tailnet-status'],

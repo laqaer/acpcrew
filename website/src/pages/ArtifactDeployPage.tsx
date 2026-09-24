@@ -292,7 +292,7 @@ export default function ArtifactDeployPage() {
         {showGuide && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
             <div>
-              <b>{i18nT('pages.artifactDeployPage.1_authenticate_to_aws')}</b> {i18nT('pages.artifactDeployPage.in_your_terminal_kirocrew_never_sees_your_keys_p')}
+              <b>{i18nT('pages.artifactDeployPage.1_authenticate_to_aws')}</b> {i18nT('pages.artifactDeployPage.in_your_terminal_junction_never_sees_your_keys_p')}
               <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <CmdRow text="aws configure sso        # recommended — short-lived, auto-refreshing" />
                 <CmdRow text="aws configure --profile myweb   # or a long-lived named profile" />
@@ -307,7 +307,7 @@ export default function ArtifactDeployPage() {
             </div>
             <div><b>{i18nT('pages.artifactDeployPage.2_enter_the_profile_name_region_below')}</b> {i18nT('pages.artifactDeployPage.and_click')} <b>{i18nT('pages.artifactDeployPage.save')}</b>{i18nT('pages.artifactDeployPage.then')} <b>{i18nT('pages.artifactDeployPage.verify_access')}</b>.</div>
             <div>
-              <b>{i18nT('pages.artifactDeployPage.3_apply_the_iam_policy')}</b> {i18nT('pages.artifactDeployPage.click')} <b>{i18nT('pages.artifactDeployPage.get_iam_policy')}</b>{i18nT('pages.artifactDeployPage.then_apply_it_yourself_to_a_dedicated_role_ident')} <code>{i18nT('pages.artifactDeployPage.aws_iam')}</code> {i18nT('pages.artifactDeployPage.command_kirocrew_never_edits_your_iam_the_first')}
+              <b>{i18nT('pages.artifactDeployPage.3_apply_the_iam_policy')}</b> {i18nT('pages.artifactDeployPage.click')} <b>{i18nT('pages.artifactDeployPage.get_iam_policy')}</b>{i18nT('pages.artifactDeployPage.then_apply_it_yourself_to_a_dedicated_role_ident')} <code>{i18nT('pages.artifactDeployPage.aws_iam')}</code> {i18nT('pages.artifactDeployPage.command_junction_never_edits_your_iam_the_first')}
             </div>
             <span style={{ color: 'var(--accent)', fontSize: 12, cursor: 'default' }}>
               {i18nT('pages.artifactDeployPage.full_setup_guide_profile_aws_cli_v2_troubleshoot')}
@@ -330,7 +330,7 @@ export default function ArtifactDeployPage() {
         {showSecurity && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, lineHeight: 1.55 }}>
             <div>
-              <b>{i18nT('pages.artifactDeployPage.your_credentials_never_touch_kirocrew')}</b> {i18nT('pages.artifactDeployPage.only_the')} <b>{i18nT('pages.artifactDeployPage.profile_name')}</b> {i18nT('pages.artifactDeployPage.is_stored_every_aws_call_runs_through_the')} <code>{i18nT('pages.artifactDeployPage.aws')}</code> {i18nT('pages.artifactDeployPage.cli_with')} <code>{i18nT('pages.artifactDeployPage.profile')}</code> {i18nT('pages.artifactDeployPage.never_boto3_so_credential_resolution_stays_in_yo')}
+              <b>{i18nT('pages.artifactDeployPage.your_credentials_never_touch_junction')}</b> {i18nT('pages.artifactDeployPage.only_the')} <b>{i18nT('pages.artifactDeployPage.profile_name')}</b> {i18nT('pages.artifactDeployPage.is_stored_every_aws_call_runs_through_the')} <code>{i18nT('pages.artifactDeployPage.aws')}</code> {i18nT('pages.artifactDeployPage.cli_with')} <code>{i18nT('pages.artifactDeployPage.profile')}</code> {i18nT('pages.artifactDeployPage.never_boto3_so_credential_resolution_stays_in_yo')}
             </div>
             <div>
               <b>{i18nT('pages.artifactDeployPage.the_origin_bucket_is_private')}</b> {i18nT('pages.artifactDeployPage.it_is_created_with_block_public_access_on')}
@@ -487,7 +487,7 @@ export default function ArtifactDeployPage() {
         {policy && (
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>
-              {i18nT('pages.artifactDeployPage.apply_this_policy_yourself_kirocrew_never_edits')}
+              {i18nT('pages.artifactDeployPage.apply_this_policy_yourself_junction_never_edits')}
               {policyTier === 'fullstack' && <span style={{ color: 'var(--accent)' }}> {i18nT('pages.artifactDeployPage.fullstack_tier_includes_lambda_api_gateway_dynam')}</span>}
             </div>
             <pre style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: 10, fontSize: 11, maxHeight: 240, overflow: 'auto' }}>{policy}</pre>

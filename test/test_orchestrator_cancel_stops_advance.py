@@ -34,7 +34,7 @@ def _isolate_config_dir(tmp_path, monkeypatch):
     patching only ``state`` would leave results writing to the live data home.
     """
     for module in ("state", "chat", "chat_orchestrator"):
-        monkeypatch.setattr(f"kiro_crew.dashboard.{module}.config_dir", lambda: tmp_path)
+        monkeypatch.setattr(f"junction.dashboard.{module}.config_dir", lambda: tmp_path)
 
 
 def _make_orchestrator_state(tmp_path, slot_key, titles):
@@ -84,7 +84,7 @@ async def _cancel(client, slot_key):
 @pytest.mark.asyncio
 async def test_cancel_during_run_chat_does_not_advance(tmp_path, monkeypatch):
     """Cancel while stage 1 is inside ``_run_chat`` -- stage 2 must never run."""
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-mid-chat", ["First", "Second"])
 
@@ -99,7 +99,7 @@ async def test_cancel_during_run_chat_does_not_advance(tmp_path, monkeypatch):
             entered.set()
             await release.wait()
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         loop_task = asyncio.create_task(_stage_loop(state, slot, auto_run=True))
@@ -132,7 +132,7 @@ async def test_cancel_between_stages_blocks_reentry(tmp_path, monkeypatch):
     Go re-enters -- so this runs stage 1 for real first, which is also what puts
     a tracker on the slot for Cancel to stop.
     """
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-between", ["First", "Second"])
     slot._auto_run = False
@@ -143,7 +143,7 @@ async def test_cancel_between_stages_blocks_reentry(tmp_path, monkeypatch):
         stages_run.append(len(stages_run) + 1)
         _slot.append("assistant", f"stage {len(stages_run)} body", "msg msg-a")
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         # First Go: runs stage 1, then pauses for approval and returns.
@@ -169,8 +169,8 @@ async def test_cancel_during_subagent_wait_does_not_advance(tmp_path, monkeypatc
     i.e. exactly between two evaluations of the poll's own stop condition, which
     is what makes the timing deterministic rather than a race against a 2s tick.
     """
-    from kiro_crew.dashboard import chat_orchestrator
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard import chat_orchestrator
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-subagent", ["First", "Second"])
     # Never drains on its own: only the cancel can end this wait.
@@ -182,7 +182,7 @@ async def test_cancel_during_subagent_wait_does_not_advance(tmp_path, monkeypatc
         stages_run.append(len(stages_run) + 1)
         _slot.append("assistant", f"stage {len(stages_run)} body", "msg msg-a")
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         polls = {"n": 0}

@@ -24,14 +24,14 @@ the user removes it, so this is stricter than a "post-launch" cutoff. Removing
 the spelling while any legacy home could persist would un-gate real credentials
 (`.env`, `token_signing.key`, `security_policy.json`, …).
 
-**What to delete then:** the `.kirocrew` spelling in `src/kiro_crew/security.py`
-(`_CREW_HOME_PREFIXES`, the `sensitive-file-read-cat-kirocrew-env` rule, and its
+**What to delete then:** the `.kirocrew` spelling in `src/junction/security.py`
+(`_CREW_HOME_PREFIXES`, the `sensitive-file-read-cat-junction-env` rule, and its
 `test/fixtures/denied_commands_golden.json` entry). Keep `.kiro/crew`. The
-`kirocrew ... token` credential-exfil rule (`.*kirocrew.*token`) matches the CLI
+`junction ... token` credential-exfil rule (`.*junction.*token`) matches the CLI
 *name*, not the path — leave it.
 
 **Do NOT confuse with (these stay — permanent, not migration scaffolding):**
-- the `~/.kiro/crew` resolution itself, the `KIROCREW_HOME` override, and the
+- the `~/.kiro/crew` resolution itself, the `JUNCTION_HOME` override, and the
   security keystone for `~/.kiro/crew`;
 - `legacy_home()` / `LEGACY_CONFIG_DIR_NAME` — still consumed by autonudge, seed,
   session storage, and other legacy-path readers, independent of the removed

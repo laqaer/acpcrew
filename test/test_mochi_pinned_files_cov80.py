@@ -21,8 +21,8 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.apps.builtins.mochi import pinned_files_service as pfs
-from kiro_crew.apps.builtins.mochi.pinned_files_service import (
+from junction.apps.builtins.mochi import pinned_files_service as pfs
+from junction.apps.builtins.mochi.pinned_files_service import (
     DATA_FILE_NAME,
     DEBOUNCE_MS,
     MAX_PINS,

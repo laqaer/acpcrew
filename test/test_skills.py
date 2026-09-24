@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.config.loader import KiroCrewConfig, SkillsConfig
-from kiro_crew.skill_usage import SkillUsageLedger
-from kiro_crew.skills import _SHORT_DESC_CHARS, SkillsLoader
+from junction.config.loader import JunctionConfig, SkillsConfig
+from junction.skill_usage import SkillUsageLedger
+from junction.skills import _SHORT_DESC_CHARS, SkillsLoader
 
 
 @pytest.fixture(autouse=True)
@@ -19,12 +19,12 @@ def _isolate_extra_paths(monkeypatch, tmp_path_factory):
     don't bleed into these hermetic loader tests. Tests that need extra_paths
     pass ``config=``; tests that need edition-root resolution monkeypatch
     ``DefaultMcpToolingProvider.extra_skills``."""
-    from kiro_crew.platform.defaults import DefaultMcpToolingProvider
+    from junction.platform.defaults import DefaultMcpToolingProvider
 
     monkeypatch.setattr(
-        KiroCrewConfig,
+        JunctionConfig,
         "load",
-        classmethod(lambda cls: KiroCrewConfig(skills=SkillsConfig(extra_paths=[]))),
+        classmethod(lambda cls: JunctionConfig(skills=SkillsConfig(extra_paths=[]))),
     )
     monkeypatch.setattr(DefaultMcpToolingProvider, "extra_skills", lambda self: [])
 
@@ -287,7 +287,7 @@ class TestSkillsLoader:
         when the rewrite lands in the same mtime tick as the priming read."""
         import os
 
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         loader = SkillsLoader(skills_path=tmp_path / "skills", install_builtins=False)
         prov = AutoSkillProvenance(session_key="s1", created_at="2026-01-01T00:00:00Z")
@@ -345,7 +345,7 @@ class TestRepoScope:
 
     def _repo(self, tmp_path: Path, name: str = "checkout") -> Path:
         repo = tmp_path / name
-        (repo / "src" / "kiro_crew").mkdir(parents=True)
+        (repo / "src" / "junction").mkdir(parents=True)
         # A real checkout carries a .git entry, and the gate reads it as the
         # boundary the ancestor walk stops at, so the fixture needs one to model a
         # repository rather than a bare directory tree.
@@ -356,13 +356,13 @@ class TestRepoScope:
         # No project named at all -> fail closed. An un-scoped surface (eval
         # harness, a session with no project set) never inherits repo rules.
         skills = tmp_path / "skills"
-        self._write_skill(skills, "repo-only", "src/kiro_crew")
+        self._write_skill(skills, "repo-only", "src/junction")
         loader = SkillsLoader(skills_path=skills, install_builtins=False)
         assert loader.get_triggered_skills("zebra quokka") == []
 
     def test_scoped_skill_suppressed_outside_repo(self, tmp_path: Path) -> None:
         skills = tmp_path / "skills"
-        self._write_skill(skills, "repo-only", "src/kiro_crew")
+        self._write_skill(skills, "repo-only", "src/junction")
         loader = SkillsLoader(skills_path=skills, install_builtins=False)
         outside = tmp_path / "elsewhere"
         outside.mkdir()
@@ -370,12 +370,12 @@ class TestRepoScope:
 
     def test_scoped_skill_eligible_inside_repo(self, tmp_path: Path) -> None:
         skills = tmp_path / "skills"
-        self._write_skill(skills, "repo-only", "src/kiro_crew")
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        self._write_skill(skills, "repo-only", "src/junction")
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills, install_builtins=False, config=cfg)
         subdir = self._repo(tmp_path) / "website"
         subdir.mkdir()
-        # ancestor of the project dir contains src/kiro_crew
+        # ancestor of the project dir contains src/junction
         assert loader.get_triggered_skills("zebra quokka", project_dir=str(subdir)) == [
             "repo-only"
         ]
@@ -387,8 +387,8 @@ class TestRepoScope:
         # scoped checkout admitted the skill into every session, whatever the
         # session was working on. Standing in the repo must decide nothing.
         skills = tmp_path / "skills"
-        self._write_skill(skills, "repo-only", "src/kiro_crew")
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        self._write_skill(skills, "repo-only", "src/junction")
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills, install_builtins=False, config=cfg)
         monkeypatch.chdir(self._repo(tmp_path))
         other = tmp_path / "some-rust-project"
@@ -400,7 +400,7 @@ class TestRepoScope:
         # Both injection paths share one helper; a pinned skill must not be a
         # way around the gate.
         skills = tmp_path / "skills"
-        self._write_skill(skills, "repo-only", "src/kiro_crew", always=True)
+        self._write_skill(skills, "repo-only", "src/junction", always=True)
         loader = SkillsLoader(skills_path=skills, install_builtins=False)
         other = tmp_path / "some-rust-project"
         other.mkdir()
@@ -411,7 +411,7 @@ class TestRepoScope:
     def test_unscoped_skill_unaffected(self, tmp_path: Path) -> None:
         skills = tmp_path / "skills"
         self._write_skill(skills, "anywhere", None)
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills, install_builtins=False, config=cfg)
         assert loader.get_triggered_skills("zebra quokka") == ["anywhere"]
 
@@ -427,9 +427,9 @@ class TestRepoScope:
         # the index tells the agent to read the full file for anything related -
         # so the repo-specific procedure stays one `cat` away.
         skills = tmp_path / "skills"
-        self._write_skill(skills, "repo-only", "src/kiro_crew")
+        self._write_skill(skills, "repo-only", "src/junction")
         self._write_skill(skills, "anywhere", None)
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills, install_builtins=False, config=cfg)
         other = tmp_path / "some-rust-project"
         other.mkdir()
@@ -451,7 +451,7 @@ class TestRepoScope:
         # covers the injection paths, and the description is what an agent reads
         # on the paths it does not cover (an explicit `$name` load, a
         # `skill_search` hit, or reading the file directly).
-        from kiro_crew import skills as skills_mod
+        from junction import skills as skills_mod
 
         skill_md = (
             Path(skills_mod.__file__).parent
@@ -463,12 +463,12 @@ class TestRepoScope:
             / "SKILL.md"
         )
         head = skill_md.read_text(encoding="utf-8")[:2048]
-        assert "repo_scope: src/kiro_crew" in head
-        assert "ONLY for developing Kiro Crew itself" in head
+        assert "repo_scope: src/junction" in head
+        assert "ONLY for developing Junction itself" in head
 
 
 class TestRelocatedSkillCleanup:
-    """Skills moved into skills/kirocrew-dev/ must have their old FLAT copies
+    """Skills moved into skills/junction-dev/ must have their old FLAT copies
     removed from loader discovery on existing installs — otherwise an upgrade
     leaves two divergent copies matched nondeterministically by trigger overlap
     (the dual-copy drift PR #353's arbiter blocked). The flat copy may carry
@@ -478,7 +478,7 @@ class TestRelocatedSkillCleanup:
     nested replacement is verifiably present."""
 
     def test_flat_copy_quarantined_when_nested_present(self, tmp_path: Path) -> None:
-        from kiro_crew.skills import _ensure_builtin_skills
+        from junction.skills import _ensure_builtin_skills
 
         base = tmp_path / "skills"
         old = base / "prepare-pr"
@@ -486,7 +486,7 @@ class TestRelocatedSkillCleanup:
         (old / "SKILL.md").write_text("---\nname: prepare-pr\n---\nUSER-EDITED flat copy")
         (old / "scripts").mkdir()
         (old / "scripts" / "helper.py").write_text("# user script")
-        new = base / "kirocrew-dev" / "prepare-pr"
+        new = base / "junction-dev" / "prepare-pr"
         new.mkdir(parents=True)
         (new / "SKILL.md").write_text("---\nname: prepare-pr\n---\nnested copy")
 
@@ -507,12 +507,12 @@ class TestRelocatedSkillCleanup:
         # SKILL.md AFTER a prior migration quarantined a user-edited copy.
         # The second migration must NOT os.replace over the first quarantine
         # — both preserved copies must survive under distinct names.
-        from kiro_crew.skills import _ensure_builtin_skills
+        from junction.skills import _ensure_builtin_skills
 
         base = tmp_path / "skills"
         old = base / "prepare-pr"
         old.mkdir(parents=True)
-        new = base / "kirocrew-dev" / "prepare-pr"
+        new = base / "junction-dev" / "prepare-pr"
         new.mkdir(parents=True)
         (new / "SKILL.md").write_text("---\nname: prepare-pr\n---\nnested copy")
 
@@ -541,8 +541,8 @@ class TestRelocatedSkillCleanup:
         # The empty source dir is what makes "never synced" real. Relying on a
         # relocated skill simply not being packaged would stop testing this the
         # moment that skill ships.
-        from kiro_crew import skills as skills_mod
-        from kiro_crew.skills import _ensure_builtin_skills
+        from junction import skills as skills_mod
+        from junction.skills import _ensure_builtin_skills
 
         monkeypatch.setattr(skills_mod, "_BUILTIN_SKILLS_DIR", tmp_path / "no-builtins")
 
@@ -566,12 +566,12 @@ class TestTriggeredSkills:
             "tiny-url",
             f"---\nname: tiny-url\ndescription: Shorten URLs\ntriggers: {triggers}\n---\n# Tiny URL\n",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
         if monkeypatch is not None:
             from unittest.mock import MagicMock
 
-            monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+            monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
         return loader
 
     def test_exact_trigger_match(self, tmp_path, monkeypatch):
@@ -605,7 +605,7 @@ class TestTriggeredSkills:
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
         from unittest.mock import MagicMock
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
         assert loader.get_triggered_skills("hello world") == []
 
     def test_case_insensitive(self, tmp_path, monkeypatch):
@@ -627,7 +627,7 @@ class TestTriggeredSkills:
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
         from unittest.mock import MagicMock
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
         assert loader.get_triggered_skills("anything") == []
 
     def test_trigger_match_does_not_record_usage(self, tmp_path, monkeypatch):
@@ -753,10 +753,10 @@ class TestTriggerMatching:
             "weather",
             "---\nname: weather\ndescription: Get weather info\ntriggers: weather forecast\n---\n",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         result = loader.get_triggered_skills("what's the weather forecast today")
         assert "weather" in result
@@ -771,10 +771,10 @@ class TestTriggerMatching:
             "code-search",
             "---\nname: code-search\ndescription: Search code\ntriggers: search code, !search examples\n---\n",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         # Positive match without negative words
         assert "code-search" in loader.get_triggered_skills("search code repositories")
@@ -792,10 +792,10 @@ class TestTriggerMatching:
                 f"---\nname: skill{i}\ndescription: Skill {i}\ntriggers: test\n---\n",
             )
         # max_triggered is snapshotted at construction, so inject via config=.
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=2))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=2))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         result = loader.get_triggered_skills("test")
         assert len(result) == 2
@@ -817,10 +817,10 @@ class TestTriggerMatching:
             "better",
             "---\nname: better\ndescription: Better\ntriggers: alpha beta gamma\n---\n",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=5))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=5))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         result = loader.get_triggered_skills("alpha beta gamma")
         assert len(result) == 2
@@ -835,10 +835,10 @@ class TestTriggerMatching:
             skills_dir, "always", "---\nname: always\nalways: true\ntriggers: test\n---\n"
         )
         _create_skill(skills_dir, "normal", "---\nname: normal\ntriggers: test\n---\n")
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=5))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=5))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         result = loader.get_triggered_skills("test")
         assert "always" not in result
@@ -854,10 +854,10 @@ class TestTriggerMatching:
             "tiny-url",
             "---\nname: tiny-url\ndescription: Shorten URLs\ntriggers: shorten url, create tiny link, make short url\n---\n",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(max_triggered=3))
+        cfg = JunctionConfig(skills=SkillsConfig(max_triggered=3))
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
 
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         assert "tiny-url" in loader.get_triggered_skills("please shorten this url")
         assert "tiny-url" in loader.get_triggered_skills("create a tiny link for me")
@@ -869,14 +869,14 @@ class TestAutoSkillProvenance:
     """Tests for the AutoSkillProvenance dataclass frontmatter serialization."""
 
     def test_now_iso_is_utc(self):
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         stamp = AutoSkillProvenance.now_iso()
         # ISO 8601 UTC ends with +00:00 when using timezone.utc
         assert "+00:00" in stamp
 
     def test_frontmatter_lines_minimum(self):
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         prov = AutoSkillProvenance(
             session_key="dashboard:chat-1", created_at="2026-05-05T11:30:00+00:00"
@@ -890,7 +890,7 @@ class TestAutoSkillProvenance:
         assert not any(line.startswith("reuse_count:") for line in lines)
 
     def test_frontmatter_lines_with_refinement(self):
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         prov = AutoSkillProvenance(
             session_key="dashboard:chat-2",
@@ -982,7 +982,7 @@ class TestCreateAutoSkill:
     """Tests for SkillsLoader.create_auto_skill."""
 
     def _make_provenance(self):
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         return AutoSkillProvenance(
             session_key="dashboard:chat-1",
@@ -1057,7 +1057,7 @@ class TestCreateAutoSkill:
         )
 
     def test_rejects_oversized_procedure(self, tmp_path):
-        from kiro_crew.skills import AUTO_SKILL_MAX_PROCEDURE_CHARS
+        from junction.skills import AUTO_SKILL_MAX_PROCEDURE_CHARS
 
         loader = SkillsLoader(skills_path=tmp_path / "skills", install_builtins=False)
         huge = "x" * (AUTO_SKILL_MAX_PROCEDURE_CHARS + 1)
@@ -1101,7 +1101,7 @@ class TestUpdateAutoSkill:
     """Tests for SkillsLoader.update_auto_skill (refine path)."""
 
     def _make_provenance(self, refined_at=""):
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         return AutoSkillProvenance(
             session_key="dashboard:chat-2",
@@ -1187,7 +1187,7 @@ class TestListAutoSkills:
             procedure_md="body",
             provenance=(
                 __import__(
-                    "kiro_crew.skills", fromlist=["AutoSkillProvenance"]
+                    "junction.skills", fromlist=["AutoSkillProvenance"]
                 ).AutoSkillProvenance(
                     session_key="x",
                     created_at="2026-05-05T11:30:00+00:00",
@@ -1203,7 +1203,7 @@ class TestAutoNameFromTitleTruncation:
     """Regression test for #6: trailing hyphen after truncation would fail regex."""
 
     def test_trailing_hyphen_stripped_after_truncation(self):
-        from kiro_crew.skills import _auto_name_from_title
+        from junction.skills import _auto_name_from_title
 
         # Build a title where the 62-char boundary lands in the middle of a
         # word-separator run ("-") that would otherwise leave a trailing
@@ -1221,12 +1221,12 @@ class TestAutoNameFromTitleTruncation:
         assert slug == "a" * 61
 
     def test_normal_title_unaffected(self):
-        from kiro_crew.skills import _auto_name_from_title
+        from junction.skills import _auto_name_from_title
 
         assert _auto_name_from_title("Debug Timber logs via SSH") == "debug-timber-logs-via-ssh"
 
     def test_empty_and_invalid_inputs_still_return_empty(self):
-        from kiro_crew.skills import _auto_name_from_title
+        from junction.skills import _auto_name_from_title
 
         assert _auto_name_from_title("") == ""
         assert _auto_name_from_title("!!!") == ""
@@ -1238,7 +1238,7 @@ class TestUpdateAutoSkillPreservesCreatedAt:
     """Regression test for #5: refine must not clobber created_at."""
 
     def test_created_at_preserved_across_refine(self, tmp_path):
-        from kiro_crew.skills import AutoSkillProvenance
+        from junction.skills import AutoSkillProvenance
 
         loader = SkillsLoader(skills_path=tmp_path / "skills", install_builtins=False)
         original = AutoSkillProvenance(
@@ -1279,7 +1279,7 @@ class TestUpdateAutoSkillPreservesCreatedAt:
 
 def _cfg_with_extra(paths):
     """Build a config with skills.extra_paths set (isolated, no disk read)."""
-    return KiroCrewConfig(skills=SkillsConfig(extra_paths=paths))
+    return JunctionConfig(skills=SkillsConfig(extra_paths=paths))
 
 
 class TestSkillsLoaderExtraPaths:
@@ -1351,7 +1351,7 @@ class TestSkillsLoaderExtraPaths:
     def test_sensitive_extra_path_skipped(self, tmp_path, monkeypatch):
         extra = tmp_path / "extra"
         extra.mkdir()
-        monkeypatch.setattr("kiro_crew.skills.is_sensitive_path", lambda p: True)
+        monkeypatch.setattr("junction.skills.is_sensitive_path", lambda p: True)
         loader = SkillsLoader(
             skills_path=tmp_path / "local",
             install_builtins=False,
@@ -1369,7 +1369,7 @@ class TestSkillsLoaderExtraPaths:
         # Both listing (_iter) and load_skill route extra-path reads through
         # validate_file_path — flagging it there blocks both.
         monkeypatch.setattr(
-            "kiro_crew.skills.validate_file_path",
+            "junction.skills.validate_file_path",
             lambda p: None if str(p).endswith("SKILL.md") else p,
         )
         loader = SkillsLoader(
@@ -1408,11 +1408,11 @@ class TestTriggerPerformance:
         loader = SkillsLoader(
             skills_path=skills_dir,
             install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         fake_sel = MagicMock()
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.skills.sel", lambda: fake_sel)
         triggered = loader.get_triggered_skills("please shorten this url")
 
         assert "tiny-url" in triggered
@@ -1432,7 +1432,7 @@ class TestTriggerPerformance:
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
 
         fake_sel = MagicMock()
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.skills.sel", lambda: fake_sel)
         assert loader.get_triggered_skills("hello there friend") == []
         assert fake_sel.log_tool_invocation.call_count == 0
 
@@ -1458,7 +1458,7 @@ class TestTriggerPerformance:
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
 
         fake_sel = MagicMock()
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: fake_sel)
+        monkeypatch.setattr("junction.skills.sel", lambda: fake_sel)
         # "shorten url" matches the positive trigger, but "test" fires the
         # negative trigger → excluded.
         triggered = loader.get_triggered_skills("shorten url for this test")
@@ -1482,7 +1482,7 @@ class TestTriggerPerformance:
             "---\nname: tiny-url\ndescription: d\ntriggers: shorten url\n---\n# x\n",
         )
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         calls = {"n": 0}
         orig = loader._iter_uncached
@@ -1509,16 +1509,16 @@ class TestTriggerPerformance:
             "---\nname: tiny-url\ndescription: d\ntriggers: shorten url\n---\n# x\n",
         )
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         calls = {"n": 0}
-        real_load = KiroCrewConfig.load
+        real_load = JunctionConfig.load
 
         def _counting_load():
             calls["n"] += 1
             return real_load()
 
-        monkeypatch.setattr("kiro_crew.config.loader.KiroCrewConfig.load", _counting_load)
+        monkeypatch.setattr("junction.config.loader.JunctionConfig.load", _counting_load)
         for _ in range(5):
             loader.get_triggered_skills("shorten this url")
         # Zero config loads across 5 messages — the cap was snapshotted in __init__.
@@ -1535,10 +1535,10 @@ class TestTriggerPerformance:
                 f"s{i}",
                 f"---\nname: s{i}\ndescription: d\ntriggers: shorten url\n---\n# x\n",
             )
-        cfg = KiroCrewConfig()
+        cfg = JunctionConfig()
         cfg.skills.max_triggered = 2
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False, config=cfg)
-        monkeypatch.setattr("kiro_crew.skills.sel", lambda: MagicMock())
+        monkeypatch.setattr("junction.skills.sel", lambda: MagicMock())
 
         triggered = loader.get_triggered_skills("shorten url")
         assert len(triggered) == 2
@@ -1640,7 +1640,7 @@ class TestResolveDollarSkills:
                 f"---\nname: skill{i}\ndescription: d{i}\n---\n# S{i}\nbody{i}",
             )
         loader = SkillsLoader(skills_path=skills_dir, install_builtins=False)
-        monkeypatch.setattr("kiro_crew.skills._MAX_DOLLAR_SKILLS", 5)
+        monkeypatch.setattr("junction.skills._MAX_DOLLAR_SKILLS", 5)
         msg = " ".join(f"$skill{i}" for i in range(8))
         out = loader.resolve_dollar_skills(msg)
         assert len(out) == 5
@@ -1655,7 +1655,7 @@ class TestResolveDollarSkills:
             "WorkforceEmploymentKnowledgeBase/oncall-handover",
             "---\nname: WFE/oncall-handover\n---\nAIM",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(extra_paths=[str(aim)]))
+        cfg = JunctionConfig(skills=SkillsConfig(extra_paths=[str(aim)]))
         loader = SkillsLoader(skills_path=local, install_builtins=False, config=cfg)
         out = loader.resolve_dollar_skills("$oncall-handover")
         assert len(out) == 1
@@ -1668,7 +1668,7 @@ class TestResolveDollarSkills:
             "WorkforceEmploymentKnowledgeBase/alarm-investigation",
             "---\nname: WFE/alarm-investigation\n---\nAIM ALARM",
         )
-        cfg = KiroCrewConfig(skills=SkillsConfig(extra_paths=[str(aim)]))
+        cfg = JunctionConfig(skills=SkillsConfig(extra_paths=[str(aim)]))
         loader = SkillsLoader(skills_path=tmp_path / "skills", install_builtins=False, config=cfg)
         out = loader.resolve_dollar_skills("check $alarm-investigation")
         assert len(out) == 1
@@ -1680,7 +1680,7 @@ class TestResolveDollarSkills:
         # resolve via $leaf WITHOUT being in config extra_paths — the loader
         # appends edition roots so the $skill resolver matches what the
         # /api/skills picker offers (frontend/backend parity).
-        from kiro_crew.platform.defaults import DefaultMcpToolingProvider
+        from junction.platform.defaults import DefaultMcpToolingProvider
 
         aim_root = tmp_path / "aim_skills"
         _create_skill(
@@ -1701,7 +1701,7 @@ class TestResolveDollarSkills:
     def test_local_skill_wins_over_aim_root_on_leaf_collision(self, tmp_path, monkeypatch):
         # Local skills dir and an edition root both have a `grill` leaf → local
         # wins (edition roots are appended last, _iter dedupes by first-seen).
-        from kiro_crew.platform.defaults import DefaultMcpToolingProvider
+        from junction.platform.defaults import DefaultMcpToolingProvider
 
         aim_root = tmp_path / "aim_skills"
         _create_skill(aim_root, "SomePkg/grill", "---\nname: grill\n---\nAIM GRILL")
@@ -1913,7 +1913,7 @@ class TestDisabledAppSkillsAreNotTriggered:
     @staticmethod
     def _apps(monkeypatch, **enabled: bool) -> None:
         """Stub the app registry: name -> enabled."""
-        import kiro_crew.apps.manager as mgr
+        import junction.apps.manager as mgr
 
         monkeypatch.setattr(
             mgr, "list_apps",
@@ -1926,7 +1926,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         self._apps(monkeypatch, deploy_web=False)
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("please deploy this") == []
@@ -1937,7 +1937,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         self._apps(monkeypatch, deploy_web=True)
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("please deploy this") == ["deploy_web/artifact-deploy"]
@@ -1950,7 +1950,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         self._apps(monkeypatch, deploy_web=False, ops_mc=True)
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("please deploy this") == ["ops_mc/ops-mission-control"]
@@ -1964,7 +1964,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         self._apps(monkeypatch, deploy_web=False)
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("please deploy this") == ["my-notes"]
@@ -1972,7 +1972,7 @@ class TestDisabledAppSkillsAreNotTriggered:
     def test_an_unreadable_app_registry_hides_nothing(self, tmp_path, monkeypatch):
         """Fail OPEN here, deliberately: a transient read error must not silently
         strip an enabled app's skills out of context."""
-        import kiro_crew.apps.manager as mgr
+        import junction.apps.manager as mgr
 
         skills = tmp_path / "skills"
         self._write_app_skill(skills, "deploy_web", "artifact-deploy", "deploy")
@@ -1983,7 +1983,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         monkeypatch.setattr(mgr, "list_apps", _boom)
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("please deploy this") == ["deploy_web/artifact-deploy"]
@@ -1998,7 +1998,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         tree (``apps/builtins/auto_improvement/skills/ai-discover``), not the
         data-home apps root. Returns the app's manifest name.
         """
-        import kiro_crew.skills as skills_mod
+        import junction.skills as skills_mod
 
         target = (
             Path(skills_mod.__file__).parent
@@ -2021,7 +2021,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         self._apps(monkeypatch, **{app: False})
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("find hotspots for me") == []
@@ -2033,7 +2033,7 @@ class TestDisabledAppSkillsAreNotTriggered:
         self._apps(monkeypatch, **{app: True})
         loader = SkillsLoader(
             skills_path=skills, install_builtins=False,
-            config=KiroCrewConfig(skills=SkillsConfig(max_triggered=3)),
+            config=JunctionConfig(skills=SkillsConfig(max_triggered=3)),
         )
 
         assert loader.get_triggered_skills("find hotspots for me") == ["ai-discover"]

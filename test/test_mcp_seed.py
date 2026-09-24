@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from kiro_crew.mcp_gateway import verdict_cache as vc
-from kiro_crew.mcp_gateway.seed import apply_seed, plan_seed
+from junction.mcp_gateway import verdict_cache as vc
+from junction.mcp_gateway.seed import apply_seed, plan_seed
 
 
 @pytest.fixture

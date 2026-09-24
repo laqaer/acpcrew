@@ -1,12 +1,12 @@
 # Memory benchmarks (LongMemEval, LoCoMo)
 
-`kirocrew bench` measures the Kiro Crew memory layer against two published benchmarks.
-It exists to answer one question the existing `kirocrew eval` cannot: **did this
+`junction bench` measures the Junction memory layer against two published benchmarks.
+It exists to answer one question the existing `junction eval` cannot: **did this
 change make the agent's memory better or worse?**
 
-## Why not extend `kirocrew eval`
+## Why not extend `junction eval`
 
-`kirocrew eval` runs 4 hand-written scenarios carrying 19 substring assertions, in
+`junction eval` runs 4 hand-written scenarios carrying 19 substring assertions, in
 a single pass. Three properties make it unable to answer that question, and none of
 them are fixed by adding scenarios:
 
@@ -61,7 +61,7 @@ usefulness. `recall_any`, `recall_micro` and `ndcg` are reported alongside it.
 
 One deliberate divergence: upstream stems with nltk's `PorterStemmer`, which
 defaults to `NLTK_EXTENSIONS` (an irregular-form table, and words of length ≤ 2 left
-alone). nltk is not a Kiro Crew dependency, so the port uses `snowballstemmer`'s
+alone). nltk is not a Junction dependency, so the port uses `snowballstemmer`'s
 original Porter algorithm, already a hard dependency. They agree on the large
 majority of English tokens but are not bit-identical, so a LoCoMo number from this
 harness can differ from a published one in the third decimal.
@@ -326,7 +326,7 @@ through the FTS5 keyword fallback.
 ### The embedder identity describes the live embedder
 
 It is read from the running embedder, not from the module constants.
-`KIROCREW_EMBED_MODEL_PATH` (and `memory.embed_model_path`) make Kiro Crew run a
+`JUNCTION_EMBED_MODEL_PATH` (and `memory.embed_model_path`) make Junction run a
 different model, and the vector width can be adopted from the model file itself.
 Since `compare_reports` refuses only when two identities **differ**, recording the
 bundled constants for a custom run would let two different vector spaces be
@@ -377,25 +377,25 @@ the second run onward).
 ## Usage
 
 ```bash
-kirocrew bench list                    # corpora, sizes, what is cached
-kirocrew bench fetch locomo10          # download + verify (2.8 MB)
+junction bench list                    # corpora, sizes, what is cached
+junction bench fetch locomo10          # download + verify (2.8 MB)
 
 # the deterministic ruler
-kirocrew bench retrieval locomo10
+junction bench retrieval locomo10
 
 # isolate semantic ranking from the recency decay
-kirocrew bench retrieval locomo10 --timeline now
+junction bench retrieval locomo10 --timeline now
 
 # relax near-duplicate rejection (byte-identical text is always dropped regardless)
-kirocrew bench retrieval locomo10 --no-dedup
+junction bench retrieval locomo10 --no-dedup
 
 # smoke the harness on a host that cannot load the embedder
-kirocrew bench retrieval locomo10 --instances 1 --queries 25 --toy-embedder
+junction bench retrieval locomo10 --instances 1 --queries 25 --toy-embedder
 
 # A/B two commits
-kirocrew bench retrieval locomo10 --stem before   # on main
-kirocrew bench retrieval locomo10 --stem after    # on the branch
-kirocrew bench compare bench_results/before.json bench_results/after.json
+junction bench retrieval locomo10 --stem before   # on main
+junction bench retrieval locomo10 --stem after    # on the branch
+junction bench compare bench_results/before.json bench_results/after.json
 ```
 
 `compare` refuses to attribute a delta when the two runs disagree on corpus

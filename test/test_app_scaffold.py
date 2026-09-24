@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.apps.scaffold — app scaffolding."""
+"""Tests for junction.apps.scaffold — app scaffolding."""
 from __future__ import annotations
 
 import json
@@ -9,9 +9,9 @@ from pathlib import Path
 import pytest
 
 from conftest import make_dir_link, requires_symlinks
-from kiro_crew import platform_compat
-from kiro_crew.apps.manifest import AppManifest
-from kiro_crew.apps.scaffold import (
+from junction import platform_compat
+from junction.apps.manifest import AppManifest
+from junction.apps.scaffold import (
     _placeholder_icon_png,
     _write_sites,
     scaffold_app,
@@ -321,7 +321,7 @@ class TestWriteContainment:
         # write sequence and well before app.json. Failing here stands in for any
         # runtime write failure past what validation can foresee.
         monkeypatch.setattr(
-            "kiro_crew.apps.scaffold._placeholder_icon_png", _boom
+            "junction.apps.scaffold._placeholder_icon_png", _boom
         )
 
         with pytest.raises(OSError):
@@ -351,7 +351,7 @@ class TestWriteContainment:
         def _boom(*args, **kwargs):
             raise OSError(errno.ENOSPC, "No space left on device")
 
-        monkeypatch.setattr("kiro_crew.apps.scaffold.atomic_write", _boom)
+        monkeypatch.setattr("junction.apps.scaffold.atomic_write", _boom)
 
         with pytest.raises(OSError):
             _scaffold_all(out, "myapp")
@@ -378,7 +378,7 @@ class TestWriteContainment:
         """
         import errno
 
-        import kiro_crew.apps.scaffold as scaffold_mod
+        import junction.apps.scaffold as scaffold_mod
 
         out = tmp_path / "out"
         app_dir = out / "victim"
@@ -596,28 +596,28 @@ class TestScaffold:
         app_dir = scaffold_app(tmp_path, "readme-check")
         readme = (app_dir / "README.md").read_text(encoding="utf-8")
         assert "readme-check" in readme
-        assert "kirocrew app install" in readme
+        assert "junction app install" in readme
 
     def test_scaffold_installable(self, tmp_path, monkeypatch):
         """Scaffolded app can be installed by the app manager."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
 
         app_dir = scaffold_app(tmp_path / "output", "installable-app")
-        from kiro_crew.apps.manager import install_app
+        from junction.apps.manager import install_app
         result = install_app(app_dir)
         assert result.ok, result.error
 
     def test_scaffold_cli_integration(self, tmp_path, monkeypatch, capsys):
         """Test the CLI init command via _handle_app."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
 
         import argparse
 
-        from kiro_crew.cli_commands import _handle_app
+        from junction.cli_commands import _handle_app
         ns = argparse.Namespace(app_action="init", name="cli-scaffolded", dir=str(tmp_path), backend=False)
         _handle_app(ns)
         captured = capsys.readouterr()
@@ -627,13 +627,13 @@ class TestScaffold:
     def test_scaffold_cli_refusal_prints_clean_error(self, tmp_path, monkeypatch, capsys):
         """A containment refusal exits 1 with the app actions' clean error
         contract on stderr, not a raw ValueError traceback."""
-        home = tmp_path / "kirocrew-home"
+        home = tmp_path / "junction-home"
         home.mkdir()
-        monkeypatch.setenv("KIROCREW_HOME", str(home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home))
 
         import argparse
 
-        from kiro_crew.cli_commands import _handle_app
+        from junction.cli_commands import _handle_app
         out = tmp_path / "out"
         out.mkdir()
         ns = argparse.Namespace(app_action="init", name="../evil", dir=str(out), backend=False)
@@ -662,8 +662,8 @@ class TestScaffold:
 
         # vite config should externalize shared modules
         vite_cfg = (app_dir / "ui" / "vite.config.ts").read_text(encoding="utf-8")
-        assert "@kirocrew/app-sdk" in vite_cfg
-        assert "@kirocrew/app-sdk/ui" in vite_cfg
+        assert "@junction/app-sdk" in vite_cfg
+        assert "@junction/app-sdk/ui" in vite_cfg
 
         # App.tsx should have a valid component
         app_tsx = (app_dir / "ui" / "src" / "App.tsx").read_text(encoding="utf-8")

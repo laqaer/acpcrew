@@ -5,16 +5,16 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew import cli_chat
-from kiro_crew.config import KiroCrewConfig
+from junction import cli_chat
+from junction.config import JunctionConfig
 
 
 def _patch_provider(monkeypatch) -> MagicMock:
     provider = MagicMock()
     provider.start = AsyncMock()
     provider.shutdown = AsyncMock()
-    cfg = KiroCrewConfig()
-    monkeypatch.setattr(cli_chat.KiroCrewConfig, "load", classmethod(lambda cls: cfg))
+    cfg = JunctionConfig()
+    monkeypatch.setattr(cli_chat.JunctionConfig, "load", classmethod(lambda cls: cfg))
     monkeypatch.setattr(
         cli_chat,
         "build_provider_factory",
@@ -44,7 +44,7 @@ async def test_default_chat_uses_canonical_agent_for_provider_and_gate(monkeypat
     provider = MagicMock()
     provider.start = AsyncMock()
     provider.shutdown = AsyncMock()
-    cfg = KiroCrewConfig()
+    cfg = JunctionConfig()
     assert cfg.agent.default_agent == "", "exercise the provider-default path"
 
     provider_agents: list[str | None] = []
@@ -59,7 +59,7 @@ async def test_default_chat_uses_canonical_agent_for_provider_and_gate(monkeypat
 
         return _provider
 
-    monkeypatch.setattr(cli_chat.KiroCrewConfig, "load", classmethod(lambda cls: cfg))
+    monkeypatch.setattr(cli_chat.JunctionConfig, "load", classmethod(lambda cls: cfg))
     monkeypatch.setattr(cli_chat, "build_provider_factory", _factory)
     monkeypatch.setattr(
         cli_chat,
@@ -70,8 +70,8 @@ async def test_default_chat_uses_canonical_agent_for_provider_and_gate(monkeypat
 
     await cli_chat._chat("hello", None)
 
-    assert provider_agents == ["kirocrew"]
-    assert gate_agents == ["kirocrew"]
+    assert provider_agents == ["junction"]
+    assert gate_agents == ["junction"]
 
 
 def test_run_chat_renders_keyboard_interrupt_as_clean_exit(monkeypatch, capsys) -> None:

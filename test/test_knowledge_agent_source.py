@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kiro_crew.knowledge import agent_source as agent_source_mod
-from kiro_crew.knowledge.agent_source import (
+from junction.knowledge import agent_source as agent_source_mod
+from junction.knowledge.agent_source import (
     AGENT_SOURCE_TYPE,
     AGENT_SOURCE_URI,
     add_agent_document,
@@ -24,10 +24,10 @@ from kiro_crew.knowledge.agent_source import (
     remove_document,
     set_state,
 )
-from kiro_crew.knowledge.folder_watcher import FolderWatcher
-from kiro_crew.knowledge.ingestion import DUPLICATE_JOB_STATUS, IngestionPipeline
-from kiro_crew.knowledge.readers import FileReader
-from kiro_crew.knowledge.store import KnowledgeStore
+from junction.knowledge.folder_watcher import FolderWatcher
+from junction.knowledge.ingestion import DUPLICATE_JOB_STATUS, IngestionPipeline
+from junction.knowledge.readers import FileReader
+from junction.knowledge.store import KnowledgeStore
 
 
 def _one_chunk(text, **kw):
@@ -490,7 +490,7 @@ class TestIncludeExtensions:
     def test_properties_are_coerced_not_trusted(self, kstore, tmp_path):
         # Source properties are user-editable JSON, so a bad value must degrade
         # rather than raise mid-scan.
-        from kiro_crew.knowledge.folder_watcher import (
+        from junction.knowledge.folder_watcher import (
             _prop_extensions,
             _prop_int,
             _prop_str_set,
@@ -506,7 +506,7 @@ class TestAgentSourceIsDeduped:
     def test_agent_documents_participate_in_dedup(self, kstore):
         # Every source participates in dedup; the unit is the document, so an
         # aggregate's documents are de-duplicated individually.
-        from kiro_crew.knowledge.dedup import enumerate_docs
+        from junction.knowledge.dedup import enumerate_docs
         sid, _ = ensure_agent_source(kstore)
         a = kstore.add_item(title="a", content="a", item_type="document",
                             source_id=sid, content_hash="H1")
@@ -775,8 +775,8 @@ async def test_a_deduped_row_does_not_block_a_later_retry(pipeline, kstore):
 
 def test_removing_a_deduped_agent_document_releases_its_claim(tmp_path):
     """Same gap the artifact path had: an empty group left the claim behind."""
-    from kiro_crew.knowledge.agent_source import remove_document
-    from kiro_crew.knowledge.store import KnowledgeStore
+    from junction.knowledge.agent_source import remove_document
+    from junction.knowledge.store import KnowledgeStore
 
     store = KnowledgeStore(str(tmp_path / "k.db"))
     try:

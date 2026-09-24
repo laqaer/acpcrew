@@ -812,7 +812,7 @@ describe('window-level bridge calls', () => {
 })
 
 describe('contextMenuAction', () => {
-  it('"quit" disables the app instead of quitting Kiro Crew itself', async () => {
+  it('"quit" disables the app instead of quitting Junction itself', async () => {
     const { calls } = stubFetchAll({ ok: true })
     const bridge = stubPreload()
     petBridge.contextMenuAction!('quit')

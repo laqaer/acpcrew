@@ -15,9 +15,9 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.dashboard.chat_handlers import _is_interrupted, api_chat_slot_continue
-from kiro_crew.dashboard.chat_utils import SYNTHETIC_RECOVERY_KIND
-from kiro_crew.dashboard.state import DashboardState, _ChatSlot
+from junction.dashboard.chat_handlers import _is_interrupted, api_chat_slot_continue
+from junction.dashboard.chat_utils import SYNTHETIC_RECOVERY_KIND
+from junction.dashboard.state import DashboardState, _ChatSlot
 
 
 def _make_app(state: DashboardState) -> web.Application:
@@ -55,8 +55,8 @@ def _patched(monkeypatch):
     mock_sel.log_tool_invocation = MagicMock()
     started = AsyncMock(return_value=True)
     with (
-        patch("kiro_crew.dashboard.chat_handlers.sel", return_value=mock_sel),
-        patch("kiro_crew.dashboard.chat_handlers._start_next_queued_turn", started),
+        patch("junction.dashboard.chat_handlers.sel", return_value=mock_sel),
+        patch("junction.dashboard.chat_handlers._start_next_queued_turn", started),
     ):
         yield started
 

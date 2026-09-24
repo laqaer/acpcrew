@@ -14,7 +14,7 @@ name: Build Desktop (reusable)
 #
 # Linux is built NATIVELY per arch, never cross-compiled: build-desktop.sh
 # provisions a python-build-standalone interpreter and then RUNS it (pip
-# install + the self-containment gate `python -m kiro_crew --version`), so a
+# install + the self-containment gate `python -m junction --version`), so a
 # host that cannot execute the target arch cannot build it. macOS gets away
 # with one host because Rosetta 2 executes the x86_64 slice; Linux has no
 # equivalent, hence one runner per arch.
@@ -68,7 +68,7 @@ jobs:
           - os: macos-15
             # 'unsigned-' prefix: this artifact is an inter-job handoff to the
             # sign job, NOT an installable deliverable. Humans should download
-            # only the KiroCrew-notarized-* artifact. GitHub shows all uploaded
+            # only the Junction-notarized-* artifact. GitHub shows all uploaded
             # artifacts on the run page with equal prominence, so the name is
             # the only place to signal that.
             artifact-name: unsigned-build-darwin-universal
@@ -133,8 +133,8 @@ jobs:
         shell: bash
         run: |
           # BSD-sed-compatible -i.bak form: this step runs on macos-15 too.
-          sed -i.bak "s/__version__ = \".*\"/__version__ = \"${STAMP_VERSION}\"/" src/kiro_crew/__init__.py
-          rm -f src/kiro_crew/__init__.py.bak
+          sed -i.bak "s/__version__ = \".*\"/__version__ = \"${STAMP_VERSION}\"/" src/junction/__init__.py
+          rm -f src/junction/__init__.py.bak
           # Stamp the Electron app: app.getVersion() (from the bundle's
           # Info.plist, which electron-builder fills from package.json) must
           # equal the feed version for the auto-updater's compare gate.

@@ -7,14 +7,14 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from kiro_crew.connections import (
+from junction.connections import (
     RegistryValidationError,
     get_all_providers,
     get_all_registry_providers,
     get_visible_providers,
     stale_l0_baselines,
 )
-from kiro_crew.connections.registry import (
+from junction.connections.registry import (
     L0_VERIFICATION_MAX_AGE_DAYS,
     L0_VERIFICATION_WARN_AGE_DAYS,
     REVOKE_VERIFICATION_MAX_AGE_DAYS,
@@ -353,7 +353,7 @@ def test_l0_baselines_due_for_re_recording_are_surfaced_without_failing():
     if aging:
         warnings.warn(
             "L0 baselines are due for re-recording: "
-            f"{aging}. Run `python -m kiro_crew.connections.l0_probe --record` "
+            f"{aging}. Run `python -m junction.connections.l0_probe --record` "
             "on a networked machine and commit the result.",
             stacklevel=2,
         )
@@ -362,7 +362,7 @@ def test_l0_baselines_due_for_re_recording_are_surfaced_without_failing():
 def test_visible_provider_l0_baselines_have_not_aged_out():
     """HARD tier, visible providers only, after the warn tier's lead time.
 
-    Failing here means running ``python -m kiro_crew.connections.l0_probe
+    Failing here means running ``python -m junction.connections.l0_probe
     --record`` on a networked machine and committing the result -- not widening
     the window or hand-editing dates.
     """

@@ -26,11 +26,11 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_state, drain_background_tasks
 
-from kiro_crew.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, STOP_REASON_END_TURN
-from kiro_crew.dashboard.channel_slots import refresh_channel_window, surface_channel_session
-from kiro_crew.history import ConversationLog, transcript_sort_key
-from kiro_crew.messaging.link import canonical_key
-from kiro_crew.slack import transport_dispatch
+from junction.acp.types import EVENT_COMPLETE, EVENT_TEXT_CHUNK, STOP_REASON_END_TURN
+from junction.dashboard.channel_slots import refresh_channel_window, surface_channel_session
+from junction.history import ConversationLog, transcript_sort_key
+from junction.messaging.link import canonical_key
+from junction.slack import transport_dispatch
 
 _test_dir = Path(__file__).parent
 if str(_test_dir) not in sys.path:  # pragma: no cover
@@ -63,7 +63,7 @@ class TestAUserRowReachesTheTab:
     def test_a_locally_typed_user_row_is_still_not_broadcast(self, tmp_path, monkeypatch):
         # The default must not change: the dashboard composer already rendered
         # its own message optimistically, so broadcasting it would double it.
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         seen = _recorder(slot)
@@ -73,7 +73,7 @@ class TestAUserRowReachesTheTab:
         assert [m["role"] for m in seen] == []
 
     def test_a_channel_user_row_is_broadcast_when_requested(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         seen = _recorder(slot)
@@ -83,7 +83,7 @@ class TestAUserRowReachesTheTab:
         assert [(m["role"], m["content"]) for m in seen] == [("user", "from slack")]
 
     def test_assistant_rows_are_unaffected(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         seen = _recorder(slot)
@@ -98,11 +98,11 @@ class TestBTheWindowRefreshDeliversBothRoles:
 
     @pytest.fixture
     def log(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.history.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.history.config_dir", lambda: tmp_path)
         return ConversationLog()
 
     def _surfaced_slot(self, tmp_path, monkeypatch, log):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.sessions.channel_key_for_stem = lambda stem: (
             SLACK_KEY if stem == SLACK_STEM else ""
@@ -148,7 +148,7 @@ class TestCTheMirrorIsResolvableInbound:
     """Sending a session to Slack must make replies findable again."""
 
     def _app(self, state):
-        from kiro_crew.dashboard.chat_slack import api_chat_slot_slack_link
+        from junction.dashboard.chat_slack import api_chat_slot_slack_link
 
         app = web.Application()
         app["state"] = state
@@ -157,7 +157,7 @@ class TestCTheMirrorIsResolvableInbound:
 
     @pytest.mark.asyncio
     async def test_link_registers_the_inbound_reverse_index(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         slot = state.get_or_create_slot("s1")
         slot.append("user", "hello")
@@ -182,7 +182,7 @@ class TestCTheMirrorIsResolvableInbound:
         assert state.sessions.set_slack_link.called
 
     def test_a_restart_restores_the_index_for_a_mirrored_session(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.sessions.get_slack_link = MagicMock(return_value=("ts777", "C777"))
 
@@ -195,7 +195,7 @@ class TestCTheMirrorIsResolvableInbound:
         # in, not one it mirrors to. Indexing that would route every inbound
         # Slack message into the dashboard chat runner, changing the execution
         # engine and approval semantics of all Slack traffic.
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.sessions.get_slack_link = MagicMock(return_value=("1785370133.085469", "C777"))
         state.sessions.channel_key_for_stem = lambda stem: (
@@ -211,7 +211,7 @@ class TestCTheMirrorIsResolvableInbound:
         # Same danger, harder case: the stem did NOT resolve, so
         # linked_session_key is empty and cannot be the discriminator. The slot
         # is still named for the thread it lives in, which is what catches it.
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.sessions.get_slack_link = MagicMock(return_value=("1785370133.085469", "C777"))
         state.sessions.channel_key_for_stem = lambda stem: ""
@@ -224,7 +224,7 @@ class TestCTheMirrorIsResolvableInbound:
         # The guard must not be a name heuristic: a dashboard slot a caller
         # happened to name "slack_notes" is a genuine mirror-out and must still
         # deliver inbound replies to its tab.
-        monkeypatch.setattr("kiro_crew.dashboard.state.config_dir", lambda: tmp_path)
+        monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
         state.sessions.get_slack_link = MagicMock(return_value=("ts777", "C777"))
         state.sessions.channel_key_for_stem = lambda stem: ""

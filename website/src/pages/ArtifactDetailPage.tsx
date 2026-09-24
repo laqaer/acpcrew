@@ -1272,8 +1272,8 @@ export default function ArtifactDetailPage({ popout = false }: { popout?: boolea
         navigate('/artifacts')
       }
     }
-    window.addEventListener('kirocrew:artifact-deleted', onDeleted)
-    return () => window.removeEventListener('kirocrew:artifact-deleted', onDeleted)
+    window.addEventListener('junction:artifact-deleted', onDeleted)
+    return () => window.removeEventListener('junction:artifact-deleted', onDeleted)
   }, [slug, popout, navigate, dirty])
 
   // Drop popover when the user switches to edit mode or pages between

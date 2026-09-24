@@ -15,29 +15,29 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import * as lucideReact from 'lucide-react'
 import * as reactQuery from '@tanstack/react-query'
 import * as appSdk from './index'
-import * as kirocrewUi from '../kirocrew-ui'
+import * as junctionUi from '../junction-ui'
 
 // Register on window for vendor stubs to access
 declare global {
   interface Window {
-    __kirocrew_modules: {
+    __junction_modules: {
       react: typeof React
       'react-dom': typeof ReactDOM
       'react/jsx-runtime': typeof jsxRuntime
       'lucide-react': typeof lucideReact
       '@tanstack/react-query': typeof reactQuery
-      '@kirocrew/app-sdk': typeof appSdk
-      '@kirocrew/ui': typeof kirocrewUi
+      '@junction/app-sdk': typeof appSdk
+      '@junction/ui': typeof junctionUi
     }
   }
 }
 
-window.__kirocrew_modules = {
+window.__junction_modules = {
   react: React,
   'react-dom': ReactDOM,
   'react/jsx-runtime': jsxRuntime,
   'lucide-react': lucideReact,
   '@tanstack/react-query': reactQuery,
-  '@kirocrew/app-sdk': appSdk,
-  '@kirocrew/ui': kirocrewUi,
+  '@junction/app-sdk': appSdk,
+  '@junction/ui': junctionUi,
 }

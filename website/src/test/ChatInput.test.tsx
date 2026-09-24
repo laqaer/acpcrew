@@ -1424,12 +1424,12 @@ describe('ChatInput', () => {
 
     it('renders the project basename as label when project is set', () => {
       renderWithProviders(
-        <ChatInput {...defaultProps} onProjectClick={vi.fn()} project="/home/u/workplace/KiroCrew" />
+        <ChatInput {...defaultProps} onProjectClick={vi.fn()} project="/home/u/workplace/Junction" />
       )
-      const btn = screen.getByLabelText('Project: /home/u/workplace/KiroCrew')
+      const btn = screen.getByLabelText('Project: /home/u/workplace/Junction')
       expect(btn).toBeInTheDocument()
-      expect(btn.getAttribute('title')).toBe('Project: /home/u/workplace/KiroCrew')
-      expect(btn.textContent).toContain('KiroCrew')
+      expect(btn.getAttribute('title')).toBe('Project: /home/u/workplace/Junction')
+      expect(btn.textContent).toContain('Junction')
       expect(btn.textContent).not.toContain('/home/u/workplace')
     })
 

@@ -1,6 +1,6 @@
 ---
 name: product-identity
-description: "Junction product identity freeze. Use when naming the product, CLI, tagline, README/site/CLI chrome, or deciding whether an identifier may change. Prevents un-freezing the name, renaming kiro_crew / KIROCREW_HOME, or writing the concatenated upstream brand token in new prose."
+description: "Junction product identity freeze. Use when naming the product, CLI, tagline, README/site/CLI chrome, or deciding whether an identifier may change. The Python package is junction. Prevents writing the concatenated upstream brand token in new prose."
 ---
 
 # Product identity — Junction
@@ -20,7 +20,9 @@ Read first: [`../../../JUNCTION.md`](../../../JUNCTION.md),
   prompts.
 - Brand gate is diff-scoped: do not write concatenated `KiroCrew` in new
   prose.
-- Implementation identifiers that stay until a dedicated rename:
-  `kiro_crew`, `KIROCREW_HOME`, `~/.kiro/crew`, Electron `productName`.
+- The Python package is `junction`. Environment variables are `JUNCTION_*`.
+  A process still copies a previous `KIROCREW_*` value when the new name is
+  unset, so an existing data home keeps loading. The security deny list still
+  matches the previous command spelling and `~/.kirocrew`.
   GitHub slug is `laqaer/junction`.
 - Do not edit `CHANGELOG.md` on a feature PR.

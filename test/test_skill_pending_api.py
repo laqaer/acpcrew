@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from kiro_crew.dashboard.handlers import prompts as H
-from kiro_crew.skills import AutoSkillProvenance, SkillsLoader
+from junction.dashboard.handlers import prompts as H
+from junction.skills import AutoSkillProvenance, SkillsLoader
 
 _OMITTED = object()
 

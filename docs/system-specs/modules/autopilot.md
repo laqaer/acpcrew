@@ -314,7 +314,7 @@ the subagent module: see `subagent.md`.
 `agent._prompt_path(mode="orchestrator")` (`agent.py:567`) resolves the
 orchestrator prompt in order: `~/.kiro/crew/prompt-orchestrator.md`, then
 `<project>/agents/prompt-orchestrator.md`, then the bundled
-`src/kiro_crew/config/prompt-orchestrator.md`; it falls back to the normal
+`src/junction/config/prompt-orchestrator.md`; it falls back to the normal
 prompt if none exists. `ContextBuilder` passes the slot's mode through on the
 first message of a session (`context.py:1890`, `chat_runner.py:3047`), so
 switching mode takes effect on the next fresh session, and

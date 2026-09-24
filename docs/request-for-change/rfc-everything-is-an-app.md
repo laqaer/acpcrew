@@ -103,7 +103,7 @@ definitions — returns eleven, at `e6b06685e`:
 
 | Field | Declared | Status |
 |---|---|---|
-| `jobFamilies` | `src/kiro_crew/apps/manifest.py:1010` | Parsed, serialized, echoed to the client. No consumer. |
+| `jobFamilies` | `src/junction/apps/manifest.py:1010` | Parsed, serialized, echoed to the client. No consumer. |
 | `sops` | `manifest.py:976` | `bridges.register_app` (`bridges.py:2324-2410`) registers MCP servers, agents, skills, crons. There is no `_register_sops`. Declaring `sops` copies nothing. |
 | `backend.routes` | `manifest.py:386` | No reader. `apps/routes.py:2336` still carries a comment describing it. The prefix is hardcoded at `apps/route_registry.py:122`. |
 | `permissions.mcpTools` | `manifest.py:442` | Declarative only. `check_tool_permission` (`apps/permissions.py:71`) has no non-test caller. |
@@ -115,7 +115,7 @@ definitions — returns eleven, at `e6b06685e`:
 | `ui.pages[].iconInactiveUrl` | `manifest.py:247` | No reader outside serialization. |
 | `ui.pages[].mountFunction` | `manifest.py:249` | No reader outside serialization. |
 
-The whole of `src/kiro_crew/apps/permissions.py` is dead in production:
+The whole of `src/junction/apps/permissions.py` is dead in production:
 `validate_permissions` (`:34`), `check_tool_permission` (`:71`) and
 `format_permissions_summary` (`:82`) have zero non-test callers, so the
 install-time permission warnings and the permission summary are never shown.
@@ -145,7 +145,7 @@ built **against a prompt-injected agent operating through the tool surface**. Th
 are not built against app code, because app code is not on the other side of
 them:
 
-> `src/kiro_crew/apps/module_loader.py:34-39` — "The app permission system only
+> `src/junction/apps/module_loader.py:34-39` — "The app permission system only
 > gates the SDK tool surface passed to the app context — it does NOT restrict
 > `import`, filesystem, network, or access to in-memory credentials. Installing an
 > app is therefore equivalent to granting it full gateway-process privileges."
@@ -153,10 +153,10 @@ them:
 Consequences, each grep-verified rather than demonstrated:
 
 - The keystone list is a module-level Python list mutated at import
-  (`src/kiro_crew/security.py:4436`), not frozen. In-process code can read and
+  (`src/junction/security.py:4436`), not frozen. In-process code can read and
   write the keystone files directly, `security_policy.json` included.
 - The SEL chain's integrity rests on the HMAC key living outside the log
-  directory (`src/kiro_crew/sel.py:58-63`). That defeats an actor with
+  directory (`src/junction/sel.py:58-63`). That defeats an actor with
   log-directory write access, which is narrower access than an app has.
 - Audit failure never changes a decision, by explicit policy
   (`apps/execution.py:459-460`, `admission.py:154-156`), so suppressing the record
@@ -167,7 +167,7 @@ Consequences, each grep-verified rather than demonstrated:
 
 Meanwhile the *declarative* surface is strictly add-only. An app cannot take a
 position in any core flow: `HookManager` is constructed solely from the `hooks`
-section of `config.json` (`src/kiro_crew/hooks.py:931`, callers at
+section of `config.json` (`src/junction/hooks.py:931`, callers at
 `cli_server.py:1507`, `slack/gateway.py:653`) and has no registration path; the
 app `EventBus` is publish-only, with no `subscribe` anywhere in
 `apps/event_bus.py`; notification **routing** transports register through
@@ -213,7 +213,7 @@ Keeping these separate is what resolves the conflict in §6.
   `APPS_NAV_LIMIT` interaction, and the app-label i18n path belong to
   [`rfc-navigation-placement-seam.md`](rfc-navigation-placement-seam.md).
 - **The loading model.** Import maps, vendored ESM shims, `AppHost`, and the
-  `@kirocrew/app-sdk` surface belong to
+  `@junction/app-sdk` surface belong to
   [`rfc-federated-app-platform.md`](rfc-federated-app-platform.md).
 - **The authorization model.** `permissions` semantics, `owner_app`, namespace
   isolation, and quotas belong to
@@ -409,7 +409,7 @@ than a failed install. Phase 2 changes where the overview renders and must keep
 `/settings?tab=overview` resolving. Phase 3 changes no existing app's behavior.
 
 One gap is worth naming because this RFC makes it load-bearing: the compatibility
-contract is one-directional. `minKiroCrewVersion` is a floor an app declares about
+contract is one-directional. `minJunctionVersion` is a floor an app declares about
 the gateway, checked only at install and update (`apps/manager.py:281`,
 `apps/routes.py:503`, `apps/registry.py:4053`) and never at enable or boot, and it
 fails **open** on a malformed value (`apps/version.py:32-33`). The platform

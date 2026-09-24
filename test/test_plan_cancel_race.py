@@ -37,7 +37,7 @@ def _isolate_config_dir(tmp_path, monkeypatch):
     patching only ``state`` would leave results writing to the live data home.
     """
     for module in ("state", "chat", "chat_orchestrator"):
-        monkeypatch.setattr(f"kiro_crew.dashboard.{module}.config_dir", lambda: tmp_path)
+        monkeypatch.setattr(f"junction.dashboard.{module}.config_dir", lambda: tmp_path)
 
 
 def _make_orchestrator_state(tmp_path, slot_key, titles):
@@ -77,7 +77,7 @@ async def test_cancel_before_stage_loop_starts_does_not_advance(tmp_path, monkey
     None when the Cancel lands. The tracker guard alone no-ops here; only the
     latch can stop the pending loop.
     """
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-pre-loop", ["First", "Second"])
 
@@ -87,7 +87,7 @@ async def test_cancel_before_stage_loop_starts_does_not_advance(tmp_path, monkey
         stages_run.append(len(stages_run) + 1)
         _slot.append("assistant", f"stage {len(stages_run)} body", "msg msg-a")
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         # The #6046 interleaving is "Cancel fully processed before _stage_loop's
@@ -129,8 +129,8 @@ async def test_double_cancel_appends_exactly_one_cancelled_row(tmp_path):
 @pytest.mark.asyncio
 async def test_new_plan_clears_cancel_latch_and_runs(tmp_path, monkeypatch):
     """Arming a NEW plan clears the latch; the fresh plan runs normally."""
-    from kiro_crew.dashboard.chat import _stage_loop
-    from kiro_crew.dashboard.chat_title import _reset_auto_run_for_new_plan
+    from junction.dashboard.chat import _stage_loop
+    from junction.dashboard.chat_title import _reset_auto_run_for_new_plan
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-then-replan", ["First"])
 
@@ -140,7 +140,7 @@ async def test_new_plan_clears_cancel_latch_and_runs(tmp_path, monkeypatch):
         stages_run.append(len(stages_run) + 1)
         _slot.append("assistant", f"stage {len(stages_run)} body", "msg msg-a")
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         await _cancel(client, "cancel-then-replan")
@@ -168,7 +168,7 @@ async def test_cancelled_early_exit_hands_off_queued_message(tmp_path, monkeypat
     review lanes flagged the original early return for stranding that message
     until the user's next turn.
     """
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-queued", ["First", "Second"])
 
@@ -179,14 +179,14 @@ async def test_cancelled_early_exit_hands_off_queued_message(tmp_path, monkeypat
         return True
 
     monkeypatch.setattr(
-        "kiro_crew.dashboard.chat_orchestrator._start_next_queued_turn",
+        "junction.dashboard.chat_orchestrator._start_next_queued_turn",
         _mock_start_next_queued_turn,
     )
 
     async def _mock_run_chat(_state, _slot, _message, **_kwargs):
         raise AssertionError("cancelled plan must not run a stage")
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         await _cancel(client, "cancel-queued")
@@ -232,7 +232,7 @@ async def test_mid_loop_cancel_drops_queued_approval_at_finally_drain(tmp_path, 
     ``_run_chat`` after the cancel — the residual both advisory lanes flagged.
     A real user message queued alongside must still be handed off.
     """
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-finally-drain", ["First", "Second"])
 
@@ -252,9 +252,9 @@ async def test_mid_loop_cancel_drops_queued_approval_at_finally_drain(tmp_path, 
         handed_off.append(_slot._queue.pop(0) if _slot._queue else None)
         return True
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
     monkeypatch.setattr(
-        "kiro_crew.dashboard.chat_orchestrator._start_next_queued_turn",
+        "junction.dashboard.chat_orchestrator._start_next_queued_turn",
         _mock_start_next_queued_turn,
     )
 
@@ -290,7 +290,7 @@ def test_is_plan_approval_entry_matches_tag_only():
     never re-entering api_chat's typed-go branch, and the stage-loop latch
     blocks advancement on a cancelled plan regardless.
     """
-    from kiro_crew.dashboard.chat_orchestrator import _is_plan_approval_entry
+    from junction.dashboard.chat_orchestrator import _is_plan_approval_entry
 
     assert _is_plan_approval_entry({"content": "Go", "kind": "plan_approval"})
     assert not _is_plan_approval_entry({"content": "go", "kind": ""})
@@ -309,7 +309,7 @@ async def test_stop_word_cancel_also_sets_latch(tmp_path):
     stopped plan. Both cancel surfaces must set the latch (Design review
     finding).
     """
-    from kiro_crew.context_management import MAX_STAGE_ROUNDS, OrchestrationTracker
+    from junction.context_management import MAX_STAGE_ROUNDS, OrchestrationTracker
 
     state, slot = _make_orchestrator_state(tmp_path, "stop-word", ["First", "Second"])
     tracker = OrchestrationTracker(stage_timeout_seconds=60)
@@ -330,7 +330,7 @@ async def test_stop_word_cancel_also_sets_latch(tmp_path):
 @pytest.mark.asyncio
 async def test_normal_cancel_of_running_plan_still_stops_it(tmp_path, monkeypatch):
     """The pre-existing path: cancel mid-``_run_chat`` still stops the plan."""
-    from kiro_crew.dashboard.chat import _stage_loop
+    from junction.dashboard.chat import _stage_loop
 
     state, slot = _make_orchestrator_state(tmp_path, "cancel-running", ["First", "Second"])
 
@@ -345,7 +345,7 @@ async def test_normal_cancel_of_running_plan_still_stops_it(tmp_path, monkeypatc
             entered.set()
             await release.wait()
 
-    monkeypatch.setattr("kiro_crew.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
+    monkeypatch.setattr("junction.dashboard.chat_orchestrator._run_chat", _mock_run_chat)
 
     async with TestClient(TestServer(_make_app(state))) as client:
         loop_task = asyncio.create_task(_stage_loop(state, slot, auto_run=True))

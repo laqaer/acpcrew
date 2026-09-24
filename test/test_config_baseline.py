@@ -13,7 +13,7 @@ import sys
 
 import pytest
 
-from kiro_crew.config.schema import SCHEMA_REGISTRY
+from junction.config.schema import SCHEMA_REGISTRY
 
 # Each test spawns a real child interpreter (subprocess.run([sys.executable, ...]));
 # pin the module to a dedicated xdist worker so concurrent cold-starts under -n auto
@@ -33,7 +33,7 @@ def _generate_bytes(tmp_path: str) -> bytes:
     """Run the baseline generator and return the raw bytes it wrote."""
     env = os.environ.copy()
     out_path = os.path.join(str(tmp_path), "config-baseline.json")
-    env["KIROCREW_BASELINE_OUTPUT"] = out_path
+    env["JUNCTION_BASELINE_OUTPUT"] = out_path
     result = subprocess.run(
         [sys.executable, _SCRIPT_PATH],
         capture_output=True,
@@ -117,7 +117,7 @@ class TestBaselineGenerator:
         """Script is executable via python and produces valid JSON."""
         out_path = os.path.join(str(tmp_path), "config-baseline.json")
         env = os.environ.copy()
-        env["KIROCREW_BASELINE_OUTPUT"] = out_path
+        env["JUNCTION_BASELINE_OUTPUT"] = out_path
         result = subprocess.run(
             [sys.executable, _SCRIPT_PATH],
             capture_output=True,

@@ -35,7 +35,7 @@ vi.mock('../../api/client', () => ({
     securityPosture: vi.fn(),
     // Read + write for the third-party-app execution toggle. Also consumed by
     // YoloDurationCard, which tolerates an unresolved read.
-    kirocrewConfig: vi.fn(),
+    junctionConfig: vi.fn(),
     patchConfig: vi.fn(),
     // Read by the rail on every mount to summarise the tailnet-origin section.
     // Present here so the rail's own read is a resolved query rather than a
@@ -178,7 +178,7 @@ function posture(overrides: Partial<SecurityPostureData> = {}): SecurityPostureD
         label: 'Output redaction',
         unit: 'output paths',
         summary: 'Every boundary where agent output reaches a human.',
-        source: 'src/kiro_crew/security.py',
+        source: 'src/junction/security.py',
         count: 2,
         items: [
           { label: 'Dashboard live stream', detail: 'chat_runner.py — StreamRedactor' },
@@ -191,7 +191,7 @@ function posture(overrides: Partial<SecurityPostureData> = {}): SecurityPostureD
         label: 'Sensitive path blocking',
         unit: 'credential paths',
         summary: 'Paths the agent cannot read or write.',
-        source: 'src/kiro_crew/security.py',
+        source: 'src/junction/security.py',
         count: many.length,
         items: many,
         unavailable: false,
@@ -201,7 +201,7 @@ function posture(overrides: Partial<SecurityPostureData> = {}): SecurityPostureD
         label: 'Denied commands',
         unit: 'built-in rules',
         summary: 'Destructive shell operations blocked at the gate.',
-        source: 'src/kiro_crew/security.py',
+        source: 'src/junction/security.py',
         count: 137,
         items: [{ label: 'Blocks stack deletion', detail: 'aws-destructive' }],
         unavailable: false,
@@ -272,7 +272,7 @@ describe('SecurityPanel — denied commands', () => {
     ;(api.deleteUserDeniedCommand as ReturnType<typeof vi.fn>).mockResolvedValue(snapshot())
     ;(api.governancePolicy as ReturnType<typeof vi.fn>).mockResolvedValue(govNoPolicy())
     ;(api.securityPosture as ReturnType<typeof vi.fn>).mockResolvedValue(posture())
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
     ;(api.tailnetStatus as ReturnType<typeof vi.fn>).mockResolvedValue(TAILNET_OFF)
   })
 
@@ -586,7 +586,7 @@ describe('humaniseScopeLeaf', () => {
 describe('SecurityPanel — governance policy viewer', () => {  beforeEach(() => {
     vi.clearAllMocks()
     ;(api.deniedCommands as ReturnType<typeof vi.fn>).mockResolvedValue(snapshot())
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
     ;(api.tailnetStatus as ReturnType<typeof vi.fn>).mockResolvedValue(TAILNET_OFF)
   })
 
@@ -886,7 +886,7 @@ describe('SecurityPanel — posture disclosure', () => {
     ;(api.deniedCommands as ReturnType<typeof vi.fn>).mockResolvedValue(snapshot())
     ;(api.governancePolicy as ReturnType<typeof vi.fn>).mockResolvedValue(govNoPolicy())
     ;(api.securityPosture as ReturnType<typeof vi.fn>).mockResolvedValue(posture())
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
     ;(api.tailnetStatus as ReturnType<typeof vi.fn>).mockResolvedValue(TAILNET_OFF)
   })
 
@@ -1485,7 +1485,7 @@ describe('SecurityPanel — inspector rail', () => {
     ;(api.deniedCommands as ReturnType<typeof vi.fn>).mockResolvedValue(snapshot())
     ;(api.governancePolicy as ReturnType<typeof vi.fn>).mockResolvedValue(govNoPolicy())
     ;(api.securityPosture as ReturnType<typeof vi.fn>).mockResolvedValue(posture())
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
     ;(api.tailnetStatus as ReturnType<typeof vi.fn>).mockResolvedValue(TAILNET_OFF)
   })
 
@@ -1550,7 +1550,7 @@ describe('SecurityPanel — inspector rail', () => {
     // Same rule the card itself follows: a failed read is not "off". A rail badge
     // saying "Off" while third-party code is in fact admitted would be a false
     // reassurance in the most glanceable place on the page.
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('nope'))
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('nope'))
     renderWithProviders(<SecurityPanel />, { route: '/?section=posture' })
 
     const row = screen.getByRole('option', { name: /Third-party apps/ })
@@ -1653,7 +1653,7 @@ describe('SecurityPanel — rule search', () => {
     ;(api.deniedCommands as ReturnType<typeof vi.fn>).mockResolvedValue(snapshot())
     ;(api.governancePolicy as ReturnType<typeof vi.fn>).mockResolvedValue(govNoPolicy())
     ;(api.securityPosture as ReturnType<typeof vi.fn>).mockResolvedValue(posture())
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
     ;(api.tailnetStatus as ReturnType<typeof vi.fn>).mockResolvedValue(TAILNET_OFF)
   })
 
@@ -1748,7 +1748,7 @@ describe('SecurityPanel — review-round regressions', () => {
     ;(api.deniedCommands as ReturnType<typeof vi.fn>).mockResolvedValue(snapshot())
     ;(api.governancePolicy as ReturnType<typeof vi.fn>).mockResolvedValue(govNoPolicy())
     ;(api.securityPosture as ReturnType<typeof vi.fn>).mockResolvedValue(posture())
-    ;(api.kirocrewConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
+    ;(api.junctionConfig as ReturnType<typeof vi.fn>).mockResolvedValue({})
     ;(api.tailnetStatus as ReturnType<typeof vi.fn>).mockResolvedValue(TAILNET_OFF)
   })
 

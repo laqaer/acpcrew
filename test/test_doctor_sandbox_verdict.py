@@ -1,8 +1,8 @@
-"""`kirocrew doctor` Sandbox section — honest verdicts from an unconfined shell.
+"""`junction doctor` Sandbox section — honest verdicts from an unconfined shell.
 
 The probe (`sandbox.detect_backend`) answers for the PROBING process, not for
 the gateway service. On a host that restricts unprivileged user namespaces the
-kirocrew-userns AppArmor profile is applied by systemd to the service, and
+junction-userns AppArmor profile is applied by systemd to the service, and
 ``aa_change_onexec()`` into a named profile is not permitted for an ordinary
 unconfined user — so from an interactive shell the probe fails with EPERM no
 matter how healthy the service's sandbox is.
@@ -22,9 +22,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import cli_doctor, sandbox
-from kiro_crew.service import apparmor
-from kiro_crew.service import linux as service_linux
+from junction import cli_doctor, sandbox
+from junction.service import apparmor
+from junction.service import linux as service_linux
 
 
 def _arm_apparmor_denial(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -43,14 +43,14 @@ def _arm_apparmor_denial(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _install_profile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     profile = tmp_path / apparmor.PROFILE_NAME
-    profile.write_text("profile kirocrew-userns flags=(unconfined) {}\n", encoding="utf-8")
+    profile.write_text("profile junction-userns flags=(unconfined) {}\n", encoding="utf-8")
     monkeypatch.setattr(apparmor, "PROFILE_PATH", profile)
 
 
 def _install_unit(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, *, applies_profile: bool
 ) -> None:
-    unit = tmp_path / "kirocrew.service"
+    unit = tmp_path / "junction.service"
     directive = (
         f"AppArmorProfile=-{apparmor.PROFILE_NAME}\n" if applies_profile else ""
     )
@@ -169,7 +169,7 @@ class TestProfileAbsent:
         out = capsys.readouterr().out
         assert "❌" in out
         assert "not installed" in out
-        assert "kirocrew service install" in out
+        assert "junction service install" in out
         assert "cannot be verified from this shell" not in out
         assert issues
 

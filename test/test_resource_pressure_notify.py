@@ -1,7 +1,7 @@
 """Tests for the resource-pressure notification producer.
 
 Exercises the episode/hysteresis state machine in
-:mod:`kiro_crew.notifications.resource_pressure` against a real
+:mod:`junction.notifications.resource_pressure` against a real
 :class:`NotificationBus` (list sink) with injected probes and clock — no real
 ``/proc`` or wall-clock dependence.
 """
@@ -14,16 +14,16 @@ from typing import Any
 
 import pytest
 
-from kiro_crew.notifications import resource_pressure
-from kiro_crew.notifications.bus import SYSTEM_CHANNELS, NotificationBus
-from kiro_crew.notifications.resource_pressure import (
+from junction.notifications import resource_pressure
+from junction.notifications.bus import SYSTEM_CHANNELS, NotificationBus
+from junction.notifications.resource_pressure import (
     CHANNEL,
     CRITICAL_REALERT_SECS,
     SAMPLE_INTERVAL_SECS,
     SUSTAINED_TIGHT_SECS,
     ResourcePressureNotifier,
 )
-from kiro_crew.resource_status import (
+from junction.resource_status import (
     POSTURE_AMPLE,
     POSTURE_CRITICAL,
     POSTURE_TIGHT,
@@ -74,7 +74,7 @@ class TestSliceOomNote:
         monkeypatch.setattr(
             resource_pressure,
             "check_agents_slice_pressure",
-            lambda: "cgroup OOM kill inside kirocrew-agents.slice: 1 new kill(s); …",
+            lambda: "cgroup OOM kill inside junction-agents.slice: 1 new kill(s); …",
         )
         await notifier.maybe_sample()
         oom = [n for n in notes if n.get("group_key") == "agents-slice-oom"]

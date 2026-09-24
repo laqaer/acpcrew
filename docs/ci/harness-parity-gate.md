@@ -1,8 +1,8 @@
 # The harness-parity gate
 
-Kiro Crew drives one first-class agent harness — `kiro-cli` — and adapts the
+Junction drives one first-class agent harness — `kiro-cli` — and adapts the
 others. This gate is the mechanical half of that rule: it reads the lines a
-change ADDS under `src/kiro_crew/` and fails on any that let a harness other
+change ADDS under `src/junction/` and fails on any that let a harness other
 than Kiro inherit something by default. The invariants it enforces, and the
 judgment-only ones it cannot, are catalogued in
 [../system-specs/modules/harness-parity.md](../system-specs/modules/harness-parity.md).
@@ -32,7 +32,7 @@ none of them needs to resolve an import, which is why the job needs no
 | `negative-identity` | H5 | `not is_claude_backend`, `not self._is_kas` — harness identity as the absence of another harness |
 | `negative-constant` | H5 | `!= ACP_BACKEND_KAS` and its mirror — an inequality captures every harness added later |
 | `bare-literal` | H8 | `backend == "kas"` — `ACP_BACKEND_KIRO` is the empty string, so only the named constant is legible |
-| `sandbox-delegation` | H7 | `is_kiro_cli=` derived from a negation. This flag makes `wrap_argv` SKIP Kiro Crew's seatbelt, so it fails OPEN |
+| `sandbox-delegation` | H7 | `is_kiro_cli=` derived from a negation. This flag makes `wrap_argv` SKIP Junction's seatbelt, so it fails OPEN |
 | `vocabulary-home` | H8 | an `ACP_BACKEND_*` identifier or `ACP_BACKENDS_*` set defined outside `acp/types.py` |
 | `non-kiro-default` | H1 | `default=ACP_BACKEND_KAS` and equivalents — an operator who configures nothing gets Kiro |
 
@@ -62,7 +62,7 @@ checks out was computed against that exact commit, so the diff cannot pick up
   contain one and truncating there would hide the real call site behind it.
 - **`scripts/check_harness_parity.py` and `test/test_harness_parity.py`**, which
   spell every forbidden form out literally.
-- **`src/kiro_crew/acp/types.py`**, for the two vocabulary rules only. It is the
+- **`src/junction/acp/types.py`**, for the two vocabulary rules only. It is the
   module those definitions are supposed to live in.
 
 ## Escape hatch

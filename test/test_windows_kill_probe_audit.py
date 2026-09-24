@@ -34,7 +34,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-_SRC_ROOT = Path(__file__).resolve().parent.parent / "src" / "kiro_crew"
+_SRC_ROOT = Path(__file__).resolve().parent.parent / "src" / "junction"
 
 # ``file::function`` sites allowed to keep a raw signal-0 probe, with the reason
 # it can never run on Windows. Keep this list SHORT and each entry justified.
@@ -174,7 +174,7 @@ def test_app_backend_pid_alive_uses_the_shim() -> None:
     PID-reuse guard declined to reap before reaching the probe — an incidental
     mask that a Windows ``_proc_start_time`` would remove.
     """
-    from kiro_crew.apps import backend
+    from junction.apps import backend
 
     src = Path(backend.__file__).read_text(encoding="utf-8")
     tree = ast.parse(src)

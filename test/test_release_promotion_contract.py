@@ -26,9 +26,9 @@ LINUX_LANES = tuple(
 )
 MAC = WORKFLOWS / "sign-and-notarize.yml"
 DOCKER = WORKFLOWS / "publish-docker.yml"
-PROMOTION_ARTIFACT = "KiroCrew-notarized-stable-${{ needs.version.outputs.version }}"
+PROMOTION_ARTIFACT = "Junction-notarized-stable-${{ needs.version.outputs.version }}"
 PROMOTION_ARTIFACT_FORMAT = (
-    "format('KiroCrew-notarized-stable-{0}', needs.version.outputs.version)"
+    "format('Junction-notarized-stable-{0}', needs.version.outputs.version)"
 )
 
 
@@ -108,11 +108,11 @@ def test_github_release_selects_explicit_versioned_macos_handoff() -> None:
         RELEASE, "github-release", "Assemble release assets (require gated macOS artifacts)"
     )["run"]
     assert (
-        'NOTARIZED_DIR="artifacts/KiroCrew-notarized-${{ needs.version.outputs.channel }}-'
+        'NOTARIZED_DIR="artifacts/Junction-notarized-${{ needs.version.outputs.channel }}-'
         '${{ needs.version.outputs.version }}"' in assemble
     )
-    assert "KiroCrew-notarized-stable-promotion" not in assemble
-    assert "*KiroCrew-notarized-*" not in assemble
+    assert "Junction-notarized-stable-promotion" not in assemble
+    assert "*Junction-notarized-*" not in assemble
 
 
 def test_prerelease_candidate_runs_same_sha_test_gate() -> None:

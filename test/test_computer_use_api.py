@@ -2,7 +2,7 @@
 
 Three endpoints: the browser-called ``GET``/``PUT /api/computer-use/config`` pair
 and the machine-only ``POST /api/computer-use/invoke`` leg the
-``kirocrew-computer`` stdio shim forwards to.
+``junction-computer`` stdio shim forwards to.
 
 Two things this file pins that no other test can:
 
@@ -32,8 +32,8 @@ import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
-from kiro_crew.computer_use import enable_state
-from kiro_crew.computer_use.types import (
+from junction.computer_use import enable_state
+from junction.computer_use.types import (
     PERMISSION_GRANTED,
     PERMISSION_UNKNOWN,
     PERMISSION_UNSUPPORTED,
@@ -43,11 +43,11 @@ from kiro_crew.computer_use.types import (
     STATE_KEY_ENABLED,
     PolicyStateError,
 )
-from kiro_crew.dashboard.handlers import computer_use as cu_api
-from kiro_crew.platform import context as ctx_mod
-from kiro_crew.platform import governance_profiles as gp
-from kiro_crew.platform.bootstrap import build_default_context
-from kiro_crew.platform.governance import parse_policy
+from junction.dashboard.handlers import computer_use as cu_api
+from junction.platform import context as ctx_mod
+from junction.platform import governance_profiles as gp
+from junction.platform.bootstrap import build_default_context
+from junction.platform.governance import parse_policy
 
 _GRANTED = {
     "accessibility": PERMISSION_GRANTED,
@@ -64,8 +64,8 @@ _REAL_PROBE = cu_api._probe_permissions
 
 @pytest.fixture
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect KIROCREW_HOME so the keystone + config writes land in a tmp dir."""
-    monkeypatch.setenv("KIROCREW_HOME", str(tmp_path))
+    """Redirect JUNCTION_HOME so the keystone + config writes land in a tmp dir."""
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
     return tmp_path
 
 
@@ -98,8 +98,8 @@ def no_agent_spec_rewrite(monkeypatch):
 
     Flipping the computer-use enable rebuilds the agent spec (the enable is a
     spec-emission gate, so the tools would otherwise not appear until the next
-    gateway start). That rebuild writes ``~/.kiro/agents/kirocrew.json``, which is
-    machine-wide and deliberately NOT under the ``KIROCREW_HOME`` this module's
+    gateway start). That rebuild writes ``~/.kiro/agents/junction.json``, which is
+    machine-wide and deliberately NOT under the ``JUNCTION_HOME`` this module's
     ``home`` fixture redirects — so every enable-flipping test would touch the
     developer's live agent config, and a plain clone (CI, or a checkout that is not
     a git worktree) has no guard that stops it.
@@ -110,7 +110,7 @@ def no_agent_spec_rewrite(monkeypatch):
     rebuild re-patch it with their own recorder, which still wins — a later
     ``monkeypatch.setattr`` overrides this one and both unwind at teardown.
     """
-    import kiro_crew.agent as agent_mod
+    import junction.agent as agent_mod
 
     monkeypatch.setattr(agent_mod, "rebuild_agent_config", lambda **_: Path("/dev/null"))
 
@@ -123,7 +123,7 @@ def _reset_ctx():
 
 @pytest.fixture(autouse=True)
 def no_real_probe(monkeypatch):
-    """Never spawn the real ``kirocrew computer doctor`` child in CI.
+    """Never spawn the real ``junction computer doctor`` child in CI.
 
     Individual tests override this with their own stub when they care about the
     probe's own behaviour.
@@ -148,9 +148,9 @@ def mock_sel():
 
 def _install_ceiling(policy_body) -> None:
     """Compose a context carrying *policy_body* as the ceiling and install it."""
-    from kiro_crew.config.loader import KiroCrewConfig
+    from junction.config.loader import JunctionConfig
 
-    base = build_default_context(KiroCrewConfig.load())
+    base = build_default_context(JunctionConfig.load())
     ceiling = parse_policy(policy_body) if policy_body is not None else None
     ctx_mod.set_context(dataclasses.replace(base, governance=ceiling))
 
@@ -209,11 +209,11 @@ class TestConfigGet:
 
     @pytest.mark.asyncio
     async def test_macos_platform_reports_the_probed_grants(self, home):
-        from kiro_crew.computer_use.types import BackendStatus
+        from junction.computer_use.types import BackendStatus
 
         backend = MagicMock()
         backend.status.return_value = BackendStatus(supported=True, platform_id=PLATFORM_MACOS)
-        with patch("kiro_crew.computer_use.backend.get_shared_backend", return_value=backend):
+        with patch("junction.computer_use.backend.get_shared_backend", return_value=backend):
             async with _client() as client:
                 body = await (await client.get("/api/computer-use/config")).json()
         assert body["platform"] == PLATFORM_MACOS
@@ -242,7 +242,7 @@ class TestConfigGet:
 
     @pytest.mark.asyncio
     async def test_unsupported_platform_reports_reason_and_skips_the_probe(self, home, monkeypatch):
-        from kiro_crew.computer_use.backend import UnsupportedBackend
+        from junction.computer_use.backend import UnsupportedBackend
 
         calls: list[str] = []
 
@@ -252,7 +252,7 @@ class TestConfigGet:
 
         monkeypatch.setattr(cu_api, "_probe_permissions", _spy)
         backend = UnsupportedBackend(PLATFORM_LINUX, "the Linux AT-SPI driver is not implemented")
-        with patch("kiro_crew.computer_use.backend.get_shared_backend", return_value=backend):
+        with patch("junction.computer_use.backend.get_shared_backend", return_value=backend):
             async with _client() as client:
                 body = await (await client.get("/api/computer-use/config")).json()
         assert body["supported"] is False
@@ -413,7 +413,7 @@ class TestConfigSave:
     @pytest.mark.asyncio
     async def test_limits_write_preserves_unrelated_config_sections(self, config_file: Path):
         # ``_write_limits`` merges into the RAW JSON rather than round-tripping
-        # ``KiroCrewConfig.to_dict()``, so an unrelated section keeps whatever the
+        # ``JunctionConfig.to_dict()``, so an unrelated section keeps whatever the
         # user (or an edition) put there.
         config_file.write_text(
             json.dumps({"agent": {"model": "keep-me"}, "her_section": {"x": 1}}),
@@ -523,7 +523,7 @@ class TestInvoke:
             )
             return '0 window "Documents"'
 
-        monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", _fake_dispatch)
+        monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", _fake_dispatch)
         async with _client() as client:
             resp = await client.post(
                 "/api/computer-use/invoke",
@@ -531,7 +531,7 @@ class TestInvoke:
                     "tool": "computer_get_state",
                     "args": {"app": "Finder"},
                     "session_key": "dashboard:slot1",
-                    "agent": "kirocrew",
+                    "agent": "junction",
                 },
             )
             body = await resp.json()
@@ -541,7 +541,7 @@ class TestInvoke:
             "tool": "computer_get_state",
             "args": {"app": "Finder"},
             "session_key": "dashboard:slot1",
-            "agent": "kirocrew",
+            "agent": "junction",
             "app": "",
         }
 
@@ -557,7 +557,7 @@ class TestInvoke:
             seen["session_key"] = session_key
             return "Error: Blocked: the calling session could not be identified"
 
-        monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", _fake_dispatch)
+        monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", _fake_dispatch)
         async with _client() as client:
             resp = await client.post(
                 "/api/computer-use/invoke", json={"tool": "computer_list_apps"}
@@ -575,7 +575,7 @@ class TestInvoke:
         def _boom(*_a, **_kw):
             raise AssertionError("the dispatcher must not be reached")
 
-        monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", _boom)
+        monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", _boom)
         async with _client() as client:
             resp = await client.post("/api/computer-use/invoke", json=body)
         assert resp.status == 400
@@ -588,7 +588,7 @@ class TestInvoke:
         def _raise(*_a, **_kw):
             raise RuntimeError("driver exploded")
 
-        monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", _raise)
+        monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", _raise)
         async with _client() as client:
             resp = await client.post(
                 "/api/computer-use/invoke",
@@ -614,7 +614,7 @@ class TestInvoke:
             seen.update(kw)
             return "ok"
 
-        monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", _fake_dispatch)
+        monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", _fake_dispatch)
         async with _client() as client:
             await client.post(
                 "/api/computer-use/invoke",
@@ -636,7 +636,7 @@ class TestRouteWiring:
         it must stay in the strict set — while the browser-called config pair must
         stay OUT of it or the panel could not load at all.
         """
-        from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS
+        from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS
 
         assert "/api/computer-use/invoke" in _STRICT_INTERNAL_API_PATHS
         assert "/api/computer-use/config" not in _STRICT_INTERNAL_API_PATHS
@@ -649,12 +649,12 @@ class TestRouteWiring:
         authenticated page (or an app-scoped token) inject frames into every owner
         window's live view.
         """
-        from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS
+        from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS
 
         assert "/api/computer-use/frame" in _STRICT_INTERNAL_API_PATHS
 
     def test_handlers_are_re_exported_from_the_handlers_package(self):
-        import kiro_crew.dashboard.handlers as handlers
+        import junction.dashboard.handlers as handlers
 
         assert callable(handlers.api_computer_use_config_get)
         assert callable(handlers.api_computer_use_config_save)
@@ -668,7 +668,7 @@ class TestRouteWiring:
         ``computer_use.enabled`` key here would reintroduce exactly the hole the
         keystone exists to close.
         """
-        from kiro_crew.dashboard.handlers.core import _EDITABLE_CONFIG
+        from junction.dashboard.handlers.core import _EDITABLE_CONFIG
 
         assert "computer_use.max_tree_nodes" in _EDITABLE_CONFIG
         assert "computer_use.screenshot_max_px" in _EDITABLE_CONFIG
@@ -690,8 +690,8 @@ class TestInvokeSecretEnforcement:
 
     @staticmethod
     def _authed_client(secret: str) -> TestClient:
-        from kiro_crew.dashboard.server import _STRICT_INTERNAL_API_PATHS
-        from kiro_crew.dashboard.token_auth import token_auth_middleware
+        from junction.dashboard.server import _STRICT_INTERNAL_API_PATHS
+        from junction.dashboard.token_auth import token_auth_middleware
 
         app = web.Application(
             middlewares=[
@@ -715,7 +715,7 @@ class TestInvokeSecretEnforcement:
         """
         reached: list[str] = []
         monkeypatch.setattr(
-            "kiro_crew.computer_use.tools.dispatch_tool",
+            "junction.computer_use.tools.dispatch_tool",
             lambda tool_name, *a, **k: reached.append(tool_name) or "ok",
         )
         self.reached = reached
@@ -793,7 +793,7 @@ class TestInvokeSecretEnforcement:
         pins that: a good token, no secret, must still be refused and must never
         reach the dispatcher.
         """
-        from kiro_crew.dashboard.token_auth import generate_token
+        from junction.dashboard.token_auth import generate_token
 
         token = generate_token("tester", 3600)
         async with self._authed_client("the-real-secret") as client:
@@ -830,7 +830,7 @@ class TestConfigSection:
         (``is_sensitive_bash_command`` deliberately does not block it), so an
         enable stored there would be flippable by prompt injection.
         """
-        from kiro_crew.config.loader import ComputerUseConfig
+        from junction.config.loader import ComputerUseConfig
 
         names = {f.name for f in dataclasses.fields(ComputerUseConfig)}
         assert "enabled" not in names
@@ -849,14 +849,14 @@ class TestConfigSection:
         }
 
     def test_section_is_known_and_round_trips(self, home):
-        from kiro_crew.config.loader import _KNOWN_CONFIG_SECTIONS, KiroCrewConfig
+        from junction.config.loader import _KNOWN_CONFIG_SECTIONS, JunctionConfig
 
         assert "computer_use" in _KNOWN_CONFIG_SECTIONS
-        assert "computer_use" in KiroCrewConfig.load().to_dict()
+        assert "computer_use" in JunctionConfig.load().to_dict()
 
     def test_state_path_is_on_the_keystone_floor(self):
-        from kiro_crew.config.loader import computer_use_state_path
-        from kiro_crew.security import (
+        from junction.config.loader import computer_use_state_path
+        from junction.security import (
             _CREW_SECRET_LEAVES,
             is_sensitive_bash_command,
             is_sensitive_path,
@@ -915,7 +915,7 @@ class TestFrameIngress:
         app = _frame_app()
         delivered: list = []
         app["state"].deliver_ws_owners = lambda *a: delivered.append(a)
-        with patch("kiro_crew.dashboard.origin.is_loopback", return_value=False):
+        with patch("junction.dashboard.origin.is_loopback", return_value=False):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/computer-use/frame", json=_VALID_FRAME)
         assert resp.status == 403
@@ -935,7 +935,7 @@ class TestFrameIngress:
         app = _frame_app(grant_internal_auth=False)
         delivered: list = []
         app["state"].deliver_ws_owners = lambda *a: delivered.append(a)
-        with patch("kiro_crew.dashboard.origin.is_loopback", return_value=True):
+        with patch("junction.dashboard.origin.is_loopback", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/computer-use/frame", json=_VALID_FRAME)
         assert resp.status == 403
@@ -957,7 +957,7 @@ class TestFrameIngress:
             return 3
 
         app["state"].deliver_ws_owners = _deliver
-        with patch("kiro_crew.dashboard.origin.is_loopback", return_value=True):
+        with patch("junction.dashboard.origin.is_loopback", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/computer-use/frame", json=_VALID_FRAME)
                 body = await resp.json()
@@ -972,7 +972,7 @@ class TestFrameIngress:
     @pytest.mark.asyncio
     async def test_invalid_json_is_400(self, home, mock_sel):
         app = _frame_app()
-        with patch("kiro_crew.dashboard.origin.is_loopback", return_value=True):
+        with patch("junction.dashboard.origin.is_loopback", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post(
                     "/api/computer-use/frame",
@@ -1006,7 +1006,7 @@ class TestFrameIngress:
         app = _frame_app()
         delivered: list = []
         app["state"].deliver_ws_owners = lambda *a: delivered.append(a)
-        with patch("kiro_crew.dashboard.origin.is_loopback", return_value=True):
+        with patch("junction.dashboard.origin.is_loopback", return_value=True):
             async with TestClient(TestServer(app)) as client:
                 resp = await client.post("/api/computer-use/frame", json=body)
         assert resp.status == 400
@@ -1017,7 +1017,7 @@ class TestFramePayload:
     """``build_frame_payload`` — every field bounded at the boundary."""
 
     def test_a_minimal_valid_frame(self):
-        from kiro_crew.computer_use.screencast import build_frame_payload
+        from junction.computer_use.screencast import build_frame_payload
 
         assert build_frame_payload({"data": "QUJD", "format": "jpeg"}) == {
             "data": "QUJD",
@@ -1025,14 +1025,14 @@ class TestFramePayload:
         }
 
     def test_padded_base64_is_accepted(self):
-        from kiro_crew.computer_use.screencast import build_frame_payload
+        from junction.computer_use.screencast import build_frame_payload
 
         out = build_frame_payload({"data": "QUJDRA==", "format": "jpeg"})
         assert out is not None and out["data"] == "QUJDRA=="
 
     def test_an_oversized_frame_is_rejected(self):
         """One frame must not become a multi-megabyte websocket write."""
-        from kiro_crew.computer_use.screencast import (
+        from junction.computer_use.screencast import (
             MAX_FRAME_B64_CHARS,
             build_frame_payload,
         )
@@ -1041,8 +1041,8 @@ class TestFramePayload:
         assert build_frame_payload({"data": big, "format": "jpeg"}) is None
 
     def test_dimensions_are_integers_within_the_encoder_ceiling(self):
-        from kiro_crew.computer_use.screencast import build_frame_payload
-        from kiro_crew.computer_use.types import MAX_SCREENSHOT_MAX_PX
+        from junction.computer_use.screencast import build_frame_payload
+        from junction.computer_use.types import MAX_SCREENSHOT_MAX_PX
 
         out = build_frame_payload(
             {"data": "QUJD", "format": "jpeg", "width": 1280, "height": "tall"}
@@ -1059,7 +1059,7 @@ class TestFramePayload:
             assert out["height"] == 800  # a valid sibling still passes
 
     def test_the_session_key_is_bounded_to_a_lookup_charset(self):
-        from kiro_crew.computer_use.screencast import build_frame_payload
+        from junction.computer_use.screencast import build_frame_payload
 
         out = build_frame_payload(
             {"data": "QUJD", "format": "jpeg", "session_key": "dashboard:slot1"}
@@ -1070,7 +1070,7 @@ class TestFramePayload:
             assert out is not None and "session_key" not in out
 
     def test_the_app_label_is_bounded(self):
-        from kiro_crew.computer_use.screencast import build_frame_payload
+        from junction.computer_use.screencast import build_frame_payload
 
         out = build_frame_payload({"data": "QUJD", "format": "jpeg", "app": "Google Chrome"})
         assert out is not None and out["app"] == "Google Chrome"
@@ -1090,7 +1090,7 @@ class TestLiveViewSuppression:
     @pytest.fixture(autouse=True)
     def no_real_post(self, monkeypatch):
         """Record POST attempts instead of making them."""
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         posted: list[dict] = []
         monkeypatch.setattr(screencast, "_post_frame", lambda payload: posted.append(payload))
@@ -1104,7 +1104,7 @@ class TestLiveViewSuppression:
         return posted
 
     def _snapshot(self, *, secure: bool = False):
-        from kiro_crew.computer_use.types import AppRef, Snapshot
+        from junction.computer_use.types import AppRef, Snapshot
 
         return Snapshot(
             app=AppRef(name="Finder", pid=41, bundle_id="com.apple.finder", window_id=9),
@@ -1123,7 +1123,7 @@ class TestLiveViewSuppression:
         one ``capture_snapshot_image`` refuses on — rather than re-derived here, so
         there is exactly one definition of "this window holds a secure field".
         """
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         _install_ceiling(None)
         with screencast.frame_scope(session_key="dashboard:slot1"):
@@ -1140,7 +1140,7 @@ class TestLiveViewSuppression:
         way (a CLI probe, a future caller that skipped the handler) cannot be
         governed for a surface, so it emits nothing rather than guessing.
         """
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         _install_ceiling(None)
         assert screencast.active_scope() is None
@@ -1150,8 +1150,8 @@ class TestLiveViewSuppression:
     def test_a_snapshot_with_no_encoded_bytes_emits_no_frame(
         self, home, profiles_dir, no_real_post
     ):
-        from kiro_crew.computer_use import screencast
-        from kiro_crew.computer_use.types import AppRef, Snapshot
+        from junction.computer_use import screencast
+        from junction.computer_use.types import AppRef, Snapshot
 
         _install_ceiling(None)
         empty = Snapshot(app=AppRef(name="Finder", pid=41, window_id=9))
@@ -1161,10 +1161,10 @@ class TestLiveViewSuppression:
 
     def test_the_frame_scope_is_restored_and_never_leaks_across_dispatches(self, home):
         """A pooled worker thread must not carry one surface's identity forward."""
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         assert screencast.active_scope() is None
-        with screencast.frame_scope(session_key="dashboard:slot1", agent="kirocrew"):
+        with screencast.frame_scope(session_key="dashboard:slot1", agent="junction"):
             outer = screencast.active_scope()
             assert outer is not None and outer.session_key == "dashboard:slot1"
             with screencast.frame_scope(session_key="cron:nightly"):
@@ -1182,7 +1182,7 @@ class TestLiveViewSuppression:
         failure anywhere inside it (here: the scope lookup) has to become a dropped
         frame rather than a failed screenshot.
         """
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         _install_ceiling(None)
 
@@ -1259,7 +1259,7 @@ class TestTheFrameRelayIsNeverProxied:
         return server, server.server_address[1]
 
     def test_the_secret_reaches_the_gateway_and_never_the_proxy(self, home, monkeypatch):
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         gateway_hits: list[dict] = []
         proxy_hits: list[dict] = []
@@ -1301,7 +1301,7 @@ class TestInvokePublishesTheFrameScope:
     async def test_the_dispatch_runs_inside_the_calling_surfaces_frame_scope(
         self, home, monkeypatch
     ):
-        from kiro_crew.computer_use import screencast
+        from junction.computer_use import screencast
 
         seen: dict = {}
 
@@ -1310,7 +1310,7 @@ class TestInvokePublishesTheFrameScope:
             seen["scope"] = scope
             return "ok"
 
-        monkeypatch.setattr("kiro_crew.computer_use.tools.dispatch_tool", _fake_dispatch)
+        monkeypatch.setattr("junction.computer_use.tools.dispatch_tool", _fake_dispatch)
         async with _client() as client:
             await client.post(
                 "/api/computer-use/invoke",
@@ -1318,7 +1318,7 @@ class TestInvokePublishesTheFrameScope:
                     "tool": "computer_get_state",
                     "args": {"app": "Finder"},
                     "session_key": "dashboard:slot1",
-                    "agent": "kirocrew",
+                    "agent": "junction",
                     "app": "notes",
                 },
             )
@@ -1326,7 +1326,7 @@ class TestInvokePublishesTheFrameScope:
         assert scope is not None
         assert (scope.session_key, scope.agent, scope.app) == (
             "dashboard:slot1",
-            "kirocrew",
+            "junction",
             "notes",
         )
         # Restored once the dispatch returns, so the pooled worker is clean.
@@ -1553,7 +1553,7 @@ class TestEnableRestartsSessions:
         ``no_agent_spec_rewrite`` autouse fixture, so it needs no handling here.
         """
         calls: list = []
-        import kiro_crew.dashboard.handlers.sessions as sessions_mod
+        import junction.dashboard.handlers.sessions as sessions_mod
 
         async def _fake(request):
             calls.append(request)
@@ -1613,7 +1613,7 @@ class TestEnableRestartsSessions:
         the next cold session — which is strictly better than telling the operator
         their save failed when the keystone did move.
         """
-        import kiro_crew.dashboard.handlers.sessions as sessions_mod
+        import junction.dashboard.handlers.sessions as sessions_mod
 
         async def _boom(request):
             raise RuntimeError("no session manager on this app")
@@ -1631,13 +1631,13 @@ class TestEnableRestartsSessions:
     async def test_the_flip_REBUILDS_the_agent_spec(self, state_file, monkeypatch):
         """The enable is a spec-emission gate, so the reset needs a fresh spec.
 
-        ``agent._computer_use_spec_gate`` keeps ``kirocrew-computer`` out of the
+        ``agent._computer_use_spec_gate`` keeps ``junction-computer`` out of the
         emitted spec while the keystone is off, so restarting sessions without
         rebuilding would restart them into a spec that still omits the server —
         the operator enables the feature and the tools appear only after the next
         gateway start.
         """
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         self._spy(monkeypatch)
         built: list = []
@@ -1654,7 +1654,7 @@ class TestEnableRestartsSessions:
     @pytest.mark.asyncio
     async def test_a_NO_OP_resave_does_not_rebuild(self, state_file, monkeypatch):
         """Same narrowness as the reset: no transition, no work."""
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         state_file.write_text(json.dumps({STATE_KEY_ENABLED: True}), encoding="utf-8")
         self._spy(monkeypatch)
@@ -1684,8 +1684,8 @@ class TestEnableRestartsSessions:
         order: a lock acquired and released before the call would read the same in
         the source and fix nothing.
         """
-        import kiro_crew.agent as agent_mod
-        from kiro_crew.dashboard.handlers.agents import _get_config_lock
+        import junction.agent as agent_mod
+        from junction.dashboard.handlers.agents import _get_config_lock
 
         self._spy(monkeypatch)
         # Resolved on the loop: ``_get_config_lock`` needs a running loop, and the
@@ -1711,7 +1711,7 @@ class TestEnableRestartsSessions:
         assertion is behavioural — it flips the enable for real and checks that
         what the handler called was the stub, not the module's own function.
         """
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         reached: list[str] = []
         current = agent_mod.rebuild_agent_config
@@ -1736,14 +1736,14 @@ class TestEnableRestartsSessions:
 
         ``api_computer_use_config_save`` imports ``rebuild_agent_config`` inside the
         function. Hoisting it to module scope would bind the name at import time,
-        so patching ``kiro_crew.agent`` would no longer reach this call site — and
+        so patching ``junction.agent`` would no longer reach this call site — and
         the guard above would keep passing while every enable-flipping test wrote
         the operator's real ``~/.kiro/agents`` again.
 
         Asserted POSITIVELY (the stub must have run), because "the real one did not
         run" is also true when nothing ran at all.
         """
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         ran: list[str] = []
         monkeypatch.setattr(
@@ -1755,7 +1755,7 @@ class TestEnableRestartsSessions:
             resp = await client.put("/api/computer-use/config", json={"enabled": True})
         assert resp.status == 200
         assert ran == ["stub"], (
-            "patching kiro_crew.agent no longer reaches the handler's call site — the "
+            "patching junction.agent no longer reaches the handler's call site — the "
             "import was hoisted to module scope, which defeats no_agent_spec_rewrite"
         )
 
@@ -1767,7 +1767,7 @@ class TestEnableRestartsSessions:
         the next gateway start — and the sessions are still reset, because a stale
         ``tools/list`` is a separate problem from a stale spec.
         """
-        import kiro_crew.agent as agent_mod
+        import junction.agent as agent_mod
 
         calls = self._spy(monkeypatch)
 

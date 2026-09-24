@@ -12,14 +12,14 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from kiro_crew.mcp_core import _call_tool_inner
+from junction.mcp_core import _call_tool_inner
 
 _LEAKY = "notes AKIAIOSFODNN7EXAMPLE"
 
 
 def _add(title: str) -> str:
-    with patch("kiro_crew.mcp_core._post", return_value={"status": "ok", "items": 3}), \
-         patch("kiro_crew.mcp_core.sel"):
+    with patch("junction.mcp_core._post", return_value={"status": "ok", "items": 3}), \
+         patch("junction.mcp_core.sel"):
         return _call_tool_inner("knowledge_add_document",
                                 {"title": title, "content": "body text",
                                  "source_uri": "chat://x"})
@@ -47,9 +47,9 @@ def test_a_denied_gateway_response_surfaces_a_clear_error():
     pinned in test_token_auth.py (test_knowledge_agent_document_is_registered_
     internal_path), next to the middleware it exercises.
     """
-    with patch("kiro_crew.mcp_core._post",
+    with patch("junction.mcp_core._post",
                return_value={"error": "Token required"}) as post, \
-            patch("kiro_crew.mcp_core.sel"):
+            patch("junction.mcp_core.sel"):
         out = _call_tool_inner("knowledge_add_document",
                                {"title": "Runbook", "content": "body text",
                                 "source_uri": "chat://x"})

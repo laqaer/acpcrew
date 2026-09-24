@@ -17,7 +17,7 @@ The app manifest (`app.json`) declares your app's identity, resources, and requi
 |-------|------|-------------|
 | `author` | string | Author name or team |
 | `license` | string | License identifier |
-| `minKiroCrewVersion` | string | Minimum Gateway version required |
+| `minJunctionVersion` | string | Minimum Gateway version required |
 | `tags` | string[] | Discovery tags (e.g. `["oncall", "monitoring"]`) |
 | `jobFamilies` | string[] | Job families this app is relevant to |
 | `highlights` | string[] | Concise feature bullets for the detail page |
@@ -45,8 +45,8 @@ installed against:
   resolves to the app's own venv interpreter (`.venv/bin/python3`, or
   `.venv\Scripts\python.exe` on Windows) when it exists as a runnable file, else
   to the gateway's own interpreter — never a PATH lookup. Exception: a server
-  whose `args` launch a `kiro_crew` module (`-m kiro_crew...`) always gets the
-  gateway's interpreter, since app venvs cannot import `kiro_crew`.
+  whose `args` launch a `junction` module (`-m junction...`) always gets the
+  gateway's interpreter, since app venvs cannot import `junction`.
 - **Any other bare name** (no path separator, no drive qualifier) is rewritten
   only when the app's venv provides that exact binary as a runnable file (a pip
   console script — invisible to PATH because the venv is never activated). Note
@@ -55,7 +55,7 @@ installed against:
 - **A command carrying a path** (absolute or relative) is never rewritten. If it
   does not point at a runnable file at registration time, a warning naming the
   app, server, and command is logged — the entry is still written.
-- The host CLI name `kirocrew` is pinned to the running gateway before any of
+- The host CLI name `junction` is pinned to the running gateway before any of
   the above applies.
 
 ## Scheduling
@@ -169,7 +169,7 @@ slot: an overlay `id` must name a component compiled into the dashboard bundle, 
 there is no ESM `entryPoint` for overlays the way `ui.pages` has one. An installed app
 declaring `ui.overlays` is refused at install, and a self-registered one is refused
 when slots are resolved -- `builtin` provenance is assigned only by the builtin
-registration Kiro Crew runs at startup and cannot be self-reported. Treat this as the
+registration Junction runs at startup and cannot be self-reported. Treat this as the
 mechanism builtin apps use to replace a host surface, not yet as a third-party
 extension point.
 
@@ -195,7 +195,7 @@ a store icon, and an app that declares only those publishes no icon at all.
 }
 ```
 
-`kirocrew app init` scaffolds `assets/icon.png` and this field, so a new app
+`junction app init` scaffolds `assets/icon.png` and this field, so a new app
 starts with a working icon rather than a placeholder card. Replace the generated
 placeholder with real artwork before publishing.
 
@@ -261,7 +261,7 @@ show the real product UI; the detail page renders both when both are declared.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `backend.entryPoint` | string | | Script to run (relative to app root), or a dotted Python module path launched via `python -m` (used by built-in apps like `file-explorer`, e.g. `kiro_crew.apps.builtins.file_explorer.server`) |
+| `backend.entryPoint` | string | | Script to run (relative to app root), or a dotted Python module path launched via `python -m` (used by built-in apps like `file-explorer`, e.g. `junction.apps.builtins.file_explorer.server`) |
 | `backend.port` | string | `"auto"` | Port number or `"auto"` for auto-assignment |
 | `backend.healthCheck` | string | `"/health"` | Health check endpoint path |
 | `backend.routes` | string | | Base route path for the backend |
@@ -320,7 +320,7 @@ above the app root (`from ... import x` is refused). It is not a sandbox: app
 Python already runs in the Gateway process with full filesystem access, so a
 symlinked sibling resolves wherever it points. Do not use a bare
 `import config`: `sys.modules["config"]` is process-global, so two apps each
-shipping a `config.py` would end up sharing one module. `from kiro_crew...`
+shipping a `config.py` would end up sharing one module. `from junction...`
 absolute imports are for built-in apps only.
 
 ## Permissions
@@ -463,12 +463,12 @@ only one app is uninstalled.
 
 ### `lifecycle` and `resources`
 
-Control how KiroCrew manages the app:
+Control how Junction manages the app:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `lifecycle` | string | `"gateway"` | `"gateway"` (managed), `"app"` (self-managed), or `"locked"` (cannot uninstall) |
-| `resources` | string | `"gateway"` | `"gateway"` (KiroCrew registers agents/skills/MCP) or `"app"` (app handles its own) |
+| `resources` | string | `"gateway"` | `"gateway"` (Junction registers agents/skills/MCP) or `"app"` (app handles its own) |
 
 ## Platform
 
@@ -501,7 +501,7 @@ Control how KiroCrew manages the app:
 When `installMode` is `"client"`, the App Store shows copy-paste terminal
 instructions instead of running the install on the server. This is used for
 apps that must run on the user's local machine (e.g. Electron desktop apps
-when KiroCrew runs on a remote host).
+when Junction runs on a remote host).
 
 #### `platform.requiresDesktopApp` — Desktop-Only UI
 
@@ -571,7 +571,7 @@ the user to run locally instead of executing it on the server.
   "version": "1.0.0",
   "displayName": "Oncall Watchtower",
   "description": "Monitor tickets, pipelines, and alarms for your on-call rotation",
-  "author": "kirocrew",
+  "author": "junction",
   "tags": ["oncall", "monitoring"],
   "useCases": ["Keep a shared view of firing alerts and active investigations"],
   "configuration": ["Connect an alert provider in Settings, then start in read-only mode"],
@@ -609,4 +609,4 @@ the user to run locally instead of executing it on the server.
 
 Unknown fields in `app.json` are preserved during parsing and round-tripped
 through `to_dict()` / `to_json()`. This allows newer manifest features to
-coexist with older KiroCrew versions without breaking validation.
+coexist with older Junction versions without breaking validation.

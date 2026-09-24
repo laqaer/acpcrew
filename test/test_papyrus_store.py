@@ -2,7 +2,7 @@
 
 Lives in the repo-level ``test/`` tree (not the app's in-package ``tests/``)
 because ``setup.cfg`` sets ``testpaths = test transfer`` — a test under
-``src/kiro_crew/apps/builtins/...`` is never collected by CI.
+``src/junction/apps/builtins/...`` is never collected by CI.
 
 Ported and extended from the upstream app's ``backend/tests/test_server.py``. The
 coverage target is the security- and correctness-sensitive half of the module:
@@ -34,7 +34,7 @@ from unittest import mock
 import pytest
 
 from conftest import make_dir_link, requires_symlinks
-from kiro_crew.apps.builtins.papyrus.backend import store
+from junction.apps.builtins.papyrus.backend import store
 
 
 @pytest.fixture()
@@ -594,7 +594,7 @@ class TestProjectConfigIsContained:
         `safe_child` answers "does this resolve inside the project", and an IN-PROJECT
         link satisfies it — so `.papyrus.json -> paper.tex` passed, and `set_main_file`
         (reached from `resolve_main_file`, i.e. every compile) replaced the user's
-        manuscript with JSON. This is a file KiroCrew owns and writes by name, so a link
+        manuscript with JSON. This is a file Junction owns and writes by name, so a link
         at that name is illegitimate wherever it points — same reasoning as the
         generated-artifact guard in `latex`.
         """

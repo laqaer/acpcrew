@@ -1,4 +1,4 @@
-# Migration: Playwright MCP + Kiro Crew proxy to Playwright CLI
+# Migration: Playwright MCP + Junction proxy to Playwright CLI
 
 Status: proposed. Replaces the browser stack wholesale rather than adding a
 second path, because two browser backends would double the surface that already
@@ -6,7 +6,7 @@ produces the defects this migration retires.
 
 ## Why
 
-Today an agent drives a browser through `@playwright/mcp` behind a Kiro Crew
+Today an agent drives a browser through `@playwright/mcp` behind a Junction
 proxy that exists to keep accessibility trees out of the model context. The
 proxy earns its keep, but the surrounding machinery does not:
 
@@ -59,7 +59,7 @@ Roughly 9,700 lines of code and tests. 115 files across `src/`, `website/src/`,
 `docs/` and `test/` mention playwright and need a sweep.
 
 Retired concepts, each of which currently has code and tests of its own:
-`KIROCREW_PLAYWRIGHT_CMD`, the `npx` fallback, `playwright-config.json`
+`JUNCTION_PLAYWRIGHT_CMD`, the `npx` fallback, `playwright-config.json`
 generation, `playwright-storage-state.json` assembly, the extension token file,
 `playwright-extension-mode`, `browser-mode-enabled`, the four-value registration
 status, the agent-shadow scan, and the entry-carryover sidecar.
@@ -113,7 +113,7 @@ registry, and that is a real cost this migration accepts rather than solves:
 Who this hurts: an operator whose `.npmrc` points at a corporate registry that
 does not mirror the package, and anyone with no Node toolchain at all. For the
 first, the workaround is a user-prefix install against the public registry with
-the binary symlinked onto `PATH` (documented in the `kirocrew-commands` skill,
+the binary symlinked onto `PATH` (documented in the `junction-commands` skill,
 including the two caveats: the bin dir must be on `PATH`, and overriding the
 employer's registry config is the operator's decision). For the second, the panel
 now names the remedy and links `nodejs.org` instead of only stating a version
@@ -187,7 +187,7 @@ browser view to the network.
 ## Existing installs
 
 An operator on the current design has a `playwright-mcp` entry in
-`~/.kiro/settings/mcp.json`, possibly a `KIROCREW_PLAYWRIGHT_CMD` pin, a
+`~/.kiro/settings/mcp.json`, possibly a `JUNCTION_PLAYWRIGHT_CMD` pin, a
 `playwright-config.json`, a storage-state file, and an extension token.
 
 What the migration does:

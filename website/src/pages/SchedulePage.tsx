@@ -14,7 +14,7 @@ import TimezoneSelect from '../components/TimezoneSelect'
 import JobForm from '../components/JobForm'
 import JobLogsView from '../components/JobLogsView'
 import ErrorNotice from '../components/ErrorNotice'
-import type { KiroCrewAgent } from '../components/AgentSelector'
+import type { JunctionAgent } from '../components/AgentSelector'
 import InfoTip from '../components/InfoTip'
 import type { CronJob } from '../types'
 import { useAgents } from '../hooks/useAgents'
@@ -47,7 +47,7 @@ import ScheduleTemplateGallery from '../components/ScheduleTemplateGallery'
 import { i18nT } from '../i18n/t'
 import { fmtDateTimeNumeric } from '../i18n/format'
 import { formatCadence } from '../utils/scheduleCadence'
-const RENDER_TZ_STORAGE_KEY = 'kirocrew.schedule.renderTz'
+const RENDER_TZ_STORAGE_KEY = 'junction.schedule.renderTz'
 
 /**
  * Column count of the jobs table — the `colSpan` every full-width row uses
@@ -1100,7 +1100,7 @@ type CronScriptSource = { source: string; file: string; function: string; trunca
  *
  * Was a resizable side panel pinned to the right of the job list. The dialog
  * form factor follows the same migration the Crews page already made
- * (`KiroCrewAgentsPage`): one modal surface, focus trap, Escape-to-dismiss and
+ * (`JunctionAgentsPage`): one modal surface, focus trap, Escape-to-dismiss and
  * overlay behaviour owned by Radix instead of a hand-rolled backdrop.
  *
  * Two capabilities of the old panel are deliberately gone with it: the drag
@@ -1110,7 +1110,7 @@ type CronScriptSource = { source: string; file: string; function: string; trunca
  * Executions filter survive.
  */
 function JobDetailDialog({ job, prefill, prefillWrites, agents, defaultAgent, onClose, onSaved }: {
-  job?: CronJob; prefill?: CronPrefill; prefillWrites?: boolean; agents: KiroCrewAgent[]; defaultAgent: string; onClose: () => void; onSaved: () => void
+  job?: CronJob; prefill?: CronPrefill; prefillWrites?: boolean; agents: JunctionAgent[]; defaultAgent: string; onClose: () => void; onSaved: () => void
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)

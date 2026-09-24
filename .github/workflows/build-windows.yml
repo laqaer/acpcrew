@@ -193,8 +193,8 @@ jobs:
         # sed -i.bak / rm -f are bash-isms.
         shell: bash
         run: |
-          sed -i.bak "s/__version__ = \".*\"/__version__ = \"${STAMP_VERSION}\"/" src/kiro_crew/__init__.py
-          rm -f src/kiro_crew/__init__.py.bak
+          sed -i.bak "s/__version__ = \".*\"/__version__ = \"${STAMP_VERSION}\"/" src/junction/__init__.py
+          rm -f src/junction/__init__.py.bak
           # Stamp the Electron app: app.getVersion() (from package.json via
           # electron-builder) must equal the feed version for the
           # auto-updater's compare gate.
@@ -204,7 +204,7 @@ jobs:
       # Scoped as tightly as the role allows: 1-hour session, assumable only
       # from main / environment:prod, and its only permission is sts:AssumeRole
       # onto the artifact role behind an ExternalId gate. Declared in
-      # KiroCrewPublishCDK lib/windows-signer-stack.ts.
+      # JunctionPublishCDK lib/windows-signer-stack.ts.
       #
       # Skips on a fork or when the secret is absent, which -- together with
       # the env gate on the WINDOWS_SIGNING_* values below -- leaves the
@@ -235,13 +235,13 @@ jobs:
           # ungated partial set would make it try to sign without credentials
           # and fail the build instead of skipping. The values themselves are
           # not secret (bucket and role names); only the role ARN is a secret.
-          WINDOWS_SIGNING_UNSIGNED_BUCKET: ${{ env.HAS_WINDOWS_SIGNING && 'kirocrew-windows-unsigned-116101834266' || '' }}
-          WINDOWS_SIGNING_SIGNED_BUCKET: ${{ env.HAS_WINDOWS_SIGNING && 'kirocrew-windows-signed-116101834266' || '' }}
-          WINDOWS_SIGNING_PROFILE_ID: ${{ env.HAS_WINDOWS_SIGNING && 'KiroCrewWindowsExe' || '' }}
-          WINDOWS_SIGNING_ARTIFACT_ROLE: ${{ env.HAS_WINDOWS_SIGNING && 'arn:aws:iam::116101834266:role/KiroCrewWindows-ArtifactAccessRole' || '' }}
+          WINDOWS_SIGNING_UNSIGNED_BUCKET: ${{ env.HAS_WINDOWS_SIGNING && 'junction-windows-unsigned-116101834266' || '' }}
+          WINDOWS_SIGNING_SIGNED_BUCKET: ${{ env.HAS_WINDOWS_SIGNING && 'junction-windows-signed-116101834266' || '' }}
+          WINDOWS_SIGNING_PROFILE_ID: ${{ env.HAS_WINDOWS_SIGNING && 'JunctionWindowsExe' || '' }}
+          WINDOWS_SIGNING_ARTIFACT_ROLE: ${{ env.HAS_WINDOWS_SIGNING && 'arn:aws:iam::116101834266:role/JunctionWindows-ArtifactAccessRole' || '' }}
           # Equals the Signer application name; ArtifactAccessRole's trust
           # policy requires it as sts:ExternalId.
-          WINDOWS_SIGNING_EXTERNAL_ID: ${{ env.HAS_WINDOWS_SIGNING && 'KiroCrewWindows' || '' }}
+          WINDOWS_SIGNING_EXTERNAL_ID: ${{ env.HAS_WINDOWS_SIGNING && 'JunctionWindows' || '' }}
 
       # The installer and its blockmap are one artifact in two files: without
       # the .blockmap, electron-updater silently falls back to a FULL download

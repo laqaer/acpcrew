@@ -89,7 +89,7 @@ BROAD_IMPACT_NAME_PREFIXES = (
 # graph was never treated as broad-impact and the gap sat undetected for four
 # review rounds -- a dead path looks exactly like a working one.
 BROAD_IMPACT_PATH_PREFIXES = (
-    "src/kiro_crew/testing/",
+    "src/junction/testing/",
     # The vitest setup graph, per vite.config.ts `setupFiles: './integration/setup.ts'`.
     # Every integration spec inherits it, and `mocks/server.ts` installs the global
     # MSW handlers they all rely on, so a change there can fail a spec that never
@@ -457,12 +457,12 @@ def _self_test() -> int:
     check("broad impact: requirements variant", has_broad_impact(["requirements-dev.txt"]) is not None)
     check("broad impact: vitest setup graph", has_broad_impact(["website/integration/setup.ts"]) is not None)
     check("broad impact: global MSW handlers", has_broad_impact(["website/integration/mocks/server.ts"]) is not None)
-    check("broad impact: ordinary file is not broad", has_broad_impact(["src/kiro_crew/session.py"]) is None)
+    check("broad impact: ordinary file is not broad", has_broad_impact(["src/junction/session.py"]) is None)
     # Regression trap: substring matching escalated any path merely CONTAINING a
     # marker, so `clone_setup.py` was treated as `setup.py`.
     check(
         "broad impact: a name merely containing a marker is NOT broad",
-        has_broad_impact(["src/kiro_crew/apps/builtins/auto_improvement/backend/clone_setup.py"]) is None,
+        has_broad_impact(["src/junction/apps/builtins/auto_improvement/backend/clone_setup.py"]) is None,
     )
 
     # Git C-quotes a path carrying a non-ASCII byte, a quote or a newline unless
@@ -473,7 +473,7 @@ def _self_test() -> int:
     hostile = "website/src/fée.tsx"
     newlined = "website/src/we ird\nname.tsx"
     assert "\0" not in hostile
-    diff_out = f"src/kiro_crew/a.py\0{hostile}\0{newlined}\0"
+    diff_out = f"src/junction/a.py\0{hostile}\0{newlined}\0"
     parsed = _parse_diff_z(diff_out)
     check("diff -z keeps a non-ASCII path verbatim", hostile in parsed)
     check("diff -z keeps a newline-bearing path whole", newlined in parsed)
@@ -482,9 +482,9 @@ def _self_test() -> int:
         "a newline-bearing website path is classified frontend",
         surface_bucket(newlined) == "frontend",
     )
-    status_out = f" M src/kiro_crew/a.py\0?? {hostile}\0 M {newlined}\0"
+    status_out = f" M src/junction/a.py\0?? {hostile}\0 M {newlined}\0"
     sparsed = _parse_status_z(status_out)
-    check("status -z strips only the 3-char prefix", "src/kiro_crew/a.py" in sparsed)
+    check("status -z strips only the 3-char prefix", "src/junction/a.py" in sparsed)
     check("status -z keeps a non-ASCII path verbatim", hostile in sparsed)
     check("status -z keeps a newline-bearing path whole", newlined in sparsed)
     check(
@@ -497,7 +497,7 @@ def _self_test() -> int:
     # is asserted on by a FRONTEND spec, so treating it as backend let a reduced
     # frontend run drop that spec.
     check("bucket: website is frontend", surface_bucket("website/src/App.tsx") == "frontend")
-    check("bucket: src is backend", surface_bucket("src/kiro_crew/session.py") == "backend")
+    check("bucket: src is backend", surface_bucket("src/junction/session.py") == "backend")
     check("bucket: test is backend", surface_bucket("test/test_x.py") == "backend")
     check("bucket: docs are backend (ci.yml catch-all)", surface_bucket("docs/guides/install.md") == "backend")
     check("bucket: root files are backend", surface_bucket("README.md") == "backend")

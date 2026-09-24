@@ -3,19 +3,19 @@
 IAM Identity Center derives profile names shaped ``<account>+<permission-set>``
 (e.g. ``AdminAccess+dev``), so ``+`` must be accepted. The SSM/instances pair
 was fixed by #6051 and four more hand copies by #6055; #6063 consolidated the
-shape into ``kiro_crew.constants.AWS_PROFILE_NAME_RE`` as the single source of
+shape into ``junction.constants.AWS_PROFILE_NAME_RE`` as the single source of
 truth. These tests pin every consumer:
 
-* ``kiro_crew.cloud.ec2._PROFILE_SPEC`` (EC2 wizard — aliases
+* ``junction.cloud.ec2._PROFILE_SPEC`` (EC2 wizard — aliases
   ``profiles.PROFILE_SPEC``)
-* ``kiro_crew.deploy.profiles._PROFILE_RE`` (deploy profile registry + the
+* ``junction.deploy.profiles._PROFILE_RE`` (deploy profile registry + the
   ``aws configure list-profiles`` discovery filter)
-* ``kiro_crew.deploy.handlers._PROFILE_SPEC`` (deploy-web HTTP boundary —
+* ``junction.deploy.handlers._PROFILE_SPEC`` (deploy-web HTTP boundary —
   aliases ``profiles.PROFILE_SPEC``)
-* ``kiro_crew.validation._WM_PROFILE_RE`` (workspace-manager webapp_metadata)
-* ``kiro_crew.instances.validation._AWS_PROFILE_RE`` (SSM tunnel inputs;
+* ``junction.validation._WM_PROFILE_RE`` (workspace-manager webapp_metadata)
+* ``junction.instances.validation._AWS_PROFILE_RE`` (SSM tunnel inputs;
   ``instances.registry`` aliases it for its early record check)
-* ``kiro_crew.aws_consent._PROFILE_RE`` (identity probe — a DELIBERATE
+* ``junction.aws_consent._PROFILE_RE`` (identity probe — a DELIBERATE
   near-sibling that derives its class from the shared fragments)
 * the two standalone artifact-deploy scripts (``attach_backend.py`` /
   ``detach_backend.py``), which cannot import the package and embed the
@@ -37,16 +37,16 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import aws_consent, constants
-from kiro_crew import validation as validation_mod
-from kiro_crew.cloud import aws as cloud_aws
-from kiro_crew.cloud import ec2
-from kiro_crew.deploy import engine as engine_mod
-from kiro_crew.deploy import handlers
-from kiro_crew.deploy import profiles as profiles_mod
-from kiro_crew.instances import registry as instances_registry
-from kiro_crew.instances import validation as instances_validation
-from kiro_crew.validation import (
+from junction import aws_consent, constants
+from junction import validation as validation_mod
+from junction.cloud import aws as cloud_aws
+from junction.cloud import ec2
+from junction.deploy import engine as engine_mod
+from junction.deploy import handlers
+from junction.deploy import profiles as profiles_mod
+from junction.instances import registry as instances_registry
+from junction.instances import validation as instances_validation
+from junction.validation import (
     ARTIFACT_SAVE_SCHEMA,
     ValidationError,
     validate_field,
@@ -261,7 +261,7 @@ class TestSharedConstantAdoption:
 _SCRIPTS_DIR = (
     Path(__file__).resolve().parents[1]
     / "src"
-    / "kiro_crew"
+    / "junction"
     / "deploy"
     / "skills"
     / "artifact-deploy"

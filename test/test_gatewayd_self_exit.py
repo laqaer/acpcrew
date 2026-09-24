@@ -7,7 +7,7 @@ Two layers under test:
   and never exits on inconclusive stat failures or non-consecutive misses.
 * ``session_pid._is_sweepable_orphan_gatewayd`` + ``_kill_orphan_gatewayd`` —
   the untracked orphan sweep reaps a gatewayd whose ``--socket`` path is gone
-  from disk, TERM-first, while ``kiro_crew.cli`` / ``kiro_crew.__main__`` and
+  from disk, TERM-first, while ``junction.cli`` / ``junction.__main__`` and
   live-socket daemons stay excluded.
 
 The ``run_gatewayd`` tests bind a real local socket under ``tmp_path``; no
@@ -25,8 +25,8 @@ from unittest.mock import patch
 
 import pytest
 
-from kiro_crew import session_pid as sp
-from kiro_crew.mcp_gateway import gatewayd as gw
+from junction import session_pid as sp
+from junction.mcp_gateway import gatewayd as gw
 
 # POSIX process/socket semantics: ``os.killpg`` does not exist on Windows
 # (even patching it fails with AttributeError), and the daemon's endpoint
@@ -84,7 +84,7 @@ class TestSocketLivenessSweeper:
             return real_stat(path, *args, **kwargs)
 
         stop = asyncio.Event()
-        with patch("kiro_crew.mcp_gateway.gatewayd.os.stat", side_effect=denied):
+        with patch("junction.mcp_gateway.gatewayd.os.stat", side_effect=denied):
             task = asyncio.create_task(gw._socket_liveness_sweeper(sock, 0.01, stop))
             await asyncio.sleep(0.2)  # far more than 3 intervals of EACCES
             assert not stop.is_set()
@@ -115,7 +115,7 @@ class TestSocketLivenessSweeper:
             return real_stat(path, *args, **kwargs)
 
         stop = asyncio.Event()
-        with patch("kiro_crew.mcp_gateway.gatewayd.os.stat", side_effect=flaky):
+        with patch("junction.mcp_gateway.gatewayd.os.stat", side_effect=flaky):
             task = asyncio.create_task(gw._socket_liveness_sweeper(sock, 0.01, stop))
             # Wait for enough probes that a cumulative counter would have
             # fired many times over.
@@ -224,7 +224,7 @@ class TestRunGatewaydSelfExit:
 
 
 def _gatewayd_cmdline(sock: Path | str, socket_form: str = "pair") -> bytes:
-    parts = [b"/usr/bin/python3", b"-m", b"kiro_crew.mcp_gateway.gatewayd"]
+    parts = [b"/usr/bin/python3", b"-m", b"junction.mcp_gateway.gatewayd"]
     if socket_form == "pair":
         parts += [b"--socket", os.fsencode(str(sock))]
     elif socket_form == "equals":
@@ -272,7 +272,7 @@ class TestIsSweepableOrphanGatewayd:
         live = tmp_path / "live.sock"
         live.write_text("")
         gone = tmp_path / "gone.sock"
-        base = [b"/usr/bin/python3", b"-m", b"kiro_crew.mcp_gateway.gatewayd"]
+        base = [b"/usr/bin/python3", b"-m", b"junction.mcp_gateway.gatewayd"]
         # gone first, live last -> daemon is reachable -> NOT sweepable.
         cmdline = b"\x00".join(
             base
@@ -293,7 +293,7 @@ class TestIsSweepableOrphanGatewayd:
 
     def test_cli_and_main_entrypoints_are_never_sweepable(self, tmp_path: Path) -> None:
         gone = tmp_path / "vanished.sock"
-        for module in (b"kiro_crew.cli", b"kiro_crew.__main__"):
+        for module in (b"junction.cli", b"junction.__main__"):
             cmdline = b"\x00".join(
                 [b"/usr/bin/python3", b"-m", module, b"--socket", os.fsencode(str(gone))]
             )
@@ -306,12 +306,12 @@ class TestIsSweepableOrphanGatewayd:
         assert sp._is_sweepable_orphan_gatewayd(cmdline) is False
 
     def test_marker_as_path_fragment_does_not_match(self, tmp_path: Path) -> None:
-        """`vim kiro_crew.mcp_gateway.gatewayd` shapes are structural misses."""
+        """`vim junction.mcp_gateway.gatewayd` shapes are structural misses."""
         gone = tmp_path / "vanished.sock"
         cmdline = b"\x00".join(
             [
                 b"vim",
-                b"kiro_crew.mcp_gateway.gatewayd",
+                b"junction.mcp_gateway.gatewayd",
                 b"--socket",
                 os.fsencode(str(gone)),
             ]
@@ -327,7 +327,7 @@ class TestIsSweepableOrphanGatewayd:
                 raise PermissionError(13, "denied", str(sock))
             return real_stat(path, *args, **kwargs)
 
-        with patch("kiro_crew.session_pid.os.stat", side_effect=denied):
+        with patch("junction.session_pid.os.stat", side_effect=denied):
             assert sp._is_sweepable_orphan_gatewayd(_gatewayd_cmdline(sock)) is False
 
 
@@ -336,11 +336,11 @@ class TestFindOrphanGatewaydCandidates:
         """The _GATEWAY_MARKERS exclusion is overridden by the reachability path."""
         gone = tmp_path / "vanished.sock"
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[700]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[700]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=_gatewayd_cmdline(gone)),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = sp.find_orphan_mcp_candidates(active_pids=set())
@@ -350,11 +350,11 @@ class TestFindOrphanGatewaydCandidates:
         live = tmp_path / "live.sock"
         live.write_text("")
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[701]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[701]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=_gatewayd_cmdline(live)),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             mock_sys.platform = "linux"
             result = sp.find_orphan_mcp_candidates(active_pids=set())
@@ -363,11 +363,11 @@ class TestFindOrphanGatewaydCandidates:
     def test_age_floor_still_applies(self, tmp_path: Path) -> None:
         gone = tmp_path / "vanished.sock"
         with (
-            patch("kiro_crew.session_pid._our_orphan_pids", return_value=[702]),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid._our_orphan_pids", return_value=[702]),
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=_gatewayd_cmdline(gone)),
             patch("os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=10.0),
+            patch("junction.session_pid._linux_pid_age", return_value=10.0),
         ):
             mock_sys.platform = "linux"
             result = sp.find_orphan_mcp_candidates(active_pids=set())
@@ -382,7 +382,7 @@ class TestKillOrphanGatewayd:
         orphaning pooled backends — the exact failure TERM-first exists to
         avoid. Derivation from the shared budget makes the inversion
         unrepresentable; this pins it."""
-        from kiro_crew.mcp_gateway.shutdown_budget import TOTAL_SHUTDOWN_BUDGET_SECS
+        from junction.mcp_gateway.shutdown_budget import TOTAL_SHUTDOWN_BUDGET_SECS
 
         assert sp._GATEWAYD_TERM_GRACE_SECONDS >= TOTAL_SHUTDOWN_BUDGET_SECS
 
@@ -402,8 +402,8 @@ class TestKillOrphanGatewayd:
                 raise AssertionError("must not escalate when TERM worked")
 
         with (
-            patch("kiro_crew.session_pid.os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid.os.killpg") as killpg,
+            patch("junction.session_pid.os.kill", side_effect=fake_kill),
+            patch("junction.session_pid.os.killpg") as killpg,
         ):
             assert sp._kill_orphan_gatewayd(900, cmdline) == 1
         assert (900, signal.SIGTERM) in sent
@@ -421,12 +421,12 @@ class TestKillOrphanGatewayd:
             return None  # alive forever, TERM ignored
 
         with (
-            patch("kiro_crew.session_pid.os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid.os.killpg") as killpg,
-            patch("kiro_crew.session_pid.os.getpgid", return_value=901),
-            patch("kiro_crew.session_pid.os.getpgrp", return_value=1234),
+            patch("junction.session_pid.os.kill", side_effect=fake_kill),
+            patch("junction.session_pid.os.killpg") as killpg,
+            patch("junction.session_pid.os.getpgid", return_value=901),
+            patch("junction.session_pid.os.getpgrp", return_value=1234),
             patch.object(Path, "read_bytes", return_value=cmdline),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
         ):
             mock_sys.platform = "linux"
             assert sp._kill_orphan_gatewayd(901, cmdline) == 1
@@ -447,10 +447,10 @@ class TestKillOrphanGatewayd:
             return None
 
         with (
-            patch("kiro_crew.session_pid.os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid.os.killpg") as killpg,
+            patch("junction.session_pid.os.kill", side_effect=fake_kill),
+            patch("junction.session_pid.os.killpg") as killpg,
             patch.object(Path, "read_bytes", return_value=b"some\x00other\x00proc"),
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.sys") as mock_sys,
         ):
             mock_sys.platform = "linux"
             sp._kill_orphan_gatewayd(902, cmdline)
@@ -472,14 +472,14 @@ class TestKillOrphanGatewayd:
                 raise ProcessLookupError
 
         with (
-            patch("kiro_crew.session_pid.platform_compat") as pc,
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.platform_compat") as pc,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=cmdline),
-            patch("kiro_crew.session_pid.os.kill", side_effect=fake_kill),
-            patch("kiro_crew.session_pid.os.killpg") as killpg,
-            patch("kiro_crew.session_pid.os.getpgrp", return_value=1234),
-            patch("kiro_crew.session_pid.os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=300.0),
+            patch("junction.session_pid.os.kill", side_effect=fake_kill),
+            patch("junction.session_pid.os.killpg") as killpg,
+            patch("junction.session_pid.os.getpgrp", return_value=1234),
+            patch("junction.session_pid.os.getpid", return_value=1),
+            patch("junction.session_pid._linux_pid_age", return_value=300.0),
         ):
             pc.IS_WINDOWS = False
             mock_sys.platform = "linux"
@@ -501,14 +501,14 @@ class TestKillOrphanGatewayd:
         cmdline = _gatewayd_cmdline(gone)
 
         with (
-            patch("kiro_crew.session_pid.platform_compat") as pc,
-            patch("kiro_crew.session_pid.sys") as mock_sys,
+            patch("junction.session_pid.platform_compat") as pc,
+            patch("junction.session_pid.sys") as mock_sys,
             patch.object(Path, "read_bytes", return_value=cmdline),
-            patch("kiro_crew.session_pid.os.kill") as kill,
-            patch("kiro_crew.session_pid.os.killpg") as killpg,
-            patch("kiro_crew.session_pid.os.getpgrp", return_value=1234),
-            patch("kiro_crew.session_pid.os.getpid", return_value=1),
-            patch("kiro_crew.session_pid._linux_pid_age", return_value=3.0),
+            patch("junction.session_pid.os.kill") as kill,
+            patch("junction.session_pid.os.killpg") as killpg,
+            patch("junction.session_pid.os.getpgrp", return_value=1234),
+            patch("junction.session_pid.os.getpid", return_value=1),
+            patch("junction.session_pid._linux_pid_age", return_value=3.0),
         ):
             pc.IS_WINDOWS = False
             mock_sys.platform = "linux"

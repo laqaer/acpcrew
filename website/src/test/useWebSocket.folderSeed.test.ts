@@ -101,7 +101,7 @@ describe('useWebSocket seeds chat-folders from the slots frame', () => {
     act(() => {
       ws.simulateMessage({
         type: 'slots',
-        data: [{ key: 'slot-a', title: 's', agent: 'kirocrew', folder_id: 'f1' }],
+        data: [{ key: 'slot-a', title: 's', agent: 'junction', folder_id: 'f1' }],
         folders: [{ id: 'f1', name: 'Work', order: 0 }],
       })
     })
@@ -169,7 +169,7 @@ describe('useWebSocket seeds chat-folders from the slots frame', () => {
     ])
     const ws = mountOpened()
     act(() => {
-      ws.simulateMessage({ type: 'slots', data: [{ key: 'slot-a', agent: 'kirocrew' }] })
+      ws.simulateMessage({ type: 'slots', data: [{ key: 'slot-a', agent: 'junction' }] })
     })
     expect(folders()).toEqual([{ id: 'f1', name: 'Work', order: 0, history_count: 3 }])
   })

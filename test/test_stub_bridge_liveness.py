@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew.mcp_gateway.stub import (
+from junction.mcp_gateway.stub import (
     _BRIDGE_PING_TYPE,
     _BRIDGE_PONG_TYPE,
     BridgeLivenessFailure,
@@ -370,7 +370,7 @@ class TestLivenessIsNegotiated:
         """`peer_supports_ping` defaults to False, so the gate fails closed."""
         import inspect
 
-        from kiro_crew.mcp_gateway.stub import run_bridge
+        from junction.mcp_gateway.stub import run_bridge
 
         assert inspect.signature(run_bridge).parameters[
             "peer_supports_ping"
@@ -383,7 +383,7 @@ class TestLivenessIsNegotiated:
         a grep for one literal breaks whenever an unrelated capability is added,
         and passes if the list is built but never sent.
         """
-        from kiro_crew.mcp_gateway.gatewayd import REGISTERED_CAPABILITIES
+        from junction.mcp_gateway.gatewayd import REGISTERED_CAPABILITIES
 
         assert "bridge_ping" in REGISTERED_CAPABILITIES
 
@@ -396,7 +396,7 @@ class TestLivenessIsNegotiated:
         session's tools are lost either way, and exec would additionally discard
         the socket a future reconnect could reuse.
         """
-        src = (_REPO_ROOT / "src/kiro_crew/mcp_gateway/stub.py").read_text(encoding="utf-8")
+        src = (_REPO_ROOT / "src/junction/mcp_gateway/stub.py").read_text(encoding="utf-8")
         marker = "if liveness_failure is not None:"
         assert marker in src
         tail = src[src.index(marker):]

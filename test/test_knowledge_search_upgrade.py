@@ -1,7 +1,7 @@
 """Tests for knowledge search upgrade: embedding endpoints + search-for-context."""
 import pytest
 
-from kiro_crew.knowledge.embedder import (
+from junction.knowledge.embedder import (
     InProcessEmbedder,
     OllamaEmbedder,
     create_embedder_from_config,
@@ -85,7 +85,7 @@ class TestInProcessEmbedder:
 
         fake = _FakeShared()
         monkeypatch.setattr(
-            "kiro_crew.embeddings.get_shared_embedder", lambda: fake
+            "junction.embeddings.get_shared_embedder", lambda: fake
         )
         emb = InProcessEmbedder()
         assert emb.embed("hello world") == [0.1, 0.2]
@@ -107,7 +107,7 @@ class TestInProcessEmbedder:
 
         fake = _FakeShared()
         monkeypatch.setattr(
-            "kiro_crew.embeddings.get_shared_embedder", lambda: fake
+            "junction.embeddings.get_shared_embedder", lambda: fake
         )
         emb = InProcessEmbedder()
         assert emb.is_available() is False
@@ -146,7 +146,7 @@ class TestInProcessEmbedder:
         chunker's max output, so a realistic largest chunk embeds whole — RED on the
         old 2000-char cap.
         """
-        from kiro_crew.knowledge.chunker import CHUNK_OVERLAP, CHUNK_TOKEN_SIZE
+        from junction.knowledge.chunker import CHUNK_OVERLAP, CHUNK_TOKEN_SIZE
 
         emb = InProcessEmbedder()
         captured = {}
@@ -161,7 +161,7 @@ class TestInProcessEmbedder:
 
     def test_embed_for_item_bounds_pathological_blob(self, monkeypatch):
         """A blob far past the safety bound is truncated AND logged (never silent)."""
-        from kiro_crew.knowledge.embedder import _EMBED_CONTENT_BUDGET
+        from junction.knowledge.embedder import _EMBED_CONTENT_BUDGET
 
         emb = InProcessEmbedder()
         captured = {}
@@ -178,7 +178,7 @@ class TestInProcessEmbedder:
         import contextlib
         import logging
 
-        from kiro_crew.knowledge import embedder
+        from junction.knowledge import embedder
 
         @contextlib.contextmanager
         def _cap():
@@ -211,7 +211,7 @@ class TestSearchForContext:
 
     def test_estimate_tokens(self):
         try:
-            from kiro_crew.dashboard.handlers.knowledge import _estimate_tokens
+            from junction.dashboard.handlers.knowledge import _estimate_tokens
         except TypeError:
             pytest.skip("requires Python 3.10+ (type union syntax)")
         assert _estimate_tokens("hello world") == 2  # 11 chars // 4
@@ -219,7 +219,7 @@ class TestSearchForContext:
 
     def test_knowledge_fetch_defaults(self):
         try:
-            from kiro_crew.dashboard.handlers.knowledge import (
+            from junction.dashboard.handlers.knowledge import (
                 KNOWLEDGE_FETCH_MAX_TOKENS,
                 KNOWLEDGE_FETCH_TOP_N,
             )
@@ -230,7 +230,7 @@ class TestSearchForContext:
 
     def test_context_card_carries_citation_fields(self):
         try:
-            from kiro_crew.dashboard.handlers.knowledge import _build_context_card
+            from junction.dashboard.handlers.knowledge import _build_context_card
         except TypeError:
             pytest.skip("requires Python 3.10+ (type union syntax)")
         result = {
@@ -255,7 +255,7 @@ class TestSearchForContext:
 
     def test_context_card_artifact_slug(self):
         try:
-            from kiro_crew.dashboard.handlers.knowledge import _build_context_card
+            from junction.dashboard.handlers.knowledge import _build_context_card
         except TypeError:
             pytest.skip("requires Python 3.10+ (type union syntax)")
         result = {
@@ -274,7 +274,7 @@ class TestSearchForContext:
 
     def test_context_card_without_location_degrades(self):
         try:
-            from kiro_crew.dashboard.handlers.knowledge import _build_context_card
+            from junction.dashboard.handlers.knowledge import _build_context_card
         except TypeError:
             pytest.skip("requires Python 3.10+ (type union syntax)")
         result = {"id": "i2", "title": "DB Schema", "source": "src-2"}
@@ -293,7 +293,7 @@ class TestRedactMeta:
 
     def test_redacts_strings(self):
         try:
-            from kiro_crew.dashboard.chat_utils import _redact_meta
+            from junction.dashboard.chat_utils import _redact_meta
         except TypeError:
             pytest.skip("requires Python 3.10+")
         meta = {"title": "safe text", "content": "key is AKIAIOSFODNN7EXAMPLE here"}
@@ -303,7 +303,7 @@ class TestRedactMeta:
 
     def test_redacts_nested_dicts(self):
         try:
-            from kiro_crew.dashboard.chat_utils import _redact_meta
+            from junction.dashboard.chat_utils import _redact_meta
         except TypeError:
             pytest.skip("requires Python 3.10+")
         meta = {"knowledge": {"content": [{"title": "ok", "text": "AKIAIOSFODNN7EXAMPLE"}]}}
@@ -312,7 +312,7 @@ class TestRedactMeta:
 
     def test_preserves_non_strings(self):
         try:
-            from kiro_crew.dashboard.chat_utils import _redact_meta
+            from junction.dashboard.chat_utils import _redact_meta
         except TypeError:
             pytest.skip("requires Python 3.10+")
         meta = {"items": 3, "tokens": 1054, "titles": ["safe"]}

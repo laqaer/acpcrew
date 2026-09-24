@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from kiro_crew.slack.interactions import (
+from junction.slack.interactions import (
     _extract_selected_value,
     _mark_button_clicked,
 )
@@ -140,7 +140,7 @@ def _base_payload(
 @pytest.fixture
 def orch_fixture(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """Shared orchestrator mock with guaranteed cleanup via monkeypatch."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = _make_orch()
     monkeypatch.setattr(interactions, "_orch", orch)
@@ -150,7 +150,7 @@ def orch_fixture(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 @pytest.mark.asyncio
 async def test_action_button_happy_path(orch_fixture: MagicMock) -> None:
     """Button with action:: prefix routes payload to session as context."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
 
@@ -176,7 +176,7 @@ async def test_action_button_happy_path(orch_fixture: MagicMock) -> None:
 @pytest.mark.asyncio
 async def test_extended_element_happy_path(orch_fixture: MagicMock) -> None:
     """Extended element with action:: in action_id merges selected_value."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
 
@@ -202,7 +202,7 @@ async def test_extended_element_happy_path(orch_fixture: MagicMock) -> None:
 @pytest.mark.asyncio
 async def test_malformed_json_in_action_id_no_crash(orch_fixture: MagicMock) -> None:
     """Invalid JSON in action_id logs warning and returns gracefully."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     payload, action, channel, msg_ts = _base_payload(value="", action_id="action::not{valid-json")
     action["selected_date"] = "2026-04-10"
@@ -216,7 +216,7 @@ async def test_malformed_json_in_action_id_no_crash(orch_fixture: MagicMock) -> 
 @pytest.mark.asyncio
 async def test_non_dict_json_in_action_id_no_crash(orch_fixture: MagicMock) -> None:
     """Non-dict JSON (e.g. a list) in action_id logs warning and returns."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     payload, action, channel, msg_ts = _base_payload(value="", action_id='action::["a","b"]')
     action["selected_date"] = "2026-04-10"
@@ -229,7 +229,7 @@ async def test_non_dict_json_in_action_id_no_crash(orch_fixture: MagicMock) -> N
 @pytest.mark.asyncio
 async def test_post_message_failure_aborts(orch_fixture: MagicMock) -> None:
     """If post_message returns None, handle_message is never called."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
     orch.slack.post_message = AsyncMock(return_value=None)
@@ -245,7 +245,7 @@ async def test_post_message_failure_aborts(orch_fixture: MagicMock) -> None:
 @pytest.mark.asyncio
 async def test_standard_options_post_message_failure_aborts(orch_fixture: MagicMock) -> None:
     """If update_message AND fallback post_blocks both fail, handle_message is never called."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
     orch.slack.update_message = AsyncMock(side_effect=Exception("API error"))
@@ -261,7 +261,7 @@ async def test_standard_options_post_message_failure_aborts(orch_fixture: MagicM
 @pytest.mark.asyncio
 async def test_redaction_applied_to_payload(orch_fixture: MagicMock) -> None:
     """Exfiltration URLs in action payload are redacted before context."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
 
@@ -287,7 +287,7 @@ async def test_redaction_applied_to_payload(orch_fixture: MagicMock) -> None:
 @pytest.mark.asyncio
 async def test_sel_audit_logged_for_action(orch_fixture: MagicMock) -> None:
     """SEL audit event is logged for action button interactions."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
 
@@ -319,8 +319,8 @@ async def test_sel_audit_logged_for_action(orch_fixture: MagicMock) -> None:
 @pytest.mark.asyncio
 async def test_slack_kill_now_action_force_stops(orch_fixture: MagicMock) -> None:
     """stop_kill_now action calls sessions.stop_turn with force=True."""
-    from kiro_crew.slack import interactions
-    from kiro_crew.slack.handler import set_allowed_users, set_owner_id
+    from junction.slack import interactions
+    from junction.slack.handler import set_allowed_users, set_owner_id
 
     set_owner_id("U123")
     set_allowed_users({"U123"})
@@ -363,8 +363,8 @@ async def test_slack_kill_now_posts_to_thread_not_session_key(
     Regression test: for linked dashboard sessions, session_key is not a
     valid Slack thread (e.g. ``dashboard:chat-xxx``) and would fail to post.
     """
-    from kiro_crew.slack import interactions
-    from kiro_crew.slack.handler import set_allowed_users, set_owner_id
+    from junction.slack import interactions
+    from junction.slack.handler import set_allowed_users, set_owner_id
 
     set_owner_id("U123")
     set_allowed_users({"U123"})
@@ -419,7 +419,7 @@ async def test_slack_kill_now_posts_to_thread_not_session_key(
 @pytest.mark.asyncio
 async def test_slack_kill_now_rejects_unauthorized(orch_fixture: MagicMock) -> None:
     """stop_kill_now enforces is_allowed_user() — deny-by-default."""
-    from kiro_crew.slack import interactions
+    from junction.slack import interactions
 
     orch = orch_fixture
     orch.sessions.stop_turn = AsyncMock(return_value="hard")
@@ -456,8 +456,8 @@ async def test_handle_stop_kill_now_defense_in_depth(orch_fixture: MagicMock) ->
     with _handle_interactive), the handler must still deny unauthorized
     callers. Direct handler invocation simulates that bypass.
     """
-    from kiro_crew.slack import interactions
-    from kiro_crew.slack.handler import set_allowed_users, set_owner_id
+    from junction.slack import interactions
+    from junction.slack.handler import set_allowed_users, set_owner_id
 
     set_owner_id("U123")
     set_allowed_users({"U123"})
@@ -479,9 +479,9 @@ async def test_handle_stop_kill_now_defense_in_depth(orch_fixture: MagicMock) ->
 
 @pytest.mark.asyncio
 async def test_handle_stop_confirm_uses_stop_turn(orch_fixture: MagicMock) -> None:
-    """/kirocrew stop confirm button routes through stop_turn, not bare reset."""
-    from kiro_crew.slack import interactions
-    from kiro_crew.slack.handler import set_allowed_users, set_owner_id
+    """/junction stop confirm button routes through stop_turn, not bare reset."""
+    from junction.slack import interactions
+    from junction.slack.handler import set_allowed_users, set_owner_id
 
     set_owner_id("U123")
     set_allowed_users({"U123"})
@@ -523,8 +523,8 @@ async def test_handle_stop_confirm_rejects_unauthorized(orch_fixture: MagicMock)
     stop_turn() can escalate to a hard kill, so the handler must re-check
     authorization even though dispatch() also enforces it.
     """
-    from kiro_crew.slack import interactions
-    from kiro_crew.slack.handler import set_allowed_users, set_owner_id
+    from junction.slack import interactions
+    from junction.slack.handler import set_allowed_users, set_owner_id
 
     set_owner_id("U123")
     set_allowed_users({"U123"})  # U_RANDOM not allowlisted
@@ -569,7 +569,7 @@ class TestHomeTabSessionResume:
     def _orch_with_slack(self, *, has_link: tuple[str, str] = ("", "")):
         """Build a mock orchestrator + slack client. ``has_link`` controls
         whether the session is reported as already linked."""
-        from kiro_crew.slack import interactions
+        from junction.slack import interactions
 
         slack = MagicMock()
         slack.open_dm = AsyncMock(return_value="DUSER")
@@ -607,7 +607,7 @@ class TestHomeTabSessionResume:
 
     @pytest.mark.asyncio
     async def test_falls_back_to_dm_when_channel_missing(self) -> None:
-        from kiro_crew.slack import interactions
+        from junction.slack import interactions
 
         orch, slack, sessions = self._orch_with_slack()
         payload = self._home_tab_payload("dashboard:chat-1", "Pipeline triage", "UOWNER")
@@ -635,7 +635,7 @@ class TestHomeTabSessionResume:
 
     @pytest.mark.asyncio
     async def test_already_linked_session_posts_message_to_dm(self) -> None:
-        from kiro_crew.slack import interactions
+        from junction.slack import interactions
 
         orch, slack, sessions = self._orch_with_slack(has_link=("123.456", "C0LINKED"))
         payload = self._home_tab_payload("dashboard:chat-1", "Live chat", "UOWNER")
@@ -679,8 +679,8 @@ class TestTransportApprovalAuth:
     async def test_unauthorized_click_does_not_resolve(
         self, orch_fixture: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack import interactions
-        from kiro_crew.slack.renderer import SlackApprovalDecider
+        from junction.slack import interactions
+        from junction.slack.renderer import SlackApprovalDecider
 
         monkeypatch.setattr(interactions, "is_allowed_user", lambda uid: False)
         spy = MagicMock(return_value=True)
@@ -695,8 +695,8 @@ class TestTransportApprovalAuth:
     async def test_authorized_approve_resolves(
         self, orch_fixture: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack import interactions
-        from kiro_crew.slack.renderer import SlackApprovalDecider
+        from junction.slack import interactions
+        from junction.slack.renderer import SlackApprovalDecider
 
         monkeypatch.setattr(interactions, "is_allowed_user", lambda uid: True)
         spy = MagicMock(return_value=True)
@@ -719,9 +719,9 @@ class TestTransportApprovalAuth:
         # a denial, not that it never happened.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.slack import interactions
-        from kiro_crew.slack.renderer import SlackApprovalDecider
+        from junction.platform import governance_profiles as gp
+        from junction.slack import interactions
+        from junction.slack.renderer import SlackApprovalDecider
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -761,9 +761,9 @@ class TestTransportApprovalAuth:
         # kiro-cli future until timeout. The reject is NOT gated out.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.slack import interactions
-        from kiro_crew.slack.renderer import SlackApprovalDecider
+        from junction.platform import governance_profiles as gp
+        from junction.slack import interactions
+        from junction.slack.renderer import SlackApprovalDecider
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -800,8 +800,8 @@ class TestTransportApprovalAuth:
         # channel. Regression-locks the review-action call site.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.slack import interactions
+        from junction.platform import governance_profiles as gp
+        from junction.slack import interactions
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -838,8 +838,8 @@ class TestTransportApprovalAuth:
         # would strand the pending approval until timeout).
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.slack import interactions
+        from junction.platform import governance_profiles as gp
+        from junction.slack import interactions
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -882,8 +882,8 @@ class TestTransportApprovalAuth:
         # LINK_DASHBOARD_ACTION call site.
         import json
 
-        from kiro_crew.platform import governance_profiles as gp
-        from kiro_crew.slack import interactions
+        from junction.platform import governance_profiles as gp
+        from junction.slack import interactions
 
         pdir = tmp_path / "profiles"
         pdir.mkdir()
@@ -914,8 +914,8 @@ class TestTransportApprovalAuth:
     async def test_authorized_trust_grants_session_then_resolves(
         self, orch_fixture: MagicMock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from kiro_crew.slack import interactions
-        from kiro_crew.slack.renderer import SlackApprovalDecider
+        from junction.slack import interactions
+        from junction.slack.renderer import SlackApprovalDecider
 
         monkeypatch.setattr(interactions, "is_allowed_user", lambda uid: True)
         monkeypatch.setattr(

@@ -1,4 +1,4 @@
-"""Tests for kiro_crew.apps.backend — backend process management."""
+"""Tests for junction.apps.backend — backend process management."""
 from __future__ import annotations
 
 import json
@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from conftest import requires_symlinks
-from kiro_crew.apps.backend import (
+from junction.apps.backend import (
     AppProcess,
     PortUnavailableError,
     _find_free_port,
@@ -21,7 +21,7 @@ from kiro_crew.apps.backend import (
     start_app_backend,
     stop_app_backend,
 )
-from kiro_crew.apps.manager import APP_MANIFEST_FILENAME, install_app
+from junction.apps.manager import APP_MANIFEST_FILENAME, install_app
 
 
 def _sandbox_can_spawn() -> bool:
@@ -39,7 +39,7 @@ def _sandbox_can_spawn() -> bool:
     start_app_backend().
     """
     try:
-        from kiro_crew import sandbox as _sb
+        from junction import sandbox as _sb
 
         argv, cleanup = _sb.wrap_argv([sys.executable, "-c", "pass"], mode="standard")
     except Exception:  # noqa: BLE001 — any probe failure => treat as "can't spawn"
@@ -99,14 +99,14 @@ def _make_app_with_backend(tmp_path, name="backend-app"):
 
 @pytest.fixture()
 def app_env(tmp_path, monkeypatch, worker_id):
-    home = tmp_path / "kirocrew-home"
+    home = tmp_path / "junction-home"
     home.mkdir()
-    monkeypatch.setenv("KIROCREW_HOME", str(home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home))
     # These tests exercise admitted backend process mechanics.
     (home / "config.json").write_text(
         json.dumps({"agent": {"apps_allow_third_party": True}}), encoding="utf-8"
     )
-    import kiro_crew.apps.backend as bmod
+    import junction.apps.backend as bmod
 
     # Under xdist (-n auto) each worker runs in its OWN process with its own
     # _allocated_ports dict, so two workers both auto-allocate 9100 and the real
@@ -161,7 +161,7 @@ def app_env(tmp_path, monkeypatch, worker_id):
 
 class TestPortAllocation:
     def test_find_free_port(self, app_env):
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         port = _find_free_port()
         # Bounds read off the module, not the 9100/9200 literals: ``app_env`` gives
@@ -179,7 +179,7 @@ class TestPortAllocation:
         """
         import threading
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         with bmod._lock:
             bmod._allocated_ports.clear()
@@ -217,7 +217,7 @@ class TestFixedAndAutoPortIsolation:
         auto worker can select that exact number first and the fixed app is then
         refused even though other ports were free — an enabled backend left down.
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         fixed = bmod._MIN_PORT + 3
         manifests = {
@@ -254,7 +254,7 @@ class TestFixedAndAutoPortIsolation:
 
     def test_preclaim_tolerates_unreadable_or_invalid_manifests(self, monkeypatch):
         """Pre-claiming is best-effort: it must never itself fail boot."""
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         manifests = {
             "no-manifest": None,
@@ -280,7 +280,7 @@ class TestFixedAndAutoPortIsolation:
         backend would stay unavailable. Asserted at the real seam: the port must
         already be reserved by the time the spawn body runs.
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         # Stub the OS sandbox: these tests are about PORT bookkeeping, and
         # wrap_argv() fail-closes before that code on hosts without a backend
@@ -324,7 +324,7 @@ class TestFixedAndAutoPortIsolation:
         allocate), so a failure that kept the reservation would permanently burn
         that port — and a gateway retrying a broken app would leak one per attempt.
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         # Stub the OS sandbox: these tests are about PORT bookkeeping, and
         # wrap_argv() fail-closes before that code on hosts without a backend
@@ -364,7 +364,7 @@ class TestFixedAndAutoPortIsolation:
         leaves two apps mapped to one port; both children then bind it and the
         loser dies of EADDRINUSE, staying unavailable.
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         with bmod._lock:
             bmod._allocated_ports.clear()
@@ -381,7 +381,7 @@ class TestFixedAndAutoPortIsolation:
 
     def test_reclaiming_your_own_fixed_port_is_idempotent(self):
         """A restart/retry of the SAME app must not be refused its own port."""
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         with bmod._lock:
             bmod._allocated_ports.clear()
@@ -395,7 +395,7 @@ class TestFixedAndAutoPortIsolation:
 
     def test_auto_allocation_skips_ports_claimed_by_other_apps(self):
         """The free-port scan must honor claims, not just live sockets."""
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         with bmod._lock:
             bmod._allocated_ports.clear()
@@ -434,7 +434,7 @@ class TestBootSpawnLatency:
         """
         import time as real_time
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         # OUR child owns the listener — the very bind whose failure this guards.
         monkeypatch.setattr(bmod, "_port_is_listening", lambda port: True)
@@ -461,7 +461,7 @@ class TestBootSpawnLatency:
         host) must be reported as failed. Only OUR child owning the listener —
         positive evidence that its own bind succeeded — may short-circuit.
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         monkeypatch.setattr(bmod, "time", _frozen_spawn_time())
         monkeypatch.setattr(bmod.platform_compat, "listening_pid_tool_available", lambda: True)
@@ -488,7 +488,7 @@ class TestBootSpawnLatency:
         and about to die of EADDRINUSE — reporting a doomed pid as started and
         routing two apps at one backend.
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         monkeypatch.setattr(bmod, "time", _frozen_spawn_time())
         # Something is listening, but it is not our child (nor its descendant).
@@ -516,7 +516,7 @@ class TestBootSpawnLatency:
         or the early exit would never fire in production (where the listening pid
         is the launcher's child, not the pid Popen returned).
         """
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         monkeypatch.setattr(bmod, "time", _frozen_spawn_time())
         monkeypatch.setattr(bmod.platform_compat, "listening_pid_tool_available", lambda: True)
@@ -552,7 +552,7 @@ class TestBootSpawnLatency:
         """
         import time as real_time
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         class _Alive:
             pid = 4242
@@ -577,7 +577,7 @@ class TestBootSpawnLatency:
         """No port to observe → unchanged behavior (wait out the whole window)."""
         import time as real_time
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         class _Alive:
             pid = 4242
@@ -595,7 +595,7 @@ class TestBootSpawnLatency:
         """No port->PID tool → cannot prove ownership → keep the old behavior."""
         import time as real_time
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         monkeypatch.setattr(
             bmod.platform_compat, "listening_pid_tool_available", lambda: False
@@ -625,7 +625,7 @@ class TestBootSpawnLatency:
         """
         import threading
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         names = [f"par-app-{i}" for i in range(4)]
         concurrent = threading.Barrier(len(names), timeout=10)
@@ -642,7 +642,7 @@ class TestBootSpawnLatency:
 
     def test_concurrent_boot_isolates_a_single_app_failure(self, monkeypatch):
         """One app's spawn failure must never take down the others (or boot)."""
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         def _fake_start(app_name: str):
             if app_name == "bad-app":
@@ -778,8 +778,8 @@ class TestBackendLifecycle:
         # by the runtime backstop in _start_app_backend_body. We materialize the
         # app dir directly (bypassing install-time validation) to exercise the
         # boot-time guard — never spawning a real process.
-        from kiro_crew.apps.backend import _start_app_backend_body
-        from kiro_crew.apps.manager import app_dir, get_app_manifest
+        from junction.apps.backend import _start_app_backend_body
+        from junction.apps.manager import app_dir, get_app_manifest
 
         root = app_dir("escape-app")
         root.mkdir(parents=True, exist_ok=True)
@@ -807,8 +807,8 @@ class TestBackendLifecycle:
         # when the switch is off.
         import logging
 
-        import kiro_crew.apps.backend as bmod
-        from kiro_crew.apps.manager import app_dir, get_app_manifest
+        import junction.apps.backend as bmod
+        from junction.apps.manager import app_dir, get_app_manifest
 
         root = app_dir("third-party-backend")
         root.mkdir(parents=True, exist_ok=True)
@@ -825,7 +825,7 @@ class TestBackendLifecycle:
             )
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.execution.third_party_execution_allowed", lambda: False
+            "junction.apps.execution.third_party_execution_allowed", lambda: False
         )
         monkeypatch.setattr(
             bmod.subprocess, "Popen", lambda *a, **k: pytest.fail("spawned despite gate off")
@@ -842,8 +842,8 @@ class TestBackendLifecycle:
     ):
         # The gate stays open for a real shipped builtin only when the manifest's
         # python -m target resolves inside that builtin's immutable package.
-        import kiro_crew.apps.backend as bmod
-        from kiro_crew.apps.manager import (
+        import junction.apps.backend as bmod
+        from junction.apps.manager import (
             InstalledApp,
             _write_installed,
             app_dir,
@@ -861,7 +861,7 @@ class TestBackendLifecycle:
                     "displayName": "Files",
                     "description": "shipped builtin backend",
                     "backend": {
-                        "entryPoint": "kiro_crew.apps.builtins.file_explorer.server",
+                        "entryPoint": "junction.apps.builtins.file_explorer.server",
                         "port": "auto",
                     },
                 }
@@ -872,7 +872,7 @@ class TestBackendLifecycle:
             InstalledApp(name=name, origin="builtin", enabled=True),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.execution.third_party_execution_allowed", lambda: False
+            "junction.apps.execution.third_party_execution_allowed", lambda: False
         )
 
         class _ReachedSpawn(Exception):
@@ -900,8 +900,8 @@ class TestBackendLifecycle:
         # when its dotted entry resolves to genuine shipped builtin code.
         import logging
 
-        import kiro_crew.apps.backend as bmod
-        from kiro_crew.apps.manager import (
+        import junction.apps.backend as bmod
+        from junction.apps.manager import (
             InstalledApp,
             _write_installed,
             app_dir,
@@ -918,7 +918,7 @@ class TestBackendLifecycle:
                     "displayName": "Evil",
                     "description": "forged builtin provenance",
                     "backend": {
-                        "entryPoint": "kiro_crew.apps.builtins.file_explorer.server",
+                        "entryPoint": "junction.apps.builtins.file_explorer.server",
                         "port": "auto",
                     },
                 }
@@ -929,7 +929,7 @@ class TestBackendLifecycle:
             InstalledApp(name="evil-dotted", origin="builtin", enabled=True),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.execution.third_party_execution_allowed", lambda: False
+            "junction.apps.execution.third_party_execution_allowed", lambda: False
         )
         monkeypatch.setattr(
             bmod.subprocess, "Popen", lambda *a, **k: pytest.fail("spawned despite gate off")
@@ -946,8 +946,8 @@ class TestBackendLifecycle:
     ):
         import logging
 
-        import kiro_crew.apps.backend as bmod
-        from kiro_crew.apps.manager import (
+        import junction.apps.backend as bmod
+        from junction.apps.manager import (
             InstalledApp,
             _write_installed,
             app_dir,
@@ -974,7 +974,7 @@ class TestBackendLifecycle:
             InstalledApp(name=name, origin="builtin", enabled=True),
         )
         monkeypatch.setattr(
-            "kiro_crew.apps.execution.third_party_execution_allowed", lambda: False
+            "junction.apps.execution.third_party_execution_allowed", lambda: False
         )
         monkeypatch.setattr(
             bmod.subprocess, "Popen", lambda *a, **k: pytest.fail("spawned mutable code")
@@ -992,7 +992,7 @@ class TestBackendLifecycle:
         # reported as started — otherwise the gateway proxies to a dead port (502) and
         # respawns onto the same doomed port forever (the crash-loop we hit). The spawn
         # verifies the child survived its bind; an immediate exit → None + cleared state.
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         # Widen the survival-check grace window for this test only. The boom.py child
         # exits immediately ONCE it runs, but under heavy pytest-xdist parallelism
@@ -1034,7 +1034,7 @@ class TestBackendLifecycle:
         # sandboxed os.fork()s racing (a fork-in-threads deadlock unrelated to this fix).
         import threading
 
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         src = _make_app_with_backend(tmp_path)
         install_app(src)
@@ -1085,7 +1085,7 @@ class TestBackendLifecycle:
         # never fires), an awaiting caller hits the deadline with the placeholder still
         # STARTING. It must clear that placeholder and return None — otherwise the app is
         # wedged in 'starting' forever and every later call re-enters the 20s wait.
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         with bmod._lock:
             bmod._processes["wedged-app"] = AppProcess(
@@ -1142,8 +1142,8 @@ class TestShellDispatch:
     def _dispatch_cmd(self, tmp_path, monkeypatch, name, entry_rel, content, *,
                       executable, backend_type=""):
         """Install an app, then capture the argv the dispatch builds."""
-        import kiro_crew.apps.backend as bmod
-        from kiro_crew.apps.manager import get_app_manifest
+        import junction.apps.backend as bmod
+        from junction.apps.manager import get_app_manifest
 
         src = tmp_path / "source" / name
         src.mkdir(parents=True)
@@ -1227,8 +1227,8 @@ class TestShellDispatch:
         # On native Windows (IS_POSIX False) the shell branch must fail fast
         # with a logged error and return None — never reach Popen with a
         # shebang-dependent argv or the nonexistent /bin/sh.
-        import kiro_crew.apps.backend as bmod
-        from kiro_crew.apps.manager import get_app_manifest
+        import junction.apps.backend as bmod
+        from junction.apps.manager import get_app_manifest
 
         name = "win-shell-refused"
         src = tmp_path / "source" / name
@@ -1254,7 +1254,7 @@ class TestShellDispatch:
 
 
 class TestBootAdmissionRevet:
-    """start_enabled_app_backends re-vets admission at boot (KiroCrew parity).
+    """start_enabled_app_backends re-vets admission at boot (Junction parity).
 
     An app enabled before a policy tightened (banned / now-unsigned) must NOT
     keep running across restarts, but builtins (origin == "builtin") are exempt
@@ -1262,7 +1262,7 @@ class TestBootAdmissionRevet:
     """
 
     def _boot_env(self, monkeypatch):
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         monkeypatch.setattr(bmod, "_reap_stale_app_backends", lambda: 0)
         started: list[str] = []
@@ -1310,7 +1310,7 @@ class TestBootAdmissionRevet:
         """A per-app spawn failure (e.g. sandbox.wrap_argv fail-closing on macOS 26
         where sandbox-exec is gone) must NOT crash the whole gateway — the loop logs,
         skips the failing app, and still boots the healthy one."""
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
 
         monkeypatch.setattr(bmod, "_reap_stale_app_backends", lambda: 0)
         monkeypatch.setattr(bmod, "get_app_manifest", lambda name: None)
@@ -1365,7 +1365,7 @@ class TestHealthGatedMcpRegistration:
         monkeypatch.setattr(bmod, "_HEALTH_CHECK_RETRIES", 3)
 
     def test_registers_when_healthy_and_still_tracked(self, monkeypatch):
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
         self._fast_health(bmod, monkeypatch)
         calls = []
         monkeypatch.setattr(bmod, "_gate_mcp_registration",
@@ -1386,7 +1386,7 @@ class TestHealthGatedMcpRegistration:
     def test_does_not_register_if_stopped_mid_healthcheck(self, monkeypatch):
         # review-bot race finding: app removed from _processes between the poll and the lock →
         # must NOT register MCP for a now-dead backend.
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
         self._fast_health(bmod, monkeypatch)
         calls = []
         monkeypatch.setattr(bmod, "_gate_mcp_registration",
@@ -1401,7 +1401,7 @@ class TestHealthGatedMcpRegistration:
         assert calls == []  # never registered — no dead-URL entry written
 
     def test_scrubs_when_never_healthy(self, monkeypatch):
-        import kiro_crew.apps.backend as bmod
+        import junction.apps.backend as bmod
         self._fast_health(bmod, monkeypatch)
         calls = []
         monkeypatch.setattr(bmod, "_gate_mcp_registration",
@@ -1423,7 +1423,7 @@ class TestHealthGatedMcpRegistration:
 
 
 # =============================================================================
-# KIROCREW_DEVFLEET_REPO forwarding (silent-empty-fleet fix)
+# JUNCTION_DEVFLEET_REPO forwarding (silent-empty-fleet fix)
 # =============================================================================
 
 
@@ -1432,43 +1432,43 @@ def test_devfleet_repo_survives_the_app_backend_env_allowlist(monkeypatch):
 
     The dev-fleet backend runs as a separate process started with
     ``apps.registry.minimal_env()``, which passes only a fixed safe-key set.
-    ``KIROCREW_DEVFLEET_REPO`` is dev-fleet's highest-priority repo discovery
+    ``JUNCTION_DEVFLEET_REPO`` is dev-fleet's highest-priority repo discovery
     hint, but until it is added to the explicit platform extras the allowlist
     strips it — the operator sets the documented override, the backend never
     sees it, and the fleet silently renders empty (the remaining hints are
-    ``KIROCREW_PROJECT_DIR``, which packaged installs point at the app bundle
-    with no ``.git``, and a hardcoded ``~/kirocrew`` fallback).
+    ``JUNCTION_PROJECT_DIR``, which packaged installs point at the app bundle
+    with no ``.git``, and a hardcoded ``~/junction`` fallback).
     """
     from pathlib import Path
 
-    import kiro_crew.apps.backend as bmod
-    from kiro_crew.apps.registry import minimal_env
+    import junction.apps.backend as bmod
+    from junction.apps.registry import minimal_env
 
-    monkeypatch.setenv("KIROCREW_DEVFLEET_REPO", "/opt/checkouts/kirocrew")
+    monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/opt/checkouts/junction")
     # The generic allowlist does NOT carry it — that is the trap this guards.
-    assert "KIROCREW_DEVFLEET_REPO" not in minimal_env()
+    assert "JUNCTION_DEVFLEET_REPO" not in minimal_env()
 
     # apps/backend.py must therefore add it to the explicit platform extras
-    # (same mechanism that carries KIROCREW_PROJECT_DIR and the
-    # KIROCREW_DEVFLEET_BIN_* trusted-binary overrides).
+    # (same mechanism that carries JUNCTION_PROJECT_DIR and the
+    # JUNCTION_DEVFLEET_BIN_* trusted-binary overrides).
     body = Path(bmod.__file__).read_text()
-    assert '_platform_extra["KIROCREW_DEVFLEET_REPO"]' in body, \
-        "the KIROCREW_DEVFLEET_REPO override no longer reaches app backends"
+    assert '_platform_extra["JUNCTION_DEVFLEET_REPO"]' in body, \
+        "the JUNCTION_DEVFLEET_REPO override no longer reaches app backends"
 
 
 def test_devfleet_repo_env_wins_repo_discovery(monkeypatch, tmp_path):
     """dev-fleet honors the forwarded override ahead of every other hint."""
-    from kiro_crew.apps.builtins.dev_fleet import server as dfmod
+    from junction.apps.builtins.dev_fleet import server as dfmod
 
     proj = tmp_path / "proj"
     (proj / ".git").mkdir(parents=True)
-    (proj / "src" / "kiro_crew").mkdir(parents=True)
+    (proj / "src" / "junction").mkdir(parents=True)
     (proj / "pyproject.toml").write_text("[project]\nname = 'kiro-crew'\n")
-    monkeypatch.setenv("KIROCREW_DEVFLEET_REPO", "/opt/checkouts/kirocrew")
-    monkeypatch.setenv("KIROCREW_PROJECT_DIR", str(proj))
-    assert dfmod._default_main_repo() == "/opt/checkouts/kirocrew"
+    monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/opt/checkouts/junction")
+    monkeypatch.setenv("JUNCTION_PROJECT_DIR", str(proj))
+    assert dfmod._default_main_repo() == "/opt/checkouts/junction"
 
     # Without the override the chain falls through to PROJECT_DIR, which is
-    # adopted only because it carries the Kiro Crew checkout markers.
-    monkeypatch.delenv("KIROCREW_DEVFLEET_REPO")
+    # adopted only because it carries the Junction checkout markers.
+    monkeypatch.delenv("JUNCTION_DEVFLEET_REPO")
     assert dfmod._default_main_repo() == str(proj)

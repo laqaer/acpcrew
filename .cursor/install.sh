@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cloud Agent bootstrap for Kiro Crew.
+# Cloud Agent bootstrap for Junction.
 #
 # Idempotent: safe to re-run. It refreshes the frontend bundle, the backend
 # virtualenv, and the agent config from the checked-out source.
@@ -16,10 +16,10 @@ if ! python3 -c 'import ensurepip' >/dev/null 2>&1; then
 fi
 
 # Canonical build from CONTRIBUTING.md: build the Vite frontend, stage it into
-# src/kiro_crew/static/dist, then editable-install the backend (with dev tools)
+# src/junction/static/dist, then editable-install the backend (with dev tools)
 # into .venv. ensure-node.sh / ensure-python.sh are no-ops here because the base
 # image already satisfies the Node >= 22.12 and Python >= 3.10 floors.
 make build
 
 # Install the agent config so the gateway and CLI resolve it on startup.
-KIROCREW_PROJECT_DIR="$PWD" .venv/bin/kirocrew setup --agent-only
+JUNCTION_PROJECT_DIR="$PWD" .venv/bin/junction setup --agent-only

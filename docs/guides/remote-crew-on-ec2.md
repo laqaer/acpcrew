@@ -79,7 +79,7 @@ spawn — fails closed. Pick one:
   Then restart the gateway.
 - **Or opt into unsandboxed execution (trades isolation — only on a box you
   trust).** Run `junction setup` (it offers this interactively), or set
-  `agent.sandbox_allow_unsandboxed_exec: true` in `~/.kiro/crew/config.json`, then
+  `agent.sandbox_allow_unsandboxed_exec: true` in `~/.junction/config.json`, then
   restart the gateway. This lets agent subprocesses run without any sandbox.
 
 ### Gateway/pods die on logout: "linger disabled"
@@ -96,18 +96,18 @@ survives logout; linger still matters for pods and for user-level installs.)
 
 ### "kiro login: not logged in"
 
-kiro-cli must be authenticated **on the box**. Run `kirocrew cloud login` from
+kiro-cli must be authenticated **on the box**. Run `junction cloud login` from
 your laptop and complete the device-code flow in the browser it opens. Chat errors
 like "not logged in" mean this step was skipped on the remote.
 
 ### Signing in as a different Kiro account
 
-`kirocrew cloud login` short-circuits when the box already has a session ("already
+`junction cloud login` short-circuits when the box already has a session ("already
 signed in"), so switching accounts is a sign-out first:
 
 ```bash
-kirocrew cloud logout    # drops the kiro-cli session on the instance
-kirocrew cloud login     # device-code flow for the new account
+junction cloud logout    # drops the kiro-cli session on the instance
+junction cloud login     # device-code flow for the new account
 ```
 
 `logout` also kills any background login still polling on the box — otherwise it
@@ -116,13 +116,13 @@ would quietly re-authenticate the account you just dropped.
 ### Port/tunnel mismatch (the common one)
 
 `junction doctor`'s "Remote access" hint and its `dashboard: http://localhost:5476`
-line show the **defaults**. If your service or shell sets `KIROCREW_PORT` (e.g.
+line show the **defaults**. If your service or shell sets `JUNCTION_PORT` (e.g.
 `7777`), the gateway actually listens **there**, not on 5476 — the doctor line just
 didn't see that env var. Your tunnel, browser, and token must all use the **same,
 real** port:
 
 ```bash
-# service has KIROCREW_PORT=7777 → tunnel 7777, not 5476:
+# service has JUNCTION_PORT=7777 → tunnel 7777, not 5476:
 ssh -N -L 7777:localhost:7777 <ec2-host>
 # then open http://localhost:7777
 ```

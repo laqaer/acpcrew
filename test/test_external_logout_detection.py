@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import kiro_prerequisite as kp
-from kiro_crew.session import _MAX_CONCURRENT_COLD_STARTS as _MAX_COLD_STARTS_FOR_TEST
+from junction import kiro_prerequisite as kp
+from junction.session import _MAX_CONCURRENT_COLD_STARTS as _MAX_COLD_STARTS_FOR_TEST
 
 
 def _write_store(
@@ -335,7 +335,7 @@ class TestIdentityFingerprint:
     def test_the_audit_id_is_registered(self) -> None:
         """An unregistered id is refused by the hook, which would fail every read."""
 
-        from kiro_crew import hooks
+        from junction import hooks
 
         assert kp._IDENTITY_FINGERPRINT_READ_ID in hooks._AUDIT_ONLY_READ_IDS
 
@@ -601,7 +601,7 @@ class _FakeProvider:
 
     @property
     def uses_kiro_identity_store(self) -> bool:
-        from kiro_crew.acp.types import ACP_BACKENDS_KIRO_IDENTITY_STORE
+        from junction.acp.types import ACP_BACKENDS_KIRO_IDENTITY_STORE
 
         return self.backend in ACP_BACKENDS_KIRO_IDENTITY_STORE
 
@@ -628,7 +628,7 @@ class _FakeRuntime:
 
     @property
     def uses_kiro_identity_store(self) -> bool:
-        from kiro_crew.acp.types import ACP_BACKENDS_KIRO_IDENTITY_STORE
+        from junction.acp.types import ACP_BACKENDS_KIRO_IDENTITY_STORE
 
         return self._acp_backend in ACP_BACKENDS_KIRO_IDENTITY_STORE
 
@@ -745,14 +745,14 @@ class TestStoreRelocation:
 
 class TestProviderMembership:
     def test_kiro_backend_is_a_member(self) -> None:
-        from kiro_crew.session import _provider_uses_kiro_identity_store
+        from junction.session import _provider_uses_kiro_identity_store
 
         assert _provider_uses_kiro_identity_store(_FakeProvider(""))
 
     def test_unknown_backend_fails_closed(self) -> None:
         """An object that declares nothing must be left running, not recycled."""
 
-        from kiro_crew.session import _provider_uses_kiro_identity_store
+        from junction.session import _provider_uses_kiro_identity_store
 
         assert not _provider_uses_kiro_identity_store(object())
         assert not _provider_uses_kiro_identity_store(_FakeProvider("claude"))
@@ -765,13 +765,13 @@ class TestProviderMembership:
         so a harness that never states the claim cannot inherit it.
         """
 
-        from kiro_crew.providers.base import LLMProvider
+        from junction.providers.base import LLMProvider
 
         assert "uses_kiro_identity_store" in vars(LLMProvider)
         assert LLMProvider.uses_kiro_identity_store.fget(object()) is False  # type: ignore[attr-defined]
 
     def test_a_non_declaring_provider_is_not_swept(self) -> None:
-        from kiro_crew.session import _provider_uses_kiro_identity_store
+        from junction.session import _provider_uses_kiro_identity_store
 
         class _Bare:
             pass
@@ -1006,7 +1006,7 @@ class TestLatchNarrowingPolicy:
         at "not signed in" until someone presses Check again.
         """
 
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         db = kp.kiro_identity_store_path("linux", tmp_path, {})
         _write_store(db)
@@ -1027,7 +1027,7 @@ class TestLatchNarrowingPolicy:
 
     @pytest.mark.asyncio
     async def test_an_actual_sign_out_does_narrow_readiness(self, tmp_path: Path) -> None:
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         db = kp.kiro_identity_store_path("linux", tmp_path, {})
         _write_store(db)
@@ -1054,7 +1054,7 @@ class TestLatchNarrowingPolicy:
     async def test_an_incomplete_sweep_leaves_the_change_pending(self, tmp_path: Path) -> None:
         """A skipped holder must not be recorded as reconciled."""
 
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         db = kp.kiro_identity_store_path("linux", tmp_path, {})
         _write_store(db)
@@ -1074,7 +1074,7 @@ class TestLatchNarrowingPolicy:
 
     @pytest.mark.asyncio
     async def test_a_complete_sweep_reconciles_once(self, tmp_path: Path) -> None:
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         db = kp.kiro_identity_store_path("linux", tmp_path, {})
         _write_store(db)
@@ -1099,7 +1099,7 @@ class TestLatchNarrowingPolicy:
         account it loaded to one turn.
         """
 
-        from kiro_crew.dashboard import chat_runner
+        from junction.dashboard import chat_runner
 
         # No store on disk at all: the fingerprint is absent.
         service = kp.KiroPrerequisiteService(home=tmp_path, environ={}, platform_name="linux")
@@ -1120,16 +1120,16 @@ class TestRetirementCoverage:
 
     @staticmethod
     def _manager():
-        from kiro_crew.config import KiroCrewConfig
-        from kiro_crew.session import SessionManager
+        from junction.config import JunctionConfig
+        from junction.session import SessionManager
 
         # pool_size 0 so construction never pre-spawns; the pool is populated
         # explicitly by the test that cares about it.
-        return SessionManager(KiroCrewConfig())
+        return SessionManager(JunctionConfig())
 
     @staticmethod
     def _session(provider: object, *, busy: bool = False):
-        from kiro_crew.session import _Session
+        from junction.session import _Session
 
         sess = _Session(provider=provider)  # type: ignore[arg-type]
         if busy:
@@ -1486,7 +1486,7 @@ class TestRetirementCoverage:
     async def test_the_runtime_predicate_counts_inits_in_flight(self) -> None:
         """Pins the real AcpRuntime property, not just the test double."""
 
-        from kiro_crew.acp.runtime import AcpRuntime
+        from junction.acp.runtime import AcpRuntime
 
         runtime = AcpRuntime.__new__(AcpRuntime)
         runtime._session_queues = {}  # type: ignore[attr-defined]

@@ -14,9 +14,9 @@ from pathlib import Path
 
 import pytest
 
-from kiro_crew import config as kiro_crew_config
-from kiro_crew.acp import kas_agents
-from kiro_crew.acp.kas_agents import (
+from junction import config as junction_config
+from junction.acp import kas_agents
+from junction.acp.kas_agents import (
     _KAS_FALLBACK_PROMPT,
     KAS_MAX_CUSTOM_AGENTS,
     KasAgentTranslationError,
@@ -33,11 +33,11 @@ def _rule(policy, capability):
 
 def _spec(**over):
     base = {
-        "name": "kirocrew",
+        "name": "junction",
         "description": "the crew agent",
         "prompt": "You are Kiro.",
-        "tools": ["fs_read", "fs_write", "@kirocrew-core"],
-        "mcpServers": {"kirocrew-core": {"command": "x"}},
+        "tools": ["fs_read", "fs_write", "@junction-core"],
+        "mcpServers": {"junction-core": {"command": "x"}},
         "model": "auto",
         "includeMcpJson": False,
     }
@@ -49,8 +49,8 @@ class TestRequiredFields:
     """``id`` and ``prompt`` are the schema's only required members."""
 
     def test_id_and_prompt_are_emitted(self):
-        out = to_client_custom_agent("kirocrew", _spec(), "You are Kiro.")
-        assert out["id"] == "kirocrew"
+        out = to_client_custom_agent("junction", _spec(), "You are Kiro.")
+        assert out["id"] == "junction"
         assert out["prompt"] == "You are Kiro."
 
     def test_empty_id_is_refused(self):
@@ -59,7 +59,7 @@ class TestRequiredFields:
 
     def test_empty_prompt_is_refused(self):
         with pytest.raises(KasAgentTranslationError):
-            to_client_custom_agent("kirocrew", _spec(), "   ")
+            to_client_custom_agent("junction", _spec(), "   ")
 
 
 class TestToolsFailClosed:
@@ -71,12 +71,12 @@ class TestToolsFailClosed:
 
     def test_list_is_passed_through(self):
         out = to_client_custom_agent("a", _spec(), "p")
-        assert out["tools"] == ["fs_read", "fs_write", "@kirocrew-core"]
+        assert out["tools"] == ["fs_read", "fs_write", "@junction-core"]
 
     def test_mcp_server_shorthand_survives(self):
         """KAS tags every MCP tool ``@<server>``, so Crew's existing syntax works."""
-        out = to_client_custom_agent("a", _spec(tools=["@kirocrew-cron"]), "p")
-        assert out["tools"] == ["@kirocrew-cron"]
+        out = to_client_custom_agent("a", _spec(tools=["@junction-cron"]), "p")
+        assert out["tools"] == ["@junction-cron"]
 
     def test_star_becomes_the_all_tools_literal(self):
         """``"*"`` is a distinct type in the schema, not a list member."""
@@ -222,8 +222,8 @@ class TestTheCeilingIsReAskedAtProjectionTime:
         self, monkeypatch, caplog
     ):
         monkeypatch.setattr(kas_agents, "may_skip_gate_now", lambda ref: False)
-        with caplog.at_level("INFO", logger="kiro_crew.acp.kas_agents"):
-            to_client_custom_agent("kirocrew", _spec(allowedTools=["web_fetch"]), "p")
+        with caplog.at_level("INFO", logger="junction.acp.kas_agents"):
+            to_client_custom_agent("junction", _spec(allowedTools=["web_fetch"]), "p")
         assert "withholds auto-approval for web_fetch" in caplog.text
 
     def test_an_ungoverned_host_keeps_every_grant(self, monkeypatch):
@@ -252,13 +252,13 @@ class TestTheCeilingIsReAskedAtProjectionTime:
             ),
         )
 
-        to_client_custom_agent("kirocrew", _spec(allowedTools=["@denied-srv"]), "p")
+        to_client_custom_agent("junction", _spec(allowedTools=["@denied-srv"]), "p")
 
         assert len(events) == 1
         assert events[0]["operation"] == "mcp_auto_approve_withheld"
         assert events[0]["source"] == "kas_agent_projection"
         assert "@denied-srv" in events[0]["resources"]
-        assert "kirocrew" in events[0]["resources"]
+        assert "junction" in events[0]["resources"]
 
     def test_nothing_withheld_emits_no_event(self, monkeypatch):
         monkeypatch.setattr(kas_agents, "may_skip_gate_now", lambda ref: True)
@@ -307,24 +307,24 @@ class TestKeysTheWireCannotCarry:
 
     def test_the_keys_are_named(self, caplog):
         spec = _spec(hooks={"postToolUse": []}, toolsSettings={"x": 1})
-        with caplog.at_level("DEBUG", logger="kiro_crew.acp.kas_agents"):
-            to_client_custom_agent("kirocrew", spec, "p")
+        with caplog.at_level("DEBUG", logger="junction.acp.kas_agents"):
+            to_client_custom_agent("junction", spec, "p")
         assert "toolsSettings" in caplog.text
 
     def test_it_does_not_warn_on_every_session(self, caplog):
         """Constant payload on a per-session path: at WARNING it is pure noise."""
         with caplog.at_level("WARNING"):
-            to_client_custom_agent("kirocrew", _spec(toolsSettings={"x": 1}), "p")
+            to_client_custom_agent("junction", _spec(toolsSettings={"x": 1}), "p")
         assert caplog.text.strip() == ""
 
     def test_the_translated_key_is_not_reported_as_lost(self, caplog):
-        with caplog.at_level("DEBUG", logger="kiro_crew.acp.kas_agents"):
-            to_client_custom_agent("kirocrew", _spec(allowedTools=["web_fetch"]), "p")
+        with caplog.at_level("DEBUG", logger="junction.acp.kas_agents"):
+            to_client_custom_agent("junction", _spec(allowedTools=["web_fetch"]), "p")
         assert "allowedTools" not in caplog.text
 
     def test_nothing_logged_when_the_spec_has_none(self, caplog):
-        with caplog.at_level("DEBUG", logger="kiro_crew.acp.kas_agents"):
-            to_client_custom_agent("kirocrew", _spec(), "p")
+        with caplog.at_level("DEBUG", logger="junction.acp.kas_agents"):
+            to_client_custom_agent("junction", _spec(), "p")
         assert "cannot carry" not in caplog.text
 
 
@@ -393,10 +393,10 @@ class TestPromptResolution:
     @pytest.mark.parametrize("bad", [None, "", "   "])
     def test_empty_prompt_falls_back_to_the_kas_constant(self, bad, tmp_path, caplog):
         # KAS requires a non-empty prompt; a missing or blank string is an
-        # intentionally prompt-less agent (e.g. kirocrew-lite ships "prompt": ""),
+        # intentionally prompt-less agent (e.g. junction-lite ships "prompt": ""),
         # so the projection substitutes the small inline fallback constant
         # instead of crashing the session.
-        out = resolve_prompt({"prompt": bad}, agent_id="kirocrew-lite", agents_dir=tmp_path)
+        out = resolve_prompt({"prompt": bad}, agent_id="junction-lite", agents_dir=tmp_path)
         assert out == _KAS_FALLBACK_PROMPT
         assert "falling back to the lightweight KAS prompt" in caplog.text
 
@@ -421,10 +421,10 @@ class TestPromptResolution:
             resolve_prompt({"prompt": f"file://{p}"}, agent_id="a", agents_dir=tmp_path)
 
     def test_build_projects_a_prompt_less_spec_with_the_fallback(self, tmp_path):
-        (tmp_path / "kirocrew-lite.json").write_text(
-            json.dumps({"name": "kirocrew-lite", "tools": [], "prompt": ""}), encoding="utf-8"
+        (tmp_path / "junction-lite.json").write_text(
+            json.dumps({"name": "junction-lite", "tools": [], "prompt": ""}), encoding="utf-8"
         )
-        agents = build_kas_custom_agents(tmp_path, "kirocrew-lite")
+        agents = build_kas_custom_agents(tmp_path, "junction-lite")
         assert agents[0]["prompt"] == _KAS_FALLBACK_PROMPT
         # Tool restriction is preserved — the fallback only supplies a prompt.
         assert agents[0]["tools"] == []
@@ -444,14 +444,14 @@ class TestAgainstTheRealBundledSpec:
 
     @staticmethod
     def _bundled() -> dict:
-        path = Path(kiro_crew_config.__file__).resolve().parent / "defaults.json"
+        path = Path(junction_config.__file__).resolve().parent / "defaults.json"
         return json.loads(path.read_text(encoding="utf-8"))
 
     def test_the_crew_agent_projects_with_its_tools_intact(self):
         spec = self._bundled()
         out = to_client_custom_agent(spec["name"], spec, "resolved prompt text")
 
-        assert out["id"] == "kirocrew"
+        assert out["id"] == "junction"
         assert out["prompt"] == "resolved prompt text"
         # The MCP shorthand is most of Crew's tool surface; losing it would leave
         # the agent nominally configured but unable to reach its own tools.
