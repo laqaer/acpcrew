@@ -220,7 +220,7 @@ describe('theme — picker-option seam', () => {
   })
 
   it('throws on a value already in core THEMES; core wins', () => {
-    expect(() => registerTheme([{ value: 'kiro', label: 'Hijack' }])).toThrow(/already registered/)
+    expect(() => registerTheme([{ value: 'junction', label: 'Hijack' }])).toThrow(/already registered/)
   })
 
   it('throws on a duplicate registered value in dev/test', () => {

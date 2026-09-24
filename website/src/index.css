@@ -373,14 +373,16 @@ html:lang(ko) {
   --shadow-md:0 4px 12px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.04);
   --shadow-lg:0 12px 28px rgba(0,0,0,.12);
 }
-/* ── Junction (factory default) ──
-   "Interchange": signal blue on asphalt, the palette of a motorway sign. The
-   blue is the plate colour of the Junction mark; in dark mode it is lifted to
-   #5c8dff so text in the accent clears 4.5:1 on every surface. Neutrals lean
-   cool so the blue reads as the only colour on screen. :root carries the dark
-   set so the first paint, before a theme resolves, is already Junction.
-   Emerald and Amber reuse these neutrals and override only their accents. */
 :root,[data-theme="junction-dark"],[data-theme="dark"],[data-theme="amber-dark"]{
+  /* ── Junction (factory default) ──
+     "Interchange": signal blue on asphalt, the palette of a motorway sign. The
+     blue is the plate colour of the Junction mark; in dark mode it is lifted to
+     #5c8dff so text in the accent clears 4.5:1 on every surface. Neutrals lean
+     cool so the blue reads as the only colour on screen. :root carries the dark
+     set so the first paint, before a theme resolves, is already Junction.
+     Emerald and Amber reuse these neutrals and override only their accents.
+     (Comments sit inside the braces: test/themeFillForeground reads the text
+     before a brace as the selector list.) */
   --search-highlight:rgba(255,193,61,.42);--search-highlight-current:rgba(255,150,30,.85);--search-highlight-current-border:rgba(255,255,255,.9);
   --bg:#0b0e13;--bg-accent:#0e1218;--bg-elevated:#161b24;--bg-hover:#1d232e;
   --card:#11151c;--card-fg:#f3f6fa;--card-hl:rgba(255,255,255,.045);
@@ -433,8 +435,8 @@ html:lang(ko) {
   color-scheme:light;
 }
 
-/* ── Emerald ── the Junction neutrals with a green accent. */
 [data-theme="dark"]{
+  /* ── Emerald ── the Junction neutrals with a green accent. */
   --accent:#34d399;--accent-fg:#03140d;--accent-hover:#6ee7b7;--accent-subtle:rgba(52,211,153,.15);
   --accent-glow:rgba(52,211,153,.28);--ring:#34d399;
 }
